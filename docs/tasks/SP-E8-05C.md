@@ -26,3 +26,7 @@
 - `C:\OSPanel\home\tasks.local\completed\106\0219e351-V-5.10-public.png`
 - `C:\OSPanel\home\tasks.local\completed\106\2f2075a9-V-5.10-public-detail.png`
 - `C:\OSPanel\home\tasks.local\completed\106\f82e7785-V-5.10-share.png`
+- `C:\OSPanel\home\tasks.local\completed\107\3ca56229-V-5.P-desktop-bottom.png`
+- `C:\OSPanel\home\tasks.local\completed\107\42b3951e-V-5.P-mobile-bottom.png`
+- `C:\OSPanel\home\tasks.local\completed\107\747c7dba-V-5.P-mobile-top.png`
+- `C:\OSPanel\home\tasks.local\completed\107\b321ea60-V-5.P-desktop-top.png`

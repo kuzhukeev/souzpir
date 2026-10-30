@@ -1,0 +1,4950 @@
+{
+  "originals": 308,
+  "planned": 307,
+  "excluded": 1,
+  "derivativesIncluded": false,
+  "images": [
+    {
+      "relative": "1/518a4370-S-0.1-mobile-eyon.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\1\\518a4370-S-0.1-mobile-eyon.png",
+      "sha256": "dbeabf8a59789a085cdc5ad8e56070273bd3ac0f201917c20b0c00bead4b0045",
+      "screenHints": [
+        "S-0.1"
+      ],
+      "screens": [
+        "S-0.1"
+      ],
+      "taskKeys": [
+        "SP-E1-01",
+        "SP-P-01"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "1/9e731e5b-S-0.1-login-eyon.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\1\\9e731e5b-S-0.1-login-eyon.png",
+      "sha256": "f9ab5b8b3fe7418b99d8daf651d60bfcf4825f02d969ef07b2dd7cbdad365c3b",
+      "screenHints": [
+        "S-0.1"
+      ],
+      "screens": [
+        "S-0.1"
+      ],
+      "taskKeys": [
+        "SP-E1-01",
+        "SP-P-01"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "1/f038e642-S-0.1-states-eyon.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\1\\f038e642-S-0.1-states-eyon.png",
+      "sha256": "0293f9ac5345710c96b2de5b35ed9125418cffff7d3b03bb230544a7c10b6daa",
+      "screenHints": [
+        "S-0.1"
+      ],
+      "screens": [
+        "S-0.1"
+      ],
+      "taskKeys": [
+        "SP-E1-01",
+        "SP-P-01"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "10/a1178f03-S-0.6d-first-module-step.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\10\\a1178f03-S-0.6d-first-module-step.png",
+      "sha256": "6cb74be827e867c64113ad7beccc6e98dc898f216eb7421a82dcd27d708ce185",
+      "screenHints": [
+        "S-0.6d"
+      ],
+      "screens": [
+        "S-0.6"
+      ],
+      "taskKeys": [
+        "SP-E1-02"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "100/35722d88-V-3.6-schedule.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\100\\35722d88-V-3.6-schedule.png",
+      "sha256": "5a615402e1d9027012d14d43a1b915f1f645bd792149a5c8d1c4e9155ed38e82",
+      "screenHints": [
+        "V-3.6"
+      ],
+      "screens": [
+        "V-3.6"
+      ],
+      "taskKeys": [
+        "SP-E8-04"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "101/0058aa5f-V-4.1-empty.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\101\\0058aa5f-V-4.1-empty.png",
+      "sha256": "90c8757f89e0695ed1104c1c3d9a02b592d7cade77c3ec215e805fe48be28699",
+      "screenHints": [
+        "V-4.1"
+      ],
+      "screens": [
+        "V-4.1"
+      ],
+      "taskKeys": [
+        "SP-E8-04"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "101/f5d5296f-V-4.1-clarify.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\101\\f5d5296f-V-4.1-clarify.png",
+      "sha256": "278f125e1a61a758c042216c478df20dd7bbb0cd768ec9c65cff8bd5c4e36943",
+      "screenHints": [
+        "V-4.1"
+      ],
+      "screens": [
+        "V-4.1"
+      ],
+      "taskKeys": [
+        "SP-E8-04"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "102/521bbe06-V-4.2-empty.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\102\\521bbe06-V-4.2-empty.png",
+      "sha256": "5a6f6aa745a4379e6ecf97c50a1ce352e0b6670c0369913e5bf599540e527187",
+      "screenHints": [
+        "V-4.2"
+      ],
+      "screens": [
+        "V-4.2"
+      ],
+      "taskKeys": [
+        "SP-E8-04"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "102/d102601e-V-4.2-presence.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\102\\d102601e-V-4.2-presence.png",
+      "sha256": "9a8d15e101d173e699930dbe75dca573c79cf0d1b8ff75091b4004e2ee219504",
+      "screenHints": [
+        "V-4.2"
+      ],
+      "screens": [
+        "V-4.2"
+      ],
+      "taskKeys": [
+        "SP-E8-04"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "103/b3aee9db-V-4.3-facts.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\103\\b3aee9db-V-4.3-facts.png",
+      "sha256": "22fb5ddbb9587bf88be8e3f6f9636e27bb34e39c9acbf38e9857ff7a2410c0d6",
+      "screenHints": [
+        "V-4.3"
+      ],
+      "screens": [
+        "V-4.3"
+      ],
+      "taskKeys": [
+        "SP-E8-04"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "103/d14953b2-V-4.3-facts-empty.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\103\\d14953b2-V-4.3-facts-empty.png",
+      "sha256": "b38830f03451f081ce1f30ea4c876adce0f1db9063d3202517f99144626ae8c8",
+      "screenHints": [
+        "V-4.3"
+      ],
+      "screens": [
+        "V-4.3"
+      ],
+      "taskKeys": [
+        "SP-E8-04"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "104/92d54d74-V-4.4-success.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\104\\92d54d74-V-4.4-success.png",
+      "sha256": "6a7f37b624d6b0800ac61c51082101066a5298817c4b05b9fccc988d5172f079",
+      "screenHints": [
+        "V-4.4"
+      ],
+      "screens": [
+        "V-4.4"
+      ],
+      "taskKeys": [
+        "SP-E8-04"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "104/dbb88353-V-4.4-skipped.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\104\\dbb88353-V-4.4-skipped.png",
+      "sha256": "54efb4c2b22c5614c001cf303bd049df3d697feb7ac6affcbf3696a95e4cae41",
+      "screenHints": [
+        "V-4.4"
+      ],
+      "screens": [
+        "V-4.4"
+      ],
+      "taskKeys": [
+        "SP-E8-04"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "105/32b2a00c-V-5-report-01-overview.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\105\\32b2a00c-V-5-report-01-overview.png",
+      "sha256": "708134c9a14ccfc7dfe2be07b2ccccca7892c772c2b99c66afd16fc6cf99736f",
+      "screenHints": [
+        "V-5"
+      ],
+      "screens": [
+        "V-5.1"
+      ],
+      "taskKeys": [
+        "SP-E8-05"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "105/4e0c6a34-V-5-report-02-competitors.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\105\\4e0c6a34-V-5-report-02-competitors.png",
+      "sha256": "e130e5250c7e8a2a46e4c5fd4b5a37b383bdf627e0fda5a9c1d0f2eb9d57dee4",
+      "screenHints": [
+        "V-5"
+      ],
+      "screens": [
+        "V-5.2"
+      ],
+      "taskKeys": [
+        "SP-E8-05"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "105/8e55992f-V-5-report-05-actions.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\105\\8e55992f-V-5-report-05-actions.png",
+      "sha256": "a87646d69e441c59c73565259251f45d15324d9babd7805da3149587be694ce0",
+      "screenHints": [
+        "V-5"
+      ],
+      "screens": [
+        "V-5.7"
+      ],
+      "taskKeys": [
+        "SP-E8-05"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "105/b851f7c0-V-5-report-06-changes-method.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\105\\b851f7c0-V-5-report-06-changes-method.png",
+      "sha256": "ffb7e52bd0d12b4ccfcdba696d7d5674075113520e10d0753f6ffdc31730d7c0",
+      "screenHints": [
+        "V-5"
+      ],
+      "screens": [
+        "V-5.8",
+        "V-5.9"
+      ],
+      "taskKeys": [
+        "SP-E8-05"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "105/c75d7f07-V-5-report-07-locked.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\105\\c75d7f07-V-5-report-07-locked.png",
+      "sha256": "c1d73ccb5f7a05c2d7b7f7fe2ae5bde93ff507dd2a23ae3aa97f8913bf0cd953",
+      "screenHints": [
+        "V-5"
+      ],
+      "screens": [
+        "V-5.1",
+        "V-5.2",
+        "V-5.3",
+        "V-5.4",
+        "V-5.5",
+        "V-5.6",
+        "V-5.7",
+        "V-5.8",
+        "V-5.9"
+      ],
+      "taskKeys": [
+        "SP-E8-05"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "105/dd58c6ed-V-5-report-03-gaps-facts.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\105\\dd58c6ed-V-5-report-03-gaps-facts.png",
+      "sha256": "fe99712c0b77e67463d69c49f106c9df17e2b24b08ddbbbbf488d8899cf5f15c",
+      "screenHints": [
+        "V-5"
+      ],
+      "screens": [
+        "V-5.3",
+        "V-5.4"
+      ],
+      "taskKeys": [
+        "SP-E8-05"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "105/de7dbf3d-V-5-report-04-sources-site.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\105\\de7dbf3d-V-5-report-04-sources-site.png",
+      "sha256": "b93ffe3f340de863ba396ba6df9905ee3b8c7c47986ab8d2e528dd2f6125c2d1",
+      "screenHints": [
+        "V-5"
+      ],
+      "screens": [
+        "V-5.5",
+        "V-5.6"
+      ],
+      "taskKeys": [
+        "SP-E8-05"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "106/0219e351-V-5.10-public.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\106\\0219e351-V-5.10-public.png",
+      "sha256": "66cee891bf0cd363604b6ff6fd723a724ed3033197e63efd4cbf36d1359d092d",
+      "screenHints": [
+        "V-5.10"
+      ],
+      "screens": [
+        "V-5.10"
+      ],
+      "taskKeys": [
+        "SP-E8-05C"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "106/2f2075a9-V-5.10-public-detail.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\106\\2f2075a9-V-5.10-public-detail.png",
+      "sha256": "6a2d57921eb4ad381bec3c68dba781ce6736e0d067a2d1c395115836fbd81acb",
+      "screenHints": [
+        "V-5.10"
+      ],
+      "screens": [
+        "V-5.10"
+      ],
+      "taskKeys": [
+        "SP-E8-05C"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "106/f82e7785-V-5.10-share.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\106\\f82e7785-V-5.10-share.png",
+      "sha256": "d1d37fd4788a0ff9ad7c9658a6ee99eef5d0bd58c05a21f1182e2b9c437b6089",
+      "screenHints": [
+        "V-5.10"
+      ],
+      "screens": [
+        "V-5.10"
+      ],
+      "taskKeys": [
+        "SP-E8-05C"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "107/3ca56229-V-5.P-desktop-bottom.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\107\\3ca56229-V-5.P-desktop-bottom.png",
+      "sha256": "6b5ed28ce888b64db224d45926f6158b1b1f61930e06c8b9dd630d82491afbaf",
+      "screenHints": [
+        "V-5.P"
+      ],
+      "screens": [
+        "V-5.P"
+      ],
+      "taskKeys": [
+        "SP-E8-05C"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "107/42b3951e-V-5.P-mobile-bottom.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\107\\42b3951e-V-5.P-mobile-bottom.png",
+      "sha256": "69c9c676e7d4df5e432237d344283108dfd502153d07e5d26899f4d3ca121d2d",
+      "screenHints": [
+        "V-5.P"
+      ],
+      "screens": [
+        "V-5.P"
+      ],
+      "taskKeys": [
+        "SP-E8-05C"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "107/747c7dba-V-5.P-mobile-top.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\107\\747c7dba-V-5.P-mobile-top.png",
+      "sha256": "0442fa043f33ff280e4f21eedcc32a972d085b0525f06f8753a883134a3a642e",
+      "screenHints": [
+        "V-5.P"
+      ],
+      "screens": [
+        "V-5.P"
+      ],
+      "taskKeys": [
+        "SP-E8-05C"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "107/b321ea60-V-5.P-desktop-top.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\107\\b321ea60-V-5.P-desktop-top.png",
+      "sha256": "1c9956e2d46f1bbb66d63635f0e16926a259ab1cec58f6ccb329bcbc31666aa2",
+      "screenHints": [
+        "V-5.P"
+      ],
+      "screens": [
+        "V-5.P"
+      ],
+      "taskKeys": [
+        "SP-E8-05C"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "108/9e5154af-V-6.1-mentioned-empty.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\108\\9e5154af-V-6.1-mentioned-empty.png",
+      "sha256": "8c3aff1f44b8d97774f886287d50a3841f3b531caa95f0ebaea0f304938c015c",
+      "screenHints": [
+        "V-6.1"
+      ],
+      "screens": [
+        "V-6.1"
+      ],
+      "taskKeys": [
+        "SP-E8-05B"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "108/baacfe85-V-6.1-mentioned.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\108\\baacfe85-V-6.1-mentioned.png",
+      "sha256": "0cedee2c00a89d03f38966c197009430f254e2825990ec1bc39463f3a095bea8",
+      "screenHints": [
+        "V-6.1"
+      ],
+      "screens": [
+        "V-6.1"
+      ],
+      "taskKeys": [
+        "SP-E8-05B"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "109/505d259f-V-6.2-competitor-top.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\109\\505d259f-V-6.2-competitor-top.png",
+      "sha256": "2de7300d9b4d6263b653937dcd093bdc35091f07608d3f34787d0647fd238cc2",
+      "screenHints": [
+        "V-6.2"
+      ],
+      "screens": [
+        "V-6.2"
+      ],
+      "taskKeys": [
+        "SP-E8-05B"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "109/718183c4-V-6.2-competitor-details.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\109\\718183c4-V-6.2-competitor-details.png",
+      "sha256": "b2126791abc1653fd7c59ccb69a425565e3dcb8aca07cf70e7e69f8a74552ceb",
+      "screenHints": [
+        "V-6.2"
+      ],
+      "screens": [
+        "V-6.2"
+      ],
+      "taskKeys": [
+        "SP-E8-05B"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "11/5513d4ce-S-0.7-company-select-v2.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\11\\5513d4ce-S-0.7-company-select-v2.png",
+      "sha256": "0cef2df44ce97038141c35b605c2f5d472eb995a669e5d3de5e6218db02ad009",
+      "screenHints": [
+        "S-0.7"
+      ],
+      "screens": [
+        "S-0.7"
+      ],
+      "taskKeys": [],
+      "status": "excluded",
+      "note": "Выбор организации исключён пользователем."
+    },
+    {
+      "relative": "110/1f71e876-V-6.3-recalculating.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\110\\1f71e876-V-6.3-recalculating.png",
+      "sha256": "e29ef3d44b12fa57b56a4e4e20ef34c046878c604783ce977e2630d6887cf1b2",
+      "screenHints": [
+        "V-6.3"
+      ],
+      "screens": [
+        "V-6.3"
+      ],
+      "taskKeys": [
+        "SP-E8-05B"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "110/3f84ee57-V-6.3-main.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\110\\3f84ee57-V-6.3-main.png",
+      "sha256": "5d626262646c6fba77ff4870d6f4faaec7f8f521de95ffc33b009af5619d8357",
+      "screenHints": [
+        "V-6.3"
+      ],
+      "screens": [
+        "V-6.3"
+      ],
+      "taskKeys": [
+        "SP-E8-05B"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "110/7e482869-V-6.3-merge.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\110\\7e482869-V-6.3-merge.png",
+      "sha256": "d35c153e9eb70c9a2cceb16fdd5fa92f56c4f2cd96162cf160140824164a6a04",
+      "screenHints": [
+        "V-6.3"
+      ],
+      "screens": [
+        "V-6.3"
+      ],
+      "taskKeys": [
+        "SP-E8-05B"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "110/d6b8fb13-V-6.3-empty.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\110\\d6b8fb13-V-6.3-empty.png",
+      "sha256": "508291c489244df0d6ceb214dde3e4dbdfcd07824f36fab695e624d490e823c2",
+      "screenHints": [
+        "V-6.3"
+      ],
+      "screens": [
+        "V-6.3"
+      ],
+      "taskKeys": [
+        "SP-E8-05B"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "111/4f5bcfaf-V-6.4-compare.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\111\\4f5bcfaf-V-6.4-compare.png",
+      "sha256": "99d5e092730a72b4edaf3d76da5832acd50e6f49f77e7f74cfa0f57736b2a386",
+      "screenHints": [
+        "V-6.4"
+      ],
+      "screens": [
+        "V-6.4"
+      ],
+      "taskKeys": [
+        "SP-E8-05B"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "112/7bd46959-V-7.1-sources.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\112\\7bd46959-V-7.1-sources.png",
+      "sha256": "9ba254eaa1e73745a3499033367ec5d0a95d621baaf3c8e16b1b8261788fbdb3",
+      "screenHints": [
+        "V-7.1"
+      ],
+      "screens": [
+        "V-7.1"
+      ],
+      "taskKeys": [
+        "SP-E8-05B"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "112/8241102a-V-7.1-sources-empty.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\112\\8241102a-V-7.1-sources-empty.png",
+      "sha256": "b171b0aa662480d9cbab329803d0b22254c9cafd0ed39a77765d7ef22bf5fc93",
+      "screenHints": [
+        "V-7.1"
+      ],
+      "screens": [
+        "V-7.1"
+      ],
+      "taskKeys": [
+        "SP-E8-05B"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "113/06a0d3dd-V-7.2-states.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\113\\06a0d3dd-V-7.2-states.png",
+      "sha256": "7bfc4ae3cc06977e9ed24b2b1a0fad55bfd04c01599f1c548c546b0672f980e9",
+      "screenHints": [
+        "V-7.2"
+      ],
+      "screens": [
+        "V-7.2"
+      ],
+      "taskKeys": [
+        "SP-E8-05B"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "113/3c07fb3b-V-7.2-main.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\113\\3c07fb3b-V-7.2-main.png",
+      "sha256": "fd8f279a50931b5fb0a3ee0334be64b4f8defcb120f6fbfa28048d4317201140",
+      "screenHints": [
+        "V-7.2"
+      ],
+      "screens": [
+        "V-7.2"
+      ],
+      "taskKeys": [
+        "SP-E8-05B"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "114/8cd58c0c-V-7.3-recommended-sources.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\114\\8cd58c0c-V-7.3-recommended-sources.png",
+      "sha256": "0ca89888edbf411b4c7bc8d8cb9cb0d933483b0c4d2d4ce2db833b0cc8b32338",
+      "screenHints": [
+        "V-7.3"
+      ],
+      "screens": [
+        "V-7.3"
+      ],
+      "taskKeys": [
+        "SP-E8-05B"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "115/26-V-8.1-site-readiness.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\115\\26-V-8.1-site-readiness.png",
+      "sha256": "d6bce70a7342fdabb83e231696a9f19802fb4ba08ac5bcfaba0e8dcc73a80930",
+      "screenHints": [
+        "V-8.1"
+      ],
+      "screens": [
+        "V-8.1"
+      ],
+      "taskKeys": [
+        "SP-E8-06"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "116/22855a13-V-8.2-developer.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\116\\22855a13-V-8.2-developer.png",
+      "sha256": "82b0222eac8920c0124c7e1d5620937f5714678b190b4d1c6d19d58b13c51b36",
+      "screenHints": [
+        "V-8.2"
+      ],
+      "screens": [
+        "V-8.2"
+      ],
+      "taskKeys": [
+        "SP-E8-06"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "116/5d462de1-V-8.2-criteria.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\116\\5d462de1-V-8.2-criteria.png",
+      "sha256": "23d516afeffe30eb5cc997a87da47c899250d48b98907af449c93fe8e1d57d94",
+      "screenHints": [
+        "V-8.2"
+      ],
+      "screens": [
+        "V-8.2"
+      ],
+      "taskKeys": [
+        "SP-E8-06"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "117/e2e1c994-V-8.3-bots.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\117\\e2e1c994-V-8.3-bots.png",
+      "sha256": "a5b179086f068ec9225c6a315b288f233d731b174579b6f78ce03142f95f75ae",
+      "screenHints": [
+        "V-8.3"
+      ],
+      "screens": [
+        "V-8.3"
+      ],
+      "taskKeys": [
+        "SP-E8-06"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "118/38a7c1ea-V-8.4-drawer.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\118\\38a7c1ea-V-8.4-drawer.png",
+      "sha256": "5768d5410f6450a1f5e1a895bc5c5489daeecbd4b1be0c992751d3affaf72e8e",
+      "screenHints": [
+        "V-8.4"
+      ],
+      "screens": [
+        "V-8.4"
+      ],
+      "taskKeys": [
+        "SP-E8-06"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "118/405443a7-V-8.4-empty.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\118\\405443a7-V-8.4-empty.png",
+      "sha256": "d76c7f42b011422cd20cb95fd03f3ce22c04305796abf2eec547f1bad03ef2fc",
+      "screenHints": [
+        "V-8.4"
+      ],
+      "screens": [
+        "V-8.4"
+      ],
+      "taskKeys": [
+        "SP-E8-06"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "118/d3900ae2-V-8.4-pages.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\118\\d3900ae2-V-8.4-pages.png",
+      "sha256": "6cbfaf9893290495301792833266adf49e0a28015e4b491857cb863baa87fde3",
+      "screenHints": [
+        "V-8.4"
+      ],
+      "screens": [
+        "V-8.4"
+      ],
+      "taskKeys": [
+        "SP-E8-06"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "119/1837ac62-V-8.5-progress.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\119\\1837ac62-V-8.5-progress.png",
+      "sha256": "eb3d1495d89f8747311ff334878b3d287e40ac9d77605b3c8fa70d24b35439bf",
+      "screenHints": [
+        "V-8.5"
+      ],
+      "screens": [
+        "V-8.5"
+      ],
+      "taskKeys": [
+        "SP-E8-06"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "119/e3218d37-V-8.5-confirm.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\119\\e3218d37-V-8.5-confirm.png",
+      "sha256": "c824258d961c5c0674331e6315780267b0d48a9d12d4d860551ee5a9423ac9a9",
+      "screenHints": [
+        "V-8.5"
+      ],
+      "screens": [
+        "V-8.5"
+      ],
+      "taskKeys": [
+        "SP-E8-06"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "12/13-S-1.1-home-single-profile.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\12\\13-S-1.1-home-single-profile.png",
+      "sha256": "8703bb4c1c21a5ddf356458569fb4999bfe707864d37b2dff0d01724edd4c921",
+      "screenHints": [
+        "S-1.1"
+      ],
+      "screens": [
+        "S-1.1"
+      ],
+      "taskKeys": [
+        "SP-E1-03"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "120/12089ccf-V-9.1-current-actions-empty.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\120\\12089ccf-V-9.1-current-actions-empty.png",
+      "sha256": "e8d4004e8f2e6dc1771ac6ce89b4f253e73ef802a47c3f057130e17f0a4b22bd",
+      "screenHints": [
+        "V-9.1"
+      ],
+      "screens": [
+        "V-9.1"
+      ],
+      "taskKeys": [
+        "SP-E8-06"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "120/c8823182-V-9.1-current-actions.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\120\\c8823182-V-9.1-current-actions.png",
+      "sha256": "9d50af2685c6edd104443b34f153693ca4061eb5d612e8b61904f11009278ba3",
+      "screenHints": [
+        "V-9.1"
+      ],
+      "screens": [
+        "V-9.1"
+      ],
+      "taskKeys": [
+        "SP-E8-06"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "121/4fb3dfcb-V-9.2-error.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\121\\4fb3dfcb-V-9.2-error.png",
+      "sha256": "df8c39c09a4923c9d16d281018ca747b94af087ca80c3b57491fde78456c296c",
+      "screenHints": [
+        "V-9.2"
+      ],
+      "screens": [
+        "V-9.2"
+      ],
+      "taskKeys": [
+        "SP-E8-06"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "121/5f272a6f-V-9.2-main.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\121\\5f272a6f-V-9.2-main.png",
+      "sha256": "13641cdf64d629f183e93f405fd8c5c77e48fbcde414dd30ec1dfc6a58113ed9",
+      "screenHints": [
+        "V-9.2"
+      ],
+      "screens": [
+        "V-9.2"
+      ],
+      "taskKeys": [
+        "SP-E8-06"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "121/e82cb7ca-V-9.2-success.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\121\\e82cb7ca-V-9.2-success.png",
+      "sha256": "8908f35773f2a3802dd378445f9fe0012dca5aca1852b35ddc010c971432c3c5",
+      "screenHints": [
+        "V-9.2"
+      ],
+      "screens": [
+        "V-9.2"
+      ],
+      "taskKeys": [
+        "SP-E8-06"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "122/6498fa33-V-9.3-empty.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\122\\6498fa33-V-9.3-empty.png",
+      "sha256": "fb1d88621f7890b2af758946d0a59d422f6e83dbfc55bd3a761a9bc1dc00ce7d",
+      "screenHints": [
+        "V-9.3"
+      ],
+      "screens": [
+        "V-9.3"
+      ],
+      "taskKeys": [
+        "SP-E8-06"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "122/80f9557c-V-9.3-history.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\122\\80f9557c-V-9.3-history.png",
+      "sha256": "1dee5661dcb7e8c835680210372c09fc7889a6bb3e3d9edeb7fa686f448fca0d",
+      "screenHints": [
+        "V-9.3"
+      ],
+      "screens": [
+        "V-9.3"
+      ],
+      "taskKeys": [
+        "SP-E8-06"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "123/475a5b41-V-10.1-empty.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\123\\475a5b41-V-10.1-empty.png",
+      "sha256": "bd5f55cd0887740aea868c35b4ee69138b584176e624d45fb965d7dc5a031852",
+      "screenHints": [
+        "V-10.1"
+      ],
+      "screens": [
+        "V-10.1"
+      ],
+      "taskKeys": [
+        "SP-E8-07"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "123/56467778-V-10.1-trends.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\123\\56467778-V-10.1-trends.png",
+      "sha256": "2e8d390112c9d092b473341685f34ecee427b135d78cb90ce75891e00377f8df",
+      "screenHints": [
+        "V-10.1"
+      ],
+      "screens": [
+        "V-10.1"
+      ],
+      "taskKeys": [
+        "SP-E8-07"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "124/c4b5f047-V-10.2-empty.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\124\\c4b5f047-V-10.2-empty.png",
+      "sha256": "46e2acbf90c4f0d3010e10a72ffc81a8aaf13f29ba2365f919c0f02bf64a62cd",
+      "screenHints": [
+        "V-10.2"
+      ],
+      "screens": [
+        "V-10.2"
+      ],
+      "taskKeys": [
+        "SP-E8-07"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "124/f8182d48-V-10.2-models.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\124\\f8182d48-V-10.2-models.png",
+      "sha256": "de932f31a04d2f5e836356da070982a16032cc2725767f744868c015a5b997b3",
+      "screenHints": [
+        "V-10.2"
+      ],
+      "screens": [
+        "V-10.2"
+      ],
+      "taskKeys": [
+        "SP-E8-07"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "125/0d8a2d0b-V-10.3-intent-trends-empty.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\125\\0d8a2d0b-V-10.3-intent-trends-empty.png",
+      "sha256": "aef8bd330e7b1ef2404d99cae9e512fc4cb9991feda6d3508d496420df26c8be",
+      "screenHints": [
+        "V-10.3"
+      ],
+      "screens": [
+        "V-10.3"
+      ],
+      "taskKeys": [
+        "SP-E8-07"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "125/f459c85a-V-10.3-intent-trends.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\125\\f459c85a-V-10.3-intent-trends.png",
+      "sha256": "4e88fc26b6fb6f3d3d555a194a1825c1a928b5fc7a43a72d3168fb8ac0c2e783",
+      "screenHints": [
+        "V-10.3"
+      ],
+      "screens": [
+        "V-10.3"
+      ],
+      "taskKeys": [
+        "SP-E8-07"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "126/6f869585-V-10.4-share-of-voice-empty.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\126\\6f869585-V-10.4-share-of-voice-empty.png",
+      "sha256": "5118d96c5baee3783dad313b0c0ff7cac8bf7624c597ddc3ef29c29c45af2c58",
+      "screenHints": [
+        "V-10.4"
+      ],
+      "screens": [
+        "V-10.4"
+      ],
+      "taskKeys": [
+        "SP-E8-07"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "126/e26151dc-V-10.4-share-of-voice.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\126\\e26151dc-V-10.4-share-of-voice.png",
+      "sha256": "f13959f61d97abc3253eca9079fa5418a33221b87f9545c03cc83e19a7692499",
+      "screenHints": [
+        "V-10.4"
+      ],
+      "screens": [
+        "V-10.4"
+      ],
+      "taskKeys": [
+        "SP-E8-07"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "127/72bac0f1-V-11.1-models.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\127\\72bac0f1-V-11.1-models.png",
+      "sha256": "638b7240dcb23405a9292482762ccf6a7323d9c20fc258fe377d17457e368123",
+      "screenHints": [
+        "V-11.1"
+      ],
+      "screens": [
+        "V-11.1"
+      ],
+      "taskKeys": [
+        "SP-E8-07"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "128/6352db49-V-11.2-schedule.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\128\\6352db49-V-11.2-schedule.png",
+      "sha256": "4f6d814cbd1f8846b1d139c25384030b718dab32e1dec81135659883890dba6b",
+      "screenHints": [
+        "V-11.2"
+      ],
+      "screens": [
+        "V-11.2"
+      ],
+      "taskKeys": [
+        "SP-E8-07"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "129/08642d34-V-11.3-slots.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\129\\08642d34-V-11.3-slots.png",
+      "sha256": "3ddf37006a8ccddd9105cb090c5bc4918dbee5fda790e7144f40a359ddde6240",
+      "screenHints": [
+        "V-11.3"
+      ],
+      "screens": [
+        "V-11.3"
+      ],
+      "taskKeys": [
+        "SP-E8-07"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "13/3d675762-S-1.2-attention.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\13\\3d675762-S-1.2-attention.png",
+      "sha256": "e55ba8af5d4faa5096cba836b49439be4c74ac7e5816565b25f1b167d2e822e6",
+      "screenHints": [
+        "S-1.2"
+      ],
+      "screens": [
+        "S-1.2"
+      ],
+      "taskKeys": [
+        "SP-E1-03",
+        "SP-P-01"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "13/b1e4c96c-S-1.2-attention-empty.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\13\\b1e4c96c-S-1.2-attention-empty.png",
+      "sha256": "72344d98b954f4726a9a7ba88afe3e36676c811719484a4f003c7430a5fa549b",
+      "screenHints": [
+        "S-1.2"
+      ],
+      "screens": [
+        "S-1.2"
+      ],
+      "taskKeys": [
+        "SP-E1-03",
+        "SP-P-01"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "130/6b9eb1a6-V-11.4-notifications.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\130\\6b9eb1a6-V-11.4-notifications.png",
+      "sha256": "6a702bd4978a941ca2cc4b5881c85c4027d18cbd443a19b394aea505f3e1d1a6",
+      "screenHints": [
+        "V-11.4"
+      ],
+      "screens": [
+        "V-11.4"
+      ],
+      "taskKeys": [
+        "SP-E8-07"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "131/096135c9-V-11.5-main.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\131\\096135c9-V-11.5-main.png",
+      "sha256": "9c7bdc06d4a2ff871456460b0b42e0707b09302d9a7d9ebda2f4c5e6dc743ea1",
+      "screenHints": [
+        "V-11.5"
+      ],
+      "screens": [
+        "V-11.5"
+      ],
+      "taskKeys": [
+        "SP-E8-07"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "131/127ef7cc-V-11.5-states.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\131\\127ef7cc-V-11.5-states.png",
+      "sha256": "a4e30ed97a8a69fa9921d79e4779d4d25847504328298a344cca625a71671519",
+      "screenHints": [
+        "V-11.5"
+      ],
+      "screens": [
+        "V-11.5"
+      ],
+      "taskKeys": [
+        "SP-E8-07"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "132/1a5b1c2c-D-5.1-request.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\132\\1a5b1c2c-D-5.1-request.png",
+      "sha256": "b9804475a1310e919a238a2fa9b3855870f2b1cd00d8037dbcb0702adf614269",
+      "screenHints": [
+        "D-5.1"
+      ],
+      "screens": [
+        "D-5.1"
+      ],
+      "taskKeys": [
+        "SP-E6-03"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "132/3ba5b844-D-5.1-fields-v2.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\132\\3ba5b844-D-5.1-fields-v2.png",
+      "sha256": "52343e39a7321b0669b5361dd9ddcc66ce91e3306b0770ed98b1aec55b45d7d6",
+      "screenHints": [
+        "D-5.1"
+      ],
+      "screens": [
+        "D-5.1"
+      ],
+      "taskKeys": [
+        "SP-E6-03"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "132/6ce1a45d-D-5.1-fields-v1.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\132\\6ce1a45d-D-5.1-fields-v1.png",
+      "sha256": "b600f493f4ae2e849e884525866acc3f9e664918942b7b0a5c0b04691b30ff56",
+      "screenHints": [
+        "D-5.1"
+      ],
+      "screens": [
+        "D-5.1"
+      ],
+      "taskKeys": [
+        "SP-E6-03"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "133/29a10887-D-5.2-funnel.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\133\\29a10887-D-5.2-funnel.png",
+      "sha256": "e440e9b30655532b0c112bf253da6ca3d526ac11e865adc17e4fb8af7203c273",
+      "screenHints": [
+        "D-5.2"
+      ],
+      "screens": [
+        "D-5.2"
+      ],
+      "taskKeys": [
+        "SP-E6-03"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "134/15cd7ef0-D-5.3-handoff-routing.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\134\\15cd7ef0-D-5.3-handoff-routing.png",
+      "sha256": "53b85adf6d54a28b9302f3216b5a97c7c4556a569fdb39f10bcde255fbce8eb1",
+      "screenHints": [
+        "D-5.3"
+      ],
+      "screens": [
+        "D-5.3"
+      ],
+      "taskKeys": [
+        "SP-E6-04"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "134/e4493e08-D-5.3-handoff-reasons.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\134\\e4493e08-D-5.3-handoff-reasons.png",
+      "sha256": "ebcba259904b19fa63b475395aed96f569169414f470f12735524c719b8ef75d",
+      "screenHints": [
+        "D-5.3"
+      ],
+      "screens": [
+        "D-5.3"
+      ],
+      "taskKeys": [
+        "SP-E6-04"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "135/97218f18-D-5.4-comparison.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\135\\97218f18-D-5.4-comparison.png",
+      "sha256": "f29f832211285716720282682e3873987ad23ddf7bf3d3a765f8cc26032221b7",
+      "screenHints": [
+        "D-5.4"
+      ],
+      "screens": [
+        "D-5.4"
+      ],
+      "taskKeys": [
+        "SP-E6-05"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "135/9c54ce75-D-5.4-techniques.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\135\\9c54ce75-D-5.4-techniques.png",
+      "sha256": "8c07d39c9247f1f64701a1bfdfef0100b012caaeb1f00b2eeacf8a0e16d9d673",
+      "screenHints": [
+        "D-5.4"
+      ],
+      "screens": [
+        "D-5.4"
+      ],
+      "taskKeys": [
+        "SP-E6-05"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "136/0e302103-D-5.5-followups.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\136\\0e302103-D-5.5-followups.png",
+      "sha256": "971b5c5d085daf7a2bd873ddc5e24fca98f8963fb70628b75a2ec54432e2f505",
+      "screenHints": [
+        "D-5.5"
+      ],
+      "screens": [
+        "D-5.5"
+      ],
+      "taskKeys": [
+        "SP-E6-03"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "137/b98da0d5-D-5.6-offtopic.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\137\\b98da0d5-D-5.6-offtopic.png",
+      "sha256": "6972fceb2cf8ba99c58957a6a4ba26c4ba2bfe6ac5cc8844d1e80a5d7d7f88b2",
+      "screenHints": [
+        "D-5.6"
+      ],
+      "screens": [
+        "D-5.6"
+      ],
+      "taskKeys": [
+        "SP-E6-03"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "138/01a0eb22-D-5.7-settings.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\138\\01a0eb22-D-5.7-settings.png",
+      "sha256": "869bcf5eee650af7ab3376846c2c3aaa98409f710431d6fa0078d4707081e67a",
+      "screenHints": [
+        "D-5.7"
+      ],
+      "screens": [
+        "D-5.7"
+      ],
+      "taskKeys": [
+        "SP-E6-04"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "138/361da1fd-D-5.7-states.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\138\\361da1fd-D-5.7-states.png",
+      "sha256": "e05593845dbd1ed1d6cafa555e26c48ab672d4f7899e9bd4849a2936334223ec",
+      "screenHints": [
+        "D-5.7"
+      ],
+      "screens": [
+        "D-5.7"
+      ],
+      "taskKeys": [
+        "SP-E6-04"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "138/67bb44cc-D-5.7-main.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\138\\67bb44cc-D-5.7-main.png",
+      "sha256": "377dbd2b220e9a09b708029abdf110ef86a0f59fca734aaa1fb28422830238df",
+      "screenHints": [
+        "D-5.7"
+      ],
+      "screens": [
+        "D-5.7"
+      ],
+      "taskKeys": [
+        "SP-E6-04"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "139/144f9a3e-D-7.4-scenarios.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\139\\144f9a3e-D-7.4-scenarios.png",
+      "sha256": "f60fca20217587973f28fecc040e58e1a6134fec35941ba810cb2dee61725a80",
+      "screenHints": [
+        "D-7.4"
+      ],
+      "screens": [
+        "D-7.4"
+      ],
+      "taskKeys": [
+        "SP-E7-02"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "14/39320931-S-1.3-notifications-v2.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\14\\39320931-S-1.3-notifications-v2.png",
+      "sha256": "671614040b940f477da29775fde5c5d15b971fe5b6c7155a1af1e80a789cd16d",
+      "screenHints": [
+        "S-1.3"
+      ],
+      "screens": [
+        "S-1.3"
+      ],
+      "taskKeys": [
+        "SP-E1-03"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "14/d17e8a02-S-1.3-notifications-empty-v2.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\14\\d17e8a02-S-1.3-notifications-empty-v2.png",
+      "sha256": "96dc569a3f713cfcf98d2b391c73a754917cdaddad6609f72f86fb50a02e10a3",
+      "screenHints": [
+        "S-1.3"
+      ],
+      "screens": [
+        "S-1.3"
+      ],
+      "taskKeys": [
+        "SP-E1-03"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "140/b3287d27-D-7.5-scenario-drawer.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\140\\b3287d27-D-7.5-scenario-drawer.png",
+      "sha256": "a3261dc8aaee4febbbd89f66587331721d1967be780d6047d75241b9fb6e147a",
+      "screenHints": [
+        "D-7.5"
+      ],
+      "screens": [
+        "D-7.5"
+      ],
+      "taskKeys": [
+        "SP-E7-02"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "141/058c6d8f-D-7.6-error.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\141\\058c6d8f-D-7.6-error.png",
+      "sha256": "809d6ab09ea42e860743a7ebcd6237ea383f9ed820a3a26337ce3faeb4291c83",
+      "screenHints": [
+        "D-7.6"
+      ],
+      "screens": [
+        "D-7.6"
+      ],
+      "taskKeys": [
+        "SP-E7-02"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "141/306b92ec-D-7.6-loading.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\141\\306b92ec-D-7.6-loading.png",
+      "sha256": "6c7140a7ecff1a15be433dd3761087dc3781201f1c633ce60ee755761b37c56d",
+      "screenHints": [
+        "D-7.6"
+      ],
+      "screens": [
+        "D-7.6"
+      ],
+      "taskKeys": [
+        "SP-E7-02"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "141/36024797-D-7.6-result.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\141\\36024797-D-7.6-result.png",
+      "sha256": "096f27202db5929116c7e1ef591c7cab4578ef8917287a0487193d4e3246fb06",
+      "screenHints": [
+        "D-7.6"
+      ],
+      "screens": [
+        "D-7.6"
+      ],
+      "taskKeys": [
+        "SP-E7-02"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "141/9ee0b636-D-7.6-runs.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\141\\9ee0b636-D-7.6-runs.png",
+      "sha256": "ca71054a1e4b6b4f2b4f9e03a0742296a15f30fc3074f24c3821fb5e6e21973a",
+      "screenHints": [
+        "D-7.6"
+      ],
+      "screens": [
+        "D-7.6"
+      ],
+      "taskKeys": [
+        "SP-E7-02"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "141/cbea0a16-D-7.6-empty.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\141\\cbea0a16-D-7.6-empty.png",
+      "sha256": "225c0afc165407c91605af7749e0c5aa76a7dabe0a1aa31b4e7c75350d4c14d3",
+      "screenHints": [
+        "D-7.6"
+      ],
+      "screens": [
+        "D-7.6"
+      ],
+      "taskKeys": [
+        "SP-E7-02"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "142/fbe10b64-D-7.7-compare.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\142\\fbe10b64-D-7.7-compare.png",
+      "sha256": "716c91813f8a3e1ef2a06265fea4ca3721d3681ba6b7d0bee7de721c2bf208fb",
+      "screenHints": [
+        "D-7.7"
+      ],
+      "screens": [
+        "D-7.7"
+      ],
+      "taskKeys": [
+        "SP-E7-03"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "143/88849080-D-7.8-calibration.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\143\\88849080-D-7.8-calibration.png",
+      "sha256": "4ea6ffa8974cd2b3eae6857e58edc6dad03db4697cf4ae3086f7d967251838f2",
+      "screenHints": [
+        "D-7.8"
+      ],
+      "screens": [
+        "D-7.8"
+      ],
+      "taskKeys": [
+        "SP-E7-03"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "144/3868f064-D-8.1-empty.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\144\\3868f064-D-8.1-empty.png",
+      "sha256": "b453ff98900c0b2288885bbbf124f86e3ebc1c4c6c2236991959593220475418",
+      "screenHints": [
+        "D-8.1"
+      ],
+      "screens": [
+        "D-8.1"
+      ],
+      "taskKeys": [
+        "SP-E7-04"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "144/fef5c065-D-8.1-funnel.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\144\\fef5c065-D-8.1-funnel.png",
+      "sha256": "03aa75a7071e711182cde03ad2654d36e7ba562a5b5025755321e7d44e33c13a",
+      "screenHints": [
+        "D-8.1"
+      ],
+      "screens": [
+        "D-8.1"
+      ],
+      "taskKeys": [
+        "SP-E7-04"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "145/22fe883b-D-8.2-dialog-analytics.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\145\\22fe883b-D-8.2-dialog-analytics.png",
+      "sha256": "d34831048e907d323169dfb379cae2207cf66390d9ac5bc5e307519b18f118f2",
+      "screenHints": [
+        "D-8.2"
+      ],
+      "screens": [
+        "D-8.2"
+      ],
+      "taskKeys": [
+        "SP-E7-04"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "146/d7dcd5e2-D-8.3-topics.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\146\\d7dcd5e2-D-8.3-topics.png",
+      "sha256": "65843e162e28d4f769e7785cd5f94b39d059f2af4ad4744e36161182ac346458",
+      "screenHints": [
+        "D-8.3"
+      ],
+      "screens": [
+        "D-8.3"
+      ],
+      "taskKeys": [
+        "SP-E7-04"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "147/14bbb5ac-D-8.4-sources-channels.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\147\\14bbb5ac-D-8.4-sources-channels.png",
+      "sha256": "6129d0df9fa7c7dad3bc6ab11cdced9d16ea4247bf47dce55e1b25375eafd408",
+      "screenHints": [
+        "D-8.4"
+      ],
+      "screens": [
+        "D-8.4"
+      ],
+      "taskKeys": [
+        "SP-E7-04"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "148/76223c1b-D-8.5-managers.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\148\\76223c1b-D-8.5-managers.png",
+      "sha256": "865684d3c303df6087323fac178505b0396c22285c6c6bdcc4b86518501b87de",
+      "screenHints": [
+        "D-8.5"
+      ],
+      "screens": [
+        "D-8.5"
+      ],
+      "taskKeys": [
+        "SP-E7-04"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "149/534635db-D-8.6-reports.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\149\\534635db-D-8.6-reports.png",
+      "sha256": "c7244a9e194a9f27d5b3a582f3e768277293ac9ab157c3fdf7fe46728d40dc7e",
+      "screenHints": [
+        "D-8.6"
+      ],
+      "screens": [
+        "D-8.6"
+      ],
+      "taskKeys": [
+        "SP-E7-04"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "15/1ee8d19e-S-2.1-transfer-v2.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\15\\1ee8d19e-S-2.1-transfer-v2.png",
+      "sha256": "92f91732da7436223ff01e01a4dc6b33ffd184bcf98c2b27c4dace6bab7de1e0",
+      "screenHints": [
+        "S-2.1"
+      ],
+      "screens": [
+        "S-2.1"
+      ],
+      "taskKeys": [
+        "SP-E1-04"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "15/5c5995e4-S-2.1-company-v2.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\15\\5c5995e4-S-2.1-company-v2.png",
+      "sha256": "7ebf57c54b6bbbbc038113e5832141a9942b468a8b6c0ea54439a4ee6aa4675c",
+      "screenHints": [
+        "S-2.1"
+      ],
+      "screens": [
+        "S-2.1"
+      ],
+      "taskKeys": [
+        "SP-E1-04"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "150/0866ef79-D-10.1-main.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\150\\0866ef79-D-10.1-main.png",
+      "sha256": "4f4ee02ea8d60454524b2ca172c27163112f7364f5bbbba0b361ec393fb5069d",
+      "screenHints": [
+        "D-10.1"
+      ],
+      "screens": [
+        "D-10.1"
+      ],
+      "taskKeys": [
+        "SP-E6-08"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "150/3dcae91c-D-10.1-settings.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\150\\3dcae91c-D-10.1-settings.png",
+      "sha256": "e562c1b39ea1ded943b99cb6b6f4fca74e5998628f2b2ec0e02af42d6546676b",
+      "screenHints": [
+        "D-10.1"
+      ],
+      "screens": [
+        "D-10.1"
+      ],
+      "taskKeys": [
+        "SP-E6-08"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "150/46b75885-D-10.1-empty.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\150\\46b75885-D-10.1-empty.png",
+      "sha256": "3eaa086da82306bb36d85e4cbe9c922a8883167c98616075bf1f5b509b29a854",
+      "screenHints": [
+        "D-10.1"
+      ],
+      "screens": [
+        "D-10.1"
+      ],
+      "taskKeys": [
+        "SP-E6-08"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "150/5381306c-D-10.1-states.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\150\\5381306c-D-10.1-states.png",
+      "sha256": "58db99663e8a4ad036c4e2afecba18c6d3d286a671945197dbe607f9f11d738c",
+      "screenHints": [
+        "D-10.1"
+      ],
+      "screens": [
+        "D-10.1"
+      ],
+      "taskKeys": [
+        "SP-E6-08"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "151/cb35a44d-D-10.2-crm.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\151\\cb35a44d-D-10.2-crm.png",
+      "sha256": "78c554f215d7686a7bec354049ac98f1abe8c0645a74494609e93e5de30e2142",
+      "screenHints": [
+        "D-10.2"
+      ],
+      "screens": [
+        "D-10.2"
+      ],
+      "taskKeys": [
+        "SP-E6-09"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "152/381527a2-D-10.4-stock.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\152\\381527a2-D-10.4-stock.png",
+      "sha256": "31565d581375f469e6444bac784d56483ee3e70a3a5bad2f5c688b744cfd44bf",
+      "screenHints": [
+        "D-10.4"
+      ],
+      "screens": [
+        "D-10.4"
+      ],
+      "taskKeys": [
+        "SP-E6-08"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "153/ed4d0805-S-4.3-plans.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\153\\ed4d0805-S-4.3-plans.png",
+      "sha256": "2164b822e9884c6b9cae35b92d84ba98ea0f314314f1f74b95cfeaca1c8dd0c6",
+      "screenHints": [
+        "S-4.3"
+      ],
+      "screens": [
+        "S-4.3"
+      ],
+      "taskKeys": [
+        "SP-E1-07"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "154/063a5e31-S-4.4-invoices.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\154\\063a5e31-S-4.4-invoices.png",
+      "sha256": "291c9f49d28c15d8c212de95b1c947d26129611583261f4b201ff41b7382ae76",
+      "screenHints": [
+        "S-4.4"
+      ],
+      "screens": [
+        "S-4.4"
+      ],
+      "taskKeys": [
+        "SP-E1-07"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "155/e9e099b8-S-8.1-help.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\155\\e9e099b8-S-8.1-help.png",
+      "sha256": "3319115539b7296a69a8ae764a4ee7d7432ad2553ea8877c752107ada195fb2e",
+      "screenHints": [
+        "S-8.1"
+      ],
+      "screens": [
+        "S-8.1"
+      ],
+      "taskKeys": [
+        "SP-E1-12"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "156/f5e3c816-D-9.6-vk.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\156\\f5e3c816-D-9.6-vk.png",
+      "sha256": "70ef51c2b82dc0c7dbe59b7d6e3ac964dcb7d2b1f345a6d80d545be2131f5fdc",
+      "screenHints": [
+        "D-9.6"
+      ],
+      "screens": [
+        "D-9.6"
+      ],
+      "taskKeys": [
+        "SP-E5-06"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "157/ae0ad6a7-D-9.7-whatsapp-soon.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\157\\ae0ad6a7-D-9.7-whatsapp-soon.png",
+      "sha256": "200dc15649511955b4ae32a6c1bf99e79587f1ea55b6db5bed4b2d70dc3f6964",
+      "screenHints": [
+        "D-9.7"
+      ],
+      "screens": [
+        "D-9.7"
+      ],
+      "taskKeys": [
+        "SP-E5-06"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "158/5c6b22a0-D-10.3-calendar.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\158\\5c6b22a0-D-10.3-calendar.png",
+      "sha256": "67965ca42ac606c170ce57acdf258406d2609f555160f2430efeb40889ae2a93",
+      "screenHints": [
+        "D-10.3"
+      ],
+      "screens": [
+        "D-10.3"
+      ],
+      "taskKeys": [
+        "SP-E5-06"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "16/a6a70fa1-S-2.2-brands.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\16\\a6a70fa1-S-2.2-brands.png",
+      "sha256": "d15ba6e33d08285bfaf7bb2ac55c0dece5ea3c7a6b74893187080b8fc2698c14",
+      "screenHints": [
+        "S-2.2"
+      ],
+      "screens": [
+        "S-2.2"
+      ],
+      "taskKeys": [
+        "SP-E1-04"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "16/d57ecf68-S-2.2-brands-empty.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\16\\d57ecf68-S-2.2-brands-empty.png",
+      "sha256": "48f354ea9af004d1e0d513b8d5090f7011cbcc6d398c95bd5a725ec8a59f323e",
+      "screenHints": [
+        "S-2.2"
+      ],
+      "screens": [
+        "S-2.2"
+      ],
+      "taskKeys": [
+        "SP-E1-04"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "17/2e30f175-S-2.3-brand-modules.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\17\\2e30f175-S-2.3-brand-modules.png",
+      "sha256": "66ebb244049af3b765b5a4c8417a9a4558eb4c199bb32013bc1f1f3c6f8592ca",
+      "screenHints": [
+        "S-2.3"
+      ],
+      "screens": [
+        "S-2.3"
+      ],
+      "taskKeys": [
+        "SP-E1-05"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "17/88fe7213-S-2.3-brand-domains.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\17\\88fe7213-S-2.3-brand-domains.png",
+      "sha256": "a30db09fd6d9f4df6a738dc7739f692fe9b7758706e7de0620489f24add9ab7b",
+      "screenHints": [
+        "S-2.3"
+      ],
+      "screens": [
+        "S-2.3"
+      ],
+      "taskKeys": [
+        "SP-E1-05"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "17/90fbb0eb-S-2.3-brand-archive.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\17\\90fbb0eb-S-2.3-brand-archive.png",
+      "sha256": "efa70ba95d16e3d4a67eb9594f535e0ee9a2adfe8d48e88145920daa7f28f534",
+      "screenHints": [
+        "S-2.3"
+      ],
+      "screens": [
+        "S-2.3"
+      ],
+      "taskKeys": [
+        "SP-E1-05"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "17/944a6952-S-2.3-brand-archive-confirm.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\17\\944a6952-S-2.3-brand-archive-confirm.png",
+      "sha256": "a159873722f1b6a3a328c2037389246435e98ca0b434fdb00629a14d04e438de",
+      "screenHints": [
+        "S-2.3"
+      ],
+      "screens": [
+        "S-2.3"
+      ],
+      "taskKeys": [
+        "SP-E1-05"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "17/ab7d614b-S-2.3-brand-main.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\17\\ab7d614b-S-2.3-brand-main.png",
+      "sha256": "9bab44055e899b5aff1cc55c1a5da1b78ff3359d66bc192eb19b95964efb86fe",
+      "screenHints": [
+        "S-2.3"
+      ],
+      "screens": [
+        "S-2.3"
+      ],
+      "taskKeys": [
+        "SP-E1-05"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "17/d55a74c1-S-2.3-brand-theme.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\17\\d55a74c1-S-2.3-brand-theme.png",
+      "sha256": "3af9eee0245ba9d90d2d47a703e5c6cdb4250dfefeaa2aca35c3830cfed9579f",
+      "screenHints": [
+        "S-2.3"
+      ],
+      "screens": [
+        "S-2.3"
+      ],
+      "taskKeys": [
+        "SP-E1-05"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "18/b6184964-S-2.4-modules.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\18\\b6184964-S-2.4-modules.png",
+      "sha256": "0a2b03946e418ce88c134fc880eb12ed5c7f34a47ec3c5bea75158c27a59c418",
+      "screenHints": [
+        "S-2.4"
+      ],
+      "screens": [
+        "S-2.4"
+      ],
+      "taskKeys": [
+        "SP-E1-04"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "18/fbd32ec7-S-2.4-disable.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\18\\fbd32ec7-S-2.4-disable.png",
+      "sha256": "d874accaf73d79a9c612ce6d0953b280410869e8a1c7fee6ffb04b841e7e105b",
+      "screenHints": [
+        "S-2.4"
+      ],
+      "screens": [
+        "S-2.4"
+      ],
+      "taskKeys": [
+        "SP-E1-04"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "19/17-S-3.1-team.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\19\\17-S-3.1-team.png",
+      "sha256": "36f9029f1db67c0f874dc930a27e2a8c2e869e7de977216fc9df963f021c0c1b",
+      "screenHints": [
+        "S-3.1"
+      ],
+      "screens": [
+        "S-3.1"
+      ],
+      "taskKeys": [
+        "SP-E1-06"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "2/2663c62e-S-0.2-states-eyon.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\2\\2663c62e-S-0.2-states-eyon.png",
+      "sha256": "a09f02e87ef0538df6ce7629e025d38c37591041f4b736eda2fac4c4e93850d2",
+      "screenHints": [
+        "S-0.2"
+      ],
+      "screens": [
+        "S-0.2"
+      ],
+      "taskKeys": [
+        "SP-E1-01"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "2/82c32c96-S-0.2-mobile-eyon.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\2\\82c32c96-S-0.2-mobile-eyon.png",
+      "sha256": "656ff5e6968e2eb3be9c7f7a3ce5f9258ef29494d0a42ba2932600f139844223",
+      "screenHints": [
+        "S-0.2"
+      ],
+      "screens": [
+        "S-0.2"
+      ],
+      "taskKeys": [
+        "SP-E1-01"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "2/f00690a4-S-0.2-register-eyon.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\2\\f00690a4-S-0.2-register-eyon.png",
+      "sha256": "de0a120594398d2ca19a383196068e6db68b51370746e044ffe727051c0f11f6",
+      "screenHints": [
+        "S-0.2"
+      ],
+      "screens": [
+        "S-0.2"
+      ],
+      "taskKeys": [
+        "SP-E1-01"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "20/d8c35dea-S-3.2-user.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\20\\d8c35dea-S-3.2-user.png",
+      "sha256": "ed305329b9b2e1d4303c6b60372b959269c1e9e4e6e5ea37f18f33dd17048f91",
+      "screenHints": [
+        "S-3.2"
+      ],
+      "screens": [
+        "S-3.2"
+      ],
+      "taskKeys": [
+        "SP-E1-06"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "21/0332367c-S-3.3-roles-details.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\21\\0332367c-S-3.3-roles-details.png",
+      "sha256": "2abf022c6ccd877030bb9d68a3fb8115cc4aaa5ed9eee580e9753202541f8d95",
+      "screenHints": [
+        "S-3.3"
+      ],
+      "screens": [
+        "S-3.3"
+      ],
+      "taskKeys": [
+        "SP-E1-06"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "21/6e5e1e56-S-3.3-roles-matrix.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\21\\6e5e1e56-S-3.3-roles-matrix.png",
+      "sha256": "7187743bf8c567e144912f5a3bce22262c30709cfa9686d24ae7f012b10650f7",
+      "screenHints": [
+        "S-3.3"
+      ],
+      "screens": [
+        "S-3.3"
+      ],
+      "taskKeys": [
+        "SP-E1-06"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "22/26dae64f-S-3.4-invitation-link.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\22\\26dae64f-S-3.4-invitation-link.png",
+      "sha256": "f2fc9b26a67fb67f12712aabe3127d85246c840c0aed7195f9d1aee477da0501",
+      "screenHints": [
+        "S-3.4"
+      ],
+      "screens": [
+        "S-3.4"
+      ],
+      "taskKeys": [
+        "SP-E1-06"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "22/33c90eb4-S-3.4-invitation.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\22\\33c90eb4-S-3.4-invitation.png",
+      "sha256": "863d089d39b2610966699636c292842066870c757beebcd5f7e44aae8bb7fc03",
+      "screenHints": [
+        "S-3.4"
+      ],
+      "screens": [
+        "S-3.4"
+      ],
+      "taskKeys": [
+        "SP-E1-06"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "23/3531ca0d-S-4.1-plan-limits.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\23\\3531ca0d-S-4.1-plan-limits.png",
+      "sha256": "ebfc50ba26e6b273e9fc1609f6aeb1ae20a7cc94a954bc082035bc4b85487e2b",
+      "screenHints": [
+        "S-4.1"
+      ],
+      "screens": [
+        "S-4.1"
+      ],
+      "taskKeys": [
+        "SP-E1-07"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "24/0db54632-S-4.2-usage-empty.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\24\\0db54632-S-4.2-usage-empty.png",
+      "sha256": "96f48d0cab667c422336b4407b210b9f9b8e40108b0f9ec7ddd0eb09bf894cb5",
+      "screenHints": [
+        "S-4.2"
+      ],
+      "screens": [
+        "S-4.2"
+      ],
+      "taskKeys": [
+        "SP-E1-07"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "24/4eb828d0-S-4.2-usage.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\24\\4eb828d0-S-4.2-usage.png",
+      "sha256": "805c8132730f487a6492d0aae598ab51bb59c78943533c10962fc247e7db3958",
+      "screenHints": [
+        "S-4.2"
+      ],
+      "screens": [
+        "S-4.2"
+      ],
+      "taskKeys": [
+        "SP-E1-07"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "25/2176655c-S-4.5-payer.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\25\\2176655c-S-4.5-payer.png",
+      "sha256": "1e99febbeac5311e6db485f372d7efca916871f674df091738c16863a604d4a7",
+      "screenHints": [
+        "S-4.5"
+      ],
+      "screens": [
+        "S-4.5"
+      ],
+      "taskKeys": [
+        "SP-E1-07"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "26/8e04d747-S-5.1-connections-more.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\26\\8e04d747-S-5.1-connections-more.png",
+      "sha256": "e69e924202d775d7fdfeba882225e9e9403ecbeadd2b3e395bd9580548bc2fff",
+      "screenHints": [
+        "S-5.1"
+      ],
+      "screens": [
+        "S-5.1"
+      ],
+      "taskKeys": [
+        "SP-E1-10"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "26/dbbbc8cb-S-5.1-connections.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\26\\dbbbc8cb-S-5.1-connections.png",
+      "sha256": "228aeee8eac333fe040dc1d4442f5ec7d743b2624e3e1b083a359531f5fe0759",
+      "screenHints": [
+        "S-5.1"
+      ],
+      "screens": [
+        "S-5.1"
+      ],
+      "taskKeys": [
+        "SP-E1-10"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "27/b03443db-S-5.2-key-once.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\27\\b03443db-S-5.2-key-once.png",
+      "sha256": "f5a9259061546a99706eae2c76e8b807dd4d74b7fdeb5e72535dce0ac63aef20",
+      "screenHints": [
+        "S-5.2"
+      ],
+      "screens": [
+        "S-5.2"
+      ],
+      "taskKeys": [
+        "SP-E1-10"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "27/bbfa5628-S-5.2-empty.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\27\\bbfa5628-S-5.2-empty.png",
+      "sha256": "ce2a3cd2b1068bf88b327576254e9e853c94a0073a010a451704aac6ee6316e1",
+      "screenHints": [
+        "S-5.2"
+      ],
+      "screens": [
+        "S-5.2"
+      ],
+      "taskKeys": [
+        "SP-E1-10"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "27/c63c6810-S-5.2-create.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\27\\c63c6810-S-5.2-create.png",
+      "sha256": "c974c26697cb6d203f3400b718648c0cbe1b39165d900643c3cbe57573868a75",
+      "screenHints": [
+        "S-5.2"
+      ],
+      "screens": [
+        "S-5.2"
+      ],
+      "taskKeys": [
+        "SP-E1-10"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "27/d004380f-S-5.2-api.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\27\\d004380f-S-5.2-api.png",
+      "sha256": "8d38f87aab863dc103e1a72d7ca91f8250cdd2dd2d92369736b228578def09d7",
+      "screenHints": [
+        "S-5.2"
+      ],
+      "screens": [
+        "S-5.2"
+      ],
+      "taskKeys": [
+        "SP-E1-10"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "28/642de096-S-5.3-telegram-connect.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\28\\642de096-S-5.3-telegram-connect.png",
+      "sha256": "2cca1d94222bd57fa67b3be0b8a44fb78c0ed8fb62bd2890230103ece8ba308b",
+      "screenHints": [
+        "S-5.3"
+      ],
+      "screens": [
+        "S-5.3"
+      ],
+      "taskKeys": [
+        "SP-E1-10"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "28/dfc0fb81-S-5.3-company-notifications.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\28\\dfc0fb81-S-5.3-company-notifications.png",
+      "sha256": "ac1c17798dc89b247d8ef7feceb5a14cd37e3c7e62b7ef66294a834acdb53cd3",
+      "screenHints": [
+        "S-5.3"
+      ],
+      "screens": [
+        "S-5.3"
+      ],
+      "taskKeys": [
+        "SP-E1-10"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "29/0abd0a11-S-6.1-drawer.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\29\\0abd0a11-S-6.1-drawer.png",
+      "sha256": "7494b48d392c286c79b091765c7c3b8bb9f7790f6edef8898731dd3c02523199",
+      "screenHints": [
+        "S-6.1"
+      ],
+      "screens": [
+        "S-6.1"
+      ],
+      "taskKeys": [
+        "SP-E1-09"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "29/c6f285f0-S-6.1-journal.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\29\\c6f285f0-S-6.1-journal.png",
+      "sha256": "bd3dc42a92d40fe5212ffa6ad34e36c5e9a593a7123b37b794785fee1e928556",
+      "screenHints": [
+        "S-6.1"
+      ],
+      "screens": [
+        "S-6.1"
+      ],
+      "taskKeys": [
+        "SP-E1-09"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "29/c94891e7-S-6.1-empty.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\29\\c94891e7-S-6.1-empty.png",
+      "sha256": "e8bc9475daad94c55ff08876cdce03dae81403aa80ba5fb1677ced12f52f868f",
+      "screenHints": [
+        "S-6.1"
+      ],
+      "screens": [
+        "S-6.1"
+      ],
+      "taskKeys": [
+        "SP-E1-09"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "3/29fd2022-S-0.3-mobile-eyon.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\3\\29fd2022-S-0.3-mobile-eyon.png",
+      "sha256": "3fdbbb1769c339e52b76e1f734f0264eae5d29e1c20db44a9e235d082e525001",
+      "screenHints": [
+        "S-0.3"
+      ],
+      "screens": [
+        "S-0.3"
+      ],
+      "taskKeys": [
+        "SP-E1-01"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "3/4e0c1707-S-0.3-verify-eyon.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\3\\4e0c1707-S-0.3-verify-eyon.png",
+      "sha256": "9780fe7986a19ff5310600fc8638604b09bca41d6241a470af36643d644ee375",
+      "screenHints": [
+        "S-0.3"
+      ],
+      "screens": [
+        "S-0.3"
+      ],
+      "taskKeys": [
+        "SP-E1-01"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "3/993f6eb7-S-0.3-states-eyon.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\3\\993f6eb7-S-0.3-states-eyon.png",
+      "sha256": "4a8cd51f5e2dbc3f5bb8e628eef1740fc03d15bdf6643fddf647e602cbb364ce",
+      "screenHints": [
+        "S-0.3"
+      ],
+      "screens": [
+        "S-0.3"
+      ],
+      "taskKeys": [
+        "SP-E1-01"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "30/74631d81-S-6.2-main.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\30\\74631d81-S-6.2-main.png",
+      "sha256": "ce67c9bbdf2f63c2e747ee5402e43020a9f4367e81d53d63efe2b33313cdcd1b",
+      "screenHints": [
+        "S-6.2"
+      ],
+      "screens": [
+        "S-6.2"
+      ],
+      "taskKeys": [
+        "SP-E1-09"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "30/96f66c30-S-6.2-empty.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\30\\96f66c30-S-6.2-empty.png",
+      "sha256": "834e44e2736062884adb1b7dd42dde1d5975872304ba89be7a8e9023903a5dc6",
+      "screenHints": [
+        "S-6.2"
+      ],
+      "screens": [
+        "S-6.2"
+      ],
+      "taskKeys": [
+        "SP-E1-09"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "30/ea7953ea-S-6.2-states.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\30\\ea7953ea-S-6.2-states.png",
+      "sha256": "12f63f7a3d186a0bd68e0e1edb28265a5d5fe92eb1ea6189bbc41f4e60f932d8",
+      "screenHints": [
+        "S-6.2"
+      ],
+      "screens": [
+        "S-6.2"
+      ],
+      "taskKeys": [
+        "SP-E1-09"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "31/94e5477d-S-7.1-notifications.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\31\\94e5477d-S-7.1-notifications.png",
+      "sha256": "ce3edf1d93a095b7aafa0f1173480d153fdf851339e59e711ea44492b5ccc2d4",
+      "screenHints": [
+        "S-7.1"
+      ],
+      "screens": [
+        "S-7.1"
+      ],
+      "taskKeys": [
+        "SP-E1-08"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "32/5424bf88-S-7.2-security.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\32\\5424bf88-S-7.2-security.png",
+      "sha256": "5bf2cae5d7c8b6201afd00cd2ee16cf2066dc18e29ba589d1303c32c63b86be3",
+      "screenHints": [
+        "S-7.2"
+      ],
+      "screens": [
+        "S-7.2"
+      ],
+      "taskKeys": [
+        "SP-E1-08"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "32/bfc2de48-S-7.2-mfa-modal.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\32\\bfc2de48-S-7.2-mfa-modal.png",
+      "sha256": "b34a7220ff0a2747578b29f05f3718ea9bba7f8d87a2d248ac9842df309677bf",
+      "screenHints": [
+        "S-7.2"
+      ],
+      "screens": [
+        "S-7.2"
+      ],
+      "taskKeys": [
+        "SP-E1-08"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "33/9100fbe9-S-7.3-email.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\33\\9100fbe9-S-7.3-email.png",
+      "sha256": "9465ecbc16f25a346aafda22aec5bde8dcbc47a0eb0bf2760e9af9b91746a5f9",
+      "screenHints": [
+        "S-7.3"
+      ],
+      "screens": [
+        "S-7.3"
+      ],
+      "taskKeys": [
+        "SP-E1-08"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "33/dcaf65a8-S-7.3-profile.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\33\\dcaf65a8-S-7.3-profile.png",
+      "sha256": "9a59ce0a402e103d15d40b0ffe6c33153e676234e8235d08a273c981e431f960",
+      "screenHints": [
+        "S-7.3"
+      ],
+      "screens": [
+        "S-7.3"
+      ],
+      "taskKeys": [
+        "SP-E1-08"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "34/0ec15275-S-7.4-retention.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\34\\0ec15275-S-7.4-retention.png",
+      "sha256": "0adecd6b17285253e3d0359e31553a7b2a9d3bc57b1380a444135fc6977e2455",
+      "screenHints": [
+        "S-7.4"
+      ],
+      "screens": [
+        "S-7.4"
+      ],
+      "taskKeys": [
+        "SP-E1-11"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "34/6d853701-S-7.4-delete-confirm.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\34\\6d853701-S-7.4-delete-confirm.png",
+      "sha256": "cb7125cc12f14c728f2d21a1245b5c9c0aa53bc692913db06af1c192261ae729",
+      "screenHints": [
+        "S-7.4"
+      ],
+      "screens": [
+        "S-7.4"
+      ],
+      "taskKeys": [
+        "SP-E1-11"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "34/92087afa-S-7.4-consents-export.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\34\\92087afa-S-7.4-consents-export.png",
+      "sha256": "fd2cdee5b332dae0e8f2889eb4d536c9dab41368eb41bb55b60a2d4cd841dec4",
+      "screenHints": [
+        "S-7.4"
+      ],
+      "screens": [
+        "S-7.4"
+      ],
+      "taskKeys": [
+        "SP-E1-11"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "35/1c1e17b0-S-8.2-support.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\35\\1c1e17b0-S-8.2-support.png",
+      "sha256": "3acaba21e55e5f9baef70647964ab00f7a67484933bf3954ff011529838177ad",
+      "screenHints": [
+        "S-8.2"
+      ],
+      "screens": [
+        "S-8.2"
+      ],
+      "taskKeys": [
+        "SP-E1-12"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "36/593ce9ca-S-8.3-states.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\36\\593ce9ca-S-8.3-states.png",
+      "sha256": "23c50f1b0cd043e66e6d72381c9136c86a59825c5bcad0290fd455422a3d89b2",
+      "screenHints": [
+        "S-8.3"
+      ],
+      "screens": [
+        "S-8.3"
+      ],
+      "taskKeys": [
+        "SP-E1-12"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "36/ce76c384-S-8.3-main.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\36\\ce76c384-S-8.3-main.png",
+      "sha256": "56c50d5d9f5794a920f46c07a421aaaba4fc3bca0ce562136c7b2e9cbc1ba9f2",
+      "screenHints": [
+        "S-8.3"
+      ],
+      "screens": [
+        "S-8.3"
+      ],
+      "taskKeys": [
+        "SP-E1-12"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "37/084d095f-D-1.1-no-dialogs.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\37\\084d095f-D-1.1-no-dialogs.png",
+      "sha256": "d2007c25e295856b08ce7b5d2bc806879b199c30192c5d7a99b506360e87ac61",
+      "screenHints": [
+        "D-1.1"
+      ],
+      "screens": [
+        "D-1.1"
+      ],
+      "taskKeys": [
+        "SP-E7-05"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "37/56ea18d9-D-1.1-summary.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\37\\56ea18d9-D-1.1-summary.png",
+      "sha256": "caaaef5625e511d99f894e4f6c59054de9cc9da5862deab92a21096c6454fda3",
+      "screenHints": [
+        "D-1.1"
+      ],
+      "screens": [
+        "D-1.1"
+      ],
+      "taskKeys": [
+        "SP-E7-05"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "37/65cf5bf4-D-1.1-detail.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\37\\65cf5bf4-D-1.1-detail.png",
+      "sha256": "0dd939b0de366e3aa2c07c5e9e623495a6fb189e5de7bdcb77330f5e299679b0",
+      "screenHints": [
+        "D-1.1"
+      ],
+      "screens": [
+        "D-1.1"
+      ],
+      "taskKeys": [
+        "SP-E7-05"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "37/7a0a1ecb-D-1.1-no-channels.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\37\\7a0a1ecb-D-1.1-no-channels.png",
+      "sha256": "0918792b66127897215c2af43c9bf7c41ece5427216697d112daf194ae21c1e7",
+      "screenHints": [
+        "D-1.1"
+      ],
+      "screens": [
+        "D-1.1"
+      ],
+      "taskKeys": [
+        "SP-E7-05"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "37/ef10fda7-D-1.1-loading.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\37\\ef10fda7-D-1.1-loading.png",
+      "sha256": "79bc942482d6703c4f0a6400aafc4b9629230405da9ec4c4f05d8882d47fa11b",
+      "screenHints": [
+        "D-1.1"
+      ],
+      "screens": [
+        "D-1.1"
+      ],
+      "taskKeys": [
+        "SP-E7-05"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "37/f26e02ed-D-1.1-error.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\37\\f26e02ed-D-1.1-error.png",
+      "sha256": "6769caa7fd9761fdbf4feaa9e8603e97fde76ab57b753cd385c456257a80e5a6",
+      "screenHints": [
+        "D-1.1"
+      ],
+      "screens": [
+        "D-1.1"
+      ],
+      "taskKeys": [
+        "SP-E7-05"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "38/64e7682c-D-1.2-attention-empty.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\38\\64e7682c-D-1.2-attention-empty.png",
+      "sha256": "e8d89130135d54648d8661b13b4cf3f3b56b6d8aa216aa82d3ede23ce166125d",
+      "screenHints": [
+        "D-1.2"
+      ],
+      "screens": [
+        "D-1.2"
+      ],
+      "taskKeys": [
+        "SP-E7-05"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "38/97ff2dde-D-1.2-attention.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\38\\97ff2dde-D-1.2-attention.png",
+      "sha256": "0878722022c6f393df1f529d93ad9e8befbaeb96eeac5be02750e8c4b88e1b5b",
+      "screenHints": [
+        "D-1.2"
+      ],
+      "screens": [
+        "D-1.2"
+      ],
+      "taskKeys": [
+        "SP-E7-05"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "39/141dce5e-D-2.1-dialogs.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\39\\141dce5e-D-2.1-dialogs.png",
+      "sha256": "a745d0e4b0db5ae0d69a523f0e53b1cfc7342409df3b1dc04980ddccdc86ac6d",
+      "screenHints": [
+        "D-2.1"
+      ],
+      "screens": [
+        "D-2.1"
+      ],
+      "taskKeys": [
+        "SP-E5-04"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "39/896250b2-D-2.1-loading.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\39\\896250b2-D-2.1-loading.png",
+      "sha256": "c16c00ebc769915b9f568140dfd4dc7a49d19d7a03e53b8a792769116288858f",
+      "screenHints": [
+        "D-2.1"
+      ],
+      "screens": [
+        "D-2.1"
+      ],
+      "taskKeys": [
+        "SP-E5-04"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "39/a6102439-D-2.1-empty.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\39\\a6102439-D-2.1-empty.png",
+      "sha256": "72d8fb874753c7642d96389f57bbf97384e9c885b62afb2ac4ecc87f8e47dabb",
+      "screenHints": [
+        "D-2.1"
+      ],
+      "screens": [
+        "D-2.1"
+      ],
+      "taskKeys": [
+        "SP-E5-04"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "39/cfbb3736-D-2.1-error.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\39\\cfbb3736-D-2.1-error.png",
+      "sha256": "f25112a392d52cbb2ddd405e0e08ec0a589d67478708147733ec16ff0778e3f6",
+      "screenHints": [
+        "D-2.1"
+      ],
+      "screens": [
+        "D-2.1"
+      ],
+      "taskKeys": [
+        "SP-E5-04"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "4/3f27cad8-S-0.4a-states-eyon.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\4\\3f27cad8-S-0.4a-states-eyon.png",
+      "sha256": "47c9e0a3ed4509d53c7ffa12bd271b9c56257080454acadb933877e29711255b",
+      "screenHints": [
+        "S-0.4a"
+      ],
+      "screens": [
+        "S-0.4"
+      ],
+      "taskKeys": [
+        "SP-E1-01"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "4/d3084c78-S-0.4a-mobile-eyon.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\4\\d3084c78-S-0.4a-mobile-eyon.png",
+      "sha256": "580de875b225df12491917b9aecb164704e0e31c60284978ca8e4be739a2d4db",
+      "screenHints": [
+        "S-0.4a"
+      ],
+      "screens": [
+        "S-0.4"
+      ],
+      "taskKeys": [
+        "SP-E1-01"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "4/ffb2b684-S-0.4a-forgot-eyon.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\4\\ffb2b684-S-0.4a-forgot-eyon.png",
+      "sha256": "b11d08e45514ced68d497181b25c293a9bbd7c1ca3341e27a2eb5c4e484a534e",
+      "screenHints": [
+        "S-0.4a"
+      ],
+      "screens": [
+        "S-0.4"
+      ],
+      "taskKeys": [
+        "SP-E1-01"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "40/14-D-2.2-dialog.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\40\\14-D-2.2-dialog.png",
+      "sha256": "8a6c21bc30dc3ffb3ff4238fb7a3df80aa82f47f030266fce687b3530ae04546",
+      "screenHints": [
+        "D-2.2"
+      ],
+      "screens": [
+        "D-2.2"
+      ],
+      "taskKeys": [
+        "SP-E5-04"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "41/011b1773-D-2.3-mobile-flow.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\41\\011b1773-D-2.3-mobile-flow.png",
+      "sha256": "ccf9c523202809efbd24e4f6b67aa1438e1215f7fa749d939123f6fbe2d0f6e2",
+      "screenHints": [
+        "D-2.3"
+      ],
+      "screens": [
+        "D-2.3"
+      ],
+      "taskKeys": [
+        "SP-E5-04B"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "41/36c3e5d3-D-2.3-empty.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\41\\36c3e5d3-D-2.3-empty.png",
+      "sha256": "d2c2055677f13f82b74607e933c5494b043801ff136481ba681c5372f63072da",
+      "screenHints": [
+        "D-2.3"
+      ],
+      "screens": [
+        "D-2.3"
+      ],
+      "taskKeys": [
+        "SP-E5-04B"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "41/5d577125-D-2.3-mine.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\41\\5d577125-D-2.3-mine.png",
+      "sha256": "c6707f9c8404604043e28ed55b7dc928dc66597ee19a4e82a5b9a28f9e2840ab",
+      "screenHints": [
+        "D-2.3"
+      ],
+      "screens": [
+        "D-2.3"
+      ],
+      "taskKeys": [
+        "SP-E5-04B"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "42/32cdca94-D-2.4-empty.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\42\\32cdca94-D-2.4-empty.png",
+      "sha256": "c6dbdc4e337f189c4e19fcdf41873d1005cfc563d6d1b6becfbc266dd34404f8",
+      "screenHints": [
+        "D-2.4"
+      ],
+      "screens": [
+        "D-2.4"
+      ],
+      "taskKeys": [
+        "SP-E5-04B"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "42/3c8423fd-D-2.4-queue.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\42\\3c8423fd-D-2.4-queue.png",
+      "sha256": "bc367637f8a6afd9b6f26f347e671e5bade4712522dd41f56b440b7937418d2b",
+      "screenHints": [
+        "D-2.4"
+      ],
+      "screens": [
+        "D-2.4"
+      ],
+      "taskKeys": [
+        "SP-E5-04B"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "42/7d5e41e5-D-2.4-mobile.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\42\\7d5e41e5-D-2.4-mobile.png",
+      "sha256": "d7b52c5432763010529f65fbc0c59297076090ae36d4c105b82ea170208b044c",
+      "screenHints": [
+        "D-2.4"
+      ],
+      "screens": [
+        "D-2.4"
+      ],
+      "taskKeys": [
+        "SP-E5-04B"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "43/5432cfb3-D-2.5-empty.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\43\\5432cfb3-D-2.5-empty.png",
+      "sha256": "176d0b1f7d807f0c5118e058cc2c89cd02a15f52396e64d890cf6c71380b9af4",
+      "screenHints": [
+        "D-2.5"
+      ],
+      "screens": [
+        "D-2.5"
+      ],
+      "taskKeys": [
+        "SP-E5-04B"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "43/80937148-D-2.5-main.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\43\\80937148-D-2.5-main.png",
+      "sha256": "88e2ed63ea2b18d5b3394dc52256d6f3765a5e6c6f350ffeb31f41d6aa00f150",
+      "screenHints": [
+        "D-2.5"
+      ],
+      "screens": [
+        "D-2.5"
+      ],
+      "taskKeys": [
+        "SP-E5-04B"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "43/ba7becf3-D-2.5-states.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\43\\ba7becf3-D-2.5-states.png",
+      "sha256": "057de98ab7532addaf5b4dfd9696dbd85230b6eab21fc5cd753c65ec2c1b0660",
+      "screenHints": [
+        "D-2.5"
+      ],
+      "screens": [
+        "D-2.5"
+      ],
+      "taskKeys": [
+        "SP-E5-04B"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "44/19-D-3.1-customers.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\44\\19-D-3.1-customers.png",
+      "sha256": "c57411cd571210291428d11e8d8194750fc7b8672e1531d7eec5939f963516ee",
+      "screenHints": [
+        "D-3.1"
+      ],
+      "screens": [
+        "D-3.1"
+      ],
+      "taskKeys": [
+        "SP-E5-05"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "45/3b0c3cf4-D-3.2-customer-main.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\45\\3b0c3cf4-D-3.2-customer-main.png",
+      "sha256": "5975cf6b7e2916218c5b15ffda0fd2f9e72ec20f6c3df01ad050480d9376238b",
+      "screenHints": [
+        "D-3.2"
+      ],
+      "screens": [
+        "D-3.2"
+      ],
+      "taskKeys": [
+        "SP-E5-05"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "45/3e5e8fd7-D-3.2-customer-notes.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\45\\3e5e8fd7-D-3.2-customer-notes.png",
+      "sha256": "f587d9f242c03e26ea4e3e691d9c80b9652a0ced92a2fb858a7fff4d95463a67",
+      "screenHints": [
+        "D-3.2"
+      ],
+      "screens": [
+        "D-3.2"
+      ],
+      "taskKeys": [
+        "SP-E5-05"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "45/5cc4b776-D-3.2-customer-fields.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\45\\5cc4b776-D-3.2-customer-fields.png",
+      "sha256": "5592969df2ce2eafdafa7dc92a997fd7f2a2cecbf5e5427ed2d3e036a7a2cd5a",
+      "screenHints": [
+        "D-3.2"
+      ],
+      "screens": [
+        "D-3.2"
+      ],
+      "taskKeys": [
+        "SP-E5-05"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "45/b3040e6f-D-3.2-customer-tasks.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\45\\b3040e6f-D-3.2-customer-tasks.png",
+      "sha256": "fe227717856522429af75e3e583fbdac48744493095f114855079f6d871c2ac0",
+      "screenHints": [
+        "D-3.2"
+      ],
+      "screens": [
+        "D-3.2"
+      ],
+      "taskKeys": [
+        "SP-E5-05"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "45/e9aa9170-D-3.2-customer-dialogs.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\45\\e9aa9170-D-3.2-customer-dialogs.png",
+      "sha256": "4ae4dd8e16661ce724ed18cdf454aaae7e44306740b1c4b435f7c92d201cf65d",
+      "screenHints": [
+        "D-3.2"
+      ],
+      "screens": [
+        "D-3.2"
+      ],
+      "taskKeys": [
+        "SP-E5-05"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "45/f425c8d6-D-3.2-customer-promises.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\45\\f425c8d6-D-3.2-customer-promises.png",
+      "sha256": "1d051f22cd8b528bcfa9fc3bc5233c1f6171d66437b37ee137cbedac5cb4f02f",
+      "screenHints": [
+        "D-3.2"
+      ],
+      "screens": [
+        "D-3.2"
+      ],
+      "taskKeys": [
+        "SP-E5-05"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "46/4da1767f-D-3.3-drawer.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\46\\4da1767f-D-3.3-drawer.png",
+      "sha256": "cc4152de6bb57d169f73ce01c65937896030ac766d4b88e8e73bd77e2211fc37",
+      "screenHints": [
+        "D-3.3"
+      ],
+      "screens": [
+        "D-3.3"
+      ],
+      "taskKeys": [
+        "SP-E5-05"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "46/55d0b66c-D-3.3-empty.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\46\\55d0b66c-D-3.3-empty.png",
+      "sha256": "51cc102dcb9f86a584a661231cbcea24bd4c1b2c683a54c189bff880fcd6fa65",
+      "screenHints": [
+        "D-3.3"
+      ],
+      "screens": [
+        "D-3.3"
+      ],
+      "taskKeys": [
+        "SP-E5-05"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "46/8ceaf99c-D-3.3-kanban.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\46\\8ceaf99c-D-3.3-kanban.png",
+      "sha256": "f0c96a3cfb59a1ec28329acb39529b90f979b1d022c0f9d6241821234c6920d6",
+      "screenHints": [
+        "D-3.3"
+      ],
+      "screens": [
+        "D-3.3"
+      ],
+      "taskKeys": [
+        "SP-E5-05"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "46/d9c1e574-D-3.3-table.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\46\\d9c1e574-D-3.3-table.png",
+      "sha256": "24736a42935d031266e6217b097c0db7f2121dfe667ef4be8beb7ca125ce3e07",
+      "screenHints": [
+        "D-3.3"
+      ],
+      "screens": [
+        "D-3.3"
+      ],
+      "taskKeys": [
+        "SP-E5-05"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "47/05da310d-D-3.4-duplicates.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\47\\05da310d-D-3.4-duplicates.png",
+      "sha256": "e66336f9ad5225f933b3bef632959fc6128271fda629bd18f5f18078cda8cae7",
+      "screenHints": [
+        "D-3.4"
+      ],
+      "screens": [
+        "D-3.4"
+      ],
+      "taskKeys": [
+        "SP-E5-08"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "47/4718f347-D-3.4-empty.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\47\\4718f347-D-3.4-empty.png",
+      "sha256": "89b286215e074f4cf9fcb6f8dfcfa586bdbf5d3a2f5c0b3b383eb4d675c73982",
+      "screenHints": [
+        "D-3.4"
+      ],
+      "screens": [
+        "D-3.4"
+      ],
+      "taskKeys": [
+        "SP-E5-08"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "47/59ff6dd3-D-3.4-manual.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\47\\59ff6dd3-D-3.4-manual.png",
+      "sha256": "fd209a06cc44c308e1cfc138e0b31caeb3074df0aa0fd8c238ac70f5ab2778b2",
+      "screenHints": [
+        "D-3.4"
+      ],
+      "screens": [
+        "D-3.4"
+      ],
+      "taskKeys": [
+        "SP-E5-08"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "48/f20b4272-D-3.5-import-export.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\48\\f20b4272-D-3.5-import-export.png",
+      "sha256": "90d8f17968f25d32c9b4e285b734f14d31f35b016dac175d75730195e24893f4",
+      "screenHints": [
+        "D-3.5"
+      ],
+      "screens": [
+        "D-3.5"
+      ],
+      "taskKeys": [
+        "SP-E5-08"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "49/15-D-4.1-knowledge.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\49\\15-D-4.1-knowledge.png",
+      "sha256": "a798974c954cc57bb5fb767b681d3765e5a4bb67425f5d20989caa2202b5ae62",
+      "screenHints": [
+        "D-4.1"
+      ],
+      "screens": [
+        "D-4.1"
+      ],
+      "taskKeys": [
+        "SP-E4-01"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "5/0978e76e-S-0.4b-reset-eyon.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\5\\0978e76e-S-0.4b-reset-eyon.png",
+      "sha256": "cba5f016abef57524419e9756a9f627700a3018f41f3c0b152601e2fa1cbbd52",
+      "screenHints": [
+        "S-0.4b"
+      ],
+      "screens": [
+        "S-0.4"
+      ],
+      "taskKeys": [
+        "SP-E1-01"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "5/34cd7c95-S-0.4b-states-eyon.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\5\\34cd7c95-S-0.4b-states-eyon.png",
+      "sha256": "b04e6797b3c3ab8ddabdfcebf61587653388feecba7a2f5281335252a710f213",
+      "screenHints": [
+        "S-0.4b"
+      ],
+      "screens": [
+        "S-0.4"
+      ],
+      "taskKeys": [
+        "SP-E1-01"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "5/f98df82b-S-0.4b-mobile-eyon.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\5\\f98df82b-S-0.4b-mobile-eyon.png",
+      "sha256": "ef2ad4c3fad96877b99831bae5726d224c2daed6de1a81691d5fa4461fba2062",
+      "screenHints": [
+        "S-0.4b"
+      ],
+      "screens": [
+        "S-0.4"
+      ],
+      "taskKeys": [
+        "SP-E1-01"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "50/20-D-4.2-knowledge-inbox.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\50\\20-D-4.2-knowledge-inbox.png",
+      "sha256": "e55c82e0da6e92686c1d1a84357670539a9104bd6a341ccbd891a64e57d12bf7",
+      "screenHints": [
+        "D-4.2"
+      ],
+      "screens": [
+        "D-4.2"
+      ],
+      "taskKeys": [
+        "SP-E4-01"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "51/21-D-4.3-knowledge-facts.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\51\\21-D-4.3-knowledge-facts.png",
+      "sha256": "bcab6a65d0ce997341811fea74bca3a00bc0da92e96c025af6e53cc9cf75280e",
+      "screenHints": [
+        "D-4.3"
+      ],
+      "screens": [
+        "D-4.3"
+      ],
+      "taskKeys": [
+        "SP-E4-02"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "52/1e5b4a33-D-4.4-states.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\52\\1e5b4a33-D-4.4-states.png",
+      "sha256": "d1e8b8e68f6ba7b9c4edf484b080de7d08f385ccf7b4bad53132a9e067fedc4c",
+      "screenHints": [
+        "D-4.4"
+      ],
+      "screens": [
+        "D-4.4"
+      ],
+      "taskKeys": [
+        "SP-E4-02"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "52/7108fcf1-D-4.4-main.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\52\\7108fcf1-D-4.4-main.png",
+      "sha256": "7ea06e865d0e86a3d9d201c79f194cd4815bcc110b254b10e711f7a169805928",
+      "screenHints": [
+        "D-4.4"
+      ],
+      "screens": [
+        "D-4.4"
+      ],
+      "taskKeys": [
+        "SP-E4-02"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "52/fdadb873-D-4.4-empty.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\52\\fdadb873-D-4.4-empty.png",
+      "sha256": "47832389caa5162a6e1494e763d786668aa2039ade17d542cb567a053060f744",
+      "screenHints": [
+        "D-4.4"
+      ],
+      "screens": [
+        "D-4.4"
+      ],
+      "taskKeys": [
+        "SP-E4-02"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "53/6330679c-D-4.5-terms.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\53\\6330679c-D-4.5-terms.png",
+      "sha256": "1dd6621fb3b322d602f5ae9fe10b2629a7d1d97edd88e4479d07abb5d56184a5",
+      "screenHints": [
+        "D-4.5"
+      ],
+      "screens": [
+        "D-4.5"
+      ],
+      "taskKeys": [
+        "SP-E4-03"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "53/760c47b2-D-4.5-confirm.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\53\\760c47b2-D-4.5-confirm.png",
+      "sha256": "3296ad48c4fdc5ca623eb512825e31abee07eec3e1adcc1cec5d1fbb36f2c5e0",
+      "screenHints": [
+        "D-4.5"
+      ],
+      "screens": [
+        "D-4.5"
+      ],
+      "taskKeys": [
+        "SP-E4-03"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "54/5353373b-D-4.6-topics.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\54\\5353373b-D-4.6-topics.png",
+      "sha256": "d1ddc783d9926343886404a6745c5e67c913a1aa3d5f414a728caa67ea1fef08",
+      "screenHints": [
+        "D-4.6"
+      ],
+      "screens": [
+        "D-4.6"
+      ],
+      "taskKeys": [
+        "SP-E4-04"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "55/a362bbb1-D-4.7-topic.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\55\\a362bbb1-D-4.7-topic.png",
+      "sha256": "b4d4ded1177b0e67b16360607e9cbaf2c7b472a80fb4fb39bd73cc4b973af14f",
+      "screenHints": [
+        "D-4.7"
+      ],
+      "screens": [
+        "D-4.7"
+      ],
+      "taskKeys": [
+        "SP-E4-04"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "56/3d21cd7e-D-4.8-states.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\56\\3d21cd7e-D-4.8-states.png",
+      "sha256": "7ecbdee0a1804f70b7034a821a1c02b242adca374ebd09b6ebfdc2aafcf06d24",
+      "screenHints": [
+        "D-4.8"
+      ],
+      "screens": [
+        "D-4.8"
+      ],
+      "taskKeys": [
+        "SP-E4-08"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "56/7a25f694-D-4.8-main.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\56\\7a25f694-D-4.8-main.png",
+      "sha256": "ec7f9b93bb0283a14fdf59d65038c34a3c1f047a84243bcd17a9092ecd8c86d4",
+      "screenHints": [
+        "D-4.8"
+      ],
+      "screens": [
+        "D-4.8"
+      ],
+      "taskKeys": [
+        "SP-E4-08"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "56/85328501-D-4.8-dialog.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\56\\85328501-D-4.8-dialog.png",
+      "sha256": "d825f55eaca29aabb996f60a1f2d7538bdc6cb3eb3dfc3bfb81955b56571601b",
+      "screenHints": [
+        "D-4.8"
+      ],
+      "screens": [
+        "D-4.8"
+      ],
+      "taskKeys": [
+        "SP-E4-08"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "56/f9ff175c-D-4.8-empty.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\56\\f9ff175c-D-4.8-empty.png",
+      "sha256": "e9de8eb9a0e1a3f9449bc3bb00dd8a7564caf8f2da86ffda23fd02202b9a3a32",
+      "screenHints": [
+        "D-4.8"
+      ],
+      "screens": [
+        "D-4.8"
+      ],
+      "taskKeys": [
+        "SP-E4-08"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "57/660ef999-D-4.9-promises.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\57\\660ef999-D-4.9-promises.png",
+      "sha256": "28f003bc0b2011fca825c9c6d937daac42efe4f21af5fb0228d11a9115dbb157",
+      "screenHints": [
+        "D-4.9"
+      ],
+      "screens": [
+        "D-4.9"
+      ],
+      "taskKeys": [
+        "SP-E4-05"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "57/66b4fdfb-D-4.9-style.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\57\\66b4fdfb-D-4.9-style.png",
+      "sha256": "830db536d8ae95c98d2fd9017d1fa9e15fc11c4276ee0141c0b3778058bdfec6",
+      "screenHints": [
+        "D-4.9"
+      ],
+      "screens": [
+        "D-4.9"
+      ],
+      "taskKeys": [
+        "SP-E4-05"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "57/b3d12815-D-4.9-topics.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\57\\b3d12815-D-4.9-topics.png",
+      "sha256": "a3babf0d7077f089f25c8fe448aaab9622cc632f7db0a9bacf020021be668b57",
+      "screenHints": [
+        "D-4.9"
+      ],
+      "screens": [
+        "D-4.9"
+      ],
+      "taskKeys": [
+        "SP-E4-05"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "57/d24738a8-D-4.9-test.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\57\\d24738a8-D-4.9-test.png",
+      "sha256": "cb950f39f376bbe61d7c0c3b985c8a835ef0a6f14e22af5081084410600b66b3",
+      "screenHints": [
+        "D-4.9"
+      ],
+      "screens": [
+        "D-4.9"
+      ],
+      "taskKeys": [
+        "SP-E4-05"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "58/7845474c-D-4.10-empty.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\58\\7845474c-D-4.10-empty.png",
+      "sha256": "0dd1308520b91b3f7b2c994d29daec0fe016e9ec2e93844f7258f6061b328f70",
+      "screenHints": [
+        "D-4.10"
+      ],
+      "screens": [
+        "D-4.10"
+      ],
+      "taskKeys": [
+        "SP-E4-06"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "58/a87ab0ea-D-4.10-main.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\58\\a87ab0ea-D-4.10-main.png",
+      "sha256": "4c9df9709e2f5bfae16800333c850f82c453fec2677144f68c7aa762a250ad59",
+      "screenHints": [
+        "D-4.10"
+      ],
+      "screens": [
+        "D-4.10"
+      ],
+      "taskKeys": [
+        "SP-E4-06"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "58/ad880443-D-4.10-states.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\58\\ad880443-D-4.10-states.png",
+      "sha256": "05a97a8b4d64e1de8b525079f3df8a939c855e70c6f01727a100197c8e031ed9",
+      "screenHints": [
+        "D-4.10"
+      ],
+      "screens": [
+        "D-4.10"
+      ],
+      "taskKeys": [
+        "SP-E4-06"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "58/c5938995-D-4.10-review.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\58\\c5938995-D-4.10-review.png",
+      "sha256": "b3e7a3b5caa9f2d9f051b84d1e57f372bc9bf9ebeca649296ca196bd12f36708",
+      "screenHints": [
+        "D-4.10"
+      ],
+      "screens": [
+        "D-4.10"
+      ],
+      "taskKeys": [
+        "SP-E4-06"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "59/18-D-4.11-sandbox.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\59\\18-D-4.11-sandbox.png",
+      "sha256": "d4d3fd8bebb3fa91f4caf7efb9ccbcc48aa074666c596a249a0664620c6b285e",
+      "screenHints": [
+        "D-4.11"
+      ],
+      "screens": [
+        "D-4.11"
+      ],
+      "taskKeys": [
+        "SP-E4-07"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "6/897c220f-S-0.5-states-eyon.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\6\\897c220f-S-0.5-states-eyon.png",
+      "sha256": "579ef22ea1796d0244aec1d40035eb862cc30a21f84e8b8cb5ea46d8d8ff7d15",
+      "screenHints": [
+        "S-0.5"
+      ],
+      "screens": [
+        "S-0.5"
+      ],
+      "taskKeys": [
+        "SP-E1-01"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "6/99e46b96-S-0.5-mobile-eyon.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\6\\99e46b96-S-0.5-mobile-eyon.png",
+      "sha256": "a85477e92cb9c8b67502e7c751a84653ee9a2fd32e963701062902fbdfacade2",
+      "screenHints": [
+        "S-0.5"
+      ],
+      "screens": [
+        "S-0.5"
+      ],
+      "taskKeys": [
+        "SP-E1-01"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "6/b7ef9ab0-S-0.5-invitation-eyon.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\6\\b7ef9ab0-S-0.5-invitation-eyon.png",
+      "sha256": "cf9b2dff34cc8016e2a8a6bae38be42d2eeb571ecf7add8b53804c25e8b735a4",
+      "screenHints": [
+        "S-0.5"
+      ],
+      "screens": [
+        "S-0.5"
+      ],
+      "taskKeys": [
+        "SP-E1-01"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "60/064c9e35-D-4.12-compare.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\60\\064c9e35-D-4.12-compare.png",
+      "sha256": "f5812d8c3f47db5d7132c32eb2dfeacd083e78ef7c52384f9e8550c31df85bee",
+      "screenHints": [
+        "D-4.12"
+      ],
+      "screens": [
+        "D-4.12"
+      ],
+      "taskKeys": [
+        "SP-E4-01"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "60/11cebe0d-D-4.12-main.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\60\\11cebe0d-D-4.12-main.png",
+      "sha256": "857d873eaf5e9d9a5108faa3759cb34b53a309eb8e77f15d602685c138db206f",
+      "screenHints": [
+        "D-4.12"
+      ],
+      "screens": [
+        "D-4.12"
+      ],
+      "taskKeys": [
+        "SP-E4-01"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "60/13c738df-D-4.12-empty.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\60\\13c738df-D-4.12-empty.png",
+      "sha256": "5d45b593c6d41a341e9bdd2c2d00692b175784888015b69df301c04f73970d04",
+      "screenHints": [
+        "D-4.12"
+      ],
+      "screens": [
+        "D-4.12"
+      ],
+      "taskKeys": [
+        "SP-E4-01"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "60/eb0254d2-D-4.12-publish.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\60\\eb0254d2-D-4.12-publish.png",
+      "sha256": "5d84eb833ecfe31141a403b3f86f70c4bf25c1c5d5af258c0f31705f704fcb34",
+      "screenHints": [
+        "D-4.12"
+      ],
+      "screens": [
+        "D-4.12"
+      ],
+      "taskKeys": [
+        "SP-E4-01"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "61/dc4d7777-D-6.1-persona.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\61\\dc4d7777-D-6.1-persona.png",
+      "sha256": "9ca79cd36c9de41274eb8eb715d78ba5576bb3e2146cd6f55575a545491877e1",
+      "screenHints": [
+        "D-6.1"
+      ],
+      "screens": [
+        "D-6.1"
+      ],
+      "taskKeys": [
+        "SP-E6-01"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "62/a9f7a4bb-D-6.2-greetings.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\62\\a9f7a4bb-D-6.2-greetings.png",
+      "sha256": "f0f6be532855233be5b4a23316b60592f850350bc4dbdf36c08035b3c6a02486",
+      "screenHints": [
+        "D-6.2"
+      ],
+      "screens": [
+        "D-6.2"
+      ],
+      "taskKeys": [
+        "SP-E6-02"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "63/b729e1c4-D-6.3-service-phrases.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\63\\b729e1c4-D-6.3-service-phrases.png",
+      "sha256": "429cd2c2b3c7eafc1e1b835d3c108546779e84fa9958d36c6438de61d0950006",
+      "screenHints": [
+        "D-6.3"
+      ],
+      "screens": [
+        "D-6.3"
+      ],
+      "taskKeys": [
+        "SP-E6-01"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "64/3f8aa312-D-7.1-quality.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\64\\3f8aa312-D-7.1-quality.png",
+      "sha256": "9713684bc4b7d0158a726677baa8461e3563cd950689c57fca60b16f8a6072b6",
+      "screenHints": [
+        "D-7.1"
+      ],
+      "screens": [
+        "D-7.1"
+      ],
+      "taskKeys": [
+        "SP-E7-01"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "64/4a1bd233-D-7.1-empty.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\64\\4a1bd233-D-7.1-empty.png",
+      "sha256": "9e7f9997e5b3329ee0715f9db8cbc4a0dd57d155de32551c8ce0586cdd7ab798",
+      "screenHints": [
+        "D-7.1"
+      ],
+      "screens": [
+        "D-7.1"
+      ],
+      "taskKeys": [
+        "SP-E7-01"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "65/6c3db548-D-7.2-daily-report-bottom.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\65\\6c3db548-D-7.2-daily-report-bottom.png",
+      "sha256": "66e8d5961fc363c820b32bf3b6d1d8b66a6e67195979abe50a50680949301127",
+      "screenHints": [
+        "D-7.2"
+      ],
+      "screens": [
+        "D-7.2"
+      ],
+      "taskKeys": [
+        "SP-E7-01"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "65/e565426b-D-7.2-daily-report-top.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\65\\e565426b-D-7.2-daily-report-top.png",
+      "sha256": "25fd3611ce68e077841f096ed8256b1a3842932c61a43917a309d204b12327b7",
+      "screenHints": [
+        "D-7.2"
+      ],
+      "screens": [
+        "D-7.2"
+      ],
+      "taskKeys": [
+        "SP-E7-01"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "66/15042fc7-D-7.3-evaluation.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\66\\15042fc7-D-7.3-evaluation.png",
+      "sha256": "513aa71162a0bc95b9cdb08221335532c0515663c75416c428402840043063b1",
+      "screenHints": [
+        "D-7.3"
+      ],
+      "screens": [
+        "D-7.3"
+      ],
+      "taskKeys": [
+        "SP-E7-01"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "66/35915e2a-D-7.3-no-evaluation.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\66\\35915e2a-D-7.3-no-evaluation.png",
+      "sha256": "efa2a3ca8c6e88f65a9f81b45f9ff94ecdbb14e3c512134b6b5edf2764745278",
+      "screenHints": [
+        "D-7.3"
+      ],
+      "screens": [
+        "D-7.3"
+      ],
+      "taskKeys": [
+        "SP-E7-01"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "67/25-D-9.1-channels.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\67\\25-D-9.1-channels.png",
+      "sha256": "6f7a101340f92b0a4c5a7d9b8259958c079c6ce88a5f8ce96c370654f498c8b3",
+      "screenHints": [
+        "D-9.1"
+      ],
+      "screens": [
+        "D-9.1"
+      ],
+      "taskKeys": [
+        "SP-E5-01"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "68/653937fd-D-9.2a-domains.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\68\\653937fd-D-9.2a-domains.png",
+      "sha256": "1cf9ed90bc011b8fda23c63884616840cf2f64a4098d71a3401268278392108b",
+      "screenHints": [
+        "D-9.2a"
+      ],
+      "screens": [
+        "D-9.2"
+      ],
+      "taskKeys": [
+        "SP-E5-02"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "69/f4ee000d-D-9.2b-widget-install-code.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\69\\f4ee000d-D-9.2b-widget-install-code.png",
+      "sha256": "e1f9d0d463c73248152ebd94d9514a0b73b74a4ad68f2b08f707778e3c3201f8",
+      "screenHints": [
+        "D-9.2b"
+      ],
+      "screens": [
+        "D-9.2"
+      ],
+      "taskKeys": [
+        "SP-E5-02"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "7/43eac3fe-S-0.6a-company-eyon.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\7\\43eac3fe-S-0.6a-company-eyon.png",
+      "sha256": "add55b7b7fb3b848036c58a2c511c2cfe5649a852fc19a2b10913b0d3e0b01e7",
+      "screenHints": [
+        "S-0.6a"
+      ],
+      "screens": [
+        "S-0.6"
+      ],
+      "taskKeys": [
+        "SP-E1-02"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "70/37df8e4f-D-9.2c-detected.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\70\\37df8e4f-D-9.2c-detected.png",
+      "sha256": "eb2e378bb5d465cdc68abefb385780e680f7510ea024a50df88c2596d598763c",
+      "screenHints": [
+        "D-9.2c"
+      ],
+      "screens": [
+        "D-9.2"
+      ],
+      "taskKeys": [
+        "SP-E5-02"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "70/79c7e5d4-D-9.2c-not-detected.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\70\\79c7e5d4-D-9.2c-not-detected.png",
+      "sha256": "977583b1f8416f4e996541512ad10bd1bb28eaf1a59145ad471fb667746b7472",
+      "screenHints": [
+        "D-9.2c"
+      ],
+      "screens": [
+        "D-9.2"
+      ],
+      "taskKeys": [
+        "SP-E5-02"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "71/266e702e-D-9.3-widget-look.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\71\\266e702e-D-9.3-widget-look.png",
+      "sha256": "a931d561b159a24372ab02cb2c400cc8500aeb92b4900427ea071c0100963b77",
+      "screenHints": [
+        "D-9.3"
+      ],
+      "screens": [
+        "D-9.3"
+      ],
+      "taskKeys": [
+        "SP-E5-02"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "72/83fadfae-D-9.4-widget-behavior.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\72\\83fadfae-D-9.4-widget-behavior.png",
+      "sha256": "241d942cf2f0ea02bb91e5343fa7383b0dc9582384f1eb422bfcf7a2f035d63e",
+      "screenHints": [
+        "D-9.4"
+      ],
+      "screens": [
+        "D-9.4"
+      ],
+      "taskKeys": [
+        "SP-E5-02"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "73/b8b8ca90-D-9.5-telegram.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\73\\b8b8ca90-D-9.5-telegram.png",
+      "sha256": "07920691195243b4f3e8d0c02574492cf5050a666b91391a3d11a72a8398609a",
+      "screenHints": [
+        "D-9.5"
+      ],
+      "screens": [
+        "D-9.5"
+      ],
+      "taskKeys": [
+        "SP-E5-01"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "74/3d4642f8-D-9.8-email.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\74\\3d4642f8-D-9.8-email.png",
+      "sha256": "a388e534ff941d600de1f60e1a61bb69bbea7ff38be2a038df428d37b1ad19d4",
+      "screenHints": [
+        "D-9.8"
+      ],
+      "screens": [
+        "D-9.8"
+      ],
+      "taskKeys": [
+        "SP-E5-07"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "75/3d7c1034-D-9.9-incoming-forms.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\75\\3d7c1034-D-9.9-incoming-forms.png",
+      "sha256": "528791ef51ca154b8726d8892e0a343a1c49d3fc3deb87ee500d24f39e625e4c",
+      "screenHints": [
+        "D-9.9"
+      ],
+      "screens": [
+        "D-9.9"
+      ],
+      "taskKeys": [
+        "SP-E5-03"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "76/3aec17cc-D-11.1-schedule.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\76\\3aec17cc-D-11.1-schedule.png",
+      "sha256": "aff544ecf2776f8803063145b2bb151b5f6042a365639232580690c38ebc3bd2",
+      "screenHints": [
+        "D-11.1"
+      ],
+      "screens": [
+        "D-11.1"
+      ],
+      "taskKeys": [
+        "SP-E6-06"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "77/b6c7cbcb-D-11.2-distribution.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\77\\b6c7cbcb-D-11.2-distribution.png",
+      "sha256": "225b9340525cf89f966c06ac1d1cae42d652bbdbed02d3fb5aa591286d54c634",
+      "screenHints": [
+        "D-11.2"
+      ],
+      "screens": [
+        "D-11.2"
+      ],
+      "taskKeys": [
+        "SP-E6-06"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "78/0cbb65ce-D-11.3-module-limits.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\78\\0cbb65ce-D-11.3-module-limits.png",
+      "sha256": "c467bcd3a8070ce899138124c40258bb0ef988e775b436c922db516e3bc83a9b",
+      "screenHints": [
+        "D-11.3"
+      ],
+      "screens": [
+        "D-11.3"
+      ],
+      "taskKeys": [
+        "SP-E6-07"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "79/637f0892-D-11.4-notifications.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\79\\637f0892-D-11.4-notifications.png",
+      "sha256": "507eb93cf10b1a7d8a6db17b5152b5f86c18ccb0b0be86981cace9a81eee3cda",
+      "screenHints": [
+        "D-11.4"
+      ],
+      "screens": [
+        "D-11.4"
+      ],
+      "taskKeys": [
+        "SP-E6-07"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "8/d52881b8-S-0.6b-brand-eyon.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\8\\d52881b8-S-0.6b-brand-eyon.png",
+      "sha256": "2a4a1a79f0dfd4863520937b0ca374f769910c81a2807bf591e05cf53f7398a6",
+      "screenHints": [
+        "S-0.6b"
+      ],
+      "screens": [
+        "S-0.6"
+      ],
+      "taskKeys": [
+        "SP-E1-02"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "80/d74a4c2f-V-0.1-progress.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\80\\d74a4c2f-V-0.1-progress.png",
+      "sha256": "fe7a42bf06219d8eca8bbec57e87284f17090a96e6b3a0b31161588fe4e6e799",
+      "screenHints": [
+        "V-0.1"
+      ],
+      "screens": [
+        "V-0.1"
+      ],
+      "taskKeys": [
+        "SP-E8-02"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "80/ee009447-V-0.1-start.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\80\\ee009447-V-0.1-start.png",
+      "sha256": "728e320d812fdfea9760339196898734726b01e292f59f807ccf7cc22e7592d9",
+      "screenHints": [
+        "V-0.1"
+      ],
+      "screens": [
+        "V-0.1"
+      ],
+      "taskKeys": [
+        "SP-E8-02"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "81/22-V-1.1-brand-questionnaire.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\81\\22-V-1.1-brand-questionnaire.png",
+      "sha256": "aedfdf912524506471ef0e6c90c2d8efc28762d3281e89fad51af020249dbd7d",
+      "screenHints": [
+        "V-1.1"
+      ],
+      "screens": [
+        "V-1.1"
+      ],
+      "taskKeys": [
+        "SP-E8-02"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "82/070f3de5-V-1.2-loading.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\82\\070f3de5-V-1.2-loading.png",
+      "sha256": "72a8ce73b46471d549786f0820d197e251fc772805d297cc8bb2cd4c5b1cb597",
+      "screenHints": [
+        "V-1.2"
+      ],
+      "screens": [
+        "V-1.2"
+      ],
+      "taskKeys": [
+        "SP-E8-02"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "82/987f5c44-V-1.2-names.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\82\\987f5c44-V-1.2-names.png",
+      "sha256": "9e4754e970422d68fa72f571a860eeee6b789ecc9347fed1237dbf38d0a3343b",
+      "screenHints": [
+        "V-1.2"
+      ],
+      "screens": [
+        "V-1.2"
+      ],
+      "taskKeys": [
+        "SP-E8-02"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "83/84ef3bb4-V-1.3-questionnaire-error.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\83\\84ef3bb4-V-1.3-questionnaire-error.png",
+      "sha256": "6095bdff70dd29eaa917876f27463c2fe18196d5b01d308b12840178e3607e4e",
+      "screenHints": [
+        "V-1.3"
+      ],
+      "screens": [
+        "V-1.3"
+      ],
+      "taskKeys": [
+        "SP-E8-02"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "83/bf686394-V-1.3-questionnaire.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\83\\bf686394-V-1.3-questionnaire.png",
+      "sha256": "f9f9926ca247be28aa9a7c90ac7aa2e321278236c3fcafe1af13819dc400b93e",
+      "screenHints": [
+        "V-1.3"
+      ],
+      "screens": [
+        "V-1.3"
+      ],
+      "taskKeys": [
+        "SP-E8-02"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "84/4429a438-V-1.4-competitors-loading.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\84\\4429a438-V-1.4-competitors-loading.png",
+      "sha256": "2979590a912bfc98746c130ca3ac1a0c8d2f022bdeef491451d2eaa029ddae70",
+      "screenHints": [
+        "V-1.4"
+      ],
+      "screens": [
+        "V-1.4"
+      ],
+      "taskKeys": [
+        "SP-E8-02"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "84/6f4a50f7-V-1.4-competitors.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\84\\6f4a50f7-V-1.4-competitors.png",
+      "sha256": "ca3409f7d750dd334fc91ac9cd5788efbe2c86bda9b46821018ea4813efba48d",
+      "screenHints": [
+        "V-1.4"
+      ],
+      "screens": [
+        "V-1.4"
+      ],
+      "taskKeys": [
+        "SP-E8-02"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "85/0660a96f-V-1.5-loading.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\85\\0660a96f-V-1.5-loading.png",
+      "sha256": "94d56ea0d051958ba9fdec7af1b67b8cf24c88a5e93a0c28dd65332a53d5e87c",
+      "screenHints": [
+        "V-1.5"
+      ],
+      "screens": [
+        "V-1.5"
+      ],
+      "taskKeys": [
+        "SP-E8-02"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "85/eca76a61-V-1.5-main.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\85\\eca76a61-V-1.5-main.png",
+      "sha256": "c4c5977640b305b7479f3616dfa30dfeb6208591ad4c1c22b46daf0d6986ce55",
+      "screenHints": [
+        "V-1.5"
+      ],
+      "screens": [
+        "V-1.5"
+      ],
+      "taskKeys": [
+        "SP-E8-02"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "85/f628450e-V-1.5-error.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\85\\f628450e-V-1.5-error.png",
+      "sha256": "8746153a20b9748b0e91044797c03ee1fdcc99b656dc7ef6fc9ffde84ab64f21",
+      "screenHints": [
+        "V-1.5"
+      ],
+      "screens": [
+        "V-1.5"
+      ],
+      "taskKeys": [
+        "SP-E8-02"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "86/03c6fc0a-V-1.6-loading.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\86\\03c6fc0a-V-1.6-loading.png",
+      "sha256": "a44467f51d4ebb0b4a09ffa6b2fa37b945be550259b6469b8d178c7ff846a4f4",
+      "screenHints": [
+        "V-1.6"
+      ],
+      "screens": [
+        "V-1.6"
+      ],
+      "taskKeys": [
+        "SP-E8-02"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "86/a3e7c375-V-1.6-platforms.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\86\\a3e7c375-V-1.6-platforms.png",
+      "sha256": "ec9861d0a927850b6ca8b86676ca836368660cd776b228dd927bc8bedcc0f525",
+      "screenHints": [
+        "V-1.6"
+      ],
+      "screens": [
+        "V-1.6"
+      ],
+      "taskKeys": [
+        "SP-E8-02"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "86/ef6476be-V-1.6-error.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\86\\ef6476be-V-1.6-error.png",
+      "sha256": "8e23e3f1b1ba9045cbd9aae2451684635316bad7a3aca11f7e71c12afaf1d13a",
+      "screenHints": [
+        "V-1.6"
+      ],
+      "screens": [
+        "V-1.6"
+      ],
+      "taskKeys": [
+        "SP-E8-02"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "87/b887cdd5-V-1.7-states.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\87\\b887cdd5-V-1.7-states.png",
+      "sha256": "dda64965a9f10d4d256f76e6a4b00e9a90a2b726f8af647a89c055f0bb351a5e",
+      "screenHints": [
+        "V-1.7"
+      ],
+      "screens": [
+        "V-1.7"
+      ],
+      "taskKeys": [
+        "SP-E8-02"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "87/bb4d46fc-V-1.7-empty.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\87\\bb4d46fc-V-1.7-empty.png",
+      "sha256": "9368385d229275bfee9089295a3792c5cd8e4e9717dae7af4367f74dfcc304d8",
+      "screenHints": [
+        "V-1.7"
+      ],
+      "screens": [
+        "V-1.7"
+      ],
+      "taskKeys": [
+        "SP-E8-02"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "87/d76e773d-V-1.7-main.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\87\\d76e773d-V-1.7-main.png",
+      "sha256": "f660c800e60a744f57d231c9b73e155448734a38534947ad93ed95dab5397276",
+      "screenHints": [
+        "V-1.7"
+      ],
+      "screens": [
+        "V-1.7"
+      ],
+      "taskKeys": [
+        "SP-E8-02"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "88/4ca4e69e-V-1.8-success.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\88\\4ca4e69e-V-1.8-success.png",
+      "sha256": "0d8acc9054a4c043fecdb3d9ee0a277d68f1f8dd79bc840fbe4d41b74c2b86b1",
+      "screenHints": [
+        "V-1.8"
+      ],
+      "screens": [
+        "V-1.8"
+      ],
+      "taskKeys": [
+        "SP-E8-02"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "88/9395da39-V-1.8-error.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\88\\9395da39-V-1.8-error.png",
+      "sha256": "7745bf29619eb7ebe4b5f8657d9d4684452ae60de989bece803f32731a4f2029",
+      "screenHints": [
+        "V-1.8"
+      ],
+      "screens": [
+        "V-1.8"
+      ],
+      "taskKeys": [
+        "SP-E8-02"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "88/f777bbba-V-1.8-review.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\88\\f777bbba-V-1.8-review.png",
+      "sha256": "74e3fd3af8319867259492a2df14f256dbdfd16971ed1575631f640d3887d059",
+      "screenHints": [
+        "V-1.8"
+      ],
+      "screens": [
+        "V-1.8"
+      ],
+      "taskKeys": [
+        "SP-E8-02"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "89/a2bd1237-V-1.9-brand-profile.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\89\\a2bd1237-V-1.9-brand-profile.png",
+      "sha256": "849f3ff5fc84c7d8699662914f844b45f9443d6aafc20ba7e7c15d3168ecd14a",
+      "screenHints": [
+        "V-1.9"
+      ],
+      "screens": [
+        "V-1.9"
+      ],
+      "taskKeys": [
+        "SP-E8-02"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "89/d1d28929-V-1.9-profile-history.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\89\\d1d28929-V-1.9-profile-history.png",
+      "sha256": "d6dfd987063cc1079dbfcdbc60e7a53d4d0225ed9a7760bdfabb1719eefe04a5",
+      "screenHints": [
+        "V-1.9"
+      ],
+      "screens": [
+        "V-1.9"
+      ],
+      "taskKeys": [
+        "SP-E8-02"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "9/d8b07b9c-S-0.6c-modules-eyon.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\9\\d8b07b9c-S-0.6c-modules-eyon.png",
+      "sha256": "f808f6a49eb97575211d3a4e65e51882ada8c21f4b4dd94c89a1a462a04df726",
+      "screenHints": [
+        "S-0.6c"
+      ],
+      "screens": [
+        "S-0.6"
+      ],
+      "taskKeys": [
+        "SP-E1-02"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "90/16-V-2.1-questions.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\90\\16-V-2.1-questions.png",
+      "sha256": "3d70ac042cfeba094a660478e5ad239cf2193beca29833d5535ab1b6aaa1ee4e",
+      "screenHints": [
+        "V-2.1"
+      ],
+      "screens": [
+        "V-2.1"
+      ],
+      "taskKeys": [
+        "SP-E8-03"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "91/88acd839-V-2.2-add-question.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\91\\88acd839-V-2.2-add-question.png",
+      "sha256": "ca9285fa581c4f2d2e388988dc901b42dcb54f21112fe66b7fcdb229787fec27",
+      "screenHints": [
+        "V-2.2"
+      ],
+      "screens": [
+        "V-2.2"
+      ],
+      "taskKeys": [
+        "SP-E8-03"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "92/844ad6b3-V-2.3-approve-set.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\92\\844ad6b3-V-2.3-approve-set.png",
+      "sha256": "058c666e5bae175cd048e3aebf6cc12454a2d2f2b9d362e50ef8e9f130561136",
+      "screenHints": [
+        "V-2.3"
+      ],
+      "screens": [
+        "V-2.3"
+      ],
+      "taskKeys": [
+        "SP-E8-03"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "93/7a79854b-V-2.4-active-set.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\93\\7a79854b-V-2.4-active-set.png",
+      "sha256": "d72d683e2e22ab629fbbb8bc9f2fdc17d7b25983e1370957c1f795b67ad5e1d8",
+      "screenHints": [
+        "V-2.4"
+      ],
+      "screens": [
+        "V-2.4"
+      ],
+      "taskKeys": [
+        "SP-E8-03"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "94/5a6c0c24-V-2.5-history.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\94\\5a6c0c24-V-2.5-history.png",
+      "sha256": "c2811e82dd934cb3ec05dcba218ab24577c572a3b258ab02bac0d3c7e80a52ef",
+      "screenHints": [
+        "V-2.5"
+      ],
+      "screens": [
+        "V-2.5"
+      ],
+      "taskKeys": [
+        "SP-E8-03"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "94/f603ca20-V-2.5-empty.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\94\\f603ca20-V-2.5-empty.png",
+      "sha256": "fd74c841c35104b03d680224912fd1c6ff7044c78897e2646ce405e7cbdc4256",
+      "screenHints": [
+        "V-2.5"
+      ],
+      "screens": [
+        "V-2.5"
+      ],
+      "taskKeys": [
+        "SP-E8-03"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "95/28-V-3.1-measurements-final.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\95\\28-V-3.1-measurements-final.png",
+      "sha256": "ca91b473d81b3472df4c5c34a6b2f29b2d3f03e18a85a507114de0dfe2a96080",
+      "screenHints": [
+        "V-3.1"
+      ],
+      "screens": [
+        "V-3.1"
+      ],
+      "taskKeys": [
+        "SP-E8-04"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "96/12be4d36-V-3.2-insufficient.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\96\\12be4d36-V-3.2-insufficient.png",
+      "sha256": "0f3aaff62eecd7ffe7d3e63a468d667124547b8de86dc643c824c6ad40edbdf2",
+      "screenHints": [
+        "V-3.2"
+      ],
+      "screens": [
+        "V-3.2"
+      ],
+      "taskKeys": [
+        "SP-E8-04"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "96/6823afbd-V-3.2-launch.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\96\\6823afbd-V-3.2-launch.png",
+      "sha256": "6e776d84c2f93c3cd05a96f7b282af4140c628f07227078aed8cef510f625dd3",
+      "screenHints": [
+        "V-3.2"
+      ],
+      "screens": [
+        "V-3.2"
+      ],
+      "taskKeys": [
+        "SP-E8-04"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "97/1b804692-V-3.3-run-complete.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\97\\1b804692-V-3.3-run-complete.png",
+      "sha256": "696f4c873fae8145259b6163cb4a58d306ee1e6855c50481cd40a4710c3a2e6c",
+      "screenHints": [
+        "V-3.3"
+      ],
+      "screens": [
+        "V-3.3"
+      ],
+      "taskKeys": [
+        "SP-E8-04"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "97/cd7fcf2e-V-3.3-run-progress.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\97\\cd7fcf2e-V-3.3-run-progress.png",
+      "sha256": "d4bd8fd0905cdf9aab5bb0ce79e46d9b4ef21b19d019a32f15b1454d044fc4fa",
+      "screenHints": [
+        "V-3.3"
+      ],
+      "screens": [
+        "V-3.3"
+      ],
+      "taskKeys": [
+        "SP-E8-04"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "97/de9590b5-V-3.3-run-loading.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\97\\de9590b5-V-3.3-run-loading.png",
+      "sha256": "2a80ced1ff93cb823275e60c09727dc5c50448d8549cef7c840c337a36490233",
+      "screenHints": [
+        "V-3.3"
+      ],
+      "screens": [
+        "V-3.3"
+      ],
+      "taskKeys": [
+        "SP-E8-04"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "98/24-V-3.4-answer-matrix.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\98\\24-V-3.4-answer-matrix.png",
+      "sha256": "128a99c9e334c8cafd40467b889f1a7c72dff223ccae5d7caddc1671881e1b3e",
+      "screenHints": [
+        "V-3.4"
+      ],
+      "screens": [
+        "V-3.4"
+      ],
+      "taskKeys": [
+        "SP-E8-04"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "99/c5f239b3-V-3.5-states.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\99\\c5f239b3-V-3.5-states.png",
+      "sha256": "4aa5613462d1e3ae268ab6c0eb5b2ed89cd49418e824ebcf2f7f050f97968a86",
+      "screenHints": [
+        "V-3.5"
+      ],
+      "screens": [
+        "V-3.5"
+      ],
+      "taskKeys": [
+        "SP-E8-04"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    },
+    {
+      "relative": "99/e358adf9-V-3.5-main.png",
+      "path": "C:\\OSPanel\\home\\tasks.local\\completed\\99\\e358adf9-V-3.5-main.png",
+      "sha256": "b346464fcd70f441d8968c3f3687972ea51b820c9b4355421afd22e11a7b6520",
+      "screenHints": [
+        "V-3.5"
+      ],
+      "screens": [
+        "V-3.5"
+      ],
+      "taskKeys": [
+        "SP-E8-04"
+      ],
+      "status": "planned",
+      "note": "Плоский визуальный эталон; все показанные состояния воспроизводятся компонентами."
+    }
+  ]
+}

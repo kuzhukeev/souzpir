@@ -1,6 +1,7 @@
 """Build the reviewed queue from the immutable source backlog plus explicit overrides."""
 from pathlib import Path
 import json, re
+from map_mockups import build_coverage, owners_for
 
 ROOT = Path(__file__).resolve().parents[1]
 source = (ROOT/'docs/sources/10_backlog.md').read_text(encoding='utf-8')
@@ -171,9 +172,10 @@ def wave(key):
 for key in tasks: wave(key)
 
 materials=json.loads((ROOT/'planning/materials-manifest.json').read_text(encoding='utf-8'))
+(ROOT/'planning/image-coverage.json').write_text(json.dumps(build_coverage(materials['images'],tasks.values()),ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
 for key,t in tasks.items():
     sources='\n'.join(f'- {i}: {original[i]["refs"]}' for i in t['sourceIds'])
-    images=[r['path'] for r in materials['images'] if r['relative'].split('/')[0].isdigit() and any(s in r['screenHints'] for s in t['screenIds'])]
+    images=[r['path'] for r in materials['images'] if r['relative'].split('/')[0].isdigit() and t['taskKey'] in owners_for(r,tasks.values())]
     description=f'''Прочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.
 
 Цель: {t['goal']}
