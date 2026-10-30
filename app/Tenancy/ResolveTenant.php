@@ -22,7 +22,12 @@ final class ResolveTenant
         $brands = Brand::withoutGlobalScopes()->where('organization_id', $organizationId)->where('status', 'active')->orderBy('name')->orderBy('id')->get()
             ->filter(fn (Brand $brand) => $membership->permitsBrand($brand->id))->values();
         $selected = $request->session()->get('brand_id');
-        $brand = $brands->firstWhere('id', $selected) ?? $brands->first();
+        $brand = $brands->firstWhere('id', $selected);
+        // A stale tab must never write into a replacement brand after access changes.
+        if ($brand === null && ! $request->isMethodSafe() && ! $request->routeIs('brand.switch')) {
+            abort(404);
+        }
+        $brand ??= $brands->first();
         abort_unless($brand, 403);
         // An optional header never selects an organization or bypasses the session scope.
         if ($request->hasHeader('X-Brand-Id')) {

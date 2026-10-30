@@ -113,6 +113,22 @@ final class IsolationTest extends TenancyTestCase
         $this->actingAs($limited)->get('/tenancy-test/page')->assertInertia(fn (Assert $p) => $p->has('brands', 1));
     }
 
+    public function test_stale_or_missing_brand_session_never_redirects_a_write_to_another_brand(): void
+    {
+        [, $org, $a, $b] = $this->cabinet();
+        [$user, $membership] = $this->member($org, 'member', [$a->id, $b->id]);
+        $this->actingAs($user)->withSession(['brand_id' => $b->id]);
+        $this->within($org, null, fn () => $membership->update(['brand_ids' => [$a->id]]));
+        $this->postJson('/tenancy-test/records', [])->assertNotFound();
+        $this->assertSame($b->id, session('brand_id'));
+        $this->assertSame(0, DB::table('tenancy_test_records')->count());
+        $this->withSession(['brand_id' => null])->postJson('/tenancy-test/records', [])->assertNotFound();
+        $this->assertSame(0, DB::table('tenancy_test_records')->count());
+        $this->withSession(['brand_id' => $b->id])->get('/tenancy-test/page')->assertInertia(fn (Assert $p) => $p->where('brand.id', $a->id));
+        $this->withSession(['brand_id' => $b->id])->post('/brand/switch', ['brand_id' => $a->id])->assertRedirect('/');
+        $this->assertSame($a->id, session('brand_id'));
+    }
+
     public function test_cross_organization_grants_and_manager_flag_on_viewer_are_rejected(): void
     {
         [, $org] = $this->cabinet();
@@ -223,7 +239,7 @@ final class IsolationTest extends TenancyTestCase
         $this->actingAs($unverified)->getJson('/tenancy-test/page')->assertForbidden();
         [$owner,, $a] = $this->cabinet();
         $this->actingAs($owner);
-        $this->app->instance('env','local'); // Disable the framework's testing-only CSRF bypass.
-        $this->postJson('/brand/switch',['brand_id' => $a->id])->assertStatus(419);
+        $this->app->instance('env', 'local'); // Disable the framework's testing-only CSRF bypass.
+        $this->postJson('/brand/switch', ['brand_id' => $a->id])->assertStatus(419);
     }
 }
