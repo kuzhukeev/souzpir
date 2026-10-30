@@ -135,8 +135,8 @@ final class InvitationsTest extends TenancyTestCase
             Invitation::flushEventListeners();
             Invitation::clearBootedModels();
         }
-        $this->assertSame(0,Membership::withoutGlobalScopes()->where('user_id',$user->id)->count());
-        $this->assertNull(DB::table('invitations')->where('id',$invitation->id)->value('accepted_at'));
+        $this->assertSame(0, Membership::withoutGlobalScopes()->where('user_id', $user->id)->count());
+        $this->assertNull(DB::table('invitations')->where('id', $invitation->id)->value('accepted_at'));
         $this->assertNull(app(TenantContext::class)->organizationId);
     }
 }
