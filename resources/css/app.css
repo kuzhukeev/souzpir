@@ -3,9 +3,9 @@
 @source '../js/**/*.{ts,tsx}';
 
 html {
-  font-family: system-ui, sans-serif;
-  color: #17211d;
-  background: #f5f7f5;
+  font-family: var(--font-sans, system-ui), sans-serif;
+  color: var(--color-ink, #10264a);
+  background: var(--color-bg, #fbf8f4);
 }
 body {
   margin: 0;
@@ -20,7 +20,7 @@ textarea {
   font: inherit;
 }
 :focus-visible {
-  outline: 3px solid #4b7c65;
+  outline: 3px solid var(--color-focus, #2762ce);
   outline-offset: 3px;
 }
 @media (prefers-reduced-motion: reduce) {
