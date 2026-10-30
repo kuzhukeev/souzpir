@@ -11,7 +11,8 @@ it('filters the six demonstration events by module and text, then resets', async
   const user = userEvent.setup();
   setup();
   expect(within(screen.getByRole('table')).getAllByTestId('attention-row')).toHaveLength(6);
-  await user.selectOptions(screen.getByLabelText('Модуль'), 'vision');
+  await user.click(screen.getByRole('combobox', { name: 'Модуль' }));
+  await user.click(screen.getByRole('option', { name: 'Видение' }));
   expect(within(screen.getByRole('table')).getAllByTestId('attention-row')).toHaveLength(1);
   expect(within(screen.getByRole('table')).getByText('Замер готов к уточнениям')).toBeTruthy();
   await user.type(screen.getByLabelText('Поиск по событиям'), 'нет такого события');

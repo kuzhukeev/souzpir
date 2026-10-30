@@ -355,7 +355,7 @@ function LoginForm({ state, onStateChange, onNotice }: LoginProps) {
 
 export default function LoginPreview(props: LoginProps) {
   return (
-    <main className="relative isolate flex min-h-[calc(100dvh-45px)] flex-col items-center overflow-hidden bg-(--color-bg) px-4 py-8 font-(family-name:--font-sans) text-(--color-ink) sm:px-6 sm:py-10">
+    <main className="relative isolate flex flex-1 flex-col items-center overflow-hidden bg-(--color-bg) px-4 py-8 font-(family-name:--font-sans) text-(--color-ink) sm:px-6 sm:py-10">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -top-40 -left-40 size-80 rounded-full border border-(--color-brand-accent)/30 sm:-top-[330px] sm:-left-[330px] sm:size-[660px]"
@@ -367,7 +367,7 @@ export default function LoginPreview(props: LoginProps) {
       <EyonLogo />
       {/* Keying the local form drops credentials whenever the demonstrated state changes. */}
       <LoginForm key={props.state} {...props} />
-      <footer className="relative mt-8 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs leading-5 text-(--color-ink-muted) sm:mt-10 sm:text-sm">
+      <footer className="relative mt-8 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm leading-5 text-(--color-ink-muted) sm:mt-10 sm:text-sm">
         <span>© EYON</span>
         <span aria-hidden="true" className="h-4 border-l border-(--color-border)" />
         <button

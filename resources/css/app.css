@@ -10,6 +10,7 @@
   }
   body {
     margin: 0;
+    font-size: var(--text-body, 14px);
   }
   * {
     box-sizing: border-box;
@@ -19,6 +20,27 @@
   select,
   textarea {
     font: inherit;
+  }
+  :where(
+      a[href],
+      button,
+      select,
+      input[type='checkbox'],
+      input[type='radio'],
+      [role='button'],
+      [role='combobox'],
+      [role='option'],
+      [role='menuitem']
+    ):not(:disabled):not([aria-disabled='true']) {
+    cursor: pointer;
+  }
+  label:has(input[type='checkbox']:enabled),
+  label:has(input[type='radio']:enabled) {
+    cursor: pointer;
+  }
+  :disabled,
+  [aria-disabled='true'] {
+    cursor: not-allowed;
   }
   :focus-visible {
     outline: 3px solid var(--color-focus, #2762ce);

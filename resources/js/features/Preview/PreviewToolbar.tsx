@@ -1,5 +1,6 @@
 import { Eye, RotateCcw } from 'lucide-react';
 import { themes, type PreviewTheme } from './preview-state';
+import PreviewSelect from './PreviewSelect';
 
 export default function PreviewToolbar({
   screen,
@@ -21,7 +22,7 @@ export default function PreviewToolbar({
   return (
     <aside
       aria-label="Настройки предпросмотра"
-      className="relative z-30 border-b border-(--color-border) bg-(--color-surface) px-4 py-2 text-xs text-(--color-ink)"
+      className="relative z-30 shrink-0 border-b border-(--color-border) bg-(--color-surface) px-4 py-2 text-sm text-(--color-ink)"
     >
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <span className="inline-flex items-center gap-1.5 font-semibold">
@@ -45,37 +46,27 @@ export default function PreviewToolbar({
             Кабинет
           </a>
         </nav>
-        <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
-          <label className="flex items-center gap-1.5">
-            <span className="sr-only sm:not-sr-only">Тема</span>
-            <select
-              aria-label="Тема оформления"
+        <div className="grid w-full grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-center gap-2 sm:ml-auto sm:flex sm:w-auto">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="hidden lg:inline">Тема</span>
+            <PreviewSelect
+              label="Тема оформления"
               value={theme}
-              onChange={(event) => onThemeChange(event.target.value as PreviewTheme)}
-              className="max-w-36 rounded-md border border-(--color-control-border) bg-(--color-surface) px-2 py-1"
-            >
-              {themes.map((item) => (
-                <option key={item.value} value={item.value}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex items-center gap-1.5">
-            <span className="sr-only sm:not-sr-only">Состояние</span>
-            <select
-              aria-label="Состояние экрана"
+              onChange={(value) => onThemeChange(value as PreviewTheme)}
+              options={themes}
+              className="w-full min-w-0 sm:w-44"
+            />
+          </div>
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="hidden lg:inline">Состояние</span>
+            <PreviewSelect
+              label="Состояние экрана"
               value={state}
-              onChange={(event) => onStateChange(event.target.value)}
-              className="max-w-44 rounded-md border border-(--color-control-border) bg-(--color-surface) px-2 py-1"
-            >
-              {states.map((item) => (
-                <option key={item.value} value={item.value}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-          </label>
+              onChange={onStateChange}
+              options={states}
+              className="w-full min-w-0 sm:w-48"
+            />
+          </div>
           <button
             type="button"
             aria-label="Сбросить демо"

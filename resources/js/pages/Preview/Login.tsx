@@ -22,7 +22,7 @@ export default function Login() {
   const [notice, setNotice] = useState('');
   const [revision, setRevision] = useState(0);
   return (
-    <div className="min-h-dvh bg-(--color-bg) font-(family-name:--font-sans) text-(--color-ink)">
+    <div className="flex min-h-dvh flex-col bg-(--color-bg) font-(family-name:--font-sans) text-(--color-ink)">
       <Head title="Вход · макет" />
       <PreviewToolbar
         screen="login"

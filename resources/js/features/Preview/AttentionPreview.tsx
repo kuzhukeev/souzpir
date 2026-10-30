@@ -1,3 +1,4 @@
+import PreviewSelect from './PreviewSelect';
 import { useEffect, useRef, useState } from 'react';
 import {
   AlertCircle,
@@ -122,7 +123,7 @@ function EventIcon({ item, small = false }: { item: DemoEvent; small?: boolean }
 function PriorityBadge({ priority }: { priority: Priority }) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-xs ${priorityStyles[priority]}`}
+      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-sm ${priorityStyles[priority]}`}
     >
       <span className="h-2 w-2 rounded-full bg-current" />
       {priorities[priority]}
@@ -182,7 +183,7 @@ function HomeWidget({
         <div className="flex items-center justify-between gap-3">
           <h3 className="text-[14px] font-bold leading-5">Требует вашего действия</h3>
           <span
-            className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs font-bold ${empty ? 'bg-(--color-warning-soft) text-(--color-warning-ink)' : 'bg-(--color-danger) text-white'}`}
+            className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-sm font-bold ${empty ? 'bg-(--color-warning-soft) text-(--color-warning-ink)' : 'bg-(--color-danger) text-white'}`}
           >
             {empty ? 0 : preview.length}
           </span>
@@ -215,8 +216,8 @@ function HomeWidget({
                   {index === 0 ? <Users size={21} /> : <BookOpen size={21} />}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-[11px] font-semibold leading-4">{item.title}</span>
-                  <span className="mt-1 block text-[10px] leading-4 text-(--color-ink-muted)">
+                  <span className="block text-sm font-semibold leading-5">{item.title}</span>
+                  <span className="mt-1 block text-sm leading-5 text-(--color-ink-muted)">
                     {item.description}
                   </span>
                 </span>
@@ -355,7 +356,7 @@ export default function AttentionPreview({
       <main id="preview-main" className="min-w-0 px-4 py-5 lg:px-6 lg:py-6">
         <nav
           aria-label="Хлебные крошки"
-          className="mb-5 flex flex-wrap items-center gap-3 text-xs text-(--color-ink-muted)"
+          className="mb-5 flex flex-wrap items-center gap-3 text-sm text-(--color-ink-muted)"
         >
           <button type="button" onClick={home} className="rounded text-(--color-link)">
             Главная
@@ -390,42 +391,30 @@ export default function AttentionPreview({
                 className="grid grid-cols-2 items-center gap-3 p-4 sm:flex sm:flex-wrap lg:p-5"
                 aria-label="Фильтры событий"
               >
-                <label className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-(--radius-control) border border-(--color-control-border) px-3 text-sm sm:flex-none">
-                  <LayoutGrid size={19} className="shrink-0 text-(--color-icon)" />
-                  <span className="sr-only">Модуль</span>
-                  <select
-                    aria-label="Модуль"
-                    value={module}
-                    onChange={(event) => setModule(event.target.value as Module | 'all')}
-                    disabled={state === 'loading'}
-                    className="min-w-0 flex-1 bg-transparent text-(--color-link) sm:w-28"
-                  >
-                    <option value="all">Все модули</option>
-                    {Object.entries(modules).map(([key, value]) => (
-                      <option key={key} value={key}>
-                        {value}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-(--radius-control) border border-(--color-control-border) px-3 text-sm sm:flex-none">
-                  <Flag size={19} className="shrink-0 text-(--color-icon)" />
-                  <span className="sr-only">Важность</span>
-                  <select
-                    aria-label="Важность"
-                    value={priority}
-                    onChange={(event) => setPriority(event.target.value as Priority | 'all')}
-                    disabled={state === 'loading'}
-                    className="min-w-0 flex-1 bg-transparent text-(--color-link) sm:w-28"
-                  >
-                    <option value="all">Вся важность</option>
-                    {Object.entries(priorities).map(([key, value]) => (
-                      <option key={key} value={key}>
-                        {value}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <PreviewSelect
+                  label="Модуль"
+                  icon={<LayoutGrid size={19} className="shrink-0 text-(--color-icon)" />}
+                  value={module}
+                  onChange={(value) => setModule(value as Module | 'all')}
+                  disabled={state === 'loading'}
+                  options={[
+                    { value: 'all', label: 'Все модули' },
+                    ...Object.entries(modules).map(([value, label]) => ({ value, label })),
+                  ]}
+                  className="w-full min-w-0 sm:w-44"
+                />
+                <PreviewSelect
+                  label="Важность"
+                  icon={<Flag size={19} className="shrink-0 text-(--color-icon)" />}
+                  value={priority}
+                  onChange={(value) => setPriority(value as Priority | 'all')}
+                  disabled={state === 'loading'}
+                  options={[
+                    { value: 'all', label: 'Вся важность' },
+                    ...Object.entries(priorities).map(([value, label]) => ({ value, label })),
+                  ]}
+                  className="w-full min-w-0 sm:w-48"
+                />
                 <label className="col-span-2 flex h-11 min-w-0 flex-1 items-center gap-2 rounded-(--radius-control) bg-(--color-bg) px-3 sm:min-w-[160px]">
                   <Search size={20} className="shrink-0 text-(--color-icon)" />
                   <span className="sr-only">Поиск по событиям</span>
@@ -491,7 +480,7 @@ export default function AttentionPreview({
                       className="w-full table-fixed border-collapse text-left"
                     >
                       <thead>
-                        <tr className="border-b border-(--color-border) text-xs font-normal text-(--color-ink-muted)">
+                        <tr className="border-b border-(--color-border) text-sm font-normal text-(--color-ink-muted)">
                           <th scope="col" className="w-[47%] pb-3 font-normal">
                             Событие
                           </th>
@@ -520,13 +509,13 @@ export default function AttentionPreview({
                                   <span className="block text-[14px] leading-5 font-bold">
                                     {item.title}
                                   </span>
-                                  <span className="mt-1 block text-xs leading-5 text-(--color-ink-muted)">
+                                  <span className="mt-1 block text-sm leading-5 text-(--color-ink-muted)">
                                     {item.description}
                                   </span>
                                 </span>
                               </div>
                             </td>
-                            <td className="pr-2 text-xs leading-5">{modules[item.module]}</td>
+                            <td className="pr-2 text-sm leading-5">{modules[item.module]}</td>
                             <td className="pr-1">
                               <PriorityBadge priority={item.priority} />
                             </td>
@@ -543,13 +532,13 @@ export default function AttentionPreview({
                           <EventIcon item={item} small />
                           <div className="min-w-0 flex-1">
                             <h2 className="text-sm font-bold leading-5">{item.title}</h2>
-                            <p className="mt-1 text-xs leading-5 text-(--color-ink-muted)">
+                            <p className="mt-1 text-sm leading-5 text-(--color-ink-muted)">
                               {item.description}
                             </p>
                           </div>
                         </div>
                         <div className="mt-3 flex flex-wrap items-center gap-2">
-                          <span className="text-xs text-(--color-ink-muted)">
+                          <span className="text-sm text-(--color-ink-muted)">
                             {modules[item.module]}
                           </span>
                           <PriorityBadge priority={item.priority} />
@@ -561,7 +550,7 @@ export default function AttentionPreview({
                 </>
               )}
             </div>
-            <p className="mt-3 text-[11px] leading-5 text-(--color-ink-muted)">
+            <p className="mt-3 text-sm leading-5 text-(--color-ink-muted)">
               Все события и цифры — примеры из макета. Тарифные условия и реальные действия здесь не
               применяются.
             </p>
@@ -577,7 +566,7 @@ export default function AttentionPreview({
       >
         {selected && (
           <>
-            <span className="inline-flex rounded-full bg-(--color-info-soft) px-3 py-1 text-xs text-(--color-info-ink)">
+            <span className="inline-flex rounded-full bg-(--color-info-soft) px-3 py-1 text-sm text-(--color-info-ink)">
               Демонстрация события
             </span>
             <p className="mt-5 text-sm leading-7 text-(--color-ink-muted)">{selected.details}</p>
@@ -604,7 +593,7 @@ export default function AttentionPreview({
                 placeholder="Добавьте заметку для проверки формы..."
                 className="mt-2 w-full resize-y rounded-(--radius-control) border border-(--color-control-border) p-3 text-sm"
               />
-              <p id="draft-help" className="mt-2 text-xs leading-5 text-(--color-ink-muted)">
+              <p id="draft-help" className="mt-2 text-sm leading-5 text-(--color-ink-muted)">
                 Только текущая вкладка. Данные не отправляются на сервер и не сохраняются в
                 браузере.
               </p>

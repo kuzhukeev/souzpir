@@ -67,16 +67,18 @@
   --radius-card: 1rem;
   --radius-control: 0.625rem;
   --shadow-card: 0 1px 2px rgb(16 38 74 / 0.06), 0 8px 24px rgb(16 38 74 / 0.06);
-  --spacing-sidebar: 16.25rem;
-  --spacing-header: 4rem;
+  --spacing-sidebar: 17.5rem;
+  --spacing-header: 4.5rem;
   --text-page-title: 2rem;
   --text-page-title--line-height: 2.5rem;
   --text-card-title: 1.125rem;
   --text-card-title--line-height: 1.625rem;
   --text-body: 0.875rem;
   --text-body--line-height: 1.25rem;
-  --text-caption: 0.75rem;
-  --text-caption--line-height: 1rem;
+  --text-caption: 0.8125rem;
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.125rem;
+  --text-caption--line-height: 1.125rem;
 }
 
 /* Neutral is also the safe default when no brand has been selected yet. */

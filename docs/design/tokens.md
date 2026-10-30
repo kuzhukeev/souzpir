@@ -40,7 +40,7 @@ Layout, размеры, адаптивность, состояния компо�
 | pyro          | `#1F2A44` | `#E3E7F2`    | `#E8862B` |
 | neutral       | `#6425F5` | `#E9DFFF`    | `#F59E0B` |
 
-Общие `--font-sans`, `--radius-card` (16px), `--radius-control` (10px), `--shadow-card`, `--spacing-sidebar` (260px), `--spacing-header` (64px). Размеры указаны при root font-size 16px. Типографика: `--text-page-title` 32/40, `--text-card-title` 18/26, `--text-body` 14/20, `--text-caption` 12/16; line-height в соответствующем токене `--text-…--line-height`. Размер крупного auth-заголовка и адаптивные изменения определяет экран.
+Общие `--font-sans`, `--radius-card` (16px), `--radius-control` (10px), `--shadow-card`, `--spacing-sidebar` (280px), `--spacing-header` (72px). Размеры указаны при root font-size 16px. Типографика: `--text-page-title` 32/40, `--text-card-title` 18/26, `--text-body` 14/20, `--text-caption` 13/18; line-height в соответствующем токене `--text-…--line-height`. Размер крупного auth-заголовка и адаптивные изменения определяет экран.
 
 ## Основание цветов и поправки к источникам
 
@@ -55,3 +55,5 @@ Source06 прямо помечает свою палитру предполож�
 Manrope normal variable 200–800, Cyrillic/Latin WOFF2 перенесены из донора без изменений. Локальные `/fonts/` и `font-display: swap`; внешних font requests нет. Provenance, SHA-256 и полный OFL находятся в `public/fonts/`.
 
 `npm test -- tests/Unit/ThemeTokens` проверяет CSS-роли, assets, license, реальную Vite-сборку eager glob и Tailwind arbitrary-variable utilities. `npm run build` проверяет обычные production entrypoints. Скриншоты готовых макетов, фактическую раскладку текста, keyboard focus и browser a11y проверяет P-01 после интеграции; токены не подменяют эту проверку.
+
+Уточнение пользователя 31.10.2026: видимый текст не меньше13px, основной и второстепенный текст предпочтительно14px. 10–12px в интерфейсе не использовать; стандартный text-xs также даёт13px. Все активные ссылки/кнопки/пункты выбора показывают cursor:pointer, отключённые элементы — not-allowed.

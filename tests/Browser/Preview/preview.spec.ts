@@ -14,7 +14,26 @@ async function assertNoOverflow(page: Page) {
   ).toBe(true);
 }
 
+async function assertReadableText(page: Page) {
+  const tiny = await page.evaluate(() =>
+    Array.from(document.body.querySelectorAll('*'))
+      .filter((el) =>
+        Array.from(el.childNodes).some(
+          (node) => node.nodeType === Node.TEXT_NODE && node.textContent?.trim(),
+        ),
+      )
+      .filter((el) => {
+        const r = el.getBoundingClientRect();
+        return r.width > 1 && r.height > 1 && getComputedStyle(el).visibility !== 'hidden';
+      })
+      .filter((el) => parseFloat(getComputedStyle(el).fontSize) < 13)
+      .map((el) => `${el.textContent?.trim().slice(0, 50)}: ${getComputedStyle(el).fontSize}`),
+  );
+  expect(tiny).toEqual([]);
+}
+
 async function assertAccessible(page: Page) {
+  await assertReadableText(page);
   await page.addScriptTag({ path: require.resolve('axe-core/axe.min.js') });
   const violations = await page.evaluate(async () => {
     const axe = (
@@ -83,7 +102,14 @@ for (const state of ['invalid', 'locked', 'mfa', 'loading'] as const) {
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto(`/preview/login?state=${state}&theme=neutral`);
-    await expect(page.getByLabel('Состояние экрана')).toHaveValue(state);
+    await expect(page.getByRole('combobox', { name: 'Состояние экрана' })).toContainText(
+      {
+        invalid: 'Неверные данные',
+        locked: 'После 5 попыток',
+        mfa: 'Проверка MFA',
+        loading: 'Загрузка',
+      }[state],
+    );
     if (state === 'locked')
       await expect(page.getByRole('button', { name: 'Войти', exact: true })).toBeDisabled();
     if (state === 'invalid')
@@ -106,7 +132,9 @@ for (const state of ['empty', 'loading', 'error'] as const) {
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto(`/preview/attention?state=${state}&theme=pyro`);
-    await expect(page.getByLabel('Состояние экрана')).toHaveValue(state);
+    await expect(page.getByRole('combobox', { name: 'Состояние экрана' })).toContainText(
+      { empty: 'Всё в порядке', loading: 'Загрузка', error: 'Ошибка' }[state],
+    );
     if (state === 'empty')
       await expect(
         page.getByRole('heading', { name: 'Всё в порядке', exact: true }).first(),
@@ -135,7 +163,8 @@ test('filters, local snooze and draft work without mutations or browser storage'
   });
   await page.goto('/preview/attention');
   const table = page.getByRole('table');
-  await page.getByLabel('Модуль', { exact: true }).selectOption('vision');
+  await page.getByRole('combobox', { name: 'Модуль', exact: true }).click();
+  await page.getByRole('option', { name: 'Видение', exact: true }).click();
   await expect(table.getByTestId('attention-row')).toHaveCount(1);
   await page.getByRole('button', { name: 'Сбросить', exact: true }).click();
   await page.getByLabel('Поиск по событиям', { exact: true }).fill('приглашение');
@@ -227,4 +256,58 @@ test('popup dismissal restores focus and both search fields reset together', asy
   await expect(
     table.getByRole('button', { name: 'Действия: Неизвестные вопросы', exact: true }),
   ).toBeFocused();
+});
+
+test('custom selects support keyboard selection and accessible open menus', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto('/preview/attention');
+  await page.getByRole('button', { name: 'Видение', exact: true }).click();
+  const module = page.getByRole('combobox', { name: 'Модуль', exact: true });
+  await module.click();
+  await mkdir(screenshots, { recursive: true });
+  await page.screenshot({
+    path: path.join(screenshots, 'menus-reviewed-1440.png'),
+    fullPage: true,
+    animations: 'disabled',
+  });
+  await assertAccessible(page);
+  await module.press('Home');
+  await module.press('ArrowDown');
+  await module.press('ArrowDown');
+  await module.press('Enter');
+  await expect(module).toContainText('Видение');
+  await expect(page.getByTestId('attention-row')).toHaveCount(1);
+  await expect(module).toBeFocused();
+  await module.click();
+  await module.press('Escape');
+  await expect(page.getByRole('listbox')).toHaveCount(0);
+  await expect(module).toBeFocused();
+});
+
+test('fitting desktop content has no artificial scrollbar and interactive controls use pointer', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.goto('/preview/attention');
+  await page.evaluate(() => document.fonts.ready);
+  expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight)).toBe(
+    true,
+  );
+  await assertReadableText(page);
+  await expect(page.getByRole('link', { name: 'Вход', exact: true })).toHaveCSS(
+    'cursor',
+    'pointer',
+  );
+  await expect(page.getByRole('combobox', { name: 'Модуль', exact: true })).toHaveCSS(
+    'cursor',
+    'pointer',
+  );
+  await expect(page.getByRole('button', { name: 'Видение', exact: true })).toHaveCSS(
+    'cursor',
+    'pointer',
+  );
+  const caption = page
+    .getByText('Оптовые поставки пиротехники', { exact: true })
+    .filter({ visible: true });
+  expect(await caption.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
 });

@@ -1,16 +1,20 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   Bell,
+  BookOpen,
   Building2,
+  ChartNoAxesCombined,
   ChevronDown,
   ChevronRight,
   CircleHelp,
   ClipboardList,
   CreditCard,
   Eye,
+  Gauge,
   Home,
   Menu,
   MessageCircle,
+  MessagesSquare,
   Search,
   Settings,
   Share2,
@@ -45,7 +49,7 @@ function Navigation({
   return (
     <div>
       <div
-        className={`flex h-16 items-center border-b border-(--color-border) px-4 ${mobile ? '' : 'md:justify-center md:px-2 lg:justify-start lg:px-4'}`}
+        className={`flex h-(--spacing-header) items-center border-b border-(--color-border) px-4 ${mobile ? '' : 'md:justify-center md:px-2 lg:justify-start lg:px-4'}`}
       >
         <span className={mobile ? '' : 'md:hidden lg:block'}>
           <BrandMark theme={theme} />
@@ -70,19 +74,33 @@ function Navigation({
           <Home size={21} strokeWidth={1.75} className="shrink-0" />
           <span className={labelClass}>Главная</span>
           <span
-            className={`ml-auto grid h-5 w-5 place-items-center rounded-full bg-(--color-brand-accent) text-[11px] font-bold text-(--color-on-brand-accent) ${mobile ? '' : 'md:hidden lg:grid'}`}
+            className={`ml-auto grid size-6 place-items-center rounded-full bg-(--color-brand-accent) text-[13px] font-bold text-(--color-on-brand-accent) ${mobile ? '' : 'md:hidden lg:grid'}`}
           >
             2
           </span>
         </button>
         <p
-          className={`px-3 pt-6 pb-2 text-xs text-(--color-ink-muted) ${mobile ? '' : 'md:sr-only lg:not-sr-only'}`}
+          className={`px-3 pt-6 pb-2 text-sm font-medium text-(--color-ink-muted) ${mobile ? '' : 'md:sr-only lg:not-sr-only'}`}
         >
           Модули
         </p>
         {[
-          { label: 'Видение', icon: Eye, children: ['Обзор видимости', 'Замеры'] },
-          { label: 'Продавец', icon: MessageCircle, children: ['Диалоги', 'Знания'] },
+          {
+            label: 'Видение',
+            icon: Eye,
+            children: [
+              { label: 'Обзор видимости', icon: ChartNoAxesCombined },
+              { label: 'Замеры', icon: Gauge },
+            ],
+          },
+          {
+            label: 'Продавец',
+            icon: MessageCircle,
+            children: [
+              { label: 'Диалоги', icon: MessagesSquare },
+              { label: 'Знания', icon: BookOpen },
+            ],
+          },
         ].map(({ label, icon: Icon, children }) => (
           <div key={label}>
             <button
@@ -90,27 +108,36 @@ function Navigation({
               title={label}
               onClick={() => setExpanded(expanded === label ? '' : label)}
               aria-expanded={expanded === label}
-              className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-[15px] text-(--color-link) hover:bg-(--color-surface-muted)"
+              className={`flex min-h-11 w-full items-center gap-3 rounded-(--radius-control) px-3 text-left text-[15px] font-medium text-(--color-link) transition-colors hover:bg-(--color-surface-muted) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus) motion-reduce:transition-none ${expanded === label ? 'bg-(--color-surface-muted)' : ''}`}
             >
               <Icon size={21} strokeWidth={1.75} className="shrink-0" />
               <span className={labelClass}>{label}</span>
               <ChevronRight
                 size={16}
-                className={`ml-auto transition-transform ${expanded === label ? 'rotate-90' : ''} ${mobile ? '' : 'md:hidden lg:block'}`}
+                aria-hidden="true"
+                className={`ml-auto transition-transform motion-reduce:transition-none ${expanded === label ? 'rotate-90' : ''} ${mobile ? '' : 'md:hidden lg:block'}`}
               />
             </button>
             {expanded === label && (
               <div
-                className={`mb-2 ml-10 border-l border-(--color-border) pl-3 ${mobile ? '' : 'md:ml-0 lg:ml-10'}`}
+                className={`mt-1 mb-3 ml-[22px] space-y-1 rounded-r-xl border-l border-(--color-border) bg-(--color-surface-muted)/40 py-1 pl-2 pr-1 ${mobile ? '' : 'md:ml-0 md:border-l-0 md:px-0 lg:ml-[22px] lg:border-l lg:pl-2 lg:pr-1'}`}
               >
-                {children.map((child) => (
+                {children.map(({ label: child, icon: ChildIcon }) => (
                   <button
                     type="button"
                     key={child}
+                    title={child}
+                    aria-label={child}
                     onClick={() => onNavigate(child)}
-                    className="block py-2 text-left text-xs text-(--color-ink-muted)"
+                    className={`group flex min-h-10 w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm leading-5 text-(--color-ink-muted) transition-colors hover:bg-(--color-surface) hover:text-(--color-link) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus) motion-reduce:transition-none ${mobile ? '' : 'md:justify-center md:px-2 lg:justify-start lg:px-2.5'}`}
                   >
-                    {child} <span className="ml-1 text-[10px]">· позже</span>
+                    <ChildIcon
+                      size={17}
+                      strokeWidth={1.75}
+                      aria-hidden="true"
+                      className="shrink-0 text-(--color-icon)"
+                    />
+                    <span className={mobile ? '' : 'md:sr-only lg:not-sr-only'}>{child}</span>
                   </button>
                 ))}
               </div>
@@ -118,7 +145,7 @@ function Navigation({
           </div>
         ))}
         <p
-          className={`px-3 pt-6 pb-2 text-xs text-(--color-ink-muted) ${mobile ? '' : 'md:sr-only lg:not-sr-only'}`}
+          className={`px-3 pt-6 pb-2 text-sm font-medium text-(--color-ink-muted) ${mobile ? '' : 'md:sr-only lg:not-sr-only'}`}
         >
           Кабинет
         </p>
@@ -128,7 +155,7 @@ function Navigation({
             key={label}
             title={label}
             onClick={() => onNavigate(label)}
-            className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-[15px] text-(--color-link) hover:bg-(--color-surface-muted)"
+            className="flex min-h-11 w-full items-center gap-3 rounded-(--radius-control) px-3 text-left text-[15px] text-(--color-link) transition-colors hover:bg-(--color-surface-muted) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus) motion-reduce:transition-none"
           >
             <Icon size={21} strokeWidth={1.75} className="shrink-0" />
             <span className={labelClass}>{label}</span>
@@ -200,14 +227,14 @@ export default function PreviewShell({
     onNotice('Поиск применён к демонстрационным событиям этого экрана.');
   };
   return (
-    <div className="grid min-h-[calc(100dvh-45px)] grid-cols-1 md:grid-cols-[72px_minmax(0,1fr)] lg:grid-cols-[260px_minmax(0,1fr)]">
+    <div className="grid flex-1 grid-cols-1 md:grid-cols-[72px_minmax(0,1fr)] lg:grid-cols-[var(--spacing-sidebar)_minmax(0,1fr)]">
       <aside className="hidden min-h-full border-r border-(--color-border) bg-(--color-sidebar) md:block">
         <div className="sticky top-0">
           <Navigation theme={theme} onHome={home} onNavigate={navigate} />
         </div>
       </aside>
       <div className="min-w-0">
-        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-(--color-border) bg-(--color-surface) px-4 shadow-[0_2px_8px_#10264a06] lg:px-6">
+        <header className="sticky top-0 z-20 flex h-(--spacing-header) items-center gap-3 border-b border-(--color-border) bg-(--color-surface) px-4 shadow-[0_2px_8px_#10264a06] lg:px-6">
           <button
             type="button"
             aria-label="Открыть навигацию"
@@ -266,8 +293,8 @@ export default function PreviewShell({
               <ChevronDown size={16} className="text-(--color-icon)" />
             </button>
             {modeOpen && (
-              <div className="absolute right-0 top-12 z-30 w-56 rounded-xl border border-(--color-border) bg-(--color-surface) p-2 shadow-(--shadow-card)">
-                <p className="px-2 py-1 text-xs text-(--color-ink-muted)">
+              <div className="absolute right-0 top-12 z-30 w-64 rounded-xl border border-(--color-border) bg-(--color-surface) p-2 shadow-(--shadow-card)">
+                <p className="px-2 py-1 text-sm leading-5 text-(--color-ink-muted)">
                   Только демонстрация режима
                 </p>
                 {['Автономно', 'С подсказками'].map((value) => (
@@ -287,7 +314,7 @@ export default function PreviewShell({
                 ))}
                 <button
                   type="button"
-                  className="px-2 py-1 text-xs text-(--color-link)"
+                  className="min-h-9 rounded-lg px-2 py-1 text-sm text-(--color-link) hover:bg-(--color-surface-muted)"
                   onClick={() => {
                     setModeOpen(false);
                     modeTrigger.current?.focus();
@@ -322,7 +349,7 @@ export default function PreviewShell({
               <span className="grid h-10 w-10 place-items-center rounded-full bg-(--color-action) text-sm font-semibold text-white">
                 ИП
               </span>
-              <span className="hidden text-left text-xs xl:block">
+              <span className="hidden text-left text-sm leading-5 xl:block">
                 <span className="block font-semibold">Иван Петров</span>
                 <span className="mt-1 block text-(--color-ink-muted)">Владелец</span>
               </span>
@@ -331,7 +358,9 @@ export default function PreviewShell({
             {profileOpen && (
               <div className="absolute right-0 top-12 z-30 w-60 rounded-xl border border-(--color-border) bg-(--color-surface) p-3 shadow-(--shadow-card)">
                 <p className="text-sm font-semibold">Иван Петров · демопрофиль</p>
-                <p className="mt-1 text-xs text-(--color-ink-muted)">Вход в аккаунт не выполнен.</p>
+                <p className="mt-1 text-sm leading-5 text-(--color-ink-muted)">
+                  Вход в аккаунт не выполнен.
+                </p>
                 <a
                   href={`/preview/login?theme=${theme}`}
                   className="mt-3 block text-sm text-(--color-link)"
@@ -344,7 +373,7 @@ export default function PreviewShell({
                     setProfileOpen(false);
                     profileTrigger.current?.focus();
                   }}
-                  className="mt-3 text-xs text-(--color-link)"
+                  className="mt-3 min-h-9 rounded-lg text-sm text-(--color-link) hover:underline"
                 >
                   Закрыть меню
                 </button>

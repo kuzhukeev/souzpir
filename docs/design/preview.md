@@ -12,7 +12,7 @@
 - completed/13/3d675762-S-1.2-attention.png — shell, таблица шести событий, фильтры, контекстное меню, мини-виджет.
 - completed/13/b1e4c96c-S-1.2-attention-empty.png — пустые main/widget состояния.
 
-Оригиналы находятся в C:/OSPanel/home/tasks.local; SHA256 зарегистрированы planning/materials-manifest.json. Native PNG widths 1585/1586/1942/1024 не интерпретировались как CSS widths. Desktop login card 530px, padding 44px, fields 56px; после визуальной сверки высота около 606px. Mobile card имеет padding 24px и доступную ширину. Sidebar 260 / header 64, padding 24, широкий main занимает оставшееся место. При 1440 рядом есть300px мини-виджет, при 1024 он уходит ниже, при 390 таблица превращается в карточки и появляется modal navigation drawer. При 1920 main заполняет ширину.
+Оригиналы находятся в C:/OSPanel/home/tasks.local; SHA256 зарегистрированы planning/materials-manifest.json. Native PNG widths 1585/1586/1942/1024 не интерпретировались как CSS widths. Desktop login card 530px, padding 44px, fields 56px; после визуальной сверки высота около 606px. Mobile card имеет padding 24px и доступную ширину. Sidebar 280 / header 72, padding 24, широкий main занимает оставшееся место. При 1440 рядом есть 300px мини-виджет, при 1024 он уходит ниже, при 390 таблица превращается в карточки и появляется modal navigation drawer. При 1920 main заполняет ширину.
 
 Панель «Макеты · демонстрационные данные» добавлена для честного обозначения режима и управления состояниями. На мобильном её подписи компактнее. Она не является production-навигацией.
 
@@ -34,8 +34,10 @@ React + Tailwind 4 utilities; общие цвета, радиусы, Manrope и 
 
 ## Доступность и проверка
 
-Native labels/selects/dialog; title landmarks, skip link кабинета, aria feedback, явные disabled/loading состояния, reduced-motion skeleton. Dialog focus удерживается нативно, Escape возвращает его к opener. Context/header menu dismissal возвращает focus, удаление строки передаёт его следующему action trigger или заголовку. Мобильные фильтры сохраняют видимые подписи в двух колонках и отдельную строку поиска.
+Нативные labels/dialog и собственный select-only combobox с listbox, активной опцией, стрелками/Home/End/Enter/Escape/Tab и поиском по буквам; title landmarks, skip link кабинета, aria feedback, явные disabled/loading состояния, reduced-motion skeleton. Dialog focus удерживается нативно, Escape возвращает его к opener. Context/header menu dismissal возвращает focus, удаление строки передаёт его следующему action trigger или заголовку. Мобильные фильтры сохраняют выбранные значения в двух колонках и отдельную строку поиска.
 
 Playwright проверяет 3 themes × 3 widths × 2 screens, семь дополнительных состояний, browser errors, horizontal overflow, axe WCAG 2A/AA/2.1AA, локальные interactions/storage/network, drawer/menu focus и ширину 1920. Screenshots сохраняются локально в .local/screenshots/preview. Критические отличия от плоских оригиналов: нормализация размеров, доступные цвета/границы, мобильная перестройка и служебная preview-панель. Это честная визуальная реконструкция, не pixel-perfect обещание.
 
 После merge интегратор проверяет совмещённый main, сохраняет финальные screenshots и показывает пользователю. Следующие бизнес-задачи не запускать до новой команды пользователя.
+
+Уточнения первого просмотра: основной текст и элементы управления 14 px, подпись бренда и счётчики не меньше 13 px. Подпись бренда переносится на следующую строку; подменю имеет строки с иконками и направляющей. У доступных интерактивных элементов cursor: pointer. Высота оболочки растёт через flex внутри min-height: 100dvh, без добавления фиксированной высоты панели к высоте окна.

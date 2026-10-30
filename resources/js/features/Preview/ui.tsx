@@ -159,7 +159,7 @@ export function BrandMark({
           <span className="block truncate text-[20px] leading-6 font-extrabold tracking-[-.7px]">
             {title}
           </span>
-          <span className="mt-1 block truncate text-[10px] text-(--color-ink-muted)">
+          <span className="mt-0.5 block text-[13px] leading-[18px] text-(--color-ink-muted)">
             {caption}
           </span>
         </span>
