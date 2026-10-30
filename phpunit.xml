@@ -6,6 +6,7 @@
     <source><include><directory>app</directory></include></source>
     <php>
         <env name="APP_ENV" value="testing" force="true"/>
+        <env name="CABINET_ORGANIZATION_ID" value="01J00000000000000000000000" force="true"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="CACHE_STORE" value="array"/>
         <env name="SESSION_DRIVER" value="array"/>

@@ -33,7 +33,7 @@ Bootstrap provides `ScheduleContributor::register(Schedule $schedule): void` und
 
 Уточнение интегратора при стыковке E0-01/E0-02: `scoped_bindings` регистрирует `Container::scoped`, `middleware_aliases` — router aliases без правки bootstrap другими задачами. Повторный contract binding (включая конфликт normal/scoped) или alias вызывает ошибку. E0-02 подключает alias `tenant` и свой scoped context через собственный config.
 
-`App\Providers\Features\SharedPropsContributor::share(Request $request): array` принадлежит E0-01. FeatureRegistry собирает contributors из `shared_props`; повторные top-level keys между contributors запрещены. `HandleInertiaRequests` объединяет минимальные базовые props и feature contributions только в обычной web Inertia middleware. Не регистрировать эти props через глобальный `Inertia::share` в service provider: публичные отчёты должны оставаться отдельной проекцией. Tenant-dependent значения возвращаются lazy closures: web Inertia middleware запускается раньше route middleware `tenant`. E0-02 отдаёт organization/brand/brands/theme; `can` остаётся базовым пустым набором до E0-03. Preview с отсутствующим actor/context сохраняет null/empty props.
+`App\Providers\Features\SharedPropsContributor::share(Request $request): array` принадлежит E0-01. FeatureRegistry собирает contributors из `shared_props`; повторные top-level keys между contributors запрещены. `HandleInertiaRequests` объединяет минимальные базовые props и feature contributions только в обычной web Inertia middleware. Не регистрировать эти props через глобальный `Inertia::share` в service provider: публичные отчёты должны оставаться отдельной проекцией. Tenant-dependent значения возвращаются lazy closures: web Inertia middleware запускается раньше route middleware `tenant`. E0-02 отдаёт organization/brand/brands/theme; `can` регистрирует E0-03; до этого явный пустой набор существует только в PreviewProps. Preview с отсутствующим actor/context сохраняет null/empty props.
 
 ## Маршруты: один файл feature, явные группы
 
@@ -55,7 +55,7 @@ return [
 | Group | Prefix / обязательная защита | Разрешённые владельцы |
 |---|---|---|
 | web | без prefix; web session, auth, verified, tenant resolver; CSRF на мутациях | UI feature owners |
-| guest | без prefix; web session, guest/throttle по маршруту; CSRF | E1-01; onboarding E1-02 остаётся authenticated web |
+| guest | без prefix; web session, guest/throttle по маршруту; CSRF | E1-01; E1-02 требует отдельного authenticated organization-only режима до выдачи задачи, см. integration-followups.md |
 | api | `/api/v1`; api, Sanctum, token/session tenant resolver, throttle; ability отдельно на endpoint | E5-03 и согласованные API consumers |
 | public | без prefix; throttle; без shared authenticated props | E5-02 widget, E8-05C public report |
 | webhook | `/webhooks`; api, throttle, channel-specific signature/secret проверяется до dispatch | E5-01 Telegram; новые каналы после регистрации |

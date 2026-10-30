@@ -2,9 +2,11 @@
 
 use App\Http\Middleware\EnsureLocalPreview;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Tenancy\ResolveTenant;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Routing\Middleware\SubstituteBindings;
 
 $basePath = dirname(__DIR__);
 require_once __DIR__.'/runtime.php';
@@ -14,6 +16,7 @@ $app = Application::configure(basePath: $basePath)
     ->withRouting(web: __DIR__.'/../routes/web.php', commands: __DIR__.'/../routes/console.php', health: '/up')
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->redirectGuestsTo('/login');
+        $middleware->prependToPriorityList(SubstituteBindings::class, ResolveTenant::class);
         $middleware->web(append: [HandleInertiaRequests::class]);
         $middleware->alias(['preview.local' => EnsureLocalPreview::class]);
     })

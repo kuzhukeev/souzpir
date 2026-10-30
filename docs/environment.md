@@ -58,3 +58,9 @@ FeatureRegistry автоматически подключает task feature con
 users.id и sessions.user_id — ULID. Нативные framework таблицы password_reset_tokens, sessions, cache/cache_locks, jobs/job_batches/failed_jobs сохраняют необходимые Laravel имена/ключи, они не domain entities. DatabaseSeeder пуст: явные локальные feature seeds вызываются командой registry, не на boot.
 
 PreviewProps анонимны и допустимы только в local/testing preview/dev. Настоящие tenant/auth/policy/shared props принадлежат последующим задачам; SSR по умолчанию выключен; SSR и общий production i18n helper отложены принятым контрактом. Минимальный preview и будущие макеты используют Tailwind utilities; CSS остаётся для токенов, общих правил и декораций. После БД и первых макетов обязательно остановиться для пользовательского просмотра.
+
+## Основной сайт после интеграции
+
+Laravel и зависимости установлены непосредственно в `C:/OSPanel/home/souzpir.local`; React/TypeScript находятся в `resources/js`, CSS — в `resources/css`. OSPanel направляет souzpir.local на `public`, PHP 8.4.19. PostgreSQL доступна, bootstrap и E0-02 миграции применены, явный local seed создаёт одну организацию и три демонстрационных бренда без пользователей. Тесты используют отдельную БД и runtime.
+
+Для временного CLI HTTP-сервера использовать `artisan serve --env=testing --no-reload` с индивидуальным портом и тестовым окружением: `--no-reload` сохраняет переданные процессу параметры. Ранний dotenv loader использует Laravel Env repository; переменные процесса имеют приоритет над значениями файлов. Проверено локально и в GitHub Actions, включая настоящий Chromium.
