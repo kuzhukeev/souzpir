@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Support\Env;
 use Symfony\Component\Console\Input\ArgvInput;
 
 /** Establish writable paths before framework configuration is loaded. */
@@ -22,7 +23,8 @@ function prepareRuntime(string $basePath): array
         $environmentFile = '.env.testing';
         $_ENV['APP_ENV'] = $_SERVER['APP_ENV'] = 'testing';
     }
-    Dotenv\Dotenv::createImmutable($basePath, $environmentFile)->safeLoad();
+    // Match Laravel's loader: inherited process variables must win in cli-server too.
+    Dotenv\Dotenv::create(Env::getRepository(), $basePath, $environmentFile)->safeLoad();
     $root = str_replace('\\', '/', $basePath).'/.local/runtime';
     $assertAncestorInside = static function (string $directory, string $boundary): void {
         $ancestor = $directory;

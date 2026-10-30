@@ -4,10 +4,17 @@ use App\Models\User;
 use App\Providers\AppServiceProvider;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Inertia\Testing\AssertableInertia as Assert;
 
 uses(RefreshDatabase::class);
+
+it('redirects anonymous HTML requests without depending on a named login route', function (): void {
+    Route::middleware(['web', 'auth'])->get('/_test/guarded', fn () => response('guarded'));
+    $this->get('/_test/guarded')->assertRedirect('/login');
+    $this->getJson('/_test/guarded')->assertUnauthorized();
+});
 
 it('renders the local Inertia preview with explicit anonymous props', function (): void {
     $this->withoutVite();
