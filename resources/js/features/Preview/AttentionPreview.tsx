@@ -168,7 +168,7 @@ function HomeWidget({
   return (
     <aside
       aria-label="Пример виджета на главной"
-      className={`h-fit rounded-(--radius-card) bg-(--color-surface) p-5 shadow-(--shadow-card) min-[1440px]:p-5 ${empty ? 'min-[1440px]:mt-[106px]' : ''}`}
+      className="h-fit rounded-(--radius-card) bg-(--color-surface) p-5 shadow-(--shadow-card) min-[1440px]:mt-[103px] min-[1440px]:p-5"
     >
       {!empty && (
         <>
@@ -454,7 +454,7 @@ export default function AttentionPreview({
                   </Button>
                 </div>
               ) : visible.length === 0 ? (
-                <div className="grid min-h-[510px] place-content-center px-5 pb-16 pt-10 text-center">
+                <div className="grid min-h-[clamp(420px,50dvh,510px)] place-content-center px-5 pb-16 pt-10 text-center">
                   <EmptyCheck />
                   <h2 className="mt-3 text-[30px] font-extrabold">
                     {filtered ? 'Ничего не найдено' : 'Всё в порядке'}

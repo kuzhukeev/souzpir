@@ -323,3 +323,36 @@ test('fitting desktop content has no artificial scrollbar and interactive contro
     .filter({ visible: true });
   expect(await caption.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
 });
+
+test('empty state fits a desktop viewport and scrolls when content needs room', async ({
+  page,
+}) => {
+  for (const height of [945, 900]) {
+    await page.setViewportSize({ width: 1905, height });
+    await page.goto('/preview/attention?state=empty&theme=pyro');
+    await page.evaluate(() => document.fonts.ready);
+    await expect(page.getByRole('heading', { name: 'Всё в порядке' }).first()).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBeLessThanOrEqual(
+      height,
+    );
+  }
+  await page.setViewportSize({ width: 1905, height: 600 });
+  expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBeGreaterThan(600);
+  const disclaimer = page.getByText('Все события и цифры — примеры из макета.', { exact: false });
+  await disclaimer.scrollIntoViewIfNeeded();
+  await expect(disclaimer).toBeInViewport();
+});
+
+test('desktop widget aligns with the main card in every state', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  for (const state of ['full', 'empty', 'loading', 'error']) {
+    await page.goto(`/preview/attention?state=${state}&theme=pyro`);
+    await page.evaluate(() => document.fonts.ready);
+    const cardTop = await page
+      .locator('[aria-label="Фильтры событий"]')
+      .evaluate((element) => element.parentElement!.getBoundingClientRect().top);
+    const widget = page.getByRole('complementary', { name: 'Пример виджета на главной' });
+    const widgetTop = await widget.evaluate((element) => element.getBoundingClientRect().top);
+    expect(Math.abs(widgetTop - cardTop), state).toBeLessThanOrEqual(1);
+  }
+});
