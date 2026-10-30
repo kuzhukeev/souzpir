@@ -1,0 +1,1094 @@
+{
+  "version": 1,
+  "domains": {
+    "Tenancy": [],
+    "Ai": [
+      "Tenancy"
+    ],
+    "Plans": [
+      "Tenancy"
+    ],
+    "Audit": [
+      "Tenancy"
+    ],
+    "Notifications": [
+      "Tenancy",
+      "Audit"
+    ],
+    "Knowledge": [
+      "Tenancy"
+    ],
+    "ConversationData": [
+      "Tenancy"
+    ],
+    "Runtime": [
+      "Tenancy",
+      "Ai",
+      "Knowledge",
+      "ConversationData",
+      "Audit",
+      "Notifications",
+      "Plans"
+    ],
+    "Channels": [
+      "Runtime",
+      "Tenancy"
+    ],
+    "Vision": [
+      "Tenancy",
+      "Ai",
+      "Plans",
+      "Audit"
+    ],
+    "ShellUI": [
+      "Tenancy",
+      "Plans",
+      "Notifications"
+    ],
+    "FeatureAdapters": [
+      "Runtime"
+    ]
+  },
+  "tables": {
+    "users": {
+      "owner": "SP-E0-01",
+      "tenant": "global",
+      "parents": []
+    },
+    "password_reset_tokens": {
+      "owner": "SP-E0-01",
+      "tenant": "global",
+      "parents": []
+    },
+    "sessions": {
+      "owner": "SP-E0-01",
+      "tenant": "global",
+      "parents": []
+    },
+    "cache": {
+      "owner": "SP-E0-01",
+      "tenant": "global",
+      "parents": []
+    },
+    "cache_locks": {
+      "owner": "SP-E0-01",
+      "tenant": "global",
+      "parents": []
+    },
+    "jobs": {
+      "owner": "SP-E0-01",
+      "tenant": "global",
+      "parents": []
+    },
+    "job_batches": {
+      "owner": "SP-E0-01",
+      "tenant": "global",
+      "parents": []
+    },
+    "failed_jobs": {
+      "owner": "SP-E0-01",
+      "tenant": "global",
+      "parents": []
+    },
+    "migrations": {
+      "owner": "SP-E0-01",
+      "tenant": "global",
+      "parents": []
+    },
+    "organizations": {
+      "owner": "SP-E0-02",
+      "tenant": "organization",
+      "parents": [
+        "users"
+      ]
+    },
+    "brands": {
+      "owner": "SP-E0-02",
+      "tenant": "organization",
+      "parents": [
+        "organizations",
+        "users"
+      ]
+    },
+    "memberships": {
+      "owner": "SP-E0-02",
+      "tenant": "organization",
+      "parents": [
+        "organizations",
+        "users"
+      ]
+    },
+    "invitations": {
+      "owner": "SP-E0-02",
+      "tenant": "organization",
+      "parents": [
+        "organizations",
+        "users"
+      ]
+    },
+    "audit_logs": {
+      "owner": "SP-E0-04",
+      "tenant": "organization",
+      "parents": [
+        "organizations"
+      ]
+    },
+    "cabinet_notifications": {
+      "owner": "SP-E0-04",
+      "tenant": "organization",
+      "parents": [
+        "organizations"
+      ]
+    },
+    "notification_settings": {
+      "owner": "SP-E0-04",
+      "tenant": "organization",
+      "parents": [
+        "organizations"
+      ]
+    },
+    "notification_deliveries": {
+      "owner": "SP-E0-04",
+      "tenant": "organization",
+      "parents": [
+        "organizations",
+        "outbox_events"
+      ]
+    },
+    "outbox_events": {
+      "owner": "SP-E0-04",
+      "tenant": "organization",
+      "parents": [
+        "organizations"
+      ]
+    },
+    "consumed_events": {
+      "owner": "SP-E0-04",
+      "tenant": "organization",
+      "parents": [
+        "organizations"
+      ]
+    },
+    "ai_providers": {
+      "owner": "SP-E0-05",
+      "tenant": "global",
+      "parents": []
+    },
+    "ai_calls": {
+      "owner": "SP-E0-05",
+      "tenant": "brand",
+      "parents": [
+        "brands"
+      ]
+    },
+    "ai_budgets": {
+      "owner": "SP-E0-05",
+      "tenant": "brand",
+      "parents": [
+        "brands"
+      ]
+    },
+    "object_costs": {
+      "owner": "SP-E0-05",
+      "tenant": "brand",
+      "parents": [
+        "brands"
+      ]
+    },
+    "prompt_sets": {
+      "owner": "SP-E0-05",
+      "tenant": "platform_or_brand",
+      "parents": [
+        "brands"
+      ]
+    },
+    "plans": {
+      "owner": "SP-E0-06",
+      "tenant": "global",
+      "parents": []
+    },
+    "plan_limits": {
+      "owner": "SP-E0-06",
+      "tenant": "parent:plans",
+      "parents": [
+        "plans"
+      ]
+    },
+    "organization_plan": {
+      "owner": "SP-E0-06",
+      "tenant": "organization",
+      "parents": [
+        "organizations",
+        "plans"
+      ]
+    },
+    "brand_domains": {
+      "owner": "SP-E1-05",
+      "tenant": "brand",
+      "parents": [
+        "brands"
+      ]
+    },
+    "personal_access_tokens": {
+      "owner": "SP-E1-10",
+      "tenant": "brand",
+      "parents": [
+        "brands"
+      ]
+    },
+    "webhooks": {
+      "owner": "SP-E1-10",
+      "tenant": "brand",
+      "parents": [
+        "brands"
+      ]
+    },
+    "webhook_deliveries": {
+      "owner": "SP-E1-10",
+      "tenant": "brand",
+      "parents": [
+        "brands",
+        "webhooks"
+      ]
+    },
+    "data_exports": {
+      "owner": "SP-E1-11",
+      "tenant": "organization",
+      "parents": [
+        "organizations",
+        "users"
+      ]
+    },
+    "tickets": {
+      "owner": "SP-E1-12",
+      "tenant": "organization",
+      "parents": [
+        "organizations",
+        "users"
+      ]
+    },
+    "ticket_attachments": {
+      "owner": "SP-E1-12",
+      "tenant": "organization",
+      "parents": [
+        "organizations",
+        "users",
+        "tickets"
+      ]
+    },
+    "support_access_grants": {
+      "owner": "SP-E1-12",
+      "tenant": "organization",
+      "parents": [
+        "organizations",
+        "users",
+        "tickets"
+      ]
+    },
+    "knowledge_releases": {
+      "owner": "SP-E3-01",
+      "tenant": "brand",
+      "parents": [
+        "brands"
+      ]
+    },
+    "kn_persona": {
+      "owner": "SP-E3-01",
+      "tenant": "parent:knowledge_releases",
+      "parents": [
+        "knowledge_releases"
+      ]
+    },
+    "kn_policy": {
+      "owner": "SP-E3-01",
+      "tenant": "parent:knowledge_releases",
+      "parents": [
+        "knowledge_releases"
+      ]
+    },
+    "kn_fact_groups": {
+      "owner": "SP-E3-01",
+      "tenant": "parent:knowledge_releases",
+      "parents": [
+        "knowledge_releases"
+      ]
+    },
+    "kn_conditions": {
+      "owner": "SP-E3-01",
+      "tenant": "parent:knowledge_releases",
+      "parents": [
+        "knowledge_releases"
+      ]
+    },
+    "kn_intents": {
+      "owner": "SP-E3-01",
+      "tenant": "parent:knowledge_releases",
+      "parents": [
+        "knowledge_releases"
+      ]
+    },
+    "kn_guard_rules": {
+      "owner": "SP-E3-01",
+      "tenant": "parent:knowledge_releases",
+      "parents": [
+        "knowledge_releases"
+      ]
+    },
+    "kn_escalation": {
+      "owner": "SP-E3-01",
+      "tenant": "parent:knowledge_releases",
+      "parents": [
+        "knowledge_releases"
+      ]
+    },
+    "kn_triggers": {
+      "owner": "SP-E3-01",
+      "tenant": "parent:knowledge_releases",
+      "parents": [
+        "knowledge_releases"
+      ]
+    },
+    "kn_fewshot": {
+      "owner": "SP-E3-01",
+      "tenant": "parent:knowledge_releases",
+      "parents": [
+        "knowledge_releases"
+      ]
+    },
+    "kn_closed_topics": {
+      "owner": "SP-E3-01",
+      "tenant": "parent:knowledge_releases",
+      "parents": [
+        "knowledge_releases"
+      ]
+    },
+    "kn_facts": {
+      "owner": "SP-E3-01",
+      "tenant": "parent:kn_fact_groups",
+      "parents": [
+        "kn_fact_groups"
+      ]
+    },
+    "contacts": {
+      "owner": "SP-E3-04",
+      "tenant": "brand",
+      "parents": [
+        "brands"
+      ]
+    },
+    "channel_accounts": {
+      "owner": "SP-E3-04",
+      "tenant": "brand",
+      "parents": [
+        "brands"
+      ]
+    },
+    "brand_seller_settings": {
+      "owner": "SP-E3-04",
+      "tenant": "brand",
+      "parents": [
+        "brands"
+      ]
+    },
+    "channel_inbound_events": {
+      "owner": "SP-E3-04",
+      "tenant": "parent:channel_accounts",
+      "parents": [
+        "channel_accounts"
+      ]
+    },
+    "conversations": {
+      "owner": "SP-E3-04",
+      "tenant": "brand",
+      "parents": [
+        "brands",
+        "contacts",
+        "channel_accounts"
+      ]
+    },
+    "messages": {
+      "owner": "SP-E3-04",
+      "tenant": "parent:conversations",
+      "parents": [
+        "conversations"
+      ]
+    },
+    "seller_turns": {
+      "owner": "SP-E3-04",
+      "tenant": "parent:conversations",
+      "parents": [
+        "conversations"
+      ]
+    },
+    "seller_tasks": {
+      "owner": "SP-E3-04",
+      "tenant": "brand",
+      "parents": [
+        "brands",
+        "conversations"
+      ]
+    },
+    "message_reviews": {
+      "owner": "SP-E3-04",
+      "tenant": "parent:messages",
+      "parents": [
+        "messages",
+        "users"
+      ]
+    },
+    "seller_personas": {
+      "owner": "SP-E3-06",
+      "tenant": "platform_or_brand",
+      "parents": [
+        "brands"
+      ]
+    },
+    "seller_sim_runs": {
+      "owner": "SP-E3-06",
+      "tenant": "brand",
+      "parents": [
+        "brands",
+        "knowledge_releases"
+      ]
+    },
+    "seller_evaluations": {
+      "owner": "SP-E3-06",
+      "tenant": "brand",
+      "parents": [
+        "brands",
+        "knowledge_releases"
+      ]
+    },
+    "seller_sim_turns": {
+      "owner": "SP-E3-06",
+      "tenant": "parent:seller_sim_runs",
+      "parents": [
+        "seller_sim_runs"
+      ]
+    },
+    "widget_settings": {
+      "owner": "SP-E5-02",
+      "tenant": "brand",
+      "parents": [
+        "brands",
+        "channel_accounts"
+      ]
+    },
+    "widget_events": {
+      "owner": "SP-E5-02",
+      "tenant": "brand",
+      "parents": [
+        "brands",
+        "channel_accounts"
+      ]
+    },
+    "widget_triggers": {
+      "owner": "SP-E5-02",
+      "tenant": "brand",
+      "parents": [
+        "brands",
+        "channel_accounts"
+      ]
+    },
+    "widget_invitations": {
+      "owner": "SP-E5-02",
+      "tenant": "brand",
+      "parents": [
+        "brands",
+        "channel_accounts"
+      ]
+    },
+    "api_idempotency_keys": {
+      "owner": "SP-E5-03",
+      "tenant": "brand",
+      "parents": [
+        "brands"
+      ]
+    },
+    "customer_notes": {
+      "owner": "SP-E5-05",
+      "tenant": "brand",
+      "parents": [
+        "brands",
+        "contacts"
+      ]
+    },
+    "contact_slot_history": {
+      "owner": "SP-E5-05",
+      "tenant": "brand",
+      "parents": [
+        "brands",
+        "contacts"
+      ]
+    },
+    "catalog_imports": {
+      "owner": "SP-E6-08",
+      "tenant": "brand",
+      "parents": [
+        "brands"
+      ]
+    },
+    "catalog_items": {
+      "owner": "SP-E6-08",
+      "tenant": "brand",
+      "parents": [
+        "brands",
+        "catalog_imports"
+      ]
+    },
+    "judge_calibrations": {
+      "owner": "SP-E7-03",
+      "tenant": "brand",
+      "parents": [
+        "brands",
+        "seller_sim_turns"
+      ]
+    },
+    "dialog_exports": {
+      "owner": "SP-E7-04",
+      "tenant": "brand",
+      "parents": [
+        "brands"
+      ]
+    },
+    "visibility_quizzes": {
+      "owner": "SP-E8-01",
+      "tenant": "brand",
+      "parents": [
+        "brands"
+      ]
+    },
+    "brand_profiles": {
+      "owner": "SP-E8-01",
+      "tenant": "brand",
+      "parents": [
+        "brands"
+      ]
+    },
+    "question_candidates": {
+      "owner": "SP-E8-01",
+      "tenant": "brand",
+      "parents": [
+        "brands"
+      ]
+    },
+    "question_sets": {
+      "owner": "SP-E8-01",
+      "tenant": "brand",
+      "parents": [
+        "brands"
+      ]
+    },
+    "measurements": {
+      "owner": "SP-E8-01",
+      "tenant": "brand",
+      "parents": [
+        "brands",
+        "question_sets"
+      ]
+    },
+    "entities": {
+      "owner": "SP-E8-01",
+      "tenant": "brand",
+      "parents": [
+        "brands"
+      ]
+    },
+    "competitors": {
+      "owner": "SP-E8-01",
+      "tenant": "brand",
+      "parents": [
+        "brands"
+      ]
+    },
+    "reports": {
+      "owner": "SP-E8-01",
+      "tenant": "brand",
+      "parents": [
+        "brands",
+        "measurements"
+      ]
+    },
+    "actions": {
+      "owner": "SP-E8-01",
+      "tenant": "brand",
+      "parents": [
+        "brands"
+      ]
+    },
+    "brand_achievements": {
+      "owner": "SP-E8-01",
+      "tenant": "brand",
+      "parents": [
+        "brands"
+      ]
+    },
+    "questions": {
+      "owner": "SP-E8-01",
+      "tenant": "parent:question_sets",
+      "parents": [
+        "question_sets"
+      ]
+    },
+    "measurement_answers": {
+      "owner": "SP-E8-01",
+      "tenant": "parent:measurements",
+      "parents": [
+        "measurements"
+      ]
+    },
+    "snapshot_confirmations": {
+      "owner": "SP-E8-01",
+      "tenant": "parent:measurements",
+      "parents": [
+        "measurements"
+      ]
+    },
+    "answer_mentions": {
+      "owner": "SP-E8-01",
+      "tenant": "parent:measurement_answers",
+      "parents": [
+        "measurement_answers"
+      ]
+    },
+    "answer_facts": {
+      "owner": "SP-E8-01",
+      "tenant": "parent:measurement_answers",
+      "parents": [
+        "measurement_answers"
+      ]
+    },
+    "answer_sources": {
+      "owner": "SP-E8-01",
+      "tenant": "parent:measurement_answers",
+      "parents": [
+        "measurement_answers"
+      ]
+    },
+    "audit_runs": {
+      "owner": "SP-E8-01B",
+      "tenant": "brand",
+      "parents": [
+        "brands"
+      ]
+    },
+    "audit_steps": {
+      "owner": "SP-E8-01B",
+      "tenant": "parent:audit_runs",
+      "parents": [
+        "audit_runs"
+      ]
+    },
+    "audit_snapshots": {
+      "owner": "SP-E8-01B",
+      "tenant": "parent:audit_runs",
+      "parents": [
+        "audit_runs"
+      ]
+    },
+    "report_publications": {
+      "owner": "SP-E8-05C",
+      "tenant": "parent:reports",
+      "parents": [
+        "reports"
+      ]
+    },
+    "monitoring_schedules": {
+      "owner": "SP-E8-01",
+      "tenant": "brand",
+      "parents": [
+        "brands"
+      ]
+    },
+    "migration_batches": {
+      "owner": "SP-E9-02",
+      "tenant": "organization",
+      "parents": [
+        "organizations"
+      ]
+    },
+    "migration_records": {
+      "owner": "SP-E9-02",
+      "tenant": "organization",
+      "parents": [
+        "organizations",
+        "migration_batches"
+      ]
+    }
+  },
+  "contracts": {
+    "TenantContext": {
+      "owner": "SP-E0-02",
+      "path": "app/Tenancy/TenantContext.php",
+      "schemaVersion": 1
+    },
+    "SharedPropsV1": {
+      "owner": "SP-E0-08",
+      "path": "app/Data/Shared/SharedPropsV1.php",
+      "schemaVersion": 1
+    },
+    "KnowledgeSnapshot": {
+      "owner": "SP-E3-01",
+      "path": "app/Seller/Knowledge/KnowledgeSnapshot.php",
+      "schemaVersion": 1
+    },
+    "KnowledgeRepository": {
+      "owner": "SP-E3-01",
+      "path": "app/Seller/Knowledge/Contracts/KnowledgeRepository.php",
+      "schemaVersion": 1
+    },
+    "AiGateway": {
+      "owner": "SP-E0-05",
+      "path": "app/Contracts/Ai/AiGateway.php",
+      "schemaVersion": 1
+    },
+    "ConversationRepository": {
+      "owner": "SP-E3-04",
+      "path": "app/Seller/Conversations/Contracts/ConversationRepository.php",
+      "schemaVersion": 1
+    },
+    "SellerRuntime": {
+      "owner": "SP-E3-03B",
+      "path": "app/Seller/Runtime/Contracts/SellerRuntime.php",
+      "schemaVersion": 1
+    },
+    "ChannelDelivery": {
+      "owner": "SP-E3-03B",
+      "path": "app/Seller/Runtime/Contracts/ChannelDelivery.php",
+      "schemaVersion": 1
+    },
+    "RuntimeExtensions": {
+      "owner": "SP-E3-03B",
+      "path": "app/Seller/Runtime/Contracts/",
+      "schemaVersion": 1
+    },
+    "PlanLimits": {
+      "owner": "SP-E0-06",
+      "path": "app/Shell/Plans/Contracts/PlanLimits.php",
+      "schemaVersion": 1
+    },
+    "UsageReader": {
+      "owner": "SP-E0-06",
+      "path": "app/Shell/Plans/Contracts/UsageReader.php",
+      "schemaVersion": 1
+    },
+    "AuditWriter": {
+      "owner": "SP-E0-04",
+      "path": "app/Shell/Audit/Contracts/AuditWriter.php",
+      "schemaVersion": 1
+    },
+    "NotificationDispatcher": {
+      "owner": "SP-E0-04",
+      "path": "app/Shell/Notifications/Contracts/NotificationDispatcher.php",
+      "schemaVersion": 1
+    },
+    "VisionReadModel": {
+      "owner": "SP-E8-01",
+      "path": "app/Vision/Core/Contracts/VisionReadModel.php",
+      "schemaVersion": 1
+    },
+    "ExportContributor": {
+      "owner": "SP-E1-11",
+      "path": "app/Shell/Data/Contracts/ExportContributor.php",
+      "schemaVersion": 1
+    },
+    "FeatureRegistry": {
+      "owner": "SP-E0-01",
+      "path": "app/Providers/FeatureRegistry.php",
+      "schemaVersion": 1
+    }
+  },
+  "events": {
+    "seller.lead.created": {
+      "owner": "SP-E3-04",
+      "schemaVersion": 1,
+      "requiredData": [
+        "conversation_id"
+      ],
+      "notificationEvent": false
+    },
+    "seller.contact.captured": {
+      "owner": "SP-E3-03B",
+      "schemaVersion": 1,
+      "requiredData": [
+        "conversation_id",
+        "contact_id"
+      ],
+      "notificationEvent": false
+    },
+    "seller.conversation.handed_off": {
+      "owner": "SP-E3-03B",
+      "schemaVersion": 1,
+      "requiredData": [
+        "reason",
+        "task_id"
+      ],
+      "notificationEvent": true
+    },
+    "seller.promise.overdue": {
+      "owner": "SP-E5-05",
+      "schemaVersion": 1,
+      "requiredData": [
+        "task_id",
+        "due_at"
+      ],
+      "notificationEvent": true
+    },
+    "seller.unknown_question.logged": {
+      "owner": "SP-E3-03",
+      "schemaVersion": 1,
+      "requiredData": [
+        "task_id"
+      ],
+      "notificationEvent": true
+    },
+    "seller.supervisor.completed": {
+      "owner": "SP-E3-06",
+      "schemaVersion": 1,
+      "requiredData": [
+        "evaluation_id"
+      ],
+      "notificationEvent": true
+    },
+    "seller.supervisor.blocking_issue": {
+      "owner": "SP-E3-06",
+      "schemaVersion": 1,
+      "requiredData": [
+        "evaluation_id",
+        "issue_code"
+      ],
+      "notificationEvent": true
+    },
+    "seller.channel.disconnected": {
+      "owner": "SP-E5-01",
+      "schemaVersion": 1,
+      "requiredData": [
+        "channel_account_id",
+        "error_code"
+      ],
+      "notificationEvent": true
+    },
+    "seller.quota.threshold_reached": {
+      "owner": "SP-E6-07",
+      "schemaVersion": 1,
+      "requiredData": [
+        "limit_key",
+        "fraction"
+      ],
+      "notificationEvent": true
+    },
+    "vision.measurement.completed": {
+      "owner": "SP-E8-01",
+      "schemaVersion": 1,
+      "requiredData": [
+        "measurement_id"
+      ],
+      "notificationEvent": true
+    },
+    "vision.clarification.required": {
+      "owner": "SP-E8-04",
+      "schemaVersion": 1,
+      "requiredData": [
+        "measurement_id"
+      ],
+      "notificationEvent": true
+    },
+    "vision.report.updated": {
+      "owner": "SP-E8-01",
+      "schemaVersion": 1,
+      "requiredData": [
+        "report_id"
+      ],
+      "notificationEvent": true
+    },
+    "vision.action.overdue": {
+      "owner": "SP-E8-06",
+      "schemaVersion": 1,
+      "requiredData": [
+        "action_id",
+        "due_at"
+      ],
+      "notificationEvent": true
+    },
+    "vision.competitor.top5_added": {
+      "owner": "SP-E8-05B",
+      "schemaVersion": 1,
+      "requiredData": [
+        "competitor_id",
+        "report_id"
+      ],
+      "notificationEvent": true
+    },
+    "vision.visibility.dropped": {
+      "owner": "SP-E8-01",
+      "schemaVersion": 1,
+      "requiredData": [
+        "report_id",
+        "delta_percentage_points"
+      ],
+      "notificationEvent": true
+    },
+    "vision.report.published": {
+      "owner": "SP-E8-05C",
+      "schemaVersion": 1,
+      "requiredData": [
+        "publication_id",
+        "report_id"
+      ],
+      "notificationEvent": false
+    },
+    "shell.member.invited": {
+      "owner": "SP-E1-06",
+      "schemaVersion": 1,
+      "requiredData": [
+        "invitation_id"
+      ],
+      "notificationEvent": true
+    },
+    "ai.budget.threshold_reached": {
+      "owner": "SP-E0-05",
+      "schemaVersion": 1,
+      "requiredData": [
+        "budget_id",
+        "fraction"
+      ],
+      "notificationEvent": true
+    }
+  },
+  "sharedFiles": {
+    "composer.json": {
+      "owner": "SP-E0-01",
+      "serialWriters": []
+    },
+    "composer.lock": {
+      "owner": "SP-E0-01",
+      "serialWriters": []
+    },
+    "package.json": {
+      "owner": "SP-E0-01",
+      "serialWriters": []
+    },
+    "package-lock.json": {
+      "owner": "SP-E0-01",
+      "serialWriters": []
+    },
+    "bootstrap/": {
+      "owner": "SP-E0-01",
+      "serialWriters": []
+    },
+    "app/Providers/": {
+      "owner": "SP-E0-01",
+      "serialWriters": []
+    },
+    "routes/web.php": {
+      "owner": "SP-E0-01",
+      "serialWriters": []
+    },
+    "routes/console.php": {
+      "owner": "SP-E0-01",
+      "serialWriters": []
+    },
+    "resources/js/app.tsx": {
+      "owner": "SP-E0-01",
+      "serialWriters": []
+    },
+    "resources/css/app.css": {
+      "owner": "SP-E0-01",
+      "serialWriters": []
+    },
+    "vite.config.ts": {
+      "owner": "SP-E0-01",
+      "serialWriters": []
+    },
+    ".env.example": {
+      "owner": "SP-E0-01",
+      "serialWriters": []
+    },
+    "app/Models/User.php": {
+      "owner": "SP-E0-02",
+      "serialWriters": [
+        "SP-E0-01",
+        "SP-E1-01"
+      ]
+    },
+    "app/Models/Organization.php": {
+      "owner": "SP-E0-02",
+      "serialWriters": []
+    },
+    "app/Models/Brand.php": {
+      "owner": "SP-E0-02",
+      "serialWriters": [
+        "SP-E1-05"
+      ]
+    },
+    "app/Models/Membership.php": {
+      "owner": "SP-E0-02",
+      "serialWriters": []
+    },
+    "app/Shell/Team/Models/Invitation.php": {
+      "owner": "SP-E0-02",
+      "serialWriters": [
+        "SP-E1-06"
+      ]
+    },
+    "app/Seller/Channels/Core/": {
+      "owner": "SP-E3-04",
+      "serialWriters": [
+        "SP-E5-01"
+      ]
+    },
+    "app/Seller/Settings/BrandSellerSettings.php": {
+      "owner": "SP-E3-04",
+      "serialWriters": []
+    },
+    "config/permissions.php": {
+      "owner": "SP-E0-03",
+      "serialWriters": []
+    },
+    "app/Http/Middleware/HandleInertiaRequests.php": {
+      "owner": "SP-E0-08",
+      "serialWriters": [
+        "SP-E0-01"
+      ]
+    },
+    "resources/js/types/generated/": {
+      "owner": "SP-E0-08",
+      "serialWriters": []
+    },
+    "resources/js/layouts/": {
+      "owner": "SP-F-03",
+      "serialWriters": []
+    },
+    "resources/js/components/ui/": {
+      "owner": "SP-F-02",
+      "serialWriters": []
+    },
+    "resources/css/themes/": {
+      "owner": "SP-F-01",
+      "serialWriters": []
+    },
+    "resources/js/lib/query/": {
+      "owner": "SP-F-04",
+      "serialWriters": []
+    },
+    "resources/js/lib/http/": {
+      "owner": "SP-F-04",
+      "serialWriters": []
+    }
+  },
+  "excluded": {
+    "tables": [
+      "external_identities",
+      "kn_escalation_reasons"
+    ],
+    "features": [
+      "organization_delete",
+      "organization_switch",
+      "head_admin"
+    ],
+    "columns": [
+      "organizations.plan_id",
+      "organizations.purge_scheduled_at"
+    ]
+  }
+}
