@@ -15,6 +15,9 @@
 ```php
 return [
     'bindings' => [], // interface FQCN => implementation FQCN; unique
+    'scoped_bindings' => [], // request/job scoped contracts; no overlap with bindings
+    'middleware_aliases' => [], // alias => middleware FQCN; unique
+    'shared_props' => [], // SharedPropsContributor FQCNs; unique
     'extensions' => [
         'seller.greeting' => App\Seller\Settings\Greetings\ConfiguredGreeting::class,
     ],
@@ -27,6 +30,10 @@ return [
 ```
 
 Bootstrap provides `ScheduleContributor::register(Schedule $schedule): void` under its own provider namespace. Scheduler contributors require environment capability flags; no organisation purge contributor exists. Interface registration may be cached, but discovery must produce the same routes/config with and without Laravel caches.
+
+Уточнение интегратора при стыковке E0-01/E0-02: `scoped_bindings` регистрирует `Container::scoped`, `middleware_aliases` — router aliases без правки bootstrap другими задачами. Повторный contract binding (включая конфликт normal/scoped) или alias вызывает ошибку. E0-02 подключает alias `tenant` и свой scoped context через собственный config.
+
+`App\Providers\Features\SharedPropsContributor::share(Request $request): array` принадлежит E0-01. FeatureRegistry собирает contributors из `shared_props`; повторные top-level keys между contributors запрещены. `HandleInertiaRequests` объединяет минимальные базовые props и feature contributions только в обычной web Inertia middleware. Не регистрировать эти props через глобальный `Inertia::share` в service provider: публичные отчёты должны оставаться отдельной проекцией. Tenant-dependent значения возвращаются lazy closures: web Inertia middleware запускается раньше route middleware `tenant`. E0-02 отдаёт organization/brand/brands/theme; `can` остаётся базовым пустым набором до E0-03. Preview с отсутствующим actor/context сохраняет null/empty props.
 
 ## Маршруты: один файл feature, явные группы
 

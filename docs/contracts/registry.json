@@ -796,6 +796,11 @@
       "owner": "SP-E0-01",
       "path": "app/Providers/FeatureRegistry.php",
       "schemaVersion": 1
+    },
+    "SharedPropsContributor": {
+      "owner": "SP-E0-01",
+      "path": "app/Providers/Features/SharedPropsContributor.php",
+      "schemaVersion": 1
     }
   },
   "events": {
