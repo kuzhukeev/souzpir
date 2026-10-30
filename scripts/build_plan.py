@@ -201,7 +201,7 @@ for prompt_file in (ROOT/'docs/tasks').glob('SP-*.md'):
     prompt_file.write_text(prompt_file.read_text(encoding='utf-8').rstrip()+'\n',encoding='utf-8')
 
 ordered=sorted(tasks.values(),key=lambda t:(t['wave'],t['taskKey']))
-manifest={'project':'souzpir','planVersion':1,'executionEnabled':False,'tasks':ordered,
+manifest={'project':'souzpir','planVersion':1,'executionEnabled':True,'tasks':ordered,
           'excludedSourceTasks':{'E0-07':'Головная админка и ее контракты вне текущего проектирования по уточнению пользователя.'},
           'excludedScreens':{'S-0.7':'Один кабинет одной организации; выбор нескольких организаций исключен.'}}
 (ROOT/'planning/tasks.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2),encoding='utf-8')
@@ -210,7 +210,7 @@ for s in manifest['excludedScreens']: coverage[s]=['excluded: '+manifest['exclud
 missing={s:v for s,v in coverage.items() if not v}
 if missing: raise ValueError('Uncovered screens '+str(missing))
 (ROOT/'planning/screen-coverage.json').write_text(json.dumps(coverage,ensure_ascii=False,indent=2),encoding='utf-8')
-lines=['# Очередь souzpir','',f'{len(ordered)} задач; первая контрольная точка готова 31.10.2026; очередь остановлена до новой команды пользователя. Зависимости разблокируются только после merge. Номер волны — минимальная глубина DAG, а не обещание одновременного запуска всех задач волны. Пересечения scope дополнительно сериализуются.','', '| Задача | Волна | Зависимости | Экраны |','|---|---:|---|---|']
+lines=['# Очередь souzpir','',f'{len(ordered)} задач; после первого просмотра пользователь разрешил продолжить разработку 31.10.2026. Зависимости разблокируются только после merge. Номер волны — минимальная глубина DAG, а не обещание одновременного запуска всех задач волны. Пересечения scope дополнительно сериализуются.','', '| Задача | Волна | Зависимости | Экраны |','|---|---:|---|---|']
 for t in ordered: lines.append(f'| [{t["title"]}](../{t["promptPath"]}) | {t["wave"]} | {", ".join(t["dependsOn"]) or "—"} | {", ".join(t["screenIds"]) or "—"} |')
 (ROOT/'planning/QUEUE.md').write_text('\n'.join(lines)+'\n',encoding='utf-8')
 print(json.dumps({'tasks':len(ordered),'sourceTasks':len(original),'coveredScreens':len(coverage),'maxWave':max(t['wave'] for t in ordered),'roots':[t['taskKey'] for t in ordered if not t['dependsOn']]},ensure_ascii=False))

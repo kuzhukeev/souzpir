@@ -1,11 +1,11 @@
 # Точные изменения планирования после первой контрольной точки
 
-Эти пункты не запускают новые задачи и не меняют действующие claims. Интегратор обновляет queued metadata перед выдачей соответствующей будущей задачи; текущий этап останавливается после БД и первых макетов.
+Эти пункты не запускают новые задачи и не меняют действующие claims. Интегратор обновляет queued metadata перед выдачей соответствующей будущей задачи; первый этап завершён, пользователь разрешил продолжить разработку.
 
 | Когда | Изменение | Причина |
 |---|---|---|
 | До E1-02 | Добавить явный organization-only tenant mode и отдельное подключение для onboarding/создания первого бренда; обычные брендовые маршруты сохраняют fail-closed защиту | E0-02 намеренно требует доступный активный бренд. Организация без брендов должна иметь защищённый путь первичного создания/восстановления; обязательны проверки membership/auth и negative test доступа к brand-owned данным с brandId=null. Три preview-бренда не заменяют эту проверку |
-| До E0-08 | Выдать точный scope для frontend i18n helper, например `resources/js/lib/i18n/`; добавить dictionary к SharedProps и typed helper | Сейчас E0-08 владеет generated types/shared PHP, но helper path ещё отсутствует в scope. Preview допускает literal RU labels и не ждёт этого изменения |
+| До E0-08 | Выдать точный scope для frontend i18n helper, например `resources/js/lib/i18n/`; добавить dictionary к SharedProps и typed helper. Интегрировать также `can[]` и `usePermissions` из E0-03 | E0-03 владеет backend-политиками; общий middleware и hook принадлежат E0-08. Preview допускает literal RU labels |
 | До E7-04 и E8-07 | Добавить prerequisite SP-E1-11 для implementations ExportContributor | Интерфейс экспорта принадлежит E1-11; consumer не должен создать его копию или зависеть от ещё несуществующего файла |
 | До E8-01 | Уточнить schema deliverables: monitoring_schedules входит в раннюю core schema E8-01 | E8-04 использует расписание до поздних Settings E8-07; E8-07 меняет UI/поведение, не создаёт вторую таблицу |
 | До E8-05C | Отдельное bootstrap extension изменение со scope `resources/js/ssr.tsx` и необходимыми shared build/config файлами | В E0-01 текущий scope этого entrypoint не содержит; SSR публичного отчёта нужен позже, не в первой preview |
