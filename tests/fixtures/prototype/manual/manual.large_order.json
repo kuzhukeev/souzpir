@@ -1,0 +1,125 @@
+{
+    "case_id": "manual.large_order",
+    "input": {
+        "id": "manual.large_order",
+        "inputs": [
+            {
+                "slot_updates": {
+                    "budget_range": "500000"
+                }
+            }
+        ],
+        "title": "Заявка на пороге escalation_amount_rub"
+    },
+    "layer": "donor Policy on synthetic extraction; no LLM, Guard, tools or delivery",
+    "provenance": "synthetic",
+    "schema_version": 1,
+    "trace": [
+        {
+            "extraction": {
+                "asked_if_bot": false,
+                "client_claims": [],
+                "client_intent": "answer_only",
+                "client_questions": [],
+                "closed_topic": null,
+                "confidence": 0.9,
+                "do_not_disturb": false,
+                "objections": [],
+                "off_topic": false,
+                "prompt_injection": false,
+                "refused_slots": [],
+                "sentiment": "neutral",
+                "slot_updates": {
+                    "budget_range": "500000"
+                },
+                "unknown_question": null,
+                "wants_human": false,
+                "wants_only_prices": false
+            },
+            "goal": {
+                "allowed_tools": [
+                    "mark_do_not_disturb",
+                    "create_promise",
+                    "log_unknown_question",
+                    "send_requisites",
+                    "check_stock",
+                    "calc_delivery"
+                ],
+                "constraints": [],
+                "extras": [],
+                "facts": [],
+                "fewshot_tags": [
+                    "ask_city"
+                ],
+                "instruction": "Коротко отреагировать на слова клиента (одна фраза), затем ровно один вопрос по слоту.",
+                "kind": "ask_slot",
+                "slot": "city",
+                "trigger": null
+            },
+            "outcome": null,
+            "state": {
+                "client_type": "unknown",
+                "counters": {
+                    "budget_asks": 0,
+                    "closed_topic_streak": 0,
+                    "followups_sent": 0,
+                    "guard_regens": 0,
+                    "negative_streak": 0,
+                    "off_topic_streak": 0,
+                    "turns": 1,
+                    "unclear_streak": 0,
+                    "unknown_facts": 0,
+                    "unknown_insist": 0
+                },
+                "flags": {
+                    "do_not_disturb": false,
+                    "duplicate_lead": false,
+                    "escalate": false,
+                    "escalate_reason": null,
+                    "introduced": true,
+                    "price_sent": false,
+                    "requisites_sent": false
+                },
+                "missing": [],
+                "outcome": null,
+                "promises": [],
+                "signals": {
+                    "asked_if_bot": false,
+                    "asked_slots": [],
+                    "big_order_notified": true,
+                    "client_claims": [],
+                    "client_questions": [],
+                    "last_client_intent": "answer_only",
+                    "last_unknown_topic": null,
+                    "notify_manager": "big_order",
+                    "objections": [],
+                    "prev_intent": "answer_only",
+                    "sentiment": "neutral",
+                    "triggers_used": [],
+                    "wants_only_prices": false
+                },
+                "slots": {
+                    "brands_interest": [],
+                    "budget_range": "500000",
+                    "categories": [],
+                    "city": null,
+                    "competitor_discount": null,
+                    "current_supplier": null,
+                    "email": null,
+                    "experience": null,
+                    "legal": null,
+                    "messenger": null,
+                    "name": null,
+                    "next_contact_at": null,
+                    "outlet_floor": null,
+                    "outlet_type": null,
+                    "purpose": null,
+                    "timing": null
+                },
+                "stage": "qualify",
+                "summary": null,
+                "unknown_questions": []
+            }
+        }
+    ]
+}

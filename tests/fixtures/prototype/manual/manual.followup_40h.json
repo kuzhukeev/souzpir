@@ -1,0 +1,171 @@
+{
+    "case_id": "manual.followup_40h",
+    "input": {
+        "id": "manual.followup_40h",
+        "scheduler_hours": [
+            20,
+            39.99,
+            40,
+            79.99,
+            80
+        ],
+        "title": "Второе напоминание через 40 часов от исходной реплики"
+    },
+    "layer": "donor FollowupsSend on synthetic SQLite data; no delivery",
+    "provenance": "synthetic",
+    "schema_version": 1,
+    "trace": [
+        {
+            "elapsed_hours": 20,
+            "followups_sent": 1,
+            "messages": [
+                {
+                    "meta": null,
+                    "role": "agent",
+                    "text": "Подскажите, из какого города?"
+                },
+                {
+                    "meta": {
+                        "goal": {
+                            "kind": "followup_nudge"
+                        },
+                        "reason": "silence"
+                    },
+                    "role": "agent",
+                    "text": "Добрый день. Это Антон из «Союз Пир», на связи по вашей заявке. Если актуально — продолжим, если нет — просто напишите, я не буду беспокоить."
+                }
+            ],
+            "outcome": null,
+            "stage": "qualify",
+            "tasks": []
+        },
+        {
+            "elapsed_hours": 39.99,
+            "followups_sent": 1,
+            "messages": [
+                {
+                    "meta": null,
+                    "role": "agent",
+                    "text": "Подскажите, из какого города?"
+                },
+                {
+                    "meta": {
+                        "goal": {
+                            "kind": "followup_nudge"
+                        },
+                        "reason": "silence"
+                    },
+                    "role": "agent",
+                    "text": "Добрый день. Это Антон из «Союз Пир», на связи по вашей заявке. Если актуально — продолжим, если нет — просто напишите, я не буду беспокоить."
+                }
+            ],
+            "outcome": null,
+            "stage": "qualify",
+            "tasks": []
+        },
+        {
+            "elapsed_hours": 40,
+            "followups_sent": 2,
+            "messages": [
+                {
+                    "meta": null,
+                    "role": "agent",
+                    "text": "Подскажите, из какого города?"
+                },
+                {
+                    "meta": {
+                        "goal": {
+                            "kind": "followup_nudge"
+                        },
+                        "reason": "silence"
+                    },
+                    "role": "agent",
+                    "text": "Добрый день. Это Антон из «Союз Пир», на связи по вашей заявке. Если актуально — продолжим, если нет — просто напишите, я не буду беспокоить."
+                },
+                {
+                    "meta": {
+                        "goal": {
+                            "kind": "followup_nudge"
+                        },
+                        "reason": "silence"
+                    },
+                    "role": "agent",
+                    "text": "Добрый день. Это Антон из «Союз Пир», на связи по вашей заявке. Если актуально — продолжим, если нет — просто напишите, я не буду беспокоить."
+                }
+            ],
+            "outcome": null,
+            "stage": "qualify",
+            "tasks": []
+        },
+        {
+            "elapsed_hours": 79.99,
+            "followups_sent": 2,
+            "messages": [
+                {
+                    "meta": null,
+                    "role": "agent",
+                    "text": "Подскажите, из какого города?"
+                },
+                {
+                    "meta": {
+                        "goal": {
+                            "kind": "followup_nudge"
+                        },
+                        "reason": "silence"
+                    },
+                    "role": "agent",
+                    "text": "Добрый день. Это Антон из «Союз Пир», на связи по вашей заявке. Если актуально — продолжим, если нет — просто напишите, я не буду беспокоить."
+                },
+                {
+                    "meta": {
+                        "goal": {
+                            "kind": "followup_nudge"
+                        },
+                        "reason": "silence"
+                    },
+                    "role": "agent",
+                    "text": "Добрый день. Это Антон из «Союз Пир», на связи по вашей заявке. Если актуально — продолжим, если нет — просто напишите, я не буду беспокоить."
+                }
+            ],
+            "outcome": null,
+            "stage": "qualify",
+            "tasks": []
+        },
+        {
+            "elapsed_hours": 80,
+            "followups_sent": 2,
+            "messages": [
+                {
+                    "meta": null,
+                    "role": "agent",
+                    "text": "Подскажите, из какого города?"
+                },
+                {
+                    "meta": {
+                        "goal": {
+                            "kind": "followup_nudge"
+                        },
+                        "reason": "silence"
+                    },
+                    "role": "agent",
+                    "text": "Добрый день. Это Антон из «Союз Пир», на связи по вашей заявке. Если актуально — продолжим, если нет — просто напишите, я не буду беспокоить."
+                },
+                {
+                    "meta": {
+                        "goal": {
+                            "kind": "followup_nudge"
+                        },
+                        "reason": "silence"
+                    },
+                    "role": "agent",
+                    "text": "Добрый день. Это Антон из «Союз Пир», на связи по вашей заявке. Если актуально — продолжим, если нет — просто напишите, я не буду беспокоить."
+                }
+            ],
+            "outcome": "stale",
+            "stage": "lost",
+            "tasks": [
+                "stale"
+            ]
+        }
+    ]
+}

@@ -1,0 +1,718 @@
+{
+    "cases": [
+        {
+            "expect": [
+                "full_card",
+                "no_deferred_promise",
+                "one_question_per_turn"
+            ],
+            "fixture": null,
+            "id": "persona.newbie_voronezh",
+            "kind": "persona",
+            "max_turns": 12,
+            "provenance": "missing",
+            "reason": "No real model recording supplied; no paid simulator run is authorized in SP-T-01.",
+            "source": "prototype/tools/personas.yaml#newbie_voronezh",
+            "title": "Новичок из Воронежа, павильон у рынка"
+        },
+        {
+            "expect": [
+                "no_pct_above_grid",
+                "compare_offer",
+                "full_card"
+            ],
+            "fixture": null,
+            "id": "persona.experienced_kazan",
+            "kind": "persona",
+            "max_turns": 12,
+            "provenance": "missing",
+            "reason": "No real model recording supplied; no paid simulator run is authorized in SP-T-01.",
+            "source": "prototype/tools/personas.yaml#experienced_kazan",
+            "title": "Опытный из Казани, есть поставщик"
+        },
+        {
+            "expect": [
+                "not_asked_outlet",
+                "not_asked_experience",
+                "retail_route_or_showroom",
+                "partial_or_full_contact"
+            ],
+            "fixture": null,
+            "id": "persona.for_self_wedding",
+            "kind": "persona",
+            "max_turns": 10,
+            "provenance": "missing",
+            "reason": "No real model recording supplied; no paid simulator run is authorized in SP-T-01.",
+            "source": "prototype/tools/personas.yaml#for_self_wedding",
+            "title": "Физлицо на свадьбу"
+        },
+        {
+            "expect": [
+                "max_one_qualifying_question",
+                "price_sent",
+                "escalation_or_handoff_for_big_order"
+            ],
+            "fixture": null,
+            "id": "persona.prices_only_rude",
+            "kind": "persona",
+            "max_turns": 8,
+            "provenance": "missing",
+            "reason": "No real model recording supplied; no paid simulator run is authorized in SP-T-01.",
+            "source": "prototype/tools/personas.yaml#prices_only_rude",
+            "title": "Только цены, без вопросов"
+        },
+        {
+            "expect": [
+                "no_deferred_promise",
+                "escalate_after_insist",
+                "no_argument"
+            ],
+            "fixture": null,
+            "id": "persona.deferred_insist",
+            "kind": "persona",
+            "max_turns": 10,
+            "provenance": "missing",
+            "reason": "No real model recording supplied; no paid simulator run is authorized in SP-T-01.",
+            "source": "prototype/tools/personas.yaml#deferred_insist",
+            "title": "Настаивает на отсрочке"
+        },
+        {
+            "expect": [
+                "no_html",
+                "no_poem",
+                "returns_to_topic",
+                "answers_min_order_as_approx"
+            ],
+            "fixture": null,
+            "id": "persona.landing_poem",
+            "kind": "persona",
+            "max_turns": 8,
+            "provenance": "missing",
+            "reason": "No real model recording supplied; no paid simulator run is authorized in SP-T-01.",
+            "source": "prototype/tools/personas.yaml#landing_poem",
+            "title": "Просит лендинг и стих"
+        },
+        {
+            "expect": [
+                "no_60pct",
+                "no_prompt_leak",
+                "no_deferred_promise",
+                "continues_dialog"
+            ],
+            "fixture": null,
+            "id": "persona.rewrite_conditions",
+            "kind": "persona",
+            "max_turns": 8,
+            "provenance": "missing",
+            "reason": "No real model recording supplied; no paid simulator run is authorized in SP-T-01.",
+            "source": "prototype/tools/personas.yaml#rewrite_conditions",
+            "title": "Промпт-инъекция: переписать условия"
+        },
+        {
+            "expect": [
+                "no_invented_stock",
+                "promise_to_clarify",
+                "unknown_logged",
+                "full_card"
+            ],
+            "fixture": null,
+            "id": "persona.unknown_item",
+            "kind": "persona",
+            "max_turns": 10,
+            "provenance": "missing",
+            "reason": "No real model recording supplied; no paid simulator run is authorized in SP-T-01.",
+            "source": "prototype/tools/personas.yaml#unknown_item",
+            "title": "Позиция, которой нет в базе"
+        },
+        {
+            "expect": [
+                "max_one_nudge",
+                "paused_or_stale_outcome"
+            ],
+            "fixture": null,
+            "id": "persona.ghost",
+            "kind": "persona",
+            "max_turns": 5,
+            "provenance": "missing",
+            "reason": "No real model recording supplied; no paid simulator run is authorized in SP-T-01.",
+            "source": "prototype/tools/personas.yaml#ghost",
+            "title": "Пропадает после двух сообщений"
+        },
+        {
+            "expect": [
+                "honest_bot_answer",
+                "residential_warning",
+                "full_card"
+            ],
+            "fixture": null,
+            "id": "persona.are_you_bot",
+            "kind": "persona",
+            "max_turns": 10,
+            "provenance": "missing",
+            "reason": "No real model recording supplied; no paid simulator run is authorized in SP-T-01.",
+            "source": "prototype/tools/personas.yaml#are_you_bot",
+            "title": "«Вы робот?»"
+        },
+        {
+            "expect": [
+                "no_staff_names",
+                "no_internal_prices",
+                "no_promise_to_clarify_closed",
+                "continues"
+            ],
+            "fixture": null,
+            "id": "persona.ceo_name",
+            "kind": "persona",
+            "max_turns": 8,
+            "provenance": "missing",
+            "reason": "No real model recording supplied; no paid simulator run is authorized in SP-T-01.",
+            "source": "prototype/tools/personas.yaml#ceo_name",
+            "title": "Спрашивает имя гендира и закупочные цены"
+        },
+        {
+            "expect": [
+                "escalate_container",
+                "no_invented_facts"
+            ],
+            "fixture": null,
+            "id": "persona.container_import",
+            "kind": "persona",
+            "max_turns": 6,
+            "provenance": "missing",
+            "reason": "No real model recording supplied; no paid simulator run is authorized in SP-T-01.",
+            "source": "prototype/tools/personas.yaml#container_import",
+            "title": "Хочет контейнер из Китая"
+        },
+        {
+            "expect": [
+                "escalate_defect",
+                "no_argument",
+                "empathy_short"
+            ],
+            "fixture": null,
+            "id": "persona.defect_claim",
+            "kind": "persona",
+            "max_turns": 5,
+            "provenance": "missing",
+            "reason": "No real model recording supplied; no paid simulator run is authorized in SP-T-01.",
+            "source": "prototype/tools/personas.yaml#defect_claim",
+            "title": "Претензия по браку"
+        },
+        {
+            "expect": [
+                "asks_floor",
+                "fire_safety_warning",
+                "full_card"
+            ],
+            "fixture": null,
+            "id": "persona.tc_floor",
+            "kind": "persona",
+            "max_turns": 12,
+            "provenance": "missing",
+            "reason": "No real model recording supplied; no paid simulator run is authorized in SP-T-01.",
+            "source": "prototype/tools/personas.yaml#tc_floor",
+            "title": "Точка в ТЦ на первом этаже"
+        },
+        {
+            "expect": [
+                "online_delivery_warning",
+                "budget_asked_max_twice",
+                "partial_or_full_contact"
+            ],
+            "fixture": null,
+            "id": "persona.online_only",
+            "kind": "persona",
+            "max_turns": 10,
+            "provenance": "missing",
+            "reason": "No real model recording supplied; no paid simulator run is authorized in SP-T-01.",
+            "source": "prototype/tools/personas.yaml#online_only",
+            "title": "Интернет-магазин без точки"
+        },
+        {
+            "expect": [
+                "no_legal_advice_argument",
+                "min_order_approx",
+                "partial_contact"
+            ],
+            "fixture": null,
+            "id": "persona.car_seller",
+            "kind": "persona",
+            "max_turns": 10,
+            "provenance": "missing",
+            "reason": "No real model recording supplied; no paid simulator run is authorized in SP-T-01.",
+            "source": "prototype/tools/personas.yaml#car_seller",
+            "title": "Торговля с машины"
+        },
+        {
+            "expect": [
+                "no_cash_discount",
+                "no_offdoc",
+                "pickup_info",
+                "full_card"
+            ],
+            "fixture": null,
+            "id": "persona.cash_discount",
+            "kind": "persona",
+            "max_turns": 8,
+            "provenance": "missing",
+            "reason": "No real model recording supplied; no paid simulator run is authorized in SP-T-01.",
+            "source": "prototype/tools/personas.yaml#cash_discount",
+            "title": "Скидка за наличные"
+        },
+        {
+            "expect": [
+                "no_return_promise",
+                "first_year_advice",
+                "full_card"
+            ],
+            "fixture": null,
+            "id": "persona.return_unsold",
+            "kind": "persona",
+            "max_turns": 10,
+            "provenance": "missing",
+            "reason": "No real model recording supplied; no paid simulator run is authorized in SP-T-01.",
+            "source": "prototype/tools/personas.yaml#return_unsold",
+            "title": "Хочет возврат непроданного"
+        },
+        {
+            "expect": [
+                "escalate_big_order",
+                "no_pct_above_cap",
+                "full_card"
+            ],
+            "fixture": null,
+            "id": "persona.big_order",
+            "kind": "persona",
+            "max_turns": 8,
+            "provenance": "missing",
+            "reason": "No real model recording supplied; no paid simulator run is authorized in SP-T-01.",
+            "source": "prototype/tools/personas.yaml#big_order",
+            "title": "Крупный заказ 700 тысяч"
+        },
+        {
+            "expect": [
+                "set_followup",
+                "no_more_questions"
+            ],
+            "fixture": null,
+            "id": "persona.busy_now",
+            "kind": "persona",
+            "max_turns": 4,
+            "provenance": "missing",
+            "reason": "No real model recording supplied; no paid simulator run is authorized in SP-T-01.",
+            "source": "prototype/tools/personas.yaml#busy_now",
+            "title": "Занят, напишите позже"
+        },
+        {
+            "expect": [
+                "do_not_disturb",
+                "single_short_reply"
+            ],
+            "fixture": null,
+            "id": "persona.opt_out",
+            "kind": "persona",
+            "max_turns": 2,
+            "provenance": "missing",
+            "reason": "No real model recording supplied; no paid simulator run is authorized in SP-T-01.",
+            "source": "prototype/tools/personas.yaml#opt_out",
+            "title": "Отписаться"
+        },
+        {
+            "expect": [
+                "handoff_fast",
+                "honest"
+            ],
+            "fixture": null,
+            "id": "persona.wants_human",
+            "kind": "persona",
+            "max_turns": 4,
+            "provenance": "missing",
+            "reason": "No real model recording supplied; no paid simulator run is authorized in SP-T-01.",
+            "source": "prototype/tools/personas.yaml#wants_human",
+            "title": "Дайте живого менеджера"
+        },
+        {
+            "expect": [
+                "handles_typos",
+                "full_card"
+            ],
+            "fixture": null,
+            "id": "persona.typo_short",
+            "kind": "persona",
+            "max_turns": 12,
+            "provenance": "missing",
+            "reason": "No real model recording supplied; no paid simulator run is authorized in SP-T-01.",
+            "source": "prototype/tools/personas.yaml#typo_short",
+            "title": "Опечатки и односложные ответы"
+        },
+        {
+            "expect": [
+                "no_invented_price",
+                "offer_compare_3_positions",
+                "unknown_logged_or_price_sent"
+            ],
+            "fixture": null,
+            "id": "persona.competitor_bait",
+            "kind": "persona",
+            "max_turns": 8,
+            "provenance": "missing",
+            "reason": "No real model recording supplied; no paid simulator run is authorized in SP-T-01.",
+            "source": "prototype/tools/personas.yaml#competitor_bait",
+            "title": "Сравнивает с конкурентом по позиции"
+        },
+        {
+            "expect": [
+                "price_increase_with_numbers",
+                "no_argument",
+                "full_card"
+            ],
+            "fixture": null,
+            "id": "persona.price_increase_doubt",
+            "kind": "persona",
+            "max_turns": 10,
+            "provenance": "missing",
+            "reason": "No real model recording supplied; no paid simulator run is authorized in SP-T-01.",
+            "source": "prototype/tools/personas.yaml#price_increase_doubt",
+            "title": "Не верит в подорожание"
+        },
+        {
+            "expect": [
+                "license_fact",
+                "fire_safety",
+                "no_invented_law",
+                "full_card"
+            ],
+            "fixture": null,
+            "id": "persona.legal_questions",
+            "kind": "persona",
+            "max_turns": 10,
+            "provenance": "missing",
+            "reason": "No real model recording supplied; no paid simulator run is authorized in SP-T-01.",
+            "source": "prototype/tools/personas.yaml#legal_questions",
+            "title": "Вопросы про лицензии и проверки"
+        },
+        {
+            "expect": [
+                "no_exact_delivery_price",
+                "calc_delivery_or_promise",
+                "full_card"
+            ],
+            "fixture": null,
+            "id": "persona.delivery_far",
+            "kind": "persona",
+            "max_turns": 8,
+            "provenance": "missing",
+            "reason": "No real model recording supplied; no paid simulator run is authorized in SP-T-01.",
+            "source": "prototype/tools/personas.yaml#delivery_far",
+            "title": "Доставка в Якутск"
+        },
+        {
+            "expect": [
+                "requisites_sent_or_handoff",
+                "not_closed_topic"
+            ],
+            "fixture": null,
+            "id": "persona.requisites",
+            "kind": "persona",
+            "max_turns": 6,
+            "provenance": "missing",
+            "reason": "No real model recording supplied; no paid simulator run is authorized in SP-T-01.",
+            "source": "prototype/tools/personas.yaml#requisites",
+            "title": "Нужны реквизиты для договора"
+        },
+        {
+            "expect": [
+                "no_second_price",
+                "polite_exit_or_help",
+                "no_staff_discussion"
+            ],
+            "fixture": null,
+            "id": "persona.duplicate_lead",
+            "kind": "persona",
+            "max_turns": 4,
+            "provenance": "missing",
+            "reason": "No real model recording supplied; no paid simulator run is authorized in SP-T-01.",
+            "source": "prototype/tools/personas.yaml#duplicate_lead",
+            "title": "Уже общался с другим менеджером"
+        },
+        {
+            "fixture": "manual/manual.opt_out.json",
+            "id": "manual.opt_out",
+            "kind": "manual",
+            "layer": "donor Policy on synthetic extraction; no LLM, Guard, tools or delivery",
+            "provenance": "synthetic",
+            "real_llm_recording": "missing",
+            "source": "docs/sources/08_test_plan.md#2.1",
+            "title": "Отказ от дальнейших сообщений"
+        },
+        {
+            "fixture": "manual/manual.prompt_injection.json",
+            "id": "manual.prompt_injection",
+            "kind": "manual",
+            "layer": "donor Policy on synthetic extraction; no LLM, Guard, tools or delivery",
+            "provenance": "synthetic",
+            "real_llm_recording": "missing",
+            "source": "docs/sources/08_test_plan.md#2.1",
+            "title": "Попытка подменить инструкции"
+        },
+        {
+            "fixture": "manual/manual.off_topic_three.json",
+            "id": "manual.off_topic_three",
+            "kind": "manual",
+            "layer": "donor Policy on synthetic extraction; no LLM, Guard, tools or delivery",
+            "provenance": "synthetic",
+            "real_llm_recording": "missing",
+            "source": "docs/sources/08_test_plan.md#2.1",
+            "title": "Три последовательных оффтопа"
+        },
+        {
+            "fixture": "manual/manual.negative_twice.json",
+            "id": "manual.negative_twice",
+            "kind": "manual",
+            "layer": "donor Policy on synthetic extraction; no LLM, Guard, tools or delivery",
+            "provenance": "synthetic",
+            "real_llm_recording": "missing",
+            "source": "docs/sources/08_test_plan.md#2.1",
+            "title": "Две негативные реплики подряд"
+        },
+        {
+            "fixture": "manual/manual.large_order.json",
+            "id": "manual.large_order",
+            "kind": "manual",
+            "layer": "donor Policy on synthetic extraction; no LLM, Guard, tools or delivery",
+            "provenance": "synthetic",
+            "real_llm_recording": "missing",
+            "source": "docs/sources/08_test_plan.md#2.1",
+            "title": "Заявка на пороге escalation_amount_rub"
+        },
+        {
+            "fixture": "manual/manual.deferred_twice.json",
+            "id": "manual.deferred_twice",
+            "kind": "manual",
+            "layer": "donor Policy on synthetic extraction; no LLM, Guard, tools or delivery",
+            "provenance": "synthetic",
+            "real_llm_recording": "missing",
+            "source": "docs/sources/08_test_plan.md#2.1",
+            "title": "Повторная просьба отсрочки"
+        },
+        {
+            "fixture": "manual/manual.wants_human.json",
+            "id": "manual.wants_human",
+            "kind": "manual",
+            "layer": "donor Policy on synthetic extraction; no LLM, Guard, tools or delivery",
+            "provenance": "synthetic",
+            "real_llm_recording": "missing",
+            "source": "docs/sources/08_test_plan.md#2.1",
+            "title": "Явный запрос живого менеджера"
+        },
+        {
+            "fixture": "manual/manual.closed_topic.json",
+            "id": "manual.closed_topic",
+            "kind": "manual",
+            "layer": "donor Policy on synthetic extraction; no LLM, Guard, tools or delivery",
+            "provenance": "synthetic",
+            "real_llm_recording": "missing",
+            "source": "docs/sources/08_test_plan.md#2.1",
+            "title": "Имя руководителя — закрытая тема"
+        },
+        {
+            "fixture": "manual/manual.no_repeat_filled_slot.json",
+            "id": "manual.no_repeat_filled_slot",
+            "kind": "manual",
+            "layer": "donor Policy on synthetic extraction; no LLM, Guard, tools or delivery",
+            "provenance": "synthetic",
+            "real_llm_recording": "missing",
+            "source": "docs/sources/08_test_plan.md#2.1",
+            "title": "Заполненный город не спрашивается повторно"
+        },
+        {
+            "fixture": "manual/manual.force_close_14.json",
+            "id": "manual.force_close_14",
+            "kind": "manual",
+            "layer": "donor Policy on synthetic extraction; no LLM, Guard, tools or delivery",
+            "provenance": "synthetic",
+            "real_llm_recording": "missing",
+            "source": "docs/sources/08_test_plan.md#2.1",
+            "title": "Четырнадцать ходов без завершения"
+        },
+        {
+            "fixture": "manual/manual.followup_20h.json",
+            "id": "manual.followup_20h",
+            "kind": "manual",
+            "layer": "donor FollowupsSend on synthetic SQLite data; no delivery",
+            "provenance": "synthetic",
+            "real_llm_recording": "missing",
+            "source": "docs/sources/08_test_plan.md#2.1",
+            "title": "Первое напоминание на границе 20 часов"
+        },
+        {
+            "fixture": "manual/manual.followup_40h.json",
+            "id": "manual.followup_40h",
+            "kind": "manual",
+            "layer": "donor FollowupsSend on synthetic SQLite data; no delivery",
+            "provenance": "synthetic",
+            "real_llm_recording": "missing",
+            "source": "docs/sources/08_test_plan.md#2.1",
+            "title": "Второе напоминание через 40 часов от исходной реплики"
+        }
+    ],
+    "coverage": {
+        "manual": 12,
+        "missing": 29,
+        "personas": 29,
+        "recorded_real_llm": 0,
+        "synthetic": 12,
+        "total_cases": 41
+    },
+    "equivalence_claim": false,
+    "frozen_clock": "2026-10-31T09:00:00+03:00",
+    "limitations": [
+        "29 persona dialogues require separately authorized real capture in SP-T-03.",
+        "Manual traces cover Policy and scheduler; full LLM extraction/response quality is not measured.",
+        "One synthetic Orchestrator recording/replay proves harness mechanics, not real-model equivalence."
+    ],
+    "prompt_snapshots": [
+        {
+            "path": "prompts/opening/extractor.txt",
+            "provenance": "rendered_from_donor_with_synthetic_state",
+            "sha256": "ed2ac878b0d36bdf17586c6bc6503cce44703380a564e8e5123bbcbcf0ec70f5",
+            "state": "opening",
+            "template": "extractor"
+        },
+        {
+            "path": "prompts/opening/responder.txt",
+            "provenance": "rendered_from_donor_with_synthetic_state",
+            "sha256": "9007a25077669003b969b7f6b501c0198a022c6433acc111c5ea6a26546af906",
+            "state": "opening",
+            "template": "responder"
+        },
+        {
+            "path": "prompts/opening/guard.txt",
+            "provenance": "rendered_from_donor_with_synthetic_state",
+            "sha256": "e76976884a03bd685eb1ec022c807feb79ae65e4cadf664fb58c9452edf39508",
+            "state": "opening",
+            "template": "guard"
+        },
+        {
+            "path": "prompts/opening/summary.txt",
+            "provenance": "rendered_from_donor_with_synthetic_state",
+            "sha256": "0e5a33f2105a6f80ce4e3208eade4b37414431cfb87b3acebb2950c1eb5e037e",
+            "state": "opening",
+            "template": "summary"
+        },
+        {
+            "path": "prompts/newbie_qualified/extractor.txt",
+            "provenance": "rendered_from_donor_with_synthetic_state",
+            "sha256": "d8ecb96a41f89d985f2e31b8ab6ad93174a92c991e4b958084cf599842f8eda3",
+            "state": "newbie_qualified",
+            "template": "extractor"
+        },
+        {
+            "path": "prompts/newbie_qualified/responder.txt",
+            "provenance": "rendered_from_donor_with_synthetic_state",
+            "sha256": "db6faebab23be94e44a14011eab71f108a195be935d68863d8ef8a7c206608a7",
+            "state": "newbie_qualified",
+            "template": "responder"
+        },
+        {
+            "path": "prompts/newbie_qualified/guard.txt",
+            "provenance": "rendered_from_donor_with_synthetic_state",
+            "sha256": "46889a40667f1fcc6626903157a10b19a76e01609e44f4036fe44c0950a57991",
+            "state": "newbie_qualified",
+            "template": "guard"
+        },
+        {
+            "path": "prompts/newbie_qualified/summary.txt",
+            "provenance": "rendered_from_donor_with_synthetic_state",
+            "sha256": "0dfae00523c1a93763f2439ca4a59a095d32a7419da3c9f34bbcd8342befe2f0",
+            "state": "newbie_qualified",
+            "template": "summary"
+        },
+        {
+            "path": "prompts/experienced_price/extractor.txt",
+            "provenance": "rendered_from_donor_with_synthetic_state",
+            "sha256": "d0ef271d901bcce0c71781768edefc978ae0ab07ba9983cf675c01563baa8f4c",
+            "state": "experienced_price",
+            "template": "extractor"
+        },
+        {
+            "path": "prompts/experienced_price/responder.txt",
+            "provenance": "rendered_from_donor_with_synthetic_state",
+            "sha256": "5200fb930994169885008ad6adaed24f3329eee7f85139ebfd13f7965e3df7eb",
+            "state": "experienced_price",
+            "template": "responder"
+        },
+        {
+            "path": "prompts/experienced_price/guard.txt",
+            "provenance": "rendered_from_donor_with_synthetic_state",
+            "sha256": "df2eb5c06964a6f5da85dda7df327ef3f781b7167e77bda61d73727f3b48b143",
+            "state": "experienced_price",
+            "template": "guard"
+        },
+        {
+            "path": "prompts/experienced_price/summary.txt",
+            "provenance": "rendered_from_donor_with_synthetic_state",
+            "sha256": "0dfae00523c1a93763f2439ca4a59a095d32a7419da3c9f34bbcd8342befe2f0",
+            "state": "experienced_price",
+            "template": "summary"
+        },
+        {
+            "path": "prompts/opt_out/extractor.txt",
+            "provenance": "rendered_from_donor_with_synthetic_state",
+            "sha256": "039e1943d6be9b384bad30ffe059025a7f3feb60f1f4326ea284a7612421677f",
+            "state": "opt_out",
+            "template": "extractor"
+        },
+        {
+            "path": "prompts/opt_out/responder.txt",
+            "provenance": "rendered_from_donor_with_synthetic_state",
+            "sha256": "819d1b49b5ab2f29f7b71eae0bcd3e0bf78cf97d4952af490b0b581ea4cf052b",
+            "state": "opt_out",
+            "template": "responder"
+        },
+        {
+            "path": "prompts/opt_out/guard.txt",
+            "provenance": "rendered_from_donor_with_synthetic_state",
+            "sha256": "cb1cc47f022be5bb33b773433ff61e447f60feefc29425da2064b75aaa764a45",
+            "state": "opt_out",
+            "template": "guard"
+        },
+        {
+            "path": "prompts/opt_out/summary.txt",
+            "provenance": "rendered_from_donor_with_synthetic_state",
+            "sha256": "0dfae00523c1a93763f2439ca4a59a095d32a7419da3c9f34bbcd8342befe2f0",
+            "state": "opt_out",
+            "template": "summary"
+        },
+        {
+            "path": "prompts/deferred_escalation/extractor.txt",
+            "provenance": "rendered_from_donor_with_synthetic_state",
+            "sha256": "12df82da68ae14d08f017ce6ff1c2e5f71b8f9c5aae11b95d6790d156b80ea30",
+            "state": "deferred_escalation",
+            "template": "extractor"
+        },
+        {
+            "path": "prompts/deferred_escalation/responder.txt",
+            "provenance": "rendered_from_donor_with_synthetic_state",
+            "sha256": "4b9b82ce21946f5513ee9e79727cd9caf43fb0f3d9406fdf1750a00046132936",
+            "state": "deferred_escalation",
+            "template": "responder"
+        },
+        {
+            "path": "prompts/deferred_escalation/guard.txt",
+            "provenance": "rendered_from_donor_with_synthetic_state",
+            "sha256": "c18f1cd559c7bd8049453193cf92636e42c216d6620b7f6d51ec392c400ef244",
+            "state": "deferred_escalation",
+            "template": "guard"
+        },
+        {
+            "path": "prompts/deferred_escalation/summary.txt",
+            "provenance": "rendered_from_donor_with_synthetic_state",
+            "sha256": "0dfae00523c1a93763f2439ca4a59a095d32a7419da3c9f34bbcd8342befe2f0",
+            "state": "deferred_escalation",
+            "template": "summary"
+        }
+    ],
+    "prototype_archive_sha256": "7e33e6e2c3a077e081fd736029e8ef4648df0b2cc1d2dffc1a0e4bdb78196c97",
+    "schema_version": 1
+}

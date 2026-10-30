@@ -1,0 +1,54 @@
+{
+    "case_id": "manual.followup_20h",
+    "input": {
+        "id": "manual.followup_20h",
+        "scheduler_hours": [
+            19.99,
+            20
+        ],
+        "title": "Первое напоминание на границе 20 часов"
+    },
+    "layer": "donor FollowupsSend on synthetic SQLite data; no delivery",
+    "provenance": "synthetic",
+    "schema_version": 1,
+    "trace": [
+        {
+            "elapsed_hours": 19.99,
+            "followups_sent": 0,
+            "messages": [
+                {
+                    "meta": null,
+                    "role": "agent",
+                    "text": "Подскажите, из какого города?"
+                }
+            ],
+            "outcome": null,
+            "stage": "qualify",
+            "tasks": []
+        },
+        {
+            "elapsed_hours": 20,
+            "followups_sent": 1,
+            "messages": [
+                {
+                    "meta": null,
+                    "role": "agent",
+                    "text": "Подскажите, из какого города?"
+                },
+                {
+                    "meta": {
+                        "goal": {
+                            "kind": "followup_nudge"
+                        },
+                        "reason": "silence"
+                    },
+                    "role": "agent",
+                    "text": "Добрый день. Это Антон из «Союз Пир», на связи по вашей заявке. Если актуально — продолжим, если нет — просто напишите, я не буду беспокоить."
+                }
+            ],
+            "outcome": null,
+            "stage": "qualify",
+            "tasks": []
+        }
+    ]
+}

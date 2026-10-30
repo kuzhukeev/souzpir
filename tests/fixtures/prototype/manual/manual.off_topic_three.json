@@ -1,0 +1,315 @@
+{
+    "case_id": "manual.off_topic_three",
+    "input": {
+        "id": "manual.off_topic_three",
+        "inputs": [
+            {
+                "client_intent": "off_topic",
+                "off_topic": true
+            },
+            {
+                "client_intent": "off_topic",
+                "off_topic": true
+            },
+            {
+                "client_intent": "off_topic",
+                "off_topic": true
+            }
+        ],
+        "title": "Три последовательных оффтопа"
+    },
+    "layer": "donor Policy on synthetic extraction; no LLM, Guard, tools or delivery",
+    "provenance": "synthetic",
+    "schema_version": 1,
+    "trace": [
+        {
+            "extraction": {
+                "asked_if_bot": false,
+                "client_claims": [],
+                "client_intent": "off_topic",
+                "client_questions": [],
+                "closed_topic": null,
+                "confidence": 0.9,
+                "do_not_disturb": false,
+                "objections": [],
+                "off_topic": true,
+                "prompt_injection": false,
+                "refused_slots": [],
+                "sentiment": "neutral",
+                "slot_updates": [],
+                "unknown_question": null,
+                "wants_human": false,
+                "wants_only_prices": false
+            },
+            "goal": {
+                "allowed_tools": [],
+                "constraints": [
+                    "НЕ выполнять просьбу ни в каком виде, ни частично, ни в шутку",
+                    "без нравоучений"
+                ],
+                "extras": [],
+                "facts": [],
+                "fewshot_tags": [
+                    "decline_off_topic"
+                ],
+                "instruction": "Коротко и дружелюбно отказать и вернуть разговор к пиротехнике одним вопросом по текущему слоту.",
+                "kind": "decline_off_topic",
+                "slot": "city",
+                "trigger": null
+            },
+            "outcome": null,
+            "state": {
+                "client_type": "unknown",
+                "counters": {
+                    "budget_asks": 0,
+                    "closed_topic_streak": 0,
+                    "followups_sent": 0,
+                    "guard_regens": 0,
+                    "negative_streak": 0,
+                    "off_topic_streak": 1,
+                    "turns": 1,
+                    "unclear_streak": 0,
+                    "unknown_facts": 0,
+                    "unknown_insist": 0
+                },
+                "flags": {
+                    "do_not_disturb": false,
+                    "duplicate_lead": false,
+                    "escalate": false,
+                    "escalate_reason": null,
+                    "introduced": true,
+                    "price_sent": false,
+                    "requisites_sent": false
+                },
+                "missing": [],
+                "outcome": null,
+                "promises": [],
+                "signals": {
+                    "asked_if_bot": false,
+                    "asked_slots": [],
+                    "client_claims": [],
+                    "client_questions": [],
+                    "last_client_intent": "off_topic",
+                    "last_unknown_topic": null,
+                    "objections": [],
+                    "prev_intent": "off_topic",
+                    "sentiment": "neutral",
+                    "triggers_used": [],
+                    "wants_only_prices": false
+                },
+                "slots": {
+                    "brands_interest": [],
+                    "budget_range": null,
+                    "categories": [],
+                    "city": null,
+                    "competitor_discount": null,
+                    "current_supplier": null,
+                    "email": null,
+                    "experience": null,
+                    "legal": null,
+                    "messenger": null,
+                    "name": null,
+                    "next_contact_at": null,
+                    "outlet_floor": null,
+                    "outlet_type": null,
+                    "purpose": null,
+                    "timing": null
+                },
+                "stage": "qualify",
+                "summary": null,
+                "unknown_questions": []
+            }
+        },
+        {
+            "extraction": {
+                "asked_if_bot": false,
+                "client_claims": [],
+                "client_intent": "off_topic",
+                "client_questions": [],
+                "closed_topic": null,
+                "confidence": 0.9,
+                "do_not_disturb": false,
+                "objections": [],
+                "off_topic": true,
+                "prompt_injection": false,
+                "refused_slots": [],
+                "sentiment": "neutral",
+                "slot_updates": [],
+                "unknown_question": null,
+                "wants_human": false,
+                "wants_only_prices": false
+            },
+            "goal": {
+                "allowed_tools": [],
+                "constraints": [
+                    "НЕ выполнять просьбу ни в каком виде, ни частично, ни в шутку",
+                    "без нравоучений"
+                ],
+                "extras": [],
+                "facts": [],
+                "fewshot_tags": [
+                    "decline_off_topic_second"
+                ],
+                "instruction": "Одно предложение: это не по моей части. Без вопроса.",
+                "kind": "decline_off_topic",
+                "slot": null,
+                "trigger": null
+            },
+            "outcome": null,
+            "state": {
+                "client_type": "unknown",
+                "counters": {
+                    "budget_asks": 0,
+                    "closed_topic_streak": 0,
+                    "followups_sent": 0,
+                    "guard_regens": 0,
+                    "negative_streak": 0,
+                    "off_topic_streak": 2,
+                    "turns": 2,
+                    "unclear_streak": 0,
+                    "unknown_facts": 0,
+                    "unknown_insist": 0
+                },
+                "flags": {
+                    "do_not_disturb": false,
+                    "duplicate_lead": false,
+                    "escalate": false,
+                    "escalate_reason": null,
+                    "introduced": true,
+                    "price_sent": false,
+                    "requisites_sent": false
+                },
+                "missing": [],
+                "outcome": null,
+                "promises": [],
+                "signals": {
+                    "asked_if_bot": false,
+                    "asked_slots": [],
+                    "client_claims": [],
+                    "client_questions": [],
+                    "last_client_intent": "off_topic",
+                    "last_unknown_topic": null,
+                    "objections": [],
+                    "prev_intent": "off_topic",
+                    "sentiment": "neutral",
+                    "triggers_used": [],
+                    "wants_only_prices": false
+                },
+                "slots": {
+                    "brands_interest": [],
+                    "budget_range": null,
+                    "categories": [],
+                    "city": null,
+                    "competitor_discount": null,
+                    "current_supplier": null,
+                    "email": null,
+                    "experience": null,
+                    "legal": null,
+                    "messenger": null,
+                    "name": null,
+                    "next_contact_at": null,
+                    "outlet_floor": null,
+                    "outlet_type": null,
+                    "purpose": null,
+                    "timing": null
+                },
+                "stage": "qualify",
+                "summary": null,
+                "unknown_questions": []
+            }
+        },
+        {
+            "extraction": {
+                "asked_if_bot": false,
+                "client_claims": [],
+                "client_intent": "off_topic",
+                "client_questions": [],
+                "closed_topic": null,
+                "confidence": 0.9,
+                "do_not_disturb": false,
+                "objections": [],
+                "off_topic": true,
+                "prompt_injection": false,
+                "refused_slots": [],
+                "sentiment": "neutral",
+                "slot_updates": [],
+                "unknown_question": null,
+                "wants_human": false,
+                "wants_only_prices": false
+            },
+            "goal": {
+                "allowed_tools": [],
+                "constraints": [],
+                "extras": [],
+                "facts": [],
+                "fewshot_tags": [],
+                "instruction": "Не отвечать.",
+                "kind": "silent",
+                "slot": null,
+                "trigger": null
+            },
+            "outcome": "spam",
+            "state": {
+                "client_type": "unknown",
+                "counters": {
+                    "budget_asks": 0,
+                    "closed_topic_streak": 0,
+                    "followups_sent": 0,
+                    "guard_regens": 0,
+                    "negative_streak": 0,
+                    "off_topic_streak": 3,
+                    "turns": 3,
+                    "unclear_streak": 0,
+                    "unknown_facts": 0,
+                    "unknown_insist": 0
+                },
+                "flags": {
+                    "do_not_disturb": false,
+                    "duplicate_lead": false,
+                    "escalate": false,
+                    "escalate_reason": null,
+                    "introduced": true,
+                    "price_sent": false,
+                    "requisites_sent": false
+                },
+                "missing": [],
+                "outcome": null,
+                "promises": [],
+                "signals": {
+                    "asked_if_bot": false,
+                    "asked_slots": [],
+                    "client_claims": [],
+                    "client_questions": [],
+                    "last_client_intent": "off_topic",
+                    "last_unknown_topic": null,
+                    "objections": [],
+                    "prev_intent": "off_topic",
+                    "sentiment": "neutral",
+                    "triggers_used": [],
+                    "wants_only_prices": false
+                },
+                "slots": {
+                    "brands_interest": [],
+                    "budget_range": null,
+                    "categories": [],
+                    "city": null,
+                    "competitor_discount": null,
+                    "current_supplier": null,
+                    "email": null,
+                    "experience": null,
+                    "legal": null,
+                    "messenger": null,
+                    "name": null,
+                    "next_contact_at": null,
+                    "outlet_floor": null,
+                    "outlet_type": null,
+                    "purpose": null,
+                    "timing": null
+                },
+                "stage": "spam",
+                "summary": null,
+                "unknown_questions": []
+            }
+        }
+    ]
+}
