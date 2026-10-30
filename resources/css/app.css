@@ -1,0 +1,32 @@
+@import 'tailwindcss';
+@source '../views/**/*.blade.php';
+@source '../js/**/*.{ts,tsx}';
+
+html {
+  font-family: system-ui, sans-serif;
+  color: #17211d;
+  background: #f5f7f5;
+}
+body {
+  margin: 0;
+}
+* {
+  box-sizing: border-box;
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+:focus-visible {
+  outline: 3px solid #4b7c65;
+  outline-offset: 3px;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+  }
+}

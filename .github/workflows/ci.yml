@@ -1,0 +1,75 @@
+name: Foundation checks
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  application:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: souzpir_test_ci
+          POSTGRES_USER: souzpir_ci
+          POSTGRES_PASSWORD: ci-only-password
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U souzpir_ci -d souzpir_test_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      APP_ENV: testing
+      APP_INSTANCE: ci
+      APP_URL: http://127.0.0.1:8101
+      APP_PREVIEW_DATABASE: souzpir_ci_preview
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_DATABASE: souzpir_test_ci
+      DB_TEST_DATABASE: souzpir_test_ci
+      DB_USERNAME: souzpir_ci
+      DB_PASSWORD: ci-only-password
+      CACHE_PREFIX: 'ci:'
+      REDIS_PREFIX: 'ci:'
+      SESSION_COOKIE: souzpir_ci_session
+      QUEUE_NAMESPACE: ci
+      QUEUE_CONNECTION: sync
+      AI_DRIVER: fake
+      DELIVERY_DRIVER: fake
+      MAIL_MAILER: log
+      FEATURES_SCHEDULING_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_pgsql, pgsql, mbstring, intl, bcmath
+          coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Prepare local runtime
+        run: |
+          mkdir -p .local/tmp
+          cp .env.example .env.testing
+          php -r 'file_put_contents(".env.testing", "\nAPP_KEY=base64:".base64_encode(random_bytes(32))."\n", FILE_APPEND);'
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - run: composer validate --strict
+      - run: composer lint
+      - run: composer test
+      - run: npm ci --no-audit --no-fund
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - name: Browser smoke
+        run: |
+          php artisan serve --host=127.0.0.1 --port=8101 > .local/runtime/browser-server.log 2>&1 &
+          for attempt in {1..20}; do curl --fail --silent http://127.0.0.1:8101/up && break; sleep 1; done
+          npm run test:browser

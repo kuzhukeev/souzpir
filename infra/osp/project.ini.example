@@ -3,8 +3,8 @@ http_engine = Apache
 php_engine = PHP-8.4
 project_enabled = on
 project_root = {base_dir}
-web_root = {base_dir}
+web_root = {base_dir}/public
 
-; Preparation currently serves an existing placeholder.
-; SP-E0-01 must change web_root to {base_dir}/public once Laravel exists,
-; then apply the OSPanel project configuration and verify via HTTP.
+; Template for the merged Laravel checkout. Serve only public/.
+; The integrator applies this project configuration after installing dependencies
+; and verifies the effective document root and PHP version via HTTP.

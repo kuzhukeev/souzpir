@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd" bootstrap="vendor/autoload.php" colors="true" cacheDirectory=".local/runtime/testing/phpunit-cache">
+    <testsuites>
+        <testsuite name="Application"><directory suffix="Test.php">tests</directory></testsuite>
+    </testsuites>
+    <source><include><directory>app</directory></include></source>
+    <php>
+        <env name="APP_ENV" value="testing" force="true"/>
+        <env name="BCRYPT_ROUNDS" value="4"/>
+        <env name="CACHE_STORE" value="array"/>
+        <env name="SESSION_DRIVER" value="array"/>
+        <env name="MAIL_MAILER" value="log"/>
+        <env name="QUEUE_CONNECTION" value="sync"/>
+        <env name="AI_DRIVER" value="fake"/>
+        <env name="DELIVERY_DRIVER" value="fake"/>
+        <env name="FEATURES_SCHEDULING_ENABLED" value="false"/>
+    </php>
+</phpunit>

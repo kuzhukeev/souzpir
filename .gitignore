@@ -29,3 +29,8 @@ id_rsa*
 __pycache__/
 *.pyc
 tools/taskdesk/test-run-*/
+
+/public/hot
+/bootstrap/cache/*.php
+/.phpunit.cache/
+/.pest/

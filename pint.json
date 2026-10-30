@@ -1,0 +1,11 @@
+{
+  "preset": "laravel",
+  "exclude": [
+    ".local",
+    ".worktrees",
+    "vendor",
+    "node_modules",
+    "tools",
+    "graphify-out"
+  ]
+}
