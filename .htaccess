@@ -1,0 +1,4 @@
+# Preparation checkout is not the Laravel public directory.
+# Keep Git, local claim tokens, source donors and internal planning off HTTP.
+Options -Indexes
+RedirectMatch 404 ^/(?:\.|docs(?:/|$)|planning(?:/|$)|scripts(?:/|$)|tools(?:/|$)|tests(?:/|$)|graphify-out(?:/|$))

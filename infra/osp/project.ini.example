@@ -1,0 +1,10 @@
+[souzpir.local]
+http_engine = Apache
+php_engine = PHP-8.4
+project_enabled = on
+project_root = {base_dir}
+web_root = {base_dir}
+
+; Preparation currently serves an existing placeholder.
+; SP-E0-01 must change web_root to {base_dir}/public once Laravel exists,
+; then apply the OSPanel project configuration and verify via HTTP.
