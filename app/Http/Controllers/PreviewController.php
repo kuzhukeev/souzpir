@@ -15,6 +15,6 @@ final class PreviewController extends Controller
 
     public function redirect(): RedirectResponse
     {
-        return redirect()->route('preview.foundation');
+        return redirect()->route('preview.attention');
     }
 }

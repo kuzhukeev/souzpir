@@ -369,7 +369,7 @@ export default function AttentionPreview({
               <h1
                 id="attention-heading"
                 tabIndex={-1}
-                className="text-[27px] leading-tight font-extrabold tracking-[-.7px] sm:text-[32px] min-[1440px]:text-[36px]"
+                className="text-[27px] leading-tight font-extrabold tracking-[-.7px] sm:text-[32px] min-[90rem]:text-[36px]"
               >
                 Требует вашего действия
               </h1>
