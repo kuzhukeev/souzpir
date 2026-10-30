@@ -1,4 +1,6 @@
-# Preparation checkout is not the Laravel public directory.
-# Keep Git, local claim tokens, source donors and internal planning off HTTP.
+# Serve public/ as the document root. Also protect a temporary checkout-root host.
 Options -Indexes
-RedirectMatch 404 ^/(?:\.|docs(?:/|$)|planning(?:/|$)|scripts(?:/|$)|tools(?:/|$)|tests(?:/|$)|graphify-out(?:/|$))
+RedirectMatch 404 ^/(?:\.|app(?:/|$)|bootstrap(?:/|$)|config(?:/|$)|database(?:/|$)|resources(?:/|$)|routes(?:/|$)|storage(?:/|$)|vendor(?:/|$)|node_modules(?:/|$)|docs(?:/|$)|planning(?:/|$)|scripts(?:/|$)|tools(?:/|$)|tests(?:/|$)|graphify-out(?:/|$))
+<FilesMatch "^(?:artisan|composer\.(?:json|lock)|package(?:-lock)?\.json|phpunit\.xml|.*\.config\.(?:js|ts))$">
+    Require all denied
+</FilesMatch>
