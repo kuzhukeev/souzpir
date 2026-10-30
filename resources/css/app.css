@@ -2,31 +2,33 @@
 @source '../views/**/*.blade.php';
 @source '../js/**/*.{ts,tsx}';
 
-html {
-  font-family: var(--font-sans, system-ui), sans-serif;
-  color: var(--color-ink, #10264a);
-  background: var(--color-bg, #fbf8f4);
-}
-body {
-  margin: 0;
-}
-* {
-  box-sizing: border-box;
-}
-button,
-input,
-select,
-textarea {
-  font: inherit;
-}
-:focus-visible {
-  outline: 3px solid var(--color-focus, #2762ce);
-  outline-offset: 3px;
-}
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    scroll-behavior: auto !important;
+@layer base {
+  html {
+    font-family: var(--font-sans, system-ui), sans-serif;
+    color: var(--color-ink, #10264a);
+    background: var(--color-bg, #fbf8f4);
+  }
+  body {
+    margin: 0;
+  }
+  * {
+    box-sizing: border-box;
+  }
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+  :focus-visible {
+    outline: 3px solid var(--color-focus, #2762ce);
+    outline-offset: 3px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      scroll-behavior: auto !important;
+    }
   }
 }
