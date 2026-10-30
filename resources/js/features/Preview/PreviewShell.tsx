@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   Bell,
-  BadgeCheck,
-  Bot,
   BookOpen,
   Building2,
   ChartNoAxesCombined,
@@ -15,15 +13,15 @@ import {
   Gauge,
   Home,
   LayoutDashboard,
+  Link2,
   Menu,
   MessageCircle,
-  MessagesSquare,
-  Radio,
   Search,
   Settings,
   Share2,
+  Star,
+  UserRound,
   Users,
-  Workflow,
 } from 'lucide-react';
 import { BrandMark, Button, DemoDialog } from './ui';
 import type { PreviewTheme } from './preview-state';
@@ -103,15 +101,15 @@ function Navigation({
             icon: MessageCircle,
             children: [
               { label: 'Сводка', icon: LayoutDashboard },
-              { label: 'Диалоги', icon: MessagesSquare },
+              { label: 'Диалоги', icon: Users },
               { label: 'Клиенты', icon: Users },
               { label: 'База знаний', icon: BookOpen },
-              { label: 'Сценарий', icon: Workflow },
-              { label: 'Персонаж', icon: Bot },
-              { label: 'Качество', icon: BadgeCheck },
+              { label: 'Сценарий', icon: ClipboardList },
+              { label: 'Персонаж', icon: UserRound },
+              { label: 'Качество', icon: Star },
               { label: 'Аналитика', icon: ChartNoAxesCombined },
-              { label: 'Каналы', icon: Radio },
-              { label: 'Интеграции', icon: Share2 },
+              { label: 'Каналы', icon: Share2 },
+              { label: 'Интеграции', icon: Link2 },
               { label: 'Настройки', icon: Settings },
             ],
           },
@@ -143,15 +141,13 @@ function Navigation({
                     title={child}
                     aria-label={child}
                     onClick={() => onNavigate(child)}
-                    className={`flex min-h-9 w-full items-center rounded-lg px-4 py-1.5 text-left text-sm leading-5 text-(--color-link) transition-colors hover:bg-(--color-surface-muted) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus) motion-reduce:transition-none ${mobile ? '' : 'md:justify-center md:px-2 lg:justify-start lg:px-4'}`}
+                    className={`flex min-h-9 w-full items-center gap-3 rounded-lg px-4 py-1.5 text-left text-sm leading-5 text-(--color-link) transition-colors hover:bg-(--color-surface-muted) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus) motion-reduce:transition-none ${mobile ? '' : 'md:justify-center md:px-2 lg:justify-start lg:px-4'}`}
                   >
                     <ChildIcon
                       size={17}
                       strokeWidth={1.75}
                       aria-hidden="true"
-                      className={
-                        mobile ? 'hidden' : 'hidden shrink-0 text-(--color-icon) md:block lg:hidden'
-                      }
+                      className="shrink-0 text-(--color-icon)"
                     />
                     <span className={mobile ? '' : 'md:sr-only lg:not-sr-only'}>{child}</span>
                   </button>

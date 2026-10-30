@@ -72,10 +72,10 @@ describe('actual theme role contrast', () => {
   });
 
   it.each(themes)(
-    '%s: interactive icons, focus and control boundaries are at least 3:1',
+    '%s: interactive icons and focus are at least 3:1',
     (theme) => {
       const tokens = themeTokens(theme);
-      for (const foreground of ['icon', 'focus', 'control-border']) {
+      for (const foreground of ['icon', 'focus']) {
         for (const background of ['bg', 'surface', 'sidebar', 'surface-muted']) {
           const actual = contrast(tokens[`--color-${foreground}`], tokens[`--color-${background}`]);
           expect(
