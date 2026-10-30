@@ -1,0 +1,100 @@
+/* SP-F-01. Fixed interface semantics; brand presets only change brand accents. */
+/* Activate Tailwind's standalone CSS compiler without a second reset or source scan. */
+@tailwind utilities source(none);
+@font-face {
+  font-family: Manrope;
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url('/fonts/manrope-cyrillic.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+
+@font-face {
+  font-family: Manrope;
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url('/fonts/manrope-latin.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* static is required: this stylesheet is compiled independently by the Vite glob. */
+@theme static {
+  --font-sans: 'Manrope', system-ui, sans-serif;
+
+  --color-bg: #fbf8f4;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f2f4f3;
+  --color-sidebar: #fffefc;
+  --color-ink: #10264a;
+  --color-ink-muted: #5b6b85;
+  --color-border: #e1e4e3;
+  --color-control-border: #78889d;
+  --color-icon: #2762ce;
+  --color-link: #245ec7;
+  --color-focus: #2762ce;
+
+  --color-action: #14663c;
+  --color-action-hover: #0f5531;
+  --color-on-action: #ffffff;
+  --color-nav-active: #1f6f41;
+  --color-on-nav-active: #ffffff;
+  --color-disabled: #e9ecec;
+  --color-on-disabled: #657183;
+
+  --color-success: #14663c;
+  --color-success-soft: #e8f3eb;
+  --color-success-ink: #14663c;
+  --color-warning: #865200;
+  --color-warning-soft: #fff4d6;
+  --color-warning-ink: #754600;
+  --color-danger: #b52b37;
+  --color-danger-soft: #fdecee;
+  --color-danger-ink: #a52431;
+  --color-info: #245ec7;
+  --color-info-soft: #ecf2ff;
+  --color-info-ink: #2454ad;
+
+  --color-brand-primary: #6425f5;
+  --color-brand-primary-soft: #e9dfff;
+  --color-on-brand-primary: #ffffff;
+  --color-brand-accent: #f59e0b;
+  --color-on-brand-accent: #10264a;
+
+  --radius-card: 1rem;
+  --radius-control: 0.625rem;
+  --shadow-card: 0 1px 2px rgb(16 38 74 / 0.06), 0 8px 24px rgb(16 38 74 / 0.06);
+  --spacing-sidebar: 16.25rem;
+  --spacing-header: 4rem;
+  --text-page-title: 2rem;
+  --text-page-title--line-height: 2.5rem;
+  --text-card-title: 1.125rem;
+  --text-card-title--line-height: 1.625rem;
+  --text-body: 0.875rem;
+  --text-body--line-height: 1.25rem;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1rem;
+}
+
+/* Neutral is also the safe default when no brand has been selected yet. */
+:root,
+[data-theme='neutral'] {
+  --color-brand-primary: #6425f5;
+  --color-brand-primary-soft: #e9dfff;
+  --color-brand-accent: #f59e0b;
+}
+
+[data-theme='confectionery'] {
+  --color-brand-primary: #2f5d3a;
+  --color-brand-primary-soft: #e4eee4;
+  --color-brand-accent: #c98a3a;
+}
+
+[data-theme='pyro'] {
+  --color-brand-primary: #1f2a44;
+  --color-brand-primary-soft: #e3e7f2;
+  --color-brand-accent: #e8862b;
+}

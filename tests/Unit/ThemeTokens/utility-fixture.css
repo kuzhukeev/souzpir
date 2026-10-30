@@ -1,0 +1,3 @@
+/* Compile the consumer recipe without modifying the shared application stylesheet. */
+@import '../../../resources/css/app.css';
+@source inline('bg-(--color-bg) text-(--color-ink) border-(--color-control-border) ring-(--color-focus) rounded-(--radius-card) shadow-(--shadow-card) font-(family-name:--font-sans)');
