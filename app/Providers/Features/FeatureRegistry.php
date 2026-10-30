@@ -7,6 +7,8 @@ use Closure;
 use Illuminate\Console\Application as Artisan;
 use Illuminate\Console\Command;
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Contracts\Auth\Access\Gate;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Migrations\Migrator;
 use Illuminate\Database\Seeder;
 use Illuminate\Foundation\Application;
@@ -21,7 +23,7 @@ class FeatureRegistry
 {
     private const ID_PATTERN = '/^[A-Z][A-Z0-9]*-[0-9]{2}[A-Z]?$/D';
 
-    private const SECTIONS = ['bindings', 'scoped_bindings', 'middleware_aliases', 'shared_props', 'extensions', 'permissions', 'listeners', 'commands', 'schedules', 'seeders', 'defaults'];
+    private const SECTIONS = ['bindings', 'scoped_bindings', 'middleware_aliases', 'shared_props', 'extensions', 'permissions', 'policies', 'listeners', 'commands', 'schedules', 'seeders', 'defaults'];
 
     private bool $registered = false;
 
@@ -32,6 +34,8 @@ class FeatureRegistry
     private array $extensions = [];
 
     private array $permissions = [];
+
+    private array $policies = [];
 
     private array $translationLines = [];
 
@@ -97,7 +101,15 @@ class FeatureRegistry
 
             foreach ($feature['permissions'] ?? [] as $key => $definition) {
                 $this->assertNewKey($this->permissions, $key, 'permission');
+                $this->assertClass($definition, PermissionEvaluator::class);
                 $this->permissions[$key] = $definition;
+            }
+
+            foreach ($feature['policies'] ?? [] as $model => $policy) {
+                $this->assertNewKey($this->policies, $model, 'policy');
+                $this->assertClass($model);
+                $this->assertClass($policy);
+                $this->policies[$model] = $policy;
             }
 
             foreach ($feature['commands'] ?? [] as $class) {
@@ -125,6 +137,16 @@ class FeatureRegistry
         }
         $this->register();
         $this->booted = true;
+
+        if ($this->permissions || $this->policies) {
+            $gate = $this->app->make(Gate::class);
+            foreach ($this->permissions as $ability => $evaluator) {
+                $gate->define($ability, fn (Authenticatable $user, ...$arguments): bool => $this->app->make($evaluator)->allows($user, $ability, ...$arguments));
+            }
+            foreach ($this->policies as $model => $policy) {
+                $gate->policy($model, $policy);
+            }
+        }
 
         $this->afterResolving('migrator', function (Migrator $migrator): void {
             foreach ($this->migrationPaths as $path) {

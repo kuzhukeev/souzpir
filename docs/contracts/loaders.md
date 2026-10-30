@@ -21,6 +21,8 @@ return [
     'extensions' => [
         'seller.greeting' => App\Seller\Settings\Greetings\ConfiguredGreeting::class,
     ],
+    'permissions' => [], // ability => PermissionEvaluator FQCN; unique
+    'policies' => [], // model FQCN => policy FQCN; unique
     'listeners' => [], // event key => list of listener FQCN
     'commands' => [], // command FQCNs; registration, not execution
     'schedules' => [], // ScheduleContributor FQCNs; registration, not worker launch
@@ -28,6 +30,8 @@ return [
     'defaults' => [], // accessible as config('features.E6-02.defaults...')
 ];
 ```
+
+Permissions use `App\Providers\Features\PermissionEvaluator::allows(Authenticatable $user, string $ability, mixed ...$arguments): bool`; the registry validates classes and registers Laravel Gates. Model policies use `policies`. Duplicate abilities or models fail boot; cached configuration behaves identically.
 
 Bootstrap provides `ScheduleContributor::register(Schedule $schedule): void` under its own provider namespace. Scheduler contributors require environment capability flags; no organisation purge contributor exists. Interface registration may be cached, but discovery must produce the same routes/config with and without Laravel caches.
 

@@ -3,8 +3,11 @@
 namespace Tests\Feature\Smoke;
 
 use App\Http\Middleware\EnsureLocalPreview;
+use App\Models\User;
 use App\Providers\Features\FeatureRegistry;
 use App\Providers\Features\FeatureSeedCommand;
+use Illuminate\Auth\Access\Gate;
+use Illuminate\Auth\GenericUser;
 use Illuminate\Cache\CacheServiceProvider;
 use Illuminate\Cache\RateLimiter;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -24,6 +27,8 @@ use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\BufferedOutput;
 use Tests\Feature\Smoke\Fixtures\CountingSchedule;
 use Tests\Feature\Smoke\Fixtures\CountingSeeder;
+use Tests\Feature\Smoke\Fixtures\FixturePermission;
+use Tests\Feature\Smoke\Fixtures\FixturePolicy;
 use Tests\Feature\Smoke\Fixtures\FixtureProps;
 use Tests\Feature\Smoke\Fixtures\RegistryApplication;
 use Tests\Feature\Smoke\Fixtures\RegistryController;
@@ -118,6 +123,31 @@ class FeatureRegistryTest extends TestCase
         self::assertSame(1, FixtureProps::$evaluations);
     }
 
+    public function test_registers_gate_and_policy_from_cached_feature_configuration(): void
+    {
+        $this->fixtureApp->fixtureConfigCached = true;
+        $this->fixtureApp['config']->set('features', ['E1-01' => [
+            'permissions' => ['fixture.read' => FixturePermission::class],
+            'policies' => [User::class => FixturePolicy::class],
+        ]]);
+        $user = new GenericUser(['id' => 7]);
+        $gate = new Gate($this->fixtureApp, fn () => $user);
+        $this->fixtureApp->instance(\Illuminate\Contracts\Auth\Access\Gate::class, $gate);
+        (new FeatureRegistry($this->fixtureApp))->boot();
+        self::assertTrue($gate->allows('fixture.read', ['allowed']));
+        self::assertFalse($gate->allows('fixture.read', ['denied']));
+        self::assertFalse($gate->forUser(new GenericUser(['id' => 8]))->allows('fixture.read', ['allowed']));
+        self::assertInstanceOf(FixturePolicy::class, $gate->getPolicyFor(User::class));
+    }
+
+    public function test_rejects_invalid_permission_evaluator(): void
+    {
+        $this->write('config/features/E1-01.php', '<?php return '.var_export(['permissions' => ['fixture.read' => RegistryController::class]], true).';');
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('Invalid feature class');
+        (new FeatureRegistry($this->fixtureApp))->register();
+    }
+
     public function test_rejects_duplicate_shared_props_at_request_time(): void
     {
         foreach (['E1-01', 'E2-01'] as $id) {
@@ -173,7 +203,8 @@ class FeatureRegistryTest extends TestCase
         return [
             'bindings' => ['bindings', [RegistryController::class => RegistryController::class]],
             'extensions' => ['extensions', ['example' => RegistryController::class]],
-            'permissions' => ['permissions', ['example.read' => ['owner']]],
+            'permissions' => ['permissions', ['example.read' => FixturePermission::class]],
+            'policies' => ['policies', [User::class => FixturePolicy::class]],
             'scoped bindings' => ['scoped_bindings', [RegistryController::class => RegistryController::class]],
             'middleware aliases' => ['middleware_aliases', ['fixture.tenant' => EnsureLocalPreview::class]],
         ];
