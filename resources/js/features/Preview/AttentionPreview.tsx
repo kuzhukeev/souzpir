@@ -364,7 +364,7 @@ export default function AttentionPreview({
           <span aria-hidden="true">/</span>
           <span aria-current="page">Требует вашего действия</span>
         </nav>
-        <div className="grid min-w-0 gap-5 min-[1440px]:grid-cols-[minmax(0,1fr)_300px] min-[1800px]:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="grid min-w-0 gap-5 min-[1440px]:grid-cols-[minmax(0,1fr)_360px]">
           <section className="min-w-0" aria-labelledby="attention-heading">
             <div className="flex items-center gap-3">
               <h1

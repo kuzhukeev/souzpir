@@ -261,15 +261,27 @@ test('popup dismissal restores focus and both search fields reset together', asy
 test('custom selects support keyboard selection and accessible open menus', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto('/preview/attention');
-  await page.getByRole('button', { name: 'Видение', exact: true }).click();
-  const module = page.getByRole('combobox', { name: 'Модуль', exact: true });
-  await module.click();
+  await page.getByRole('button', { name: 'Продавец', exact: true }).click();
+  await page.evaluate(() => document.fonts.ready);
+  const widgetTitle = page
+    .getByRole('complementary', { name: 'Пример виджета на главной' })
+    .getByText('Диалоги ждут менеджера', { exact: true });
+  expect(
+    await widgetTitle.evaluate((element) => {
+      const range = document.createRange();
+      range.selectNodeContents(element);
+      return range.getClientRects().length;
+    }),
+  ).toBe(1);
+  await page.mouse.move(1100, 160);
   await mkdir(screenshots, { recursive: true });
   await page.screenshot({
-    path: path.join(screenshots, 'menus-reviewed-1440.png'),
+    path: path.join(screenshots, 'submenu-reviewed-1440.png'),
     fullPage: true,
     animations: 'disabled',
   });
+  const module = page.getByRole('combobox', { name: 'Модуль', exact: true });
+  await module.click();
   await assertAccessible(page);
   await module.press('Home');
   await module.press('ArrowDown');

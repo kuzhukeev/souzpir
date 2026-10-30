@@ -201,7 +201,7 @@ export default function PreviewSelect({
         onBlur={(event) => {
           if (!menu.current?.contains(event.relatedTarget)) close(false);
         }}
-        className={`inline-flex min-h-11 min-w-0 items-center justify-between gap-2 rounded-xl border border-(--color-control-border) bg-(--color-surface) px-3 py-2 text-left text-sm font-medium text-(--color-ink) shadow-[0_1px_2px_#10264a04] transition-colors hover:border-(--color-icon) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus) disabled:cursor-not-allowed disabled:bg-(--color-disabled) disabled:text-(--color-on-disabled) ${className}`}
+        className={`inline-flex min-h-11 min-w-0 items-center justify-between gap-2 rounded-xl border border-(--color-control-border) bg-(--color-surface) px-3 py-2 text-left text-sm font-medium text-(--color-ink) shadow-[0_1px_2px_#10264a04] transition-colors hover:bg-(--color-surface-muted) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus) disabled:cursor-not-allowed disabled:bg-(--color-disabled) disabled:text-(--color-on-disabled) ${className}`}
       >
         {icon && (
           <span aria-hidden="true" className="shrink-0 text-(--color-icon)">
