@@ -192,6 +192,7 @@ foreach (['app', 'config', 'resources/knowledge', 'resources/views/prompts', 'te
 }
 $sourceFiles['composer.lock'] = hash_file('sha256', $prototype.'/composer.lock');
 writeEvidence($output.'/source-fingerprints.json', $sourceFiles);
+file_put_contents($output.'/.gitattributes', "* text eol=lf\n");
 writeEvidence($output.'/manifest.json', ['schema_version'=>1, 'prototype_archive_sha256'=>'7e33e6e2c3a077e081fd736029e8ef4648df0b2cc1d2dffc1a0e4bdb78196c97',
     'coverage'=>['total_cases'=>41, 'personas'=>29, 'manual'=>12, 'recorded_real_llm'=>0, 'synthetic'=>12, 'missing'=>29],
     'frozen_clock'=>'2026-10-31T09:00:00+03:00', 'cases'=>$cases, 'prompt_snapshots'=>$snapshots,

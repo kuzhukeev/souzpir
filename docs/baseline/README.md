@@ -39,7 +39,7 @@ Policy-only traces не имитируют последующую обработ
 
 ## Prompt snapshots и нормализация
 
-Состояния: `opening`, `newbie_qualified`, `experienced_price`, `opt_out`, `deferred_escalation`. Для каждого отрендерены `extractor`, `responder`, `guard`, `summary` из исходных Blade views; responder сформирован реальным `Responder::systemPrompt`. SHA-256 содержится в manifest.
+Состояния: `opening`, `newbie_qualified`, `experienced_price`, `opt_out`, `deferred_escalation`. Для каждого отрендерены `extractor`, `responder`, `guard`, `summary` из исходных Blade views; responder сформирован реальным `Responder::systemPrompt`. SHA-256 содержится в manifest. Локальный `.gitattributes` фиксирует LF для fixtures, чтобы Windows checkout не менял байты и snapshot hashes.
 
 Перед сохранением нормализуются переводы строк и редактируются секреты/почтовые адреса. Поэтому snapshots — проверяемое безопасное представление реально отрендеренного текста, а не обещание исходных байтов с контактами. После переноса применяется та же нормализация. Пять входных состояний сохранены отдельно; часы заморожены. Порядок JSON-ключей канонизируется, порядок списков сохраняется; пустой объект отличается от пустого списка. Из request options удаляются только runtime `timestamp`, `request_id`, `trace_id`, `lead_id`, `message_id`; даты внутри сообщений и слотов сохраняют смысл. Из результатов диалогов исключены только wall-clock latency и DB message ID.
 
