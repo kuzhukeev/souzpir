@@ -1,7 +1,7 @@
 {
   "project": "souzpir",
   "planVersion": 1,
-  "executionEnabled": false,
+  "executionEnabled": true,
   "tasks": [
     {
       "taskKey": "SP-C-01",

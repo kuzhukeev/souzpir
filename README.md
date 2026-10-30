@@ -2,7 +2,7 @@
 
 Репозиторий: https://github.com/kuzhukeev/souzpir (private).
 Каталог: `C:/OSPanel/home/souzpir.local`.
-Очередь: http://tasks.local/ — проект souzpir, запуск выключен.
+Очередь: http://tasks.local/ — проект souzpir, разработка разрешена 31.10.2026.
 
 Приложение ещё не реализовано. Подготовлены требования, аудит архивов и изображений, очередь для отдельных чатов, владение задачами и Git worktree.
 
@@ -14,9 +14,9 @@
 - Аудит [требований](docs/preparation/spec-audit.md), [исходников](docs/preparation/source-audit.md), [макетов](docs/preparation/visual-audit.md), [очереди](docs/preparation/queue-audit.md).
 - [Исходный пакет](docs/sources/01_project_overview.md), [покрытие экранов](planning/screen-coverage.json), [индекс материалов](planning/materials-manifest.json).
 
-## Следующая итерация
+## Выполнение очереди
 
-Пользователь разрешает старт; интегратор включает souzpir в tasks.local. Первые независимые задачи: SP-C-01 (контракты) и SP-T-01 (offline baseline). После контрактов — SP-E0-01 (скелет). Остальные выдаются по готовности зависимостей и отсутствию пересечения scope. Чаты самостоятельно не создаются.
+Пользователь разрешил старт 31.10.2026; интегратор включает souzpir в tasks.local. Первые независимые задачи: SP-C-01 (контракты) и SP-T-01 (offline baseline). После контрактов — SP-E0-01 (скелет). Остальные выдаются по готовности зависимостей и отсутствию пересечения scope. Чаты самостоятельно не создаются.
 
 Один чат берёт одну карточку через `scripts/task.py claim`, пишет код в собственном worktree и отправляет в review. Интегратор проверяет и сливает в main; после проверки SHA задача становится done. Команды — в workflow.
 
