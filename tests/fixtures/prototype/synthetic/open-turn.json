@@ -1,0 +1,343 @@
+{
+    "description": "Real donor Orchestrator executed with authored fake responses; not real LLM evidence.",
+    "provenance": "synthetic",
+    "source": "prototype/tests/Feature/TurnTest.php",
+    "trace": [
+        {
+            "meta": {
+                "cost_usd": 0.0,
+                "goal": {
+                    "allowed_tools": [
+                        "mark_do_not_disturb",
+                        "create_promise",
+                        "log_unknown_question",
+                        "send_requisites",
+                        "check_stock",
+                        "calc_delivery"
+                    ],
+                    "constraints": [],
+                    "extras": [],
+                    "facts": [],
+                    "fewshot_tags": [
+                        "open_greeting",
+                        "ask_city"
+                    ],
+                    "instruction": "Поздороваться, представиться именем и компанией, сослаться на заявку, при необходимости коротко ответить на вопрос и задать ровно один вопрос по слоту.",
+                    "kind": "intro_and_ask",
+                    "slot": "city",
+                    "trigger": null
+                },
+                "guard": {
+                    "issues": [],
+                    "questions": 1,
+                    "verdict": "ok",
+                    "warnings": [],
+                    "words": 9
+                },
+                "tool_calls": []
+            },
+            "outcome": null,
+            "reply": "Добрый день. Антон, «Союз Пир». Вы из какого города?",
+            "stage": "qualify",
+            "state": {
+                "client_type": "unknown",
+                "counters": {
+                    "budget_asks": 0,
+                    "closed_topic_streak": 0,
+                    "followups_sent": 0,
+                    "guard_regens": 0,
+                    "negative_streak": 0,
+                    "off_topic_streak": 0,
+                    "turns": 0,
+                    "unclear_streak": 0,
+                    "unknown_facts": 0,
+                    "unknown_insist": 0
+                },
+                "flags": {
+                    "do_not_disturb": false,
+                    "duplicate_lead": false,
+                    "escalate": false,
+                    "escalate_reason": null,
+                    "introduced": true,
+                    "price_sent": false,
+                    "requisites_sent": false
+                },
+                "missing": [
+                    {
+                        "reason": "no_chance",
+                        "slot": "city",
+                        "suggested_question": "Подскажите, вы из какого города?"
+                    },
+                    {
+                        "reason": "no_chance",
+                        "slot": "purpose",
+                        "suggested_question": "А пиротехникой для себя интересуетесь или на продажу?"
+                    },
+                    {
+                        "reason": "no_chance",
+                        "slot": "experience",
+                        "suggested_question": "Раньше пиротехникой торговали или это первый сезон?"
+                    },
+                    {
+                        "reason": "no_chance",
+                        "slot": "outlet_type",
+                        "suggested_question": "А как планируете торговать — своя точка, аренда, через интернет?"
+                    },
+                    {
+                        "reason": "no_chance",
+                        "slot": "categories",
+                        "suggested_question": "Что в основном интересует — салюты, петарды, мелочь вроде бенгальских и фонтанов, или всё вместе?"
+                    },
+                    {
+                        "reason": "no_chance",
+                        "slot": "budget_range",
+                        "suggested_question": "Плюс-минус на какую сумму смотрите закупку? Это ни к чему не обязывает — просто от суммы скидку в прайсе выставлю."
+                    },
+                    {
+                        "reason": "no_chance",
+                        "slot": "timing",
+                        "suggested_question": "Закупаться планируете сейчас или ближе к сезону?"
+                    },
+                    {
+                        "reason": "no_chance",
+                        "slot": "email",
+                        "suggested_question": "На какую почту прайс отправить?"
+                    },
+                    {
+                        "reason": "no_chance",
+                        "slot": "messenger",
+                        "suggested_question": "И продублирую в мессенджер, чтобы мой контакт у вас был. На этом номере Макс, WhatsApp или Telegram?"
+                    },
+                    {
+                        "reason": "no_chance",
+                        "slot": "next_contact_at",
+                        "suggested_question": "Когда удобно списаться по обратной связи — завтра или в пятницу?"
+                    }
+                ],
+                "outcome": null,
+                "promises": [],
+                "signals": {
+                    "asked_counts": {
+                        "city": 1
+                    },
+                    "asked_if_bot": false,
+                    "asked_slots": [
+                        "city"
+                    ],
+                    "client_claims": [],
+                    "client_questions": [],
+                    "last_asked_slot": "city",
+                    "last_client_intent": null,
+                    "last_unknown_topic": null,
+                    "objections": [],
+                    "prev_intent": "answer_only",
+                    "sentiment": "neutral",
+                    "triggers_used": [],
+                    "wants_only_prices": false
+                },
+                "slots": {
+                    "brands_interest": [],
+                    "budget_range": null,
+                    "categories": [],
+                    "city": null,
+                    "competitor_discount": null,
+                    "current_supplier": null,
+                    "email": null,
+                    "experience": null,
+                    "legal": null,
+                    "messenger": null,
+                    "name": null,
+                    "next_contact_at": null,
+                    "outlet_floor": null,
+                    "outlet_type": null,
+                    "purpose": null,
+                    "timing": null
+                },
+                "stage": "qualify",
+                "summary": null,
+                "unknown_questions": []
+            }
+        },
+        {
+            "meta": {
+                "cost_usd": 0.0,
+                "extraction": {
+                    "asked_if_bot": false,
+                    "client_claims": [],
+                    "client_intent": "answer_only",
+                    "client_questions": [],
+                    "closed_topic": null,
+                    "confidence": 0.9,
+                    "do_not_disturb": false,
+                    "objections": [],
+                    "off_topic": false,
+                    "prompt_injection": false,
+                    "refused_slots": [],
+                    "sentiment": "neutral",
+                    "slot_updates": {
+                        "brands_interest": null,
+                        "budget_range": null,
+                        "categories": null,
+                        "city": "Тула",
+                        "competitor_discount": null,
+                        "current_supplier": null,
+                        "email": null,
+                        "experience": null,
+                        "legal": null,
+                        "messenger": null,
+                        "name": null,
+                        "next_contact_at": null,
+                        "outlet_floor": null,
+                        "outlet_type": null,
+                        "purpose": "на продажу",
+                        "timing": null
+                    },
+                    "unknown_question": null,
+                    "wants_human": false,
+                    "wants_only_prices": false
+                },
+                "goal": {
+                    "allowed_tools": [
+                        "mark_do_not_disturb",
+                        "create_promise",
+                        "log_unknown_question",
+                        "send_requisites",
+                        "check_stock",
+                        "calc_delivery"
+                    ],
+                    "constraints": [],
+                    "extras": [],
+                    "facts": [],
+                    "fewshot_tags": [
+                        "ask_experience"
+                    ],
+                    "instruction": "Коротко отреагировать на слова клиента (одна фраза), затем ровно один вопрос по слоту.",
+                    "kind": "ask_slot",
+                    "slot": "experience",
+                    "trigger": null
+                },
+                "guard": {
+                    "issues": [],
+                    "questions": 1,
+                    "verdict": "ok",
+                    "warnings": [],
+                    "words": 8
+                },
+                "tool_calls": []
+            },
+            "outcome": null,
+            "reply": "Тула, понял. Раньше пиротехникой торговали или первый сезон?",
+            "stage": "need",
+            "state": {
+                "client_type": "unknown",
+                "counters": {
+                    "budget_asks": 0,
+                    "closed_topic_streak": 0,
+                    "followups_sent": 0,
+                    "guard_regens": 0,
+                    "negative_streak": 0,
+                    "off_topic_streak": 0,
+                    "turns": 1,
+                    "unclear_streak": 0,
+                    "unknown_facts": 0,
+                    "unknown_insist": 0
+                },
+                "flags": {
+                    "do_not_disturb": false,
+                    "duplicate_lead": false,
+                    "escalate": false,
+                    "escalate_reason": null,
+                    "introduced": true,
+                    "price_sent": false,
+                    "requisites_sent": false
+                },
+                "missing": [
+                    {
+                        "reason": "no_chance",
+                        "slot": "experience",
+                        "suggested_question": "Раньше пиротехникой торговали или это первый сезон?"
+                    },
+                    {
+                        "reason": "no_chance",
+                        "slot": "outlet_type",
+                        "suggested_question": "А как планируете торговать — своя точка, аренда, через интернет?"
+                    },
+                    {
+                        "reason": "no_chance",
+                        "slot": "categories",
+                        "suggested_question": "Что в основном интересует — салюты, петарды, мелочь вроде бенгальских и фонтанов, или всё вместе?"
+                    },
+                    {
+                        "reason": "no_chance",
+                        "slot": "budget_range",
+                        "suggested_question": "Плюс-минус на какую сумму смотрите закупку? Это ни к чему не обязывает — просто от суммы скидку в прайсе выставлю."
+                    },
+                    {
+                        "reason": "no_chance",
+                        "slot": "timing",
+                        "suggested_question": "Закупаться планируете сейчас или ближе к сезону?"
+                    },
+                    {
+                        "reason": "no_chance",
+                        "slot": "email",
+                        "suggested_question": "На какую почту прайс отправить?"
+                    },
+                    {
+                        "reason": "no_chance",
+                        "slot": "messenger",
+                        "suggested_question": "И продублирую в мессенджер, чтобы мой контакт у вас был. На этом номере Макс, WhatsApp или Telegram?"
+                    },
+                    {
+                        "reason": "no_chance",
+                        "slot": "next_contact_at",
+                        "suggested_question": "Когда удобно списаться по обратной связи — завтра или в пятницу?"
+                    }
+                ],
+                "outcome": null,
+                "promises": [],
+                "signals": {
+                    "asked_counts": {
+                        "city": 1,
+                        "experience": 1
+                    },
+                    "asked_if_bot": false,
+                    "asked_slots": [
+                        "city",
+                        "experience"
+                    ],
+                    "client_claims": [],
+                    "client_questions": [],
+                    "last_asked_slot": "experience",
+                    "last_client_intent": "answer_only",
+                    "last_unknown_topic": null,
+                    "objections": [],
+                    "prev_intent": "answer_only",
+                    "sentiment": "neutral",
+                    "triggers_used": [],
+                    "wants_only_prices": false
+                },
+                "slots": {
+                    "brands_interest": [],
+                    "budget_range": null,
+                    "categories": [],
+                    "city": "Тула",
+                    "competitor_discount": null,
+                    "current_supplier": null,
+                    "email": null,
+                    "experience": null,
+                    "legal": null,
+                    "messenger": null,
+                    "name": null,
+                    "next_contact_at": null,
+                    "outlet_floor": null,
+                    "outlet_type": null,
+                    "purpose": "на продажу",
+                    "timing": null
+                },
+                "stage": "need",
+                "summary": null,
+                "unknown_questions": []
+            }
+        }
+    ]
+}

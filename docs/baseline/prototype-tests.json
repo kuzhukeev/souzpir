@@ -1,0 +1,19 @@
+{
+  "source": "Laravel prototype archive 7e33e6e2c3a077e081fd736029e8ef4648df0b2cc1d2dffc1a0e4bdb78196c97",
+  "run_date": "2026-10-31",
+  "php": "8.4.19",
+  "phpunit": "12.5.40",
+  "laravel": "13.38.0",
+  "result": "passed",
+  "tests": 31,
+  "assertions": 71,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "suite_counts": {"GuardTest": 13, "PolicyTest": 11, "TurnTest": 4, "SupervisorTest": 3},
+  "donor_code_and_expectations_changed": false,
+  "environment_fix": "Created missing runtime view/cache/session/log directories in isolated copy",
+  "network": "allow_url_fopen=0; curl_exec,curl_multi_exec,fsockopen,pfsockopen,stream_socket_client,mail disabled; fake LLM; SQLite :memory:",
+  "real_llm_calls": 0,
+  "first_attempt": {"tests": 31, "passed": 27, "failures": 1, "errors": 3, "cause": "Missing compiled view cache directory in ZIP"}
+}

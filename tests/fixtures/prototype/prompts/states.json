@@ -1,0 +1,38 @@
+{
+    "deferred_escalation": {
+        "flags": {
+            "escalate": true,
+            "escalate_reason": "deferred_insist",
+            "introduced": true
+        },
+        "stage": "handoff"
+    },
+    "experienced_price": {
+        "flags": {
+            "introduced": true
+        },
+        "slots": {
+            "budget_range": "100 тыс.",
+            "city": "Казань",
+            "experience": "много лет",
+            "purpose": "на продажу"
+        }
+    },
+    "newbie_qualified": {
+        "flags": {
+            "introduced": true
+        },
+        "slots": {
+            "city": "Тула",
+            "experience": "нет",
+            "purpose": "на продажу"
+        }
+    },
+    "opening": [],
+    "opt_out": {
+        "flags": {
+            "do_not_disturb": true,
+            "introduced": true
+        }
+    }
+}
