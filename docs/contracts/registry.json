@@ -50,6 +50,11 @@
     ]
   },
   "tables": {
+    "c02_ai_stages": {
+      "owner": "SP-C-02",
+      "tenant": "brand",
+      "parents": ["organizations", "brands", "conversations", "seller_turns", "users", "ai_calls"]
+    },
     "protected_operation_key_guard": {
       "owner": "SP-C-02",
       "tenant": "global",
