@@ -271,6 +271,14 @@ final class EvidenceEvaluatorTest extends TestCase
                 ['name' => 'СтальПлюс Сервис', 'position' => 1, 'role' => 'other', 'is_brand' => false],
             ], 'tone' => 'none', 'claims' => [], 'suspected_errors' => [], 'confidence' => 0.9];
         self::assertSame('unknown', $evaluate()['status']);
+        DB::table('measurement_answers')->where('id', $answer)->update(['answer_text' => 'Рекомендую «СтальПлюс».']);
+        $gateway->result = ['brand_mentioned' => true, 'brand_position' => 1, 'brand_recommended' => true,
+            'mention_quote' => 'Рекомендую «СтальПлюс»', 'companies' => [
+                ['name' => 'СтальПлюс', 'position' => 1, 'role' => 'supplier', 'is_brand' => true],
+            ], 'tone' => 'positive', 'claims' => [], 'suspected_errors' => [], 'confidence' => 0.9];
+        $quoted = $evaluate();
+        self::assertSame('confirmed', $quoted['status']);
+        self::assertTrue($quoted['fact']['brand_recommended']);
         Http::assertNothingSent();
     }
 }

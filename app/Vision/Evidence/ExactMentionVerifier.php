@@ -34,6 +34,24 @@ final class ExactMentionVerifier
         foreach ($matches[0] as [$matched, $offset]) {
             $before = substr($text, 0, $offset);
             $after = substr($text, $offset + strlen($matched));
+            $openings = ['«' => '»', '“' => '”', '"' => '"'];
+            $hasOpening = false;
+            $hasClosing = false;
+            foreach ($openings as $opening => $closing) {
+                $leftQuote = str_ends_with($before, $opening);
+                $rightQuote = str_starts_with($after, $closing);
+                $hasOpening = $hasOpening || $leftQuote;
+                $hasClosing = $hasClosing || $rightQuote;
+                if ($leftQuote && $rightQuote) {
+                    $before = substr($before, 0, -strlen($opening));
+                    $after = substr($after, strlen($closing));
+                    $hasOpening = $hasClosing = false;
+                    break;
+                }
+            }
+            if ($hasOpening || $hasClosing) {
+                continue;
+            }
             $left = preg_match('/(?:\A|[\n.!?]\s*|(?<!\p{L})(?:рекомендую|рекомендуем|советую|советуем|выбираю|i recommend)\s+|[0-9]+[.)]\s*)\z/iu', $before);
             $right = preg_match('/\A\s*(?:\z|[!?](?=\s|\z)|\.(?![\p{L}\p{N}]))/u', $after);
             if ($left === 1 && $right === 1) {
