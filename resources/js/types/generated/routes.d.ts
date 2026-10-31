@@ -188,6 +188,7 @@ declare module 'ziggy-js' {
     ],
     "profile.notifications": [],
     "profile.notifications.update": [],
+    "profile.notifications.timing.update": [],
     "profile.notifications.test": [],
     "profile.telegram.start": [],
     "profile.telegram.link": [],
