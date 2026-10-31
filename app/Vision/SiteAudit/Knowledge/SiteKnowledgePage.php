@@ -3,6 +3,7 @@
 namespace App\Vision\SiteAudit\Knowledge;
 
 use App\Ai\CanonicalJson;
+use App\Vision\SiteAudit\HiddenContent;
 use DOMDocument;
 use DOMElement;
 use DOMNode;
@@ -78,6 +79,7 @@ final class SiteKnowledgePage
             libxml_clear_errors();
             libxml_use_internal_errors($previous);
         }
+        HiddenContent::remove($dom);
         $xpath = new DOMXPath($dom);
         $links = [];
         foreach ($xpath->query('//a[@href]') as $anchor) {

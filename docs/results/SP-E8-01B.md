@@ -9,6 +9,7 @@
 - Создан ограниченный HTTP-клиент с проверкой всех DNS A/AAAA/CNAME, запретом внутренних адресов, закреплением IP при сохранении TLS/SNI, без proxy/redirect/reuse. Ограничены размер, время, число переходов и страниц; явная charset безопасно преобразуется в UTF-8. Загрузка по умолчанию выключена.
 - Перенесены извлечение сайта и импорт в приватные версионированные черновики собственного модуля. Авторизация vision.settings.write, текущий tenant, активность organization/brand/membership, origin и права повторно проверяются; идентичные версии переиспользуются. Запись сопровождается redacted audit, не передаёт текст ИИ и не меняет Seller release.
 - Исправлены выявленные регрессиями пустой sitemap, нечисловые границы NaN, пустой/trailing-dot host, скрытый H1 в заголовке, непроверенный source URL/fingerprint и сохранение после отзыва доступа. Наружная транзакция для импорта/записи запрещена.
+- По замечаниям независимого review устранён конфликт опций Guzzle/CurlFactory; закрепление DNS сохранено. Явно скрытые HTML-элементы исключаются до извлечения фактов и ссылок в аудите и импорте.
 - Общие контракты, registry, модели, manifest/lock, bootstrap, routes и исходники других задач не изменены. Новые таблицы не добавлены. Реализация/тесты/документы только внутри scope карточки.
 
 ## Выполненные проверки
@@ -17,7 +18,7 @@
 
 ```powershell
 & ./infra/osp/php.ps1 vendor/bin/pest tests/Feature/Vision/SiteAudit tests/Unit/Vision/SiteAudit tests/Feature/Smoke/FoundationTest.php --compact
-# 157 passed, 857 assertions, exit 0 (23.50s)
+# 160 passed, 888 assertions, exit 0 (25.97s)
 & ./infra/osp/php.ps1 vendor/bin/pint --test app/Vision/SiteAudit config/features/E8-01B.php tests/Feature/Vision/SiteAudit tests/Unit/Vision/SiteAudit
 # passed
 & ./infra/osp/php.ps1 artisan config:cache --env=testing
@@ -26,7 +27,7 @@
 # cache/show/clear successful; binding registered, crawl_pages=5, fetch_enabled=false
 ```
 
-Состав:43 донорских регрессии/423 assertions;22 HTML-fixture/metric tests/149 assertions;70 network/DNS/charset tests/148 assertions;15 knowledge tests/88 assertions;7 foundation smoke/49 assertions. Проверены разрешения и изоляция брендов, robots/foreign redirect, отзыв membership во время fetch, audit failure/orphan recovery, идемпотентность/новая версия, stale fingerprint, транзакционные границы, скрытый контент. Истинный путь Http fake → crawler → parser → score и importer → validation/permission → storage → audit проверен.
+Состав включает донорские регрессии, HTML fixtures, network/DNS/charset, приватный импорт и foundation smoke; после review добавлены проверки скрытых поддеревьев/ссылок и настоящего CurlFactory без выполнения сетевого запроса. Проверены разрешения и изоляция брендов, robots/foreign redirect, отзыв membership во время fetch, audit failure/orphan recovery, идемпотентность/новая версия, stale fingerprint, транзакционные границы, скрытый контент. Истинный путь Http fake → crawler → parser → score и importer → validation/permission → storage → audit проверен.
 
 HTTP в тестах подменён с preventStrayRequests; DNS — fake resolver/records seam. Live DNS/HTTP/ИИ/mail/Telegram/webhook не выполнялись. Золотые LLM fixtures не изменялись; эти тесты не доказывают эквивалентность реального LLM-run. Проверка whitespace/scope перед commit выполняется дополнительно.
 
@@ -38,7 +39,7 @@ HTTP в тестах подменён с preventStrayRequests; DNS — fake reso
 
 1. В registry нет M0 KnowledgeDocument/KnowledgeVersion/KnowledgeProposal донора. Импорт сохраняет только приватные draft sources: proposal_id=null, confirmed=0; approve/publication и применение в общей базе знаний не реализованы. Для подключения нужен согласованный адаптер source draft → общий review/proposal/import API с отдельным ownership и, при необходимости, расширением registry/schema. Чужие модели и параллельный Seller knowledge pipeline не дублировались.
 2. Audit event служит commit-marker файла; политика очистки audit должна сохранить эти markers либо сначала согласовать отдельный долговечный marker. При сбое до audit commit orphan не читается. Это не распределённая атомарная транзакция и не автоматическая очистка файлов.
-3. Только публичный HTML без JavaScript. Реальный сетевой транспорт не запускался; curl options проверены fake-тестами. DNS timeout наследуется от resolver ОС; HTTP/deadline не прерывает системный DNS принудительно. Unknown charset/invalid text, compressed/binary/неподдержанный MIME отвергаются. Каталог bots — снимок донора, не повторная live-верификация.
+3. Только публичный HTML без JavaScript. Реальный сетевой транспорт не запускался; CurlFactory конфигурируется реальными параметрами без выполнения запроса; полноценный сетевой путь не проверен. Явные атрибуты hidden/aria-hidden и простые inline display:none/visibility:hidden исключаются, но внешние таблицы стилей, динамический CSS и JavaScript не интерпретируются. DNS timeout наследуется от resolver ОС; HTTP/deadline не прерывает системный DNS принудительно. Unknown charset/invalid text, compressed/binary/неподдержанный MIME отвергаются. Каталог bots — снимок донора, не повторная live-верификация.
 4. Группы критериев сохранены до Q-03/R-V-11. Четыре semantic/LLM проверки остаются unknown/pending. Числа технических ограничений не являются тарифными лимитами.
 5. Карточка инфраструктурная (`screenIds=[]`): UI, screenshots, темы и viewport-проверки неприменимы; фиктивные экраны не добавлены. UI запуска/отчётов принадлежит задачам-потребителям. В main не объединено, done не устанавливается.
 

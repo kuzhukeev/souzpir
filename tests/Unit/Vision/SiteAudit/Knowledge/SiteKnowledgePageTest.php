@@ -34,6 +34,28 @@ final class SiteKnowledgePageTest extends TestCase
         self::assertSame('Fallback', $page['title']);
     }
 
+    public function test_explicitly_hidden_subtrees_do_not_provide_titles_text_or_links(): void
+    {
+        $pages = new SiteKnowledgePage;
+        $html = <<<'HTML'
+<html><body>
+<section hidden><h1>HIDDEN_TITLE</h1><p>HIDDEN_TEXT_1</p><a href="/hidden-1">Hidden</a></section>
+<div aria-hidden="TrUe"><div><a href="/hidden-2">HIDDEN_TEXT_2</a></div></div>
+<div style="color:red; DISPLAY : none !important"><a href="/hidden-3">HIDDEN_TEXT_3</a></div>
+<div style="visibility: /* comment */ hidden"><div><a href="/hidden-4">HIDDEN_TEXT_4</a></div></div>
+<h1>Visible product</h1><p>Visible content and price 999 рублей.</p>
+<a href="/visible" style="display: block; visibility: visible">Visible link</a>
+<p style='background:url("x;display:none;fake");color:red'>Visible quoted value.</p>
+</body></html>
+HTML;
+        $page = $pages->extract($html, 'https://brand.example/');
+        self::assertSame('Visible product', $page['title']);
+        self::assertStringNotContainsString('HIDDEN_', $page['text']);
+        self::assertStringContainsString('999 рублей', $page['text']);
+        self::assertStringContainsString('Visible quoted value', $page['text']);
+        self::assertSame(['https://brand.example/visible'], $page['links']);
+    }
+
     public function test_unsafe_url_forms_and_invalid_html_are_rejected(): void
     {
         $pages = new SiteKnowledgePage;

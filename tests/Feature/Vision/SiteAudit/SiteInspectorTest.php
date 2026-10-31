@@ -30,6 +30,40 @@ class SiteInspectorTest extends TestCase
         return new SiteInspector($crawler);
     }
 
+    public function test_explicit_hidden_subtrees_do_not_prove_commercial_facts_or_supply_crawl_links(): void
+    {
+        $url = 'https://example.com';
+        $hidden = <<<'HTML'
+<html><body><h1>Информация о компании</h1><p>Мы поставляем качественные товары клиентам.</p>
+<div hidden><p>Цена 999 рублей</p><a href="/hidden-one">Каталог</a></div>
+<div aria-hidden=" TRUE "><p>Цена 999 рублей</p><a href="/hidden-two">Каталог</a></div>
+<div style="DISPLAY:none!important"><div><p>Цена 999 рублей</p><a href="/hidden-three">Каталог</a></div></div>
+<div style="visibility: hidden"><p>Цена 999 рублей</p><a href="/hidden-four">Каталог</a></div>
+<a href="/visible" style="display:block; visibility:visible">Подробнее</a></body></html>
+HTML;
+        $responses = [
+            $url.'/robots.txt' => $this->page($url.'/robots.txt', '', 404),
+            $url => $this->page($url, $hidden),
+            $url.'/visible' => $this->page($url.'/visible', 'Публичное описание компании.'),
+            $url.'/sitemap.xml' => $this->page($url.'/sitemap.xml', '', 404),
+            $url.'/llms.txt' => $this->page($url.'/llms.txt', '', 404),
+        ];
+        $seen = [];
+        $result = $this->inspector($responses, $seen)->inspect($url);
+        self::assertNull(collect($result['criteria'])->firstWhere('id', 9)['score']);
+        self::assertContains($url.'/visible', $seen);
+        self::assertStringNotContainsString('/hidden-', implode(' ', $seen));
+        foreach ($result['pages'] as $page) {
+            self::assertStringNotContainsString('999 рублей', $page['text']);
+            self::assertStringNotContainsString('999 рублей', $page['commercial_text']);
+        }
+
+        $responses[$url] = $this->page($url, str_replace('</body>', '<p style="display:block">Цена 999 рублей</p></body>', $hidden));
+        $seen = [];
+        $result = $this->inspector($responses, $seen)->inspect($url);
+        self::assertSame(.5, collect($result['criteria'])->firstWhere('id', 9)['score']);
+    }
+
     public function test_robots_are_checked_before_html_and_disallowed_root_is_not_fetched(): void
     {
         $seen = [];

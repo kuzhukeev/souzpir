@@ -27,12 +27,10 @@ class CrawlerClient
         $response = Http::withHeaders(['User-Agent' => 'eyon-audit', 'Accept-Encoding' => 'identity'])
             ->withoutRedirecting()->connectTimeout(min(3, $timeoutSeconds))->timeout($timeoutSeconds)
             ->withOptions([
-                'proxy' => '', 'verify' => true, 'cookies' => false, 'decode_content' => false,
+                'proxy' => '', 'protocols' => ['http', 'https'], 'verify' => true, 'cookies' => false, 'decode_content' => false,
                 'curl' => [
                     CURLOPT_RESOLVE => [$target['host'].':'.$target['port'].':'.$address],
-                    CURLOPT_PROXY => '', CURLOPT_FOLLOWLOCATION => false,
                     CURLOPT_FRESH_CONNECT => true, CURLOPT_FORBID_REUSE => true,
-                    CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
                 ],
                 'on_headers' => static function (ResponseInterface $response): void {
                     if ((float) $response->getHeaderLine('Content-Length') > self::MAX_BYTES) {

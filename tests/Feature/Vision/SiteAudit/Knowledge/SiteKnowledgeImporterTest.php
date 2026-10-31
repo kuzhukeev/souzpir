@@ -95,6 +95,31 @@ final class SiteKnowledgeImporterTest extends TestCase
             : Http::response('', 302, ['Location' => $this->redirect]);
     }
 
+    public function test_hidden_site_content_and_links_never_enter_the_private_draft_or_crawl(): void
+    {
+        [$tenant] = $this->context();
+        $this->home = <<<'HTML'
+<html><body><h1>Публичное предложение</h1><p>Видимое описание продукции и условий компании.</p>
+<section hidden><p>HIDDEN_ONE</p><a href="/hidden-one">Ссылка</a></section>
+<section aria-hidden="true"><p>HIDDEN_TWO</p><a href="/hidden-two">Ссылка</a></section>
+<section style="display:none"><p>HIDDEN_THREE</p><a href="/hidden-three">Ссылка</a></section>
+<section style="visibility:hidden"><p>HIDDEN_FOUR</p><a href="/hidden-four">Ссылка</a></section>
+</body></html>
+HTML;
+        app(TenantContextRunner::class)->run($tenant, function () use ($tenant): void {
+            $result = app(SiteKnowledgeImporter::class)->import($tenant);
+            self::assertSame([], $result['errors']);
+            self::assertSame(1, $result['pages']);
+            $draft = app(SiteDraftStore::class)->read($tenant, 'https://brand.example/');
+            self::assertSame('draft', $draft['status']);
+            self::assertStringContainsString('Видимое описание', $draft['content_text']);
+            self::assertStringNotContainsString('HIDDEN_', $draft['content_text']);
+            self::assertSame(0, $result['confirmed']);
+        });
+        Http::assertSentCount(2);
+        Http::assertNotSent(fn ($request): bool => str_contains($request->url(), '/hidden-'));
+    }
+
     public function test_private_drafts_preserve_text_and_price_caveats_and_reuse_unchanged_versions(): void
     {
         [$tenant] = $this->context();

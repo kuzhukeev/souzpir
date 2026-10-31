@@ -254,6 +254,7 @@ class SiteInspector
         $dom->loadHTML('<?xml encoding="UTF-8">'.($html ?: '<html></html>'), LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING);
         libxml_clear_errors();
         libxml_use_internal_errors($old);
+        HiddenContent::remove($dom);
 
         return $dom;
     }

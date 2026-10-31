@@ -4,6 +4,8 @@ namespace Tests\Feature\Vision\SiteAudit;
 
 use App\Vision\SiteAudit\CrawlerClient;
 use App\Vision\SiteAudit\PublicAddressResolver;
+use GuzzleHttp\Handler\CurlFactory;
+use GuzzleHttp\Psr7\Request as PsrRequest;
 use GuzzleHttp\Psr7\Response;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
@@ -73,11 +75,20 @@ final class CrawlerClientTest extends TestCase
         self::assertEquals(48, $captured['timeout']);
         self::assertEquals(3, $captured['connect_timeout']);
         self::assertSame([$pin], $captured['curl'][CURLOPT_RESOLVE]);
-        self::assertSame('', $captured['curl'][CURLOPT_PROXY]);
-        self::assertFalse($captured['curl'][CURLOPT_FOLLOWLOCATION]);
+        self::assertArrayNotHasKey(CURLOPT_PROXY, $captured['curl']);
+        self::assertArrayNotHasKey(CURLOPT_FOLLOWLOCATION, $captured['curl']);
         self::assertTrue($captured['curl'][CURLOPT_FRESH_CONNECT]);
         self::assertTrue($captured['curl'][CURLOPT_FORBID_REUSE]);
-        self::assertSame(CURLPROTO_HTTP | CURLPROTO_HTTPS, $captured['curl'][CURLOPT_PROTOCOLS]);
+        self::assertArrayNotHasKey(CURLOPT_PROTOCOLS, $captured['curl']);
+        self::assertSame(['http', 'https'], $captured['protocols']);
+        // Exercise Guzzle's actual configuration/allow-list without executing the handle.
+        $factory = new CurlFactory(1);
+        $easy = $factory->create(new PsrRequest('GET', 'https://example.com/catalog'), $captured);
+        self::assertSame('', $easy->effectiveProxy ?? '');
+        self::assertSame([$pin], $easy->options['curl'][CURLOPT_RESOLVE]);
+        self::assertFalse($easy->options['allow_redirects']);
+        self::assertSame('', $easy->options['proxy']);
+        $factory->release($easy);
         self::assertSame('https://example.com/catalog', $result['url']);
         self::assertSame('<h1>Каталог</h1>', $result['body']);
         self::assertSame('noindex', $result['x_robots_tag']);
