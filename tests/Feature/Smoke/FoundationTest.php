@@ -32,7 +32,7 @@ it('renders the local Inertia preview with explicit anonymous props', function (
 it('blocks preview in production', function (): void {
     $this->app->instance('env', 'production');
     $this->get('/preview')->assertNotFound();
-    $this->get('/')->assertNotFound();
+    $this->get('/')->assertRedirect('/login');
 });
 
 it('migrates bootstrap tables on the isolated PostgreSQL test database', function (): void {
