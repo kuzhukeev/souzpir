@@ -57,3 +57,14 @@ test('axe accessibility checks', async ({ page }) => {
   const violations = await page.evaluate(async () => (await (window as unknown as { axe: { run: (root: Document, options: object) => Promise<{ violations: { id: string }[] }> } }).axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa'] } })).violations);
   expect(violations).toEqual([]);
 });
+
+
+test('deep link opens parent group and highlights the correct item', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(url + '?deep=1');
+  const seller = page.getByRole('button', { name: 'Продавец' });
+  await expect(seller).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.getByRole('link', { name: 'Диалоги' })).toHaveAttribute('aria-current', 'page');
+  await seller.click();
+  await expect(seller).toHaveAttribute('aria-expanded', 'false');
+});

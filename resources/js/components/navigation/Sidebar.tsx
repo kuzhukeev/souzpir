@@ -16,7 +16,7 @@ export function Sidebar({ compact = false, onNavigate }: { compact?: boolean; on
   const instance = useId();
   const candidates = [menu.home, ...menu.modules.flatMap((group) => group.children), ...menu.account];
   const current = candidates.filter((item) => pathname === item.path || (item.path !== '/dashboard' && pathname.startsWith(`${item.path}/`))).sort((a, b) => b.path.length - a.path.length)[0]?.id;
-  const [expanded, setExpanded] = useState<Record<string, boolean>>(() => Object.fromEntries(menu.modules.map((group) => [group.id, group.children.some((item) => pathname === item.path)])));
+  const [expanded, setExpanded] = useState<Record<string, { path: string; open: boolean }>>({});
   const title = (id: string, fallback: string) => props.translations?.[`navigation.${id}`] ?? fallback;
   const renderItem = (item: Item, child = false) => {
     if (item.permission && props.can?.[item.permission] !== true) return null;
@@ -38,10 +38,11 @@ export function Sidebar({ compact = false, onNavigate }: { compact?: boolean; on
       <p className={`pt-5 pb-2 text-sm font-medium text-(--color-ink-muted) ${compact ? 'sr-only' : 'px-3'}`}>{title('modules', 'Модули')}</p>
       {menu.modules.map((group) => {
         const Icon = icons[group.icon];
-        const isOpen = !!expanded[group.id];
+        const preference = expanded[group.id];
+        const isOpen = preference?.path === pathname ? preference.open : group.children.some((item) => item.id === current);
         const moduleEnabled = props.modules?.[group.id as 'seller' | 'vision'];
         return <div key={group.id}>
-          <button type="button" title={group.label} aria-expanded={isOpen} aria-controls={`nav-${instance}-${group.id}`} onClick={() => setExpanded((value) => ({ ...value, [group.id]: !value[group.id] }))} className={`flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-lg px-3 text-left text-sm text-(--color-link) hover:bg-(--color-surface-muted) ${focus} ${compact ? 'justify-center' : ''}`}><Icon size={20} aria-hidden="true" /><span className={compact ? 'sr-only' : 'flex-1'}>{title(group.id, group.label)}</span>{!compact && <Icons.ChevronDown size={16} className={isOpen ? 'rotate-180' : ''} aria-hidden="true" />}</button>
+          <button type="button" title={group.label} aria-expanded={isOpen} aria-controls={`nav-${instance}-${group.id}`} onClick={() => setExpanded((value) => ({ ...value, [group.id]: { path: pathname, open: !isOpen } }))} className={`flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-lg px-3 text-left text-sm text-(--color-link) hover:bg-(--color-surface-muted) ${focus} ${compact ? 'justify-center' : ''}`}><Icon size={20} aria-hidden="true" /><span className={compact ? 'sr-only' : 'flex-1'}>{title(group.id, group.label)}</span>{!compact && <Icons.ChevronDown size={16} className={isOpen ? 'rotate-180' : ''} aria-hidden="true" />}</button>
           {isOpen && <div id={`nav-${instance}-${group.id}`} className={compact ? '' : 'ml-3 border-l border-(--color-border) pl-2'}>{moduleEnabled === false ? <span className="block px-3 py-2 text-sm text-(--color-ink-muted)">{compact ? '' : 'Не подключён'}</span> : group.children.map((item) => renderItem(item, true))}</div>}
         </div>;
       })}
