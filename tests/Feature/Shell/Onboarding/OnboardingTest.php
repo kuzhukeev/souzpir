@@ -37,7 +37,6 @@ final class OnboardingTest extends TenancyTestCase
     public function test_draft_survives_reload_and_no_brand_is_created_until_completion(): void
     {
         [$owner, $org] = $this->emptyCabinet();
-        self::assertStringEndsWith('sp-e1-02', base_path());
         self::assertSame(env('DB_TEST_DATABASE'), DB::connection()->getDatabaseName());
         $this->actingAs($owner)->get('/start')->assertOk()->assertInertia(fn (Assert $page) => $page->component('Shell/Onboarding/Start')->where('initial.step', 1)->where('initial.completed', false)->where('brand', null));
         $this->post('/start/draft', $this->form(['step' => 2]))->assertRedirect()->assertSessionHasNoErrors();

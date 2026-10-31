@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-const url = 'http://127.0.0.1:5184/tests/Browser/E1-02/ui-fixture.html';
+const url = (process.env.ONBOARDING_FIXTURE_URL || 'http://127.0.0.1:5183/tests/Browser/E1-02/ui-fixture.html');
 test.use({ launchOptions: process.env.ONBOARDING_CHROMIUM_PATH ? { executablePath: process.env.ONBOARDING_CHROMIUM_PATH } : {} });
 for (const width of [1440, 1024, 390]) {
   test(`company form fits ${width}`, async ({ page }) => {
@@ -87,4 +87,19 @@ test('logo selection rejects unsupported SVG before upload', async ({ page }) =>
   await page.getByLabel('Логотип', { exact: true }).setInputFiles({ name: 'unsafe.svg', mimeType: 'image/svg+xml', buffer: Buffer.from('<svg/>') });
   await expect(page.getByRole('alert')).toContainText('SVG пока не поддерживается');
   expect(uploads).toBe(0);
+});
+
+
+test('completed or existing cabinet has a usable fallback', async ({ page }) => {
+  await page.goto(url + '?completed=1');
+  await expect(page.getByRole('link', { name: 'Перейти в кабинет' })).toHaveAttribute('href', '/auth/ready');
+  await page.goto(url + '?configured=1');
+  await expect(page.getByRole('link', { name: 'Перейти в кабинет' })).toHaveAttribute('href', '/auth/ready');
+});
+test('module links require real entitlement in addition to routes', async ({ page }) => {
+  await page.goto(url + '?completed=1&routes=1');
+  await expect(page.getByRole('link', { name: /Начать анкету|Открыть базу знаний/ })).toHaveCount(0);
+  await page.goto(url + '?completed=1&routes=1&enabled=1');
+  await expect(page.getByRole('link', { name: /Начать анкету/ })).toHaveAttribute('href', '/vision/quiz/1');
+  await expect(page.getByRole('link', { name: /Открыть базу знаний/ })).toHaveAttribute('href', '/seller/knowledge');
 });
