@@ -9,10 +9,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
+use Tests\Support\IsolatedAuthDatabase;
 
 require __DIR__.'/../../../../../vendor/autoload.php';
 $app = require __DIR__.'/../../../../../bootstrap/app.php';
 $app->make(ConsoleKernel::class)->bootstrap();
+IsolatedAuthDatabase::assert();
 [$script, $mode, $cookie, $barrier] = $argv;
 if (in_array($mode, ['login-remember-paused', 'logout-paused'], true)) {
     User::retrieved(function () use ($barrier) {
@@ -95,6 +97,7 @@ if ($mode === 'sensitive') {
     'slow' => ['GET', '/_session-race', []],
     'sensitive' => ['GET', '/_session-sensitive', []],
     'logout' => ['POST', '/logout', []],
+    'logout-remember' => ['POST', '/logout', []],
     'view' => ['GET', '/auth/ready', []],
     'remember' => ['GET', '/auth/ready', []],
 };
@@ -104,7 +107,7 @@ if (in_array($mode, ['view', 'remember'], true)) {
     $request->headers->set('X-Inertia-Version', app(HandleInertiaRequests::class)->version($request) ?? '');
 }
 if ($cookie !== '-') {
-    $name = $mode === 'remember' ? Auth::guard()->getRecallerName() : config('session.cookie');
+    $name = in_array($mode, ['remember', 'logout-remember'], true) ? Auth::guard()->getRecallerName() : config('session.cookie');
     $request->cookies->set($name, base64_decode($cookie, true));
 }
 $kernel = $app->make(HttpKernel::class);

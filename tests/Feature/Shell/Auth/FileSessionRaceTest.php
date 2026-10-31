@@ -10,11 +10,17 @@ use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Str;
+use Tests\Support\IsolatedAuthDatabase;
 use Tests\TestCase;
 
 final class FileSessionRaceTest extends TestCase
 {
     use DatabaseMigrations;
+
+    protected function beforeRefreshingDatabase(): void
+    {
+        IsolatedAuthDatabase::assert();
+    }
 
     public function test_logout_remains_effective_after_parallel_request_restores_old_file(): void
     {
@@ -139,6 +145,20 @@ final class FileSessionRaceTest extends TestCase
                 unlink($base.'.logout-started');
             }
         }
+    }
+
+    public function test_logout_as_first_request_with_only_a_remember_cookie_revokes_it(): void
+    {
+        [$org] = $this->createActor();
+        $base = base_path('.local/tmp/session-remember-logout-'.Str::random(16));
+        $login = $this->finish($this->start('login-remember', '-', $base, $org->id));
+        self::assertIsString($login['remember']);
+        $logout = $this->finish($this->start('logout-remember', $login['remember'], $base, $org->id));
+        self::assertSame(302, $logout['status']);
+        self::assertStringEndsWith('/login', $logout['location']);
+        $reuse = $this->finish($this->start('remember', $login['remember'], $base, $org->id));
+        self::assertSame(302, $reuse['status']);
+        self::assertStringEndsWith('/login', $reuse['location']);
     }
 
     public function test_logout_does_not_revoke_another_users_session(): void
