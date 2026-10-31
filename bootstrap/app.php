@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\EnsureLocalPreview;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Shell\Auth\EnforceAuthVersion;
 use App\Tenancy\ResolveTenant;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -18,7 +19,7 @@ $app = Application::configure(basePath: $basePath)
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->redirectGuestsTo('/login');
         $middleware->prependToPriorityList(SubstituteBindings::class, ResolveTenant::class);
-        $middleware->web(append: [AuthenticateSession::class, HandleInertiaRequests::class]);
+        $middleware->web(append: [AuthenticateSession::class, EnforceAuthVersion::class, HandleInertiaRequests::class]);
         $middleware->alias(['preview.local' => EnsureLocalPreview::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

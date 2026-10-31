@@ -25,6 +25,7 @@ jobs:
       APP_ENV: testing
       APP_INSTANCE: ci
       APP_URL: http://127.0.0.1:8101
+      CABINET_ORGANIZATION_ID: 01J00000000000000000000000
       APP_PREVIEW_DATABASE: souzpir_ci_preview
       DB_CONNECTION: pgsql
       DB_HOST: 127.0.0.1

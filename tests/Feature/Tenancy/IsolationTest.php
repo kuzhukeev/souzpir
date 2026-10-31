@@ -54,6 +54,17 @@ final class IsolationTest extends TenancyTestCase
         $this->getJson('/tenancy-test/page')->assertUnauthorized();
     }
 
+    public function test_global_auth_version_rejects_revoked_session_on_tenant_routes(): void
+    {
+        [$owner, , $brand] = $this->cabinet();
+        $owner->increment('auth_version');
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id, 'auth.version' => $owner->auth_version - 1]);
+        $this->getJson('/tenancy-test/page')->assertUnauthorized();
+        $this->assertGuest();
+        $this->flushSession()->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $this->getJson('/tenancy-test/page')->assertOk();
+    }
+
     /** Integration prerequisite: ResolveTenant must precede SubstituteBindings in root bootstrap. */
     public function test_implicit_binding_resolves_only_the_active_brand_after_tenant_middleware(): void
     {

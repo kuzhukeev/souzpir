@@ -8,6 +8,7 @@ use App\Models\Organization;
 use App\Models\User;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
@@ -21,6 +22,15 @@ use Tests\TestCase;
 abstract class TenancyTestCase extends TestCase
 {
     use RefreshDatabase;
+
+    /** Seed the same authorization version that a successful real login stores. */
+    public function actingAs(Authenticatable $user, $guard = null)
+    {
+        $user->refresh();
+        parent::actingAs($user, $guard);
+
+        return $this->withSession(['auth.version' => $user->auth_version]);
+    }
 
     protected function setUp(): void
     {

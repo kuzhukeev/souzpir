@@ -5,6 +5,67 @@ declare module 'ziggy-js' {
     "preview.foundation": [],
     "brand.switch": [],
     "notifications.settings.update": [],
+    "login": [],
+    "login.store": [],
+    "register": [],
+    "register.store": [],
+    "password.request": [],
+    "password.email": [],
+    "password.reset": [
+        {
+            "name": "token",
+            "required": true
+        }
+    ],
+    "password.store": [],
+    "mfa.challenge": [],
+    "mfa.challenge.store": [],
+    "invitation.show": [
+        {
+            "name": "token",
+            "required": true
+        }
+    ],
+    "invitation.register": [
+        {
+            "name": "token",
+            "required": true
+        }
+    ],
+    "invitation.accept": [
+        {
+            "name": "token",
+            "required": true
+        }
+    ],
+    "logout": [],
+    "verification.notice": [],
+    "verification.verify": [
+        {
+            "name": "id",
+            "required": true
+        },
+        {
+            "name": "hash",
+            "required": true
+        }
+    ],
+    "verification.confirm": [
+        {
+            "name": "id",
+            "required": true
+        },
+        {
+            "name": "hash",
+            "required": true
+        }
+    ],
+    "verification.send": [],
+    "auth.ready": [],
+    "mfa.start": [],
+    "mfa.setup": [],
+    "mfa.confirm": [],
+    "mfa.disable": [],
     "dev.design-system": [],
     "preview.login": [],
     "preview.attention": []
