@@ -110,6 +110,7 @@ final class SecretBoundary
 
     private function isSensitiveKey(string $key): bool
     {
+        $key = preg_replace('/\p{Cf}+/u', '', $key) ?? '';
         $key = mb_strtolower(preg_replace('/[^\p{L}\p{N}]+/u', '_', $key) ?? '');
 
         return preg_match('/(?:^|_)(?:password|passwd|passphrase|api_?key|access_?token|refresh_?token|client_?secret|secret|private_?key|authorization|пароль|секрет)(?:_|$)/u', $key) === 1;
