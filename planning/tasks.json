@@ -1086,58 +1086,6 @@
       "description": "Прочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: S-0.6a–d: заполнение профиля единственной текущей организации → бренд → три темы → модули → первый шаг. Не создавать произвольные дополнительные организации; повторный onboarding идемпотентен.\n\nЗависимости (нужен done после merge): SP-E0-03, SP-E0-04, SP-E1-01, SP-F-03.\nОбласть записи: app/Shell/Onboarding/, app/Tenancy/, config/features/E1-02.php, database/factories/Shell/Onboarding/, database/migrations/E1-02/, database/seeders/Shell/Onboarding/, docs/modules/E1-02.md, lang/ru/Shell/Onboarding/, resources/js/features/Shell/Onboarding/, resources/js/pages/Shell/Onboarding/, resources/js/types/Shell/Onboarding/, routes/features/E1-02.php, tests/Browser/E1-02/, tests/Feature/Shell/Onboarding/, tests/Unit/Shell/Onboarding/, docs/results/SP-E1-02.md.\nЭкраны: S-0.6.\nИсточники: E1-02.\n- E1-02: ТЗ S-0.6; макеты 7–10; R-S-01\n\nПриёмка:\n- e2e №1\n\nДополнительно:  Реализовать защищённый organization-only tenant mode для первичного создания бренда; обычные брендовые маршруты остаются fail-closed. Проверить membership/auth и запрет доступа к brand-owned данным без бренда.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E1-02.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n"
     },
     {
-      "taskKey": "SP-E1-04",
-      "title": "SP-E1-04 · Настройки организации и список брендов",
-      "goal": "S-2.1 название и настройки текущей организации, передача владения с проверкой прав; S-2.2 бренды создать/архивировать; S-2.4 модули включить/выключить по настоящим plan limits. Удаление организации исключено: нет кнопки, API, job, таймера или cascade purge.",
-      "dependsOn": [
-        "SP-E0-03",
-        "SP-E0-04",
-        "SP-E0-06",
-        "SP-F-03"
-      ],
-      "scope": [
-        "app/Shell/Organizations/",
-        "config/features/E1-04.php",
-        "database/factories/Shell/Organizations/",
-        "database/migrations/E1-04/",
-        "database/seeders/Shell/Organizations/",
-        "docs/modules/E1-04.md",
-        "lang/ru/Shell/Organizations/",
-        "resources/js/features/Shell/Organizations/",
-        "resources/js/pages/Shell/Organizations/",
-        "resources/js/types/Shell/Organizations/",
-        "routes/features/E1-04.php",
-        "tests/Browser/E1-04/",
-        "tests/Feature/Shell/Organizations/",
-        "tests/Unit/Shell/Organizations/",
-        "docs/results/SP-E1-04.md"
-      ],
-      "exclusiveResources": [],
-      "acceptance": [
-        "Передача владельца атомарна; policy/brand CRUD/module tests; UI/API удаления организации отсутствуют."
-      ],
-      "sourceIds": [
-        "E1-04"
-      ],
-      "screenIds": [
-        "S-2.1",
-        "S-2.2",
-        "S-2.4"
-      ],
-      "notes": "",
-      "sourceRefs": [
-        "docs/preparation/decisions.md",
-        "docs/contracts/",
-        "docs/sources/10_backlog.md",
-        "docs/sources/02_screens_matrix.md",
-        "docs/sources/02c_discrepancies.md",
-        "docs/sources/04c_settings_paths.md"
-      ],
-      "promptPath": "docs/tasks/SP-E1-04.md",
-      "wave": 6,
-      "description": "Прочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: S-2.1 название и настройки текущей организации, передача владения с проверкой прав; S-2.2 бренды создать/архивировать; S-2.4 модули включить/выключить по настоящим plan limits. Удаление организации исключено: нет кнопки, API, job, таймера или cascade purge.\n\nЗависимости (нужен done после merge): SP-E0-03, SP-E0-04, SP-E0-06, SP-F-03.\nОбласть записи: app/Shell/Organizations/, config/features/E1-04.php, database/factories/Shell/Organizations/, database/migrations/E1-04/, database/seeders/Shell/Organizations/, docs/modules/E1-04.md, lang/ru/Shell/Organizations/, resources/js/features/Shell/Organizations/, resources/js/pages/Shell/Organizations/, resources/js/types/Shell/Organizations/, routes/features/E1-04.php, tests/Browser/E1-04/, tests/Feature/Shell/Organizations/, tests/Unit/Shell/Organizations/, docs/results/SP-E1-04.md.\nЭкраны: S-2.1, S-2.2, S-2.4.\nИсточники: E1-04.\n- E1-04: ТЗ S-2.1, S-2.2, S-2.4; макеты 15, 16, 18; R-S-11\n\nПриёмка:\n- Передача владельца атомарна; policy/brand CRUD/module tests; UI/API удаления организации отсутствуют.\n\nДополнительно: Сохранять поведение донора; изменения только по принятым решениям.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E1-04.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n"
-    },
-    {
       "taskKey": "SP-E1-06",
       "title": "SP-E1-06 · Команда, роли и приглашения",
       "goal": "S-3.1 список (изменить роль / отключить / повторить / отозвать), S-3.2 карточка пользователя, S-3.3 матрица ролей и доступ к брендам/модулям (A/C — чтение матрицы), S-3.4 модалка приглашения, принятие S-0.5",
@@ -1665,44 +1613,47 @@
       "description": "Прочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: V-8.1–V-8.5 (группы — по коду до Q-03), V-9.1–V-9.3 действия\n\nЗависимости (нужен done после merge): SP-E0-03, SP-E0-04, SP-E8-01, SP-E8-01B, SP-F-03.\nОбласть записи: app/Vision/Site/, config/features/E8-06.php, database/factories/Vision/Site/, database/migrations/E8-06/, database/seeders/Vision/Site/, docs/modules/E8-06.md, lang/ru/Vision/Site/, resources/js/features/Vision/Site/, resources/js/pages/Vision/Site/, resources/js/types/Vision/Site/, routes/features/E8-06.php, tests/Browser/E8-06/, tests/Feature/Vision/Site/, tests/Unit/Vision/Site/, docs/results/SP-E8-06.md.\nЭкраны: V-8.1, V-8.2, V-8.3, V-8.4, V-8.5, V-9.1, V-9.2, V-9.3.\nИсточники: E8-06.\n- E8-06: ТЗ V-8.1–V-8.5, V-9.1–V-9.3; макеты 115–122; R-V-11, R-V-13, R-V-16; Q-03\n\nПриёмка:\n- фикстуры HTML; действия CRUD\n\nДополнительно: Сохранять поведение донора; изменения только по принятым решениям.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E8-06.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n"
     },
     {
-      "taskKey": "SP-E1-05",
-      "title": "SP-E1-05 · Карточка бренда",
-      "goal": "S-2.3 вкладки Общее/Тема/Домены/Модули; верификация домена (файл/DNS); предпросмотр темы как сайдбар+шапка",
+      "taskKey": "SP-E1-04",
+      "title": "SP-E1-04 · Настройки организации и список брендов",
+      "goal": "S-2.1 название и настройки текущей организации, передача владения с проверкой прав; S-2.2 бренды создать/архивировать; S-2.4 модули включить/выключить по настоящим plan limits. Удаление организации исключено: нет кнопки, API, job, таймера или cascade purge.",
       "dependsOn": [
         "SP-E0-03",
         "SP-E0-04",
-        "SP-E1-04",
+        "SP-E0-06",
+        "SP-E1-02",
         "SP-F-03"
       ],
       "scope": [
-        "app/Models/Brand.php",
-        "app/Shell/Brands/",
-        "config/features/E1-05.php",
-        "database/factories/Shell/Brands/",
-        "database/migrations/E1-05/",
-        "database/seeders/Shell/Brands/",
-        "docs/modules/E1-05.md",
-        "lang/ru/Shell/Brands/",
-        "resources/js/features/Shell/Brands/",
-        "resources/js/pages/Shell/Brands/",
-        "resources/js/types/Shell/Brands/",
-        "routes/features/E1-05.php",
-        "tests/Browser/E1-05/",
-        "tests/Feature/Shell/Brands/",
-        "tests/Unit/Shell/Brands/",
-        "docs/results/SP-E1-05.md"
+        "app/Shell/Organizations/",
+        "app/Tenancy/",
+        "config/features/E1-04.php",
+        "database/factories/Shell/Organizations/",
+        "database/migrations/E1-04/",
+        "database/seeders/Shell/Organizations/",
+        "docs/modules/E1-04.md",
+        "lang/ru/Shell/Organizations/",
+        "resources/js/features/Shell/Organizations/",
+        "resources/js/pages/Shell/Organizations/",
+        "resources/js/types/Shell/Organizations/",
+        "routes/features/E1-04.php",
+        "tests/Browser/E1-04/",
+        "tests/Feature/Shell/Organizations/",
+        "tests/Unit/Shell/Organizations/",
+        "docs/results/SP-E1-04.md"
       ],
       "exclusiveResources": [],
       "acceptance": [
-        "feature с фейком HTTP/DNS; предпросмотр темы — сайдбар"
+        "Передача владельца атомарна; policy/brand CRUD/module tests; UI/API удаления организации отсутствуют."
       ],
       "sourceIds": [
-        "E1-05"
+        "E1-04"
       ],
       "screenIds": [
-        "S-2.3"
+        "S-2.1",
+        "S-2.2",
+        "S-2.4"
       ],
-      "notes": "",
+      "notes": " Выбор онбординга хранится в brands.settings.modules как предпочтение. Реализовать фактическое состояние с учётом тарифа, серверное закрытие маршрутов выключенных модулей и shared props из этого проверенного источника; не выдавать предпочтение за подключённый модуль до проверки. Проверить 404, лимиты и сохранение настройки.",
       "sourceRefs": [
         "docs/preparation/decisions.md",
         "docs/contracts/",
@@ -1711,9 +1662,9 @@
         "docs/sources/02c_discrepancies.md",
         "docs/sources/04c_settings_paths.md"
       ],
-      "promptPath": "docs/tasks/SP-E1-05.md",
+      "promptPath": "docs/tasks/SP-E1-04.md",
       "wave": 7,
-      "description": "Прочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: S-2.3 вкладки Общее/Тема/Домены/Модули; верификация домена (файл/DNS); предпросмотр темы как сайдбар+шапка\n\nЗависимости (нужен done после merge): SP-E0-03, SP-E0-04, SP-E1-04, SP-F-03.\nОбласть записи: app/Models/Brand.php, app/Shell/Brands/, config/features/E1-05.php, database/factories/Shell/Brands/, database/migrations/E1-05/, database/seeders/Shell/Brands/, docs/modules/E1-05.md, lang/ru/Shell/Brands/, resources/js/features/Shell/Brands/, resources/js/pages/Shell/Brands/, resources/js/types/Shell/Brands/, routes/features/E1-05.php, tests/Browser/E1-05/, tests/Feature/Shell/Brands/, tests/Unit/Shell/Brands/, docs/results/SP-E1-05.md.\nЭкраны: S-2.3.\nИсточники: E1-05.\n- E1-05: ТЗ S-2.3 стр. 300–310; макет 17; R-S-02, R-S-10, R-S-12\n\nПриёмка:\n- feature с фейком HTTP/DNS; предпросмотр темы — сайдбар\n\nДополнительно: Сохранять поведение донора; изменения только по принятым решениям.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E1-05.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n"
+      "description": "Прочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: S-2.1 название и настройки текущей организации, передача владения с проверкой прав; S-2.2 бренды создать/архивировать; S-2.4 модули включить/выключить по настоящим plan limits. Удаление организации исключено: нет кнопки, API, job, таймера или cascade purge.\n\nЗависимости (нужен done после merge): SP-E0-03, SP-E0-04, SP-E0-06, SP-E1-02, SP-F-03.\nОбласть записи: app/Shell/Organizations/, app/Tenancy/, config/features/E1-04.php, database/factories/Shell/Organizations/, database/migrations/E1-04/, database/seeders/Shell/Organizations/, docs/modules/E1-04.md, lang/ru/Shell/Organizations/, resources/js/features/Shell/Organizations/, resources/js/pages/Shell/Organizations/, resources/js/types/Shell/Organizations/, routes/features/E1-04.php, tests/Browser/E1-04/, tests/Feature/Shell/Organizations/, tests/Unit/Shell/Organizations/, docs/results/SP-E1-04.md.\nЭкраны: S-2.1, S-2.2, S-2.4.\nИсточники: E1-04.\n- E1-04: ТЗ S-2.1, S-2.2, S-2.4; макеты 15, 16, 18; R-S-11\n\nПриёмка:\n- Передача владельца атомарна; policy/brand CRUD/module tests; UI/API удаления организации отсутствуют.\n\nДополнительно:  Выбор онбординга хранится в brands.settings.modules как предпочтение. Реализовать фактическое состояние с учётом тарифа, серверное закрытие маршрутов выключенных модулей и shared props из этого проверенного источника; не выдавать предпочтение за подключённый модуль до проверки. Проверить 404, лимиты и сохранение настройки.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E1-04.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n"
     },
     {
       "taskKey": "SP-E1-07",
@@ -1964,6 +1915,57 @@
       "description": "Прочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: V-2.1 предложенные, V-2.2 свой вопрос, V-2.3 утверждение (модели — только `active`), V-2.4 активный набор, V-2.5 история наборов (размер по лимиту, хэш)\n\nЗависимости (нужен done после merge): SP-E0-03, SP-E0-04, SP-E8-02, SP-F-03.\nОбласть записи: app/Vision/Questions/, config/features/E8-03.php, database/factories/Vision/Questions/, database/migrations/E8-03/, database/seeders/Vision/Questions/, docs/modules/E8-03.md, lang/ru/Vision/Questions/, resources/js/features/Vision/Questions/, resources/js/pages/Vision/Questions/, resources/js/types/Vision/Questions/, routes/features/E8-03.php, tests/Browser/E8-03/, tests/Feature/Vision/Questions/, tests/Unit/Vision/Questions/, docs/results/SP-E8-03.md.\nЭкраны: V-2.1, V-2.2, V-2.3, V-2.4, V-2.5.\nИсточники: E8-03.\n- E8-03: ТЗ V-2.1–V-2.5; макеты 90–94; R-V-05, R-V-06\n\nПриёмка:\n- размер 12/20/30 допустим\n\nДополнительно: Сохранять поведение донора; изменения только по принятым решениям.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E8-03.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n"
     },
     {
+      "taskKey": "SP-E1-05",
+      "title": "SP-E1-05 · Карточка бренда",
+      "goal": "S-2.3 вкладки Общее/Тема/Домены/Модули; верификация домена (файл/DNS); предпросмотр темы как сайдбар+шапка",
+      "dependsOn": [
+        "SP-E0-03",
+        "SP-E0-04",
+        "SP-E1-04",
+        "SP-F-03"
+      ],
+      "scope": [
+        "app/Models/Brand.php",
+        "app/Shell/Brands/",
+        "config/features/E1-05.php",
+        "database/factories/Shell/Brands/",
+        "database/migrations/E1-05/",
+        "database/seeders/Shell/Brands/",
+        "docs/modules/E1-05.md",
+        "lang/ru/Shell/Brands/",
+        "resources/js/features/Shell/Brands/",
+        "resources/js/pages/Shell/Brands/",
+        "resources/js/types/Shell/Brands/",
+        "routes/features/E1-05.php",
+        "tests/Browser/E1-05/",
+        "tests/Feature/Shell/Brands/",
+        "tests/Unit/Shell/Brands/",
+        "docs/results/SP-E1-05.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "feature с фейком HTTP/DNS; предпросмотр темы — сайдбар"
+      ],
+      "sourceIds": [
+        "E1-05"
+      ],
+      "screenIds": [
+        "S-2.3"
+      ],
+      "notes": "",
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/contracts/",
+        "docs/sources/10_backlog.md",
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02c_discrepancies.md",
+        "docs/sources/04c_settings_paths.md"
+      ],
+      "promptPath": "docs/tasks/SP-E1-05.md",
+      "wave": 8,
+      "description": "Прочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: S-2.3 вкладки Общее/Тема/Домены/Модули; верификация домена (файл/DNS); предпросмотр темы как сайдбар+шапка\n\nЗависимости (нужен done после merge): SP-E0-03, SP-E0-04, SP-E1-04, SP-F-03.\nОбласть записи: app/Models/Brand.php, app/Shell/Brands/, config/features/E1-05.php, database/factories/Shell/Brands/, database/migrations/E1-05/, database/seeders/Shell/Brands/, docs/modules/E1-05.md, lang/ru/Shell/Brands/, resources/js/features/Shell/Brands/, resources/js/pages/Shell/Brands/, resources/js/types/Shell/Brands/, routes/features/E1-05.php, tests/Browser/E1-05/, tests/Feature/Shell/Brands/, tests/Unit/Shell/Brands/, docs/results/SP-E1-05.md.\nЭкраны: S-2.3.\nИсточники: E1-05.\n- E1-05: ТЗ S-2.3 стр. 300–310; макет 17; R-S-02, R-S-10, R-S-12\n\nПриёмка:\n- feature с фейком HTTP/DNS; предпросмотр темы — сайдбар\n\nДополнительно: Сохранять поведение донора; изменения только по принятым решениям.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E1-05.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n"
+    },
+    {
       "taskKey": "SP-E3-05",
       "title": "SP-E3-05 · Напоминания",
       "goal": "`Jobs\\SendFollowups` per бренд: поведение прототипа по умолчанию, два интервала/окно/тексты как настройка",
@@ -2103,62 +2105,6 @@
       "promptPath": "docs/tasks/SP-E5-01.md",
       "wave": 8,
       "description": "Прочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: D-9.1 карточки каналов (статус, режим Автономно/Подсказки/Выключен per канал — B, диалогов за 7 дней, «Остановить всех ботов» с подтверждением), D-9.5 Telegram per бренд: перенос eyon `TelegramInbound/Adapter/Delivery`, `channel_accounts`, вебхук с секретом, дедупликация `update_id`, чат менеджеров\n\nЗависимости (нужен done после merge): SP-E0-04, SP-E3-03B, SP-F-03.\nОбласть записи: app/Seller/Channels/Core/, app/Seller/Channels/Telegram/, config/features/E5-01.php, database/factories/Seller/Channels/Telegram/, database/migrations/E5-01/, database/seeders/Seller/Channels/Telegram/, docs/modules/E5-01.md, lang/ru/Seller/Channels/Telegram/, resources/js/features/Seller/Channels/Telegram/, resources/js/pages/Seller/Channels/Telegram/, resources/js/types/Seller/Channels/Telegram/, routes/features/E5-01.php, tests/Browser/E5-01/, tests/Feature/Seller/Channels/Telegram/, tests/Unit/Seller/Channels/Telegram/, docs/results/SP-E5-01.md.\nЭкраны: D-9.1, D-9.5.\nИсточники: E5-01.\n- E5-01: ТЗ D-9.1, D-9.5; макеты 67, 73; R-D-28\n\nПриёмка:\n- feature webhook с фейком API; e2e №3\n\nДополнительно: Сохранять поведение донора; изменения только по принятым решениям.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E5-01.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n"
-    },
-    {
-      "taskKey": "SP-E5-02",
-      "title": "SP-E5-02 · Виджет сайта",
-      "goal": "Перенос eyon загрузчика `/widget.js?key&v`, `widget_settings`, установка D-9.2a–c (домены → сниппет с ключом → проверка обнаружения), D-9.3 внешний вид, D-9.4 поведение (триггеры), лёгкая сборка виджета (TS без React)",
-      "dependsOn": [
-        "SP-E0-03",
-        "SP-E0-04",
-        "SP-E1-05",
-        "SP-E3-03B",
-        "SP-E3-04",
-        "SP-F-03"
-      ],
-      "scope": [
-        "app/Seller/Channels/Widget/",
-        "config/features/E5-02.php",
-        "database/factories/Seller/Channels/Widget/",
-        "database/migrations/E5-02/",
-        "database/seeders/Seller/Channels/Widget/",
-        "docs/modules/E5-02.md",
-        "lang/ru/Seller/Channels/Widget/",
-        "resources/js/features/Seller/Channels/Widget/",
-        "resources/js/pages/Seller/Channels/Widget/",
-        "resources/js/types/Seller/Channels/Widget/",
-        "resources/widget/",
-        "routes/features/E5-02.php",
-        "tests/Browser/E5-02/",
-        "tests/Feature/Seller/Channels/Widget/",
-        "tests/Unit/Seller/Channels/Widget/",
-        "vite.widget.config.ts",
-        "docs/results/SP-E5-02.md"
-      ],
-      "exclusiveResources": [],
-      "acceptance": [
-        "тест загрузчика; e2e №7; вес ≤ 20 КБ gz"
-      ],
-      "sourceIds": [
-        "E5-02"
-      ],
-      "screenIds": [
-        "D-9.2",
-        "D-9.3",
-        "D-9.4"
-      ],
-      "notes": "",
-      "sourceRefs": [
-        "docs/preparation/decisions.md",
-        "docs/contracts/",
-        "docs/sources/10_backlog.md",
-        "docs/sources/02_screens_matrix.md",
-        "docs/sources/02c_discrepancies.md",
-        "docs/sources/04c_settings_paths.md"
-      ],
-      "promptPath": "docs/tasks/SP-E5-02.md",
-      "wave": 8,
-      "description": "Прочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: Перенос eyon загрузчика `/widget.js?key&v`, `widget_settings`, установка D-9.2a–c (домены → сниппет с ключом → проверка обнаружения), D-9.3 внешний вид, D-9.4 поведение (триггеры), лёгкая сборка виджета (TS без React)\n\nЗависимости (нужен done после merge): SP-E0-03, SP-E0-04, SP-E1-05, SP-E3-03B, SP-E3-04, SP-F-03.\nОбласть записи: app/Seller/Channels/Widget/, config/features/E5-02.php, database/factories/Seller/Channels/Widget/, database/migrations/E5-02/, database/seeders/Seller/Channels/Widget/, docs/modules/E5-02.md, lang/ru/Seller/Channels/Widget/, resources/js/features/Seller/Channels/Widget/, resources/js/pages/Seller/Channels/Widget/, resources/js/types/Seller/Channels/Widget/, resources/widget/, routes/features/E5-02.php, tests/Browser/E5-02/, tests/Feature/Seller/Channels/Widget/, tests/Unit/Seller/Channels/Widget/, vite.widget.config.ts, docs/results/SP-E5-02.md.\nЭкраны: D-9.2, D-9.3, D-9.4.\nИсточники: E5-02.\n- E5-02: ТЗ D-9.2–D-9.4; макеты 68–72; R-D-27\n\nПриёмка:\n- тест загрузчика; e2e №7; вес ≤ 20 КБ gz\n\nДополнительно: Сохранять поведение донора; изменения только по принятым решениям.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E5-02.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n"
     },
     {
       "taskKey": "SP-E5-03",
@@ -2670,6 +2616,62 @@
       "promptPath": "docs/tasks/SP-E4-01.md",
       "wave": 9,
       "description": "Прочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: D-4.1 обзор (счётчики по типам, статус черновика), D-4.2 входящие (неизвестные вопросы из `seller_tasks.type=unknown_question`, пометки «Неверный факт», предложения из докладов → «Добавить факт/условие/образец»), D-4.12 черновик/публикация/история/откат\n\nЗависимости (нужен done после merge): SP-E0-04, SP-E3-04, SP-E3-06, SP-F-03, SP-T-02.\nОбласть записи: app/Seller/Knowledge/Releases/, config/features/E4-01.php, database/factories/Seller/Knowledge/Releases/, database/migrations/E4-01/, database/seeders/Seller/Knowledge/Releases/, docs/modules/E4-01.md, lang/ru/Seller/Knowledge/Releases/, resources/js/features/Seller/Knowledge/Releases/, resources/js/pages/Seller/Knowledge/Releases/, resources/js/types/Seller/Knowledge/Releases/, routes/features/E4-01.php, tests/Browser/E4-01/, tests/Feature/Seller/Knowledge/Releases/, tests/Unit/Seller/Knowledge/Releases/, docs/results/SP-E4-01.md.\nЭкраны: D-4.1, D-4.2, D-4.12.\nИсточники: E4-01.\n- E4-01: ТЗ D-4.1, D-4.2, D-4.12; макеты 49, 50, 60\n\nПриёмка:\n- publish/rollback feature; 409 при конфликте\n\nДополнительно: Входящие D-4.2 читают реальные seller_tasks, message_reviews и supervisor evaluations; эти data/runtime prerequisites должны быть merged, а не имитированы фикстурным API.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E4-01.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n"
+    },
+    {
+      "taskKey": "SP-E5-02",
+      "title": "SP-E5-02 · Виджет сайта",
+      "goal": "Перенос eyon загрузчика `/widget.js?key&v`, `widget_settings`, установка D-9.2a–c (домены → сниппет с ключом → проверка обнаружения), D-9.3 внешний вид, D-9.4 поведение (триггеры), лёгкая сборка виджета (TS без React)",
+      "dependsOn": [
+        "SP-E0-03",
+        "SP-E0-04",
+        "SP-E1-05",
+        "SP-E3-03B",
+        "SP-E3-04",
+        "SP-F-03"
+      ],
+      "scope": [
+        "app/Seller/Channels/Widget/",
+        "config/features/E5-02.php",
+        "database/factories/Seller/Channels/Widget/",
+        "database/migrations/E5-02/",
+        "database/seeders/Seller/Channels/Widget/",
+        "docs/modules/E5-02.md",
+        "lang/ru/Seller/Channels/Widget/",
+        "resources/js/features/Seller/Channels/Widget/",
+        "resources/js/pages/Seller/Channels/Widget/",
+        "resources/js/types/Seller/Channels/Widget/",
+        "resources/widget/",
+        "routes/features/E5-02.php",
+        "tests/Browser/E5-02/",
+        "tests/Feature/Seller/Channels/Widget/",
+        "tests/Unit/Seller/Channels/Widget/",
+        "vite.widget.config.ts",
+        "docs/results/SP-E5-02.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "тест загрузчика; e2e №7; вес ≤ 20 КБ gz"
+      ],
+      "sourceIds": [
+        "E5-02"
+      ],
+      "screenIds": [
+        "D-9.2",
+        "D-9.3",
+        "D-9.4"
+      ],
+      "notes": "",
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/contracts/",
+        "docs/sources/10_backlog.md",
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02c_discrepancies.md",
+        "docs/sources/04c_settings_paths.md"
+      ],
+      "promptPath": "docs/tasks/SP-E5-02.md",
+      "wave": 9,
+      "description": "Прочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: Перенос eyon загрузчика `/widget.js?key&v`, `widget_settings`, установка D-9.2a–c (домены → сниппет с ключом → проверка обнаружения), D-9.3 внешний вид, D-9.4 поведение (триггеры), лёгкая сборка виджета (TS без React)\n\nЗависимости (нужен done после merge): SP-E0-03, SP-E0-04, SP-E1-05, SP-E3-03B, SP-E3-04, SP-F-03.\nОбласть записи: app/Seller/Channels/Widget/, config/features/E5-02.php, database/factories/Seller/Channels/Widget/, database/migrations/E5-02/, database/seeders/Seller/Channels/Widget/, docs/modules/E5-02.md, lang/ru/Seller/Channels/Widget/, resources/js/features/Seller/Channels/Widget/, resources/js/pages/Seller/Channels/Widget/, resources/js/types/Seller/Channels/Widget/, resources/widget/, routes/features/E5-02.php, tests/Browser/E5-02/, tests/Feature/Seller/Channels/Widget/, tests/Unit/Seller/Channels/Widget/, vite.widget.config.ts, docs/results/SP-E5-02.md.\nЭкраны: D-9.2, D-9.3, D-9.4.\nИсточники: E5-02.\n- E5-02: ТЗ D-9.2–D-9.4; макеты 68–72; R-D-27\n\nПриёмка:\n- тест загрузчика; e2e №7; вес ≤ 20 КБ gz\n\nДополнительно: Сохранять поведение донора; изменения только по принятым решениям.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E5-02.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n"
     },
     {
       "taskKey": "SP-E5-04B",
