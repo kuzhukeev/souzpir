@@ -16,7 +16,7 @@ use LogicException;
 /** Transactional session, tenant, entitlement and ability boundary for private quiz data. */
 final class ProfileAccess
 {
-    public function run(#[\SensitiveParameter] Request $request, Closure $action): mixed
+    public function run(#[\SensitiveParameter] Request $request, #[\SensitiveParameter] Closure $action): mixed
     {
         return app(AuthSessionRegistry::class)->withinActive($request, function (User $user) use ($request, $action): mixed {
             $context = app(TenantContext::class);

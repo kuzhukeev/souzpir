@@ -195,12 +195,14 @@ final class Questionnaire
         return ['organization_id' => $context->organizationId, 'brand_id' => $context->brandId];
     }
 
-    private function run(#[\SensitiveParameter] Request $request, Closure $action): mixed
+    private function run(#[\SensitiveParameter] Request $request, #[\SensitiveParameter] Closure $action): mixed
     {
         try {
             return $this->access->run($request, $action);
-        } catch (QuizConflict|InvalidArgumentException $e) {
-            throw $e;
+        } catch (QuizConflict) {
+            throw new QuizConflict('Questionnaire was changed.');
+        } catch (InvalidArgumentException) {
+            throw new InvalidArgumentException('Invalid questionnaire data.');
         } catch (Throwable) {
             throw new LogicException('Vision questionnaire is unavailable.');
         }

@@ -552,24 +552,26 @@
       ]
     },
     "visibility_quizzes": {
-      "owner": "SP-E8-01",
+      "owner": "SP-E8-01F",
       "tenant": "brand",
       "parents": [
         "brands"
       ]
     },
     "brand_profiles": {
-      "owner": "SP-E8-01",
+      "owner": "SP-E8-01F",
       "tenant": "brand",
       "parents": [
-        "brands"
+        "brands",
+        "visibility_quizzes"
       ]
     },
     "question_candidates": {
-      "owner": "SP-E8-01",
+      "owner": "SP-E8-01F",
       "tenant": "brand",
       "parents": [
-        "brands"
+        "brands",
+        "question_generation_batches"
       ]
     },
     "question_sets": {
@@ -610,7 +612,7 @@
       ]
     },
     "actions": {
-      "owner": "SP-E8-01",
+      "owner": "SP-E8-06",
       "tenant": "brand",
       "parents": [
         "brands"
@@ -666,7 +668,7 @@
       ]
     },
     "audit_runs": {
-      "owner": "SP-E8-01B",
+      "owner": "SP-E8-06",
       "tenant": "brand",
       "parents": [
         "brands"
@@ -713,6 +715,15 @@
       "parents": [
         "organizations",
         "migration_batches"
+      ]
+    },
+    "question_generation_batches": {
+      "owner": "SP-E8-01F",
+      "tenant": "brand",
+      "parents": [
+        "brands",
+        "visibility_quizzes",
+        "brand_profiles"
       ]
     }
   },

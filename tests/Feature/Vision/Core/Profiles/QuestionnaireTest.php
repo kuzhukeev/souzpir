@@ -3,6 +3,8 @@
 namespace Tests\Feature\Vision\Core\Profiles;
 
 use App\Ai\CanonicalJson;
+use App\Ai\Drivers\Driver;
+use App\Ai\Drivers\FakeDriver;
 use App\Models\Brand;
 use App\Models\Membership;
 use App\Models\Organization;
@@ -12,6 +14,7 @@ use App\Shell\Audit\Contracts\AuditWriter;
 use App\Shell\Auth\AuthSessionRegistry;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
+use App\Vision\Core\EvidenceStore;
 use App\Vision\Core\MeasurementRunner;
 use App\Vision\Core\Profiles\Questionnaire;
 use App\Vision\Core\Profiles\QuizAnswers;
@@ -274,20 +277,33 @@ final class QuestionnaireTest extends TestCase
             self::assertSame('Synthetic user assertion', $frozen['self_declared']['facts'][0]['value']);
             self::assertSame($grant['id'], $after['knowledge']['grant_id']);
             app(KnowledgeGate::class)->assertAllowed($f['ctx'], $measurement, $snapshot);
-            try {
-                app(KnowledgeGate::class)->assertAllowed($f['ctx'], $withProfile, $frozen);
-                self::fail('Self-declared data were released without outgoing payload protection.');
-            } catch (LogicException) {
-                self::assertTrue(true);
-            }
+            // The historical questionnaire version is valid after later edits.
+            app(KnowledgeGate::class)->assertAllowed($f['ctx'], $withProfile, $frozen);
             $answer = DB::table('measurement_answers')->where('measurement_id', $withProfile)->value('id');
-            try {
-                $runner->measure($answer);
-                self::fail('Measurement ran before outgoing payload protection.');
-            } catch (LogicException) {
-                self::assertSame('pending', DB::table('measurement_answers')->where('id', $answer)->value('status'));
-                self::assertSame(0, DB::table('ai_calls')->count());
-            }
+            $driver = new class implements Driver
+            {
+                public array $requests = [];
+
+                public function complete(array $body): array
+                {
+                    $this->requests[] = $body;
+                    if (count($this->requests) === 1) {
+                        $content = 'Рекомендую Fixture brand.';
+                    } else {
+                        $content = json_encode(['brand_mentioned' => true, 'brand_position' => 1, 'brand_recommended' => true,
+                            'mention_quote' => 'Рекомендую Fixture brand', 'companies' => [['name' => 'Fixture brand', 'position' => 1, 'role' => 'supplier', 'is_brand' => true]],
+                            'tone' => 'positive', 'claims' => [], 'suspected_errors' => [], 'confidence' => 0.9], JSON_THROW_ON_ERROR);
+                    }
+
+                    return ['content' => $content, 'toolCalls' => [], 'usage' => ['promptTokens' => 1, 'completionTokens' => 1],
+                        'model' => $body['model'], 'latencyMs' => 1, 'costMicros' => 0];
+                }
+            };
+            app()->instance(FakeDriver::class, $driver);
+            self::assertSame('ok', $runner->measure($answer));
+            self::assertSame('confirmed', app(EvidenceStore::class)->evaluate($answer));
+            self::assertCount(2, $driver->requests);
+            self::assertStringNotContainsString('Synthetic user assertion', json_encode($driver->requests, JSON_THROW_ON_ERROR));
             self::assertFalse(method_exists(SelfDeclaredProfile::class, 'forSnapshot'));
             foreach (['stale', 'brand', 'viewer'] as $denial) {
                 if ($denial === 'stale') {
@@ -315,8 +331,8 @@ final class QuestionnaireTest extends TestCase
             self::assertSame($after['self_declared']['profile_id'], $jobSnapshot['self_declared']['profile_id']);
             app(GrantRegistry::class)->revoke($f['ctx'], $grant['id']);
             try {
-                app(KnowledgeGate::class)->assertAllowed($f['ctx'], $measurement, $snapshot);
-                self::fail('Revoked grant accepted.');
+                app(KnowledgeGate::class)->assertAllowed($f['ctx'], $withProfile, $frozen);
+                self::fail('Revoked grant accepted for questionnaire snapshot.');
             } catch (LogicException) {
                 self::assertTrue(true);
             }
@@ -564,6 +580,8 @@ final class QuestionnaireTest extends TestCase
                 foreach ($value as $item) {
                     $check($item);
                 }
+            } elseif ($value instanceof \Closure) {
+                $check((new \ReflectionFunction($value))->getStaticVariables());
             }
             // PHP masks marked arguments with SensitiveParameterValue objects.
         };

@@ -83,9 +83,6 @@ final class PublishedKnowledgeBridge implements KnowledgeGate
                     if (! hash_equals(CanonicalJson::hash($declared), CanonicalJson::hash($historical))) {
                         throw new LogicException;
                     }
-                    // The current evaluator sends the full snapshot as knowledge_public.
-                    // Refuse release until integration removes self-declared content from all outbound payloads.
-                    throw new LogicException;
                 }
             });
         } catch (Throwable) {
