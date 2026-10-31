@@ -229,10 +229,10 @@ final class EvidenceEvaluatorTest extends TestCase
         DB::table('measurements')->where('id', $measurement)->update([
             'profile_snapshot' => json_encode($profile, JSON_THROW_ON_ERROR), 'profile_checksum' => CanonicalJson::hash($profile),
         ]);
-        $text = 'СтальПлюс ужасный поставщик. Конкурент гарантирует доставку за час.';
+        $text = 'СтальПлюс — ужасный поставщик. Конкурент гарантирует доставку за час.';
         DB::table('measurement_answers')->where('id', $answer)->update(['answer_text' => $text]);
         $gateway->result = ['brand_mentioned' => true, 'brand_position' => 1, 'brand_recommended' => false,
-            'mention_quote' => 'СтальПлюс ужасный поставщик', 'companies' => [
+            'mention_quote' => 'СтальПлюс — ужасный поставщик', 'companies' => [
                 ['name' => 'СтальПлюс', 'position' => 1, 'role' => 'supplier', 'is_brand' => true],
                 ['name' => 'Конкурент', 'position' => 2, 'role' => 'supplier', 'is_brand' => false],
             ], 'tone' => 'positive', 'claims' => ['Конкурент гарантирует доставку за час'], 'suspected_errors' => [], 'confidence' => 0.9];
@@ -257,6 +257,17 @@ final class EvidenceEvaluatorTest extends TestCase
         self::assertNull($partial['fact']['brand_position']);
         self::assertNull($partial['mentions'][0]['position']);
         self::assertFalse($partial['mentions_complete']);
+        DB::table('measurement_answers')->where('id', $answer)->update(['answer_text' => 'СтальПлюс Сервис — отдельная компания.']);
+        $gateway->result = ['brand_mentioned' => true, 'brand_position' => 1, 'brand_recommended' => false,
+            'mention_quote' => 'СтальПлюс', 'companies' => [
+                ['name' => 'СтальПлюс', 'position' => 1, 'role' => 'other', 'is_brand' => true],
+            ], 'tone' => 'neutral', 'claims' => [], 'suspected_errors' => [], 'confidence' => 0.9];
+        self::assertSame('unknown', $evaluate()['status']);
+        $gateway->result = ['brand_mentioned' => false, 'brand_position' => null, 'brand_recommended' => false,
+            'mention_quote' => null, 'companies' => [
+                ['name' => 'СтальПлюс Сервис', 'position' => 1, 'role' => 'other', 'is_brand' => false],
+            ], 'tone' => 'none', 'claims' => [], 'suspected_errors' => [], 'confidence' => 0.9];
+        self::assertSame('unknown', $evaluate()['status']);
         Http::assertNothingSent();
     }
 }

@@ -8,8 +8,11 @@ final class ConfirmationValidator
     public function __construct(private MentionConfirmer $aliases) {}
 
     /** @return array{status: string, evidence: ?string} */
-    public function validate(#[\SensitiveParameter] string $text, #[\SensitiveParameter] array $profile, #[\SensitiveParameter] ?array $modelResult): array
+    public function validate(#[\SensitiveParameter] string $text, #[\SensitiveParameter] array $profile, #[\SensitiveParameter] ?array $modelResult, #[\SensitiveParameter] ?string $entityName = null): array
     {
+        if ($entityName === null || ! app(ExactMentionVerifier::class)->inText($text, $entityName, $profile)) {
+            return ['status' => 'unknown', 'evidence' => null];
+        }
         $matched = [];
         foreach (VisibilityProfile::recognitionAliases($profile) as $alias) {
             if (! $this->aliases->contains($text, $alias)) {

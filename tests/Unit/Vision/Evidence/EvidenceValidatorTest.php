@@ -5,6 +5,7 @@ namespace Tests\Unit\Vision\Evidence;
 use App\Vision\Evidence\ConfirmationValidator;
 use App\Vision\Evidence\EntityNormalizer;
 use App\Vision\Evidence\EvidenceValidator;
+use App\Vision\Evidence\ExactMentionVerifier;
 use App\Vision\Evidence\MentionConfirmer;
 use App\Vision\Evidence\PositionVerifier;
 use App\Vision\Evidence\RecommendationVerifier;
@@ -103,22 +104,22 @@ final class EvidenceValidatorTest extends TestCase
                 ['topic' => 'warranty', 'value' => 'гарантия 3 дня', 'verifiable' => true],
             ]];
         $text = 'Торты: Ленина 15, гарантия 3 дня.';
-        self::assertSame('unknown', $validator->validate($text, $profile, null)['status']);
+        self::assertSame('unknown', $validator->validate($text, $profile, null, 'Торты')['status']);
         $model = ['decision' => 'confirmed', 'evidence' => $text, 'matched_facts' => ['Ленина 15', 'гарантия 3 дня']];
-        self::assertSame('confirmed', $validator->validate($text, $profile, $model)['status']);
+        self::assertSame('confirmed', $validator->validate($text, $profile, $model, 'Торты')['status']);
         $negated = 'Торты не по адресу Ленина 15; гарантия 3 дня не действует.';
         $negatedModel = ['decision' => 'confirmed', 'evidence' => $negated, 'matched_facts' => ['Ленина 15', 'гарантия 3 дня']];
-        self::assertSame('unknown', $validator->validate($negated, $profile, $negatedModel)['status']);
+        self::assertSame('unknown', $validator->validate($negated, $profile, $negatedModel, 'Торты')['status']);
         $inventedQuote = $model;
         $inventedQuote['evidence'] = 'Торты: Ленина 15, гарантия 4 дня.';
-        self::assertSame('unknown', $validator->validate($text, $profile, $inventedQuote)['status']);
+        self::assertSame('unknown', $validator->validate($text, $profile, $inventedQuote, 'Торты')['status']);
         $inventedFacts = $model;
         $inventedFacts['matched_facts'] = ['Ленина 15', 'скидка'];
-        self::assertSame('unknown', $validator->validate($text, $profile, $inventedFacts)['status']);
+        self::assertSame('unknown', $validator->validate($text, $profile, $inventedFacts, 'Торты')['status']);
         $unknownFacts = $profile;
         $unknownFacts['facts'][1]['verifiable'] = false;
-        self::assertSame('unknown', $validator->validate($text, $unknownFacts, $model)['status']);
-        self::assertSame('confirmed', $validator->validate('Рекомендую Tort4U.', ['name' => 'Tort4U', 'aliases' => []], null)['status']);
+        self::assertSame('unknown', $validator->validate($text, $unknownFacts, $model, 'Торты')['status']);
+        self::assertSame('confirmed', $validator->validate('Рекомендую Tort4U.', ['name' => 'Tort4U', 'aliases' => []], null, 'Tort4U')['status']);
     }
 
     public function test_sources_are_literal_domain_bound_and_strip_sensitive_query(): void
@@ -137,6 +138,23 @@ final class EvidenceValidatorTest extends TestCase
         self::assertStringNotContainsString('secret', json_encode($sources, JSON_THROW_ON_ERROR));
         $platforms = $extractor->extract('https://yandex.ru/maps/123 https://yandex.ru/mapsevil https://ozon.ru/a https://profi.ru.evil.test/', $profile);
         self::assertSame(['maps', 'other', 'marketplace', 'other'], array_column($platforms, 'source_type'));
+    }
+
+    public function test_extended_and_prefixed_company_names_are_not_confirmed_as_the_brand(): void
+    {
+        $exact = app(ExactMentionVerifier::class);
+        $profile = ['name' => 'СтальПлюс', 'aliases' => ['СтальПлюс']];
+        self::assertFalse($exact->isProfileName('СтальПлюс Сервис', $profile));
+        self::assertFalse($exact->inText('СтальПлюс Сервис — отдельная компания.', 'СтальПлюс', $profile));
+        self::assertFalse($exact->inText('стальплюс сервис — отдельная компания.', 'СтальПлюс', $profile));
+        self::assertFalse($exact->inText('Другой СтальПлюс — отдельная компания.', 'СтальПлюс', $profile));
+        self::assertTrue($exact->isProfileName('ООО «СтальПлюс»', $profile));
+        self::assertTrue($exact->inText('Рекомендую СтальПлюс.', 'СтальПлюс', $profile));
+        self::assertSame('unknown', app(ConfirmationValidator::class)->validate('СтальПлюс Сервис — отдельная компания.', $profile, null, 'СтальПлюс')['status']);
+        $value = ['brand_mentioned' => true, 'brand_position' => 1, 'brand_recommended' => false,
+            'mention_quote' => 'СтальПлюс Сервис', 'companies' => [['name' => 'СтальПлюс Сервис', 'position' => 1, 'role' => 'other', 'is_brand' => true]],
+            'tone' => 'neutral', 'claims' => [], 'suspected_errors' => [], 'confidence' => 0.9];
+        self::assertSame('company_identity', app(EvidenceValidator::class)->validationReason($value, 'СтальПлюс Сервис — отдельная компания.', $profile));
     }
 
     public function test_alias_matching_does_not_confuse_domains_or_generic_category(): void

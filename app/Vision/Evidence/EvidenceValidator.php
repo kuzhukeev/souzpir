@@ -87,7 +87,7 @@ final class EvidenceValidator
             }
             $names[$name] = true;
             $previousOffset = $offset;
-            $isBrand = $this->matchedAlias($company['name'], $profile) !== null;
+            $isBrand = app(ExactMentionVerifier::class)->isProfileName($company['name'], $profile);
             $ambiguousName = collect(app(MentionConfirmer::class)->ambiguousAliases($profile))
                 ->contains(fn (string $alias): bool => app(MentionConfirmer::class)->contains($company['name'], $alias));
             if ($company['is_brand'] !== $isBrand && ! $ambiguousName) {

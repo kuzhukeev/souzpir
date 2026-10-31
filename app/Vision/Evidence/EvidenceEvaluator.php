@@ -83,7 +83,12 @@ final class EvidenceEvaluator
                 return $unknown;
             }
             if ($candidate['brand_mentioned']) {
-                $confirmed = $this->confirmation->validate($candidate['mention_quote'], $profile, null);
+                $brandEntity = collect($candidate['companies'])->first(fn (array $company): bool => $company['is_brand']);
+                if (! is_array($brandEntity) || ! app(ExactMentionVerifier::class)->inText($record->answer_text, $brandEntity['name'], $profile)
+                    || ! app(ExactMentionVerifier::class)->inText($candidate['mention_quote'], $brandEntity['name'], $profile)) {
+                    return $unknown;
+                }
+                $confirmed = $this->confirmation->validate($candidate['mention_quote'], $profile, null, $brandEntity['name']);
                 if ($confirmed['status'] !== 'confirmed') {
                     $knowledge->assertAllowed($tenant, $record->measurement_id, $profile);
                     $promptFile = file_get_contents(resource_path('prompts/Vision/Evidence/mention-confirmer.ru.v1.md'));
@@ -107,7 +112,7 @@ final class EvidenceEvaluator
                     ], $config['parser']['model'], 0.0, ['type' => 'json_schema', 'json_schema' => ['name' => 'mention_confirmation', 'strict' => true, 'schema' => $schema]],
                         maxTokens: 500, promptVersion: 'vision-confirmation-v1', promptChecksum: $artifacts['confirmation_prompt']), $confirmContext);
                     $confirmed = $check->ok() && $check->model === $config['parser']['model']
-                        ? $this->confirmation->validate($record->answer_text, $profile, $check->json())
+                        ? $this->confirmation->validate($record->answer_text, $profile, $check->json(), $brandEntity['name'])
                         : ['status' => 'unknown', 'evidence' => null];
                     if ($confirmed['status'] !== 'confirmed') {
                         return $unknown;
@@ -192,7 +197,7 @@ final class EvidenceEvaluator
             'ambiguous_words' => hash_file('sha256', resource_path('prompts/Vision/Evidence/ambiguous-words.ru.txt')),
             'evidence_rules' => CanonicalJson::hash(array_map(
                 fn (string $class): string => hash_file('sha256', __DIR__.'/'.$class.'.php'),
-                ['EvidenceEvaluator', 'EvidenceValidator', 'RecommendationVerifier', 'PositionVerifier', 'ConfirmationValidator',
+                ['EvidenceEvaluator', 'EvidenceValidator', 'RecommendationVerifier', 'PositionVerifier', 'ConfirmationValidator', 'ExactMentionVerifier',
                     'EntityNormalizer', 'MentionConfirmer', 'SourceExtractor', 'VisibilityProfile']
             )),
             'normalizer_version' => EntityNormalizer::VERSION,
