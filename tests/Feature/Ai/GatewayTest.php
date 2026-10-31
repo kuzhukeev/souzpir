@@ -649,18 +649,20 @@ final class GatewayTest extends TestCase
         });
     }
 
-    public function test_only_explicit_rate_limit_is_retried_and_only_one_call_is_charged(): void
+    public function test_rate_limit_is_not_retried_or_treated_as_unbilled(): void
     {
         config(['runtime.ai_driver' => 'openrouter', 'features.E0-05.defaults.live_enabled' => true, 'features.E0-05.defaults.openrouter_key' => 'test-only']);
         DB::table('brands')->where('id', $this->brand)->update(['settings' => json_encode(['ai_data_policy' => ['knowledge_public' => ['any']]], JSON_THROW_ON_ERROR)]);
         Http::fake(['openrouter.ai/*' => Http::sequence()->push('rate-limited', 429)->push('rate-limited', 429)->push('{"model":"google/gemini-2.5-flash","choices":[{"message":{"content":"ok"}}],"usage":{"prompt_tokens":5,"completion_tokens":3,"cost":0.000004}}', 200)]);
         $this->within(function (): void {
             $result = app(AiGateway::class)->complete($this->request(), $this->context('rate-limit'));
-            self::assertSame('ok', $result->content);
-            self::assertSame(4, $result->costMicros);
-            self::assertSame(4, (int) DB::table('ai_budgets')->value('spent_micros'));
+            self::assertSame('provider_uncertain', $result->error['code']);
+            self::assertNull($result->costMicros);
+            self::assertSame('uncertain', DB::table('ai_calls')->value('status'));
+            self::assertSame(1, (int) DB::table('ai_budgets')->value('unresolved_count'));
+            self::assertSame(0, (int) DB::table('ai_budgets')->value('spent_micros'));
             self::assertSame(1, DB::table('ai_calls')->count());
-            Http::assertSentCount(3);
+            Http::assertSentCount(1);
         });
     }
 
