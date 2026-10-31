@@ -43,6 +43,14 @@ const shared = {
     location: { host: location.host, pathname: '/team', search: '' },
   },
   canViewRoles: true,
+  brandFilter: 'all',
+  filterBrands: [
+    brand,
+    {
+      id: 'brand-2',
+      name: 'Очень длинное название бренда с несколькими словами для проверки отображения',
+    },
+  ],
   teamBrandRevision: 'synthetic-revision',
   invitations: {
     data: [

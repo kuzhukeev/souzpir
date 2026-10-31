@@ -101,3 +101,64 @@ test('фильтр ролей меняет оба списка и поддерж
   await page.getByRole('option', { name: 'Все роли' }).click();
   await expect(page.locator('article').getByText('Тестовый владелец')).toBeVisible();
 });
+
+test('бренд и роль совместно фильтруют оба списка и сохраняют права', async ({ page }) => {
+  await page.goto(`${origin}/login`);
+  await page.getByLabel('Рабочая почта').fill('team-e106-owner@example.test');
+  await page.getByLabel('Пароль', { exact: true }).fill('test-only-password-123');
+  await page.getByRole('button', { name: 'Войти', exact: true }).click();
+  await expect(page).toHaveURL(/auth\/ready/);
+  await page.goto(`${origin}/team?page=2&invitation_page=2`);
+  const brands = page.getByRole('combobox', { name: 'Бренд', exact: true });
+  const roles = page.getByRole('combobox', { name: 'Роль', exact: true });
+  await brands.focus();
+  await page.keyboard.press('ArrowDown');
+  await page.getByRole('option', { name: 'Фейерверки — Второй бренд' }).click();
+  await expect(brands).toContainText('Фейерверки — Второй бренд');
+  expect(new URL(page.url()).searchParams.get('page')).toBe('1');
+  expect(new URL(page.url()).searchParams.get('invitation_page')).toBe('1');
+  await expect(
+    page.getByRole('region', { name: 'Таблица участников' }).getByText('Тестовый владелец'),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('region', { name: 'Таблица участников' }).getByText('Тестовый наблюдатель'),
+  ).toHaveCount(0);
+  await expect(page.getByText('Приглашений по выбранным фильтрам нет')).toBeVisible();
+  await roles.click();
+  await page.getByRole('option', { name: 'Наблюдатель' }).click();
+  await expect(brands).toContainText('Фейерверки — Второй бренд');
+  await expect(page.getByText('Участников по выбранным фильтрам нет')).toBeVisible();
+  await brands.click();
+  await page.getByRole('option', { name: 'Пиротехника — Северные огни' }).click();
+  await expect(roles).toContainText('Наблюдатель');
+  await expect(
+    page.getByRole('region', { name: 'Таблица участников' }).getByText('Тестовый наблюдатель'),
+  ).toBeVisible();
+  await expect(
+    page
+      .getByRole('region', { name: 'Приглашения в ожидании' })
+      .getByText('team-e106-invite@example.test'),
+  ).toBeVisible();
+  for (const width of [1440, 1024, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+    ).toBeTruthy();
+    await page.screenshot({
+      path: `.local/screenshots/e1-06/brand-filter-real-${width}.png`,
+      fullPage: true,
+    });
+  }
+});
+
+test('наблюдатель видит только доступный бренд в фильтре', async ({ page }) => {
+  await page.goto(`${origin}/login`);
+  await page.getByLabel('Рабочая почта').fill('team-e106-viewer@example.test');
+  await page.getByLabel('Пароль', { exact: true }).fill('test-only-password-123');
+  await page.getByRole('button', { name: 'Войти', exact: true }).click();
+  await expect(page).toHaveURL(/auth\/ready/);
+  await page.goto(`${origin}/team`);
+  await page.getByRole('combobox', { name: 'Бренд', exact: true }).click();
+  await expect(page.getByRole('option', { name: 'Пиротехника — Северные огни' })).toBeVisible();
+  await expect(page.getByRole('option', { name: 'Фейерверки — Второй бренд' })).toHaveCount(0);
+});
