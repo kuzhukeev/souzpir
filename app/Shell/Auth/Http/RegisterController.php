@@ -7,10 +7,10 @@ use App\Models\Organization;
 use App\Models\User;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
+use App\Shell\Auth\VerificationRequests;
 use App\Tenancy\Cabinet;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
-use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -68,12 +68,13 @@ final class RegisterController
             return back()->withErrors($e->errors())->withInput($request->except(['bootstrap_code', 'password', 'password_confirmation']));
         }
         $session->complete($request, $user, false);
-        if (config('features.E1-01.defaults.verification_enabled')) {
-            try {
-                event(new Registered($user));
-            } catch (\Throwable) {
-                $request->session()->flash('status', 'Письмо не отправлено. Повторите позже.');
+        try {
+            $status = app(VerificationRequests::class)->request($request, bin2hex(random_bytes(24)));
+            if ($status !== 'disabled') {
+                $request->session()->flash('status', VerificationRequests::message($status));
             }
+        } catch (\Throwable) {
+            $request->session()->flash('status', 'Не удалось принять запрос на письмо. Попробуйте позже.');
         }
 
         return redirect()->route('verification.notice');

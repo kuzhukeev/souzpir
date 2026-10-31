@@ -244,14 +244,14 @@ final class AuthFlowTest extends TestCase
         $this->assertGuest();
     }
 
-    public function test_auth_version_revokes_old_sessions_and_owner_registration_sends_fake_verification(): void
+    public function test_auth_version_revokes_old_sessions_and_owner_registration_does_not_send_directly(): void
     {
         [$org] = $this->fixture(false);
         $secret = str_repeat('y', 40);
         config(['features.E1-01.defaults.bootstrap_token_hash' => hash('sha256', $secret), 'features.E1-01.defaults.verification_enabled' => true]);
         $this->post('/register', ['name' => 'Owner', 'email' => 'owner@example.test', 'password' => 'secure-password-example', 'password_confirmation' => 'secure-password-example', 'terms' => true, 'ai_consent' => true, 'bootstrap_code' => $secret])->assertRedirect(route('verification.notice'));
         $user = User::where('email', 'owner@example.test')->firstOrFail();
-        Notification::assertSentTo($user, VerifyEmail::class);
+        Notification::assertNotSentTo($user, VerifyEmail::class);
         $user->forceFill(['email_verified_at' => now(), 'auth_version' => 2])->save();
         $this->actingAs($user->fresh())->withSession(['auth.version' => 1])->get('/auth/ready')->assertRedirect(route('login'));
         $this->assertGuest();

@@ -9,17 +9,14 @@ export default function VerifyEmail({
   confirmationUrl,
   mailConfigured,
   status,
+  idempotencyKey,
 }: {
   email: string;
   confirmationUrl?: string;
   mailConfigured: boolean;
   status?: string;
+  idempotencyKey: string;
 }) {
-  const form = useForm({});
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
-    form.post(confirmationUrl || '/email/verification-notification');
-  };
   return (
     <AuthFrame title="Подтвердите почту" subtitle="Подтверждение защищает доступ к кабинету.">
       <div className="mb-5 grid size-14 place-items-center rounded-full bg-(--color-brand-primary-soft) text-(--color-icon)">
@@ -38,11 +35,23 @@ export default function VerifyEmail({
           Почтовый сервис пока не подключён. Обратитесь к администратору.
         </p>
       )}
-      <form onSubmit={submit} className="mt-6">
-        <Button type="submit" loading={form.processing} className="min-h-12 w-full">
-          {confirmationUrl ? 'Подтвердить адрес' : 'Отправить ещё раз'}
-        </Button>
-      </form>
+      <VerificationForm key={idempotencyKey} confirmationUrl={confirmationUrl} idempotencyKey={idempotencyKey} />
     </AuthFrame>
+  );
+}
+
+
+function VerificationForm({ confirmationUrl, idempotencyKey }: { confirmationUrl?: string; idempotencyKey: string }) {
+  const form = useForm({ idempotency_key: idempotencyKey });
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    form.post(confirmationUrl || '/email/verification-notification');
+  };
+  return (
+    <form onSubmit={submit} className="mt-6">
+      <Button type="submit" loading={form.processing} className="min-h-12 w-full">
+        {confirmationUrl ? 'Подтвердить адрес' : 'Отправить ещё раз'}
+      </Button>
+    </form>
   );
 }

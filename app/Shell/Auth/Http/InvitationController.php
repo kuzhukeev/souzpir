@@ -7,11 +7,11 @@ use App\Models\User;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
 use App\Shell\Auth\AuthSessionRegistry;
+use App\Shell\Auth\VerificationRequests;
 use App\Shell\Team\Models\Invitation;
 use App\Tenancy\Cabinet;
 use App\Tenancy\Invitations\AcceptsInvitations;
 use App\Tenancy\TenantContext;
-use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -56,6 +56,8 @@ final class InvitationController
         }
         $data = $validator->validated();
         $user = DB::transaction(function () use ($invite, $data, $token, $acceptance): User {
+            // No existing user is locked in guest registration: organization precedes invitation.
+            abort_unless(Organization::whereKey($invite->organization_id)->where('status', 'active')->lockForUpdate()->first(), 404);
             $locked = Invitation::withoutGlobalScopes()->whereKey($invite->id)->lockForUpdate()->firstOrFail();
             abort_unless($locked->accepted_at === null && $locked->revoked_at === null && $locked->expires_at->isFuture(), 404);
             if (User::where('email', $locked->email)->exists()) {
@@ -70,12 +72,13 @@ final class InvitationController
         });
         $session->complete($request, $user, false);
         $request->session()->put('auth.invitation', $token);
-        if (config('features.E1-01.defaults.verification_enabled')) {
-            try {
-                event(new Registered($user));
-            } catch (\Throwable) {
-                $request->session()->flash('status', 'Письмо не отправлено. Повторите позже.');
+        try {
+            $status = app(VerificationRequests::class)->request($request, bin2hex(random_bytes(24)));
+            if ($status !== 'disabled') {
+                $request->session()->flash('status', VerificationRequests::message($status));
             }
+        } catch (\Throwable) {
+            $request->session()->flash('status', 'Не удалось принять запрос на письмо. Попробуйте позже.');
         }
 
         return redirect()->route('verification.notice');
