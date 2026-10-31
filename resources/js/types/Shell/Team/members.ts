@@ -16,3 +16,17 @@ export type TeamPage = {
 };
 
 export type TeamMemberDetail = TeamMember & { phone: string | null };
+
+export type TeamInvitations = {
+  data: {
+    id: string;
+    email: string;
+    role_label: string | null;
+    brands: { id: string; name: string }[];
+    expires_at: string;
+    opened: boolean;
+  }[];
+  current_page: number;
+  last_page: number;
+  total: number;
+};
