@@ -35,7 +35,8 @@ final class ResolveTenant
             abort_unless($request->header('X-Brand-Id') === $brand->id, 404);
         }
         $ownSettings = $request->isMethod('PATCH') && $request->routeIs('notifications.settings.update', 'data.consents');
-        if (! $request->isMethodSafe() && ! $request->routeIs('brand.switch') && ! $ownSettings) {
+        $ownSupportActions = $request->isMethod('POST') && $request->routeIs('help.support.store', 'help.support.access.revoke');
+        if (! $request->isMethodSafe() && ! $request->routeIs('brand.switch') && ! $ownSettings && ! $ownSupportActions) {
             abort_unless($membership->canWrite(), 403);
         }
         $request->session()->put('brand_id', $brand->id);

@@ -113,6 +113,20 @@ final class PermissionsTest extends TenancyTestCase
         $this->patch('/test-other-change', ['marketing_opt_in' => true])->assertForbidden();
     }
 
+    public function test_viewer_may_submit_own_support_actions_but_not_other_posts(): void
+    {
+        [, $org, $brand] = $this->cabinet();
+        [$viewer] = $this->member($org, 'viewer', [$brand->id]);
+        Route::middleware(['web', 'auth', 'verified', 'tenant'])->post('/test-support-store', fn () => response()->noContent())->name('help.support.store');
+        Route::middleware(['web', 'auth', 'verified', 'tenant'])->post('/test-support-revoke', fn () => response()->noContent())->name('help.support.access.revoke');
+        Route::middleware(['web', 'auth', 'verified', 'tenant'])->post('/test-other-post', fn () => response()->noContent())->name('help.support.other');
+        $this->actingAs($viewer)->withSession(['brand_id' => $brand->id]);
+
+        $this->post('/test-support-store')->assertNoContent();
+        $this->post('/test-support-revoke')->assertNoContent();
+        $this->post('/test-other-post')->assertForbidden();
+    }
+
     public function test_archived_brand_or_disabled_organization_revokes_existing_context(): void
     {
         [, $org, $brand, , $ownerMembership] = $this->cabinet();
