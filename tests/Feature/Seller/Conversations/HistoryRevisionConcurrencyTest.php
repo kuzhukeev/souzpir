@@ -7,6 +7,9 @@ use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\User;
 use App\Seller\Channels\Core\ChannelAccount;
+use App\Seller\Channels\Core\InboundRecorder;
+use App\Seller\Conversations\Contracts\ConversationRepository;
+use App\Seller\Conversations\Data\TurnCommand;
 use App\Seller\Conversations\Models\Conversation;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
@@ -113,6 +116,50 @@ final class HistoryRevisionConcurrencyTest extends TestCase
             self::assertSame('inserted', trim($retry->getOutput()));
             self::assertSame(1, DB::table('messages')->where('conversation_id', $conversation->id)->count());
             self::assertSame(1, DB::table('conversations')->where('id', $conversation->id)->value('history_revision'));
+        } finally {
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+            if ($process->isRunning()) {
+                $process->stop();
+            }
+            if (is_file($marker)) {
+                unlink($marker);
+            }
+        }
+    }
+
+    public function test_inbound_after_claim_preserves_snapshot_and_advances_history(): void
+    {
+        [$org, $brand, $conversation, $channel] = $this->fixture();
+        $context = new TenantContext($org->id, $brand->id, source: 'job');
+        $first = app(InboundRecorder::class)->ingest($context, $channel->id, 'first-synthetic', [], $conversation->id, 'First synthetic input');
+        $marker = base_path('.local/tmp/c02-claim-'.Str::random(16));
+        $process = $this->worker('inbound', $org, $brand, $conversation, $channel, $marker);
+        DB::beginTransaction();
+        try {
+            $claim = app(ConversationRepository::class)->claimTurn($context, new TurnCommand($conversation->id, $first->id, $first->text, $first->external_event_id, 'synthetic-claim', 0));
+            $process->start();
+            $this->waitForMarker($marker);
+            $pid = (int) file_get_contents($marker);
+            $deadline = microtime(true) + 10;
+            do {
+                DB::select('select pg_stat_clear_snapshot()');
+                $waiting = DB::table('pg_stat_activity')->where('pid', $pid)->where('wait_event_type', 'Lock')->exists();
+                if (! $waiting) {
+                    usleep(10000);
+                }
+            } while (! $waiting && $process->isRunning() && microtime(true) < $deadline);
+            self::assertTrue($waiting, 'Inbound must wait for the claim transaction.');
+            DB::commit();
+            $process->wait();
+            self::assertTrue($process->isSuccessful(), $process->getErrorOutput());
+            self::assertSame('inserted', trim($process->getOutput()));
+            $turn = DB::table('seller_turns')->where('id', $claim->turnId)->first();
+            self::assertSame(1, $turn->base_history_revision);
+            self::assertSame(1, $turn->cutoff_sequence);
+            self::assertSame(2, DB::table('conversations')->where('id', $conversation->id)->value('history_revision'));
+            self::assertSame(2, DB::table('messages')->where('conversation_id', $conversation->id)->count());
         } finally {
             if (DB::transactionLevel() > 0) {
                 DB::rollBack();
