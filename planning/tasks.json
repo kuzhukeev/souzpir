@@ -1828,6 +1828,86 @@
       "description": "Прочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: V-8.1–V-8.5 (группы — по коду до Q-03), V-9.1–V-9.3 действия\n\nЗависимости (нужен done после merge): SP-E0-03, SP-E0-04, SP-E8-01, SP-E8-01B, SP-F-03.\nОбласть записи: app/Vision/Site/, config/features/E8-06.php, database/factories/Vision/Site/, database/migrations/E8-06/, database/seeders/Vision/Site/, docs/modules/E8-06.md, lang/ru/Vision/Site/, resources/js/features/Vision/Site/, resources/js/pages/Vision/Site/, resources/js/types/Vision/Site/, routes/features/E8-06.php, tests/Browser/E8-06/, tests/Feature/Vision/Site/, tests/Unit/Vision/Site/, docs/results/SP-E8-06.md.\nЭкраны: V-8.1, V-8.2, V-8.3, V-8.4, V-8.5, V-9.1, V-9.2, V-9.3.\nИсточники: E8-06.\n- E8-06: ТЗ V-8.1–V-8.5, V-9.1–V-9.3; макеты 115–122; R-V-11, R-V-13, R-V-16; Q-03\n\nПриёмка:\n- фикстуры HTML; действия CRUD\n\nДополнительно: Сохранять поведение донора; изменения только по принятым решениям.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E8-06.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n"
     },
     {
+      "taskKey": "SP-E0-07",
+      "title": "SP-E0-07 · Рабочие процессы очереди и планировщика",
+      "goal": "Подготовить воспроизводимый безопасный запуск, остановку и мониторинг database worker и Laravel scheduler для локального OSPanel и документированный production runbook. Подключить ограниченный pending-only scanner подтверждения email к расписанию; учесть расписания сводок, блокировки и послеаварийные uncertain без автоповтора. Никаких реальных отправок или сети при тестировании.",
+      "dependsOn": [
+        "SP-E0-04",
+        "SP-E1-01D",
+        "SP-E6-07"
+      ],
+      "scope": [
+        "app/Shell/Auth/Console/",
+        "config/features/E1-01D.php",
+        "docs/modules/E0-07.md",
+        "docs/runbooks/runtime.md",
+        "infra/runtime/",
+        "scripts/runtime/",
+        "tests/Feature/Runtime/",
+        "tests/Unit/Runtime/",
+        "docs/results/SP-E0-07.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Проверить запуск/повторный запуск/остановку, отсутствие двойных worker, pending-only scanner, безопасные логи и отключённую доставку по умолчанию."
+      ],
+      "sourceIds": [
+        "E0-04"
+      ],
+      "screenIds": [],
+      "notes": "Учитывать особенности OSPanel и Windows; реальные внешние подключения включать только после отдельной настройки и разрешения.",
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/contracts/",
+        "docs/sources/10_backlog.md",
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02c_discrepancies.md",
+        "docs/sources/04c_settings_paths.md"
+      ],
+      "promptPath": "docs/tasks/SP-E0-07.md",
+      "wave": 7,
+      "description": "Прочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: Подготовить воспроизводимый безопасный запуск, остановку и мониторинг database worker и Laravel scheduler для локального OSPanel и документированный production runbook. Подключить ограниченный pending-only scanner подтверждения email к расписанию; учесть расписания сводок, блокировки и послеаварийные uncertain без автоповтора. Никаких реальных отправок или сети при тестировании.\n\nЗависимости (нужен done после merge): SP-E0-04, SP-E1-01D, SP-E6-07.\nОбласть записи: app/Shell/Auth/Console/, config/features/E1-01D.php, docs/modules/E0-07.md, docs/runbooks/runtime.md, infra/runtime/, scripts/runtime/, tests/Feature/Runtime/, tests/Unit/Runtime/, docs/results/SP-E0-07.md.\nЭкраны: инфраструктура/контракты.\nИсточники: E0-04.\n- E0-04: ТЗ S-6.1, S-7.1, V-11.4, D-11.4; eyon `Notifications/*`; R-S-09\n\nПриёмка:\n- Проверить запуск/повторный запуск/остановку, отсутствие двойных worker, pending-only scanner, безопасные логи и отключённую доставку по умолчанию.\n\nДополнительно: Учитывать особенности OSPanel и Windows; реальные внешние подключения включать только после отдельной настройки и разрешения.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E0-07.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n"
+    },
+    {
+      "taskKey": "SP-E1-01F",
+      "title": "SP-E1-01F · Безопасное восстановление пароля",
+      "goal": "Перевести отправку ссылок восстановления пароля на надёжную контролируемую очередь без прямого legacy SMTP-флага. Сохранить одинаковый публичный ответ для существующего и неизвестного адреса, ограничение частоты, срок и одноразовость токена, отзыв сессий после смены. Исключить токены/адреса из логов и не повторять автоматически неопределённую доставку.",
+      "dependsOn": [
+        "SP-E0-04",
+        "SP-E1-01D"
+      ],
+      "scope": [
+        "app/Shell/Auth/Http/PasswordController.php",
+        "app/Shell/Auth/PasswordDelivery/",
+        "config/features/E1-01F.php",
+        "database/migrations/E1-01F/",
+        "docs/modules/E1-01F.md",
+        "tests/Feature/Shell/Auth/PasswordDelivery/",
+        "tests/Unit/Shell/Auth/PasswordDelivery/",
+        "docs/results/SP-E1-01F.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Тесты существующего/неизвестного адреса, срока, использования токена, повторов, отзыва сессий, fake SMTP и безопасных логов; никакой реальной отправки."
+      ],
+      "sourceIds": [
+        "E1-01"
+      ],
+      "screenIds": [],
+      "notes": "До завершения не включать legacy AUTH_EMAIL_DELIVERY_ENABLED: он отдельно управляет прямой отправкой сброса пароля.",
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/contracts/",
+        "docs/sources/10_backlog.md",
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02c_discrepancies.md",
+        "docs/sources/04c_settings_paths.md"
+      ],
+      "promptPath": "docs/tasks/SP-E1-01F.md",
+      "wave": 7,
+      "description": "Прочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: Перевести отправку ссылок восстановления пароля на надёжную контролируемую очередь без прямого legacy SMTP-флага. Сохранить одинаковый публичный ответ для существующего и неизвестного адреса, ограничение частоты, срок и одноразовость токена, отзыв сессий после смены. Исключить токены/адреса из логов и не повторять автоматически неопределённую доставку.\n\nЗависимости (нужен done после merge): SP-E0-04, SP-E1-01D.\nОбласть записи: app/Shell/Auth/Http/PasswordController.php, app/Shell/Auth/PasswordDelivery/, config/features/E1-01F.php, database/migrations/E1-01F/, docs/modules/E1-01F.md, tests/Feature/Shell/Auth/PasswordDelivery/, tests/Unit/Shell/Auth/PasswordDelivery/, docs/results/SP-E1-01F.md.\nЭкраны: инфраструктура/контракты.\nИсточники: E1-01.\n- E1-01: ТЗ S-0.1–S-0.5, S-0.7 стр. 236–270; макеты 1–6, 11; R-S-14\n\nПриёмка:\n- Тесты существующего/неизвестного адреса, срока, использования токена, повторов, отзыва сессий, fake SMTP и безопасных логов; никакой реальной отправки.\n\nДополнительно: До завершения не включать legacy AUTH_EMAIL_DELIVERY_ENABLED: он отдельно управляет прямой отправкой сброса пароля.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E1-01F.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n"
+    },
+    {
       "taskKey": "SP-E1-04",
       "title": "SP-E1-04 · Настройки организации и список брендов",
       "goal": "S-2.1 название и настройки текущей организации, передача владения с проверкой прав; S-2.2 бренды создать/архивировать; S-2.4 модули включить/выключить по настоящим plan limits. Удаление организации исключено: нет кнопки, API, job, таймера или cascade purge.",
@@ -4173,6 +4253,7 @@
         "SP-E1-01B",
         "SP-E1-01C",
         "SP-E1-01D",
+        "SP-E1-01F",
         "SP-E1-02",
         "SP-E1-03",
         "SP-E1-04",
@@ -4255,7 +4336,7 @@
       ],
       "promptPath": "docs/tasks/SP-E9-01.md",
       "wave": 13,
-      "description": "Прочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: 8 сценариев 08 §4 в Playwright + визуальные снапшоты 20 экранов × 3 ширины + axe\n\nЗависимости (нужен done после merge): SP-E1-01, SP-E1-01B, SP-E1-01C, SP-E1-01D, SP-E1-02, SP-E1-03, SP-E1-04, SP-E1-05, SP-E1-06, SP-E1-07, SP-E1-08, SP-E1-09, SP-E1-10, SP-E1-11, SP-E1-12, SP-E3-07, SP-E4-01, SP-E4-02, SP-E4-03, SP-E4-04, SP-E4-05, SP-E4-06, SP-E4-07, SP-E4-08, SP-E5-01, SP-E5-02, SP-E5-03, SP-E5-04, SP-E5-04B, SP-E5-05, SP-E5-06, SP-E5-07, SP-E5-08, SP-E6-01, SP-E6-02, SP-E6-03, SP-E6-04, SP-E6-05, SP-E6-06, SP-E6-07, SP-E6-08, SP-E6-09, SP-E7-01, SP-E7-02, SP-E7-03, SP-E7-04, SP-E7-05, SP-E8-01, SP-E8-01B, SP-E8-01C, SP-E8-01D, SP-E8-01E, SP-E8-02, SP-E8-03, SP-E8-04, SP-E8-05, SP-E8-05B, SP-E8-05C, SP-E8-06, SP-E8-07.\nОбласть записи: docs/validation/acceptance.md, tests/Browser/Acceptance/, tests/visual/, docs/results/SP-E9-01.md.\nЭкраны: инфраструктура/контракты.\nИсточники: E9-01.\n- E9-01: 08\n\nПриёмка:\n- зелёные в CI\n\nДополнительно: Сохранять поведение донора; изменения только по принятым решениям.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E9-01.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n"
+      "description": "Прочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: 8 сценариев 08 §4 в Playwright + визуальные снапшоты 20 экранов × 3 ширины + axe\n\nЗависимости (нужен done после merge): SP-E1-01, SP-E1-01B, SP-E1-01C, SP-E1-01D, SP-E1-01F, SP-E1-02, SP-E1-03, SP-E1-04, SP-E1-05, SP-E1-06, SP-E1-07, SP-E1-08, SP-E1-09, SP-E1-10, SP-E1-11, SP-E1-12, SP-E3-07, SP-E4-01, SP-E4-02, SP-E4-03, SP-E4-04, SP-E4-05, SP-E4-06, SP-E4-07, SP-E4-08, SP-E5-01, SP-E5-02, SP-E5-03, SP-E5-04, SP-E5-04B, SP-E5-05, SP-E5-06, SP-E5-07, SP-E5-08, SP-E6-01, SP-E6-02, SP-E6-03, SP-E6-04, SP-E6-05, SP-E6-06, SP-E6-07, SP-E6-08, SP-E6-09, SP-E7-01, SP-E7-02, SP-E7-03, SP-E7-04, SP-E7-05, SP-E8-01, SP-E8-01B, SP-E8-01C, SP-E8-01D, SP-E8-01E, SP-E8-02, SP-E8-03, SP-E8-04, SP-E8-05, SP-E8-05B, SP-E8-05C, SP-E8-06, SP-E8-07.\nОбласть записи: docs/validation/acceptance.md, tests/Browser/Acceptance/, tests/visual/, docs/results/SP-E9-01.md.\nЭкраны: инфраструктура/контракты.\nИсточники: E9-01.\n- E9-01: 08\n\nПриёмка:\n- зелёные в CI\n\nДополнительно: Сохранять поведение донора; изменения только по принятым решениям.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E9-01.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n"
     },
     {
       "taskKey": "SP-E9-03",
@@ -4321,11 +4402,13 @@
         "SP-E0-05B",
         "SP-E0-05C",
         "SP-E0-06",
+        "SP-E0-07",
         "SP-E0-08",
         "SP-E1-01",
         "SP-E1-01B",
         "SP-E1-01C",
         "SP-E1-01D",
+        "SP-E1-01F",
         "SP-E1-02",
         "SP-E1-03",
         "SP-E1-04",
@@ -4425,7 +4508,7 @@
       ],
       "promptPath": "docs/tasks/SP-E9-04.md",
       "wave": 15,
-      "description": "Прочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: README по доменам, runbook очередей/планировщика, перечень env, чек-лист приёмки Приложения Г ТЗ\n\nЗависимости (нужен done после merge): SP-C-01, SP-E0-01, SP-E0-02, SP-E0-03, SP-E0-04, SP-E0-05, SP-E0-05B, SP-E0-05C, SP-E0-06, SP-E0-08, SP-E1-01, SP-E1-01B, SP-E1-01C, SP-E1-01D, SP-E1-02, SP-E1-03, SP-E1-04, SP-E1-05, SP-E1-06, SP-E1-07, SP-E1-08, SP-E1-09, SP-E1-10, SP-E1-11, SP-E1-12, SP-E3-01, SP-E3-02, SP-E3-03, SP-E3-03B, SP-E3-04, SP-E3-05, SP-E3-06, SP-E3-07, SP-E4-01, SP-E4-02, SP-E4-03, SP-E4-04, SP-E4-05, SP-E4-06, SP-E4-07, SP-E4-08, SP-E5-01, SP-E5-02, SP-E5-03, SP-E5-04, SP-E5-04B, SP-E5-05, SP-E5-06, SP-E5-07, SP-E5-08, SP-E6-01, SP-E6-02, SP-E6-03, SP-E6-04, SP-E6-05, SP-E6-06, SP-E6-07, SP-E6-08, SP-E6-09, SP-E7-01, SP-E7-02, SP-E7-03, SP-E7-04, SP-E7-05, SP-E8-01, SP-E8-01B, SP-E8-01C, SP-E8-01D, SP-E8-01E, SP-E8-02, SP-E8-03, SP-E8-04, SP-E8-05, SP-E8-05B, SP-E8-05C, SP-E8-06, SP-E8-07, SP-E9-01, SP-E9-02, SP-E9-03, SP-F-01, SP-F-02, SP-F-03, SP-F-04, SP-T-01, SP-T-02, SP-T-03.\nОбласть записи: README.md, docs/runbooks/, docs/validation/final.md, docs/results/SP-E9-04.md.\nЭкраны: инфраструктура/контракты.\nИсточники: E9-04.\n- E9-04: ТЗ Прил. Г\n\nПриёмка:\n- чек-лист заполнен с фактическим статусом (A/B/C/D)\n\nДополнительно: Сохранять поведение донора; изменения только по принятым решениям.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E9-04.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n"
+      "description": "Прочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: README по доменам, runbook очередей/планировщика, перечень env, чек-лист приёмки Приложения Г ТЗ\n\nЗависимости (нужен done после merge): SP-C-01, SP-E0-01, SP-E0-02, SP-E0-03, SP-E0-04, SP-E0-05, SP-E0-05B, SP-E0-05C, SP-E0-06, SP-E0-07, SP-E0-08, SP-E1-01, SP-E1-01B, SP-E1-01C, SP-E1-01D, SP-E1-01F, SP-E1-02, SP-E1-03, SP-E1-04, SP-E1-05, SP-E1-06, SP-E1-07, SP-E1-08, SP-E1-09, SP-E1-10, SP-E1-11, SP-E1-12, SP-E3-01, SP-E3-02, SP-E3-03, SP-E3-03B, SP-E3-04, SP-E3-05, SP-E3-06, SP-E3-07, SP-E4-01, SP-E4-02, SP-E4-03, SP-E4-04, SP-E4-05, SP-E4-06, SP-E4-07, SP-E4-08, SP-E5-01, SP-E5-02, SP-E5-03, SP-E5-04, SP-E5-04B, SP-E5-05, SP-E5-06, SP-E5-07, SP-E5-08, SP-E6-01, SP-E6-02, SP-E6-03, SP-E6-04, SP-E6-05, SP-E6-06, SP-E6-07, SP-E6-08, SP-E6-09, SP-E7-01, SP-E7-02, SP-E7-03, SP-E7-04, SP-E7-05, SP-E8-01, SP-E8-01B, SP-E8-01C, SP-E8-01D, SP-E8-01E, SP-E8-02, SP-E8-03, SP-E8-04, SP-E8-05, SP-E8-05B, SP-E8-05C, SP-E8-06, SP-E8-07, SP-E9-01, SP-E9-02, SP-E9-03, SP-F-01, SP-F-02, SP-F-03, SP-F-04, SP-T-01, SP-T-02, SP-T-03.\nОбласть записи: README.md, docs/runbooks/, docs/validation/final.md, docs/results/SP-E9-04.md.\nЭкраны: инфраструктура/контракты.\nИсточники: E9-04.\n- E9-04: ТЗ Прил. Г\n\nПриёмка:\n- чек-лист заполнен с фактическим статусом (A/B/C/D)\n\nДополнительно: Сохранять поведение донора; изменения только по принятым решениям.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E9-04.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n"
     }
   ],
   "excludedSourceTasks": {
