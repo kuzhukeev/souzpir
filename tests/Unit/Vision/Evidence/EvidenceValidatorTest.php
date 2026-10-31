@@ -103,7 +103,7 @@ final class EvidenceValidatorTest extends TestCase
                 ['topic' => 'address', 'value' => 'Ленина 15', 'verifiable' => true],
                 ['topic' => 'warranty', 'value' => 'гарантия 3 дня', 'verifiable' => true],
             ]];
-        $text = 'Торты: Ленина 15, гарантия 3 дня.';
+        $text = 'Торты. Ленина 15, гарантия 3 дня.';
         self::assertSame('unknown', $validator->validate($text, $profile, null, 'Торты')['status']);
         $model = ['decision' => 'confirmed', 'evidence' => $text, 'matched_facts' => ['Ленина 15', 'гарантия 3 дня']];
         self::assertSame('confirmed', $validator->validate($text, $profile, $model, 'Торты')['status']);
@@ -148,6 +148,9 @@ final class EvidenceValidatorTest extends TestCase
         self::assertFalse($exact->inText('СтальПлюс Сервис — отдельная компания.', 'СтальПлюс', $profile));
         self::assertFalse($exact->inText('стальплюс сервис — отдельная компания.', 'СтальПлюс', $profile));
         self::assertFalse($exact->inText('Другой СтальПлюс — отдельная компания.', 'СтальПлюс', $profile));
+        self::assertFalse($exact->inText('СтальПлюс — Сервис — отдельная компания.', 'СтальПлюс', $profile));
+        self::assertFalse($exact->inText('СтальПлюс, Сервис — отдельная компания.', 'СтальПлюс', $profile));
+        self::assertFalse($exact->inText('Сервис — СтальПлюс.', 'СтальПлюс', $profile));
         self::assertTrue($exact->isProfileName('ООО «СтальПлюс»', $profile));
         self::assertTrue($exact->inText('Рекомендую СтальПлюс.', 'СтальПлюс', $profile));
         self::assertSame('unknown', app(ConfirmationValidator::class)->validate('СтальПлюс Сервис — отдельная компания.', $profile, null, 'СтальПлюс')['status']);

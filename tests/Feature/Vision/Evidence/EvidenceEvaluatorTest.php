@@ -153,7 +153,7 @@ final class EvidenceEvaluatorTest extends TestCase
             ['topic' => 'address', 'value' => 'Ленина 15', 'verifiable' => true],
             ['topic' => 'warranty', 'value' => 'гарантия 3 дня', 'verifiable' => true],
         ]];
-        $text = 'Торты: Ленина 15, гарантия 3 дня.';
+        $text = 'Торты. Ленина 15, гарантия 3 дня.';
         DB::table('measurements')->where('id', $measurement)->update([
             'profile_snapshot' => json_encode($profile, JSON_THROW_ON_ERROR), 'profile_checksum' => CanonicalJson::hash($profile),
         ]);
@@ -229,10 +229,10 @@ final class EvidenceEvaluatorTest extends TestCase
         DB::table('measurements')->where('id', $measurement)->update([
             'profile_snapshot' => json_encode($profile, JSON_THROW_ON_ERROR), 'profile_checksum' => CanonicalJson::hash($profile),
         ]);
-        $text = 'СтальПлюс — ужасный поставщик. Конкурент гарантирует доставку за час.';
+        $text = 'СтальПлюс. Ужасный поставщик. Конкурент гарантирует доставку за час.';
         DB::table('measurement_answers')->where('id', $answer)->update(['answer_text' => $text]);
         $gateway->result = ['brand_mentioned' => true, 'brand_position' => 1, 'brand_recommended' => false,
-            'mention_quote' => 'СтальПлюс — ужасный поставщик', 'companies' => [
+            'mention_quote' => 'СтальПлюс. Ужасный поставщик', 'companies' => [
                 ['name' => 'СтальПлюс', 'position' => 1, 'role' => 'supplier', 'is_brand' => true],
                 ['name' => 'Конкурент', 'position' => 2, 'role' => 'supplier', 'is_brand' => false],
             ], 'tone' => 'positive', 'claims' => ['Конкурент гарантирует доставку за час'], 'suspected_errors' => [], 'confidence' => 0.9];
@@ -246,10 +246,10 @@ final class EvidenceEvaluatorTest extends TestCase
         self::assertNull($checked['mentions'][0]['role']);
         self::assertNull($checked['fact']['brand_position']);
         self::assertFalse($checked['mentions_complete']);
-        $text = "1. МеталлСевер — поставщик.\n2. СтальПлюс — поставщик.";
+        $text = "1. МеталлСевер\n2. СтальПлюс";
         DB::table('measurement_answers')->where('id', $answer)->update(['answer_text' => $text]);
         $gateway->result = ['brand_mentioned' => true, 'brand_position' => 1, 'brand_recommended' => false,
-            'mention_quote' => 'СтальПлюс — поставщик', 'companies' => [
+            'mention_quote' => 'СтальПлюс', 'companies' => [
                 ['name' => 'СтальПлюс', 'position' => 1, 'role' => 'supplier', 'is_brand' => true],
             ], 'tone' => 'neutral', 'claims' => [], 'suspected_errors' => [], 'confidence' => 0.9];
         $partial = $evaluate();
@@ -263,6 +263,9 @@ final class EvidenceEvaluatorTest extends TestCase
                 ['name' => 'СтальПлюс', 'position' => 1, 'role' => 'other', 'is_brand' => true],
             ], 'tone' => 'neutral', 'claims' => [], 'suspected_errors' => [], 'confidence' => 0.9];
         self::assertSame('unknown', $evaluate()['status']);
+        DB::table('measurement_answers')->where('id', $answer)->update(['answer_text' => 'СтальПлюс — Сервис — отдельная компания.']);
+        self::assertSame('unknown', $evaluate()['status']);
+        DB::table('measurement_answers')->where('id', $answer)->update(['answer_text' => 'СтальПлюс Сервис — отдельная компания.']);
         $gateway->result = ['brand_mentioned' => false, 'brand_position' => null, 'brand_recommended' => false,
             'mention_quote' => null, 'companies' => [
                 ['name' => 'СтальПлюс Сервис', 'position' => 1, 'role' => 'other', 'is_brand' => false],

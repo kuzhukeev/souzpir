@@ -34,8 +34,8 @@ final class ExactMentionVerifier
         foreach ($matches[0] as [$matched, $offset]) {
             $before = substr($text, 0, $offset);
             $after = substr($text, $offset + strlen($matched));
-            $left = preg_match('/(?:\A|[\n.!?;:—]\s*|(?<!\p{L})(?:рекомендую|рекомендуем|советую|советуем|выбираю|i recommend)\s+|[0-9]+[.)]\s*)\z/iu', $before);
-            $right = preg_match('/\A\s*(?:\z|[,!?;:—]|\.(?![\p{L}\p{N}]))/u', $after);
+            $left = preg_match('/(?:\A|[\n.!?]\s*|(?<!\p{L})(?:рекомендую|рекомендуем|советую|советуем|выбираю|i recommend)\s+|[0-9]+[.)]\s*)\z/iu', $before);
+            $right = preg_match('/\A\s*(?:\z|[!?](?=\s|\z)|\.(?![\p{L}\p{N}]))/u', $after);
             if ($left === 1 && $right === 1) {
                 return true;
             }
