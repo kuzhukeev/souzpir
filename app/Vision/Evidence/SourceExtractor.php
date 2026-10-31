@@ -22,11 +22,9 @@ final class SourceExtractor
             $domain = parse_url($url, PHP_URL_HOST);
             $own = collect(array_filter([$profile['brand_domain'] ?? null, ...($profile['domains'] ?? [])], 'is_string'))
                 ->contains(fn (string $expected): bool => $this->domainMatches($domain, $expected));
-            $competitor = collect($profile['competitors'] ?? [])->contains(
-                fn (mixed $item): bool => is_array($item) && is_string($item['domain'] ?? null) && $this->domainMatches($domain, $item['domain'])
-            );
+
             $sources[$hash] = ['url' => $url, 'url_hash' => $hash, 'domain' => $domain,
-                'origin' => 'text', 'source_type' => $own ? 'brand_site' : ($competitor ? 'competitor_site' : 'other'),
+                'origin' => 'text', 'source_type' => $own ? 'brand_site' : $this->classify($url, $profile),
                 'mentions_brand' => $own ? true : null, 'presence_evidence' => $own ? 'owned_domain' : 'not_checked',
                 'position' => count($sources) + 1];
         }
@@ -56,6 +54,27 @@ final class SourceExtractor
         $normalized = $scheme.'://'.$host.$suffix.($parts['path'] ?? '/');
 
         return strlen($normalized) <= 2048 ? $normalized : null;
+    }
+
+    private function classify(#[\SensitiveParameter] string $url, #[\SensitiveParameter] array $profile): string
+    {
+        $domain = parse_url($url, PHP_URL_HOST);
+        $path = parse_url($url, PHP_URL_PATH) ?: '/';
+        $rules = json_decode(file_get_contents(resource_path('prompts/Vision/Evidence/source-types.ru.json')), true, 64, JSON_THROW_ON_ERROR);
+        foreach ($rules['rules'] as $rule) {
+            $prefix = $rule['path_prefix'] ?? '/';
+            if ($this->domainMatches($domain, $rule['domain'])
+                && ($prefix === '/' || $path === $prefix || str_starts_with($path, rtrim($prefix, '/').'/'))) {
+                return $rule['type'];
+            }
+        }
+        foreach ($profile['competitors'] ?? [] as $item) {
+            if (is_array($item) && is_string($item['domain'] ?? null) && $this->domainMatches($domain, $item['domain'])) {
+                return 'competitor_site';
+            }
+        }
+
+        return 'other';
     }
 
     public function domainMatches(string $actual, string $expected): bool

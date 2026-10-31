@@ -88,6 +88,8 @@ final class EvidenceValidatorTest extends TestCase
         self::assertSame('other', $sources[1]['source_type']);
         self::assertSame('competitor_site', $sources[2]['source_type']);
         self::assertStringNotContainsString('secret', json_encode($sources, JSON_THROW_ON_ERROR));
+        $platforms = $extractor->extract('https://yandex.ru/maps/123 https://yandex.ru/mapsevil https://ozon.ru/a https://profi.ru.evil.test/', $profile);
+        self::assertSame(['maps', 'other', 'marketplace', 'other'], array_column($platforms, 'source_type'));
     }
 
     public function test_alias_matching_does_not_confuse_domains_or_generic_category(): void

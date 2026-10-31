@@ -164,6 +164,7 @@ final class EvidenceEvaluator
             'prompt' => hash_file('sha256', resource_path('prompts/Vision/Evidence/measure_parse.md')),
             'schema' => hash_file('sha256', resource_path('prompts/Vision/Evidence/measure_parse.schema.json')),
             'confirmation_prompt' => hash_file('sha256', resource_path('prompts/Vision/Evidence/mention-confirmer.ru.v1.md')),
+            'source_types' => hash_file('sha256', resource_path('prompts/Vision/Evidence/source-types.ru.json')),
             'normalizer_version' => EntityNormalizer::VERSION,
             'confirmation_version' => MentionConfirmer::VERSION,
         ];
