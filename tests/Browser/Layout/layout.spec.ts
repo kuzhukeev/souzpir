@@ -50,6 +50,8 @@ test('enabled brand switch sends selected ID to real endpoint', async ({ page })
   await page.getByRole('combobox', { name: 'Выбрать бренд' }).click();
   await page.getByRole('option', { name: 'Второй бренд' }).click();
   await expect.poll(() => payload.brand_id).toBe('two');
+  await expect(page.getByRole('alert')).toContainText('Не удалось связаться с сервером');
+  await expect(page.getByRole('combobox', { name: 'Выбрать бренд' })).toBeEnabled();
 });
 test('axe accessibility checks', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 }); await page.goto(url);
@@ -67,4 +69,15 @@ test('deep link opens parent group and highlights the correct item', async ({ pa
   await expect(page.getByRole('link', { name: 'Диалоги' })).toHaveAttribute('aria-current', 'page');
   await seller.click();
   await expect(seller).toHaveAttribute('aria-expanded', 'false');
+});
+
+
+test('brand switch reports HTTP exceptions and retains current brand', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.route('**/brand/switch', (route) => route.fulfill({ status: 500, body: 'Server error' }));
+  await page.goto(url + '?ready=1');
+  const switcher = page.getByRole('combobox', { name: 'Выбрать бренд' });
+  await switcher.click(); await page.getByRole('option', { name: 'Второй бренд' }).click();
+  await expect(page.getByRole('alert')).toContainText('Не удалось переключить бренд');
+  await expect(switcher).toBeEnabled(); await expect(switcher).toContainText('Пиротехника');
 });
