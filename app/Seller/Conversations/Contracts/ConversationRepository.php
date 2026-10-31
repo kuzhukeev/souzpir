@@ -12,7 +12,7 @@ interface ConversationRepository
 {
     public function find(TenantContext $context, string $id): ConversationState;
 
-    public function claimTurn(TenantContext $context, TurnCommand $command): TurnClaim;
+    public function claimTurn(#[\SensitiveParameter] TenantContext $context, #[\SensitiveParameter] TurnCommand $command): TurnClaim;
 
-    public function commitTurn(TurnClaim $claim, TurnOutcome $outcome): void;
+    public function commitTurn(#[\SensitiveParameter] TurnClaim $claim, #[\SensitiveParameter] TurnOutcome $outcome): void;
 }

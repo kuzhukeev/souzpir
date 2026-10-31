@@ -14,7 +14,7 @@ use LogicException;
 final class InboundRecorder
 {
     /** Store an event only. Channel adapters must use ingest for messages. */
-    public function record(TenantContext $context, string $channelId, string $externalId, array $payload): ChannelInboundEvent
+    public function record(#[\SensitiveParameter] TenantContext $context, #[\SensitiveParameter] string $channelId, #[\SensitiveParameter] string $externalId, #[\SensitiveParameter] array $payload): ChannelInboundEvent
     {
         $this->validateInput($context, $externalId);
 
@@ -27,7 +27,7 @@ final class InboundRecorder
     }
 
     /** Atomically bind one event to one client message and conversation; sender routing is the adapter's responsibility. */
-    public function ingest(TenantContext $context, string $channelId, string $externalId, array $payload, string $conversationId, string $text): Message
+    public function ingest(#[\SensitiveParameter] TenantContext $context, #[\SensitiveParameter] string $channelId, #[\SensitiveParameter] string $externalId, #[\SensitiveParameter] array $payload, #[\SensitiveParameter] string $conversationId, #[\SensitiveParameter] string $text): Message
     {
         $this->validateInput($context, $externalId);
 
@@ -49,14 +49,14 @@ final class InboundRecorder
         }));
     }
 
-    private function validateInput(TenantContext $context, string $externalId): void
+    private function validateInput(#[\SensitiveParameter] TenantContext $context, #[\SensitiveParameter] string $externalId): void
     {
         if ($context->brandId === null || $externalId === '' || mb_strlen($externalId) > 255) {
             throw new LogicException('Invalid inbound event.');
         }
     }
 
-    private function recordLocked(ChannelAccount $channel, string $externalId, array $payload): ChannelInboundEvent
+    private function recordLocked(#[\SensitiveParameter] ChannelAccount $channel, #[\SensitiveParameter] string $externalId, #[\SensitiveParameter] array $payload): ChannelInboundEvent
     {
         $existing = ChannelInboundEvent::where('channel_account_id', $channel->id)->where('external_id', $externalId)->lockForUpdate()->first();
         if ($existing) {

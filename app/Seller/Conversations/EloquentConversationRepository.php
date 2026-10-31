@@ -32,7 +32,7 @@ final class EloquentConversationRepository implements ConversationRepository
         });
     }
 
-    public function claimTurn(TenantContext $context, TurnCommand $command): TurnClaim
+    public function claimTurn(#[\SensitiveParameter] TenantContext $context, #[\SensitiveParameter] TurnCommand $command): TurnClaim
     {
         if ($context->brandId === null || ! Str::isUlid($command->conversationId) || ! Str::isUlid($command->inputMessageId) || $command->idempotencyKey === '' || mb_strlen($command->idempotencyKey) > 128 || ($command->expectedVersion !== null && $command->expectedVersion < 0)) {
             throw new LogicException('Invalid turn command.');
@@ -88,7 +88,7 @@ final class EloquentConversationRepository implements ConversationRepository
         }));
     }
 
-    public function commitTurn(TurnClaim $claim, TurnOutcome $outcome): void
+    public function commitTurn(#[\SensitiveParameter] TurnClaim $claim, #[\SensitiveParameter] TurnOutcome $outcome): void
     {
         if ($claim->status !== 'claimed' || ! is_string($claim->token()) || strlen($claim->token()) !== 64) {
             throw new LogicException('A live claim is required.');
