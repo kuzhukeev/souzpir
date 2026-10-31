@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
+use Tests\Feature\Shell\Support\Fixtures\IsolatedPlanTestDatabase;
 
 require __DIR__.'/../../../../../vendor/autoload.php';
 $app = require __DIR__.'/../../../../../bootstrap/app.php';
@@ -26,12 +27,10 @@ try {
     $directory = realpath($input['directory'] ?? '');
     $root = realpath(base_path('.local/runtime'));
     $normalize = static fn (string $path): string => strtolower(str_replace('\\', '/', rtrim($path, '/\\')));
-    $server = DB::selectOne('select current_database() as db, current_user as role, inet_server_addr() as host, inet_server_port() as port, rolsuper, rolcreatedb, rolcreaterole from pg_roles where rolname = current_user');
+    IsolatedPlanTestDatabase::assert($app, $input['database'] ?? '');
     if (! app()->environment('testing') || realpath(getcwd()) !== realpath(base_path())
         || ! is_string($directory) || ! is_string($root) || is_link($input['directory'])
         || ! str_starts_with($normalize($directory), $normalize($root).'/plan-request-race-')
-        || ! $server || $server->db !== 'souzpir_test_sp_plan_request' || $server->role !== 'sp_plan_app'
-        || $server->host !== '127.0.0.1' || (int) $server->port !== 55531 || $server->rolsuper || $server->rolcreatedb || $server->rolcreaterole
         || ! in_array($input['number'] ?? null, [1, 2], true)) {
         throw new LogicException('Isolated plan request test database and directory required.');
     }

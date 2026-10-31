@@ -8,7 +8,7 @@ const fixture = (action: string) => execFileSync(php, ['-d', 'sys_temp_dir=.loca
   cwd: process.cwd(), env: { ...process.env, APP_ENV: 'testing' }, encoding: 'utf8', timeout: 60000,
 }).trim();
 
-test.beforeAll(() => { expect(fixture('setup')).toBe('ready'); });
+test.beforeEach(() => { expect(fixture('setup')).toBe('ready'); });
 
 test('new user: fragment exchange, registration and verified acceptance', async ({ page }) => {
   const token = 'A'.repeat(64);
@@ -92,6 +92,22 @@ test('a new invitation works in the same tab after a revoked link', async ({ pag
   expect(page.url()).not.toContain(valid);
 });
 
+test('two rapid fragment navigations do not create intermediate history entries in supported browsers', async ({ page }) => {
+  const oldToken = 'D'.repeat(64);
+  const newToken = 'E'.repeat(64);
+  await page.goto(`/invitations/open#${'R'.repeat(64)}`);
+  await expect(page.getByText('Не удалось открыть приглашение. Запросите новую ссылку.')).toBeVisible();
+  const entries = await page.evaluate(([oldValue, newValue]) => {
+    location.hash = oldValue;
+    location.hash = newValue;
+    const browser = window as unknown as Window & { navigation: { entries(): { url: string }[] } };
+    return browser.navigation.entries().map(entry => entry.url);
+  }, [oldToken, newToken]);
+  expect(entries.every(url => !url.includes(oldToken) && !url.includes(newToken))).toBeTruthy();
+  await expect(page).toHaveURL(/\/invitations\/show$/);
+  await expect(page.getByText('newer-invite@example.test')).toBeVisible();
+});
+
 test('same-tab exchanges are serialized and the latest invitation wins', async ({ page }) => {
   const older = 'D'.repeat(64);
   const newer = 'E'.repeat(64);
@@ -126,11 +142,7 @@ test('same-tab exchanges are serialized and the latest invitation wins', async (
     await page.goto(`/invitations/open#${older}`);
     await committed;
     expect(await page.evaluate(() => location.hash)).toBe('');
-    await page.evaluate(token => new Promise<void>(resolve => {
-      // Registered after the app listener, so resolution observes the synchronous cleanup.
-      window.addEventListener('hashchange', () => resolve(), { once: true });
-      location.hash = token;
-    }), newer);
+    await page.evaluate(async token => { location.hash = token; await new Promise(resolve => setTimeout(resolve, 0)); }, newer);
     expect(await page.evaluate(() => location.hash)).toBe('');
     await page.waitForTimeout(250);
     expect(requests).toEqual([older]);
@@ -172,10 +184,7 @@ test('a malformed newer link clears the previous invitation grant', async ({ pag
   try {
     await page.goto(`/invitations/open#${older}`);
     await committed;
-    await page.evaluate(token => new Promise<void>(resolve => {
-      window.addEventListener('hashchange', () => resolve(), { once: true });
-      location.hash = token;
-    }), invalid);
+    await page.evaluate(async token => { location.hash = token; await new Promise(resolve => setTimeout(resolve, 0)); }, invalid);
     expect(await page.evaluate(() => location.hash)).toBe('');
   } finally {
     releaseFirst();
@@ -210,10 +219,7 @@ test('a lost exchange response does not start a newer potentially racing exchang
   try {
     await page.goto(`/invitations/open#${older}`);
     await committed;
-    await page.evaluate(token => new Promise<void>(resolve => {
-      window.addEventListener('hashchange', () => resolve(), { once: true });
-      location.hash = token;
-    }), newer);
+    await page.evaluate(async token => { location.hash = token; await new Promise(resolve => setTimeout(resolve, 0)); }, newer);
     expect(await page.evaluate(() => location.hash)).toBe('');
   } finally {
     releaseFirst();

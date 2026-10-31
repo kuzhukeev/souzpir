@@ -5,6 +5,7 @@ namespace App\Shell\Auth\Http;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
 use App\Shell\Auth\AuthSessionRegistry;
+use App\Shell\Auth\InvitationExchangeGrants;
 use App\Shell\Auth\VerificationRequests;
 use App\Tenancy\Cabinet;
 use App\Tenancy\TenantContext;
@@ -19,7 +20,7 @@ final class VerificationController
     public function notice(Request $request): Response|RedirectResponse
     {
         if ($request->user()->hasVerifiedEmail()) {
-            return redirect()->route(is_string($request->session()->get('auth.invitation_id')) ? 'invitation.show' : 'auth.ready');
+            return redirect()->route(app(InvitationExchangeGrants::class)->invitationId($request) ? 'invitation.show' : 'auth.ready');
         }
 
         return Inertia::render('Shell/Auth/VerifyEmail', ['email' => $request->user()->email, 'mailConfigured' => app(VerificationRequests::class)->available(), 'status' => session('status'), 'idempotencyKey' => bin2hex(random_bytes(24))]);
@@ -28,7 +29,7 @@ final class VerificationController
     public function confirm(EmailVerificationRequest $request): Response|RedirectResponse
     {
         if ($request->user()->hasVerifiedEmail()) {
-            return redirect()->route(is_string($request->session()->get('auth.invitation_id')) ? 'invitation.show' : 'auth.ready');
+            return redirect()->route(app(InvitationExchangeGrants::class)->invitationId($request) ? 'invitation.show' : 'auth.ready');
         }
 
         return Inertia::render('Shell/Auth/VerifyEmail', ['email' => $request->user()->email, 'confirmationUrl' => $request->fullUrl(), 'mailConfigured' => (bool) config('features.E1-01.defaults.verification_enabled'), 'status' => session('status')]);
@@ -42,7 +43,7 @@ final class VerificationController
                 app(AuditWriter::class)->record(new TenantContext(app(Cabinet::class)->organizationId(), actorId: $request->user()->id), new AuditEntry('account.email.verified', 'user', $request->user()->id));
             }
         });
-        $invitationId = $request->session()->get('auth.invitation_id');
+        $invitationId = app(InvitationExchangeGrants::class)->invitationId($request);
 
         return is_string($invitationId) ? redirect()->route('invitation.show') : redirect()->route('auth.ready');
     }
@@ -55,7 +56,7 @@ final class VerificationController
         }
         $status = $verification->request($request, $key);
         if ($status === 'verified') {
-            return redirect()->route(is_string($request->session()->get('auth.invitation_id')) ? 'invitation.show' : 'auth.ready');
+            return redirect()->route(app(InvitationExchangeGrants::class)->invitationId($request) ? 'invitation.show' : 'auth.ready');
         }
 
         return redirect()->route('verification.notice')->with('status', VerificationRequests::message($status));

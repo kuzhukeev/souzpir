@@ -30,6 +30,7 @@ use Illuminate\Support\Str;
 use RuntimeException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\Process\Process;
+use Tests\Feature\Shell\Support\Fixtures\IsolatedPlanTestDatabase;
 
 final class PlanRequestsTest extends SupportTestCase
 {
@@ -37,13 +38,7 @@ final class PlanRequestsTest extends SupportTestCase
     {
         $app = parent::createApplication();
         $app->make(Kernel::class)->bootstrap();
-        $connection = $app['db']->connection();
-        $server = $connection->selectOne('select current_database() as db, current_user as role, inet_server_addr() as host, inet_server_port() as port, rolsuper, rolcreatedb, rolcreaterole from pg_roles where rolname = current_user');
-        if (! $app->environment('testing') || $connection->getDatabaseName() !== 'souzpir_test_sp_plan_request'
-            || ! $server || $server->db !== 'souzpir_test_sp_plan_request' || $server->role !== 'sp_plan_app'
-            || $server->host !== '127.0.0.1' || (int) $server->port !== 55531 || $server->rolsuper || $server->rolcreatedb || $server->rolcreaterole) {
-            throw new RuntimeException('Refusing plan request tests outside their isolated database.');
-        }
+        IsolatedPlanTestDatabase::assert($app);
 
         return $app;
     }
@@ -263,6 +258,45 @@ final class PlanRequestsTest extends SupportTestCase
         self::assertSame(1, DB::table('outbox_events')->where('brand_id', $brand->id)->count());
     }
 
+    public function test_database_guard_rejects_mismatched_test_preview_and_worker_database(): void
+    {
+        $testDatabase = config('runtime.test_database');
+        $previewDatabase = config('runtime.preview_database');
+        try {
+            config(['runtime.test_database' => null]);
+            try {
+                IsolatedPlanTestDatabase::assert(app());
+                self::fail('Missing test database must be rejected.');
+            } catch (\LogicException) {
+                self::assertTrue(true);
+            }
+            config(['runtime.test_database' => 'souzpir_test_different']);
+            try {
+                IsolatedPlanTestDatabase::assert(app());
+                self::fail('Unexpected test database must be rejected.');
+            } catch (\LogicException) {
+                self::assertTrue(true);
+            }
+            config(['runtime.test_database' => $testDatabase, 'runtime.preview_database' => $testDatabase]);
+            try {
+                IsolatedPlanTestDatabase::assert(app());
+                self::fail('The preview database must never be accepted.');
+            } catch (\LogicException) {
+                self::assertTrue(true);
+            }
+            config(['runtime.preview_database' => $previewDatabase]);
+            try {
+                IsolatedPlanTestDatabase::assert(app(), 'souzpir_test_different');
+                self::fail('The worker database must match the parent.');
+            } catch (\LogicException) {
+                self::assertTrue(true);
+            }
+            IsolatedPlanTestDatabase::assert(app(), $testDatabase);
+        } finally {
+            config(['runtime.test_database' => $testDatabase, 'runtime.preview_database' => $previewDatabase]);
+        }
+    }
+
     public function test_two_processes_with_distinct_sessions_create_one_request_and_one_fake_delivery(): void
     {
         [$owner, $org, $brand, , $member] = $this->cabinet();
@@ -341,7 +375,7 @@ final class PlanRequestsTest extends SupportTestCase
 
     private function raceWorker(string $directory, array $input): Process
     {
-        $connection = config('database.connections.pgsql');
+        $connection = DB::connection()->getConfig();
         $environment = ['APP_ENV' => 'testing', 'APP_KEY' => config('app.key'), 'CABINET_ORGANIZATION_ID' => $input['organization'],
             'DB_URL' => '', 'DB_CONNECTION' => 'pgsql', 'DB_HOST' => $connection['host'], 'DB_PORT' => (string) $connection['port'],
             'DB_DATABASE' => DB::connection()->getDatabaseName(), 'DB_USERNAME' => $connection['username'], 'DB_PASSWORD' => $connection['password'] ?? '',
@@ -352,7 +386,7 @@ final class PlanRequestsTest extends SupportTestCase
             'APP_PACKAGES_CACHE' => $directory.'/cache/packages.php', 'VIEW_COMPILED_PATH' => $directory.'/storage/framework/views'];
 
         return new Process([PHP_BINARY, '-d', 'sys_temp_dir='.$directory, __DIR__.'/Fixtures/plan-request-race-worker.php'], base_path(), $environment,
-            json_encode($input + ['directory' => $directory], JSON_THROW_ON_ERROR), 60);
+            json_encode($input + ['directory' => $directory, 'database' => DB::connection()->getDatabaseName()], JSON_THROW_ON_ERROR), 60);
     }
 
     private function removeRaceFixture(string $directory): void

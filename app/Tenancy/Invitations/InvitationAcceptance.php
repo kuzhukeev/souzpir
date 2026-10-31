@@ -5,6 +5,7 @@ namespace App\Tenancy\Invitations;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\User;
+use App\Shell\Auth\InvitationExchangeGrants;
 use App\Shell\Team\Models\Invitation;
 use App\Tenancy\BrandGrants;
 use App\Tenancy\Cabinet;
@@ -46,27 +47,30 @@ final class InvitationAcceptance implements AcceptsInvitations
     /** Session grant can only originate from the bearer exchange. */
     public function acceptSession(User $user, #[\SensitiveParameter] Request $request): Membership
     {
-        return $this->acceptIdentifier($user, 'id', $this->sessionInvitationId($request));
+        return $this->acceptIdentifier($user, 'id', '', $request);
     }
 
-    private function sessionInvitationId(#[\SensitiveParameter] Request $request): string
+    private function sessionInvitationId(#[\SensitiveParameter] Request $request, bool $lock = false): string
     {
         abort_unless($request->hasSession(), 404);
-        $id = $request->session()->get('auth.invitation_id');
+        $id = app(InvitationExchangeGrants::class)->invitationId($request, $lock);
         abort_unless(is_string($id) && preg_match('/^[0-9A-HJKMNP-TV-Z]{26}$/iD', $id), 404);
 
         return $id;
     }
 
-    private function acceptIdentifier(User $user, string $column, string $identifier): Membership
+    private function acceptIdentifier(User $user, string $column, string $identifier, ?Request $request = null): Membership
     {
         abort_unless($user->exists && $user->hasVerifiedEmail(), 403);
 
-        return DB::transaction(function () use ($user, $column, $identifier): Membership {
+        return DB::transaction(function () use ($user, $column, $identifier, $request): Membership {
             $organizationId = app(Cabinet::class)->organizationId();
             // All session-sensitive flows lock user before organization, invitation and membership.
             $actor = User::query()->whereKey($user->id)->lockForUpdate()->first();
             abort_unless($actor && $actor->hasVerifiedEmail(), 403);
+            if ($request) {
+                $identifier = $this->sessionInvitationId($request, true);
+            }
             $organization = Organization::query()->whereKey($organizationId)->where('status', 'active')->lockForUpdate()->first();
             abort_unless($organization, 404);
             $invitation = $this->find($actor, $column, $identifier, true);
@@ -104,6 +108,9 @@ final class InvitationAcceptance implements AcceptsInvitations
             ->where($column, $identifier)
             ->where('email', mb_strtolower(trim($user->email)))
             ->whereNull('accepted_at')->whereNull('revoked_at')->where('expires_at', '>', now());
+        if ($column === 'token_hash') {
+            $query->whereNull('exchanged_at');
+        }
         $invitation = ($lock ? $query->lockForUpdate() : $query)->first();
         abort_unless($invitation, 404);
         try {

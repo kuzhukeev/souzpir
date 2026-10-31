@@ -126,6 +126,13 @@
         "users"
       ]
     },
+    "invitation_exchange_sessions": {
+      "owner": "SP-E1-01",
+      "tenant": "global",
+      "parents": [
+        "invitations"
+      ]
+    },
     "audit_logs": {
       "owner": "SP-E0-04",
       "tenant": "organization",
@@ -475,6 +482,41 @@
       "parents": [
         "seller_sim_runs"
       ]
+    },
+    "seller_notification_rules": {
+      "owner": "SP-E6-07",
+      "tenant": "brand",
+      "parents": ["brands"]
+    },
+    "seller_digest_preferences": {
+      "owner": "SP-E6-07",
+      "tenant": "brand",
+      "parents": ["brands", "users"]
+    },
+    "seller_digest_batches": {
+      "owner": "SP-E6-07",
+      "tenant": "brand",
+      "parents": ["brands", "users"]
+    },
+    "seller_digest_items": {
+      "owner": "SP-E6-07",
+      "tenant": "brand",
+      "parents": ["brands", "users", "outbox_events", "seller_digest_batches"]
+    },
+    "seller_digest_cabinet_notifications": {
+      "owner": "SP-E6-07",
+      "tenant": "brand",
+      "parents": ["brands", "users", "seller_digest_batches"]
+    },
+    "seller_test_deliveries": {
+      "owner": "SP-E6-07",
+      "tenant": "brand",
+      "parents": ["brands", "users"]
+    },
+    "seller_test_cabinet_notifications": {
+      "owner": "SP-E6-07",
+      "tenant": "brand",
+      "parents": ["brands", "users", "seller_test_deliveries"]
     },
     "widget_settings": {
       "owner": "SP-E5-02",

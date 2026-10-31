@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
 use App\Shell\Auth\AuthSessionRegistry;
+use App\Shell\Auth\InvitationExchangeGrants;
 use App\Shell\Auth\VerificationRequests;
 use App\Shell\Team\Models\Invitation;
 use App\Tenancy\Cabinet;
@@ -27,7 +28,7 @@ final class InvitationController
 {
     private function invite(Request $request): Invitation
     {
-        $id = $request->session()->get('auth.invitation_id');
+        $id = app(InvitationExchangeGrants::class)->invitationId($request);
         abort_unless(is_string($id) && preg_match('/^[0-9A-HJKMNP-TV-Z]{26}$/iD', $id), 404);
         $org = app(Cabinet::class)->organizationId();
         abort_unless(Organization::whereKey($org)->where('status', 'active')->exists(), 404);
@@ -36,9 +37,11 @@ final class InvitationController
             ->whereNull('accepted_at')->whereNull('revoked_at')->where('expires_at', '>', now())->firstOrFail();
     }
 
-    public function open(): HttpResponse
+    public function open(Request $request): HttpResponse
     {
         $nonce = base64_encode(random_bytes(18));
+        $begin = fn () => app(InvitationExchangeGrants::class)->beginDocument($request);
+        $epoch = json_encode($request->user() ? app(AuthSessionRegistry::class)->withinActive($request, $begin) : $begin(), JSON_THROW_ON_ERROR);
         $csrf = json_encode(csrf_token(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_THROW_ON_ERROR);
         $html = <<<'HTML'
 <!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Приглашение</title></head><body><main><p id="status">Проверяем приглашение…</p><noscript>Для открытия приглашения включите JavaScript.</noscript></main><script nonce="__NONCE__">
@@ -48,10 +51,10 @@ final class InvitationController
     let generation=0;
     let queue=Promise.resolve();
     let uncertain=false;
-    function capture(){
-        const token=location.hash.slice(1);
+    function capture(provided){
+        const token=typeof provided==='string'?provided:location.hash.slice(1);
         if(!token)return;
-        history.replaceState(null,'',location.pathname);
+        if(typeof provided!=='string')history.replaceState(null,'',location.pathname);
         const version=++generation;
         status.textContent='Проверяем приглашение…';
         // Wait for each server response before starting the next exchange: both
@@ -64,7 +67,7 @@ final class InvitationController
             const candidate=/^[A-Za-z0-9]{64}$/.test(token)?token:'';
             let response;
             try{
-                response=await fetch('/invitations/exchange',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','Accept':'application/json','X-CSRF-TOKEN':__CSRF_VALUE__},body:JSON.stringify({token:candidate}),redirect:'error',cache:'no-store'});
+                response=await fetch('/invitations/exchange',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','Accept':'application/json','X-CSRF-TOKEN':__CSRF_VALUE__},body:JSON.stringify({token:candidate,epoch:__EPOCH_VALUE__,sequence:version}),redirect:'error',cache:'no-store'});
             }catch{
                 // A failed transport can hide a server commit that is still in flight.
                 // Do not issue another exchange from this page in that case.
@@ -81,13 +84,20 @@ final class InvitationController
             if(version===generation)status.textContent=failed;
         });
     }
-    window.addEventListener('hashchange',capture);
+    if(window.navigation)navigation.addEventListener('navigate',event=>{
+        if(!event.hashChange||!event.cancelable||event.navigationType==='traverse')return;
+        const destination=new URL(event.destination.url);
+        if(destination.origin!==location.origin||destination.pathname!==location.pathname||!destination.hash)return;
+        event.preventDefault();
+        capture(destination.hash.slice(1));
+    });
+    window.addEventListener('hashchange',()=>capture());
     if(location.hash)capture();else status.textContent=failed;
 })();
 </script></body></html>
 HTML;
 
-        return response(str_replace(['__NONCE__', '__CSRF_VALUE__'], [$nonce, $csrf], $html))->header('Cache-Control', 'no-store, private')
+        return response(str_replace(['__NONCE__', '__CSRF_VALUE__', '__EPOCH_VALUE__'], [$nonce, $csrf, $epoch], $html))->header('Cache-Control', 'no-store, private')
             ->header('Referrer-Policy', 'no-referrer')->header('Content-Security-Policy', "default-src 'none'; script-src 'nonce-$nonce'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'")
             ->header('X-Content-Type-Options', 'nosniff');
     }
@@ -96,18 +106,14 @@ HTML;
     public function exchange(#[\SensitiveParameter] Request $request): JsonResponse
     {
         try {
-            $request->session()->forget('auth.invitation_id');
             $hash = $request->attributes->get('invitation.exchange_hash');
-            if (! is_string($hash) || ! preg_match('/^[a-f0-9]{64}$/D', $hash)) {
+            $epoch = $request->attributes->get('invitation.document_epoch');
+            $sequence = $request->attributes->get('invitation.sequence');
+            $exchange = fn () => app(InvitationExchangeGrants::class)->exchange($request, $hash, $epoch, $sequence);
+            $ok = $request->user() ? app(AuthSessionRegistry::class)->withinActive($request, $exchange) : $exchange();
+            if (! $ok) {
                 return response()->json(['ok' => false], 404);
             }
-            $org = app(Cabinet::class)->organizationId();
-            $invite = Invitation::withoutGlobalScopes()->where('organization_id', $org)->where('token_hash', $hash)
-                ->whereNull('accepted_at')->whereNull('revoked_at')->where('expires_at', '>', now())->first();
-            if (! $invite || ! Organization::whereKey($org)->where('status', 'active')->exists()) {
-                return response()->json(['ok' => false], 404);
-            }
-            $request->session()->put('auth.invitation_id', $invite->id);
             if ($request->user()) {
                 app(InvitationAcceptance::class)->inspectSession($request->user(), $request);
             }
@@ -115,8 +121,6 @@ HTML;
 
             return response()->json(['ok' => true]);
         } catch (Throwable) {
-            $request->session()->forget('auth.invitation_id');
-
             return response()->json(['ok' => false], 404);
         } finally {
             $request->request->remove('token');
@@ -148,6 +152,7 @@ HTML;
         }
         $data = $validator->validated();
         $user = DB::transaction(function () use ($invite, $data, $acceptance, $request): User {
+            abort_unless(app(InvitationExchangeGrants::class)->invitationId($request, true) === $invite->id, 404);
             abort_unless(Organization::whereKey($invite->organization_id)->where('status', 'active')->lockForUpdate()->first(), 404);
             $locked = Invitation::withoutGlobalScopes()->whereKey($invite->id)->lockForUpdate()->firstOrFail();
             abort_unless($locked->accepted_at === null && $locked->revoked_at === null && $locked->expires_at->isFuture(), 404);
@@ -180,8 +185,8 @@ HTML;
         app(AuthSessionRegistry::class)->withinActive($request, function () use ($acceptance, $request): void {
             $membership = $acceptance->acceptSession($request->user(), $request);
             app(AuditWriter::class)->record(new TenantContext($membership->organization_id, actorId: $request->user()->id), new AuditEntry('account.invitation_accepted', 'membership', $membership->id));
+            app(InvitationExchangeGrants::class)->revoke($request);
         });
-        $request->session()->forget('auth.invitation_id');
 
         return redirect()->route('auth.ready');
     }
