@@ -18,6 +18,22 @@ use Tests\Feature\Tenancy\TenancyTestCase;
 
 final class SecretSecurityTest extends TenancyTestCase
 {
+    protected function beforeRefreshingDatabase(): void
+    {
+        $root = str_replace('\\', '/', dirname(__DIR__, 4));
+        $testDatabase = config('runtime.test_database');
+        $state = DB::selectOne('select current_database() as db, inet_server_addr() as host, inet_server_port() as port, rolsuper, rolcreatedb, rolcreaterole from pg_roles where rolname = current_user');
+        if (! app()->environment('testing') || strtolower(str_replace('\\', '/', base_path())) !== strtolower($root)
+            || ! is_string($testDatabase) || ! preg_match('/(?:^|_)test(?:_|$)/', $testDatabase)
+            || $testDatabase === config('runtime.preview_database') || $state->db !== $testDatabase
+            || (! str_starts_with((string) $state->host, '127.') && $state->host !== '::1')
+            || (int) $state->port !== (int) config('database.connections.pgsql.port')
+            || $state->rolsuper || $state->rolcreatedb || $state->rolcreaterole
+            || ! str_starts_with(strtolower(str_replace('\\', '/', storage_path())), strtolower($root.'/.local/runtime/testing/'))) {
+            throw new RuntimeException('Refusing to migrate outside an isolated test database.');
+        }
+    }
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -98,6 +114,20 @@ final class SecretSecurityTest extends TenancyTestCase
         $this->withServerVariables(['HTTP_HOST' => 'localhost', 'REMOTE_ADDR' => '203.0.113.12', 'SERVER_ADDR' => '127.0.0.1']);
         $this->withHeaders(['X-Forwarded-Proto' => 'https'])->post('/integrations/api/keys', ['name' => 'Spoof', 'abilities' => ['read']])->assertForbidden();
         $this->assertDatabaseCount('personal_access_tokens', 0);
+    }
+
+    public function test_real_middleware_denies_forged_forge_https_at_all_secret_routes(): void
+    {
+        [$owner, , $brand] = $this->cabinet();
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        config(['trustedproxy.proxies' => null]);
+        $this->withServerVariables(['HTTP_HOST' => 'attacker.on-forge.com', 'REMOTE_ADDR' => '203.0.113.22', 'SERVER_ADDR' => '192.0.2.33', 'HTTPS' => 'off']);
+        $this->withHeaders(['X-Forwarded-Proto' => 'https']);
+        $this->post('/integrations/api/keys', ['name' => 'No', 'abilities' => ['read']])->assertForbidden();
+        $this->post('/integrations/api/webhooks', ['url' => 'https://public.org/hook', 'events' => ['seller.lead.created']])->assertForbidden();
+        $this->postJson('/integrations/api/secrets', ['type' => 'api_key'])->assertForbidden();
+        $this->assertDatabaseCount('personal_access_tokens', 0);
+        $this->assertDatabaseCount('webhooks', 0);
     }
 
     public function test_loopback_http_is_disabled_in_production(): void
