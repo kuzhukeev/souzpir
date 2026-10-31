@@ -6,6 +6,7 @@ declare module 'ziggy-js' {
     "api.v1.brand.show": [],
     "brand.switch": [],
     "notifications.settings.update": [],
+    "ai.recovery.calls.index": [],
     "login": [],
     "login.store": [],
     "register": [],

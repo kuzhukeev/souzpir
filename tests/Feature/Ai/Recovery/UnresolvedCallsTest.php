@@ -2,14 +2,12 @@
 
 namespace Tests\Feature\Ai\Recovery;
 
-use App\Ai\Http\UnresolvedCallsController;
 use App\Models\Brand;
 use App\Models\Organization;
 use App\Shell\Auth\SessionBrandSelection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Tests\Feature\Tenancy\TenancyTestCase;
 
@@ -20,9 +18,6 @@ final class UnresolvedCallsTest extends TenancyTestCase
         parent::setUp();
         Http::preventStrayRequests();
         Http::fake();
-        // Production registration is owned by the integrator; exercise the same middleware here.
-        Route::middleware(['web', 'auth', 'verified', 'tenant', 'auth.version', 'auth.nostore'])
-            ->get('/ai/recovery/calls', UnresolvedCallsController::class)->name('ai.recovery.calls.index');
     }
 
     private function budget(Organization $organization, Brand $brand): string
