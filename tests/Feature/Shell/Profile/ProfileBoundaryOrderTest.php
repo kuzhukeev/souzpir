@@ -10,6 +10,7 @@ use App\Tenancy\TokenApi\BearerBoundary;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\Middleware\ValidatePostSize;
+use Inertia\Middleware\EnsureDeferredCallbacksRun;
 use Tests\TestCase;
 
 final class ProfileBoundaryOrderTest extends TestCase
@@ -18,7 +19,7 @@ final class ProfileBoundaryOrderTest extends TestCase
     {
         $this->app->boot();
         $actual = $this->app->make(Kernel::class)->getGlobalMiddleware();
-        $expected = [SupportRequestBoundary::class, WebhookConfigurationBoundary::class, BearerBoundary::class,
+        $expected = [SupportRequestBoundary::class, EnsureDeferredCallbacksRun::class, WebhookConfigurationBoundary::class, BearerBoundary::class,
             MfaCodeBoundary::class, InvitationSecretBoundary::class];
         self::assertSame($expected, array_slice($actual, 0, count($expected)));
         self::assertContains(TrustProxies::class, $actual);
