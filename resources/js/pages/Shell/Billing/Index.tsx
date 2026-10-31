@@ -3,6 +3,7 @@ import { BarChart3, Crown, FileText, Info } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { Button, EmptyState, Input } from '@/components/ui';
 import { BillingPage, Notice, panel } from '@/features/Shell/Billing/Shared';
+import { PlanRequests } from '@/features/Shell/Billing/PlanRequests';
 import { Errors, focus } from '@/features/Shell/Organizations/Shared';
 import type { BillingLimit, BillingProps } from '@/types/Shell/Billing';
 
@@ -24,24 +25,18 @@ function LimitRow({ limit }: { limit: BillingLimit }) {
   </li>;
 }
 
-export default function BillingIndex({ tab, currentPlan, limits, usage, plans, payer, canManage, requestEnabled, period }: BillingProps) {
+export default function BillingIndex({ tab, currentPlan, limits, usage, plans, payer, canManage, requestEnabled, submissionKey, submissionScope, period }: BillingProps) {
   const form = useForm(payer ?? { legal_name: '', inn: '', kpp: '', address: '', email: '' });
   const [from, setFrom] = useState(period.from);
   const [to, setTo] = useState(period.to);
   const [loadingUsage, setLoadingUsage] = useState(false);
   const [notice, setNotice] = useState('');
   const [failure, setFailure] = useState('');
-  const [pendingPlan, setPendingPlan] = useState<string | null>(null);
   const [title, subtitle] = titles[tab];
   const transport = () => { setFailure('Не удалось связаться с сервером. Попробуйте ещё раз.'); return false; };
   const save = (event: FormEvent) => {
     event.preventDefault(); setNotice(''); setFailure('');
     form.put('/billing/payer', { preserveScroll: true, onSuccess: () => setNotice('Реквизиты сохранены.'), onNetworkError: transport, onHttpException: transport });
-  };
-  const requestPlan = (planId: string) => {
-    if (pendingPlan || !requestEnabled) return;
-    setFailure(''); setNotice('');
-    router.post('/billing/plans/request', { plan_id: planId }, { preserveScroll: true, onStart: () => setPendingPlan(planId), onFinish: () => setPendingPlan(null), onSuccess: () => setNotice('Заявка создана.'), onError: (errors) => setFailure(Object.values(errors).join(' ') || 'Не удалось создать заявку.'), onNetworkError: transport, onHttpException: transport });
   };
   return <><Head title={title} /><BillingPage active={tab} canManage={canManage} title={title} subtitle={subtitle}>
     {failure && <div role="alert" className="mb-5 rounded-xl bg-(--color-danger-soft) p-4 text-sm text-(--color-danger-ink)">{failure}</div>}
@@ -52,7 +47,7 @@ export default function BillingIndex({ tab, currentPlan, limits, usage, plans, p
       <Notice><Info className="mr-2 inline-block align-middle" size={18} aria-hidden="true" /> Если значение не настроено, лимит указан как «не задано».</Notice>
     </div>}
     {tab === 'usage' && <section className={panel}><h2 className="text-xl font-bold">Использование</h2><p className="mt-1 text-sm text-(--color-ink-muted)">Данные по текущему бренду и доступным источникам</p><form className="mt-5 flex flex-wrap items-end gap-3" onSubmit={(event) => { event.preventDefault(); setFailure(''); router.get('/billing/usage', { from, to }, { preserveState: true, preserveScroll: true, onStart: () => setLoadingUsage(true), onFinish: () => setLoadingUsage(false), onError: (errors) => setFailure(Object.values(errors).join(' ') || 'Не удалось загрузить данные.'), onNetworkError: transport, onHttpException: transport }); }}><Input type="date" label="С" value={from} onChange={(event) => setFrom(event.target.value)} required /><Input type="date" label="По" value={to} onChange={(event) => setTo(event.target.value)} required /><Button className="cursor-pointer" type="submit" loading={loadingUsage}>Показать</Button></form><div aria-busy={loadingUsage}>{usage.length ? <dl className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{usage.map((item) => <div key={item.key} className="rounded-xl border border-(--color-border) p-4"><dt className="text-sm text-(--color-ink-muted)">{item.label}</dt><dd className="mt-2 text-2xl font-bold">{item.status === 'ready' && item.value !== null ? item.value.toLocaleString('ru-RU') : 'Недоступно'}</dd></div>)}</dl> : <EmptyState title="Нет данных об использовании" description="Данные появятся, когда будут доступны источники." />}</div></section>}
-    {tab === 'plans' && <><Notice>{requestEnabled ? 'Автоматическая смена тарифа появится позже. Вы можете создать заявку.' : 'Автоматическая смена тарифа и заявка в поддержку пока недоступны.'}</Notice>{plans.length ? <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">{plans.map((plan) => <article key={plan.id} className={`${panel} flex flex-col`}><span className="mb-4 grid size-12 place-items-center rounded-full bg-(--color-success-soft) text-(--color-success)"><Crown size={23} aria-hidden="true" /></span><h2 className="break-words text-xl font-bold">{plan.name}</h2><p className="mt-3 flex-1 text-sm text-(--color-ink-muted)">Условия тарифа уточнит поддержка.</p><Button className="mt-6 w-full cursor-pointer" disabled={!canManage || !requestEnabled || pendingPlan !== null} loading={pendingPlan === plan.id} onClick={() => requestPlan(plan.id)}>{requestEnabled ? 'Оставить заявку' : 'Заявка скоро появится'}</Button></article>)}</div> : <section className={panel}><EmptyState title="Тарифы пока не добавлены" description="Когда планы будут настроены, они появятся здесь." /></section>}</>}
+    {tab === 'plans' && <PlanRequests key={`${submissionScope ?? ''}:${requestEnabled}`} plans={plans} canManage={canManage} enabled={requestEnabled} scope={submissionScope} initialKey={submissionKey} />}
     {tab === 'invoices' && <><Notice>Раздел появится позже. Здесь будут счета и документы по оплате.</Notice><section className={panel}><h2 className="text-xl font-bold">Счета <span className="ml-2 rounded-full bg-(--color-surface-muted) px-3 py-1 text-sm">Скоро</span></h2><div className="py-12 text-center"><FileText aria-hidden="true" size={50} className="mx-auto text-(--color-ink-muted)" /><p className="mt-4 text-lg font-bold">Счета появятся здесь</p><p className="mt-2 text-sm text-(--color-ink-muted)">Функция скоро будет доступна</p></div></section></>}
     {tab === 'payer' && <><Notice>Реквизиты можно сохранить сейчас. Выставление счетов появится позже.</Notice><section className={panel}><h2 className="mb-5 text-xl font-bold">Данные плательщика</h2><Errors errors={form.errors} transport="" /><form onSubmit={save} className="space-y-5"><div className="grid gap-4 sm:grid-cols-2"><Input label="Юридическое название" value={form.data.legal_name} onChange={(event) => form.setData('legal_name', event.target.value)} error={form.errors.legal_name} disabled={!canManage} /><Input label="ИНН" inputMode="numeric" value={form.data.inn} onChange={(event) => form.setData('inn', event.target.value)} error={form.errors.inn} disabled={!canManage} /><Input label="КПП" inputMode="numeric" value={form.data.kpp} onChange={(event) => form.setData('kpp', event.target.value)} error={form.errors.kpp} disabled={!canManage} /><Input label="Юридический адрес" value={form.data.address} onChange={(event) => form.setData('address', event.target.value)} error={form.errors.address} disabled={!canManage} /><div className="sm:col-span-2"><Input label="Почта для счетов" type="email" value={form.data.email} onChange={(event) => form.setData('email', event.target.value)} error={form.errors.email} disabled={!canManage} /></div></div>{canManage && <Button className="cursor-pointer" type="submit" loading={form.processing}>Сохранить реквизиты</Button>}</form></section></>}
   </BillingPage></>;

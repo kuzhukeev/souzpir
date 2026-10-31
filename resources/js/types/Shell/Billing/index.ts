@@ -12,5 +12,7 @@ export type BillingProps = {
   payer: Payer | null;
   canManage: boolean;
   requestEnabled: boolean;
+  submissionKey?: string | null;
+  submissionScope?: string | null;
   period: { from: string; to: string };
 };
