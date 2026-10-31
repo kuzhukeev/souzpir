@@ -18,6 +18,7 @@
 - Manifests/lockfiles, bootstrap/loaders и generated shared DTO имеют одного владельца. Модульные routes, migrations, config, i18n и tests подключаются по соглашению SP-C-01/SP-E0-01.
 - Отдельные БД/схемы, Redis prefixes, очереди, storage/cache, cookies и порты на worktree. Тесты не используют рабочую БД или живые отправки.
 - Claim не истекает автоматически. Не восстанавливать чужой claim без подтвержденной остановки исполнителя. Token только в игнорируемом локальном файле, не в Git/карточке/чате.
+- Если sandbox разрешает запись в проект, но запрещает запись в `.git`, команды `scripts/task.py claim`, `git worktree`, commit и merge выполняются через `exec_command` с `sandbox_permissions: "require_escalated"`. Не менять ACL и не обходить правила sandbox. При неудачном claim не перезаписывать локальную запись: сначала проверить статус очереди, ownership, наличие ветки/worktree; запись released без токена архивирует интегратор.
 - submit → review; review удерживает ownership. Интегратор проверяет diff/тесты, делает обычный merge/FF и mark-merged. Исполнитель не ставит done и не меняет main. Squash не используется базовым workflow.
 
 ## Приоритет и ограничения
