@@ -41,14 +41,17 @@ final class SessionController
 
             return redirect()->route('mfa.challenge');
         }
-        $this->complete($request, $user, (bool) ($data['remember'] ?? false));
+        $this->complete($request, $user, (bool) ($data['remember'] ?? false), $user->auth_version);
 
         return redirect()->intended(route('auth.ready'));
     }
 
-    public function complete(Request $request, User $user, bool $remember): void
+    public function complete(Request $request, User $user, bool $remember, ?int $expectedVersion = null): void
     {
         $user->refresh();
+        if ($expectedVersion !== null && $user->auth_version !== $expectedVersion) {
+            throw ValidationException::withMessages(['email' => 'Данные авторизации изменились. Войдите заново.']);
+        }
         Auth::login($user, $remember);
         $request->session()->regenerate();
         $request->session()->forget('auth.mfa_pending');

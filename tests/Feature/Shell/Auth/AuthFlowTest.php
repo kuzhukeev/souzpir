@@ -6,6 +6,7 @@ use App\Models\Brand;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\User;
+use App\Shell\Auth\Http\SessionController;
 use App\Shell\Auth\Totp;
 use App\Shell\Team\Models\Invitation;
 use App\Tenancy\TenantContext;
@@ -13,11 +14,13 @@ use App\Tenancy\TenantContextRunner;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 final class AuthFlowTest extends TestCase
@@ -44,6 +47,22 @@ final class AuthFlowTest extends TestCase
         $org->forceFill(['owner_user_id' => $user->id])->save();
 
         return [$org, $user->refresh(), $brand, $member];
+    }
+
+    public function test_login_completion_rejects_revoked_authorization_version(): void
+    {
+        [, $user] = $this->fixture();
+        $expected = $user->auth_version;
+        User::whereKey($user->id)->increment('auth_version');
+        $request = Request::create('/login', 'POST');
+        $request->setLaravelSession(app('session.store'));
+        try {
+            app(SessionController::class)->complete($request, $user, false, $expected);
+            self::fail('Revoked login accepted.');
+        } catch (ValidationException $e) {
+            self::assertArrayHasKey('email', $e->errors());
+            $this->assertGuest();
+        }
     }
 
     public function test_initial_owner_is_single_organization_and_requires_secret(): void

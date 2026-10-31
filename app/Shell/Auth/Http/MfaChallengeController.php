@@ -52,7 +52,7 @@ final class MfaChallengeController
             throw ValidationException::withMessages(['code' => 'Неверный код.']);
         }
         RateLimiter::clear($key);
-        $session->complete($request, $user, $pending['remember']);
+        $session->complete($request, $user, $pending['remember'], $pending['version']);
 
         return redirect()->intended(route('auth.ready'));
     }
