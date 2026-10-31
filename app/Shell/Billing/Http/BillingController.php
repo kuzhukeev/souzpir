@@ -6,16 +6,27 @@ use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Billing\BillingAccess;
 use App\Shell\Billing\BillingPeriod;
 use App\Shell\Billing\BillingQuery;
+use App\Shell\Billing\SubmissionScope;
 use App\Shell\Billing\UpdatePayer;
+use App\Shell\Support\Contracts\PlanRequestCommand;
+use App\Shell\Support\Contracts\PlanRequestPort;
 use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Auth\AuthenticationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 use SensitiveParameter;
+use Symfony\Component\HttpKernel\Exception\HttpException;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
+use Throwable;
 
 final class BillingController
 {
@@ -67,10 +78,38 @@ final class BillingController
         return redirect()->route('billing.payer');
     }
 
-    public function requestPlan(Request $request): never
+    public function requestPlan(#[SensitiveParameter] Request $request): JsonResponse
     {
-        app(AuthSessionRegistry::class)->withinActive($request, fn () => $this->access->lock(true));
-        // The support plan-request port and its notification event are not installed yet.
-        abort(503, __('Shell/Billing/messages.plan_request_unavailable'));
+        $tenant = app(TenantContext::class);
+        app(AuthSessionRegistry::class)->withinActive($request, function () use ($tenant, $request): void {
+            $this->access->lock(true);
+            $scope = SubmissionScope::for($tenant);
+            $expected = $request->header('X-Billing-Context');
+            abort_unless(app(TenantContext::class) === $tenant && $scope !== null && is_string($expected) && hash_equals($scope, $expected), 409);
+        });
+        $applicationKey = config('app.key');
+        abort_unless(app()->bound(PlanRequestPort::class) && is_string($applicationKey) && $applicationKey !== '', 503, __('Shell/Billing/messages.plan_request_unavailable'));
+        $data = $request->validate(['plan_id' => ['required', 'ulid'], 'submission_key' => ['required', 'ulid']]);
+        // The port owns idempotency, tenant checks, audit and notification as one transaction;
+        // it must be called outside any surrounding transaction.
+        try {
+            abort_unless(app(TenantContext::class) === $tenant, 409);
+            $result = app(PlanRequestPort::class)->submit($request, new PlanRequestCommand($data['plan_id'], $data['submission_key']));
+        } catch (AuthenticationException) {
+            throw new AuthenticationException;
+        } catch (AuthorizationException $error) {
+            throw (new AuthorizationException)->withStatus($error->status());
+        } catch (ModelNotFoundException) {
+            throw new ModelNotFoundException;
+        } catch (HttpExceptionInterface $error) {
+            throw new HttpException($error->getStatusCode(), '', null, $error->getHeaders());
+        } catch (Throwable) {
+            // Unexpected database/transport errors may contain ticket data and bindings.
+            throw new \RuntimeException(__('Shell/Billing/messages.plan_request_failed'));
+        }
+
+        return response()->json(['data' => ['ticket_id' => $result->ticketId, 'created' => $result->created,
+            'delivery_status' => $result->deliveryStatus->value, 'next_submission_key' => (string) Str::ulid()]], $result->created ? 201 : 200)
+            ->header('Cache-Control', 'private, no-store');
     }
 }

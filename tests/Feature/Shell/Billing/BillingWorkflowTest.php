@@ -49,7 +49,7 @@ final class BillingWorkflowTest extends TenancyTestCase
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->get('/billing')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('currentPlan.name', 'Тестовый план')->where('limits.0.value', '0.0000')->where('limits.0.used', null)
             ->where('limits.1.value', null)->where('limits.2.key', 'vision.runs_per_week')->where('limits.2.value', null)
-            ->where('requestEnabled', false));
+            ->where('requestEnabled', true));
     }
 
     public function test_payer_is_owner_only_validated_audited_and_preserves_other_settings(): void
@@ -77,7 +77,7 @@ final class BillingWorkflowTest extends TenancyTestCase
         $this->get('/billing/plans')->assertForbidden();
     }
 
-    public function test_payer_audit_failure_rolls_back_and_request_is_not_faked(): void
+    public function test_payer_audit_failure_rolls_back(): void
     {
         [$owner, $org, $brand] = $this->cabinet();
         $audit = \Mockery::mock(AuditWriter::class);
@@ -93,7 +93,6 @@ final class BillingWorkflowTest extends TenancyTestCase
         }
         $settings = json_decode(DB::table('organizations')->where('id', $org->id)->value('settings'), true, flags: JSON_THROW_ON_ERROR);
         self::assertArrayNotHasKey('payer', $settings);
-        $this->withExceptionHandling()->post('/billing/plans/request', ['plan_id' => (string) Str::ulid()])->assertStatus(503);
         $this->assertDatabaseCount('tickets', 0);
         Mail::assertNothingOutgoing();
         Http::assertNothingSent();

@@ -26,12 +26,25 @@ $connection = DB::selectOne('select current_database() as db, current_user as ro
 if ($connection->db !== $dbName || $connection->role !== 'souzpir_sp_e1_07' || $connection->rolsuper || $connection->rolcreatedb || $connection->rolcreaterole || $connection->rolreplication || $connection->rolbypassrls) {
     throw new LogicException('Unexpected PostgreSQL connection.');
 }
+if (config('features.E1-12.defaults.mail_enabled') !== false || config('features.E1-12.defaults.smtp_enabled') !== false || config('features.E1-12.defaults.recipient') !== null || config('features.E0-04.defaults.external_delivery') !== false || config('mail.default') !== 'log') {
+    throw new LogicException('Fixture requires all external deliveries disabled.');
+}
 if (Artisan::call('migrate', ['--force' => true]) !== 0) {
     throw new RuntimeException('Test migrations failed.');
 }
 
 $manifest = DB::transaction(function () use ($orgId): array {
     $marker = 'SP-E1-07-browser-fixture-v1';
+    $planId = '01J00000000000000000000007';
+    $planCode = 'e107_browser_fixture';
+    $planName = 'Тестовый тариф E1-07';
+    $existingPlans = DB::table('plans')->where('id', $planId)->orWhere('code', $planCode)->lockForUpdate()->get();
+    if ($existingPlans->count() > 1 || ($existingPlans->count() === 1 && ($existingPlans[0]->id !== $planId || $existingPlans[0]->code !== $planCode || $existingPlans[0]->name !== $planName || ! $existingPlans[0]->is_public))) {
+        throw new LogicException('Fixture plan collision.');
+    }
+    if ($existingPlans->isEmpty()) {
+        DB::table('plans')->insert(['id' => $planId, 'code' => $planCode, 'name' => $planName, 'is_public' => true, 'created_at' => now(), 'updated_at' => now()]);
+    }
     $email = 'billing-e107-owner@example.test';
     $user = User::where('email', $email)->lockForUpdate()->first();
     if ($user && ($user->name !== 'Тестовый владелец' || DB::table('memberships')->where('user_id', $user->id)->where('organization_id', '!=', $orgId)->exists())) {
@@ -64,7 +77,7 @@ $manifest = DB::transaction(function () use ($orgId): array {
     });
     $organization->forceFill(['owner_user_id' => $user->id])->save();
 
-    return ['owner_email' => $email, 'brands' => $brands];
+    return ['owner_email' => $email, 'brands' => $brands, 'plan_id' => $planId, 'plan_name' => $planName];
 });
 file_put_contents(base_path('.local/runtime/e1-07-browser.json'), json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
 fwrite(STDOUT, "Isolated billing fixture ready.\n");

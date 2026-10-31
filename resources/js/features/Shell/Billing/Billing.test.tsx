@@ -93,7 +93,10 @@ it('после потери ответа повторяет тот же план
   expect((await screen.findByRole('status')).textContent).toContain('Ранее созданная заявка найдена.');
   expect(screen.getByRole('status').textContent).toContain('Статус отправки уведомления неизвестен.');
   expect(fetchMock).toHaveBeenCalledTimes(2);
-  for (const [, options] of fetchMock.mock.calls) expect(JSON.parse(options.body)).toEqual({ plan_id: plan1, submission_key: key1 });
+  for (const [, options] of fetchMock.mock.calls) {
+    expect(JSON.parse(options.body)).toEqual({ plan_id: plan1, submission_key: key1 });
+    expect(options.headers['X-Billing-Context']).toBe('org-actor-test');
+  }
 });
 it('не отправляет заявку, если браузер не может сохранить ключ повтора', async () => {
   const user = userEvent.setup();
@@ -115,6 +118,49 @@ it('при конфликте не сбрасывает попытку и не �
   expect(screen.getByRole('button', { name: 'Повторить заявку' })).toBeTruthy();
   expect((within(screen.getByText('Второй план').closest('article')!).getByRole('button') as HTMLButtonElement).disabled).toBe(true);
   expect(fetchMock).toHaveBeenCalledTimes(1);
+});
+it('при неоднозначном 404 сохраняет прежнюю попытку и не утверждает причину', async () => {
+  const user = userEvent.setup();
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 404 }));
+  render(<BillingIndex {...enabled} />);
+  await user.click(within(screen.getByText('Первый план').closest('article')!).getByRole('button'));
+  expect((await screen.findByRole('alert')).textContent).toContain('Не удалось подтвердить заявку');
+  expect(screen.getByRole('button', { name: 'Повторить заявку' })).toBeTruthy();
+});
+it('принимает lowercase ULID и сохраняет подтверждение после перезагрузки', async () => {
+  const user = userEvent.setup();
+  const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ data: { ticket_id: plan1.toLowerCase(), created: true, delivery_status: 'sent', next_submission_key: key2.toLowerCase() } }) });
+  vi.stubGlobal('fetch', fetchMock);
+  const page = render(<BillingIndex {...enabled} plans={[{ id: plan1.toLowerCase(), name: 'Первый план' }]} submissionKey={key1.toLowerCase()} />);
+  await user.click(screen.getByRole('button', { name: 'Оставить заявку' }));
+  expect((await screen.findByRole('status')).textContent).toContain('Заявка создана.');
+  page.unmount();
+  render(<BillingIndex {...enabled} />);
+  expect(screen.getByRole('status').textContent).toContain('Уведомление отправлено.');
+  expect(fetchMock.mock.calls[0][1].headers['X-Billing-Context']).toBe('org-actor-test');
+});
+it('не принимает тот же ключ следующей попытки даже в другом регистре', async () => {
+  const user = userEvent.setup();
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ data: { ticket_id: plan1, created: true, delivery_status: 'sent', next_submission_key: key1.toLowerCase() } }) }));
+  render(<BillingIndex {...enabled} />);
+  await user.click(within(screen.getByText('Первый план').closest('article')!).getByRole('button'));
+  expect((await screen.findByRole('alert')).textContent).toContain('Не удалось подтвердить');
+  expect(screen.getByRole('button', { name: 'Повторить заявку' })).toBeTruthy();
+});
+it('не принимает неполный ответ за подтверждённое создание', async () => {
+  const user = userEvent.setup();
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ data: { ticket_id: plan1, created: true, delivery_status: 'sent' } }) }));
+  render(<BillingIndex {...enabled} />);
+  await user.click(within(screen.getByText('Первый план').closest('article')!).getByRole('button'));
+  expect((await screen.findByRole('alert')).textContent).toContain('Не удалось подтвердить');
+  expect(screen.getByRole('button', { name: 'Повторить заявку' })).toBeTruthy();
+  expect(screen.queryByRole('status')).toBeNull();
+});
+it('не переносит попытку между областями разных брендов', () => {
+  rememberPlanRequest('org-actor-brand-one', plan1, key1);
+  render(<BillingIndex {...enabled} submissionScope="org-actor-brand-two" />);
+  expect(screen.queryByRole('button', { name: 'Повторить заявку' })).toBeNull();
+  expect((within(screen.getByText('Первый план').closest('article')!).getByRole('button') as HTMLButtonElement).disabled).toBe(false);
 });
 it('отличает отправленное уведомление от выключенного, ненастроенного и неизвестного', () => {
   expect(deliveryMessages.sent).toBe('Уведомление отправлено.');

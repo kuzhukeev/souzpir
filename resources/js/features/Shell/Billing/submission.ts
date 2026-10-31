@@ -3,7 +3,7 @@ import type { CreatedPlanRequest } from './request';
 /** Persist only opaque identifiers and a receipt, never payer data. */
 export type PendingPlanRequest = { plan_id: string; submission_key: string };
 export type StoredPlanRequest = { state: 'pending'; request: PendingPlanRequest } | { state: 'confirmed'; request: PendingPlanRequest; receipt: CreatedPlanRequest };
-const ulid = /^[0-9A-HJKMNP-TV-Z]{26}$/;
+const ulid = /^[0-9A-HJKMNP-TV-Z]{26}$/i;
 const storageKey = (scope: string) => `billing-plan-request:${scope}`;
 const validRequest = (value: unknown): value is PendingPlanRequest => {
   if (!value || typeof value !== 'object') return false;
@@ -24,7 +24,7 @@ export function storedPlanRequest(scope: string): StoredPlanRequest | null {
   if (!parsed || typeof parsed !== 'object') throw new Error('invalid request');
   const record = parsed as Partial<StoredPlanRequest>;
   if (record.state === 'pending' && validRequest(record.request)) return { state: 'pending', request: record.request };
-  if (record.state === 'confirmed' && validRequest(record.request) && validReceipt(record.receipt) && record.receipt.next_submission_key !== record.request.submission_key) return { state: 'confirmed', request: record.request, receipt: record.receipt };
+  if (record.state === 'confirmed' && validRequest(record.request) && validReceipt(record.receipt) && record.receipt.next_submission_key.toUpperCase() !== record.request.submission_key.toUpperCase()) return { state: 'confirmed', request: record.request, receipt: record.receipt };
   throw new Error('invalid request');
 }
 
@@ -47,7 +47,7 @@ export function rememberPlanRequest(scope: string, plan: string, candidate: stri
 
 export function confirmPlanRequest(scope: string, request: PendingPlanRequest, receipt: CreatedPlanRequest): void {
   const previous = storedPlanRequest(scope);
-  if (previous?.state !== 'pending' || previous.request.plan_id !== request.plan_id || previous.request.submission_key !== request.submission_key || !validReceipt(receipt) || receipt.next_submission_key === request.submission_key) throw new Error('invalid receipt');
+  if (previous?.state !== 'pending' || previous.request.plan_id !== request.plan_id || previous.request.submission_key !== request.submission_key || !validReceipt(receipt) || receipt.next_submission_key.toUpperCase() === request.submission_key.toUpperCase()) throw new Error('invalid receipt');
   save(scope, { state: 'confirmed', request, receipt });
 }
 

@@ -36,8 +36,8 @@ export function PlanRequests({ plans, canManage, enabled, scope, initialKey }: P
     }
     setLoading(planId);
     try {
-      const reply = await submitPlanRequest(pending);
-      if (reply.next_submission_key === pending.submission_key) throw new Error('Не удалось подтвердить создание заявки. Повторите ту же попытку.');
+      const reply = await submitPlanRequest(pending, scope ?? '');
+      if (reply.next_submission_key.toUpperCase() === pending.submission_key.toUpperCase()) throw new Error('Не удалось подтвердить создание заявки. Повторите ту же попытку.');
       if (!active.current) return;
       try {
         confirmPlanRequest(scope ?? '', pending, reply);
@@ -64,11 +64,11 @@ export function PlanRequests({ plans, canManage, enabled, scope, initialKey }: P
   const receipt = state.record?.state === 'confirmed' ? state.record.receipt : null;
 
   return <>
-    <Notice>{enabled ? 'Автоматическая смена тарифа появится позже. Вы можете создать заявку.' : 'Автоматическая смена тарифа и заявка в поддержку пока недоступны.'}</Notice>
+    <Notice>{enabled ? 'Заявка будет сохранена. Автоматическая обработка заявки и смена тарифа пока недоступны.' : 'Автоматическая смена тарифа и создание заявки пока недоступны.'}</Notice>
     {pending && <div className="mb-5 rounded-xl bg-(--color-info-soft) p-4 text-sm text-(--color-info-ink)"><p>Результат предыдущей попытки ещё не подтверждён. Повторите её, прежде чем выбрать другой тариф.</p><Button className="mt-3 cursor-pointer" variant="secondary" disabled={!enabled || !canManage || state.storageError || loading !== null} loading={loading !== null} onClick={() => void send(pending.plan_id)}>Повторить заявку</Button></div>}
     {state.storageError && <p role="alert" className="mb-5 rounded-xl bg-(--color-danger-soft) p-4 text-sm text-(--color-danger-ink)">{storageMessage}</p>}
     {failure && !state.storageError && <p role="alert" className="mb-5 rounded-xl bg-(--color-danger-soft) p-4 text-sm text-(--color-danger-ink)">{failure}</p>}
     {receipt && <div role="status" className="mb-5 rounded-xl bg-(--color-success-soft) p-4 text-sm text-(--color-success-ink)"><p>{receipt.created ? 'Заявка создана.' : 'Ранее созданная заявка найдена.'}</p><p>{deliveryMessages[receipt.delivery_status]}</p><Button className="mt-3 cursor-pointer" variant="secondary" disabled={state.storageError} onClick={newRequest}>Новая заявка</Button></div>}
-    {plans.length ? <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">{plans.map((plan) => <article key={plan.id} className={`${panel} flex flex-col`}><span className="mb-4 grid size-12 place-items-center rounded-full bg-(--color-success-soft) text-(--color-success)"><Crown size={23} aria-hidden="true" /></span><h2 className="break-words text-xl font-bold">{plan.name}</h2><p className="mt-3 flex-1 text-sm text-(--color-ink-muted)">Условия тарифа уточнит поддержка.</p><Button className="mt-6 w-full cursor-pointer" disabled={!canManage || !enabled || state.storageError || loading !== null || state.record !== null} onClick={() => void send(plan.id)}>{!enabled ? 'Заявка скоро появится' : 'Оставить заявку'}</Button></article>)}</div> : <section className={panel}><EmptyState title="Тарифы пока не добавлены" description="Когда планы будут настроены, они появятся здесь." /></section>}
+    {plans.length ? <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">{plans.map((plan) => <article key={plan.id} className={`${panel} flex flex-col`}><span className="mb-4 grid size-12 place-items-center rounded-full bg-(--color-success-soft) text-(--color-success)"><Crown size={23} aria-hidden="true" /></span><h2 className="break-words text-xl font-bold">{plan.name}</h2><p className="mt-3 flex-1 text-sm text-(--color-ink-muted)">Автоматическая смена тарифа пока недоступна.</p><Button className="mt-6 w-full cursor-pointer" disabled={!canManage || !enabled || state.storageError || loading !== null || state.record !== null} onClick={() => void send(plan.id)}>{!enabled ? 'Заявка скоро появится' : 'Оставить заявку'}</Button></article>)}</div> : <section className={panel}><EmptyState title="Тарифы пока не добавлены" description="Когда планы будут настроены, они появятся здесь." /></section>}
   </>;
 }

@@ -6,9 +6,11 @@ use App\Models\Organization;
 use App\Shell\Plans\Contracts\PlanLimits;
 use App\Shell\Plans\Contracts\UsageQuery;
 use App\Shell\Plans\Contracts\UsageReader;
+use App\Shell\Support\Contracts\PlanRequestPort;
 use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 final class BillingQuery
 {
@@ -62,10 +64,15 @@ final class BillingQuery
             }
         }
 
+        $scope = SubmissionScope::for($tenant);
+        $requestEnabled = $canManage && app()->bound(PlanRequestPort::class) && $scope !== null;
+        $scope = $requestEnabled ? $scope : null;
+
         return ['tab' => $tab, 'currentPlan' => $assigned ? ['id' => $assigned->id, 'name' => $assigned->name] : null,
             'limits' => $limits, 'usage' => $usage,
             'plans' => $canManage ? DB::table('plans')->where('is_public', true)->orderBy('name')->get(['id', 'name'])->toArray() : [],
-            'payer' => $payer, 'canManage' => $canManage, 'requestEnabled' => false,
+            'payer' => $payer, 'canManage' => $canManage, 'requestEnabled' => $requestEnabled,
+            'submissionScope' => $scope, 'submissionKey' => $requestEnabled ? (string) Str::ulid() : null,
             'period' => ['from' => $from->format('Y-m-d'), 'to' => $to->format('Y-m-d')]];
     }
 }
