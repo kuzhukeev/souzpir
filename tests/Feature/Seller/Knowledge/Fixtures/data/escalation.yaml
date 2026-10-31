@@ -1,0 +1,58 @@
+# Причины передачи человеку (п. 4.7 ТЗ). message_idea — что сказать клиенту (черновик, агент формулирует сам).
+# assignee — кому задача (роль). priority — urgent / normal.
+
+defaults:
+  response_time_text: "сегодня до конца рабочего дня, если написали вечером — завтра с утра"
+  assignee: "manager_on_duty"
+
+reasons:
+  - id: deferred_insist
+    title: "Настаивает на отсрочке / реализации / возврате"
+    detect: "intent ask_deferred|ask_consignment|ask_returns второй раз подряд или с явным условием «иначе не буду»"
+    priority: normal
+    message_idea: "сам такие условия не согласовываю — передам руководителю, он напишет {response_time}; пока вопрос решается, прайс всё равно отправлю, чтобы было от чего отталкиваться"
+  - id: big_order
+    title: "Заказ выше порога"
+    detect: "budget_range >= conditions.escalation_amount_rub"
+    priority: urgent
+    message_idea: "на такой объём условия согласует руководитель лично, передаю ему — свяжется {response_time}; прайс отправлю сейчас"
+  - id: defect_claim
+    title: "Претензия по браку"
+    detect: "intent ask_quality с упоминанием своего случая брака / недовольства"
+    priority: urgent
+    message_idea: "по браку подключаю менеджера, он запросит фото и видео и запустит претензию; ответ {response_time}"
+  - id: container_import
+    title: "Контейнер / прямой импорт"
+    detect: "intent want_container после ответа фактом, если клиент продолжает тему"
+    priority: normal
+    message_idea: "по контейнерам и прямому импорту говорит руководитель — передаю ему, свяжется {response_time}"
+  - id: premises_approval
+    title: "Согласование помещения с администрацией / пожарными"
+    detect: "intent ask_premises с запросом помочь согласовать / проверка / план помещения"
+    priority: normal
+    message_idea: "у руководителя свои розничные точки, он по помещению подскажет предметно — пришлите фото или план, передам"
+  - id: negative_sentiment
+    title: "Раздражение клиента"
+    detect: "sentiment = negative два хода подряд"
+    priority: urgent
+    message_idea: "вижу, что раздражаю — переключаю на коллегу, он напишет {response_time}; больше тревожить не буду"
+  - id: want_human
+    title: "Просит человека"
+    detect: "intent want_human, либо ask_if_bot + следующий ход хочет человека"
+    priority: normal
+    message_idea: "конечно, передаю менеджеру — напишет {response_time}; чтобы не начинать с нуля, передам ему всё, что обсудили"
+  - id: unknown_fact_insist
+    title: "Неизвестный факт, клиент настаивает на ответе сейчас"
+    detect: "unknown_question второй раз по той же теме"
+    priority: normal
+    message_idea: "чтобы не гадать, передаю коллеге, который знает точно; ответ {response_time}"
+  - id: manual
+    title: "Ручная передача из интерфейса"
+    detect: "POST /api/leads/{id}/handoff"
+    priority: normal
+    message_idea: "подключаю коллегу, он продолжит"
+
+after_handoff:
+  stop_initiative: true          # агент не пишет первым, пока флаг не снят
+  reply_to_client_messages: "коротко: передал, менеджер ответит {response_time}"
+  notify: telegram_managers_chat

@@ -1,0 +1,66 @@
+# Единственный источник правды по коммерческим условиям.
+# ЧЕРНОВИК по материалам звонков. Пока approved_by пусто, агент называет цифры
+# как ориентир («обычно от 20 тысяч») и не называет процент выше max_pct_unapproved.
+valid_from: 2026-10-01
+approved_by: ""                 # ФИО руководителя отдела продаж после утверждения
+max_pct_unapproved: 30
+
+# Минимальный заказ. В звонках разнобой: Елена — от 20 тыс., Сергей — от 50 тыс. (открытый вопрос №1 ТЗ)
+min_order_rub: 20000
+offseason_min_order_rub: 15000
+
+# Сетка скидок (сумма от → %). Источники: Елена (20/30/100/200), Светлана (800 → 30)
+discount_grid:
+  - { from: 20000,  pct: 10 }
+  - { from: 30000,  pct: 15 }
+  - { from: 100000, pct: 20 }
+  - { from: 200000, pct: 25 }
+  - { from: 800000, pct: 30 }
+
+# Коробочные прайсы (скидка на транспортную коробку)
+box_discounts:
+  zerga: 40
+  volk: 40
+  premier_salute: 35
+
+new_client_bonus_pct: 5          # «новым клиентам даём чуть больше сетки»
+discount_not_tied_to_volume: true # скидку согласуем под потенциал, сохраняем на любую сумму и дозаказ
+
+prepayment: full
+partial_prepayment_allowed: true  # часть внесли → резерв, остаток до отгрузки
+payment_methods: [безнал по счёту, карта в кассу на складе, наличные в кассу на складе]
+
+deferred_payment:                 # отсрочка — открытый вопрос №2 ТЗ
+  new_clients: false
+  regular_clients: by_manager
+consignment:                      # реализация
+  new_clients: false
+  regular_clients: by_manager
+returns: false                    # возврат непроданного — нет, единогласно во всех звонках
+
+escalation_amount_rub: 500000
+
+reserve_days: 14                  # ориентир фиксации цен/позиций по резерву; уточнить
+
+promotions:
+  - name: "Zerga коробками"
+    text: "часть позиций Zerga снижена на 15–20% плюс коробочная скидка — суммарно более 55% от базы"
+    until: 2026-11-30
+
+price_increase_forecast:
+  month: "ноябрь"
+  pct_min: 10
+  pct_max: 20
+  leader_brand: "Русский фейерверк"
+  example: "заказ на 300 тыс. сейчас — около 345 тыс. после подорожания"
+
+delivery:
+  free_to_moscow_terminal: true
+  main_carrier: "КИТ"
+  carriers: [КИТ, Деловые Линии, ЖелДорЭкспедиция, Байкал-Сервис, Возовоз]
+  sdek: false
+  box_weight_kg: 10
+  assembly_days: "1–2, в сезон 3–5"
+
+followup_default_days: 2
+followup_max_auto: 2

@@ -1,0 +1,140 @@
+# Триггеры — аргументы, которые хорошо работают (файл 03, раздел 1). Policy выбирает не более одного на ход.
+# when/not_when — условия по LeadState (слоты, тип клиента, сигналы). idea — суть; examples — реальные реплики менеджеров (черновик).
+# Цифры в idea берутся из conditions.yaml, не хардкодятся.
+
+- id: price_increase_calc
+  name: "Подорожание с конкретным расчётом"
+  when: { client_type: [newbie, experienced, unknown], stage: [qualify, need, budget, close_contact] }
+  not_when: { signals.wants_only_prices: true, slots.timing: ["сейчас", "на этой неделе"] }
+  idea: "в октябре–ноябре производители поднимают цены на {cond:price_increase_forecast.pct_min}–{cond:price_increase_forecast.pct_max}%; {cond:price_increase_forecast.leader_brand} уже зашёл с ценами следующего года; расчёт на сумму клиента ({cond:price_increase_forecast.example})"
+  examples:
+    - "В октябре-ноябре производители поднимают цены процентов на 10–20. Условно, заказ на 300 тысяч сейчас — в ноябре это уже 345. Русский фейерверк уже зашёл с новыми ценами, остальные подтянутся."
+    - "Чем ближе к сезону, тем дороже. Поэтому обычно оптовики берут основной объём в сентябре-октябре."
+  best_for: [newbie, experienced]
+  max_uses_per_dialog: 1
+  facts: [price_increase]
+
+- id: shortage_with_reason
+  name: "Дефицит с причиной"
+  when: { client_type: [experienced, newbie] }
+  not_when: { signals.wants_only_prices: true }
+  idea: "весной остановились фабрики в Китае, импортёры завезли около 30% плана; крупных петард дефицит; кто берёт заранее — получит"
+  examples:
+    - "Весной сгорела крупная фабрика в Китае, фабрики закрыли на проверку. РФ и РП завезли примерно треть от плана. Кто берёт заранее — получит, в декабре может уже не быть."
+    - "Крупных петард в этом году мало — основное российское производство остановилось. У нас остаток есть, но советую не тянуть."
+  best_for: [experienced]
+  max_uses_per_dialog: 1
+  facts: [shortage]
+
+- id: not_tied_to_volume
+  name: "К объёму не привязываем"
+  when: { any_of: [{ signals.objections: [budget_declined, returns, has_supplier, already_ordered, no_money] }, { stage: [budget] }] }
+  idea: "скидку согласуем под потенциальный объём, сумма ни к чему не обязывает; возьмёте меньше — скидка сохранится; дозаказ хоть на 10 тысяч"
+  examples:
+    - "Скидку согласую сразу под ваш потенциальный объём, но сумма ни к чему не обязывает. Возьмёте меньше — скидка сохранится."
+    - "Мы к объёму не привязываем. Дозаказать можно потом хоть на десять тысяч, скидка та же."
+  best_for: [newbie, experienced]
+  max_uses_per_dialog: 2
+  facts: [discount_not_tied]
+
+- id: free_selection
+  name: "Бесплатная подборка под точку"
+  when: { client_type: [newbie, unknown], stage: [need, budget, close_contact] }
+  not_when: { client_type: [experienced, prices_only, for_self] }
+  idea: "скажите бюджет и формат точки — соберём подборку ходовых; в наших интересах, чтобы отторговались и вернулись"
+  examples:
+    - "Скажите плюс-минус бюджет и что за точка — соберу подборку ходовых позиций. В моих интересах, чтобы вы отторговались и вернулись."
+    - "Подборку сделаю в течение часа и отпишу в мессенджер, потом созвонимся — спокойно посмотрите."
+  best_for: [newbie]
+  max_uses_per_dialog: 1
+  facts: [free_selection]
+
+- id: honest_no
+  name: "Честность: таких процентов не дадим"
+  when: { signals.objections: [competitor_discount, cheaper_elsewhere] }
+  idea: "честно признать, что 50–60% не дадим; предложить сравнить итоговую цену на трёх позициях; Zerga 1–3 коробки на пробу"
+  examples:
+    - "Честно скажу: таких скидок, как у дистрибьютора РП, мы не дадим. Но давайте сравним итоговую цену на трёх позициях — там картина обычно другая."
+    - "Не буду обещать того, чего нет. Попробуйте одну-две коробки Zerga — по ним цена не бьётся ни с кем."
+  best_for: [experienced]
+  max_uses_per_dialog: 1
+  facts: [discount_vs_competitors]
+
+- id: fire_safety_consult
+  name: "Консультация по пожарке и документам"
+  when: { client_type: [newbie], any_of: [{ slots.outlet_type: [null, "ищу", "ТЦ", "жилой дом"] }, { signals.objections: [waiting_permission] }] }
+  idea: "в ТЦ только последний этаж, в жилом доме только 1 класс, павильон идеально; огнетушитель, датчики, закрытая витрина; лицензия не нужна, сертификаты кладём; если проверка — звоните"
+  examples:
+    - "Если точка в ТЦ — пустят только на последний этаж, в жилом доме — только первый класс, бенгальские и хлопушки. Отдельный павильон — идеально. Вы что рассматриваете?"
+    - "Лицензия на бытовую пиротехнику не нужна, сертификаты с печатью кладём с заказом. Если придут с проверкой — звоните, подскажем."
+  best_for: [newbie]
+  max_uses_per_dialog: 1
+  facts: [premises_requirements, license_not_needed]
+
+- id: markup_howto
+  name: "Как считать наценку"
+  when: { client_type: [newbie], any_of: [{ signals.last_client_intent: [ask_markup] }, { slots.experience: ["нет"] }] }
+  idea: "наценка ×2–3; зайти в ближайшую точку, сравнить три позиции; не ориентироваться на интернет; пиротехника — спонтанная покупка"
+  examples:
+    - "Наценка в среднем ×2–3. Зайдите в ближайшую точку и сравните три позиции — дешёвую, среднюю и дорогую. На интернет не смотрите, там демпинг."
+    - "Пиротехника — спонтанная покупка. За сто рублей разницы никто не поедет через город, так что если конкурентов рядом нет, наценка может быть выше."
+  best_for: [newbie]
+  max_uses_per_dialog: 1
+  facts: [markup_advice]
+
+- id: zerga_exclusive
+  name: "Zerga как эксклюзив с защитой цены"
+  when: { any_of: [{ signals.objections: [has_supplier, competitor_discount, marketplace_cheaper, zerga_unknown] }, { slots.categories: ["салюты", "всё"] }] }
+  not_when: { signals.wants_only_prices: true }
+  idea: "своя линейка, больше ни у кого нет; коробками {cond:box_discounts.zerga}%, по акции больше; на маркетплейсах блокируем карточки ниже рекомендованной цены; корсары дешевле и мощнее РФ; сроки до 2032; кто взял раз — возвращаются"
+  examples:
+    - "По Zerga вас никто не перебьёт — это наша линейка, на маркетплейсах карточки ниже рекомендованной цены блокируем. Коробками скидка повышенная. Пришлю отдельно прайс и видео."
+    - "Кто Zerga взял один раз — за ней возвращаются. Корсары у неё дешевле РФ, а стреляют мощнее."
+  best_for: [experienced, newbie]
+  max_uses_per_dialog: 1
+  facts: [zerga_about]
+
+- id: cheap_logistics
+  name: "Дешёвая логистика с примерами"
+  when: { any_of: [{ signals.objections: [delivery_expensive, far_away] }, { signals.last_client_intent: [ask_delivery, ask_delivery_cost] }] }
+  idea: "КИТ на 15–20% дешевле Деловых; 250 тыс. в Воронеж — около 2000 руб.; до терминала в Москве бесплатно; СДЭК не берём"
+  examples:
+    - "Доставка не так страшно, как кажется: КИТом 250 тысяч в Воронеж уехало за две тысячи рублей. До терминала в Москве везём бесплатно."
+    - "Отправляем КИТом — у них по пиротехнике договорённости и на 15–20 процентов дешевле Деловых. Скажите город — прикину и отпишу."
+  best_for: [experienced, newbie]
+  max_uses_per_dialog: 1
+  facts: [delivery_tk, delivery_cost]
+
+- id: visit_showroom
+  name: "Приехать и выбрать с пола"
+  when: { any_of: [{ slots.city: ["Москва", "Московская область", "МО", "Подмосковье"] }, { signals.objections: [fear_prepayment] }] }
+  idea: "приезжайте на ВДНХ, проспект Мира 186, без выходных; выберете со склада, оплатите на месте"
+  examples:
+    - "Можете просто приехать на ВДНХ, проспект Мира 186 — выберете прямо со склада и оплатите на месте. Нам так даже проще."
+    - "Если есть знакомый в Москве — пусть заедет, заберёт и оплатит на складе. Так предоплата вообще не нужна."
+  best_for: [newbie, for_self]
+  max_uses_per_dialog: 1
+  facts: [showroom_visit]
+
+- id: reserve_fixes_price
+  name: "Резерв = фиксация цены"
+  when: { signals.objections: [no_money, too_early, bad_season] }
+  idea: "набрать заказ, поставить на резерв — зафиксировать позиции и цены, оплатить позже или частями"
+  examples:
+    - "Можно набрать заказ и поставить на резерв — позиции и цены зафиксируем, а оплатите позже или частями."
+    - "Цветочные и пивные так и делают: вносят часть, остальное ближе к сезону. Товар при этом уже за вами."
+  best_for: [newbie, experienced]
+  max_uses_per_dialog: 1
+  facts: [reserve_fix_price, prepayment]
+
+- id: insider_news
+  name: "Инсайдерские новости"
+  when: { client_type: [experienced], stage: [qualify, need, followup] }
+  not_when: { signals.wants_only_prices: true }
+  idea: "маркировка перенесена, остатки — амнистия, после введения +25–30% к цене; новинки сезона; предложить прислать документ"
+  examples:
+    - "По маркировке, кстати: в этом сезоне её не будет, перенесли. А вот после введения всё подорожает процентов на 25–30 — марку будут клеить уже в России. Могу скинуть документ."
+    - "Из новинок в этом году хорошо заходят гендерные салюты — для гендер-пати и фотосессий. Фотографы в вашем городе наверняка спрашивают."
+  best_for: [experienced]
+  max_uses_per_dialog: 1
+  facts: [marking_status, marking_price_effect, novelties]

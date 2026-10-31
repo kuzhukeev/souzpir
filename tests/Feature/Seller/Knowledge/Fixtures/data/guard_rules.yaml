@@ -1,0 +1,111 @@
+# Правила Guard. Проверяются регулярками в коде; каждое правило — id, severity (block → регенерация, warn → лог), описание, паттерны.
+# Цифры условий проверяются отдельно: любое число с % или «тыс.» в реплике сверяется с conditions.yaml.
+
+forbidden_promises:
+  - id: promise_deferred
+    severity: block
+    description: "обещание отсрочки/рассрочки"
+    patterns: ['дад[иу]м\s+отсрочк', 'отсрочк[ау]\s+(даём|дадим|предостав|оформим|сделаем)', 'рассрочк[ау]\s+(даём|дадим|оформим|сделаем)', 'оплат[аи]те?\s+(после|потом|когда продад)']
+    allow_if: ['руководител', 'не даём', 'нет отсрочки', 'не работаем', 'передам']
+  - id: promise_consignment
+    severity: block
+    description: "обещание реализации"
+    patterns: ['(дадим|возьм[её]м|отдадим|отгрузим)\s+(на|под)\s+реализаци', 'под реализацию\s+(можно|дадим|отдадим)']
+    allow_if: ['не работаем', 'руководител', 'передам', 'новым клиентам']
+  - id: promise_returns
+    severity: block
+    description: "обещание возврата непроданного"
+    patterns: ['забер[её]м\s+(обратно|остатки|непроданн)', 'возврат\s+(возможен|сделаем|оформим|примем)', 'вернёте\s+(нам\s+)?(остатки|непроданн)']
+    allow_if: ['не работаем', 'не делаем', 'нет', 'не забираем']
+  - id: promise_cash_discount
+    severity: block
+    description: "скидка за наличные"
+    patterns: ['за\s+нал(ичные|ичку|ом)\s+(скидк|дешевле|минус|процент)', 'нал(ичными|ичкой)\s+.{0,20}(скидк|дешевле)']
+    allow_if: ['не влияет', 'руководител', 'обсуд']
+  - id: promise_exact_delivery_price
+    severity: block
+    description: "точная стоимость доставки без расчёта"
+    patterns: ['доставк[аи]\s+(будет\s+)?(стоить|обойд[её]тся|выйдет)\s+(ровно\s+)?\d', 'доставк[аи]\s+[—-]\s+\d+\s*(руб|₽|тыс)']
+    allow_if: ['около', 'примерно', 'ориентир', 'порядка', 'плюс-минус', 'пример', 'в прошлый раз', 'уехало', 'обошл']
+
+style:
+  - id: two_questions
+    severity: block
+    description: "больше одного вопроса в реплике"
+    check: count_question_marks > 1
+  - id: too_long
+    severity: block
+    description: "длиннее max_words персоны"
+    check: words > persona.length.max_words
+  - id: list_markup
+    severity: block
+    description: "списки, заголовки, markdown"
+    patterns: ['^\s*[-•*]\s', '^\s*\d+[.)]\s', '\*\*', '^#+\s']
+  - id: emoji
+    severity: block
+    description: "эмодзи"
+    patterns: ['[\x{1F300}-\x{1FAFF}\x{2600}-\x{27BF}]']
+  - id: link
+    severity: block
+    description: "ссылки в тексте (только через tool)"
+    patterns: ['https?://', 'www\.']
+  - id: informal_you
+    severity: warn
+    description: "обращение на ты"
+    patterns: ['\bтебе\b', '\bтебя\b', '\bтвой\b', '\bтвоя\b', '\bты\b']
+  - id: stop_phrases
+    severity: block
+    description: "стоп-слова персоны (persona.stop_phrases)"
+    check: persona_stop_phrases
+  - id: bot_disclosure_unprompted
+    severity: warn
+    description: "называет себя ботом/ИИ без вопроса клиента"
+    patterns: ['я\s+(бот|робот|нейросет|искусственн|ии\b|ai\b|языков)']
+    allow_if_signal: asked_if_bot
+
+knowledge:
+  - id: copy_paste
+    severity: block
+    description: "дословное совпадение с фактом более 60% (n-gram 4)"
+    check: ngram_overlap_with_facts > 0.6
+  - id: numbers_not_in_conditions
+    severity: block
+    description: "проценты скидок / суммы минималки, которых нет в conditions.yaml"
+    check: numbers_vs_conditions
+  - id: pct_above_unapproved
+    severity: block
+    description: "процент выше max_pct_unapproved пока условия не утверждены"
+    check: pct_above_cap
+  - id: similar_fact_instead_of_unknown
+    severity: warn
+    description: "цель хода unknown_fact, а реплика содержит утверждение о наличии/цене"
+    check: goal_unknown_but_asserts
+
+closed_topics:
+  - id: staff_names
+    severity: block
+    description: "ФИО сотрудников в ответе на закрытую тему"
+    patterns: ['\b(Дмитрий|Фёдор|Федор|Сергей|Светлана|Елена|Лариса)\b']
+    only_when_goal: [closed_topic]
+  - id: promise_to_clarify_on_closed
+    severity: block
+    description: "«уточню» на закрытой теме"
+    patterns: ['уточню', 'узнаю\s+и\s+(напишу|вернусь|скажу)', 'спрошу\s+у']
+    only_when_goal: [closed_topic]
+
+repetition:
+  - id: ask_filled_slot
+    severity: block
+    description: "вопрос по уже заполненному слоту"
+    check: question_targets_filled_slot
+  - id: budget_third_ask
+    severity: block
+    description: "третья попытка узнать бюджет"
+    check: budget_asks_over_limit
+
+off_topic:
+  - id: fulfilled_off_topic
+    severity: block
+    description: "в реплике есть код, вёрстка, стих, рецепт и т.п. при цели decline_off_topic"
+    patterns: ['<\w+[^>]*>', '```', 'function\s*\(', 'def\s+\w+\(', '\{\s*[\w-]+\s*:\s*[^}]+;\s*\}']
+    only_when_goal: [decline_off_topic, decline_injection]
