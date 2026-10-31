@@ -100,7 +100,7 @@ final class WebhookService
         app(BrandAccess::class)->change($request, $ctx->brandId, function (Brand $brand, TenantContext $tenant) use ($id): void {
             $hook = DB::table('webhooks')->where('organization_id', $tenant->organizationId)->where('brand_id', $brand->id)->where('id', $id)->first();
             abort_unless($hook, 404);
-            abort_unless(config('features.E1-10.defaults.webhook_delivery', false), 503, 'Отправка вебхуков отключена.');
+            abort_unless(WebhookDelivery::available(), 503, 'Отправка вебхуков пока недоступна.');
             $deliveryId = (string) Str::ulid();
             $payload = json_encode(['id' => $deliveryId, 'type' => 'webhook.test', 'occurred_at' => now()->toIso8601String(), 'data' => []], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
             DB::table('webhook_deliveries')->insert(['id' => $deliveryId, 'organization_id' => $tenant->organizationId, 'brand_id' => $brand->id,
