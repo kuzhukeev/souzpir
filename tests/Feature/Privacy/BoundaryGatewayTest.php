@@ -87,7 +87,7 @@ final class BoundaryGatewayTest extends TestCase
             'features.E0-05.defaults.reservation_request_limits' => ['google/gemini-2.5-flash' => ['max_input_bytes' => 4096, 'max_output_tokens' => 1000]],
         ]);
         Http::preventStrayRequests();
-        Http::fake(['openrouter.ai/*' => Http::response('{"model":"google/gemini-2.5-flash","choices":[{"message":{"content":"ok"}}],"usage":{"prompt_tokens":1,"completion_tokens":1,"cost":0.000004}}', 200)]);
+        Http::fake(['openrouter.ai/*' => Http::response('{"model":"google/gemini-2.5-flash","choices":[{"finish_reason":"stop","message":{"content":"ok"}}],"usage":{"prompt_tokens":1,"completion_tokens":1,"cost":0.000004}}', 200)]);
         $request = new AiRequest([['role' => 'user', 'content' => 'Пишите user@example.test или +7 (999) 123-45-67']], 'google/gemini-2.5-flash', 0.0, maxTokens: 100);
         $context = new AiContext($organization, $brand, 'responder', 'seller', 'brand', $brand, 'privacy-allowed', ['conversation_content']);
         app(TenantContextRunner::class)->run(new TenantContext($organization, $brand, source: 'job'), function () use ($request, $context): void {
