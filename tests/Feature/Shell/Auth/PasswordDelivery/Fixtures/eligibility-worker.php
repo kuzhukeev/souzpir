@@ -25,6 +25,9 @@ $user = User::findOrFail($data['user']);
 switch ($data['mode']) {
     case 'reset':
         $request = Request::create('/reset-password', 'POST', ['email' => $user->email, 'token' => $data['token'], 'password' => 'new-secure-password', 'password_confirmation' => 'new-secure-password']);
+        $session = app('session')->driver('array');
+        $session->start();
+        $request->setLaravelSession($session);
         $response = app(PasswordController::class)->store($request);
         echo str_ends_with($response->getTargetUrl(), '/login') ? 'reset' : 'denied';
         break;
