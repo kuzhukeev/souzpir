@@ -9,15 +9,18 @@ export default function Start({
   profile_id,
   can_edit,
   secure_context,
+  local_http,
 }: {
   current: Current;
   profile_id: string | null;
   can_edit: boolean;
   secure_context: boolean;
+  local_http: boolean;
 }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
-  const secure = secure_context && typeof window !== 'undefined' && !!window.crypto?.subtle;
+  const secure =
+    secure_context && typeof window !== 'undefined' && (local_http || !!window.crypto?.subtle);
   return (
     <CabinetLayout breadcrumbs={[{ label: 'Видение' }]}>
       <div className="space-y-6">
@@ -32,6 +35,11 @@ export default function Start({
           {!secure && (
             <p role="status" className="mt-4 text-sm">
               Анкета доступна по HTTPS или на localhost с поддержкой Web Crypto.
+            </p>
+          )}
+          {local_http && (
+            <p role="status" className="mt-4 text-sm text-(--color-ink-muted)">
+              Локальный режим: история анкеты в этом браузере не шифруется.
             </p>
           )}
           {message && (

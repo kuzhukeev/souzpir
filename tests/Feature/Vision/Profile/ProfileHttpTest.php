@@ -146,6 +146,40 @@ final class ProfileHttpTest extends TenancyTestCase
         $this->get('http://127.0.0.1:8248/vision/quiz/1')->assertRedirect('/vision/private-access');
     }
 
+    public function test_local_named_host_only_uses_unencrypted_history_for_a_loopback_peer(): void
+    {
+        $this->fixture();
+        $this->post('/vision/quiz/start')->assertRedirect();
+        $id = DB::table('visibility_quizzes')->value('id');
+        $this->patch('/vision/quiz/step/1', ['quiz_id' => $id, 'revision' => 1, 'values' => ['brand_name' => 'LOCAL_ONLY_MARKER']])->assertRedirect();
+        $originalEnvironment = app()->environment();
+        app()->instance('env', 'local');
+
+        try {
+            $this->withServerVariables(['REMOTE_ADDR' => '127.0.0.1']);
+            $this->get('http://souzpir.local/vision/quiz/1')->assertOk()
+                ->assertHeader('Cache-Control', 'no-store, private')
+                ->assertInertia(fn (Assert $page) => $page->component('Vision/Profile/Quiz', false)->where('quiz.answers.step1.brand_name', 'LOCAL_ONLY_MARKER'));
+            $csrf = str_repeat('c', 40);
+            $this->withSession(['_token' => $csrf])->withHeader('X-CSRF-TOKEN', $csrf)
+                ->patchJson('http://souzpir.local/vision/quiz/step/1', ['quiz_id' => $id, 'revision' => 2, 'values' => ['brand_name' => 'Local change']])->assertOk();
+            $this->get('http://other.local/vision/quiz/1')->assertForbidden();
+
+            $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.55']);
+            $this->get('http://souzpir.local/vision/quiz/1')->assertForbidden();
+            $this->withHeader('X-Forwarded-For', '127.0.0.1')->get('http://localhost/vision/quiz/1')->assertForbidden();
+            $this->get('http://127.0.0.1/vision/quiz/1')->assertForbidden();
+
+            $this->withServerVariables(['REMOTE_ADDR' => '127.0.0.1']);
+            $this->get('https://souzpir.local/vision/quiz/1')->assertRedirect('/vision/private-access');
+            $this->get('http://localhost/vision/quiz/1')->assertRedirect('/vision/private-access');
+            app()->instance('env', 'production');
+            $this->get('http://souzpir.local/vision/quiz/1')->assertForbidden();
+        } finally {
+            app()->instance('env', $originalEnvironment);
+        }
+    }
+
     public function test_unexpected_exception_and_private_marker_do_not_reach_reporter(): void
     {
         $this->fixture();

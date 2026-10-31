@@ -25,7 +25,7 @@ final class ProfileController
             $allowed = Gate::allows('vision.quiz.write');
             $state = $allowed ? $this->index($request) : ['current' => null, 'profile_id' => null, 'history' => [], 'brand' => null];
 
-            return Inertia::render('Vision/Profile/Start', ['current' => $state['current'], 'profile_id' => $state['profile_id'], 'can_edit' => $allowed, 'secure_context' => $this->secureContext($request)]);
+            return Inertia::render('Vision/Profile/Start', ['current' => $state['current'], 'profile_id' => $state['profile_id'], 'can_edit' => $allowed, 'secure_context' => $this->secureContext($request), 'local_http' => $this->localHttp($request)]);
         });
     }
 
@@ -242,7 +242,7 @@ HTML;
             if (! $request->routeIs('vision.start') && ! $this->secureContext($request)) {
                 return $this->error($request, 'Анкета доступна по HTTPS или на localhost.', 403);
             }
-            if ($request->routeIs('vision.quiz.show', 'vision.profile.show', 'vision.profile.version')) {
+            if ($request->routeIs('vision.quiz.show', 'vision.profile.show', 'vision.profile.version') && ! $this->localHttp($request)) {
                 $path = $request->getPathInfo();
                 $grant = $request->session()->pull('vision.private_once');
                 $expected = ['path' => $path, 'brand' => $request->session()->get('brand_id'), 'user' => $request->user()->getAuthIdentifier(), 'version' => $request->session()->get('auth.version')];
@@ -268,7 +268,27 @@ HTML;
 
     private function secureContext(Request $request): bool
     {
-        return $request->isSecure() || in_array(strtolower($request->getHost()), ['localhost', '127.0.0.1', '[::1]', '::1'], true);
+        return $request->isSecure()
+            || ($this->loopbackRequest($request) && in_array(strtolower($request->getHost()), ['localhost', '127.0.0.1', '[::1]', '::1'], true))
+            || $this->localHttp($request);
+    }
+
+    /** The named OSPanel host has no Web Crypto over HTTP; never enable this in production. */
+    private function localHttp(Request $request): bool
+    {
+        return app()->environment('local')
+            && ! $request->isSecure()
+            && strtolower($request->getHost()) === 'souzpir.local'
+            && $this->loopbackRequest($request);
+    }
+
+    private function loopbackRequest(Request $request): bool
+    {
+        $loopback = ['127.0.0.1', '::1'];
+
+        // Host and forwarded headers alone cannot prove that the TCP peer is local.
+        return in_array($request->server('REMOTE_ADDR'), $loopback, true)
+            && in_array($request->ip(), $loopback, true);
     }
 
     private function error(#[\SensitiveParameter] Request $request, string $message, int $status): mixed
