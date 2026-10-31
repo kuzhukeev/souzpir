@@ -4,6 +4,7 @@ namespace Tests\Feature\Shell\Support;
 
 use App\Shell\Support\Models\Ticket;
 use Illuminate\Database\QueryException;
+use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
@@ -126,8 +127,12 @@ final class SupportSubmissionTest extends SupportTestCase
 
         $this->app['env'] = 'local';
         $this->getJson('/help/support')->assertForbidden(); // A forwarded address cannot prove direct local access.
-        $this->withServerVariables(['HTTP_HOST' => 'souzpir.local', 'REMOTE_ADDR' => '127.0.0.1']);
+        $this->withServerVariables(['HTTP_HOST' => 'souzpir.local', 'REMOTE_ADDR' => '127.0.0.1', 'SERVER_ADDR' => '127.0.1.48']);
         $this->getJson('/help/support')->assertOk();
+        $this->withServerVariables(['HTTP_HOST' => 'souzpir.local', 'REMOTE_ADDR' => '127.0.0.1', 'SERVER_ADDR' => '192.0.2.10']);
+        $this->getJson('/help/support')->assertForbidden();
+        $this->withServerVariables(['HTTP_HOST' => 'souzpir.local', 'REMOTE_ADDR' => '127.0.0.1', 'SERVER_ADDR' => '127.0.1.48', 'HTTP_CF_CONNECTING_IP' => '192.0.2.10']);
+        $this->getJson('/help/support')->assertForbidden();
         $this->withServerVariables(['HTTP_HOST' => 'souzpir.local', 'REMOTE_ADDR' => '127.0.0.1', 'HTTP_X_FORWARDED_FOR' => '192.0.2.10']);
         $this->getJson('/help/support')->assertForbidden();
         $this->withServerVariables(['HTTP_HOST' => 'souzpir.local', 'REMOTE_ADDR' => '192.0.2.10']);
@@ -135,6 +140,50 @@ final class SupportSubmissionTest extends SupportTestCase
         app('url')->forceRootUrl('http://localhost');
         $this->withServerVariables(['REMOTE_ADDR' => '127.0.0.1', 'HTTP_HOST' => 'localhost']);
         $this->getJson('/help/support')->assertForbidden();
+    }
+
+    public function test_kernel_rejects_spoofed_https_and_allows_only_explicit_proxy_peers(): void
+    {
+        [$owner, , $brand] = $this->cabinet();
+        $this->signIn($owner, $brand);
+        $this->ticket();
+        app('url')->forceScheme('http');
+        $remote = ['HTTPS' => 'off', 'REMOTE_ADDR' => '198.51.100.10', 'SERVER_ADDR' => '203.0.113.20'];
+        $url = 'http://cabinet.example.test/help/support';
+
+        try {
+            $this->withServerVariables($remote)->withHeader('X-Forwarded-Proto', 'https');
+            config(['trustedproxy.proxies' => null]);
+            // Laravel's Forge host shortcut can populate globally trusted proxies.
+            $this->getJson('http://x.on-forge.com/help/support')->assertForbidden();
+            $this->postJson('http://x.on-forge.com/help/support', $this->payload())->assertForbidden();
+
+            foreach ([['0.0.0.0/0'], ['::/0'], ['*'], ['198.51.100.10', 'invalid'], ['198.51.100.10', '0.0.0.0/0']] as $proxies) {
+                config(['trustedproxy.proxies' => $proxies]);
+                $this->getJson($url)->assertForbidden();
+            }
+
+            $this->withServerVariables([...$remote, 'REMOTE_ADDR' => '2001:db8::10']);
+            config(['trustedproxy.proxies' => ['::/0']]);
+            $this->getJson($url)->assertForbidden();
+            config(['trustedproxy.proxies' => ['2001:db8::10']]);
+            $this->getJson($url)->assertOk();
+            $this->withServerVariables($remote);
+
+            config(['trustedproxy.proxies' => ['198.51.100.10']]);
+            $this->getJson($url)->assertOk();
+            Request::setTrustedProxies(['0.0.0.0/0'], Request::HEADER_X_FORWARDED_PROTO);
+            $this->withServerVariables([...$remote, 'REMOTE_ADDR' => '198.51.100.11'])->getJson($url)->assertForbidden();
+            $this->withServerVariables($remote)->withHeader('X-Forwarded-Proto', 'https,http')->getJson($url)->assertForbidden();
+            $this->withHeader('X-Forwarded-Proto', 'https')->withHeader('Forwarded', 'proto=http')->getJson($url)->assertForbidden();
+
+            $this->flushHeaders()->withServerVariables($remote);
+            config(['trustedproxy.proxies' => ['0.0.0.0/0']]);
+            $this->getJson('https://cabinet.example.test/help/support')->assertOk();
+        } finally {
+            config(['trustedproxy.proxies' => null]);
+            Request::setTrustedProxies([], 0);
+        }
     }
 
     private function enableMail(): void

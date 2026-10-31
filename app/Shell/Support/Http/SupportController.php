@@ -28,6 +28,7 @@ use RuntimeException;
 use SensitiveParameter;
 use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\InputBag;
+use Symfony\Component\HttpFoundation\IpUtils;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Throwable;
@@ -65,7 +66,7 @@ final class SupportController
     private function localHttp(Request $request): bool
     {
         foreach (array_keys($request->headers->all()) as $header) {
-            if ($header === 'forwarded' || $header === 'x-real-ip' || str_starts_with($header, 'x-forwarded-')) {
+            if (in_array($header, ['forwarded', 'x-real-ip', 'cf-connecting-ip'], true) || str_starts_with($header, 'x-forwarded-')) {
                 return false;
             }
         }
@@ -75,13 +76,69 @@ final class SupportController
 
     private function secureContext(Request $request): bool
     {
-        return $request->isSecure() || $this->localHttp($request);
+        $native = $request->server('HTTPS');
+        if (is_string($native) && in_array(strtolower(trim($native)), ['on', '1'], true)) {
+            return true;
+        }
+
+        // Do not trust isSecure(): Laravel may trust a forged Forge/Vapor host or
+        // universal proxy ranges. Validate explicit proxy peers and the protocol
+        // header independently of Symfony's process-wide trusted-proxy state.
+        $value = config('trustedproxy.proxies');
+        $proxies = is_string($value) ? array_map('trim', explode(',', $value)) : $value;
+        $forwarded = $request->headers->all('X-Forwarded-Proto');
+        try {
+            if (is_array($proxies) && $proxies !== [] && $this->explicitProxyNetworks($proxies)
+                && ! $request->headers->has('Forwarded') && count($forwarded) === 1
+                && is_string($forwarded[0]) && strtolower(trim($forwarded[0])) === 'https'
+                && IpUtils::checkIp((string) $request->server('REMOTE_ADDR'), array_map('trim', $proxies))) {
+                return true;
+            }
+        } catch (Throwable) {
+            return false;
+        }
+
+        return $this->localHttp($request);
+    }
+
+    private function explicitProxyNetworks(array $proxies): bool
+    {
+        foreach ($proxies as $proxy) {
+            if (! is_string($proxy)) {
+                return false;
+            }
+            $parts = explode('/', trim($proxy));
+            if (count($parts) > 2 || filter_var($parts[0], FILTER_VALIDATE_IP) === false) {
+                return false;
+            }
+            if (count($parts) === 2) {
+                $max = filter_var($parts[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false ? 32 : 128;
+                if (! ctype_digit($parts[1]) || (int) $parts[1] < 1 || (int) $parts[1] > $max) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     private function loopback(Request $request): bool
     {
-        return in_array($request->server('REMOTE_ADDR'), ['127.0.0.1', '::1'], true)
-            && in_array($request->ip(), ['127.0.0.1', '::1'], true);
+        $isLoopback = static function (mixed $address): bool {
+            if (! is_string($address)) {
+                return false;
+            }
+            if (filter_var($address, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false) {
+                return str_starts_with($address, '127.');
+            }
+
+            return filter_var($address, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false
+                && inet_pton($address) === inet_pton('::1');
+        };
+
+        return $isLoopback($request->server('REMOTE_ADDR'))
+            && $isLoopback($request->ip())
+            && $isLoopback($request->server('SERVER_ADDR'));
     }
 
     public function store(#[SensitiveParameter] Request $request, SupportActions $actions, SupportQueries $query, TicketDelivery $delivery): mixed
