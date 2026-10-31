@@ -43,6 +43,9 @@ final class ExternalDelivery
             if (! $settings || ! $settings->enabled) {
                 throw new RuntimeException('Notification disabled.');
             }
+            if (! app(NotificationRouting::class)->allowsImmediate($event, $member, $delivery->channel)) {
+                throw new RuntimeException('Brand notification policy changed.');
+            }
             $title = EventCatalog::TITLES[$event->envelope['type']];
             if ($delivery->channel === 'email') {
                 if (in_array(config('mail.default'), ['log', 'array'], true)) {
