@@ -173,6 +173,46 @@ final class MeasurementRunnerTest extends TestCase
         });
     }
 
+    public function test_oversized_measurement_grid_is_rejected_before_any_insert(): void
+    {
+        $this->within(function (): void {
+            $set = app(QuestionSets::class)->create([['id' => 'q1', 'text' => 'Вопрос', 'intent' => 'choose']]);
+            config(['features.E8-01.defaults.workload.max_slots' => 5]);
+            foreach ([6, PHP_INT_MAX] as $runs) {
+                try {
+                    app(MeasurementRunner::class)->start($set, ['gemini' => 'google/gemini-2.5-flash'], $runs);
+                    self::fail('Oversized measurement grid accepted.');
+                } catch (\InvalidArgumentException) {
+                    self::assertSame(0, DB::table('measurements')->count());
+                    self::assertSame(0, DB::table('measurement_answers')->count());
+                }
+            }
+            $twoQuestions = app(QuestionSets::class)->create([
+                ['id' => 'q1', 'text' => 'Вопрос 1', 'intent' => 'choose'],
+                ['id' => 'q2', 'text' => 'Вопрос 2', 'intent' => 'choose'],
+            ]);
+            try {
+                app(MeasurementRunner::class)->start($twoQuestions, ['gemini' => 'google/gemini-2.5-flash'], 3);
+                self::fail('The product of questions and runs exceeded the limit.');
+            } catch (\InvalidArgumentException) {
+                self::assertSame(0, DB::table('measurements')->count());
+                self::assertSame(0, DB::table('measurement_answers')->count());
+            }
+            config(['features.E8-01.defaults.workload.max_slots' => 0]);
+            try {
+                app(MeasurementRunner::class)->start($set, ['gemini' => 'google/gemini-2.5-flash'], 1);
+                self::fail('Missing safeguards accepted.');
+            } catch (LogicException) {
+                self::assertSame(0, DB::table('measurements')->count());
+                self::assertSame(0, DB::table('measurement_answers')->count());
+            }
+            config(['features.E8-01.defaults.workload.max_slots' => 5]);
+            $measurement = app(MeasurementRunner::class)->start($set, ['gemini' => 'google/gemini-2.5-flash'], 5);
+            self::assertSame(5, DB::table('measurement_answers')->where('measurement_id', $measurement)->count());
+            Http::assertNothingSent();
+        });
+    }
+
     public function test_uncertain_cost_is_not_retried_or_counted_as_success(): void
     {
         $this->within(function (): void {

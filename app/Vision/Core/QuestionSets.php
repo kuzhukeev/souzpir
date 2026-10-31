@@ -3,6 +3,8 @@
 namespace App\Vision\Core;
 
 use App\Ai\CanonicalJson;
+use App\Models\Membership;
+use App\Tenancy\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
@@ -21,6 +23,9 @@ final class QuestionSets
         if (! array_is_list($questions) || $questions === []) {
             throw new InvalidArgumentException('A non-empty question set is required.');
         }
+        if (count($questions) > WorkloadLimits::limit('max_questions')) {
+            throw new InvalidArgumentException('Question set exceeds the technical limit.');
+        }
         $ids = [];
         foreach ($questions as $question) {
             if (! is_array($question) || array_diff(array_keys($question), ['id', 'text', 'intent']) !== []
@@ -32,19 +37,41 @@ final class QuestionSets
             }
             $ids[] = $question['id'];
         }
+        $encoded = json_encode($questions, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+        if (strlen($encoded) > WorkloadLimits::limit('max_questions_bytes')) {
+            throw new InvalidArgumentException('Question set exceeds the technical limit.');
+        }
         $tenant = $this->tenant->current();
+        $context = app(TenantContext::class);
 
-        return DB::transaction(function () use ($questions, $tenant): string {
-            // Serialize version assignment for one tenant without locking unrelated brands.
-            DB::table('brands')->where('id', $tenant['brand_id'])->where('organization_id', $tenant['organization_id'])->lockForUpdate()->first();
-            $version = 1 + (int) DB::table('question_sets')->where($tenant)->max('version');
-            $id = (string) Str::ulid();
-            DB::table('question_sets')->insert(['id' => $id, ...$tenant, 'version' => $version,
-                'questions' => json_encode($questions, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
-                'size' => count($questions), 'checksum' => CanonicalJson::hash($questions),
-                'created_at' => now(), 'updated_at' => now()]);
+        try {
+            return DB::transaction(function () use ($questions, $tenant, $context, $encoded): string {
+                // Recheck tenant and membership after acquiring the global lock order.
+                $org = DB::table('organizations')->where('id', $tenant['organization_id'])->where('status', 'active')->lockForUpdate()->first();
+                $brand = DB::table('brands')->where('id', $tenant['brand_id'])->where('organization_id', $tenant['organization_id'])->where('status', 'active')->lockForUpdate()->first();
+                if (! $org || ! $brand || $context->source === 'public') {
+                    throw new \LogicException('Vision question set is unavailable.');
+                }
+                $service = $context->source === 'job' && $context->actorId === null && $context->membershipId === null;
+                if (! $service) {
+                    $membership = Membership::withoutGlobalScopes()->whereKey($context->membershipId)
+                        ->where('organization_id', $tenant['organization_id'])->where('user_id', $context->actorId)
+                        ->where('status', 'active')->sharedLock()->first();
+                    if (! $context->actorId || ! $context->membershipId || ! $membership || ! $membership->permitsBrand($tenant['brand_id'])) {
+                        throw new \LogicException('Vision question set is unavailable.');
+                    }
+                }
+                $version = 1 + (int) DB::table('question_sets')->where($tenant)->max('version');
+                $id = (string) Str::ulid();
+                DB::table('question_sets')->insert(['id' => $id, ...$tenant, 'version' => $version,
+                    'questions' => $encoded,
+                    'size' => count($questions), 'checksum' => CanonicalJson::hash($questions),
+                    'created_at' => now(), 'updated_at' => now()]);
 
-            return $id;
-        });
+                return $id;
+            });
+        } catch (\Throwable) {
+            throw new \LogicException('Vision question set is unavailable.');
+        }
     }
 }

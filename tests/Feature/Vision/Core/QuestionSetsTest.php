@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Vision\Core;
 
+use App\Models\Membership;
+use App\Models\User;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
 use App\Vision\Core\QuestionSets;
@@ -10,6 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Symfony\Component\Process\Process;
 use Tests\TestCase;
 
 final class QuestionSetsTest extends TestCase
@@ -51,6 +54,101 @@ final class QuestionSetsTest extends TestCase
         });
         $this->expectException(\LogicException::class);
         app(QuestionSets::class)->create([$question]);
+    }
+
+    public function test_oversized_question_count_bytes_and_invalid_configuration_fail_before_writes(): void
+    {
+        [$organization, $brand] = $this->cabinet();
+        app(TenantContextRunner::class)->run(new TenantContext($organization, $brand, source: 'job'), function (): void {
+            $questions = array_map(fn ($n) => ['id' => 'q'.$n, 'text' => 'Вопрос', 'intent' => 'choose'], range(1, 101));
+            try {
+                app(QuestionSets::class)->create($questions);
+                self::fail('Oversized set accepted.');
+            } catch (InvalidArgumentException) {
+                self::assertSame(0, DB::table('question_sets')->count());
+            }
+            config(['features.E8-01.defaults.workload.max_questions_bytes' => 20]);
+            try {
+                app(QuestionSets::class)->create([['id' => 'q1', 'text' => 'Вопрос', 'intent' => 'choose']]);
+                self::fail('Oversized payload accepted.');
+            } catch (InvalidArgumentException) {
+                self::assertSame(0, DB::table('question_sets')->count());
+            }
+            config(['features.E8-01.defaults.workload.max_questions' => null]);
+            try {
+                app(QuestionSets::class)->create([['id' => 'q1', 'text' => 'Вопрос', 'intent' => 'choose']]);
+                self::fail('Invalid safeguards accepted.');
+            } catch (\LogicException) {
+                self::assertSame(0, DB::table('question_sets')->count());
+            }
+        });
+    }
+
+    public function test_user_context_requires_active_membership_with_brand_access(): void
+    {
+        [$organization, $brand] = $this->cabinet();
+        $user = User::create(['name' => 'Fixture', 'email' => Str::random(16).'@example.test', 'password' => 'test-only-password']);
+        $member = app(TenantContextRunner::class)->run(new TenantContext($organization, source: 'job'), fn () => Membership::create(['user_id' => $user->id, 'role' => 'member', 'brand_ids' => [$brand]]));
+        $context = new TenantContext($organization, $brand, $user->id, $member->id);
+        $question = [['id' => 'q1', 'text' => 'Вопрос', 'intent' => 'choose']];
+        app(TenantContextRunner::class)->run($context, fn () => app(QuestionSets::class)->create($question));
+        DB::table('memberships')->where('id', $member->id)->update(['status' => 'disabled']);
+        try {
+            app(TenantContextRunner::class)->run($context, fn () => app(QuestionSets::class)->create($question));
+            self::fail('Disabled membership accepted.');
+        } catch (\LogicException) {
+            self::assertSame(1, DB::table('question_sets')->count());
+        }
+        DB::table('memberships')->where('id', $member->id)->update(['status' => 'active', 'brand_ids' => json_encode([])]);
+        try {
+            app(TenantContextRunner::class)->run($context, fn () => app(QuestionSets::class)->create($question));
+            self::fail('Foreign brand accepted.');
+        } catch (\LogicException) {
+            self::assertSame(1, DB::table('question_sets')->count());
+        }
+    }
+
+    #[DataProvider('tenantTargets')]
+    public function test_archive_or_disable_during_lock_wait_prevents_creation(string $target): void
+    {
+        [$organization, $brand] = $this->cabinet();
+        DB::beginTransaction();
+        $process = null;
+        try {
+            DB::table($target)->where('id', $target === 'organizations' ? $organization : $brand)->lockForUpdate()->first();
+            $process = new Process([PHP_BINARY, '-d', 'sys_temp_dir='.base_path('.local/tmp'), __DIR__.'/Fixtures/question-set-worker.php',
+                $organization, $brand, base_path(), DB::connection()->getDatabaseName()], base_path(), ['APP_ENV' => 'testing'], null, 40);
+            $process->start();
+            $waiting = false;
+            for ($i = 0; $i < 200 && $process->isRunning(); $i++) {
+                DB::statement('SELECT pg_stat_clear_snapshot()');
+                $waiting = DB::table('pg_stat_activity')->where('application_name', 'vision_question_lock_test')->where('wait_event_type', 'Lock')->exists();
+                if ($waiting) {
+                    break;
+                }
+                usleep(25000);
+            }
+            self::assertTrue($waiting, 'Worker must reach the tenant row lock.');
+            DB::table($target)->where('id', $target === 'organizations' ? $organization : $brand)
+                ->update(['status' => $target === 'organizations' ? 'disabled' : 'archived']);
+            DB::commit();
+            $process->wait();
+            self::assertSame(0, $process->getExitCode(), $process->getErrorOutput());
+            self::assertSame("READY\nDENIED", trim(str_replace("\r\n", "\n", $process->getOutput())));
+            self::assertSame(0, DB::table('question_sets')->count());
+        } finally {
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+            if ($process?->isRunning()) {
+                $process->stop();
+            }
+        }
+    }
+
+    public static function tenantTargets(): array
+    {
+        return [['organizations'], ['brands']];
     }
 
     private function cabinet(): array

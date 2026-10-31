@@ -29,6 +29,10 @@ final class MeasurementRunner
         if ($runs < 1 || $providers === [] || array_is_list($providers)) {
             throw new InvalidArgumentException('A provider panel and positive repeat count are required.');
         }
+        $maxSlots = WorkloadLimits::limit('max_slots');
+        if ($runs > $maxSlots || count($providers) > $maxSlots) {
+            throw new InvalidArgumentException('Vision measurement workload exceeds the technical limit.');
+        }
         $temperature = config('features.E8-01.defaults.temperature');
         $maxTokens = config('features.E8-01.defaults.max_output_tokens');
         if ((! is_float($temperature) && ! is_int($temperature)) || ! is_finite((float) $temperature)
@@ -54,6 +58,13 @@ final class MeasurementRunner
         }
         $parser = [...$parser, ...app(EvidenceEvaluator::class)->artifacts()];
         $context = app(TenantContext::class);
+        // Question sets are immutable; check the full grid before the write transaction.
+        $planned = DB::table('question_sets')->where($tenant)->where('id', $questionSetId)
+            ->first(['size', DB::raw('octet_length(questions::text) as question_bytes')]);
+        if (! $planned || ! is_numeric($planned->question_bytes) || (int) $planned->question_bytes > WorkloadLimits::limit('max_questions_bytes')) {
+            throw new LogicException('Vision measurement plan is unavailable.');
+        }
+        WorkloadLimits::grid((int) $planned->size, count($providers), $runs);
 
         try {
             return DB::transaction(function () use ($questionSetId, $providers, $runs, $tenant, $temperature, $maxTokens, $parser, $context): string {
