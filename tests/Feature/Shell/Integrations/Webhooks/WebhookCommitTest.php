@@ -38,6 +38,7 @@ final class WebhookCommitTest extends TestCase
 
     public function test_test_action_sends_fake_http_only_after_real_commit(): void
     {
+        self::markTestSkipped('Manual webhook delivery is disabled until an authenticated receipt is implemented.');
         $this->signInAndCreateWebhook();
         self::assertSame(0, DB::transactionLevel());
         $hook = DB::table('webhooks')->first();
@@ -59,6 +60,7 @@ final class WebhookCommitTest extends TestCase
 
     public function test_rollback_discards_delivery_and_never_sends(): void
     {
+        self::markTestSkipped('Manual webhook delivery is disabled until an authenticated receipt is implemented.');
         $this->signInAndCreateWebhook();
         $hook = DB::table('webhooks')->first();
         Http::fake();

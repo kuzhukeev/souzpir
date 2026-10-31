@@ -15,9 +15,18 @@ final class WebhookDelivery
 {
     public function __construct(private readonly DomainDnsResolver $dns) {}
 
+    /** Delivery requires a verified subscription snapshot and a manual-test receipt. */
+    public static function available(): bool
+    {
+        return false;
+    }
+
     public function send(string $id): void
     {
-        if (! config('features.E1-10.defaults.webhook_delivery', false)) {
+        // Neither the legacy automatic rows nor manual test rows have the proof
+        // needed to distinguish their authorization. A config flag must not
+        // enable network delivery until that contract is implemented.
+        if (! self::available()) {
             return;
         }
         $claimed = DB::table('webhook_deliveries')->where('id', $id)->where('status', 'pending')

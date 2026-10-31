@@ -14,6 +14,11 @@ final class DrainWebhooks extends Command
 
     public function handle(WebhookOutbox $consumer, WebhookDelivery $delivery): int
     {
+        if (! WebhookDelivery::available()) {
+            $this->error('Отправка вебхуков пока недоступна: снимок подписок не подтверждён.');
+
+            return self::FAILURE;
+        }
         if (DB::transactionLevel() !== 0) {
             $this->error('Webhook scanning requires no active transaction.');
 

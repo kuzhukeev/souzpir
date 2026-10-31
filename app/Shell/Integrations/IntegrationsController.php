@@ -5,6 +5,7 @@ namespace App\Shell\Integrations;
 use App\Models\Brand;
 use App\Shell\Brands\BrandAccess;
 use App\Shell\Integrations\Keys\KeysController;
+use App\Shell\Integrations\Webhooks\WebhookDelivery;
 use App\Shell\Integrations\Webhooks\WebhookService;
 use App\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
@@ -58,7 +59,7 @@ final class IntegrationsController
             'apiKeyRuntimeAvailable' => false,
             'secureSecretTransport' => SecretTransport::allows($request),
             'secretStorageReady' => SecretSessionStore::ready(),
-            'webhookDeliveryAvailable' => config('features.E1-10.defaults.webhook_delivery', false) === true,
+            'webhookDeliveryAvailable' => WebhookDelivery::available(),
             'integration_api_key_available' => $this->keepSecretForPage($request, $context, 'integration_api_key'),
             'integration_webhook_secret_available' => $this->keepSecretForPage($request, $context, 'webhook_secret'),
         ]);
