@@ -7,8 +7,8 @@ use App\Contracts\Ai\AiContext;
 use App\Contracts\Ai\AiGateway;
 use App\Contracts\Ai\AiRequest;
 use App\Tenancy\TenantContext;
+use App\Vision\Core\BoundedEvidenceSource;
 use App\Vision\Evidence\Contracts\KnowledgeGate;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Throwable;
@@ -151,14 +151,7 @@ final class EvidenceEvaluator
 
     private function record(TenantContext $tenant, string $answerId): ?object
     {
-        return DB::table('measurement_answers as answer')
-            ->join('measurements as measurement', function ($join): void {
-                $join->on('measurement.id', '=', 'answer.measurement_id')
-                    ->on('measurement.organization_id', '=', 'answer.organization_id')
-                    ->on('measurement.brand_id', '=', 'answer.brand_id');
-            })->where('answer.id', $answerId)->where('answer.organization_id', $tenant->organizationId)
-            ->where('answer.brand_id', $tenant->brandId)->select('answer.status', 'answer.protocol_valid', 'answer.answer_text',
-                'answer.measurement_id', 'measurement.profile_snapshot', 'measurement.profile_checksum', 'measurement.configuration')->first();
+        return app(BoundedEvidenceSource::class)->read($tenant, $answerId);
     }
 
     private function validProfile(#[\SensitiveParameter] array $profile): bool

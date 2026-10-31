@@ -13,6 +13,7 @@ use App\Models\Brand;
 use App\Models\Organization;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
+use App\Vision\Core\WorkloadLimits;
 use App\Vision\Evidence\ConfirmationValidator;
 use App\Vision\Evidence\Contracts\KnowledgeGate;
 use App\Vision\Evidence\EvidenceEvaluator;
@@ -96,7 +97,10 @@ final class EvidenceEvaluatorTest extends TestCase
         $service = new EvidenceEvaluator($gateway, app(EvidenceValidator::class), app(ConfirmationValidator::class), app(SourceExtractor::class));
         app()->instance(KnowledgeGate::class, $gate);
         $profile = ['name' => 'СтальПлюс', 'aliases' => ['СтальПлюс'], 'facts' => []];
-        $configuration = ['parser' => [...$service->artifacts(), 'model' => 'google/gemini-2.5-flash', 'temperature' => 0, 'max_tokens' => 1000]];
+        $questions = [['text' => 'Где купить?']];
+        $configuration = ['questions' => $questions, 'question_set_checksum' => CanonicalJson::hash($questions),
+            'providers' => ['fake' => ['model' => 'fake']], 'runs' => 1,
+            'parser' => [...$service->artifacts(), 'model' => 'google/gemini-2.5-flash', 'temperature' => 0, 'max_tokens' => 1000]];
         $measurement = (string) Str::ulid();
         $answer = (string) Str::ulid();
         DB::table('measurements')->insert(['id' => $measurement, 'organization_id' => $org->id, 'brand_id' => $brand->id,
@@ -113,6 +117,23 @@ final class EvidenceEvaluatorTest extends TestCase
         self::assertSame('confirmed', $evaluate()['status']);
         self::assertSame(2, $gate->checks);
         self::assertSame(1, $gateway->calls);
+
+        // Change the answer after plan preflight but before the bounded JOIN.
+        // No AI call is permitted for the enlarged answer.
+        $changedAfterPreflight = false;
+        DB::listen(function ($query) use (&$changedAfterPreflight, $answer): void {
+            if (! $changedAfterPreflight && str_contains($query->sql, 'as profile_bytes')) {
+                $changedAfterPreflight = true;
+                DB::table('measurement_answers')->where('id', $answer)->update([
+                    'answer_text' => str_repeat('x', WorkloadLimits::dataBytes() + 1),
+                ]);
+            }
+        });
+        self::assertSame('unknown', $evaluate()['status']);
+        self::assertTrue($changedAfterPreflight);
+        self::assertSame(1, $gateway->calls);
+        DB::table('measurement_answers')->where('id', $answer)->update(['answer_text' => 'Рекомендую СтальПлюс.']);
+
         app()->forgetInstance(KnowledgeGate::class);
         self::assertSame('unknown', $evaluate()['status']);
         self::assertSame(1, $gateway->calls);

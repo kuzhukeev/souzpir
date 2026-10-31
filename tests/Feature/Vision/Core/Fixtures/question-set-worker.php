@@ -13,7 +13,7 @@ try {
     $app->make(Kernel::class)->bootstrap();
     [, $org, $brand, $base, $db] = $argv;
     if ($app->basePath() !== $base || DB::connection()->getDatabaseName() !== $db
-        || $db !== 'souzpir_test_sp_e8_01' || $db !== config('runtime.test_database') || $db === config('runtime.preview_database')) {
+        || ! str_starts_with($db, 'souzpir_test_') || $db !== config('runtime.test_database') || $db === config('runtime.preview_database')) {
         throw new RuntimeException('Unexpected test runtime.');
     }
     DB::statement("SET application_name = 'vision_question_lock_test'");

@@ -13,7 +13,7 @@ try {
     $app->make(Kernel::class)->bootstrap();
     [$script, $organization, $brand, $owner, $member, $grant, $expectedBase, $expectedDatabase] = $argv;
     if ($app->basePath() !== $expectedBase || DB::connection()->getDatabaseName() !== $expectedDatabase
-        || $expectedDatabase !== 'souzpir_test_sp_e8_01' || $expectedDatabase !== config('runtime.test_database')
+        || ! str_starts_with($expectedDatabase, 'souzpir_test_') || $expectedDatabase !== config('runtime.test_database')
         || $expectedDatabase === config('runtime.preview_database')) {
         throw new RuntimeException('Unexpected test runtime.');
     }
