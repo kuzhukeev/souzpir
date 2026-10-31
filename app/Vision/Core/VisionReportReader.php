@@ -24,12 +24,13 @@ final class VisionReportReader
             $tenant = $this->tenant->current();
 
             return DB::transaction(function () use ($tenant, $reportId): array {
-                $reference = DB::table('vision_reports')->where($tenant)->where('id', $reportId)->first(['measurement_id']);
-                if (! $reference) {
+                $reference = DB::table('vision_reports')->where($tenant)->where('id', $reportId)
+                    ->first(['measurement_id', DB::raw('octet_length(payload::text) as payload_bytes')]);
+                if (! $reference || ! is_numeric($reference->payload_bytes) || (int) $reference->payload_bytes > WorkloadLimits::dataBytes()) {
                     throw new LogicException;
                 }
                 MeasurementLock::acquire($reference->measurement_id);
-                $measurement = DB::table('measurements')->where($tenant)->where('id', $reference->measurement_id)->first();
+                $measurement = MeasurementPlan::fetch($tenant, $reference->measurement_id);
                 if (! $measurement || ! is_string($measurement->profile_snapshot) || ! is_string($measurement->configuration)) {
                     throw new LogicException;
                 }
@@ -41,7 +42,8 @@ final class VisionReportReader
                 // The gate takes the tenant, knowledge and measurement locks in order.
                 app(KnowledgeGate::class)->assertAllowed(app(TenantContext::class), $measurement->id, $profile);
                 $report = DB::table('vision_reports')->where($tenant)->where('id', $reportId)
-                    ->where('measurement_id', $measurement->id)->sharedLock()->first();
+                    ->where('measurement_id', $measurement->id)
+                    ->whereRaw('octet_length(payload::text) <= ?', [WorkloadLimits::dataBytes()])->sharedLock()->first();
                 if (! $report || ! is_string($report->payload) || ! is_string($report->checksum) || ! is_string($report->snapshot_mac)
                     || ! hash_equals(ReportSeal::mac($tenant['organization_id'], $tenant['brand_id'], $reportId, $measurement->id, (int) $report->revision, $report->checksum), $report->snapshot_mac)) {
                     throw new LogicException;

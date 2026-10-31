@@ -26,16 +26,7 @@ final class ReportPreparation
             return DB::transaction(function () use ($measurementId, $tenant): string {
                 MeasurementLock::acquire($measurementId);
                 // Respect the global grant/release → measurement lock order.
-                $candidate = DB::table('measurements')->where($tenant)->where('id', $measurementId)->first([
-                    'id', 'profile_snapshot',
-                    DB::raw('octet_length(configuration::text) as plan_bytes'),
-                    DB::raw("octet_length((configuration->'questions')::text) as question_bytes"),
-                ]);
-                $questionBytes = WorkloadLimits::limit('max_questions_bytes');
-                if (! $candidate || ! is_numeric($candidate->plan_bytes) || ! is_numeric($candidate->question_bytes)
-                    || (int) $candidate->question_bytes > $questionBytes || (int) $candidate->plan_bytes > $questionBytes + 1000000) {
-                    throw new LogicException('Frozen measurement plan is invalid.');
-                }
+                $candidate = MeasurementPlan::fetch($tenant, $measurementId);
                 $permitted = false;
                 try {
                     if ($candidate && is_string($candidate->profile_snapshot)) {
@@ -65,8 +56,14 @@ final class ReportPreparation
                 }
                 WorkloadLimits::grid(count($questions), count($providers), $runs);
                 $maxRows = WorkloadLimits::limit('max_slots');
-                $rows = DB::table('measurement_answers')->where($tenant)->where('measurement_id', $measurementId)->orderBy('provider')->orderBy('question_n')->orderBy('run_no')->lockForUpdate()->limit($maxRows + 1)->get();
-                if ($rows->count() > $maxRows) {
+                $baseRows = DB::table('measurement_answers')->where($tenant)->where('measurement_id', $measurementId);
+                $rowCount = (clone $baseRows)->count();
+                $sizeExpression = 'coalesce(octet_length(answer_text), 0) + coalesce(octet_length(fact::text), 0) + coalesce(octet_length(mentions::text), 0) + coalesce(octet_length(sources::text), 0)';
+                if ($rowCount > $maxRows || (clone $baseRows)->whereRaw($sizeExpression.' > ?', [WorkloadLimits::dataBytes()])->exists()) {
+                    throw new LogicException('Frozen measurement plan is invalid.');
+                }
+                $rows = $baseRows->whereRaw($sizeExpression.' <= ?', [WorkloadLimits::dataBytes()])->orderBy('provider')->orderBy('question_n')->orderBy('run_no')->lockForUpdate()->limit($maxRows + 1)->get();
+                if ($rows->count() !== $rowCount) {
                     throw new LogicException('Frozen measurement plan is invalid.');
                 }
                 $slots = [];
@@ -77,7 +74,7 @@ final class ReportPreparation
                         || $providers[$row->provider] !== $row->requested_model || $row->run_no < 1 || $row->run_no > $runs) {
                         throw new LogicException('Measurement contains an unplanned slot.');
                     }
-                    $call = $permitted && $row->ai_call_id ? DB::table('ai_calls')->where($tenant)->where('id', $row->ai_call_id)->sharedLock()->first() : null;
+                    $call = $permitted && $row->ai_call_id ? DB::table('ai_calls')->where($tenant)->where('id', $row->ai_call_id)->whereRaw('octet_length(result_encrypted) <= ?', [WorkloadLimits::dataBytes()])->sharedLock()->first() : null;
                     $verified = $call ? app(EvidenceStore::class)->verifiedEvidence($row, $measurement, $call) : null;
                     $verifiedCount += (int) ($verified !== null);
                     $slots[] = [
@@ -95,8 +92,13 @@ final class ReportPreparation
                 $revision = 1 + (int) DB::table('vision_reports')->where($tenant)->where('measurement_id', $measurementId)->max('revision');
                 $id = (string) Str::ulid();
                 $checksum = CanonicalJson::hash($payload);
+                $encoded = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
+                $size = DB::selectOne('select octet_length(cast(cast(? as jsonb) as text)) as bytes', [$encoded]);
+                if (! $size || ! is_numeric($size->bytes) || (int) $size->bytes > WorkloadLimits::dataBytes()) {
+                    throw new LogicException('Vision report exceeds the technical limit.');
+                }
                 DB::table('vision_reports')->insert(['id' => $id, ...$tenant, 'measurement_id' => $measurementId,
-                    'revision' => $revision, 'payload' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR),
+                    'revision' => $revision, 'payload' => $encoded,
                     'checksum' => $checksum, 'snapshot_mac' => ReportSeal::mac($tenant['organization_id'], $tenant['brand_id'], $id, $measurementId, $revision, $checksum),
                     'created_at' => now(), 'updated_at' => now()]);
 

@@ -14,7 +14,9 @@ use App\Vision\Core\EvidenceStore;
 use App\Vision\Core\MeasurementRunner;
 use App\Vision\Core\QuestionSets;
 use App\Vision\Core\ReportPreparation;
+use App\Vision\Core\ReportSeal;
 use App\Vision\Core\VisionReportReader;
+use App\Vision\Core\WorkloadLimits;
 use App\Vision\Evidence\Contracts\KnowledgeGate;
 use App\Vision\KnowledgeGrants\GrantRegistry;
 use Illuminate\Database\QueryException;
@@ -275,6 +277,102 @@ final class MeasurementRunnerTest extends TestCase
                 self::assertSame([], $answerQueries);
                 self::assertSame(0, DB::table('vision_reports')->count());
             }
+        });
+    }
+
+    public function test_lowered_limits_close_old_measurement_evidence_and_signed_report_before_full_reads(): void
+    {
+        $this->within(function (): void {
+            $questions = [['id' => 'q1', 'text' => 'Вопрос', 'intent' => 'choose'], ['id' => 'q2', 'text' => 'Вопрос', 'intent' => 'choose']];
+            $set = app(QuestionSets::class)->create($questions);
+            $complete = app(MeasurementRunner::class)->start($set, ['gemini' => 'google/gemini-2.5-flash'], 1);
+            $pending = app(MeasurementRunner::class)->start($set, ['gemini' => 'google/gemini-2.5-flash'], 1);
+            $answers = DB::table('measurement_answers')->where('measurement_id', $complete)->orderBy('question_n')->pluck('id');
+            $pendingAnswer = DB::table('measurement_answers')->where('measurement_id', $pending)->value('id');
+            $this->fixture('Вопрос', 'Проверочный ответ');
+            foreach ($answers as $answer) {
+                self::assertSame('ok', app(MeasurementRunner::class)->measure($answer));
+            }
+            $report = app(ReportPreparation::class)->snapshot($complete);
+            $storedBytes = (int) DB::table('question_sets')->where('id', $set)->selectRaw('octet_length(questions::text) as n')->value('n');
+            $defaults = config('features.E8-01.defaults.workload');
+            config(['features.E8-01.defaults.workload.max_slots' => 2, 'features.E8-01.defaults.workload.max_questions_bytes' => $storedBytes]);
+            self::assertIsArray(app(VisionReportReader::class)->read($report));
+            $calls = DB::table('ai_calls')->count();
+            foreach ([['max_slots' => 1], ['max_questions_bytes' => 1]] as $override) {
+                config(['features.E8-01.defaults.workload' => [...$defaults, ...$override]]);
+                $fullReads = [];
+                DB::listen(function ($event) use (&$fullReads): void {
+                    $sql = strtolower($event->sql);
+                    if (preg_match('/select\s+\*\s+from\s+"(?:measurements|measurement_answers|vision_reports|ai_calls)"/', $sql)) {
+                        $fullReads[] = true;
+                    }
+                });
+                try {
+                    app(MeasurementRunner::class)->measure($pendingAnswer);
+                    self::fail('An old over-limit measurement was allowed to run.');
+                } catch (LogicException) {
+                    self::assertSame($calls, DB::table('ai_calls')->count());
+                }
+                self::assertSame('unknown', app(EvidenceStore::class)->evaluate($answers[0]));
+                try {
+                    app(VisionReportReader::class)->read($report);
+                    self::fail('An old over-limit signed report was returned.');
+                } catch (LogicException $exception) {
+                    self::assertSame('Vision report is unavailable.', $exception->getMessage());
+                }
+                self::assertSame([], $fullReads, 'Large plan, answer, call or payload was loaded before preflight.');
+            }
+            self::assertSame('pending', DB::table('measurement_answers')->where('id', $pendingAnswer)->value('status'));
+            Http::assertNothingSent();
+        });
+    }
+
+    public function test_oversized_signed_report_and_answer_are_rejected_before_full_reads(): void
+    {
+        $this->within(function (): void {
+            $set = app(QuestionSets::class)->create([['id' => 'q1', 'text' => 'Вопрос', 'intent' => 'choose']]);
+            $measurement = app(MeasurementRunner::class)->start($set, ['gemini' => 'google/gemini-2.5-flash'], 1);
+            $answer = DB::table('measurement_answers')->where('measurement_id', $measurement)->value('id');
+            $this->fixture('Вопрос', 'Ответ');
+            self::assertSame('ok', app(MeasurementRunner::class)->measure($answer));
+            $reportId = app(ReportPreparation::class)->snapshot($measurement);
+            $report = DB::table('vision_reports')->where('id', $reportId)->first();
+            $payload = json_decode($report->payload, true, 128, JSON_THROW_ON_ERROR);
+            $payload['padding'] = '';
+            $empty = json_encode($payload, JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
+            $overhead = (int) DB::selectOne('select octet_length(cast(cast(? as jsonb) as text)) as bytes', [$empty])->bytes;
+            $payload['padding'] = str_repeat('x', WorkloadLimits::dataBytes() - $overhead);
+            $exactId = (string) Str::ulid();
+            $checksum = CanonicalJson::hash($payload);
+            DB::table('vision_reports')->insert(['id' => $exactId, 'organization_id' => $this->organization, 'brand_id' => $this->brand,
+                'measurement_id' => $measurement, 'revision' => 98, 'payload' => json_encode($payload, JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR), 'checksum' => $checksum,
+                'snapshot_mac' => ReportSeal::mac($this->organization, $this->brand, $exactId, $measurement, 98, $checksum), 'created_at' => now(), 'updated_at' => now()]);
+            self::assertSame(strlen($payload['padding']), strlen(app(VisionReportReader::class)->read($exactId)['padding']));
+            $payload['padding'] .= 'x';
+            $hugeId = (string) Str::ulid();
+            $checksum = CanonicalJson::hash($payload);
+            DB::table('vision_reports')->insert(['id' => $hugeId, 'organization_id' => $this->organization, 'brand_id' => $this->brand,
+                'measurement_id' => $measurement, 'revision' => 99, 'payload' => json_encode($payload, JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR), 'checksum' => $checksum,
+                'snapshot_mac' => ReportSeal::mac($this->organization, $this->brand, $hugeId, $measurement, 99, $checksum), 'created_at' => now(), 'updated_at' => now()]);
+            unset($payload);
+            $fullReads = [];
+            DB::listen(function ($event) use (&$fullReads): void {
+                if (preg_match('/select\s+\*\s+from\s+"(?:vision_reports|measurement_answers|measurements|ai_calls)"/', strtolower($event->sql))) {
+                    $fullReads[] = true;
+                }
+            });
+            try {
+                app(VisionReportReader::class)->read($hugeId);
+                self::fail('An oversized signed report was returned.');
+            } catch (LogicException $exception) {
+                self::assertSame('Vision report is unavailable.', $exception->getMessage());
+            }
+            self::assertSame([], $fullReads);
+            DB::table('measurement_answers')->where('id', $answer)->update(['answer_text' => str_repeat('x', WorkloadLimits::dataBytes() + 1)]);
+            self::assertSame('unknown', app(EvidenceStore::class)->evaluate($answer));
+            self::assertSame([], $fullReads);
+            Http::assertNothingSent();
         });
     }
 

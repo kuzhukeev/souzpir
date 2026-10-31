@@ -113,20 +113,22 @@ final class MeasurementRunner
         }
         try {
             $claimed = DB::transaction(function () use ($answerId, $tenant): ?array {
-                $reference = DB::table('measurement_answers')->where($tenant)->where('id', $answerId)->first();
+                $reference = DB::table('measurement_answers')->where($tenant)->where('id', $answerId)->first(['measurement_id']);
                 if (! $reference) {
                     throw new LogicException('Measurement answer not found.');
                 }
                 MeasurementLock::acquire($reference->measurement_id);
                 // The gate acquires organization, brand and grant before the measurement.
-                $candidate = DB::table('measurements')->where($tenant)->where('id', $reference->measurement_id)->first();
+                $candidate = MeasurementPlan::fetch($tenant, $reference->measurement_id);
                 $this->assertKnowledge($candidate);
                 $measurement = DB::table('measurements')->where($tenant)->where('id', $reference->measurement_id)->lockForUpdate()->first();
                 if (! $measurement) {
                     throw new LogicException('Measurement not found.');
                 }
                 $answer = DB::table('measurement_answers')->where($tenant)->where('id', $answerId)
-                    ->where('measurement_id', $measurement->id)->lockForUpdate()->first();
+                    ->where('measurement_id', $measurement->id)
+                    ->whereRaw('coalesce(octet_length(answer_text), 0) + coalesce(octet_length(fact::text), 0) + coalesce(octet_length(mentions::text), 0) + coalesce(octet_length(sources::text), 0) <= ?', [WorkloadLimits::dataBytes()])
+                    ->lockForUpdate()->first();
                 if (! $answer) {
                     throw new LogicException('Measurement answer not found.');
                 }
@@ -158,7 +160,7 @@ final class MeasurementRunner
         [$answer, $question, $configuration] = $claimed;
         try {
             DB::transaction(function () use ($tenant, $answer): void {
-                $measurement = DB::table('measurements')->where($tenant)->where('id', $answer->measurement_id)->first();
+                $measurement = MeasurementPlan::fetch($tenant, $answer->measurement_id);
                 $this->assertKnowledge($measurement);
             });
         } catch (Throwable) {
@@ -197,13 +199,13 @@ final class MeasurementRunner
         try {
             return DB::transaction(function () use ($tenant, $answerId, $measurementId, $changes): string {
                 MeasurementLock::acquire($measurementId);
-                $candidate = DB::table('measurements')->where($tenant)->where('id', $measurementId)->first();
                 try {
+                    $candidate = MeasurementPlan::fetch($tenant, $measurementId);
                     $this->assertKnowledge($candidate);
                 } catch (Throwable) {
                     $changes = ['status' => 'failed', 'error_code' => 'knowledge_unavailable', 'answer_text' => null, 'protocol_valid' => null];
                 }
-                $measurement = DB::table('measurements')->where($tenant)->where('id', $measurementId)->lockForUpdate()->first();
+                $measurement = DB::table('measurements')->where($tenant)->where('id', $measurementId)->lockForUpdate()->first(['id']);
                 if (! $measurement) {
                     throw new LogicException('Measurement not found.');
                 }

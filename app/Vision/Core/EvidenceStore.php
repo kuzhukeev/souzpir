@@ -95,18 +95,31 @@ final class EvidenceStore
 
     private function records(array $tenant, string $answerId, bool $lock = false): ?array
     {
-        $reference = DB::table('measurement_answers')->where($tenant)->where('id', $answerId)->first();
-        if (! $reference) {
+        $reference = DB::table('measurement_answers')->where($tenant)->where('id', $answerId)->first([
+            'measurement_id', 'ai_call_id',
+            DB::raw('coalesce(octet_length(answer_text), 0) + coalesce(octet_length(fact::text), 0) + coalesce(octet_length(mentions::text), 0) + coalesce(octet_length(sources::text), 0) as data_bytes'),
+        ]);
+        if (! $reference || ! $reference->ai_call_id || ! is_numeric($reference->data_bytes)
+            || (int) $reference->data_bytes > WorkloadLimits::dataBytes()) {
             return null;
         }
+        MeasurementPlan::fetch($tenant, $reference->measurement_id);
         $mq = DB::table('measurements')->where($tenant)->where('id', $reference->measurement_id);
         $measurement = ($lock ? $mq->lockForUpdate() : $mq)->first();
-        $aq = DB::table('measurement_answers')->where($tenant)->where('id', $answerId)->where('measurement_id', $reference->measurement_id);
+        $aq = DB::table('measurement_answers')->where($tenant)->where('id', $answerId)->where('measurement_id', $reference->measurement_id)
+            ->where('ai_call_id', $reference->ai_call_id)
+            ->whereRaw('coalesce(octet_length(answer_text), 0) + coalesce(octet_length(fact::text), 0) + coalesce(octet_length(mentions::text), 0) + coalesce(octet_length(sources::text), 0) <= ?', [WorkloadLimits::dataBytes()]);
         $answer = ($lock ? $aq->lockForUpdate() : $aq)->first();
         if (! $measurement || ! $answer || ! $answer->ai_call_id) {
             return null;
         }
-        $cq = DB::table('ai_calls')->where($tenant)->where('id', $answer->ai_call_id);
+        $callSize = DB::table('ai_calls')->where($tenant)->where('id', $answer->ai_call_id)
+            ->first([DB::raw('octet_length(result_encrypted) as data_bytes')]);
+        if (! $callSize || ! is_numeric($callSize->data_bytes) || (int) $callSize->data_bytes > WorkloadLimits::dataBytes()) {
+            return null;
+        }
+        $cq = DB::table('ai_calls')->where($tenant)->where('id', $answer->ai_call_id)
+            ->whereRaw('octet_length(result_encrypted) <= ?', [WorkloadLimits::dataBytes()]);
         $call = ($lock ? $cq->lockForUpdate() : $cq)->first();
 
         return $call ? [$answer, $measurement, $call] : null;
@@ -120,7 +133,13 @@ final class EvidenceStore
             || $call->family !== 'vision' || $call->object_type !== 'measurement' || $call->object_id !== $measurement->id
             || $call->requested_model !== $answer->requested_model || $call->model !== $answer->model
             || $call->idempotency_key_hash !== hash_hmac('sha256', 'vision-measure:'.$answer->id, (string) config('app.key'))
-            || ! is_string($call->result_encrypted)) {
+            || ! is_string($call->result_encrypted)
+            || strlen($call->result_encrypted) > WorkloadLimits::dataBytes()
+            || strlen($answer->answer_text) + strlen((string) ($answer->fact ?? '')) + strlen((string) ($answer->mentions ?? '')) + strlen((string) ($answer->sources ?? '')) > WorkloadLimits::dataBytes()) {
+            return false;
+        }
+        $current = MeasurementPlan::fetch($this->tenant->current(), $measurement->id);
+        if (! is_string($current->configuration) || ! hash_equals($current->configuration, $measurement->configuration)) {
             return false;
         }
         $profile = json_decode($measurement->profile_snapshot, true, 64, JSON_THROW_ON_ERROR);

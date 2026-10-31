@@ -28,4 +28,14 @@ final class WorkloadLimits
             throw new InvalidArgumentException('Vision measurement workload exceeds the technical limit.');
         }
     }
+
+    public static function planBytes(): int
+    {
+        return self::limit('max_questions_bytes') + 1000000;
+    }
+
+    public static function dataBytes(): int
+    {
+        return self::limit('max_questions_bytes') + 4000000;
+    }
 }
