@@ -37,9 +37,12 @@ final class SecretBoundary
         }
     }
 
-    private function walk(#[\SensitiveParameter] mixed $value, int $depth, int &$nodes, int &$bytes, #[\SensitiveParameter] array &$chunks): void
+    private function walk(#[\SensitiveParameter] mixed $value, int $depth, int &$nodes, int &$bytes, #[\SensitiveParameter] array &$chunks, bool $toolContext = false, bool $toolArguments = false): void
     {
         if ($depth > self::MAX_DEPTH || ++$nodes > self::MAX_NODES) {
+            throw new InvalidArgumentException;
+        }
+        if ($toolArguments && ! is_array($value) && ! is_string($value)) {
             throw new InvalidArgumentException;
         }
         if (is_array($value)) {
@@ -57,7 +60,9 @@ final class SecretBoundary
                     }
                     $this->inspect($normalizedKey);
                 }
-                $this->walk($child, $depth + 1, $nodes, $bytes, $chunks);
+                $name = is_string($key) ? preg_replace('/[^a-z0-9]+/', '', mb_strtolower(preg_replace('/\p{Cf}+/u', '', $normalizedKey) ?? '')) : '';
+                $childContext = $toolContext || in_array($name, ['toolcalls', 'functioncall', 'toolcall', 'function', 'tooluse'], true);
+                $this->walk($child, $depth + 1, $nodes, $bytes, $chunks, $childContext, $toolContext && $name === 'arguments');
             }
 
             return;
@@ -66,12 +71,33 @@ final class SecretBoundary
             $text = $this->normalize($value, $bytes);
             $this->inspect($text);
             $chunks[] = $text;
-            $trimmed = trim($text);
-            if (str_starts_with($trimmed, '{') || str_starts_with($trimmed, '[')) {
-                $decoded = json_decode($trimmed, true);
-                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-                    $this->walk($decoded, $depth + 1, $nodes, $bytes, $chunks);
+            $parsed = false;
+            if ($toolArguments) {
+                $original = trim($value);
+                if (! str_starts_with($original, '{') && ! str_starts_with($original, '[')) {
+                    throw new InvalidArgumentException;
                 }
+                json_decode($original, true, 22);
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    throw new InvalidArgumentException;
+                }
+            }
+            foreach (array_unique([$value, $text]) as $candidate) {
+                $trimmed = trim($candidate);
+                if (! str_starts_with($trimmed, '{') && ! str_starts_with($trimmed, '[')) {
+                    continue;
+                }
+                // Invalid strings are tolerated only outside a tool-argument context.
+                json_decode($trimmed, true, 22);
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    continue;
+                }
+                $decoded = (new JsonObjectInspector)->decode($trimmed);
+                $parsed = true;
+                $this->walk($decoded, $depth + 1, $nodes, $bytes, $chunks, $toolContext);
+            }
+            if ($toolArguments && ! $parsed) {
+                throw new InvalidArgumentException;
             }
 
             return;
@@ -96,6 +122,17 @@ final class SecretBoundary
                 throw new InvalidArgumentException;
             }
             $text = html_entity_decode(rawurldecode($text), ENT_QUOTES | ENT_HTML5 | ENT_SUBSTITUTE, 'UTF-8');
+            $text = preg_replace_callback('/\\\\u(?:[dD][89aAbB][0-9a-fA-F]{2}\\\\u[dD][c-fC-F][0-9a-fA-F]{2}|[0-9a-fA-F]{4})/', static function (array $match): string {
+                $decoded = json_decode('"'.$match[0].'"');
+                if (! is_string($decoded)) {
+                    throw new InvalidArgumentException;
+                }
+
+                return $decoded;
+            }, $text);
+            if ($text === null) {
+                throw new InvalidArgumentException;
+            }
             if (! mb_check_encoding($text, 'UTF-8') || strlen($text) > self::MAX_BYTES) {
                 throw new InvalidArgumentException;
             }
@@ -111,9 +148,11 @@ final class SecretBoundary
     private function isSensitiveKey(string $key): bool
     {
         $key = preg_replace('/\p{Cf}+/u', '', $key) ?? '';
+        $key = preg_replace('/([\p{Ll}\p{Nd}])(\p{Lu})/u', '$1_$2', $key) ?? '';
+        $key = preg_replace('/(\p{Lu})(\p{Lu}\p{Ll})/u', '$1_$2', $key) ?? '';
         $key = mb_strtolower(preg_replace('/[^\p{L}\p{N}]+/u', '_', $key) ?? '');
 
-        return preg_match('/(?:^|_)(?:password|passwd|passphrase|api_?key|access_?token|refresh_?token|client_?secret|secret|private_?key|authorization|пароль|секрет)(?:_|$)/u', $key) === 1;
+        return preg_match('/(?:^|_)(?:password|passwd|pwd|passphrase|api_?key|access_?token|refresh_?token|token|client_?secret|secret|private_?key|authorization|пароль|секрет)(?:_|$)/u', $key) === 1;
     }
 
     private function nonempty(#[\SensitiveParameter] mixed $value): bool
@@ -124,15 +163,40 @@ final class SecretBoundary
     private function inspect(#[\SensitiveParameter] string $text): void
     {
         $plain = preg_replace('/\p{Cf}+/u', '', $text);
+        if ($plain !== null) {
+            // Inspection only: expose JSON-escaped punctuation without changing the payload.
+            $plain = str_replace('\\', '', $plain);
+        }
         if ($plain === null || preg_match('/[\x{0000}-\x{0008}\x{000B}\x{000C}\x{000E}-\x{001F}\x{007F}-\x{009F}]/u', $plain) !== 0) {
             throw new InvalidArgumentException;
+        }
+        $fieldsMatched = preg_match_all('/["\']([^"\'\r\n]{1,256})["\']\s*:\s*(?:["\']([^"\']*)["\']|([^\s,}\]]+))/u', $plain, $fields, PREG_SET_ORDER);
+        if ($fieldsMatched === false) {
+            throw new InvalidArgumentException;
+        }
+        foreach ($fields as $field) {
+            if ($this->isSensitiveKey($field[1]) && (($field[2] ?? '') !== '' || (isset($field[3]) && ! in_array($field[3], ['null', '""'], true)))) {
+                throw new InvalidArgumentException;
+            }
+        }
+        $basicMatched = preg_match_all('/\bBasic\s+([A-Za-z0-9+\/]{8,}={0,2})/i', $plain, $basicTokens);
+        if ($basicMatched === false) {
+            throw new InvalidArgumentException;
+        }
+        foreach ($basicTokens[1] as $encoded) {
+            $credentials = base64_decode($encoded, true);
+            if (is_string($credentials) && str_contains($credentials, ':')) {
+                throw new InvalidArgumentException;
+            }
         }
         $patterns = [
             '/-----BEGIN (?:RSA |EC |OPENSSH |DSA |ENCRYPTED )?PRIVATE KEY-----/i',
             '/\bBearer\s+[A-Za-z0-9._~+\/-]{8,}={0,2}\b/i',
+            '/\b(?:AKIA|ASIA)[A-Z0-9]{16}\b/',
+            '/\b[a-z][a-z0-9+.-]*:\/\/[^@\s\/:]+:[^@\s\/]+@/i',
             '/\b(?:sk|pk)_(?:live|test)_[A-Za-z0-9_-]{12,}\b/i',
             '/\b(?:sk-|ghp_|github_pat_|glpat-|xox[baprs]-)[A-Za-z0-9_-]{12,}\b/i',
-            '/\b(?:api[\s_-]*key|access[\s_-]*token|refresh[\s_-]*token|client[\s_-]*secret|password|passwd|passphrase|private[\s_-]*key|пароль|секрет)\s*[:=]\s*["\']?[^\s"\',;]{4,}/iu',
+            '/\b(?:api[\s_-]*key|access[\s_-]*token|refresh[\s_-]*token|client[\s_-]*secret|password|passwd|pwd|passphrase|private[\s_-]*key|authorization|secret|token|пароль|секрет)["\']?\s*[:=]\s*["\']?[^\s"\',;}]{1,}/iu',
         ];
         foreach ($patterns as $pattern) {
             $matched = preg_match($pattern, $plain);
