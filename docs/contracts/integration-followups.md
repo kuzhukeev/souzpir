@@ -14,4 +14,4 @@
 
 `registry.json` уже фиксирует monitoring_schedules за E8-01 и ExportContributor за E1-11. Добавление описанных prerequisites не создаёт цикла: E1-11 зависит от E3-04/E8-01, а E7-04/E8-07 находятся ниже этих data layers. Owner scope остаётся обязательным даже если контрактный документ описывает будущий файл.
 
-- E0-08 integration: connect authoritative tenant-scoped module entitlement and per-user unread notification contributors. Until connected, SharedPropsV1 returns null, not fabricated false/zero. Cover both populated and unavailable states.
+- E0-08 integration: connect authoritative tenant-scoped module entitlement and per-user unread notification contributors. Until connected, SharedPropsV1 returns null for each module flag and unread, not fabricated false/zero. Cover both populated and unavailable states.
