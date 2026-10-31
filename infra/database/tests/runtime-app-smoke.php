@@ -22,6 +22,7 @@ $db = DB::connection();
 $root = realpath(__DIR__.'/../../..');
 $local = realpath($root.'/.local');
 $data = realpath((string) getenv('SP_ROLE_TEST_DATA'));
+$testHost = (string) getenv('SP_ROLE_TEST_HOST');
 $port = getenv('SP_ROLE_TEST_PORT');
 $admin = getenv('SP_ROLE_TEST_ADMIN');
 $testDb = getenv('SP_ROLE_TEST_DB');
@@ -32,19 +33,22 @@ if (! $app->environment('testing') || realpath($app->basePath()) !== $root
     || ! preg_match('/^souzpir_test_[a-z0-9_]+$/D', (string) $testDb)
     || ! preg_match('/^[a-z][a-z0-9_]{0,62}$/D', (string) $admin)
     || ! preg_match('/^[a-z][a-z0-9_]{0,62}$/D', (string) $runtime)
-    || ! ctype_digit((string) $port) || getenv('SP_ROLE_TEST_HOST') !== '127.0.0.1'
-    || $db->getConfig('host') !== '127.0.0.1' || (string) $db->getConfig('port') !== $port
+    || filter_var($testHost, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) === false || ! str_starts_with($testHost, '127.')
+    || ! ctype_digit((string) $port) || $db->getConfig('host') !== $testHost || (string) $db->getConfig('port') !== $port
     || $db->getDatabaseName() !== $testDb || $db->getConfig('username') !== $runtime
     || $testDb !== config('runtime.test_database') || $testDb === config('runtime.preview_database')) {
     throw new RuntimeException('Refusing non-isolated runtime application smoke test.');
 }
-$adminConnection = new PDO("pgsql:host=127.0.0.1;port={$port};dbname=postgres", $admin, '', [PDO::ATTR_TIMEOUT => 5]);
+$adminConnection = new PDO("pgsql:host={$testHost};port={$port};dbname=postgres", $admin, '', [PDO::ATTR_TIMEOUT => 5]);
 if (realpath($adminConnection->query('SHOW data_directory')->fetchColumn()) !== $data) {
     throw new RuntimeException('PostgreSQL data directory is not the worktree-local test cluster.');
 }
+if ($adminConnection->query("SELECT host(inet_server_addr()) || '|' || inet_server_port()")->fetchColumn() !== $testHost.'|'.$port) {
+    throw new RuntimeException('Unexpected PostgreSQL server address or port.');
+}
 $adminConnection = null;
-$identity = $db->selectOne('select current_database() as database, current_user as role');
-if ($identity->database !== $testDb || $identity->role !== $runtime) {
+$identity = $db->selectOne('select current_database() as database, current_user as role, host(inet_server_addr()) as address, inet_server_port() as port');
+if ($identity->database !== $testDb || $identity->role !== $runtime || $identity->address !== $testHost || (string) $identity->port !== $port) {
     throw new RuntimeException('Unexpected runtime database identity.');
 }
 Http::preventStrayRequests();
