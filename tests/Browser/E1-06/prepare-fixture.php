@@ -69,9 +69,9 @@ DB::transaction(function () use ($organizationId): void {
     $organization = new Organization;
     $organization->forceFill(['id' => $organizationId, 'name' => 'Тестовая компания', 'settings' => ['test_fixture' => 'e106-role-ui']])->save();
     app(TenantContextRunner::class)->run(new TenantContext($organizationId, actorId: $owner->id, source: 'job'), function () use ($owner, $viewer): void {
+        $brand = Brand::create(['name' => 'Пиротехника — Северные огни', 'theme' => 'pyro']);
         Membership::create(['user_id' => $owner->id, 'role' => 'owner']);
-        Membership::create(['user_id' => $viewer->id, 'role' => 'viewer']);
-        Brand::create(['name' => 'Пиротехника — Северные огни', 'theme' => 'pyro']);
+        Membership::create(['user_id' => $viewer->id, 'role' => 'viewer', 'brand_ids' => [$brand->id]]);
     });
     $organization->forceFill(['owner_user_id' => $owner->id])->save();
 });
