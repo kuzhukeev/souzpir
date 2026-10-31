@@ -66,6 +66,15 @@ declare module 'ziggy-js' {
     "mfa.setup": [],
     "mfa.confirm": [],
     "mfa.disable": [],
+    "journal.index": [],
+    "journal.export": [],
+    "journal.notifications": [],
+    "journal.retry": [
+        {
+            "name": "id",
+            "required": true
+        }
+    ],
     "dev.design-system": [],
     "preview.login": [],
     "preview.attention": []

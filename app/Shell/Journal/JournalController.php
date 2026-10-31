@@ -46,7 +46,7 @@ final class JournalController
     private function auditQuery(array $filters): Builder
     {
         $context = app(TenantContext::class);
-        $editor = ! Gate::allows('team.write');
+        $editor = ! Gate::allows('journal.notifications.read');
         $query = DB::table('audit_logs as a')->leftJoin('users as u', 'u.id', '=', 'a.actor_id')
             ->where('a.organization_id', $context->requireOrganizationId())
             ->where(function (Builder $q) use ($context, $editor): void {
@@ -98,18 +98,18 @@ final class JournalController
 
     public function index(Request $request)
     {
-        Gate::authorize('seller.knowledge.write');
+        Gate::authorize('journal.read');
         $filters = $this->filters($request);
         $rows = $this->auditQuery($filters)->paginate(30)->withQueryString();
         $actors = $this->auditQuery([])->reorder()->whereNotNull('a.actor_id')->select('a.actor_id as id', 'u.name')->distinct()->orderBy('u.name')->get();
         $actions = $this->auditQuery([])->reorder()->select('a.action')->distinct()->orderBy('a.action')->pluck('action');
 
-        return Inertia::render('Shell/Journal/Actions', ['rows' => $rows, 'filters' => $filters, 'actors' => $actors, 'actions' => $actions, 'canNotifications' => Gate::allows('team.write')]);
+        return Inertia::render('Shell/Journal/Actions', ['rows' => $rows, 'filters' => $filters, 'actors' => $actors, 'actions' => $actions, 'canNotifications' => Gate::allows('journal.notifications.read')]);
     }
 
     public function export(Request $request): StreamedResponse
     {
-        Gate::authorize('seller.knowledge.write');
+        Gate::authorize('journal.read');
         $query = $this->auditQuery($this->filters($request));
 
         return response()->streamDownload(function () use ($query): void {
@@ -131,7 +131,7 @@ final class JournalController
 
     public function notifications(Request $request)
     {
-        Gate::authorize('team.write');
+        Gate::authorize('journal.notifications.read');
         $context = app(TenantContext::class);
         $filters = $this->filters($request);
         $query = DB::table('notification_deliveries as d')->join('outbox_events as e', function ($join): void {
@@ -162,7 +162,7 @@ final class JournalController
 
     public function retry(string $id)
     {
-        Gate::authorize('team.write');
+        Gate::authorize('journal.retry');
         $context = app(TenantContext::class);
         DB::transaction(function () use ($context, $id): void {
             DB::table('organizations')->where('id', $context->organizationId)->where('status', 'active')->lockForUpdate()->first() ?? abort(404);
