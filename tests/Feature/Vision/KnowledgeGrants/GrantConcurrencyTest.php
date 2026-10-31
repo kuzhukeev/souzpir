@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Vision\KnowledgeGrants;
 
+use App\Ai\CanonicalJson;
 use App\Models\Brand;
 use App\Models\Membership;
 use App\Models\Organization;
@@ -9,11 +10,16 @@ use App\Models\User;
 use App\Seller\Knowledge\DatabaseKnowledgeRepository;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
+use App\Vision\Evidence\Contracts\KnowledgeGate;
 use App\Vision\KnowledgeBridge\GrantAuthority;
+use App\Vision\KnowledgeBridge\PublishedKnowledgeBridge;
 use App\Vision\KnowledgeGrants\DatabaseGrantAuthority;
 use App\Vision\KnowledgeGrants\GrantRegistry;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
@@ -137,6 +143,69 @@ final class GrantConcurrencyTest extends TestCase
             $worker->wait();
             self::assertSame(0, $worker->getExitCode(), $worker->getErrorOutput());
             self::assertStringContainsString('denied', $worker->getOutput());
+        } finally {
+            if ($worker->isRunning()) {
+                $worker->stop();
+            }
+            $input->close();
+        }
+    }
+
+    public function test_bridge_frozen_check_serializes_with_real_revoke(): void
+    {
+        [$ctx, , , , $grant] = $this->fixture();
+        DB::table('brand_modules')->updateOrInsert(['organization_id' => $ctx->organizationId, 'brand_id' => $ctx->brandId, 'module' => 'vision'], ['id' => (string) Str::ulid(), 'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
+        if (! Schema::hasTable('measurements')) {
+            Schema::create('measurements', function (Blueprint $table): void {
+                $table->ulid('id')->primary();
+                $table->ulid('organization_id');
+                $table->ulid('brand_id');
+                $table->jsonb('profile_snapshot');
+                $table->string('profile_checksum', 64);
+            });
+        }
+        [$id, $profile] = app(TenantContextRunner::class)->run($ctx, fn () => DB::transaction(function () use ($ctx): array {
+            $profile = app(PublishedKnowledgeBridge::class)->buildProfile($ctx);
+            $id = (string) Str::ulid();
+            $row = ['id' => $id, 'organization_id' => $ctx->organizationId, 'brand_id' => $ctx->brandId, 'profile_snapshot' => json_encode($profile, JSON_THROW_ON_ERROR), 'profile_checksum' => CanonicalJson::hash($profile)];
+            if (Schema::hasColumn('measurements', 'question_set_id')) {
+                $set = (string) Str::ulid();
+                DB::table('question_sets')->insert(['id' => $set, 'organization_id' => $ctx->organizationId, 'brand_id' => $ctx->brandId, 'version' => 1, 'questions' => '[{"text":"Вопрос"}]', 'size' => 1, 'checksum' => str_repeat('a', 64), 'created_at' => now(), 'updated_at' => now()]);
+                $row += ['question_set_id' => $set, 'status' => 'pending', 'configuration' => '{}', 'created_at' => now(), 'updated_at' => now()];
+            }
+            DB::table('measurements')->insert($row);
+
+            return [$id, $profile];
+        }));
+        $input = new InputStream;
+        $worker = $this->worker($input, ['mode' => 'revoke', 'org' => $ctx->organizationId, 'brand' => $ctx->brandId,
+            'actor' => $ctx->actorId, 'membership' => $ctx->membershipId, 'grant' => $grant['id']]);
+        try {
+            $pid = $this->ready($worker);
+            app(TenantContextRunner::class)->run($ctx, function () use ($ctx, $id, $profile, $worker, $input, $pid): void {
+                DB::beginTransaction();
+                try {
+                    app(KnowledgeGate::class)->assertAllowed($ctx, $id, $profile);
+                    $input->write("go\n");
+                    $this->waitUntilBlocked($worker, $pid);
+                    DB::commit();
+                } finally {
+                    if (DB::transactionLevel() > 0) {
+                        DB::rollBack();
+                    }
+                }
+            });
+            $worker->wait();
+            self::assertSame(0, $worker->getExitCode(), $worker->getErrorOutput());
+            self::assertStringContainsString('allowed', $worker->getOutput());
+            app(TenantContextRunner::class)->run($ctx, function () use ($ctx, $id, $profile): void {
+                try {
+                    app(KnowledgeGate::class)->assertAllowed($ctx, $id, $profile);
+                    self::fail('Revoked frozen snapshot accepted.');
+                } catch (\LogicException $e) {
+                    self::assertSame('The approved knowledge profile is unavailable.', $e->getMessage());
+                }
+            });
         } finally {
             if ($worker->isRunning()) {
                 $worker->stop();

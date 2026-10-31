@@ -7,6 +7,7 @@ use App\Seller\Knowledge\DatabaseKnowledgeRepository;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
 use App\Vision\Evidence\Contracts\KnowledgeGate;
+use App\Vision\KnowledgeBridge\DenyGrantAuthority;
 use App\Vision\KnowledgeBridge\GrantAuthority;
 use App\Vision\KnowledgeBridge\PublishedKnowledgeBridge;
 use Illuminate\Database\Schema\Blueprint;
@@ -263,11 +264,11 @@ final class PublishedKnowledgeBridgeTest extends TenancyTestCase
 
     }
 
-    public function test_default_authority_denies_even_if_settings_appear_to_allow_access(): void
+    public function test_deny_authority_denies_even_if_settings_appear_to_allow_access(): void
     {
         $f = $this->fixture();
         $this->grant($f);
-        $this->app->forgetInstance(GrantAuthority::class);
+        $this->app->instance(GrantAuthority::class, new DenyGrantAuthority);
         $this->denied(fn () => $this->frozen($f));
     }
 
