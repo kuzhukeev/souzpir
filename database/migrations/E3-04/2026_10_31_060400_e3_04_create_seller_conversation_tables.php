@@ -187,6 +187,9 @@ BEGIN
   END IF;
   -- Serialize inserting/changing a message with changes to its conversation channel.
   PERFORM 1 FROM conversations WHERE id = NEW.conversation_id FOR UPDATE;
+  IF TG_OP = 'UPDATE' AND (OLD.organization_id IS DISTINCT FROM NEW.organization_id OR OLD.brand_id IS DISTINCT FROM NEW.brand_id OR OLD.conversation_id IS DISTINCT FROM NEW.conversation_id OR OLD.role IS DISTINCT FROM NEW.role OR OLD.text IS DISTINCT FROM NEW.text) AND EXISTS (SELECT 1 FROM seller_turns WHERE input_message_id = OLD.id) THEN
+    RAISE EXCEPTION 'Claimed input message is immutable' USING ERRCODE = '23514';
+  END IF;
   IF NEW.role = 'client' AND NEW.external_event_id IS NULL AND EXISTS (SELECT 1 FROM conversations WHERE id = NEW.conversation_id AND channel_account_id IS NOT NULL) THEN
     RAISE EXCEPTION 'Channel client message requires inbound event' USING ERRCODE = '23514';
   END IF;
@@ -198,6 +201,17 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 CREATE TRIGGER e304_immutable_message_origin BEFORE INSERT OR UPDATE OR DELETE ON messages FOR EACH ROW EXECUTE FUNCTION e304_immutable_message_origin();
+SQL);
+        DB::unprepared(<<<'SQL'
+CREATE OR REPLACE FUNCTION e304_immutable_inbound_event() RETURNS trigger AS $$
+BEGIN
+  IF OLD.organization_id IS DISTINCT FROM NEW.organization_id OR OLD.brand_id IS DISTINCT FROM NEW.brand_id OR OLD.channel_account_id IS DISTINCT FROM NEW.channel_account_id OR OLD.external_id IS DISTINCT FROM NEW.external_id OR OLD.payload IS DISTINCT FROM NEW.payload THEN
+    RAISE EXCEPTION 'Inbound event identity and payload are immutable' USING ERRCODE = '23514';
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+CREATE TRIGGER e304_immutable_inbound_event BEFORE UPDATE ON channel_inbound_events FOR EACH ROW EXECUTE FUNCTION e304_immutable_inbound_event();
 SQL);
         DB::unprepared(<<<'SQL'
 CREATE OR REPLACE FUNCTION e304_immutable_conversation_channel() RETURNS trigger AS $$
@@ -213,6 +227,7 @@ SQL);
         DB::unprepared(<<<'SQL'
 CREATE OR REPLACE FUNCTION e304_verify_turn_origin() RETURNS trigger AS $$
 BEGIN
+  PERFORM 1 FROM conversations WHERE id = NEW.conversation_id FOR UPDATE;
   IF NOT EXISTS (SELECT 1 FROM messages m WHERE m.id = NEW.input_message_id AND m.conversation_id = NEW.conversation_id AND m.organization_id = NEW.organization_id AND m.brand_id = NEW.brand_id AND m.external_event_id IS NOT DISTINCT FROM NEW.external_event_id AND m.role = 'client' AND (m.external_event_id IS NOT NULL OR NOT EXISTS (SELECT 1 FROM conversations c WHERE c.id = m.conversation_id AND c.channel_account_id IS NOT NULL))) THEN
     RAISE EXCEPTION 'Turn input does not match message origin' USING ERRCODE = '23514';
   END IF;
@@ -228,6 +243,8 @@ SQL);
 
     public function down(): void
     {
+        DB::statement('DROP TRIGGER IF EXISTS e304_immutable_inbound_event ON channel_inbound_events');
+        DB::statement('DROP FUNCTION IF EXISTS e304_immutable_inbound_event()');
         DB::statement('DROP TRIGGER IF EXISTS e304_immutable_conversation_channel ON conversations');
         DB::statement('DROP FUNCTION IF EXISTS e304_immutable_conversation_channel()');
         DB::statement('DROP TRIGGER IF EXISTS e304_verify_turn_origin ON seller_turns');

@@ -394,4 +394,45 @@ final class ConversationRepositoryTest extends TenancyTestCase
         }
         $this->assertDatabaseCount('seller_turns', 0);
     }
+
+    public function test_claimed_internal_message_identity_and_text_are_immutable(): void
+    {
+        [, $org, $brand] = $this->cabinet();
+        [$conversation, $input] = $this->setupConversation($org, $brand);
+        $context = $this->context($org, $brand);
+        $repo = app(ConversationRepository::class);
+        $claim = $repo->claimTurn($context, new TurnCommand($conversation->id, $input->id, $input->text, null, 'immutability', 0));
+        foreach ([['text' => 'changed'], ['role' => 'system'], ['organization_id' => (string) Str::ulid()], ['brand_id' => (string) Str::ulid()]] as $change) {
+            try {
+                DB::transaction(fn () => DB::table('messages')->where('id', $input->id)->update($change));
+                $this->fail('Claimed input changed');
+            } catch (QueryException $e) {
+                $this->assertSame('23514', $e->errorInfo[0]);
+            }
+        }
+        DB::table('messages')->where('id', $input->id)->update(['meta' => json_encode(['checked' => true])]);
+        $this->assertDatabaseHas('seller_turns', ['id' => $claim->turnId, 'status' => 'processing']);
+    }
+
+    public function test_inbound_event_identity_and_payload_are_immutable_but_processed_at_can_change(): void
+    {
+        [, $org, $brand] = $this->cabinet();
+        $channel = $this->within($org, $brand, fn () => ChannelAccount::create(['type' => 'api']));
+        [$conversation] = $this->setupConversation($org, $brand, $channel);
+        $context = $this->context($org, $brand);
+        $recorder = app(InboundRecorder::class);
+        $message = $recorder->ingest($context, $channel->id, 'external-original', ['sender' => 'a'], $conversation->id, 'text');
+        foreach ([['external_id' => 'changed'], ['payload' => json_encode(['sender' => 'b'])], ['channel_account_id' => (string) Str::ulid()], ['brand_id' => (string) Str::ulid()], ['organization_id' => (string) Str::ulid()]] as $change) {
+            try {
+                DB::transaction(fn () => DB::table('channel_inbound_events')->where('id', $message->external_event_id)->update($change));
+                $this->fail('Event identity changed');
+            } catch (QueryException $e) {
+                $this->assertSame('23514', $e->errorInfo[0]);
+            }
+        }
+        DB::table('channel_inbound_events')->where('id', $message->external_event_id)->update(['processed_at' => now()]);
+        $replayed = $recorder->ingest($context, $channel->id, 'external-original', ['sender' => 'a'], $conversation->id, 'text');
+        $this->assertSame($message->id, $replayed->id);
+        $this->assertDatabaseHas('channel_inbound_events', ['id' => $message->external_event_id, 'external_id' => 'external-original']);
+    }
 }

@@ -21,6 +21,8 @@ while (! file_exists($barrier)) {
 try {
     if ($op === 'change') {
         DB::table('conversations')->where('id', $conversation)->update(['channel_account_id' => $channel]);
+    } elseif ($op === 'edit') {
+        DB::table('messages')->where('id', $channel)->update(['text' => 'changed']);
     } else {
         DB::table('messages')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org, 'brand_id' => $brand, 'conversation_id' => $conversation, 'role' => 'client', 'text' => 'internal']);
     }
