@@ -29,6 +29,17 @@ use Tests\Feature\Tenancy\TenancyTestCase;
 
 final class NotificationCoreTest extends TenancyTestCase
 {
+    protected function cabinet(bool $configured = true): array
+    {
+        $result = parent::cabinet($configured);
+        [, $organization, $first, $second] = $result;
+        foreach ([$first, $second] as $brand) {
+            DB::table('brand_modules')->insert(['id' => (string) Str::ulid(), 'organization_id' => $organization->id, 'brand_id' => $brand->id, 'module' => 'seller', 'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
+        }
+
+        return $result;
+    }
+
     private function event(string $organization, string $brand): DomainEvent
     {
         return new DomainEvent([

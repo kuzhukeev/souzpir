@@ -26,6 +26,7 @@ final class AfterCommitTest extends TestCase
         [$brand, $member] = app(TenantContextRunner::class)->run(new TenantContext($organization->id, source: 'job'), function () use ($user): array {
             return [Brand::create(['name' => 'Brand']), Membership::create(['user_id' => $user->id, 'role' => 'owner'])];
         });
+        DB::table('brand_modules')->insert(['id' => (string) Str::ulid(), 'organization_id' => $organization->id, 'brand_id' => $brand->id, 'module' => 'seller', 'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
         $make = fn () => new DomainEvent([
             'event_id' => (string) Str::ulid(), 'schema_version' => 1,
             'type' => 'seller.conversation.handed_off', 'occurred_at' => now()->toIso8601String(),
