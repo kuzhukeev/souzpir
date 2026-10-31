@@ -113,6 +113,12 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "seller.settings.limits": [],
+    "seller.settings.notifications": [],
+    "seller.settings.notifications.update": [],
+    "seller.settings.notifications.digests": [],
+    "seller.settings.notifications.digests.time": [],
+    "seller.settings.notifications.test": [],
     "dev.design-system": [],
     "preview.login": [],
     "preview.attention": []

@@ -11,13 +11,21 @@ final class SellerUsage implements UsageContributor
 {
     public function read(TenantContext $context, UsageQuery $query): array
     {
+        $requested = array_flip($query->metrics);
+        $sellerMetrics = ['seller.dialogs_month', 'seller.dialogues', 'seller.messages_month', 'seller.channels_active'];
+        $needsBrand = count(array_intersect($sellerMetrics, $query->metrics)) > 0;
+        if (! $needsBrand && ! isset($requested['org.members_active'])) {
+            return [];
+        }
         $organization = $context->requireOrganizationId();
-        $brand = $context->brandId ?? abort(404);
-        if (! DB::table('brands')->where('id', $brand)->where('organization_id', $organization)->where('status', 'active')->exists()) {
+        if (! DB::table('organizations')->where('id', $organization)->where('status', 'active')->exists()) {
+            abort(404);
+        }
+        $brand = $context->brandId;
+        if ($needsBrand && (! $brand || ! DB::table('brands')->where('id', $brand)->where('organization_id', $organization)->where('status', 'active')->exists())) {
             abort(404);
         }
         $out = [];
-        $requested = array_flip($query->metrics);
         $scoped = static fn (string $table) => DB::table($table)->where('organization_id', $organization)->where('brand_id', $brand);
         $from = $query->from->format('Y-m-d H:i:sP');
         $to = $query->to->format('Y-m-d H:i:sP');

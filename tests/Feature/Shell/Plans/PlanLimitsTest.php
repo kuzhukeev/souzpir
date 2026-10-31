@@ -16,6 +16,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
 final class PlanLimitsTest extends TestCase
@@ -107,9 +108,19 @@ final class PlanLimitsTest extends TestCase
 
     public function test_missing_usage_source_is_unavailable_not_zero(): void
     {
-        $query = new UsageQuery(new DateTimeImmutable('2026-01-01'), new DateTimeImmutable('2026-02-01'), ['seller.dialogues']);
+        $query = new UsageQuery(new DateTimeImmutable('2026-01-01'), new DateTimeImmutable('2026-02-01'), ['unknown.metric']);
         $snapshot = app(UsageReader::class)->read(new TenantContext($this->org), $query);
-        self::assertSame(['value' => null, 'unit' => '', 'status' => 'unavailable'], $snapshot->metrics['seller.dialogues']);
+        self::assertSame(['value' => null, 'unit' => '', 'status' => 'unavailable'], $snapshot->metrics['unknown.metric']);
+    }
+
+    public function test_organization_usage_does_not_require_brand_but_seller_usage_does(): void
+    {
+        $query = new UsageQuery(new DateTimeImmutable('-1 day'), new DateTimeImmutable('+1 day'), ['org.members_active', 'unknown.metric']);
+        $metrics = app(UsageReader::class)->read(new TenantContext($this->org), $query)->metrics;
+        self::assertSame(['value' => 0, 'unit' => 'members', 'status' => 'ready'], $metrics['org.members_active']);
+        self::assertSame(['value' => null, 'unit' => '', 'status' => 'unavailable'], $metrics['unknown.metric']);
+        $this->expectException(HttpException::class);
+        app(UsageReader::class)->read(new TenantContext($this->org), new UsageQuery(new DateTimeImmutable('-1 day'), new DateTimeImmutable('+1 day'), ['seller.dialogues']));
     }
 
     public function test_registered_usage_preserves_measured_zero_and_unavailable_metrics(): void
