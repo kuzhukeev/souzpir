@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import Profile from './Profile';
+import Profile from '@/pages/Shell/Profile/Profile';
 import { beginProfileContextChange, finishProfileContextChange } from '@/features/Shell/Profile/contextFence';
 
 const mocks = vi.hoisted(() => ({ put: vi.fn() }));
