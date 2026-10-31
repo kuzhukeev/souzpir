@@ -5,6 +5,7 @@ namespace App\Shell\Integrations\Webhooks;
 use App\Shell\Notifications\DomainEvent;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use LogicException;
 
 /** An independent outbox consumer: it never changes notification processor state. */
 final class WebhookOutbox
@@ -18,6 +19,10 @@ final class WebhookOutbox
             }
             $event = new DomainEvent(json_decode($row->envelope, true, 512, JSON_THROW_ON_ERROR));
             $e = $event->envelope;
+            if ($e['event_id'] !== $row->id || $e['event_id'] !== $eventId
+                || $e['organization_id'] !== $row->organization_id || $e['brand_id'] !== $row->brand_id) {
+                throw new LogicException('Webhook event identity mismatch.');
+            }
             if (array_key_exists($e['type'], WebhookService::EVENTS)) {
                 $hooks = DB::table('webhooks')->where('organization_id', $e['organization_id'])->where('brand_id', $e['brand_id'])
                     ->where('created_at', '<=', $row->created_at)->get();

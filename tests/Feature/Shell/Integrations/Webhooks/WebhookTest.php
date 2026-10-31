@@ -11,7 +11,9 @@ use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
+use LogicException;
 use RuntimeException;
 use Tests\Feature\Tenancy\TenancyTestCase;
 
@@ -194,6 +196,46 @@ final class WebhookTest extends TenancyTestCase
         $this->assertDatabaseCount('webhook_deliveries', 1);
         $this->assertDatabaseHas('webhook_deliveries', ['event_id' => $eventId, 'brand_id' => $brand->id, 'status' => 'pending']);
         $this->assertDatabaseHas('consumed_events', ['event_id' => $eventId, 'consumer' => 'integrations.webhooks.v1']);
+        Http::assertNothingSent();
+    }
+
+    public function test_outbox_rejects_event_id_and_tenant_mismatches_before_delivery(): void
+    {
+        Http::fake();
+        Queue::fake();
+        config(['features.E1-10.defaults.webhook_delivery' => true]);
+        [, $org, $brand, $otherBrand] = $this->cabinet();
+        [, $otherOrg, $foreignBrand] = $this->cabinet(false);
+        foreach ([[$org->id, $brand->id], [$org->id, $otherBrand->id], [$otherOrg->id, $foreignBrand->id]] as [$orgId, $brandId]) {
+            DB::table('webhooks')->insert([
+                'id' => (string) Str::ulid(), 'organization_id' => $orgId, 'brand_id' => $brandId,
+                'url' => 'https://public.org/hook', 'events' => json_encode(['seller.lead.created'], JSON_THROW_ON_ERROR),
+                'secret' => Crypt::encryptString('synthetic-secret'), 'created_at' => now()->subMinute(), 'updated_at' => now(),
+            ]);
+        }
+        $eventId = (string) Str::ulid();
+        $envelope = ['event_id' => $eventId, 'schema_version' => 1, 'type' => 'seller.lead.created', 'occurred_at' => now()->toIso8601String(),
+            'organization_id' => $org->id, 'brand_id' => $brand->id, 'actor_id' => null,
+            'aggregate' => ['type' => 'conversation', 'id' => (string) Str::ulid(), 'version' => 1], 'data' => ['conversation_id' => (string) Str::ulid()]];
+        DB::table('outbox_events')->insert(['id' => $eventId, 'organization_id' => $org->id, 'brand_id' => $brand->id,
+            'envelope' => json_encode($envelope, JSON_THROW_ON_ERROR), 'created_at' => now()]);
+
+        foreach ([
+            ['event_id' => (string) Str::ulid()],
+            ['brand_id' => $otherBrand->id],
+            ['organization_id' => $otherOrg->id, 'brand_id' => $foreignBrand->id],
+        ] as $changes) {
+            DB::table('outbox_events')->where('id', $eventId)->update(['envelope' => json_encode(array_replace($envelope, $changes), JSON_THROW_ON_ERROR)]);
+            try {
+                app(WebhookOutbox::class)->consume($eventId);
+                self::fail('Mismatched outbox envelope must fail closed.');
+            } catch (LogicException $exception) {
+                self::assertSame('Webhook event identity mismatch.', $exception->getMessage());
+            }
+            $this->assertDatabaseCount('webhook_deliveries', 0);
+            $this->assertDatabaseMissing('consumed_events', ['event_id' => $eventId, 'consumer' => 'integrations.webhooks.v1']);
+        }
+        Queue::assertNothingPushed();
         Http::assertNothingSent();
     }
 }
