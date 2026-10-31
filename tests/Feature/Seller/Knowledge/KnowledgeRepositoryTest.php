@@ -172,6 +172,26 @@ final class KnowledgeRepositoryTest extends TenancyTestCase
             $store->deleteFact($ctx, $draft['id'], $added['id'], $saved['version'] + 1);
             $editor = $store->draftEditor($ctx, $draft['id']);
             self::assertNotContains($added['id'], array_column($editor['groups'][1]['facts'], 'id'));
+            $actions = DB::table('audit_logs')->where('subject_type', 'knowledge_fact')->where('subject_id', $added['logical_id'])->pluck('action')->all();
+            self::assertEqualsCanonicalizing(['knowledge.fact.created', 'knowledge.fact.updated', 'knowledge.fact.moved', 'knowledge.fact.deleted'], $actions);
+        });
+    }
+
+    public function test_worker_cannot_read_published_knowledge_after_organization_disabled(): void
+    {
+        [$owner, $org, $brand, , $membership] = $this->cabinet();
+        $ctx = new TenantContext($org->id, $brand->id, $owner->id, $membership->id);
+        app(TenantContextRunner::class)->run($ctx, function () use ($ctx, $org): void {
+            $store = app(KnowledgeRepository::class);
+            $draft = $store->createDraft($ctx, $this->data());
+            $store->publish($ctx, $draft['id'], 1);
+            DB::table('organizations')->where('id', $org->id)->update(['status' => 'disabled']);
+            try {
+                $store->published($ctx);
+                self::fail('Disabled organization remained readable.');
+            } catch (HttpException $e) {
+                self::assertSame(403, $e->getStatusCode());
+            }
         });
     }
 

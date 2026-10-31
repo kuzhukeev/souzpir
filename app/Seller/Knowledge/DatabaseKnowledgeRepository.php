@@ -185,11 +185,12 @@ final class DatabaseKnowledgeRepository implements KnowledgeRepository
         if (! $context->brandId || $current->organizationId !== $organization || $current->brandId !== $context->brandId) {
             abort(404);
         }
+        $org = DB::table('organizations')->where('id', $organization)->where('status', 'active');
         if ($lock) {
-            $org = DB::table('organizations')->where('id', $organization)->where('status', 'active')->lockForUpdate()->first();
-            if (! $org) {
-                abort(403);
-            }
+            $org->lockForUpdate();
+        }
+        if (! $org->first()) {
+            abort(403);
         }
         $query = DB::table('brands')->where('id', $context->brandId)->where('organization_id', $organization)->where('status', 'active');
         if ($lock) {
@@ -365,26 +366,31 @@ final class DatabaseKnowledgeRepository implements KnowledgeRepository
             throw new InvalidArgumentException('Invalid fact metadata.');
         }
         $id = (string) Str::ulid();
-        $this->mutateFact($context, $releaseId, $version, 'knowledge.fact.created', $id, function () use ($releaseId, $groupKey, $text, $source, $status, $id): void {
+        $logicalId = (string) Str::ulid();
+        $this->mutateFact($context, $releaseId, $version, 'knowledge.fact.created', function () use ($releaseId, $groupKey, $text, $source, $status, $id, $logicalId): string {
             $group = DB::table('kn_fact_groups')->where('release_id', $releaseId)->where('key', $groupKey)->first() ?? abort(404);
             $max = DB::table('kn_facts')->where('group_id', $group->id)->max('position');
-            DB::table('kn_facts')->insert(['id' => $id, 'logical_id' => (string) Str::ulid(), 'group_id' => $group->id, 'position' => $max === null ? 0 : $max + 1, 'text' => $text, 'source' => $source, 'status' => $status]);
+            DB::table('kn_facts')->insert(['id' => $id, 'logical_id' => $logicalId, 'group_id' => $group->id, 'position' => $max === null ? 0 : $max + 1, 'text' => $text, 'source' => $source, 'status' => $status]);
+
+            return $logicalId;
         });
 
-        return ['id' => $id, 'version' => $version + 1];
+        return ['id' => $id, 'logical_id' => $logicalId, 'version' => $version + 1];
     }
 
     public function deleteFact(TenantContext $context, string $releaseId, string $factId, int $version): int
     {
-        return $this->mutateFact($context, $releaseId, $version, 'knowledge.fact.deleted', $factId, function () use ($releaseId, $factId): void {
-            $fact = DB::table('kn_facts as f')->join('kn_fact_groups as g', 'g.id', '=', 'f.group_id')->where('g.release_id', $releaseId)->where('f.id', $factId)->select('f.id')->first() ?? abort(404);
+        return $this->mutateFact($context, $releaseId, $version, 'knowledge.fact.deleted', function () use ($releaseId, $factId): string {
+            $fact = DB::table('kn_facts as f')->join('kn_fact_groups as g', 'g.id', '=', 'f.group_id')->where('g.release_id', $releaseId)->where('f.id', $factId)->select('f.id', 'f.logical_id')->first() ?? abort(404);
             DB::table('kn_facts')->where('id', $fact->id)->delete();
+
+            return $fact->logical_id;
         });
     }
 
     public function moveFact(TenantContext $context, string $releaseId, string $factId, int $version, string $groupKey, int $position): int
     {
-        return $this->mutateFact($context, $releaseId, $version, 'knowledge.fact.moved', $factId, function () use ($releaseId, $factId, $groupKey, $position): void {
+        return $this->mutateFact($context, $releaseId, $version, 'knowledge.fact.moved', function () use ($releaseId, $factId, $groupKey, $position): string {
             $fact = DB::table('kn_facts as f')->join('kn_fact_groups as g', 'g.id', '=', 'f.group_id')->where('g.release_id', $releaseId)->where('f.id', $factId)->select('f.*')->first() ?? abort(404);
             $group = DB::table('kn_fact_groups')->where('release_id', $releaseId)->where('key', $groupKey)->first() ?? abort(404);
             $source = DB::table('kn_facts')->where('group_id', $fact->group_id)->where('id', '!=', $factId)->orderBy('position')->pluck('id')->all();
@@ -399,6 +405,9 @@ final class DatabaseKnowledgeRepository implements KnowledgeRepository
                 throw new LogicException('Fact positions require compaction.');
             }
             $offset = $max + count($source) + count($destination) + 2;
+            if (2 * $offset + $max > 2147483647) {
+                throw new LogicException('Fact positions require compaction.');
+            }
             DB::table('kn_facts')->whereIn('group_id', $groups)->increment('position', $offset);
             DB::table('kn_facts')->where('id', $factId)->update(['group_id' => $group->id, 'position' => 2 * $offset + $max]);
             if ($fact->group_id !== $group->id) {
@@ -409,21 +418,23 @@ final class DatabaseKnowledgeRepository implements KnowledgeRepository
             foreach ($destination as $i => $id) {
                 DB::table('kn_facts')->where('id', $id)->update(['position' => $i]);
             }
+
+            return $fact->logical_id;
         });
     }
 
-    private function mutateFact(TenantContext $context, string $releaseId, int $version, string $event, string $entityId, \Closure $change): int
+    private function mutateFact(TenantContext $context, string $releaseId, int $version, string $event, \Closure $change): int
     {
         $this->assertWrite($context);
 
-        return DB::transaction(function () use ($context, $releaseId, $version, $event, $entityId, $change): int {
+        return DB::transaction(function () use ($context, $releaseId, $version, $event, $change): int {
             $this->brand($context, true);
             $this->assertWrite($context, true);
             $release = $this->release($context, $releaseId, true);
             if ($release->status !== 'draft' || $release->version !== $version) {
                 abort(409, 'Черновик изменён другим пользователем.');
             }
-            $change();
+            $entityId = $change();
             DB::table('knowledge_releases')->where('id', $releaseId)->update(['version' => $version + 1, 'updated_at' => now()]);
             app(AuditWriter::class)->record($context, new AuditEntry($event, 'knowledge_fact', $entityId));
 
