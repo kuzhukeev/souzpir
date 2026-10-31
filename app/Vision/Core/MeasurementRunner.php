@@ -53,7 +53,7 @@ final class MeasurementRunner
             $id = (string) Str::ulid();
             DB::table('measurements')->insert(['id' => $id, ...$tenant, 'question_set_id' => $questionSetId,
                 'status' => 'pending', 'configuration' => json_encode(['questions' => $questions, 'question_set_checksum' => $set->checksum,
-                    'providers' => $providers, 'runs' => $runs, 'temperature' => $temperature, 'max_output_tokens' => $maxTokens], JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR),
+                    'providers' => $providers, 'runs' => $runs, 'temperature' => $temperature, 'max_output_tokens' => $maxTokens, 'parser' => null], JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR),
                 'created_at' => now(), 'updated_at' => now()]);
             foreach ($providers as $provider => $model) {
                 foreach ($questions as $index => $question) {

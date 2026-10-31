@@ -71,7 +71,7 @@ final class ReportPreparation
      * Adapted from the source project's review-item preparation.
      * Arguments must come from a trusted persisted snapshot/evidence repository.
      */
-    public function items(array $snapshot, array $sources): array
+    public function items(#[\SensitiveParameter] array $snapshot, #[\SensitiveParameter] array $sources): array
     {
         $items = [];
         foreach (data_get($snapshot, 'metrics.slots', []) as $slot) {
@@ -117,7 +117,7 @@ final class ReportPreparation
     }
 
     /** Prepare only reviewed facts, actions and explicitly verified source evidence. */
-    public function report(array $snapshot, array $reviewItems, array $decisions, array $sources): array
+    public function report(#[\SensitiveParameter] array $snapshot, #[\SensitiveParameter] array $reviewItems, #[\SensitiveParameter] array $decisions, #[\SensitiveParameter] array $sources): array
     {
         $report = $snapshot;
         $report['reviewed_facts'] = [];

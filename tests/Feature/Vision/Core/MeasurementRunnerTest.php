@@ -52,6 +52,9 @@ final class MeasurementRunnerTest extends TestCase
             $frozen = DB::table('measurements')->where('id', $id)->first();
             self::assertNull($frozen->profile_snapshot);
             self::assertNull($frozen->profile_checksum);
+            $plan = json_decode($frozen->configuration, true, flags: JSON_THROW_ON_ERROR);
+            self::assertArrayHasKey('parser', $plan);
+            self::assertNull($plan['parser']);
             try {
                 DB::table('measurements')->where('id', $id)->update(['configuration' => '{}']);
                 self::fail('The frozen measurement plan cannot be rewritten.');
