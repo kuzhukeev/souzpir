@@ -91,6 +91,12 @@ final class MeasurementRunnerTest extends TestCase
                 }
             }
         });
+        try {
+            DB::table('measurement_answers')->where('id', $answer)->update(['brand_id' => $other]);
+            self::fail('A measurement slot cannot be reassigned across tenants.');
+        } catch (QueryException) {
+            self::assertSame($this->brand, DB::table('measurement_answers')->where('id', $answer)->value('brand_id'));
+        }
         $this->within(function () use ($answer): void {
             config(['runtime.ai_driver' => 'openrouter', 'features.E0-05.defaults.live_enabled' => true]);
             try {
@@ -197,6 +203,36 @@ final class MeasurementRunnerTest extends TestCase
             } catch (QueryException) {
                 self::assertSame($row->checksum, DB::table('vision_reports')->where('id', $reportId)->value('checksum'));
             }
+            Http::assertNothingSent();
+        });
+    }
+
+    public function test_fake_measurement_snapshots_keep_historical_question_counts_and_unknown_evidence(): void
+    {
+        $this->within(function (): void {
+            $this->fixture('Одинаковый вопрос для фикстуры', 'Сырой ответ');
+            $reports = [];
+            foreach ([12, 20, 30] as $size) {
+                $questions = array_map(fn (int $i): array => [
+                    'id' => 'q'.$i, 'text' => 'Одинаковый вопрос для фикстуры', 'intent' => 'choose',
+                ], range(1, $size));
+                $set = app(QuestionSets::class)->create($questions);
+                $measurement = app(MeasurementRunner::class)->start($set, ['gemini' => 'google/gemini-2.5-flash'], 1);
+                $answers = DB::table('measurement_answers')->where('measurement_id', $measurement)->orderBy('question_n')->pluck('id');
+                self::assertCount($size, $answers);
+                foreach ($answers as $answerId) {
+                    self::assertSame('ok', app(MeasurementRunner::class)->measure($answerId));
+                }
+                $report = app(ReportPreparation::class)->snapshot($measurement);
+                $payload = json_decode(DB::table('vision_reports')->where('id', $report)->value('payload'), true, flags: JSON_THROW_ON_ERROR);
+                self::assertSame($size, $payload['metrics']['panel']['planned']);
+                self::assertSame(0, $payload['metrics']['panel']['valid']);
+                self::assertSame($size, $payload['metrics']['panel']['counts']['parse_failed']);
+                self::assertNull($payload['metrics']['panel']['mention_rate']);
+                $reports[] = $report;
+            }
+            self::assertSame(62, DB::table('ai_calls')->count());
+            self::assertSame(3, DB::table('vision_reports')->whereIn('id', $reports)->count());
             Http::assertNothingSent();
         });
     }
