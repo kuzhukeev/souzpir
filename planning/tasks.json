@@ -4055,7 +4055,8 @@
         "SP-E0-03",
         "SP-E0-04",
         "SP-E4-02",
-        "SP-F-03"
+        "SP-F-03",
+        "SP-E8-01B"
       ],
       "scope": [
         "app/Seller/Knowledge/Imports/",
@@ -4076,7 +4077,8 @@
       ],
       "exclusiveResources": [],
       "acceptance": [
-        "фикстуры файлов; предложения попадают в draft"
+        "фикстуры файлов; предложения попадают в draft",
+        "Адаптировать приватные черновики SiteKnowledgeImporter в предложения фактов для авторизованной организации и бренда: явный просмотр и выбор перед созданием черновика, без автоматической публикации. Проверить изоляцию организаций/брендов, разрешения и отзыв доступа, сохранение источника и запрет сетевых вызовов в тестах. Политику источника и ограничения E8-01B соблюдать; за общие контракты и расширение scope обратиться к интегратору."
       ],
       "sourceIds": [
         "E4-06"
@@ -4084,7 +4086,7 @@
       "screenIds": [
         "D-4.10"
       ],
-      "notes": "",
+      "notes": "Адаптировать приватные черновики SiteKnowledgeImporter в предложения фактов для авторизованной организации и бренда: явный просмотр и выбор перед созданием черновика, без автоматической публикации. Проверить изоляцию организаций/брендов, разрешения и отзыв доступа, сохранение источника и запрет сетевых вызовов в тестах. Политику источника и ограничения E8-01B соблюдать; за общие контракты и расширение scope обратиться к интегратору.",
       "sourceRefs": [
         "docs/preparation/decisions.md",
         "docs/contracts/",
@@ -4095,7 +4097,7 @@
       ],
       "promptPath": "docs/tasks/SP-E4-06.md",
       "wave": 11,
-      "description": "Прочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: D-4.10: XLSX/CSV (eyon `CatalogReader`), TXT, ссылка (`SiteKnowledgeImporter`) → экран сопоставления «фрагмент → предложенный факт» → черновик; PDF/DOCX — B с честной пометкой статуса\n\nЗависимости (нужен done после merge): SP-E0-03, SP-E0-04, SP-E4-02, SP-F-03.\nОбласть записи: app/Seller/Knowledge/Imports/, config/features/E4-06.php, database/factories/Seller/Knowledge/Imports/, database/migrations/E4-06/, database/seeders/Seller/Knowledge/Imports/, docs/modules/E4-06.md, lang/ru/Seller/Knowledge/Imports/, resources/js/features/Seller/Knowledge/Imports/, resources/js/pages/Seller/Knowledge/Imports/, resources/js/types/Seller/Knowledge/Imports/, routes/features/E4-06.php, tests/Browser/E4-06/, tests/Feature/Seller/Knowledge/Imports/, tests/Unit/Seller/Knowledge/Imports/, docs/results/SP-E4-06.md.\nЭкраны: D-4.10.\nИсточники: E4-06.\n- E4-06: ТЗ D-4.10; макет 58; R-D-09\n\nПриёмка:\n- фикстуры файлов; предложения попадают в draft\n\nДополнительно: Сохранять поведение донора; изменения только по принятым решениям.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E4-06.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n"
+      "description": "Прочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: D-4.10: XLSX/CSV (eyon `CatalogReader`), TXT, ссылка (`SiteKnowledgeImporter`) → экран сопоставления «фрагмент → предложенный факт» → черновик; PDF/DOCX — B с честной пометкой статуса\n\nЗависимости (нужен done после merge): SP-E0-03, SP-E0-04, SP-E4-02, SP-F-03, SP-E8-01B.\nОбласть записи: app/Seller/Knowledge/Imports/, config/features/E4-06.php, database/factories/Seller/Knowledge/Imports/, database/migrations/E4-06/, database/seeders/Seller/Knowledge/Imports/, docs/modules/E4-06.md, lang/ru/Seller/Knowledge/Imports/, resources/js/features/Seller/Knowledge/Imports/, resources/js/pages/Seller/Knowledge/Imports/, resources/js/types/Seller/Knowledge/Imports/, routes/features/E4-06.php, tests/Browser/E4-06/, tests/Feature/Seller/Knowledge/Imports/, tests/Unit/Seller/Knowledge/Imports/, docs/results/SP-E4-06.md.\nЭкраны: D-4.10.\nИсточники: E4-06.\n- E4-06: ТЗ D-4.10; макет 58; R-D-09\n\nПриёмка:\n- фикстуры файлов; предложения попадают в draft\n- Адаптировать приватные черновики SiteKnowledgeImporter в предложения фактов для авторизованной организации и бренда: явный просмотр и выбор перед созданием черновика, без автоматической публикации. Проверить изоляцию организаций/брендов, разрешения и отзыв доступа, сохранение источника и запрет сетевых вызовов в тестах. Политику источника и ограничения E8-01B соблюдать; за общие контракты и расширение scope обратиться к интегратору.\n\nДополнительно: Сохранять поведение донора; изменения только по принятым решениям.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E4-06.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n"
     },
     {
       "taskKey": "SP-E6-02",
