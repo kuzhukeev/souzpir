@@ -158,6 +158,13 @@
       "permission": "team.read"
     },
     {
+      "id": "team_roles",
+      "label": "Роли и доступ",
+      "icon": "Users",
+      "path": "/team/roles",
+      "permission": "team.manage"
+    },
+    {
       "id": "billing",
       "label": "Тариф и оплата",
       "icon": "CreditCard",
