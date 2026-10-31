@@ -3,6 +3,7 @@ declare module 'ziggy-js' {
   interface RouteList {
     "home": [],
     "preview.foundation": [],
+    "api.v1.brand.show": [],
     "brand.switch": [],
     "notifications.settings.update": [],
     "login": [],
@@ -147,12 +148,91 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "billing.overview": [],
+    "billing.usage": [],
+    "billing.plans": [],
+    "billing.invoices": [],
+    "billing.payer": [],
+    "billing.payer.data": [],
+    "billing.payer.update": [],
+    "billing.plans.request": [],
+    "profile.legacy.profile": [],
+    "profile.legacy.notifications": [],
+    "profile.legacy.security": [],
+    "profile.show": [],
+    "profile.update": [],
+    "profile.avatar": [],
+    "profile.avatar.store": [],
+    "profile.avatar.delete": [],
+    "profile.email.request": [],
+    "profile.email.cancel": [],
+    "profile.email.confirm": [
+        {
+            "name": "change",
+            "required": true
+        },
+        {
+            "name": "token",
+            "required": true
+        }
+    ],
+    "profile.email.commit": [
+        {
+            "name": "change",
+            "required": true
+        },
+        {
+            "name": "token",
+            "required": true
+        }
+    ],
+    "profile.notifications": [],
+    "profile.notifications.update": [],
+    "profile.notifications.test": [],
+    "profile.telegram.start": [],
+    "profile.telegram.link": [],
+    "profile.telegram.confirm": [],
+    "profile.telegram.disconnect": [],
+    "profile.security": [],
+    "profile.security.password": [],
+    "profile.security.sessions.others": [],
+    "profile.security.sessions.revoke": [
+        {
+            "name": "id",
+            "required": true
+        }
+    ],
+    "profile.security.mfa.start": [],
+    "profile.security.mfa.cancel": [],
+    "profile.security.mfa.confirm": [],
+    "profile.security.mfa.disable": [],
+    "profile.security.mfa.recovery.local": [],
+    "profile.security.mfa.recovery": [],
+    "profile.telegram.webhook": [],
     "journal.index": [],
     "journal.export": [],
     "journal.notifications": [],
     "journal.retry": [
         {
             "name": "id",
+            "required": true
+        }
+    ],
+    "integrations.index": [],
+    "integrations.api": [],
+    "integrations.secrets.consume": [],
+    "integrations.notifications": [],
+    "integrations.keys.store": [],
+    "integrations.keys.destroy": [
+        {
+            "name": "id",
+            "required": true
+        }
+    ],
+    "integrations.webhooks.store": [],
+    "integrations.webhooks.test": [
+        {
+            "name": "webhook",
             "required": true
         }
     ],
@@ -185,6 +265,12 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "seller.planned.vk": [],
+    "seller.planned.whatsapp": [],
+    "seller.planned.calendar": [],
+    "seller.planned.index": [],
+    "seller.planned.interest": [],
+    "seller.planned.reminders": [],
     "seller.settings.limits": [],
     "seller.settings.notifications": [],
     "seller.settings.notifications.update": [],
@@ -221,6 +307,27 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "vision.questions.index": [],
+    "vision.questions.approve.page": [],
+    "vision.questions.active": [],
+    "vision.questions.history": [],
+    "vision.questions.data": [],
+    "vision.questions.candidates.add": [],
+    "vision.questions.import": [],
+    "vision.questions.copy": [],
+    "vision.questions.candidates.change": [
+        {
+            "name": "id",
+            "required": true
+        }
+    ],
+    "vision.questions.candidates.delete": [
+        {
+            "name": "id",
+            "required": true
+        }
+    ],
+    "vision.questions.approve": [],
     "vision.site.overview": [],
     "vision.site.criteria": [],
     "vision.site.bots": [],

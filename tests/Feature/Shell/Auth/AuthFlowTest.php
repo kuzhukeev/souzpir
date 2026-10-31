@@ -268,11 +268,11 @@ final class AuthFlowTest extends TestCase
         [$org, $user] = $this->fixture();
         $this->post('/login', ['email' => $user->email, 'password' => 'secure-password-example'])->assertRedirect();
         $this->withCookie(config('session.cookie'), session()->getId());
-        $this->post('/mfa/setup', ['password' => 'wrong'])->assertSessionHasErrors('password');
-        $this->post('/mfa/setup', ['password' => 'secure-password-example'])->assertRedirect(route('mfa.setup'));
+        $this->post('https://souzpir.local/mfa/setup', ['password' => 'wrong'])->assertSessionHasErrors('password');
+        $this->post('https://souzpir.local/mfa/setup', ['password' => 'secure-password-example'])->assertRedirect(route('mfa.setup'));
         $secret = session('auth.mfa_setup.secret');
         $code = app(Totp::class)->at($secret, intdiv(now()->timestamp, 30));
-        $this->post('/mfa/setup/confirm', ['code' => $code])->assertRedirect(route('auth.ready'));
+        $this->post('https://souzpir.local/mfa/setup/confirm', ['code' => $code])->assertRedirect(route('auth.ready'));
         $this->assertNotNull($user->fresh()->mfa_confirmed_at);
         $this->assertNotSame($secret, DB::table('users')->where('id', $user->id)->value('mfa_secret'));
         $this->assertSame(1, $user->fresh()->auth_version);
