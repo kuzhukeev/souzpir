@@ -101,6 +101,18 @@ final class PermissionsTest extends TenancyTestCase
         $this->assertSame([], (new PermissionSharedProps)->share($request)['can']());
     }
 
+    public function test_viewer_may_change_own_consents_but_not_other_unsafe_routes(): void
+    {
+        [, $org, $brand] = $this->cabinet();
+        [$viewer] = $this->member($org, 'viewer', [$brand->id]);
+        Route::middleware(['web', 'auth', 'verified', 'tenant'])->patch('/test-own-consent', fn () => response()->noContent())->name('data.consents');
+        Route::middleware(['web', 'auth', 'verified', 'tenant'])->patch('/test-other-change', fn () => response()->noContent())->name('data.other');
+        $this->actingAs($viewer)->withSession(['brand_id' => $brand->id]);
+
+        $this->patch('/test-own-consent', ['marketing_opt_in' => true])->assertNoContent();
+        $this->patch('/test-other-change', ['marketing_opt_in' => true])->assertForbidden();
+    }
+
     public function test_archived_brand_or_disabled_organization_revokes_existing_context(): void
     {
         [, $org, $brand, , $ownerMembership] = $this->cabinet();
