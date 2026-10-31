@@ -2,7 +2,6 @@
 
 namespace App\Seller\Conversations;
 
-use App\Models\Membership;
 use App\Seller\Channels\Core\ChannelInboundEvent;
 use App\Seller\Conversations\Contracts\ConversationRepository;
 use App\Seller\Conversations\Data\ConversationState;
@@ -11,10 +10,7 @@ use App\Seller\Conversations\Data\TurnCommand;
 use App\Seller\Conversations\Data\TurnOutcome;
 use App\Seller\Conversations\Models\Conversation;
 use App\Seller\Conversations\Models\Message;
-use App\Seller\Conversations\Models\SellerTask;
 use App\Seller\Conversations\Models\SellerTurn;
-use App\Shell\Notifications\Contracts\NotificationDispatcher;
-use App\Shell\Notifications\DomainEvent;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
 use Illuminate\Support\Facades\DB;
@@ -127,6 +123,12 @@ final class EloquentConversationRepository implements ConversationRepository
             if ($conversation->version !== $claim->baseVersion || $turn->base_version !== $claim->baseVersion) {
                 abort(409, 'Версия диалога изменилась.');
             }
+            // A public TurnOutcome and claim do not establish the provenance
+            // or authority of action writes. A future protected finalizer must
+            // derive these actions from verified server-owned stage records.
+            if ($outcome->tasks !== [] || $outcome->events !== []) {
+                throw new LogicException('Unverified turn actions are unavailable.');
+            }
             $createdMessages = [];
             foreach ($outcome->messages as $message) {
                 if (! is_array($message) || ! Str::isUlid($message['id'] ?? '') || ! in_array($message['role'] ?? null, ['agent', 'system', 'tool'], true) || ! is_string($message['text'] ?? null) || ! is_array($message['meta'] ?? [])) {
@@ -139,27 +141,6 @@ final class EloquentConversationRepository implements ConversationRepository
             }
             if ($outcome->assistantMessageId !== null && ($createdMessages[$outcome->assistantMessageId] ?? null) !== 'agent') {
                 throw new LogicException('Assistant message is not part of this outcome.');
-            }
-            foreach ($outcome->tasks as $task) {
-                if (! is_array($task) || ! Str::isUlid($task['id'] ?? '') || ! is_string($task['type'] ?? null) || ! is_array($task['payload'] ?? [])) {
-                    throw new LogicException('Invalid seller task.');
-                }
-                if (($task['assigned_user_id'] ?? null) !== null) {
-                    $member = Membership::withoutGlobalScopes()->where('organization_id', $context->organizationId)->where('user_id', $task['assigned_user_id'])->where('status', 'active')->first();
-                    if (! $member || ! $member->permitsBrand($context->brandId)) {
-                        abort(422, 'Недопустимый исполнитель.');
-                    }
-                }
-                $row = new SellerTask(['conversation_id' => $conversation->id, 'type' => $task['type'], 'payload' => $task['payload'] ?? [], 'due_at' => $task['due_at'] ?? null, 'status' => $task['status'] ?? 'new', 'priority' => $task['priority'] ?? 'normal', 'assigned_user_id' => $task['assigned_user_id'] ?? null]);
-                $row->id = $task['id'];
-                $row->save();
-            }
-            foreach ($outcome->events as $envelope) {
-                $event = new DomainEvent($envelope);
-                if ($event->envelope['organization_id'] !== $context->organizationId || $event->envelope['brand_id'] !== $context->brandId) {
-                    throw new LogicException('Event tenant mismatch.');
-                }
-                app(NotificationDispatcher::class)->enqueue($event);
             }
             $conversation->state = $outcome->state;
             $conversation->version = $outcome->version;

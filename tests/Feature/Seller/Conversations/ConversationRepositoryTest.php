@@ -4,6 +4,7 @@ namespace Tests\Feature\Seller\Conversations;
 
 use App\Seller\Channels\Core\ChannelAccount;
 use App\Seller\Channels\Core\InboundRecorder;
+use App\Seller\Conversations\CanonicalJson;
 use App\Seller\Conversations\Contracts\ConversationRepository;
 use App\Seller\Conversations\Data\TurnClaim;
 use App\Seller\Conversations\Data\TurnCommand;
@@ -13,6 +14,8 @@ use App\Seller\Conversations\Models\Conversation;
 use App\Seller\Conversations\Models\Message;
 use App\Seller\Conversations\Models\SellerTask;
 use App\Seller\Settings\BrandSellerSettings;
+use App\Shell\Notifications\Contracts\NotificationDispatcher;
+use App\Shell\Notifications\DomainEvent;
 use App\Tenancy\TenantContext;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\QueryException;
@@ -114,7 +117,7 @@ final class ConversationRepositoryTest extends TenancyTestCase
         $this->assertDatabaseCount('channel_inbound_events', 2);
     }
 
-    public function test_claim_commit_idempotence_and_atomic_outbox(): void
+    public function test_claim_commit_idempotence_preserves_message_and_state_without_unverified_actions(): void
     {
         Queue::fake();
         [, $org, $brand] = $this->cabinet();
@@ -126,19 +129,94 @@ final class ConversationRepositoryTest extends TenancyTestCase
         $this->assertSame('claimed', $claim->status);
         $this->assertSame('in_progress', $repo->claimTurn($context, $command)->status);
         $outputId = (string) Str::ulid();
-        $taskId = (string) Str::ulid();
-        $eventId = (string) Str::ulid();
-        $event = ['event_id' => $eventId, 'schema_version' => 1, 'type' => 'seller.lead.created', 'occurred_at' => now()->toIso8601String(), 'organization_id' => $org->id, 'brand_id' => $brand->id, 'actor_id' => null, 'aggregate' => ['type' => 'conversation', 'id' => $conversation->id, 'version' => 1], 'data' => ['conversation_id' => $conversation->id]];
-        $outcome = new TurnOutcome($claim->turnId, $conversation->id, 'completed', 1, $outputId, ['kind' => 'answer'], ['result' => 'ok'], [], ['stage' => 'open'], [['id' => $outputId, 'role' => 'agent', 'text' => 'Ответ', 'meta' => []]], [['id' => $taskId, 'type' => 'handoff', 'payload' => []]], [$event]);
+        $outcome = new TurnOutcome($claim->turnId, $conversation->id, 'completed', 1, $outputId, ['kind' => 'answer'], ['result' => 'ok'], [], ['stage' => 'open'], [['id' => $outputId, 'role' => 'agent', 'text' => 'Ответ', 'meta' => []]]);
         $repo->commitTurn($claim, $outcome);
         $repo->commitTurn($claim, $outcome);
         $this->assertSame('finished', $repo->claimTurn($context, $command)->status);
         $this->assertSame(1, $repo->find($context, $conversation->id)->version);
         $this->assertDatabaseCount('seller_turns', 1);
         $this->assertDatabaseCount('messages', 2);
+        $this->assertDatabaseCount('seller_tasks', 0);
+        $this->assertDatabaseCount('outbox_events', 0);
+        $this->assertSame(['stage' => 'open'], $repo->find($context, $conversation->id)->state);
+        $this->assertDatabaseHas('messages', ['id' => $outputId, 'role' => 'agent', 'delivered_at' => null]);
+        $saved = json_decode(DB::table('seller_turns')->where('id', $claim->turnId)->value('outcome'), true, 512, JSON_THROW_ON_ERROR);
+        $this->assertSame(['kind' => 'answer'], $saved['goal']);
+        $this->assertSame(['result' => 'ok'], $saved['guard']);
+    }
+
+    public function test_unverified_tasks_and_events_abort_the_entire_enclosing_transaction(): void
+    {
+        Queue::fake();
+        [, $org, $brand] = $this->cabinet();
+        [$conversation, $input] = $this->setupConversation($org, $brand);
+        $context = $this->context($org, $brand);
+        $repo = app(ConversationRepository::class);
+        $command = new TurnCommand($conversation->id, $input->id, $input->text, null, 'unverified-actions', 0);
+        $claim = $repo->claimTurn($context, $command);
+        $revision = DB::table('conversations')->where('id', $conversation->id)->value('history_revision');
+        $event = ['event_id' => (string) Str::ulid(), 'schema_version' => 1, 'type' => 'seller.lead.created', 'occurred_at' => now()->toIso8601String(), 'organization_id' => $org->id, 'brand_id' => $brand->id, 'actor_id' => null, 'aggregate' => ['type' => 'conversation', 'id' => $conversation->id, 'version' => 1], 'data' => ['conversation_id' => $conversation->id]];
+        $task = ['id' => (string) Str::ulid(), 'type' => 'handoff', 'payload' => []];
+        foreach ([[[$task], []], [[], [$event]], [[$task], [$event]]] as [$tasks, $events]) {
+            $outputId = (string) Str::ulid();
+            $outcome = new TurnOutcome($claim->turnId, $conversation->id, 'completed', 1, $outputId, null, null, [], ['private' => 'changed'], [['id' => $outputId, 'role' => 'agent', 'text' => 'Never saved']], $tasks, $events);
+            try {
+                DB::transaction(function () use ($repo, $claim, $outcome, $conversation): void {
+                    // This prior write proves the enclosing transaction rolls back too.
+                    DB::table('conversations')->where('id', $conversation->id)->update(['state' => json_encode(['temporary' => true], JSON_THROW_ON_ERROR)]);
+                    $repo->commitTurn($claim, $outcome);
+                });
+                $this->fail('Unverified action accepted.');
+            } catch (\LogicException $error) {
+                $this->assertSame('Операция с диалогом не выполнена.', $error->getMessage());
+                $this->assertNull($error->getPrevious());
+                $this->assertStringNotContainsString($claim->token(), json_encode($error->getTrace(), JSON_PARTIAL_OUTPUT_ON_ERROR | JSON_THROW_ON_ERROR));
+            }
+            $this->assertSame([], $repo->find($context, $conversation->id)->state);
+            $this->assertSame(0, $repo->find($context, $conversation->id)->version);
+            $this->assertSame((string) $revision, (string) DB::table('conversations')->where('id', $conversation->id)->value('history_revision'));
+            $this->assertDatabaseCount('messages', 1);
+            $this->assertDatabaseCount('seller_tasks', 0);
+            $this->assertDatabaseCount('outbox_events', 0);
+            $this->assertDatabaseHas('seller_turns', ['id' => $claim->turnId, 'status' => 'processing', 'outcome_hash' => null]);
+            $this->assertSame('in_progress', $repo->claimTurn($context, $command)->status);
+        }
+        Queue::assertNothingPushed();
+    }
+
+    public function test_completed_historical_outcome_with_actions_replays_without_new_writes(): void
+    {
+        Queue::fake();
+        [, $org, $brand] = $this->cabinet();
+        [$conversation, $input] = $this->setupConversation($org, $brand);
+        $context = $this->context($org, $brand);
+        $repo = app(ConversationRepository::class);
+        $claim = $repo->claimTurn($context, new TurnCommand($conversation->id, $input->id, $input->text, null, 'historical-actions', 0));
+        $taskId = (string) Str::ulid();
+        $event = ['event_id' => (string) Str::ulid(), 'schema_version' => 1, 'type' => 'seller.lead.created', 'occurred_at' => now()->toIso8601String(), 'organization_id' => $org->id, 'brand_id' => $brand->id, 'actor_id' => null, 'aggregate' => ['type' => 'conversation', 'id' => $conversation->id, 'version' => 1], 'data' => ['conversation_id' => $conversation->id]];
+        $outcome = new TurnOutcome($claim->turnId, $conversation->id, 'completed', 1, null, null, null, [], ['stage' => 'open'], [], [['id' => $taskId, 'type' => 'handoff', 'payload' => []]], [$event]);
+        // Historical records are a fixture, not proof authorizing new actions.
+        $this->within($org, $brand, function () use ($conversation, $claim, $taskId, $event, $outcome): void {
+            $task = new SellerTask(['conversation_id' => $conversation->id, 'type' => 'handoff', 'payload' => []]);
+            $task->id = $taskId;
+            $task->save();
+            app(NotificationDispatcher::class)->enqueue(new DomainEvent($event));
+            DB::table('conversations')->where('id', $conversation->id)->update(['state' => json_encode(['stage' => 'open'], JSON_THROW_ON_ERROR), 'version' => 1]);
+            DB::table('seller_turns')->where('id', $claim->turnId)->update(['status' => 'completed', 'outcome' => json_encode($outcome->toArray(), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), 'outcome_hash' => CanonicalJson::hash($outcome->toArray())]);
+        });
+        $repo->commitTurn($claim, $outcome);
+        $repo->commitTurn($claim, $outcome);
+        $altered = new TurnOutcome($claim->turnId, $conversation->id, 'completed', 1, null, null, null, [], ['stage' => 'different'], [], [['id' => $taskId, 'type' => 'handoff', 'payload' => []]], [$event]);
+        try {
+            $repo->commitTurn($claim, $altered);
+            $this->fail('Different historical outcome was accepted.');
+        } catch (HttpException $error) {
+            $this->assertSame(409, $error->getStatusCode());
+        }
         $this->assertDatabaseCount('seller_tasks', 1);
         $this->assertDatabaseCount('outbox_events', 1);
-        $this->assertDatabaseHas('messages', ['id' => $outputId, 'role' => 'agent', 'delivered_at' => null]);
+        $this->assertDatabaseCount('messages', 1);
+        $this->assertSame(1, $repo->find($context, $conversation->id)->version);
     }
 
     public function test_conflicting_request_active_claim_and_stale_version_fail_closed(): void
