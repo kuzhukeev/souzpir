@@ -5,6 +5,7 @@ namespace App\Tenancy;
 use App\Models\Brand;
 use App\Models\Membership;
 use App\Models\Organization;
+use App\Shell\Organizations\ModuleEntitlements;
 use Closure;
 use Illuminate\Http\Request;
 
@@ -44,6 +45,13 @@ final class ResolveTenant
         $request->attributes->set('tenant.membership', $membership);
         $context = new TenantContext($organizationId, $brand->id, $user->id, $membership->id, 'session');
 
-        return app(TenantContextRunner::class)->run($context, fn () => $next($request));
+        return app(TenantContextRunner::class)->run($context, function () use ($context, $next, $request) {
+            $module = $request->is('seller', 'seller/*') ? 'seller' : ($request->is('vision', 'vision/*') ? 'vision' : null);
+            if ($module !== null) {
+                abort_unless(app(ModuleEntitlements::class)->enabled($context, $module), 404);
+            }
+
+            return $next($request);
+        });
     }
 }

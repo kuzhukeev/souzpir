@@ -23,6 +23,6 @@ final class BrandSwitchController
         });
 
         // Fixed same-origin destination; no user-supplied redirect URL.
-        return redirect('/');
+        return redirect()->route('auth.ready');
     }
 }
