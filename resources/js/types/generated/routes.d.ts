@@ -148,6 +148,7 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "team.roles.matrix": [],
     "billing.overview": [],
     "billing.usage": [],
     "billing.plans": [],
