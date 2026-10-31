@@ -153,6 +153,15 @@ add('P-01','Первые макеты для согласования',
     source_ids=[],screens=['S-0.1','S-1.2'],
     notes='Дополнительная карточка по прямому указанию пользователя 31.10.2026: остановиться после БД и первых макетов. Это визуальное согласование, не завершение SP-E1-01/SP-E1-03/SP-F-03. См. docs/checkpoints/first-preview.md.')
 
+# Post-preview integration prerequisites, reflected in task ownership before claim.
+extra('E1-02','app/Tenancy/')
+tasks['E1-02']['notes'] += ' Реализовать защищённый organization-only tenant mode для первичного создания бренда; обычные брендовые маршруты остаются fail-closed. Проверить membership/auth и запрет доступа к brand-owned данным без бренда.'
+tasks['E8-01']['notes'] += ' Начальная schema включает monitoring_schedules; E8-07 не создаёт таблицу повторно.'
+extra('E8-05C','resources/js/ssr.tsx','vite.config.ts')
+tasks['E8-05C']['notes'] += ' Включить SSR entrypoint и необходимую конфигурацию сборки в рамках указанного scope.'
+tasks['E7-04']['dependsOn'].append('SP-E1-11')
+tasks['E8-07']['dependsOn'].append('SP-E1-11')
+
 for key,t in tasks.items():
     t['dependsOn']=sorted(set(t['dependsOn']))
     t['scope']=sorted(set(t['scope']))
