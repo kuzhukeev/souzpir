@@ -65,6 +65,13 @@ jobs:
         run: |
           psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "CREATE ROLE souzpir_ci LOGIN PASSWORD 'ci-only-password' NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;"
           psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "ALTER DATABASE souzpir_test_ci OWNER TO souzpir_ci;"
+          psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "REVOKE CONNECT ON DATABASE souzpir_test_ci FROM PUBLIC;"
+          for entry in 'sp_invitation_ci_app souzpir_test_sp_invitation_ci' 'sp_e1_05_app souzpir_test_sp_e1_05' 'sp_e8_02_app souzpir_test_sp_e8_02' 'sp_e8_02_local_app souzpir_test_sp_e8_02_local' 'sp_e8_03_app souzpir_test_sp_e8_03'; do
+            read -r role database <<< "$entry"
+            psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "CREATE ROLE $role LOGIN PASSWORD 'ci-only-password' NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;"
+            psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "CREATE DATABASE $database OWNER $role;"
+            psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "REVOKE CONNECT ON DATABASE $database FROM PUBLIC;"
+          done
           actual=$(psql -X -A -t -v ON_ERROR_STOP=1 -h 127.0.0.1 -U souzpir_ci -d souzpir_test_ci -c "SELECT current_database(), current_user, rolsuper, rolcreatedb, rolcreaterole FROM pg_roles WHERE rolname = current_user;")
           test "$actual" = 'souzpir_test_ci|souzpir_ci|f|f|f'
       - run: composer install --no-interaction --prefer-dist --no-progress
@@ -106,10 +113,13 @@ jobs:
             php artisan serve --env=testing --no-reload --host=127.0.0.1 --port=8104 > .local/runtime/organizations-server.log 2>&1 &
           for attempt in {1..20}; do curl --fail --silent http://127.0.0.1:8104/up && break; sleep 1; done
           curl --fail --silent http://127.0.0.1:8104/up > /dev/null
-          RUN_ONBOARDING_E2E=1 RUN_ORGANIZATIONS_E2E=1 npm run test:browser
+          bash scripts/ci/browser-fixtures.sh
+          RUN_ONBOARDING_E2E=1 RUN_ORGANIZATIONS_E2E=1 RUN_BRANDS_E2E=1 \
+            INVITATION_BROWSER_CI_FIXTURE=1 INVITATION_BROWSER_TEST_DATABASE=souzpir_test_sp_invitation_ci \
+            INVITATION_DB_PASSWORD=ci-only-password E802_LOCAL_BASE=http://souzpir.local:8249 npm run test:browser
       - name: Browser failure diagnostics
         if: failure()
         run: |
-          for logfile in .local/runtime/browser-server.log .local/runtime/onboarding-server.log .local/runtime/layout-vite.log .local/runtime/e110-vite.log .local/runtime/testing/storage/logs/laravel.log; do
+          for logfile in .local/runtime/browser-server.log .local/runtime/onboarding-server.log .local/runtime/layout-vite.log .local/runtime/e110-vite.log .local/runtime/browser-ci-*.log .local/runtime/testing/storage/logs/laravel.log; do
             if [ -f "$logfile" ]; then tail -n 80 "$logfile"; fi
           done

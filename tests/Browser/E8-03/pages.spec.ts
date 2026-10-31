@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import axe from 'axe-core';
 const base = 'http://127.0.0.1:5258/tests/Browser/E8-03/pages-fixture.html';
 test.use({
-  launchOptions: { executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe' },
+  launchOptions: { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH },
 });
 const questions = [
   { id: '1', text: 'Где заказать товары для праздника?', intent: 'choose' },

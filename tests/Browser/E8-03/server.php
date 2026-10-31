@@ -12,6 +12,12 @@ if (getenv('APP_ENV') !== 'testing' || getenv('E803_FIXTURE_ENABLED') !== '1') {
 
     return;
 }
+// PHP's built-in server omits SERVER_ADDR. This test-only value is valid only
+// for the CI fixture launched explicitly with `php -S 127.0.0.1:<port>`.
+if (PHP_SAPI === 'cli-server' && getenv('CI') === 'true' && getenv('E803_CI_BIND_LOOPBACK') === '1'
+    && ! array_key_exists('SERVER_ADDR', $_SERVER) && ($_SERVER['REMOTE_ADDR'] ?? null) === '127.0.0.1') {
+    $_SERVER['SERVER_ADDR'] = '127.0.0.1';
+}
 $root = realpath(dirname(__DIR__, 3));
 $public = $root === false ? false : realpath($root.'/public');
 $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
@@ -31,7 +37,8 @@ if (getenv('E803_LOCAL_HTTP_TEST') === '1') {
     $testApp->make(Kernel::class)->bootstrap();
     Http::preventStrayRequests();
     $connection = DB::connection();
-    $state = DB::selectOne('select current_database() as db, current_user as role, inet_server_addr() as host, inet_server_port() as port, rolsuper, rolcreatedb, rolcreaterole from pg_roles where rolname = current_user');
+    $state = DB::selectOne('select current_database() as db, current_user as role, inet_server_addr() as host, inet_server_port() as port, rolsuper, rolcreatedb, rolcreaterole, rolreplication, rolbypassrls from pg_roles where rolname = current_user');
+    $expectedPort = getenv('CI') === 'true' && getenv('E803_CI_FIXTURE') === '1' ? 5432 : 55500;
     $base = str_replace('\\', '/', base_path());
     $storage = str_replace('\\', '/', storage_path());
     $expected = str_replace('\\', '/', $root);
@@ -39,7 +46,7 @@ if (getenv('E803_LOCAL_HTTP_TEST') === '1') {
         || $connection->getDatabaseName() !== 'souzpir_test_sp_e8_03' || config('runtime.test_database') !== 'souzpir_test_sp_e8_03'
         || config('runtime.preview_database') === 'souzpir_test_sp_e8_03' || ! $state
         || $state->db !== 'souzpir_test_sp_e8_03' || $state->role !== 'sp_e8_03_app'
-        || $state->host !== '127.0.0.1' || (int) $state->port !== 55500 || $state->rolsuper || $state->rolcreatedb || $state->rolcreaterole
+        || $state->host !== '127.0.0.1' || (int) $state->port !== $expectedPort || $state->rolsuper || $state->rolcreatedb || $state->rolcreaterole || $state->rolreplication || $state->rolbypassrls
         || ! str_starts_with($storage.'/', $expected.'/.local/runtime/testing/storage/')
         || config('runtime.ai_driver') !== 'fake' || config('runtime.delivery_driver') !== 'fake'
         || ! in_array(config('mail.default'), ['log', 'array'], true)

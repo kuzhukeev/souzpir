@@ -1,7 +1,7 @@
 import { test, expect, type BrowserContext, type Page } from '@playwright/test';
-const base = 'http://127.0.0.1:8248';
+const base = process.env.E802_BROWSER_BASE ?? 'http://127.0.0.1:8248';
 test.use({
-  launchOptions: { executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe' },
+  launchOptions: { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH },
 });
 async function guard(c: BrowserContext) {
   await c.route('**/*', (r) =>

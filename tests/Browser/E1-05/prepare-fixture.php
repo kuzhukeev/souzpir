@@ -20,6 +20,15 @@ $orgId = getenv('E105_FIXTURE_ORG');
 if (getenv('E105_FIXTURE_ENABLED') !== '1' || ! app()->environment('testing') || $db !== config('runtime.test_database') || $db === config('runtime.preview_database') || ! str_contains($db, '_test_') || ! is_string($orgId) || ! Str::isUlid($orgId) || $orgId !== app(Cabinet::class)->organizationId()) {
     throw new LogicException('Refusing fixture outside explicitly enabled isolated testing environment.');
 }
+if (getenv('CI') === 'true') {
+    $state = DB::selectOne('select current_database() as db, current_user as role, inet_server_addr() as host, inet_server_port() as port, rolsuper, rolcreatedb, rolcreaterole, rolreplication, rolbypassrls from pg_roles where rolname = current_user');
+    if (realpath(base_path()) !== realpath(getcwd()) || config('database.connections.pgsql.url')
+        || $db !== 'souzpir_test_sp_e1_05' || ! $state || $state->db !== $db || $state->role !== 'sp_e1_05_app'
+        || $state->host !== '127.0.0.1' || (int) $state->port !== 5432 || $state->rolsuper || $state->rolcreatedb
+        || $state->rolcreaterole || $state->rolreplication || $state->rolbypassrls) {
+        throw new LogicException('Refusing an unexpected CI brand fixture connection.');
+    }
+}
 Artisan::call('migrate', ['--force' => true]);
 DB::transaction(function () use ($orgId): void {
     $marker = 'SP-E1-05-browser-fixture-v1';

@@ -26,11 +26,12 @@ $app->make(Kernel::class)->bootstrap();
 Http::preventStrayRequests();
 $root = str_replace('\\', '/', realpath(__DIR__.'/../../..'));
 $storage = str_replace('\\', '/', storage_path());
-$state = DB::selectOne('select current_database() as db, current_user as role, inet_server_addr() as host, inet_server_port() as port, rolsuper, rolcreatedb, rolcreaterole from pg_roles where rolname = current_user');
+$state = DB::selectOne('select current_database() as db, current_user as role, inet_server_addr() as host, inet_server_port() as port, rolsuper, rolcreatedb, rolcreaterole, rolreplication, rolbypassrls from pg_roles where rolname = current_user');
+$expectedPort = getenv('CI') === 'true' && getenv('E803_CI_FIXTURE') === '1' ? 5432 : 55500;
 if (! app()->environment('testing') || str_replace('\\', '/', base_path()) !== $root || DB::connection()->getDatabaseName() !== 'souzpir_test_sp_e8_03'
     || config('runtime.test_database') !== 'souzpir_test_sp_e8_03' || config('runtime.preview_database') === 'souzpir_test_sp_e8_03'
     || ! $state || $state->db !== 'souzpir_test_sp_e8_03' || $state->role !== 'sp_e8_03_app'
-    || $state->host !== '127.0.0.1' || (int) $state->port !== 55500 || $state->rolsuper || $state->rolcreatedb || $state->rolcreaterole
+    || $state->host !== '127.0.0.1' || (int) $state->port !== $expectedPort || $state->rolsuper || $state->rolcreatedb || $state->rolcreaterole || $state->rolreplication || $state->rolbypassrls
     || ! str_starts_with($storage.'/', $root.'/.local/runtime/testing/storage/')
     || config('runtime.ai_driver') !== 'fake' || config('runtime.delivery_driver') !== 'fake'
     || ! in_array(config('mail.default'), ['log', 'array'], true)) {
