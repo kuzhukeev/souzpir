@@ -11,7 +11,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 #[Fillable(['name', 'email', 'password'])]
-#[Hidden(['password', 'remember_token'])]
+#[Hidden(['password', 'remember_token', 'mfa_secret', 'mfa_last_counter', 'auth_version'])]
 class User extends Authenticatable implements MustVerifyEmail
 {
     use HasUlids, Notifiable;
@@ -30,6 +30,13 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return [
             'email_verified_at' => 'datetime',
+            'terms_accepted_at' => 'datetime',
+            'ai_consent_at' => 'datetime',
+            'marketing_opt_in' => 'boolean',
+            'mfa_secret' => 'encrypted',
+            'mfa_confirmed_at' => 'datetime',
+            'mfa_last_counter' => 'integer',
+            'auth_version' => 'integer',
             'password' => 'hashed',
         ];
     }
