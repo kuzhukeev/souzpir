@@ -21,6 +21,12 @@ for (const width of [1440, 1024, 390]) {
       await page.setViewportSize({ width, height: 900 });
       await page.goto(`${fixture}?theme=${theme}`);
       await expect(page.getByRole('heading', { level: 1, name: 'Команда' })).toBeVisible();
+      const filter = page.getByRole('combobox', { name: 'Роль', exact: true });
+      await expect(filter).toContainText('Все роли');
+      await filter.click();
+      await expect(page.getByRole('option', { name: 'Менеджер' })).toBeVisible();
+      await page.keyboard.press('Escape');
+      await expect(filter).toBeFocused();
       const listing =
         width < 768
           ? page.locator('article')

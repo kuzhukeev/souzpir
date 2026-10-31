@@ -61,6 +61,20 @@ final class TeamMemberProjection
         });
     }
 
+    /** Filter the same effective role that grant() exposes, before pagination. */
+    public function scopeRole(Builder $query, string $role): Builder
+    {
+        if ($role === 'all') {
+            return $query;
+        }
+
+        $baseRole = in_array($role, ['editor', 'manager'], true) ? 'member' : $role;
+        $manager = $role === 'manager' ? 'true' : 'false';
+
+        return $query->where('role', $baseRole)
+            ->whereRaw("COALESCE(NULLIF(settings->'sales_manager', 'null'::jsonb), 'false'::jsonb) = ?::jsonb", [$manager]);
+    }
+
     public function grant(string $baseRole, mixed $settings, mixed $brandIds): array
     {
         $manager = is_array($settings) ? ($settings['sales_manager'] ?? false) : null;
