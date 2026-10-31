@@ -8,7 +8,9 @@ use App\Models\Organization;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -39,6 +41,17 @@ final class IsolationTest extends TenancyTestCase
         $this->assertNull(app(TenantContext::class)->organizationId);
         $this->expectException(\LogicException::class);
         app(TenantContextRunner::class)->run(new TenantContext($org->id, $foreign->id), fn () => null);
+    }
+
+    public function test_old_authenticated_session_is_invalidated_after_password_change(): void
+    {
+        [$owner, $org, $brand] = $this->cabinet();
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $this->getJson('/tenancy-test/page')->assertOk();
+        $this->assertNotNull(session('password_hash_web'));
+        $owner->forceFill(['password' => Hash::make('new-test-password')])->save();
+        Auth::forgetGuards();
+        $this->getJson('/tenancy-test/page')->assertUnauthorized();
     }
 
     /** Integration prerequisite: ResolveTenant must precede SubstituteBindings in root bootstrap. */
@@ -103,14 +116,14 @@ final class IsolationTest extends TenancyTestCase
         [, $org,$a] = $this->cabinet();
         foreach (['member', 'viewer'] as $role) {
             [$user] = $this->member($org, $role);
-            $this->actingAs($user)->getJson('/tenancy-test/page')->assertForbidden();
+            $this->flushSession()->actingAs($user)->getJson('/tenancy-test/page')->assertForbidden();
         }
         [$admin,$membership] = $this->member($org, 'admin');
-        $this->actingAs($admin)->get('/tenancy-test/page')->assertOk();
+        $this->flushSession()->actingAs($admin)->get('/tenancy-test/page')->assertOk();
         $this->within($org, null, fn () => $membership->update(['status' => 'disabled']));
         $this->getJson('/tenancy-test/page')->assertForbidden();
         [$limited] = $this->member($org, 'viewer', [$a->id]);
-        $this->actingAs($limited)->get('/tenancy-test/page')->assertInertia(fn (Assert $p) => $p->has('brands', 1));
+        $this->flushSession()->actingAs($limited)->get('/tenancy-test/page')->assertInertia(fn (Assert $p) => $p->has('brands', 1));
     }
 
     public function test_stale_or_missing_brand_session_never_redirects_a_write_to_another_brand(): void

@@ -172,7 +172,7 @@ final class NotificationCoreTest extends TenancyTestCase
         $this->patchJson('/notifications/settings', $body)->assertUnauthorized();
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->patchJson('/notifications/settings', $body)->assertNoContent();
         $this->assertDatabaseHas('audit_logs', ['actor_id' => $owner->id, 'action' => 'notification.settings.updated']);
-        $this->actingAs($restricted)->withSession(['brand_id' => $brand->id])->patchJson('/notifications/settings', $body)->assertNotFound();
+        $this->flushSession()->actingAs($restricted)->withSession(['brand_id' => $brand->id])->patchJson('/notifications/settings', $body)->assertNotFound();
         $this->assertDatabaseCount('notification_settings', 1);
     }
 
@@ -182,7 +182,7 @@ final class NotificationCoreTest extends TenancyTestCase
         [$viewer] = $this->member($org, 'viewer', [$brand->id]);
         $body = ['event_key' => 'seller.conversation.handed_off', 'channel' => 'cabinet', 'enabled' => false];
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->patchJson('/notifications/settings', $body)->assertNoContent();
-        $this->actingAs($viewer)->withSession(['brand_id' => $brand->id])->patchJson('/notifications/settings', [...$body, 'enabled' => true, 'user_id' => $owner->id, 'brand_id' => $otherBrand->id])->assertNoContent();
+        $this->flushSession()->actingAs($viewer)->withSession(['brand_id' => $brand->id])->patchJson('/notifications/settings', [...$body, 'enabled' => true, 'user_id' => $owner->id, 'brand_id' => $otherBrand->id])->assertNoContent();
         $this->assertDatabaseHas('notification_settings', ['user_id' => $viewer->id, 'brand_id' => $brand->id, 'enabled' => true]);
         $this->assertDatabaseHas('notification_settings', ['user_id' => $owner->id, 'brand_id' => $brand->id, 'enabled' => false]);
         $this->withHeader('X-Brand-Id', $otherBrand->id)->patchJson('/notifications/settings', $body)->assertNotFound();

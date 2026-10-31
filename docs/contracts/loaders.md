@@ -107,3 +107,5 @@ E0-01 фиксирует в `.env.example` следующие соглашени
 ## Приёмка E0-01 для этих соглашений
 
 Smoke fixture feature подтверждает discovery маршрута, config, translation и nested migration; удаление fixture убирает регистрацию. С cache/без cache route list совпадает. Два feature с одинаковым route/extension key дают явную ошибку. Два worktree имеют разные DB/cache/cookie/storage/ports. В незапущенном домене нет фальшивых «работающих» endpoint. Сервисы fake; scheduler/queue worker не стартуют от установки зависимостей.
+
+`session` route group uses the regular session/CSRF web middleware without guest, auth or tenant requirements; it is suitable for invitation landing pages shared by guests and authenticated users. The web middleware includes Laravel AuthenticateSession so password changes invalidate old authenticated sessions.

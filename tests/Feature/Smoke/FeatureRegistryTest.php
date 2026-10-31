@@ -172,6 +172,16 @@ class FeatureRegistryTest extends TestCase
         self::assertSame(['web', EnsureLocalPreview::class], $route->gatherMiddleware());
     }
 
+    public function test_session_route_has_web_session_without_guest_or_auth_gate(): void
+    {
+        $this->write('routes/features/E1-01.php', $this->routeFile('session', '/invitations/{token}', 'fixture.invitation'));
+        (new FeatureRegistry($this->fixtureApp))->boot();
+        $this->fixtureApp->boot();
+        $route = $this->fixtureApp->make(Router::class)->getRoutes()->getByName('fixture.invitation');
+        self::assertNotNull($route);
+        self::assertSame(['web'], $route->gatherMiddleware());
+    }
+
     public function test_cached_routes_are_not_reloaded_or_replaced(): void
     {
         $router = $this->fixtureApp->make(Router::class);

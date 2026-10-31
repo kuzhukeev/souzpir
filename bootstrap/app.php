@@ -7,6 +7,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Routing\Middleware\SubstituteBindings;
+use Illuminate\Session\Middleware\AuthenticateSession;
 
 $basePath = dirname(__DIR__);
 require_once __DIR__.'/runtime.php';
@@ -17,7 +18,7 @@ $app = Application::configure(basePath: $basePath)
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->redirectGuestsTo('/login');
         $middleware->prependToPriorityList(SubstituteBindings::class, ResolveTenant::class);
-        $middleware->web(append: [HandleInertiaRequests::class]);
+        $middleware->web(append: [AuthenticateSession::class, HandleInertiaRequests::class]);
         $middleware->alias(['preview.local' => EnsureLocalPreview::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -275,6 +275,7 @@ class FeatureRegistry
         $router->setRoutes($collection);
         $groups = [
             'web' => ['middleware' => ['web', 'auth', 'verified', 'tenant']],
+            'session' => ['middleware' => ['web']],
             'guest' => ['middleware' => ['web', 'guest']],
             'auth' => ['middleware' => ['web', 'auth']],
             'api' => ['prefix' => 'api/v1', 'middleware' => ['api', 'auth:sanctum', 'tenant.token', 'throttle:api']],
