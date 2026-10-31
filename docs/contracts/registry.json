@@ -742,6 +742,22 @@
         "organizations",
         "migration_records"
       ]
+    },
+    "migration_private_archives": {
+      "owner": "SP-E9-02",
+      "tenant": "organization",
+      "parents": [
+        "organizations",
+        "migration_batches"
+      ]
+    },
+    "migration_archive_grants": {
+      "owner": "SP-E9-02",
+      "tenant": "organization",
+      "parents": [
+        "organizations",
+        "migration_private_archives"
+      ]
     }
   },
   "contracts": {
