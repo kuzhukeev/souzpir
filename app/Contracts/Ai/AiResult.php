@@ -5,14 +5,14 @@ namespace App\Contracts\Ai;
 final readonly class AiResult
 {
     public function __construct(
-        public ?string $content,
-        public array $toolCalls,
-        public array $usage,
-        public string $model,
-        public int $latencyMs,
-        public ?int $costMicros,
-        public string $aiCallId,
-        public ?array $error = null,
+        #[\SensitiveParameter] public ?string $content,
+        #[\SensitiveParameter] public array $toolCalls,
+        #[\SensitiveParameter] public array $usage,
+        #[\SensitiveParameter] public string $model,
+        #[\SensitiveParameter] public int $latencyMs,
+        #[\SensitiveParameter] public ?int $costMicros,
+        #[\SensitiveParameter] public string $aiCallId,
+        #[\SensitiveParameter] public ?array $error = null,
     ) {}
 
     public function ok(): bool
@@ -46,8 +46,12 @@ final readonly class AiResult
         return get_object_vars($this);
     }
 
-    public static function fromArray(array $value): self
+    public static function fromArray(#[\SensitiveParameter] array $value): self
     {
-        return new self($value['content'], $value['toolCalls'], $value['usage'], $value['model'], $value['latencyMs'], $value['costMicros'], $value['aiCallId'], $value['error']);
+        try {
+            return new self($value['content'], $value['toolCalls'], $value['usage'], $value['model'], $value['latencyMs'], $value['costMicros'], $value['aiCallId'], $value['error']);
+        } catch (\Throwable) {
+            throw new \InvalidArgumentException('AI result cannot be decoded.');
+        }
     }
 }

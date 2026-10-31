@@ -8,14 +8,14 @@ final readonly class AiRequest
 {
     public function __construct(
         #[\SensitiveParameter] public array $messages,
-        public string $model,
-        public float $temperature,
+        #[\SensitiveParameter] public string $model,
+        #[\SensitiveParameter] public float $temperature,
         #[\SensitiveParameter] public ?array $responseFormat = null,
         #[\SensitiveParameter] public array $tools = [],
         #[\SensitiveParameter] public mixed $toolChoice = null,
-        public ?int $maxTokens = null,
-        public ?string $promptVersion = null,
-        public ?string $promptChecksum = null,
+        #[\SensitiveParameter] public ?int $maxTokens = null,
+        #[\SensitiveParameter] public ?string $promptVersion = null,
+        #[\SensitiveParameter] public ?string $promptChecksum = null,
     ) {
         if (! array_is_list($messages) || $messages === [] || trim($model) === '' || ! is_finite($temperature) || $temperature < 0 || $temperature > 2 || ($maxTokens !== null && $maxTokens < 1) || ! array_is_list($tools)) {
             throw new InvalidArgumentException('Invalid AI request.');

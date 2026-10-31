@@ -130,6 +130,33 @@ final class BoundaryGatewayTest extends TestCase
         });
     }
 
+    public function test_raw_tool_arguments_and_context_are_checked_before_masking_and_database(): void
+    {
+        Http::preventStrayRequests();
+        Http::fake();
+        [$organization, $brand] = $this->cabinet();
+        $valid = new AiContext($organization, $brand, 'responder', 'seller', 'brand', $brand, 'raw-tool-test', ['conversation_content']);
+        $unsafe = new AiContext($organization, $brand, 'api_key=synthetic-context-secret', 'seller', 'brand', $brand, 'context-test', ['conversation_content']);
+        $contact = new AiContext($organization, $brand, 'person@example.test', 'seller', 'brand', $brand, 'context-contact', ['conversation_content']);
+        $request = new AiRequest([['role' => 'assistant', 'content' => null, 'tool_calls' => [
+            ['id' => 'test', 'function' => ['name' => 'lookup', 'arguments' => '{"api_key":"synthetic-secret","api_key":""}']],
+        ]]], 'google/gemini-2.5-flash', 0.0);
+        app(TenantContextRunner::class)->run(new TenantContext($organization, $brand, source: 'job'), function () use ($request, $valid, $unsafe, $contact): void {
+            foreach ([[$request, $valid], [new AiRequest([['role' => 'user', 'content' => 'hello']], 'google/gemini-2.5-flash', 0.0), $unsafe], [new AiRequest([['role' => 'user', 'content' => 'hello']], 'google/gemini-2.5-flash', 0.0), $contact]] as [$body, $context]) {
+                try {
+                    app(AiGateway::class)->complete($body, $context);
+                    self::fail('Unsafe original arguments or context were accepted.');
+                } catch (InvalidArgumentException $error) {
+                    self::assertSame('AI data could not be safely prepared.', $error->getMessage());
+                    self::assertNull($error->getPrevious());
+                }
+            }
+            self::assertSame(0, DB::table('ai_calls')->count());
+            self::assertSame(0, DB::table('ai_budgets')->count());
+            Http::assertNothingSent();
+        });
+    }
+
     private function cabinet(): array
     {
         $organization = (string) Str::ulid();

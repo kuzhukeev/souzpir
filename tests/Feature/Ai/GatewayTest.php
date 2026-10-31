@@ -79,6 +79,36 @@ final class GatewayTest extends TestCase
         });
     }
 
+    public function test_budget_and_driver_errors_do_not_expose_original_request_in_trace(): void
+    {
+        $this->budget(1000);
+        config(['features.E0-05.defaults.reservation_micros' => ['google/gemini-2.5-flash' => 100]]);
+        DB::table('ai_budgets')->where('organization_id', $this->organization)->update(['limit_units' => '1']);
+        $sensitive = 'synthetic-trace@example.test';
+        $request = new AiRequest([['role' => 'user', 'content' => $sensitive]], 'google/gemini-2.5-flash', 0.0);
+        $this->within(function () use ($request, $sensitive): void {
+            try {
+                app(AiGateway::class)->complete($request, $this->context('trace-budget'));
+                self::fail('Budget rejection expected.');
+            } catch (LogicException $error) {
+                self::assertStringContainsString('approved conversion', $error->getMessage());
+                self::assertStringNotContainsString($sensitive, json_encode($error->getTrace(), JSON_THROW_ON_ERROR));
+            }
+        });
+        DB::table('ai_budgets')->where('organization_id', $this->organization)->update(['limit_units' => null]);
+        $witness = 'synthetic-private-witness';
+        $request = new AiRequest([['role' => 'user', 'content' => $witness]], 'google/gemini-2.5-flash', 0.0);
+        $this->within(function () use ($request, $witness): void {
+            try {
+                app(AiGateway::class)->complete($request, $this->context('trace-driver'));
+                self::fail('Missing fake fixture expected.');
+            } catch (Rejected $error) {
+                self::assertStringNotContainsString($witness, (string) $error);
+                self::assertStringNotContainsString($witness, json_encode($error->getTrace(), JSON_THROW_ON_ERROR));
+            }
+        });
+    }
+
     public function test_fixture_masking_idempotency_and_cost_attribution(): void
     {
         $request = new AiRequest([['role' => 'user', 'content' => 'Позвоните +7 (999) 111-22-33 или a@example.ru']], 'google/gemini-2.5-flash', 0.5);

@@ -8,7 +8,7 @@ use Throwable;
 
 final class OpenRouterDriver implements Driver
 {
-    public function complete(array $body): array
+    public function complete(#[\SensitiveParameter] array $body): array
     {
         $key = config('features.E0-05.defaults.openrouter_key');
         if (! is_string($key) || $key === '') {
@@ -19,8 +19,8 @@ final class OpenRouterDriver implements Driver
         for ($attempt = 0; $attempt < 3; $attempt++) {
             try {
                 $response = Http::withToken($key)->acceptJson()->timeout(60)->post('https://openrouter.ai/api/v1/chat/completions', $body);
-            } catch (Throwable $e) {
-                throw new Uncertain('Provider outcome is unknown.', previous: $e);
+            } catch (Throwable) {
+                throw new Uncertain('Provider outcome is unknown.');
             }
             if ($response->successful()) {
                 break;
@@ -58,13 +58,22 @@ final class OpenRouterDriver implements Driver
             }
 
             return ['content' => $content, 'toolCalls' => $calls, 'usage' => ['promptTokens' => $prompt, 'completionTokens' => $completion], 'model' => (string) ($data['model'] ?? $body['model']), 'latencyMs' => (int) ((hrtime(true) - $start) / 1_000_000), 'costMicros' => isset($usage['cost']) ? Money::micros((string) $usage['cost']) : null];
-        } catch (Throwable $e) {
-            throw new Uncertain('Provider responded but usage or result cannot be confirmed.', previous: $e);
+        } catch (Throwable) {
+            throw new Uncertain('Provider responded but usage or result cannot be confirmed.');
         }
     }
 
     /** The same payload is measured for budget admission and sent over HTTP. */
-    public function wireBody(array $body): array
+    public function wireBody(#[\SensitiveParameter] array $body): array
+    {
+        try {
+            return $this->wireBodyInternal($body);
+        } catch (Throwable) {
+            throw new \InvalidArgumentException('AI payload cannot be safely prepared.');
+        }
+    }
+
+    private function wireBodyInternal(#[\SensitiveParameter] array $body): array
     {
         unset($body['prompt_version'], $body['prompt_checksum']);
         $body['usage'] = ['include' => true];

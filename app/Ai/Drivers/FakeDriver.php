@@ -6,7 +6,7 @@ use App\Ai\CanonicalJson;
 
 final class FakeDriver implements Driver
 {
-    public function complete(array $body): array
+    public function complete(#[\SensitiveParameter] array $body): array
     {
         $hash = CanonicalJson::hash($body);
         $directory = config('features.E0-05.defaults.fixture_directory', base_path('tests/fixtures/llm'));

@@ -28,9 +28,83 @@ final class Gateway implements AiGateway
 {
     public function complete(#[\SensitiveParameter] AiRequest $request, #[\SensitiveParameter] AiContext $context): AiResult
     {
+        try {
+            return $this->completeInternal($request, $context);
+        } catch (Rejected $error) {
+            // Preserve the retry classification without exposing driver arguments.
+            $message = match (true) {
+                $error->getMessage() === 'Previous AI attempt was confirmed unbilled; an explicit new attempt is required.' => $error->getMessage(),
+                config('runtime.ai_driver', 'fake') === 'fake' && str_starts_with($error->getMessage(), 'AI fixture missing') => 'AI fixture missing for the normalized request.',
+                default => 'AI provider rejected the request.',
+            };
+            throw new Rejected($message);
+        } catch (InvalidArgumentException $error) {
+            throw new InvalidArgumentException($this->safeErrorMessage($error->getMessage()));
+        } catch (LogicException $error) {
+            throw new LogicException($this->safeErrorMessage($error->getMessage()));
+        } catch (Throwable) {
+            throw new \RuntimeException('AI request could not be safely completed.');
+        }
+    }
+
+    private function safeErrorMessage(string $message): string
+    {
+        $allowed = [
+            'AI calls cannot run inside a database transaction.',
+            'The requested AI provider/model is not active.',
+            'Unsupported AI driver.',
+            'Recording is only allowed in local/testing.',
+            'AI data could not be safely prepared.',
+            'AI call state changed before response persistence.',
+            'AI idempotency key reused with different request or context.',
+            'AI attempt requires a matching parent.',
+            'AI parent attempt cannot be retried.',
+            'AI parent attempt already has a retry.',
+            'AI unit budget requires an approved conversion rule.',
+            'AI reservation was exceeded and requires operator review.',
+            'A configured live budget requires bounded request sizes.',
+            'AI request exceeds the configured reservation bounds.',
+            'A configured budget requires a model reservation bound.',
+            'An uncertain or unreserved AI charge requires reconciliation before further spending.',
+            'AI budget exhausted.',
+            'AI reservation cannot be settled.',
+            'Confirmed result and cost are required.',
+            'Successful reconciliation requires a verified provider evidence workflow.',
+            'Unbilled reconciliation requires a verified provider evidence workflow.',
+            'Active tenant and evidence are required.',
+            'AI call not found.',
+            'Invalid AI budget threshold.',
+            'AI budget notification requires the E0-04 transactional outbox.',
+            'Invalid AI driver result.',
+            'Invalid AI driver usage.',
+            'Invalid AI tool call.',
+            'AI context does not match the active tenant.',
+            'Unsupported AI cost object.',
+            'AI cost object storage is unavailable.',
+            'AI cost object is outside the active tenant.',
+            'Live AI calls are disabled.',
+            'Brand data policy does not authorize this external AI transfer.',
+            'Cannot create private AI recording directory.',
+            'Cannot write private AI recording.',
+        ];
+
+        return in_array($message, $allowed, true) ? $message : 'AI request could not be safely completed.';
+    }
+
+    private function completeInternal(#[\SensitiveParameter] AiRequest $request, #[\SensitiveParameter] AiContext $context): AiResult
+    {
         // An outer rollback must never undo accounting for an already sent request.
         if (DB::connection()->transactionLevel() !== 0) {
             throw new LogicException('AI calls cannot run inside a database transaction.');
+        }
+        try {
+            app(SecretBoundary::class)->assertSafe(get_object_vars($context));
+            app(ContactBoundary::class)->assertSafe(['messages' => [['role' => 'user', 'content' => [
+                'purpose' => $context->purpose, 'family' => $context->family,
+                'object_type' => $context->objectType, 'data_classes' => $context->dataClasses,
+            ]]]]);
+        } catch (Throwable) {
+            throw new InvalidArgumentException('AI data could not be safely prepared.');
         }
         $this->assertTenantAndObject($context);
         // Validate encryption before any paid call; idempotent results are stored encrypted.
@@ -52,6 +126,7 @@ final class Gateway implements AiGateway
             $this->assertLiveAllowed($context);
         }
         try {
+            app(SecretBoundary::class)->assertSafe($request->toArray());
             $body = app(ContactMasker::class)->request($request->toArray());
             app(ContactBoundary::class)->assertSafe($body);
             app(SecretBoundary::class)->assertSafe($body);
@@ -114,7 +189,7 @@ final class Gateway implements AiGateway
         }
     }
 
-    private function reserve(AiRequest $request, AiContext $context, string $provider, string $requestHash, ?int $wireBytes): array
+    private function reserve(#[\SensitiveParameter] AiRequest $request, #[\SensitiveParameter] AiContext $context, string $provider, string $requestHash, ?int $wireBytes): array
     {
         return DB::transaction(function () use ($request, $context, $provider, $requestHash, $wireBytes): array {
             $keyHash = hash_hmac('sha256', $context->idempotencyKey, (string) config('app.key'));
@@ -182,7 +257,7 @@ final class Gateway implements AiGateway
         });
     }
 
-    private function settle(object $call, AiResult $result): void
+    private function settle(object $call, #[\SensitiveParameter] AiResult $result): void
     {
         DB::transaction(function () use ($call, $result): void {
             $budget = DB::table('ai_budgets')->where('id', $call->budget_id)->lockForUpdate()->first();
@@ -198,7 +273,20 @@ final class Gateway implements AiGateway
     }
 
     /** Reserved for a future authorized workflow that verifies provider evidence. */
-    public function reconcileSuccess(TenantContext $tenant, AiResult $result, string $evidence): void
+    public function reconcileSuccess(#[\SensitiveParameter] TenantContext $tenant, #[\SensitiveParameter] AiResult $result, #[\SensitiveParameter] string $evidence): void
+    {
+        try {
+            $this->reconcileSuccessInternal($tenant, $result, $evidence);
+        } catch (InvalidArgumentException $error) {
+            throw new InvalidArgumentException($this->safeErrorMessage($error->getMessage()));
+        } catch (LogicException $error) {
+            throw new LogicException($this->safeErrorMessage($error->getMessage()));
+        } catch (Throwable) {
+            throw new \RuntimeException('AI reconciliation could not be safely completed.');
+        }
+    }
+
+    private function reconcileSuccessInternal(#[\SensitiveParameter] TenantContext $tenant, #[\SensitiveParameter] AiResult $result, #[\SensitiveParameter] string $evidence): void
     {
         $this->assertThresholdReady();
         $this->reconciliationCall($tenant, $result->aiCallId, $evidence);
@@ -211,14 +299,27 @@ final class Gateway implements AiGateway
     }
 
     /** Unbilled recovery stays closed until provider evidence can be verified. */
-    public function reconcileUnbilled(TenantContext $tenant, string $callId, string $evidence): void
+    public function reconcileUnbilled(#[\SensitiveParameter] TenantContext $tenant, #[\SensitiveParameter] string $callId, #[\SensitiveParameter] string $evidence): void
+    {
+        try {
+            $this->reconcileUnbilledInternal($tenant, $callId, $evidence);
+        } catch (InvalidArgumentException $error) {
+            throw new InvalidArgumentException($this->safeErrorMessage($error->getMessage()));
+        } catch (LogicException $error) {
+            throw new LogicException($this->safeErrorMessage($error->getMessage()));
+        } catch (Throwable) {
+            throw new \RuntimeException('AI reconciliation could not be safely completed.');
+        }
+    }
+
+    private function reconcileUnbilledInternal(#[\SensitiveParameter] TenantContext $tenant, #[\SensitiveParameter] string $callId, #[\SensitiveParameter] string $evidence): void
     {
         $this->reconciliationCall($tenant, $callId, $evidence);
         // A free-form string is not proof that a provider did not charge.
         throw new LogicException('Unbilled reconciliation requires a verified provider evidence workflow.');
     }
 
-    private function reconciliationCall(TenantContext $tenant, string $callId, string $evidence): object
+    private function reconciliationCall(#[\SensitiveParameter] TenantContext $tenant, #[\SensitiveParameter] string $callId, #[\SensitiveParameter] string $evidence): object
     {
         $current = app(TenantContext::class);
         if ($tenant->organizationId === null || $tenant->brandId === null || $current->organizationId !== $tenant->organizationId || $current->brandId !== $tenant->brandId || trim($evidence) === '' || strlen($evidence) > 2000) {
@@ -265,7 +366,7 @@ final class Gateway implements AiGateway
         return new AiResult(null, [], ['promptTokens' => null, 'completionTokens' => null], $model, 0, null, $call->id, ['code' => $code, 'retryable' => false]);
     }
 
-    private function attribute(object $call, AiResult $result): void
+    private function attribute(object $call, #[\SensitiveParameter] AiResult $result): void
     {
         $key = ['organization_id' => $call->organization_id, 'brand_id' => $call->brand_id, 'object_type' => $call->object_type, 'object_id' => $call->object_id];
         DB::table('object_costs')->insertOrIgnore([...$key, 'id' => (string) Str::ulid(), 'cost_micros' => 0, 'prompt_tokens' => 0, 'completion_tokens' => 0, 'created_at' => now(), 'updated_at' => now()]);
@@ -308,7 +409,7 @@ final class Gateway implements AiGateway
         DB::table('ai_budgets')->where('id', $budget->id)->update(['threshold_notified_at' => now()]);
     }
 
-    private function assertResult(array $data): void
+    private function assertResult(#[\SensitiveParameter] array $data): void
     {
         if (! array_key_exists('content', $data) || (! is_string($data['content']) && $data['content'] !== null) || ! is_array($data['toolCalls'] ?? null) || ! array_is_list($data['toolCalls']) || ! is_string($data['model'] ?? null) || ! is_int($data['latencyMs'] ?? null) || $data['latencyMs'] < 0 || ! array_key_exists('costMicros', $data) || ($data['costMicros'] !== null && (! is_int($data['costMicros']) || $data['costMicros'] < 0))) {
             throw new LogicException('Invalid AI driver result.');
@@ -325,7 +426,7 @@ final class Gateway implements AiGateway
         }
     }
 
-    private function assertTenantAndObject(AiContext $context): void
+    private function assertTenantAndObject(#[\SensitiveParameter] AiContext $context): void
     {
         $tenant = app(TenantContext::class);
         if ($tenant->organizationId !== $context->organizationId || $tenant->brandId !== $context->brandId) {
@@ -347,7 +448,7 @@ final class Gateway implements AiGateway
         }
     }
 
-    private function assertLiveAllowed(AiContext $context): void
+    private function assertLiveAllowed(#[\SensitiveParameter] AiContext $context): void
     {
         if (! config('features.E0-05.defaults.live_enabled', false)) {
             throw new LogicException('Live AI calls are disabled.');
@@ -369,7 +470,7 @@ final class Gateway implements AiGateway
         };
     }
 
-    private function record(array $body, array $result): void
+    private function record(#[\SensitiveParameter] array $body, #[\SensitiveParameter] array $result): void
     {
         if (! app()->environment('local', 'testing')) {
             throw new LogicException('Recording is only allowed in local/testing.');
