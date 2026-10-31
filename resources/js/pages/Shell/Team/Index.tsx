@@ -21,7 +21,11 @@ function Person({ member }: { member: TeamMember }) {
       .join('')
       .toLocaleUpperCase('ru') || '—';
   return (
-    <div className="flex min-w-0 items-center gap-3">
+    <Link
+      href={`/team/${encodeURIComponent(member.id)}`}
+      aria-label={`Открыть карточку: ${name}`}
+      className={`flex min-w-0 cursor-pointer items-center gap-3 rounded-lg ${focus}`}
+    >
       <span
         aria-hidden="true"
         className="grid size-10 shrink-0 place-items-center rounded-full bg-(--color-info-soft) text-sm font-bold text-(--color-info-ink)"
@@ -34,7 +38,7 @@ function Person({ member }: { member: TeamMember }) {
           {member.email || 'Адрес недоступен'}
         </p>
       </div>
-    </div>
+    </Link>
   );
 }
 

@@ -14,3 +14,5 @@ export type TeamPage = {
   last_page: number;
   total: number;
 };
+
+export type TeamMemberDetail = TeamMember & { phone: string | null };
