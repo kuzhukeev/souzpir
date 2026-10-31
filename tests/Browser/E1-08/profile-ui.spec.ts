@@ -128,6 +128,33 @@ test('security confirmation and MFA states are accessible', async ({ page }) => 
     fullPage: true,
   });
 });
+test('security password uncertainty hides an old success message and clears inputs', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.goto(`${url}?screen=security&oldSecurityStatus=1`);
+  await expect(page.getByText('Пароль изменён. Другие сессии завершены.', { exact: true })).toBeVisible();
+  await page.route('**/profile/security/password', (route) => route.abort('failed'));
+  await page.getByLabel('Текущий пароль', { exact: true }).fill('current-synthetic-password');
+  await page.getByLabel('Новый пароль', { exact: true }).fill('replacement-synthetic-password');
+  await page.getByLabel('Повторите новый пароль', { exact: true }).fill('replacement-synthetic-password');
+  await page.getByRole('button', { name: 'Сохранить пароль' }).click();
+  await expect(page.getByRole('alert')).toContainText('Пароль мог измениться или запрос ещё выполняется');
+  await expect(page.getByText('Пароль изменён. Другие сессии завершены.', { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel('Текущий пароль', { exact: true })).toHaveValue('');
+  await checkLayout(page);
+  await checkAxe(page);
+  await page.screenshot({ path: '.local/screenshots/e1-08/security-password-uncertain-390.png', fullPage: true });
+});
+test('security session uncertainty closes the old confirmation before another attempt', async ({ page }) => {
+  await page.goto(`${url}?screen=security`);
+  await page.route('**/profile/security/sessions', (route) => route.abort('failed'));
+  await page.getByRole('button', { name: 'Завершить все, кроме текущей' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Завершить' }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByRole('alert')).toContainText('Сессии могли завершиться или запрос ещё выполняется');
+  await checkLayout(page);
+  await checkAxe(page);
+  await page.screenshot({ path: '.local/screenshots/e1-08/security-sessions-uncertain.png', fullPage: true });
+});
 test('empty states and Telegram pending confirmation are honest', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 900 });
   await page.goto(`${url}?screen=notifications&empty=1&unconfigured=1`);
