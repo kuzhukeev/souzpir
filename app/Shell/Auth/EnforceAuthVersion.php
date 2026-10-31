@@ -20,6 +20,7 @@ final class EnforceAuthVersion
                 $version = $request->session()->get('auth.version');
             }
             if (! is_int($version) || $version !== $user->auth_version) {
+                app(InvitationExchangeGrants::class)->revoke($request);
                 Auth::guard()->logoutCurrentDevice();
                 $request->session()->invalidate();
                 $request->session()->regenerateToken();
@@ -28,6 +29,7 @@ final class EnforceAuthVersion
             try {
                 app(AuthSessionRegistry::class)->withinActive($request, static fn () => null);
             } catch (AuthenticationException $error) {
+                app(InvitationExchangeGrants::class)->revoke($request);
                 Auth::guard()->logoutCurrentDevice();
                 $request->session()->invalidate();
                 $request->session()->regenerateToken();

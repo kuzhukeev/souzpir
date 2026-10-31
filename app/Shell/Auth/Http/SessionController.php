@@ -5,6 +5,7 @@ namespace App\Shell\Auth\Http;
 use App\Models\User;
 use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Auth\EligibleAccount;
+use App\Shell\Auth\InvitationExchangeGrants;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -38,7 +39,11 @@ final class SessionController
             throw ValidationException::withMessages(['email' => 'Не удалось войти. Проверьте данные.']);
         }
         RateLimiter::clear($key);
-        $request->session()->regenerate();
+        DB::transaction(function () use ($request): void {
+            $oldId = $request->session()->getId();
+            $request->session()->regenerate(true);
+            app(InvitationExchangeGrants::class)->rotate($oldId, $request->session()->getId());
+        });
         if ($user->mfa_confirmed_at !== null) {
             $request->session()->put('auth.mfa_pending', ['user_id' => $user->id, 'expires' => now()->addMinutes(5)->timestamp, 'version' => $user->auth_version, 'remember' => (bool) ($data['remember'] ?? false)]);
 
@@ -63,8 +68,10 @@ final class SessionController
                 // Laravel may create a remember token and queue its cookie during login.
                 // Both operations must happen only after the version check under this lock.
                 $loginStarted = true;
+                $oldId = $request->session()->getId();
                 Auth::login($fresh, $remember);
                 $request->session()->regenerate();
+                app(InvitationExchangeGrants::class)->rotate($oldId, $request->session()->getId());
                 $request->session()->forget('auth.mfa_pending');
                 $request->session()->put('auth.version', $fresh->auth_version);
                 app(AuthSessionRegistry::class)->issue($request, $fresh, $expectedVersion);
@@ -82,6 +89,7 @@ final class SessionController
     {
         app(AuthSessionRegistry::class)->withinActive($request, function (User $fresh) use ($request): void {
             app(AuthSessionRegistry::class)->revokeCurrent($request);
+            app(InvitationExchangeGrants::class)->revoke($request);
             Auth::guard()->setUser($fresh);
             Auth::logout();
         });
