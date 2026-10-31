@@ -134,7 +134,8 @@ final class DatabaseKnowledgeRepository implements KnowledgeRepository
             DB::table('knowledge_releases')->insert(['id' => $new, 'organization_id' => $context->organizationId, 'brand_id' => $context->brandId, 'parent_id' => $id, 'status' => 'building', 'version' => $expectedVersion, 'created_by' => $context->actorId, 'created_at' => now(), 'updated_at' => now()]);
             $this->writeData($new, $allData, $metadata);
             DB::table('knowledge_releases')->where('id', $new)->update(['status' => 'published', 'checksum' => $checksum, 'published_at' => now(), 'updated_at' => now()]);
-            DB::table('brands')->where('id', $brand->id)->where('organization_id', $context->organizationId)->update(['active_knowledge_release_id' => $new, 'updated_at' => now()]);
+            $changes = $this->revokeVisionGrantsForReleaseChange($context, $brand, $new);
+            DB::table('brands')->where('id', $brand->id)->where('organization_id', $context->organizationId)->update([...$changes, 'active_knowledge_release_id' => $new, 'updated_at' => now()]);
             DB::table('knowledge_releases')->where('id', $id)->update(['version' => $expectedVersion + 1, 'updated_at' => now()]);
             app(AuditWriter::class)->record($context, new AuditEntry('knowledge.release.published', 'knowledge_release', $new, null, ['checksum' => $checksum]));
 
@@ -153,9 +154,42 @@ final class DatabaseKnowledgeRepository implements KnowledgeRepository
                 throw new KnowledgeNotReady;
             }
             $this->forRelease($context, $id);
-            DB::table('brands')->where('id', $brand->id)->where('organization_id', $context->organizationId)->update(['active_knowledge_release_id' => $id, 'updated_at' => now()]);
+            $changes = $this->revokeVisionGrantsForReleaseChange($context, $brand, $id);
+            DB::table('brands')->where('id', $brand->id)->where('organization_id', $context->organizationId)->update([...$changes, 'active_knowledge_release_id' => $id, 'updated_at' => now()]);
             app(AuditWriter::class)->record($context, new AuditEntry('knowledge.release.activated', 'knowledge_release', $id, ['release_id' => $brand->active_knowledge_release_id], ['release_id' => $id]));
         });
+    }
+
+    /** Called only under the existing organization, brand, membership and release locks. */
+    private function revokeVisionGrantsForReleaseChange(TenantContext $context, object $brand, string $nextReleaseId): array
+    {
+        if ($brand->active_knowledge_release_id === $nextReleaseId) {
+            return [];
+        }
+        $releaseIds = DB::table('vision_knowledge_grants')->where('organization_id', $context->organizationId)
+            ->where('brand_id', $context->brandId)->whereNull('revoked_at')->orderBy('release_id')->pluck('release_id');
+        if ($releaseIds->isNotEmpty()) {
+            DB::table('knowledge_releases')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)
+                ->whereIn('id', $releaseIds)->orderBy('id')->sharedLock()->get();
+        }
+        $grants = DB::table('vision_knowledge_grants')->where('organization_id', $context->organizationId)
+            ->where('brand_id', $context->brandId)->whereNull('revoked_at')->orderBy('id')->lockForUpdate()->get();
+        foreach ($grants as $grant) {
+            $changed = DB::table('vision_knowledge_grants')->where('id', $grant->id)->whereNull('revoked_at')
+                ->update(['revoked_at' => now(), 'revoked_by' => $context->actorId, 'revocation_reason' => 'release_changed']);
+            if ($changed !== 1) {
+                throw new LogicException('Knowledge grant changed concurrently.');
+            }
+            app(AuditWriter::class)->record($context, new AuditEntry('vision.knowledge.grant.revoked', 'vision_knowledge_grant', $grant->id,
+                ['release_id' => $grant->release_id], ['reason' => 'release_changed']));
+        }
+        $settings = json_decode($brand->settings, true, 512, JSON_THROW_ON_ERROR);
+        if (! is_array($settings)) {
+            throw new LogicException('Invalid brand settings.');
+        }
+        unset($settings['vision_knowledge']);
+
+        return ['settings' => json_encode((object) $settings, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)];
     }
 
     private function assertWrite(TenantContext $context, bool $lock = false): void
