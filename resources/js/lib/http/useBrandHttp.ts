@@ -20,8 +20,14 @@ export function useBrandHttp<TForm extends FormDataType<TForm>, TResponse = unkn
       options?.onSuccess?.(...args);
     },
   });
-  const { submit, ...form } = http;
-  void submit; // Mutations must go through the methods below to invalidate the brand cache.
+  // Inertia's fluent helpers return the unwrapped form and would bypass invalidation.
+  // Do not expose them until their returned object is wrapped too.
+  const { submit, dontRemember, optimistic, withAllErrors, withPrecognition, ...form } = http;
+  void submit;
+  void dontRemember;
+  void optimistic;
+  void withAllErrors;
+  void withPrecognition;
   return {
     ...form,
     post: (url: string, options?: UseHttpSubmitOptions<TResponse, TForm>) =>

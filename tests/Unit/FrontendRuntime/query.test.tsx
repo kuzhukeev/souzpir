@@ -96,4 +96,48 @@ describe('brand-scoped live data', () => {
     hook.unmount();
     client.clear();
   });
+
+  it('detaches a disabled observer and aborts its request only when no observer remains', async () => {
+    const client = createQueryClient();
+    let signal: AbortSignal | undefined;
+    const fetch = vi.fn(({ signal: current }: { signal: AbortSignal }) => {
+      signal = current;
+      return new Promise<string>(() => undefined);
+    });
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    );
+    const first = renderHook(({ enabled }) => usePolling({ scope: a, key: ['pending'], fetch, interval: 60_000, enabled }), { wrapper, initialProps: { enabled: true } });
+    const second = renderHook(({ enabled }) => usePolling({ scope: a, key: ['pending'], fetch, interval: 60_000, enabled }), { wrapper, initialProps: { enabled: true } });
+    await waitFor(() => expect(signal).toBeDefined());
+    first.rerender({ enabled: false });
+    expect(signal?.aborted).toBe(false);
+    expect(first.result.current.data).toBeUndefined();
+    second.rerender({ enabled: false });
+    await waitFor(() => expect(signal?.aborted).toBe(true));
+    first.unmount(); second.unmount(); client.clear();
+  });
+
+  it('switching brands detaches only the switching observer', async () => {
+    const client = createQueryClient();
+    const signals: Record<string, AbortSignal> = {};
+    const fetch = vi.fn(({ queryKey, signal }: { queryKey: readonly unknown[]; signal: AbortSignal }) => {
+      signals[String(queryKey[2])] = signal;
+      return new Promise<string>(() => undefined);
+    });
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    );
+    const switching = renderHook(({ scope }) => usePolling({ scope, key: ['pending'], fetch, interval: 60_000 }), { wrapper, initialProps: { scope: a } });
+    const staying = renderHook(() => usePolling({ scope: a, key: ['pending'], fetch, interval: 60_000 }), { wrapper });
+    await waitFor(() => expect(signals['brand-a']).toBeDefined());
+    switching.rerender({ scope: b });
+    await waitFor(() => expect(signals['brand-b']).toBeDefined());
+    expect(signals['brand-a'].aborted).toBe(false);
+    expect(switching.result.current.data).toBeUndefined();
+    staying.unmount();
+    await waitFor(() => expect(signals['brand-a'].aborted).toBe(true));
+    switching.unmount(); client.clear();
+  });
+
 });

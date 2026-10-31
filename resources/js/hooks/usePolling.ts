@@ -19,11 +19,13 @@ type PollingOptions<T> = {
 export function usePolling<T>({ scope, key, fetch, interval, enabled = true }: PollingOptions<T>) {
   if (!Number.isFinite(interval) || interval < 1)
     throw new Error('Polling interval must be positive.');
+  const activeScope = enabled ? scope : null;
   return useQuery({
-    queryKey: scope ? brandQueryKey(scope, ...key) : ['brand-unavailable'],
+    // Detaching a disabled observer lets Query cancel only when no other observers remain.
+    queryKey: activeScope ? brandQueryKey(activeScope, ...key) : ['brand-unavailable'],
     queryFn: fetch,
-    enabled: enabled && scope !== null,
-    refetchInterval: enabled && scope !== null ? interval : false,
+    enabled: activeScope !== null,
+    refetchInterval: activeScope !== null ? interval : false,
     refetchIntervalInBackground: false,
     staleTime: 0,
   });
