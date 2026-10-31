@@ -1490,7 +1490,12 @@
       ],
       "promptPath": "docs/tasks/SP-E1-08.md",
       "wave": 6,
-      "description": "Прочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: S-7.1 личная матрица «событие × канал» (словарь событий R-S-09), S-7.2 безопасность (пароль, MFA, сессии), S-7.3 профиль, Telegram deep-link для личных уведомлений\n\nЗависимости (нужен done после merge): SP-E0-03, SP-E0-04, SP-E1-01, SP-F-03.\nОбласть записи: app/Shell/Auth/, app/Shell/Profile/, config/features/E1-08.php, database/factories/Shell/Profile/, database/migrations/E1-08/, database/seeders/Shell/Profile/, docs/modules/E1-08.md, lang/ru/Shell/Profile/, resources/js/features/Shell/Profile/, resources/js/pages/Shell/Profile/, resources/js/types/Shell/Profile/, routes/features/E1-08.php, tests/Browser/E1-08/, tests/Feature/Shell/Profile/, tests/Unit/Shell/Profile/, docs/results/SP-E1-08.md.\nЭкраны: S-7.1, S-7.2, S-7.3.\nИсточники: E1-08.\n- E1-08: ТЗ S-7.1–S-7.3; макеты 31–33; R-S-09\n\nПриёмка:\n- feature матрицы событий; завершение чужих сессий\n\nДополнительно: Сохранять поведение донора; изменения только по принятым решениям.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E1-08.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n"
+      "description": "Прочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: S-7.1 личная матрица «событие × канал» (словарь событий R-S-09), S-7.2 безопасность (пароль, MFA, сессии), S-7.3 профиль, Telegram deep-link для личных уведомлений\n\nЗависимости (нужен done после merge): SP-E0-03, SP-E0-04, SP-E1-01, SP-F-03.\nОбласть записи: app/Shell/Auth/, app/Shell/Profile/, config/features/E1-08.php, database/factories/Shell/Profile/, database/migrations/E1-08/, database/seeders/Shell/Profile/, docs/modules/E1-08.md, lang/ru/Shell/Profile/, resources/js/features/Shell/Profile/, resources/js/pages/Shell/Profile/, resources/js/types/Shell/Profile/, routes/features/E1-08.php, tests/Browser/E1-08/, tests/Feature/Shell/Profile/, tests/Unit/Shell/Profile/, docs/results/SP-E1-08.md.\nЭкраны: S-7.1, S-7.2, S-7.3.\nИсточники: E1-08.\n- E1-08: ТЗ S-7.1–S-7.3; макеты 31–33; R-S-09\n\nПриёмка:\n- feature матрицы событий; завершение чужих сессий\n\nДополнительно: Сохранять поведение донора; изменения только по принятым решениям.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E1-08.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n",
+      "partDependencies": {
+        "recovery_1b": [
+          "SP-E1-08B"
+        ]
+      }
     },
     {
       "taskKey": "SP-E1-09",
@@ -1691,7 +1696,12 @@
       ],
       "promptPath": "docs/tasks/SP-E3-03.md",
       "wave": 6,
-      "description": "Прочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: Перенести Responder, Guard (22 правила + llmCheck), ToolRunner и Summarizer без потери поведения. Использовать опубликованные контракты и snapshot; определить фолбэки и handoffOnError. Orchestrator интегрируется отдельной SP-E3-03B.\n\nЗависимости (нужен done после merge): SP-E0-05C, SP-E3-02.\nОбласть записи: app/Seller/Engine/, config/features/E3-03.php, database/factories/Seller/Engine/, database/migrations/E3-03/, database/seeders/Seller/Engine/, docs/modules/E3-03.md, lang/ru/Seller/Engine/, resources/js/features/Seller/Engine/, resources/js/pages/Seller/Engine/, resources/js/types/Seller/Engine/, routes/features/E3-03.php, tests/Browser/E3-03/, tests/Feature/Seller/Engine/, tests/Unit/Seller/Engine/, docs/results/SP-E3-03.md.\nЭкраны: инфраструктура/контракты.\nИсточники: E3-03.\n- E3-03: 03 §1.2–1.3, proto `Responder`, `Guard`, `ToolRunner`, `Orchestrator`\n\nПриёмка:\n- GuardTest и tool unit tests зелёные; snapshots prompt defaults совпадают; неполученные LLM-fixtures не выдаются за эталон.\n- Тесты чужих релизов/prompt, неверных data classes, pending/uncertain и локального сохранения контактов без утечки во внешний ИИ.\n\nДополнительно:  Responder/Guard/Summarizer обязаны использовать опубликованные tenant-bound snapshot и prompt, маркировать все реально передаваемые классы данных и не превращать in_progress/uncertain в завершённый ответ. Доверять только данным из проверенного runtime, не произвольным DTO.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E3-03.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n"
+      "description": "Прочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: Перенести Responder, Guard (22 правила + llmCheck), ToolRunner и Summarizer без потери поведения. Использовать опубликованные контракты и snapshot; определить фолбэки и handoffOnError. Orchestrator интегрируется отдельной SP-E3-03B.\n\nЗависимости (нужен done после merge): SP-E0-05C, SP-E3-02.\nОбласть записи: app/Seller/Engine/, config/features/E3-03.php, database/factories/Seller/Engine/, database/migrations/E3-03/, database/seeders/Seller/Engine/, docs/modules/E3-03.md, lang/ru/Seller/Engine/, resources/js/features/Seller/Engine/, resources/js/pages/Seller/Engine/, resources/js/types/Seller/Engine/, routes/features/E3-03.php, tests/Browser/E3-03/, tests/Feature/Seller/Engine/, tests/Unit/Seller/Engine/, docs/results/SP-E3-03.md.\nЭкраны: инфраструктура/контракты.\nИсточники: E3-03.\n- E3-03: 03 §1.2–1.3, proto `Responder`, `Guard`, `ToolRunner`, `Orchestrator`\n\nПриёмка:\n- GuardTest и tool unit tests зелёные; snapshots prompt defaults совпадают; неполученные LLM-fixtures не выдаются за эталон.\n- Тесты чужих релизов/prompt, неверных data classes, pending/uncertain и локального сохранения контактов без утечки во внешний ИИ.\n\nДополнительно:  Responder/Guard/Summarizer обязаны использовать опубликованные tenant-bound snapshot и prompt, маркировать все реально передаваемые классы данных и не превращать in_progress/uncertain в завершённый ответ. Доверять только данным из проверенного runtime, не произвольным DTO.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E3-03.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n",
+      "partDependencies": {
+        "create_promise": [
+          "SP-E3-03P"
+        ]
+      }
     },
     {
       "taskKey": "SP-E6-07",
@@ -4626,6 +4636,117 @@
       "promptPath": "docs/tasks/SP-E8-01F.md",
       "wave": 4,
       "description": "Прочитать AGENTS.md и решения проекта. Создать tenant-scoped схему анкеты, неизменяемые версии профиля и контракт кандидатов вопросов; безопасно подключить отправленный профиль к замороженному профилю Видения.\nЗависимости: SP-E8-01, SP-E8-01D, SP-E8-01E.\nОбласть записи: app/Vision/Core/Profiles/, app/Vision/KnowledgeBridge/, database/migrations/E8-01F/, docs/modules/E8-01F.md, docs/results/SP-E8-01F.md, tests/Feature/Vision/Core/Profiles/, tests/Unit/Vision/Core/Profiles/.\nПроверки: Составные tenant FK, один draft на бренд, конкурирующие сохранения и immutable версии; audit и изоляция. Runtime сохраняет version-bound snapshot, не ослабляет grant и не выдаёт слова клиента за подтверждённые факты. Существующие измерения и действующие grants не теряются; нет live AI. Работа в отдельном worktree, fake AI, после review интегратор выполняет merge."
+    },
+    {
+      "taskKey": "SP-C-02",
+      "title": "SP-C-02 · Защищённая граница записи действий",
+      "goal": "Реализовать общую проверяемую транзакционную границу записи, закрыть старый обход Seller и подготовить безопасное применение к сессиям и брендам.",
+      "dependsOn": [
+        "SP-C-01",
+        "SP-E0-02",
+        "SP-E0-03",
+        "SP-E1-01",
+        "SP-E3-04"
+      ],
+      "scope": [
+        "app/ProtectedOperations/",
+        "app/Contracts/ProtectedOperations/",
+        "app/Seller/Channels/Core/InboundRecorder.php",
+        "app/Seller/Conversations/",
+        "database/migrations/C-02/",
+        "docs/contracts/registry.json",
+        "docs/contracts/protected-operations.md",
+        "tests/Feature/ProtectedOperations/",
+        "tests/Feature/Seller/Conversations/",
+        "tests/Unit/ProtectedOperations/",
+        "docs/results/SP-C-02.md"
+      ],
+      "exclusiveResources": [
+        "protected-operations-contract"
+      ],
+      "acceptance": [
+        "Настоящая атомарная запись: серверное происхождение, полномочия, tenant/brand и свежесть входа проверяются под блокировками; старый прямой обход закрыт.",
+        "Повтор с тем же ключом и содержимым возвращает прежний результат; другое содержимое конфликтует. Двухпроцессные PostgreSQL-тесты stale/repeat, отзыва прав, сбоев и неизвестного исхода.",
+        "Контракт допускает проверку и отзыв конкретной сессии под той же блокировкой; пользовательские потребители SP-E3-03P и SP-E1-08B реализуются отдельно."
+      ],
+      "sourceIds": [],
+      "screenIds": [],
+      "notes": "",
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/contracts/seller-trusted-turn-proposal.md",
+        "docs/decisions-pending.md"
+      ],
+      "promptPath": "docs/tasks/SP-C-02.md",
+      "wave": 4,
+      "description": "# SP-C-02 · Защищённая граница записи действий\n\nОдин владелец: исполнитель, атомарно взявший эту карточку в очереди. Работать в отдельной ветке и worktree по `AGENTS.md` и `docs/parallel-workflow.md`.\n\n## Цель и границы\n\nПо решению пользователя от 31.10.2026 создать общую серверную границу для безопасной записи действия. Первые потребители — `create_promise` продавца и восстановление сессии/бренда SP-E1-08 1б. Они выполняются отдельными зависимыми карточками после `done` этой задачи; простое наличие общего класса само по себе не означает готовность обоих пользовательских сценариев.\n\nГраница должна поддерживать разные предметные проверки и блокировки для Seller и сессии, а не подменять авторизацию одним общим ключом. Для Seller закрыть существующий обход записи через `ConversationRepository::commitTurn`, в том числе при прямом вызове: неподтверждённый `TurnOutcome` не должен произвольно записывать действия. Учесть новую входящую реплику без потери сообщений и без бессрочного `processing`. Старые записи и уже начатые/неопределённые эффекты обрабатывать безопасно: отсутствие ledger не доказывает отсутствия внешнего действия, автоматический повтор неизвестного результата запрещён. Реальные внешние вызовы не выполнять.\n\nСогласованное расширение владения для этой карточки: общие контракты границы, её реализация и миграции/реестр; Seller conversation repository и запись входящих сообщений для закрытия обхода; профильные тесты этой границы. Auth/Profile и Engine остаются владельцам зависимых карточек: не менять их без отдельного согласования. Один общий владелец всех файлов этой карточки; документационные и локальные изменения интегратора не входят в scope исполнителя.\n\n## Definition of Done\n\n1. Реальная PostgreSQL-транзакция связывает server-owned источник и полномочия действия, область организации/бренда, свежесть входа/хода и запись эффекта. Доверять произвольным идентификаторам, DTO, клиентскому состоянию или синтетическому флагу «проверено» нельзя. Контракт должен позволять защищённую привязку к конкретной сессии и её отзыв под той же блокировкой в будущем потребителе SP-E1-08 1б.\n2. Вход между захватом и финализацией в обоих порядках не допускает устаревшую запись. Нельзя потерять новый вход, оставить диалог навсегда занятым или считать неизвестный внешний результат подтверждённо отсутствующим.\n3. Повтор с тем же идентификатором и тем же содержимым даёт первоначальный результат без повторного эффекта; иное содержимое — конфликт. Проверить конкурентные запросы двумя процессами и сбои между фиксациями; транзакционная атомарность должна проверяться настоящей БД.\n4. Отвергаются подменённое происхождение действия, другой tenant/brand, отозванные права/сессия и прямой старый обходной путь. Тесты фиксируют отсутствие записи и утечек. Неизвестное состояние fail-closed.\n5. Миграции и безопасный переход существующих данных, реестр владения, адресные тесты и `docs/results/SP-C-02.md` с ограничениями. Результат — проверенный коммит и `submit`, затем интегратор объединяет в main и ставит `done`. Никаких реальных почты, ИИ и внешней доставки.\n\nКарточки SP-E3-03P и SP-E1-08B зависят от SP-C-02; их исходные карточки могут продолжать другие независимые части. Окончательный runtime и фактическое выполнение `create_promise` эта карточка не объявляет завершёнными.\n"
+    },
+    {
+      "taskKey": "SP-E3-03P",
+      "title": "SP-E3-03P · Продавец: безопасное create_promise",
+      "goal": "Подключить create_promise к принятой защищённой границе и реальной атомарной записи обещания и задачи.",
+      "dependsOn": [
+        "SP-C-02"
+      ],
+      "scope": [
+        "app/Seller/Engine/",
+        "tests/Feature/Seller/Engine/",
+        "tests/Unit/Seller/Engine/",
+        "docs/results/SP-E3-03P.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Защищённое происхождение, права, актуальность и изоляция проверяются настоящим persistence; stale и подмена не записываются.",
+        "Повтор не дублирует эффект, несовпадающее тело конфликтует; тесты на реальной отдельной PostgreSQL, без внешних отправок."
+      ],
+      "sourceIds": [],
+      "screenIds": [],
+      "notes": "",
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/contracts/seller-trusted-turn-proposal.md",
+        "docs/decisions-pending.md"
+      ],
+      "promptPath": "docs/tasks/SP-E3-03P.md",
+      "wave": 4,
+      "description": "# SP-E3-03P · Продавец: исполнение create_promise\n\nЗависимость: **SP-C-02 в статусе done и её проверенный merge в main**. До этого создавать или исполнять `create_promise` через старый или обходной путь запрещено. Остальные независимые части SP-E3-03 могут продолжаться.\n\nВ пределах согласованного scope подключить `create_promise` к защищённой общей границе, реальной записи обещания и задачи в пределах проверенного хода, организации и бренда. Не доверять произвольным аргументам или форме DTO как подтверждению происхождения. Приёмка: проверка прав и свежести, отсутствие записи для устаревшего/подменённого действия, атомарность, идемпотентный повтор и конфликт другого тела, изоляция, реальные PostgreSQL-тесты и журнал. Реальные внешние вызовы запрещены. Один владелец через claim; итог — коммит, `docs/results/SP-E3-03P.md` и submit на review.\n"
+    },
+    {
+      "taskKey": "SP-E1-08B",
+      "title": "SP-E1-08B · Восстановление профиля после обрыва",
+      "goal": "Применить общую защищённую границу к безопасному восстановлению после неопределённого обрыва переключения бренда или выхода.",
+      "dependsOn": [
+        "SP-C-02"
+      ],
+      "scope": [
+        "app/Shell/Auth/",
+        "app/Shell/Profile/",
+        "app/Tenancy/BrandSwitchController.php",
+        "resources/js/features/Shell/Profile/",
+        "resources/js/pages/Shell/Profile/",
+        "resources/js/components/navigation/BrandSwitch.tsx",
+        "resources/js/pages/Shell/Auth/Ready.tsx",
+        "resources/js/pages/Shell/Organizations/Brands.tsx",
+        "tests/Feature/Shell/Profile/",
+        "tests/Unit/Shell/Profile/",
+        "docs/results/SP-E1-08B.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Серверная блокировка конкретной сессии и проверка происхождения исключают опасное позднее завершение старого запроса; единый ledger без проверки lease недостаточен.",
+        "Оба порядка гонки, отзыв, потеря ответа и идемпотентный повтор проверены без доступа к реальным сервисам."
+      ],
+      "sourceIds": [],
+      "screenIds": [],
+      "notes": "",
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/contracts/seller-trusted-turn-proposal.md",
+        "docs/decisions-pending.md"
+      ],
+      "promptPath": "docs/tasks/SP-E1-08B.md",
+      "wave": 4,
+      "description": "# SP-E1-08B · Восстановление профиля после обрыва\n\nЗависимость: **SP-C-02 в статусе done и её проверенный merge в main**. До этого автоматическое восстановление после неопределённого обрыва остаётся закрытым. Остальные независимые части SP-E1-08 могут продолжаться.\n\nИспользовать ту же защищённую границу и подход к подтверждению происхождения/повтора для восстановления после неизвестного исхода переключения бренда или выхода. Предметный адаптер обязан под серверной блокировкой конкретной сессии гарантировать, что поздний старый запрос больше не откроет и не изменит данные; универсальный ledger без этой проверки недостаточен. Проверить оба порядка гонки, отзыв сессии, потерянный ответ, повтор и восстановление без утечки. Один владелец через claim; итог — коммит, `docs/results/SP-E1-08B.md` и submit на review. Не менять смену email или доставку сводки в этой карточке.\n"
     }
   ],
   "excludedSourceTasks": {
