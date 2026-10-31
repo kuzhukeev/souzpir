@@ -18,7 +18,6 @@ final class EvidenceEvaluator
 {
     public function __construct(
         private AiGateway $gateway,
-        private KnowledgeGate $knowledge,
         private EvidenceValidator $validator,
         private ConfirmationValidator $confirmation,
         private SourceExtractor $sources,
@@ -31,11 +30,16 @@ final class EvidenceEvaluator
         $current = app(TenantContext::class);
         if (! $tenant->organizationId || ! $tenant->brandId || $tenant->organizationId !== $current->organizationId
             || $tenant->brandId !== $current->brandId || ! Str::isUlid($answerId)
+            || ! app()->bound(KnowledgeGate::class)
             || config('runtime.ai_driver', 'fake') !== 'fake'
             || ! Schema::hasTable('measurements') || ! Schema::hasTable('measurement_answers')) {
             return $unknown;
         }
         try {
+            $knowledge = app(KnowledgeGate::class);
+            if (! $knowledge instanceof KnowledgeGate) {
+                return $unknown;
+            }
             $record = $this->record($tenant, $answerId);
             if (! $record || $record->status !== 'ok' || ! $record->protocol_valid || ! is_string($record->answer_text) || $record->answer_text === ''
                 || ! is_string($record->profile_checksum) || ! is_string($record->profile_snapshot) || ! is_string($record->configuration)) {
@@ -48,7 +52,7 @@ final class EvidenceEvaluator
                 || ! is_array($config['parser'] ?? null) || ! $this->validParser($config['parser'])) {
                 return $unknown;
             }
-            $this->knowledge->assertAllowed($tenant, $record->measurement_id, $profile);
+            $knowledge->assertAllowed($tenant, $record->measurement_id, $profile);
             $artifacts = $this->artifacts();
             $signature = CanonicalJson::hash(['answer_id' => $answerId, 'answer_hash' => hash('sha256', $record->answer_text),
                 'profile_checksum' => $record->profile_checksum, 'parser' => $config['parser'], 'artifacts' => $artifacts]);
@@ -74,7 +78,7 @@ final class EvidenceEvaluator
             if ($candidate['brand_mentioned']) {
                 $confirmed = $this->confirmation->validate($candidate['mention_quote'], $profile, null);
                 if ($confirmed['status'] !== 'confirmed') {
-                    $this->knowledge->assertAllowed($tenant, $record->measurement_id, $profile);
+                    $knowledge->assertAllowed($tenant, $record->measurement_id, $profile);
                     $promptFile = file_get_contents(resource_path('prompts/Vision/Evidence/mention-confirmer.ru.v1.md'));
                     $system = explode('## Пользовательское сообщение', explode('## Системное сообщение', $promptFile, 2)[1] ?? '', 2)[0];
                     if (trim($system) === '') {
@@ -111,7 +115,7 @@ final class EvidenceEvaluator
                 || $fresh->configuration !== $record->configuration || $fresh->measurement_id !== $record->measurement_id) {
                 return $unknown;
             }
-            $this->knowledge->assertAllowed($tenant, $record->measurement_id, $profile);
+            $knowledge->assertAllowed($tenant, $record->measurement_id, $profile);
 
             return ['status' => 'confirmed', 'fact' => $candidate, 'mentions' => $candidate['companies'], 'sources' => $this->sources->extract($record->answer_text, $profile), 'signature' => $signature];
         } catch (Throwable) {

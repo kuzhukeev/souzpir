@@ -93,7 +93,8 @@ final class EvidenceEvaluatorTest extends TestCase
         $tenant = new TenantContext($org->id, $brand->id, source: 'job');
         $gate = new EvidenceTestGate;
         $gateway = new EvidenceTestGateway;
-        $service = new EvidenceEvaluator($gateway, $gate, app(EvidenceValidator::class), app(ConfirmationValidator::class), app(SourceExtractor::class));
+        $service = new EvidenceEvaluator($gateway, app(EvidenceValidator::class), app(ConfirmationValidator::class), app(SourceExtractor::class));
+        app()->instance(KnowledgeGate::class, $gate);
         $profile = ['name' => 'СтальПлюс', 'aliases' => ['СтальПлюс'], 'facts' => []];
         $configuration = ['parser' => [...$service->artifacts(), 'model' => 'google/gemini-2.5-flash', 'temperature' => 0, 'max_tokens' => 1000]];
         $measurement = (string) Str::ulid();
@@ -112,6 +113,10 @@ final class EvidenceEvaluatorTest extends TestCase
         self::assertSame('confirmed', $evaluate()['status']);
         self::assertSame(2, $gate->checks);
         self::assertSame(1, $gateway->calls);
+        app()->forgetInstance(KnowledgeGate::class);
+        self::assertSame('unknown', $evaluate()['status']);
+        self::assertSame(1, $gateway->calls);
+        app()->instance(KnowledgeGate::class, $gate);
 
         $badConfiguration = $configuration;
         $badConfiguration['parser']['schema'] = str_repeat('0', 64);
@@ -179,7 +184,7 @@ final class EvidenceEvaluatorTest extends TestCase
             }
         };
         app()->instance(FakeDriver::class, $driver);
-        $actual = new EvidenceEvaluator(app(AiGateway::class), $gate, app(EvidenceValidator::class), app(ConfirmationValidator::class), app(SourceExtractor::class));
+        $actual = new EvidenceEvaluator(app(AiGateway::class), app(EvidenceValidator::class), app(ConfirmationValidator::class), app(SourceExtractor::class));
         $result = app(TenantContextRunner::class)->run($tenant, fn () => $actual->evaluate($tenant, $answer));
         self::assertSame('confirmed', $result['status']);
         self::assertSame(1, $driver->calls);
