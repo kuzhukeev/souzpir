@@ -82,6 +82,7 @@ final class AuthFlowTest extends TestCase
         $this->assertDatabaseCount('organizations', 1);
         $this->assertDatabaseHas('memberships', ['organization_id' => $org->id, 'user_id' => $user->id, 'role' => 'owner']);
         $this->assertDatabaseHas('audit_logs', ['action' => 'account.owner_registered', 'actor_id' => $user->id]);
+        $this->withCookie(config('session.cookie'), session()->getId());
         $this->post('/logout')->assertRedirect(route('login'));
         $this->post('/register', [...$data, 'email' => 'other@example.test', 'bootstrap_code' => $secret])->assertSessionHasErrors('bootstrap_code');
         $this->assertNull(session()->getOldInput('bootstrap_code'));
@@ -108,12 +109,30 @@ final class AuthFlowTest extends TestCase
         $this->assertGuest();
     }
 
+    public function test_remember_cookie_is_issued_only_after_mfa_and_session_is_registered(): void
+    {
+        [, $user] = $this->fixture();
+        $secret = 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ';
+        $user->forceFill(['mfa_secret' => $secret, 'mfa_confirmed_at' => now(), 'mfa_last_counter' => null])->save();
+        $recallerName = auth()->guard()->getRecallerName();
+        $pending = $this->post('/login', ['email' => $user->email, 'password' => 'secure-password-example', 'remember' => true]);
+        $pending->assertRedirect(route('mfa.challenge'));
+        self::assertFalse(collect($pending->headers->getCookies())->contains(fn ($cookie) => $cookie->getName() === $recallerName));
+        $this->withCookie(config('session.cookie'), session()->getId());
+        $code = app(Totp::class)->at($secret, intdiv(now()->timestamp, 30));
+        $verified = $this->post('/mfa/challenge', ['code' => $code]);
+        $verified->assertRedirect(route('auth.ready'));
+        self::assertTrue(collect($verified->headers->getCookies())->contains(fn ($cookie) => $cookie->getName() === $recallerName));
+        $this->assertDatabaseHas('auth_session_registry', ['user_id' => $user->id, 'revoked_at' => null]);
+    }
+
     public function test_verification_link_get_is_safe_post_verifies_and_reset_is_one_use(): void
     {
         [$org, $user] = $this->fixture();
         $user->forceFill(['email_verified_at' => null])->save();
         $url = URL::temporarySignedRoute('verification.verify', now()->addMinutes(30), ['id' => $user->id, 'hash' => sha1($user->email)]);
-        $this->actingAs($user)->withSession(['auth.version' => $user->auth_version]);
+        $this->post('/login', ['email' => $user->email, 'password' => 'secure-password-example'])->assertRedirect();
+        $this->withCookie(config('session.cookie'), session()->getId());
         $this->get($url)->assertOk();
         $this->assertNull($user->fresh()->email_verified_at);
         $this->post($url)->assertRedirect(route('auth.ready'));
@@ -135,7 +154,8 @@ final class AuthFlowTest extends TestCase
     public function test_mfa_enrolment_requires_password_and_rotates_other_sessions(): void
     {
         [$org, $user] = $this->fixture();
-        $this->actingAs($user)->withSession(['auth.version' => $user->auth_version]);
+        $this->post('/login', ['email' => $user->email, 'password' => 'secure-password-example'])->assertRedirect();
+        $this->withCookie(config('session.cookie'), session()->getId());
         $this->post('/mfa/setup', ['password' => 'wrong'])->assertSessionHasErrors('password');
         $this->post('/mfa/setup', ['password' => 'secure-password-example'])->assertRedirect(route('mfa.setup'));
         $secret = session('auth.mfa_setup.secret');
@@ -159,6 +179,13 @@ final class AuthFlowTest extends TestCase
         $this->post('/invitations/'.$token.'/register', ['name' => 'Member', 'password' => 'another-secure-password', 'password_confirmation' => 'another-secure-password', 'terms' => true])->assertRedirect(route('verification.notice'));
         $member = User::where('email', 'member@example.test')->firstOrFail();
         $this->assertDatabaseMissing('memberships', ['user_id' => $member->id]);
+        $this->assertAuthenticatedAs($member);
+        $this->assertDatabaseHas('auth_session_registry', ['user_id' => $member->id, 'revoked_at' => null]);
+        $this->assertDatabaseHas('auth_session_registry', ['session_hash' => hash_hmac('sha256', 'auth-session:'.session()->getId(), (string) config('app.key'))]);
+        self::assertSame($member->auth_version, session('auth.version'));
+        $registryRow = DB::table('auth_session_registry')->where('user_id', $member->id)->first();
+        self::assertTrue(now()->lessThan($registryRow->expires_at));
+        $this->withCookie(config('session.cookie'), session()->getId());
         $this->post('/invitations/'.$token.'/accept')->assertRedirect(route('verification.notice'));
         $member->forceFill(['email_verified_at' => now()])->save();
         $this->actingAs($member->fresh());

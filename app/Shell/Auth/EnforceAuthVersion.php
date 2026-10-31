@@ -16,14 +16,22 @@ final class EnforceAuthVersion
         if ($user && $request->hasSession()) {
             $version = $request->session()->get('auth.version');
             if ($version === null && Auth::viaRemember()) {
-                $request->session()->put('auth.version', $user->auth_version);
-                $version = $user->auth_version;
+                app(AuthSessionRegistry::class)->issueRemembered($request, $user);
+                $version = $request->session()->get('auth.version');
             }
             if (! is_int($version) || $version !== $user->auth_version) {
                 Auth::guard()->logoutCurrentDevice();
                 $request->session()->invalidate();
                 $request->session()->regenerateToken();
                 throw new AuthenticationException('Unauthenticated.');
+            }
+            try {
+                app(AuthSessionRegistry::class)->withinActive($request, static fn () => null);
+            } catch (AuthenticationException $error) {
+                Auth::guard()->logoutCurrentDevice();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+                throw $error;
             }
         }
 

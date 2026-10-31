@@ -3,6 +3,7 @@
 namespace App\Shell\Auth\Http;
 
 use App\Models\User;
+use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Auth\EligibleAccount;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -56,11 +57,15 @@ final class SessionController
         $request->session()->regenerate();
         $request->session()->forget('auth.mfa_pending');
         $request->session()->put('auth.version', $user->auth_version);
+        app(AuthSessionRegistry::class)->issue($request, $user, $expectedVersion ?? $user->auth_version);
     }
 
     public function destroy(Request $request): RedirectResponse
     {
-        Auth::logout();
+        app(AuthSessionRegistry::class)->withinActive($request, function () use ($request): void {
+            app(AuthSessionRegistry::class)->revokeCurrent($request);
+            Auth::logout();
+        });
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 

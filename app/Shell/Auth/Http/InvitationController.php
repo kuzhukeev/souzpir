@@ -6,6 +6,7 @@ use App\Models\Organization;
 use App\Models\User;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
+use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Team\Models\Invitation;
 use App\Tenancy\Cabinet;
 use App\Tenancy\Invitations\AcceptsInvitations;
@@ -82,7 +83,7 @@ final class InvitationController
 
     public function accept(Request $request, string $token, AcceptsInvitations $acceptance): RedirectResponse
     {
-        DB::transaction(function () use ($acceptance, $request, $token): void {
+        app(AuthSessionRegistry::class)->withinActive($request, function () use ($acceptance, $request, $token): void {
             $membership = $acceptance->accept($request->user(), $token);
             app(AuditWriter::class)->record(new TenantContext($membership->organization_id, actorId: $request->user()->id), new AuditEntry('account.invitation_accepted', 'membership', $membership->id));
         });
