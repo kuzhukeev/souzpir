@@ -20,24 +20,11 @@ declare module 'ziggy-js' {
     "password.store": [],
     "mfa.challenge": [],
     "mfa.challenge.store": [],
-    "invitation.show": [
-        {
-            "name": "token",
-            "required": true
-        }
-    ],
-    "invitation.register": [
-        {
-            "name": "token",
-            "required": true
-        }
-    ],
-    "invitation.accept": [
-        {
-            "name": "token",
-            "required": true
-        }
-    ],
+    "invitation.open": [],
+    "invitation.exchange": [],
+    "invitation.show": [],
+    "invitation.register": [],
+    "invitation.accept": [],
     "logout": [],
     "verification.notice": [],
     "verification.verify": [
@@ -175,6 +162,26 @@ declare module 'ziggy-js' {
     "seller.settings.notifications.digests": [],
     "seller.settings.notifications.digests.time": [],
     "seller.settings.notifications.test": [],
+    "vision.site.overview": [],
+    "vision.site.criteria": [],
+    "vision.site.bots": [],
+    "vision.site.pages": [],
+    "vision.site.actions": [],
+    "vision.site.history": [],
+    "vision.site.audit": [],
+    "vision.actions.store": [],
+    "vision.actions.update": [
+        {
+            "name": "id",
+            "required": true
+        }
+    ],
+    "vision.actions.destroy": [
+        {
+            "name": "id",
+            "required": true
+        }
+    ],
     "dev.design-system": [],
     "preview.login": [],
     "preview.attention": []

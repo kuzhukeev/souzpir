@@ -76,6 +76,12 @@ test('real site audit and actions render at all widths and themes', async ({ pag
   await login(page);
   await page.goto(base + '/vision/site');
   await expect(page.getByRole('heading', { name: 'Готовность сайта к ИИ-поиску' })).toBeVisible();
+  const navigation = page.getByRole('navigation', { name: 'Основная навигация' });
+  await expect(navigation.getByRole('link', { name: 'Сайт', exact: true })).toBeVisible();
+  await navigation.getByRole('link', { name: 'Действия', exact: true }).click();
+  await expect(page).toHaveURL(/\/vision\/actions$/);
+  await navigation.getByRole('link', { name: 'Сайт', exact: true }).click();
+  await expect(page).toHaveURL(/\/vision\/site$/);
   const shots = path.join(process.cwd(), '.local/screenshots/e8-06');
   await mkdir(shots, { recursive: true });
   for (const theme of ['neutral', 'pyro', 'confectionery']) {

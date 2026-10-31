@@ -24,6 +24,20 @@
           "icon": "Gauge",
           "path": "/vision/runs",
           "permission": "vision.measure.read"
+        },
+        {
+          "id": "vision_site",
+          "label": "Сайт",
+          "icon": "Building2",
+          "path": "/vision/site",
+          "permission": "vision.report.read"
+        },
+        {
+          "id": "vision_actions",
+          "label": "Действия",
+          "icon": "ClipboardList",
+          "path": "/vision/actions",
+          "permission": "vision.report.read"
         }
       ]
     },
