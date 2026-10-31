@@ -156,6 +156,35 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "data.index": [],
+    "data.consents": [],
+    "data.exports.create": [],
+    "data.exports.download": [
+        {
+            "name": "id",
+            "required": true
+        }
+    ],
+    "help.index": [],
+    "help.status": [],
+    "help.support": [],
+    "help.support.store": [],
+    "help.support.attachments.show": [
+        {
+            "name": "ticket",
+            "required": true
+        },
+        {
+            "name": "attachment",
+            "required": true
+        }
+    ],
+    "help.support.access.revoke": [
+        {
+            "name": "ticket",
+            "required": true
+        }
+    ],
     "seller.settings.limits": [],
     "seller.settings.notifications": [],
     "seller.settings.notifications.update": [],

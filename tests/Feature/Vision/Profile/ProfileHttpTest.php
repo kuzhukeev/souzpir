@@ -20,6 +20,7 @@ final class ProfileHttpTest extends TenancyTestCase
     {
         parent::setUp();
         URL::useOrigin('http://127.0.0.1');
+        $this->withServerVariables(['REMOTE_ADDR' => '127.0.0.1', 'SERVER_ADDR' => '127.0.0.1']);
     }
 
     private function privateGet(string $path): TestResponse
@@ -163,7 +164,7 @@ final class ProfileHttpTest extends TenancyTestCase
         app()->instance('env', 'local');
 
         try {
-            $this->withServerVariables(['REMOTE_ADDR' => '127.0.0.1']);
+            $this->withServerVariables(['REMOTE_ADDR' => '127.0.0.1', 'SERVER_ADDR' => '127.0.0.1']);
             $this->get('http://souzpir.local/vision/quiz/1')->assertOk()
                 ->assertHeader('Cache-Control', 'no-store, private')
                 ->assertInertia(fn (Assert $page) => $page->component('Vision/Profile/Quiz', false)->where('quiz.answers.step1.brand_name', 'LOCAL_ONLY_MARKER'));
@@ -172,18 +173,70 @@ final class ProfileHttpTest extends TenancyTestCase
                 ->patchJson('http://souzpir.local/vision/quiz/step/1', ['quiz_id' => $id, 'revision' => 2, 'values' => ['brand_name' => 'Local change']])->assertOk();
             $this->get('http://other.local/vision/quiz/1')->assertForbidden();
 
-            $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.55']);
+            $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.55', 'SERVER_ADDR' => '127.0.0.1']);
             $this->get('http://souzpir.local/vision/quiz/1')->assertForbidden();
             $this->withHeader('X-Forwarded-For', '127.0.0.1')->get('http://localhost/vision/quiz/1')->assertForbidden();
             $this->get('http://127.0.0.1/vision/quiz/1')->assertForbidden();
 
-            $this->withServerVariables(['REMOTE_ADDR' => '127.0.0.1']);
+            $this->flushHeaders()->withServerVariables(['REMOTE_ADDR' => '127.0.0.1', 'SERVER_ADDR' => '127.0.0.1']);
             $this->get('https://souzpir.local/vision/quiz/1')->assertRedirect('/vision/private-access');
             $this->get('http://localhost/vision/quiz/1')->assertRedirect('/vision/private-access');
             app()->instance('env', 'production');
             $this->get('http://souzpir.local/vision/quiz/1')->assertForbidden();
+            $this->get('http://localhost/vision/quiz/1')->assertForbidden();
         } finally {
             app()->instance('env', $originalEnvironment);
+        }
+    }
+
+    public function test_private_pages_reject_forged_forwarded_tls_and_universal_proxy_networks(): void
+    {
+        $this->fixture();
+        $this->post('/vision/quiz/start')->assertRedirect();
+        $this->withServerVariables(['REMOTE_ADDR' => '198.51.100.10', 'SERVER_ADDR' => '203.0.113.20'])
+            ->withHeader('X-Forwarded-Proto', 'https');
+        try {
+            foreach ([null, ['*'], ['0.0.0.0/0'], ['::/0'], ['198.51.100.10', '0.0.0.0/0'], ['198.51.100.10', 'invalid'], ['198.51.100.10/33']] as $proxies) {
+                config(['trustedproxy.proxies' => $proxies]);
+                Request::setTrustedProxies(['0.0.0.0/0'], Request::HEADER_X_FORWARDED_PROTO);
+                $this->get('http://x.on-forge.com/vision/quiz/1')->assertForbidden();
+            }
+            config(['trustedproxy.proxies' => ['198.51.100.10/32']]);
+            $this->get('http://cabinet.example.test/vision/quiz/1')->assertRedirect('/vision/private-access');
+            $this->withServerVariables(['REMOTE_ADDR' => '2001:db8::10', 'SERVER_ADDR' => '2001:db8::20']);
+            config(['trustedproxy.proxies' => ['::/0']]);
+            $this->get('http://x.on-forge.com/vision/quiz/1')->assertForbidden();
+
+            // Explicit trusted proxies still require an unambiguous HTTPS header.
+            config(['trustedproxy.proxies' => ['2001:db8::10/128']]);
+            $this->get('http://cabinet.example.test/vision/quiz/1')->assertRedirect('/vision/private-access');
+            $this->withHeader('Forwarded', 'proto=http')->get('http://cabinet.example.test/vision/quiz/1')->assertForbidden();
+            $this->flushHeaders()->withHeader('X-Forwarded-Proto', 'https,http')
+                ->get('http://cabinet.example.test/vision/quiz/1')->assertForbidden();
+            $this->flushHeaders();
+            config(['trustedproxy.proxies' => ['0.0.0.0/0']]);
+            $this->get('https://cabinet.example.test/vision/quiz/1')->assertRedirect('/vision/private-access');
+        } finally {
+            config(['trustedproxy.proxies' => null]);
+            Request::setTrustedProxies([], 0);
+        }
+    }
+
+    public function test_local_named_http_exception_rejects_forwarded_headers_and_non_loopback_server(): void
+    {
+        $this->fixture();
+        $this->post('/vision/quiz/start')->assertRedirect();
+        $prior = app()->environment();
+        app()->instance('env', 'local');
+        try {
+            $this->withServerVariables(['REMOTE_ADDR' => '127.0.0.1', 'SERVER_ADDR' => '127.0.0.1']);
+            $this->get('http://souzpir.local/vision/quiz/1')->assertOk();
+            $this->withHeader('X-Forwarded-Proto', 'https')->get('http://souzpir.local/vision/quiz/1')->assertForbidden();
+            $this->flushHeaders()->withHeader('X-Real-IP', '127.0.0.1')->get('http://souzpir.local/vision/quiz/1')->assertForbidden();
+            $this->flushHeaders()->withServerVariables(['REMOTE_ADDR' => '127.0.0.1', 'SERVER_ADDR' => '203.0.113.20'])
+                ->get('http://souzpir.local/vision/quiz/1')->assertForbidden();
+        } finally {
+            app()->instance('env', $prior);
         }
     }
 

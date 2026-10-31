@@ -60,7 +60,7 @@ final class SupportExceptionHandler extends Handler implements ExceptionHandlerC
                 MethodNotAllowedHttpException::class => 405,
                 PostTooLargeException::class => 413,
                 ThrottleRequestsException::class, TooManyRequestsHttpException::class => 429,
-                HttpException::class => in_array($e->getStatusCode(), [400, 401, 403, 404, 405, 413, 419, 422, 429], true) ? $e->getStatusCode() : 500,
+                HttpException::class => in_array($e->getStatusCode(), [400, 401, 403, 404, 405, 409, 413, 419, 422, 429], true) ? $e->getStatusCode() : 500,
                 default => 500,
             };
             $fields = $status === 422 && get_class($e) === ValidationException::class
@@ -74,6 +74,7 @@ final class SupportExceptionHandler extends Handler implements ExceptionHandlerC
             401 => 'Войдите в кабинет, чтобы продолжить.',
             403 => 'Нет доступа к этому действию.',
             404 => 'Обращение не найдено.',
+            409 => 'Данные обращения изменились. Проверьте их и повторите попытку.',
             413 => 'Размер обращения превышает допустимый.',
             419 => 'Сессия истекла. Обновите страницу и повторите.',
             422 => 'Проверьте заполнение обращения.',
@@ -124,6 +125,7 @@ final class SupportExceptionHandler extends Handler implements ExceptionHandlerC
             'module' => ['Поле «Модуль» обязательно.', 'Выберите допустимое значение поля «Модуль».'],
             'body' => ['Поле «Описание» обязательно.', 'Поле «Описание» должно быть текстом.', 'Описание должно содержать минимум 10 символов.', 'Описание не должно превышать 10000 символов.'],
             'support_access' => ['Поле «Согласие» обязательно.', 'Выберите, разрешаете ли вы сохранить согласие.'],
+            'submission_key' => [],
             'attachments' => ['Поле «Вложения» должно содержать список файлов.', 'Можно приложить не более '.$maxFiles.' файлов.', 'Не удалось сохранить вложение. Обращение не создано. Повторите попытку.'],
             'attachment' => ['Выберите корректный файл вложения.', 'Не удалось загрузить вложение. Проверьте размер файла.', 'Размер вложения не должен превышать '.$maxFileKb.' КБ.', 'Допустимы файлы JPEG, PNG, WebP, PDF и TXT.', 'Допустимы расширения JPG, JPEG, PNG, WebP, PDF и TXT.'],
         ];

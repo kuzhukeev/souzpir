@@ -2,6 +2,7 @@
 
 namespace App\Vision\Profile;
 
+use App\Privacy\VerifiedHttps;
 use App\Tenancy\TenantContext;
 use App\Vision\Core\Profiles\ProfileAccess;
 use App\Vision\Core\Profiles\Questionnaire;
@@ -268,8 +269,8 @@ HTML;
 
     private function secureContext(Request $request): bool
     {
-        return $request->isSecure()
-            || ($this->loopbackRequest($request) && in_array(strtolower($request->getHost()), ['localhost', '127.0.0.1', '[::1]', '::1'], true))
+        return VerifiedHttps::allows($request)
+            || (app()->environment('local', 'testing') && VerifiedHttps::directLoopback($request) && in_array(strtolower($request->getHost()), ['localhost', '127.0.0.1', '[::1]', '::1'], true))
             || $this->localHttp($request);
     }
 
@@ -277,18 +278,9 @@ HTML;
     private function localHttp(Request $request): bool
     {
         return app()->environment('local')
-            && ! $request->isSecure()
+            && ! VerifiedHttps::allows($request)
             && strtolower($request->getHost()) === 'souzpir.local'
-            && $this->loopbackRequest($request);
-    }
-
-    private function loopbackRequest(Request $request): bool
-    {
-        $loopback = ['127.0.0.1', '::1'];
-
-        // Host and forwarded headers alone cannot prove that the TCP peer is local.
-        return in_array($request->server('REMOTE_ADDR'), $loopback, true)
-            && in_array($request->ip(), $loopback, true);
+            && VerifiedHttps::directLoopback($request);
     }
 
     private function error(#[\SensitiveParameter] Request $request, string $message, int $status): mixed
