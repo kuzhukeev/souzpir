@@ -7,6 +7,7 @@ use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\User;
 use App\Shell\Auth\Http\SessionController;
+use App\Shell\Auth\InvitationSecretBoundary;
 use App\Shell\Auth\PasswordDelivery\PasswordTransport;
 use App\Shell\Auth\Totp;
 use App\Shell\Team\Models\Invitation;
@@ -210,8 +211,10 @@ final class AuthFlowTest extends TestCase
             'email' => 'member@example.test', 'role' => 'member', 'brand_ids' => [$brand->id],
             'token_hash' => hash('sha256', $token), 'invited_by' => $owner->id, 'expires_at' => now()->addDay(),
         ]));
-        $this->get('/invitations/'.$token)->assertOk()->assertHeader('Cache-Control', 'no-store, private')->assertHeader('Referrer-Policy', 'no-referrer');
-        $this->post('/invitations/'.$token.'/register', ['name' => 'Member', 'password' => 'another-secure-password', 'password_confirmation' => 'another-secure-password', 'terms' => true])->assertRedirect(route('verification.notice'));
+        $this->get('/invitations/open')->assertOk()->assertHeader('Cache-Control', 'no-store, private')->assertHeader('Referrer-Policy', 'no-referrer');
+        $this->postJson('/invitations/exchange', ['token' => $token])->assertOk();
+        $this->get('/invitations/show')->assertOk();
+        $this->post('/invitations/register', ['name' => 'Member', 'password' => 'another-secure-password', 'password_confirmation' => 'another-secure-password', 'terms' => true])->assertRedirect(route('verification.notice'));
         $member = User::where('email', 'member@example.test')->firstOrFail();
         $this->assertDatabaseMissing('memberships', ['user_id' => $member->id]);
         $this->assertAuthenticatedAs($member);
@@ -221,14 +224,86 @@ final class AuthFlowTest extends TestCase
         $registryRow = DB::table('auth_session_registry')->where('user_id', $member->id)->first();
         self::assertTrue(now()->lessThan($registryRow->expires_at));
         $this->withCookie(config('session.cookie'), session()->getId());
-        $this->post('/invitations/'.$token.'/accept')->assertRedirect(route('verification.notice'));
+        $this->post('/invitations/accept')->assertRedirect(route('verification.notice'));
         $member->forceFill(['email_verified_at' => now()])->save();
         $this->actingAs($member->fresh());
-        $this->post('/invitations/'.$token.'/accept')->assertRedirect(route('auth.ready'));
+        $this->post('/invitations/accept')->assertRedirect(route('auth.ready'));
         $this->assertDatabaseHas('memberships', ['organization_id' => $org->id, 'user_id' => $member->id, 'role' => 'member']);
         $this->assertDatabaseHas('audit_logs', ['actor_id' => $member->id, 'action' => 'account.invitation_accepted']);
-        $this->get('/invitations/'.$token)->assertNotFound();
+        $this->get('/invitations/show')->assertNotFound();
         $this->assertDatabaseCount('organizations', 1);
+    }
+
+    public function test_invitation_exchange_strips_token_and_survives_login_without_putting_it_in_the_session(): void
+    {
+        [$org, $owner, $brand] = $this->fixture();
+        $guest = User::create(['name' => 'Invited', 'email' => 'invited@example.test', 'password' => 'another-secure-password']);
+        $guest->forceFill(['email_verified_at' => now()])->save();
+        $token = str_repeat('Q', 64);
+        $invitation = app(TenantContextRunner::class)->run(new TenantContext($org->id, actorId: $owner->id), fn () => Invitation::create([
+            'email' => $guest->email, 'role' => 'member', 'brand_ids' => [$brand->id],
+            'token_hash' => hash('sha256', $token), 'invited_by' => $owner->id, 'expires_at' => now()->addDay(),
+        ]));
+        $this->postJson('/invitations/exchange', ['token' => $token])->assertOk()->assertJson(['ok' => true]);
+        self::assertSame($invitation->id, session('auth.invitation_id'));
+        self::assertStringNotContainsString($token, serialize(session()->all()));
+        self::assertStringNotContainsString($token, request()->getContent());
+        self::assertStringNotContainsString($token, json_encode(request()->all()));
+        $show = $this->get('/invitations/show')->assertOk();
+        self::assertStringNotContainsString($token, $show->getContent());
+        $login = $this->post('/login', ['email' => $guest->email, 'password' => 'another-secure-password']);
+        $login->assertRedirect(route('invitation.show'));
+        self::assertSame($invitation->id, session('auth.invitation_id'));
+        $this->withCookie(config('session.cookie'), session()->getId());
+        $this->post('/invitations/accept')->assertRedirect(route('auth.ready'));
+        self::assertNull(session('auth.invitation_id'));
+        $this->assertDatabaseHas('memberships', ['organization_id' => $org->id, 'user_id' => $guest->id]);
+    }
+
+    public function test_invitation_exchange_bounds_and_clears_oversized_and_malformed_bodies(): void
+    {
+        foreach ([
+            json_encode(['token' => str_repeat('Z', 64), 'padding' => str_repeat('X', 5000)], JSON_THROW_ON_ERROR),
+            '{"token":"synthetic-invalid"',
+        ] as $body) {
+            $request = Request::create('/invitations/exchange', 'POST', [], [], [], ['CONTENT_TYPE' => 'application/json'], $body);
+            $called = false;
+            $response = app(InvitationSecretBoundary::class)->handle($request, function () use (&$called) {
+                $called = true;
+
+                return response()->json(['ok' => true]);
+            });
+            self::assertSame(404, $response->getStatusCode());
+            self::assertFalse($called);
+            self::assertSame('{}', $request->getContent());
+            self::assertSame([], $request->json()->all());
+        }
+    }
+
+    public function test_invitation_exchange_rejects_invalid_token_and_sanitizes_exception_traces(): void
+    {
+        $this->fixture();
+        $token = str_repeat('S', 64);
+        $response = $this->postJson('/invitations/exchange', ['token' => $token]);
+        $response->assertNotFound();
+        self::assertStringNotContainsString($token, $response->getContent());
+        self::assertStringNotContainsString($token, request()->getContent());
+        self::assertStringNotContainsString($token, serialize(session()->all()));
+        self::assertNull(session('auth.invitation_id'));
+        $this->get('/invitations/'.$token)->assertNotFound();
+
+        $request = Request::create('/invitations/exchange', 'POST', [], [], [], ['CONTENT_TYPE' => 'application/json'], json_encode(['token' => $token]));
+        $trace = '';
+        $response = app(InvitationSecretBoundary::class)->handle($request, function (Request $safe) use (&$trace): never {
+            $error = new \RuntimeException('Synthetic failure');
+            $trace = (string) $error.' '.json_encode([$safe->all(), $safe->getContent(), $safe->attributes->all()]);
+            throw $error;
+        });
+        self::assertSame(404, $response->getStatusCode());
+        self::assertStringNotContainsString($token, $response->getContent());
+        self::assertStringNotContainsString($token, $request->getContent());
+        self::assertStringNotContainsString($token, json_encode($request->all()));
+        self::assertStringNotContainsString($token, $trace);
     }
 
     public function test_foreign_or_disabled_account_cannot_login_and_attempts_are_limited(): void
