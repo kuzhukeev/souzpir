@@ -41,7 +41,50 @@ final class InvitationController
         $nonce = base64_encode(random_bytes(18));
         $csrf = json_encode(csrf_token(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_THROW_ON_ERROR);
         $html = <<<'HTML'
-<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Приглашение</title></head><body><main><p id="status">Проверяем приглашение…</p><noscript>Для открытия приглашения включите JavaScript.</noscript></main><script nonce="__NONCE__">(async()=>{const token=location.hash.slice(1);history.replaceState(null,'',location.pathname);try{if(!/^[A-Za-z0-9]{64}$/.test(token))throw 0;const response=await fetch('/invitations/exchange',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','Accept':'application/json','X-CSRF-TOKEN':__CSRF_VALUE__},body:JSON.stringify({token}),redirect:'error',cache:'no-store'});if(!response.ok)throw 0;location.replace('/invitations/show')}catch{document.getElementById('status').textContent='Не удалось открыть приглашение. Запросите новую ссылку.'}})();</script></body></html>
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Приглашение</title></head><body><main><p id="status">Проверяем приглашение…</p><noscript>Для открытия приглашения включите JavaScript.</noscript></main><script nonce="__NONCE__">
+(()=>{
+    const status=document.getElementById('status');
+    const failed='Не удалось открыть приглашение. Запросите новую ссылку.';
+    let generation=0;
+    let queue=Promise.resolve();
+    let uncertain=false;
+    function capture(){
+        const token=location.hash.slice(1);
+        if(!token)return;
+        history.replaceState(null,'',location.pathname);
+        const version=++generation;
+        status.textContent='Проверяем приглашение…';
+        // Wait for each server response before starting the next exchange: both
+        // requests modify the same session and an older commit must not win.
+        queue=queue.then(async()=>{
+            if(version!==generation)return;
+            if(uncertain)throw 0;
+            // Invalid fragments still clear an older session grant, without sending
+            // arbitrary fragment content to the server.
+            const candidate=/^[A-Za-z0-9]{64}$/.test(token)?token:'';
+            let response;
+            try{
+                response=await fetch('/invitations/exchange',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','Accept':'application/json','X-CSRF-TOKEN':__CSRF_VALUE__},body:JSON.stringify({token:candidate}),redirect:'error',cache:'no-store'});
+            }catch{
+                // A failed transport can hide a server commit that is still in flight.
+                // Do not issue another exchange from this page in that case.
+                uncertain=true;
+                throw 0;
+            }
+            // hashchange is queued as a task; a response may resolve first.
+            if(location.hash)capture();
+            if(version!==generation)return;
+            if(!response.ok)throw 0;
+            location.replace('/invitations/show');
+        }).catch(()=>{
+            if(location.hash)capture();
+            if(version===generation)status.textContent=failed;
+        });
+    }
+    window.addEventListener('hashchange',capture);
+    if(location.hash)capture();else status.textContent=failed;
+})();
+</script></body></html>
 HTML;
 
         return response(str_replace(['__NONCE__', '__CSRF_VALUE__'], [$nonce, $csrf], $html))->header('Cache-Control', 'no-store, private')
