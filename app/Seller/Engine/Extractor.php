@@ -5,9 +5,12 @@ namespace App\Seller\Engine;
 use App\Contracts\Ai\AiContext;
 use App\Contracts\Ai\AiGateway;
 use App\Contracts\Ai\AiRequest;
+use App\Seller\Knowledge\Contracts\KnowledgeRepository;
 use App\Seller\Knowledge\KnowledgeSnapshot as Knowledge;
 use App\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\DB;
+use InvalidArgumentException;
 use LogicException;
 use Opis\JsonSchema\Validator;
 
@@ -63,11 +66,28 @@ class Extractor
 
     public function extract(LeadState $state, array $history, string $clientMessage, AiContext $ctx): array
     {
-        if ($ctx->organizationId !== $this->prompt->organizationId || $ctx->brandId !== $this->prompt->brandId || $ctx->family !== 'seller' || $ctx->purpose !== 'extractor') {
-            throw new LogicException('Extractor context does not match its prompt.');
+        $tenant = app(TenantContext::class);
+        if ($tenant->organizationId !== $ctx->organizationId || $tenant->brandId !== $ctx->brandId || $ctx->organizationId !== $this->prompt->organizationId || $ctx->brandId !== $this->prompt->brandId || $ctx->family !== 'seller' || $ctx->purpose !== 'extractor' || $ctx->objectType !== 'conversation') {
+            throw new LogicException('Extractor context does not match its active tenant and conversation.');
         }
-        // Revalidate before compiling: deserialized or otherwise forged DTOs must not execute arbitrary Blade.
-        ExtractorPrompt::verified(new TenantContext($ctx->organizationId, $ctx->brandId, source: 'job'), $this->prompt->version, $this->prompt->checksum, $this->prompt->body);
+        foreach (['conversation_content', 'client_profile', 'knowledge_internal'] as $class) {
+            if (! in_array($class, $ctx->dataClasses, true)) {
+                throw new LogicException('Extractor context omits a required data class.');
+            }
+        }
+        if (! DB::table('conversations')->where('id', $ctx->objectId)->where('organization_id', $ctx->organizationId)->where('brand_id', $ctx->brandId)->exists()) {
+            throw new LogicException('Extractor conversation is outside the active tenant.');
+        }
+        $knowledge = app(KnowledgeRepository::class)->forRelease($tenant, $this->kb->releaseId(), false);
+        $prompt = app(ExtractorPromptLoader::class)->load($tenant, $this->prompt->version);
+        $verified = new self($this->llm, $knowledge, $prompt, $this->model, $this->temperature, $this->agentName);
+        $verified->assertIntents();
+
+        return $verified->extractVerified($state, $history, $clientMessage, $ctx);
+    }
+
+    private function extractVerified(LeadState $state, array $history, string $clientMessage, AiContext $ctx): array
+    {
         $system = Blade::render($this->prompt->body, [
             'card' => $state->cardText(),
             'intents' => $this->kb->intents(),
@@ -92,13 +112,27 @@ class Extractor
             promptChecksum: $this->prompt->checksum,
         ), $ctx);
 
+        if ($res->error !== null) {
+            $code = $res->error['code'] ?? 'unknown';
+            if ($code === 'in_progress') {
+                throw new ExtractionPending($res->aiCallId);
+            }
+            if ($code !== 'empty_response') {
+                throw new ExtractionUncertain($res->aiCallId, $code);
+            }
+        }
         $data = $res->ok() ? $res->json() : null;
         if ($data) {
-            $data = $this->normalize($data);
+            try {
+                $data = $this->normalize($data);
+            } catch (InvalidArgumentException) {
+                $data = null;
+            }
         }
         if (! $data || ! $this->valid($data)) {
-            return $this->fallback($clientMessage, $res->error['code'] ?? 'invalid json');
+            return $this->recoverContacts($state, $clientMessage, $this->fallback($clientMessage, $res->error['code'] ?? 'invalid json'));
         }
+        $data = $this->recoverContacts($state, $clientMessage, $data);
         $data['_meta'] = ['model' => $res->model, 'latency_ms' => $res->latencyMs, 'cost_usd' => $res->costMicros === null ? null : $res->costMicros / 1_000_000, 'usage' => $res->usage];
 
         return $data;
@@ -107,7 +141,22 @@ class Extractor
     /** Дозаполнить обязательные ключи, если модель их опустила (не строгие провайдеры). */
     public function normalize(array $d): array
     {
-        $slots = (array) ($d['slot_updates'] ?? []);
+        $objections = $d['objections'] ?? [];
+        if (! is_array($objections) || ! array_is_list($objections)) {
+            throw new InvalidArgumentException('Invalid objections.');
+        }
+        foreach ((array) $objections as $objection) {
+            if (! is_string($objection)) {
+                throw new InvalidArgumentException('Invalid objection.');
+            }
+        }
+        if (isset($d['client_intent']) && ! is_string($d['client_intent'])) {
+            throw new InvalidArgumentException('Invalid intent.');
+        }
+        $slots = $d['slot_updates'] ?? [];
+        if (! is_array($slots)) {
+            throw new InvalidArgumentException('Invalid slot updates.');
+        }
         foreach ($this->schema()['properties']['slot_updates']['required'] as $k) {
             $slots[$k] = $slots[$k] ?? null;
         }
@@ -136,6 +185,48 @@ class Extractor
         } catch (\Throwable) {
             return false;
         }
+    }
+
+    private function assertIntents(): void
+    {
+        $intents = $this->kb->intents();
+        if (! array_is_list($intents) || $intents === []) {
+            throw new LogicException('Published knowledge requires extractor intents.');
+        }
+        $ids = [];
+        foreach ($intents as $intent) {
+            if (! is_array($intent) || ! is_string($intent['id'] ?? null) || trim($intent['id']) === '' || in_array($intent['id'], $ids, true)) {
+                throw new LogicException('Invalid extractor intent IDs.');
+            }
+            $ids[] = $intent['id'];
+        }
+        if (! in_array('unclear', $ids, true)) {
+            throw new LogicException('Published knowledge requires the unclear intent.');
+        }
+    }
+
+    private function recoverContacts(LeadState $state, string $message, array $data): array
+    {
+        preg_match_all('/[A-Z0-9.!#$%&\'*+\/=?^_`{|}~-]+@[A-Z0-9](?:[A-Z0-9-]*[A-Z0-9])?(?:\.[A-Z0-9](?:[A-Z0-9-]*[A-Z0-9])?)+/iu', $message, $matches);
+        $emails = [];
+        foreach ($matches[0] ?? [] as $candidate) {
+            if (filter_var($candidate, FILTER_VALIDATE_EMAIL) !== false) {
+                $emails[mb_strtolower($candidate)] = $candidate;
+            }
+        }
+        $email = count($emails) === 1 ? reset($emails) : null;
+        $previousEmail = $state->slot('email');
+        if ($email !== null && (! is_string($previousEmail) || mb_strtolower($previousEmail) !== mb_strtolower($email))) {
+            $data['slot_updates']['email'] = $email;
+        } elseif (array_key_exists('email', $data['slot_updates'])) {
+            $data['slot_updates']['email'] = null;
+        }
+        $messenger = $data['slot_updates']['messenger'] ?? null;
+        if (is_string($messenger) && preg_match('/\[(?:email|phone|телефон)\]/iu', $messenger)) {
+            $data['slot_updates']['messenger'] = null;
+        }
+
+        return $data;
     }
 
     /** Если LLM недоступен — минимальный разбор регулярками, чтобы диалог не падал. */
