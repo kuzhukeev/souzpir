@@ -619,7 +619,7 @@
       ]
     },
     "brand_achievements": {
-      "owner": "SP-E8-01",
+      "owner": "SP-E8-06",
       "tenant": "brand",
       "parents": [
         "brands"
