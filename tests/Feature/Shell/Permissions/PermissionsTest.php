@@ -37,7 +37,7 @@ final class PermissionsTest extends TenancyTestCase
             'integrations.write' => [1, 1, 0, 0, 0], 'brand.write' => [1, 1, 0, 0, 0],
             'organization.manage' => [1, 1, 0, 0, 0], 'team.manage' => [1, 1, 0, 0, 0],
             'billing.manage' => [1, 0, 0, 0, 0], 'seller.dialogues.operate' => [1, 1, 1, 1, 0],
-            'vision.quiz.write' => [1, 1, 1, 0, 0], 'reports.read' => [1, 1, 1, 1, 1],
+            'vision.quiz.write' => [1, 1, 1, 0, 0], 'vision.actions.write' => [1, 1, 1, 0, 0], 'reports.read' => [1, 1, 1, 1, 1],
             'seller.settings.write' => [1, 1, 0, 0, 0], 'vision.settings.write' => [1, 1, 0, 0, 0],
         ];
         foreach ($actors as $index => [$user, $membership]) {
@@ -79,9 +79,11 @@ final class PermissionsTest extends TenancyTestCase
         $this->assertFalse(Gate::forUser($user)->allows('seller.dialogs.read'));
         $this->withActor($org->id, $brand->id, $user, $membership, function () use ($user, $other, $membership): void {
             $this->assertTrue(Gate::forUser($user)->allows('seller.dialogs.read'));
+            $this->assertTrue(Gate::forUser($user)->allows('vision.actions.write'));
             $this->assertFalse(Gate::forUser($other)->allows('seller.dialogs.read'));
             DB::table('memberships')->where('id', $membership->id)->update(['status' => 'disabled']);
             $this->assertFalse(Gate::forUser($user)->allows('seller.dialogs.read'));
+            $this->assertFalse(Gate::forUser($user)->allows('vision.actions.write'));
         });
     }
 
@@ -97,6 +99,18 @@ final class PermissionsTest extends TenancyTestCase
         $request = Request::create('/');
         $request->setUserResolver(fn () => null);
         $this->assertSame([], (new PermissionSharedProps)->share($request)['can']());
+    }
+
+    public function test_viewer_may_change_own_consents_but_not_other_unsafe_routes(): void
+    {
+        [, $org, $brand] = $this->cabinet();
+        [$viewer] = $this->member($org, 'viewer', [$brand->id]);
+        Route::middleware(['web', 'auth', 'verified', 'tenant'])->patch('/test-own-consent', fn () => response()->noContent())->name('data.consents');
+        Route::middleware(['web', 'auth', 'verified', 'tenant'])->patch('/test-other-change', fn () => response()->noContent())->name('data.other');
+        $this->actingAs($viewer)->withSession(['brand_id' => $brand->id]);
+
+        $this->patch('/test-own-consent', ['marketing_opt_in' => true])->assertNoContent();
+        $this->patch('/test-other-change', ['marketing_opt_in' => true])->assertForbidden();
     }
 
     public function test_archived_brand_or_disabled_organization_revokes_existing_context(): void
