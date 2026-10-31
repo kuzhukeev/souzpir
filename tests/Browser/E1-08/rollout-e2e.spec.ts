@@ -10,6 +10,7 @@ const root = path.join(project, '.local', 'tmp', 'rollout-synthetic');
 const php = 'C:/OSPanel/modules/PHP-8.4/php.exe';
 const fixture = path.join(project, 'tests/Browser/E1-08/rollout-fixture.php');
 const router = path.join(project, 'tests/Browser/E1-08/rollout-router.php');
+const baseline = 'fd7b844';
 const base = 'http://souzpir.local:8292';
 const environment = { ...process.env, APP_ENV: 'local', MFA_LOCAL_FIXTURE: '1', APP_URL: base, SESSION_DRIVER: 'file', CACHE_STORE: 'file', PROFILE_SETTINGS_ENABLED: 'false' };
 test.use({ launchOptions: { executablePath: process.env.MFA_BROWSER_EXECUTABLE_PATH, args: ['--host-resolver-rules=MAP souzpir.local 127.0.0.1', '--no-proxy-server'] }, trace: 'off' });
@@ -23,7 +24,7 @@ function phpFixture(mode: string): void {
 }
 function restoreOld(): void {
   if (realpathSync(root).toLowerCase() !== path.resolve(root).toLowerCase()) throw new Error('Unexpected rollout root');
-  const diff = spawnSync('git', ['diff', '--name-only', '--diff-filter=A', 'bc797a4', 'HEAD'], { cwd: project, encoding: 'utf8' });
+  const diff = spawnSync('git', ['diff', '--name-only', '--diff-filter=A', baseline, 'HEAD'], { cwd: project, encoding: 'utf8' });
   if (diff.status !== 0) throw new Error('Unable to list new-version files');
   for (const name of diff.stdout.split(/\r?\n/).filter(Boolean)) {
     const file = path.resolve(root, name);

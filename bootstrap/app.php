@@ -44,14 +44,15 @@ $app = Application::configure(basePath: $basePath)
 
 $app->singleton(ExceptionHandler::class, SupportExceptionHandler::class);
 
-// Packages may prepend global middleware while providers boot. Keep support's
-// private-input boundary outermost without changing the order of other entries.
+// Packages may prepend global middleware while providers boot. Keep every
+// private-input boundary outside package/framework middleware in this order.
 $app->booted(function (Application $app): void {
     $kernel = $app->make(HttpKernel::class);
+    $boundaries = [SupportRequestBoundary::class, WebhookConfigurationBoundary::class, BearerBoundary::class,
+        MfaCodeBoundary::class, InvitationSecretBoundary::class];
     $middleware = array_values(array_filter($kernel->getGlobalMiddleware(),
-        fn ($item): bool => $item !== SupportRequestBoundary::class));
-    array_unshift($middleware, SupportRequestBoundary::class);
-    $kernel->setGlobalMiddleware($middleware);
+        fn ($item): bool => ! in_array($item, $boundaries, true)));
+    $kernel->setGlobalMiddleware([...$boundaries, ...$middleware]);
 });
 
 $app->useStoragePath($runtime['storage']);
