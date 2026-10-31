@@ -28,7 +28,12 @@ final class IngressRateRaceTest extends TestCase
     {
         $directory = base_path('.local/runtime/testing/ingress-race-'.Str::lower(Str::random(20)));
         mkdir($directory, 0700, true);
-        mkdir($directory.'/storage/framework/cache/data', 0700, true);
+        // Both workers bootstrap at once; create every runtime directory before
+        // starting them so the fixture does not race in bootstrap's mkdir calls.
+        foreach (['cache', 'storage/app/private', 'storage/app/public', 'storage/framework/cache/data',
+            'storage/framework/cache/locks', 'storage/framework/sessions', 'storage/framework/views', 'storage/logs'] as $path) {
+            mkdir($directory.'/'.$path, 0700, true);
+        }
         $connection = DB::connection()->getConfig();
         $env = ['APP_ENV' => 'testing', 'APP_KEY' => config('app.key'), 'DB_URL' => '', 'DB_CONNECTION' => 'pgsql',
             'DB_HOST' => $connection['host'], 'DB_PORT' => (string) $connection['port'], 'DB_DATABASE' => DB::connection()->getDatabaseName(),
