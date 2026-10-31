@@ -6,6 +6,7 @@ use App\Models\Brand;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
 use App\Shell\Onboarding\OwnerLock;
+use App\Shell\Plans\LimitEnforcer;
 use App\Tenancy\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -84,6 +85,11 @@ final class OnboardingController
             }
             if (DB::table('brands')->where('organization_id', $context->organizationId)->exists()) {
                 throw ValidationException::withMessages(['onboarding' => 'У компании уже есть бренд. Используйте настройки кабинета.'])->redirectTo(route('onboarding.show'));
+            }
+            try {
+                app(LimitEnforcer::class)->assertWithin($context, 'brands.max', '1');
+            } catch (ValidationException $exception) {
+                throw $exception->redirectTo(route('onboarding.show'));
             }
             $organization->forceFill(['name' => $data['organization_name']])->save();
             $brand = Brand::create([

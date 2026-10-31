@@ -12,6 +12,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 use RuntimeException;
 use Tests\Feature\Tenancy\Fixtures\TenantRecord;
@@ -72,6 +73,23 @@ final class OnboardingTest extends TenancyTestCase
         $this->withSession(['brand_id' => $other->id])->post('/start', $this->form())
             ->assertSessionHasNoErrors()->assertSessionHas('brand_id', $other->id);
         self::assertSame(2, DB::table('brands')->count());
+    }
+
+    public function test_first_brand_respects_assigned_plan_limit(): void
+    {
+        [$owner, $org] = $this->emptyCabinet();
+        $plan = (string) Str::ulid();
+        $limit = (string) Str::ulid();
+        DB::table('plans')->insert(['id' => $plan, 'code' => 'first-brand-limit', 'name' => 'Test', 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('organization_plan')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'plan_id' => $plan, 'starts_at' => now()->subDay(), 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('plan_limits')->insert(['id' => $limit, 'plan_id' => $plan, 'key' => 'brands.max', 'value' => 0, 'unit' => 'brands', 'created_at' => now(), 'updated_at' => now()]);
+        $this->actingAs($owner)->post('/start', $this->form())->assertRedirect('/start')->assertSessionHasErrors('brands.max');
+        self::assertSame(0, DB::table('brands')->count());
+        self::assertSame(0, DB::table('onboarding_progress')->count());
+        self::assertSame('Черновик компании', $org->fresh()->name);
+        DB::table('plan_limits')->where('id', $limit)->update(['value' => 1]);
+        $this->post('/start', $this->form())->assertRedirect('/start')->assertSessionHasNoErrors();
+        self::assertSame(1, DB::table('brands')->count());
     }
 
     public function test_failed_audit_rolls_back_profile_brand_and_progress(): void
