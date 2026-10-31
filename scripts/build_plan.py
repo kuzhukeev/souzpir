@@ -154,6 +154,8 @@ add('P-01','Первые макеты для согласования',
     notes='Дополнительная карточка по прямому указанию пользователя 31.10.2026: остановиться после БД и первых макетов. Это визуальное согласование, не завершение SP-E1-01/SP-E1-03/SP-F-03. См. docs/checkpoints/first-preview.md.')
 
 # Post-preview integration prerequisites, reflected in task ownership before claim.
+extra('E1-03','app/Tenancy/BrandSwitchController.php','resources/js/components/navigation/')
+tasks['E1-03']['notes'] += ' Реализовать именованный маршрут /dashboard; переключение бренда включает только после его готовности, сервер перенаправляет на главную, клиент отменяет запросы/сбрасывает данные старого бренда. Подключить настоящий per-user unread contributor E0-04 и проверять tenant isolation, а не подменять отсутствие источника нулём.'
 extra('E1-02','app/Tenancy/')
 tasks['E1-02']['notes'] += ' Реализовать защищённый organization-only tenant mode для первичного создания бренда; обычные брендовые маршруты остаются fail-closed. Проверить membership/auth и запрет доступа к brand-owned данным без бренда.'
 tasks['E8-01']['notes'] += ' Начальная schema включает monitoring_schedules; E8-07 не создаёт таблицу повторно.'
