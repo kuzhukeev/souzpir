@@ -278,7 +278,7 @@ class FeatureRegistry
             'session' => ['middleware' => ['web']],
             'guest' => ['middleware' => ['web', 'guest']],
             'auth' => ['middleware' => ['web', 'auth']],
-            'api' => ['prefix' => 'api/v1', 'middleware' => ['api', 'auth:sanctum', 'tenant.token', 'throttle:api']],
+            'api' => ['prefix' => 'api/v1', 'middleware' => ['api', 'api.ingress', 'auth:sanctum', 'tenant.token', 'throttle:api']],
             'public' => ['middleware' => ['throttle:public']],
             'webhook' => ['prefix' => 'webhooks', 'middleware' => ['api', 'throttle:webhook']],
             'dev' => ['prefix' => 'dev', 'middleware' => ['web', EnsureLocalPreview::class]],

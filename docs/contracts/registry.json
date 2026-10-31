@@ -278,6 +278,11 @@
         "brands"
       ]
     },
+    "integration_secret_receipts": {
+      "owner": "SP-E1-10",
+      "tenant": "global",
+      "parents": []
+    },
     "webhooks": {
       "owner": "SP-E1-10",
       "tenant": "brand",

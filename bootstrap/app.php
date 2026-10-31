@@ -6,7 +6,11 @@ use App\Privacy\SupportExceptionHandler;
 use App\Privacy\SupportRequestBoundary;
 use App\Shell\Auth\EnforceAuthVersion;
 use App\Shell\Auth\InvitationSecretBoundary;
+use App\Shell\Integrations\Webhooks\WebhookConfigurationBoundary;
 use App\Tenancy\ResolveTenant;
+use App\Tenancy\TokenApi\BearerBoundary;
+use App\Tenancy\TokenApi\ThrottleApiIngress;
+use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Contracts\Http\Kernel as HttpKernel;
 use Illuminate\Foundation\Application;
@@ -24,8 +28,11 @@ $app = Application::configure(basePath: $basePath)
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->prepend(InvitationSecretBoundary::class);
         $middleware->prepend(SupportRequestBoundary::class);
+        $middleware->prepend(BearerBoundary::class);
+        $middleware->prepend(WebhookConfigurationBoundary::class);
         $middleware->redirectGuestsTo('/login');
         $middleware->prependToPriorityList(SubstituteBindings::class, ResolveTenant::class);
+        $middleware->prependToPriorityList(AuthenticatesRequests::class, ThrottleApiIngress::class);
         $middleware->web(append: [AuthenticateSession::class, EnforceAuthVersion::class, HandleInertiaRequests::class]);
         $middleware->alias(['preview.local' => EnsureLocalPreview::class]);
     })
