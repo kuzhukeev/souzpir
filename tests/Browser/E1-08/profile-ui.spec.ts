@@ -191,6 +191,38 @@ async function notificationResponse(page: Page) {
     url: string;
   };
 }
+test('timing draft makes its delivery limitation clear and sends the current brand revision', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 1000 });
+  await page.goto(url + '?screen=notifications');
+  await expect(page.getByText('Настройки можно сохранить как черновик. Тихие часы и ежедневная сводка пока не влияют на доставку уведомлений.')).toBeVisible();
+  await page.getByLabel('Начало тихих часов').fill('22:30');
+  await page.getByLabel('Окончание тихих часов').fill('07:15');
+  await page.getByLabel('Время ежедневной сводки').fill('08:45');
+  const response = await notificationResponse(page);
+  await page.route('**/profile/notifications/timing', async (route) => {
+    expect(route.request().method()).toBe('PUT');
+    expect(route.request().headers()['x-brand-revision']).toBe('a'.repeat(64));
+    expect(route.request().postDataJSON()).toEqual({ quiet_start: '22:30', quiet_end: '07:15', digest_time: '08:45' });
+    response.props.notificationSettings.timingDraft = { quiet_start: '22:30', quiet_end: '07:15', digest_time: '08:45' };
+    response.props.status = 'Черновик сохранён. Доставка пока работает без этих настроек.';
+    response.url = '/profile/notifications';
+    await route.fulfill({ json: response, headers: { 'X-Inertia': 'true' } });
+  });
+  await page.getByRole('button', { name: 'Сохранить черновик' }).click();
+  await expect(page.getByLabel('Время ежедневной сводки')).toHaveValue('08:45');
+  await expect(page.getByText('Черновик сохранён. Доставка пока работает без этих настроек.').first()).toBeVisible();
+  await checkLayout(page);
+  await checkAxe(page);
+  await page.screenshot({ path: '.local/screenshots/e1-08/timing-draft-390.png', fullPage: true });
+});
+test('timing draft network failure keeps the unsaved input and shows an error', async ({ page }) => {
+  await page.goto(url + '?screen=notifications');
+  await page.getByLabel('Время ежедневной сводки').fill('08:45');
+  await page.route('**/profile/notifications/timing', (route) => route.abort('failed'));
+  await page.getByRole('button', { name: 'Сохранить черновик' }).click();
+  await expect(page.getByRole('alert')).toContainText('Не удалось получить ответ сервера. Обновите страницу');
+  await expect(page.getByLabel('Время ежедневной сводки')).toHaveValue('08:45');
+});
 test('Telegram disconnect updates saved channels and preserves unrelated drafts before save', async ({
   page,
 }) => {

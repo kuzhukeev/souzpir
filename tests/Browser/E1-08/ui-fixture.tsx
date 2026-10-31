@@ -103,6 +103,9 @@ const notificationSettings = {
   },
   timezone: 'Europe/Moscow',
   timingAvailable: false,
+  timingDraftEditable: true,
+  timingDraft: { quiet_start: null, quiet_end: null, digest_time: null },
+  timingRevision: 'a'.repeat(64),
   testAvailable: true,
   testChannels: { cabinet: true, email: false, telegram: false },
   testNotifications: [],
@@ -114,6 +117,7 @@ const pageData =
       ? { security }
       : {
           profile,
+          profileBrandRevision: 'a'.repeat(64),
           timezones: [
             'Europe/Moscow',
             'Europe/Kaliningrad',
@@ -171,6 +175,20 @@ script.textContent = JSON.stringify({
   encryptHistory: false,
 });
 document.body.append(script);
+// This isolated visual fixture has no authenticated backend. Simulate only
+// the profile's initial read-back verification; actual HTTP authorization is
+// covered by the separate PHP race tests.
+if (screen === 'profile') {
+  const originalFetch = window.fetch.bind(window);
+  window.fetch = (input, init) => {
+    if (typeof input === 'string' && input === '/profile' && (!init?.method || init.method === 'GET')) {
+      return Promise.resolve(new Response(JSON.stringify({ props: { profileBrandRevision: 'a'.repeat(64) } }), {
+        status: 200, headers: { 'Content-Type': 'application/json', 'X-Inertia': 'true' },
+      }));
+    }
+    return originalFetch(input, init);
+  };
+}
 async function mount() {
   const response = await fetch('/build/manifest.json');
   if (!response.ok) throw new Error('Build the app before the fixture');

@@ -27,6 +27,7 @@ return [
             Route::post('/profile/email/confirm/{change}/{token}', [EmailController::class, 'confirm'])->middleware(['signed:relative', 'throttle:10,1,profile-email-confirm:'])->whereUlid('change')->where('token', '[a-f0-9]{64}')->name('profile.email.commit');
             Route::get('/profile/notifications', [NotificationController::class, 'show'])->name('profile.notifications');
             Route::put('/profile/notifications', [NotificationController::class, 'update'])->middleware('throttle:30,1,profile-notification-settings:')->name('profile.notifications.update');
+            Route::put('/profile/notifications/timing', [NotificationController::class, 'updateTimingDraft'])->middleware('throttle:20,1,profile-notification-timing:')->name('profile.notifications.timing.update');
             Route::post('/profile/notifications/test', TestNotificationController::class)->middleware('throttle:10,1,profile-notification-test:')->name('profile.notifications.test');
             Route::post('/profile/notifications/telegram', [TelegramController::class, 'start'])->middleware('throttle:5,10,profile-telegram-start:')->name('profile.telegram.start');
             Route::get('/profile/notifications/telegram/link', [TelegramController::class, 'link'])->middleware('throttle:10,1,profile-telegram-link:')->name('profile.telegram.link');
