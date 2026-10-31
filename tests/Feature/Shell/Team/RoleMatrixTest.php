@@ -9,10 +9,29 @@ use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\Feature\Tenancy\TenancyTestCase;
 
 final class RoleMatrixTest extends TenancyTestCase
 {
+    public function test_role_matrix_page_has_the_same_authorization_boundary(): void
+    {
+        $this->get('/team/roles')->assertRedirect('/login');
+        [$owner, $org, $brand] = $this->cabinet();
+        [$admin] = $this->member($org, 'admin', [$brand->id]);
+        [$editor] = $this->member($org, 'member', [$brand->id]);
+        [$manager] = $this->member($org, 'member', [$brand->id], ['sales_manager' => true]);
+        [$viewer] = $this->member($org, 'viewer', [$brand->id]);
+        foreach ([$owner, $admin] as $user) {
+            $response = $this->actingAs($user)->withSession(['brand_id' => $brand->id])->get('/team/roles');
+            $response->assertOk()->assertInertia(fn (Assert $page) => $page->component('Shell/Team/Roles', false));
+            $this->assertStringContainsString('no-store', $response->headers->get('Cache-Control'));
+        }
+        foreach ([$editor, $manager, $viewer] as $user) {
+            $this->actingAs($user)->withSession(['brand_id' => $brand->id])->get('/team/roles')->assertForbidden();
+        }
+    }
+
     public function test_matrix_endpoint_requires_owner_or_admin_and_is_not_cached(): void
     {
         $this->getJson('/team/roles/matrix')->assertUnauthorized();
