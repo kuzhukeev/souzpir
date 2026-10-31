@@ -66,6 +66,12 @@ test('controls work with keyboard and dialogs restore focus', async ({ page }) =
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(trigger).toBeFocused();
+  const wideTrigger = page.getByRole('button', { name: 'Открыть широкую панель' });
+  await wideTrigger.click();
+  const wideDrawer = page.getByRole('dialog', { name: 'Панель' });
+  await expect(wideDrawer).toHaveCSS('width', '640px');
+  await page.keyboard.press('Escape');
+  await expect(wideTrigger).toBeFocused();
   const select = page.getByRole('combobox', { name: 'Статус' });
   await select.click();
   await page.getByRole('option', { name: 'Активен' }).click();

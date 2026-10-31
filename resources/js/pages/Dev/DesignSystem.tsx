@@ -51,6 +51,7 @@ export default function DesignSystem() {
   const [chip, setChip] = useState(false);
   const [modal, setModal] = useState(false);
   const [drawer, setDrawer] = useState(false);
+  const [drawerSize, setDrawerSize] = useState<'md' | 'lg'>('md');
   const [page, setPage] = useState(1);
   const [notice, setNotice] = useState(true);
   const [files, setFiles] = useState<File[]>([]);
@@ -186,8 +187,23 @@ export default function DesignSystem() {
               <Button variant="secondary" onClick={() => setModal(true)}>
                 Открыть окно
               </Button>
-              <Button variant="secondary" onClick={() => setDrawer(true)}>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setDrawerSize('md');
+                  setDrawer(true);
+                }}
+              >
                 Открыть панель
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setDrawerSize('lg');
+                  setDrawer(true);
+                }}
+              >
+                Открыть широкую панель
               </Button>
               <Tooltip label="Дополнительная информация">Подсказка</Tooltip>
             </div>
@@ -198,7 +214,7 @@ export default function DesignSystem() {
                 Понятно
               </Button>
             </Modal>
-            <Drawer open={drawer} title="Панель" onClose={() => setDrawer(false)}>
+            <Drawer open={drawer} title="Панель" size={drawerSize} onClose={() => setDrawer(false)}>
               <p>Содержимое боковой панели.</p>
             </Drawer>
           </Section>

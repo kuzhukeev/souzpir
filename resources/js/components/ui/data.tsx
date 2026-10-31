@@ -124,9 +124,25 @@ export function FileDrop({
   disabled?: boolean;
 }) {
   const id = useId();
+  function selectFiles(files: File[]) {
+    const types = (accept ?? '')
+      .split(',')
+      .map((value) => value.trim().toLowerCase())
+      .filter(Boolean);
+    const allowed = files.filter(
+      (file) =>
+        !types.length ||
+        types.some((type) => {
+          if (type.startsWith('.')) return file.name.toLowerCase().endsWith(type);
+          if (type.endsWith('/*')) return file.type.toLowerCase().startsWith(type.slice(0, -1));
+          return file.type.toLowerCase() === type;
+        }),
+    );
+    onFiles(multiple ? allowed : allowed.slice(0, 1));
+  }
   function drop(event: DragEvent<HTMLLabelElement>) {
     event.preventDefault();
-    if (!disabled) onFiles(Array.from(event.dataTransfer.files));
+    if (!disabled) selectFiles(Array.from(event.dataTransfer.files));
   }
   return (
     <label
@@ -144,7 +160,7 @@ export function FileDrop({
         multiple={multiple}
         disabled={disabled}
         onChange={(event) => {
-          onFiles(Array.from(event.target.files ?? []));
+          selectFiles(Array.from(event.target.files ?? []));
           event.target.value = '';
         }}
       />

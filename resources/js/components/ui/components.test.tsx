@@ -243,6 +243,27 @@ describe('content primitives', () => {
     fireEvent.change(screen.getByLabelText('Файл'), { target: { files: [file] } });
     expect(change).toHaveBeenCalledWith([file]);
   });
+  it('FileDrop enforces accept and single-file selection when files are dropped', () => {
+    const change = vi.fn();
+    render(<FileDrop label="Документ" accept=".pdf,image/*" onFiles={change} />);
+    const png = new File(['png'], 'one.png', { type: 'image/png' });
+    const pdf = new File(['pdf'], 'two.pdf', { type: 'application/pdf' });
+    const bad = new File(['exe'], 'bad.exe', { type: 'application/octet-stream' });
+    fireEvent.drop(screen.getByText('Документ').closest('label')!, {
+      dataTransfer: { files: [bad, png, pdf] },
+    });
+    expect(change).toHaveBeenCalledWith([png]);
+  });
+  it('Drawer supports the 640px option', () => {
+    render(
+      <Drawer open title="Большая панель" size="lg" onClose={() => {}}>
+        Текст
+      </Drawer>,
+    );
+    expect(screen.getByRole('dialog', { name: 'Большая панель' }).className).toContain(
+      'w-[min(640px,100vw)]',
+    );
+  });
   it('Toast announces text and exposes close', async () => {
     const close = vi.fn();
     render(<Toast message="Сохранено" onClose={close} />);

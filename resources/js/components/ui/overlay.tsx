@@ -8,7 +8,8 @@ function Dialog({
   onClose,
   children,
   drawer = false,
-}: DialogProps & { drawer?: boolean }) {
+  wide = false,
+}: DialogProps & { drawer?: boolean; wide?: boolean }) {
   const opener = useRef<HTMLElement | null>(null);
   return (
     <DialogPrimitive.Root
@@ -31,7 +32,7 @@ function Dialog({
               opener.current.focus();
             }
           }}
-          className={`fixed z-50 max-h-dvh max-w-full overflow-y-auto bg-(--color-surface) text-(--color-ink) shadow-xl ${drawer ? 'inset-y-0 right-0 w-[min(480px,100vw)]' : 'top-1/2 left-1/2 w-[min(480px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 rounded-(--radius-card)'}`}
+          className={`fixed z-50 max-h-dvh max-w-full overflow-y-auto bg-(--color-surface) text-(--color-ink) shadow-xl ${drawer ? `inset-y-0 right-0 ${wide ? 'w-[min(640px,100vw)]' : 'w-[min(480px,100vw)]'}` : 'top-1/2 left-1/2 w-[min(480px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 rounded-(--radius-card)'}`}
         >
           <header className="flex items-center justify-between gap-4 border-b border-(--color-border) p-5">
             <DialogPrimitive.Title className="text-lg font-bold">{title}</DialogPrimitive.Title>
@@ -51,8 +52,8 @@ function Dialog({
 export function Modal(props: DialogProps) {
   return <Dialog {...props} />;
 }
-export function Drawer(props: DialogProps) {
-  return <Dialog {...props} drawer />;
+export function Drawer({ size = 'md', ...props }: DialogProps & { size?: 'md' | 'lg' }) {
+  return <Dialog {...props} drawer wide={size === 'lg'} />;
 }
 export function Toast({ message, onClose }: { message: string; onClose?: () => void }) {
   return (
