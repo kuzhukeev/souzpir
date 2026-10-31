@@ -43,4 +43,7 @@ test('real authenticated owner saves draft, resumes and creates the first brand'
   await otherTab.close();
   await page.reload();
   await expect(page.getByText('Данные компании и бренда сохранены.')).toBeVisible();
+  await page.getByRole('link', { name: 'Перейти в кабинет' }).click();
+  await expect(page).toHaveURL(/\/journal$/);
+  await expect(page.getByRole('heading', { name: 'Действия в кабинете' })).toBeVisible();
 });
