@@ -52,6 +52,9 @@ it('показывает только переданные данные без �
   render(<Index members={members} canViewRoles />);
   const table = screen.getByRole('region', { name: 'Таблица участников' });
   expect(within(table).getByText('Иван Петров')).toBeTruthy();
+  expect(
+    within(table).getByRole('link', { name: 'Открыть карточку: Иван Петров' }).getAttribute('href'),
+  ).toBe('/team/one');
   expect(within(table).getByText('ivan@example.test')).toBeTruthy();
   expect(within(table).getByText('Длинное название разрешённого бренда')).toBeTruthy();
   expect(within(table).getByText('Нет общих доступных брендов')).toBeTruthy();
