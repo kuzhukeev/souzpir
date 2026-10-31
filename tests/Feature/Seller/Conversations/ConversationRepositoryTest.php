@@ -28,7 +28,9 @@ final class ConversationRepositoryTest extends TenancyTestCase
     {
         return $this->within($org, $brand, function () use ($channel): array {
             $conversation = Conversation::create(['channel_account_id' => $channel?->id, 'mode' => 'bot', 'state' => []]);
-            $message = Message::create(['conversation_id' => $conversation->id, 'role' => 'client', 'text' => 'Нужна доставка', 'meta' => []]);
+            $message = $channel
+                ? app(InboundRecorder::class)->ingest(app(TenantContext::class), $channel->id, (string) Str::ulid(), [], $conversation->id, 'Нужна доставка')
+                : Message::create(['conversation_id' => $conversation->id, 'role' => 'client', 'text' => 'Нужна доставка', 'meta' => []]);
 
             return [$conversation, $message];
         });
@@ -253,17 +255,109 @@ final class ConversationRepositoryTest extends TenancyTestCase
         $context = $this->context($org, $brand);
         $recorder = app(InboundRecorder::class);
         $repo = app(ConversationRepository::class);
-        $first = $recorder->record($context, $channel->id, 'first', []);
-        $second = $recorder->record($context, $channel->id, 'second', []);
-        $command = new TurnCommand($a->id, $aMessage->id, $aMessage->text, $first->id, 'a-key', 0);
+        $aMessage = $recorder->ingest($context, $channel->id, 'first', [], $a->id, $aMessage->text);
+        $bMessage = $recorder->ingest($context, $channel->id, 'second', [], $b->id, $bMessage->text);
+        $first = $aMessage->external_event_id;
+        $second = $bMessage->external_event_id;
+        $command = new TurnCommand($a->id, $aMessage->id, $aMessage->text, $first, 'a-key', 0);
         $repo->claimTurn($context, $command);
         $this->assertSame('in_progress', $repo->claimTurn($context, $command)->status);
-        $bClaim = $repo->claimTurn($context, new TurnCommand($b->id, $bMessage->id, $bMessage->text, $second->id, 'b-key', 0));
+        $bClaim = $repo->claimTurn($context, new TurnCommand($b->id, $bMessage->id, $bMessage->text, $second, 'b-key', 0));
         try {
-            DB::transaction(fn () => DB::table('seller_turns')->where('id', $bClaim->turnId)->update(['external_event_id' => $first->id]));
+            DB::transaction(fn () => DB::table('seller_turns')->where('id', $bClaim->turnId)->update(['external_event_id' => $first]));
             $this->fail('Database accepted duplicate inbound event');
         } catch (QueryException) {
             $this->assertTrue(true);
         }
+    }
+
+    public function test_channel_event_is_immutably_bound_to_one_message_and_conversation(): void
+    {
+        [, $org, $brand] = $this->cabinet();
+        $channel = $this->within($org, $brand, fn () => ChannelAccount::create(['type' => 'api']));
+        [$a] = $this->setupConversation($org, $brand, $channel);
+        [$b] = $this->setupConversation($org, $brand, $channel);
+        $context = $this->context($org, $brand);
+        $recorder = app(InboundRecorder::class);
+        $repo = app(ConversationRepository::class);
+        $input = $recorder->ingest($context, $channel->id, 'customer-a', ['sender' => 'a'], $a->id, 'A text');
+        $this->assertSame($input->id, $recorder->ingest($context, $channel->id, 'customer-a', ['sender' => 'a'], $a->id, 'A text')->id);
+        try {
+            $recorder->ingest($context, $channel->id, 'customer-a', ['sender' => 'a'], $b->id, 'A text');
+            $this->fail('Event rebound to another conversation');
+        } catch (HttpException $e) {
+            $this->assertSame(409, $e->getStatusCode());
+        }
+        foreach ([null, (string) Str::ulid()] as $wrong) {
+            try {
+                $repo->claimTurn($context, new TurnCommand($a->id, $input->id, $input->text, $wrong, 'bad-'.($wrong ?? 'null'), 0));
+                $this->fail('Wrong event accepted');
+            } catch (HttpException $e) {
+                $this->assertSame(409, $e->getStatusCode());
+            }
+        }
+        try {
+            DB::transaction(fn () => DB::table('messages')->where('id', $input->id)->update(['conversation_id' => $b->id]));
+            $this->fail('Origin changed');
+        } catch (QueryException) {
+            $this->assertTrue(true);
+        }
+        try {
+            DB::transaction(fn () => DB::table('messages')->where('id', $input->id)->delete());
+            $this->fail('Inbound message deleted');
+        } catch (QueryException) {
+            $this->assertTrue(true);
+        }
+        try {
+            DB::transaction(fn () => $this->within($org, $brand, fn () => Message::create(['conversation_id' => $b->id, 'role' => 'client', 'text' => 'No event'])));
+            $this->fail('Channel client bypassed event');
+        } catch (QueryException) {
+            $this->assertTrue(true);
+        }
+        $claim = $repo->claimTurn($context, new TurnCommand($a->id, $input->id, $input->text, $input->external_event_id, 'correct', 0));
+        $this->assertSame('claimed', $claim->status);
+        try {
+            DB::transaction(fn () => DB::table('seller_turns')->where('id', $claim->turnId)->update(['external_event_id' => null]));
+            $this->fail('Database accepted null event for channel message');
+        } catch (QueryException) {
+            $this->assertTrue(true);
+        }
+    }
+
+    public function test_assistant_message_must_have_agent_role_and_rolls_back_other_roles(): void
+    {
+        [, $org, $brand] = $this->cabinet();
+        [$conversation, $input] = $this->setupConversation($org, $brand);
+        $repo = app(ConversationRepository::class);
+        $claim = $repo->claimTurn($this->context($org, $brand), new TurnCommand($conversation->id, $input->id, $input->text, null, 'role', 0));
+        foreach (['system', 'tool'] as $role) {
+            $id = (string) Str::ulid();
+            $outcome = new TurnOutcome($claim->turnId, $conversation->id, 'completed', 1, $id, null, null, [], [], [['id' => $id, 'role' => $role, 'text' => 'not an answer']]);
+            try {
+                $repo->commitTurn($claim, $outcome);
+                $this->fail('Non-agent assistant message accepted');
+            } catch (\LogicException) {
+                $this->assertTrue(true);
+            }
+            $this->assertDatabaseCount('messages', 1);
+        }
+        $this->assertDatabaseHas('seller_turns', ['id' => $claim->turnId, 'status' => 'processing']);
+    }
+
+    public function test_commit_fails_closed_after_brand_deactivation(): void
+    {
+        [, $org, $brand] = $this->cabinet();
+        [$conversation, $input] = $this->setupConversation($org, $brand);
+        $repo = app(ConversationRepository::class);
+        $claim = $repo->claimTurn($this->context($org, $brand), new TurnCommand($conversation->id, $input->id, $input->text, null, 'inactive', 0));
+        DB::table('brands')->where('id', $brand->id)->update(['status' => 'archived']);
+        try {
+            $repo->commitTurn($claim, new TurnOutcome($claim->turnId, $conversation->id, 'completed', 1, null, null, null, [], []));
+            $this->fail('Inactive brand accepted');
+        } catch (\LogicException) {
+            $this->assertTrue(true);
+        }
+        $this->assertDatabaseHas('seller_turns', ['id' => $claim->turnId, 'status' => 'processing']);
+        $this->assertDatabaseCount('messages', 1);
     }
 }

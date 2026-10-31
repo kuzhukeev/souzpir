@@ -39,11 +39,14 @@ final class EloquentConversationRepository implements ConversationRepository
         }
 
         return app(TenantContextRunner::class)->run($context, fn () => DB::transaction(function () use ($context, $command): TurnClaim {
-            DB::table('brands')->where('id', $context->brandId)->where('organization_id', $context->organizationId)->lockForUpdate()->firstOrFail();
+            ActiveTenantLock::acquire($context);
             $conversation = Conversation::whereKey($command->conversationId)->lockForUpdate()->firstOrFail();
             $input = Message::whereKey($command->inputMessageId)->where('conversation_id', $conversation->id)->where('role', 'client')->firstOrFail();
             if (! hash_equals($input->text, $command->text)) {
                 abort(409, 'Входное сообщение изменилось.');
+            }
+            if ($input->external_event_id !== $command->externalEventId) {
+                abort(409, 'Input event does not match message origin.');
             }
             if ($command->externalEventId !== null) {
                 if (! Str::isUlid($command->externalEventId)) {
@@ -95,6 +98,7 @@ final class EloquentConversationRepository implements ConversationRepository
         }
         $context = new TenantContext($claim->organizationId, $claim->brandId, source: 'job');
         app(TenantContextRunner::class)->run($context, fn () => DB::transaction(function () use ($claim, $outcome, $context): void {
+            ActiveTenantLock::acquire($context);
             $conversation = Conversation::whereKey($claim->conversationId)->lockForUpdate()->firstOrFail();
             $turn = SellerTurn::whereKey($claim->turnId)->lockForUpdate()->firstOrFail();
             if ($turn->conversation_id !== $claim->conversationId || ! hash_equals($turn->claim_hash, hash('sha256', $claim->token()))) {
@@ -118,9 +122,9 @@ final class EloquentConversationRepository implements ConversationRepository
                 $row = new Message(['conversation_id' => $conversation->id, 'role' => $message['role'], 'text' => $message['text'], 'meta' => $message['meta'] ?? []]);
                 $row->id = $message['id'];
                 $row->save();
-                $createdMessages[] = $row->id;
+                $createdMessages[$row->id] = $row->role;
             }
-            if ($outcome->assistantMessageId !== null && ! in_array($outcome->assistantMessageId, $createdMessages, true)) {
+            if ($outcome->assistantMessageId !== null && ($createdMessages[$outcome->assistantMessageId] ?? null) !== 'agent') {
                 throw new LogicException('Assistant message is not part of this outcome.');
             }
             foreach ($outcome->tasks as $task) {

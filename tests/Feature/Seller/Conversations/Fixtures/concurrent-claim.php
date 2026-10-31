@@ -1,5 +1,6 @@
 <?php
 
+use App\Seller\Channels\Core\InboundRecorder;
 use App\Seller\Conversations\Contracts\ConversationRepository;
 use App\Seller\Conversations\Data\TurnCommand;
 use App\Tenancy\TenantContext;
@@ -23,6 +24,10 @@ while (! file_exists($barrier)) {
     usleep(10000);
 }
 try {
+    if ($event !== null) {
+        $bound = $app->make(InboundRecorder::class)->ingest(new TenantContext($organization, $brand, source: 'job'), $argv[8], 'event', [], $conversation, 'Concurrent');
+        $message = $bound->id;
+    }
     $claim = $app->make(ConversationRepository::class)->claimTurn(new TenantContext($organization, $brand, source: 'job'), new TurnCommand($conversation, $message, 'Concurrent', $event, $key, 0));
     echo $claim->status;
 } catch (HttpException $e) {
