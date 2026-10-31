@@ -216,6 +216,10 @@ final class PostgresIdempotencyTest extends TestCase
 
     public function test_history_guards_apply_to_a_restricted_database_role(): void
     {
+        $privileges = DB::selectOne('SELECT rolsuper OR rolcreaterole AS can_create_role FROM pg_roles WHERE rolname = current_user');
+        if (! $privileges || ! $privileges->can_create_role) {
+            self::markTestSkipped('Additional non-owner role check requires CREATEROLE; ordinary-role DML guards are tested separately.');
+        }
         [$org, $brand] = $this->fixture();
         $role = 'sp_c02_'.strtolower(Str::random(12));
         DB::statement('CREATE ROLE '.$role.' NOLOGIN');
