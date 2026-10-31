@@ -7,6 +7,7 @@ use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\User;
 use App\Shell\Auth\Http\SessionController;
+use App\Shell\Auth\PasswordDelivery\PasswordTransport;
 use App\Shell\Auth\Totp;
 use App\Shell\Team\Models\Invitation;
 use App\Tenancy\TenantContext;
@@ -161,11 +162,22 @@ final class AuthFlowTest extends TestCase
         $this->post($url)->assertRedirect(route('auth.ready'));
         $this->assertNotNull($user->fresh()->email_verified_at);
         $this->post('/logout');
-        config(['features.E1-01.defaults.verification_enabled' => true]);
+        config(['features.E1-01F.defaults.enabled' => true, 'queue.default' => 'sync']);
+        app()->instance(PasswordTransport::class, new class implements PasswordTransport
+        {
+            public function send(#[\SensitiveParameter] User $user, #[\SensitiveParameter] string $token): bool
+            {
+                return true;
+            }
+        });
         $this->post('/forgot-password', ['email' => 'unknown@example.test'])->assertSessionHas('status');
+        $this->assertDatabaseCount('password_delivery_intents', 0);
         $this->post('/forgot-password', ['email' => $user->email])->assertSessionHas('status');
-        Notification::assertSentTo($user, ResetPassword::class);
+        $this->assertDatabaseHas('password_delivery_intents', ['user_id' => $user->id, 'status' => 'pending']);
+        Notification::assertNotSentTo($user, ResetPassword::class);
+        // RefreshDatabase holds a transaction: the actual worker is covered by PasswordDeliveryTest.
         $token = Password::createToken($user);
+        DB::table('password_reset_tokens')->where('email', $user->email)->update(['auth_version' => $user->auth_version]);
         $data = ['email' => $user->email, 'token' => $token, 'password' => 'a-different-strong-password', 'password_confirmation' => 'a-different-strong-password'];
         $this->post('/reset-password', $data)->assertRedirect(route('login'));
         $this->assertTrue(Hash::check($data['password'], $user->fresh()->password));

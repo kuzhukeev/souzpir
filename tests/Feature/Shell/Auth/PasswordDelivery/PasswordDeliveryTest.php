@@ -33,10 +33,21 @@ final class PasswordDeliveryTest extends TestCase
 
     private object $fake;
 
+    protected function beforeRefreshingDatabase(): void
+    {
+        $expected = basename(dirname(base_path())) === '.worktrees' ? 'souzpir_test_'.str_replace('-', '_', basename(base_path())) : 'souzpir_test_main';
+        if (! app()->environment('testing') || DB::connection()->getDatabaseName() !== $expected
+            || DB::connection()->getDatabaseName() !== config('runtime.test_database')
+            || DB::connection()->getDatabaseName() === config('runtime.preview_database')) {
+            throw new \LogicException('Isolated test database required.');
+        }
+    }
+
     protected function setUp(): void
     {
         parent::setUp();
-        self::assertSame('souzpir_test_sp_e1_01f', DB::connection()->getDatabaseName());
+        $expected = basename(dirname(base_path())) === '.worktrees' ? 'souzpir_test_'.str_replace('-', '_', basename(base_path())) : 'souzpir_test_main';
+        self::assertSame($expected, DB::connection()->getDatabaseName());
         self::assertSame(config('runtime.test_database'), DB::connection()->getDatabaseName());
         self::assertNotSame(config('runtime.preview_database'), DB::connection()->getDatabaseName());
         $this->withoutVite();
