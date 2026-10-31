@@ -47,9 +47,10 @@ const members: TeamPage = {
     },
   ],
 };
+const emptyInvitations = { data: [], current_page: 1, last_page: 1, total: 0 };
 
 it('показывает только переданные данные без неработающих действий и без вымышленных брендов', () => {
-  render(<Index members={members} canViewRoles />);
+  render(<Index members={members} canViewRoles invitations={emptyInvitations} />);
   const table = screen.getByRole('region', { name: 'Таблица участников' });
   expect(within(table).getByText('Иван Петров')).toBeTruthy();
   expect(
@@ -63,12 +64,16 @@ it('показывает только переданные данные без �
     '/team/roles',
   );
   expect(screen.queryByRole('button', { name: /пригласить|изменить роль|отключить/i })).toBeNull();
-  expect(screen.getByText(/Приглашения пока не отображаются/)).toBeTruthy();
+  expect(screen.getByText('Приглашений в ожидании нет')).toBeTruthy();
 });
 
 it('показывает честное пустое состояние и не предлагает матрицу неуполномоченному участнику', () => {
   render(
-    <Index members={{ data: [], current_page: 1, last_page: 1, total: 0 }} canViewRoles={false} />,
+    <Index
+      members={{ data: [], current_page: 1, last_page: 1, total: 0 }}
+      canViewRoles={false}
+      invitations={emptyInvitations}
+    />,
   );
   expect(screen.getByText('Участников пока нет')).toBeTruthy();
   expect(screen.queryByRole('link', { name: 'Роли и доступ' })).toBeNull();
@@ -76,18 +81,30 @@ it('показывает честное пустое состояние и не 
 
 it('отличает пустую страницу от отсутствия участников', () => {
   render(
-    <Index members={{ data: [], current_page: 3, last_page: 2, total: 27 }} canViewRoles={false} />,
+    <Index
+      members={{ data: [], current_page: 3, last_page: 2, total: 27 }}
+      canViewRoles={false}
+      invitations={emptyInvitations}
+    />,
   );
   expect(screen.getByText('На этой странице нет участников')).toBeTruthy();
   expect(screen.getByText('Вернитесь на предыдущую страницу.')).toBeTruthy();
 });
 
 it('показывает загрузку, ошибку перехода и повторяет нужную страницу', () => {
-  render(<Index members={{ ...members, last_page: 2, total: 27 }} canViewRoles />);
+  render(
+    <Index
+      members={{ ...members, last_page: 2, total: 27 }}
+      canViewRoles
+      invitations={emptyInvitations}
+    />,
+  );
   fireEvent.click(screen.getByRole('button', { name: 'Вперёд' }));
-  expect(screen.getByRole('status').textContent).toContain('Загружаем');
+  expect(
+    within(screen.getByRole('region', { name: 'Участники' })).getByRole('status').textContent,
+  ).toContain('Загружаем');
   expect(calls.get.mock.calls[0][0]).toBe('/team');
-  expect(calls.get.mock.calls[0][1]).toEqual({ page: 2 });
+  expect(calls.get.mock.calls[0][1]).toEqual({ page: 2, invitation_page: 1 });
   const options = calls.get.mock.calls[0][2];
   act(() => {
     options.onNetworkError();
@@ -95,5 +112,46 @@ it('показывает загрузку, ошибку перехода и по
   });
   expect(screen.getByRole('alert').textContent).toContain('Не удалось загрузить');
   fireEvent.click(screen.getByRole('button', { name: 'Повторить' }));
-  expect(calls.get.mock.calls[1][1]).toEqual({ page: 2 });
+  expect(calls.get.mock.calls[1][1]).toEqual({ page: 2, invitation_page: 1 });
+});
+
+it('показывает данные приглашения и повторяет страницу после ошибки без изменения страницы участников', () => {
+  const invitations = {
+    current_page: 1,
+    last_page: 2,
+    total: 27,
+    data: [
+      {
+        id: 'invite',
+        email: 'new@example.test',
+        role_label: 'Менеджер',
+        brands: [{ id: 'a', name: 'Разрешённый бренд' }],
+        expires_at: '2027-02-02T12:00:00.000Z',
+        opened: false,
+      },
+    ],
+  };
+  render(
+    <Index
+      members={{ ...members, current_page: 2, last_page: 2 }}
+      canViewRoles
+      invitations={invitations}
+    />,
+  );
+  const section = screen.getByRole('region', { name: 'Приглашения в ожидании' });
+  expect(within(section).getByText('new@example.test')).toBeTruthy();
+  expect(within(section).getByText('Разрешённый бренд')).toBeTruthy();
+  expect(within(section).getByText('Ссылка не открыта')).toBeTruthy();
+  expect(within(section).getByText(/не подтверждает доставку/)).toBeTruthy();
+  fireEvent.click(within(section).getByRole('button', { name: 'Вперёд' }));
+  expect(within(section).getByRole('status').textContent).toContain('Загружаем приглашения');
+  expect(calls.get.mock.calls[0][1]).toEqual({ page: 2, invitation_page: 2 });
+  const options = calls.get.mock.calls[0][2];
+  act(() => {
+    options.onHttpException();
+    options.onFinish();
+  });
+  expect(within(section).getByRole('alert').textContent).toContain('Не удалось загрузить');
+  fireEvent.click(within(section).getByRole('button', { name: 'Повторить' }));
+  expect(calls.get.mock.calls[1][1]).toEqual({ page: 2, invitation_page: 2 });
 });

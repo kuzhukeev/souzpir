@@ -27,6 +27,9 @@ for (const width of [1440, 1024, 390]) {
           : page.getByRole('region', { name: 'Таблица участников' });
       await expect(listing.getByText('Иван Петров', { exact: true })).toBeVisible();
       await expect(listing.getByText('Нет общих доступных брендов')).toBeVisible();
+      const invites = page.getByRole('region', { name: 'Приглашения в ожидании' });
+      await expect(invites.getByText('invite@example.test')).toBeVisible();
+      await expect(invites.getByText('Ссылка не открыта')).toBeVisible();
       expect(
         await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
       ).toBeTruthy();

@@ -43,6 +43,21 @@ const shared = {
     location: { host: location.host, pathname: '/team', search: '' },
   },
   canViewRoles: true,
+  invitations: {
+    data: [
+      {
+        id: 'invite1',
+        email: 'invite@example.test',
+        role_label: 'Редактор',
+        brands: [brand],
+        expires_at: '2027-03-14T12:00:00.000Z',
+        opened: false,
+      },
+    ],
+    current_page: 1,
+    last_page: 1,
+    total: 1,
+  },
   members: {
     current_page: 1,
     last_page: 2,

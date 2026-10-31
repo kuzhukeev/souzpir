@@ -2,7 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 import { Users } from 'lucide-react';
 import CabinetLayout from '@/layouts/CabinetLayout';
-import type { TeamMember, TeamPage } from '@/types/Shell/Team/members';
+import type { TeamInvitations, TeamMember, TeamPage } from '@/types/Shell/Team/members';
 
 const panel =
   'rounded-2xl border border-(--color-border) bg-(--color-surface) p-4 shadow-(--shadow-card) sm:p-6';
@@ -76,12 +76,16 @@ function Status({ value }: { value: string }) {
 export default function Index({
   members,
   canViewRoles,
+  invitations,
 }: {
   members: TeamPage;
   canViewRoles: boolean;
+  invitations: TeamInvitations;
 }) {
   const [loading, setLoading] = useState(false);
   const [failedPage, setFailedPage] = useState<number | null>(null);
+  const [invitationLoading, setInvitationLoading] = useState(false);
+  const [failedInvitationPage, setFailedInvitationPage] = useState<number | null>(null);
   const go = (page: number) => {
     setLoading(true);
     setFailedPage(null);
@@ -91,7 +95,7 @@ export default function Index({
     };
     router.get(
       '/team',
-      { page },
+      { page, invitation_page: invitations.current_page },
       {
         preserveState: true,
         preserveScroll: true,
@@ -99,6 +103,26 @@ export default function Index({
         onNetworkError: failed,
         onHttpException: failed,
         onFinish: () => setLoading(false),
+      },
+    );
+  };
+  const goInvitations = (page: number) => {
+    setInvitationLoading(true);
+    setFailedInvitationPage(null);
+    const failed = () => {
+      setFailedInvitationPage(page);
+      return false;
+    };
+    router.get(
+      '/team',
+      { page: members.current_page, invitation_page: page },
+      {
+        preserveState: true,
+        preserveScroll: true,
+        onError: failed,
+        onNetworkError: failed,
+        onHttpException: failed,
+        onFinish: () => setInvitationLoading(false),
       },
     );
   };
@@ -126,7 +150,7 @@ export default function Index({
                 Участники
               </h2>
               <p className="mt-1 text-sm text-(--color-ink-muted)">
-                Показаны только бренды, доступные вам. Приглашения пока не отображаются.
+                Показаны только бренды, доступные вам.
               </p>
             </div>
             <span className="text-sm text-(--color-ink-muted)">
@@ -257,7 +281,7 @@ export default function Index({
                 <button
                   type="button"
                   className={button}
-                  disabled={loading || members.current_page <= 1}
+                  disabled={loading || invitationLoading || members.current_page <= 1}
                   onClick={() => go(members.current_page - 1)}
                 >
                   Назад
@@ -265,8 +289,144 @@ export default function Index({
                 <button
                   type="button"
                   className={button}
-                  disabled={loading || members.current_page >= members.last_page}
+                  disabled={
+                    loading || invitationLoading || members.current_page >= members.last_page
+                  }
                   onClick={() => go(members.current_page + 1)}
+                >
+                  Вперёд
+                </button>
+              </div>
+            </nav>
+          )}
+        </section>
+        <section
+          className={`${panel} mt-4`}
+          aria-labelledby="invitations-title"
+          aria-busy={invitationLoading}
+        >
+          <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 id="invitations-title" className="text-xl font-bold">
+                Приглашения в ожидании
+              </h2>
+              <p className="mt-1 text-sm text-(--color-ink-muted)">
+                Показаны не принятые, не отозванные и не истёкшие по сроку приглашения. Открытую
+                ссылку нельзя открыть повторно; статус открытия не подтверждает доставку письма.
+              </p>
+            </div>
+            <span className="text-sm text-(--color-ink-muted)">
+              Всего: {new Intl.NumberFormat('ru-RU').format(invitations.total)}
+            </span>
+          </div>
+          {failedInvitationPage !== null && (
+            <div
+              role="alert"
+              className="mb-4 rounded-xl bg-(--color-danger-soft) p-4 text-sm text-(--color-danger-ink)"
+            >
+              <p>Не удалось загрузить приглашения.</p>
+              <button
+                type="button"
+                onClick={() => goInvitations(failedInvitationPage)}
+                className={`mt-2 cursor-pointer font-semibold underline ${focus}`}
+              >
+                Повторить
+              </button>
+            </div>
+          )}
+          {invitationLoading && (
+            <p role="status" className="mb-4 text-sm text-(--color-ink-muted)">
+              Загружаем приглашения…
+            </p>
+          )}
+          {invitations.data.length === 0 ? (
+            <div
+              role="status"
+              className="rounded-xl bg-(--color-surface-muted) px-4 py-8 text-center text-sm"
+            >
+              {invitations.total === 0
+                ? 'Приглашений в ожидании нет'
+                : 'На этой странице нет приглашений'}
+            </div>
+          ) : (
+            <ul className="space-y-3">
+              {invitations.data.map((invitation) => (
+                <li
+                  key={invitation.id}
+                  className="rounded-xl border border-(--color-border) p-4 text-sm"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <p className="min-w-0 break-all font-semibold">{invitation.email}</p>
+                    <span className="rounded-full bg-(--color-surface-muted) px-3 py-1 text-(--color-ink-muted)">
+                      {invitation.opened ? 'Ссылка открыта' : 'Ссылка не открыта'}
+                    </span>
+                  </div>
+                  <dl className="mt-3 grid gap-3 sm:grid-cols-3">
+                    <div>
+                      <dt className="text-(--color-ink-muted)">Роль</dt>
+                      <dd className="mt-1">{invitation.role_label || 'Роль не определена'}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-(--color-ink-muted)">Доступные бренды</dt>
+                      <dd className="mt-1">
+                        {invitation.brands.length ? (
+                          <ul className="flex flex-wrap gap-2">
+                            {invitation.brands.map((brand) => (
+                              <li
+                                key={brand.id}
+                                className="max-w-full break-words rounded-full bg-(--color-success-soft) px-3 py-1 text-(--color-success-ink)"
+                              >
+                                {brand.name}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          'Нет общих доступных брендов'
+                        )}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-(--color-ink-muted)">Срок истечения</dt>
+                      <dd className="mt-1">
+                        <time dateTime={invitation.expires_at}>
+                          {new Intl.DateTimeFormat('ru-RU', {
+                            dateStyle: 'medium',
+                            timeStyle: 'short',
+                          }).format(new Date(invitation.expires_at))}
+                        </time>
+                      </dd>
+                    </div>
+                  </dl>
+                </li>
+              ))}
+            </ul>
+          )}
+          {invitations.last_page > 1 && (
+            <nav
+              aria-label="Страницы приглашений"
+              className="mt-5 flex flex-wrap items-center justify-between gap-3"
+            >
+              <p className="text-sm text-(--color-ink-muted)">
+                Страница {invitations.current_page} из {invitations.last_page}
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className={button}
+                  disabled={loading || invitationLoading || invitations.current_page <= 1}
+                  onClick={() => goInvitations(invitations.current_page - 1)}
+                >
+                  Назад
+                </button>
+                <button
+                  type="button"
+                  className={button}
+                  disabled={
+                    loading ||
+                    invitationLoading ||
+                    invitations.current_page >= invitations.last_page
+                  }
+                  onClick={() => goInvitations(invitations.current_page + 1)}
                 >
                   Вперёд
                 </button>

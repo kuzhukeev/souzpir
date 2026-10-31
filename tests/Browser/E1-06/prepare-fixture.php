@@ -4,6 +4,7 @@ use App\Models\Brand;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\User;
+use App\Shell\Team\Models\Invitation;
 use App\Tenancy\Cabinet;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
@@ -72,6 +73,7 @@ DB::transaction(function () use ($organizationId): void {
         $brand = Brand::create(['name' => 'Пиротехника — Северные огни', 'theme' => 'pyro']);
         Membership::create(['user_id' => $owner->id, 'role' => 'owner']);
         Membership::create(['user_id' => $viewer->id, 'role' => 'viewer', 'brand_ids' => [$brand->id]]);
+        Invitation::create(['email' => 'team-e106-invite@example.test', 'role' => 'viewer', 'brand_ids' => [$brand->id], 'token_hash' => hash('sha256', str_repeat('A', 64)), 'invited_by' => $owner->id, 'expires_at' => now()->addDay()]);
     });
     $organization->forceFill(['owner_user_id' => $owner->id])->save();
 });

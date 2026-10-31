@@ -29,11 +29,15 @@ for (const role of ['owner', 'viewer']) {
     await expect(page).toHaveURL(/auth\/ready/);
     const response = await page.goto(`${origin}/team`);
     expect(response?.status()).toBe(200);
+    expect(await response?.text()).not.toContain('token_hash');
     await expect(page.getByRole('heading', { level: 1, name: 'Команда' })).toBeVisible();
     const table = page.getByRole('region', { name: 'Таблица участников' });
     await expect(table.getByText('Тестовый владелец')).toBeVisible();
     await expect(table.getByText('Тестовый наблюдатель')).toBeVisible();
     await expect(table.getByText('Пиротехника — Северные огни').first()).toBeVisible();
+    const invitations = page.getByRole('region', { name: 'Приглашения в ожидании' });
+    await expect(invitations.getByText('team-e106-invite@example.test')).toBeVisible();
+    await expect(invitations.getByText('Ссылка не открыта')).toBeVisible();
     if (role === 'viewer')
       await expect(page.getByRole('link', { name: 'Роли и доступ' })).toHaveCount(0);
     else await expect(page.getByRole('link', { name: 'Роли и доступ' }).first()).toBeVisible();
