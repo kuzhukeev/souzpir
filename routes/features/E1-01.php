@@ -27,9 +27,11 @@ return [
     },
     'session' => static function (): void {
         Route::middleware('auth.nostore')->group(static function (): void {
-            Route::get('/invitations/{token}', [InvitationController::class, 'show'])->middleware('auth.version')->name('invitation.show');
-            Route::post('/invitations/{token}/register', [InvitationController::class, 'register'])->middleware(['guest', 'throttle:5,60'])->name('invitation.register');
-            Route::post('/invitations/{token}/accept', [InvitationController::class, 'accept'])->middleware(['auth', 'auth.version', 'verified', 'throttle:10,1'])->name('invitation.accept');
+            Route::get('/invitations/open', [InvitationController::class, 'open'])->name('invitation.open');
+            Route::post('/invitations/exchange', [InvitationController::class, 'exchange'])->middleware(['auth.version', 'throttle:10,1'])->name('invitation.exchange');
+            Route::get('/invitations/show', [InvitationController::class, 'show'])->middleware('auth.version')->name('invitation.show');
+            Route::post('/invitations/register', [InvitationController::class, 'register'])->middleware(['guest', 'throttle:5,60'])->name('invitation.register');
+            Route::post('/invitations/accept', [InvitationController::class, 'accept'])->middleware(['auth', 'auth.version', 'verified', 'throttle:10,1'])->name('invitation.accept');
         });
     },
     'auth' => static function (): void {

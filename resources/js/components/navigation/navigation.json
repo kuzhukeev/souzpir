@@ -24,6 +24,27 @@
           "icon": "Gauge",
           "path": "/vision/runs",
           "permission": "vision.measure.read"
+        },
+        {
+          "id": "vision_questions",
+          "label": "Вопросы",
+          "icon": "ClipboardList",
+          "path": "/vision/questions",
+          "permission": "vision.report.read"
+        },
+        {
+          "id": "vision_site",
+          "label": "Сайт",
+          "icon": "Building2",
+          "path": "/vision/site",
+          "permission": "vision.report.read"
+        },
+        {
+          "id": "vision_actions",
+          "label": "Действия",
+          "icon": "ClipboardList",
+          "path": "/vision/actions",
+          "permission": "vision.report.read"
         }
       ]
     },
@@ -98,6 +119,13 @@
           "path": "/seller/integrations/catalog"
         },
         {
+          "id": "seller_planned_integrations",
+          "label": "Будущие интеграции",
+          "icon": "Link2",
+          "path": "/seller/integrations/planned",
+          "permission": "seller.settings.read"
+        },
+        {
           "id": "seller_digests",
           "label": "Мои сводки",
           "icon": "Bell",
@@ -155,6 +183,13 @@
       "label": "Настройки",
       "icon": "Settings",
       "path": "/settings/notifications",
+      "permission": "profile.own"
+    },
+    {
+      "id": "data-consents",
+      "label": "Данные и согласия",
+      "icon": "ClipboardList",
+      "path": "/settings/data",
       "permission": "profile.own"
     },
     {

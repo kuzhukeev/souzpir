@@ -14,6 +14,10 @@
 
 `registry.json` уже фиксирует monitoring_schedules за E8-01 и ExportContributor за E1-11. Добавление описанных prerequisites не создаёт цикла: E1-11 зависит от E3-04/E8-01, а E7-04/E8-07 находятся ниже этих data layers. Owner scope остаётся обязательным даже если контрактный документ описывает будущий файл.
 
+- SP-E8-03 / SP-E8-04: запуск замера выбирает только действующее утверждение `vision_question_approvals` текущих организации и бренда, с повторной проверкой активной сессии, прав и доступности модуля. Будущий потребитель генерации не обрабатывает и не перестраивает batches, зарегистрированные в `vision_question_manual_batches` с origin `manual`, `questionnaire` или `active_set`: это пользовательские/импортированные вопросы, а не результаты AI-генерации. Нельзя обойти эти правила передачей произвольного ID набора.
+
+- SP-E5-06 владеет `seller_planned_integration_interests`: организация, бренд, пользователь и разрешённый идентификатор будущей интеграции; уникальность `(organization_id, brand_id, user_id, integration)`, составные FK бренда с организацией и пользователя с membership организации. Сохранение интереса не подключает канал и не запускает внешнюю отправку. Напоминания о договорённостях остаются недоступными до отдельного Seller-контракта нормализованного времени, версии, назначенного менеджера и повторной проверки его действующих прав; `next_followup_at` не заменяет этот срок.
+
 - E0-08 integration: SP-E1-03 owns the per-user unread notification contributor. Connect authoritative tenant-scoped module entitlement when the entitlement source is ready. Until connected, SharedPropsV1 returns null for each unavailable module flag and unread, not fabricated false/zero. Cover both populated and unavailable states.
 
 - SP-E1-03: provide the real /dashboard route, change BrandSwitchController to redirect there, enable the currently gated navigation control and clear/cancel previous-brand client data on switch; verify access and isolation.

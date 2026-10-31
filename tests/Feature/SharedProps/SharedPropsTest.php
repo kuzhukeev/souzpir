@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\SharedProps;
 
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -47,6 +48,30 @@ final class SharedPropsTest extends TenancyTestCase
         $this->post('/brand/switch', ['brand_id' => $second->id])->assertRedirect();
         $this->get('/shared-props-test')->assertInertia(fn (Assert $page) => $page
             ->where('brand.id', $second->id)->where('theme', 'pyro'));
+    }
+
+    public function test_brand_appearance_follows_selected_brand_and_is_not_public(): void
+    {
+        [$owner, , $first, $second] = $this->cabinet();
+        DB::table('brands')->where('id', $first->id)->update(['settings' => json_encode([
+            'logo_path' => 'organizations/'.$first->organization_id.'/onboarding/logos/'.str_repeat('a', 32).'.png',
+            'theme' => ['subtitle' => 'Первый бренд', 'promo_card' => false],
+        ], JSON_THROW_ON_ERROR)]);
+        DB::table('brands')->where('id', $second->id)->update(['settings' => json_encode([
+            'theme' => ['subtitle' => 'Второй бренд', 'promo_card' => true],
+        ], JSON_THROW_ON_ERROR)]);
+        $this->actingAs($owner)->withSession(['brand_id' => $first->id]);
+        $this->get('/shared-props-test')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('brandAppearance.subtitle', 'Первый бренд')
+            ->where('brandAppearance.promo_card', false)
+            ->where('brandAppearance.logo_url', route('brands.settings.logo', $first->id))
+            ->where('ziggy.routes', fn ($routes) => isset($routes['brands.settings.show']) && rtrim($routes['brands.settings.show']['uri'], '/') === 'brands/{brand}/settings'));
+        $this->post('/brand/switch', ['brand_id' => $second->id])->assertRedirect();
+        $this->get('/shared-props-test')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('brandAppearance.subtitle', 'Второй бренд')
+            ->where('brandAppearance.promo_card', true)
+            ->where('brandAppearance.logo_url', null));
+        $this->get('/public-props-test')->assertOk()->assertInertia(fn (Assert $page) => $page->missing('brandAppearance'));
     }
 
     public function test_viewer_can_only_see_authorized_brand_and_false_permissions(): void

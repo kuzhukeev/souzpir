@@ -7,8 +7,8 @@ use App\Contracts\Ai\AiContext;
 use App\Contracts\Ai\AiGateway;
 use App\Contracts\Ai\AiRequest;
 use App\Tenancy\TenantContext;
+use App\Vision\Core\BoundedEvidenceSource;
 use App\Vision\Evidence\Contracts\KnowledgeGate;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Throwable;
@@ -47,17 +47,23 @@ final class EvidenceEvaluator
             }
             $profile = json_decode($record->profile_snapshot, true, 64, JSON_THROW_ON_ERROR);
             $config = json_decode($record->configuration, true, 64, JSON_THROW_ON_ERROR);
-            if (! is_array($profile) || ! is_array($config) || ! $this->validProfile($profile)
+            if (! is_array($profile) || ! is_array($config)
                 || ! hash_equals($record->profile_checksum, CanonicalJson::hash($profile))
                 || ! is_array($config['parser'] ?? null) || ! $this->validParser($config['parser'])) {
                 return $unknown;
             }
             $knowledge->assertAllowed($tenant, $record->measurement_id, $profile);
+            // Only the bridge's explicitly approved release projection is sent
+            // to AI. The full frozen snapshot remains verified by KnowledgeGate.
+            $approvedProfile = array_intersect_key($profile, array_flip(['name', 'aliases', 'facts', 'knowledge']));
+            if (! $this->validProfile($approvedProfile)) {
+                return $unknown;
+            }
             $artifacts = $this->artifacts();
             $signature = CanonicalJson::hash(['answer_id' => $answerId, 'answer_hash' => hash('sha256', $record->answer_text),
                 'profile_checksum' => $record->profile_checksum, 'parser' => $config['parser'], 'artifacts' => $artifacts]);
             $prompt = file_get_contents(resource_path('prompts/Vision/Evidence/measure_parse.md'));
-            $body = json_encode(['frozen_profile' => $profile, 'answer_data' => $record->answer_text], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+            $body = json_encode(['frozen_profile' => $approvedProfile, 'answer_data' => $record->answer_text], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
             $format = ['type' => 'json_schema', 'json_schema' => ['name' => 'visibility_answer', 'strict' => true, 'schema' => $this->validator->schema()]];
             $context = new AiContext($tenant->organizationId, $tenant->brandId, 'vision.answer.parse', 'vision', 'measurement', $record->measurement_id, 'evidence:'.$answerId.':'.$signature, ['knowledge_public']);
             $result = $this->gateway->complete(new AiRequest([['role' => 'system', 'content' => $prompt], ['role' => 'user', 'content' => $body]],
@@ -105,7 +111,7 @@ final class EvidenceEvaluator
                         ]];
                     $confirmContext = new AiContext($tenant->organizationId, $tenant->brandId, 'vision.mention.confirm', 'vision', 'measurement',
                         $record->measurement_id, 'confirm:'.$answerId.':'.$signature, ['knowledge_public']);
-                    $confirmInput = json_encode(['company' => $profile['name'], 'profile' => $profile, 'answer_text' => $record->answer_text], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+                    $confirmInput = json_encode(['company' => $approvedProfile['name'], 'profile' => $approvedProfile, 'answer_text' => $record->answer_text], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
                     $check = $this->gateway->complete(new AiRequest([
                         ['role' => 'system', 'content' => trim($system)],
                         ['role' => 'user', 'content' => $confirmInput],
@@ -151,14 +157,7 @@ final class EvidenceEvaluator
 
     private function record(TenantContext $tenant, string $answerId): ?object
     {
-        return DB::table('measurement_answers as answer')
-            ->join('measurements as measurement', function ($join): void {
-                $join->on('measurement.id', '=', 'answer.measurement_id')
-                    ->on('measurement.organization_id', '=', 'answer.organization_id')
-                    ->on('measurement.brand_id', '=', 'answer.brand_id');
-            })->where('answer.id', $answerId)->where('answer.organization_id', $tenant->organizationId)
-            ->where('answer.brand_id', $tenant->brandId)->select('answer.status', 'answer.protocol_valid', 'answer.answer_text',
-                'answer.measurement_id', 'measurement.profile_snapshot', 'measurement.profile_checksum', 'measurement.configuration')->first();
+        return app(BoundedEvidenceSource::class)->read($tenant, $answerId);
     }
 
     private function validProfile(#[\SensitiveParameter] array $profile): bool

@@ -10,6 +10,7 @@ use App\Tenancy\BrandGrants;
 use App\Tenancy\Cabinet;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -17,23 +18,58 @@ final class InvitationAcceptance implements AcceptsInvitations
 {
     public function inspect(User $user, #[\SensitiveParameter] string $token): InvitationDetails
     {
-        $invitation = $this->find($user, $token);
+        abort_unless(preg_match('/^[A-Za-z0-9]{64}$/D', $token), 404);
+
+        return $this->inspectIdentifier($user, 'token_hash', hash('sha256', $token));
+    }
+
+    /** Session grant can only originate from the bearer exchange. */
+    public function inspectSession(User $user, #[\SensitiveParameter] Request $request): InvitationDetails
+    {
+        return $this->inspectIdentifier($user, 'id', $this->sessionInvitationId($request));
+    }
+
+    private function inspectIdentifier(User $user, string $column, string $identifier): InvitationDetails
+    {
+        $invitation = $this->find($user, $column, $identifier);
 
         return new InvitationDetails($invitation->id, $invitation->organization_id, $invitation->email, $invitation->role, $invitation->brand_ids, $invitation->expires_at->toISOString());
     }
 
     public function accept(User $user, #[\SensitiveParameter] string $token): Membership
     {
+        abort_unless(preg_match('/^[A-Za-z0-9]{64}$/D', $token), 404);
+
+        return $this->acceptIdentifier($user, 'token_hash', hash('sha256', $token));
+    }
+
+    /** Session grant can only originate from the bearer exchange. */
+    public function acceptSession(User $user, #[\SensitiveParameter] Request $request): Membership
+    {
+        return $this->acceptIdentifier($user, 'id', $this->sessionInvitationId($request));
+    }
+
+    private function sessionInvitationId(#[\SensitiveParameter] Request $request): string
+    {
+        abort_unless($request->hasSession(), 404);
+        $id = $request->session()->get('auth.invitation_id');
+        abort_unless(is_string($id) && preg_match('/^[0-9A-HJKMNP-TV-Z]{26}$/iD', $id), 404);
+
+        return $id;
+    }
+
+    private function acceptIdentifier(User $user, string $column, string $identifier): Membership
+    {
         abort_unless($user->exists && $user->hasVerifiedEmail(), 403);
 
-        return DB::transaction(function () use ($user, $token): Membership {
+        return DB::transaction(function () use ($user, $column, $identifier): Membership {
             $organizationId = app(Cabinet::class)->organizationId();
             // All session-sensitive flows lock user before organization, invitation and membership.
             $actor = User::query()->whereKey($user->id)->lockForUpdate()->first();
             abort_unless($actor && $actor->hasVerifiedEmail(), 403);
             $organization = Organization::query()->whereKey($organizationId)->where('status', 'active')->lockForUpdate()->first();
             abort_unless($organization, 404);
-            $invitation = $this->find($actor, $token, true);
+            $invitation = $this->find($actor, $column, $identifier, true);
 
             return app(TenantContextRunner::class)->run(new TenantContext($organizationId, actorId: $actor->id), function () use ($actor, $invitation): Membership {
                 $membership = Membership::query()->where('user_id', $actor->id)->lockForUpdate()->first();
@@ -57,14 +93,15 @@ final class InvitationAcceptance implements AcceptsInvitations
         });
     }
 
-    private function find(User $user, #[\SensitiveParameter] string $token, bool $lock = false): Invitation
+    private function find(User $user, string $column, string $identifier, bool $lock = false): Invitation
     {
-        abort_unless($user->exists && preg_match('/^[A-Za-z0-9]{64}$/D', $token), 404);
+        abort_unless($user->exists && (($column === 'token_hash' && preg_match('/^[a-f0-9]{64}$/D', $identifier))
+            || ($column === 'id' && preg_match('/^[0-9A-HJKMNP-TV-Z]{26}$/iD', $identifier))), 404);
         $organizationId = app(Cabinet::class)->organizationId();
         abort_unless(Organization::query()->whereKey($organizationId)->where('status', 'active')->exists(), 404);
         $query = Invitation::withoutGlobalScopes()
             ->where('organization_id', $organizationId)
-            ->where('token_hash', hash('sha256', $token))
+            ->where($column, $identifier)
             ->where('email', mb_strtolower(trim($user->email)))
             ->whereNull('accepted_at')->whereNull('revoked_at')->where('expires_at', '>', now());
         $invitation = ($lock ? $query->lockForUpdate() : $query)->first();

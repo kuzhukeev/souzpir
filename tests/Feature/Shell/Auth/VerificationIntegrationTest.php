@@ -93,7 +93,8 @@ final class VerificationIntegrationTest extends TestCase
             'email' => 'member@example.test', 'role' => 'member', 'brand_ids' => [], 'token_hash' => hash('sha256', $token),
             'invited_by' => $owner->id, 'expires_at' => now()->addDay(),
         ]));
-        $this->post('/invitations/'.$token.'/register', ['name' => 'Member', 'password' => 'another-secure-password',
+        $this->postJson('/invitations/exchange', ['token' => $token])->assertOk();
+        $this->post('/invitations/register', ['name' => 'Member', 'password' => 'another-secure-password',
             'password_confirmation' => 'another-secure-password', 'terms' => true])
             ->assertRedirect(route('verification.notice'))->assertSessionHas('status', 'Запрос на отправку принят. Проверьте почту позже.');
         $member = User::where('email', 'member@example.test')->firstOrFail();

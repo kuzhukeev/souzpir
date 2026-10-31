@@ -1,0 +1,42 @@
+.support-page {
+  font-size: 14px;
+}
+.support-page button:not(:disabled),
+.support-page a,
+.support-page summary,
+.support-dialog button:not(:disabled) {
+  cursor: pointer;
+}
+.support-page button[aria-label='Выбрать бренд'] {
+  max-width: min(40vw, 32rem);
+  white-space: normal;
+  text-align: left;
+}
+.support-page button[aria-label='Выбрать бренд'] > span:first-child {
+  overflow-wrap: anywhere;
+}
+.support-page button[aria-label='Выбрать бренд'] > span:last-child {
+  flex-shrink: 0;
+}
+.support-page [role='combobox'] {
+  white-space: normal;
+  text-align: left;
+}
+.support-page [role='combobox'] > span:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+body:has(.support-page) [data-radix-popper-content-wrapper],
+body:has(.support-page) [role='listbox'] {
+  max-width: calc(100vw - 32px);
+}
+body:has(.support-page) [role='option'] {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 767px) {
+  .support-page button[aria-label='Выбрать бренд'] {
+    max-width: min(43vw, 20rem);
+    padding-block: 0.5rem;
+  }
+}

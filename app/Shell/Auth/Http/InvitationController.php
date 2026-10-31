@@ -10,53 +10,144 @@ use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Auth\VerificationRequests;
 use App\Shell\Team\Models\Invitation;
 use App\Tenancy\Cabinet;
-use App\Tenancy\Invitations\AcceptsInvitations;
+use App\Tenancy\Invitations\InvitationAcceptance;
 use App\Tenancy\TenantContext;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 use Inertia\Response;
+use Throwable;
 
 final class InvitationController
 {
-    private function invite(string $token): Invitation
+    private function invite(Request $request): Invitation
     {
-        abort_unless((bool) preg_match('/^[A-Za-z0-9]{64}$/D', $token), 404);
+        $id = $request->session()->get('auth.invitation_id');
+        abort_unless(is_string($id) && preg_match('/^[0-9A-HJKMNP-TV-Z]{26}$/iD', $id), 404);
         $org = app(Cabinet::class)->organizationId();
         abort_unless(Organization::whereKey($org)->where('status', 'active')->exists(), 404);
 
-        return Invitation::withoutGlobalScopes()->where('organization_id', $org)->where('token_hash', hash('sha256', $token))
+        return Invitation::withoutGlobalScopes()->where('organization_id', $org)->whereKey($id)
             ->whereNull('accepted_at')->whereNull('revoked_at')->where('expires_at', '>', now())->firstOrFail();
     }
 
-    public function show(Request $request, string $token, AcceptsInvitations $acceptance): Response
+    public function open(): HttpResponse
     {
-        $invitation = $this->invite($token);
+        $nonce = base64_encode(random_bytes(18));
+        $csrf = json_encode(csrf_token(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_THROW_ON_ERROR);
+        $html = <<<'HTML'
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Приглашение</title></head><body><main><p id="status">Проверяем приглашение…</p><noscript>Для открытия приглашения включите JavaScript.</noscript></main><script nonce="__NONCE__">
+(()=>{
+    const status=document.getElementById('status');
+    const failed='Не удалось открыть приглашение. Запросите новую ссылку.';
+    let generation=0;
+    let queue=Promise.resolve();
+    let uncertain=false;
+    function capture(){
+        const token=location.hash.slice(1);
+        if(!token)return;
+        history.replaceState(null,'',location.pathname);
+        const version=++generation;
+        status.textContent='Проверяем приглашение…';
+        // Wait for each server response before starting the next exchange: both
+        // requests modify the same session and an older commit must not win.
+        queue=queue.then(async()=>{
+            if(version!==generation)return;
+            if(uncertain)throw 0;
+            // Invalid fragments still clear an older session grant, without sending
+            // arbitrary fragment content to the server.
+            const candidate=/^[A-Za-z0-9]{64}$/.test(token)?token:'';
+            let response;
+            try{
+                response=await fetch('/invitations/exchange',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','Accept':'application/json','X-CSRF-TOKEN':__CSRF_VALUE__},body:JSON.stringify({token:candidate}),redirect:'error',cache:'no-store'});
+            }catch{
+                // A failed transport can hide a server commit that is still in flight.
+                // Do not issue another exchange from this page in that case.
+                uncertain=true;
+                throw 0;
+            }
+            // hashchange is queued as a task; a response may resolve first.
+            if(location.hash)capture();
+            if(version!==generation)return;
+            if(!response.ok)throw 0;
+            location.replace('/invitations/show');
+        }).catch(()=>{
+            if(location.hash)capture();
+            if(version===generation)status.textContent=failed;
+        });
+    }
+    window.addEventListener('hashchange',capture);
+    if(location.hash)capture();else status.textContent=failed;
+})();
+</script></body></html>
+HTML;
+
+        return response(str_replace(['__NONCE__', '__CSRF_VALUE__'], [$nonce, $csrf], $html))->header('Cache-Control', 'no-store, private')
+            ->header('Referrer-Policy', 'no-referrer')->header('Content-Security-Policy', "default-src 'none'; script-src 'nonce-$nonce'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'")
+            ->header('X-Content-Type-Options', 'nosniff');
+    }
+
+    /** Never throw from this boundary: exception traces may contain Request body arguments. */
+    public function exchange(#[\SensitiveParameter] Request $request): JsonResponse
+    {
+        try {
+            $request->session()->forget('auth.invitation_id');
+            $hash = $request->attributes->get('invitation.exchange_hash');
+            if (! is_string($hash) || ! preg_match('/^[a-f0-9]{64}$/D', $hash)) {
+                return response()->json(['ok' => false], 404);
+            }
+            $org = app(Cabinet::class)->organizationId();
+            $invite = Invitation::withoutGlobalScopes()->where('organization_id', $org)->where('token_hash', $hash)
+                ->whereNull('accepted_at')->whereNull('revoked_at')->where('expires_at', '>', now())->first();
+            if (! $invite || ! Organization::whereKey($org)->where('status', 'active')->exists()) {
+                return response()->json(['ok' => false], 404);
+            }
+            $request->session()->put('auth.invitation_id', $invite->id);
+            if ($request->user()) {
+                app(InvitationAcceptance::class)->inspectSession($request->user(), $request);
+            }
+            $request->session()->put('url.intended', route('invitation.show'));
+
+            return response()->json(['ok' => true]);
+        } catch (Throwable) {
+            $request->session()->forget('auth.invitation_id');
+
+            return response()->json(['ok' => false], 404);
+        } finally {
+            $request->request->remove('token');
+            $request->json()->remove('token');
+        }
+    }
+
+    public function show(Request $request, InvitationAcceptance $acceptance): Response
+    {
+        $invitation = $this->invite($request);
         if ($request->user()) {
-            $acceptance->inspect($request->user(), $token);
+            $acceptance->inspectSession($request->user(), $request);
         } else {
-            $request->session()->put('url.intended', route('invitation.show', ['token' => $token]));
+            $request->session()->put('url.intended', route('invitation.show'));
         }
 
         return Inertia::render('Shell/Auth/Invitation', [
-            'token' => $token, 'email' => $invitation->email, 'role' => $invitation->role,
+            'email' => $invitation->email, 'role' => $invitation->role,
             'authenticated' => (bool) $request->user(), 'verified' => (bool) $request->user()?->hasVerifiedEmail(),
         ]);
     }
 
-    public function register(Request $request, string $token, AcceptsInvitations $acceptance, SessionController $session): RedirectResponse
+    public function register(Request $request, InvitationAcceptance $acceptance, SessionController $session): RedirectResponse
     {
-        $invite = $this->invite($token);
+        $invite = $this->invite($request);
         $validator = Validator::make($request->all(), ['name' => ['required', 'string', 'max:120'], 'password' => ['required', 'confirmed', Password::min(12)], 'terms' => ['accepted']]);
         if ($validator->fails()) {
-            return back()->withErrors($validator)->withInput($request->except(['password', 'password_confirmation']));
+            return redirect()->route('invitation.show')->withErrors($validator)->withInput($request->except(['password', 'password_confirmation']));
         }
         $data = $validator->validated();
-        $user = DB::transaction(function () use ($invite, $data, $token, $acceptance): User {
-            // No existing user is locked in guest registration: organization precedes invitation.
+        $user = DB::transaction(function () use ($invite, $data, $acceptance, $request): User {
             abort_unless(Organization::whereKey($invite->organization_id)->where('status', 'active')->lockForUpdate()->first(), 404);
             $locked = Invitation::withoutGlobalScopes()->whereKey($invite->id)->lockForUpdate()->firstOrFail();
             abort_unless($locked->accepted_at === null && $locked->revoked_at === null && $locked->expires_at->isFuture(), 404);
@@ -65,32 +156,32 @@ final class InvitationController
             }
             $user = User::create(['name' => $data['name'], 'email' => $locked->email, 'password' => $data['password']]);
             $user->forceFill(['terms_accepted_at' => now()])->save();
-            $acceptance->inspect($user, $token);
+            $acceptance->inspectSession($user, $request);
             app(AuditWriter::class)->record(new TenantContext($locked->organization_id, actorId: $user->id), new AuditEntry('account.invitation_registered', 'user', $user->id));
 
             return $user;
         });
         $session->complete($request, $user, false);
-        $request->session()->put('auth.invitation', $token);
         try {
             $status = app(VerificationRequests::class)->request($request, bin2hex(random_bytes(24)));
             if ($status !== 'disabled') {
                 $request->session()->flash('status', VerificationRequests::message($status));
             }
-        } catch (\Throwable) {
+        } catch (Throwable) {
             $request->session()->flash('status', 'Не удалось принять запрос на письмо. Попробуйте позже.');
         }
 
         return redirect()->route('verification.notice');
     }
 
-    public function accept(Request $request, string $token, AcceptsInvitations $acceptance): RedirectResponse
+    public function accept(Request $request, InvitationAcceptance $acceptance): RedirectResponse
     {
-        app(AuthSessionRegistry::class)->withinActive($request, function () use ($acceptance, $request, $token): void {
-            $membership = $acceptance->accept($request->user(), $token);
+        $invite = $this->invite($request);
+        app(AuthSessionRegistry::class)->withinActive($request, function () use ($acceptance, $request): void {
+            $membership = $acceptance->acceptSession($request->user(), $request);
             app(AuditWriter::class)->record(new TenantContext($membership->organization_id, actorId: $request->user()->id), new AuditEntry('account.invitation_accepted', 'membership', $membership->id));
         });
-        $request->session()->forget('auth.invitation');
+        $request->session()->forget('auth.invitation_id');
 
         return redirect()->route('auth.ready');
     }

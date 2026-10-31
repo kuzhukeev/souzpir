@@ -42,6 +42,7 @@ class HandleInertiaRequests extends Middleware
             ))->toArray() : null],
             'organization' => null,
             'brand' => null,
+            'brandAppearance' => null,
             'brands' => [],
             // Null means that a real source has not been registered yet, not zero usage.
             'modules' => ['seller' => null, 'vision' => null],

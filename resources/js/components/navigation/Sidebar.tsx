@@ -75,6 +75,9 @@ export function Sidebar({
     )
     .sort((a, b) => b.path.length - a.path.length)[0]?.id;
   const [expanded, setExpanded] = useState<Record<string, { path: string; open: boolean }>>({});
+  const [failedLogo, setFailedLogo] = useState<string | null>(null);
+  const appearance = props.brandAppearance;
+  const logo = appearance?.logo_url;
   const title = (id: string, fallback: string) =>
     props.translations?.[`navigation.${id}`] ?? fallback;
   const renderItem = (item: Item, child = false) => {
@@ -125,21 +128,26 @@ export function Sidebar({
   return (
     <div className="flex h-full min-h-0 flex-col bg-(--color-sidebar)">
       <div
-        className={`flex min-h-(--spacing-header) items-center gap-3 border-b border-(--color-border) px-4 py-3 ${compact ? 'justify-center px-2' : ''}`}
+        data-brand-header
+        className={`flex min-h-(--spacing-header) items-center gap-3 px-4 py-3 ${appearance ? 'border-b-4 border-(--color-brand-accent) bg-(--color-brand-primary)' : 'border-b border-(--color-border)'} ${compact ? 'justify-center px-2' : ''}`}
       >
-        <span
-          aria-hidden="true"
-          className="grid size-10 shrink-0 place-items-center rounded-xl bg-(--color-brand-primary-soft) text-lg font-bold text-(--color-brand-primary)"
-        >
-          {props.brand?.name?.slice(0, 1).toLocaleUpperCase('ru') ?? 'С'}
-        </span>
+        {logo && failedLogo !== logo ? (
+          <img src={logo} alt="" onError={() => setFailedLogo(logo)} className="size-10 shrink-0 rounded-xl object-contain" />
+        ) : (
+          <span
+            aria-hidden="true"
+            className="grid size-10 shrink-0 place-items-center rounded-xl bg-(--color-brand-primary-soft) text-lg font-bold text-(--color-brand-primary)"
+          >
+            {props.brand?.name?.slice(0, 1).toLocaleUpperCase('ru') ?? 'С'}
+          </span>
+        )}
         <div className={compact ? 'sr-only' : 'min-w-0'}>
-          <div className="break-words text-base font-bold text-(--color-ink)">
+          <div className={`break-words text-base font-bold ${appearance ? 'text-white' : 'text-(--color-ink)'}`}>
             {props.brand?.name ?? 'Бренд не выбран'}
           </div>
-          {props.organization?.name && (
-            <div className="break-words text-sm text-(--color-ink-muted)">
-              {props.organization.name}
+          {(appearance?.subtitle || props.organization?.name) && (
+            <div className={`break-words text-sm ${appearance ? 'text-white' : 'text-(--color-ink-muted)'}`}>
+              {appearance?.subtitle || props.organization?.name}
             </div>
           )}
         </div>
@@ -213,6 +221,12 @@ export function Sidebar({
         </p>
         {menu.account.map((item) => renderItem(item))}
       </nav>
+      {appearance?.promo_card && !compact && (
+        <div className="m-4 mt-0 rounded-lg bg-(--color-brand-primary-soft) p-3 text-sm text-(--color-brand-primary)">
+          <p className="font-semibold">Новости и возможности</p>
+          <p className="mt-1">Информация появится позже</p>
+        </div>
+      )}
     </div>
   );
 }

@@ -10,13 +10,11 @@ const roleNames: Record<string, string> = {
   viewer: 'Наблюдатель',
 };
 export default function Invitation({
-  token,
   email,
   role,
   authenticated,
   verified,
 }: {
-  token: string;
   email: string;
   role: string;
   authenticated: boolean;
@@ -26,7 +24,7 @@ export default function Invitation({
   const submit = (event: FormEvent) => {
     event.preventDefault();
     form.post(
-      `/invitations/${encodeURIComponent(token)}/${authenticated ? 'accept' : 'register'}`,
+      `/invitations/${authenticated ? 'accept' : 'register'}`,
       { onFinish: () => form.reset('password', 'password_confirmation') },
     );
   };

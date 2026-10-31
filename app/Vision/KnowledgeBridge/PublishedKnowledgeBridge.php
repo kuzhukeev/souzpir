@@ -8,6 +8,7 @@ use App\Privacy\ContactBoundary;
 use App\Seller\Knowledge\Contracts\KnowledgeRepository;
 use App\Shell\Organizations\ModuleEntitlements;
 use App\Tenancy\TenantContext;
+use App\Vision\Core\Profiles\ProfileAccess;
 use App\Vision\Evidence\Contracts\KnowledgeGate;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -28,7 +29,24 @@ final class PublishedKnowledgeBridge implements KnowledgeGate
                 throw new LogicException;
             }
 
-            return $this->project($tenant);
+            $hasDeclared = DB::table('brand_profiles')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->exists();
+            if ($hasDeclared && $tenant->source === 'session') {
+                return app(ProfileAccess::class)->run(request(), function (TenantContext $checked) use ($tenant): array {
+                    if ($checked->organizationId !== $tenant->organizationId || $checked->brandId !== $tenant->brandId
+                        || $checked->actorId !== $tenant->actorId || $checked->membershipId !== $tenant->membershipId) {
+                        throw new LogicException;
+                    }
+
+                    return $this->snapshotWithDeclared($tenant);
+                });
+            }
+            $profile = $this->snapshotWithDeclared($tenant);
+            // A submission racing the initial absence check must be retried with session authorization.
+            if (! $hasDeclared && $tenant->source === 'session' && array_key_exists('self_declared', $profile)) {
+                throw new LogicException;
+            }
+
+            return $profile;
         } catch (Throwable) {
             throw new LogicException('The approved knowledge profile is unavailable.');
         }
@@ -48,15 +66,69 @@ final class PublishedKnowledgeBridge implements KnowledgeGate
                 }
                 $persisted = json_decode($row->profile_snapshot, true, 64, JSON_THROW_ON_ERROR);
                 if (! is_array($persisted) || ! hash_equals($row->profile_checksum, CanonicalJson::hash($persisted))
-                    || ! hash_equals(CanonicalJson::hash($profile), CanonicalJson::hash($persisted))
-                    || ! hash_equals(CanonicalJson::hash($profile), CanonicalJson::hash($frozenProfile))) {
+                    || ! hash_equals(CanonicalJson::hash($persisted), CanonicalJson::hash($frozenProfile))) {
                     throw new LogicException;
+                }
+                $published = $persisted;
+                $declared = $published['self_declared'] ?? null;
+                unset($published['self_declared']);
+                if (! hash_equals(CanonicalJson::hash($profile), CanonicalJson::hash($published))) {
+                    throw new LogicException;
+                }
+                if (array_key_exists('self_declared', $persisted)) {
+                    if (! is_array($declared) || ! is_string($declared['profile_id'] ?? null)) {
+                        throw new LogicException;
+                    }
+                    $historical = $this->selfDeclared($tenant, $declared['profile_id']);
+                    if (! hash_equals(CanonicalJson::hash($declared), CanonicalJson::hash($historical))) {
+                        throw new LogicException;
+                    }
                 }
             });
         } catch (Throwable) {
             // Never expose content, contacts or tenant data in a log or exception chain.
             throw new LogicException('The approved knowledge profile is unavailable.');
         }
+    }
+
+    private function snapshotWithDeclared(TenantContext $tenant): array
+    {
+        $profile = $this->project($tenant);
+        $declared = $this->selfDeclared($tenant);
+        if ($declared !== null) {
+            $profile['self_declared'] = $declared;
+        }
+
+        return $profile;
+    }
+
+    /** Only called internally after the bridge authorization and grant checks. */
+    private function selfDeclared(TenantContext $tenant, ?string $profileId = null): ?array
+    {
+        $current = app(TenantContext::class);
+        if (DB::connection()->transactionLevel() < 1 || ! $tenant->organizationId || ! $tenant->brandId
+            || $tenant->organizationId !== $current->organizationId || $tenant->brandId !== $current->brandId
+            || $tenant->actorId !== $current->actorId || $tenant->membershipId !== $current->membershipId
+            || $tenant->source !== $current->source || $tenant->source === 'public'
+            || ($profileId !== null && ! Str::isUlid($profileId))) {
+            throw new LogicException('Vision profile is unavailable.');
+        }
+        $query = DB::table('brand_profiles')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId);
+        $row = $profileId === null ? $query->orderByDesc('version')->first() : $query->where('id', $profileId)->first();
+        if (! $row) {
+            if ($profileId !== null) {
+                throw new LogicException('Vision profile is unavailable.');
+            }
+
+            return null;
+        }
+        $answers = json_decode($row->answers, true, 32, JSON_THROW_ON_ERROR);
+        if (! is_array($answers) || ! is_string($row->checksum) || ! hash_equals($row->checksum, CanonicalJson::hash($answers))) {
+            throw new LogicException('Vision profile is unavailable.');
+        }
+
+        return ['profile_id' => $row->id, 'version' => (int) $row->version, 'checksum' => $row->checksum,
+            ...SelfDeclaredProfile::projectAnswers($answers)];
     }
 
     private function project(TenantContext $tenant): array

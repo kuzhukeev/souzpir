@@ -13,6 +13,7 @@ use App\Models\Brand;
 use App\Models\Organization;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
+use App\Vision\Core\WorkloadLimits;
 use App\Vision\Evidence\ConfirmationValidator;
 use App\Vision\Evidence\Contracts\KnowledgeGate;
 use App\Vision\Evidence\EvidenceEvaluator;
@@ -31,8 +32,11 @@ final class EvidenceTestGate implements KnowledgeGate
 
     public int $checks = 0;
 
+    public array $profiles = [];
+
     public function assertAllowed(TenantContext $tenant, string $measurementId, array $frozenProfile): void
     {
+        $this->profiles[] = $frozenProfile;
         $this->checks++;
         if (! $this->allowed) {
             throw new \LogicException('denied');
@@ -50,8 +54,11 @@ final class EvidenceTestGateway implements AiGateway
 
     public array $responses = [];
 
+    public array $requests = [];
+
     public function complete(AiRequest $request, AiContext $context): AiResult
     {
+        $this->requests[] = $request->toArray();
         $this->calls++;
         if ($this->after) {
             ($this->after)();
@@ -95,8 +102,12 @@ final class EvidenceEvaluatorTest extends TestCase
         $gateway = new EvidenceTestGateway;
         $service = new EvidenceEvaluator($gateway, app(EvidenceValidator::class), app(ConfirmationValidator::class), app(SourceExtractor::class));
         app()->instance(KnowledgeGate::class, $gate);
-        $profile = ['name' => 'СтальПлюс', 'aliases' => ['СтальПлюс'], 'facts' => []];
-        $configuration = ['parser' => [...$service->artifacts(), 'model' => 'google/gemini-2.5-flash', 'temperature' => 0, 'max_tokens' => 1000]];
+        $profile = ['name' => 'СтальПлюс', 'aliases' => ['СтальПлюс'], 'facts' => [],
+            'self_declared' => ['private_marker' => 'synthetic-private-questionnaire-marker']];
+        $questions = [['text' => 'Где купить?']];
+        $configuration = ['questions' => $questions, 'question_set_checksum' => CanonicalJson::hash($questions),
+            'providers' => ['fake' => ['model' => 'fake']], 'runs' => 1,
+            'parser' => [...$service->artifacts(), 'model' => 'google/gemini-2.5-flash', 'temperature' => 0, 'max_tokens' => 1000]];
         $measurement = (string) Str::ulid();
         $answer = (string) Str::ulid();
         DB::table('measurements')->insert(['id' => $measurement, 'organization_id' => $org->id, 'brand_id' => $brand->id,
@@ -112,7 +123,26 @@ final class EvidenceEvaluatorTest extends TestCase
         self::assertTrue(Schema::hasTable('measurement_answers'));
         self::assertSame('confirmed', $evaluate()['status']);
         self::assertSame(2, $gate->checks);
+        self::assertSame('synthetic-private-questionnaire-marker', $gate->profiles[0]['self_declared']['private_marker']);
         self::assertSame(1, $gateway->calls);
+        self::assertStringNotContainsString('synthetic-private-questionnaire-marker', json_encode($gateway->requests, JSON_THROW_ON_ERROR));
+
+        // Change the answer after plan preflight but before the bounded JOIN.
+        // No AI call is permitted for the enlarged answer.
+        $changedAfterPreflight = false;
+        DB::listen(function ($query) use (&$changedAfterPreflight, $answer): void {
+            if (! $changedAfterPreflight && str_contains($query->sql, 'as profile_bytes')) {
+                $changedAfterPreflight = true;
+                DB::table('measurement_answers')->where('id', $answer)->update([
+                    'answer_text' => str_repeat('x', WorkloadLimits::dataBytes() + 1),
+                ]);
+            }
+        });
+        self::assertSame('unknown', $evaluate()['status']);
+        self::assertTrue($changedAfterPreflight);
+        self::assertSame(1, $gateway->calls);
+        DB::table('measurement_answers')->where('id', $answer)->update(['answer_text' => 'Рекомендую СтальПлюс.']);
+
         app()->forgetInstance(KnowledgeGate::class);
         self::assertSame('unknown', $evaluate()['status']);
         self::assertSame(1, $gateway->calls);
@@ -153,6 +183,7 @@ final class EvidenceEvaluatorTest extends TestCase
             ['topic' => 'address', 'value' => 'Ленина 15', 'verifiable' => true],
             ['topic' => 'warranty', 'value' => 'гарантия 3 дня', 'verifiable' => true],
         ]];
+        $profile['self_declared'] = ['private_marker' => 'synthetic-private-questionnaire-marker'];
         $text = 'Торты. Ленина 15, гарантия 3 дня.';
         DB::table('measurements')->where('id', $measurement)->update([
             'profile_snapshot' => json_encode($profile, JSON_THROW_ON_ERROR), 'profile_checksum' => CanonicalJson::hash($profile),
@@ -163,7 +194,10 @@ final class EvidenceEvaluatorTest extends TestCase
             'tone' => 'neutral', 'claims' => [], 'suspected_errors' => [], 'confidence' => 0.9];
         $confirmation = ['decision' => 'confirmed', 'evidence' => $text, 'matched_facts' => ['Ленина 15', 'гарантия 3 дня']];
         $gateway->responses = [$candidate, $confirmation];
+        $callsBeforeConfirmation = $gateway->calls;
         self::assertSame('confirmed', $evaluate()['status']);
+        self::assertSame($callsBeforeConfirmation + 2, $gateway->calls);
+        self::assertStringNotContainsString('synthetic-private-questionnaire-marker', json_encode($gateway->requests, JSON_THROW_ON_ERROR));
         $confirmation['evidence'] = 'Торты: Ленина 15, гарантия 4 дня.';
         $gateway->responses = [$candidate, $confirmation];
         self::assertSame('unknown', $evaluate()['status']);

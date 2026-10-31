@@ -6,6 +6,11 @@ id: string,
 name: string,
 email: string,
 };
+export type BrandAppearanceData = {
+logo_url: string | null,
+subtitle: string,
+promo_card: boolean,
+};
 export type BrandData = {
 id: string,
 name: string,
@@ -35,6 +40,7 @@ request_id: string,
 theme: Theme,
 translations: Record<string, string>,
 ziggy: ZiggyData,
+brandAppearance: BrandAppearanceData | null,
 };
 export type Theme = 'confectionery' | 'pyro' | 'neutral';
 export type ZiggyData = {

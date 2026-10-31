@@ -20,24 +20,11 @@ declare module 'ziggy-js' {
     "password.store": [],
     "mfa.challenge": [],
     "mfa.challenge.store": [],
-    "invitation.show": [
-        {
-            "name": "token",
-            "required": true
-        }
-    ],
-    "invitation.register": [
-        {
-            "name": "token",
-            "required": true
-        }
-    ],
-    "invitation.accept": [
-        {
-            "name": "token",
-            "required": true
-        }
-    ],
+    "invitation.open": [],
+    "invitation.exchange": [],
+    "invitation.show": [],
+    "invitation.register": [],
+    "invitation.accept": [],
     "logout": [],
     "verification.notice": [],
     "verification.verify": [
@@ -104,6 +91,62 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "brands.settings.show": [
+        {
+            "name": "brand",
+            "required": true
+        }
+    ],
+    "brands.settings.general": [
+        {
+            "name": "brand",
+            "required": true
+        }
+    ],
+    "brands.settings.theme": [
+        {
+            "name": "brand",
+            "required": true
+        }
+    ],
+    "brands.settings.logo": [
+        {
+            "name": "brand",
+            "required": true
+        }
+    ],
+    "brands.settings.domains.add": [
+        {
+            "name": "brand",
+            "required": true
+        }
+    ],
+    "brands.settings.domains.verify": [
+        {
+            "name": "brand",
+            "required": true
+        },
+        {
+            "name": "domain",
+            "required": true
+        }
+    ],
+    "brands.settings.domains.remove": [
+        {
+            "name": "brand",
+            "required": true
+        },
+        {
+            "name": "domain",
+            "required": true
+        }
+    ],
+    "brands.settings.website.check": [
+        {
+            "name": "brand",
+            "required": true
+        }
+    ],
     "journal.index": [],
     "journal.export": [],
     "journal.notifications": [],
@@ -113,12 +156,91 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "data.index": [],
+    "data.consents": [],
+    "data.exports.create": [],
+    "data.exports.download": [
+        {
+            "name": "id",
+            "required": true
+        }
+    ],
+    "help.index": [],
+    "help.status": [],
+    "help.support": [],
+    "help.support.store": [],
+    "help.support.attachments.show": [
+        {
+            "name": "ticket",
+            "required": true
+        },
+        {
+            "name": "attachment",
+            "required": true
+        }
+    ],
+    "help.support.access.revoke": [
+        {
+            "name": "ticket",
+            "required": true
+        }
+    ],
     "seller.settings.limits": [],
     "seller.settings.notifications": [],
     "seller.settings.notifications.update": [],
     "seller.settings.notifications.digests": [],
     "seller.settings.notifications.digests.time": [],
     "seller.settings.notifications.test": [],
+    "vision.start": [],
+    "vision.private.access": [],
+    "vision.private.verify": [],
+    "vision.quiz.start": [],
+    "vision.quiz.show": [
+        {
+            "name": "step",
+            "required": true
+        }
+    ],
+    "vision.quiz.save": [
+        {
+            "name": "step",
+            "required": true
+        }
+    ],
+    "vision.quiz.submit": [],
+    "vision.profile.show": [],
+    "vision.profile.version": [
+        {
+            "name": "profileId",
+            "required": true
+        }
+    ],
+    "vision.profile.edit": [
+        {
+            "name": "step",
+            "required": true
+        }
+    ],
+    "vision.site.overview": [],
+    "vision.site.criteria": [],
+    "vision.site.bots": [],
+    "vision.site.pages": [],
+    "vision.site.actions": [],
+    "vision.site.history": [],
+    "vision.site.audit": [],
+    "vision.actions.store": [],
+    "vision.actions.update": [
+        {
+            "name": "id",
+            "required": true
+        }
+    ],
+    "vision.actions.destroy": [
+        {
+            "name": "id",
+            "required": true
+        }
+    ],
     "dev.design-system": [],
     "preview.login": [],
     "preview.attention": []
