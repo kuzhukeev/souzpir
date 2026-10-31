@@ -171,6 +171,11 @@
       "tenant": "brand",
       "parents": ["organizations", "brands", "users"]
     },
+    "profile_notification_timing_drafts": {
+      "owner": "SP-E1-08",
+      "tenant": "brand",
+      "parents": ["organizations", "brands", "users"]
+    },
     "invitation_exchange_sessions": {
       "owner": "SP-E1-01",
       "tenant": "global",
