@@ -32,19 +32,27 @@ final class BoundaryGatewayTest extends TestCase
                 '"first last"@example.test',
                 'user＠example.test',
                 'user%40example.test',
+                'user at example.test',
+                'user AT example.test',
+                'user собака example.ru',
+                '+7|999|123|45|67',
+                '+7,999,123,45,67',
                 "+7\u{00A0}999\u{00A0}123\u{00A0}45\u{00A0}67",
             ] as $contact) {
                 $request = new AiRequest([['role' => 'user', 'content' => 'Контакт: '.$contact]], 'google/gemini-2.5-flash', 0.0);
+                $rejected = false;
                 try {
                     $masked = app(ContactMasker::class)->request($request->toArray());
                     app(ContactBoundary::class)->assertSafe($masked);
-                    // This is the exact intended integration order. If the guard
-                    // regresses, the real Gateway call below exposes the error.
-                    app(AiGateway::class)->complete($request, $context);
-                    self::fail('Unmasked synthetic contact reached the gateway.');
                 } catch (InvalidArgumentException $e) {
+                    $rejected = true;
                     self::assertStringNotContainsString($contact, $e->getMessage());
                 }
+                // A later gateway error must not count as a privacy rejection.
+                if (! $rejected) {
+                    app(AiGateway::class)->complete($request, $context);
+                }
+                self::assertTrue($rejected, 'An unmasked synthetic contact passed both protection layers.');
             }
             self::assertSame(0, DB::table('ai_calls')->count());
             self::assertSame(0, DB::table('ai_budgets')->count());
