@@ -106,6 +106,30 @@ final class BoundaryGatewayTest extends TestCase
         });
     }
 
+    public function test_secrets_are_rejected_before_reservation_and_transport_without_leaking_exception_data(): void
+    {
+        Http::preventStrayRequests();
+        Http::fake();
+        [$organization, $brand] = $this->cabinet();
+        $context = new AiContext($organization, $brand, 'responder', 'seller', 'brand', $brand, 'secret-before-reserve', ['conversation_content']);
+        app(TenantContextRunner::class)->run(new TenantContext($organization, $brand, source: 'job'), function () use ($context): void {
+            foreach (['Bearer a', 'api_key=synthetic_example_only', '{"facts":[{"topic":"api_key","value":"synthetic_example_only"}]}', '{"password":"synthetic_example_only","password":""}'] as $input) {
+                $request = new AiRequest([['role' => 'user', 'content' => $input]], 'google/gemini-2.5-flash', 0.0);
+                try {
+                    app(AiGateway::class)->complete($request, $context);
+                    self::fail('A synthetic secret crossed the gateway boundary.');
+                } catch (InvalidArgumentException $error) {
+                    self::assertSame('AI data could not be safely prepared.', $error->getMessage());
+                    self::assertNull($error->getPrevious());
+                    self::assertStringNotContainsString($input, (string) $error);
+                }
+            }
+            self::assertSame(0, DB::table('ai_calls')->count());
+            self::assertSame(0, DB::table('ai_budgets')->count());
+            Http::assertNothingSent();
+        });
+    }
+
     private function cabinet(): array
     {
         $organization = (string) Str::ulid();
