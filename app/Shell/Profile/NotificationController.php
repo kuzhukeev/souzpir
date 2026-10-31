@@ -9,6 +9,7 @@ use App\Shell\Notifications\RecipientPolicy;
 use App\Shell\Organizations\ModuleEntitlements;
 use App\Shell\Profile\TestNotifications\TestNotifications;
 use App\Tenancy\TenantContext;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -16,6 +17,8 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
+use Throwable;
 
 final class NotificationController
 {
@@ -33,10 +36,38 @@ final class NotificationController
                 $events[] = ['key' => $key, 'title' => $title, 'group' => str_starts_with($key, 'seller.') ? 'seller' : (str_starts_with($key, 'vision.') ? 'vision' : 'shell'), 'channels' => $channels, 'eligible' => app(RecipientPolicy::class)->permits($member, $brand->id, $key)];
             }
 
-            return ['events' => $events, 'telegram' => app(TelegramLinks::class)->state($request, $context), 'timezone' => DB::table('profile_preferences')->where('user_id', $user->id)->value('timezone') ?? $brand->timezone, 'timingAvailable' => false, 'testAvailable' => true, 'testChannels' => app(TestNotifications::class)->availability(), 'testNotifications' => app(TestNotifications::class)->recent($context)];
+            $timing = app(NotificationTimingDrafts::class);
+            $draftReady = $timing->ready();
+
+            return ['events' => $events, 'telegram' => app(TelegramLinks::class)->state($request, $context), 'timezone' => DB::table('profile_preferences')->where('user_id', $user->id)->value('timezone') ?? $brand->timezone, 'timingAvailable' => false, 'timingDraftEditable' => $draftReady, 'timingDraft' => $draftReady ? $timing->read($context) : null, 'timingRevision' => $request->attributes->get('profile.brand_revision'), 'testAvailable' => true, 'testChannels' => app(TestNotifications::class)->availability(), 'testNotifications' => app(TestNotifications::class)->recent($context)];
         });
 
         return Inertia::render('Shell/Profile/Notifications', ['notificationSettings' => $settings, 'status' => session('status')]);
+    }
+
+    public function updateTimingDraft(#[\SensitiveParameter] Request $request): RedirectResponse
+    {
+        abort_unless($request->hasHeader('X-Brand-Revision'), 409);
+        $rules = ['nullable', 'string', 'regex:/^(?:[01][0-9]|2[0-3]):[0-5][0-9]$/D'];
+        $values = ProfileValidation::validate($request, ['quiet_start' => $rules, 'quiet_end' => $rules, 'digest_time' => $rules]);
+        $start = $values['quiet_start'] ?? null;
+        $end = $values['quiet_end'] ?? null;
+        if (($start === null) !== ($end === null) || ($start !== null && $start === $end)) {
+            throw ValidationException::withMessages(['quiet_start' => 'Укажите разные значения начала и окончания тихих часов или оставьте оба поля пустыми.']);
+        }
+        try {
+            app(ProfileAccess::class)->run($request, function (User $user, TenantContext $context) use ($values): void {
+                $drafts = app(NotificationTimingDrafts::class);
+                abort_unless($drafts->ready(), 503, 'Черновик настроек временно недоступен.');
+                $drafts->save($context, $values);
+            });
+        } catch (AuthenticationException|ValidationException|HttpExceptionInterface $error) {
+            throw $error;
+        } catch (Throwable) {
+            throw new \RuntimeException('Notification timing draft processing failed.');
+        }
+
+        return redirect()->route('profile.notifications')->with('status', 'Черновик сохранён. Доставка пока работает без этих настроек.');
     }
 
     public function update(Request $request): RedirectResponse

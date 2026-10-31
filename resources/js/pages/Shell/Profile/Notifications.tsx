@@ -5,6 +5,7 @@ import { Badge, Button, EmptyState, Modal, Select } from '@/components/ui';
 import { Errors, Notice, ProfilePage, focus, panel } from '@/features/Shell/Profile/shared';
 import { dateTime, useFeedback, useProfileText } from '@/features/Shell/Profile/hooks';
 import { requestKey } from '@/features/Shell/Profile/browser';
+import { TimingDraftForm } from '@/features/Shell/Profile/TimingDraftForm';
 import type { Channel, NotificationSettings } from '@/types/Shell/Profile';
 
 const channels: Channel[] = ['cabinet', 'email', 'telegram'];
@@ -123,6 +124,11 @@ export default function Notifications({
           <p className="mt-2 text-sm">
             {t('timezone')}: <strong>{settings.timezone}</strong>
           </p>
+          {settings.timingDraftEditable && settings.timingDraft && settings.timingRevision ? (
+            <TimingDraftForm key={`${settings.timingRevision}:${JSON.stringify(settings.timingDraft)}`} draft={settings.timingDraft} revision={settings.timingRevision} />
+          ) : (
+            <p className="mt-3 text-sm text-(--color-ink-muted)">{t('timing_draft_unavailable')}</p>
+          )}
           <form
             onSubmit={sendTest}
             className="mt-5 space-y-3 border-t border-(--color-border) pt-4"

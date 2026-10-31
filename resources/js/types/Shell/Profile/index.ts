@@ -1,4 +1,5 @@
 export type Channel = 'cabinet' | 'email' | 'telegram';
+export type NotificationTimingDraft = { quiet_start: string | null; quiet_end: string | null; digest_time: string | null };
 export type ProfileData = {
   name: string;
   email: string;
@@ -32,6 +33,9 @@ export type NotificationSettings = {
   };
   timezone: string;
   timingAvailable: boolean;
+  timingDraftEditable: boolean;
+  timingDraft: NotificationTimingDraft | null;
+  timingRevision: string | null;
   testAvailable: boolean;
   testChannels: Record<Channel, boolean>;
   testNotifications: {
