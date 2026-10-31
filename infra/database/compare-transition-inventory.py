@@ -11,7 +11,7 @@ def compare(before, after, runtime):
     keys = {'format', 'database', 'migration_sequence', 'roles', 'role_names', 'memberships', 'parameters', 'schemas',
             'relations', 'columns', 'functions', 'triggers', 'event_triggers', 'constraints', 'indexes', 'defaults'}
     if (set(before) != keys or set(after) != keys
-        or before['format'] != 'souzpir-transition-inventory-v1'
+        or before['format'] != 'souzpir-transition-inventory-v2'
         or after['format'] != before['format']):
         raise ValueError('unexpected inventory format')
     role_ids = [row[0] for row in before['role_names'] if row[1] == runtime]

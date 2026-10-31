@@ -73,8 +73,11 @@ class TransitionRehearsalTest(unittest.TestCase):
                               capture_output=True, env=cls.env, check=check, timeout=30)
 
     def script(self, name, *, check=True, mode='isolated_test', approval='none', port=None,
-               database=None, runtime=None, review='synthetic-review', backup='synthetic-backup', expected_host=None):
-        command = self.command(self.owner) + ['-v', f'expected_database={database or self.db}',
+               database=None, runtime=None, review='synthetic-review', backup='synthetic-backup', expected_host=None, verbose=False):
+        command = self.command(self.owner)
+        if verbose:
+            command += ['-v', 'VERBOSITY=default']
+        command += ['-v', f'expected_database={database or self.db}',
                   '-v', f'runtime_role={runtime or self.runtime}', '-v', f'expected_host={self.host if expected_host is None else expected_host}',
                   '-v', f'expected_port={port or self.port}',
                   '-v', f'execution_mode={mode}', '-v', f'approval={approval}',
@@ -91,6 +94,103 @@ class TransitionRehearsalTest(unittest.TestCase):
         result = subprocess.run(command, cwd=ROOT, text=True, encoding='utf-8', capture_output=True,
                                 env=self.env, check=True, timeout=30)
         return json.loads(result.stdout.strip())
+
+    def test_fresh_migrations_with_null_sequence_acl_roundtrip(self):
+        # A newly migrated DB is essential: any previous grants can materialize
+        # relacl and hide an incorrect acldefault() normalization.
+        suffix = uuid.uuid4().hex[:12]
+        database = 'souzpir_test_e106_fresh_' + suffix
+        runtime = 'sp_e106_fresh_' + suffix
+        created_role = False
+        created_database = False
+        try:
+            self.sql(self.admin, f'CREATE ROLE "{runtime}" LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;', database='postgres')
+            created_role = True
+            self.sql(self.admin, f'CREATE DATABASE "{database}" OWNER "{self.owner}" TEMPLATE template0;', database='postgres')
+            created_database = True
+            actual = self.sql(self.admin, 'SHOW data_directory', database='postgres').stdout.strip()
+            if Path(actual).resolve(strict=True) != self.data:
+                raise RuntimeError('Unexpected test cluster before migrations')
+            identity = self.sql(self.owner, "SELECT current_database() || '|' || current_user", database=database).stdout.strip()
+            if identity != f'{database}|{self.owner}':
+                raise RuntimeError('Unexpected fresh database before migrations')
+            env = common.RoleSeparationTest.app_environment(self)
+            env.update({'DB_DATABASE': database, 'DB_TEST_DATABASE': database, 'DB_USERNAME': self.owner,
+                        'SP_ROLE_TEST_DB': database, 'SP_ROLE_TEST_RUNTIME': runtime})
+            php = os.environ['SP_ROLE_TEST_PHP']
+            preflight = r'''
+                require 'vendor/autoload.php';
+                $app = require 'bootstrap/app.php';
+                $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+                $db = Illuminate\Support\Facades\DB::connection();
+                $identity = $db->selectOne('select current_database() as db, current_user as role, host(inet_server_addr()) as address, inet_server_port() as port');
+                $root = realpath(getcwd());
+                $ok = $app->environment('testing') && realpath($app->basePath()) === $root
+                    && realpath(Illuminate\Foundation\Application::inferBasePath()) === $root
+                    && $db->getDriverName() === 'pgsql' && $identity->db === getenv('DB_TEST_DATABASE')
+                    && $identity->role === getenv('DB_USERNAME') && $identity->address === getenv('SP_ROLE_TEST_HOST')
+                    && (string) $identity->port === getenv('SP_ROLE_TEST_PORT')
+                    && config('runtime.test_database') === $identity->db
+                    && config('runtime.preview_database') !== $identity->db;
+                if (! $ok) { throw new RuntimeException('Unsafe fresh migration preflight'); }
+                echo 'fresh_migration_preflight_ok';
+            '''
+            result = subprocess.run([php, '-d', 'opcache.enable_cli=0', '-r', preflight], cwd=ROOT, env=env,
+                                    text=True, encoding='utf-8', capture_output=True, timeout=30)
+            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertIn('fresh_migration_preflight_ok', result.stdout)
+            migrate = subprocess.run([php, '-d', 'opcache.enable_cli=0', 'artisan', 'migrate', '--env=testing',
+                                      '--force', '--no-interaction'], cwd=ROOT, env=env,
+                                     text=True, encoding='utf-8', capture_output=True, timeout=60)
+            self.assertEqual(0, migrate.returncode, migrate.stdout + migrate.stderr)
+
+            names = ('jobs_id_seq', 'failed_jobs_id_seq', 'personal_access_tokens_id_seq')
+            rows = self.sql(self.owner, """
+                SELECT relname, relacl IS NULL FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+                WHERE n.nspname='public' AND c.relkind='S'
+                  AND relname IN ('jobs_id_seq','failed_jobs_id_seq','personal_access_tokens_id_seq') ORDER BY relname;
+            """, database=database).stdout.strip().splitlines()
+            self.assertEqual([name + '|t' for name in sorted(names)], rows, 'Fresh migrations must retain NULL sequence ACL')
+
+            def run_file(name):
+                command = self.command(self.owner, database=database) + ['-v', 'VERBOSITY=default',
+                    '-v', f'expected_database={database}', '-v', f'expected_host={self.host}',
+                    '-v', f'expected_port={self.port}', '-v', f'runtime_role={runtime}',
+                    '-v', 'execution_mode=isolated_test', '-v', 'approval=none',
+                    '-v', 'review_reference=synthetic-review', '-v', 'backup_reference=synthetic-backup',
+                    '-f', str(ROOT / 'infra/database' / name)]
+                return subprocess.run(command, cwd=ROOT, env=self.env, text=True, encoding='utf-8',
+                                      capture_output=True, timeout=30)
+
+            inventory = run_file('transition-inventory.sql')
+            self.assertEqual(0, inventory.returncode, inventory.stderr)
+            baseline = json.loads(inventory.stdout.strip())
+            for name in names:
+                row = next(row for row in baseline['relations'] if row[1:3] == ['public', name])
+                owner_privileges = {item[2] for item in row[-1] if item[1] == baseline['database'][1]}
+                self.assertEqual({'USAGE', 'SELECT', 'UPDATE'}, owner_privileges,
+                                 f'{name}: normalized owner privileges are {sorted(owner_privileges)}')
+
+            applied = run_file('transition-apply.sql')
+            self.assertEqual(0, applied.returncode, applied.stderr)
+            saved = json.loads(self.sql(self.owner, 'SELECT after_state FROM sp_e106_transition.state;', database=database).stdout.strip())
+            inventory = run_file('transition-inventory.sql')
+            self.assertEqual(0, inventory.returncode, inventory.stderr)
+            current = json.loads(inventory.stdout.strip())
+            changed = sorted(key for key in saved if saved[key] != current.get(key))
+            self.assertFalse(changed, f'Immediately after apply, saved/current snapshot sections differ: {changed}')
+            reverted = run_file('transition-revert.sql')
+            self.assertEqual(0, reverted.returncode, reverted.stderr)
+            inventory = run_file('transition-inventory.sql')
+            self.assertEqual(0, inventory.returncode, inventory.stderr)
+            restored = json.loads(inventory.stdout.strip())
+            changed = sorted(key for key in baseline if baseline[key] != restored.get(key))
+            self.assertFalse(changed, f'After revert, baseline/restored snapshot sections differ: {changed}')
+        finally:
+            if created_database:
+                self.sql(self.admin, f'DROP DATABASE "{database}";', database='postgres')
+            if created_role:
+                self.sql(self.admin, f'DROP ROLE "{runtime}";', database='postgres')
 
     @staticmethod
     def without_new_runtime_grants(snapshot, runtime):
@@ -290,6 +390,11 @@ class TransitionRehearsalTest(unittest.TestCase):
                            str(before_file), str(after_file), '--runtime', self.runtime]
                 checked = subprocess.run(compare, text=True, capture_output=True, encoding='utf-8', timeout=30)
                 self.assertEqual(0, checked.returncode, checked.stderr)
+                old_format = copy.deepcopy(applied)
+                old_format['format'] = 'souzpir-transition-inventory-v1'
+                after_file.write_text(json.dumps(old_format), encoding='utf-8')
+                self.assertNotEqual(0, subprocess.run(compare, text=True, capture_output=True,
+                                                      encoding='utf-8', timeout=30).returncode)
                 altered = copy.deepcopy(applied)
                 role_oid = next(row[0] for row in altered['role_names'] if row[1] == self.runtime)
                 users = next(row for row in altered['relations'] if row[1:3] == ['public', 'users'])
@@ -376,8 +481,10 @@ class TransitionRehearsalTest(unittest.TestCase):
             # Refuse to overwrite unrelated changes made after the transition.
             self.sql(self.owner, f'ALTER FUNCTION public."{self.fn}"(integer) COST 102;')
             changed_function = True
-            failed = self.script('transition-revert.sql', check=False, mode=mode, approval=approval)
+            failed = self.script('transition-revert.sql', check=False, mode=mode, approval=approval, verbose=True)
             self.assertNotEqual(0, failed.returncode)
+            self.assertIn('sections: functions', failed.stderr)
+            self.assertIn(self.fn, failed.stderr)
             self.assertEqual('42', self.sql(self.runtime, f'SELECT public."{self.fn}"(41);').stdout.strip())
             self.sql(self.owner, f'ALTER FUNCTION public."{self.fn}"(integer) COST 101;')
             changed_function = False
@@ -385,8 +492,10 @@ class TransitionRehearsalTest(unittest.TestCase):
             self.assertFalse(any(entry[1] == '0' and entry[2] == 'SELECT' for entry in original_users[-1]))
             self.sql(self.owner, 'GRANT SELECT ON public.users TO PUBLIC;')
             changed_acl = True
-            failed = self.script('transition-revert.sql', check=False, mode=mode, approval=approval)
+            failed = self.script('transition-revert.sql', check=False, mode=mode, approval=approval, verbose=True)
             self.assertNotEqual(0, failed.returncode)
+            self.assertIn('sections: relations', failed.stderr)
+            self.assertIn('users', failed.stderr)
             self.sql(self.owner, 'REVOKE SELECT ON public.users FROM PUBLIC;')
             changed_acl = False
             self.script('transition-revert.sql', mode=mode, approval=approval)

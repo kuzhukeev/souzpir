@@ -10,7 +10,7 @@ $$;
 CREATE FUNCTION pg_temp.transition_snapshot() RETURNS jsonb
 LANGUAGE sql STABLE SET search_path = pg_catalog AS $$
 SELECT jsonb_build_object(
-  'format', 'souzpir-transition-inventory-v1',
+  'format', 'souzpir-transition-inventory-v2',
   'database', (SELECT jsonb_build_array(datname, datdba, pg_temp.acl_snapshot(coalesce(datacl, acldefault('d', datdba))))
                FROM pg_database WHERE datname=current_database()),
   'migration_sequence', pg_get_serial_sequence('public.migrations', 'id')::regclass::oid,
@@ -27,7 +27,7 @@ SELECT jsonb_build_object(
   'relations', (SELECT jsonb_agg(jsonb_build_array(c.oid, n.nspname, c.relname, c.relkind, c.relowner,
                   c.relrowsecurity, c.relforcerowsecurity, c.relpersistence,
                   CASE WHEN c.relkind IN ('v','m') THEN pg_get_viewdef(c.oid) ELSE NULL END,
-                  pg_temp.acl_snapshot(coalesce(c.relacl, acldefault(CASE WHEN c.relkind='S' THEN 'S' ELSE 'r' END::"char", c.relowner)))) ORDER BY c.oid)
+                  pg_temp.acl_snapshot(coalesce(c.relacl, acldefault(CASE WHEN c.relkind='S' THEN 's' ELSE 'r' END::"char", c.relowner)))) ORDER BY c.oid)
                 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
                 WHERE n.nspname !~ '^pg_' AND n.nspname NOT IN ('information_schema', 'sp_e106_transition')),
   'columns', (SELECT coalesce(jsonb_agg(jsonb_build_array(a.attrelid, a.attnum, a.attname,
@@ -60,4 +60,29 @@ SELECT jsonb_build_object(
                   pg_temp.acl_snapshot(d.defaclacl)) ORDER BY d.defaclrole, d.defaclnamespace, d.defaclobjtype), '[]'::jsonb)
                FROM pg_default_acl d)
 );
+$$;
+
+-- Report categories and up to ten changed relation/function names, never ACL
+-- values or function bodies, so operator logs remain useful without dumping data.
+CREATE FUNCTION pg_temp.describe_transition_difference(expected jsonb, actual jsonb) RETURNS text
+LANGUAGE sql STABLE SET search_path = pg_catalog AS $$
+WITH keys AS (
+  SELECT key FROM jsonb_object_keys(expected || actual) AS k(key)
+  WHERE expected->key IS DISTINCT FROM actual->key
+), objects AS (
+  SELECT jsonb_build_object('kind','relation','oid',coalesce(b.item->>0,a.item->>0),
+                            'schema',coalesce(b.item->>1,a.item->>1),'name',coalesce(b.item->>2,a.item->>2)) AS object
+  FROM jsonb_array_elements(coalesce(expected->'relations','[]'::jsonb)) AS b(item)
+  FULL JOIN jsonb_array_elements(coalesce(actual->'relations','[]'::jsonb)) AS a(item) ON b.item->>0=a.item->>0
+  WHERE b.item IS DISTINCT FROM a.item
+  UNION ALL
+  SELECT jsonb_build_object('kind','function','oid',coalesce(b.item->>0,a.item->>0),
+                            'schema',coalesce(b.item->>1,a.item->>1),'name',coalesce(b.item->>2,a.item->>2))
+  FROM jsonb_array_elements(coalesce(expected->'functions','[]'::jsonb)) AS b(item)
+  FULL JOIN jsonb_array_elements(coalesce(actual->'functions','[]'::jsonb)) AS a(item) ON b.item->>0=a.item->>0
+  WHERE b.item IS DISTINCT FROM a.item
+), limited AS (SELECT object FROM objects ORDER BY object::text LIMIT 10)
+SELECT format('sections: %s; objects (first 10): %s',
+  coalesce((SELECT string_agg(key, ', ' ORDER BY key) FROM keys), 'none'),
+  coalesce((SELECT string_agg(object::text, ', ' ORDER BY object::text) FROM limited), 'none'));
 $$;

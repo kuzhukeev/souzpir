@@ -54,15 +54,20 @@ DECLARE
   role_name text := current_setting('souzpir.transition_runtime');
   saved sp_e106_transition.state%ROWTYPE;
   obj record;
+  current_state jsonb;
   migration_sequence regclass := pg_get_serial_sequence('public.migrations', 'id')::regclass;
 BEGIN
   SELECT * INTO STRICT saved FROM sp_e106_transition.state;
   IF saved.database_name<>current_database() OR saved.migration_owner<>current_user
      OR saved.runtime_role<>role_name OR saved.execution_mode<>current_setting('souzpir.transition_mode')
      OR saved.review_reference<>current_setting('souzpir.transition_review')
-     OR saved.backup_reference<>current_setting('souzpir.transition_backup') OR saved.after_state IS NULL
-     OR saved.after_state IS DISTINCT FROM pg_temp.transition_snapshot() THEN
-    RAISE EXCEPTION 'Transition identity or catalog changed; refusing automatic revert';
+     OR saved.backup_reference<>current_setting('souzpir.transition_backup') OR saved.after_state IS NULL THEN
+    RAISE EXCEPTION 'Transition identity changed; refusing automatic revert';
+  END IF;
+  current_state := pg_temp.transition_snapshot();
+  IF saved.after_state IS DISTINCT FROM current_state THEN
+    RAISE EXCEPTION 'Transition catalog changed; refusing automatic revert (%)',
+      pg_temp.describe_transition_difference(saved.after_state, current_state);
   END IF;
   FOR obj IN SELECT c.oid, c.relkind FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
              WHERE n.nspname='public' AND c.relkind IN ('r','p','v','m','f','S')
@@ -82,8 +87,10 @@ BEGIN
   EXECUTE format('ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE USAGE, SELECT ON SEQUENCES FROM %I', role_name);
   EXECUTE format('REVOKE USAGE ON SCHEMA public FROM %I', role_name);
   EXECUTE format('REVOKE CONNECT, TEMPORARY ON DATABASE %I FROM %I', current_database(), role_name);
-  IF saved.before_state IS DISTINCT FROM pg_temp.transition_snapshot() THEN
-    RAISE EXCEPTION 'Revert did not restore the original catalog ACL and owners; rolling back';
+  current_state := pg_temp.transition_snapshot();
+  IF saved.before_state IS DISTINCT FROM current_state THEN
+    RAISE EXCEPTION 'Revert did not restore the original catalog ACL and owners; rolling back (%)',
+      pg_temp.describe_transition_difference(saved.before_state, current_state);
   END IF;
 END $revert$;
 DROP TABLE sp_e106_transition.function_grants;
