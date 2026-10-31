@@ -21,4 +21,5 @@ it('uses explicitly configured limits and rejects invalid settings', function ()
         ->and($limits->permits('facts', []))->toBeTrue()
         ->and($limits->permits('facts', ['x']))->toBeFalse();
     expect(fn () => new QuizLimits(['competitors' => 10, 'facts' => -1, 'questions' => 15]))->toThrow(InvalidArgumentException::class);
+    expect(fn () => new QuizLimits(['competitors' => 11, 'facts' => 10, 'questions' => 15]))->toThrow(InvalidArgumentException::class);
 });

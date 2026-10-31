@@ -237,6 +237,11 @@ export function QuestionnaireFields({
           />
         </>
       )}
+      {step === 2 && (
+        <p className="text-sm text-(--color-ink-muted)">
+          Добавьте минимум два варианта названия, включая домен вашего сайта без https://.
+        </p>
+      )}
       {step === 2 &&
         nameFields.map(([key, title]) => (
           <ListField
@@ -263,6 +268,45 @@ export function QuestionnaireFields({
             error={errors.products}
             onChange={(v) => set('products', v)}
             maximum={3}
+          />
+          <fieldset>
+            <legend className="mb-2 text-sm font-semibold">Тип предложения</legend>
+            <div className="flex flex-wrap gap-3">
+              {[
+                ['goods', 'Товары'],
+                ['services', 'Услуги'],
+                ['software', 'Программное обеспечение'],
+              ].map(([value, title]) => (
+                <label key={value} className="flex cursor-pointer items-center gap-2 text-sm">
+                  <input
+                    type="radio"
+                    name="offering"
+                    checked={data.offering === value}
+                    onChange={() => set('offering', value)}
+                  />
+                  {title}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          <TextField
+            title="Как покупатель описывает потребность"
+            value={data.buyer_phrase}
+            error={errors.buyer_phrase}
+            onChange={(v) => set('buyer_phrase', v)}
+            placeholder="Например, купить салют для праздника (без названия бренда)"
+          />
+          <TextField
+            title="Категория: именительный падеж"
+            value={data.category_nominative}
+            error={errors['category_forms.nominative']}
+            onChange={(v) => set('category_nominative', v)}
+          />
+          <TextField
+            title="Категория: родительный падеж, множественное число"
+            value={data.category_genitive_plural}
+            error={errors['category_forms.genitive_plural']}
+            onChange={(v) => set('category_genitive_plural', v)}
           />
           <fieldset>
             <legend className="mb-2 text-sm font-semibold">Кто покупает</legend>

@@ -20,6 +20,10 @@ export type Questionnaire = {
   categories: string[];
   products: string[];
   audience: string;
+  offering: string;
+  buyer_phrase: string;
+  category_nominative: string;
+  category_genitive_plural: string;
   customer_types: string[];
   price_segment: string;
   differentiators: string[];

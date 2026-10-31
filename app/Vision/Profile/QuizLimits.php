@@ -13,8 +13,8 @@ final class QuizLimits
         if (count($limits) !== 3 || array_diff(array_keys($limits), ['competitors', 'facts', 'questions']) !== []) {
             throw new InvalidArgumentException('Invalid quiz limit configuration.');
         }
-        foreach (['competitors', 'facts', 'questions'] as $name) {
-            if (! isset($limits[$name]) || ! is_int($limits[$name]) || $limits[$name] < 0) {
+        foreach (['competitors' => 10, 'facts' => 10, 'questions' => 15] as $name => $maximum) {
+            if (! isset($limits[$name]) || ! is_int($limits[$name]) || $limits[$name] < 0 || $limits[$name] > $maximum) {
                 throw new InvalidArgumentException('Invalid quiz limit configuration.');
             }
         }
