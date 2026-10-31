@@ -5,6 +5,7 @@ namespace Tests\Feature\Shell\Auth;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\User;
+use App\Shell\Auth\Totp;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
@@ -174,6 +175,117 @@ final class FileSessionRaceTest extends TestCase
         } finally {
             if (is_file($base.'.logout-started')) {
                 unlink($base.'.logout-started');
+            }
+        }
+    }
+
+    public function test_mfa_enable_rejects_stale_parallel_remember_login(): void
+    {
+        [$org, $user] = $this->createActor();
+        $base = base_path('.local/tmp/session-mfa-remember-'.Str::random(16));
+        $slow = null;
+        try {
+            $initial = $this->finish($this->start('login', '-', $base, $org->id));
+            $setup = $this->finish($this->start('mfa-setup', $initial['cookie'], $base, $org->id));
+            self::assertIsString($setup['setup_secret']);
+            file_put_contents($base.'.code', app(Totp::class)->at($setup['setup_secret'], intdiv(now()->timestamp, 30)));
+            $slow = $this->start('login-remember-paused', '-', $base, $org->id);
+            $this->waitFile($base.'.user-loaded');
+            $confirm = $this->finish($this->start('mfa-confirm', $setup['cookie'], $base, $org->id));
+            self::assertStringEndsWith('/auth/ready', $confirm['location']);
+            self::assertNotNull($user->fresh()->mfa_confirmed_at);
+            file_put_contents($base.'.release', '1');
+            $stale = $this->finish($slow);
+            $slow = null;
+            self::assertNull($stale['remember']);
+            self::assertNotSame(200, $this->finish($this->start('view', $stale['cookie'], $base, $org->id))['status']);
+            $new = $this->finish($this->start('login-remember', '-', $base, $org->id));
+            self::assertStringEndsWith('/mfa/challenge', $new['location']);
+            self::assertNull($new['remember']);
+        } finally {
+            file_put_contents($base.'.release', '1');
+            if ($slow !== null) {
+                $this->finish($slow);
+            }
+            foreach ([$base.'.release', $base.'.user-loaded', $base.'.code'] as $path) {
+                if (is_file($path)) {
+                    unlink($path);
+                }
+            }
+        }
+    }
+
+    public function test_mfa_enable_waits_for_remember_token_issue_and_revokes_that_cookie(): void
+    {
+        [$org, $user] = $this->createActor();
+        $base = base_path('.local/tmp/session-mfa-lock-'.Str::random(16));
+        $login = null;
+        $confirm = null;
+        try {
+            $initial = $this->finish($this->start('login', '-', $base, $org->id));
+            $setup = $this->finish($this->start('mfa-setup', $initial['cookie'], $base, $org->id));
+            self::assertIsString($setup['setup_secret']);
+            file_put_contents($base.'.code', app(Totp::class)->at($setup['setup_secret'], intdiv(now()->timestamp, 30)));
+            $login = $this->start('login-remember-update-paused', '-', $base, $org->id);
+            $this->waitFile($base.'.token-update');
+            $confirm = $this->start('mfa-confirm', $setup['cookie'], $base, $org->id);
+            $this->waitFile($base.'.confirm-user-loaded');
+            usleep(750000);
+            self::assertTrue(proc_get_status($confirm[0])['running'], 'MFA enable must wait until remember token issuance commits.');
+            file_put_contents($base.'.release', '1');
+            $issued = $this->finish($login);
+            $login = null;
+            self::assertIsString($issued['remember']);
+            self::assertStringEndsWith('/auth/ready', $this->finish($confirm)['location']);
+            $confirm = null;
+            self::assertNotNull($user->fresh()->mfa_confirmed_at);
+            self::assertStringEndsWith('/login', $this->finish($this->start('remember', $issued['remember'], $base, $org->id))['location']);
+            self::assertStringEndsWith('/login', $this->finish($this->start('view', $issued['cookie'], $base, $org->id))['location']);
+        } finally {
+            file_put_contents($base.'.release', '1');
+            if ($login !== null) {
+                $this->finish($login);
+            }
+            if ($confirm !== null) {
+                $this->finish($confirm);
+            }
+            foreach ([$base.'.release', $base.'.token-update', $base.'.confirm-started', $base.'.confirm-user-loaded', $base.'.code'] as $path) {
+                if (is_file($path)) {
+                    unlink($path);
+                }
+            }
+        }
+    }
+
+    public function test_logout_rotates_token_created_after_guard_loaded_stale_user(): void
+    {
+        [$org, $user] = $this->createActor();
+        $base = base_path('.local/tmp/session-logout-remember-'.Str::random(16));
+        $slow = null;
+        try {
+            $initial = $this->finish($this->start('login', '-', $base, $org->id));
+            self::assertEmpty($user->fresh()->getRememberToken());
+            $slow = $this->start('logout-paused', $initial['cookie'], $base, $org->id);
+            $this->waitFile($base.'.user-loaded');
+            $remembered = $this->finish($this->start('login-remember', '-', $base, $org->id));
+            self::assertIsString($remembered['remember']);
+            $issuedToken = $user->fresh()->getRememberToken();
+            self::assertNotEmpty($issuedToken);
+            file_put_contents($base.'.release', '1');
+            self::assertSame(302, $this->finish($slow)['status']);
+            $slow = null;
+            self::assertNotSame($issuedToken, $user->fresh()->getRememberToken());
+            $reused = $this->finish($this->start('remember', $remembered['remember'], $base, $org->id));
+            self::assertStringEndsWith('/login', $reused['location']);
+        } finally {
+            file_put_contents($base.'.release', '1');
+            if ($slow !== null) {
+                $this->finish($slow);
+            }
+            foreach ([$base.'.release', $base.'.user-loaded'] as $path) {
+                if (is_file($path)) {
+                    unlink($path);
+                }
             }
         }
     }

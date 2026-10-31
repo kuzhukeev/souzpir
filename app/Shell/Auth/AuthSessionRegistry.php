@@ -66,7 +66,7 @@ final class AuthSessionRegistry
             }
             DB::table('auth_session_registry')->where('session_hash', $row->session_hash)->update(['expires_at' => $this->expiresAt(), 'updated_at' => now()]);
 
-            return $action();
+            return $action($user);
         });
     }
 

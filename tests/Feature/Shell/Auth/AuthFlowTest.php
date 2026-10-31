@@ -11,11 +11,15 @@ use App\Shell\Auth\Totp;
 use App\Shell\Team\Models\Invitation;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
+use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
@@ -62,6 +66,25 @@ final class AuthFlowTest extends TestCase
         } catch (ValidationException $e) {
             self::assertArrayHasKey('email', $e->errors());
             $this->assertGuest();
+        }
+    }
+
+    public function test_failed_login_completion_clears_remember_cookie_and_rolls_back_token(): void
+    {
+        [, $user] = $this->fixture();
+        $request = Request::create('/login', 'POST');
+        $request->setLaravelSession(app('session.store'));
+        Event::listen(Login::class, fn () => throw new \RuntimeException('login listener failure'));
+
+        try {
+            app(SessionController::class)->complete($request, $user, true, $user->auth_version);
+            self::fail('Expected login to fail.');
+        } catch (\RuntimeException $e) {
+            self::assertSame('login listener failure', $e->getMessage());
+            self::assertFalse(Auth::check());
+            self::assertFalse(Cookie::hasQueued(Auth::guard()->getRecallerName()));
+            self::assertEmpty($user->fresh()->getRememberToken());
+            self::assertNull($request->session()->get('auth.version'));
         }
     }
 
