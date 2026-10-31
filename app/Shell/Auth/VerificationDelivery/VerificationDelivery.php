@@ -7,7 +7,6 @@ use App\Models\User;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
 use App\Shell\Auth\AuthSessionRegistry;
-use App\Shell\Auth\EligibleAccount;
 use App\Tenancy\Cabinet;
 use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
@@ -32,7 +31,7 @@ final class VerificationDelivery
             if ($user->hasVerifiedEmail()) {
                 return ['status' => 'verified', 'id' => null];
             }
-            if (! $this->eligible($user)) {
+            if (! $this->lockEligibility($user)) {
                 throw new AuthorizationException;
             }
             if (! config('features.E1-01D.defaults.enabled')) {
@@ -70,7 +69,7 @@ final class VerificationDelivery
     {
         $this->outsideTransaction();
         $token = bin2hex(random_bytes(32));
-        $claimed = $this->withLockedState($id, function ($intent, $session, $user) use ($token): bool {
+        $claimed = $this->withLockedState($id, function ($intent, $session, $user, bool $eligible) use ($token): bool {
             if ($intent->status !== 'pending') {
                 return false;
             }
@@ -79,7 +78,7 @@ final class VerificationDelivery
 
                 return false;
             }
-            if (! $this->permitted($intent, $session, $user)) {
+            if (! $this->permitted($intent, $session, $user, $eligible)) {
                 $this->transition($intent->id, 'pending', 'cancelled', 'access_revoked');
 
                 return false;
@@ -95,11 +94,11 @@ final class VerificationDelivery
     public function send(DeliveryClaim $claim, VerificationTransport $transport): void
     {
         $this->outsideTransaction();
-        $user = $this->withLockedState($claim->id, function ($intent, $session, $user) use ($claim) {
+        $user = $this->withLockedState($claim->id, function ($intent, $session, $user, bool $eligible) use ($claim) {
             if ($intent->status !== 'sending' || ! is_string($intent->claim_hash) || ! hash_equals($intent->claim_hash, $claim->tokenHash())) {
                 return null;
             }
-            if (! config('features.E1-01D.defaults.enabled') || ! $this->permitted($intent, $session, $user)) {
+            if (! config('features.E1-01D.defaults.enabled') || ! $this->permitted($intent, $session, $user, $eligible)) {
                 $this->transition($intent->id, 'sending', 'cancelled', 'access_revoked');
 
                 return null;
@@ -143,13 +142,14 @@ final class VerificationDelivery
         return DB::transaction(function () use ($id, $ref, $action) {
             $session = DB::table('auth_session_registry')->where('session_hash', $ref->session_hash)->lockForUpdate()->first();
             $user = User::whereKey($ref->user_id)->lockForUpdate()->first();
+            $eligible = $this->lockEligibility($user);
             $intent = DB::table('verification_delivery_intents')->where('id', $id)->where('user_id', $ref->user_id)->where('session_hash', $ref->session_hash)->lockForUpdate()->first();
 
-            return $intent ? $action($intent, $session, $user) : null;
+            return $intent ? $action($intent, $session, $user, $eligible) : null;
         });
     }
 
-    private function permitted(object $intent, ?object $session, ?User $user): bool
+    private function permitted(object $intent, ?object $session, ?User $user, bool $eligible): bool
     {
         if (! $session || ! $user || $session->user_id !== $user->id || $session->revoked_at !== null || CarbonImmutable::parse($session->expires_at)->lessThanOrEqualTo(now()) || (int) $session->auth_version !== $user->auth_version || (int) $intent->auth_version !== $user->auth_version || $user->hasVerifiedEmail() || ! hash_equals($intent->email_fingerprint, $this->emailFingerprint($user))) {
             return false;
@@ -158,14 +158,31 @@ final class VerificationDelivery
             return false;
         }
 
-        return $this->eligible($user);
+        return $eligible;
     }
 
-    private function eligible(User $user): bool
+    /** Lock the organization and all possible access grants until the intent transition commits. */
+    private function lockEligibility(?User $user): bool
     {
-        $org = app(Cabinet::class)->organizationId();
+        if (DB::connection()->transactionLevel() < 1) {
+            throw new LogicException('Eligibility must be checked in a transaction.');
+        }
+        if (! $user) {
+            return false;
+        }
+        $orgId = app(Cabinet::class)->organizationId();
+        $org = Organization::whereKey($orgId)->lockForUpdate()->first();
+        if (! $org || $org->status !== 'active') {
+            return false;
+        }
+        // The same order as invitation acceptance: invitation rows before membership.
+        $invitations = DB::table('invitations')->where('organization_id', $orgId)->where('email', $user->email)->orderBy('id')->lockForUpdate()->get();
+        $membership = DB::table('memberships')->where('organization_id', $orgId)->where('user_id', $user->id)->lockForUpdate()->first();
+        if ($membership && $membership->status === 'active') {
+            return true;
+        }
 
-        return Organization::whereKey($org)->where('status', 'active')->exists() && app(EligibleAccount::class)->includes($user->email);
+        return $invitations->contains(fn ($invitation) => $invitation->accepted_at === null && $invitation->revoked_at === null && CarbonImmutable::parse($invitation->expires_at)->greaterThan(now()));
     }
 
     private function emailFingerprint(User $user): string

@@ -2,6 +2,7 @@
 
 use App\Models\User;
 use App\Shell\Auth\VerificationDelivery\VerificationDelivery;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -25,6 +26,11 @@ $request->setUserResolver(fn () => $user);
 echo 'ready:'.DB::selectOne('select pg_backend_pid() as pid')->pid."\n";
 flush();
 $delivery = app(VerificationDelivery::class);
-$result = $delivery->enqueue($request, $data['key']);
+try {
+    $result = $delivery->enqueue($request, $data['key']);
+} catch (AuthorizationException) {
+    echo 'denied';
+    exit(0);
+}
 $claim = $delivery->claim($result['id']);
 echo json_encode(['id' => $result['id'], 'claimed' => $claim !== null], JSON_THROW_ON_ERROR);

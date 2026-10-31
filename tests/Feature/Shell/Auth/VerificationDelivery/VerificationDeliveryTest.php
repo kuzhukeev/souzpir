@@ -25,6 +25,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
+use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
 use Tests\TestCase;
 
@@ -47,7 +48,7 @@ final class VerificationDeliveryTest extends TestCase
         parent::setUp();
         self::assertSame(config('runtime.test_database'), DB::connection()->getDatabaseName());
         self::assertNotSame(config('runtime.preview_database'), DB::connection()->getDatabaseName());
-        $this->user = User::create(['name' => 'Synthetic', 'email' => 'verification-'.Str::random(12).'@example.test', 'password' => 'test-only-password']);
+        $this->user = User::create(['name' => 'Synthetic', 'email' => 'verification-'.Str::lower(Str::random(12)).'@example.test', 'password' => 'test-only-password']);
         $this->user->refresh();
         $this->org = Organization::create(['name' => 'Synthetic company', 'owner_user_id' => $this->user->id]);
         config(['features.E0-02.defaults.organization_id' => $this->org->id, 'features.E1-01D.defaults.enabled' => true]);
@@ -453,5 +454,104 @@ final class VerificationDeliveryTest extends TestCase
         DB::table('invitations')->where('id', $invitation)->update(['revoked_at' => now()]);
         self::assertNull($this->delivery->claim($intent['id']));
         self::assertSame('cancelled', $this->state($intent['id'])->status);
+    }
+
+    public function test_concurrent_revocation_wins_before_both_claim_and_send(): void
+    {
+        foreach (['claim', 'send'] as $phase) {
+            foreach (['membership', 'organization', 'invitation'] as $kind) {
+                $invitation = null;
+                if ($kind === 'invitation') {
+                    DB::table('memberships')->where('id', $this->membership->id)->update(['status' => 'disabled']);
+                    $invitation = (string) Str::ulid();
+                    DB::table('invitations')->insert(['id' => $invitation, 'organization_id' => $this->org->id, 'email' => $this->user->email, 'role' => 'member', 'token_hash' => hash('sha256', $invitation), 'invited_by' => $this->user->id, 'expires_at' => now()->addHour(), 'created_at' => now(), 'updated_at' => now()]);
+                }
+                $intent = $this->enqueue('revocation-'.$phase.'-'.$kind.'-01');
+                $input = new InputStream;
+                $worker = new Process([PHP_BINARY, '-d', 'sys_temp_dir='.base_path('.local/tmp'), __DIR__.'/Fixtures/revocation-worker.php', $this->org->id, $intent['id'], $phase], base_path(), ['APP_ENV' => 'testing'], $input, 45);
+                try {
+                    $worker->start();
+                    $deadline = microtime(true) + 30;
+                    while (microtime(true) < $deadline && ! preg_match('/ready:(\d+)/', $worker->getOutput(), $match)) {
+                        usleep(10000);
+                    }
+                    self::assertNotEmpty($match[1] ?? null);
+                    DB::beginTransaction();
+                    if ($kind === 'membership') {
+                        DB::table('memberships')->where('id', $this->membership->id)->update(['status' => 'disabled']);
+                    }
+                    if ($kind === 'organization') {
+                        DB::table('organizations')->where('id', $this->org->id)->update(['status' => 'disabled']);
+                    }
+                    if ($kind === 'invitation') {
+                        DB::table('invitations')->where('id', $invitation)->update(['revoked_at' => now()]);
+                    }
+                    $input->write("go\n");
+                    $blocked = false;
+                    while (microtime(true) < $deadline && ! $blocked) {
+                        $worker->isRunning();
+                        $blocked = DB::table('pg_locks')->where('pid', (int) $match[1])->where('granted', false)->exists();
+                        if (! $blocked) {
+                            usleep(10000);
+                        }
+                    }
+                    self::assertTrue($blocked, 'Worker must wait for '.$kind.' revocation');
+                    DB::commit();
+                    $worker->wait();
+                    self::assertSame(0, $worker->getExitCode(), $worker->getErrorOutput());
+                    $result = json_decode(trim(preg_replace('/ready:\d+\s*/', '', $worker->getOutput())), true, 512, JSON_THROW_ON_ERROR);
+                    self::assertSame(['calls' => 0, 'status' => 'cancelled'], $result);
+                } finally {
+                    if (DB::transactionLevel() > 0) {
+                        DB::rollBack();
+                    }
+                    if ($worker->isRunning()) {
+                        $worker->stop();
+                    }
+                    $input->close();
+                    DB::table('memberships')->where('id', $this->membership->id)->update(['status' => 'active']);
+                    DB::table('organizations')->where('id', $this->org->id)->update(['status' => 'active']);
+                    if ($invitation) {
+                        DB::table('invitations')->where('id', $invitation)->update(['revoked_at' => now()]);
+                    }
+                }
+            }
+        }
+    }
+
+    public function test_concurrent_access_revocation_prevents_new_intent(): void
+    {
+        $input = json_encode(['org' => $this->org->id, 'user' => $this->user->id, 'session' => $this->request->session()->getId(), 'key' => 'concurrent-revocation-key'], JSON_THROW_ON_ERROR);
+        $worker = new Process([PHP_BINARY, '-d', 'sys_temp_dir='.base_path('.local/tmp'), __DIR__.'/Fixtures/concurrent-worker.php'], base_path(), ['APP_ENV' => 'testing'], $input, 45);
+        try {
+            DB::beginTransaction();
+            DB::table('memberships')->where('id', $this->membership->id)->update(['status' => 'disabled']);
+            $worker->start();
+            $deadline = microtime(true) + 30;
+            while (microtime(true) < $deadline && ! preg_match('/ready:(\d+)/', $worker->getOutput(), $match)) {
+                usleep(10000);
+            }
+            self::assertNotEmpty($match[1] ?? null);
+            $blocked = false;
+            while (microtime(true) < $deadline && ! $blocked) {
+                $blocked = DB::table('pg_locks')->where('pid', (int) $match[1])->where('granted', false)->exists();
+                if (! $blocked) {
+                    usleep(10000);
+                }
+            }
+            self::assertTrue($blocked);
+            DB::commit();
+            $worker->wait();
+            self::assertSame(0, $worker->getExitCode(), $worker->getErrorOutput());
+            self::assertSame('denied', trim(preg_replace('/ready:\d+\s*/', '', $worker->getOutput())));
+            self::assertSame(0, DB::table('verification_delivery_intents')->count());
+        } finally {
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+            if ($worker->isRunning()) {
+                $worker->stop();
+            }
+        }
     }
 }
