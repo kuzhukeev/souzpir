@@ -1022,6 +1022,14 @@
       ],
       "notificationEvent": false
     },
+    "shell.plan_request.created": {
+      "owner": "SP-E1-12",
+      "schemaVersion": 1,
+      "requiredData": [
+        "ticket_id"
+      ],
+      "notificationEvent": true
+    },
     "shell.member.invited": {
       "owner": "SP-E1-06",
       "schemaVersion": 1,

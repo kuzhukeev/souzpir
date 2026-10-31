@@ -40,7 +40,7 @@ final class TicketDelivery
             try {
                 $email = User::query()->whereKey($ticket->user_id)->value('email');
                 $receipt = Mail::mailer(config('features.E1-12.defaults.mailer'))->to(config('features.E1-12.defaults.recipient'))
-                    ->send(new TicketMail($ticket->id, __('Shell/Support/messages.topics.'.$ticket->subject), __('Shell/Support/messages.modules.'.$ticket->module), $ticket->body, $email));
+                    ->send(new TicketMail($ticket->id, $ticket->type === 'plan_request' ? 'Заявка на смену тарифа' : __('Shell/Support/messages.topics.'.$ticket->subject), __('Shell/Support/messages.modules.'.$ticket->module), $ticket->body, $email));
                 $status = $receipt instanceof SentMessage ? 'sent' : 'uncertain';
             } catch (Throwable) {
                 // Transport exceptions may contain private ticket text or credentials; do not report/log them.
