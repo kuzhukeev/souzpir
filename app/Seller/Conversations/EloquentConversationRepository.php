@@ -68,7 +68,13 @@ final class EloquentConversationRepository implements ConversationRepository
                     abort(409, 'Ключ операции уже используется с другими данными.');
                 }
 
-                return new TurnClaim($existing->status === 'processing' ? 'in_progress' : 'finished', $existing->id, $existing->conversation_id, $existing->organization_id, $existing->brand_id, $existing->base_version, outcome: $existing->outcome);
+                $status = match ($existing->status) {
+                    'processing' => 'in_progress',
+                    'uncertain' => 'uncertain',
+                    default => 'finished',
+                };
+
+                return new TurnClaim($status, $existing->id, $existing->conversation_id, $existing->organization_id, $existing->brand_id, $existing->base_version, outcome: $existing->outcome);
             }
             if ($command->externalEventId !== null && SellerTurn::where('external_event_id', $command->externalEventId)->exists()) {
                 abort(409, 'Входящее событие уже обработано с другим ключом.');
@@ -79,7 +85,7 @@ final class EloquentConversationRepository implements ConversationRepository
             if ($command->expectedVersion !== null && $conversation->version !== $command->expectedVersion) {
                 abort(409, 'Диалог изменился.');
             }
-            if (SellerTurn::where('conversation_id', $conversation->id)->where('status', 'processing')->exists()) {
+            if (SellerTurn::where('conversation_id', $conversation->id)->whereIn('status', ['processing', 'uncertain'])->exists()) {
                 abort(409, 'Диалог уже обрабатывается.');
             }
             $token = bin2hex(random_bytes(32));
@@ -106,7 +112,7 @@ final class EloquentConversationRepository implements ConversationRepository
             throw new LogicException('Suppressed or failed turn cannot create output messages.');
         }
         $context = new TenantContext($claim->organizationId, $claim->brandId, source: 'job');
-        app(TenantContextRunner::class)->run($context, fn () => DB::transaction(function () use ($claim, $outcome, $context): void {
+        $stale = app(TenantContextRunner::class)->run($context, fn () => DB::transaction(function () use ($claim, $outcome, $context): bool {
             ActiveTenantLock::acquire($context);
             $conversation = Conversation::whereKey($claim->conversationId)->lockForUpdate()->firstOrFail();
             $turn = SellerTurn::whereKey($claim->turnId)->lockForUpdate()->firstOrFail();
@@ -116,7 +122,7 @@ final class EloquentConversationRepository implements ConversationRepository
             $hash = CanonicalJson::hash($outcome->toArray());
             if ($turn->status !== 'processing') {
                 if ($turn->outcome_hash && hash_equals($turn->outcome_hash, $hash)) {
-                    return;
+                    return false;
                 }
                 abort(409, 'Обработка уже завершена с другим результатом.');
             }
@@ -128,6 +134,17 @@ final class EloquentConversationRepository implements ConversationRepository
             // derive these actions from verified server-owned stage records.
             if ($outcome->tasks !== [] || $outcome->events !== []) {
                 throw new LogicException('Unverified turn actions are unavailable.');
+            }
+            $currentInput = $turn->cutoff_sequence !== null && Message::whereKey($turn->input_message_id)
+                ->where('conversation_id', $conversation->id)->where('role', 'client')
+                ->where('history_sequence', $turn->cutoff_sequence)->exists();
+            if (! $conversation->history_ready || $turn->base_history_revision === null || $turn->cutoff_sequence === null
+                || (string) $turn->base_history_revision !== (string) $conversation->history_revision
+                || (string) $turn->cutoff_sequence !== (string) $conversation->history_sequence || ! $currentInput) {
+                $turn->status = 'uncertain';
+                $turn->save();
+
+                return true;
             }
             $createdMessages = [];
             foreach ($outcome->messages as $message) {
@@ -149,6 +166,11 @@ final class EloquentConversationRepository implements ConversationRepository
             $turn->outcome = $outcome->toArray();
             $turn->outcome_hash = $hash;
             $turn->save();
+
+            return false;
         }));
+        if ($stale) {
+            abort(409, 'Обработка требует ручной проверки.');
+        }
     }
 }
