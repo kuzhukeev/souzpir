@@ -1,12 +1,14 @@
 <?php
 
+use App\Shell\Support\Contracts\PlanRequestPort;
 use App\Shell\Support\Contracts\ProviderCooldowns;
 use App\Shell\Support\Models\Ticket;
+use App\Shell\Support\PlanRequests;
 use App\Shell\Support\TicketPolicy;
 use App\Shell\Support\UnavailableProviderCooldowns;
 
 return [
-    'bindings' => [ProviderCooldowns::class => UnavailableProviderCooldowns::class],
+    'bindings' => [ProviderCooldowns::class => UnavailableProviderCooldowns::class, PlanRequestPort::class => PlanRequests::class],
     'policies' => [Ticket::class => TicketPolicy::class],
     'defaults' => [
         'mail_enabled' => (bool) env('SUPPORT_MAIL_ENABLED', false),

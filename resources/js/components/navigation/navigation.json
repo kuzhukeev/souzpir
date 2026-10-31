@@ -26,6 +26,13 @@
           "permission": "vision.measure.read"
         },
         {
+          "id": "vision_questions",
+          "label": "Вопросы",
+          "icon": "ClipboardList",
+          "path": "/vision/questions",
+          "permission": "vision.report.read"
+        },
+        {
           "id": "vision_site",
           "label": "Сайт",
           "icon": "Building2",
@@ -110,6 +117,13 @@
           "label": "Интеграции",
           "icon": "Link2",
           "path": "/seller/integrations/catalog"
+        },
+        {
+          "id": "seller_planned_integrations",
+          "label": "Будущие интеграции",
+          "icon": "Link2",
+          "path": "/seller/integrations/planned",
+          "permission": "seller.settings.read"
         },
         {
           "id": "seller_digests",
