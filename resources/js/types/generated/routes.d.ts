@@ -151,6 +151,12 @@ declare module 'ziggy-js' {
     "team.index": [],
     "team.roles.show": [],
     "team.roles.matrix": [],
+    "team.invitations.revoke": [
+        {
+            "name": "invitation",
+            "required": true
+        }
+    ],
     "team.show": [
         {
             "name": "membership",
