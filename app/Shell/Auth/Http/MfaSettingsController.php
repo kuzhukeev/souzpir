@@ -21,6 +21,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -114,7 +115,11 @@ final class MfaSettingsController
                 throw ValidationException::withMessages(['code' => 'Неверный код.']);
             }
             $user->forceFill(['mfa_secret' => null, 'mfa_confirmed_at' => null, 'mfa_last_counter' => null, 'auth_version' => $user->auth_version + 1, 'remember_token' => Str::random(60)])->save();
-            DB::table('mfa_recovery_codes')->where('user_id', $user->id)->delete();
+            // A previous enabled deployment may have issued codes even when the
+            // profile flag is now off. Remove them whenever the table exists.
+            if (Schema::hasTable('mfa_recovery_codes')) {
+                DB::table('mfa_recovery_codes')->where('user_id', $user->id)->delete();
+            }
             app(AuthSessionRegistry::class)->advanceVersion($request, $user->auth_version);
             app(AuditWriter::class)->record(new TenantContext($org, actorId: $user->id), new AuditEntry('account.mfa.disabled', 'user', $user->id));
 

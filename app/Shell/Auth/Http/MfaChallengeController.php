@@ -5,6 +5,7 @@ namespace App\Shell\Auth\Http;
 use App\Shell\Auth\MfaChallenge;
 use App\Shell\Auth\MfaRecoveryTransport;
 use App\Shell\Auth\SecureAccountContext;
+use App\Shell\Profile\ProfileSettingsAvailability;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -19,7 +20,7 @@ final class MfaChallengeController
             return redirect()->route('login');
         }
 
-        return Inertia::render('Shell/Auth/Mfa');
+        return Inertia::render('Shell/Auth/Mfa', ['recoveryAvailable' => app(ProfileSettingsAvailability::class)->ready()]);
     }
 
     public function store(#[\SensitiveParameter] Request $request, SessionController $session): RedirectResponse

@@ -44,7 +44,7 @@ final class MfaRaceTest extends TestCase
 
     private function request(User $user, array $payload): Request
     {
-        $request = Request::create('/mfa/test', 'POST', $payload);
+        $request = Request::create('https://localhost/mfa/test', 'POST', $payload);
         $request->setLaravelSession(app('session.store'));
         $request->setUserResolver(fn () => $user);
 

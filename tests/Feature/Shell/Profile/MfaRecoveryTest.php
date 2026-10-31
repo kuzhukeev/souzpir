@@ -10,6 +10,7 @@ use App\Shell\Auth\Totp;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Schema;
 use Tests\Feature\Tenancy\TenancyTestCase;
 use Tests\Support\MfaTestDatabase;
 
@@ -55,6 +56,7 @@ final class MfaRecoveryTest extends TenancyTestCase
 
     public function test_issue_then_log_in_once_with_a_recovery_code(): void
     {
+        self::assertTrue(config('features.E1-08.defaults.enabled') === true, 'Integration test expects the profile feature enabled.');
         [$user, , $brand] = $this->cabinet();
         $user->forceFill(['mfa_secret' => self::SECRET, 'mfa_confirmed_at' => now()])->save();
         $this->actingAs($user)->withSession(['brand_id' => $brand->id]);
@@ -101,6 +103,41 @@ final class MfaRecoveryTest extends TenancyTestCase
         $this->postJson('https://souzpir.local/profile/security/mfa/recovery', ['code' => $totp])->assertOk();
         $this->postJson('https://souzpir.local/profile/security/mfa/recovery', ['code' => $totp])->assertUnprocessable();
         $this->assertDatabaseCount('mfa_recovery_codes', 10);
+    }
+
+    public function test_disabling_mfa_while_feature_off_revokes_old_recovery_codes(): void
+    {
+        [$user, , $brand] = $this->cabinet();
+        $user->forceFill(['mfa_secret' => self::SECRET, 'mfa_confirmed_at' => now()])->save();
+        $this->actingAs($user)->withSession(['brand_id' => $brand->id]);
+        $first = app(Totp::class)->at(self::SECRET, intdiv(now()->timestamp, 30));
+        $codes = $this->postJson('https://souzpir.local/profile/security/mfa/recovery', ['code' => $first])->assertOk()->json('codes');
+        config(['features.E1-08.defaults.enabled' => false]);
+        $this->travel(31)->seconds();
+        $disable = app(Totp::class)->at(self::SECRET, intdiv(now()->timestamp, 30));
+        $this->post('https://souzpir.local/mfa/disable', ['password' => 'test-only-password', 'code' => $disable])->assertRedirect(route('auth.ready'));
+        self::assertSame(0, DB::table('mfa_recovery_codes')->where('user_id', $user->id)->count());
+        $this->post('https://souzpir.local/mfa/setup', ['password' => 'test-only-password'])->assertRedirect(route('mfa.setup'));
+        $newSecret = session('auth.mfa_setup.secret');
+        self::assertIsString($newSecret);
+        $newCode = app(Totp::class)->at($newSecret, intdiv(now()->timestamp, 30));
+        $this->post('https://souzpir.local/mfa/setup/confirm', ['code' => $newCode])->assertRedirect(route('auth.ready'));
+        $fresh = $user->fresh();
+        config(['features.E1-08.defaults.enabled' => true]);
+        $pending = ['user_id' => $fresh->id, 'version' => $fresh->auth_version, 'expires' => now()->addMinute()->timestamp];
+        self::assertNull(app(MfaChallenge::class)->verify($pending, MfaCode::parse($codes[0])));
+    }
+
+    public function test_legacy_mfa_disable_survives_missing_recovery_table(): void
+    {
+        [$user, , $brand] = $this->cabinet();
+        $user->forceFill(['mfa_secret' => self::SECRET, 'mfa_confirmed_at' => now()])->save();
+        $this->actingAs($user)->withSession(['brand_id' => $brand->id]);
+        config(['features.E1-08.defaults.enabled' => false]);
+        Schema::drop('mfa_recovery_codes');
+        $code = app(Totp::class)->at(self::SECRET, intdiv(now()->timestamp, 30));
+        $this->post('https://souzpir.local/mfa/disable', ['password' => 'test-only-password', 'code' => $code])->assertRedirect(route('auth.ready'));
+        self::assertNull($user->fresh()->mfa_confirmed_at);
     }
 
     public function test_input_boundary_erases_raw_code_before_downstream_and_exception_trace(): void

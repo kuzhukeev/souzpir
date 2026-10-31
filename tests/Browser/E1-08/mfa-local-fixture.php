@@ -4,6 +4,7 @@ use App\Models\Brand;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\User;
+use App\Shell\Profile\ProfileSettingsAvailability;
 use App\Tenancy\Cabinet;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
@@ -15,6 +16,9 @@ require __DIR__.'/../../../vendor/autoload.php';
 $app = require __DIR__.'/../../../bootstrap/app.php';
 $app->make(Kernel::class)->bootstrap();
 MfaTestDatabase::assert(localFixture: true);
+if (! app(ProfileSettingsAvailability::class)->configured()) {
+    throw new LogicException('Synthetic MFA fixture requires PROFILE_SETTINGS_ENABLED=true.');
+}
 Artisan::call('migrate:fresh', ['--force' => true, '--no-interaction' => true]);
 $id = app(Cabinet::class)->organizationId();
 if (Organization::whereKey($id)->exists() || User::where('email', 'mfa-recovery@example.test')->exists()) {

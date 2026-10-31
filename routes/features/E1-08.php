@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Route;
 
 return [
     'auth' => static function (): void {
-        Route::middleware(['verified', 'auth.version', 'auth.nostore', 'profile.context'])->group(static function (): void {
+        Route::middleware(['profile.enabled', 'verified', 'auth.version', 'auth.nostore', 'profile.context'])->group(static function (): void {
             Route::get('/settings/profile', [ProfileController::class, 'show'])->name('profile.legacy.profile');
             Route::get('/settings/notifications', [NotificationController::class, 'show'])->name('profile.legacy.notifications');
             Route::get('/settings/security', [SecurityController::class, 'show'])->name('profile.legacy.security');
@@ -45,6 +45,6 @@ return [
         });
     },
     'webhook' => static function (): void {
-        Route::post('/profile/telegram', [TelegramController::class, 'webhook'])->middleware('throttle:60,1,profile-telegram-webhook:')->name('profile.telegram.webhook');
+        Route::post('/profile/telegram', [TelegramController::class, 'webhook'])->middleware(['profile.enabled', 'throttle:60,1,profile-telegram-webhook:'])->name('profile.telegram.webhook');
     },
 ];

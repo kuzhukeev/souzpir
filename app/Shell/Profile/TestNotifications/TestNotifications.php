@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
 use App\Shell\Profile\ProfileAccess;
+use App\Shell\Profile\ProfileSettingsAvailability;
 use App\Tenancy\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -57,6 +58,11 @@ final class TestNotifications
 
     public function deliver(string $id): void
     {
+        if (! app(ProfileSettingsAvailability::class)->ready()) {
+            // The queued job fails rather than being falsely marked delivered;
+            // an operator may requeue it after the feature is restored.
+            throw new LogicException('Profile notification delivery is disabled or not ready.');
+        }
         if (DB::transactionLevel() !== 0) {
             throw new LogicException('External test delivery must run outside a transaction.');
         }

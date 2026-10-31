@@ -26,7 +26,7 @@ final class EmailChanges
 {
     public function available(): bool
     {
-        if (! SecureAccountContext::canonicalEmailAllowed() || ! config('features.E1-08.defaults.email_change_enabled', false)) {
+        if (! app(ProfileSettingsAvailability::class)->ready() || ! SecureAccountContext::canonicalEmailAllowed() || ! config('features.E1-08.defaults.email_change_enabled', false)) {
             return false;
         }
 
@@ -91,6 +91,9 @@ final class EmailChanges
     /** A durable intent is claimed once; uncertain sends are never retried automatically. */
     public function deliver(string $id): void
     {
+        if (! app(ProfileSettingsAvailability::class)->ready()) {
+            throw new LogicException('Profile email delivery is disabled or not ready.');
+        }
         if (DB::transactionLevel() !== 0) {
             throw new LogicException('Email delivery must run outside a database transaction.');
         }

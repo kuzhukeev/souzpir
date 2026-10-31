@@ -84,7 +84,7 @@ export function Sidebar({
     if (item.permission && props.can?.[item.permission] !== true) return null;
     if (item.id === 'seller_digests' && props.modules?.seller !== true) return null;
     const Icon = icons[item.icon];
-    const exists = Object.values(props.ziggy?.routes ?? {}).some(
+    const exists = !(item.id === 'settings' && props.profileSettingsAvailable === false) && Object.values(props.ziggy?.routes ?? {}).some(
       (route) =>
         route.uri.replace(/^\//, '') === item.path.replace(/^\//, '') &&
         route.methods.includes('GET'),

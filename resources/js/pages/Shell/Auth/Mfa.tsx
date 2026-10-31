@@ -5,7 +5,7 @@ import type { FormEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 
-export default function Mfa() {
+export default function Mfa({ recoveryAvailable = false }: { recoveryAvailable?: boolean }) {
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -64,9 +64,9 @@ export default function Mfa() {
         <Button type="submit" loading={busy} className="min-h-12 w-full">
           Подтвердить
         </Button>
-        <button type="button" className="cursor-pointer text-sm text-(--color-link)" onClick={() => { setRecovery(!recovery); setCode(''); setError(''); }}>
+        {recoveryAvailable && <button type="button" className="cursor-pointer text-sm text-(--color-link)" onClick={() => { setRecovery(!recovery); setCode(''); setError(''); }}>
           {recovery ? 'Использовать код приложения' : 'Использовать резервный код'}
-        </button>
+        </button>}
       </form>
       <p className="mt-6 text-center text-sm">
         <Link href="/login" className={linkClass}>
