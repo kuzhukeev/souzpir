@@ -1397,6 +1397,7 @@
         "SP-F-03"
       ],
       "scope": [
+        "infra/database/",
         "app/Shell/Team/",
         "config/features/E1-06.php",
         "database/factories/Shell/Team/",
