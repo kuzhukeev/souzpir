@@ -48,4 +48,19 @@ final class DataExportValidationTest extends TenancyTestCase
         $this->assertDatabaseHas('audit_logs', ['organization_id' => $org->id, 'subject_type' => 'user',
             'subject_id' => $member->id, 'action' => 'data.marketing_consent.changed']);
     }
+
+    public function test_viewer_can_change_only_own_marketing_consent_through_web_route(): void
+    {
+        [, $org, $brand] = $this->cabinet();
+        [$viewer] = $this->member($org, 'viewer', [$brand->id]);
+        [$other] = $this->member($org, 'viewer', [$brand->id]);
+        $this->actingAs($viewer)->withSession(['brand_id' => $brand->id]);
+
+        $this->patch('/settings/data/consents', ['marketing_opt_in' => true])
+            ->assertRedirect('/settings/data')->assertSessionHasNoErrors();
+        self::assertTrue((bool) $viewer->fresh()->marketing_opt_in);
+        self::assertFalse((bool) $other->fresh()->marketing_opt_in);
+        $this->assertDatabaseHas('audit_logs', ['organization_id' => $org->id, 'subject_type' => 'user',
+            'subject_id' => $viewer->id, 'action' => 'data.marketing_consent.changed']);
+    }
 }

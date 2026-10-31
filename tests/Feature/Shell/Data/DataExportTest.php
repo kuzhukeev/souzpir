@@ -58,6 +58,8 @@ final class DataExportTest extends TenancyTestCase
         self::assertSame('2026-01-31T21:00:00+00:00', $record['data']['until']);
         $url = '/settings/data/exports/'.$row->id.'/download';
         $this->get($url)->assertOk()->assertHeader('Content-Type', 'application/zip');
+        $this->assertDatabaseHas('audit_logs', ['organization_id' => $org->id, 'subject_id' => $row->id, 'action' => 'data.export.download_requested']);
+        self::assertSame(1, DB::table('audit_logs')->where('subject_id', $row->id)->where('action', 'data.export.download_requested')->count());
         $this->withSession(['brand_id' => $sibling->id])->get($url)->assertNotFound();
         config(['features.E0-02.defaults.organization_id' => $foreignOrg->id]);
         $this->actingAs($foreignOwner)->withSession(['brand_id' => $foreignBrand->id])->get($url)->assertNotFound();
@@ -66,6 +68,7 @@ final class DataExportTest extends TenancyTestCase
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
         Storage::disk('local')->put($row->path, 'tampered');
         $this->get($url)->assertStatus(409);
+        self::assertSame(1, DB::table('audit_logs')->where('subject_id', $row->id)->where('action', 'data.export.download_requested')->count());
         DB::table('data_exports')->where('id', $row->id)->update(['expires_at' => now()->subSecond()]);
         $this->get($url)->assertNotFound();
         $this->assertDatabaseHas('audit_logs', ['organization_id' => $org->id, 'action' => 'data.export.created']);

@@ -45,6 +45,14 @@ final class DataController
     {
         $ctx = app(TenantContext::class);
         $canExport = $this->active($request, $ctx, fn () => $this->isOwner($ctx), false);
+        // Opportunistic cleanup is limited to this organization; the scheduled
+        // command handles periods without user visits. Never block the screen on
+        // cleanup errors or log tenant IDs / filesystem paths.
+        try {
+            app(PruneExports::class)->pruneOrganization($ctx->requireOrganizationId(), 20, 100);
+        } catch (\Throwable) {
+            logger()->warning('Data export cleanup failed.');
+        }
         $lastConsent = DB::table('audit_logs')->where('organization_id', $ctx->organizationId)->where('subject_type', 'user')->where('subject_id', $ctx->actorId)->where('action', 'data.marketing_consent.changed')->orderByDesc('created_at')->orderByDesc('id')->first();
         $consentAfter = $lastConsent ? json_decode($lastConsent->after ?? 'null', true) : null;
         $consentDate = is_array($consentAfter) && array_key_exists('marketing_opt_in', $consentAfter) && $consentAfter['marketing_opt_in'] === (bool) $request->user()->marketing_opt_in ? $lastConsent->created_at : null;
@@ -106,8 +114,14 @@ final class DataController
         $jsonPath = $disk->path($dir.'/'.$id.'.jsonl.tmp');
         $zipPath = $disk->path($dir.'/'.$id.'.zip.tmp');
         $final = $dir.'/'.$id.'.zip';
+        // The per-export sentinel is shared with cleanup, including during publication.
+        $fileLock = ExportFileLock::acquire($disk->path($dir.'/'.$id.'.lock'), LOCK_SH);
+        if ($fileLock === false) abort(503);
         $file = fopen($jsonPath, 'xb');
-        if ($file === false) abort(503);
+        if ($file === false) {
+            fclose($fileLock);
+            abort(503);
+        }
         try {
             $this->active($request, $ctx, static fn () => null);
             foreach ($contributors[$data['module']]->stream($ctx, new ExportQuery($from, $until)) as $record) {
@@ -136,14 +150,17 @@ final class DataController
                 ]);
                 app(AuditWriter::class)->record($ctx, new AuditEntry('data.export.created', 'data_export', $id, after: ['module' => $data['module']]));
             });
+            @unlink($jsonPath);
         } catch (\Throwable $error) {
             if (is_resource($file)) fclose($file);
             @unlink($jsonPath);
             @unlink($zipPath);
             $disk->delete($final);
             throw $error;
+        } finally {
+            // Release after success or all rollback cleanup; the empty sentinel stays.
+            fclose($fileLock);
         }
-        @unlink($jsonPath);
         return redirect()->route('data.index');
     }
 
@@ -158,38 +175,56 @@ final class DataController
             abort_unless($row->path === $expected && $disk->exists($expected), 404);
             return $row;
         });
-        // Hashing can be slow; do not prevent logout while reading the archive.
-        $actual = hash_file('sha256', $disk->path($row->path));
-        $row = $this->active($request, $ctx, function () use ($ctx, $id, $row, $actual) {
-            $fresh = $this->exportRow($ctx, $id);
-            abort_unless($fresh->path === $row->path && is_string($actual)
-                && hash_equals($fresh->sha256, $actual), 409);
-            app(AuditWriter::class)->record($ctx, new AuditEntry('data.export.downloaded', 'data_export', $id));
-            return $fresh;
-        });
+        $lockPath = $disk->path('data-exports/'.$ctx->organizationId.'/'.$id.'.lock');
+        $fileLock = ExportFileLock::acquire($lockPath, LOCK_SH);
+        if ($fileLock === false) abort(503);
+        $file = false;
+        try {
+            // Keep a single opened descriptor throughout validation and transfer.
+            // Cleanup must take the same sentinel exclusively before deleting.
+            $file = @fopen($disk->path($row->path), 'rb');
+            if ($file === false) abort(404);
+            $hash = hash_init('sha256');
+            if (hash_update_stream($hash, $file) === false || ! rewind($file)) abort(503);
+            $actual = hash_final($hash);
+            $row = $this->active($request, $ctx, function () use ($ctx, $id, $row, $actual) {
+                $fresh = $this->exportRow($ctx, $id);
+                abort_unless($fresh->path === $row->path && hash_equals($fresh->sha256, $actual), 409);
+                // This records authorization of a request, not successful delivery.
+                app(AuditWriter::class)->record($ctx, new AuditEntry('data.export.download_requested', 'data_export', $id));
+                return $fresh;
+            });
+        } catch (\Throwable $error) {
+            if (is_resource($file)) fclose($file);
+            fclose($fileLock);
+            throw $error;
+        }
 
-        return response()->streamDownload(function () use ($request, $ctx, $id, $row, $disk): void {
-            $file = fopen($disk->path($row->path), 'rb');
-            if ($file === false) return;
+        return response()->streamDownload(function () use ($request, $ctx, $id, $file, $fileLock): void {
             try {
                 while (! feof($file) && ! connection_aborted()) {
                     try {
-                        $hasData = $this->active($request, $ctx, function () use ($ctx, $id, $file): bool {
+                        $chunk = $this->active($request, $ctx, function () use ($ctx, $id, $file): string {
                             $this->exportRow($ctx, $id);
                             $chunk = fread($file, 65536);
-                            if ($chunk === false || $chunk === '') return false;
-                            echo $chunk;
-                            if (ob_get_level() > 0) ob_flush();
-                            flush();
-                            return true;
+                            if ($chunk === false) throw new \RuntimeException('Export read failed.');
+                            return $chunk;
                         });
-                        if (! $hasData) break;
+                        if ($chunk === '') break;
+                        // The transaction and its shared tenant/session locks are
+                        // already released before potentially blocking network I/O.
+                        // One authorized chunk (at most 64 KiB) may be in flight
+                        // when logout commits; every following chunk is rechecked.
+                        echo $chunk;
+                        if (ob_get_level() > 0) ob_flush();
+                        flush();
                     } catch (AuthenticationException | \Symfony\Component\HttpKernel\Exception\HttpException $error) {
                         break;
                     }
                 }
             } finally {
                 fclose($file);
+                fclose($fileLock);
             }
         }, 'data-export-'.$id.'.zip', ['Content-Type' => 'application/zip', 'Cache-Control' => 'private, no-store', 'X-Content-Type-Options' => 'nosniff']);
     }

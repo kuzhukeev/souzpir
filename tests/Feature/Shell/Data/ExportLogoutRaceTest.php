@@ -24,15 +24,16 @@ final class ExportLogoutRaceTest extends TestCase
 
     protected function beforeRefreshingDatabase(): void
     {
-        $expected = 'souzpir_test_'.str_replace('-', '_', basename(base_path()));
-        if (! app()->environment('testing') || basename(dirname(base_path())) !== '.worktrees'
-            || DB::connection()->getDatabaseName() !== $expected || config('runtime.test_database') !== $expected
+        $expected = config('runtime.test_database');
+        if (! app()->environment('testing') || config('database.default') !== 'pgsql'
+            || ! is_string($expected) || ! preg_match('/(?:^|_)test(?:_|$)/i', $expected)
+            || DB::connection()->getDatabaseName() !== $expected
             || config('runtime.preview_database') === $expected) {
             throw new \LogicException('Isolated test database required.');
         }
     }
 
-    public function test_logout_waits_for_current_chunk_and_stops_subsequent_chunks(): void
+    public function test_logout_does_not_wait_for_blocked_download_and_stops_subsequent_chunks(): void
     {
         $user = User::create(['name' => 'Synthetic', 'email' => Str::random(16).'@example.test', 'password' => 'synthetic-password']);
         $user->refresh();
@@ -68,22 +69,16 @@ final class ExportLogoutRaceTest extends TestCase
             fwrite($pipes[0], json_encode($data + ['mode' => 'stream', 'marker' => $markerDir.'/stream'], JSON_THROW_ON_ERROR)."\n");
             fclose($pipes[0]);
             $this->waitFile($markerDir.'/stream');
-            // No stdout is read yet: a slow client fills the OS pipe while a chunk owns the session lock.
+            // Do not read stdout: a slow client fills the OS pipe during transmission.
             usleep(500000);
             [$logout, $logoutInput] = $this->worker($data + ['mode' => 'logout', 'marker' => $markerDir.'/logout']);
             $this->waitFile($markerDir.'/logout', $logout);
-            $pid = (int) json_decode(file_get_contents($markerDir.'/logout'), true, flags: JSON_THROW_ON_ERROR)['pid'];
-            $deadline = microtime(true) + 15;
-            while (! DB::table('pg_locks')->where('pid', $pid)->where('granted', false)->exists() && microtime(true) < $deadline) usleep(10000);
-            self::assertTrue(DB::table('pg_locks')->where('pid', $pid)->where('granted', false)->exists(), 'Logout must wait for the current chunk.');
-            $received = '';
-            $deadline = microtime(true) + 20;
-            do {
-                $received .= fread($pipes[1], 8192);
-            } while ($logout->isRunning() && microtime(true) < $deadline && ! feof($pipes[1]));
+            // Logout must finish while the download pipe is still blocked and unread.
+            $logout->setTimeout(10);
             $logout->wait();
             self::assertSame(0, $logout->getExitCode(), $logout->getErrorOutput());
-            $received .= stream_get_contents($pipes[1]);
+            self::assertNotNull(DB::table('auth_session_registry')->where('user_id', $user->id)->value('revoked_at'));
+            $received = stream_get_contents($pipes[1]);
             $errors = stream_get_contents($pipes[2]);
             fclose($pipes[1]); fclose($pipes[2]); $pipes = [];
             self::assertSame(0, proc_close($download), $errors);
