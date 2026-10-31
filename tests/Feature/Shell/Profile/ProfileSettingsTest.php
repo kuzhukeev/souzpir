@@ -34,6 +34,7 @@ final class ProfileSettingsTest extends TenancyTestCase
         [$user,$org,$brand] = $this->cabinet();
         [$other] = $this->member($org, 'viewer', [$brand->id]);
         $this->actingAs($user)->withSession(['brand_id' => $brand->id]);
+        $this->withHeader('X-Brand-Revision', $this->get('/profile')->assertOk()->viewData('page')['props']['profileBrandRevision']);
         $this->put('/profile', ['name' => 'Новое имя', 'phone' => '+7 (999) 111-22-33', 'timezone' => 'Asia/Tokyo', 'language' => 'ru', 'user_id' => $other->id, 'email' => 'stolen@example.test', 'role' => 'admin'])->assertRedirect('/profile');
         $this->assertSame('Новое имя', $user->fresh()->name);
         $this->assertSame('Test actor', $other->fresh()->name);
@@ -47,7 +48,9 @@ final class ProfileSettingsTest extends TenancyTestCase
     {
         [, $org,$brand] = $this->cabinet();
         [$viewer] = $this->member($org, 'viewer', [$brand->id]);
-        $this->actingAs($viewer)->withSession(['brand_id' => $brand->id])->put('/profile', ['name' => 'Зритель', 'phone' => null, 'timezone' => null, 'language' => 'ru'])->assertRedirect('/profile');
+        $this->actingAs($viewer)->withSession(['brand_id' => $brand->id]);
+        $this->withHeader('X-Brand-Revision', $this->get('/profile')->assertOk()->viewData('page')['props']['profileBrandRevision']);
+        $this->put('/profile', ['name' => 'Зритель', 'phone' => null, 'timezone' => null, 'language' => 'ru'])->assertRedirect('/profile');
         $this->assertSame('Зритель', $viewer->fresh()->name);
     }
 
@@ -65,6 +68,22 @@ final class ProfileSettingsTest extends TenancyTestCase
         $this->get('/profile')->assertViewHas('page', fn ($p) => $p['props']['profile']['timezone'] === null && $p['props']['profile']['effective_timezone'] === $brand->fresh()->timezone);
     }
 
+    public function test_profile_verification_request_uses_the_real_inertia_version_and_revision(): void
+    {
+        [$user, , $brand] = $this->cabinet();
+        $this->actingAs($user)->withSession(['brand_id' => $brand->id]);
+        $initial = $this->get('/profile')->assertOk()->viewData('page');
+
+        $verified = $this->get('/profile', [
+            'Accept' => 'text/html, application/xhtml+xml',
+            'X-Requested-With' => 'XMLHttpRequest',
+            'X-Inertia' => 'true',
+            'X-Inertia-Version' => $initial['version'] ?? '',
+        ])->assertOk()->assertHeader('X-Inertia', 'true');
+        $verified->assertJsonPath('props.profileBrandRevision', $initial['props']['profileBrandRevision']);
+        $verified->assertJsonPath('props.profile.name', $user->name);
+    }
+
     public function test_profile_audit_failure_rolls_back_storage(): void
     {
         [$user,,$brand] = $this->cabinet();
@@ -75,7 +94,9 @@ final class ProfileSettingsTest extends TenancyTestCase
                 throw new \RuntimeException('audit unavailable');
             }
         });
-        $this->actingAs($user)->withSession(['brand_id' => $brand->id])->put('/profile', ['name' => 'Changed', 'timezone' => 'UTC', 'language' => 'ru'])->assertStatus(500);
+        $this->actingAs($user)->withSession(['brand_id' => $brand->id]);
+        $this->withHeader('X-Brand-Revision', $this->get('/profile')->assertOk()->viewData('page')['props']['profileBrandRevision']);
+        $this->put('/profile', ['name' => 'Changed', 'timezone' => 'UTC', 'language' => 'ru'])->assertStatus(500);
         $this->assertSame('Test actor', $user->fresh()->name);
         $this->assertDatabaseCount('profile_preferences', 0);
     }
@@ -205,7 +226,9 @@ final class ProfileSettingsTest extends TenancyTestCase
     public function test_timezone_only_change_does_not_claim_name_or_phone_changed(): void
     {
         [$user, , $brand] = $this->cabinet();
-        $this->actingAs($user)->withSession(['brand_id' => $brand->id])->put('/profile', ['name' => $user->name, 'phone' => null, 'timezone' => 'Asia/Tokyo', 'language' => 'ru'])->assertRedirect();
+        $this->actingAs($user)->withSession(['brand_id' => $brand->id]);
+        $this->withHeader('X-Brand-Revision', $this->get('/profile')->assertOk()->viewData('page')['props']['profileBrandRevision']);
+        $this->put('/profile', ['name' => $user->name, 'phone' => null, 'timezone' => 'Asia/Tokyo', 'language' => 'ru'])->assertRedirect();
         $after = json_decode(DB::table('audit_logs')->where('action', 'profile.updated')->value('after'), true);
         $this->assertFalse($after['name_changed']);
         // phone-related audit fields are redacted by the shared audit contract.
