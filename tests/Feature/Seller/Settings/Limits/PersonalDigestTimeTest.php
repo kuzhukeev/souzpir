@@ -16,9 +16,8 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
-use Tests\Feature\Tenancy\TenancyTestCase;
 
-final class PersonalDigestTimeTest extends TenancyTestCase
+final class PersonalDigestTimeTest extends LimitsTestCase
 {
     private const HANDOFF = 'seller.conversation.handed_off';
 
@@ -103,7 +102,7 @@ final class PersonalDigestTimeTest extends TenancyTestCase
         CarbonImmutable::setTestNow('2026-10-31T08:31:00Z');
         app(DigestService::class)->run();
         $this->assertDatabaseHas('seller_digest_batches', ['user_id' => $owner->id, 'slot_date' => '2026-10-31', 'status' => 'sent']);
-        $this->put('/seller/settings/notifications/digests/time', ['digest_time' => '17:15'])->assertRedirect();
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->put('/seller/settings/notifications/digests/time', ['digest_time' => '17:15'])->assertRedirect('/seller/settings/notifications/digests');
         $third = $this->event($org, $brand, self::HANDOFF);
         $this->route($third, $owner);
         $item = DB::table('seller_digest_items')->where('event_id', $third->envelope['event_id'])->sole();

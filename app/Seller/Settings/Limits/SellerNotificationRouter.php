@@ -30,7 +30,8 @@ final class SellerNotificationRouter implements NotificationRouter
         if (DB::transactionLevel() < 1 || ! in_array($channel, ['cabinet', 'email', 'telegram'], true)) {
             throw new LogicException('Seller notification routing requires the outbox transaction and a known channel.');
         }
-        if ($member->organization_id !== $e['organization_id'] || ! app(RecipientPolicy::class)->permits($member, $e['brand_id'], $e['type'])) {
+        $member = $this->lockedMember($e['organization_id'], $e['brand_id'], $member);
+        if (! $member || ! app(RecipientPolicy::class)->permits($member, $e['brand_id'], $e['type'])) {
             return 'skip';
         }
         $rule = DB::table('seller_notification_rules')->where(['organization_id' => $e['organization_id'], 'brand_id' => $e['brand_id'], 'event_key' => $e['type']])->first();
@@ -114,16 +115,37 @@ final class SellerNotificationRouter implements NotificationRouter
     public function allowsImmediate(DomainEvent $event, Membership $member, string $channel): bool
     {
         $e = $event->envelope;
-        if (! in_array($channel, ['cabinet', 'email', 'telegram'], true)
-            || $member->organization_id !== $e['organization_id']
-            || ! app(RecipientPolicy::class)->permits($member, $e['brand_id'], $e['type'])) {
-            return false;
-        }
         if (! in_array($e['type'], self::EVENTS, true)) {
             return true;
         }
-        $rule = DB::table('seller_notification_rules')->where(['organization_id' => $e['organization_id'], 'brand_id' => $e['brand_id'], 'event_key' => $e['type']])->first();
+        if (! in_array($channel, ['cabinet', 'email', 'telegram'], true)) {
+            return false;
+        }
 
-        return ! $rule || ((bool) $rule->{$channel} && $rule->timing === 'immediate' && $this->matches($member, $rule->recipient));
+        return DB::transaction(function () use ($e, $member, $channel): bool {
+            $fresh = $this->lockedMember($e['organization_id'], $e['brand_id'], $member);
+            if (! $fresh || ! app(RecipientPolicy::class)->permits($fresh, $e['brand_id'], $e['type'])) {
+                return false;
+            }
+            $rule = DB::table('seller_notification_rules')->where(['organization_id' => $e['organization_id'], 'brand_id' => $e['brand_id'], 'event_key' => $e['type']])->first();
+
+            return ! $rule || ((bool) $rule->{$channel} && $rule->timing === 'immediate' && $this->matches($fresh, $rule->recipient));
+        });
+    }
+
+    /** Caller holds a transaction; organization lock serializes module and tenant changes. */
+    private function lockedMember(string $organization, string $brand, Membership $member): ?Membership
+    {
+        if ($member->organization_id !== $organization
+            || ! DB::table('organizations')->where('id', $organization)->where('status', 'active')->lockForUpdate()->first()
+            || ! DB::table('brands')->where('id', $brand)->where('organization_id', $organization)->where('status', 'active')->lockForUpdate()->first()) {
+            return null;
+        }
+        $fresh = Membership::withoutGlobalScopes()->whereKey($member->id)->where('organization_id', $organization)->where('user_id', $member->user_id)->where('status', 'active')->lockForUpdate()->first();
+        if (! $fresh || ! $fresh->permitsBrand($brand) || ! app(SellerModuleAccess::class)->enabled($organization, $brand)) {
+            return null;
+        }
+
+        return $fresh;
     }
 }

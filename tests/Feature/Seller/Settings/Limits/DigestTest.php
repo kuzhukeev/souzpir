@@ -14,9 +14,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
-use Tests\Feature\Tenancy\TenancyTestCase;
 
-final class DigestTest extends TenancyTestCase
+final class DigestTest extends LimitsTestCase
 {
     private const EVENT = 'seller.conversation.handed_off';
 
@@ -72,6 +71,35 @@ final class DigestTest extends TenancyTestCase
         app(DigestService::class)->run();
         $this->assertDatabaseHas('seller_digest_batches', ['user_id' => $owner->id, 'status' => 'cancelled']);
         $this->assertDatabaseCount('seller_digest_cabinet_notifications', 0);
+    }
+
+    public function test_disabled_module_cancels_queued_digest_before_delivery(): void
+    {
+        [$owner, $org, $brand] = $this->queued();
+        DB::table('brand_modules')->where('brand_id', $brand->id)->where('module', 'seller')->update(['enabled' => false]);
+        app(DigestService::class)->run();
+        $this->assertDatabaseHas('seller_digest_batches', ['user_id' => $owner->id, 'status' => 'cancelled']);
+        $this->assertDatabaseCount('seller_digest_cabinet_notifications', 0);
+    }
+
+    public function test_personal_opt_out_cancels_queued_digest_before_delivery(): void
+    {
+        [$owner, $org, $brand] = $this->queued();
+        DB::table('notification_settings')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $brand->id, 'user_id' => $owner->id, 'event_key' => self::EVENT, 'channel' => 'cabinet', 'enabled' => false, 'created_at' => now(), 'updated_at' => now()]);
+        app(DigestService::class)->run();
+        $this->assertDatabaseHas('seller_digest_batches', ['user_id' => $owner->id, 'status' => 'cancelled']);
+        $this->assertDatabaseCount('seller_digest_cabinet_notifications', 0);
+    }
+
+    public function test_disabled_module_cancels_queued_test_before_delivery(): void
+    {
+        [$owner, $org, $brand] = $this->cabinet();
+        Queue::fake();
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->post('/seller/settings/notifications/test', ['event' => self::EVENT, 'channel' => 'cabinet', 'key' => (string) Str::uuid()])->assertRedirect();
+        DB::table('brand_modules')->where('brand_id', $brand->id)->where('module', 'seller')->update(['enabled' => false]);
+        app(TestDeliveryService::class)->deliver(DB::table('seller_test_deliveries')->value('id'));
+        $this->assertDatabaseHas('seller_test_deliveries', ['user_id' => $owner->id, 'status' => 'cancelled']);
+        $this->assertDatabaseCount('seller_test_cabinet_notifications', 0);
     }
 
     public function test_delivered_event_is_hidden_if_recipient_role_loses_permission(): void

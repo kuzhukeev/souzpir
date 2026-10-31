@@ -11,9 +11,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-use Tests\Feature\Tenancy\TenancyTestCase;
 
-final class LimitsTest extends TenancyTestCase
+final class LimitsTest extends LimitsTestCase
 {
     public function test_real_counts_limits_and_units_are_scoped_without_usd(): void
     {

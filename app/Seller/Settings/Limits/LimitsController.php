@@ -19,6 +19,7 @@ final class LimitsController
         Gate::authorize('seller.dialogs.read');
         $organization = $context->requireOrganizationId();
         $brand = $context->brandId ?? abort(404);
+        abort_unless(app(SellerModuleAccess::class)->enabled($organization, $brand), 404);
         $from = CarbonImmutable::now('UTC')->startOfMonth();
         $to = $from->addMonth();
         $map = [

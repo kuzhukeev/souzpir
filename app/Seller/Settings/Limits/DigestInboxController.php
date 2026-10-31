@@ -17,6 +17,7 @@ final class DigestInboxController
         Gate::authorize('profile.own');
         $member = Membership::withoutGlobalScopes()->where('id', $context->membershipId)->where('organization_id', $context->organizationId)->where('user_id', $context->actorId)->where('status', 'active')->first();
         abort_unless($member && $context->brandId && $member->permitsBrand($context->brandId), 403);
+        abort_unless($context->organizationId && app(SellerModuleAccess::class)->enabled($context->organizationId, $context->brandId), 404);
         $items = DB::table('seller_digest_cabinet_notifications as n')->join('seller_digest_batches as b', 'b.id', '=', 'n.batch_id')
             ->where('n.organization_id', $context->organizationId)->where('n.brand_id', $context->brandId)->where('n.user_id', $context->actorId)
             ->where('b.organization_id', $context->organizationId)->where('b.brand_id', $context->brandId)->where('b.user_id', $context->actorId)->where('b.status', 'sent')

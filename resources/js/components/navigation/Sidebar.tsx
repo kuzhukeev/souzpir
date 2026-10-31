@@ -19,6 +19,7 @@ import {
   Building2,
   CreditCard,
   CircleHelp,
+  Bell,
   ChevronDown,
   type LucideIcon,
 } from 'lucide-react';
@@ -48,6 +49,7 @@ const icons: Record<string, LucideIcon> = {
   Building2,
   CreditCard,
   CircleHelp,
+  Bell,
 };
 
 export function Sidebar({
@@ -77,6 +79,7 @@ export function Sidebar({
     props.translations?.[`navigation.${id}`] ?? fallback;
   const renderItem = (item: Item, child = false) => {
     if (item.permission && props.can?.[item.permission] !== true) return null;
+    if (item.id === 'seller_digests' && props.modules?.seller !== true) return null;
     const Icon = icons[item.icon];
     const exists = Object.values(props.ziggy?.routes ?? {}).some(
       (route) =>
