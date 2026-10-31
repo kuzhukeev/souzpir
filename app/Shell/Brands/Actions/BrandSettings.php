@@ -27,6 +27,7 @@ final class BrandSettings
             $settings = $brand->settings ?? [];
             if (array_key_exists('website', $data) && $data['website'] !== $brand->website) {
                 unset($settings['website_check']);
+                $settings['website_check_revision'] = bin2hex(random_bytes(16));
             }
             if (array_key_exists('aliases', $data)) {
                 $settings['aliases'] = array_values(array_unique(array_filter(array_map('trim', $data['aliases'] ?? []), fn ($value) => $value !== '')));
@@ -100,6 +101,7 @@ final class BrandSettings
         $brand = $this->access->read($request, $id);
         abort_unless($brand->status === 'active', 404);
         $snapshot = BrandDomain::withoutGlobalScopes()->where('organization_id', $brand->organization_id)->where('brand_id', $brand->id)->whereKey($domainId)->firstOrFail();
+        $this->requireExternalChecks($id, 'domain');
         $verified = false;
         $error = 'Подтверждение не найдено. Проверьте настройки и повторите попытку.';
         try {
@@ -142,6 +144,8 @@ final class BrandSettings
         if (! $snapshot->website) {
             throw ValidationException::withMessages(['website' => 'Сначала сохраните адрес сайта.'])->redirectTo(route('brands.settings.show', $id));
         }
+        $this->requireExternalChecks($id, 'website');
+        $revision = $snapshot->settings['website_check_revision'] ?? null;
         $result = ['status' => 'unavailable', 'checked_at' => now()->toIso8601String(), 'robots_blocked' => null, 'error' => null];
         try {
             $response = $this->http->get($snapshot->website);
@@ -165,13 +169,21 @@ final class BrandSettings
             $result['error'] = 'Не удалось безопасно проверить сайт. Проверьте публичный адрес и доступность сервера.';
         }
         $result['checked_at'] = now()->toIso8601String();
-        $this->access->change($request, $id, function (Brand $brand, TenantContext $ctx) use ($snapshot, $result): void {
-            abort_unless($brand->website === $snapshot->website, 409, 'Адрес сайта изменился. Повторите проверку.');
+        $this->access->change($request, $id, function (Brand $brand, TenantContext $ctx) use ($snapshot, $revision, $result): void {
             $settings = $brand->settings ?? [];
+            abort_unless($brand->website === $snapshot->website && ($settings['website_check_revision'] ?? null) === $revision, 409, 'Данные изменились. Повторите проверку.');
+            $settings['website_check_revision'] = bin2hex(random_bytes(16));
             $settings['website_check'] = $result;
             $brand->forceFill(['settings' => $settings])->save();
             $this->audit($ctx, 'brand.website.checked', 'brand', $brand->id, ['status' => $result['status'], 'robots_blocked' => $result['robots_blocked']]);
         });
+    }
+
+    private function requireExternalChecks(string $id, string $field): void
+    {
+        if (config('features.E1-05.defaults.external_checks', false) !== true) {
+            throw ValidationException::withMessages([$field => 'Внешние проверки пока недоступны.'])->redirectTo(route('brands.settings.show', $id));
+        }
     }
 
     public static function validLogoPath(string $organization, string $path): bool

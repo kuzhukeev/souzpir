@@ -55,4 +55,5 @@ export type BrandSettingsProps = {
   domains: BrandDomain[];
   moduleItems: Record<BrandModuleKey, BrandModule>;
   permissions: { manage: boolean };
+  networkChecksEnabled: boolean;
 };

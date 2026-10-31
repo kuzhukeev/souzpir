@@ -24,6 +24,7 @@ final class BrandSettingsTest extends TenancyTestCase
     protected function setUp(): void
     {
         parent::setUp();
+        config(['features.E1-05.defaults.external_checks' => true]);
         Http::preventStrayRequests();
         Storage::fake('local');
         $this->dns = new FakeBrandDomainDnsResolver;
@@ -456,6 +457,85 @@ final class BrandSettingsTest extends TenancyTestCase
         $this->post($this->url($brand).'/website/check')->assertRedirect($this->url($brand));
         self::assertSame('unavailable', $this->settings($brand)['website_check']['status']);
         Http::assertNothingSent();
+    }
+
+    public function test_external_checks_are_default_off_without_changing_existing_results(): void
+    {
+        [$owner, $organization, $brand] = $this->cabinet();
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $file = $this->addDomain($brand);
+        $dns = $this->addDomain($brand, ['host' => 'other.example.com', 'verification_method' => 'dns']);
+        DB::table('brand_domains')->whereIn('id', [$file->id, $dns->id])->update([
+            'status' => 'verified', 'verified_at' => now(), 'last_checked_at' => now(), 'check_version' => 3,
+        ]);
+        $previous = ['status' => 'available', 'checked_at' => now()->toIso8601String(), 'robots_blocked' => false, 'error' => null];
+        DB::table('brands')->where('id', $brand->id)->update(['website' => 'https://shop.example.com/', 'settings' => json_encode(['website_check' => $previous], JSON_THROW_ON_ERROR)]);
+        $before = DB::table('brand_domains')->whereIn('id', [$file->id, $dns->id])->orderBy('host')->get()->toArray();
+        $audits = DB::table('audit_logs')->where('organization_id', $organization->id)->count();
+        config(['features.E1-05.defaults.external_checks' => false]);
+        $this->get($this->url($brand))->assertInertia(fn (Assert $page) => $page->where('networkChecksEnabled', false));
+        foreach ([$file, $dns] as $domain) {
+            $this->post($this->url($brand).'/domains/'.$domain->id.'/verify')->assertRedirect($this->url($brand))->assertSessionHasErrors('domain');
+        }
+        $this->post($this->url($brand).'/website/check')->assertRedirect($this->url($brand))->assertSessionHasErrors('website');
+        self::assertEquals($before, DB::table('brand_domains')->whereIn('id', [$file->id, $dns->id])->orderBy('host')->get()->toArray());
+        self::assertEquals($previous, $this->settings($brand)['website_check']);
+        self::assertArrayNotHasKey('website_check_revision', $this->settings($brand));
+        self::assertSame($audits, DB::table('audit_logs')->where('organization_id', $organization->id)->count());
+        self::assertSame([], $this->dns->calls);
+        Http::assertNothingSent();
+    }
+
+    public function test_disabled_checks_do_not_bypass_brand_permissions(): void
+    {
+        [, $organization, $brand] = $this->cabinet();
+        [$member] = $this->member($organization, 'member', [$brand->id]);
+        config(['features.E1-05.defaults.external_checks' => false]);
+        $this->actingAs($member)->withSession(['brand_id' => $brand->id]);
+        $this->post($this->url($brand).'/website/check')->assertForbidden();
+        $this->post($this->url($brand).'/domains/'.Str::ulid().'/verify')->assertForbidden();
+        self::assertSame([], $this->dns->calls);
+        Http::assertNothingSent();
+    }
+
+    public function test_concurrent_website_check_cannot_replace_first_completed_result(): void
+    {
+        [$owner, $organization, $brand] = $this->cabinet();
+        DB::table('brands')->where('id', $brand->id)->update(['website' => 'https://shop.example.com/']);
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $calls = 0;
+        Http::fake(function () use (&$calls, $brand) {
+            $calls++;
+            if ($calls === 1) {
+                $this->post($this->url($brand).'/website/check')->assertRedirect($this->url($brand))->assertSessionHasNoErrors();
+
+                return Http::response('stale', 500);
+            }
+
+            return Http::response('new', 503);
+        });
+        $this->post($this->url($brand).'/website/check')->assertStatus(409);
+        self::assertSame(2, $calls);
+        self::assertSame('Сайт не вернул успешный ответ. Перенаправления автоматически не выполняются.', $this->settings($brand)['website_check']['error']);
+        self::assertSame(1, DB::table('audit_logs')->where('organization_id', $organization->id)->where('action', 'brand.website.checked')->count());
+    }
+
+    public function test_website_aba_change_invalidates_inflight_check(): void
+    {
+        [$owner, $organization, $brand] = $this->cabinet();
+        DB::table('brands')->where('id', $brand->id)->update(['website' => 'https://shop.example.com/']);
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        Http::fake(function () use ($brand) {
+            foreach (['https://other.example.com/', 'https://shop.example.com/'] as $website) {
+                $this->patch($this->url($brand).'/general', ['name' => 'A', 'website' => $website])->assertSessionHasNoErrors();
+            }
+
+            return Http::response('stale', 500);
+        });
+        $this->post($this->url($brand).'/website/check')->assertStatus(409);
+        self::assertSame('https://shop.example.com/', DB::table('brands')->where('id', $brand->id)->value('website'));
+        self::assertArrayNotHasKey('website_check', $this->settings($brand));
+        $this->assertDatabaseMissing('audit_logs', ['organization_id' => $organization->id, 'action' => 'brand.website.checked']);
     }
 
     public function test_card_module_values_follow_existing_plan_enforcement(): void

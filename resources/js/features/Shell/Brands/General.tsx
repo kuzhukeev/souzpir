@@ -5,7 +5,15 @@ import { Info, Plus, Save, X } from 'lucide-react';
 import { Button, Input } from '@/components/ui';
 import { focus, FormErrors, hiddenLabel, panel, Row, Saved } from './shared';
 import type { BrandSettings } from '@/types/Shell/Brands';
-export function General({ brand, editable }: { brand: BrandSettings; editable: boolean }) {
+export function General({
+  brand,
+  editable,
+  networkChecksEnabled,
+}: {
+  brand: BrandSettings;
+  editable: boolean;
+  networkChecksEnabled: boolean;
+}) {
   const form = useForm({
     name: brand.name,
     website: brand.website ?? '',
@@ -92,12 +100,20 @@ export function General({ brand, editable }: { brand: BrandSettings; editable: b
           <Button
             variant="secondary"
             loading={checking}
-            disabled={!canEdit || !brand.website || form.data.website !== (brand.website ?? '')}
+            disabled={
+              !networkChecksEnabled ||
+              !canEdit ||
+              !brand.website ||
+              form.data.website !== (brand.website ?? '')
+            }
             onClick={checkWebsite}
           >
             Проверить
           </Button>
         </div>
+        {!networkChecksEnabled && (
+          <p className="mt-3 text-sm text-(--color-ink-muted)">Внешние проверки пока недоступны.</p>
+        )}
         <div className="mt-3 text-sm" aria-live="polite">
           {brand.website_check ? (
             <p

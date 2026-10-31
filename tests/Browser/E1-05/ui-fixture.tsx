@@ -96,6 +96,7 @@ const shared = {
   targetBrand,
   domains,
   moduleItems,
+  networkChecksEnabled: params.get('checks') === '1',
   permissions: { manage: true },
   auth: { user: owner },
   organization: { id: '01J00000000000000000000001', name: 'Союз Пир' },

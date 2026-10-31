@@ -61,7 +61,7 @@ final class BrandSettingsController
                 'theme' => $target->theme, 'status' => $target->status, 'logo_url' => ($target->settings['logo_path'] ?? null) ? route('brands.settings.logo', $brand) : null,
                 'website_check' => $target->settings['website_check'] ?? null,
                 'settings' => ['aliases' => $target->settings['aliases'] ?? [], 'theme' => ['subtitle' => $appearance['subtitle'] ?? '', 'promo_card' => $appearance['promo_card'] ?? true]]],
-            'domains' => $domains, 'moduleItems' => $moduleItems, 'permissions' => ['manage' => $target->status === 'active'],
+            'domains' => $domains, 'moduleItems' => $moduleItems, 'networkChecksEnabled' => config('features.E1-05.defaults.external_checks', false) === true, 'permissions' => ['manage' => $target->status === 'active'],
         ]);
     }
 

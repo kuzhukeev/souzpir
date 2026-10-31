@@ -208,3 +208,28 @@ test('quota and archive states are readable at desktop and mobile sizes', async 
     ).toBeFocused();
   }
 });
+
+test('external checks show the disabled state unless explicitly enabled', async ({ page }) => {
+  await page.goto(url);
+  await expect(page.getByText('Внешние проверки пока недоступны.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Проверить', exact: true })).toBeDisabled();
+  await page.screenshot({
+    path: '.local/screenshots/e1-05/network-disabled-general.png',
+    fullPage: true,
+  });
+  await page.getByRole('tab', { name: 'Домены', exact: true }).click();
+  await expect(page.getByText('Внешние проверки пока недоступны.')).toBeVisible();
+  for (const button of await page.getByRole('button', { name: 'Проверить', exact: true }).all()) {
+    await expect(button).toBeDisabled();
+  }
+  await page.screenshot({
+    path: '.local/screenshots/e1-05/network-disabled-domains.png',
+    fullPage: true,
+  });
+  await page.goto(url + '?checks=1');
+  await expect(page.getByRole('button', { name: 'Проверить', exact: true })).toBeEnabled();
+  await page.getByRole('tab', { name: 'Домены', exact: true }).click();
+  for (const button of await page.getByRole('button', { name: 'Проверить', exact: true }).all()) {
+    await expect(button).toBeEnabled();
+  }
+});

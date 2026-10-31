@@ -9,10 +9,12 @@ export function Domains({
   brand,
   domains,
   editable,
+  networkChecksEnabled,
 }: {
   brand: BrandSettings;
   domains: BrandDomain[];
   editable: boolean;
+  networkChecksEnabled: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [instructions, setInstructions] = useState<BrandDomain | null>(null);
@@ -88,6 +90,9 @@ export function Domains({
             <Plus size={18} aria-hidden="true" /> Добавить домен
           </Button>
         </header>
+        {!networkChecksEnabled && (
+          <p className="text-sm text-(--color-ink-muted)">Внешние проверки пока недоступны.</p>
+        )}
         <FormErrors errors={{}} transport={transport} />
         {domains.length === 0 ? (
           <div className="rounded-xl border border-dashed border-(--color-control-border) px-5 py-12 text-center">
@@ -154,7 +159,7 @@ export function Domains({
                   <Button
                     variant="secondary"
                     loading={pending === domain.id}
-                    disabled={!canEdit || pending !== null}
+                    disabled={!networkChecksEnabled || !canEdit || pending !== null}
                     onClick={() => verify(domain)}
                   >
                     Проверить

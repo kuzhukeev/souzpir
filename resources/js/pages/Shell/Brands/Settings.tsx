@@ -15,6 +15,7 @@ export default function Settings({
   domains,
   moduleItems,
   permissions,
+  networkChecksEnabled,
 }: BrandSettingsProps) {
   const [tab, setTab] = useState('general');
   return (
@@ -49,7 +50,12 @@ export default function Settings({
                 id: 'general',
                 label: 'Основное',
                 content: (
-                  <General key={targetBrand.id} brand={targetBrand} editable={permissions.manage} />
+                  <General
+                    key={targetBrand.id}
+                    brand={targetBrand}
+                    editable={permissions.manage}
+                    networkChecksEnabled={networkChecksEnabled}
+                  />
                 ),
               },
               {
@@ -71,6 +77,7 @@ export default function Settings({
                     key={targetBrand.id}
                     brand={targetBrand}
                     domains={domains}
+                    networkChecksEnabled={networkChecksEnabled}
                     editable={permissions.manage}
                   />
                 ),
