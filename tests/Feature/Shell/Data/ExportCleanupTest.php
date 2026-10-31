@@ -34,7 +34,7 @@ final class ExportCleanupTest extends TenancyTestCase
         touch($disk->path($prefix.$orphan.'.jsonl.tmp'), now()->subHours(2)->getTimestamp());
         $disk->put($prefix.$recent.'.zip.tmp', 'still recent');
         $disk->put($prefix.'unrelated.txt', 'not an export');
-        $held = ExportFileLock::acquire($disk->path($prefix.$active.'.lock'), LOCK_SH);
+        $held = ExportFileLock::acquireForExport($disk->path($prefix), $active, LOCK_SH);
         self::assertIsResource($held);
         try {
             self::assertSame(2, app(PruneExports::class)->prune(100, 60));

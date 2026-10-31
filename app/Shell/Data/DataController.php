@@ -110,12 +110,19 @@ final class DataController
         $disk = $this->privateDisk();
         $id = (string) Str::ulid();
         $dir = 'data-exports/'.$ctx->requireOrganizationId();
-        $disk->makeDirectory($dir);
-        $jsonPath = $disk->path($dir.'/'.$id.'.jsonl.tmp');
-        $zipPath = $disk->path($dir.'/'.$id.'.zip.tmp');
-        $final = $dir.'/'.$id.'.zip';
+        $dataDir = $dir.'/files';
+        // Keep new payloads separate from legacy per-export lock sentinels.
+        // Never let an existing link redirect private data outside its tenant.
+        abort_if(is_link($disk->path($dir)), 503);
+        abort_unless($disk->makeDirectory($dir), 503);
+        abort_if(is_link($disk->path($dir)) || is_link($disk->path($dataDir)), 503);
+        abort_unless($disk->makeDirectory($dataDir), 503);
+        abort_if(is_link($disk->path($dataDir)), 503);
+        $jsonPath = $disk->path($dataDir.'/'.$id.'.jsonl.tmp');
+        $zipPath = $disk->path($dataDir.'/'.$id.'.zip.tmp');
+        $final = $dataDir.'/'.$id.'.zip';
         // The per-export sentinel is shared with cleanup, including during publication.
-        $fileLock = ExportFileLock::acquire($disk->path($dir.'/'.$id.'.lock'), LOCK_SH);
+        $fileLock = ExportFileLock::acquireForExport($disk->path($dir), $id, LOCK_SH);
         if ($fileLock === false) abort(503);
         $file = fopen($jsonPath, 'xb');
         if ($file === false) {
@@ -171,17 +178,16 @@ final class DataController
         $disk = $this->privateDisk();
         $row = $this->active($request, $ctx, function () use ($ctx, $id, $disk) {
             $row = $this->exportRow($ctx, $id);
-            $expected = 'data-exports/'.$ctx->organizationId.'/'.$id.'.zip';
-            abort_unless($row->path === $expected && $disk->exists($expected), 404);
+            $this->validateArchivePath($disk, $ctx->organizationId, $id, $row->path);
             return $row;
         });
-        $lockPath = $disk->path('data-exports/'.$ctx->organizationId.'/'.$id.'.lock');
-        $fileLock = ExportFileLock::acquire($lockPath, LOCK_SH);
+        $fileLock = ExportFileLock::acquireForExport($disk->path('data-exports/'.$ctx->organizationId), $id, LOCK_SH);
         if ($fileLock === false) abort(503);
         $file = false;
         try {
             // Keep a single opened descriptor throughout validation and transfer.
             // Cleanup must take the same sentinel exclusively before deleting.
+            $this->validateArchivePath($disk, $ctx->organizationId, $id, $row->path);
             $file = @fopen($disk->path($row->path), 'rb');
             if ($file === false) abort(404);
             $hash = hash_init('sha256');
@@ -233,6 +239,7 @@ final class DataController
     {
         abort_unless(config('filesystems.disks.local.driver') === 'local', 503);
         $disk = Storage::disk('local');
+        abort_if(is_link($disk->path('data-exports')), 503);
         abort_unless($disk->makeDirectory('data-exports'), 503);
         $root = realpath($disk->path('data-exports'));
         $public = realpath(public_path());
@@ -243,6 +250,19 @@ final class DataController
             abort_if($root === $public || str_starts_with($root, $public.'/'), 503);
         }
         return $disk;
+    }
+
+    /** Accept only an archive in this tenant's current or pre-migration layout. */
+    private function validateArchivePath(\Illuminate\Contracts\Filesystem\Filesystem $disk, string $organizationId, string $id, string $path): void
+    {
+        $directory = 'data-exports/'.$organizationId;
+        $legacy = $directory.'/'.$id.'.zip';
+        $current = $directory.'/files/'.$id.'.zip';
+        abort_unless(in_array($path, [$legacy, $current], true), 404);
+        abort_if(is_link($disk->path($directory)), 404);
+        if ($path === $current) abort_if(is_link($disk->path($directory.'/files')), 404);
+        abort_if(is_link($disk->path($path)), 404);
+        abort_unless($disk->exists($path), 404);
     }
 
     private function exportRow(TenantContext $ctx, string $id): object

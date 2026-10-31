@@ -20,7 +20,7 @@ final class ExportCleanupBoundaryTest extends TenancyTestCase
         $temp = $prefix.$id.'.jsonl.tmp';
         $disk->put($temp, 'synthetic active data');
         touch($disk->path($temp), now()->subHours(2)->getTimestamp());
-        $held = ExportFileLock::acquire($disk->path($prefix.$id.'.lock'), LOCK_SH);
+        $held = ExportFileLock::acquireForExport($disk->path($prefix), $id, LOCK_SH);
         self::assertIsResource($held);
         try {
             for ($i = 0; $i < 12; $i++) {
