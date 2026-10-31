@@ -50,6 +50,21 @@
     ]
   },
   "tables": {
+    "c02_session_lease_ids": {
+      "owner": "SP-C-02",
+      "tenant": "global",
+      "parents": []
+    },
+    "c02_session_leases": {
+      "owner": "SP-C-02",
+      "tenant": "parent:auth_session_registry",
+      "parents": ["auth_session_registry", "c02_session_lease_ids"]
+    },
+    "c02_session_receipts": {
+      "owner": "SP-C-02",
+      "tenant": "parent:c02_session_lease_ids",
+      "parents": ["c02_session_lease_ids"]
+    },
     "c02_ai_stages": {
       "owner": "SP-C-02",
       "tenant": "brand",
@@ -912,6 +927,11 @@
     }
   },
   "contracts": {
+    "SessionTransactionalIdempotency": {
+      "owner": "SP-C-02",
+      "path": "app/Contracts/ProtectedOperations/SessionTransactionalIdempotency.php",
+      "schemaVersion": 1
+    },
     "TransactionalIdempotency": {
       "owner": "SP-C-02",
       "path": "app/Contracts/ProtectedOperations/TransactionalIdempotency.php",
