@@ -1,0 +1,194 @@
+{
+    "evidence": {
+        "budget": {
+            "call_id": 86,
+            "charged_micros": 776,
+            "reserved_micros": 821983
+        },
+        "captured_at": "2026-10-31T12:08:24.407189+00:00",
+        "case_id": "persona.experienced_kazan",
+        "http_status": 200,
+        "phase": "dialogue",
+        "pricing": {
+            "context_length": 1048576,
+            "endpoints_sha256": "783e7077ecc2df286ab072887c9baf64bb5fbef43e87669b56674c16bdd2e86e",
+            "fetched_at": "2026-10-31T12:08:12.300232+00:00",
+            "max_completion_tokens": 65535,
+            "provider": "google-ai-studio",
+            "provider_names": [
+                "Google AI Studio"
+            ],
+            "rates": {
+                "audio": "0.0000018",
+                "completion": "0.0000045",
+                "discount": "0",
+                "image": "5.4E-7",
+                "input_audio_cache": "1.8E-7",
+                "input_cache_read": "5.4E-8",
+                "input_cache_write": "1.5E-7",
+                "internal_reasoning": "0.0000045",
+                "prompt": "5.4E-7",
+                "web_search": "0.014"
+            }
+        },
+        "provider_model": "google/gemini-2.5-flash",
+        "provider_request_id": "gen-1793448489-66GDdfB9iK0UjuOtq9KG",
+        "request_body": {
+            "max_tokens": 300,
+            "messages": [
+                {
+                    "content": "Сожми переписку менеджера по оптовой пиротехнике с клиентом в 3–5 предложений по-русски: что клиент хочет, что уже выяснено, какие возражения, что обещано, о чём договорились. Без оценок и советов. Только текст.\n\nПредыдущее резюме: Клиент из Казани, владелец павильона с опытом торговли пиротехникой, заинтересован в оптовой закупке салютов. Он планирует приобрести товар на сумму 200-300 тысяч рублей сейчас, чтобы собрать запас к сезону. Менеджер обещал отправить прайс-лист по салютам на указанную клиентом электронную почту.\n",
+                    "role": "system"
+                },
+                {
+                    "content": "Клиент: contact-0001@baseline.invalid\nМенеджер: Отправил прайс на почту, посмотрите, когда будет удобно. И продублирую в мессенджер, чтобы мой контакт у вас остался. Напишу с другого номера, он рабочий, это буду я. На этом номере у вас Макс, WhatsApp или Telegram?\nКлиент: Telegram.\nМенеджер: Принял, дублирую в Telegram, прайс уже ушёл и на почту. Посмотрите спокойно, там салюты по вашему профилю. Когда вам удобно списаться по обратной связи: завтра или в пятницу?\nКлиент: Завтра могу, но сначала хочу посмотреть цены. Вы скидку от объёма какую даёте? Конкурент предлагает 35%, перебьёте или нет?\nМенеджер: Завтра тогда и созвонимся, как посмотрите. Честно, обещать догнать 35% не буду: проценты считают от разных базовых цен, а мы базу не завышаем. Сравнивайте итоговую цену на трёх позициях: дешёвой, средней и крупной, например батарея 0,8 дюйма на 16 залпов. Какие бренды сейчас берёте у конкурента?\nКлиент: Большой праздник беру сейчас.\nМенеджер: Понял, Большой праздник. Тогда сравнивать будет проще: берите те же позиции и смотрите итоговую цену за штуку. Созвонимся завтра, я записал. Посмотрите прайс в Telegram или на почте, и что смутит по ценам, разберём вместе.\nКлиент: Хорошо, посмотрю прайс и сравню итоговые цены по тем позициям. Созвонимся завтра, если по цифрам всё сойдётся, буду рад работать.\nМенеджер: Договорились, завтра созвонимся. Я записал, наберу ближе к одиннадцати. Если по ценам что-то зацепит раньше, пишите в Telegram, не ждите звонка.\nКлиент: ок, спасибо, до завтра\nМенеджер: До завтра, хорошего вечера.",
+                    "role": "user"
+                }
+            ],
+            "model": "google/gemini-2.5-flash",
+            "plugins": [],
+            "provider": {
+                "allow_fallbacks": false,
+                "max_price": {
+                    "completion": 4.5,
+                    "prompt": 0.54,
+                    "request": 0.0
+                },
+                "only": [
+                    "google-ai-studio"
+                ],
+                "order": [
+                    "google-ai-studio"
+                ],
+                "require_parameters": false
+            },
+            "reasoning": {
+                "effort": "low"
+            },
+            "stream": false,
+            "temperature": 0.2,
+            "usage": {
+                "include": true
+            }
+        },
+        "request_body_sha256": "867f1fef995043243e3f1b1d04d1714811fa3a3441f42e0cc9ce9b3ae0ed840b",
+        "run_id": "capture_20261031T104157_67845ea5",
+        "seed_requested": null,
+        "sequence": 44,
+        "usage": {
+            "completion_tokens": 234,
+            "cost_usd": "0.0007758",
+            "prompt_tokens": 636,
+            "total_tokens": 870
+        }
+    },
+    "provenance": "recorded",
+    "provider": "openrouter",
+    "request": {
+        "messages": [
+            {
+                "content": "Сожми переписку менеджера по оптовой пиротехнике с клиентом в 3–5 предложений по-русски: что клиент хочет, что уже выяснено, какие возражения, что обещано, о чём договорились. Без оценок и советов. Только текст.\n\nПредыдущее резюме: Клиент из Казани, владелец павильона с опытом торговли пиротехникой, заинтересован в оптовой закупке салютов. Он планирует приобрести товар на сумму 200-300 тысяч рублей сейчас, чтобы собрать запас к сезону. Менеджер обещал отправить прайс-лист по салютам на указанную клиентом электронную почту.\n",
+                "role": "system"
+            },
+            {
+                "content": "Клиент: contact-0001@baseline.invalid\nМенеджер: Отправил прайс на почту, посмотрите, когда будет удобно. И продублирую в мессенджер, чтобы мой контакт у вас остался. Напишу с другого номера, он рабочий, это буду я. На этом номере у вас Макс, WhatsApp или Telegram?\nКлиент: Telegram.\nМенеджер: Принял, дублирую в Telegram, прайс уже ушёл и на почту. Посмотрите спокойно, там салюты по вашему профилю. Когда вам удобно списаться по обратной связи: завтра или в пятницу?\nКлиент: Завтра могу, но сначала хочу посмотреть цены. Вы скидку от объёма какую даёте? Конкурент предлагает 35%, перебьёте или нет?\nМенеджер: Завтра тогда и созвонимся, как посмотрите. Честно, обещать догнать 35% не буду: проценты считают от разных базовых цен, а мы базу не завышаем. Сравнивайте итоговую цену на трёх позициях: дешёвой, средней и крупной, например батарея 0,8 дюйма на 16 залпов. Какие бренды сейчас берёте у конкурента?\nКлиент: Большой праздник беру сейчас.\nМенеджер: Понял, Большой праздник. Тогда сравнивать будет проще: берите те же позиции и смотрите итоговую цену за штуку. Созвонимся завтра, я записал. Посмотрите прайс в Telegram или на почте, и что смутит по ценам, разберём вместе.\nКлиент: Хорошо, посмотрю прайс и сравню итоговые цены по тем позициям. Созвонимся завтра, если по цифрам всё сойдётся, буду рад работать.\nМенеджер: Договорились, завтра созвонимся. Я записал, наберу ближе к одиннадцати. Если по ценам что-то зацепит раньше, пишите в Telegram, не ждите звонка.\nКлиент: ок, спасибо, до завтра\nМенеджер: До завтра, хорошего вечера.",
+                "role": "user"
+            }
+        ],
+        "options": {
+            "component": "summary",
+            "max_tokens": 300,
+            "model": "google/gemini-2.5-flash",
+            "temperature": 0.2,
+            "tools_called": []
+        }
+    },
+    "request_sha256": "e23175d42fb3c4844cf578adbdbdcecf1332e57dc42bbcd887b4168120bf8731",
+    "response": {
+        "content": "Клиент из Казани, заинтересованный в оптовой закупке салютов на 200-300 тысяч рублей, получил прайс-лист на почту и в Telegram. Он запросил информацию о скидках от объёма, отметив, что конкурент предлагает 35%, и уточнил, что сейчас работает с брендом \"Большой праздник\". Менеджер не обещал догнать 35%, предложив сравнивать итоговые цены на одинаковых позициях (дешёвых, средних и крупных, например, батарея 0,8 дюйма на 16 залпов) и бренде \"Большой праздник\", так как их базовая цена не завышена. Договорились созвониться завтра около одиннадцати, чтобы обсудить прайс и цены после того, как клиент их изучит и сравнит.",
+        "costUsd": 0.0007758,
+        "error": null,
+        "latencyMs": 0,
+        "model": "google/gemini-2.5-flash",
+        "raw": {
+            "choices": [
+                {
+                    "finish_reason": "stop",
+                    "index": 0,
+                    "logprobs": null,
+                    "message": {
+                        "content": "Клиент из Казани, заинтересованный в оптовой закупке салютов на 200-300 тысяч рублей, получил прайс-лист на почту и в Telegram. Он запросил информацию о скидках от объёма, отметив, что конкурент предлагает 35%, и уточнил, что сейчас работает с брендом \"Большой праздник\". Менеджер не обещал догнать 35%, предложив сравнивать итоговые цены на одинаковых позициях (дешёвых, средних и крупных, например, батарея 0,8 дюйма на 16 залпов) и бренде \"Большой праздник\", так как их базовая цена не завышена. Договорились созвониться завтра около одиннадцати, чтобы обсудить прайс и цены после того, как клиент их изучит и сравнит.",
+                        "reasoning": "**Analyzing Client Needs**\n\nI'm currently focused on distilling the core request: the client remains interested in wholesale fireworks and wants a price comparison. I'm clarifying the specifics of that request, such as the quantities and types of fireworks, in order to provide the most helpful response.\n\n\n",
+                        "reasoning_details": [
+                            {
+                                "format": "google-gemini-v1",
+                                "index": 0,
+                                "text": "**Analyzing Client Needs**\n\nI'm currently focused on distilling the core request: the client remains interested in wholesale fireworks and wants a price comparison. I'm clarifying the specifics of that request, such as the quantities and types of fireworks, in order to provide the most helpful response.\n\n\n",
+                                "type": "reasoning.text"
+                            }
+                        ],
+                        "refusal": null,
+                        "role": "assistant"
+                    },
+                    "native_finish_reason": "STOP"
+                }
+            ],
+            "created": 1793448489,
+            "id": "gen-1793448489-66GDdfB9iK0UjuOtq9KG",
+            "model": "google/gemini-2.5-flash",
+            "object": "chat.completion",
+            "provider": "Google AI Studio",
+            "service_tier": "default",
+            "system_fingerprint": null,
+            "usage": {
+                "completion_tokens": 234,
+                "completion_tokens_details": {
+                    "audio_tokens": 0,
+                    "image_tokens": 0,
+                    "reasoning_tokens": 47
+                },
+                "cost": 0.0007758,
+                "cost_details": {
+                    "upstream_inference_completions_cost": 0.000585,
+                    "upstream_inference_cost": 0.0007758,
+                    "upstream_inference_prompt_cost": 0.0001908
+                },
+                "is_byok": false,
+                "prompt_tokens": 636,
+                "prompt_tokens_details": {
+                    "audio_tokens": 0,
+                    "cache_write_tokens": 0,
+                    "cached_tokens": 0,
+                    "video_tokens": 0
+                },
+                "total_tokens": 870
+            }
+        },
+        "toolCalls": [],
+        "usage": {
+            "completion_tokens": 234,
+            "completion_tokens_details": {
+                "audio_tokens": 0,
+                "image_tokens": 0,
+                "reasoning_tokens": 47
+            },
+            "cost": 0.0007758,
+            "cost_details": {
+                "upstream_inference_completions_cost": 0.000585,
+                "upstream_inference_cost": 0.0007758,
+                "upstream_inference_prompt_cost": 0.0001908
+            },
+            "is_byok": false,
+            "prompt_tokens": 636,
+            "prompt_tokens_details": {
+                "audio_tokens": 0,
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "video_tokens": 0
+            },
+            "total_tokens": 870
+        }
+    },
+    "response_sha256": "3c6421fec58ae20ca01e01fa20e397732b61893faff495b973dfbd1bf1c80ec0",
+    "schema_version": 1
+}

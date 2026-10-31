@@ -1,0 +1,60 @@
+{
+    "agent": {
+        "api_token": "",
+        "fallback_reply": "Секунду, уточню пару моментов и вернусь к вам сегодня.",
+        "knowledge_cache_ttl": 0,
+        "knowledge_path": "prototype/resources/knowledge",
+        "limits": {
+            "fewshot_min_confidence": 0.7,
+            "fewshot_per_goal": 6,
+            "guard_regens": 1,
+            "history_turns": 12,
+            "summary_every": 6
+        },
+        "llm_driver": "fake",
+        "models": {
+            "extractor": "google/gemini-2.5-flash",
+            "guard": "google/gemini-2.5-flash",
+            "judge": "anthropic/claude-sonnet-5.5",
+            "responder": "anthropic/claude-sonnet-5.5",
+            "simulator": "anthropic/claude-haiku-5.5",
+            "summary": "google/gemini-2.5-flash"
+        },
+        "name": "Антон",
+        "openrouter": {
+            "api_key": "[REDACTED]",
+            "base_url": "https://openrouter.ai/api/v1",
+            "reasoning": {
+                "effort": "low"
+            },
+            "referer": "https://soyuzpir.local",
+            "retries": 1,
+            "timeout": 60,
+            "title": "SoyuzPir AI Sales Agent"
+        },
+        "telegram": {
+            "managers_chat_id": "",
+            "secret": "[REDACTED]",
+            "suggest_mode": true,
+            "token": "[REDACTED]"
+        },
+        "temperature": {
+            "extractor": 0.0,
+            "guard": 0.0,
+            "responder": 0.7,
+            "summary": 0.2
+        },
+        "web": {
+            "password": "[REDACTED]",
+            "user": "admin"
+        }
+    },
+    "byte_identical_persona_inputs": false,
+    "frozen_clock": "2026-10-31T09:00:00+03:00",
+    "inputs_pseudonymized": true,
+    "network_calls_in_child": 0,
+    "normalization": "contacts-v1",
+    "outbound_delivery": "disabled",
+    "runner_seed": 20261031,
+    "runtime_client": "Souzpir\\Baseline\\RecordedClient"
+}

@@ -1,0 +1,194 @@
+{
+    "evidence": {
+        "budget": {
+            "call_id": 62,
+            "charged_micros": 416,
+            "reserved_micros": 821983
+        },
+        "captured_at": "2026-10-31T12:03:08.073514+00:00",
+        "case_id": "persona.experienced_kazan",
+        "http_status": 200,
+        "phase": "dialogue",
+        "pricing": {
+            "context_length": 1048576,
+            "endpoints_sha256": "2b42f994ac034af434b779802f0b663deaaf5777f0a25622a828425e067e978f",
+            "fetched_at": "2026-10-31T12:02:47.904436+00:00",
+            "max_completion_tokens": 65535,
+            "provider": "google-ai-studio",
+            "provider_names": [
+                "Google AI Studio"
+            ],
+            "rates": {
+                "audio": "0.0000018",
+                "completion": "0.0000045",
+                "discount": "0",
+                "image": "5.4E-7",
+                "input_audio_cache": "1.8E-7",
+                "input_cache_read": "5.4E-8",
+                "input_cache_write": "1.5E-7",
+                "internal_reasoning": "0.0000045",
+                "prompt": "5.4E-7",
+                "web_search": "0.014"
+            }
+        },
+        "provider_model": "google/gemini-2.5-flash",
+        "provider_request_id": "gen-1793448164-A8PEkJYO72iOCHHsz1bA",
+        "request_body": {
+            "max_tokens": 300,
+            "messages": [
+                {
+                    "content": "Сожми переписку менеджера по оптовой пиротехнике с клиентом в 3–5 предложений по-русски: что клиент хочет, что уже выяснено, какие возражения, что обещано, о чём договорились. Без оценок и советов. Только текст.\n",
+                    "role": "system"
+                },
+                {
+                    "content": "Клиент: Казань.\nМенеджер: Казань, понял, до вас доставка транспортной компанией идёт нормально. Подскажите, пиротехнику берёте для себя или на продажу?\nКлиент: На продажу, у меня павильон.\nМенеджер: Павильон — хорошо, формат понятный. Раньше пиротехникой торговали или это у вас первый сезон?\nКлиент: Не первый, давно уже работаю, опыт есть.\nМенеджер: Понял, тогда базу вы знаете. Что в основном интересует: салюты, петарды, мелочь вроде фонтанов и бенгальских или всё вместе?\nКлиент: Салюты в основном, остальное пока не нужно.\nМенеджер: Понял, только салюты, без мелочи. Плюс-минус на какую сумму смотрите закупку? Это ни к чему не обязывает, просто от суммы мне скидку в прайсе выставлять.\nКлиент: Бюджет примерно 200–300 тысяч.\nМенеджер: Понял, 200–300 тысяч на салюты, под павильон нормальный объём. Закупаться планируете сейчас или ближе к сезону?\nКлиент: Сейчас, уже хочу запас собрать.\nМенеджер: Понял, тогда не тяну. Прайс по салютам отправлю на почту, чтобы с компьютера было удобно открыть и посмотреть. На какой адрес отправить?",
+                    "role": "user"
+                }
+            ],
+            "model": "google/gemini-2.5-flash",
+            "plugins": [],
+            "provider": {
+                "allow_fallbacks": false,
+                "max_price": {
+                    "completion": 4.5,
+                    "prompt": 0.54,
+                    "request": 0.0
+                },
+                "only": [
+                    "google-ai-studio"
+                ],
+                "order": [
+                    "google-ai-studio"
+                ],
+                "require_parameters": false
+            },
+            "reasoning": {
+                "effort": "low"
+            },
+            "stream": false,
+            "temperature": 0.2,
+            "usage": {
+                "include": true
+            }
+        },
+        "request_body_sha256": "a2bb6230f1a7061b77d7425107c9ba01cee55858a553fe8e4f60d7522a66a37a",
+        "run_id": "capture_20261031T104157_67845ea5",
+        "seed_requested": null,
+        "sequence": 20,
+        "usage": {
+            "completion_tokens": 119,
+            "cost_usd": "0.000416",
+            "prompt_tokens": 395,
+            "total_tokens": 514
+        }
+    },
+    "provenance": "recorded",
+    "provider": "openrouter",
+    "request": {
+        "messages": [
+            {
+                "content": "Сожми переписку менеджера по оптовой пиротехнике с клиентом в 3–5 предложений по-русски: что клиент хочет, что уже выяснено, какие возражения, что обещано, о чём договорились. Без оценок и советов. Только текст.\n",
+                "role": "system"
+            },
+            {
+                "content": "Клиент: Казань.\nМенеджер: Казань, понял, до вас доставка транспортной компанией идёт нормально. Подскажите, пиротехнику берёте для себя или на продажу?\nКлиент: На продажу, у меня павильон.\nМенеджер: Павильон — хорошо, формат понятный. Раньше пиротехникой торговали или это у вас первый сезон?\nКлиент: Не первый, давно уже работаю, опыт есть.\nМенеджер: Понял, тогда базу вы знаете. Что в основном интересует: салюты, петарды, мелочь вроде фонтанов и бенгальских или всё вместе?\nКлиент: Салюты в основном, остальное пока не нужно.\nМенеджер: Понял, только салюты, без мелочи. Плюс-минус на какую сумму смотрите закупку? Это ни к чему не обязывает, просто от суммы мне скидку в прайсе выставлять.\nКлиент: Бюджет примерно 200–300 тысяч.\nМенеджер: Понял, 200–300 тысяч на салюты, под павильон нормальный объём. Закупаться планируете сейчас или ближе к сезону?\nКлиент: Сейчас, уже хочу запас собрать.\nМенеджер: Понял, тогда не тяну. Прайс по салютам отправлю на почту, чтобы с компьютера было удобно открыть и посмотреть. На какой адрес отправить?",
+                "role": "user"
+            }
+        ],
+        "options": {
+            "component": "summary",
+            "max_tokens": 300,
+            "model": "google/gemini-2.5-flash",
+            "temperature": 0.2,
+            "tools_called": []
+        }
+    },
+    "request_sha256": "1e9576fc880d79f1bee63ef8ccf17ec2f719111aa276bdf12f13d0c1e2f25c98",
+    "response": {
+        "content": "Клиент из Казани, владелец павильона с опытом торговли пиротехникой, заинтересован в оптовой закупке салютов. Он планирует приобрести товар на сумму 200-300 тысяч рублей сейчас, чтобы собрать запас к сезону. Менеджер обещал отправить прайс-лист по салютам на указанную клиентом электронную почту.",
+        "costUsd": 0.000416,
+        "error": null,
+        "latencyMs": 0,
+        "model": "google/gemini-2.5-flash",
+        "raw": {
+            "choices": [
+                {
+                    "finish_reason": "stop",
+                    "index": 0,
+                    "logprobs": null,
+                    "message": {
+                        "content": "Клиент из Казани, владелец павильона с опытом торговли пиротехникой, заинтересован в оптовой закупке салютов. Он планирует приобрести товар на сумму 200-300 тысяч рублей сейчас, чтобы собрать запас к сезону. Менеджер обещал отправить прайс-лист по салютам на указанную клиентом электронную почту.",
+                        "reasoning": "**Defining Client Needs**\n\nI'm focused on grasping the client's core requirements. I'm prioritizing understanding their specific needs and desires from the conversation. Further, I am isolating the key details of the client's request from the discussion.\n\n\n",
+                        "reasoning_details": [
+                            {
+                                "format": "google-gemini-v1",
+                                "index": 0,
+                                "text": "**Defining Client Needs**\n\nI'm focused on grasping the client's core requirements. I'm prioritizing understanding their specific needs and desires from the conversation. Further, I am isolating the key details of the client's request from the discussion.\n\n\n",
+                                "type": "reasoning.text"
+                            }
+                        ],
+                        "refusal": null,
+                        "role": "assistant"
+                    },
+                    "native_finish_reason": "STOP"
+                }
+            ],
+            "created": 1793448164,
+            "id": "gen-1793448164-A8PEkJYO72iOCHHsz1bA",
+            "model": "google/gemini-2.5-flash",
+            "object": "chat.completion",
+            "provider": "Google AI Studio",
+            "service_tier": "default",
+            "system_fingerprint": null,
+            "usage": {
+                "completion_tokens": 119,
+                "completion_tokens_details": {
+                    "audio_tokens": 0,
+                    "image_tokens": 0,
+                    "reasoning_tokens": 39
+                },
+                "cost": 0.000416,
+                "cost_details": {
+                    "upstream_inference_completions_cost": 0.0002975,
+                    "upstream_inference_cost": 0.000416,
+                    "upstream_inference_prompt_cost": 0.0001185
+                },
+                "is_byok": false,
+                "prompt_tokens": 395,
+                "prompt_tokens_details": {
+                    "audio_tokens": 0,
+                    "cache_write_tokens": 0,
+                    "cached_tokens": 0,
+                    "video_tokens": 0
+                },
+                "total_tokens": 514
+            }
+        },
+        "toolCalls": [],
+        "usage": {
+            "completion_tokens": 119,
+            "completion_tokens_details": {
+                "audio_tokens": 0,
+                "image_tokens": 0,
+                "reasoning_tokens": 39
+            },
+            "cost": 0.000416,
+            "cost_details": {
+                "upstream_inference_completions_cost": 0.0002975,
+                "upstream_inference_cost": 0.000416,
+                "upstream_inference_prompt_cost": 0.0001185
+            },
+            "is_byok": false,
+            "prompt_tokens": 395,
+            "prompt_tokens_details": {
+                "audio_tokens": 0,
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "video_tokens": 0
+            },
+            "total_tokens": 514
+        }
+    },
+    "response_sha256": "d2cefe6449b359456dfda24d8dd5b1b1d9a0be6a04d1cfcfd2010a6781e0c26c",
+    "schema_version": 1
+}

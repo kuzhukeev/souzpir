@@ -1,0 +1,194 @@
+{
+    "evidence": {
+        "budget": {
+            "call_id": 812,
+            "charged_micros": 410,
+            "reserved_micros": 821983
+        },
+        "captured_at": "2026-10-31T18:57:41.107858+00:00",
+        "case_id": "manual.force_close_14",
+        "http_status": 200,
+        "phase": "dialogue",
+        "pricing": {
+            "context_length": 1048576,
+            "endpoints_sha256": "8df3c6d48c772f6be4b7764af380db16f607e76b5f9ea5403e786a0f6d6e7468",
+            "fetched_at": "2026-10-31T18:57:30.412197+00:00",
+            "max_completion_tokens": 65535,
+            "provider": "google-ai-studio",
+            "provider_names": [
+                "Google AI Studio"
+            ],
+            "rates": {
+                "audio": "0.0000018",
+                "completion": "0.0000045",
+                "discount": "0",
+                "image": "5.4E-7",
+                "input_audio_cache": "1.8E-7",
+                "input_cache_read": "5.4E-8",
+                "input_cache_write": "1.5E-7",
+                "internal_reasoning": "0.0000045",
+                "prompt": "5.4E-7",
+                "web_search": "0.014"
+            }
+        },
+        "provider_model": "google/gemini-2.5-flash",
+        "provider_request_id": "gen-1793473049-1PLrV8hXEHfwVHFahc6M",
+        "request_body": {
+            "max_tokens": 300,
+            "messages": [
+                {
+                    "content": "Сожми переписку менеджера по оптовой пиротехнике с клиентом в 3–5 предложений по-русски: что клиент хочет, что уже выяснено, какие возражения, что обещано, о чём договорились. Без оценок и советов. Только текст.\n",
+                    "role": "system"
+                },
+                {
+                    "content": "Клиент: Понял.\nМенеджер: Подскажите, вы из какого города? Чтобы сразу сориентировать по доставке.\nКлиент: Понял.\nМенеджер: Тогда уточню коротко: из какого вы города? От этого зависит, как будем считать доставку транспортной компанией.\nКлиент: Понял.\nМенеджер: Хорошо, тогда зайду с другой стороны. Пиротехнику вы смотрите для себя или на продажу?\nКлиент: Понял.\nМенеджер: Вижу, что отвечать неохота, поэтому не буду грузить. Скажите одним словом: для себя или на продажу? От этого зависит, что вам вообще предлагать.\nКлиент: Понял.\nМенеджер: Ладно, вижу, что вопросы не заходят. Один последний: раньше пиротехникой торговали или это будет первый сезон? Если неудобно отвечать, напишите «позже», и я не буду беспокоить.\nКлиент: Понял.\nМенеджер: Хорошо, больше не буду вас дёргать. Когда понадобится прайс или расчёт по пиротехнике, просто напишите сюда. Всё подготовлю.",
+                    "role": "user"
+                }
+            ],
+            "model": "google/gemini-2.5-flash",
+            "plugins": [],
+            "provider": {
+                "allow_fallbacks": false,
+                "max_price": {
+                    "completion": 4.5,
+                    "prompt": 0.54,
+                    "request": 0.0
+                },
+                "only": [
+                    "google-ai-studio"
+                ],
+                "order": [
+                    "google-ai-studio"
+                ],
+                "require_parameters": false
+            },
+            "reasoning": {
+                "effort": "low"
+            },
+            "stream": false,
+            "temperature": 0.2,
+            "usage": {
+                "include": true
+            }
+        },
+        "request_body_sha256": "25d8be1992cd8872e3a250db3062214075220bf05ffc0dce4e9570716cfab4ee",
+        "run_id": "capture_20261031T104157_67845ea5",
+        "seed_requested": null,
+        "sequence": 13,
+        "usage": {
+            "completion_tokens": 124,
+            "cost_usd": "0.0004093",
+            "prompt_tokens": 331,
+            "total_tokens": 455
+        }
+    },
+    "provenance": "recorded",
+    "provider": "openrouter",
+    "request": {
+        "messages": [
+            {
+                "content": "Сожми переписку менеджера по оптовой пиротехнике с клиентом в 3–5 предложений по-русски: что клиент хочет, что уже выяснено, какие возражения, что обещано, о чём договорились. Без оценок и советов. Только текст.\n",
+                "role": "system"
+            },
+            {
+                "content": "Клиент: Понял.\nМенеджер: Подскажите, вы из какого города? Чтобы сразу сориентировать по доставке.\nКлиент: Понял.\nМенеджер: Тогда уточню коротко: из какого вы города? От этого зависит, как будем считать доставку транспортной компанией.\nКлиент: Понял.\nМенеджер: Хорошо, тогда зайду с другой стороны. Пиротехнику вы смотрите для себя или на продажу?\nКлиент: Понял.\nМенеджер: Вижу, что отвечать неохота, поэтому не буду грузить. Скажите одним словом: для себя или на продажу? От этого зависит, что вам вообще предлагать.\nКлиент: Понял.\nМенеджер: Ладно, вижу, что вопросы не заходят. Один последний: раньше пиротехникой торговали или это будет первый сезон? Если неудобно отвечать, напишите «позже», и я не буду беспокоить.\nКлиент: Понял.\nМенеджер: Хорошо, больше не буду вас дёргать. Когда понадобится прайс или расчёт по пиротехнике, просто напишите сюда. Всё подготовлю.",
+                "role": "user"
+            }
+        ],
+        "options": {
+            "component": "summary",
+            "max_tokens": 300,
+            "model": "google/gemini-2.5-flash",
+            "temperature": 0.2,
+            "tools_called": []
+        }
+    },
+    "request_sha256": "270bbb3fa007e76af0a9af572b2a5d43eed740b2bae8a0826f304512bf7e0c55",
+    "response": {
+        "content": "Клиент не озвучил свои потребности, но менеджер пытался выяснить город клиента для расчёта доставки, цель приобретения пиротехники (для себя или на продажу) и опыт торговли ею. Клиент на все вопросы отвечал только \"Понял\". В итоге менеджер предложил клиенту написать, когда понадобится прайс или расчёт, пообещав всё подготовить.",
+        "costUsd": 0.0004093,
+        "error": null,
+        "latencyMs": 0,
+        "model": "google/gemini-2.5-flash",
+        "raw": {
+            "choices": [
+                {
+                    "finish_reason": "stop",
+                    "index": 0,
+                    "logprobs": null,
+                    "message": {
+                        "content": "Клиент не озвучил свои потребности, но менеджер пытался выяснить город клиента для расчёта доставки, цель приобретения пиротехники (для себя или на продажу) и опыт торговли ею. Клиент на все вопросы отвечал только \"Понял\". В итоге менеджер предложил клиенту написать, когда понадобится прайс или расчёт, пообещав всё подготовить.",
+                        "reasoning": "**Defining Client Needs**\n\nI'm focused on understanding the client's unspoken desires. It's becoming clearer that identifying the implied need is the critical piece here, even more so than the explicit statements. I'm prioritizing the underlying motivations driving their requests.\n\n\n",
+                        "reasoning_details": [
+                            {
+                                "format": "google-gemini-v1",
+                                "index": 0,
+                                "text": "**Defining Client Needs**\n\nI'm focused on understanding the client's unspoken desires. It's becoming clearer that identifying the implied need is the critical piece here, even more so than the explicit statements. I'm prioritizing the underlying motivations driving their requests.\n\n\n",
+                                "type": "reasoning.text"
+                            }
+                        ],
+                        "refusal": null,
+                        "role": "assistant"
+                    },
+                    "native_finish_reason": "STOP"
+                }
+            ],
+            "created": 1793473049,
+            "id": "gen-1793473049-1PLrV8hXEHfwVHFahc6M",
+            "model": "google/gemini-2.5-flash",
+            "object": "chat.completion",
+            "provider": "Google AI Studio",
+            "service_tier": "default",
+            "system_fingerprint": null,
+            "usage": {
+                "completion_tokens": 124,
+                "completion_tokens_details": {
+                    "audio_tokens": 0,
+                    "image_tokens": 0,
+                    "reasoning_tokens": 39
+                },
+                "cost": 0.0004093,
+                "cost_details": {
+                    "upstream_inference_completions_cost": 0.00031,
+                    "upstream_inference_cost": 0.0004093,
+                    "upstream_inference_prompt_cost": 9.93e-5
+                },
+                "is_byok": false,
+                "prompt_tokens": 331,
+                "prompt_tokens_details": {
+                    "audio_tokens": 0,
+                    "cache_write_tokens": 0,
+                    "cached_tokens": 0,
+                    "video_tokens": 0
+                },
+                "total_tokens": 455
+            }
+        },
+        "toolCalls": [],
+        "usage": {
+            "completion_tokens": 124,
+            "completion_tokens_details": {
+                "audio_tokens": 0,
+                "image_tokens": 0,
+                "reasoning_tokens": 39
+            },
+            "cost": 0.0004093,
+            "cost_details": {
+                "upstream_inference_completions_cost": 0.00031,
+                "upstream_inference_cost": 0.0004093,
+                "upstream_inference_prompt_cost": 9.93e-5
+            },
+            "is_byok": false,
+            "prompt_tokens": 331,
+            "prompt_tokens_details": {
+                "audio_tokens": 0,
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "video_tokens": 0
+            },
+            "total_tokens": 455
+        }
+    },
+    "response_sha256": "34db2fdf2d7e70aded2cc4a0828a6a810a53a101ecd9bb1bf9931ab6e6468316",
+    "schema_version": 1
+}

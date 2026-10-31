@@ -1,0 +1,15 @@
+{
+    "files": {
+        "tools/baseline/ContactNormalizer.php": "24106c29ad4ee54b1c8f7367c806a2efae151319738ca9df1a92c03b0fb0daf1",
+        "tools/baseline/FixtureClient.php": "64534c82be4c410bf4126fa405a1e23bf56016691fbe9333febbcfda99e9599c",
+        "tools/baseline/RecordedClient.php": "06984e35467522aec7bb3f9e91dd0e574bc5fb7e7b966cbcf34c90d78906c46f",
+        "tools/baseline/bootstrap.php": "bc959da3680334f9ec4957ba916ac61f55180be73fc8f83cc5192835c4eec036",
+        "tools/baseline/capture-case.php": "e54e534be22e96f50de3d670f6648350dcde803851da70937b79b5d46b638abf",
+        "tools/baseline/capture-scenarios.php": "97fe16b08244e379cbd1acafe0582e4780e95e716e66ae817c302850768082d9",
+        "tools/baseline/capture.py": "8233c081b8da1aa1f6f251a4f426756e7c9dc660c0b2a1195fecb29f40ca8cd5",
+        "tools/baseline/capture_broker.py": "d572e279ee264380eaa0c908809a519f713e12bf6fa89408d316ad08c6c874f9",
+        "tools/baseline/verify.py": "6b50052781c35064262059d4f315024c706ee17af9245b3b1a7d4e49ece4256f"
+    },
+    "hashing": "sha256-utf8-lf-v1",
+    "schema_version": 2
+}

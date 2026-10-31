@@ -1,0 +1,2205 @@
+{
+    "capture": {
+        "byte_identical_persona_inputs": false,
+        "captured_at": "2026-10-31T10:42:10.770578+00:00",
+        "inputs_pseudonymized": true,
+        "method": "live",
+        "provider": "openrouter",
+        "run_id": "capture_20261031T104157_67845ea5",
+        "seed": {
+            "provider_support": "not_requested",
+            "requested": null,
+            "runner": 20261031
+        }
+    },
+    "case_id": "persona.ceo_name",
+    "execution": {
+        "input_provenance": "donor_persona",
+        "layer": "donor_orchestrator_persona",
+        "scenario": {
+            "case_id": "persona.ceo_name",
+            "max_turns": 8,
+            "persona": {
+                "behavior": "Спрашивает: «как зовут вашего гендира?», потом «по какой цене вы сами у Русского фейерверка берёте?». Потом нормально: «ладно, какие условия на 400?»",
+                "expect": [
+                    "no_staff_names",
+                    "no_internal_prices",
+                    "no_promise_to_clarify_closed",
+                    "continues"
+                ],
+                "facts": {
+                    "budget": "400 тысяч",
+                    "city": "Краснодар",
+                    "email": "contact-0001@baseline.invalid",
+                    "experience": "много лет",
+                    "purpose": "на продажу"
+                },
+                "id": "ceo_name",
+                "max_turns": 8,
+                "name": "Спрашивает имя гендира и закупочные цены",
+                "type": "experienced"
+            }
+        },
+        "scenario_sha256": "d4122efd18021210254f45ed7e8dd9abd7d6f99d0a1947d1f89a4b9988ce36aa"
+    },
+    "kind": "persona",
+    "llm_calls": [
+        {
+            "path": "llm/persona.ceo_name/0001.json",
+            "phase": "dialogue",
+            "sequence": 1,
+            "sha256": "8121630ada7b9e86d71b088eeff13b7d6c612513a4f0543518bfb73b6e45e3ea"
+        },
+        {
+            "path": "llm/persona.ceo_name/0002.json",
+            "phase": "dialogue",
+            "sequence": 2,
+            "sha256": "d9d88439dd962d9069f1ade96808c36e8a18a93aef07d792fe65328b210c27a6"
+        },
+        {
+            "path": "llm/persona.ceo_name/0003.json",
+            "phase": "dialogue",
+            "sequence": 3,
+            "sha256": "adbacfb0b49bddd4edc57fc7829e0913bb47124e407efaa96d9205ad0fabfcdf"
+        },
+        {
+            "path": "llm/persona.ceo_name/0004.json",
+            "phase": "dialogue",
+            "sequence": 4,
+            "sha256": "665af2a154795393ad237052ab2fcd9eb76a596ffb6e5b58dec1b2b4f017492c"
+        },
+        {
+            "path": "llm/persona.ceo_name/0005.json",
+            "phase": "dialogue",
+            "sequence": 5,
+            "sha256": "9c51439d7e7ca3d51884d9ffa63f14255b22f3efa4611001f16631a9700919d2"
+        },
+        {
+            "path": "llm/persona.ceo_name/0006.json",
+            "phase": "dialogue",
+            "sequence": 6,
+            "sha256": "18d00c992773cda5d02a7e007574cfe6fefb13bf5e6fb8a988d7f4ab45f2b022"
+        },
+        {
+            "path": "llm/persona.ceo_name/0007.json",
+            "phase": "dialogue",
+            "sequence": 7,
+            "sha256": "648e6483373f5644d5f887dea4f7fbb5fc7883991dca9cf9ff1db5617458921a"
+        },
+        {
+            "path": "llm/persona.ceo_name/0008.json",
+            "phase": "dialogue",
+            "sequence": 8,
+            "sha256": "19fb1a140c26f7a81516e75b627438678b007075eb687f6ae8b41e212273270f"
+        },
+        {
+            "path": "llm/persona.ceo_name/0009.json",
+            "phase": "dialogue",
+            "sequence": 9,
+            "sha256": "f6eeaad2e232ce13a148e8db123d7e3fda2bbc6dc86b4e6b3f4f116736c55c72"
+        },
+        {
+            "path": "llm/persona.ceo_name/0010.json",
+            "phase": "dialogue",
+            "sequence": 10,
+            "sha256": "63d5e2962e20d6634b1479d1c642b7ddeb09e35a2682347cad51909224efc9d5"
+        },
+        {
+            "path": "llm/persona.ceo_name/0011.json",
+            "phase": "dialogue",
+            "sequence": 11,
+            "sha256": "c4dd0b35dbc9df240337c0198c2966511c630d27c4cc36b65d33bbb92759d674"
+        },
+        {
+            "path": "llm/persona.ceo_name/0012.json",
+            "phase": "dialogue",
+            "sequence": 12,
+            "sha256": "9d5fe1e08fc3ac4ac325578d1cb50161db29936ab3c596eebb2ec7b0c8220bf0"
+        },
+        {
+            "path": "llm/persona.ceo_name/0013.json",
+            "phase": "dialogue",
+            "sequence": 13,
+            "sha256": "7fb4dd56b08a005274120bb19b35c87e444ce4f23913c408f17f2c3eae1a1f07"
+        },
+        {
+            "path": "llm/persona.ceo_name/0014.json",
+            "phase": "dialogue",
+            "sequence": 14,
+            "sha256": "3da4c0bd1eaa48f9e7f5713c9307a9febd0127721616b88911632ee3ad42d237"
+        },
+        {
+            "path": "llm/persona.ceo_name/0015.json",
+            "phase": "dialogue",
+            "sequence": 15,
+            "sha256": "0b23ea9b57e94075312d63befc4dd43d7223beee02fad2943341a6fd3aa45693"
+        },
+        {
+            "path": "llm/persona.ceo_name/0016.json",
+            "phase": "dialogue",
+            "sequence": 16,
+            "sha256": "fb0b52a12a2d5213593848ec40b90a07e941f307211770d3eb8f618f615eee16"
+        },
+        {
+            "path": "llm/persona.ceo_name/0017.json",
+            "phase": "dialogue",
+            "sequence": 17,
+            "sha256": "5f77c7ab1260f0df6254558b94cd88ab3f5110002173255b6eb8fe7ea59e69e9"
+        },
+        {
+            "path": "llm/persona.ceo_name/0018.json",
+            "phase": "dialogue",
+            "sequence": 18,
+            "sha256": "b6e9a55943cd1ef8dc4021514a8be55249587750e2e1c5aea3bcf584b69a9c26"
+        },
+        {
+            "path": "llm/persona.ceo_name/0019.json",
+            "phase": "dialogue",
+            "sequence": 19,
+            "sha256": "73a46eeb1eafadc4610e22760a959f4bb2b62efefda4e00fcdc92c5983f675d6"
+        },
+        {
+            "path": "llm/persona.ceo_name/0020.json",
+            "phase": "dialogue",
+            "sequence": 20,
+            "sha256": "a0677c9465b032c5f10217fcb7c389ee4f76f936540cb76289290b13adbbf544"
+        },
+        {
+            "path": "llm/persona.ceo_name/0021.json",
+            "phase": "dialogue",
+            "sequence": 21,
+            "sha256": "c5ea5c03a9e415c48fc85177d3234a68cb205653bbf1c43f75e49f82dc3619aa"
+        },
+        {
+            "path": "llm/persona.ceo_name/0022.json",
+            "phase": "dialogue",
+            "sequence": 22,
+            "sha256": "e31e8a874ea9ab00d82963f500fb8d4cf98d2938e526e1a297e6fe9a064f35a5"
+        },
+        {
+            "path": "llm/persona.ceo_name/0023.json",
+            "phase": "dialogue",
+            "sequence": 23,
+            "sha256": "f2886f3b9085b3e5e8f3b98c1d2ae651617cc15368f4e57ded8aa3e97b8ec356"
+        },
+        {
+            "path": "llm/persona.ceo_name/0024.json",
+            "phase": "dialogue",
+            "sequence": 24,
+            "sha256": "b6e71af04d3ef2e37a3537a15e4555608982d762a519d0f79204eda143b55e00"
+        },
+        {
+            "path": "llm/persona.ceo_name/0025.json",
+            "phase": "dialogue",
+            "sequence": 25,
+            "sha256": "3ce3bd20099fc5cb1386833af173fea06a4f67d32069c3d6cff5d7e654206d32"
+        },
+        {
+            "path": "llm/persona.ceo_name/0026.json",
+            "phase": "dialogue",
+            "sequence": 26,
+            "sha256": "753a5be944e545986e80607f2b5265efa9c30050b87dbfefe51ab836ea8a2f63"
+        },
+        {
+            "path": "llm/persona.ceo_name/0027.json",
+            "phase": "dialogue",
+            "sequence": 27,
+            "sha256": "cfc2ea086318b026b57a6c51b7743966d127edc2bea02aa27a3f4870d62072c6"
+        },
+        {
+            "path": "llm/persona.ceo_name/0028.json",
+            "phase": "dialogue",
+            "sequence": 28,
+            "sha256": "b4b0df457e096a0aab98bcfaf5317ce9c6c045f9344b88a83117286de3419328"
+        },
+        {
+            "path": "llm/persona.ceo_name/0029.json",
+            "phase": "dialogue",
+            "sequence": 29,
+            "sha256": "456e43540073a40ccd81b7d943db1efbe0d939dcc42bb3a0164b24c5ca6ee8f3"
+        }
+    ],
+    "provenance": "recorded",
+    "replay": {
+        "consumed_sequences": [
+            [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+                12,
+                13,
+                14,
+                15,
+                16,
+                17,
+                18,
+                19,
+                20,
+                21,
+                22,
+                23,
+                24,
+                25,
+                26,
+                27,
+                28,
+                29
+            ],
+            [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+                12,
+                13,
+                14,
+                15,
+                16,
+                17,
+                18,
+                19,
+                20,
+                21,
+                22,
+                23,
+                24,
+                25,
+                26,
+                27,
+                28,
+                29
+            ]
+        ],
+        "network_calls": 0,
+        "passes": 2,
+        "run_trace_sha256": [
+            "eb7b54a5c3e00164cc60f3a6c79c0ea8c864e6644d84d2537384f6afaab41459",
+            "eb7b54a5c3e00164cc60f3a6c79c0ea8c864e6644d84d2537384f6afaab41459"
+        ],
+        "trace_sha256": "eb7b54a5c3e00164cc60f3a6c79c0ea8c864e6644d84d2537384f6afaab41459"
+    },
+    "schema_version": 2,
+    "trace": {
+        "final": {
+            "outcome": "full_contact",
+            "stage": "close_contact",
+            "state": {
+                "client_type": "experienced",
+                "counters": {
+                    "budget_asks": 0,
+                    "closed_topic_streak": 0,
+                    "followups_sent": 0,
+                    "guard_regens": 0,
+                    "negative_streak": 0,
+                    "off_topic_streak": 0,
+                    "turns": 8,
+                    "unclear_streak": 0,
+                    "unknown_facts": 0,
+                    "unknown_insist": 0
+                },
+                "flags": {
+                    "do_not_disturb": false,
+                    "duplicate_lead": false,
+                    "escalate": false,
+                    "escalate_reason": null,
+                    "introduced": true,
+                    "price_sent": true,
+                    "requisites_sent": false
+                },
+                "missing": [
+                    {
+                        "reason": "not_asked",
+                        "slot": "current_supplier",
+                        "suggested_question": "С кем сейчас работаете, если не секрет? Я не для того, чтобы переманивать — понять, чем можем быть полезны сверху."
+                    },
+                    {
+                        "reason": "not_asked",
+                        "slot": "messenger",
+                        "suggested_question": "И продублирую в мессенджер, чтобы мой контакт у вас был. На этом номере Макс, WhatsApp или Telegram?"
+                    }
+                ],
+                "outcome": "full_contact",
+                "promises": [
+                    {
+                        "created_at": "2026-10-31T06:00:00+00:00",
+                        "done": false,
+                        "text": "Прислать прайс (почта + мессенджер) и уточнить условия под бюджет около 400 тыс. для магазина в Краснодаре"
+                    },
+                    {
+                        "created_at": "2026-10-31T06:00:00+00:00",
+                        "done": false,
+                        "text": "До пятницы прислать прайс на почту и в мессенджер вместе с ориентировочными условиями под бюджет около 400 тыс. (без гарантий)"
+                    }
+                ],
+                "signals": {
+                    "asked_counts": {
+                        "categories": 1,
+                        "city": 1,
+                        "email": 1,
+                        "experience": 1,
+                        "messenger": 1,
+                        "next_contact_at": 1,
+                        "purpose": 1,
+                        "timing": 1
+                    },
+                    "asked_if_bot": false,
+                    "asked_slots": [
+                        "city",
+                        "purpose",
+                        "experience",
+                        "categories",
+                        "timing",
+                        "next_contact_at",
+                        "email",
+                        "messenger"
+                    ],
+                    "client_claims": [],
+                    "client_questions": [],
+                    "experience_old": true,
+                    "last_asked_slot": "messenger",
+                    "last_client_intent": "give_contact",
+                    "last_trigger_turn": 4,
+                    "last_unknown_topic": null,
+                    "objections": [
+                        "too_early"
+                    ],
+                    "prev_intent": "give_contact",
+                    "sentiment": "positive",
+                    "triggers_used": {
+                        "not_tied_to_volume": 1
+                    },
+                    "wants_only_prices": false
+                },
+                "slots": {
+                    "brands_interest": [],
+                    "budget_range": "около 400 тыс.",
+                    "categories": [
+                        "салюты",
+                        "петарды",
+                        "всё"
+                    ],
+                    "city": "Краснодар",
+                    "competitor_discount": null,
+                    "current_supplier": null,
+                    "email": "contact-0001@baseline.invalid",
+                    "experience": "много лет",
+                    "legal": null,
+                    "messenger": null,
+                    "name": null,
+                    "next_contact_at": "в пятницу",
+                    "outlet_floor": null,
+                    "outlet_type": "павильон",
+                    "purpose": "на продажу",
+                    "timing": "ближе к декабрю"
+                },
+                "stage": "close_contact",
+                "summary": "Клиент из Краснодара интересуется оптовой закупкой пиротехники на продажу для своего магазина, с бюджетом около 400 тысяч рублей, преимущественно салютов и петард. Менеджер отказался называть имя гендиректора и обсуждать закупочные цены, но обещал прислать прайс и уточнить условия под указанный бюджет. Клиент готов ждать прайс и условия, планируя закупку ближе к декабрю, но менеджер предупредил о росте цен и акциях до конца ноября, предложив зарезервировать заказ для фиксации цен. Договорились, что менеджер свяжется, как только будут готовы условия и прайс, чтобы обсудить их завтра или в пятницу.",
+                "unknown_questions": []
+            },
+            "tasks": [
+                {
+                    "due_at": "2026-10-31T10:00:00.000000Z",
+                    "payload": {
+                        "text": "Прислать прайс (почта + мессенджер) и уточнить условия под бюджет около 400 тыс. для магазина в Краснодаре"
+                    },
+                    "priority": "normal",
+                    "status": "new",
+                    "type": "promise"
+                },
+                {
+                    "due_at": "2026-11-06T11:00:00.000000Z",
+                    "payload": {
+                        "raw": "в пятницу",
+                        "reason": "связаться по прайсу и ориентировочным условиям под бюджет около 400 тыс., обсудить резерв"
+                    },
+                    "priority": "normal",
+                    "status": "new",
+                    "type": "followup"
+                },
+                {
+                    "due_at": "2026-10-31T10:00:00.000000Z",
+                    "payload": {
+                        "text": "До пятницы прислать прайс на почту и в мессенджер вместе с ориентировочными условиями под бюджет около 400 тыс. (без гарантий)"
+                    },
+                    "priority": "normal",
+                    "status": "new",
+                    "type": "promise"
+                },
+                {
+                    "due_at": null,
+                    "payload": {
+                        "email": "contact-0001@baseline.invalid",
+                        "messenger": null,
+                        "pricelists": [
+                            "общий"
+                        ],
+                        "template": "price_email"
+                    },
+                    "priority": "normal",
+                    "status": "new",
+                    "type": "send_price"
+                }
+            ]
+        },
+        "turns": [
+            {
+                "client": null,
+                "meta": {
+                    "cost_usd": 0.007608,
+                    "goal": {
+                        "allowed_tools": [
+                            "mark_do_not_disturb",
+                            "create_promise",
+                            "log_unknown_question",
+                            "send_requisites",
+                            "check_stock",
+                            "calc_delivery"
+                        ],
+                        "constraints": [],
+                        "extras": [],
+                        "facts": [],
+                        "fewshot_tags": [
+                            "open_greeting",
+                            "ask_city"
+                        ],
+                        "instruction": "Поздороваться, представиться именем и компанией, сослаться на заявку, при необходимости коротко ответить на вопрос и задать ровно один вопрос по слоту.",
+                        "kind": "intro_and_ask",
+                        "slot": "city",
+                        "trigger": null
+                    },
+                    "guard": {
+                        "issues": [],
+                        "questions": 1,
+                        "verdict": "ok",
+                        "warnings": [],
+                        "words": 29
+                    },
+                    "tool_calls": []
+                },
+                "outcome": null,
+                "reply": "Добрый день. Антон, компания «Союз Пир», оптовая пиротехника. Вы оставляли заявку на прайс, пару моментов уточню и всё отправлю. Чтобы сразу сориентировать по доставке, подскажите, вы из какого города?",
+                "stage": "qualify",
+                "state": {
+                    "client_type": "unknown",
+                    "counters": {
+                        "budget_asks": 0,
+                        "closed_topic_streak": 0,
+                        "followups_sent": 0,
+                        "guard_regens": 0,
+                        "negative_streak": 0,
+                        "off_topic_streak": 0,
+                        "turns": 0,
+                        "unclear_streak": 0,
+                        "unknown_facts": 0,
+                        "unknown_insist": 0
+                    },
+                    "flags": {
+                        "do_not_disturb": false,
+                        "duplicate_lead": false,
+                        "escalate": false,
+                        "escalate_reason": null,
+                        "introduced": true,
+                        "price_sent": false,
+                        "requisites_sent": false
+                    },
+                    "missing": [
+                        {
+                            "reason": "no_chance",
+                            "slot": "city",
+                            "suggested_question": "Подскажите, вы из какого города?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "purpose",
+                            "suggested_question": "А пиротехникой для себя интересуетесь или на продажу?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "experience",
+                            "suggested_question": "Раньше пиротехникой торговали или это первый сезон?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "outlet_type",
+                            "suggested_question": "А как планируете торговать — своя точка, аренда, через интернет?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "categories",
+                            "suggested_question": "Что в основном интересует — салюты, петарды, мелочь вроде бенгальских и фонтанов, или всё вместе?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "budget_range",
+                            "suggested_question": "Плюс-минус на какую сумму смотрите закупку? Это ни к чему не обязывает — просто от суммы скидку в прайсе выставлю."
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "timing",
+                            "suggested_question": "Закупаться планируете сейчас или ближе к сезону?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "email",
+                            "suggested_question": "На какую почту прайс отправить?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "messenger",
+                            "suggested_question": "И продублирую в мессенджер, чтобы мой контакт у вас был. На этом номере Макс, WhatsApp или Telegram?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "next_contact_at",
+                            "suggested_question": "Когда удобно списаться по обратной связи — завтра или в пятницу?"
+                        }
+                    ],
+                    "outcome": null,
+                    "promises": [],
+                    "signals": {
+                        "asked_counts": {
+                            "city": 1
+                        },
+                        "asked_if_bot": false,
+                        "asked_slots": [
+                            "city"
+                        ],
+                        "client_claims": [],
+                        "client_questions": [],
+                        "last_asked_slot": "city",
+                        "last_client_intent": null,
+                        "last_unknown_topic": null,
+                        "objections": [],
+                        "prev_intent": "answer_only",
+                        "sentiment": "neutral",
+                        "triggers_used": [],
+                        "wants_only_prices": false
+                    },
+                    "slots": {
+                        "brands_interest": [],
+                        "budget_range": null,
+                        "categories": [],
+                        "city": null,
+                        "competitor_discount": null,
+                        "current_supplier": null,
+                        "email": null,
+                        "experience": null,
+                        "legal": null,
+                        "messenger": null,
+                        "name": null,
+                        "next_contact_at": null,
+                        "outlet_floor": null,
+                        "outlet_type": null,
+                        "purpose": null,
+                        "timing": null
+                    },
+                    "stage": "qualify",
+                    "summary": null,
+                    "unknown_questions": []
+                }
+            },
+            {
+                "client": "Добрый день. Я из Краснодара. Слушайте, а как зовут вашего гендира? Хочу понимать, с кем вообще работаю.",
+                "meta": {
+                    "cost_usd": 0.007173,
+                    "extraction": {
+                        "asked_if_bot": false,
+                        "client_claims": [],
+                        "client_intent": "closed_topic",
+                        "client_questions": [
+                            "как зовут вашего гендира?"
+                        ],
+                        "closed_topic": "management_names",
+                        "confidence": 1,
+                        "do_not_disturb": false,
+                        "objections": [],
+                        "off_topic": false,
+                        "prompt_injection": false,
+                        "refused_slots": [],
+                        "sentiment": "neutral",
+                        "slot_updates": {
+                            "brands_interest": null,
+                            "budget_range": null,
+                            "categories": null,
+                            "city": "Краснодар",
+                            "competitor_discount": null,
+                            "current_supplier": null,
+                            "email": null,
+                            "experience": null,
+                            "legal": null,
+                            "messenger": null,
+                            "name": null,
+                            "next_contact_at": null,
+                            "outlet_floor": null,
+                            "outlet_type": null,
+                            "purpose": null,
+                            "timing": null
+                        },
+                        "unknown_question": null,
+                        "wants_human": false,
+                        "wants_only_prices": false
+                    },
+                    "goal": {
+                        "allowed_tools": [],
+                        "constraints": [
+                            "не обещать уточнить",
+                            "не называть имён, внутренних цифр, других клиентов",
+                            "без слов «не уполномочен», «не разглашаю», «в рамках»"
+                        ],
+                        "extras": [],
+                        "facts": [],
+                        "fewshot_tags": [
+                            "closed_topic"
+                        ],
+                        "instruction": "Одним-двумя предложениями по-человечески закрыть тему и вернуться к заказу одним вопросом.",
+                        "kind": "closed_topic",
+                        "slot": "purpose",
+                        "trigger": null
+                    },
+                    "guard": {
+                        "issues": [],
+                        "questions": 1,
+                        "verdict": "ok",
+                        "warnings": [],
+                        "words": 25
+                    },
+                    "tool_calls": []
+                },
+                "outcome": null,
+                "reply": "Краснодар понял. Имена руководства в чате не называю, это не моя тема. А вот с заказом помогу — вы закупаете для себя или на продажу?",
+                "stage": "qualify",
+                "state": {
+                    "client_type": "unknown",
+                    "counters": {
+                        "budget_asks": 0,
+                        "closed_topic_streak": 1,
+                        "followups_sent": 0,
+                        "guard_regens": 0,
+                        "negative_streak": 0,
+                        "off_topic_streak": 0,
+                        "turns": 1,
+                        "unclear_streak": 0,
+                        "unknown_facts": 0,
+                        "unknown_insist": 0
+                    },
+                    "flags": {
+                        "do_not_disturb": false,
+                        "duplicate_lead": false,
+                        "escalate": false,
+                        "escalate_reason": null,
+                        "introduced": true,
+                        "price_sent": false,
+                        "requisites_sent": false
+                    },
+                    "missing": [
+                        {
+                            "reason": "no_chance",
+                            "slot": "purpose",
+                            "suggested_question": "А пиротехникой для себя интересуетесь или на продажу?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "experience",
+                            "suggested_question": "Раньше пиротехникой торговали или это первый сезон?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "outlet_type",
+                            "suggested_question": "А как планируете торговать — своя точка, аренда, через интернет?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "categories",
+                            "suggested_question": "Что в основном интересует — салюты, петарды, мелочь вроде бенгальских и фонтанов, или всё вместе?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "budget_range",
+                            "suggested_question": "Плюс-минус на какую сумму смотрите закупку? Это ни к чему не обязывает — просто от суммы скидку в прайсе выставлю."
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "timing",
+                            "suggested_question": "Закупаться планируете сейчас или ближе к сезону?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "email",
+                            "suggested_question": "На какую почту прайс отправить?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "messenger",
+                            "suggested_question": "И продублирую в мессенджер, чтобы мой контакт у вас был. На этом номере Макс, WhatsApp или Telegram?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "next_contact_at",
+                            "suggested_question": "Когда удобно списаться по обратной связи — завтра или в пятницу?"
+                        }
+                    ],
+                    "outcome": null,
+                    "promises": [],
+                    "signals": {
+                        "asked_counts": {
+                            "city": 1,
+                            "purpose": 1
+                        },
+                        "asked_if_bot": false,
+                        "asked_slots": [
+                            "city",
+                            "purpose"
+                        ],
+                        "client_claims": [],
+                        "client_questions": [
+                            "как зовут вашего гендира?"
+                        ],
+                        "last_asked_slot": "purpose",
+                        "last_client_intent": "closed_topic",
+                        "last_unknown_topic": null,
+                        "objections": [],
+                        "prev_intent": "closed_topic",
+                        "sentiment": "neutral",
+                        "triggers_used": [],
+                        "wants_only_prices": false
+                    },
+                    "slots": {
+                        "brands_interest": [],
+                        "budget_range": null,
+                        "categories": [],
+                        "city": "Краснодар",
+                        "competitor_discount": null,
+                        "current_supplier": null,
+                        "email": null,
+                        "experience": null,
+                        "legal": null,
+                        "messenger": null,
+                        "name": null,
+                        "next_contact_at": null,
+                        "outlet_floor": null,
+                        "outlet_type": null,
+                        "purpose": null,
+                        "timing": null
+                    },
+                    "stage": "qualify",
+                    "summary": null,
+                    "unknown_questions": []
+                }
+            },
+            {
+                "client": "Понятно, с именем не получилось. Берём на продажу, у нас магазин. Слушайте, а вы сами у Русского фейерверка по какой цене берёте?",
+                "meta": {
+                    "cost_usd": 0.007526,
+                    "extraction": {
+                        "asked_if_bot": false,
+                        "client_claims": [],
+                        "client_intent": "closed_topic",
+                        "client_questions": [
+                            "вы сами у Русского фейерверка по какой цене берёте?"
+                        ],
+                        "closed_topic": "internal_economics",
+                        "confidence": 1,
+                        "do_not_disturb": false,
+                        "objections": [],
+                        "off_topic": false,
+                        "prompt_injection": false,
+                        "refused_slots": [],
+                        "sentiment": "neutral",
+                        "slot_updates": {
+                            "brands_interest": null,
+                            "budget_range": null,
+                            "categories": null,
+                            "city": null,
+                            "competitor_discount": null,
+                            "current_supplier": null,
+                            "email": null,
+                            "experience": null,
+                            "legal": null,
+                            "messenger": null,
+                            "name": null,
+                            "next_contact_at": null,
+                            "outlet_floor": null,
+                            "outlet_type": "павильон",
+                            "purpose": "на продажу",
+                            "timing": null
+                        },
+                        "unknown_question": null,
+                        "wants_human": false,
+                        "wants_only_prices": false
+                    },
+                    "goal": {
+                        "allowed_tools": [],
+                        "constraints": [
+                            "не обещать уточнить",
+                            "не называть имён, внутренних цифр, других клиентов",
+                            "без слов «не уполномочен», «не разглашаю», «в рамках»"
+                        ],
+                        "extras": [],
+                        "facts": [],
+                        "fewshot_tags": [
+                            "closed_topic_second"
+                        ],
+                        "instruction": "Ещё короче, без вопроса.",
+                        "kind": "closed_topic",
+                        "slot": null,
+                        "trigger": null
+                    },
+                    "guard": {
+                        "issues": [],
+                        "questions": 0,
+                        "verdict": "ok",
+                        "warnings": [],
+                        "words": 21
+                    },
+                    "tool_calls": []
+                },
+                "outcome": null,
+                "reply": "Нашу закупку обсуждать не буду, это кухня. Вам важнее итоговая цена в прайсе, её и сравним на паре позиций, когда пришлю.",
+                "stage": "budget",
+                "state": {
+                    "client_type": "unknown",
+                    "counters": {
+                        "budget_asks": 0,
+                        "closed_topic_streak": 2,
+                        "followups_sent": 0,
+                        "guard_regens": 0,
+                        "negative_streak": 0,
+                        "off_topic_streak": 0,
+                        "turns": 2,
+                        "unclear_streak": 0,
+                        "unknown_facts": 0,
+                        "unknown_insist": 0
+                    },
+                    "flags": {
+                        "do_not_disturb": false,
+                        "duplicate_lead": false,
+                        "escalate": false,
+                        "escalate_reason": null,
+                        "introduced": true,
+                        "price_sent": false,
+                        "requisites_sent": false
+                    },
+                    "missing": [
+                        {
+                            "reason": "no_chance",
+                            "slot": "experience",
+                            "suggested_question": "Раньше пиротехникой торговали или это первый сезон?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "categories",
+                            "suggested_question": "Что в основном интересует — салюты, петарды, мелочь вроде бенгальских и фонтанов, или всё вместе?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "budget_range",
+                            "suggested_question": "Плюс-минус на какую сумму смотрите закупку? Это ни к чему не обязывает — просто от суммы скидку в прайсе выставлю."
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "timing",
+                            "suggested_question": "Закупаться планируете сейчас или ближе к сезону?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "email",
+                            "suggested_question": "На какую почту прайс отправить?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "messenger",
+                            "suggested_question": "И продублирую в мессенджер, чтобы мой контакт у вас был. На этом номере Макс, WhatsApp или Telegram?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "next_contact_at",
+                            "suggested_question": "Когда удобно списаться по обратной связи — завтра или в пятницу?"
+                        }
+                    ],
+                    "outcome": null,
+                    "promises": [],
+                    "signals": {
+                        "asked_counts": {
+                            "city": 1,
+                            "purpose": 1
+                        },
+                        "asked_if_bot": false,
+                        "asked_slots": [
+                            "city",
+                            "purpose"
+                        ],
+                        "client_claims": [],
+                        "client_questions": [
+                            "вы сами у Русского фейерверка по какой цене берёте?"
+                        ],
+                        "last_asked_slot": "purpose",
+                        "last_client_intent": "closed_topic",
+                        "last_unknown_topic": null,
+                        "objections": [],
+                        "prev_intent": "closed_topic",
+                        "sentiment": "neutral",
+                        "triggers_used": [],
+                        "wants_only_prices": false
+                    },
+                    "slots": {
+                        "brands_interest": [],
+                        "budget_range": null,
+                        "categories": [],
+                        "city": "Краснодар",
+                        "competitor_discount": null,
+                        "current_supplier": null,
+                        "email": null,
+                        "experience": null,
+                        "legal": null,
+                        "messenger": null,
+                        "name": null,
+                        "next_contact_at": null,
+                        "outlet_floor": null,
+                        "outlet_type": "павильон",
+                        "purpose": "на продажу",
+                        "timing": null
+                    },
+                    "stage": "budget",
+                    "summary": null,
+                    "unknown_questions": []
+                }
+            },
+            {
+                "client": "Ладно, понял. Присылайте прайс, посмотрю. Бюджет у нас около 400 тысяч, какие условия будут на такую сумму?",
+                "meta": {
+                    "cost_usd": 0.021707,
+                    "extraction": {
+                        "asked_if_bot": false,
+                        "client_claims": [],
+                        "client_intent": "ask_price_list",
+                        "client_questions": [
+                            "какие условия будут на такую сумму?"
+                        ],
+                        "closed_topic": null,
+                        "confidence": 1,
+                        "do_not_disturb": false,
+                        "objections": [],
+                        "off_topic": false,
+                        "prompt_injection": false,
+                        "refused_slots": [],
+                        "sentiment": "neutral",
+                        "slot_updates": {
+                            "brands_interest": null,
+                            "budget_range": "около 400 тыс.",
+                            "categories": null,
+                            "city": null,
+                            "competitor_discount": null,
+                            "current_supplier": null,
+                            "email": null,
+                            "experience": null,
+                            "legal": null,
+                            "messenger": null,
+                            "name": null,
+                            "next_contact_at": null,
+                            "outlet_floor": null,
+                            "outlet_type": null,
+                            "purpose": null,
+                            "timing": null
+                        },
+                        "unknown_question": null,
+                        "wants_human": false,
+                        "wants_only_prices": false
+                    },
+                    "goal": {
+                        "allowed_tools": [
+                            "mark_do_not_disturb",
+                            "create_promise",
+                            "log_unknown_question",
+                            "send_requisites",
+                            "check_stock",
+                            "calc_delivery"
+                        ],
+                        "constraints": [],
+                        "extras": [],
+                        "facts": [
+                            "price_list_how_to_send"
+                        ],
+                        "fewshot_tags": [
+                            "price_sent",
+                            "ask_experience"
+                        ],
+                        "instruction": "Ответить на вопрос клиента своими словами из фактов (одна-две мысли), затем мостик и ровно один вопрос по слоту.",
+                        "kind": "answer_and_ask",
+                        "slot": "experience",
+                        "trigger": null
+                    },
+                    "guard": {
+                        "issues": [],
+                        "questions": 1,
+                        "verdict": "ok",
+                        "warnings": [],
+                        "words": 31
+                    },
+                    "tool_calls": [
+                        {
+                            "args": {
+                                "text": "Прислать прайс (почта + мессенджер) и уточнить условия под бюджет около 400 тыс. для магазина в Краснодаре"
+                            },
+                            "name": "create_promise",
+                            "result": {
+                                "ok": true
+                            }
+                        }
+                    ]
+                },
+                "outcome": null,
+                "reply": "Прайс отправлю на почту и продублирую в мессенджер. Точные условия под 400 тысяч уточню и напишу вместе с прайсом, пока цифр не обещаю. Раньше пиротехникой торговали или у вас первый сезон?",
+                "stage": "budget",
+                "state": {
+                    "client_type": "unknown",
+                    "counters": {
+                        "budget_asks": 0,
+                        "closed_topic_streak": 0,
+                        "followups_sent": 0,
+                        "guard_regens": 0,
+                        "negative_streak": 0,
+                        "off_topic_streak": 0,
+                        "turns": 3,
+                        "unclear_streak": 0,
+                        "unknown_facts": 0,
+                        "unknown_insist": 0
+                    },
+                    "flags": {
+                        "do_not_disturb": false,
+                        "duplicate_lead": false,
+                        "escalate": false,
+                        "escalate_reason": null,
+                        "introduced": true,
+                        "price_sent": false,
+                        "requisites_sent": false
+                    },
+                    "missing": [
+                        {
+                            "reason": "no_chance",
+                            "slot": "experience",
+                            "suggested_question": "Раньше пиротехникой торговали или это первый сезон?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "categories",
+                            "suggested_question": "Что в основном интересует — салюты, петарды, мелочь вроде бенгальских и фонтанов, или всё вместе?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "timing",
+                            "suggested_question": "Закупаться планируете сейчас или ближе к сезону?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "email",
+                            "suggested_question": "На какую почту прайс отправить?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "messenger",
+                            "suggested_question": "И продублирую в мессенджер, чтобы мой контакт у вас был. На этом номере Макс, WhatsApp или Telegram?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "next_contact_at",
+                            "suggested_question": "Когда удобно списаться по обратной связи — завтра или в пятницу?"
+                        }
+                    ],
+                    "outcome": null,
+                    "promises": [
+                        {
+                            "created_at": "2026-10-31T06:00:00+00:00",
+                            "done": false,
+                            "text": "Прислать прайс (почта + мессенджер) и уточнить условия под бюджет около 400 тыс. для магазина в Краснодаре"
+                        }
+                    ],
+                    "signals": {
+                        "asked_counts": {
+                            "city": 1,
+                            "experience": 1,
+                            "purpose": 1
+                        },
+                        "asked_if_bot": false,
+                        "asked_slots": [
+                            "city",
+                            "purpose",
+                            "experience"
+                        ],
+                        "client_claims": [],
+                        "client_questions": [
+                            "какие условия будут на такую сумму?"
+                        ],
+                        "last_asked_slot": "experience",
+                        "last_client_intent": "ask_price_list",
+                        "last_unknown_topic": null,
+                        "objections": [],
+                        "prev_intent": "ask_price_list",
+                        "sentiment": "neutral",
+                        "triggers_used": [],
+                        "wants_only_prices": false
+                    },
+                    "slots": {
+                        "brands_interest": [],
+                        "budget_range": "около 400 тыс.",
+                        "categories": [],
+                        "city": "Краснодар",
+                        "competitor_discount": null,
+                        "current_supplier": null,
+                        "email": null,
+                        "experience": null,
+                        "legal": null,
+                        "messenger": null,
+                        "name": null,
+                        "next_contact_at": null,
+                        "outlet_floor": null,
+                        "outlet_type": "павильон",
+                        "purpose": "на продажу",
+                        "timing": null
+                    },
+                    "stage": "budget",
+                    "summary": null,
+                    "unknown_questions": []
+                }
+            },
+            {
+                "client": "Торгуем давно, много лет уже. Хорошо, ждём прайс на почту. Когда примерно пришлёте?",
+                "meta": {
+                    "cost_usd": 0.014655,
+                    "extraction": {
+                        "asked_if_bot": false,
+                        "client_claims": [],
+                        "client_intent": "ask_delivery_time",
+                        "client_questions": [
+                            "Когда примерно пришлёте прайс?"
+                        ],
+                        "closed_topic": null,
+                        "confidence": 1,
+                        "do_not_disturb": false,
+                        "objections": [],
+                        "off_topic": false,
+                        "prompt_injection": false,
+                        "refused_slots": [],
+                        "sentiment": "neutral",
+                        "slot_updates": {
+                            "brands_interest": null,
+                            "budget_range": null,
+                            "categories": null,
+                            "city": null,
+                            "competitor_discount": null,
+                            "current_supplier": null,
+                            "email": null,
+                            "experience": "много лет",
+                            "legal": null,
+                            "messenger": null,
+                            "name": null,
+                            "next_contact_at": null,
+                            "outlet_floor": null,
+                            "outlet_type": null,
+                            "purpose": null,
+                            "timing": null
+                        },
+                        "unknown_question": null,
+                        "wants_human": false,
+                        "wants_only_prices": false
+                    },
+                    "goal": {
+                        "allowed_tools": [
+                            "mark_do_not_disturb",
+                            "create_promise",
+                            "log_unknown_question",
+                            "send_requisites",
+                            "check_stock",
+                            "calc_delivery"
+                        ],
+                        "constraints": [],
+                        "extras": [],
+                        "facts": [
+                            "delivery_time",
+                            "shipping_after_payment"
+                        ],
+                        "fewshot_tags": [
+                            "ask_categories"
+                        ],
+                        "instruction": "Ответить на вопрос клиента своими словами из фактов (одна-две мысли), затем мостик и ровно один вопрос по слоту.",
+                        "kind": "answer_and_ask",
+                        "slot": "categories",
+                        "trigger": "not_tied_to_volume"
+                    },
+                    "guard": {
+                        "issues": [],
+                        "questions": 1,
+                        "verdict": "ok",
+                        "warnings": [],
+                        "words": 46
+                    },
+                    "tool_calls": []
+                },
+                "outcome": null,
+                "reply": "Точное время не назову, пока условия под ваш бюджет не согласованы. Как только будут, сразу отправлю прайс на почту и в мессенджер. До Краснодара обычно идёт до недели, так что основной заказ лучше сделать до декабря. Что в основном интересует: салюты, петарды, мелочь или всё вместе?",
+                "stage": "budget",
+                "state": {
+                    "client_type": "experienced",
+                    "counters": {
+                        "budget_asks": 0,
+                        "closed_topic_streak": 0,
+                        "followups_sent": 0,
+                        "guard_regens": 0,
+                        "negative_streak": 0,
+                        "off_topic_streak": 0,
+                        "turns": 4,
+                        "unclear_streak": 0,
+                        "unknown_facts": 0,
+                        "unknown_insist": 0
+                    },
+                    "flags": {
+                        "do_not_disturb": false,
+                        "duplicate_lead": false,
+                        "escalate": false,
+                        "escalate_reason": null,
+                        "introduced": true,
+                        "price_sent": false,
+                        "requisites_sent": false
+                    },
+                    "missing": [
+                        {
+                            "reason": "no_chance",
+                            "slot": "categories",
+                            "suggested_question": "Что в основном интересует — салюты, петарды, мелочь вроде бенгальских и фонтанов, или всё вместе?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "current_supplier",
+                            "suggested_question": "С кем сейчас работаете, если не секрет? Я не для того, чтобы переманивать — понять, чем можем быть полезны сверху."
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "timing",
+                            "suggested_question": "Закупаться планируете сейчас или ближе к сезону?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "email",
+                            "suggested_question": "На какую почту прайс отправить?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "messenger",
+                            "suggested_question": "И продублирую в мессенджер, чтобы мой контакт у вас был. На этом номере Макс, WhatsApp или Telegram?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "next_contact_at",
+                            "suggested_question": "Когда удобно списаться по обратной связи — завтра или в пятницу?"
+                        }
+                    ],
+                    "outcome": null,
+                    "promises": [
+                        {
+                            "created_at": "2026-10-31T06:00:00+00:00",
+                            "done": false,
+                            "text": "Прислать прайс (почта + мессенджер) и уточнить условия под бюджет около 400 тыс. для магазина в Краснодаре"
+                        }
+                    ],
+                    "signals": {
+                        "asked_counts": {
+                            "categories": 1,
+                            "city": 1,
+                            "experience": 1,
+                            "purpose": 1
+                        },
+                        "asked_if_bot": false,
+                        "asked_slots": [
+                            "city",
+                            "purpose",
+                            "experience",
+                            "categories"
+                        ],
+                        "client_claims": [],
+                        "client_questions": [
+                            "Когда примерно пришлёте прайс?"
+                        ],
+                        "experience_old": true,
+                        "last_asked_slot": "categories",
+                        "last_client_intent": "ask_delivery_time",
+                        "last_trigger_turn": 4,
+                        "last_unknown_topic": null,
+                        "objections": [],
+                        "prev_intent": "ask_delivery_time",
+                        "sentiment": "neutral",
+                        "triggers_used": {
+                            "not_tied_to_volume": 1
+                        },
+                        "wants_only_prices": false
+                    },
+                    "slots": {
+                        "brands_interest": [],
+                        "budget_range": "около 400 тыс.",
+                        "categories": [],
+                        "city": "Краснодар",
+                        "competitor_discount": null,
+                        "current_supplier": null,
+                        "email": null,
+                        "experience": "много лет",
+                        "legal": null,
+                        "messenger": null,
+                        "name": null,
+                        "next_contact_at": null,
+                        "outlet_floor": null,
+                        "outlet_type": "павильон",
+                        "purpose": "на продажу",
+                        "timing": null
+                    },
+                    "stage": "budget",
+                    "summary": null,
+                    "unknown_questions": []
+                }
+            },
+            {
+                "client": "Всё вместе, но в основном салюты и петарды. Про декабрь понял, ориентируюсь на это. Напишите, когда будут условия, я подожду.",
+                "meta": {
+                    "cost_usd": 0.00998,
+                    "extraction": {
+                        "asked_if_bot": false,
+                        "client_claims": [],
+                        "client_intent": "answer_only",
+                        "client_questions": [],
+                        "closed_topic": null,
+                        "confidence": 1,
+                        "do_not_disturb": false,
+                        "objections": [],
+                        "off_topic": false,
+                        "prompt_injection": false,
+                        "refused_slots": [],
+                        "sentiment": "neutral",
+                        "slot_updates": {
+                            "brands_interest": null,
+                            "budget_range": null,
+                            "categories": [
+                                "салюты",
+                                "петарды",
+                                "всё"
+                            ],
+                            "city": null,
+                            "competitor_discount": null,
+                            "current_supplier": null,
+                            "email": null,
+                            "experience": null,
+                            "legal": null,
+                            "messenger": null,
+                            "name": null,
+                            "next_contact_at": null,
+                            "outlet_floor": null,
+                            "outlet_type": null,
+                            "purpose": null,
+                            "timing": null
+                        },
+                        "unknown_question": null,
+                        "wants_human": false,
+                        "wants_only_prices": false
+                    },
+                    "goal": {
+                        "allowed_tools": [
+                            "mark_do_not_disturb",
+                            "create_promise",
+                            "log_unknown_question",
+                            "send_requisites",
+                            "check_stock",
+                            "calc_delivery"
+                        ],
+                        "constraints": [],
+                        "extras": [],
+                        "facts": [],
+                        "fewshot_tags": [
+                            "ask_timing"
+                        ],
+                        "instruction": "Коротко отреагировать на слова клиента (одна фраза), затем ровно один вопрос по слоту.",
+                        "kind": "ask_slot",
+                        "slot": "timing",
+                        "trigger": null
+                    },
+                    "guard": {
+                        "issues": [],
+                        "questions": 1,
+                        "verdict": "ok",
+                        "warnings": [],
+                        "words": 20
+                    },
+                    "tool_calls": []
+                },
+                "outcome": null,
+                "reply": "Хорошо, как будут условия, сразу напишу. Салюты и петарды в приоритете, учту. Закупку планируете сделать сейчас или ближе к сезону?",
+                "stage": "budget",
+                "state": {
+                    "client_type": "experienced",
+                    "counters": {
+                        "budget_asks": 0,
+                        "closed_topic_streak": 0,
+                        "followups_sent": 0,
+                        "guard_regens": 0,
+                        "negative_streak": 0,
+                        "off_topic_streak": 0,
+                        "turns": 5,
+                        "unclear_streak": 0,
+                        "unknown_facts": 0,
+                        "unknown_insist": 0
+                    },
+                    "flags": {
+                        "do_not_disturb": false,
+                        "duplicate_lead": false,
+                        "escalate": false,
+                        "escalate_reason": null,
+                        "introduced": true,
+                        "price_sent": false,
+                        "requisites_sent": false
+                    },
+                    "missing": [
+                        {
+                            "reason": "no_chance",
+                            "slot": "current_supplier",
+                            "suggested_question": "С кем сейчас работаете, если не секрет? Я не для того, чтобы переманивать — понять, чем можем быть полезны сверху."
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "timing",
+                            "suggested_question": "Закупаться планируете сейчас или ближе к сезону?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "email",
+                            "suggested_question": "На какую почту прайс отправить?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "messenger",
+                            "suggested_question": "И продублирую в мессенджер, чтобы мой контакт у вас был. На этом номере Макс, WhatsApp или Telegram?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "next_contact_at",
+                            "suggested_question": "Когда удобно списаться по обратной связи — завтра или в пятницу?"
+                        }
+                    ],
+                    "outcome": null,
+                    "promises": [
+                        {
+                            "created_at": "2026-10-31T06:00:00+00:00",
+                            "done": false,
+                            "text": "Прислать прайс (почта + мессенджер) и уточнить условия под бюджет около 400 тыс. для магазина в Краснодаре"
+                        }
+                    ],
+                    "signals": {
+                        "asked_counts": {
+                            "categories": 1,
+                            "city": 1,
+                            "experience": 1,
+                            "purpose": 1,
+                            "timing": 1
+                        },
+                        "asked_if_bot": false,
+                        "asked_slots": [
+                            "city",
+                            "purpose",
+                            "experience",
+                            "categories",
+                            "timing"
+                        ],
+                        "client_claims": [],
+                        "client_questions": [],
+                        "experience_old": true,
+                        "last_asked_slot": "timing",
+                        "last_client_intent": "answer_only",
+                        "last_trigger_turn": 4,
+                        "last_unknown_topic": null,
+                        "objections": [],
+                        "prev_intent": "answer_only",
+                        "sentiment": "neutral",
+                        "triggers_used": {
+                            "not_tied_to_volume": 1
+                        },
+                        "wants_only_prices": false
+                    },
+                    "slots": {
+                        "brands_interest": [],
+                        "budget_range": "около 400 тыс.",
+                        "categories": [
+                            "салюты",
+                            "петарды",
+                            "всё"
+                        ],
+                        "city": "Краснодар",
+                        "competitor_discount": null,
+                        "current_supplier": null,
+                        "email": null,
+                        "experience": "много лет",
+                        "legal": null,
+                        "messenger": null,
+                        "name": null,
+                        "next_contact_at": null,
+                        "outlet_floor": null,
+                        "outlet_type": "павильон",
+                        "purpose": "на продажу",
+                        "timing": null
+                    },
+                    "stage": "budget",
+                    "summary": null,
+                    "unknown_questions": []
+                }
+            },
+            {
+                "client": "Ближе к сезону, наверное, ближе к декабрю. Пока уточняю, что и почём, так что не спешу.",
+                "meta": {
+                    "cost_usd": 0.014737,
+                    "extraction": {
+                        "asked_if_bot": false,
+                        "client_claims": [],
+                        "client_intent": "answer_only",
+                        "client_questions": [],
+                        "closed_topic": null,
+                        "confidence": 1,
+                        "do_not_disturb": false,
+                        "objections": [
+                            "too_early"
+                        ],
+                        "off_topic": false,
+                        "prompt_injection": false,
+                        "refused_slots": [],
+                        "sentiment": "neutral",
+                        "slot_updates": {
+                            "brands_interest": null,
+                            "budget_range": null,
+                            "categories": null,
+                            "city": null,
+                            "competitor_discount": null,
+                            "current_supplier": null,
+                            "email": null,
+                            "experience": null,
+                            "legal": null,
+                            "messenger": null,
+                            "name": null,
+                            "next_contact_at": null,
+                            "outlet_floor": null,
+                            "outlet_type": null,
+                            "purpose": null,
+                            "timing": "ближе к декабрю"
+                        },
+                        "unknown_question": null,
+                        "wants_human": false,
+                        "wants_only_prices": false
+                    },
+                    "goal": {
+                        "allowed_tools": [
+                            "mark_do_not_disturb",
+                            "create_promise",
+                            "log_unknown_question",
+                            "send_requisites",
+                            "check_stock",
+                            "calc_delivery",
+                            "set_followup"
+                        ],
+                        "constraints": [
+                            "не спорить",
+                            "сначала согласиться с чувством клиента, потом аргумент"
+                        ],
+                        "extras": {
+                            "objection": "too_early"
+                        },
+                        "facts": [
+                            "too_early_response"
+                        ],
+                        "fewshot_tags": [
+                            "obj_too_early",
+                            "ask_next_contact"
+                        ],
+                        "instruction": "Отработать возражение: признать, дать один аргумент из фактов (и триггер, если уместен), затем ровно один вопрос по слоту.",
+                        "kind": "handle_objection",
+                        "slot": "next_contact_at",
+                        "trigger": null
+                    },
+                    "guard": {
+                        "issues": [],
+                        "questions": 1,
+                        "verdict": "ok",
+                        "warnings": [],
+                        "words": 42
+                    },
+                    "tool_calls": []
+                },
+                "outcome": null,
+                "reply": "Понимаю, спешить некуда, лучше сначала всё сравнить. Только с каждым месяцем цены растут, а акции идут до конца ноября. Можно заранее собрать заказ и поставить на резерв, тогда цены останутся зафиксированными. Когда удобно списаться по условиям и прайсу: завтра или в пятницу?",
+                "stage": "close_contact",
+                "state": {
+                    "client_type": "experienced",
+                    "counters": {
+                        "budget_asks": 0,
+                        "closed_topic_streak": 0,
+                        "followups_sent": 0,
+                        "guard_regens": 0,
+                        "negative_streak": 0,
+                        "off_topic_streak": 0,
+                        "turns": 6,
+                        "unclear_streak": 0,
+                        "unknown_facts": 0,
+                        "unknown_insist": 0
+                    },
+                    "flags": {
+                        "do_not_disturb": false,
+                        "duplicate_lead": false,
+                        "escalate": false,
+                        "escalate_reason": null,
+                        "introduced": true,
+                        "price_sent": false,
+                        "requisites_sent": false
+                    },
+                    "missing": [
+                        {
+                            "reason": "not_asked",
+                            "slot": "current_supplier",
+                            "suggested_question": "С кем сейчас работаете, если не секрет? Я не для того, чтобы переманивать — понять, чем можем быть полезны сверху."
+                        },
+                        {
+                            "reason": "not_asked",
+                            "slot": "email",
+                            "suggested_question": "На какую почту прайс отправить?"
+                        },
+                        {
+                            "reason": "not_asked",
+                            "slot": "messenger",
+                            "suggested_question": "И продублирую в мессенджер, чтобы мой контакт у вас был. На этом номере Макс, WhatsApp или Telegram?"
+                        },
+                        {
+                            "reason": "not_asked",
+                            "slot": "next_contact_at",
+                            "suggested_question": "Когда удобно списаться по обратной связи — завтра или в пятницу?"
+                        }
+                    ],
+                    "outcome": null,
+                    "promises": [
+                        {
+                            "created_at": "2026-10-31T06:00:00+00:00",
+                            "done": false,
+                            "text": "Прислать прайс (почта + мессенджер) и уточнить условия под бюджет около 400 тыс. для магазина в Краснодаре"
+                        }
+                    ],
+                    "signals": {
+                        "asked_counts": {
+                            "categories": 1,
+                            "city": 1,
+                            "experience": 1,
+                            "next_contact_at": 1,
+                            "purpose": 1,
+                            "timing": 1
+                        },
+                        "asked_if_bot": false,
+                        "asked_slots": [
+                            "city",
+                            "purpose",
+                            "experience",
+                            "categories",
+                            "timing",
+                            "next_contact_at"
+                        ],
+                        "client_claims": [],
+                        "client_questions": [],
+                        "experience_old": true,
+                        "last_asked_slot": "next_contact_at",
+                        "last_client_intent": "answer_only",
+                        "last_trigger_turn": 4,
+                        "last_unknown_topic": null,
+                        "objections": [
+                            "too_early"
+                        ],
+                        "prev_intent": "answer_only",
+                        "sentiment": "neutral",
+                        "triggers_used": {
+                            "not_tied_to_volume": 1
+                        },
+                        "wants_only_prices": false
+                    },
+                    "slots": {
+                        "brands_interest": [],
+                        "budget_range": "около 400 тыс.",
+                        "categories": [
+                            "салюты",
+                            "петарды",
+                            "всё"
+                        ],
+                        "city": "Краснодар",
+                        "competitor_discount": null,
+                        "current_supplier": null,
+                        "email": null,
+                        "experience": "много лет",
+                        "legal": null,
+                        "messenger": null,
+                        "name": null,
+                        "next_contact_at": null,
+                        "outlet_floor": null,
+                        "outlet_type": "павильон",
+                        "purpose": "на продажу",
+                        "timing": "ближе к декабрю"
+                    },
+                    "stage": "close_contact",
+                    "summary": "Клиент из Краснодара интересуется оптовой закупкой пиротехники на продажу для своего магазина, с бюджетом около 400 тысяч рублей, преимущественно салютов и петард. Менеджер отказался называть имя гендиректора и обсуждать закупочные цены, но обещал прислать прайс и уточнить условия под указанный бюджет. Клиент готов ждать прайс и условия, планируя закупку ближе к декабрю, но менеджер предупредил о росте цен и акциях до конца ноября, предложив зарезервировать заказ для фиксации цен. Договорились, что менеджер свяжется, как только будут готовы условия и прайс, чтобы обсудить их завтра или в пятницу.",
+                    "unknown_questions": []
+                }
+            },
+            {
+                "client": "Завтра не получится, давайте в пятницу. Только пришлите хотя бы примерные условия на 400 тысяч до этого, иначе мне сложно решать про резерв.",
+                "meta": {
+                    "cost_usd": 0.024511,
+                    "extraction": {
+                        "asked_if_bot": false,
+                        "client_claims": [],
+                        "client_intent": "ask_price_list",
+                        "client_questions": [
+                            "пришлите хотя бы примерные условия на 400 тысяч до этого"
+                        ],
+                        "closed_topic": null,
+                        "confidence": 1,
+                        "do_not_disturb": false,
+                        "objections": [],
+                        "off_topic": false,
+                        "prompt_injection": false,
+                        "refused_slots": [],
+                        "sentiment": "neutral",
+                        "slot_updates": {
+                            "brands_interest": null,
+                            "budget_range": null,
+                            "categories": null,
+                            "city": null,
+                            "competitor_discount": null,
+                            "current_supplier": null,
+                            "email": null,
+                            "experience": null,
+                            "legal": null,
+                            "messenger": null,
+                            "name": null,
+                            "next_contact_at": "в пятницу",
+                            "outlet_floor": null,
+                            "outlet_type": null,
+                            "purpose": null,
+                            "timing": null
+                        },
+                        "unknown_question": null,
+                        "wants_human": false,
+                        "wants_only_prices": false
+                    },
+                    "goal": {
+                        "allowed_tools": [
+                            "mark_do_not_disturb",
+                            "create_promise",
+                            "log_unknown_question",
+                            "send_requisites",
+                            "check_stock",
+                            "calc_delivery",
+                            "set_followup"
+                        ],
+                        "constraints": [],
+                        "extras": [],
+                        "facts": [
+                            "price_list_how_to_send"
+                        ],
+                        "fewshot_tags": [
+                            "price_sent",
+                            "ask_email"
+                        ],
+                        "instruction": "Если был вопрос — коротко ответить. Сказать, что отправите прайс на почту, и спросить адрес. Один вопрос.",
+                        "kind": "close_contact",
+                        "slot": "email",
+                        "trigger": null
+                    },
+                    "guard": {
+                        "issues": [],
+                        "questions": 1,
+                        "verdict": "ok",
+                        "warnings": [],
+                        "words": 26
+                    },
+                    "tool_calls": [
+                        {
+                            "args": {
+                                "datetime": "в пятницу",
+                                "reason": "Обсудить прайс и условия под бюджет около 400 тыс., резерв заказа к декабрю"
+                            },
+                            "name": "set_followup",
+                            "result": {
+                                "next_contact_at": "2026-11-06T11:00:00+00:00",
+                                "ok": true
+                            }
+                        },
+                        {
+                            "args": {
+                                "text": "До пятницы прислать прайс на почту и в мессенджер вместе с ориентировочными условиями под бюджет около 400 тыс. (без гарантий)"
+                            },
+                            "name": "create_promise",
+                            "result": {
+                                "ok": true
+                            }
+                        }
+                    ]
+                },
+                "outcome": null,
+                "reply": "Хорошо, в пятницу и свяжемся. Прайс и ориентировочные условия под ваши 400 тысяч пришлю до этого, без гарантий, но ориентир будет. На какую почту отправить прайс?",
+                "stage": "close_contact",
+                "state": {
+                    "client_type": "experienced",
+                    "counters": {
+                        "budget_asks": 0,
+                        "closed_topic_streak": 0,
+                        "followups_sent": 0,
+                        "guard_regens": 0,
+                        "negative_streak": 0,
+                        "off_topic_streak": 0,
+                        "turns": 7,
+                        "unclear_streak": 0,
+                        "unknown_facts": 0,
+                        "unknown_insist": 0
+                    },
+                    "flags": {
+                        "do_not_disturb": false,
+                        "duplicate_lead": false,
+                        "escalate": false,
+                        "escalate_reason": null,
+                        "introduced": true,
+                        "price_sent": false,
+                        "requisites_sent": false
+                    },
+                    "missing": [
+                        {
+                            "reason": "not_asked",
+                            "slot": "current_supplier",
+                            "suggested_question": "С кем сейчас работаете, если не секрет? Я не для того, чтобы переманивать — понять, чем можем быть полезны сверху."
+                        },
+                        {
+                            "reason": "not_asked",
+                            "slot": "email",
+                            "suggested_question": "На какую почту прайс отправить?"
+                        },
+                        {
+                            "reason": "not_asked",
+                            "slot": "messenger",
+                            "suggested_question": "И продублирую в мессенджер, чтобы мой контакт у вас был. На этом номере Макс, WhatsApp или Telegram?"
+                        }
+                    ],
+                    "outcome": null,
+                    "promises": [
+                        {
+                            "created_at": "2026-10-31T06:00:00+00:00",
+                            "done": false,
+                            "text": "Прислать прайс (почта + мессенджер) и уточнить условия под бюджет около 400 тыс. для магазина в Краснодаре"
+                        },
+                        {
+                            "created_at": "2026-10-31T06:00:00+00:00",
+                            "done": false,
+                            "text": "До пятницы прислать прайс на почту и в мессенджер вместе с ориентировочными условиями под бюджет около 400 тыс. (без гарантий)"
+                        }
+                    ],
+                    "signals": {
+                        "asked_counts": {
+                            "categories": 1,
+                            "city": 1,
+                            "email": 1,
+                            "experience": 1,
+                            "next_contact_at": 1,
+                            "purpose": 1,
+                            "timing": 1
+                        },
+                        "asked_if_bot": false,
+                        "asked_slots": [
+                            "city",
+                            "purpose",
+                            "experience",
+                            "categories",
+                            "timing",
+                            "next_contact_at",
+                            "email"
+                        ],
+                        "client_claims": [],
+                        "client_questions": [
+                            "пришлите хотя бы примерные условия на 400 тысяч до этого"
+                        ],
+                        "experience_old": true,
+                        "last_asked_slot": "email",
+                        "last_client_intent": "ask_price_list",
+                        "last_trigger_turn": 4,
+                        "last_unknown_topic": null,
+                        "objections": [
+                            "too_early"
+                        ],
+                        "prev_intent": "ask_price_list",
+                        "sentiment": "neutral",
+                        "triggers_used": {
+                            "not_tied_to_volume": 1
+                        },
+                        "wants_only_prices": false
+                    },
+                    "slots": {
+                        "brands_interest": [],
+                        "budget_range": "около 400 тыс.",
+                        "categories": [
+                            "салюты",
+                            "петарды",
+                            "всё"
+                        ],
+                        "city": "Краснодар",
+                        "competitor_discount": null,
+                        "current_supplier": null,
+                        "email": null,
+                        "experience": "много лет",
+                        "legal": null,
+                        "messenger": null,
+                        "name": null,
+                        "next_contact_at": "в пятницу",
+                        "outlet_floor": null,
+                        "outlet_type": "павильон",
+                        "purpose": "на продажу",
+                        "timing": "ближе к декабрю"
+                    },
+                    "stage": "close_contact",
+                    "summary": "Клиент из Краснодара интересуется оптовой закупкой пиротехники на продажу для своего магазина, с бюджетом около 400 тысяч рублей, преимущественно салютов и петард. Менеджер отказался называть имя гендиректора и обсуждать закупочные цены, но обещал прислать прайс и уточнить условия под указанный бюджет. Клиент готов ждать прайс и условия, планируя закупку ближе к декабрю, но менеджер предупредил о росте цен и акциях до конца ноября, предложив зарезервировать заказ для фиксации цен. Договорились, что менеджер свяжется, как только будут готовы условия и прайс, чтобы обсудить их завтра или в пятницу.",
+                    "unknown_questions": []
+                }
+            },
+            {
+                "client": "Отправляйте на contact-0001@baseline.invalid. Спасибо, посмотрю и в пятницу созвонимся.",
+                "meta": {
+                    "cost_usd": 0.022551,
+                    "extraction": {
+                        "asked_if_bot": false,
+                        "client_claims": [],
+                        "client_intent": "give_contact",
+                        "client_questions": [],
+                        "closed_topic": null,
+                        "confidence": 1,
+                        "do_not_disturb": false,
+                        "objections": [],
+                        "off_topic": false,
+                        "prompt_injection": false,
+                        "refused_slots": [],
+                        "sentiment": "positive",
+                        "slot_updates": {
+                            "brands_interest": null,
+                            "budget_range": null,
+                            "categories": null,
+                            "city": null,
+                            "competitor_discount": null,
+                            "current_supplier": null,
+                            "email": "contact-0001@baseline.invalid",
+                            "experience": null,
+                            "legal": null,
+                            "messenger": null,
+                            "name": null,
+                            "next_contact_at": null,
+                            "outlet_floor": null,
+                            "outlet_type": null,
+                            "purpose": null,
+                            "timing": null
+                        },
+                        "unknown_question": null,
+                        "wants_human": false,
+                        "wants_only_prices": false
+                    },
+                    "goal": {
+                        "allowed_tools": [
+                            "mark_do_not_disturb",
+                            "create_promise",
+                            "log_unknown_question",
+                            "send_requisites",
+                            "check_stock",
+                            "calc_delivery",
+                            "send_price",
+                            "set_followup",
+                            "send_price"
+                        ],
+                        "constraints": [],
+                        "extras": [],
+                        "facts": [],
+                        "fewshot_tags": {
+                            "1": "ask_messenger",
+                            "2": "other_number_warning"
+                        },
+                        "instruction": "Сказать, что продублируете в мессенджер, чтобы контакт был, и спросить, какой мессенджер на номере. Предупредить про другой номер. Один вопрос.",
+                        "kind": "close_contact",
+                        "slot": "messenger",
+                        "trigger": null
+                    },
+                    "guard": {
+                        "issues": [],
+                        "questions": 1,
+                        "verdict": "ok",
+                        "warnings": [],
+                        "words": 33
+                    },
+                    "tool_calls": [
+                        {
+                            "args": {
+                                "email": "contact-0001@baseline.invalid",
+                                "pricelists": [
+                                    "общий"
+                                ]
+                            },
+                            "name": "send_price",
+                            "result": {
+                                "pricelists": [
+                                    "общий"
+                                ],
+                                "sent": true,
+                                "to": {
+                                    "email": "contact-0001@baseline.invalid"
+                                }
+                            }
+                        },
+                        {
+                            "args": {
+                                "datetime": "в пятницу",
+                                "reason": "связаться по прайсу и ориентировочным условиям под бюджет около 400 тыс., обсудить резерв"
+                            },
+                            "name": "set_followup",
+                            "result": {
+                                "next_contact_at": "2026-11-06T11:00:00+00:00",
+                                "ok": true
+                            }
+                        }
+                    ]
+                },
+                "outcome": "full_contact",
+                "reply": "Прайс ушёл на почту, посмотрите. Продублирую ещё в мессенджер, чтобы мой контакт у вас был. Писать буду с другого номера, он рабочий, это я. На этом номере какой мессенджер: Макс, WhatsApp или Telegram?",
+                "stage": "close_contact",
+                "state": {
+                    "client_type": "experienced",
+                    "counters": {
+                        "budget_asks": 0,
+                        "closed_topic_streak": 0,
+                        "followups_sent": 0,
+                        "guard_regens": 0,
+                        "negative_streak": 0,
+                        "off_topic_streak": 0,
+                        "turns": 8,
+                        "unclear_streak": 0,
+                        "unknown_facts": 0,
+                        "unknown_insist": 0
+                    },
+                    "flags": {
+                        "do_not_disturb": false,
+                        "duplicate_lead": false,
+                        "escalate": false,
+                        "escalate_reason": null,
+                        "introduced": true,
+                        "price_sent": true,
+                        "requisites_sent": false
+                    },
+                    "missing": [
+                        {
+                            "reason": "not_asked",
+                            "slot": "current_supplier",
+                            "suggested_question": "С кем сейчас работаете, если не секрет? Я не для того, чтобы переманивать — понять, чем можем быть полезны сверху."
+                        },
+                        {
+                            "reason": "not_asked",
+                            "slot": "messenger",
+                            "suggested_question": "И продублирую в мессенджер, чтобы мой контакт у вас был. На этом номере Макс, WhatsApp или Telegram?"
+                        }
+                    ],
+                    "outcome": "full_contact",
+                    "promises": [
+                        {
+                            "created_at": "2026-10-31T06:00:00+00:00",
+                            "done": false,
+                            "text": "Прислать прайс (почта + мессенджер) и уточнить условия под бюджет около 400 тыс. для магазина в Краснодаре"
+                        },
+                        {
+                            "created_at": "2026-10-31T06:00:00+00:00",
+                            "done": false,
+                            "text": "До пятницы прислать прайс на почту и в мессенджер вместе с ориентировочными условиями под бюджет около 400 тыс. (без гарантий)"
+                        }
+                    ],
+                    "signals": {
+                        "asked_counts": {
+                            "categories": 1,
+                            "city": 1,
+                            "email": 1,
+                            "experience": 1,
+                            "messenger": 1,
+                            "next_contact_at": 1,
+                            "purpose": 1,
+                            "timing": 1
+                        },
+                        "asked_if_bot": false,
+                        "asked_slots": [
+                            "city",
+                            "purpose",
+                            "experience",
+                            "categories",
+                            "timing",
+                            "next_contact_at",
+                            "email",
+                            "messenger"
+                        ],
+                        "client_claims": [],
+                        "client_questions": [],
+                        "experience_old": true,
+                        "last_asked_slot": "messenger",
+                        "last_client_intent": "give_contact",
+                        "last_trigger_turn": 4,
+                        "last_unknown_topic": null,
+                        "objections": [
+                            "too_early"
+                        ],
+                        "prev_intent": "give_contact",
+                        "sentiment": "positive",
+                        "triggers_used": {
+                            "not_tied_to_volume": 1
+                        },
+                        "wants_only_prices": false
+                    },
+                    "slots": {
+                        "brands_interest": [],
+                        "budget_range": "около 400 тыс.",
+                        "categories": [
+                            "салюты",
+                            "петарды",
+                            "всё"
+                        ],
+                        "city": "Краснодар",
+                        "competitor_discount": null,
+                        "current_supplier": null,
+                        "email": "contact-0001@baseline.invalid",
+                        "experience": "много лет",
+                        "legal": null,
+                        "messenger": null,
+                        "name": null,
+                        "next_contact_at": "в пятницу",
+                        "outlet_floor": null,
+                        "outlet_type": "павильон",
+                        "purpose": "на продажу",
+                        "timing": "ближе к декабрю"
+                    },
+                    "stage": "close_contact",
+                    "summary": "Клиент из Краснодара интересуется оптовой закупкой пиротехники на продажу для своего магазина, с бюджетом около 400 тысяч рублей, преимущественно салютов и петард. Менеджер отказался называть имя гендиректора и обсуждать закупочные цены, но обещал прислать прайс и уточнить условия под указанный бюджет. Клиент готов ждать прайс и условия, планируя закупку ближе к декабрю, но менеджер предупредил о росте цен и акциях до конца ноября, предложив зарезервировать заказ для фиксации цен. Договорились, что менеджер свяжется, как только будут готовы условия и прайс, чтобы обсудить их завтра или в пятницу.",
+                    "unknown_questions": []
+                }
+            }
+        ]
+    },
+    "versions": {
+        "config_sha256": "d3a054c8662befb4a499584ca6f7134291aacf07013f88ff8b6cf06017947ffa",
+        "harness_sha256": "9280c7daec365885185c843513e882e4e81bdf235032a92adb19d2af46148c25",
+        "normalization": "contacts-v1",
+        "prompts_sha256": "c3f1a4e64c0ac5336787c85a2373b586e2ebbaa85371fcdce2cceecc65ea0786",
+        "prototype_source_sha256": "ca981cc08d5352c214cad41d6d69a25b3b7b54f0d739344d52b0733e128435b6"
+    }
+}

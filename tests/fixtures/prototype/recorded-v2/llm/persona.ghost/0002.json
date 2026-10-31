@@ -1,0 +1,182 @@
+{
+    "evidence": {
+        "budget": {
+            "call_id": 250,
+            "charged_micros": 76,
+            "reserved_micros": 2284275
+        },
+        "captured_at": "2026-10-31T13:40:57.108843+00:00",
+        "case_id": "persona.ghost",
+        "http_status": 200,
+        "phase": "dialogue",
+        "pricing": {
+            "context_length": 1000000,
+            "endpoints_sha256": "df98ba8d80b32588fd578a0e9b96f7920221311c0a2413114f2f66a5226a0d5f",
+            "fetched_at": "2026-10-31T13:40:46.432815+00:00",
+            "max_completion_tokens": 128000,
+            "provider": "anthropic",
+            "provider_names": [
+                "Anthropic"
+            ],
+            "rates": {
+                "completion": "0.0000025",
+                "discount": "0",
+                "input_cache_read": "5E-8",
+                "input_cache_write": "6.25E-7",
+                "input_cache_write_1h": "0.000001",
+                "prompt": "5E-7",
+                "web_search": "0.01"
+            }
+        },
+        "provider_model": "anthropic/claude-haiku-5.5",
+        "provider_request_id": "gen-1793454045-NRrsGTm4SdeFheQlGJMA",
+        "request_body": {
+            "max_tokens": 200,
+            "messages": [
+                {
+                    "content": "Ты играешь КЛИЕНТА, который оставил заявку на прайс оптовой пиротехники на сайте компании «Союз Пир». Тебе пишет их менеджер Антон в мессенджере. Отвечай ТОЛЬКО репликой клиента, по-русски, 1–2 коротких предложения, как пишут живые люди в чате (без приветствий в каждом сообщении, без кавычек, без имени впереди).\n\nТвоя персона: Пропадает после двух сообщений (тип: newbie).\nЧто ты знаешь о себе (говори только если спросят или если это уместно; не вываливай всё сразу):\n- city: Киров\n- purpose: на продажу\nКак ты себя ведёшь: Отвечает на первые два вопроса односложно, затем перестаёт отвечать (симулятор присылает пустое сообщение «[молчание]» — агент не должен писать больше одного напоминания).\n\nПравила:\n- Отвечай на вопрос менеджера по одному факту за раз; если факта нет в списке — ответь уклончиво или «не знаю».\n- Не придумывай новых требований, кроме описанных в поведении.\n- Если менеджер задал два вопроса сразу — ответь только на один.\n- Если тебя всё устраивает и разговор логически закончен (прайс отправлен, договорились о связи) — напиши короткое «ок, спасибо» и затем в следующем сообщении «[конец]».\n- Если по сценарию ты должен пропасть — напиши «[молчание]».\n- Если менеджер передал тебя живому человеку или попрощался — напиши «[конец]».\n- Сейчас твоя реплика №1.\n",
+                    "role": "system"
+                },
+                {
+                    "content": "Добрый день. Антон, компания «Союз Пир», оптовая пиротехника. Вы у нас заявку на прайс оставляли, сейчас пару моментов уточню и отправлю. Чтобы сразу сориентировать по доставке, подскажите, вы из какого города?",
+                    "role": "user"
+                }
+            ],
+            "model": "anthropic/claude-haiku-5.5",
+            "plugins": [],
+            "provider": {
+                "allow_fallbacks": false,
+                "max_price": {
+                    "completion": 2.5,
+                    "prompt": 0.5,
+                    "request": 0.0
+                },
+                "only": [
+                    "anthropic"
+                ],
+                "order": [
+                    "anthropic"
+                ],
+                "require_parameters": false
+            },
+            "reasoning": {
+                "effort": "low"
+            },
+            "stream": false,
+            "temperature": 0.8,
+            "usage": {
+                "include": true
+            }
+        },
+        "request_body_sha256": "45b5098dae7f6b8035dc7c3d249cbbbe52761eb65641e6f4ad11f12c6c5b71e3",
+        "run_id": "capture_20261031T104157_67845ea5",
+        "seed_requested": null,
+        "sequence": 2,
+        "usage": {
+            "completion_tokens": 18,
+            "cost_usd": "7.59e-5",
+            "prompt_tokens": 669,
+            "total_tokens": 687
+        }
+    },
+    "provenance": "recorded",
+    "provider": "openrouter",
+    "request": {
+        "messages": [
+            {
+                "content": "Ты играешь КЛИЕНТА, который оставил заявку на прайс оптовой пиротехники на сайте компании «Союз Пир». Тебе пишет их менеджер Антон в мессенджере. Отвечай ТОЛЬКО репликой клиента, по-русски, 1–2 коротких предложения, как пишут живые люди в чате (без приветствий в каждом сообщении, без кавычек, без имени впереди).\n\nТвоя персона: Пропадает после двух сообщений (тип: newbie).\nЧто ты знаешь о себе (говори только если спросят или если это уместно; не вываливай всё сразу):\n- city: Киров\n- purpose: на продажу\nКак ты себя ведёшь: Отвечает на первые два вопроса односложно, затем перестаёт отвечать (симулятор присылает пустое сообщение «[молчание]» — агент не должен писать больше одного напоминания).\n\nПравила:\n- Отвечай на вопрос менеджера по одному факту за раз; если факта нет в списке — ответь уклончиво или «не знаю».\n- Не придумывай новых требований, кроме описанных в поведении.\n- Если менеджер задал два вопроса сразу — ответь только на один.\n- Если тебя всё устраивает и разговор логически закончен (прайс отправлен, договорились о связи) — напиши короткое «ок, спасибо» и затем в следующем сообщении «[конец]».\n- Если по сценарию ты должен пропасть — напиши «[молчание]».\n- Если менеджер передал тебя живому человеку или попрощался — напиши «[конец]».\n- Сейчас твоя реплика №1.\n",
+                "role": "system"
+            },
+            {
+                "content": "Добрый день. Антон, компания «Союз Пир», оптовая пиротехника. Вы у нас заявку на прайс оставляли, сейчас пару моментов уточню и отправлю. Чтобы сразу сориентировать по доставке, подскажите, вы из какого города?",
+                "role": "user"
+            }
+        ],
+        "options": {
+            "component": "simulator",
+            "max_tokens": 200,
+            "model": "anthropic/claude-haiku-5.5",
+            "temperature": 0.8
+        }
+    },
+    "request_sha256": "40a4deafc2b3279ad4b8132aed4f204919033c08bb405f1760e498fa8e5fc3f7",
+    "response": {
+        "content": "Здравствуйте. Я из Кирова.",
+        "costUsd": 7.59e-5,
+        "error": null,
+        "latencyMs": 0,
+        "model": "anthropic/claude-haiku-5.5",
+        "raw": {
+            "choices": [
+                {
+                    "finish_reason": "stop",
+                    "index": 0,
+                    "logprobs": null,
+                    "message": {
+                        "content": "Здравствуйте. Я из Кирова.",
+                        "reasoning": null,
+                        "refusal": null,
+                        "role": "assistant"
+                    },
+                    "native_finish_reason": "end_turn"
+                }
+            ],
+            "created": 1793454045,
+            "id": "gen-1793454045-NRrsGTm4SdeFheQlGJMA",
+            "model": "anthropic/claude-haiku-5.5",
+            "object": "chat.completion",
+            "provider": "Anthropic",
+            "service_tier": "default",
+            "system_fingerprint": null,
+            "usage": {
+                "completion_tokens": 18,
+                "completion_tokens_details": {
+                    "audio_tokens": 0,
+                    "image_tokens": 0,
+                    "reasoning_tokens": 0
+                },
+                "cost": 7.59e-5,
+                "cost_details": {
+                    "upstream_inference_completions_cost": 9.0e-6,
+                    "upstream_inference_cost": 7.59e-5,
+                    "upstream_inference_prompt_cost": 6.69e-5
+                },
+                "is_byok": false,
+                "prompt_tokens": 669,
+                "prompt_tokens_details": {
+                    "audio_tokens": 0,
+                    "cache_write_tokens": 0,
+                    "cached_tokens": 0,
+                    "video_tokens": 0
+                },
+                "total_tokens": 687
+            }
+        },
+        "toolCalls": [],
+        "usage": {
+            "completion_tokens": 18,
+            "completion_tokens_details": {
+                "audio_tokens": 0,
+                "image_tokens": 0,
+                "reasoning_tokens": 0
+            },
+            "cost": 7.59e-5,
+            "cost_details": {
+                "upstream_inference_completions_cost": 9.0e-6,
+                "upstream_inference_cost": 7.59e-5,
+                "upstream_inference_prompt_cost": 6.69e-5
+            },
+            "is_byok": false,
+            "prompt_tokens": 669,
+            "prompt_tokens_details": {
+                "audio_tokens": 0,
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "video_tokens": 0
+            },
+            "total_tokens": 687
+        }
+    },
+    "response_sha256": "bcade8f97a0abbdf4ee7d4441328e5832e7965ac4b8f8e37c9a70744672a47ee",
+    "schema_version": 1
+}

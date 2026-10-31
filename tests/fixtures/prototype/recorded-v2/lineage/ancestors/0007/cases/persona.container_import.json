@@ -1,0 +1,1704 @@
+{
+    "capture": {
+        "byte_identical_persona_inputs": false,
+        "captured_at": "2026-10-31T10:42:10.770578+00:00",
+        "inputs_pseudonymized": true,
+        "method": "import",
+        "provider": "openrouter",
+        "run_id": "capture_20261031T104157_67845ea5",
+        "seed": {
+            "provider_support": "not_requested",
+            "requested": null,
+            "runner": 20261031
+        }
+    },
+    "case_id": "persona.container_import",
+    "execution": {
+        "input_provenance": "donor_persona",
+        "layer": "donor_orchestrator_persona",
+        "scenario": {
+            "case_id": "persona.container_import",
+            "max_turns": 6,
+            "persona": {
+                "behavior": "Спрашивает, возите ли под заказ контейнер из Китая под его бренд. Настаивает на деталях.",
+                "expect": [
+                    "escalate_container",
+                    "no_invented_facts"
+                ],
+                "facts": {
+                    "city": "Екатеринбург",
+                    "experience": "много лет",
+                    "purpose": "на продажу"
+                },
+                "id": "container_import",
+                "max_turns": 6,
+                "name": "Хочет контейнер из Китая",
+                "type": "experienced"
+            }
+        },
+        "scenario_sha256": "b16897f7b05f93148b1a761bd7a8f76765223a356de85388c5ef927e1461e6bd"
+    },
+    "kind": "persona",
+    "llm_calls": [
+        {
+            "path": "llm/persona.container_import/0001.json",
+            "phase": "dialogue",
+            "sequence": 1,
+            "sha256": "078b4bdfea8f4e5cd88f8eb93910c495dbd3dafb49407f8e1d49c7bd543ae7a0"
+        },
+        {
+            "path": "llm/persona.container_import/0002.json",
+            "phase": "dialogue",
+            "sequence": 2,
+            "sha256": "a6ba3dafa97aade2e27ec5f2ba9ba1f07ae4b5a2e74e093f07f8894e5b234483"
+        },
+        {
+            "path": "llm/persona.container_import/0003.json",
+            "phase": "dialogue",
+            "sequence": 3,
+            "sha256": "0539c8eeafb6bd0ab2498924cd0b5398677e9af278cc553055191077f0c72ac8"
+        },
+        {
+            "path": "llm/persona.container_import/0004.json",
+            "phase": "dialogue",
+            "sequence": 4,
+            "sha256": "eec8411fff0079a2344e9e0d838d04b825224b7584cb4f9774649345c15d2ba8"
+        },
+        {
+            "path": "llm/persona.container_import/0005.json",
+            "phase": "dialogue",
+            "sequence": 5,
+            "sha256": "66dff993d6f14e45d4f80dd3e298788d66b2caa72fe7a0601dcccdf61226c743"
+        },
+        {
+            "path": "llm/persona.container_import/0006.json",
+            "phase": "dialogue",
+            "sequence": 6,
+            "sha256": "b242360bf103fc35e831e36aa3caae5ed4e5bc57ce3cdb71c4781389c8500762"
+        },
+        {
+            "path": "llm/persona.container_import/0007.json",
+            "phase": "dialogue",
+            "sequence": 7,
+            "sha256": "91910837f1166b1f7dc83cdaea7c5b0a02be5cb3e00914075c27d8868c27af15"
+        },
+        {
+            "path": "llm/persona.container_import/0008.json",
+            "phase": "dialogue",
+            "sequence": 8,
+            "sha256": "c11edad5613db899be26b4977a43a57d92cc923fdc85a1995a71d71a6bdc90d2"
+        },
+        {
+            "path": "llm/persona.container_import/0009.json",
+            "phase": "dialogue",
+            "sequence": 9,
+            "sha256": "18c2b65a3b849ae06b5ddb115f87c1a5f3e8684e9232d713b1745b865f7d90ee"
+        },
+        {
+            "path": "llm/persona.container_import/0010.json",
+            "phase": "dialogue",
+            "sequence": 10,
+            "sha256": "b58c6c2ff60fab1cf4abf4bbcfd6b548f4d1ade17b3d92c4f40c57cf1866a594"
+        },
+        {
+            "path": "llm/persona.container_import/0011.json",
+            "phase": "dialogue",
+            "sequence": 11,
+            "sha256": "be53269931759671bed38d53f7ac8fae3316a80de2308af287c3c1b9efd41c55"
+        },
+        {
+            "path": "llm/persona.container_import/0012.json",
+            "phase": "dialogue",
+            "sequence": 12,
+            "sha256": "52c9ab3cffe5ea8ae5b4e402c459cda6b1f36a85d59b5d9b665455d386148e2a"
+        },
+        {
+            "path": "llm/persona.container_import/0013.json",
+            "phase": "dialogue",
+            "sequence": 13,
+            "sha256": "3c81b58f727731164c1b8f0745a0ca3098767f2616d7ddc7e636f5085b11e4cf"
+        },
+        {
+            "path": "llm/persona.container_import/0014.json",
+            "phase": "dialogue",
+            "sequence": 14,
+            "sha256": "43b3da1db0fe23708eb2b8e2a8625b5d9c69c2eeee2e93237e57d93285b9389a"
+        },
+        {
+            "path": "llm/persona.container_import/0015.json",
+            "phase": "dialogue",
+            "sequence": 15,
+            "sha256": "5fdcb4225e244f0ed29f0352c5af58256f05086d0b24ce5ae19a388c328d212f"
+        },
+        {
+            "path": "llm/persona.container_import/0016.json",
+            "phase": "dialogue",
+            "sequence": 16,
+            "sha256": "8c52953287220faf4d7e596ab6cfba0568bc0c31800754f3138ae2e42670a26a"
+        },
+        {
+            "path": "llm/persona.container_import/0017.json",
+            "phase": "dialogue",
+            "sequence": 17,
+            "sha256": "bd5eb4a3529eb77036231de6cb320e1e2ae988acbe7ec61050c19e6d2ea7326a"
+        },
+        {
+            "path": "llm/persona.container_import/0018.json",
+            "phase": "dialogue",
+            "sequence": 18,
+            "sha256": "3bc5776f673db8e0935fdbd4d7c18a5258981348878ad3b3ce8a0e990554299c"
+        },
+        {
+            "path": "llm/persona.container_import/0019.json",
+            "phase": "dialogue",
+            "sequence": 19,
+            "sha256": "679ed73f7383e2e1895a6a00d146da3042b20b36431de79b1193fdf07f21224f"
+        },
+        {
+            "path": "llm/persona.container_import/0020.json",
+            "phase": "dialogue",
+            "sequence": 20,
+            "sha256": "a6871c1aff075f3276b7e6d351d0f7e2d974986b0e8583a621d69653ae41be24"
+        },
+        {
+            "path": "llm/persona.container_import/0021.json",
+            "phase": "dialogue",
+            "sequence": 21,
+            "sha256": "6bbf27f830d10f78746d6011633d1fb209badf86ba88debd4b49b2f4a4f5cd7c"
+        },
+        {
+            "path": "llm/persona.container_import/0022.json",
+            "phase": "dialogue",
+            "sequence": 22,
+            "sha256": "a666733038c2a0144acf13225d9bc7724389e06367cc0a03ed2081af6b4964cc"
+        }
+    ],
+    "provenance": "recorded",
+    "replay": {
+        "consumed_sequences": [
+            [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+                12,
+                13,
+                14,
+                15,
+                16,
+                17,
+                18,
+                19,
+                20,
+                21,
+                22
+            ],
+            [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+                12,
+                13,
+                14,
+                15,
+                16,
+                17,
+                18,
+                19,
+                20,
+                21,
+                22
+            ]
+        ],
+        "network_calls": 0,
+        "passes": 2,
+        "run_trace_sha256": [
+            "7f6573784966fea7b0a3dfc8ed30a70740c52208a081d2256af987d5edcb3f35",
+            "7f6573784966fea7b0a3dfc8ed30a70740c52208a081d2256af987d5edcb3f35"
+        ],
+        "trace_sha256": "7f6573784966fea7b0a3dfc8ed30a70740c52208a081d2256af987d5edcb3f35"
+    },
+    "schema_version": 2,
+    "trace": {
+        "final": {
+            "outcome": null,
+            "stage": "close_contact",
+            "state": {
+                "client_type": "prices_only",
+                "counters": {
+                    "budget_asks": 2,
+                    "closed_topic_streak": 0,
+                    "followups_sent": 0,
+                    "guard_regens": 1,
+                    "negative_streak": 0,
+                    "off_topic_streak": 0,
+                    "turns": 6,
+                    "unclear_streak": 0,
+                    "unknown_facts": 1,
+                    "unknown_insist": 0
+                },
+                "flags": {
+                    "do_not_disturb": false,
+                    "duplicate_lead": false,
+                    "escalate": false,
+                    "escalate_reason": null,
+                    "introduced": true,
+                    "price_sent": false,
+                    "requisites_sent": false
+                },
+                "missing": [
+                    {
+                        "reason": "declined",
+                        "slot": "budget_range",
+                        "suggested_question": "Плюс-минус на какую сумму смотрите закупку? Это ни к чему не обязывает — просто от суммы скидку в прайсе выставлю."
+                    },
+                    {
+                        "reason": "not_asked",
+                        "slot": "email",
+                        "suggested_question": "На какую почту прайс отправить?"
+                    },
+                    {
+                        "reason": "not_asked",
+                        "slot": "messenger",
+                        "suggested_question": "И продублирую в мессенджер, чтобы мой контакт у вас был. На этом номере Макс, WhatsApp или Telegram?"
+                    },
+                    {
+                        "reason": "not_asked",
+                        "slot": "next_contact_at",
+                        "suggested_question": "Когда удобно списаться по обратной связи — завтра или в пятницу?"
+                    }
+                ],
+                "outcome": null,
+                "promises": [
+                    {
+                        "created_at": "2026-10-31T06:00:00+00:00",
+                        "done": false,
+                        "text": "уточнить: Клиент из Екатеринбурга хочет открыть точку и ищет, кто помогает с контейнером из Китая под свой бренд (СТМ). Просит подсказать контакты или посредников. Нужен ответ менеджера."
+                    }
+                ],
+                "signals": {
+                    "asked_counts": {
+                        "budget_range": 2,
+                        "categories": 1,
+                        "city": 1,
+                        "email": 1,
+                        "purpose": 1,
+                        "timing": 1
+                    },
+                    "asked_if_bot": false,
+                    "asked_slots": [
+                        "city",
+                        "purpose",
+                        "categories",
+                        "budget_range",
+                        "timing",
+                        "email"
+                    ],
+                    "client_claims": [],
+                    "client_questions": [],
+                    "last_asked_slot": "email",
+                    "last_client_intent": "ask_price_list",
+                    "last_trigger_turn": 3,
+                    "last_unknown_topic": null,
+                    "objections": [],
+                    "prev_intent": "ask_price_list",
+                    "refused_slots": {
+                        "budget_range": true
+                    },
+                    "sentiment": "neutral",
+                    "triggers_used": {
+                        "not_tied_to_volume": 1
+                    },
+                    "wants_only_prices": true
+                },
+                "slots": {
+                    "brands_interest": [],
+                    "budget_range": null,
+                    "categories": [
+                        "салюты",
+                        "фонтаны"
+                    ],
+                    "city": "Екатеринбург",
+                    "competitor_discount": null,
+                    "current_supplier": null,
+                    "email": null,
+                    "experience": "нет",
+                    "legal": null,
+                    "messenger": null,
+                    "name": null,
+                    "next_contact_at": null,
+                    "outlet_floor": null,
+                    "outlet_type": "ищу",
+                    "purpose": "на продажу",
+                    "timing": null
+                },
+                "stage": "close_contact",
+                "summary": "Клиент из Екатеринбурга хочет заказать контейнер пиротехники из Китая под своим брендом для новой торговой точки, но менеджер сообщил, что компания работает только с готовым ассортиментом. Менеджер пообещал уточнить информацию о посредниках для заказа под брендом и предложил начать с готового ассортимента для проверки спроса. Клиент согласился рассмотреть салюты и фонтаны из готового ассортимента, уточнив важность наличия сертификатов. Менеджер подтвердил наличие всех документов на товар и пообещал выслать прайс-лист на почту и в мессенджер, чтобы клиент мог ознакомиться с ценами и условиями.",
+                "unknown_questions": [
+                    "Клиент из Екатеринбурга хочет открыть точку и ищет, кто помогает с контейнером из Китая под свой бренд (СТМ). Просит подсказать контакты или посредников. Нужен ответ менеджера."
+                ]
+            },
+            "tasks": [
+                {
+                    "due_at": "2026-10-31T10:00:00.000000Z",
+                    "payload": {
+                        "question": "Клиент из Екатеринбурга хочет открыть точку и ищет, кто помогает с контейнером из Китая под свой бренд (СТМ). Просит подсказать контакты или посредников. Нужен ответ менеджера."
+                    },
+                    "priority": "normal",
+                    "status": "new",
+                    "type": "unknown_fact"
+                }
+            ]
+        },
+        "turns": [
+            {
+                "client": null,
+                "meta": {
+                    "cost_usd": 0.007708,
+                    "goal": {
+                        "allowed_tools": [
+                            "mark_do_not_disturb",
+                            "create_promise",
+                            "log_unknown_question",
+                            "send_requisites",
+                            "check_stock",
+                            "calc_delivery"
+                        ],
+                        "constraints": [],
+                        "extras": [],
+                        "facts": [],
+                        "fewshot_tags": [
+                            "open_greeting",
+                            "ask_city"
+                        ],
+                        "instruction": "Поздороваться, представиться именем и компанией, сослаться на заявку, при необходимости коротко ответить на вопрос и задать ровно один вопрос по слоту.",
+                        "kind": "intro_and_ask",
+                        "slot": "city",
+                        "trigger": null
+                    },
+                    "guard": {
+                        "issues": [],
+                        "questions": 1,
+                        "verdict": "ok",
+                        "warnings": [],
+                        "words": 32
+                    },
+                    "tool_calls": []
+                },
+                "outcome": null,
+                "reply": "Добрый день. Антон, компания «Союз Пир», оптовая пиротехника. Вы у нас оставляли заявку на прайс, поэтому пишу. Пару моментов уточню и отправлю. Чтобы сразу сориентировать по доставке, подскажите, вы из какого города?",
+                "stage": "qualify",
+                "state": {
+                    "client_type": "unknown",
+                    "counters": {
+                        "budget_asks": 0,
+                        "closed_topic_streak": 0,
+                        "followups_sent": 0,
+                        "guard_regens": 0,
+                        "negative_streak": 0,
+                        "off_topic_streak": 0,
+                        "turns": 0,
+                        "unclear_streak": 0,
+                        "unknown_facts": 0,
+                        "unknown_insist": 0
+                    },
+                    "flags": {
+                        "do_not_disturb": false,
+                        "duplicate_lead": false,
+                        "escalate": false,
+                        "escalate_reason": null,
+                        "introduced": true,
+                        "price_sent": false,
+                        "requisites_sent": false
+                    },
+                    "missing": [
+                        {
+                            "reason": "no_chance",
+                            "slot": "city",
+                            "suggested_question": "Подскажите, вы из какого города?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "purpose",
+                            "suggested_question": "А пиротехникой для себя интересуетесь или на продажу?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "experience",
+                            "suggested_question": "Раньше пиротехникой торговали или это первый сезон?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "outlet_type",
+                            "suggested_question": "А как планируете торговать — своя точка, аренда, через интернет?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "categories",
+                            "suggested_question": "Что в основном интересует — салюты, петарды, мелочь вроде бенгальских и фонтанов, или всё вместе?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "budget_range",
+                            "suggested_question": "Плюс-минус на какую сумму смотрите закупку? Это ни к чему не обязывает — просто от суммы скидку в прайсе выставлю."
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "timing",
+                            "suggested_question": "Закупаться планируете сейчас или ближе к сезону?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "email",
+                            "suggested_question": "На какую почту прайс отправить?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "messenger",
+                            "suggested_question": "И продублирую в мессенджер, чтобы мой контакт у вас был. На этом номере Макс, WhatsApp или Telegram?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "next_contact_at",
+                            "suggested_question": "Когда удобно списаться по обратной связи — завтра или в пятницу?"
+                        }
+                    ],
+                    "outcome": null,
+                    "promises": [],
+                    "signals": {
+                        "asked_counts": {
+                            "city": 1
+                        },
+                        "asked_if_bot": false,
+                        "asked_slots": [
+                            "city"
+                        ],
+                        "client_claims": [],
+                        "client_questions": [],
+                        "last_asked_slot": "city",
+                        "last_client_intent": null,
+                        "last_unknown_topic": null,
+                        "objections": [],
+                        "prev_intent": "answer_only",
+                        "sentiment": "neutral",
+                        "triggers_used": [],
+                        "wants_only_prices": false
+                    },
+                    "slots": {
+                        "brands_interest": [],
+                        "budget_range": null,
+                        "categories": [],
+                        "city": null,
+                        "competitor_discount": null,
+                        "current_supplier": null,
+                        "email": null,
+                        "experience": null,
+                        "legal": null,
+                        "messenger": null,
+                        "name": null,
+                        "next_contact_at": null,
+                        "outlet_floor": null,
+                        "outlet_type": null,
+                        "purpose": null,
+                        "timing": null
+                    },
+                    "stage": "qualify",
+                    "summary": null,
+                    "unknown_questions": []
+                }
+            },
+            {
+                "client": "Здравствуйте. Я из Екатеринбурга. Скажите, а вы возите под заказ контейнер из Китая под мой бренд? Мне важно понять это сразу, без общих слов.",
+                "meta": {
+                    "cost_usd": 0.009889,
+                    "extraction": {
+                        "asked_if_bot": false,
+                        "client_claims": [],
+                        "client_intent": "want_container",
+                        "client_questions": [
+                            "вы возите под заказ контейнер из Китая под мой бренд?"
+                        ],
+                        "closed_topic": null,
+                        "confidence": 1,
+                        "do_not_disturb": false,
+                        "objections": [],
+                        "off_topic": false,
+                        "prompt_injection": false,
+                        "refused_slots": [],
+                        "sentiment": "neutral",
+                        "slot_updates": {
+                            "brands_interest": null,
+                            "budget_range": null,
+                            "categories": null,
+                            "city": "Екатеринбург",
+                            "competitor_discount": null,
+                            "current_supplier": null,
+                            "email": null,
+                            "experience": null,
+                            "legal": null,
+                            "messenger": null,
+                            "name": null,
+                            "next_contact_at": null,
+                            "outlet_floor": null,
+                            "outlet_type": null,
+                            "purpose": null,
+                            "timing": null
+                        },
+                        "unknown_question": null,
+                        "wants_human": false,
+                        "wants_only_prices": false
+                    },
+                    "goal": {
+                        "allowed_tools": [
+                            "mark_do_not_disturb",
+                            "create_promise",
+                            "log_unknown_question",
+                            "send_requisites",
+                            "check_stock",
+                            "calc_delivery"
+                        ],
+                        "constraints": [
+                            "не спорить",
+                            "сначала согласиться с чувством клиента, потом аргумент"
+                        ],
+                        "extras": {
+                            "objection": null
+                        },
+                        "facts": [
+                            "container_import"
+                        ],
+                        "fewshot_tags": [
+                            "obj_container",
+                            "ask_purpose"
+                        ],
+                        "instruction": "Отработать возражение: признать, дать один аргумент из фактов (и триггер, если уместен), затем ровно один вопрос по слоту.",
+                        "kind": "handle_objection",
+                        "slot": "purpose",
+                        "trigger": null
+                    },
+                    "guard": {
+                        "issues": [],
+                        "questions": 1,
+                        "verdict": "ok",
+                        "warnings": [],
+                        "words": 49
+                    },
+                    "tool_calls": []
+                },
+                "outcome": null,
+                "reply": "Здравствуйте. Под заказ из Китая под ваш бренд мы не возим, работаем с готовым ассортиментом. Для одной точки контейнер обычно много, плюс сертификация ЕАЭС и растаможка. Без сертификата товар могут забрать на первой проверке. Первый год лучше проверить спрос на готовом. Вы для себя пиротехнику смотрите или на продажу?",
+                "stage": "qualify",
+                "state": {
+                    "client_type": "unknown",
+                    "counters": {
+                        "budget_asks": 0,
+                        "closed_topic_streak": 0,
+                        "followups_sent": 0,
+                        "guard_regens": 0,
+                        "negative_streak": 0,
+                        "off_topic_streak": 0,
+                        "turns": 1,
+                        "unclear_streak": 0,
+                        "unknown_facts": 0,
+                        "unknown_insist": 0
+                    },
+                    "flags": {
+                        "do_not_disturb": false,
+                        "duplicate_lead": false,
+                        "escalate": false,
+                        "escalate_reason": null,
+                        "introduced": true,
+                        "price_sent": false,
+                        "requisites_sent": false
+                    },
+                    "missing": [
+                        {
+                            "reason": "no_chance",
+                            "slot": "purpose",
+                            "suggested_question": "А пиротехникой для себя интересуетесь или на продажу?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "experience",
+                            "suggested_question": "Раньше пиротехникой торговали или это первый сезон?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "outlet_type",
+                            "suggested_question": "А как планируете торговать — своя точка, аренда, через интернет?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "categories",
+                            "suggested_question": "Что в основном интересует — салюты, петарды, мелочь вроде бенгальских и фонтанов, или всё вместе?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "budget_range",
+                            "suggested_question": "Плюс-минус на какую сумму смотрите закупку? Это ни к чему не обязывает — просто от суммы скидку в прайсе выставлю."
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "timing",
+                            "suggested_question": "Закупаться планируете сейчас или ближе к сезону?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "email",
+                            "suggested_question": "На какую почту прайс отправить?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "messenger",
+                            "suggested_question": "И продублирую в мессенджер, чтобы мой контакт у вас был. На этом номере Макс, WhatsApp или Telegram?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "next_contact_at",
+                            "suggested_question": "Когда удобно списаться по обратной связи — завтра или в пятницу?"
+                        }
+                    ],
+                    "outcome": null,
+                    "promises": [],
+                    "signals": {
+                        "asked_counts": {
+                            "city": 1,
+                            "purpose": 1
+                        },
+                        "asked_if_bot": false,
+                        "asked_slots": [
+                            "city",
+                            "purpose"
+                        ],
+                        "client_claims": [],
+                        "client_questions": [
+                            "вы возите под заказ контейнер из Китая под мой бренд?"
+                        ],
+                        "last_asked_slot": "purpose",
+                        "last_client_intent": "want_container",
+                        "last_unknown_topic": null,
+                        "objections": [],
+                        "prev_intent": "want_container",
+                        "sentiment": "neutral",
+                        "triggers_used": [],
+                        "wants_only_prices": false
+                    },
+                    "slots": {
+                        "brands_interest": [],
+                        "budget_range": null,
+                        "categories": [],
+                        "city": "Екатеринбург",
+                        "competitor_discount": null,
+                        "current_supplier": null,
+                        "email": null,
+                        "experience": null,
+                        "legal": null,
+                        "messenger": null,
+                        "name": null,
+                        "next_contact_at": null,
+                        "outlet_floor": null,
+                        "outlet_type": null,
+                        "purpose": null,
+                        "timing": null
+                    },
+                    "stage": "qualify",
+                    "summary": null,
+                    "unknown_questions": []
+                }
+            },
+            {
+                "client": "Понял, спасибо. Я на продажу, хочу открыть точку. Но контейнер под свой бренд мне всё-таки нужен, без этого не интересно. Вы тогда можете хотя бы подсказать, кто в этом помогает?",
+                "meta": {
+                    "cost_usd": 0.020588,
+                    "extraction": {
+                        "asked_if_bot": false,
+                        "client_claims": [],
+                        "client_intent": "ask_what_else",
+                        "client_questions": [
+                            "кто помогает с контейнером под свой бренд"
+                        ],
+                        "closed_topic": null,
+                        "confidence": 1,
+                        "do_not_disturb": false,
+                        "objections": [],
+                        "off_topic": false,
+                        "prompt_injection": false,
+                        "refused_slots": [],
+                        "sentiment": "positive",
+                        "slot_updates": {
+                            "brands_interest": null,
+                            "budget_range": null,
+                            "categories": null,
+                            "city": null,
+                            "competitor_discount": null,
+                            "current_supplier": null,
+                            "email": null,
+                            "experience": "нет",
+                            "legal": null,
+                            "messenger": null,
+                            "name": null,
+                            "next_contact_at": null,
+                            "outlet_floor": null,
+                            "outlet_type": "ищу",
+                            "purpose": "на продажу",
+                            "timing": null
+                        },
+                        "unknown_question": null,
+                        "wants_human": false,
+                        "wants_only_prices": false
+                    },
+                    "goal": {
+                        "allowed_tools": [
+                            "mark_do_not_disturb",
+                            "create_promise",
+                            "log_unknown_question",
+                            "send_requisites",
+                            "check_stock",
+                            "calc_delivery"
+                        ],
+                        "constraints": [],
+                        "extras": [],
+                        "facts": [],
+                        "fewshot_tags": [
+                            "ask_categories"
+                        ],
+                        "instruction": "Коротко отреагировать на слова клиента (одна фраза), затем ровно один вопрос по слоту.",
+                        "kind": "ask_slot",
+                        "slot": "categories",
+                        "trigger": null
+                    },
+                    "guard": {
+                        "issues": [],
+                        "questions": 1,
+                        "verdict": "ok",
+                        "warnings": [],
+                        "words": 47
+                    },
+                    "tool_calls": [
+                        {
+                            "args": {
+                                "question": "Клиент из Екатеринбурга хочет открыть точку и ищет, кто помогает с контейнером из Китая под свой бренд (СТМ). Просит подсказать контакты или посредников. Нужен ответ менеджера."
+                            },
+                            "name": "log_unknown_question",
+                            "result": {
+                                "note": "задача менеджеру создана; клиенту — «уточню и напишу сегодня»",
+                                "ok": true
+                            }
+                        }
+                    ]
+                },
+                "outcome": null,
+                "reply": "Контактов посредников по Китаю у меня нет, чтобы не посылать вас наугад. Вопрос передал, уточню и напишу сегодня. Пока вы думаете про свой бренд, на готовом ассортименте можно спокойно запуститься и увидеть спрос. Что в основном интересует: салюты, петарды, мелочь вроде фонтанов и бенгальских, или всё сразу?",
+                "stage": "budget",
+                "state": {
+                    "client_type": "newbie",
+                    "counters": {
+                        "budget_asks": 0,
+                        "closed_topic_streak": 0,
+                        "followups_sent": 0,
+                        "guard_regens": 0,
+                        "negative_streak": 0,
+                        "off_topic_streak": 0,
+                        "turns": 2,
+                        "unclear_streak": 0,
+                        "unknown_facts": 1,
+                        "unknown_insist": 0
+                    },
+                    "flags": {
+                        "do_not_disturb": false,
+                        "duplicate_lead": false,
+                        "escalate": false,
+                        "escalate_reason": null,
+                        "introduced": true,
+                        "price_sent": false,
+                        "requisites_sent": false
+                    },
+                    "missing": [
+                        {
+                            "reason": "no_chance",
+                            "slot": "categories",
+                            "suggested_question": "Что в основном интересует — салюты, петарды, мелочь вроде бенгальских и фонтанов, или всё вместе?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "budget_range",
+                            "suggested_question": "Плюс-минус на какую сумму смотрите закупку? Это ни к чему не обязывает — просто от суммы скидку в прайсе выставлю."
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "timing",
+                            "suggested_question": "Закупаться планируете сейчас или ближе к сезону?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "email",
+                            "suggested_question": "На какую почту прайс отправить?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "messenger",
+                            "suggested_question": "И продублирую в мессенджер, чтобы мой контакт у вас был. На этом номере Макс, WhatsApp или Telegram?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "next_contact_at",
+                            "suggested_question": "Когда удобно списаться по обратной связи — завтра или в пятницу?"
+                        }
+                    ],
+                    "outcome": null,
+                    "promises": [
+                        {
+                            "created_at": "2026-10-31T06:00:00+00:00",
+                            "done": false,
+                            "text": "уточнить: Клиент из Екатеринбурга хочет открыть точку и ищет, кто помогает с контейнером из Китая под свой бренд (СТМ). Просит подсказать контакты или посредников. Нужен ответ менеджера."
+                        }
+                    ],
+                    "signals": {
+                        "asked_counts": {
+                            "categories": 1,
+                            "city": 1,
+                            "purpose": 1
+                        },
+                        "asked_if_bot": false,
+                        "asked_slots": [
+                            "city",
+                            "purpose",
+                            "categories"
+                        ],
+                        "client_claims": [],
+                        "client_questions": [
+                            "кто помогает с контейнером под свой бренд"
+                        ],
+                        "last_asked_slot": "categories",
+                        "last_client_intent": "ask_what_else",
+                        "last_unknown_topic": null,
+                        "objections": [],
+                        "prev_intent": "ask_what_else",
+                        "sentiment": "positive",
+                        "triggers_used": [],
+                        "wants_only_prices": false
+                    },
+                    "slots": {
+                        "brands_interest": [],
+                        "budget_range": null,
+                        "categories": [],
+                        "city": "Екатеринбург",
+                        "competitor_discount": null,
+                        "current_supplier": null,
+                        "email": null,
+                        "experience": "нет",
+                        "legal": null,
+                        "messenger": null,
+                        "name": null,
+                        "next_contact_at": null,
+                        "outlet_floor": null,
+                        "outlet_type": "ищу",
+                        "purpose": "на продажу",
+                        "timing": null
+                    },
+                    "stage": "budget",
+                    "summary": null,
+                    "unknown_questions": [
+                        "Клиент из Екатеринбурга хочет открыть точку и ищет, кто помогает с контейнером из Китая под свой бренд (СТМ). Просит подсказать контакты или посредников. Нужен ответ менеджера."
+                    ]
+                }
+            },
+            {
+                "client": "Пока не знаю точно, давайте начнём с салютов и фонтанов, а там посмотрим. Главное, чтобы без проблем с сертификатами, я не хочу потом товар на таможне держать.",
+                "meta": {
+                    "cost_usd": 0.011207,
+                    "extraction": {
+                        "asked_if_bot": false,
+                        "client_claims": [],
+                        "client_intent": "answer_only",
+                        "client_questions": [],
+                        "closed_topic": null,
+                        "confidence": 1,
+                        "do_not_disturb": false,
+                        "objections": [],
+                        "off_topic": false,
+                        "prompt_injection": false,
+                        "refused_slots": [],
+                        "sentiment": "neutral",
+                        "slot_updates": {
+                            "brands_interest": null,
+                            "budget_range": null,
+                            "categories": [
+                                "салюты",
+                                "фонтаны"
+                            ],
+                            "city": null,
+                            "competitor_discount": null,
+                            "current_supplier": null,
+                            "email": null,
+                            "experience": null,
+                            "legal": null,
+                            "messenger": null,
+                            "name": null,
+                            "next_contact_at": null,
+                            "outlet_floor": null,
+                            "outlet_type": null,
+                            "purpose": null,
+                            "timing": null
+                        },
+                        "unknown_question": null,
+                        "wants_human": false,
+                        "wants_only_prices": false
+                    },
+                    "goal": {
+                        "allowed_tools": [
+                            "mark_do_not_disturb",
+                            "create_promise",
+                            "log_unknown_question",
+                            "send_requisites",
+                            "check_stock",
+                            "calc_delivery"
+                        ],
+                        "constraints": [],
+                        "extras": [],
+                        "facts": [],
+                        "fewshot_tags": [
+                            "ask_budget_soft"
+                        ],
+                        "instruction": "Коротко отреагировать на слова клиента (одна фраза), затем ровно один вопрос по слоту.",
+                        "kind": "ask_slot",
+                        "slot": "budget_range",
+                        "trigger": "not_tied_to_volume"
+                    },
+                    "guard": {
+                        "issues": [],
+                        "questions": 1,
+                        "verdict": "ok",
+                        "warnings": [],
+                        "words": 46
+                    },
+                    "tool_calls": []
+                },
+                "outcome": null,
+                "reply": "Понял, начнём с салютов и фонтанов. По сертификатам: на нашем товаре документы есть, на таможне вам ничего держать не придётся, это наша сторона. Плюс-минус на какую сумму смотрите первую закупку? Это ни к чему не обязывает, просто от суммы скидку выставлю, а возьмёте меньше, она сохранится.",
+                "stage": "budget",
+                "state": {
+                    "client_type": "newbie",
+                    "counters": {
+                        "budget_asks": 1,
+                        "closed_topic_streak": 0,
+                        "followups_sent": 0,
+                        "guard_regens": 0,
+                        "negative_streak": 0,
+                        "off_topic_streak": 0,
+                        "turns": 3,
+                        "unclear_streak": 0,
+                        "unknown_facts": 1,
+                        "unknown_insist": 0
+                    },
+                    "flags": {
+                        "do_not_disturb": false,
+                        "duplicate_lead": false,
+                        "escalate": false,
+                        "escalate_reason": null,
+                        "introduced": true,
+                        "price_sent": false,
+                        "requisites_sent": false
+                    },
+                    "missing": [
+                        {
+                            "reason": "no_chance",
+                            "slot": "budget_range",
+                            "suggested_question": "Плюс-минус на какую сумму смотрите закупку? Это ни к чему не обязывает — просто от суммы скидку в прайсе выставлю."
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "timing",
+                            "suggested_question": "Закупаться планируете сейчас или ближе к сезону?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "email",
+                            "suggested_question": "На какую почту прайс отправить?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "messenger",
+                            "suggested_question": "И продублирую в мессенджер, чтобы мой контакт у вас был. На этом номере Макс, WhatsApp или Telegram?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "next_contact_at",
+                            "suggested_question": "Когда удобно списаться по обратной связи — завтра или в пятницу?"
+                        }
+                    ],
+                    "outcome": null,
+                    "promises": [
+                        {
+                            "created_at": "2026-10-31T06:00:00+00:00",
+                            "done": false,
+                            "text": "уточнить: Клиент из Екатеринбурга хочет открыть точку и ищет, кто помогает с контейнером из Китая под свой бренд (СТМ). Просит подсказать контакты или посредников. Нужен ответ менеджера."
+                        }
+                    ],
+                    "signals": {
+                        "asked_counts": {
+                            "budget_range": 1,
+                            "categories": 1,
+                            "city": 1,
+                            "purpose": 1
+                        },
+                        "asked_if_bot": false,
+                        "asked_slots": [
+                            "city",
+                            "purpose",
+                            "categories",
+                            "budget_range"
+                        ],
+                        "client_claims": [],
+                        "client_questions": [],
+                        "last_asked_slot": "budget_range",
+                        "last_client_intent": "answer_only",
+                        "last_trigger_turn": 3,
+                        "last_unknown_topic": null,
+                        "objections": [],
+                        "prev_intent": "answer_only",
+                        "sentiment": "neutral",
+                        "triggers_used": {
+                            "not_tied_to_volume": 1
+                        },
+                        "wants_only_prices": false
+                    },
+                    "slots": {
+                        "brands_interest": [],
+                        "budget_range": null,
+                        "categories": [
+                            "салюты",
+                            "фонтаны"
+                        ],
+                        "city": "Екатеринбург",
+                        "competitor_discount": null,
+                        "current_supplier": null,
+                        "email": null,
+                        "experience": "нет",
+                        "legal": null,
+                        "messenger": null,
+                        "name": null,
+                        "next_contact_at": null,
+                        "outlet_floor": null,
+                        "outlet_type": "ищу",
+                        "purpose": "на продажу",
+                        "timing": null
+                    },
+                    "stage": "budget",
+                    "summary": null,
+                    "unknown_questions": [
+                        "Клиент из Екатеринбурга хочет открыть точку и ищет, кто помогает с контейнером из Китая под свой бренд (СТМ). Просит подсказать контакты или посредников. Нужен ответ менеджера."
+                    ]
+                }
+            },
+            {
+                "client": "Пока не знаю, сумма будет зависеть от цены и условий. Сначала посмотрю прайс, потом решу.",
+                "meta": {
+                    "cost_usd": 0.014608,
+                    "extraction": {
+                        "asked_if_bot": false,
+                        "client_claims": [],
+                        "client_intent": "ask_price_list",
+                        "client_questions": [],
+                        "closed_topic": null,
+                        "confidence": 1,
+                        "do_not_disturb": false,
+                        "objections": [],
+                        "off_topic": false,
+                        "prompt_injection": false,
+                        "refused_slots": [],
+                        "sentiment": "neutral",
+                        "slot_updates": {
+                            "brands_interest": null,
+                            "budget_range": null,
+                            "categories": null,
+                            "city": null,
+                            "competitor_discount": null,
+                            "current_supplier": null,
+                            "email": null,
+                            "experience": null,
+                            "legal": null,
+                            "messenger": null,
+                            "name": null,
+                            "next_contact_at": null,
+                            "outlet_floor": null,
+                            "outlet_type": null,
+                            "purpose": null,
+                            "timing": null
+                        },
+                        "unknown_question": null,
+                        "wants_human": false,
+                        "wants_only_prices": false
+                    },
+                    "goal": {
+                        "allowed_tools": [
+                            "mark_do_not_disturb",
+                            "create_promise",
+                            "log_unknown_question",
+                            "send_requisites",
+                            "check_stock",
+                            "calc_delivery"
+                        ],
+                        "constraints": [],
+                        "extras": [],
+                        "facts": [
+                            "price_list_how_to_send"
+                        ],
+                        "fewshot_tags": [
+                            "price_sent",
+                            "ask_budget_soft"
+                        ],
+                        "instruction": "Ответить на вопрос клиента своими словами из фактов (одна-две мысли), затем мостик и ровно один вопрос по слоту.",
+                        "kind": "answer_and_ask",
+                        "slot": "budget_range",
+                        "trigger": null
+                    },
+                    "guard": {
+                        "issues": [],
+                        "questions": 1,
+                        "verdict": "ok",
+                        "warnings": [],
+                        "words": 33
+                    },
+                    "tool_calls": []
+                },
+                "outcome": null,
+                "reply": "Логично, прайс отправлю, и цены смотрите уже со своей скидкой. Для этого мне нужен хотя бы грубый ориентир, не точная сумма. Если прикинуть вилку, что ближе для старта: 50, 100 или 200 тысяч?",
+                "stage": "budget",
+                "state": {
+                    "client_type": "newbie",
+                    "counters": {
+                        "budget_asks": 2,
+                        "closed_topic_streak": 0,
+                        "followups_sent": 0,
+                        "guard_regens": 0,
+                        "negative_streak": 0,
+                        "off_topic_streak": 0,
+                        "turns": 4,
+                        "unclear_streak": 0,
+                        "unknown_facts": 1,
+                        "unknown_insist": 0
+                    },
+                    "flags": {
+                        "do_not_disturb": false,
+                        "duplicate_lead": false,
+                        "escalate": false,
+                        "escalate_reason": null,
+                        "introduced": true,
+                        "price_sent": false,
+                        "requisites_sent": false
+                    },
+                    "missing": [
+                        {
+                            "reason": "declined",
+                            "slot": "budget_range",
+                            "suggested_question": "Плюс-минус на какую сумму смотрите закупку? Это ни к чему не обязывает — просто от суммы скидку в прайсе выставлю."
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "timing",
+                            "suggested_question": "Закупаться планируете сейчас или ближе к сезону?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "email",
+                            "suggested_question": "На какую почту прайс отправить?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "messenger",
+                            "suggested_question": "И продублирую в мессенджер, чтобы мой контакт у вас был. На этом номере Макс, WhatsApp или Telegram?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "next_contact_at",
+                            "suggested_question": "Когда удобно списаться по обратной связи — завтра или в пятницу?"
+                        }
+                    ],
+                    "outcome": null,
+                    "promises": [
+                        {
+                            "created_at": "2026-10-31T06:00:00+00:00",
+                            "done": false,
+                            "text": "уточнить: Клиент из Екатеринбурга хочет открыть точку и ищет, кто помогает с контейнером из Китая под свой бренд (СТМ). Просит подсказать контакты или посредников. Нужен ответ менеджера."
+                        }
+                    ],
+                    "signals": {
+                        "asked_counts": {
+                            "budget_range": 2,
+                            "categories": 1,
+                            "city": 1,
+                            "purpose": 1
+                        },
+                        "asked_if_bot": false,
+                        "asked_slots": [
+                            "city",
+                            "purpose",
+                            "categories",
+                            "budget_range"
+                        ],
+                        "client_claims": [],
+                        "client_questions": [],
+                        "last_asked_slot": "budget_range",
+                        "last_client_intent": "ask_price_list",
+                        "last_trigger_turn": 3,
+                        "last_unknown_topic": null,
+                        "objections": [],
+                        "prev_intent": "ask_price_list",
+                        "sentiment": "neutral",
+                        "triggers_used": {
+                            "not_tied_to_volume": 1
+                        },
+                        "wants_only_prices": false
+                    },
+                    "slots": {
+                        "brands_interest": [],
+                        "budget_range": null,
+                        "categories": [
+                            "салюты",
+                            "фонтаны"
+                        ],
+                        "city": "Екатеринбург",
+                        "competitor_discount": null,
+                        "current_supplier": null,
+                        "email": null,
+                        "experience": "нет",
+                        "legal": null,
+                        "messenger": null,
+                        "name": null,
+                        "next_contact_at": null,
+                        "outlet_floor": null,
+                        "outlet_type": "ищу",
+                        "purpose": "на продажу",
+                        "timing": null
+                    },
+                    "stage": "budget",
+                    "summary": null,
+                    "unknown_questions": [
+                        "Клиент из Екатеринбурга хочет открыть точку и ищет, кто помогает с контейнером из Китая под свой бренд (СТМ). Просит подсказать контакты или посредников. Нужен ответ менеджера."
+                    ]
+                }
+            },
+            {
+                "client": "Пока не готов назвать вилку, ещё не считал. Пришлите прайс, посмотрю и тогда скажу.",
+                "meta": {
+                    "cost_usd": 0.011803,
+                    "extraction": {
+                        "asked_if_bot": false,
+                        "client_claims": [],
+                        "client_intent": "ask_price_list",
+                        "client_questions": [
+                            "Пришлите прайс"
+                        ],
+                        "closed_topic": null,
+                        "confidence": 1,
+                        "do_not_disturb": false,
+                        "objections": [],
+                        "off_topic": false,
+                        "prompt_injection": false,
+                        "refused_slots": [
+                            "budget_range"
+                        ],
+                        "sentiment": "neutral",
+                        "slot_updates": {
+                            "brands_interest": null,
+                            "budget_range": null,
+                            "categories": null,
+                            "city": null,
+                            "competitor_discount": null,
+                            "current_supplier": null,
+                            "email": null,
+                            "experience": null,
+                            "legal": null,
+                            "messenger": null,
+                            "name": null,
+                            "next_contact_at": null,
+                            "outlet_floor": null,
+                            "outlet_type": null,
+                            "purpose": null,
+                            "timing": null
+                        },
+                        "unknown_question": null,
+                        "wants_human": false,
+                        "wants_only_prices": false
+                    },
+                    "goal": {
+                        "allowed_tools": [
+                            "mark_do_not_disturb",
+                            "create_promise",
+                            "log_unknown_question",
+                            "send_requisites",
+                            "check_stock",
+                            "calc_delivery"
+                        ],
+                        "constraints": [],
+                        "extras": [],
+                        "facts": [
+                            "price_list_how_to_send"
+                        ],
+                        "fewshot_tags": [
+                            "price_sent",
+                            "ask_timing"
+                        ],
+                        "instruction": "Ответить на вопрос клиента своими словами из фактов (одна-две мысли), затем мостик и ровно один вопрос по слоту.",
+                        "kind": "answer_and_ask",
+                        "slot": "timing",
+                        "trigger": null
+                    },
+                    "guard": {
+                        "issues": [],
+                        "questions": 1,
+                        "verdict": "ok",
+                        "warnings": [],
+                        "words": 31
+                    },
+                    "tool_calls": []
+                },
+                "outcome": null,
+                "reply": "Хорошо, без суммы тогда. Прайс отправлю на почту и продублирую в мессенджер, чтобы контакт у вас остался. Писать буду с рабочего номера, не пугайтесь. Закупку планируете сейчас или ближе к сезону?",
+                "stage": "budget",
+                "state": {
+                    "client_type": "newbie",
+                    "counters": {
+                        "budget_asks": 2,
+                        "closed_topic_streak": 0,
+                        "followups_sent": 0,
+                        "guard_regens": 0,
+                        "negative_streak": 0,
+                        "off_topic_streak": 0,
+                        "turns": 5,
+                        "unclear_streak": 0,
+                        "unknown_facts": 1,
+                        "unknown_insist": 0
+                    },
+                    "flags": {
+                        "do_not_disturb": false,
+                        "duplicate_lead": false,
+                        "escalate": false,
+                        "escalate_reason": null,
+                        "introduced": true,
+                        "price_sent": false,
+                        "requisites_sent": false
+                    },
+                    "missing": [
+                        {
+                            "reason": "declined",
+                            "slot": "budget_range",
+                            "suggested_question": "Плюс-минус на какую сумму смотрите закупку? Это ни к чему не обязывает — просто от суммы скидку в прайсе выставлю."
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "timing",
+                            "suggested_question": "Закупаться планируете сейчас или ближе к сезону?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "email",
+                            "suggested_question": "На какую почту прайс отправить?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "messenger",
+                            "suggested_question": "И продублирую в мессенджер, чтобы мой контакт у вас был. На этом номере Макс, WhatsApp или Telegram?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "next_contact_at",
+                            "suggested_question": "Когда удобно списаться по обратной связи — завтра или в пятницу?"
+                        }
+                    ],
+                    "outcome": null,
+                    "promises": [
+                        {
+                            "created_at": "2026-10-31T06:00:00+00:00",
+                            "done": false,
+                            "text": "уточнить: Клиент из Екатеринбурга хочет открыть точку и ищет, кто помогает с контейнером из Китая под свой бренд (СТМ). Просит подсказать контакты или посредников. Нужен ответ менеджера."
+                        }
+                    ],
+                    "signals": {
+                        "asked_counts": {
+                            "budget_range": 2,
+                            "categories": 1,
+                            "city": 1,
+                            "purpose": 1,
+                            "timing": 1
+                        },
+                        "asked_if_bot": false,
+                        "asked_slots": [
+                            "city",
+                            "purpose",
+                            "categories",
+                            "budget_range",
+                            "timing"
+                        ],
+                        "client_claims": [],
+                        "client_questions": [
+                            "Пришлите прайс"
+                        ],
+                        "last_asked_slot": "timing",
+                        "last_client_intent": "ask_price_list",
+                        "last_trigger_turn": 3,
+                        "last_unknown_topic": null,
+                        "objections": [],
+                        "prev_intent": "ask_price_list",
+                        "refused_slots": {
+                            "budget_range": true
+                        },
+                        "sentiment": "neutral",
+                        "triggers_used": {
+                            "not_tied_to_volume": 1
+                        },
+                        "wants_only_prices": false
+                    },
+                    "slots": {
+                        "brands_interest": [],
+                        "budget_range": null,
+                        "categories": [
+                            "салюты",
+                            "фонтаны"
+                        ],
+                        "city": "Екатеринбург",
+                        "competitor_discount": null,
+                        "current_supplier": null,
+                        "email": null,
+                        "experience": "нет",
+                        "legal": null,
+                        "messenger": null,
+                        "name": null,
+                        "next_contact_at": null,
+                        "outlet_floor": null,
+                        "outlet_type": "ищу",
+                        "purpose": "на продажу",
+                        "timing": null
+                    },
+                    "stage": "budget",
+                    "summary": null,
+                    "unknown_questions": [
+                        "Клиент из Екатеринбурга хочет открыть точку и ищет, кто помогает с контейнером из Китая под свой бренд (СТМ). Просит подсказать контакты или посредников. Нужен ответ менеджера."
+                    ]
+                }
+            },
+            {
+                "client": "Ок, пришлите на почту, посмотрю. Сезон пока не выбрал, сначала хочу понять цены и условия.",
+                "meta": {
+                    "cost_usd": 0.020271,
+                    "extraction": {
+                        "asked_if_bot": false,
+                        "client_claims": [],
+                        "client_intent": "ask_price_list",
+                        "client_questions": [],
+                        "closed_topic": null,
+                        "confidence": 1,
+                        "do_not_disturb": false,
+                        "objections": [],
+                        "off_topic": false,
+                        "prompt_injection": false,
+                        "refused_slots": [],
+                        "sentiment": "neutral",
+                        "slot_updates": {
+                            "brands_interest": null,
+                            "budget_range": null,
+                            "categories": null,
+                            "city": null,
+                            "competitor_discount": null,
+                            "current_supplier": null,
+                            "email": null,
+                            "experience": null,
+                            "legal": null,
+                            "messenger": null,
+                            "name": null,
+                            "next_contact_at": null,
+                            "outlet_floor": null,
+                            "outlet_type": null,
+                            "purpose": null,
+                            "timing": null
+                        },
+                        "unknown_question": null,
+                        "wants_human": false,
+                        "wants_only_prices": true
+                    },
+                    "goal": {
+                        "allowed_tools": [
+                            "mark_do_not_disturb",
+                            "create_promise",
+                            "log_unknown_question",
+                            "send_requisites",
+                            "check_stock",
+                            "calc_delivery",
+                            "set_followup"
+                        ],
+                        "constraints": [],
+                        "extras": [],
+                        "facts": [
+                            "price_list_how_to_send"
+                        ],
+                        "fewshot_tags": [
+                            "price_sent",
+                            "ask_email"
+                        ],
+                        "instruction": "Если был вопрос — коротко ответить. Сказать, что отправите прайс на почту, и спросить адрес. Один вопрос.",
+                        "kind": "close_contact",
+                        "slot": "email",
+                        "trigger": null
+                    },
+                    "guard": {
+                        "issues": [],
+                        "questions": 1,
+                        "verdict": "ok",
+                        "warnings": [],
+                        "words": 22
+                    },
+                    "guard_rejected": [
+                        {
+                            "issues": [
+                                "бюджет уже спрашивали дважды — больше не спрашивай"
+                            ],
+                            "text": "Хорошо, тогда без привязки к сезону, сначала посмотрите цены. Скажите, на какую почту отправить прайс?"
+                        }
+                    ],
+                    "tool_calls": []
+                },
+                "outcome": null,
+                "reply": "Принял, без сезона и без суммы, сначала цены посмотрите. Прайс отправлю на почту и продублирую в мессенджер. Продиктуете адрес, на который отправить?",
+                "stage": "close_contact",
+                "state": {
+                    "client_type": "prices_only",
+                    "counters": {
+                        "budget_asks": 2,
+                        "closed_topic_streak": 0,
+                        "followups_sent": 0,
+                        "guard_regens": 1,
+                        "negative_streak": 0,
+                        "off_topic_streak": 0,
+                        "turns": 6,
+                        "unclear_streak": 0,
+                        "unknown_facts": 1,
+                        "unknown_insist": 0
+                    },
+                    "flags": {
+                        "do_not_disturb": false,
+                        "duplicate_lead": false,
+                        "escalate": false,
+                        "escalate_reason": null,
+                        "introduced": true,
+                        "price_sent": false,
+                        "requisites_sent": false
+                    },
+                    "missing": [
+                        {
+                            "reason": "declined",
+                            "slot": "budget_range",
+                            "suggested_question": "Плюс-минус на какую сумму смотрите закупку? Это ни к чему не обязывает — просто от суммы скидку в прайсе выставлю."
+                        },
+                        {
+                            "reason": "not_asked",
+                            "slot": "email",
+                            "suggested_question": "На какую почту прайс отправить?"
+                        },
+                        {
+                            "reason": "not_asked",
+                            "slot": "messenger",
+                            "suggested_question": "И продублирую в мессенджер, чтобы мой контакт у вас был. На этом номере Макс, WhatsApp или Telegram?"
+                        },
+                        {
+                            "reason": "not_asked",
+                            "slot": "next_contact_at",
+                            "suggested_question": "Когда удобно списаться по обратной связи — завтра или в пятницу?"
+                        }
+                    ],
+                    "outcome": null,
+                    "promises": [
+                        {
+                            "created_at": "2026-10-31T06:00:00+00:00",
+                            "done": false,
+                            "text": "уточнить: Клиент из Екатеринбурга хочет открыть точку и ищет, кто помогает с контейнером из Китая под свой бренд (СТМ). Просит подсказать контакты или посредников. Нужен ответ менеджера."
+                        }
+                    ],
+                    "signals": {
+                        "asked_counts": {
+                            "budget_range": 2,
+                            "categories": 1,
+                            "city": 1,
+                            "email": 1,
+                            "purpose": 1,
+                            "timing": 1
+                        },
+                        "asked_if_bot": false,
+                        "asked_slots": [
+                            "city",
+                            "purpose",
+                            "categories",
+                            "budget_range",
+                            "timing",
+                            "email"
+                        ],
+                        "client_claims": [],
+                        "client_questions": [],
+                        "last_asked_slot": "email",
+                        "last_client_intent": "ask_price_list",
+                        "last_trigger_turn": 3,
+                        "last_unknown_topic": null,
+                        "objections": [],
+                        "prev_intent": "ask_price_list",
+                        "refused_slots": {
+                            "budget_range": true
+                        },
+                        "sentiment": "neutral",
+                        "triggers_used": {
+                            "not_tied_to_volume": 1
+                        },
+                        "wants_only_prices": true
+                    },
+                    "slots": {
+                        "brands_interest": [],
+                        "budget_range": null,
+                        "categories": [
+                            "салюты",
+                            "фонтаны"
+                        ],
+                        "city": "Екатеринбург",
+                        "competitor_discount": null,
+                        "current_supplier": null,
+                        "email": null,
+                        "experience": "нет",
+                        "legal": null,
+                        "messenger": null,
+                        "name": null,
+                        "next_contact_at": null,
+                        "outlet_floor": null,
+                        "outlet_type": "ищу",
+                        "purpose": "на продажу",
+                        "timing": null
+                    },
+                    "stage": "close_contact",
+                    "summary": "Клиент из Екатеринбурга хочет заказать контейнер пиротехники из Китая под своим брендом для новой торговой точки, но менеджер сообщил, что компания работает только с готовым ассортиментом. Менеджер пообещал уточнить информацию о посредниках для заказа под брендом и предложил начать с готового ассортимента для проверки спроса. Клиент согласился рассмотреть салюты и фонтаны из готового ассортимента, уточнив важность наличия сертификатов. Менеджер подтвердил наличие всех документов на товар и пообещал выслать прайс-лист на почту и в мессенджер, чтобы клиент мог ознакомиться с ценами и условиями.",
+                    "unknown_questions": [
+                        "Клиент из Екатеринбурга хочет открыть точку и ищет, кто помогает с контейнером из Китая под свой бренд (СТМ). Просит подсказать контакты или посредников. Нужен ответ менеджера."
+                    ]
+                }
+            }
+        ]
+    },
+    "versions": {
+        "config_sha256": "d3a054c8662befb4a499584ca6f7134291aacf07013f88ff8b6cf06017947ffa",
+        "harness_sha256": "9280c7daec365885185c843513e882e4e81bdf235032a92adb19d2af46148c25",
+        "normalization": "contacts-v1",
+        "prompts_sha256": "c3f1a4e64c0ac5336787c85a2373b586e2ebbaa85371fcdce2cceecc65ea0786",
+        "prototype_source_sha256": "ca981cc08d5352c214cad41d6d69a25b3b7b54f0d739344d52b0733e128435b6"
+    }
+}

@@ -1,0 +1,194 @@
+{
+    "evidence": {
+        "budget": {
+            "call_id": 145,
+            "charged_micros": 558,
+            "reserved_micros": 821983
+        },
+        "captured_at": "2026-10-31T12:24:42.607264+00:00",
+        "case_id": "persona.prices_only_rude",
+        "http_status": 200,
+        "phase": "dialogue",
+        "pricing": {
+            "context_length": 1048576,
+            "endpoints_sha256": "36a63410c9c57022d66449b00d676ad0ab96810fa77667ce4b7d2c3c292b61ef",
+            "fetched_at": "2026-10-31T12:24:30.471557+00:00",
+            "max_completion_tokens": 65535,
+            "provider": "google-ai-studio",
+            "provider_names": [
+                "Google AI Studio"
+            ],
+            "rates": {
+                "audio": "0.0000018",
+                "completion": "0.0000045",
+                "discount": "0",
+                "image": "5.4E-7",
+                "input_audio_cache": "1.8E-7",
+                "input_cache_read": "5.4E-8",
+                "input_cache_write": "1.5E-7",
+                "internal_reasoning": "0.0000045",
+                "prompt": "5.4E-7",
+                "web_search": "0.014"
+            }
+        },
+        "provider_model": "google/gemini-2.5-flash",
+        "provider_request_id": "gen-1793449467-VZT8hj4NDqmtRCYPyRII",
+        "request_body": {
+            "max_tokens": 300,
+            "messages": [
+                {
+                    "content": "Сожми переписку менеджера по оптовой пиротехнике с клиентом в 3–5 предложений по-русски: что клиент хочет, что уже выяснено, какие возражения, что обещано, о чём договорились. Без оценок и советов. Только текст.\n",
+                    "role": "system"
+                },
+                {
+                    "content": "Клиент: Без презентаций, пожалуйста, просто скиньте прайс и условия. Какой город вам нужен, я уже говорил в заявке, хватит вопросов.\nМенеджер: Понял, без презентаций, прайс отправлю. Условия коротко: скидка идёт по сетке от суммы, предоплата, отгрузка за 1–2 дня, доставка КИТом. Плюс-минус на какую сумму смотрите закупку? Это ни к чему не обязывает, просто от неё я выставлю скидку в прайсе.\nКлиент: Около миллиона.\nМенеджер: Принял, миллион. Тогда отправлю прайс на почту, чтобы с компьютера было удобно открыть. На какой адрес отправить?\nКлиент: contact-0001@baseline.invalid\nМенеджер: Прайс ушёл на почту, посмотрите, должен прийти сразу. И продублирую в мессенджер, чтобы мой контакт у вас остался. Напишу с другого номера, он рабочий, это буду я. На этом номере какой мессенджер: Макс, WhatsApp или Telegram?\nКлиент: Ок, спасибо. Чем открывать мессенджер, мне без разницы, главное чтобы прайс пришёл.\nМенеджер: Хорошо, тогда продублирую туда, где вы пишете сейчас. Посмотрите прайс спокойно. Когда удобно списаться по обратной связи: завтра или в пятницу?\nКлиент: Завтра удобно, только пишите сюда же, а то я потом не найду.\nМенеджер: Договорились, завтра напишу сюда же, в этот WhatsApp, с другого номера не буду. Прайс уже на почте, а сюда тоже продублирую. Посмотрите спокойно, завтра вместе пройдёмся по цифрам.\nКлиент: ок, спасибо\nМенеджер: Пожалуйста. Если по прайсу появятся вопросы раньше, пишите сюда, отвечу. Хорошего вам дня.",
+                    "role": "user"
+                }
+            ],
+            "model": "google/gemini-2.5-flash",
+            "plugins": [],
+            "provider": {
+                "allow_fallbacks": false,
+                "max_price": {
+                    "completion": 4.5,
+                    "prompt": 0.54,
+                    "request": 0.0
+                },
+                "only": [
+                    "google-ai-studio"
+                ],
+                "order": [
+                    "google-ai-studio"
+                ],
+                "require_parameters": false
+            },
+            "reasoning": {
+                "effort": "low"
+            },
+            "stream": false,
+            "temperature": 0.2,
+            "usage": {
+                "include": true
+            }
+        },
+        "request_body_sha256": "87a667c4303159d0a1bcb6ac7e197be5b296cd89f46b025db57093c484d51095",
+        "run_id": "capture_20261031T104157_67845ea5",
+        "seed_requested": null,
+        "sequence": 22,
+        "usage": {
+            "completion_tokens": 163,
+            "cost_usd": "0.0005572",
+            "prompt_tokens": 499,
+            "total_tokens": 662
+        }
+    },
+    "provenance": "recorded",
+    "provider": "openrouter",
+    "request": {
+        "messages": [
+            {
+                "content": "Сожми переписку менеджера по оптовой пиротехнике с клиентом в 3–5 предложений по-русски: что клиент хочет, что уже выяснено, какие возражения, что обещано, о чём договорились. Без оценок и советов. Только текст.\n",
+                "role": "system"
+            },
+            {
+                "content": "Клиент: Без презентаций, пожалуйста, просто скиньте прайс и условия. Какой город вам нужен, я уже говорил в заявке, хватит вопросов.\nМенеджер: Понял, без презентаций, прайс отправлю. Условия коротко: скидка идёт по сетке от суммы, предоплата, отгрузка за 1–2 дня, доставка КИТом. Плюс-минус на какую сумму смотрите закупку? Это ни к чему не обязывает, просто от неё я выставлю скидку в прайсе.\nКлиент: Около миллиона.\nМенеджер: Принял, миллион. Тогда отправлю прайс на почту, чтобы с компьютера было удобно открыть. На какой адрес отправить?\nКлиент: contact-0001@baseline.invalid\nМенеджер: Прайс ушёл на почту, посмотрите, должен прийти сразу. И продублирую в мессенджер, чтобы мой контакт у вас остался. Напишу с другого номера, он рабочий, это буду я. На этом номере какой мессенджер: Макс, WhatsApp или Telegram?\nКлиент: Ок, спасибо. Чем открывать мессенджер, мне без разницы, главное чтобы прайс пришёл.\nМенеджер: Хорошо, тогда продублирую туда, где вы пишете сейчас. Посмотрите прайс спокойно. Когда удобно списаться по обратной связи: завтра или в пятницу?\nКлиент: Завтра удобно, только пишите сюда же, а то я потом не найду.\nМенеджер: Договорились, завтра напишу сюда же, в этот WhatsApp, с другого номера не буду. Прайс уже на почте, а сюда тоже продублирую. Посмотрите спокойно, завтра вместе пройдёмся по цифрам.\nКлиент: ок, спасибо\nМенеджер: Пожалуйста. Если по прайсу появятся вопросы раньше, пишите сюда, отвечу. Хорошего вам дня.",
+                "role": "user"
+            }
+        ],
+        "options": {
+            "component": "summary",
+            "max_tokens": 300,
+            "model": "google/gemini-2.5-flash",
+            "temperature": 0.2,
+            "tools_called": []
+        }
+    },
+    "request_sha256": "5cefa72e22c8e5c06c2151a60cf55ead2461f5550833a506e9fa630812256d02",
+    "response": {
+        "content": "Клиент запросил прайс и условия без презентаций, уточнив, что интересует закупка пиротехники примерно на миллион рублей. Менеджер подтвердил, что прайс со скидкой от суммы и условия (предоплата, отгрузка 1-2 дня, доставка КИТом) будут отправлены. Прайс был выслан на почту клиента и продублирован в текущий мессенджер. Договорились созвониться завтра в этом же мессенджере для обсуждения прайса.",
+        "costUsd": 0.0005572,
+        "error": null,
+        "latencyMs": 0,
+        "model": "google/gemini-2.5-flash",
+        "raw": {
+            "choices": [
+                {
+                    "finish_reason": "stop",
+                    "index": 0,
+                    "logprobs": null,
+                    "message": {
+                        "content": "Клиент запросил прайс и условия без презентаций, уточнив, что интересует закупка пиротехники примерно на миллион рублей. Менеджер подтвердил, что прайс со скидкой от суммы и условия (предоплата, отгрузка 1-2 дня, доставка КИТом) будут отправлены. Прайс был выслан на почту клиента и продублирован в текущий мессенджер. Договорились созвониться завтра в этом же мессенджере для обсуждения прайса.",
+                        "reasoning": "**Defining Client Needs**\n\nI'm focused on distilling the essence of the manager-client discussion. My goal is to pinpoint exactly what the client desires and clearly articulate any established understandings. I'm prioritizing clarity and conciseness, aiming for a brief but informative summary. I will need to clarify the nature of any \"established understandings\" to properly capture the conversation.\n\n\n",
+                        "reasoning_details": [
+                            {
+                                "format": "google-gemini-v1",
+                                "index": 0,
+                                "text": "**Defining Client Needs**\n\nI'm focused on distilling the essence of the manager-client discussion. My goal is to pinpoint exactly what the client desires and clearly articulate any established understandings. I'm prioritizing clarity and conciseness, aiming for a brief but informative summary. I will need to clarify the nature of any \"established understandings\" to properly capture the conversation.\n\n\n",
+                                "type": "reasoning.text"
+                            }
+                        ],
+                        "refusal": null,
+                        "role": "assistant"
+                    },
+                    "native_finish_reason": "STOP"
+                }
+            ],
+            "created": 1793449467,
+            "id": "gen-1793449467-VZT8hj4NDqmtRCYPyRII",
+            "model": "google/gemini-2.5-flash",
+            "object": "chat.completion",
+            "provider": "Google AI Studio",
+            "service_tier": "default",
+            "system_fingerprint": null,
+            "usage": {
+                "completion_tokens": 163,
+                "completion_tokens_details": {
+                    "audio_tokens": 0,
+                    "image_tokens": 0,
+                    "reasoning_tokens": 44
+                },
+                "cost": 0.0005572,
+                "cost_details": {
+                    "upstream_inference_completions_cost": 0.0004075,
+                    "upstream_inference_cost": 0.0005572,
+                    "upstream_inference_prompt_cost": 0.0001497
+                },
+                "is_byok": false,
+                "prompt_tokens": 499,
+                "prompt_tokens_details": {
+                    "audio_tokens": 0,
+                    "cache_write_tokens": 0,
+                    "cached_tokens": 0,
+                    "video_tokens": 0
+                },
+                "total_tokens": 662
+            }
+        },
+        "toolCalls": [],
+        "usage": {
+            "completion_tokens": 163,
+            "completion_tokens_details": {
+                "audio_tokens": 0,
+                "image_tokens": 0,
+                "reasoning_tokens": 44
+            },
+            "cost": 0.0005572,
+            "cost_details": {
+                "upstream_inference_completions_cost": 0.0004075,
+                "upstream_inference_cost": 0.0005572,
+                "upstream_inference_prompt_cost": 0.0001497
+            },
+            "is_byok": false,
+            "prompt_tokens": 499,
+            "prompt_tokens_details": {
+                "audio_tokens": 0,
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "video_tokens": 0
+            },
+            "total_tokens": 662
+        }
+    },
+    "response_sha256": "f43bfe7d166500491ae1d62fcb9c1e5eec1e306acc78f644f6ff6def6a743f0a",
+    "schema_version": 1
+}

@@ -1,0 +1,653 @@
+{
+    "capture": {
+        "byte_identical_persona_inputs": false,
+        "captured_at": "2026-10-31T10:42:10.770578+00:00",
+        "inputs_pseudonymized": true,
+        "method": "live",
+        "provider": "openrouter",
+        "run_id": "capture_20261031T104157_67845ea5",
+        "seed": {
+            "provider_support": "not_requested",
+            "requested": null,
+            "runner": 20261031
+        }
+    },
+    "case_id": "manual.deferred_twice",
+    "execution": {
+        "input_provenance": "authored_script",
+        "layer": "donor_orchestrator_scripted",
+        "scenario": {
+            "case_id": "manual.deferred_twice",
+            "inputs": [
+                "Мне нужна отсрочка оплаты, сначала продам товар, потом заплачу.",
+                "Настаиваю на отсрочке, без неё закупать не буду."
+            ]
+        },
+        "scenario_sha256": "1a9f35cf9ff46a1027e178b77fedd845fb876edc3d58edb3c2f3aa50dc1e42fb"
+    },
+    "kind": "manual",
+    "llm_calls": [
+        {
+            "path": "llm/manual.deferred_twice/0001.json",
+            "phase": "dialogue",
+            "sequence": 1,
+            "sha256": "220580ff9aa8cc49341f95150e7bc9ab27631205ff62c1d00a967cf83c1f9d18"
+        },
+        {
+            "path": "llm/manual.deferred_twice/0002.json",
+            "phase": "dialogue",
+            "sequence": 2,
+            "sha256": "27ef1efffa37c306326fb00889fcef0f3cef6f85694fdd83082adb0ab3238b5b"
+        },
+        {
+            "path": "llm/manual.deferred_twice/0003.json",
+            "phase": "dialogue",
+            "sequence": 3,
+            "sha256": "efbc67497cd02eff30923a89b35d42f03ab49111d3002bb7c91d84ec7d39c557"
+        },
+        {
+            "path": "llm/manual.deferred_twice/0004.json",
+            "phase": "dialogue",
+            "sequence": 4,
+            "sha256": "488008f07dcd5143574e23ea423d028921635381b5e4caaff28598680a93f759"
+        },
+        {
+            "path": "llm/manual.deferred_twice/0005.json",
+            "phase": "dialogue",
+            "sequence": 5,
+            "sha256": "a474236f4677964a0605cecee896c73ca0ef7d060efd34adbdc9c96aff632ea5"
+        }
+    ],
+    "provenance": "recorded",
+    "replay": {
+        "consumed_sequences": [
+            [
+                1,
+                2,
+                3,
+                4,
+                5
+            ],
+            [
+                1,
+                2,
+                3,
+                4,
+                5
+            ]
+        ],
+        "network_calls": 0,
+        "passes": 2,
+        "run_trace_sha256": [
+            "66b124b833c6546f9c72f5d39f1a2a6bd4aca72a9be0866cc44983b42d146062",
+            "66b124b833c6546f9c72f5d39f1a2a6bd4aca72a9be0866cc44983b42d146062"
+        ],
+        "trace_sha256": "66b124b833c6546f9c72f5d39f1a2a6bd4aca72a9be0866cc44983b42d146062"
+    },
+    "schema_version": 2,
+    "trace": {
+        "final": {
+            "outcome": "handoff",
+            "stage": "handoff",
+            "state": {
+                "client_type": "unknown",
+                "counters": {
+                    "budget_asks": 0,
+                    "closed_topic_streak": 0,
+                    "followups_sent": 0,
+                    "guard_regens": 0,
+                    "negative_streak": 0,
+                    "off_topic_streak": 0,
+                    "turns": 2,
+                    "unclear_streak": 0,
+                    "unknown_facts": 0,
+                    "unknown_insist": 0
+                },
+                "flags": {
+                    "do_not_disturb": false,
+                    "duplicate_lead": false,
+                    "escalate": true,
+                    "escalate_reason": "Клиент настаивает на отсрочке оплаты, без неё закупать не будет. Условия вне полномочий менеджера.",
+                    "introduced": true,
+                    "price_sent": false,
+                    "requisites_sent": false
+                },
+                "missing": [
+                    {
+                        "reason": "no_chance",
+                        "slot": "city",
+                        "suggested_question": "Подскажите, вы из какого города?"
+                    },
+                    {
+                        "reason": "no_chance",
+                        "slot": "purpose",
+                        "suggested_question": "А пиротехникой для себя интересуетесь или на продажу?"
+                    },
+                    {
+                        "reason": "no_chance",
+                        "slot": "experience",
+                        "suggested_question": "Раньше пиротехникой торговали или это первый сезон?"
+                    },
+                    {
+                        "reason": "no_chance",
+                        "slot": "outlet_type",
+                        "suggested_question": "А как планируете торговать — своя точка, аренда, через интернет?"
+                    },
+                    {
+                        "reason": "no_chance",
+                        "slot": "categories",
+                        "suggested_question": "Что в основном интересует — салюты, петарды, мелочь вроде бенгальских и фонтанов, или всё вместе?"
+                    },
+                    {
+                        "reason": "no_chance",
+                        "slot": "budget_range",
+                        "suggested_question": "Плюс-минус на какую сумму смотрите закупку? Это ни к чему не обязывает — просто от суммы скидку в прайсе выставлю."
+                    },
+                    {
+                        "reason": "no_chance",
+                        "slot": "timing",
+                        "suggested_question": "Закупаться планируете сейчас или ближе к сезону?"
+                    },
+                    {
+                        "reason": "no_chance",
+                        "slot": "email",
+                        "suggested_question": "На какую почту прайс отправить?"
+                    },
+                    {
+                        "reason": "no_chance",
+                        "slot": "messenger",
+                        "suggested_question": "И продублирую в мессенджер, чтобы мой контакт у вас был. На этом номере Макс, WhatsApp или Telegram?"
+                    },
+                    {
+                        "reason": "no_chance",
+                        "slot": "next_contact_at",
+                        "suggested_question": "Когда удобно списаться по обратной связи — завтра или в пятницу?"
+                    }
+                ],
+                "outcome": "handoff",
+                "promises": [],
+                "signals": {
+                    "asked_counts": {
+                        "city": 1
+                    },
+                    "asked_if_bot": false,
+                    "asked_slots": [
+                        "city"
+                    ],
+                    "client_claims": [],
+                    "client_questions": [],
+                    "last_asked_slot": "city",
+                    "last_client_intent": "ask_deferred",
+                    "last_unknown_topic": null,
+                    "objections": [
+                        "deferred",
+                        "consignment"
+                    ],
+                    "prev_intent": "ask_deferred",
+                    "sentiment": "neutral",
+                    "triggers_used": [],
+                    "wants_only_prices": false
+                },
+                "slots": {
+                    "brands_interest": [],
+                    "budget_range": null,
+                    "categories": [],
+                    "city": null,
+                    "competitor_discount": null,
+                    "current_supplier": null,
+                    "email": null,
+                    "experience": null,
+                    "legal": null,
+                    "messenger": null,
+                    "name": null,
+                    "next_contact_at": null,
+                    "outlet_floor": null,
+                    "outlet_type": null,
+                    "purpose": null,
+                    "timing": null
+                },
+                "stage": "handoff",
+                "summary": null,
+                "unknown_questions": []
+            },
+            "tasks": [
+                {
+                    "due_at": "2026-10-31T08:00:00.000000Z",
+                    "payload": {
+                        "card": "пока ничего не известно\nтип клиента: unknown; стадия: handoff\nвозражения: deferred, consignment",
+                        "client_claims": [],
+                        "reason": "Клиент настаивает на отсрочке оплаты, без неё закупать не будет. Условия вне полномочий менеджера.",
+                        "summary": "Новый клиент, данных в карточке нет. Просит отсрочку оплаты (сначала продаст, потом заплатит), настаивает. Ему сказали, что новым клиентам обычно предоплата. Нужен разговор с руководителем."
+                    },
+                    "priority": "urgent",
+                    "status": "new",
+                    "type": "handoff"
+                }
+            ]
+        },
+        "turns": [
+            {
+                "client": "Мне нужна отсрочка оплаты, сначала продам товар, потом заплачу.",
+                "meta": {
+                    "cost_usd": 0.008794,
+                    "extraction": {
+                        "asked_if_bot": false,
+                        "client_claims": [],
+                        "client_intent": "ask_deferred",
+                        "client_questions": [
+                            "Мне нужна отсрочка оплаты, сначала продам товар, потом заплачу."
+                        ],
+                        "closed_topic": null,
+                        "confidence": 1,
+                        "do_not_disturb": false,
+                        "objections": [
+                            "deferred",
+                            "consignment"
+                        ],
+                        "off_topic": false,
+                        "prompt_injection": false,
+                        "refused_slots": [],
+                        "sentiment": "neutral",
+                        "slot_updates": {
+                            "brands_interest": null,
+                            "budget_range": null,
+                            "categories": null,
+                            "city": null,
+                            "competitor_discount": null,
+                            "current_supplier": null,
+                            "email": null,
+                            "experience": null,
+                            "legal": null,
+                            "messenger": null,
+                            "name": null,
+                            "next_contact_at": null,
+                            "outlet_floor": null,
+                            "outlet_type": null,
+                            "purpose": null,
+                            "timing": null
+                        },
+                        "unknown_question": null,
+                        "wants_human": false,
+                        "wants_only_prices": false
+                    },
+                    "goal": {
+                        "allowed_tools": [
+                            "mark_do_not_disturb",
+                            "create_promise",
+                            "log_unknown_question",
+                            "send_requisites",
+                            "check_stock",
+                            "calc_delivery"
+                        ],
+                        "constraints": [
+                            "нельзя: обещать отсрочку или сроки отсрочки",
+                            "не спорить",
+                            "сначала согласиться с чувством клиента, потом аргумент"
+                        ],
+                        "extras": {
+                            "objection": "deferred"
+                        },
+                        "facts": [
+                            "deferred_payment"
+                        ],
+                        "fewshot_tags": [
+                            "obj_deferred",
+                            "ask_city"
+                        ],
+                        "instruction": "Отработать возражение: признать, дать один аргумент из фактов (и триггер, если уместен), затем ровно один вопрос по слоту.",
+                        "kind": "handle_objection",
+                        "slot": "city",
+                        "trigger": null
+                    },
+                    "guard": {
+                        "issues": [],
+                        "questions": 1,
+                        "verdict": "ok",
+                        "warnings": [],
+                        "words": 32
+                    },
+                    "tool_calls": []
+                },
+                "outcome": null,
+                "reply": "Понимаю, когда оборот небольшой, хочется сначала продать. Но новым клиентам мы работаем только по предоплате. А с постоянными, у кого уже есть история заказов, отсрочку обсуждает руководитель. Подскажите, вы из какого города?",
+                "stage": "qualify",
+                "state": {
+                    "client_type": "unknown",
+                    "counters": {
+                        "budget_asks": 0,
+                        "closed_topic_streak": 0,
+                        "followups_sent": 0,
+                        "guard_regens": 0,
+                        "negative_streak": 0,
+                        "off_topic_streak": 0,
+                        "turns": 1,
+                        "unclear_streak": 0,
+                        "unknown_facts": 0,
+                        "unknown_insist": 0
+                    },
+                    "flags": {
+                        "do_not_disturb": false,
+                        "duplicate_lead": false,
+                        "escalate": false,
+                        "escalate_reason": null,
+                        "introduced": true,
+                        "price_sent": false,
+                        "requisites_sent": false
+                    },
+                    "missing": [
+                        {
+                            "reason": "no_chance",
+                            "slot": "city",
+                            "suggested_question": "Подскажите, вы из какого города?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "purpose",
+                            "suggested_question": "А пиротехникой для себя интересуетесь или на продажу?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "experience",
+                            "suggested_question": "Раньше пиротехникой торговали или это первый сезон?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "outlet_type",
+                            "suggested_question": "А как планируете торговать — своя точка, аренда, через интернет?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "categories",
+                            "suggested_question": "Что в основном интересует — салюты, петарды, мелочь вроде бенгальских и фонтанов, или всё вместе?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "budget_range",
+                            "suggested_question": "Плюс-минус на какую сумму смотрите закупку? Это ни к чему не обязывает — просто от суммы скидку в прайсе выставлю."
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "timing",
+                            "suggested_question": "Закупаться планируете сейчас или ближе к сезону?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "email",
+                            "suggested_question": "На какую почту прайс отправить?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "messenger",
+                            "suggested_question": "И продублирую в мессенджер, чтобы мой контакт у вас был. На этом номере Макс, WhatsApp или Telegram?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "next_contact_at",
+                            "suggested_question": "Когда удобно списаться по обратной связи — завтра или в пятницу?"
+                        }
+                    ],
+                    "outcome": null,
+                    "promises": [],
+                    "signals": {
+                        "asked_counts": {
+                            "city": 1
+                        },
+                        "asked_if_bot": false,
+                        "asked_slots": [
+                            "city"
+                        ],
+                        "client_claims": [],
+                        "client_questions": [
+                            "Мне нужна отсрочка оплаты, сначала продам товар, потом заплачу."
+                        ],
+                        "last_asked_slot": "city",
+                        "last_client_intent": "ask_deferred",
+                        "last_unknown_topic": null,
+                        "objections": [
+                            "deferred",
+                            "consignment"
+                        ],
+                        "prev_intent": "ask_deferred",
+                        "sentiment": "neutral",
+                        "triggers_used": [],
+                        "wants_only_prices": false
+                    },
+                    "slots": {
+                        "brands_interest": [],
+                        "budget_range": null,
+                        "categories": [],
+                        "city": null,
+                        "competitor_discount": null,
+                        "current_supplier": null,
+                        "email": null,
+                        "experience": null,
+                        "legal": null,
+                        "messenger": null,
+                        "name": null,
+                        "next_contact_at": null,
+                        "outlet_floor": null,
+                        "outlet_type": null,
+                        "purpose": null,
+                        "timing": null
+                    },
+                    "stage": "qualify",
+                    "summary": null,
+                    "unknown_questions": []
+                }
+            },
+            {
+                "client": "Настаиваю на отсрочке, без неё закупать не буду.",
+                "meta": {
+                    "cost_usd": 0.015504,
+                    "extraction": {
+                        "asked_if_bot": false,
+                        "client_claims": [],
+                        "client_intent": "ask_deferred",
+                        "client_questions": [],
+                        "closed_topic": null,
+                        "confidence": 1,
+                        "do_not_disturb": false,
+                        "objections": [
+                            "deferred"
+                        ],
+                        "off_topic": false,
+                        "prompt_injection": false,
+                        "refused_slots": [],
+                        "sentiment": "neutral",
+                        "slot_updates": {
+                            "brands_interest": null,
+                            "budget_range": null,
+                            "categories": null,
+                            "city": null,
+                            "competitor_discount": null,
+                            "current_supplier": null,
+                            "email": null,
+                            "experience": null,
+                            "legal": null,
+                            "messenger": null,
+                            "name": null,
+                            "next_contact_at": null,
+                            "outlet_floor": null,
+                            "outlet_type": null,
+                            "purpose": null,
+                            "timing": null
+                        },
+                        "unknown_question": null,
+                        "wants_human": false,
+                        "wants_only_prices": false
+                    },
+                    "goal": {
+                        "allowed_tools": [
+                            "escalate",
+                            "send_price"
+                        ],
+                        "constraints": [],
+                        "extras": {
+                            "message_idea": "сам такие условия не согласовываю — передам руководителю, он напишет сегодня до конца рабочего дня, если написали вечером — завтра с утра; пока вопрос решается, прайс всё равно отправлю, чтобы было от чего отталкиваться",
+                            "reason": "deferred_insist"
+                        },
+                        "facts": [],
+                        "fewshot_tags": [
+                            "handoff_deferred"
+                        ],
+                        "instruction": "Сообщить клиенту, что передаёте менеджеру, и когда ждать ответа. Один вопрос не задавать. Вызвать tool escalate.",
+                        "kind": "handoff",
+                        "slot": null,
+                        "trigger": null
+                    },
+                    "guard": {
+                        "issues": [],
+                        "questions": 0,
+                        "verdict": "ok",
+                        "warnings": [],
+                        "words": 36
+                    },
+                    "tool_calls": [
+                        {
+                            "args": {
+                                "reason": "Клиент настаивает на отсрочке оплаты, без неё закупать не будет. Условия вне полномочий менеджера.",
+                                "summary": "Новый клиент, данных в карточке нет. Просит отсрочку оплаты (сначала продаст, потом заплатит), настаивает. Ему сказали, что новым клиентам обычно предоплата. Нужен разговор с руководителем."
+                            },
+                            "name": "escalate",
+                            "result": {
+                                "ok": true,
+                                "response_time": "сегодня до конца рабочего дня, если написали вечером — завтра с утра"
+                            }
+                        }
+                    ]
+                },
+                "outcome": "handoff",
+                "reply": "Понял, вы настаиваете, спорить не буду. Такие условия решает руководитель, я передал ему ваш запрос. Ответит сегодня до конца рабочего дня, а если вы пишете вечером, то завтра с утра. Напишу вам сразу, как будет решение.",
+                "stage": "handoff",
+                "state": {
+                    "client_type": "unknown",
+                    "counters": {
+                        "budget_asks": 0,
+                        "closed_topic_streak": 0,
+                        "followups_sent": 0,
+                        "guard_regens": 0,
+                        "negative_streak": 0,
+                        "off_topic_streak": 0,
+                        "turns": 2,
+                        "unclear_streak": 0,
+                        "unknown_facts": 0,
+                        "unknown_insist": 0
+                    },
+                    "flags": {
+                        "do_not_disturb": false,
+                        "duplicate_lead": false,
+                        "escalate": true,
+                        "escalate_reason": "Клиент настаивает на отсрочке оплаты, без неё закупать не будет. Условия вне полномочий менеджера.",
+                        "introduced": true,
+                        "price_sent": false,
+                        "requisites_sent": false
+                    },
+                    "missing": [
+                        {
+                            "reason": "no_chance",
+                            "slot": "city",
+                            "suggested_question": "Подскажите, вы из какого города?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "purpose",
+                            "suggested_question": "А пиротехникой для себя интересуетесь или на продажу?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "experience",
+                            "suggested_question": "Раньше пиротехникой торговали или это первый сезон?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "outlet_type",
+                            "suggested_question": "А как планируете торговать — своя точка, аренда, через интернет?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "categories",
+                            "suggested_question": "Что в основном интересует — салюты, петарды, мелочь вроде бенгальских и фонтанов, или всё вместе?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "budget_range",
+                            "suggested_question": "Плюс-минус на какую сумму смотрите закупку? Это ни к чему не обязывает — просто от суммы скидку в прайсе выставлю."
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "timing",
+                            "suggested_question": "Закупаться планируете сейчас или ближе к сезону?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "email",
+                            "suggested_question": "На какую почту прайс отправить?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "messenger",
+                            "suggested_question": "И продублирую в мессенджер, чтобы мой контакт у вас был. На этом номере Макс, WhatsApp или Telegram?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "next_contact_at",
+                            "suggested_question": "Когда удобно списаться по обратной связи — завтра или в пятницу?"
+                        }
+                    ],
+                    "outcome": "handoff",
+                    "promises": [],
+                    "signals": {
+                        "asked_counts": {
+                            "city": 1
+                        },
+                        "asked_if_bot": false,
+                        "asked_slots": [
+                            "city"
+                        ],
+                        "client_claims": [],
+                        "client_questions": [],
+                        "last_asked_slot": "city",
+                        "last_client_intent": "ask_deferred",
+                        "last_unknown_topic": null,
+                        "objections": [
+                            "deferred",
+                            "consignment"
+                        ],
+                        "prev_intent": "ask_deferred",
+                        "sentiment": "neutral",
+                        "triggers_used": [],
+                        "wants_only_prices": false
+                    },
+                    "slots": {
+                        "brands_interest": [],
+                        "budget_range": null,
+                        "categories": [],
+                        "city": null,
+                        "competitor_discount": null,
+                        "current_supplier": null,
+                        "email": null,
+                        "experience": null,
+                        "legal": null,
+                        "messenger": null,
+                        "name": null,
+                        "next_contact_at": null,
+                        "outlet_floor": null,
+                        "outlet_type": null,
+                        "purpose": null,
+                        "timing": null
+                    },
+                    "stage": "handoff",
+                    "summary": null,
+                    "unknown_questions": []
+                }
+            }
+        ]
+    },
+    "versions": {
+        "config_sha256": "d3a054c8662befb4a499584ca6f7134291aacf07013f88ff8b6cf06017947ffa",
+        "harness_sha256": "12c91a39025474b89734acfef7322b539772682e52ba0746668f0a56cacf2d57",
+        "normalization": "contacts-v1",
+        "prompts_sha256": "c3f1a4e64c0ac5336787c85a2373b586e2ebbaa85371fcdce2cceecc65ea0786",
+        "prototype_source_sha256": "ca981cc08d5352c214cad41d6d69a25b3b7b54f0d739344d52b0733e128435b6"
+    }
+}

@@ -1,0 +1,2818 @@
+{
+    "capture": {
+        "byte_identical_persona_inputs": false,
+        "captured_at": "2026-10-31T10:42:10.770578+00:00",
+        "inputs_pseudonymized": true,
+        "method": "live",
+        "provider": "openrouter",
+        "replacement_for_call_ids": [
+            221
+        ],
+        "run_id": "capture_20261031T104157_67845ea5",
+        "seed": {
+            "provider_support": "not_requested",
+            "requested": null,
+            "runner": 20261031
+        }
+    },
+    "case_id": "persona.unknown_item",
+    "execution": {
+        "input_provenance": "donor_persona",
+        "layer": "donor_orchestrator_persona",
+        "scenario": {
+            "case_id": "persona.unknown_item",
+            "max_turns": 10,
+            "persona": {
+                "behavior": "Спрашивает: «Корсар-8 есть в наличии и почём коробка?», потом «а Маэстро 100 залпов Русского фейерверка?». Если агент честно говорит, что уточнит — ок, даёт почту.",
+                "expect": [
+                    "no_invented_stock",
+                    "promise_to_clarify",
+                    "unknown_logged",
+                    "full_card"
+                ],
+                "facts": {
+                    "budget": "300 тысяч",
+                    "categories": "салюты",
+                    "city": "Нижний Новгород",
+                    "email": "contact-0001@baseline.invalid",
+                    "experience": "много лет",
+                    "messenger": "Telegram",
+                    "purpose": "на продажу"
+                },
+                "id": "unknown_item",
+                "max_turns": 10,
+                "name": "Позиция, которой нет в базе",
+                "type": "experienced"
+            }
+        },
+        "scenario_sha256": "f7a6b8efa7f056a34d73cf69eb61ac8ec2caa3e29d9879203c248ceb03c7d040"
+    },
+    "kind": "persona",
+    "llm_calls": [
+        {
+            "path": "llm/persona.unknown_item/0001.json",
+            "phase": "dialogue",
+            "sequence": 1,
+            "sha256": "f5fe6b66eb25ed4577622401d4211ab74858d622c4eaae1297935189a6ff668f"
+        },
+        {
+            "path": "llm/persona.unknown_item/0002.json",
+            "phase": "dialogue",
+            "sequence": 2,
+            "sha256": "05c3c886d4ef73abd0b176f415fd7ac0db91ee4088f08429e64b6007b97771da"
+        },
+        {
+            "path": "llm/persona.unknown_item/0003.json",
+            "phase": "dialogue",
+            "sequence": 3,
+            "sha256": "ac5edb8ad27f3c816fdc5bb7376dac3e5553281a29588ab275379a4aa608ccbd"
+        },
+        {
+            "path": "llm/persona.unknown_item/0004.json",
+            "phase": "dialogue",
+            "sequence": 4,
+            "sha256": "d38311d1a4b8b6ffe14b866f2ffdf63b4f3d8fddecadd8f24494ee4c75139861"
+        },
+        {
+            "path": "llm/persona.unknown_item/0005.json",
+            "phase": "dialogue",
+            "sequence": 5,
+            "sha256": "efe7dc373d278b2afdd5d2b079284cf939cdaebcd60410c9bcc8587ad0a0540c"
+        },
+        {
+            "path": "llm/persona.unknown_item/0006.json",
+            "phase": "dialogue",
+            "sequence": 6,
+            "sha256": "f7e35891d0c85416c92163c5befcff0d175d53471be5322b776e2f40982e075a"
+        },
+        {
+            "path": "llm/persona.unknown_item/0007.json",
+            "phase": "dialogue",
+            "sequence": 7,
+            "sha256": "998d662add24c402e0f4a1b9afe6482eb51afb56e9401eae7c4a36d6631ac37f"
+        },
+        {
+            "path": "llm/persona.unknown_item/0008.json",
+            "phase": "dialogue",
+            "sequence": 8,
+            "sha256": "1ce8b5f68282d38f6e79dd976f970fd499bf7e45355831eeb2ef934b21781cc8"
+        },
+        {
+            "path": "llm/persona.unknown_item/0009.json",
+            "phase": "dialogue",
+            "sequence": 9,
+            "sha256": "75a07bf0c23f34a1530740f4d17b5754ec159e9417341af9017c9a1c2b53c580"
+        },
+        {
+            "path": "llm/persona.unknown_item/0010.json",
+            "phase": "dialogue",
+            "sequence": 10,
+            "sha256": "33790c12d517158f0e899f9aaebdfde1628ce7970dcf17e76af3c89b3928401a"
+        },
+        {
+            "path": "llm/persona.unknown_item/0011.json",
+            "phase": "dialogue",
+            "sequence": 11,
+            "sha256": "ee0b919a2c5ce54b8dc9342e2799ee1872ba0acaac839c4a8175201bdcd67113"
+        },
+        {
+            "path": "llm/persona.unknown_item/0012.json",
+            "phase": "dialogue",
+            "sequence": 12,
+            "sha256": "380b44262735a519b9e923776eefc5d47edf38bed94ed49c34a2dfd9f7644420"
+        },
+        {
+            "path": "llm/persona.unknown_item/0013.json",
+            "phase": "dialogue",
+            "sequence": 13,
+            "sha256": "4569cfc5b0bfb4a827bf7ebf8fd50e68503c068b7bb66375f07cdf1444a03e51"
+        },
+        {
+            "path": "llm/persona.unknown_item/0014.json",
+            "phase": "dialogue",
+            "sequence": 14,
+            "sha256": "014d3fbc725a8c5812405ceb9ae06f90c8d02ad090e365556a9d2696a8441ca4"
+        },
+        {
+            "path": "llm/persona.unknown_item/0015.json",
+            "phase": "dialogue",
+            "sequence": 15,
+            "sha256": "2c0265e7252539b045d56b1735f2999879fab943a7fd4f6e4b8fd81b70373814"
+        },
+        {
+            "path": "llm/persona.unknown_item/0016.json",
+            "phase": "dialogue",
+            "sequence": 16,
+            "sha256": "2b1ebf6dbb1f584c7da39c8e05380a8986671b6baba57fae85d6430e5c6ac372"
+        },
+        {
+            "path": "llm/persona.unknown_item/0017.json",
+            "phase": "dialogue",
+            "sequence": 17,
+            "sha256": "4b28988d83075e3ed60b76d2fcd09719ae19f22ae1c7c7d47a942dafb9f45960"
+        },
+        {
+            "path": "llm/persona.unknown_item/0018.json",
+            "phase": "dialogue",
+            "sequence": 18,
+            "sha256": "a7d6df3312088e84c1f49d96228370eb6a6821c1f8ba80616b3b65d003bec407"
+        },
+        {
+            "path": "llm/persona.unknown_item/0019.json",
+            "phase": "dialogue",
+            "sequence": 19,
+            "sha256": "4d933e582160ceef3a12915a28dafdff8dba2e35a8d2c38b6d00a5031b156020"
+        },
+        {
+            "path": "llm/persona.unknown_item/0020.json",
+            "phase": "dialogue",
+            "sequence": 20,
+            "sha256": "bf5802ba805ff9ffb515780e9b9b2aec11624abba5bf19484400c35460590004"
+        },
+        {
+            "path": "llm/persona.unknown_item/0021.json",
+            "phase": "dialogue",
+            "sequence": 21,
+            "sha256": "24f60c37349b36f49e238caa2cab1788ee7f4636db3cb6526f1434e05bb987ff"
+        },
+        {
+            "path": "llm/persona.unknown_item/0022.json",
+            "phase": "dialogue",
+            "sequence": 22,
+            "sha256": "1c5fe35b5a222110e54ebffb255d5e916fdfea9bf022ce6f7485bbc593ec0dbc"
+        },
+        {
+            "path": "llm/persona.unknown_item/0023.json",
+            "phase": "dialogue",
+            "sequence": 23,
+            "sha256": "627e6bb43801d484fe323c0eca5d83e6a0e6b4aec92057db137c60df5c701d28"
+        },
+        {
+            "path": "llm/persona.unknown_item/0024.json",
+            "phase": "dialogue",
+            "sequence": 24,
+            "sha256": "8d63783f082cc0c4c1c2d0f3d7223557ef25a4a3dc5c467807b0479234fd3be4"
+        },
+        {
+            "path": "llm/persona.unknown_item/0025.json",
+            "phase": "dialogue",
+            "sequence": 25,
+            "sha256": "69239399a36b22e0532e299a0f3b9ca1874ca8ce7c3effd05bf51a01b333ab89"
+        },
+        {
+            "path": "llm/persona.unknown_item/0026.json",
+            "phase": "dialogue",
+            "sequence": 26,
+            "sha256": "ac45f9d25845355d478afa5a3c0e0a0b1dd0b44277c561fa6bc095196e7e8b6c"
+        },
+        {
+            "path": "llm/persona.unknown_item/0027.json",
+            "phase": "dialogue",
+            "sequence": 27,
+            "sha256": "04a6a577b401d808946b0f19e9033b273d8284da461693b25d41461a27a66707"
+        },
+        {
+            "path": "llm/persona.unknown_item/0028.json",
+            "phase": "dialogue",
+            "sequence": 28,
+            "sha256": "ca8fbd13060fac920d6604b94c2ccf3ee2253ca98bdb42711ec5f5847cb2204c"
+        },
+        {
+            "path": "llm/persona.unknown_item/0029.json",
+            "phase": "dialogue",
+            "sequence": 29,
+            "sha256": "95bdd026339531dcbe28eef28e9114602c1a4bb5d5275c638a7738f327e08fb3"
+        },
+        {
+            "path": "llm/persona.unknown_item/0030.json",
+            "phase": "dialogue",
+            "sequence": 30,
+            "sha256": "4b01e28141fad6e28f351d3615abd9bfb85e5aa8a25424fec9d29cdd6b2348e7"
+        },
+        {
+            "path": "llm/persona.unknown_item/0031.json",
+            "phase": "dialogue",
+            "sequence": 31,
+            "sha256": "4549d194212929bb501be8711498d05d3fa529b0d985b89825441db3882f1d03"
+        },
+        {
+            "path": "llm/persona.unknown_item/0032.json",
+            "phase": "dialogue",
+            "sequence": 32,
+            "sha256": "1a5508feeddf498ed5ef197730d7a695d8833b23a2fcfa7e532856f546cb05ec"
+        },
+        {
+            "path": "llm/persona.unknown_item/0033.json",
+            "phase": "dialogue",
+            "sequence": 33,
+            "sha256": "d7da54c3f26b98097776af34256416fa3a9f5cf93e2a9da1aa8ddac1fd5a81b1"
+        },
+        {
+            "path": "llm/persona.unknown_item/0034.json",
+            "phase": "dialogue",
+            "sequence": 34,
+            "sha256": "c73ba04870fb6863e2a8f803e13f31a59856c7bbb125d81bbdd6eec72b2c3513"
+        },
+        {
+            "path": "llm/persona.unknown_item/0035.json",
+            "phase": "dialogue",
+            "sequence": 35,
+            "sha256": "82cc9f5d33739223f970f72561fb0b74833da8d4996b9f0520fd30bd264c1d69"
+        },
+        {
+            "path": "llm/persona.unknown_item/0036.json",
+            "phase": "dialogue",
+            "sequence": 36,
+            "sha256": "5bf8aace1996154bf2c3e4cc8365222c358badb3c2e21af616065039e7b97b60"
+        }
+    ],
+    "provenance": "recorded",
+    "replay": {
+        "consumed_sequences": [
+            [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+                12,
+                13,
+                14,
+                15,
+                16,
+                17,
+                18,
+                19,
+                20,
+                21,
+                22,
+                23,
+                24,
+                25,
+                26,
+                27,
+                28,
+                29,
+                30,
+                31,
+                32,
+                33,
+                34,
+                35,
+                36
+            ],
+            [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+                12,
+                13,
+                14,
+                15,
+                16,
+                17,
+                18,
+                19,
+                20,
+                21,
+                22,
+                23,
+                24,
+                25,
+                26,
+                27,
+                28,
+                29,
+                30,
+                31,
+                32,
+                33,
+                34,
+                35,
+                36
+            ]
+        ],
+        "network_calls": 0,
+        "passes": 2,
+        "run_trace_sha256": [
+            "320aab06dc9d306d10bf9a554747b3db7091a96277a8a416cb133e3fb3046623",
+            "320aab06dc9d306d10bf9a554747b3db7091a96277a8a416cb133e3fb3046623"
+        ],
+        "trace_sha256": "320aab06dc9d306d10bf9a554747b3db7091a96277a8a416cb133e3fb3046623"
+    },
+    "schema_version": 2,
+    "trace": {
+        "final": {
+            "outcome": "full_contact",
+            "stage": "followup",
+            "state": {
+                "client_type": "experienced",
+                "counters": {
+                    "budget_asks": 1,
+                    "closed_topic_streak": 0,
+                    "followups_sent": 0,
+                    "guard_regens": 0,
+                    "negative_streak": 0,
+                    "off_topic_streak": 0,
+                    "turns": 10,
+                    "unclear_streak": 0,
+                    "unknown_facts": 3,
+                    "unknown_insist": 1
+                },
+                "flags": {
+                    "do_not_disturb": false,
+                    "duplicate_lead": false,
+                    "escalate": false,
+                    "escalate_reason": null,
+                    "introduced": true,
+                    "price_sent": true,
+                    "requisites_sent": false
+                },
+                "missing": [
+                    {
+                        "reason": "declined",
+                        "slot": "current_supplier",
+                        "suggested_question": "С кем сейчас работаете, если не секрет? Я не для того, чтобы переманивать — понять, чем можем быть полезны сверху."
+                    }
+                ],
+                "outcome": "full_contact",
+                "promises": [
+                    {
+                        "created_at": "2026-10-31T06:00:00+00:00",
+                        "done": false,
+                        "text": "уточнить: Корсар-8: есть ли в наличии и цена за коробку (клиент из Нижнего Новгорода)"
+                    },
+                    {
+                        "created_at": "2026-10-31T06:00:00+00:00",
+                        "done": false,
+                        "text": "уточнить наличие: Корсар-8: наличие и цена за коробку (клиент из Нижнего Новгорода)"
+                    },
+                    {
+                        "created_at": "2026-10-31T06:00:00+00:00",
+                        "done": false,
+                        "text": "уточнить: Маэстро 100 залпов (Русский фейерверк): есть ли в наличии и цена за коробку (клиент из Нижнего Новгорода, интернет-торговля)"
+                    },
+                    {
+                        "created_at": "2026-10-31T06:00:00+00:00",
+                        "done": false,
+                        "text": "Сегодня написать клиенту в Telegram: наличие и цена за коробку по Корсар-8 и Маэстро 100 залпов"
+                    }
+                ],
+                "signals": {
+                    "asked_counts": {
+                        "budget_range": 1,
+                        "categories": 1,
+                        "city": 1,
+                        "current_supplier": 1,
+                        "experience": 1,
+                        "messenger": 1,
+                        "next_contact_at": 1,
+                        "outlet_type": 1,
+                        "purpose": 1,
+                        "timing": 1
+                    },
+                    "asked_if_bot": false,
+                    "asked_slots": [
+                        "city",
+                        "purpose",
+                        "experience",
+                        "outlet_type",
+                        "current_supplier",
+                        "categories",
+                        "budget_range",
+                        "timing",
+                        "messenger",
+                        "next_contact_at"
+                    ],
+                    "client_claims": [],
+                    "client_questions": [],
+                    "last_asked_slot": "next_contact_at",
+                    "last_client_intent": "answer_only",
+                    "last_trigger_turn": 5,
+                    "last_unknown_topic": "маэстро 100 залпов русского фейерверка у вас есть вообще если да то почём ",
+                    "objections": [],
+                    "prev_intent": "answer_only",
+                    "refused_slots": {
+                        "competitor_discount": true,
+                        "current_supplier": true
+                    },
+                    "sentiment": "neutral",
+                    "triggers_used": {
+                        "not_tied_to_volume": 1
+                    },
+                    "wants_only_prices": false
+                },
+                "slots": {
+                    "brands_interest": [],
+                    "budget_range": "около 300 тыс.",
+                    "categories": [
+                        "салюты",
+                        "мелочь"
+                    ],
+                    "city": "Нижний Новгород",
+                    "competitor_discount": null,
+                    "current_supplier": null,
+                    "email": "contact-0001@baseline.invalid",
+                    "experience": "много лет",
+                    "legal": null,
+                    "messenger": "Telegram",
+                    "name": null,
+                    "next_contact_at": "завтра",
+                    "outlet_floor": null,
+                    "outlet_type": "интернет",
+                    "purpose": "на продажу",
+                    "timing": "ближе к сезону"
+                },
+                "stage": "followup",
+                "summary": "Клиент из Нижнего Новгорода интересуется оптовой закупкой пиротехники для перепродажи через интернет с доставкой по области. Изначально он запрашивал наличие и цену на \"Корсар-8\", затем добавил запрос по \"Маэстро 100 залпов Русского фейерверка\", акцентируя интерес на салютах. Менеджер обещал уточнить наличие и цены по обоим позициям сегодня, а также выслал прайс на почту клиента, который уже торгует пиротехникой много лет. Клиент отказался раскрывать текущих поставщиков и условия скидок, предложив сначала оценить прайс, а менеджер запросил примерную сумму первой закупки для расчёта скидки.",
+                "unknown_questions": [
+                    "Корсар-8: есть ли в наличии и цена за коробку (клиент из Нижнего Новгорода)",
+                    "наличие: Корсар-8: наличие и цена за коробку (клиент из Нижнего Новгорода)",
+                    "Маэстро 100 залпов (Русский фейерверк): есть ли в наличии и цена за коробку (клиент из Нижнего Новгорода, интернет-торговля)"
+                ]
+            },
+            "tasks": [
+                {
+                    "due_at": "2026-10-31T10:00:00.000000Z",
+                    "payload": {
+                        "question": "Корсар-8: есть ли в наличии и цена за коробку (клиент из Нижнего Новгорода)"
+                    },
+                    "priority": "normal",
+                    "status": "new",
+                    "type": "unknown_fact"
+                },
+                {
+                    "due_at": null,
+                    "payload": {
+                        "email": "contact-0001@baseline.invalid",
+                        "messenger": null,
+                        "pricelists": [
+                            "общий"
+                        ],
+                        "template": "price_email"
+                    },
+                    "priority": "normal",
+                    "status": "new",
+                    "type": "send_price"
+                },
+                {
+                    "due_at": "2026-10-31T10:00:00.000000Z",
+                    "payload": {
+                        "question": "наличие: Корсар-8: наличие и цена за коробку (клиент из Нижнего Новгорода)"
+                    },
+                    "priority": "normal",
+                    "status": "new",
+                    "type": "unknown_fact"
+                },
+                {
+                    "due_at": "2026-10-31T10:00:00.000000Z",
+                    "payload": {
+                        "question": "Маэстро 100 залпов (Русский фейерверк): есть ли в наличии и цена за коробку (клиент из Нижнего Новгорода, интернет-торговля)"
+                    },
+                    "priority": "normal",
+                    "status": "new",
+                    "type": "unknown_fact"
+                },
+                {
+                    "due_at": "2026-11-01T11:00:00.000000Z",
+                    "payload": {
+                        "raw": "завтра",
+                        "reason": "Обратная связь по прайсу; до этого сегодня в Telegram прислать наличие и цену Корсар-8 и Маэстро 100 залпов"
+                    },
+                    "priority": "normal",
+                    "status": "new",
+                    "type": "followup"
+                },
+                {
+                    "due_at": "2026-10-31T10:00:00.000000Z",
+                    "payload": {
+                        "text": "Сегодня написать клиенту в Telegram: наличие и цена за коробку по Корсар-8 и Маэстро 100 залпов"
+                    },
+                    "priority": "normal",
+                    "status": "new",
+                    "type": "promise"
+                }
+            ]
+        },
+        "turns": [
+            {
+                "client": null,
+                "meta": {
+                    "cost_usd": 0.007488,
+                    "goal": {
+                        "allowed_tools": [
+                            "mark_do_not_disturb",
+                            "create_promise",
+                            "log_unknown_question",
+                            "send_requisites",
+                            "check_stock",
+                            "calc_delivery"
+                        ],
+                        "constraints": [],
+                        "extras": [],
+                        "facts": [],
+                        "fewshot_tags": [
+                            "open_greeting",
+                            "ask_city"
+                        ],
+                        "instruction": "Поздороваться, представиться именем и компанией, сослаться на заявку, при необходимости коротко ответить на вопрос и задать ровно один вопрос по слоту.",
+                        "kind": "intro_and_ask",
+                        "slot": "city",
+                        "trigger": null
+                    },
+                    "guard": {
+                        "issues": [],
+                        "questions": 1,
+                        "verdict": "ok",
+                        "warnings": [],
+                        "words": 25
+                    },
+                    "tool_calls": []
+                },
+                "outcome": null,
+                "reply": "Добрый день. Это Антон из «Союз Пир», оптовая пиротехника. Увидел вашу заявку, сейчас уточню пару моментов и подготовлю нормальные условия. Подскажите, вы из какого города?",
+                "stage": "qualify",
+                "state": {
+                    "client_type": "unknown",
+                    "counters": {
+                        "budget_asks": 0,
+                        "closed_topic_streak": 0,
+                        "followups_sent": 0,
+                        "guard_regens": 0,
+                        "negative_streak": 0,
+                        "off_topic_streak": 0,
+                        "turns": 0,
+                        "unclear_streak": 0,
+                        "unknown_facts": 0,
+                        "unknown_insist": 0
+                    },
+                    "flags": {
+                        "do_not_disturb": false,
+                        "duplicate_lead": false,
+                        "escalate": false,
+                        "escalate_reason": null,
+                        "introduced": true,
+                        "price_sent": false,
+                        "requisites_sent": false
+                    },
+                    "missing": [
+                        {
+                            "reason": "no_chance",
+                            "slot": "city",
+                            "suggested_question": "Подскажите, вы из какого города?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "purpose",
+                            "suggested_question": "А пиротехникой для себя интересуетесь или на продажу?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "experience",
+                            "suggested_question": "Раньше пиротехникой торговали или это первый сезон?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "outlet_type",
+                            "suggested_question": "А как планируете торговать — своя точка, аренда, через интернет?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "categories",
+                            "suggested_question": "Что в основном интересует — салюты, петарды, мелочь вроде бенгальских и фонтанов, или всё вместе?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "budget_range",
+                            "suggested_question": "Плюс-минус на какую сумму смотрите закупку? Это ни к чему не обязывает — просто от суммы скидку в прайсе выставлю."
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "timing",
+                            "suggested_question": "Закупаться планируете сейчас или ближе к сезону?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "email",
+                            "suggested_question": "На какую почту прайс отправить?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "messenger",
+                            "suggested_question": "И продублирую в мессенджер, чтобы мой контакт у вас был. На этом номере Макс, WhatsApp или Telegram?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "next_contact_at",
+                            "suggested_question": "Когда удобно списаться по обратной связи — завтра или в пятницу?"
+                        }
+                    ],
+                    "outcome": null,
+                    "promises": [],
+                    "signals": {
+                        "asked_counts": {
+                            "city": 1
+                        },
+                        "asked_if_bot": false,
+                        "asked_slots": [
+                            "city"
+                        ],
+                        "client_claims": [],
+                        "client_questions": [],
+                        "last_asked_slot": "city",
+                        "last_client_intent": null,
+                        "last_unknown_topic": null,
+                        "objections": [],
+                        "prev_intent": "answer_only",
+                        "sentiment": "neutral",
+                        "triggers_used": [],
+                        "wants_only_prices": false
+                    },
+                    "slots": {
+                        "brands_interest": [],
+                        "budget_range": null,
+                        "categories": [],
+                        "city": null,
+                        "competitor_discount": null,
+                        "current_supplier": null,
+                        "email": null,
+                        "experience": null,
+                        "legal": null,
+                        "messenger": null,
+                        "name": null,
+                        "next_contact_at": null,
+                        "outlet_floor": null,
+                        "outlet_type": null,
+                        "purpose": null,
+                        "timing": null
+                    },
+                    "stage": "qualify",
+                    "summary": null,
+                    "unknown_questions": []
+                }
+            },
+            {
+                "client": "Здравствуйте. Я из Нижнего Новгорода. Слушайте, а Корсар-8 у вас есть в наличии и почём коробка?",
+                "meta": {
+                    "cost_usd": 0.015063,
+                    "extraction": {
+                        "asked_if_bot": false,
+                        "client_claims": [],
+                        "client_intent": "ask_what_else",
+                        "client_questions": [
+                            "Корсар-8 у вас есть в наличии и почём коробка?"
+                        ],
+                        "closed_topic": null,
+                        "confidence": 1,
+                        "do_not_disturb": false,
+                        "objections": [],
+                        "off_topic": false,
+                        "prompt_injection": false,
+                        "refused_slots": [],
+                        "sentiment": "neutral",
+                        "slot_updates": {
+                            "brands_interest": null,
+                            "budget_range": null,
+                            "categories": null,
+                            "city": "Нижний Новгород",
+                            "competitor_discount": null,
+                            "current_supplier": null,
+                            "email": null,
+                            "experience": null,
+                            "legal": null,
+                            "messenger": null,
+                            "name": null,
+                            "next_contact_at": null,
+                            "outlet_floor": null,
+                            "outlet_type": null,
+                            "purpose": null,
+                            "timing": null
+                        },
+                        "unknown_question": "Корсар-8 у вас есть в наличии и почём коробка?",
+                        "wants_human": false,
+                        "wants_only_prices": false
+                    },
+                    "goal": {
+                        "allowed_tools": [
+                            "log_unknown_question",
+                            "check_stock"
+                        ],
+                        "constraints": [
+                            "не выдумывать и не подбирать похожий факт",
+                            "сказать, что уточните и напишете сегодня"
+                        ],
+                        "extras": {
+                            "question": "Корсар-8 у вас есть в наличии и почём коробка?"
+                        },
+                        "facts": [],
+                        "fewshot_tags": [
+                            "unknown_fact"
+                        ],
+                        "instruction": "Честно сказать, что уточните у коллег и вернётесь сегодня (tool log_unknown_question), затем продолжить разговор одним вопросом по слоту.",
+                        "kind": "unknown_fact",
+                        "slot": "purpose",
+                        "trigger": null
+                    },
+                    "guard": {
+                        "issues": [],
+                        "questions": 1,
+                        "verdict": "ok",
+                        "warnings": [],
+                        "words": 32
+                    },
+                    "tool_calls": [
+                        {
+                            "args": {
+                                "question": "Корсар-8: есть ли в наличии и цена за коробку (клиент из Нижнего Новгорода)"
+                            },
+                            "name": "log_unknown_question",
+                            "result": {
+                                "note": "задача менеджеру создана; клиенту — «уточню и напишу сегодня»",
+                                "ok": true
+                            }
+                        }
+                    ]
+                },
+                "outcome": null,
+                "reply": "Нижний, понял. По Корсару-8 наличие и цену за коробку сейчас не скажу, чтобы не гадать. Уточню у коллег и напишу вам сегодня. А пока подскажите, вы берёте для себя или на продажу?",
+                "stage": "qualify",
+                "state": {
+                    "client_type": "unknown",
+                    "counters": {
+                        "budget_asks": 0,
+                        "closed_topic_streak": 0,
+                        "followups_sent": 0,
+                        "guard_regens": 0,
+                        "negative_streak": 0,
+                        "off_topic_streak": 0,
+                        "turns": 1,
+                        "unclear_streak": 0,
+                        "unknown_facts": 1,
+                        "unknown_insist": 0
+                    },
+                    "flags": {
+                        "do_not_disturb": false,
+                        "duplicate_lead": false,
+                        "escalate": false,
+                        "escalate_reason": null,
+                        "introduced": true,
+                        "price_sent": false,
+                        "requisites_sent": false
+                    },
+                    "missing": [
+                        {
+                            "reason": "no_chance",
+                            "slot": "purpose",
+                            "suggested_question": "А пиротехникой для себя интересуетесь или на продажу?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "experience",
+                            "suggested_question": "Раньше пиротехникой торговали или это первый сезон?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "outlet_type",
+                            "suggested_question": "А как планируете торговать — своя точка, аренда, через интернет?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "categories",
+                            "suggested_question": "Что в основном интересует — салюты, петарды, мелочь вроде бенгальских и фонтанов, или всё вместе?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "budget_range",
+                            "suggested_question": "Плюс-минус на какую сумму смотрите закупку? Это ни к чему не обязывает — просто от суммы скидку в прайсе выставлю."
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "timing",
+                            "suggested_question": "Закупаться планируете сейчас или ближе к сезону?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "email",
+                            "suggested_question": "На какую почту прайс отправить?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "messenger",
+                            "suggested_question": "И продублирую в мессенджер, чтобы мой контакт у вас был. На этом номере Макс, WhatsApp или Telegram?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "next_contact_at",
+                            "suggested_question": "Когда удобно списаться по обратной связи — завтра или в пятницу?"
+                        }
+                    ],
+                    "outcome": null,
+                    "promises": [
+                        {
+                            "created_at": "2026-10-31T06:00:00+00:00",
+                            "done": false,
+                            "text": "уточнить: Корсар-8: есть ли в наличии и цена за коробку (клиент из Нижнего Новгорода)"
+                        }
+                    ],
+                    "signals": {
+                        "asked_counts": {
+                            "city": 1,
+                            "purpose": 1
+                        },
+                        "asked_if_bot": false,
+                        "asked_slots": [
+                            "city",
+                            "purpose"
+                        ],
+                        "client_claims": [],
+                        "client_questions": [
+                            "Корсар-8 у вас есть в наличии и почём коробка?"
+                        ],
+                        "last_asked_slot": "purpose",
+                        "last_client_intent": "ask_what_else",
+                        "last_unknown_topic": "корсар 8 у вас есть в наличии и почём коробка ",
+                        "objections": [],
+                        "prev_intent": "ask_what_else",
+                        "sentiment": "neutral",
+                        "triggers_used": [],
+                        "wants_only_prices": false
+                    },
+                    "slots": {
+                        "brands_interest": [],
+                        "budget_range": null,
+                        "categories": [],
+                        "city": "Нижний Новгород",
+                        "competitor_discount": null,
+                        "current_supplier": null,
+                        "email": null,
+                        "experience": null,
+                        "legal": null,
+                        "messenger": null,
+                        "name": null,
+                        "next_contact_at": null,
+                        "outlet_floor": null,
+                        "outlet_type": null,
+                        "purpose": null,
+                        "timing": null
+                    },
+                    "stage": "qualify",
+                    "summary": null,
+                    "unknown_questions": [
+                        "Корсар-8: есть ли в наличии и цена за коробку (клиент из Нижнего Новгорода)"
+                    ]
+                }
+            },
+            {
+                "client": "На продажу. Ну так и почта у меня какая-то нужна будет, чтобы вы прайс скинули, или сюда напишете?",
+                "meta": {
+                    "cost_usd": 0.012623,
+                    "extraction": {
+                        "asked_if_bot": false,
+                        "client_claims": [],
+                        "client_intent": "ask_price_list",
+                        "client_questions": [
+                            "почта у меня какая-то нужна будет, чтобы вы прайс скинули, или сюда напишете?"
+                        ],
+                        "closed_topic": null,
+                        "confidence": 1,
+                        "do_not_disturb": false,
+                        "objections": [],
+                        "off_topic": false,
+                        "prompt_injection": false,
+                        "refused_slots": [],
+                        "sentiment": "neutral",
+                        "slot_updates": {
+                            "brands_interest": null,
+                            "budget_range": null,
+                            "categories": null,
+                            "city": null,
+                            "competitor_discount": null,
+                            "current_supplier": null,
+                            "email": null,
+                            "experience": null,
+                            "legal": null,
+                            "messenger": null,
+                            "name": null,
+                            "next_contact_at": null,
+                            "outlet_floor": null,
+                            "outlet_type": null,
+                            "purpose": "на продажу",
+                            "timing": null
+                        },
+                        "unknown_question": null,
+                        "wants_human": false,
+                        "wants_only_prices": false
+                    },
+                    "goal": {
+                        "allowed_tools": [
+                            "mark_do_not_disturb",
+                            "create_promise",
+                            "log_unknown_question",
+                            "send_requisites",
+                            "check_stock",
+                            "calc_delivery"
+                        ],
+                        "constraints": [],
+                        "extras": [],
+                        "facts": [
+                            "price_list_how_to_send"
+                        ],
+                        "fewshot_tags": [
+                            "price_sent",
+                            "ask_experience"
+                        ],
+                        "instruction": "Ответить на вопрос клиента своими словами из фактов (одна-две мысли), затем мостик и ровно один вопрос по слоту.",
+                        "kind": "answer_and_ask",
+                        "slot": "experience",
+                        "trigger": null
+                    },
+                    "guard": {
+                        "issues": [],
+                        "questions": 1,
+                        "verdict": "ok",
+                        "warnings": [],
+                        "words": 37
+                    },
+                    "tool_calls": []
+                },
+                "outcome": null,
+                "reply": "Лучше на почту, а я продублирую в мессенджер, чтобы всё было под рукой. Адрес можете скинуть сюда, когда будет удобно. По Корсару-8 вернусь с наличием и ценой, как уточню. Кстати, пиротехникой раньше торговали или это первый сезон?",
+                "stage": "need",
+                "state": {
+                    "client_type": "unknown",
+                    "counters": {
+                        "budget_asks": 0,
+                        "closed_topic_streak": 0,
+                        "followups_sent": 0,
+                        "guard_regens": 0,
+                        "negative_streak": 0,
+                        "off_topic_streak": 0,
+                        "turns": 2,
+                        "unclear_streak": 0,
+                        "unknown_facts": 1,
+                        "unknown_insist": 0
+                    },
+                    "flags": {
+                        "do_not_disturb": false,
+                        "duplicate_lead": false,
+                        "escalate": false,
+                        "escalate_reason": null,
+                        "introduced": true,
+                        "price_sent": false,
+                        "requisites_sent": false
+                    },
+                    "missing": [
+                        {
+                            "reason": "no_chance",
+                            "slot": "experience",
+                            "suggested_question": "Раньше пиротехникой торговали или это первый сезон?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "outlet_type",
+                            "suggested_question": "А как планируете торговать — своя точка, аренда, через интернет?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "categories",
+                            "suggested_question": "Что в основном интересует — салюты, петарды, мелочь вроде бенгальских и фонтанов, или всё вместе?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "budget_range",
+                            "suggested_question": "Плюс-минус на какую сумму смотрите закупку? Это ни к чему не обязывает — просто от суммы скидку в прайсе выставлю."
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "timing",
+                            "suggested_question": "Закупаться планируете сейчас или ближе к сезону?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "email",
+                            "suggested_question": "На какую почту прайс отправить?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "messenger",
+                            "suggested_question": "И продублирую в мессенджер, чтобы мой контакт у вас был. На этом номере Макс, WhatsApp или Telegram?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "next_contact_at",
+                            "suggested_question": "Когда удобно списаться по обратной связи — завтра или в пятницу?"
+                        }
+                    ],
+                    "outcome": null,
+                    "promises": [
+                        {
+                            "created_at": "2026-10-31T06:00:00+00:00",
+                            "done": false,
+                            "text": "уточнить: Корсар-8: есть ли в наличии и цена за коробку (клиент из Нижнего Новгорода)"
+                        }
+                    ],
+                    "signals": {
+                        "asked_counts": {
+                            "city": 1,
+                            "experience": 1,
+                            "purpose": 1
+                        },
+                        "asked_if_bot": false,
+                        "asked_slots": [
+                            "city",
+                            "purpose",
+                            "experience"
+                        ],
+                        "client_claims": [],
+                        "client_questions": [
+                            "почта у меня какая-то нужна будет, чтобы вы прайс скинули, или сюда напишете?"
+                        ],
+                        "last_asked_slot": "experience",
+                        "last_client_intent": "ask_price_list",
+                        "last_unknown_topic": "корсар 8 у вас есть в наличии и почём коробка ",
+                        "objections": [],
+                        "prev_intent": "ask_price_list",
+                        "sentiment": "neutral",
+                        "triggers_used": [],
+                        "wants_only_prices": false
+                    },
+                    "slots": {
+                        "brands_interest": [],
+                        "budget_range": null,
+                        "categories": [],
+                        "city": "Нижний Новгород",
+                        "competitor_discount": null,
+                        "current_supplier": null,
+                        "email": null,
+                        "experience": null,
+                        "legal": null,
+                        "messenger": null,
+                        "name": null,
+                        "next_contact_at": null,
+                        "outlet_floor": null,
+                        "outlet_type": null,
+                        "purpose": "на продажу",
+                        "timing": null
+                    },
+                    "stage": "need",
+                    "summary": null,
+                    "unknown_questions": [
+                        "Корсар-8: есть ли в наличии и цена за коробку (клиент из Нижнего Новгорода)"
+                    ]
+                }
+            },
+            {
+                "client": "Торгую уже много лет, так что это не первый сезон. Почту могу сразу дать: contact-0001@baseline.invalid. Только не тяните, пожалуйста, с Корсаром-8, мне нужно понимать, что с наличием и ценой.",
+                "meta": {
+                    "cost_usd": 0.018831,
+                    "extraction": {
+                        "asked_if_bot": false,
+                        "client_claims": [],
+                        "client_intent": "give_contact",
+                        "client_questions": [],
+                        "closed_topic": null,
+                        "confidence": 1,
+                        "do_not_disturb": false,
+                        "objections": [],
+                        "off_topic": false,
+                        "prompt_injection": false,
+                        "refused_slots": [],
+                        "sentiment": "neutral",
+                        "slot_updates": {
+                            "brands_interest": null,
+                            "budget_range": null,
+                            "categories": null,
+                            "city": null,
+                            "competitor_discount": null,
+                            "current_supplier": null,
+                            "email": "contact-0001@baseline.invalid",
+                            "experience": "много лет",
+                            "legal": null,
+                            "messenger": null,
+                            "name": null,
+                            "next_contact_at": null,
+                            "outlet_floor": null,
+                            "outlet_type": null,
+                            "purpose": null,
+                            "timing": null
+                        },
+                        "unknown_question": null,
+                        "wants_human": false,
+                        "wants_only_prices": false
+                    },
+                    "goal": {
+                        "allowed_tools": [
+                            "mark_do_not_disturb",
+                            "create_promise",
+                            "log_unknown_question",
+                            "send_requisites",
+                            "check_stock",
+                            "calc_delivery",
+                            "send_price"
+                        ],
+                        "constraints": [],
+                        "extras": [],
+                        "facts": [],
+                        "fewshot_tags": [
+                            "ask_outlet"
+                        ],
+                        "instruction": "Коротко отреагировать на слова клиента (одна фраза), затем ровно один вопрос по слоту.",
+                        "kind": "ask_slot",
+                        "slot": "outlet_type",
+                        "trigger": null
+                    },
+                    "guard": {
+                        "issues": [],
+                        "questions": 1,
+                        "verdict": "ok",
+                        "warnings": [],
+                        "words": 37
+                    },
+                    "tool_calls": [
+                        {
+                            "args": {
+                                "email": "contact-0001@baseline.invalid",
+                                "pricelists": [
+                                    "общий"
+                                ]
+                            },
+                            "name": "send_price",
+                            "result": {
+                                "pricelists": [
+                                    "общий"
+                                ],
+                                "sent": true,
+                                "to": {
+                                    "email": "contact-0001@baseline.invalid"
+                                }
+                            }
+                        },
+                        {
+                            "args": {
+                                "query": "Корсар-8: наличие и цена за коробку (клиент из Нижнего Новгорода)"
+                            },
+                            "name": "check_stock",
+                            "result": {
+                                "known": false,
+                                "note": "наличие в прототипе не проверяется — сказать клиенту, что уточните и напишете сегодня"
+                            }
+                        }
+                    ]
+                },
+                "outcome": "partial_contact",
+                "reply": "Принял, прайс отправил вам на почту. По Корсару-8 наличие пока не подтвердилось, поэтому уточню и напишу вам сегодня, тянуть не буду. Расскажите, где будете торговать: павильон, торговый центр (и какой этаж), жилой дом, интернет или с машины?",
+                "stage": "budget",
+                "state": {
+                    "client_type": "experienced",
+                    "counters": {
+                        "budget_asks": 0,
+                        "closed_topic_streak": 0,
+                        "followups_sent": 0,
+                        "guard_regens": 0,
+                        "negative_streak": 0,
+                        "off_topic_streak": 0,
+                        "turns": 3,
+                        "unclear_streak": 0,
+                        "unknown_facts": 2,
+                        "unknown_insist": 0
+                    },
+                    "flags": {
+                        "do_not_disturb": false,
+                        "duplicate_lead": false,
+                        "escalate": false,
+                        "escalate_reason": null,
+                        "introduced": true,
+                        "price_sent": true,
+                        "requisites_sent": false
+                    },
+                    "missing": [
+                        {
+                            "reason": "no_chance",
+                            "slot": "outlet_type",
+                            "suggested_question": "А как планируете торговать — своя точка, аренда, через интернет?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "categories",
+                            "suggested_question": "Что в основном интересует — салюты, петарды, мелочь вроде бенгальских и фонтанов, или всё вместе?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "current_supplier",
+                            "suggested_question": "С кем сейчас работаете, если не секрет? Я не для того, чтобы переманивать — понять, чем можем быть полезны сверху."
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "budget_range",
+                            "suggested_question": "Плюс-минус на какую сумму смотрите закупку? Это ни к чему не обязывает — просто от суммы скидку в прайсе выставлю."
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "timing",
+                            "suggested_question": "Закупаться планируете сейчас или ближе к сезону?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "messenger",
+                            "suggested_question": "И продублирую в мессенджер, чтобы мой контакт у вас был. На этом номере Макс, WhatsApp или Telegram?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "next_contact_at",
+                            "suggested_question": "Когда удобно списаться по обратной связи — завтра или в пятницу?"
+                        }
+                    ],
+                    "outcome": "partial_contact",
+                    "promises": [
+                        {
+                            "created_at": "2026-10-31T06:00:00+00:00",
+                            "done": false,
+                            "text": "уточнить: Корсар-8: есть ли в наличии и цена за коробку (клиент из Нижнего Новгорода)"
+                        },
+                        {
+                            "created_at": "2026-10-31T06:00:00+00:00",
+                            "done": false,
+                            "text": "уточнить наличие: Корсар-8: наличие и цена за коробку (клиент из Нижнего Новгорода)"
+                        }
+                    ],
+                    "signals": {
+                        "asked_counts": {
+                            "city": 1,
+                            "experience": 1,
+                            "outlet_type": 1,
+                            "purpose": 1
+                        },
+                        "asked_if_bot": false,
+                        "asked_slots": [
+                            "city",
+                            "purpose",
+                            "experience",
+                            "outlet_type"
+                        ],
+                        "client_claims": [],
+                        "client_questions": [],
+                        "last_asked_slot": "outlet_type",
+                        "last_client_intent": "give_contact",
+                        "last_unknown_topic": "корсар 8 у вас есть в наличии и почём коробка ",
+                        "objections": [],
+                        "prev_intent": "give_contact",
+                        "sentiment": "neutral",
+                        "triggers_used": [],
+                        "wants_only_prices": false
+                    },
+                    "slots": {
+                        "brands_interest": [],
+                        "budget_range": null,
+                        "categories": [],
+                        "city": "Нижний Новгород",
+                        "competitor_discount": null,
+                        "current_supplier": null,
+                        "email": "contact-0001@baseline.invalid",
+                        "experience": "много лет",
+                        "legal": null,
+                        "messenger": null,
+                        "name": null,
+                        "next_contact_at": null,
+                        "outlet_floor": null,
+                        "outlet_type": null,
+                        "purpose": "на продажу",
+                        "timing": null
+                    },
+                    "stage": "budget",
+                    "summary": null,
+                    "unknown_questions": [
+                        "Корсар-8: есть ли в наличии и цена за коробку (клиент из Нижнего Новгорода)",
+                        "наличие: Корсар-8: наличие и цена за коробку (клиент из Нижнего Новгорода)"
+                    ]
+                }
+            },
+            {
+                "client": "Торговать буду через интернет, с доставкой по области. А Маэстро 100 залпов Русского фейерверка у вас есть вообще? Если да, то почём?",
+                "meta": {
+                    "cost_usd": 0.018273,
+                    "extraction": {
+                        "asked_if_bot": false,
+                        "client_claims": [],
+                        "client_intent": "ask_assortment",
+                        "client_questions": [
+                            "Маэстро 100 залпов Русского фейерверка у вас есть вообще?",
+                            "почём?"
+                        ],
+                        "closed_topic": null,
+                        "confidence": 1,
+                        "do_not_disturb": false,
+                        "objections": [],
+                        "off_topic": false,
+                        "prompt_injection": false,
+                        "refused_slots": [],
+                        "sentiment": "neutral",
+                        "slot_updates": {
+                            "brands_interest": null,
+                            "budget_range": null,
+                            "categories": null,
+                            "city": null,
+                            "competitor_discount": null,
+                            "current_supplier": null,
+                            "email": null,
+                            "experience": null,
+                            "legal": null,
+                            "messenger": null,
+                            "name": null,
+                            "next_contact_at": null,
+                            "outlet_floor": null,
+                            "outlet_type": "интернет",
+                            "purpose": null,
+                            "timing": null
+                        },
+                        "unknown_question": "Маэстро 100 залпов Русского фейерверка у вас есть вообще? Если да, то почём?",
+                        "wants_human": false,
+                        "wants_only_prices": false
+                    },
+                    "goal": {
+                        "allowed_tools": [
+                            "log_unknown_question",
+                            "check_stock"
+                        ],
+                        "constraints": [
+                            "не выдумывать и не подбирать похожий факт",
+                            "сказать, что уточните и напишете сегодня"
+                        ],
+                        "extras": {
+                            "question": "Маэстро 100 залпов Русского фейерверка у вас есть вообще? Если да, то почём?"
+                        },
+                        "facts": [],
+                        "fewshot_tags": [
+                            "unknown_fact"
+                        ],
+                        "instruction": "Честно сказать, что уточните у коллег и вернётесь сегодня (tool log_unknown_question), затем продолжить разговор одним вопросом по слоту.",
+                        "kind": "unknown_fact",
+                        "slot": "current_supplier",
+                        "trigger": null
+                    },
+                    "guard": {
+                        "issues": [],
+                        "questions": 1,
+                        "verdict": "ok",
+                        "warnings": [],
+                        "words": 43
+                    },
+                    "tool_calls": [
+                        {
+                            "args": {
+                                "question": "Маэстро 100 залпов (Русский фейерверк): есть ли в наличии и цена за коробку (клиент из Нижнего Новгорода, интернет-торговля)"
+                            },
+                            "name": "log_unknown_question",
+                            "result": {
+                                "note": "задача менеджеру создана; клиенту — «уточню и напишу сегодня»",
+                                "ok": true
+                            }
+                        }
+                    ]
+                },
+                "outcome": "partial_contact",
+                "reply": "Интернет с доставкой по области, понял. По Маэстро 100 залпов тоже не буду гадать: наличие и цену за коробку уточню у коллег и напишу вам сегодня вместе с Корсаром-8. Подскажите, с кем вы сейчас работаете по закупкам и какую скидку вам там дают?",
+                "stage": "budget",
+                "state": {
+                    "client_type": "experienced",
+                    "counters": {
+                        "budget_asks": 0,
+                        "closed_topic_streak": 0,
+                        "followups_sent": 0,
+                        "guard_regens": 0,
+                        "negative_streak": 0,
+                        "off_topic_streak": 0,
+                        "turns": 4,
+                        "unclear_streak": 0,
+                        "unknown_facts": 3,
+                        "unknown_insist": 1
+                    },
+                    "flags": {
+                        "do_not_disturb": false,
+                        "duplicate_lead": false,
+                        "escalate": false,
+                        "escalate_reason": null,
+                        "introduced": true,
+                        "price_sent": true,
+                        "requisites_sent": false
+                    },
+                    "missing": [
+                        {
+                            "reason": "no_chance",
+                            "slot": "categories",
+                            "suggested_question": "Что в основном интересует — салюты, петарды, мелочь вроде бенгальских и фонтанов, или всё вместе?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "current_supplier",
+                            "suggested_question": "С кем сейчас работаете, если не секрет? Я не для того, чтобы переманивать — понять, чем можем быть полезны сверху."
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "budget_range",
+                            "suggested_question": "Плюс-минус на какую сумму смотрите закупку? Это ни к чему не обязывает — просто от суммы скидку в прайсе выставлю."
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "timing",
+                            "suggested_question": "Закупаться планируете сейчас или ближе к сезону?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "messenger",
+                            "suggested_question": "И продублирую в мессенджер, чтобы мой контакт у вас был. На этом номере Макс, WhatsApp или Telegram?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "next_contact_at",
+                            "suggested_question": "Когда удобно списаться по обратной связи — завтра или в пятницу?"
+                        }
+                    ],
+                    "outcome": "partial_contact",
+                    "promises": [
+                        {
+                            "created_at": "2026-10-31T06:00:00+00:00",
+                            "done": false,
+                            "text": "уточнить: Корсар-8: есть ли в наличии и цена за коробку (клиент из Нижнего Новгорода)"
+                        },
+                        {
+                            "created_at": "2026-10-31T06:00:00+00:00",
+                            "done": false,
+                            "text": "уточнить наличие: Корсар-8: наличие и цена за коробку (клиент из Нижнего Новгорода)"
+                        },
+                        {
+                            "created_at": "2026-10-31T06:00:00+00:00",
+                            "done": false,
+                            "text": "уточнить: Маэстро 100 залпов (Русский фейерверк): есть ли в наличии и цена за коробку (клиент из Нижнего Новгорода, интернет-торговля)"
+                        }
+                    ],
+                    "signals": {
+                        "asked_counts": {
+                            "city": 1,
+                            "current_supplier": 1,
+                            "experience": 1,
+                            "outlet_type": 1,
+                            "purpose": 1
+                        },
+                        "asked_if_bot": false,
+                        "asked_slots": [
+                            "city",
+                            "purpose",
+                            "experience",
+                            "outlet_type",
+                            "current_supplier"
+                        ],
+                        "client_claims": [],
+                        "client_questions": [
+                            "Маэстро 100 залпов Русского фейерверка у вас есть вообще?",
+                            "почём?"
+                        ],
+                        "last_asked_slot": "current_supplier",
+                        "last_client_intent": "ask_assortment",
+                        "last_unknown_topic": "маэстро 100 залпов русского фейерверка у вас есть вообще если да то почём ",
+                        "objections": [],
+                        "prev_intent": "ask_assortment",
+                        "sentiment": "neutral",
+                        "triggers_used": [],
+                        "wants_only_prices": false
+                    },
+                    "slots": {
+                        "brands_interest": [],
+                        "budget_range": null,
+                        "categories": [],
+                        "city": "Нижний Новгород",
+                        "competitor_discount": null,
+                        "current_supplier": null,
+                        "email": "contact-0001@baseline.invalid",
+                        "experience": "много лет",
+                        "legal": null,
+                        "messenger": null,
+                        "name": null,
+                        "next_contact_at": null,
+                        "outlet_floor": null,
+                        "outlet_type": "интернет",
+                        "purpose": "на продажу",
+                        "timing": null
+                    },
+                    "stage": "budget",
+                    "summary": null,
+                    "unknown_questions": [
+                        "Корсар-8: есть ли в наличии и цена за коробку (клиент из Нижнего Новгорода)",
+                        "наличие: Корсар-8: наличие и цена за коробку (клиент из Нижнего Новгорода)",
+                        "Маэстро 100 залпов (Русский фейерверк): есть ли в наличии и цена за коробку (клиент из Нижнего Новгорода, интернет-торговля)"
+                    ]
+                }
+            },
+            {
+                "client": "Ну, с кем работаю по закупкам, я вам говорить не буду, это моё дело. А скидку давайте сначала посмотрим по вашему прайсу, там видно будет, стоит ли вообще разговор продолжать.",
+                "meta": {
+                    "cost_usd": 0.011861,
+                    "extraction": {
+                        "asked_if_bot": false,
+                        "client_claims": [],
+                        "client_intent": "answer_only",
+                        "client_questions": [],
+                        "closed_topic": null,
+                        "confidence": 1,
+                        "do_not_disturb": false,
+                        "objections": [],
+                        "off_topic": false,
+                        "prompt_injection": false,
+                        "refused_slots": [
+                            "current_supplier",
+                            "competitor_discount"
+                        ],
+                        "sentiment": "neutral",
+                        "slot_updates": {
+                            "brands_interest": null,
+                            "budget_range": null,
+                            "categories": null,
+                            "city": null,
+                            "competitor_discount": null,
+                            "current_supplier": null,
+                            "email": null,
+                            "experience": null,
+                            "legal": null,
+                            "messenger": null,
+                            "name": null,
+                            "next_contact_at": null,
+                            "outlet_floor": null,
+                            "outlet_type": null,
+                            "purpose": null,
+                            "timing": null
+                        },
+                        "unknown_question": null,
+                        "wants_human": false,
+                        "wants_only_prices": false
+                    },
+                    "goal": {
+                        "allowed_tools": [
+                            "mark_do_not_disturb",
+                            "create_promise",
+                            "log_unknown_question",
+                            "send_requisites",
+                            "check_stock",
+                            "calc_delivery"
+                        ],
+                        "constraints": [],
+                        "extras": [],
+                        "facts": [],
+                        "fewshot_tags": [
+                            "ask_categories"
+                        ],
+                        "instruction": "Коротко отреагировать на слова клиента (одна фраза), затем ровно один вопрос по слоту.",
+                        "kind": "ask_slot",
+                        "slot": "categories",
+                        "trigger": "not_tied_to_volume"
+                    },
+                    "guard": {
+                        "issues": [],
+                        "questions": 1,
+                        "verdict": "ok",
+                        "warnings": [],
+                        "words": 38
+                    },
+                    "tool_calls": []
+                },
+                "outcome": "partial_contact",
+                "reply": "Хорошо, это ваше дело, больше не спрашиваю. Прайс у вас на почте, посмотрите спокойно. По Корсару-8 и Маэстро вернусь с наличием и ценой сегодня. Что в основном интересует: салюты, петарды, мелочь вроде фонтанов и бенгальских или всё вместе?",
+                "stage": "budget",
+                "state": {
+                    "client_type": "experienced",
+                    "counters": {
+                        "budget_asks": 0,
+                        "closed_topic_streak": 0,
+                        "followups_sent": 0,
+                        "guard_regens": 0,
+                        "negative_streak": 0,
+                        "off_topic_streak": 0,
+                        "turns": 5,
+                        "unclear_streak": 0,
+                        "unknown_facts": 3,
+                        "unknown_insist": 1
+                    },
+                    "flags": {
+                        "do_not_disturb": false,
+                        "duplicate_lead": false,
+                        "escalate": false,
+                        "escalate_reason": null,
+                        "introduced": true,
+                        "price_sent": true,
+                        "requisites_sent": false
+                    },
+                    "missing": [
+                        {
+                            "reason": "no_chance",
+                            "slot": "categories",
+                            "suggested_question": "Что в основном интересует — салюты, петарды, мелочь вроде бенгальских и фонтанов, или всё вместе?"
+                        },
+                        {
+                            "reason": "declined",
+                            "slot": "current_supplier",
+                            "suggested_question": "С кем сейчас работаете, если не секрет? Я не для того, чтобы переманивать — понять, чем можем быть полезны сверху."
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "budget_range",
+                            "suggested_question": "Плюс-минус на какую сумму смотрите закупку? Это ни к чему не обязывает — просто от суммы скидку в прайсе выставлю."
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "timing",
+                            "suggested_question": "Закупаться планируете сейчас или ближе к сезону?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "messenger",
+                            "suggested_question": "И продублирую в мессенджер, чтобы мой контакт у вас был. На этом номере Макс, WhatsApp или Telegram?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "next_contact_at",
+                            "suggested_question": "Когда удобно списаться по обратной связи — завтра или в пятницу?"
+                        }
+                    ],
+                    "outcome": "partial_contact",
+                    "promises": [
+                        {
+                            "created_at": "2026-10-31T06:00:00+00:00",
+                            "done": false,
+                            "text": "уточнить: Корсар-8: есть ли в наличии и цена за коробку (клиент из Нижнего Новгорода)"
+                        },
+                        {
+                            "created_at": "2026-10-31T06:00:00+00:00",
+                            "done": false,
+                            "text": "уточнить наличие: Корсар-8: наличие и цена за коробку (клиент из Нижнего Новгорода)"
+                        },
+                        {
+                            "created_at": "2026-10-31T06:00:00+00:00",
+                            "done": false,
+                            "text": "уточнить: Маэстро 100 залпов (Русский фейерверк): есть ли в наличии и цена за коробку (клиент из Нижнего Новгорода, интернет-торговля)"
+                        }
+                    ],
+                    "signals": {
+                        "asked_counts": {
+                            "categories": 1,
+                            "city": 1,
+                            "current_supplier": 1,
+                            "experience": 1,
+                            "outlet_type": 1,
+                            "purpose": 1
+                        },
+                        "asked_if_bot": false,
+                        "asked_slots": [
+                            "city",
+                            "purpose",
+                            "experience",
+                            "outlet_type",
+                            "current_supplier",
+                            "categories"
+                        ],
+                        "client_claims": [],
+                        "client_questions": [],
+                        "last_asked_slot": "categories",
+                        "last_client_intent": "answer_only",
+                        "last_trigger_turn": 5,
+                        "last_unknown_topic": "маэстро 100 залпов русского фейерверка у вас есть вообще если да то почём ",
+                        "objections": [],
+                        "prev_intent": "answer_only",
+                        "refused_slots": {
+                            "competitor_discount": true,
+                            "current_supplier": true
+                        },
+                        "sentiment": "neutral",
+                        "triggers_used": {
+                            "not_tied_to_volume": 1
+                        },
+                        "wants_only_prices": false
+                    },
+                    "slots": {
+                        "brands_interest": [],
+                        "budget_range": null,
+                        "categories": [],
+                        "city": "Нижний Новгород",
+                        "competitor_discount": null,
+                        "current_supplier": null,
+                        "email": "contact-0001@baseline.invalid",
+                        "experience": "много лет",
+                        "legal": null,
+                        "messenger": null,
+                        "name": null,
+                        "next_contact_at": null,
+                        "outlet_floor": null,
+                        "outlet_type": "интернет",
+                        "purpose": "на продажу",
+                        "timing": null
+                    },
+                    "stage": "budget",
+                    "summary": null,
+                    "unknown_questions": [
+                        "Корсар-8: есть ли в наличии и цена за коробку (клиент из Нижнего Новгорода)",
+                        "наличие: Корсар-8: наличие и цена за коробку (клиент из Нижнего Новгорода)",
+                        "Маэстро 100 залпов (Русский фейерверк): есть ли в наличии и цена за коробку (клиент из Нижнего Новгорода, интернет-торговля)"
+                    ]
+                }
+            },
+            {
+                "client": "Салюты в основном, петарды не нужны. Фонтаны и бенгальские можно, но это уже второстепенно.",
+                "meta": {
+                    "cost_usd": 0.011727,
+                    "extraction": {
+                        "asked_if_bot": false,
+                        "client_claims": [],
+                        "client_intent": "answer_only",
+                        "client_questions": [],
+                        "closed_topic": null,
+                        "confidence": 1,
+                        "do_not_disturb": false,
+                        "objections": [],
+                        "off_topic": false,
+                        "prompt_injection": false,
+                        "refused_slots": [],
+                        "sentiment": "neutral",
+                        "slot_updates": {
+                            "brands_interest": null,
+                            "budget_range": null,
+                            "categories": [
+                                "салюты",
+                                "мелочь"
+                            ],
+                            "city": null,
+                            "competitor_discount": null,
+                            "current_supplier": null,
+                            "email": null,
+                            "experience": null,
+                            "legal": null,
+                            "messenger": null,
+                            "name": null,
+                            "next_contact_at": null,
+                            "outlet_floor": null,
+                            "outlet_type": null,
+                            "purpose": null,
+                            "timing": null
+                        },
+                        "unknown_question": null,
+                        "wants_human": false,
+                        "wants_only_prices": false
+                    },
+                    "goal": {
+                        "allowed_tools": [
+                            "mark_do_not_disturb",
+                            "create_promise",
+                            "log_unknown_question",
+                            "send_requisites",
+                            "check_stock",
+                            "calc_delivery"
+                        ],
+                        "constraints": [],
+                        "extras": [],
+                        "facts": [],
+                        "fewshot_tags": [
+                            "ask_budget_soft"
+                        ],
+                        "instruction": "Коротко отреагировать на слова клиента (одна фраза), затем ровно один вопрос по слоту.",
+                        "kind": "ask_slot",
+                        "slot": "budget_range",
+                        "trigger": null
+                    },
+                    "guard": {
+                        "issues": [],
+                        "questions": 1,
+                        "verdict": "ok",
+                        "warnings": [],
+                        "words": 35
+                    },
+                    "tool_calls": []
+                },
+                "outcome": "partial_contact",
+                "reply": "Понял, упор на салюты, мелочь по остальному. Чтобы в прайсе выставить вам нормальную скидку, подскажите плюс-минус, на какую сумму смотрите первую закупку? Это ни к чему не обязывает, просто от суммы зависит, какой процент считать.",
+                "stage": "budget",
+                "state": {
+                    "client_type": "experienced",
+                    "counters": {
+                        "budget_asks": 1,
+                        "closed_topic_streak": 0,
+                        "followups_sent": 0,
+                        "guard_regens": 0,
+                        "negative_streak": 0,
+                        "off_topic_streak": 0,
+                        "turns": 6,
+                        "unclear_streak": 0,
+                        "unknown_facts": 3,
+                        "unknown_insist": 1
+                    },
+                    "flags": {
+                        "do_not_disturb": false,
+                        "duplicate_lead": false,
+                        "escalate": false,
+                        "escalate_reason": null,
+                        "introduced": true,
+                        "price_sent": true,
+                        "requisites_sent": false
+                    },
+                    "missing": [
+                        {
+                            "reason": "declined",
+                            "slot": "current_supplier",
+                            "suggested_question": "С кем сейчас работаете, если не секрет? Я не для того, чтобы переманивать — понять, чем можем быть полезны сверху."
+                        },
+                        {
+                            "reason": "not_asked",
+                            "slot": "budget_range",
+                            "suggested_question": "Плюс-минус на какую сумму смотрите закупку? Это ни к чему не обязывает — просто от суммы скидку в прайсе выставлю."
+                        },
+                        {
+                            "reason": "not_asked",
+                            "slot": "timing",
+                            "suggested_question": "Закупаться планируете сейчас или ближе к сезону?"
+                        },
+                        {
+                            "reason": "not_asked",
+                            "slot": "messenger",
+                            "suggested_question": "И продублирую в мессенджер, чтобы мой контакт у вас был. На этом номере Макс, WhatsApp или Telegram?"
+                        },
+                        {
+                            "reason": "not_asked",
+                            "slot": "next_contact_at",
+                            "suggested_question": "Когда удобно списаться по обратной связи — завтра или в пятницу?"
+                        }
+                    ],
+                    "outcome": "partial_contact",
+                    "promises": [
+                        {
+                            "created_at": "2026-10-31T06:00:00+00:00",
+                            "done": false,
+                            "text": "уточнить: Корсар-8: есть ли в наличии и цена за коробку (клиент из Нижнего Новгорода)"
+                        },
+                        {
+                            "created_at": "2026-10-31T06:00:00+00:00",
+                            "done": false,
+                            "text": "уточнить наличие: Корсар-8: наличие и цена за коробку (клиент из Нижнего Новгорода)"
+                        },
+                        {
+                            "created_at": "2026-10-31T06:00:00+00:00",
+                            "done": false,
+                            "text": "уточнить: Маэстро 100 залпов (Русский фейерверк): есть ли в наличии и цена за коробку (клиент из Нижнего Новгорода, интернет-торговля)"
+                        }
+                    ],
+                    "signals": {
+                        "asked_counts": {
+                            "budget_range": 1,
+                            "categories": 1,
+                            "city": 1,
+                            "current_supplier": 1,
+                            "experience": 1,
+                            "outlet_type": 1,
+                            "purpose": 1
+                        },
+                        "asked_if_bot": false,
+                        "asked_slots": [
+                            "city",
+                            "purpose",
+                            "experience",
+                            "outlet_type",
+                            "current_supplier",
+                            "categories",
+                            "budget_range"
+                        ],
+                        "client_claims": [],
+                        "client_questions": [],
+                        "last_asked_slot": "budget_range",
+                        "last_client_intent": "answer_only",
+                        "last_trigger_turn": 5,
+                        "last_unknown_topic": "маэстро 100 залпов русского фейерверка у вас есть вообще если да то почём ",
+                        "objections": [],
+                        "prev_intent": "answer_only",
+                        "refused_slots": {
+                            "competitor_discount": true,
+                            "current_supplier": true
+                        },
+                        "sentiment": "neutral",
+                        "triggers_used": {
+                            "not_tied_to_volume": 1
+                        },
+                        "wants_only_prices": false
+                    },
+                    "slots": {
+                        "brands_interest": [],
+                        "budget_range": null,
+                        "categories": [
+                            "салюты",
+                            "мелочь"
+                        ],
+                        "city": "Нижний Новгород",
+                        "competitor_discount": null,
+                        "current_supplier": null,
+                        "email": "contact-0001@baseline.invalid",
+                        "experience": "много лет",
+                        "legal": null,
+                        "messenger": null,
+                        "name": null,
+                        "next_contact_at": null,
+                        "outlet_floor": null,
+                        "outlet_type": "интернет",
+                        "purpose": "на продажу",
+                        "timing": null
+                    },
+                    "stage": "budget",
+                    "summary": "Клиент из Нижнего Новгорода интересуется оптовой закупкой пиротехники для перепродажи через интернет с доставкой по области. Изначально он запрашивал наличие и цену на \"Корсар-8\", затем добавил запрос по \"Маэстро 100 залпов Русского фейерверка\", акцентируя интерес на салютах. Менеджер обещал уточнить наличие и цены по обоим позициям сегодня, а также выслал прайс на почту клиента, который уже торгует пиротехникой много лет. Клиент отказался раскрывать текущих поставщиков и условия скидок, предложив сначала оценить прайс, а менеджер запросил примерную сумму первой закупки для расчёта скидки.",
+                    "unknown_questions": [
+                        "Корсар-8: есть ли в наличии и цена за коробку (клиент из Нижнего Новгорода)",
+                        "наличие: Корсар-8: наличие и цена за коробку (клиент из Нижнего Новгорода)",
+                        "Маэстро 100 залпов (Русский фейерверк): есть ли в наличии и цена за коробку (клиент из Нижнего Новгорода, интернет-торговля)"
+                    ]
+                }
+            },
+            {
+                "client": "Бюджет примерно 300 тысяч. Но это потолок, а не обязательная сумма.",
+                "meta": {
+                    "cost_usd": 0.011432,
+                    "extraction": {
+                        "asked_if_bot": false,
+                        "client_claims": [],
+                        "client_intent": "answer_only",
+                        "client_questions": [],
+                        "closed_topic": null,
+                        "confidence": 1,
+                        "do_not_disturb": false,
+                        "objections": [],
+                        "off_topic": false,
+                        "prompt_injection": false,
+                        "refused_slots": [],
+                        "sentiment": "neutral",
+                        "slot_updates": {
+                            "brands_interest": null,
+                            "budget_range": "около 300 тыс.",
+                            "categories": null,
+                            "city": null,
+                            "competitor_discount": null,
+                            "current_supplier": null,
+                            "email": null,
+                            "experience": null,
+                            "legal": null,
+                            "messenger": null,
+                            "name": null,
+                            "next_contact_at": null,
+                            "outlet_floor": null,
+                            "outlet_type": null,
+                            "purpose": null,
+                            "timing": null
+                        },
+                        "unknown_question": null,
+                        "wants_human": false,
+                        "wants_only_prices": false
+                    },
+                    "goal": {
+                        "allowed_tools": [
+                            "mark_do_not_disturb",
+                            "create_promise",
+                            "log_unknown_question",
+                            "send_requisites",
+                            "check_stock",
+                            "calc_delivery"
+                        ],
+                        "constraints": [],
+                        "extras": [],
+                        "facts": [],
+                        "fewshot_tags": [
+                            "ask_timing"
+                        ],
+                        "instruction": "Коротко отреагировать на слова клиента (одна фраза), затем ровно один вопрос по слоту.",
+                        "kind": "ask_slot",
+                        "slot": "timing",
+                        "trigger": null
+                    },
+                    "guard": {
+                        "issues": [],
+                        "questions": 1,
+                        "verdict": "ok",
+                        "warnings": [],
+                        "words": 14
+                    },
+                    "tool_calls": []
+                },
+                "outcome": "partial_contact",
+                "reply": "Понял, до 300 тысяч, это ориентир. Закупку собираетесь делать сейчас или ближе к сезону?",
+                "stage": "budget",
+                "state": {
+                    "client_type": "experienced",
+                    "counters": {
+                        "budget_asks": 1,
+                        "closed_topic_streak": 0,
+                        "followups_sent": 0,
+                        "guard_regens": 0,
+                        "negative_streak": 0,
+                        "off_topic_streak": 0,
+                        "turns": 7,
+                        "unclear_streak": 0,
+                        "unknown_facts": 3,
+                        "unknown_insist": 1
+                    },
+                    "flags": {
+                        "do_not_disturb": false,
+                        "duplicate_lead": false,
+                        "escalate": false,
+                        "escalate_reason": null,
+                        "introduced": true,
+                        "price_sent": true,
+                        "requisites_sent": false
+                    },
+                    "missing": [
+                        {
+                            "reason": "declined",
+                            "slot": "current_supplier",
+                            "suggested_question": "С кем сейчас работаете, если не секрет? Я не для того, чтобы переманивать — понять, чем можем быть полезны сверху."
+                        },
+                        {
+                            "reason": "not_asked",
+                            "slot": "timing",
+                            "suggested_question": "Закупаться планируете сейчас или ближе к сезону?"
+                        },
+                        {
+                            "reason": "not_asked",
+                            "slot": "messenger",
+                            "suggested_question": "И продублирую в мессенджер, чтобы мой контакт у вас был. На этом номере Макс, WhatsApp или Telegram?"
+                        },
+                        {
+                            "reason": "not_asked",
+                            "slot": "next_contact_at",
+                            "suggested_question": "Когда удобно списаться по обратной связи — завтра или в пятницу?"
+                        }
+                    ],
+                    "outcome": "partial_contact",
+                    "promises": [
+                        {
+                            "created_at": "2026-10-31T06:00:00+00:00",
+                            "done": false,
+                            "text": "уточнить: Корсар-8: есть ли в наличии и цена за коробку (клиент из Нижнего Новгорода)"
+                        },
+                        {
+                            "created_at": "2026-10-31T06:00:00+00:00",
+                            "done": false,
+                            "text": "уточнить наличие: Корсар-8: наличие и цена за коробку (клиент из Нижнего Новгорода)"
+                        },
+                        {
+                            "created_at": "2026-10-31T06:00:00+00:00",
+                            "done": false,
+                            "text": "уточнить: Маэстро 100 залпов (Русский фейерверк): есть ли в наличии и цена за коробку (клиент из Нижнего Новгорода, интернет-торговля)"
+                        }
+                    ],
+                    "signals": {
+                        "asked_counts": {
+                            "budget_range": 1,
+                            "categories": 1,
+                            "city": 1,
+                            "current_supplier": 1,
+                            "experience": 1,
+                            "outlet_type": 1,
+                            "purpose": 1,
+                            "timing": 1
+                        },
+                        "asked_if_bot": false,
+                        "asked_slots": [
+                            "city",
+                            "purpose",
+                            "experience",
+                            "outlet_type",
+                            "current_supplier",
+                            "categories",
+                            "budget_range",
+                            "timing"
+                        ],
+                        "client_claims": [],
+                        "client_questions": [],
+                        "last_asked_slot": "timing",
+                        "last_client_intent": "answer_only",
+                        "last_trigger_turn": 5,
+                        "last_unknown_topic": "маэстро 100 залпов русского фейерверка у вас есть вообще если да то почём ",
+                        "objections": [],
+                        "prev_intent": "answer_only",
+                        "refused_slots": {
+                            "competitor_discount": true,
+                            "current_supplier": true
+                        },
+                        "sentiment": "neutral",
+                        "triggers_used": {
+                            "not_tied_to_volume": 1
+                        },
+                        "wants_only_prices": false
+                    },
+                    "slots": {
+                        "brands_interest": [],
+                        "budget_range": "около 300 тыс.",
+                        "categories": [
+                            "салюты",
+                            "мелочь"
+                        ],
+                        "city": "Нижний Новгород",
+                        "competitor_discount": null,
+                        "current_supplier": null,
+                        "email": "contact-0001@baseline.invalid",
+                        "experience": "много лет",
+                        "legal": null,
+                        "messenger": null,
+                        "name": null,
+                        "next_contact_at": null,
+                        "outlet_floor": null,
+                        "outlet_type": "интернет",
+                        "purpose": "на продажу",
+                        "timing": null
+                    },
+                    "stage": "budget",
+                    "summary": "Клиент из Нижнего Новгорода интересуется оптовой закупкой пиротехники для перепродажи через интернет с доставкой по области. Изначально он запрашивал наличие и цену на \"Корсар-8\", затем добавил запрос по \"Маэстро 100 залпов Русского фейерверка\", акцентируя интерес на салютах. Менеджер обещал уточнить наличие и цены по обоим позициям сегодня, а также выслал прайс на почту клиента, который уже торгует пиротехникой много лет. Клиент отказался раскрывать текущих поставщиков и условия скидок, предложив сначала оценить прайс, а менеджер запросил примерную сумму первой закупки для расчёта скидки.",
+                    "unknown_questions": [
+                        "Корсар-8: есть ли в наличии и цена за коробку (клиент из Нижнего Новгорода)",
+                        "наличие: Корсар-8: наличие и цена за коробку (клиент из Нижнего Новгорода)",
+                        "Маэстро 100 залпов (Русский фейерверк): есть ли в наличии и цена за коробку (клиент из Нижнего Новгорода, интернет-торговля)"
+                    ]
+                }
+            },
+            {
+                "client": "Ближе к сезону, наверное, но Корсар-8 с Маэстро хочу уточнить уже сейчас, чтобы понимать, под что планировать.",
+                "meta": {
+                    "cost_usd": 0.013062,
+                    "extraction": {
+                        "asked_if_bot": false,
+                        "client_claims": [],
+                        "client_intent": "answer_only",
+                        "client_questions": [],
+                        "closed_topic": null,
+                        "confidence": 1,
+                        "do_not_disturb": false,
+                        "objections": [],
+                        "off_topic": false,
+                        "prompt_injection": false,
+                        "refused_slots": [],
+                        "sentiment": "neutral",
+                        "slot_updates": {
+                            "brands_interest": null,
+                            "budget_range": null,
+                            "categories": null,
+                            "city": null,
+                            "competitor_discount": null,
+                            "current_supplier": null,
+                            "email": null,
+                            "experience": null,
+                            "legal": null,
+                            "messenger": null,
+                            "name": null,
+                            "next_contact_at": null,
+                            "outlet_floor": null,
+                            "outlet_type": null,
+                            "purpose": null,
+                            "timing": "ближе к сезону"
+                        },
+                        "unknown_question": null,
+                        "wants_human": false,
+                        "wants_only_prices": false
+                    },
+                    "goal": {
+                        "allowed_tools": [
+                            "mark_do_not_disturb",
+                            "create_promise",
+                            "log_unknown_question",
+                            "send_requisites",
+                            "check_stock",
+                            "calc_delivery",
+                            "send_price",
+                            "set_followup"
+                        ],
+                        "constraints": [],
+                        "extras": [],
+                        "facts": [],
+                        "fewshot_tags": {
+                            "1": "ask_messenger",
+                            "2": "other_number_warning"
+                        },
+                        "instruction": "Сказать, что продублируете в мессенджер, чтобы контакт был, и спросить, какой мессенджер на номере. Предупредить про другой номер. Один вопрос.",
+                        "kind": "close_contact",
+                        "slot": "messenger",
+                        "trigger": null
+                    },
+                    "guard": {
+                        "issues": [],
+                        "questions": 1,
+                        "verdict": "ok",
+                        "warnings": [],
+                        "words": 42
+                    },
+                    "tool_calls": []
+                },
+                "outcome": "partial_contact",
+                "reply": "Логично, под наличие и цену лучше планировать заранее. Оба ответа пришлю сегодня. Продублирую их и в мессенджер, чтобы мой контакт у вас остался, писать буду с другого номера, он рабочий, это буду я. На этом номере какой мессенджер: Макс, WhatsApp или Telegram?",
+                "stage": "close_contact",
+                "state": {
+                    "client_type": "experienced",
+                    "counters": {
+                        "budget_asks": 1,
+                        "closed_topic_streak": 0,
+                        "followups_sent": 0,
+                        "guard_regens": 0,
+                        "negative_streak": 0,
+                        "off_topic_streak": 0,
+                        "turns": 8,
+                        "unclear_streak": 0,
+                        "unknown_facts": 3,
+                        "unknown_insist": 1
+                    },
+                    "flags": {
+                        "do_not_disturb": false,
+                        "duplicate_lead": false,
+                        "escalate": false,
+                        "escalate_reason": null,
+                        "introduced": true,
+                        "price_sent": true,
+                        "requisites_sent": false
+                    },
+                    "missing": [
+                        {
+                            "reason": "declined",
+                            "slot": "current_supplier",
+                            "suggested_question": "С кем сейчас работаете, если не секрет? Я не для того, чтобы переманивать — понять, чем можем быть полезны сверху."
+                        },
+                        {
+                            "reason": "not_asked",
+                            "slot": "messenger",
+                            "suggested_question": "И продублирую в мессенджер, чтобы мой контакт у вас был. На этом номере Макс, WhatsApp или Telegram?"
+                        },
+                        {
+                            "reason": "not_asked",
+                            "slot": "next_contact_at",
+                            "suggested_question": "Когда удобно списаться по обратной связи — завтра или в пятницу?"
+                        }
+                    ],
+                    "outcome": "partial_contact",
+                    "promises": [
+                        {
+                            "created_at": "2026-10-31T06:00:00+00:00",
+                            "done": false,
+                            "text": "уточнить: Корсар-8: есть ли в наличии и цена за коробку (клиент из Нижнего Новгорода)"
+                        },
+                        {
+                            "created_at": "2026-10-31T06:00:00+00:00",
+                            "done": false,
+                            "text": "уточнить наличие: Корсар-8: наличие и цена за коробку (клиент из Нижнего Новгорода)"
+                        },
+                        {
+                            "created_at": "2026-10-31T06:00:00+00:00",
+                            "done": false,
+                            "text": "уточнить: Маэстро 100 залпов (Русский фейерверк): есть ли в наличии и цена за коробку (клиент из Нижнего Новгорода, интернет-торговля)"
+                        }
+                    ],
+                    "signals": {
+                        "asked_counts": {
+                            "budget_range": 1,
+                            "categories": 1,
+                            "city": 1,
+                            "current_supplier": 1,
+                            "experience": 1,
+                            "messenger": 1,
+                            "outlet_type": 1,
+                            "purpose": 1,
+                            "timing": 1
+                        },
+                        "asked_if_bot": false,
+                        "asked_slots": [
+                            "city",
+                            "purpose",
+                            "experience",
+                            "outlet_type",
+                            "current_supplier",
+                            "categories",
+                            "budget_range",
+                            "timing",
+                            "messenger"
+                        ],
+                        "client_claims": [],
+                        "client_questions": [],
+                        "last_asked_slot": "messenger",
+                        "last_client_intent": "answer_only",
+                        "last_trigger_turn": 5,
+                        "last_unknown_topic": "маэстро 100 залпов русского фейерверка у вас есть вообще если да то почём ",
+                        "objections": [],
+                        "prev_intent": "answer_only",
+                        "refused_slots": {
+                            "competitor_discount": true,
+                            "current_supplier": true
+                        },
+                        "sentiment": "neutral",
+                        "triggers_used": {
+                            "not_tied_to_volume": 1
+                        },
+                        "wants_only_prices": false
+                    },
+                    "slots": {
+                        "brands_interest": [],
+                        "budget_range": "около 300 тыс.",
+                        "categories": [
+                            "салюты",
+                            "мелочь"
+                        ],
+                        "city": "Нижний Новгород",
+                        "competitor_discount": null,
+                        "current_supplier": null,
+                        "email": "contact-0001@baseline.invalid",
+                        "experience": "много лет",
+                        "legal": null,
+                        "messenger": null,
+                        "name": null,
+                        "next_contact_at": null,
+                        "outlet_floor": null,
+                        "outlet_type": "интернет",
+                        "purpose": "на продажу",
+                        "timing": "ближе к сезону"
+                    },
+                    "stage": "close_contact",
+                    "summary": "Клиент из Нижнего Новгорода интересуется оптовой закупкой пиротехники для перепродажи через интернет с доставкой по области. Изначально он запрашивал наличие и цену на \"Корсар-8\", затем добавил запрос по \"Маэстро 100 залпов Русского фейерверка\", акцентируя интерес на салютах. Менеджер обещал уточнить наличие и цены по обоим позициям сегодня, а также выслал прайс на почту клиента, который уже торгует пиротехникой много лет. Клиент отказался раскрывать текущих поставщиков и условия скидок, предложив сначала оценить прайс, а менеджер запросил примерную сумму первой закупки для расчёта скидки.",
+                    "unknown_questions": [
+                        "Корсар-8: есть ли в наличии и цена за коробку (клиент из Нижнего Новгорода)",
+                        "наличие: Корсар-8: наличие и цена за коробку (клиент из Нижнего Новгорода)",
+                        "Маэстро 100 залпов (Русский фейерверк): есть ли в наличии и цена за коробку (клиент из Нижнего Новгорода, интернет-торговля)"
+                    ]
+                }
+            },
+            {
+                "client": "Telegram. Только, пожалуйста, не забудьте про Корсар-8 и Маэстро, как обещали, сегодня.",
+                "meta": {
+                    "cost_usd": 0.012198,
+                    "extraction": {
+                        "asked_if_bot": false,
+                        "client_claims": [],
+                        "client_intent": "give_contact",
+                        "client_questions": [],
+                        "closed_topic": null,
+                        "confidence": 1,
+                        "do_not_disturb": false,
+                        "objections": [],
+                        "off_topic": false,
+                        "prompt_injection": false,
+                        "refused_slots": [],
+                        "sentiment": "neutral",
+                        "slot_updates": {
+                            "brands_interest": null,
+                            "budget_range": null,
+                            "categories": null,
+                            "city": null,
+                            "competitor_discount": null,
+                            "current_supplier": null,
+                            "email": null,
+                            "experience": null,
+                            "legal": null,
+                            "messenger": "Telegram",
+                            "name": null,
+                            "next_contact_at": null,
+                            "outlet_floor": null,
+                            "outlet_type": null,
+                            "purpose": null,
+                            "timing": null
+                        },
+                        "unknown_question": null,
+                        "wants_human": false,
+                        "wants_only_prices": false
+                    },
+                    "goal": {
+                        "allowed_tools": [
+                            "mark_do_not_disturb",
+                            "create_promise",
+                            "log_unknown_question",
+                            "send_requisites",
+                            "check_stock",
+                            "calc_delivery",
+                            "send_price",
+                            "set_followup"
+                        ],
+                        "constraints": [],
+                        "extras": [],
+                        "facts": [],
+                        "fewshot_tags": [
+                            "ask_next_contact"
+                        ],
+                        "instruction": "Спросить, когда удобно списаться по обратной связи, предложив два варианта. Вызвать set_followup, если клиент уже назвал дату. Один вопрос.",
+                        "kind": "close_contact",
+                        "slot": "next_contact_at",
+                        "trigger": null
+                    },
+                    "guard": {
+                        "issues": [],
+                        "questions": 1,
+                        "verdict": "ok",
+                        "warnings": [],
+                        "words": 21
+                    },
+                    "tool_calls": []
+                },
+                "outcome": "partial_contact",
+                "reply": "Не забуду, обе позиции пришлю сегодня в Telegram. Когда вам удобно списаться по обратной связи после прайса: завтра или в пятницу?",
+                "stage": "close_contact",
+                "state": {
+                    "client_type": "experienced",
+                    "counters": {
+                        "budget_asks": 1,
+                        "closed_topic_streak": 0,
+                        "followups_sent": 0,
+                        "guard_regens": 0,
+                        "negative_streak": 0,
+                        "off_topic_streak": 0,
+                        "turns": 9,
+                        "unclear_streak": 0,
+                        "unknown_facts": 3,
+                        "unknown_insist": 1
+                    },
+                    "flags": {
+                        "do_not_disturb": false,
+                        "duplicate_lead": false,
+                        "escalate": false,
+                        "escalate_reason": null,
+                        "introduced": true,
+                        "price_sent": true,
+                        "requisites_sent": false
+                    },
+                    "missing": [
+                        {
+                            "reason": "declined",
+                            "slot": "current_supplier",
+                            "suggested_question": "С кем сейчас работаете, если не секрет? Я не для того, чтобы переманивать — понять, чем можем быть полезны сверху."
+                        },
+                        {
+                            "reason": "not_asked",
+                            "slot": "next_contact_at",
+                            "suggested_question": "Когда удобно списаться по обратной связи — завтра или в пятницу?"
+                        }
+                    ],
+                    "outcome": "partial_contact",
+                    "promises": [
+                        {
+                            "created_at": "2026-10-31T06:00:00+00:00",
+                            "done": false,
+                            "text": "уточнить: Корсар-8: есть ли в наличии и цена за коробку (клиент из Нижнего Новгорода)"
+                        },
+                        {
+                            "created_at": "2026-10-31T06:00:00+00:00",
+                            "done": false,
+                            "text": "уточнить наличие: Корсар-8: наличие и цена за коробку (клиент из Нижнего Новгорода)"
+                        },
+                        {
+                            "created_at": "2026-10-31T06:00:00+00:00",
+                            "done": false,
+                            "text": "уточнить: Маэстро 100 залпов (Русский фейерверк): есть ли в наличии и цена за коробку (клиент из Нижнего Новгорода, интернет-торговля)"
+                        }
+                    ],
+                    "signals": {
+                        "asked_counts": {
+                            "budget_range": 1,
+                            "categories": 1,
+                            "city": 1,
+                            "current_supplier": 1,
+                            "experience": 1,
+                            "messenger": 1,
+                            "next_contact_at": 1,
+                            "outlet_type": 1,
+                            "purpose": 1,
+                            "timing": 1
+                        },
+                        "asked_if_bot": false,
+                        "asked_slots": [
+                            "city",
+                            "purpose",
+                            "experience",
+                            "outlet_type",
+                            "current_supplier",
+                            "categories",
+                            "budget_range",
+                            "timing",
+                            "messenger",
+                            "next_contact_at"
+                        ],
+                        "client_claims": [],
+                        "client_questions": [],
+                        "last_asked_slot": "next_contact_at",
+                        "last_client_intent": "give_contact",
+                        "last_trigger_turn": 5,
+                        "last_unknown_topic": "маэстро 100 залпов русского фейерверка у вас есть вообще если да то почём ",
+                        "objections": [],
+                        "prev_intent": "give_contact",
+                        "refused_slots": {
+                            "competitor_discount": true,
+                            "current_supplier": true
+                        },
+                        "sentiment": "neutral",
+                        "triggers_used": {
+                            "not_tied_to_volume": 1
+                        },
+                        "wants_only_prices": false
+                    },
+                    "slots": {
+                        "brands_interest": [],
+                        "budget_range": "около 300 тыс.",
+                        "categories": [
+                            "салюты",
+                            "мелочь"
+                        ],
+                        "city": "Нижний Новгород",
+                        "competitor_discount": null,
+                        "current_supplier": null,
+                        "email": "contact-0001@baseline.invalid",
+                        "experience": "много лет",
+                        "legal": null,
+                        "messenger": "Telegram",
+                        "name": null,
+                        "next_contact_at": null,
+                        "outlet_floor": null,
+                        "outlet_type": "интернет",
+                        "purpose": "на продажу",
+                        "timing": "ближе к сезону"
+                    },
+                    "stage": "close_contact",
+                    "summary": "Клиент из Нижнего Новгорода интересуется оптовой закупкой пиротехники для перепродажи через интернет с доставкой по области. Изначально он запрашивал наличие и цену на \"Корсар-8\", затем добавил запрос по \"Маэстро 100 залпов Русского фейерверка\", акцентируя интерес на салютах. Менеджер обещал уточнить наличие и цены по обоим позициям сегодня, а также выслал прайс на почту клиента, который уже торгует пиротехникой много лет. Клиент отказался раскрывать текущих поставщиков и условия скидок, предложив сначала оценить прайс, а менеджер запросил примерную сумму первой закупки для расчёта скидки.",
+                    "unknown_questions": [
+                        "Корсар-8: есть ли в наличии и цена за коробку (клиент из Нижнего Новгорода)",
+                        "наличие: Корсар-8: наличие и цена за коробку (клиент из Нижнего Новгорода)",
+                        "Маэстро 100 залпов (Русский фейерверк): есть ли в наличии и цена за коробку (клиент из Нижнего Новгорода, интернет-торговля)"
+                    ]
+                }
+            },
+            {
+                "client": "Завтра удобнее, но если сегодня успеете по Корсару-8 и Маэстро, тогда и вопросы сразу закроем. Пишите в Telegram.",
+                "meta": {
+                    "cost_usd": 0.023153,
+                    "extraction": {
+                        "asked_if_bot": false,
+                        "client_claims": [],
+                        "client_intent": "answer_only",
+                        "client_questions": [],
+                        "closed_topic": null,
+                        "confidence": 1,
+                        "do_not_disturb": false,
+                        "objections": [],
+                        "off_topic": false,
+                        "prompt_injection": false,
+                        "refused_slots": [],
+                        "sentiment": "neutral",
+                        "slot_updates": {
+                            "brands_interest": null,
+                            "budget_range": null,
+                            "categories": null,
+                            "city": null,
+                            "competitor_discount": null,
+                            "current_supplier": null,
+                            "email": null,
+                            "experience": null,
+                            "legal": null,
+                            "messenger": null,
+                            "name": null,
+                            "next_contact_at": "завтра",
+                            "outlet_floor": null,
+                            "outlet_type": null,
+                            "purpose": null,
+                            "timing": null
+                        },
+                        "unknown_question": null,
+                        "wants_human": false,
+                        "wants_only_prices": false
+                    },
+                    "goal": {
+                        "allowed_tools": [
+                            "mark_do_not_disturb",
+                            "create_promise",
+                            "log_unknown_question",
+                            "send_requisites",
+                            "check_stock",
+                            "calc_delivery",
+                            "send_price",
+                            "set_followup"
+                        ],
+                        "constraints": [],
+                        "extras": [],
+                        "facts": [],
+                        "fewshot_tags": [
+                            "followup_close",
+                            "price_sent"
+                        ],
+                        "instruction": "Если клиент назвал дату — вызвать set_followup. Коротко подтвердить договорённость, ответить на вопрос, если был. Без нового вопроса.",
+                        "kind": "wrap_up",
+                        "slot": null,
+                        "trigger": null
+                    },
+                    "guard": {
+                        "issues": [],
+                        "questions": 0,
+                        "verdict": "ok",
+                        "warnings": [],
+                        "words": 29
+                    },
+                    "tool_calls": [
+                        {
+                            "args": {
+                                "datetime": "завтра",
+                                "reason": "Обратная связь по прайсу; до этого сегодня в Telegram прислать наличие и цену Корсар-8 и Маэстро 100 залпов"
+                            },
+                            "name": "set_followup",
+                            "result": {
+                                "next_contact_at": "2026-11-01T11:00:00+00:00",
+                                "ok": true
+                            }
+                        },
+                        {
+                            "args": {
+                                "text": "Сегодня написать клиенту в Telegram: наличие и цена за коробку по Корсар-8 и Маэстро 100 залпов"
+                            },
+                            "name": "create_promise",
+                            "result": {
+                                "ok": true
+                            }
+                        }
+                    ]
+                },
+                "outcome": "full_contact",
+                "reply": "Договорились. Сегодня постараюсь вернуться с наличием и ценой за коробку по Корсару-8 и Маэстро, напишу в Telegram. А завтра свяжусь с вами, обсудим прайс и что по нему скажете.",
+                "stage": "followup",
+                "state": {
+                    "client_type": "experienced",
+                    "counters": {
+                        "budget_asks": 1,
+                        "closed_topic_streak": 0,
+                        "followups_sent": 0,
+                        "guard_regens": 0,
+                        "negative_streak": 0,
+                        "off_topic_streak": 0,
+                        "turns": 10,
+                        "unclear_streak": 0,
+                        "unknown_facts": 3,
+                        "unknown_insist": 1
+                    },
+                    "flags": {
+                        "do_not_disturb": false,
+                        "duplicate_lead": false,
+                        "escalate": false,
+                        "escalate_reason": null,
+                        "introduced": true,
+                        "price_sent": true,
+                        "requisites_sent": false
+                    },
+                    "missing": [
+                        {
+                            "reason": "declined",
+                            "slot": "current_supplier",
+                            "suggested_question": "С кем сейчас работаете, если не секрет? Я не для того, чтобы переманивать — понять, чем можем быть полезны сверху."
+                        }
+                    ],
+                    "outcome": "full_contact",
+                    "promises": [
+                        {
+                            "created_at": "2026-10-31T06:00:00+00:00",
+                            "done": false,
+                            "text": "уточнить: Корсар-8: есть ли в наличии и цена за коробку (клиент из Нижнего Новгорода)"
+                        },
+                        {
+                            "created_at": "2026-10-31T06:00:00+00:00",
+                            "done": false,
+                            "text": "уточнить наличие: Корсар-8: наличие и цена за коробку (клиент из Нижнего Новгорода)"
+                        },
+                        {
+                            "created_at": "2026-10-31T06:00:00+00:00",
+                            "done": false,
+                            "text": "уточнить: Маэстро 100 залпов (Русский фейерверк): есть ли в наличии и цена за коробку (клиент из Нижнего Новгорода, интернет-торговля)"
+                        },
+                        {
+                            "created_at": "2026-10-31T06:00:00+00:00",
+                            "done": false,
+                            "text": "Сегодня написать клиенту в Telegram: наличие и цена за коробку по Корсар-8 и Маэстро 100 залпов"
+                        }
+                    ],
+                    "signals": {
+                        "asked_counts": {
+                            "budget_range": 1,
+                            "categories": 1,
+                            "city": 1,
+                            "current_supplier": 1,
+                            "experience": 1,
+                            "messenger": 1,
+                            "next_contact_at": 1,
+                            "outlet_type": 1,
+                            "purpose": 1,
+                            "timing": 1
+                        },
+                        "asked_if_bot": false,
+                        "asked_slots": [
+                            "city",
+                            "purpose",
+                            "experience",
+                            "outlet_type",
+                            "current_supplier",
+                            "categories",
+                            "budget_range",
+                            "timing",
+                            "messenger",
+                            "next_contact_at"
+                        ],
+                        "client_claims": [],
+                        "client_questions": [],
+                        "last_asked_slot": "next_contact_at",
+                        "last_client_intent": "answer_only",
+                        "last_trigger_turn": 5,
+                        "last_unknown_topic": "маэстро 100 залпов русского фейерверка у вас есть вообще если да то почём ",
+                        "objections": [],
+                        "prev_intent": "answer_only",
+                        "refused_slots": {
+                            "competitor_discount": true,
+                            "current_supplier": true
+                        },
+                        "sentiment": "neutral",
+                        "triggers_used": {
+                            "not_tied_to_volume": 1
+                        },
+                        "wants_only_prices": false
+                    },
+                    "slots": {
+                        "brands_interest": [],
+                        "budget_range": "около 300 тыс.",
+                        "categories": [
+                            "салюты",
+                            "мелочь"
+                        ],
+                        "city": "Нижний Новгород",
+                        "competitor_discount": null,
+                        "current_supplier": null,
+                        "email": "contact-0001@baseline.invalid",
+                        "experience": "много лет",
+                        "legal": null,
+                        "messenger": "Telegram",
+                        "name": null,
+                        "next_contact_at": "завтра",
+                        "outlet_floor": null,
+                        "outlet_type": "интернет",
+                        "purpose": "на продажу",
+                        "timing": "ближе к сезону"
+                    },
+                    "stage": "followup",
+                    "summary": "Клиент из Нижнего Новгорода интересуется оптовой закупкой пиротехники для перепродажи через интернет с доставкой по области. Изначально он запрашивал наличие и цену на \"Корсар-8\", затем добавил запрос по \"Маэстро 100 залпов Русского фейерверка\", акцентируя интерес на салютах. Менеджер обещал уточнить наличие и цены по обоим позициям сегодня, а также выслал прайс на почту клиента, который уже торгует пиротехникой много лет. Клиент отказался раскрывать текущих поставщиков и условия скидок, предложив сначала оценить прайс, а менеджер запросил примерную сумму первой закупки для расчёта скидки.",
+                    "unknown_questions": [
+                        "Корсар-8: есть ли в наличии и цена за коробку (клиент из Нижнего Новгорода)",
+                        "наличие: Корсар-8: наличие и цена за коробку (клиент из Нижнего Новгорода)",
+                        "Маэстро 100 залпов (Русский фейерверк): есть ли в наличии и цена за коробку (клиент из Нижнего Новгорода, интернет-торговля)"
+                    ]
+                }
+            }
+        ]
+    },
+    "versions": {
+        "config_sha256": "d3a054c8662befb4a499584ca6f7134291aacf07013f88ff8b6cf06017947ffa",
+        "harness_sha256": "82356b1274d808443ffcdba356a5ce007437efd618a33569583395bbfb69b71b",
+        "normalization": "contacts-v1",
+        "prompts_sha256": "c3f1a4e64c0ac5336787c85a2373b586e2ebbaa85371fcdce2cceecc65ea0786",
+        "prototype_source_sha256": "ca981cc08d5352c214cad41d6d69a25b3b7b54f0d739344d52b0733e128435b6"
+    }
+}

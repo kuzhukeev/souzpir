@@ -1,0 +1,17 @@
+{
+    "files": {
+        "tools/baseline/ContactNormalizer.php": "6a33c547740bbe8d73f2220ac4cb334cd0f660a665637aa5ecedfe9f3acd9a2e",
+        "tools/baseline/FixtureClient.php": "64534c82be4c410bf4126fa405a1e23bf56016691fbe9333febbcfda99e9599c",
+        "tools/baseline/RecordedClient.php": "06984e35467522aec7bb3f9e91dd0e574bc5fb7e7b966cbcf34c90d78906c46f",
+        "tools/baseline/bootstrap.php": "bc959da3680334f9ec4957ba916ac61f55180be73fc8f83cc5192835c4eec036",
+        "tools/baseline/capture-case.php": "e54e534be22e96f50de3d670f6648350dcde803851da70937b79b5d46b638abf",
+        "tools/baseline/capture-scenarios.php": "97fe16b08244e379cbd1acafe0582e4780e95e716e66ae817c302850768082d9",
+        "tools/baseline/capture.py": "0615594fdad757fa5eeeb30fbfc5b0a8390c08e331c17ff32c7fe4de8a296b27",
+        "tools/baseline/capture_broker.py": "b4b3fdf433fd6fbc5f248799590c4ba0e338e51e02e7b11d6026475b7d0889cb",
+        "tools/baseline/orphan_ledger.py": "bf90985a2a36f641bf1fceaccd492cc080645871400477659a27248583d7286d",
+        "tools/baseline/reconcile.py": "2a9ffd6ebab4a495b72738528eba50d5b8f770387052672b73c33f311e9b7b83",
+        "tools/baseline/verify.py": "e24a999cb55f153d73a89b3631688e127a05703284f81e20542677751daa86cf"
+    },
+    "hashing": "sha256-utf8-lf-v1",
+    "schema_version": 2
+}
