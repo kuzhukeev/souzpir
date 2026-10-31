@@ -6,6 +6,7 @@ use App\Models\Brand;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\User;
+use App\Shell\Integrations\PruneSecretReceipts;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
@@ -27,6 +28,53 @@ final class SecretSharedSessionRaceTest extends TestCase
     public function test_secret_reveal_is_denied_when_logout_wins(): void
     {
         $this->assertLogoutRevealRace(true);
+    }
+
+    public function test_pruning_expired_consumed_receipt_cannot_revive_a_restored_session(): void
+    {
+        Http::preventStrayRequests();
+        $owner = User::create(['name' => 'Race owner', 'email' => 'e110-race@example.test', 'password' => 'race-password-strong']);
+        $owner->forceFill(['email_verified_at' => now()])->save();
+        $organization = Organization::create(['name' => 'Race fixture', 'owner_user_id' => $owner->id]);
+        app(TenantContextRunner::class)->run(new TenantContext($organization->id, actorId: $owner->id), function () use ($owner): void {
+            Membership::create(['user_id' => $owner->id, 'role' => 'owner']);
+            Brand::create(['name' => 'Race brand', 'theme' => 'neutral']);
+        });
+        $barrier = base_path('.local/tmp/e110-replay-'.Str::random(16));
+        try {
+            $login = $this->worker('login', null, $barrier, $organization->id);
+            $login->mustRun();
+            $loginData = json_decode($login->getOutput(), true, flags: JSON_THROW_ON_ERROR);
+            $select = $this->worker('select', $loginData['cookie'], $barrier, $organization->id);
+            $select->mustRun();
+            $selectData = json_decode($select->getOutput(), true, flags: JSON_THROW_ON_ERROR);
+            $create = $this->worker('create', $selectData['cookie'], $barrier, $organization->id);
+            $create->mustRun();
+            $created = json_decode($create->getOutput(), true, flags: JSON_THROW_ON_ERROR);
+            self::assertSame(302, $created['status']);
+            $session = DB::table('sessions')->where('user_id', $owner->id)->first(['id', 'payload']);
+            self::assertNotNull($session);
+            file_put_contents($barrier.'.release', '1');
+            $reveal = $this->worker('first', $created['cookie'], $barrier, $organization->id);
+            $reveal->mustRun();
+            $revealed = json_decode($reveal->getOutput(), true, flags: JSON_THROW_ON_ERROR);
+            self::assertSame(200, $revealed['status']);
+            self::assertTrue($revealed['has_value']);
+            self::assertSame(1, DB::table('integration_secret_receipts')->whereNotNull('consumed_at')->update(['expires_at' => now()->subMinute()]));
+            self::assertSame(1, app(PruneSecretReceipts::class)->prune(1));
+            DB::table('sessions')->where('id', $session->id)->update(['payload' => $session->payload]);
+            $retry = $this->worker('second', $created['cookie'], $barrier, $organization->id);
+            $retry->mustRun();
+            $retried = json_decode($retry->getOutput(), true, flags: JSON_THROW_ON_ERROR);
+            self::assertSame(404, $retried['status']);
+            self::assertFalse($retried['has_value']);
+        } finally {
+            foreach (['.locked', '.second-started', '.release'] as $suffix) {
+                if (is_file($barrier.$suffix)) {
+                    unlink($barrier.$suffix);
+                }
+            }
+        }
     }
 
     private function assertLogoutRevealRace(bool $logoutFirst): void

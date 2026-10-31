@@ -29,7 +29,6 @@ final class SecretEnvelope
                 'session_hash' => $this->sessionHash($request),
                 'value' => $value,
             ], JSON_THROW_ON_ERROR));
-            DB::table('integration_secret_receipts')->where('expires_at', '<', now())->delete();
             DB::table('integration_secret_receipts')->insert([
                 'nonce_hash' => hash('sha256', $nonce),
                 'expires_at' => now()->addMinutes(max(1, (int) config('session.lifetime', 120))),

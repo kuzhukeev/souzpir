@@ -208,6 +208,24 @@ final class SecretSecurityTest extends TenancyTestCase
         Http::assertNothingSent();
     }
 
+    public function test_key_issuance_does_not_delete_expired_receipts(): void
+    {
+        [$owner, , $brand] = $this->cabinet();
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $oldHash = hash('sha256', 'synthetic-expired-backlog');
+        DB::table('integration_secret_receipts')->insert(['nonce_hash' => $oldHash, 'expires_at' => now()->subHour()]);
+        DB::listen(static function (QueryExecuted $query): void {
+            if (str_starts_with(strtolower($query->sql), 'delete') && str_contains($query->sql, 'integration_secret_receipts')) {
+                throw new RuntimeException('Key issuance must not run cleanup.');
+            }
+        });
+        $this->post('/integrations/api/keys', ['name' => 'Key with backlog', 'abilities' => ['read']])->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('integration_secret_receipts', ['nonce_hash' => $oldHash]);
+        $this->assertDatabaseCount('integration_secret_receipts', 2);
+        $this->postJson('/integrations/api/secrets', ['type' => 'api_key'])->assertOk();
+        $this->postJson('/integrations/api/secrets', ['type' => 'api_key'])->assertNotFound();
+    }
+
     public function test_ciphertext_is_bound_to_session_and_actor(): void
     {
         [$owner, $organization, $brand, , $membership] = $this->cabinet();
