@@ -45,38 +45,53 @@ final class SellerNotificationRouter implements NotificationRouter
         if ($rule->timing !== 'digest') {
             throw new LogicException('Unknown seller notification timing.');
         }
+        if (! config('features.E6-07.defaults.digest_enabled', false)) {
+            throw new LogicException('Seller digest processing is disabled; the outbox event must be retried.');
+        }
         $timezone = DB::table('brands')->where('organization_id', $e['organization_id'])->where('id', $e['brand_id'])->where('status', 'active')->value('timezone');
         if (! is_string($timezone)) {
             return 'skip';
         }
-        $local = CarbonImmutable::now($timezone);
-        if (! preg_match('/^([01][0-9]|2[0-3]):([0-5][0-9])$/D', $rule->digest_time, $parts)) {
+        $local = CarbonImmutable::now('UTC')->setTimezone($timezone);
+        $time = DB::table('seller_digest_preferences')->where(['organization_id' => $e['organization_id'], 'brand_id' => $e['brand_id'], 'user_id' => $member->user_id])->value('digest_time') ?? '09:00';
+        if (! is_string($time) || ! preg_match('/^([01][0-9]|2[0-3]):([0-5][0-9])$/D', $time, $parts)) {
             throw new LogicException('Invalid digest time.');
         }
         $hour = (int) $parts[1];
         $minute = (int) $parts[2];
-        $due = $local->setTime($hour, $minute);
-        if ($local->greaterThanOrEqualTo($due)) {
-            $due = $due->addDay()->setTime($hour, $minute);
-        }
+        $calendar = app(DigestLocalTime::class);
+        $date = $local->toDateString();
         $batchId = null;
         for ($attempt = 0; $attempt < 366; $attempt++) {
-            $dueAt = $due->utc()->format('Y-m-d H:i:sP');
-            app(DigestSlotLock::class)->acquire($e['organization_id'], $e['brand_id'], $member->user_id, $channel, $dueAt);
-            $batch = DB::table('seller_digest_batches')->where(['organization_id' => $e['organization_id'], 'brand_id' => $e['brand_id'], 'user_id' => $member->user_id, 'channel' => $channel, 'due_at' => $dueAt])->first();
-            if (! $batch || $batch->status === 'pending') {
+            $slot = ['organization_id' => $e['organization_id'], 'brand_id' => $e['brand_id'], 'user_id' => $member->user_id, 'channel' => $channel, 'slot_date' => $date];
+            app(DigestSlotLock::class)->acquire($e['organization_id'], $e['brand_id'], $member->user_id, $channel, $date);
+            $batch = DB::table('seller_digest_batches')->where($slot)->first();
+            if ($batch && $batch->status !== 'pending') {
+                $date = $calendar->nextDate($date);
+
+                continue;
+            }
+            $existing = DB::table('seller_digest_items')->where($slot)->orderBy('created_at')->first();
+            if ($batch || $existing) {
+                $dueAt = $batch?->due_at ?? $existing->due_at;
                 $batchId = $batch?->id;
                 break;
             }
-            // A closed or in-flight slot is never reopened: carry the late event forward.
-            $due = $due->addDay()->setTime($hour, $minute);
+            $due = $calendar->resolve($date, $hour, $minute, $timezone);
+            // Compare absolute instants: both dates may have the same wall clock but different DST offsets.
+            if ($local->timestamp >= $due->timestamp) {
+                $date = $calendar->nextDate($date);
+
+                continue;
+            }
+            $dueAt = $due->utc()->format('Y-m-d H:i:sP');
+            break;
         }
         if ($attempt === 366) {
             throw new LogicException('No open digest slot found.');
         }
         DB::table('seller_digest_items')->insertOrIgnore([
-            'id' => (string) Str::ulid(), 'organization_id' => $e['organization_id'], 'brand_id' => $e['brand_id'],
-            'event_id' => $e['event_id'], 'user_id' => $member->user_id, 'channel' => $channel,
+            'id' => (string) Str::ulid(), ...$slot, 'event_id' => $e['event_id'],
             'due_at' => $dueAt, 'batch_id' => $batchId, 'created_at' => now(), 'updated_at' => now(),
         ]);
 

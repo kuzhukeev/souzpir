@@ -36,7 +36,6 @@ final class NotificationsController
                 'roles' => self::roles($event),
                 'channels' => ['cabinet' => $rule ? (bool) $rule->cabinet : true, 'email' => $rule ? (bool) $rule->email : true, 'telegram' => $rule ? (bool) $rule->telegram : true],
                 'timing' => $rule?->timing ?? 'immediate',
-                'digest_time' => $rule?->digest_time ?? '09:00',
             ];
         }
 
@@ -61,7 +60,6 @@ final class NotificationsController
             'changes.*.channels.email' => ['required', 'boolean'],
             'changes.*.channels.telegram' => ['required', 'boolean'],
             'changes.*.timing' => ['required', Rule::in(['immediate', 'digest'])],
-            'changes.*.digest_time' => ['required', 'date_format:H:i'],
         ]);
         $changes = $data['changes'];
         usort($changes, fn ($a, $b) => $a['event'] <=> $b['event']);
@@ -83,7 +81,7 @@ final class NotificationsController
             foreach ($changes as $change) {
                 $where = ['organization_id' => $context->organizationId, 'brand_id' => $context->brandId, 'event_key' => $change['event']];
                 $old = DB::table('seller_notification_rules')->where($where)->lockForUpdate()->first();
-                $new = ['recipient' => $change['recipient'], ...$change['channels'], 'timing' => $change['timing'], 'digest_time' => $change['digest_time']];
+                $new = ['recipient' => $change['recipient'], ...$change['channels'], 'timing' => $change['timing']];
                 DB::table('seller_notification_rules')->updateOrInsert($where, [...$new, 'id' => $old?->id ?? (string) Str::ulid(), 'created_at' => $old?->created_at ?? now(), 'updated_at' => now()]);
                 app(AuditWriter::class)->record($context, new AuditEntry('seller.notification_rule.updated', 'seller_notification_rule', $change['event'], before: $old ? ['recipient' => $old->recipient, 'timing' => $old->timing] : null, after: $new));
             }

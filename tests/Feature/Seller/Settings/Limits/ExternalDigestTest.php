@@ -38,7 +38,7 @@ final class ExternalDigestTest extends TestCase
         DB::table('outbox_events')->insert(['id' => $event->envelope['event_id'], 'organization_id' => $org->id, 'brand_id' => $brand->id, 'envelope' => json_encode($event->envelope, JSON_THROW_ON_ERROR), 'created_at' => now()]);
         DB::table('seller_notification_rules')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $brand->id, 'event_key' => $type, 'recipient' => 'owner', 'cabinet' => true, 'email' => true, 'telegram' => false, 'timing' => 'digest', 'created_at' => now(), 'updated_at' => now()]);
         DB::table('notification_settings')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $brand->id, 'user_id' => $owner->id, 'event_key' => $type, 'channel' => 'email', 'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
-        $slot = ['organization_id' => $org->id, 'brand_id' => $brand->id, 'user_id' => $owner->id, 'channel' => 'email', 'due_at' => now()->subMinute()->format('Y-m-d H:i:sP')];
+        $slot = ['organization_id' => $org->id, 'brand_id' => $brand->id, 'user_id' => $owner->id, 'channel' => 'email', 'slot_date' => now()->toDateString(), 'due_at' => now()->subMinute()->format('Y-m-d H:i:sP')];
         $batch = (string) Str::ulid();
         DB::table('seller_digest_batches')->insert([...$slot, 'id' => $batch, 'status' => 'pending', 'created_at' => now(), 'updated_at' => now()]);
         DB::table('seller_digest_items')->insert([...$slot, 'id' => (string) Str::ulid(), 'batch_id' => $batch, 'event_id' => $event->envelope['event_id'], 'created_at' => now(), 'updated_at' => now()]);
@@ -136,8 +136,8 @@ final class ExternalDigestTest extends TestCase
     {
         $id = $this->pending();
         $due = '2026-10-31 06:00:00+00';
-        DB::table('seller_digest_batches')->where('id', $id)->update(['channel' => 'cabinet', 'due_at' => $due]);
-        DB::table('seller_digest_items')->where('batch_id', $id)->update(['channel' => 'cabinet', 'due_at' => $due]);
+        DB::table('seller_digest_batches')->where('id', $id)->update(['channel' => 'cabinet', 'due_at' => $due, 'slot_date' => '2026-10-31']);
+        DB::table('seller_digest_items')->where('batch_id', $id)->update(['channel' => 'cabinet', 'due_at' => $due, 'slot_date' => '2026-10-31']);
         $batch = DB::table('seller_digest_batches')->where('id', $id)->first();
         $source = DB::table('outbox_events')->first();
         $payload = json_decode($source->envelope, true, 512, JSON_THROW_ON_ERROR);
@@ -149,7 +149,7 @@ final class ExternalDigestTest extends TestCase
         $process = null;
         DB::beginTransaction();
         try {
-            app(DigestSlotLock::class)->acquire($batch->organization_id, $batch->brand_id, $batch->user_id, 'cabinet', $due);
+            app(DigestSlotLock::class)->acquire($batch->organization_id, $batch->brand_id, $batch->user_id, 'cabinet', '2026-10-31');
             $cmd = [PHP_BINARY, '-d', 'sys_temp_dir='.base_path('.local/tmp'), __DIR__.'/Fixtures/digest-route-worker.php', $eventId, $batch->user_id, $base];
             $process = proc_open($cmd, [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, base_path(), array_merge(getenv(), ['APP_ENV' => 'testing']));
             self::assertIsResource($process);
@@ -192,8 +192,8 @@ final class ExternalDigestTest extends TestCase
     {
         $id = $this->pending();
         $due = '2026-10-31 06:00:00+00';
-        DB::table('seller_digest_batches')->where('id', $id)->update(['due_at' => $due]);
-        DB::table('seller_digest_items')->where('batch_id', $id)->update(['due_at' => $due]);
+        DB::table('seller_digest_batches')->where('id', $id)->update(['due_at' => $due, 'slot_date' => '2026-10-31']);
+        DB::table('seller_digest_items')->where('batch_id', $id)->update(['due_at' => $due, 'slot_date' => '2026-10-31']);
         $batch = DB::table('seller_digest_batches')->where('id', $id)->first();
         $source = DB::table('outbox_events')->first();
         $payload = json_decode($source->envelope, true, 512, JSON_THROW_ON_ERROR);
@@ -202,12 +202,13 @@ final class ExternalDigestTest extends TestCase
         DB::table('outbox_events')->insert(['id' => $eventId, 'organization_id' => $batch->organization_id, 'brand_id' => $batch->brand_id, 'envelope' => json_encode($payload, JSON_THROW_ON_ERROR), 'created_at' => now()]);
         $event = new DomainEvent($payload);
         $member = Membership::withoutGlobalScopes()->where('organization_id', $batch->organization_id)->where('user_id', $batch->user_id)->firstOrFail();
+        config(['features.E6-07.defaults.digest_enabled' => true]);
         CarbonImmutable::setTestNow('2026-10-31T05:00:00Z');
         $base = base_path('.local/tmp/digest-included-'.Str::random(12));
         $process = null;
         DB::beginTransaction();
         try {
-            app(DigestSlotLock::class)->acquire($batch->organization_id, $batch->brand_id, $batch->user_id, 'email', $due);
+            app(DigestSlotLock::class)->acquire($batch->organization_id, $batch->brand_id, $batch->user_id, 'email', '2026-10-31');
             $cmd = [PHP_BINARY, '-d', 'sys_temp_dir='.base_path('.local/tmp'), __DIR__.'/Fixtures/digest-worker.php', $id, $base, '0'];
             $env = array_merge(getenv(), ['APP_ENV' => 'testing', 'DIGEST_TEST_NOW' => '2026-10-31T06:01:00Z']);
             $process = proc_open($cmd, [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, base_path(), $env);
