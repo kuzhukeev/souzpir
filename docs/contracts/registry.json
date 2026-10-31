@@ -50,6 +50,19 @@
     ]
   },
   "tables": {
+    "protected_operation_key_guard": {
+      "owner": "SP-C-02",
+      "tenant": "global",
+      "parents": []
+    },
+    "protected_operation_receipts": {
+      "owner": "SP-C-02",
+      "tenant": "brand",
+      "parents": [
+        "organizations",
+        "brands"
+      ]
+    },
     "users": {
       "owner": "SP-E0-01",
       "tenant": "global",
@@ -894,6 +907,11 @@
     }
   },
   "contracts": {
+    "TransactionalIdempotency": {
+      "owner": "SP-C-02",
+      "path": "app/Contracts/ProtectedOperations/TransactionalIdempotency.php",
+      "schemaVersion": 1
+    },
     "TenantContext": {
       "owner": "SP-E0-02",
       "path": "app/Tenancy/TenantContext.php",
