@@ -145,6 +145,9 @@ tasks['E1-11']['dependsOn'].append('SP-E1-01C')
 tasks['E1-11']['notes'] += ' Экспорт/длительная отдача данных обязаны проверять активность авторизованной сессии и отзыв перед выдачей; явные правила длительных потоков и тесты logout во время экспорта.'
 tasks['E5-03']['notes'] += ' API аутентифицирует явный bearer-токен; если разрешается cookie/stateful Sanctum, обязательно применять проверку отозванного session registry и тесты, не смешивать bearer и cookie.'
 
+tasks['E1-03']['dependsOn'].append('SP-E6-07')
+tasks['E1-03']['notes'] += ' В общей ленте S-1.3 показывать реальные доставленные кабинетные сводки продавца из SP-E6-07 с соблюдением org/brand/user и актуальных прав; не создавать фиктивные исходные события или одиночные доставки. Тесты смешанной ленты, изоляции и отзыва доступа обязательны.'
+
 # Cross-cutting verification is a barrier after all implementation slices, not vague 'all'.
 deps('E9-01',*[k for k in tasks if k.startswith(('E1-','E4-','E5-','E6-','E7-','E8-'))], 'E3-07')
 scope('E9-01','tests/Browser/Acceptance/','tests/visual/','docs/validation/acceptance.md')
