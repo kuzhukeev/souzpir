@@ -102,6 +102,28 @@ final class FollowupDateTest extends TestCase
         self::assertFalse($numeric['day_defaulted']);
     }
 
+    public function test_month_forms_with_preposition_and_bare_month_preserve_prototype_defaults(): void
+    {
+        $now = CarbonImmutable::parse('2026-02-01 10:00:00', 'Europe/Moscow');
+        foreach ([
+            'в октябре' => '2026-10-05 11:00:00 +03:00',
+            'октябрь' => '2026-10-05 11:00:00 +03:00',
+            'в марте' => '2026-03-05 11:00:00 +03:00',
+            'март' => '2026-03-05 11:00:00 +03:00',
+        ] as $input => $expected) {
+            $actual = (new FollowupDate)->parse($input, $now);
+            self::assertSame('candidate', $actual['status'], $input);
+            self::assertSame($expected, $actual['date']->format('Y-m-d H:i:s P'), $input);
+            self::assertSame('month', $actual['source'], $input);
+            self::assertTrue($actual['time_defaulted'], $input);
+            self::assertTrue($actual['day_defaulted'], $input);
+            self::assertTrue($actual['year_defaulted'], $input);
+        }
+        $ambiguous = (new FollowupDate)->parse('в конце октября', $now);
+        self::assertSame('needs_clarification', $ambiguous['status']);
+        self::assertNull($ambiguous['date']);
+    }
+
     public function test_an_entire_skipped_civil_day_never_moves_the_candidate_to_another_day(): void
     {
         $parser = new FollowupDate;

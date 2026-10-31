@@ -106,7 +106,7 @@ final class FollowupDate
             'июн(?:ь|я|е)' => 6, 'июл(?:ь|я|е)' => 7, 'август(?:а|е)?' => 8, 'сентябр(?:ь|я|е)' => 9,
             'октябр(?:ь|я|е)' => 10, 'ноябр(?:ь|я|е)' => 11, 'декабр(?:ь|я|е)' => 12];
         foreach ($months as $pattern => $month) {
-            if ($this->matches('/\A(?:(?:в\s+)?(начало|начале|середина|середине)\s+)?'.$pattern.'\z/u', $input, $matches)) {
+            if ($this->matches('/\A(?:в\s+)?(?:(начало|начале|середина|середине)\s+)?'.$pattern.'\z/u', $input, $matches)) {
                 $day = str_starts_with($matches[1] ?? '', 'серед') ? 15 : 5;
 
                 return $this->annualCandidate($month, $day, $now, 'month');
