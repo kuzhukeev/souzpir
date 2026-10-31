@@ -25,6 +25,7 @@ export default function Security({
   const [mfaOpen, setMfaOpen] = useState(false);
   const [dismissedSetup, setDismissedSetup] = useState<string | null>(null);
   const [targetSession, setTargetSession] = useState<string | null>(null);
+  const [securityUncertain, setSecurityUncertain] = useState('');
   const [copyStatus, setCopyStatus] = useState('');
   const [recoveryOpen, setRecoveryOpen] = useState(false);
   const [recoveryInput, setRecoveryInput] = useState('');
@@ -48,12 +49,14 @@ export default function Security({
   const savePassword = (event: FormEvent) => {
     event.preventDefault();
     feedback.clear();
+    setSecurityUncertain('');
+    const failed = () => { setSecurityUncertain(t('password_result_unknown')); return false; };
     password.put('/profile/security/password', {
       preserveScroll: true,
       onSuccess: () => feedback.setNotice(t('password_saved')),
       onFinish: () => password.reset(),
-      onNetworkError: feedback.failure,
-      onHttpException: feedback.failure,
+      onNetworkError: failed,
+      onHttpException: failed,
     });
   };
   const submitMfa = (event: FormEvent) => {
@@ -132,6 +135,8 @@ export default function Security({
   const endSessions = () => {
     if (!targetSession) return;
     feedback.clear();
+    setSecurityUncertain('');
+    const failed = () => { setTargetSession(null); setSecurityUncertain(t('sessions_result_unknown')); return false; };
     sessions.delete(
       targetSession === 'others'
         ? '/profile/security/sessions'
@@ -139,15 +144,16 @@ export default function Security({
       {
         preserveScroll: true,
         onSuccess: () => setTargetSession(null),
-        onNetworkError: feedback.failure,
-        onHttpException: feedback.failure,
+        onNetworkError: failed,
+        onHttpException: failed,
       },
     );
   };
   return (
     <ProfilePage active="security">
-      <Notice>{feedback.notice || status}</Notice>
+      <Notice>{securityUncertain ? '' : feedback.notice || status}</Notice>
       <Errors errors={sessions.errors} transport={feedback.transport} />
+      {securityUncertain && <Errors transport={securityUncertain} />}
       <div className="grid items-start gap-5 xl:grid-cols-2">
         <section className={panel}>
           <div className="mb-5 flex items-start gap-3">

@@ -131,7 +131,7 @@ const translations = Object.fromEntries(
 );
 const shared = {
   ...pageData,
-  status: null,
+  status: params.has('oldSecurityStatus') ? 'Пароль изменён. Другие сессии завершены.' : null,
   auth: { user: owner },
   organization: { id: '01J00000000000000000000001', name: 'Союз Пир' },
   brand: { id: '01J00000000000000000000004', name: 'Пиротехника · праздничные события', theme },
