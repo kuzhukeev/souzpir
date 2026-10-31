@@ -1,12 +1,12 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 import { Bell, MessageCircle, Clock3, BookOpen, FileText, TriangleAlert, Link2, ChartNoAxesCombined } from 'lucide-react';
-import { Button, Input, Select } from '@/components/ui';
+import { Button, Select } from '@/components/ui';
 import CabinetLayout from '@/layouts/CabinetLayout';
 
 type Channel = 'cabinet' | 'email' | 'telegram';
 type Recipient = 'all' | 'owner' | 'admin' | 'manager' | 'editor';
-type Row = { event: string; label: string; recipient: Recipient; roles: Recipient[]; channels: Record<Channel, boolean>; timing: 'immediate' | 'digest'; digest_time: string };
+type Row = { event: string; label: string; recipient: Recipient; roles: Recipient[]; channels: Record<Channel, boolean>; timing: 'immediate' | 'digest' };
 type Test = { id: string; event_key: string; channel: Channel; status: string; created_at: string };
 const roles: Record<Recipient, string> = { all: 'Все с доступом', owner: 'Владелец', admin: 'Администраторы', manager: 'Менеджеры', editor: 'Редакторы' };
 const channels: { key: Channel; label: string }[] = [{ key: 'cabinet', label: 'Кабинет' }, { key: 'email', label: 'Почта' }, { key: 'telegram', label: 'Telegram' }];
@@ -56,7 +56,7 @@ export default function Notifications({ rows, canEdit, digestAvailable, testKey:
         <Link href="/seller/settings/limits" className="rounded-lg bg-(--color-surface) px-4 py-3 text-sm text-(--color-link)">Лимиты</Link>
         <span aria-current="page" className="rounded-lg bg-(--color-success-soft) px-4 py-3 text-sm font-semibold text-(--color-action)">Уведомления</span>
       </nav>
-      <p className="mb-4 text-sm text-(--color-ink-muted)">Получатели выбираются среди участников с доступом к бренду и событию. Их личные настройки каналов также учитываются. Сводка отправляется раз в день в выбранное время по часовому поясу бренда. Изменения времени применяются к новым событиям.</p>
+      <p className="mb-4 text-sm text-(--color-ink-muted)">Получатели выбираются среди участников с доступом к бренду и событию. Их личные настройки каналов также учитываются. Сводка отправляется раз в день в личное время получателя по часовому поясу бренда.</p>
       <Link href="/seller/settings/notifications/digests" className="mb-4 inline-block text-sm text-(--color-link)">Мои сводки</Link>
       {!digestAvailable && <p role="status" className="mb-4 text-sm text-(--color-ink-muted)">Доставка сводок пока недоступна.</p>}
       <section aria-label="Тестовое уведомление" className="mb-4 flex flex-wrap items-end gap-3 rounded-2xl bg-(--color-surface) p-4">
@@ -73,7 +73,7 @@ export default function Notifications({ rows, canEdit, digestAvailable, testKey:
               <div className="flex min-h-10 items-center gap-3"><span className="grid size-11 shrink-0 place-items-center rounded-full bg-(--color-info-soft) text-(--color-link)"><Icon size={20} aria-hidden="true" /></span><p className="font-semibold">{row.label}</p></div>
               <Select label="Кому" value={row.recipient} disabled={!canEdit || busy} options={row.roles.map((role) => ({ value: role, label: roles[role] }))} onValueChange={(value) => edit(row.event, { recipient: value as Recipient })} />
               <fieldset disabled={!canEdit || busy} aria-label={'Каналы: ' + row.label} className="flex min-h-10 flex-wrap items-center gap-x-4 gap-y-2">{channels.map(({ key, label }) => <label key={key} className="inline-flex items-center gap-2 text-sm"><input type="checkbox" checked={row.channels[key]} onChange={(e) => edit(row.event, { channels: { ...row.channels, [key]: e.target.checked } })} className="size-4 cursor-pointer accent-(--color-action)" />{label}</label>)}</fieldset>
-              <div><Select label="Когда" value={row.timing} disabled={!canEdit || busy} options={[{ value: 'immediate', label: 'Сразу' }, { value: 'digest', label: 'Сводкой', disabled: !digestAvailable }]} onValueChange={(value) => edit(row.event, { timing: value as Row['timing'] })} />{row.timing === 'digest' && <Input className="mt-2" label={'Время сводки: ' + row.label} type="time" required value={row.digest_time} disabled={!canEdit || busy} onChange={(event) => edit(row.event, { digest_time: event.target.value })} />}</div>
+              <Select label="Когда" value={row.timing} disabled={!canEdit || busy} options={[{ value: 'immediate', label: 'Сразу' }, { value: 'digest', label: 'Сводкой', disabled: !digestAvailable }]} onValueChange={(value) => edit(row.event, { timing: value as Row['timing'] })} />
             </li>
           ); })}
         </ul>

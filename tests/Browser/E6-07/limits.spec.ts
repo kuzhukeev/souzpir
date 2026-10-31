@@ -62,19 +62,30 @@ test('real counters and brand delivery settings persist at all supported widths'
   await event.getByLabel('Кабинет').uncheck();
   await page.getByLabel('Когда', { exact: true }).first().click();
   await page.getByRole('option', { name: 'Сводкой' }).click();
-  await page.getByLabel('Время сводки: Диалог ждёт менеджера').fill('13:45');
   await page.getByRole('button', { name: 'Сохранить изменения' }).click();
   await expect(page.getByRole('status').last()).toHaveText('Настройки сохранены.');
   await page.reload();
   await expect(event.getByLabel('Почта')).toBeChecked();
   await expect(event.getByLabel('Кабинет')).not.toBeChecked();
-  await expect(page.getByLabel('Время сводки: Диалог ждёт менеджера')).toHaveValue('13:45');
   await page.getByLabel('Событие для теста').click();
   await page.getByRole('option', { name: 'Обещание просрочено' }).click();
   await page.getByRole('button', { name: 'Отправить тест себе' }).click();
   await expect(page.getByText('Кабинет: доставлен')).toBeVisible();
   await page.getByRole('link', { name: 'Мои сводки' }).click();
   await expect(page.getByText('Тест уведомлений продавца')).toBeVisible();
+  await page.getByLabel('Моё время сводки').fill('13:45');
+  await page.getByRole('button', { name: 'Сохранить время' }).click();
+  await expect(page.getByRole('status')).toHaveText('Время сводки сохранено.');
+  await page.reload();
+  await expect(page.getByLabel('Моё время сводки')).toHaveValue('13:45');
+  for (const width of [1440, 1024, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+    await page.addScriptTag({ path: require.resolve('axe-core/axe.min.js') });
+    const violations = await page.evaluate(async () => (await (window as unknown as { axe: { run: (root: Document, options: object) => Promise<{ violations: { id: string }[] }> } }).axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa'] } })).violations.map((item) => item.id));
+    expect(violations).toEqual([]);
+    await page.screenshot({ path: path.join(shots, 'digest-time-' + width + '.png'), fullPage: true, animations: 'disabled' });
+  }
   await page.goBack();
   for (const width of [1440, 1024, 390]) {
     await page.setViewportSize({ width, height: 900 });

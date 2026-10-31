@@ -21,8 +21,13 @@ final class SellerUsage implements UsageContributor
         $scoped = static fn (string $table) => DB::table($table)->where('organization_id', $organization)->where('brand_id', $brand);
         $from = $query->from->format('Y-m-d H:i:sP');
         $to = $query->to->format('Y-m-d H:i:sP');
-        if (isset($requested['seller.dialogs_month'])) {
-            $out['seller.dialogs_month'] = ['value' => $scoped('conversations')->where('created_at', '>=', $from)->where('created_at', '<', $to)->count(), 'unit' => 'dialogues', 'status' => 'ready'];
+        if (isset($requested['seller.dialogs_month']) || isset($requested['seller.dialogues'])) {
+            $dialogues = ['value' => $scoped('conversations')->where('created_at', '>=', $from)->where('created_at', '<', $to)->count(), 'unit' => 'dialogues', 'status' => 'ready'];
+            foreach (['seller.dialogs_month', 'seller.dialogues'] as $key) {
+                if (isset($requested[$key])) {
+                    $out[$key] = $dialogues;
+                }
+            }
         }
         if (isset($requested['seller.messages_month'])) {
             $out['seller.messages_month'] = ['value' => $scoped('messages')->whereIn('role', ['client', 'agent'])->where('created_at', '>=', $from)->where('created_at', '<', $to)->count(), 'unit' => 'messages', 'status' => 'ready'];

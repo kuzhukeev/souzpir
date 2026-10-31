@@ -21,7 +21,7 @@ final class NotificationsTest extends TenancyTestCase
 
     private function change(array $overrides = []): array
     {
-        return [...['event' => self::EVENT, 'recipient' => 'manager', 'channels' => ['cabinet' => true, 'email' => false, 'telegram' => false], 'timing' => 'immediate', 'digest_time' => '09:00'], ...$overrides];
+        return [...['event' => self::EVENT, 'recipient' => 'manager', 'channels' => ['cabinet' => true, 'email' => false, 'telegram' => false], 'timing' => 'immediate'], ...$overrides];
     }
 
     public function test_owner_saves_brand_rules_without_overriding_personal_preferences(): void
@@ -125,44 +125,13 @@ final class NotificationsTest extends TenancyTestCase
         $this->assertDatabaseHas('notification_deliveries', ['id' => $id, 'status' => 'failed']);
     }
 
-    public function test_configured_time_is_persisted_and_affects_only_new_items(): void
-    {
-        [$owner, $org, $brand] = $this->cabinet();
-        $this->within($org, $brand, fn () => $brand->update(['timezone' => 'Europe/Moscow']));
-        $member = Membership::withoutGlobalScopes()->where('organization_id', $org->id)->where('user_id', $owner->id)->firstOrFail();
-        config(['features.E6-07.defaults.digest_enabled' => true]);
-        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
-        $this->put('/seller/settings/notifications', ['changes' => [$this->change(['recipient' => 'owner', 'timing' => 'digest', 'digest_time' => '11:30'])]])->assertRedirect();
-        $this->put('/seller/settings/notifications', ['changes' => [$this->change(['recipient' => 'owner', 'timing' => 'digest', 'digest_time' => '25:99'])]])->assertSessionHasErrors('changes.0.digest_time');
-        $this->assertDatabaseHas('seller_notification_rules', ['brand_id' => $brand->id, 'event_key' => self::EVENT, 'digest_time' => '11:30']);
-        CarbonImmutable::setTestNow('2026-10-31T05:00:00Z');
-        try {
-            $ids = [];
-            foreach (['11:30', '13:45'] as $time) {
-                if ($time === '13:45') {
-                    $this->put('/seller/settings/notifications', ['changes' => [$this->change(['recipient' => 'owner', 'timing' => 'digest', 'digest_time' => $time])]])->assertRedirect();
-                }
-                $id = (string) Str::ulid();
-                $event = new DomainEvent(['event_id' => $id, 'schema_version' => 1, 'type' => self::EVENT, 'occurred_at' => now()->toIso8601String(), 'organization_id' => $org->id, 'brand_id' => $brand->id, 'actor_id' => null, 'aggregate' => ['type' => 'conversation', 'id' => (string) Str::ulid(), 'version' => 1], 'data' => ['reason' => 'want_human', 'task_id' => (string) Str::ulid()]]);
-                DB::table('outbox_events')->insert(['id' => $id, 'organization_id' => $org->id, 'brand_id' => $brand->id, 'envelope' => json_encode($event->envelope, JSON_THROW_ON_ERROR), 'created_at' => now()]);
-                DB::transaction(fn () => app(SellerNotificationRouter::class)->route($event, $member, 'cabinet'));
-                $ids[] = $id;
-            }
-            $old = DB::table('seller_digest_items')->where('event_id', $ids[0])->value('due_at');
-            $new = DB::table('seller_digest_items')->where('event_id', $ids[1])->value('due_at');
-            self::assertSame('2026-10-31 08:30', CarbonImmutable::parse($old)->utc()->format('Y-m-d H:i'));
-            self::assertSame('2026-10-31 10:45', CarbonImmutable::parse($new)->utc()->format('Y-m-d H:i'));
-        } finally {
-            CarbonImmutable::setTestNow();
-        }
-    }
-
     public function test_daylight_saving_gap_and_repeated_hour_produce_one_future_slot(): void
     {
         [$owner, $org, $brand] = $this->cabinet();
         $this->within($org, $brand, fn () => $brand->update(['timezone' => 'America/New_York']));
+        config(['features.E6-07.defaults.digest_enabled' => true]);
         $member = Membership::withoutGlobalScopes()->where('organization_id', $org->id)->where('user_id', $owner->id)->firstOrFail();
-        DB::table('seller_notification_rules')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $brand->id, 'event_key' => self::EVENT, 'recipient' => 'owner', 'cabinet' => true, 'email' => false, 'telegram' => false, 'timing' => 'digest', 'digest_time' => '02:30', 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('seller_notification_rules')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $brand->id, 'event_key' => self::EVENT, 'recipient' => 'owner', 'cabinet' => true, 'email' => false, 'telegram' => false, 'timing' => 'digest', 'created_at' => now(), 'updated_at' => now()]);
         $cases = [
             ['2026-03-08T05:00:00Z', '02:30', '2026-03-08 07:30'],
             ['2026-11-01T04:00:00Z', '01:30', '2026-11-01 05:30'],
@@ -170,7 +139,7 @@ final class NotificationsTest extends TenancyTestCase
         try {
             foreach ($cases as [$now, $time, $expected]) {
                 CarbonImmutable::setTestNow($now);
-                DB::table('seller_notification_rules')->update(['digest_time' => $time]);
+                DB::table('seller_digest_preferences')->updateOrInsert(['organization_id' => $org->id, 'brand_id' => $brand->id, 'user_id' => $owner->id], ['id' => (string) Str::ulid(), 'digest_time' => $time, 'created_at' => now(), 'updated_at' => now()]);
                 $id = (string) Str::ulid();
                 $event = new DomainEvent(['event_id' => $id, 'schema_version' => 1, 'type' => self::EVENT, 'occurred_at' => $now, 'organization_id' => $org->id, 'brand_id' => $brand->id, 'actor_id' => null, 'aggregate' => ['type' => 'conversation', 'id' => (string) Str::ulid(), 'version' => 1], 'data' => ['reason' => 'want_human', 'task_id' => (string) Str::ulid()]]);
                 DB::table('outbox_events')->insert(['id' => $id, 'organization_id' => $org->id, 'brand_id' => $brand->id, 'envelope' => json_encode($event->envelope, JSON_THROW_ON_ERROR), 'created_at' => now()]);

@@ -42,6 +42,11 @@ final class DigestInboxController
             ->map(fn ($row) => ['id' => $row->delivery_id, 'titles' => [$row->title], 'created_at' => $row->created_at]);
         $items = $items->concat($tests)->sortByDesc('created_at')->take(50)->values();
 
-        return Inertia::render('Seller/Settings/Limits/DigestInbox', ['items' => $items]);
+        $digestTime = DB::table('seller_digest_preferences')->where(['organization_id' => $context->organizationId, 'brand_id' => $context->brandId, 'user_id' => $context->actorId])->value('digest_time') ?? '09:00';
+        $timezone = DB::table('brands')->where('organization_id', $context->organizationId)->where('id', $context->brandId)->value('timezone');
+
+        $canSetTime = collect(SellerNotificationRouter::EVENTS)->contains(fn ($event) => app(RecipientPolicy::class)->permits($member, $context->brandId, $event));
+
+        return Inertia::render('Seller/Settings/Limits/DigestInbox', ['items' => $items, 'digestTime' => $digestTime, 'timezone' => $timezone, 'canSetTime' => $canSetTime, 'canReadSettings' => Gate::allows('seller.settings.read')]);
     }
 }

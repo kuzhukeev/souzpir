@@ -60,6 +60,7 @@ DB::transaction(function () use ($orgId): void {
     }
     DB::table('notification_settings')->where('organization_id', $orgId)->where('brand_id', $brand->id)->where('user_id', $user->id)->delete();
     DB::table('seller_notification_rules')->where('organization_id', $orgId)->where('brand_id', $brand->id)->delete();
+    DB::table('seller_digest_preferences')->where('organization_id', $orgId)->where('brand_id', $brand->id)->where('user_id', $user->id)->delete();
     DB::table('seller_test_cabinet_notifications')->where('organization_id', $orgId)->where('brand_id', $brand->id)->where('user_id', $user->id)->delete();
     DB::table('seller_test_deliveries')->where('organization_id', $orgId)->where('brand_id', $brand->id)->where('user_id', $user->id)->delete();
 });

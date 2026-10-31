@@ -19,12 +19,12 @@ final class DigestService
     public function assemble(): void
     {
         $groups = DB::table('seller_digest_items')->whereNull('batch_id')->where('due_at', '<=', now())
-            ->select(['organization_id', 'brand_id', 'user_id', 'channel', 'due_at'])->distinct()->orderBy('due_at')->limit(100)->get();
+            ->select(['organization_id', 'brand_id', 'user_id', 'channel', 'slot_date', 'due_at'])->distinct()->orderBy('due_at')->limit(100)->get();
         foreach ($groups as $group) {
             DB::transaction(function () use ($group): void {
-                $slot = ['organization_id' => $group->organization_id, 'brand_id' => $group->brand_id, 'user_id' => $group->user_id, 'channel' => $group->channel, 'due_at' => $group->due_at];
-                app(DigestSlotLock::class)->acquire($group->organization_id, $group->brand_id, $group->user_id, $group->channel, $group->due_at);
-                DB::table('seller_digest_batches')->insertOrIgnore([...$slot, 'id' => (string) Str::ulid(), 'status' => 'pending', 'created_at' => now(), 'updated_at' => now()]);
+                $slot = ['organization_id' => $group->organization_id, 'brand_id' => $group->brand_id, 'user_id' => $group->user_id, 'channel' => $group->channel, 'slot_date' => $group->slot_date];
+                app(DigestSlotLock::class)->acquire($group->organization_id, $group->brand_id, $group->user_id, $group->channel, $group->slot_date);
+                DB::table('seller_digest_batches')->insertOrIgnore([...$slot, 'due_at' => $group->due_at, 'id' => (string) Str::ulid(), 'status' => 'pending', 'created_at' => now(), 'updated_at' => now()]);
                 $batch = DB::table('seller_digest_batches')->where($slot)->lockForUpdate()->first();
                 if (! $batch || $batch->status !== 'pending') {
                     return;
@@ -48,7 +48,7 @@ final class DigestService
             throw new LogicException('External digest delivery cannot run inside a transaction.');
         }
         $claimed = DB::transaction(function () use ($id, $snapshot): ?array {
-            app(DigestSlotLock::class)->acquire($snapshot->organization_id, $snapshot->brand_id, $snapshot->user_id, $snapshot->channel, $snapshot->due_at);
+            app(DigestSlotLock::class)->acquire($snapshot->organization_id, $snapshot->brand_id, $snapshot->user_id, $snapshot->channel, $snapshot->slot_date);
             // Consistent with web actions: user -> organization -> brand -> membership -> batch.
             $user = User::whereKey($snapshot->user_id)->lockForUpdate()->first();
             $org = DB::table('organizations')->where('id', $snapshot->organization_id)->where('status', 'active')->lockForUpdate()->first();

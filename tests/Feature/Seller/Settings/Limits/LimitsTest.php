@@ -4,6 +4,7 @@ namespace Tests\Feature\Seller\Settings\Limits;
 
 use App\Seller\Settings\Limits\SellerUsage;
 use App\Shell\Plans\Contracts\UsageQuery;
+use App\Shell\Plans\Contracts\UsageReader;
 use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -77,6 +78,19 @@ final class LimitsTest extends TenancyTestCase
         } catch (NotFoundHttpException) {
             self::assertNotSame($org->id, $otherOrg->id);
         }
+    }
+
+    public function test_dialogue_usage_contract_and_module_alias_return_same_scoped_count(): void
+    {
+        [, $org, $brand, $other] = $this->cabinet();
+        $this->conversation($org->id, $brand->id);
+        $this->conversation($org->id, $other->id);
+        $query = new UsageQuery(CarbonImmutable::now('UTC')->startOfMonth(), CarbonImmutable::now('UTC')->startOfMonth()->addMonth(), ['seller.dialogues', 'seller.dialogs_month']);
+        $result = app(UsageReader::class)->read(new TenantContext($org->id, $brand->id), $query)->metrics;
+        self::assertSame(1, $result['seller.dialogues']['value']);
+        self::assertSame($result['seller.dialogues'], $result['seller.dialogs_month']);
+        $single = new UsageQuery($query->from, $query->to, ['seller.dialogues']);
+        self::assertSame(1, app(UsageReader::class)->read(new TenantContext($org->id, $brand->id), $single)->metrics['seller.dialogues']['value']);
     }
 
     private function conversation(string $org, string $brand): string
