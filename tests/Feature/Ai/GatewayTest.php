@@ -48,6 +48,37 @@ final class GatewayTest extends TestCase
         config(['runtime.ai_driver' => 'fake', 'features.E0-05.defaults.fixture_directory' => $this->fixtures]);
     }
 
+    public function test_contact_boundary_rejects_before_reservation_and_transport(): void
+    {
+        Http::fake();
+        $examples = [
+            'user at example.test',
+            'user собака example . test',
+            '+7;999;1234567',
+            '+7|999|123|45|67',
+            'mail hidden\u0040example.test',
+        ];
+        $this->within(function () use ($examples): void {
+            foreach ($examples as $index => $message) {
+                try {
+                    app(AiGateway::class)->complete(
+                        new AiRequest([['role' => 'user', 'content' => $message]], 'google/gemini-2.5-flash', 0.5),
+                        $this->context('privacy-boundary-'.$index)
+                    );
+                    self::fail('Unsafe input must be rejected.');
+                } catch (\InvalidArgumentException $error) {
+                    self::assertSame('AI data could not be safely prepared.', $error->getMessage());
+                    self::assertNull($error->getPrevious());
+                    self::assertStringNotContainsString($message, (string) $error);
+                    self::assertStringNotContainsString($message, json_encode($error->getTrace(), JSON_THROW_ON_ERROR));
+                }
+            }
+            self::assertSame(0, DB::table('ai_calls')->count());
+            self::assertSame(0, DB::table('ai_budgets')->count());
+            Http::assertNothingSent();
+        });
+    }
+
     public function test_fixture_masking_idempotency_and_cost_attribution(): void
     {
         $request = new AiRequest([['role' => 'user', 'content' => 'Позвоните +7 (999) 111-22-33 или a@example.ru']], 'google/gemini-2.5-flash', 0.5);

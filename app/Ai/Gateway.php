@@ -11,6 +11,7 @@ use App\Contracts\Ai\AiContext;
 use App\Contracts\Ai\AiGateway;
 use App\Contracts\Ai\AiRequest;
 use App\Contracts\Ai\AiResult;
+use App\Privacy\ContactBoundary;
 use App\Shell\Notifications\Contracts\NotificationDispatcher;
 use App\Shell\Notifications\DomainEvent;
 use App\Tenancy\TenantContext;
@@ -51,6 +52,7 @@ final class Gateway implements AiGateway
         }
         try {
             $body = app(ContactMasker::class)->request($request->toArray());
+            app(ContactBoundary::class)->assertSafe($body);
         } catch (Throwable) {
             // Do not chain exceptions whose stack may contain unmasked input.
             throw new InvalidArgumentException('AI data could not be safely prepared.');

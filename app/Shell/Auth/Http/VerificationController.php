@@ -5,6 +5,7 @@ namespace App\Shell\Auth\Http;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
 use App\Shell\Auth\AuthSessionRegistry;
+use App\Shell\Auth\VerificationRequests;
 use App\Tenancy\Cabinet;
 use App\Tenancy\TenantContext;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
@@ -21,7 +22,7 @@ final class VerificationController
             return redirect()->route('auth.ready');
         }
 
-        return Inertia::render('Shell/Auth/VerifyEmail', ['email' => $request->user()->email, 'mailConfigured' => (bool) config('features.E1-01.defaults.verification_enabled'), 'status' => session('status')]);
+        return Inertia::render('Shell/Auth/VerifyEmail', ['email' => $request->user()->email, 'mailConfigured' => app(VerificationRequests::class)->available(), 'status' => session('status'), 'idempotencyKey' => bin2hex(random_bytes(24))]);
     }
 
     public function confirm(EmailVerificationRequest $request): Response|RedirectResponse
@@ -46,20 +47,17 @@ final class VerificationController
         return is_string($token) ? redirect()->route('invitation.show', ['token' => $token]) : redirect()->route('auth.ready');
     }
 
-    public function send(Request $request): RedirectResponse
+    public function send(Request $request, VerificationRequests $verification): RedirectResponse
     {
-        if ($request->user()->hasVerifiedEmail()) {
+        $key = $request->input('idempotency_key');
+        if (! is_string($key) || ! preg_match('/^[A-Za-z0-9_-]{16,128}$/D', $key)) {
+            return redirect()->route('verification.notice')->with('status', 'Не удалось подтвердить запрос. Попробуйте ещё раз.');
+        }
+        $status = $verification->request($request, $key);
+        if ($status === 'verified') {
             return redirect()->route('auth.ready');
         }
-        if (! config('features.E1-01.defaults.verification_enabled')) {
-            return back()->with('status', 'Почтовый сервис пока не подключён.');
-        }
-        try {
-            $request->user()->sendEmailVerificationNotification();
-        } catch (\Throwable) {
-            return back()->with('status', 'Письмо не отправлено. Повторите позже.');
-        }
 
-        return back()->with('status', 'Письмо для подтверждения отправлено.');
+        return redirect()->route('verification.notice')->with('status', VerificationRequests::message($status));
     }
 }

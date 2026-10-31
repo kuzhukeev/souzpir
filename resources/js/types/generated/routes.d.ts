@@ -71,6 +71,39 @@ declare module 'ziggy-js' {
     "onboarding.logo.store": [],
     "onboarding.logo.show": [],
     "onboarding.finish": [],
+    "organization.show": [],
+    "organization.update": [],
+    "organization.transfer": [],
+    "brands.index": [],
+    "brands.create": [],
+    "brands.archive": [
+        {
+            "name": "brand",
+            "required": true
+        }
+    ],
+    "brands.logo": [
+        {
+            "name": "brand",
+            "required": true
+        }
+    ],
+    "brands.modules": [
+        {
+            "name": "brand",
+            "required": true
+        }
+    ],
+    "brands.modules.update": [
+        {
+            "name": "brand",
+            "required": true
+        },
+        {
+            "name": "module",
+            "required": true
+        }
+    ],
     "journal.index": [],
     "journal.export": [],
     "journal.notifications": [],

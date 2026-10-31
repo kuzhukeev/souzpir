@@ -70,6 +70,11 @@ final class ExtractorGatewayIntegrationTest extends TestCase
             app(YamlKnowledgeImporter::class)->importAndPublish($tenant, base_path('tests/Feature/Seller/Knowledge/Fixtures/data')),
             Conversation::create(['state' => []]),
         ]);
+        $trace = new Process([PHP_BINARY, '-d', 'zend.exception_ignore_args=0', base_path('tests/Feature/Seller/Engine/Fixtures/privacy-trace-worker.php'), $org, $brand, $conversation->id, $snapshot->releaseId(), config('database.connections.pgsql.database')], base_path(), ['APP_ENV' => 'testing']);
+        $trace->run();
+        self::assertSame(0, $trace->getExitCode(), $trace->getErrorOutput());
+        self::assertSame('redacted', $trace->getOutput());
+        self::assertSame(0, DB::table('ai_calls')->count());
         $directory = storage_path('app/engine-fixture-'.Str::random(20));
         mkdir($directory, 0700, true);
         config(['runtime.ai_driver' => 'fake', 'features.E0-05.defaults.fixture_directory' => $directory]);

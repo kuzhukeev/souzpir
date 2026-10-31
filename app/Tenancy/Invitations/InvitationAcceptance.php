@@ -28,12 +28,11 @@ final class InvitationAcceptance implements AcceptsInvitations
 
         return DB::transaction(function () use ($user, $token): Membership {
             $organizationId = app(Cabinet::class)->organizationId();
-            // Serialize acceptance for the cabinet before checking an existing membership.
-            $organization = Organization::query()->whereKey($organizationId)->where('status', 'active')->lockForUpdate()->first();
-            abort_unless($organization, 404);
-            // Re-read the authenticated identity under lock, not an old in-memory email.
+            // All session-sensitive flows lock user before organization, invitation and membership.
             $actor = User::query()->whereKey($user->id)->lockForUpdate()->first();
             abort_unless($actor && $actor->hasVerifiedEmail(), 403);
+            $organization = Organization::query()->whereKey($organizationId)->where('status', 'active')->lockForUpdate()->first();
+            abort_unless($organization, 404);
             $invitation = $this->find($actor, $token, true);
 
             return app(TenantContextRunner::class)->run(new TenantContext($organizationId, actorId: $actor->id), function () use ($actor, $invitation): Membership {
