@@ -279,6 +279,19 @@ final class EvidenceEvaluatorTest extends TestCase
         $quoted = $evaluate();
         self::assertSame('confirmed', $quoted['status']);
         self::assertTrue($quoted['fact']['brand_recommended']);
+        $gateway->result['companies'][0]['name'] = '«СтальПлюс»';
+        self::assertSame('confirmed', $evaluate()['status']);
+        foreach ([
+            ['Рекомендую «СтальПлюс.', '«СтальПлюс'],
+            ['Рекомендую СтальПлюс».', 'СтальПлюс»'],
+            ['Рекомендую «СтальПлюс".', '«СтальПлюс"'],
+            ['Рекомендую “СтальПлюс».', '“СтальПлюс»'],
+        ] as [$badText, $badName]) {
+            DB::table('measurement_answers')->where('id', $answer)->update(['answer_text' => $badText]);
+            $gateway->result['mention_quote'] = rtrim($badText, '.');
+            $gateway->result['companies'][0]['name'] = $badName;
+            self::assertSame('unknown', $evaluate()['status']);
+        }
         Http::assertNothingSent();
     }
 }

@@ -9,6 +9,9 @@ final class ExactMentionVerifier
 
     public function isProfileName(#[\SensitiveParameter] string $entity, #[\SensitiveParameter] array $profile): bool
     {
+        if (! $this->balancedQuotes($entity)) {
+            return false;
+        }
         $normalized = $this->normalizer->normalize($entity);
         if ($normalized === '') {
             return false;
@@ -20,6 +23,24 @@ final class ExactMentionVerifier
         }
 
         return false;
+    }
+
+    private function balancedQuotes(#[\SensitiveParameter] string $value): bool
+    {
+        $stack = [];
+        $openings = ['«' => '»', '“' => '”', '„' => '“', '‘' => '’', '"' => '"'];
+        $closings = array_values($openings);
+        foreach (preg_split('//u', $value, -1, PREG_SPLIT_NO_EMPTY) ?: [] as $character) {
+            if ($stack !== [] && end($stack) === $character) {
+                array_pop($stack);
+            } elseif (isset($openings[$character])) {
+                $stack[] = $openings[$character];
+            } elseif (in_array($character, $closings, true)) {
+                return false;
+            }
+        }
+
+        return $stack === [];
     }
 
     public function inText(#[\SensitiveParameter] string $text, #[\SensitiveParameter] string $entity, #[\SensitiveParameter] array $profile): bool
