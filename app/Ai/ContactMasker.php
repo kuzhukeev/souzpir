@@ -9,9 +9,12 @@ final class ContactMasker
     public function request(array $body): array
     {
         $body['messages'] = $this->messages($body['messages']);
-        foreach (['tools', 'tool_choice', 'response_format'] as $key) {
-            if (array_key_exists($key, $body)) {
-                $body[$key] = $this->schema($body[$key]);
+        foreach ($body as $key => $value) {
+            if (is_string($key) && $this->values($key) !== $key) {
+                throw new InvalidArgumentException('Contact data is not allowed in AI data keys.');
+            }
+            if ($key !== 'messages') {
+                $body[$key] = $this->schema($value);
             }
         }
 
@@ -46,6 +49,11 @@ final class ContactMasker
             if (! is_array($message) || ! in_array($message['role'] ?? null, ['system', 'user', 'assistant', 'tool'], true)) {
                 throw new InvalidArgumentException('Invalid AI message.');
             }
+            foreach (array_keys($message) as $key) {
+                if (is_string($key) && $this->values($key) !== $key) {
+                    throw new InvalidArgumentException('Contact data is not allowed in AI data keys.');
+                }
+            }
             foreach (['role', 'name', 'tool_call_id'] as $key) {
                 if (isset($message[$key]) && (! is_string($message[$key]) || $this->values($message[$key]) !== $message[$key])) {
                     throw new InvalidArgumentException('Contact data is not allowed in AI identifiers.');
@@ -54,7 +62,10 @@ final class ContactMasker
             if (array_key_exists('content', $message)) {
                 $message['content'] = $this->values($message['content']);
             }
-            if (isset($message['tool_calls']) && is_array($message['tool_calls'])) {
+            if (array_key_exists('tool_calls', $message)) {
+                if (! is_array($message['tool_calls']) || ! array_is_list($message['tool_calls'])) {
+                    throw new InvalidArgumentException('Invalid AI tool calls.');
+                }
                 foreach ($message['tool_calls'] as &$call) {
                     if (isset($call['function']['arguments']) && is_string($call['function']['arguments'])) {
                         $args = json_decode($call['function']['arguments'], true, 512, JSON_THROW_ON_ERROR);
@@ -86,8 +97,39 @@ final class ContactMasker
             return $value;
         }
         if (! is_string($value)) {
+            if (is_object($value) || is_resource($value)) {
+                throw new InvalidArgumentException('AI data must use arrays and scalar values.');
+            }
+
             return $value;
         }
+        // Decode escaped Unicode solely for inspection, including repeatedly escaped
+        // backslashes. Never let a structured string hide a contact from masking.
+        $decoded = $value;
+        for ($depth = 0; $depth < 16; $depth++) {
+            $next = preg_replace_callback('/(?:\\\\)+u([0-9a-fA-F]{4})/', static function ($match): string {
+                return json_decode('"\\u'.$match[1].'"') ?? $match[0];
+            }, $decoded);
+            if ($next === null) {
+                throw new InvalidArgumentException('Cannot safely inspect contact data.');
+            }
+            if ($next === $decoded) {
+                break;
+            }
+            if ($this->maskText($next) !== $next) {
+                throw new InvalidArgumentException('Escaped contact data is not allowed in AI strings.');
+            }
+            $decoded = $next;
+        }
+        if ($depth === 16) {
+            throw new InvalidArgumentException('AI string escaping is too deeply nested.');
+        }
+
+        return $this->maskText($value);
+    }
+
+    private function maskText(string $value): string
+    {
         $value = preg_replace('/(?<![\p{L}\p{N}._%+\-])[\p{L}\p{N}._%+\-]+@[\p{L}\p{N}.\-]+\.[\p{L}]{2,}(?![\p{L}\p{N}_])/u', '[EMAIL]', $value);
         if ($value === null) {
             throw new InvalidArgumentException('Cannot safely mask contact data.');

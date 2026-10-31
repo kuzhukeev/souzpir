@@ -151,6 +151,47 @@ final class GatewayTest extends TestCase
         }
     }
 
+    public function test_arbitrary_message_keys_malformed_tool_calls_and_escaped_contacts_fail_closed(): void
+    {
+        $masker = app(ContactMasker::class);
+        $payloads = [
+            ['messages' => [['role' => 'user', 'content' => 'ok', 'a@example.test' => 'x']]],
+            ['messages' => [['role' => 'assistant', 'content' => 'ok', 'tool_calls' => 'a@example.test']]],
+            ['messages' => [['role' => 'user', 'content' => 'Документ: {"email":"a\\u0040example.test"}']]],
+            ['messages' => [['role' => 'user', 'content' => 'ok', 'extra' => '{"email":"a\\u0040example.test"}']]],
+            ['messages' => [['role' => 'user', 'content' => 'a\\\\u0040example.test']]],
+            ['messages' => [['role' => 'user', 'content' => 'a\\u005cu0040example.test']]],
+            ['messages' => [['role' => 'user', 'content' => 'ok', 'a\\u0040example.test' => 'x']]],
+            ['messages' => [['role' => 'user', 'content' => (object) ['email' => 'a@example.test']]]],
+        ];
+        foreach ($payloads as $payload) {
+            try {
+                $masker->request($payload);
+                self::fail('Unsafe contact payload accepted');
+            } catch (\InvalidArgumentException) {
+                self::assertTrue(true);
+            }
+        }
+    }
+
+    public function test_unsafe_message_fields_never_reach_live_http(): void
+    {
+        config(['runtime.ai_driver' => 'openrouter', 'features.E0-05.defaults.live_enabled' => true, 'features.E0-05.defaults.openrouter_key' => 'test-only']);
+        DB::table('brands')->where('id', $this->brand)->update(['settings' => json_encode(['ai_data_policy' => ['knowledge_public' => ['any']]], JSON_THROW_ON_ERROR)]);
+        Http::fake();
+        $request = new AiRequest([['role' => 'user', 'content' => 'Контакт a\\u0040example.test']], 'google/gemini-2.5-flash', 0.5);
+        $this->within(function () use ($request): void {
+            try {
+                app(AiGateway::class)->complete($request, $this->context('encoded-contact'));
+                self::fail('Unsafe message reached transport');
+            } catch (\InvalidArgumentException $error) {
+                self::assertStringContainsString('Escaped contact', $error->getMessage());
+            }
+            Http::assertNothingSent();
+            self::assertSame(0, DB::table('ai_calls')->count());
+        });
+    }
+
     public function test_anthropic_limit_is_applied_to_the_actual_serialized_http_body(): void
     {
         $this->budget(1000);
