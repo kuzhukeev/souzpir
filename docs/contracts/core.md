@@ -65,6 +65,16 @@ DTO constructors carry the described named fields; domain-specific extra fields 
 | VisionReadModel / E8-01 | `report(TenantContext, string $reportId): InternalReportV1`; public projection separate E8-05C |
 | ExportContributor / E1-11 | `module(): string`, `stream(TenantContext, ExportQuery): iterable<ExportRecord>`; contribution only its module, private storage, bounded cursor batches |
 
+`ConversationRepository::claimTurn` возвращает также `uncertain`, когда исход
+ранее начатого хода требует ручной проверки. Это не `finished`, не успешный и не
+подтверждённо отсутствующий эффект: `outcome` и token отсутствуют. Новый ход того
+же диалога блокируется, пока неопределённое состояние не разрешено доверенной
+процедурой, которой пока нет. При фиксации нового client message активный ход
+переходит в `uncertain` в той же PostgreSQL-транзакции; повторная доставка уже
+сохранённого входа сама по себе состояние не меняет. Исторические завершённые
+ходы сохраняют прежний replay. Это не готовый финализатор и не разрешение на
+повтор внешнего эффекта.
+
 **Точная совместимость знаний:** реальный прототип `Knowledge::all` требует `string $file`, вопреки сокращённому `all()` в пакетных документах. `toArray()` возвращает все десять namespaces: conditions, facts, triggers, guard_rules, policy, intents, escalation, persona, fewshot, closed_topics. Equivalence сравнивает `snapshot->all($file)` с original `Knowledge->all($file)` для каждого `Knowledge::FILES`; порядок массивов, влияющий на Policy/fewshot, сохраняется. Нормализуется порядок object keys, не порядок list элементов.
 
 AiContext: `{organizationId, brandId, purpose, family:seller|vision, objectType, objectId, idempotencyKey, dataClasses[], attempt, parentCallId?}`. `purpose` у продавца остаётся extractor/responder/guard/summary/simulator/judge; budget family отдельно, чтобы не потерять исходный purpose ради префикса eyon `seller.*`. Adapter явно сопоставляет legacy purposes/budget scopes; не копировать требование пилотного budget ID как универсальную бизнес-константу.
