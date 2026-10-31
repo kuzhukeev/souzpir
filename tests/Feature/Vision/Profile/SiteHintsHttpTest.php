@@ -15,6 +15,7 @@ use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -26,11 +27,26 @@ final class SiteHintsHttpTest extends TestCase
 
     protected function beforeRefreshingDatabase(): void
     {
-        $db = DB::selectOne('select current_database() as db, current_user as role, inet_server_port() as port, rolsuper, rolcreatedb, rolcreaterole from pg_roles where rolname = current_user');
-        if ($db->db !== 'souzpir_test_sp_e8_02' || $db->role !== 'sp_e8_02_app' || (int) $db->port !== 55490 || $db->rolsuper || $db->rolcreatedb || $db->rolcreaterole
-            || ! str_contains(str_replace('\\', '/', storage_path()), '/.worktrees/sp-e8-02/.local/runtime/testing/')) {
+        $root = str_replace('\\', '/', dirname(__DIR__, 4));
+        $database = config('runtime.test_database');
+        if (! app()->environment('testing') || str_replace('\\', '/', base_path()) !== $root
+            || ! is_string($database) || ! preg_match('/(?:^|_)test(?:_|$)/', $database)
+            || $database === config('runtime.preview_database') || DB::connection()->getDatabaseName() !== $database
+            || ! str_starts_with(str_replace('\\', '/', storage_path()), $root.'/.local/runtime/testing/')
+            || ! str_starts_with(str_replace('\\', '/', app()->getCachedConfigPath()), $root.'/.local/runtime/testing/')) {
+            throw new \RuntimeException('Refusing migrations outside the dedicated test checkout.');
+        }
+        $db = DB::selectOne('select current_database() as db, current_user as role, inet_server_addr() as host, inet_server_port() as port, rolsuper, rolcreatedb, rolcreaterole from pg_roles where rolname = current_user');
+        if ($db->db !== $database || (! str_starts_with((string) $db->host, '127.') && $db->host !== '::1')
+            || (int) $db->port !== (int) config('database.connections.pgsql.port') || $db->rolsuper || $db->rolcreatedb || $db->rolcreaterole) {
             throw new \RuntimeException('Refusing non-isolated database.');
         }
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        URL::useOrigin('http://127.0.0.1');
     }
 
     public function test_owner_can_choose_audited_site_title_but_editor_cannot_read_private_source(): void
