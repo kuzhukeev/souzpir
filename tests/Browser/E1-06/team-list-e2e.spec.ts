@@ -56,3 +56,48 @@ for (const role of ['owner', 'viewer']) {
     });
   });
 }
+
+test('фильтр ролей меняет оба списка и поддерживает клавиатуру', async ({ page }) => {
+  await page.goto(`${origin}/login`);
+  await page.getByLabel('Рабочая почта').fill('team-e106-owner@example.test');
+  await page.getByLabel('Пароль', { exact: true }).fill('test-only-password-123');
+  await page.getByRole('button', { name: 'Войти', exact: true }).click();
+  await expect(page).toHaveURL(/auth\/ready/);
+  await page.goto(`${origin}/team?page=2&invitation_page=2`);
+  const filter = page.getByRole('combobox', { name: 'Роль', exact: true });
+  await filter.focus();
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('End');
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(/role=viewer/);
+  await expect(page).toHaveURL(/page=1/);
+  await expect(filter).toContainText('Наблюдатель');
+  await expect(
+    page.getByRole('region', { name: 'Таблица участников' }).getByText('Тестовый наблюдатель'),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('region', { name: 'Таблица участников' }).getByText('Тестовый владелец'),
+  ).toHaveCount(0);
+  await expect(
+    page
+      .getByRole('region', { name: 'Приглашения в ожидании' })
+      .getByText('team-e106-invite@example.test'),
+  ).toBeVisible();
+  for (const width of [1440, 1024, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+    ).toBeTruthy();
+    await page.screenshot({
+      path: `.local/screenshots/e1-06/role-filter-real-${width}.png`,
+      fullPage: true,
+    });
+  }
+  await filter.click();
+  await page.getByRole('option', { name: 'Менеджер' }).click();
+  await expect(page.getByText('Участников с этой ролью нет')).toBeVisible();
+  await expect(page.getByText('Приглашений с этой ролью нет')).toBeVisible();
+  await filter.click();
+  await page.getByRole('option', { name: 'Все роли' }).click();
+  await expect(page.locator('article').getByText('Тестовый владелец')).toBeVisible();
+});
