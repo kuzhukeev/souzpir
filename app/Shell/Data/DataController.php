@@ -162,7 +162,11 @@ final class DataController
             if (is_resource($file)) fclose($file);
             @unlink($jsonPath);
             @unlink($zipPath);
-            $disk->delete($final);
+            // A commit error can be reported after the database has committed.
+            // Never unlink the published archive here: an extant row may already
+            // refer to it. Unreferenced files are removed by the locked orphan
+            // cleanup after its grace period; no database query is safe as proof
+            // of the outcome while the commit/connection state is uncertain.
             throw $error;
         } finally {
             // Release after success or all rollback cleanup; the empty sentinel stays.
