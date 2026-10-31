@@ -16,6 +16,8 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
+use RuntimeException;
+use Throwable;
 
 final class WebhookService
 {
@@ -76,9 +78,14 @@ final class WebhookService
         return app(BrandAccess::class)->change($request, $ctx->brandId, function (Brand $brand, TenantContext $tenant) use ($data, $request): string {
             $secret = bin2hex(random_bytes(32));
             $id = (string) Str::ulid();
+            try {
+                $encryptedSecret = Crypt::encryptString($secret);
+            } catch (Throwable) {
+                throw new RuntimeException('Unable to protect webhook secret.');
+            }
             DB::table('webhooks')->insert(['id' => $id, 'organization_id' => $tenant->organizationId, 'brand_id' => $brand->id,
                 'url' => $data['url'], 'events' => json_encode(array_values($data['events']), JSON_THROW_ON_ERROR),
-                'secret' => Crypt::encryptString($secret), 'created_at' => now(), 'updated_at' => now()]);
+                'secret' => $encryptedSecret, 'created_at' => now(), 'updated_at' => now()]);
             app(AuditWriter::class)->record($tenant, new AuditEntry('integrations.webhook.created', 'webhook', $id, after: ['events' => $data['events']]));
 
             return app(SecretEnvelope::class)->seal($request, $tenant, 'webhook_secret', $secret);

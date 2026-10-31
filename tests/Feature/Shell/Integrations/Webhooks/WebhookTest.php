@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use RuntimeException;
 use Tests\Feature\Tenancy\TenancyTestCase;
 
 final class WebhookTest extends TenancyTestCase
@@ -70,6 +71,52 @@ final class WebhookTest extends TenancyTestCase
         $this->withSession(['brand_id' => $second->id])->postJson('/integrations/api/secrets', ['type' => 'webhook_secret'])->assertNotFound();
         $this->withSession(['brand_id' => $first->id])->postJson('/integrations/api/secrets', ['type' => 'webhook_secret'])->assertNotFound();
         Http::assertNothingSent();
+    }
+
+    public function test_encryption_failure_does_not_expose_secret_in_exception_chain_or_trace(): void
+    {
+        if (ini_get('zend.exception_ignore_args') !== '0') {
+            self::markTestSkipped('Run with zend.exception_ignore_args=0 to exercise exception arguments.');
+        }
+
+        [$owner, , $brand] = $this->cabinet();
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $secret = null;
+        $original = null;
+        $encrypter = \Mockery::mock(Crypt::getFacadeRoot())->makePartial();
+        Crypt::swap($encrypter);
+        $encrypter->shouldReceive('encryptString')->once()->andReturnUsing(function (string $value) use (&$secret, &$original): never {
+            $secret = $value;
+            throw $original = new RuntimeException('Simulated encryption failure.');
+        });
+
+        $this->withoutExceptionHandling();
+        try {
+            $this->post('/integrations/api/webhooks', ['url' => 'https://public.org/hook', 'events' => ['seller.lead.created']]);
+            self::fail('Expected encryption failure.');
+        } catch (RuntimeException $error) {
+            self::assertSame('Unable to protect webhook secret.', $error->getMessage());
+            self::assertNull($error->getPrevious());
+            self::assertNotNull($secret);
+            self::assertNotNull($original);
+            $traceArguments = static function (array $trace): array {
+                $strings = [];
+                array_walk_recursive($trace, static function ($value) use (&$strings): void {
+                    if (is_string($value)) {
+                        $strings[] = $value;
+                    }
+                });
+
+                return $strings;
+            };
+            self::assertContains($secret, $traceArguments($original->getTrace()));
+            self::assertNotContains($secret, $traceArguments($error->getTrace()));
+            self::assertStringNotContainsString($secret, $error->getTraceAsString());
+        } finally {
+            $this->withExceptionHandling();
+        }
+        $this->assertDatabaseCount('webhooks', 0);
+        $this->assertDatabaseCount('integration_secret_receipts', 0);
     }
 
     public function test_test_delivery_is_disabled_by_default_and_rejects_other_brand(): void
