@@ -374,10 +374,10 @@ function HistoryInsights({ achievements }: { achievements: Achievement[] }) {
   return (
     <>
       <section className={card}>
-        <h2 className="text-xl font-semibold">Текущие наблюдения</h2>
+        <h2 className="text-xl font-semibold">Наблюдения по проверенному отчёту</h2>
         <p className="mt-2 text-sm text-(--color-ink-muted)">
-          Данные из последнего доступного подтверждённого отчёта могут измениться после нового
-          замера или отзыва доступа.
+          Порядок замеров пока не подтверждён, поэтому нельзя определить актуальность этого
+          наблюдения. При отзыве доступа данные станут недоступны.
         </p>
         {achievements.length ? (
           <ul className="mt-4 grid gap-3 sm:grid-cols-2">

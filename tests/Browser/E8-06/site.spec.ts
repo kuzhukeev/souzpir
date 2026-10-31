@@ -108,7 +108,12 @@ test('real site audit and actions render at all widths and themes', async ({ pag
   }
   await page.goto(base + '/vision/actions/history');
   await expect(page.getByText('SP-E8-06: Обновить сведения')).toBeVisible();
-  await expect(page.getByText('Ждём замера')).toBeVisible();
+  await expect(
+    page
+      .getByRole('article')
+      .filter({ hasText: 'SP-E8-06: Обновить сведения' })
+      .getByText('Ждём замера'),
+  ).toBeVisible();
   await page.screenshot({
     path: path.join(shots, 'action-history-390.png'),
     fullPage: true,
@@ -120,13 +125,14 @@ test('action creation and completion persist through the server', async ({ page 
     process.env.SITE_WRITE_E2E !== '1',
     'Requires the integrated vision.actions.write permission',
   );
+  const title = 'SP-E8-06: Новое действие ' + Date.now();
   await login(page);
   await page.goto(base + '/vision/actions');
   await page.getByText('Добавить действие', { exact: true }).click();
-  await page.getByLabel('Название', { exact: true }).fill('SP-E8-06: Новое действие');
+  await page.getByLabel('Название', { exact: true }).fill(title);
   await page.getByLabel('Описание', { exact: true }).fill('Обновить сведения');
   await page.getByRole('button', { name: 'Добавить', exact: true }).click();
-  const action = page.getByRole('article').filter({ hasText: 'SP-E8-06: Новое действие' }).first();
+  const action = page.getByRole('article').filter({ hasText: title }).first();
   await expect(action).toBeVisible();
   await action.getByRole('button', { name: 'Отметить выполненным' }).click();
   const dialog = page.getByRole('dialog', { name: 'Отметить выполненным' });
@@ -134,7 +140,13 @@ test('action creation and completion persist through the server', async ({ page 
   await dialog.getByLabel('Что сделано').fill('Сведения обновлены');
   await dialog.getByRole('button', { name: 'Отметить выполненным' }).click();
   await page.goto(base + '/vision/actions/history');
-  await expect(page.getByText('SP-E8-06: Новое действие').first()).toBeVisible();
+  await expect(page.getByRole('article').filter({ hasText: title })).toBeVisible();
   await page.reload();
-  await expect(page.getByText('Сведения обновлены')).toBeVisible();
+  await expect(
+    page
+      .getByRole('article')
+      .filter({ hasText: title })
+      .getByText('Комментарий: Сведения обновлены'),
+  ).toBeVisible();
+  await expect(page.getByText(/Рано судить: порядок и сопоставимость/)).toBeVisible();
 });

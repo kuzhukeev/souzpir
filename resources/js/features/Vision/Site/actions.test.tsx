@@ -64,10 +64,11 @@ describe('Действия Видения', () => {
       />,
     );
     expect(screen.getByText('Подтверждённое упоминание')).toBeTruthy();
-    expect(screen.getByText('Текущие наблюдения')).toBeTruthy();
+    expect(screen.getByText('Наблюдения по проверенному отчёту')).toBeTruthy();
     expect(
-      screen.getByText(/могут измениться после нового замера или отзыва доступа/),
+      screen.getByText(/Порядок замеров пока не подтверждён/),
     ).toBeTruthy();
+    expect(screen.queryByText(/последн|текущ/i)).toBeNull();
     expect(screen.queryByText('25% → 40%')).toBeNull();
     expect(screen.queryByText('31.10.2026')).toBeNull();
   });

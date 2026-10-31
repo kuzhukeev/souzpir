@@ -14,7 +14,7 @@ return new class extends Migration
             $table->ulid('brand_id');
             $table->string('title', 255);
             $table->text('description')->nullable();
-            $table->foreignUlid('responsible')->nullable()->constrained('memberships')->restrictOnDelete();
+            $table->ulid('responsible')->nullable();
             $table->date('due_date')->nullable();
             $table->text('comment')->nullable();
             $table->date('completed_at')->nullable();
@@ -22,6 +22,7 @@ return new class extends Migration
             $table->string('status', 32)->default('open');
             $table->timestampsTz();
             $table->foreign(['brand_id', 'organization_id'])->references(['id', 'organization_id'])->on('brands')->restrictOnDelete();
+            $table->foreign(['responsible', 'organization_id'])->references(['id', 'organization_id'])->on('memberships')->restrictOnDelete();
             $table->index(['organization_id', 'brand_id', 'status']);
         });
 

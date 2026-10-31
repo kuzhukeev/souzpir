@@ -9,7 +9,6 @@ use App\Shell\Auth\AuthSessionRegistry;
 use App\Tenancy\TenantContext;
 use App\Vision\SiteAudit\SiteInspector;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /** Mutations retain tenant, authorization and audit in the same transaction. */
@@ -17,14 +16,14 @@ final class SiteOperations
 {
     public function __construct(private SiteAccess $access, private AuditWriter $audit) {}
 
-    public function authorize(TenantContext $tenant): void
+    public function authorize(TenantContext $tenant, Request $request): void
     {
-        DB::transaction(fn () => $this->access->lock($tenant, true, 'vision.actions.write'));
+        app(AuthSessionRegistry::class)->withinActive($request, fn () => $this->access->lock($tenant, true, 'vision.actions.write'));
     }
 
     public function runAudit(TenantContext $tenant, Request $request, string $url, SiteInspector $inspector): ?string
     {
-        $this->authorize($tenant);
+        $this->authorize($tenant, $request);
         if (! config('features.E8-01B.defaults.fetch_enabled', false)) {
             return 'Проверка сайтов не включена в этом окружении.';
         }
@@ -45,9 +44,9 @@ final class SiteOperations
         return null;
     }
 
-    public function create(TenantContext $tenant, array $data): void
+    public function create(TenantContext $tenant, Request $request, array $data): void
     {
-        DB::transaction(function () use ($tenant, $data): void {
+        app(AuthSessionRegistry::class)->withinActive($request, function () use ($tenant, $data): void {
             $this->access->lock($tenant, true, 'vision.actions.write');
             $this->responsible($tenant, $data['responsible'] ?? null);
             $action = new SiteAction;
@@ -58,9 +57,9 @@ final class SiteOperations
         });
     }
 
-    public function update(TenantContext $tenant, string $id, array $data): void
+    public function update(TenantContext $tenant, Request $request, string $id, array $data): void
     {
-        DB::transaction(function () use ($tenant, $id, $data): void {
+        app(AuthSessionRegistry::class)->withinActive($request, function () use ($tenant, $id, $data): void {
             SiteAction::query()->whereKey($id)->firstOrFail();
             $this->access->lock($tenant, true, 'vision.actions.write');
             $action = SiteAction::query()->whereKey($id)->lockForUpdate()->firstOrFail();
@@ -88,9 +87,9 @@ final class SiteOperations
         });
     }
 
-    public function delete(TenantContext $tenant, string $id): void
+    public function delete(TenantContext $tenant, Request $request, string $id): void
     {
-        DB::transaction(function () use ($tenant, $id): void {
+        app(AuthSessionRegistry::class)->withinActive($request, function () use ($tenant, $id): void {
             SiteAction::query()->whereKey($id)->firstOrFail();
             $this->access->lock($tenant, true, 'vision.actions.write');
             $action = SiteAction::query()->whereKey($id)->lockForUpdate()->firstOrFail();

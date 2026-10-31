@@ -3,15 +3,12 @@
 namespace Tests\Feature\Vision\Site;
 
 use App\Ai\CanonicalJson;
-use App\Models\User;
 use App\Shell\Audit\Contracts\AuditWriter;
-use App\Shell\Permissions\PermissionEvaluator;
 use App\Tenancy\TenantContext;
 use App\Vision\Core\ReportSeal;
 use App\Vision\Evidence\Contracts\KnowledgeGate;
 use App\Vision\SiteAudit\PublicAddressResolver;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -25,14 +22,6 @@ final class SiteWorkflowTest extends TenancyTestCase
         Http::preventStrayRequests();
     }
 
-    private function enableTestAbility(): void
-    {
-        $abilities = config('permissions.abilities');
-        $abilities['vision.actions.write'] = ['owner', 'admin', 'editor'];
-        config(['permissions.abilities' => $abilities]);
-        Gate::define('vision.actions.write', fn (User $user): bool => app(PermissionEvaluator::class)->allows($user, 'vision.actions.write'));
-    }
-
     protected function cabinet(bool $configured = true): array
     {
         $cabinet = parent::cabinet($configured);
@@ -44,19 +33,28 @@ final class SiteWorkflowTest extends TenancyTestCase
         return $cabinet;
     }
 
-    public function test_missing_permission_fails_closed_and_network_is_disabled(): void
+    public function test_real_permissions_allow_owner_admin_editor_and_deny_manager_viewer(): void
     {
-        [$owner, , $brand] = $this->cabinet();
-        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
-        $this->post('/vision/actions', ['title' => 'Действие'])->assertForbidden();
-        $this->post('/vision/site/audit', ['url' => 'https://fixture.example.com'])->assertForbidden();
-        $this->assertDatabaseCount('actions', 0);
+        [$owner, $organization, $brand] = $this->cabinet();
+        [$admin] = $this->member($organization, 'admin', [$brand->id]);
+        [$editor] = $this->member($organization, 'member', [$brand->id]);
+        [$manager] = $this->member($organization, 'member', [$brand->id], ['sales_manager' => true]);
+        [$viewer] = $this->member($organization, 'viewer', [$brand->id]);
+        foreach ([$owner, $admin, $editor] as $actor) {
+            $this->actingAs($actor)->withSession(['brand_id' => $brand->id])
+                ->post('/vision/actions', ['title' => 'Действие'])->assertSessionHasNoErrors()->assertRedirect();
+        }
+        foreach ([$manager, $viewer] as $actor) {
+            $this->actingAs($actor)->withSession(['brand_id' => $brand->id])
+                ->post('/vision/actions', ['title' => 'Нет доступа'])->assertForbidden();
+            $this->post('/vision/site/audit', ['url' => 'https://fixture.example.com'])->assertForbidden();
+        }
+        $this->assertDatabaseCount('actions', 3);
         Http::assertNothingSent();
     }
 
     public function test_actions_crud_completion_validation_and_brand_isolation(): void
     {
-        $this->enableTestAbility();
         [$owner, $org, $brand, $other, $membership] = $this->cabinet();
         [$viewer] = $this->member($org, 'viewer', [$brand->id]);
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
@@ -81,7 +79,6 @@ final class SiteWorkflowTest extends TenancyTestCase
 
     public function test_audit_failure_rolls_back_action_creation(): void
     {
-        $this->enableTestAbility();
         [$owner, , $brand] = $this->cabinet();
         $audit = \Mockery::mock(AuditWriter::class);
         $audit->shouldReceive('record')->once()->andThrow(new \RuntimeException('audit unavailable'));
@@ -98,7 +95,6 @@ final class SiteWorkflowTest extends TenancyTestCase
 
     public function test_unsafe_url_is_never_flashed_or_sent(): void
     {
-        $this->enableTestAbility();
         [$owner, , $brand] = $this->cabinet();
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
         foreach (['https://example.com/?secret=private', 'https://user:password@example.com/'] as $url) {
@@ -110,7 +106,6 @@ final class SiteWorkflowTest extends TenancyTestCase
 
     public function test_html_fixture_result_is_private_and_no_raw_result_enters_audit_log(): void
     {
-        $this->enableTestAbility();
         [$owner, $org, $brand, $other] = $this->cabinet();
         $this->fakeSite();
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->post('/vision/site/audit', ['url' => 'https://fixture.example.com'])->assertSessionHasNoErrors();
@@ -127,7 +122,6 @@ final class SiteWorkflowTest extends TenancyTestCase
 
     public function test_membership_revocation_during_fake_crawl_prevents_persistence(): void
     {
-        $this->enableTestAbility();
         [$owner, , $brand, , $membership] = $this->cabinet();
         $this->fakeSite($membership->id);
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->post('/vision/site/audit', ['url' => 'https://fixture.example.com'])->assertForbidden();
@@ -137,7 +131,6 @@ final class SiteWorkflowTest extends TenancyTestCase
 
     public function test_session_revocation_during_fake_crawl_prevents_persistence(): void
     {
-        $this->enableTestAbility();
         [$owner, , $brand] = $this->cabinet();
         $this->fakeSite(null, $owner->id);
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->postJson('/vision/site/audit', ['url' => 'https://fixture.example.com'])->assertUnauthorized();

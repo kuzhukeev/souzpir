@@ -56,7 +56,7 @@ final class SiteController
     public function audit(Request $request, SiteInspector $inspector): RedirectResponse
     {
         $tenant = app(TenantContext::class);
-        $this->operations->authorize($tenant);
+        $this->operations->authorize($tenant, $request);
         $validator = Validator::make($request->all(), ['url' => ['required', 'string', 'max:2048', 'url:http,https']]);
         if ($validator->fails()) {
             return back()->withErrors($validator);
@@ -82,8 +82,8 @@ final class SiteController
     public function store(Request $request): RedirectResponse
     {
         $tenant = app(TenantContext::class);
-        $this->operations->authorize($tenant);
-        $this->operations->create($tenant, $this->validated($request, false));
+        $this->operations->authorize($tenant, $request);
+        $this->operations->create($tenant, $request, $this->validated($request, false));
 
         return redirect()->route('vision.site.actions');
     }
@@ -93,16 +93,16 @@ final class SiteController
         $tenant = app(TenantContext::class);
         // Hide foreign IDs before checking this actor's ability.
         SiteAction::query()->whereKey($id)->firstOrFail();
-        $this->operations->authorize($tenant);
-        $this->operations->update($tenant, $id, $this->validated($request, true));
+        $this->operations->authorize($tenant, $request);
+        $this->operations->update($tenant, $request, $id, $this->validated($request, true));
 
         return redirect()->route('vision.site.actions');
     }
 
-    public function destroy(string $id): RedirectResponse
+    public function destroy(Request $request, string $id): RedirectResponse
     {
         $tenant = app(TenantContext::class);
-        $this->operations->delete($tenant, $id);
+        $this->operations->delete($tenant, $request, $id);
 
         return redirect()->route('vision.site.actions');
     }
