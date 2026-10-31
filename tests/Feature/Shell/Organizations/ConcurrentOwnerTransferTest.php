@@ -93,6 +93,7 @@ final class ConcurrentOwnerTransferTest extends TestCase
             DB::table('brands')->where('organization_id', $org->id)->delete();
             DB::table('memberships')->where('organization_id', $org->id)->delete();
             DB::table('organizations')->where('id', $org->id)->delete();
+            DB::table('auth_session_registry')->whereIn('user_id', array_map(fn ($user) => $user->id, $users))->delete();
             DB::table('users')->whereIn('id', array_map(fn ($user) => $user->id, $users))->delete();
         }
     }

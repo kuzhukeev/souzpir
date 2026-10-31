@@ -8,6 +8,7 @@ use App\Models\Organization;
 use App\Models\User;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
+use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Organizations\ModuleEntitlements;
 use App\Shell\Plans\Contracts\PlanLimits;
 use App\Shell\Plans\Contracts\UsageQuery;
@@ -53,7 +54,7 @@ final class OrganizationController
         Gate::authorize('org.settings.write');
         $data = $this->validateAt($request, route('organization.show'), ['name' => ['required', 'string', 'max:160'], 'legal_name' => ['nullable', 'string', 'max:255'], 'inn' => ['nullable', 'regex:/^(?:[0-9]{10}|[0-9]{12})$/'], 'industry' => ['nullable', 'string', 'max:120'], 'country' => ['nullable', 'string', 'max:120'], 'region' => ['nullable', 'string', 'max:120'], 'timezone' => ['required', 'timezone']]);
         $ctx = app(TenantContext::class);
-        DB::transaction(function () use ($ctx, $data): void {
+        app(AuthSessionRegistry::class)->withinActive($request, function () use ($ctx, $data): void {
             [$org] = $this->lockAdmin($ctx);
             $name = trim($data['name']);
             if ($name === '') {
@@ -73,7 +74,7 @@ final class OrganizationController
         Gate::authorize('org.owner.transfer');
         $data = $this->validateAt($request, route('organization.show'), ['user_id' => ['required', 'ulid'], 'confirm_name' => ['required', 'string', 'max:160']]);
         $ctx = app(TenantContext::class);
-        DB::transaction(function () use ($ctx, $data): void {
+        app(AuthSessionRegistry::class)->withinActive($request, function () use ($ctx, $data): void {
             $org = Organization::whereKey($ctx->organizationId)->where('status', 'active')->lockForUpdate()->firstOrFail();
             $members = Membership::withoutGlobalScopes()->where('organization_id', $org->id)->whereIn('user_id', [$ctx->actorId, $data['user_id']])->orderBy('id')->lockForUpdate()->get()->keyBy('user_id');
             $actor = $members->get($ctx->actorId);
@@ -121,7 +122,7 @@ final class OrganizationController
         $data = $this->validateAt($request, route('brands.index'), ['name' => ['required', 'string', 'max:160'], 'website' => ['nullable', 'url:http,https', 'max:2048'], 'theme' => ['required', Rule::in(['neutral', 'pyro', 'confectionery'])]]);
         $this->checkWebsite($data['website'] ?? null);
         $ctx = app(TenantContext::class);
-        DB::transaction(function () use ($ctx, $data, $limits): void {
+        app(AuthSessionRegistry::class)->withinActive($request, function () use ($ctx, $data, $limits): void {
             [$org, $member] = $this->lockAdmin($ctx);
             $name = trim($data['name']);
             if ($name === '') {
@@ -148,7 +149,7 @@ final class OrganizationController
         Gate::authorize('brand.write');
         $data = $this->validateAt($request, route('brands.index'), ['confirm_name' => ['required', 'string', 'max:160']]);
         $ctx = app(TenantContext::class);
-        DB::transaction(function () use ($ctx, $data, $brand): void {
+        app(AuthSessionRegistry::class)->withinActive($request, function () use ($ctx, $data, $brand): void {
             [$org, $member] = $this->lockAdmin($ctx);
             $target = $this->target($org->id, $brand, $member, true);
             if ($target->status !== 'active') {
@@ -203,7 +204,7 @@ final class OrganizationController
         abort_unless(in_array($module, ['seller', 'vision'], true), 404);
         $data = $this->validateAt($request, route('brands.modules', $brand), ['enabled' => ['required', 'boolean']]);
         $ctx = app(TenantContext::class);
-        DB::transaction(function () use ($ctx, $brand, $module, $data, $modules): void {
+        app(AuthSessionRegistry::class)->withinActive($request, function () use ($ctx, $brand, $module, $data, $modules): void {
             [$org, $member] = $this->lockAdmin($ctx);
             $target = $this->target($org->id, $brand, $member, true);
             abort_unless($target->status === 'active', 404);

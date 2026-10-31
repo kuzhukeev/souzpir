@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Organizations\Http\OrganizationController;
 use App\Shell\Plans\LimitEnforcer;
 use App\Tenancy\TenantContext;
@@ -23,6 +24,12 @@ Auth::setUser($actor);
 echo 'ready:'.DB::selectOne('select pg_backend_pid() as pid')->pid."\n";
 flush();
 $request = Request::create('/brands', 'POST', ['name' => $name, 'theme' => 'neutral']);
+$session = app('session')->driver('array');
+$session->start();
+$session->put('auth.version', $actor->auth_version);
+$request->setLaravelSession($session);
+$request->setUserResolver(fn () => $actor);
+app(AuthSessionRegistry::class)->issue($request, $actor, $actor->auth_version);
 try {
     $context = new TenantContext($org, $brand, $user, $member, 'job');
     app(TenantContextRunner::class)->run($context, fn () => app(OrganizationController::class)->createBrand($request, app(LimitEnforcer::class)));

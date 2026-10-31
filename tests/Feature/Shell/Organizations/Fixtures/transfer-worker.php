@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Organizations\Http\OrganizationController;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
@@ -17,10 +18,17 @@ $app->make(Kernel::class)->bootstrap();
 if (! app()->environment('testing') || DB::connection()->getDatabaseName() !== config('runtime.test_database') || DB::connection()->getDatabaseName() === config('runtime.preview_database')) {
     throw new LogicException('Test database required.');
 }
-Auth::setUser(User::findOrFail($user));
+$actor = User::findOrFail($user);
+Auth::setUser($actor);
 echo 'ready:'.DB::selectOne('select pg_backend_pid() as pid')->pid."\n";
 flush();
 $request = Request::create('/company/transfer', 'POST', ['user_id' => $target, 'confirm_name' => 'E104 transfer fixture']);
+$session = app('session')->driver('array');
+$session->start();
+$session->put('auth.version', $actor->auth_version);
+$request->setLaravelSession($session);
+$request->setUserResolver(fn () => $actor);
+app(AuthSessionRegistry::class)->issue($request, $actor, $actor->auth_version);
 try {
     $context = new TenantContext($org, $brand, $user, $member, 'job');
     app(TenantContextRunner::class)->run($context, fn () => app(OrganizationController::class)->transfer($request));

@@ -89,6 +89,7 @@ final class ConcurrentBrandCreationTest extends TestCase
             DB::table('organizations')->where('id', $org->id)->delete();
             DB::table('plan_limits')->where('plan_id', $plan)->delete();
             DB::table('plans')->where('id', $plan)->delete();
+            DB::table('auth_session_registry')->where('user_id', $user->id)->delete();
             DB::table('users')->where('id', $user->id)->delete();
         }
     }

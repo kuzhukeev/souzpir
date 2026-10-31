@@ -101,7 +101,7 @@ final class IsolationTest extends TenancyTestCase
         [$owner,$org,$a,$b] = $this->cabinet();
         [, $other,$foreign] = $this->cabinet(false);
         $this->actingAs($owner)->withSession(['brand_id' => $a->id]);
-        $this->post('/brand/switch', ['brand_id' => $b->id, 'organization_id' => $other->id])->assertRedirect('/');
+        $this->post('/brand/switch', ['brand_id' => $b->id, 'organization_id' => $other->id])->assertRedirect('/auth/ready');
         $this->assertSame($b->id, session('brand_id'));
         $this->get('/tenancy-test/page?organization_id='.$other->id)->assertInertia(fn (Assert $p) => $p
             ->component('Tenancy/Test', false)->where('organization.id', $org->id)->where('brand.id', $b->id)
@@ -116,7 +116,7 @@ final class IsolationTest extends TenancyTestCase
         [, $org,$a,$b] = $this->cabinet();
         [$viewer] = $this->member($org, 'viewer', [$a->id, $b->id]);
         $this->actingAs($viewer)->withSession(['brand_id' => $a->id]);
-        $this->post('/brand/switch', ['brand_id' => $b->id])->assertRedirect('/');
+        $this->post('/brand/switch', ['brand_id' => $b->id])->assertRedirect('/auth/ready');
         $this->get('/tenancy-test/page')->assertInertia(fn (Assert $p) => $p->where('can', [])->where('brand.id', $b->id));
         $this->postJson('/tenancy-test/records', [])->assertForbidden();
         $this->assertSame(0, DB::table('tenancy_test_records')->count());
@@ -149,7 +149,7 @@ final class IsolationTest extends TenancyTestCase
         $this->withSession(['brand_id' => null])->postJson('/tenancy-test/records', [])->assertNotFound();
         $this->assertSame(0, DB::table('tenancy_test_records')->count());
         $this->withSession(['brand_id' => $b->id])->get('/tenancy-test/page')->assertInertia(fn (Assert $p) => $p->where('brand.id', $a->id));
-        $this->withSession(['brand_id' => $b->id])->post('/brand/switch', ['brand_id' => $a->id])->assertRedirect('/');
+        $this->withSession(['brand_id' => $b->id])->post('/brand/switch', ['brand_id' => $a->id])->assertRedirect('/auth/ready');
         $this->assertSame($a->id, session('brand_id'));
     }
 

@@ -283,6 +283,8 @@ final class OrganizationTest extends TenancyTestCase
         Gate::before(fn () => true);
         $ctx = new TenantContext($org->id, $brand->id, $owner->id, $membership->id, 'session');
         $request = Request::create('/company/transfer', 'POST', ['user_id' => $target->id, 'confirm_name' => $org->name]);
+        $request->setLaravelSession(app('session.store'));
+        $request->setUserResolver(fn () => $owner);
         $transfer = fn (\Closure $change) => app(TenantContextRunner::class)->run($ctx, function () use ($change, $request) {
             $change();
 

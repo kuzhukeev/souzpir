@@ -58,7 +58,7 @@ final class OnboardingTest extends TenancyTestCase
         self::assertSame('ООО Союз Пир', $org->fresh()->name);
         $this->assertDatabaseHas('onboarding_progress', ['organization_id' => $org->id, 'brand_id' => $brand->id]);
         $this->assertDatabaseHas('audit_logs', ['organization_id' => $org->id, 'action' => 'onboarding.completed', 'subject_id' => $brand->id]);
-        $this->get('/start')->assertInertia(fn (Assert $page) => $page->where('initial.completed', true)->where('initial.already_configured', false)->where('modules.seller', null)->where('modules.vision', null));
+        $this->get('/start')->assertInertia(fn (Assert $page) => $page->where('initial.completed', true)->where('initial.already_configured', false)->where('modules.seller', false)->where('modules.vision', false));
         $this->post('/start', $this->form())->assertSessionHasNoErrors();
         $this->post('/start', $this->form(['brand_name' => 'Другое']))->assertSessionHasErrors('onboarding');
         self::assertSame(1, DB::table('brands')->count());
