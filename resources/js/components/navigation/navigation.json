@@ -172,6 +172,13 @@
       "permission": "profile.own"
     },
     {
+      "id": "data-consents",
+      "label": "Данные и согласия",
+      "icon": "ClipboardList",
+      "path": "/settings/data",
+      "permission": "profile.own"
+    },
+    {
       "id": "help",
       "label": "Помощь",
       "icon": "CircleHelp",
