@@ -155,6 +155,7 @@ add('P-01','Первые макеты для согласования',
 
 # Post-preview integration prerequisites, reflected in task ownership before claim.
 extra('E1-03','app/Tenancy/BrandSwitchController.php','resources/js/components/navigation/')
+tasks['E1-03']['dependsOn'].append('SP-F-04')
 tasks['E1-03']['notes'] += ' Реализовать именованный маршрут /dashboard; переключение бренда включает только после его готовности, сервер перенаправляет на главную, клиент отменяет запросы/сбрасывает данные старого бренда. Подключить настоящий per-user unread contributor E0-04 и проверять tenant isolation, а не подменять отсутствие источника нулём.'
 extra('E1-02','app/Tenancy/')
 tasks['E1-02']['notes'] += ' Реализовать защищённый organization-only tenant mode для первичного создания бренда; обычные брендовые маршруты остаются fail-closed. Проверить membership/auth и запрет доступа к brand-owned данным без бренда.'
