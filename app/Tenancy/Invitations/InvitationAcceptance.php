@@ -10,6 +10,7 @@ use App\Tenancy\BrandGrants;
 use App\Tenancy\Cabinet;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -22,10 +23,10 @@ final class InvitationAcceptance implements AcceptsInvitations
         return $this->inspectIdentifier($user, 'token_hash', hash('sha256', $token));
     }
 
-    /** Only for a server-side session established by the one-time bearer exchange. */
-    public function inspectGrant(User $user, string $id): InvitationDetails
+    /** Session grant can only originate from the bearer exchange. */
+    public function inspectSession(User $user, #[\SensitiveParameter] Request $request): InvitationDetails
     {
-        return $this->inspectIdentifier($user, 'id', $id);
+        return $this->inspectIdentifier($user, 'id', $this->sessionInvitationId($request));
     }
 
     private function inspectIdentifier(User $user, string $column, string $identifier): InvitationDetails
@@ -42,10 +43,19 @@ final class InvitationAcceptance implements AcceptsInvitations
         return $this->acceptIdentifier($user, 'token_hash', hash('sha256', $token));
     }
 
-    /** Only for a server-side session established by the one-time bearer exchange. */
-    public function acceptGrant(User $user, string $id): Membership
+    /** Session grant can only originate from the bearer exchange. */
+    public function acceptSession(User $user, #[\SensitiveParameter] Request $request): Membership
     {
-        return $this->acceptIdentifier($user, 'id', $id);
+        return $this->acceptIdentifier($user, 'id', $this->sessionInvitationId($request));
+    }
+
+    private function sessionInvitationId(#[\SensitiveParameter] Request $request): string
+    {
+        abort_unless($request->hasSession(), 404);
+        $id = $request->session()->get('auth.invitation_id');
+        abort_unless(is_string($id) && preg_match('/^[0-9A-HJKMNP-TV-Z]{26}$/iD', $id), 404);
+
+        return $id;
     }
 
     private function acceptIdentifier(User $user, string $column, string $identifier): Membership

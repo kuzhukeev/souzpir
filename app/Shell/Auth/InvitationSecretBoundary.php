@@ -13,7 +13,7 @@ final class InvitationSecretBoundary
 {
     public function handle(#[\SensitiveParameter] Request $request, Closure $next): Response
     {
-        if (! $request->isMethod('POST') || $request->path() !== 'invitations/exchange') {
+        if (! $request->isMethod('POST') || $request->decodedPath() !== 'invitations/exchange') {
             return $next($request);
         }
 

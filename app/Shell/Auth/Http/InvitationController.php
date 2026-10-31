@@ -64,14 +64,16 @@ HTML;
             if (! $invite || ! Organization::whereKey($org)->where('status', 'active')->exists()) {
                 return response()->json(['ok' => false], 404);
             }
-            if ($request->user()) {
-                app(InvitationAcceptance::class)->inspectGrant($request->user(), $invite->id);
-            }
             $request->session()->put('auth.invitation_id', $invite->id);
+            if ($request->user()) {
+                app(InvitationAcceptance::class)->inspectSession($request->user(), $request);
+            }
             $request->session()->put('url.intended', route('invitation.show'));
 
             return response()->json(['ok' => true]);
         } catch (Throwable) {
+            $request->session()->forget('auth.invitation_id');
+
             return response()->json(['ok' => false], 404);
         } finally {
             $request->request->remove('token');
@@ -83,7 +85,7 @@ HTML;
     {
         $invitation = $this->invite($request);
         if ($request->user()) {
-            $acceptance->inspectGrant($request->user(), $invitation->id);
+            $acceptance->inspectSession($request->user(), $request);
         } else {
             $request->session()->put('url.intended', route('invitation.show'));
         }
@@ -102,7 +104,7 @@ HTML;
             return redirect()->route('invitation.show')->withErrors($validator)->withInput($request->except(['password', 'password_confirmation']));
         }
         $data = $validator->validated();
-        $user = DB::transaction(function () use ($invite, $data, $acceptance): User {
+        $user = DB::transaction(function () use ($invite, $data, $acceptance, $request): User {
             abort_unless(Organization::whereKey($invite->organization_id)->where('status', 'active')->lockForUpdate()->first(), 404);
             $locked = Invitation::withoutGlobalScopes()->whereKey($invite->id)->lockForUpdate()->firstOrFail();
             abort_unless($locked->accepted_at === null && $locked->revoked_at === null && $locked->expires_at->isFuture(), 404);
@@ -111,7 +113,7 @@ HTML;
             }
             $user = User::create(['name' => $data['name'], 'email' => $locked->email, 'password' => $data['password']]);
             $user->forceFill(['terms_accepted_at' => now()])->save();
-            $acceptance->inspectGrant($user, $locked->id);
+            $acceptance->inspectSession($user, $request);
             app(AuditWriter::class)->record(new TenantContext($locked->organization_id, actorId: $user->id), new AuditEntry('account.invitation_registered', 'user', $user->id));
 
             return $user;
@@ -132,8 +134,8 @@ HTML;
     public function accept(Request $request, InvitationAcceptance $acceptance): RedirectResponse
     {
         $invite = $this->invite($request);
-        app(AuthSessionRegistry::class)->withinActive($request, function () use ($acceptance, $request, $invite): void {
-            $membership = $acceptance->acceptGrant($request->user(), $invite->id);
+        app(AuthSessionRegistry::class)->withinActive($request, function () use ($acceptance, $request): void {
+            $membership = $acceptance->acceptSession($request->user(), $request);
             app(AuditWriter::class)->record(new TenantContext($membership->organization_id, actorId: $request->user()->id), new AuditEntry('account.invitation_accepted', 'membership', $membership->id));
         });
         $request->session()->forget('auth.invitation_id');

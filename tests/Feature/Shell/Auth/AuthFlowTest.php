@@ -11,6 +11,7 @@ use App\Shell\Auth\InvitationSecretBoundary;
 use App\Shell\Auth\PasswordDelivery\PasswordTransport;
 use App\Shell\Auth\Totp;
 use App\Shell\Team\Models\Invitation;
+use App\Tenancy\Invitations\InvitationAcceptance;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
 use Illuminate\Auth\Events\Login;
@@ -27,6 +28,7 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
 final class AuthFlowTest extends TestCase
@@ -258,6 +260,73 @@ final class AuthFlowTest extends TestCase
         $this->post('/invitations/accept')->assertRedirect(route('auth.ready'));
         self::assertNull(session('auth.invitation_id'));
         $this->assertDatabaseHas('memberships', ['organization_id' => $org->id, 'user_id' => $guest->id]);
+    }
+
+    public function test_invitation_session_survives_mfa_and_cannot_use_arbitrary_identifier(): void
+    {
+        [$org, $owner, $brand] = $this->fixture();
+        $secret = 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ';
+        $guest = User::create(['name' => 'Invited MFA', 'email' => 'invited-mfa@example.test', 'password' => 'another-secure-password']);
+        $guest->forceFill(['email_verified_at' => now(), 'mfa_secret' => $secret, 'mfa_confirmed_at' => now()])->save();
+        $token = str_repeat('M', 64);
+        $invitation = app(TenantContextRunner::class)->run(new TenantContext($org->id, actorId: $owner->id), fn () => Invitation::create([
+            'email' => $guest->email, 'role' => 'member', 'brand_ids' => [$brand->id],
+            'token_hash' => hash('sha256', $token), 'invited_by' => $owner->id, 'expires_at' => now()->addDay(),
+        ]));
+        try {
+            app(InvitationAcceptance::class)->acceptSession($guest, Request::create('/invitations/accept', 'POST', ['id' => $invitation->id]));
+            self::fail('Unbound invitation ID was accepted.');
+        } catch (HttpException $error) {
+            self::assertSame(404, $error->getStatusCode());
+        }
+        $this->postJson('/invitations/exchange', ['token' => $token])->assertOk();
+        $this->post('/login', ['email' => $guest->email, 'password' => 'another-secure-password'])->assertRedirect(route('mfa.challenge'));
+        $this->withCookie(config('session.cookie'), session()->getId());
+        $code = app(Totp::class)->at($secret, intdiv(now()->timestamp, 30));
+        $this->post('/mfa/challenge', ['code' => $code])->assertRedirect(route('invitation.show'));
+        $this->withCookie(config('session.cookie'), session()->getId());
+        $this->get('/invitations/show')->assertOk();
+        $this->post('/invitations/accept')->assertRedirect(route('auth.ready'));
+        $this->assertDatabaseHas('memberships', ['organization_id' => $org->id, 'user_id' => $guest->id]);
+        self::assertNull(session('auth.invitation_id'));
+    }
+
+    public function test_invitation_session_rechecks_revocation_expiry_and_wrong_account(): void
+    {
+        [$org, $owner, $brand] = $this->fixture();
+        $token = str_repeat('W', 64);
+        $invitation = app(TenantContextRunner::class)->run(new TenantContext($org->id, actorId: $owner->id), fn () => Invitation::create([
+            'email' => 'invited-other@example.test', 'role' => 'member', 'brand_ids' => [$brand->id],
+            'token_hash' => hash('sha256', $token), 'invited_by' => $owner->id, 'expires_at' => now()->addDay(),
+        ]));
+        $this->postJson('/invitations/exchange', ['token' => $token])->assertOk();
+        DB::table('invitations')->where('id', $invitation->id)->update(['revoked_at' => now()]);
+        $this->get('/invitations/show')->assertNotFound();
+        $this->post('/invitations/register', ['name' => 'Synthetic'])->assertNotFound();
+        DB::table('invitations')->where('id', $invitation->id)->update(['revoked_at' => null, 'expires_at' => now()->subSecond()]);
+        $this->get('/invitations/show')->assertNotFound();
+        DB::table('invitations')->where('id', $invitation->id)->update(['expires_at' => now()->addDay()]);
+        $this->post('/login', ['email' => $owner->email, 'password' => 'secure-password-example'])->assertRedirect(route('invitation.show'));
+        $this->withCookie(config('session.cookie'), session()->getId());
+        $response = $this->get('/invitations/show')->assertNotFound();
+        self::assertStringNotContainsString('invited-other@example.test', $response->getContent());
+        $this->post('/logout')->assertRedirect(route('login'));
+        self::assertNull(session('auth.invitation_id'));
+        $this->get('/invitations/show')->assertNotFound();
+        $this->assertDatabaseMissing('memberships', ['organization_id' => $org->id, 'role' => 'member']);
+    }
+
+    public function test_invitation_exchange_scrubs_bearer_for_encoded_route_variants(): void
+    {
+        $this->fixture();
+        $token = str_repeat('V', 64);
+        foreach (['/invitations/%65xchange', '/invitations%2Fexchange', '/%69nvitations/exchange'] as $path) {
+            $response = $this->postJson($path, ['token' => $token]);
+            $response->assertNotFound();
+            self::assertStringNotContainsString($token, $response->getContent());
+            self::assertStringNotContainsString($token, request()->getContent());
+            self::assertStringNotContainsString($token, json_encode(request()->all()));
+        }
     }
 
     public function test_invitation_exchange_bounds_and_clears_oversized_and_malformed_bodies(): void
