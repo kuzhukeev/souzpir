@@ -35,12 +35,14 @@ interface SharedPropsV1 {
   organization: { id: string; name: string } | null;
   brand: { id: string; name: string; theme: 'confectionery'|'pyro'|'neutral' } | null;
   brands: Array<{ id: string; name: string }>;
-  modules: { seller: boolean; vision: boolean };
+  modules: { seller: boolean; vision: boolean } | null;
   can: Record<string, boolean>;
-  unread: number;
+  unread: number | null;
   request_id: string;
 }
 ```
+
+Until actual module entitlements and unread notifications are connected, modules and unread are null (unknown); UI must not interpret null as disabled or zero. Future integration must provide tenant-scoped authoritative sources.
 
 Public SSR uses separate props and never serializes SharedPropsV1. Permissions source — E0-03. Technical roles remain owner/admin/member/viewer, sales_manager valid only for member. Minimal action vocabulary: `organization.manage`, `team.manage` (owner/admin); `billing.manage` (owner); `seller.dialogues.operate` (owner/admin/editor/manager); `seller.knowledge.write` (owner/admin/editor); `seller.settings.write` (owner/admin); `vision.quiz.write` (owner/admin/editor); `vision.settings.write` (owner/admin); `reports.read` (brand-authorized roles). Owner is not omitted from an action just because a source table writes “admin”. This explicit baseline resolves vague “editor can edit all modules”; E0-03 may refine actions with documented tests, not silently elevate a permission.
 

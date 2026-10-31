@@ -4,6 +4,8 @@ declare module 'ziggy-js' {
     "home": [],
     "preview.foundation": [],
     "brand.switch": [],
+    "notifications.settings.update": [],
+    "dev.design-system": [],
     "preview.login": [],
     "preview.attention": []
 }
