@@ -70,6 +70,7 @@ return new class extends Migration
         Schema::table('ai_calls', function (Blueprint $t): void {
             $t->foreign(['parent_call_id', 'organization_id', 'brand_id'])->references(['id', 'organization_id', 'brand_id'])->on('ai_calls')->restrictOnDelete();
         });
+        DB::statement('CREATE UNIQUE INDEX ai_calls_one_retry_per_parent ON ai_calls (parent_call_id) WHERE parent_call_id IS NOT NULL');
         Schema::create('object_costs', function (Blueprint $t): void {
             $t->ulid('id')->primary();
             $t->ulid('organization_id');

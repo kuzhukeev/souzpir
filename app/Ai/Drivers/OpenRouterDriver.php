@@ -14,22 +14,7 @@ final class OpenRouterDriver implements Driver
         if (! is_string($key) || $key === '') {
             throw new Rejected('AI provider is not configured.');
         }
-        unset($body['prompt_version'], $body['prompt_checksum']);
-        $body['usage'] = ['include' => true];
-        $body['reasoning'] = ['effort' => 'low'];
-        $body['max_tokens'] ??= 700;
-        if (! empty($body['tools'])) {
-            $body['tool_choice'] ??= 'auto';
-        }
-        if (($body['response_format']['type'] ?? null) === 'json_schema') {
-            if (str_starts_with($body['model'], 'anthropic/')) {
-                $schema = $body['response_format']['json_schema']['schema'] ?? null;
-                $body['messages'][] = ['role' => 'user', 'content' => 'Ответь строго одним JSON-объектом без пояснений и без ```'.($schema ? ' по схеме: '.json_encode($schema, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR) : '')];
-                unset($body['response_format']);
-            } else {
-                $body['provider'] = ['require_parameters' => true];
-            }
-        }
+        $body = $this->wireBody($body);
         $start = hrtime(true);
         for ($attempt = 0; $attempt < 3; $attempt++) {
             try {
@@ -76,6 +61,29 @@ final class OpenRouterDriver implements Driver
         } catch (Throwable $e) {
             throw new Uncertain('Provider responded but usage or result cannot be confirmed.', previous: $e);
         }
+    }
+
+    /** The same payload is measured for budget admission and sent over HTTP. */
+    public function wireBody(array $body): array
+    {
+        unset($body['prompt_version'], $body['prompt_checksum']);
+        $body['usage'] = ['include' => true];
+        $body['reasoning'] = ['effort' => 'low'];
+        $body['max_tokens'] ??= 700;
+        if (! empty($body['tools'])) {
+            $body['tool_choice'] ??= 'auto';
+        }
+        if (($body['response_format']['type'] ?? null) === 'json_schema') {
+            if (str_starts_with($body['model'], 'anthropic/')) {
+                $schema = $body['response_format']['json_schema']['schema'] ?? null;
+                $body['messages'][] = ['role' => 'user', 'content' => 'Ответь строго одним JSON-объектом без пояснений и без ```'.($schema ? ' по схеме: '.json_encode($schema, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR) : '')];
+                unset($body['response_format']);
+            } else {
+                $body['provider'] = ['require_parameters' => true];
+            }
+        }
+
+        return $body;
     }
 
     private function tokens(mixed $value): int

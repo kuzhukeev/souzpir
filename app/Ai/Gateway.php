@@ -26,6 +26,10 @@ final class Gateway implements AiGateway
 {
     public function complete(AiRequest $request, AiContext $context): AiResult
     {
+        // An outer rollback must never undo accounting for an already sent request.
+        if (DB::connection()->transactionLevel() !== 0) {
+            throw new LogicException('AI calls cannot run inside a database transaction.');
+        }
         $this->assertTenantAndObject($context);
         // Validate encryption before any paid call; idempotent results are stored encrypted.
         app('encrypter');
@@ -54,9 +58,13 @@ final class Gateway implements AiGateway
             'object_type' => $context->objectType, 'object_id' => $context->objectId,
             'data_classes' => $context->dataClasses, 'attempt' => $context->attempt,
             'parent_call_id' => $context->parentCallId,
+            'driver' => $driverName,
         ];
         $requestHash = CanonicalJson::hash($contextHash);
-        [$call, $existing] = $this->reserve($request, $context, $model['provider'], $requestHash);
+        $wireBytes = $driverName === 'fake' ? null : strlen(json_encode(
+            app(OpenRouterDriver::class)->wireBody($body), JSON_THROW_ON_ERROR,
+        ));
+        [$call, $existing] = $this->reserve($request, $context, $model['provider'], $requestHash, $wireBytes);
         if ($existing) {
             return $this->replay($call, $request->model);
         }
@@ -97,9 +105,9 @@ final class Gateway implements AiGateway
         }
     }
 
-    private function reserve(AiRequest $request, AiContext $context, string $provider, string $requestHash): array
+    private function reserve(AiRequest $request, AiContext $context, string $provider, string $requestHash, ?int $wireBytes): array
     {
-        return DB::transaction(function () use ($request, $context, $provider, $requestHash): array {
+        return DB::transaction(function () use ($request, $context, $provider, $requestHash, $wireBytes): array {
             $keyHash = hash_hmac('sha256', $context->idempotencyKey, (string) config('app.key'));
             DB::select('SELECT pg_advisory_xact_lock(hashtextextended(?, 0))', [$context->organizationId.':'.$context->brandId.':'.$keyHash]);
             $existing = DB::table('ai_calls')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)->where('idempotency_key_hash', $keyHash)->lockForUpdate()->first();
@@ -122,6 +130,9 @@ final class Gateway implements AiGateway
                 if (! $parent || $parent->status !== 'failed' || (int) $parent->attempt + 1 !== $context->attempt) {
                     throw new LogicException('AI parent attempt cannot be retried.');
                 }
+                if (DB::table('ai_calls')->where('parent_call_id', $parent->id)->exists()) {
+                    throw new LogicException('AI parent attempt already has a retry.');
+                }
             }
             if ($budget->limit_units !== null) {
                 throw new LogicException('AI unit budget requires an approved conversion rule.');
@@ -137,8 +148,7 @@ final class Gateway implements AiGateway
                     if (! is_array($limits) || ! is_int($limits['max_input_bytes'] ?? null) || $limits['max_input_bytes'] < 1 || ! is_int($limits['max_output_tokens'] ?? null) || $limits['max_output_tokens'] < 1) {
                         throw new LogicException('A configured live budget requires bounded request sizes.');
                     }
-                    $bytes = strlen(json_encode($request->toArray(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
-                    if ($bytes + 512 > $limits['max_input_bytes'] || ($request->maxTokens ?? 700) > $limits['max_output_tokens']) {
+                    if ($wireBytes === null || $wireBytes > $limits['max_input_bytes'] || ($request->maxTokens ?? 700) > $limits['max_output_tokens']) {
                         throw new LogicException('AI request exceeds the configured reservation bounds.');
                     }
                 }
@@ -163,46 +173,40 @@ final class Gateway implements AiGateway
         });
     }
 
-    private function settle(object $call, AiResult $result, ?string $evidenceHash = null): void
+    private function settle(object $call, AiResult $result): void
     {
-        DB::transaction(function () use ($call, $result, $evidenceHash): void {
+        DB::transaction(function () use ($call, $result): void {
             $budget = DB::table('ai_budgets')->where('id', $call->budget_id)->lockForUpdate()->first();
             $current = DB::table('ai_calls')->where('id', $call->id)->lockForUpdate()->first();
-            if (! $budget || ! $current || ($evidenceHash === null && $current->status !== 'reserved') || ($evidenceHash !== null && ! in_array($current->status, ['reserved', 'uncertain'], true))) {
+            if (! $budget || ! $current || $current->status !== 'reserved') {
                 throw new LogicException('AI reservation cannot be settled.');
             }
             DB::table('ai_budgets')->where('id', $budget->id)->update(['reserved_micros' => (int) $budget->reserved_micros - (int) $current->reserved_micros, 'spent_micros' => (int) $budget->spent_micros + $result->costMicros, 'unresolved_count' => (int) $budget->unresolved_count - 1, 'reservation_breached' => (bool) $budget->reservation_breached || ((int) $current->reserved_micros > 0 && $result->costMicros > (int) $current->reserved_micros), 'updated_at' => now()]);
-            DB::table('ai_calls')->where('id', $call->id)->update(['status' => 'completed', 'model' => $result->model, 'reconciliation_evidence_hash' => $evidenceHash, 'cost_micros' => $result->costMicros, 'reserve_exceeded' => (int) $current->reserved_micros > 0 && $result->costMicros > (int) $current->reserved_micros, 'prompt_tokens' => $result->usage['promptTokens'], 'completion_tokens' => $result->usage['completionTokens'], 'latency_ms' => $result->latencyMs, 'result_encrypted' => Crypt::encryptString(json_encode($result->toArray(), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)), 'updated_at' => now()]);
+            DB::table('ai_calls')->where('id', $call->id)->update(['status' => 'completed', 'model' => $result->model, 'cost_micros' => $result->costMicros, 'reserve_exceeded' => (int) $current->reserved_micros > 0 && $result->costMicros > (int) $current->reserved_micros, 'prompt_tokens' => $result->usage['promptTokens'], 'completion_tokens' => $result->usage['completionTokens'], 'latency_ms' => $result->latencyMs, 'result_encrypted' => Crypt::encryptString(json_encode($result->toArray(), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)), 'updated_at' => now()]);
             $this->attribute($current, $result);
             $this->notifyThreshold($budget, (int) $budget->spent_micros + $result->costMicros);
         });
     }
 
-    /** Trusted operator workflow: caller must authorize reconciliation and supply provider evidence. */
+    /** Reserved for a future authorized workflow that verifies provider evidence. */
     public function reconcileSuccess(TenantContext $tenant, AiResult $result, string $evidence): void
     {
         $this->assertThresholdReady();
-        $call = $this->reconciliationCall($tenant, $result->aiCallId, $evidence);
+        $this->reconciliationCall($tenant, $result->aiCallId, $evidence);
         if (($result->error !== null && ($result->error['code'] ?? null) !== 'empty_response') || $result->costMicros === null) {
             throw new InvalidArgumentException('Confirmed result and cost are required.');
         }
         $this->assertResult($result->toArray());
-        $this->settle($call, $result, hash('sha256', $evidence));
+        // A caller-supplied result and receipt string are not provider verification.
+        throw new LogicException('Successful reconciliation requires a verified provider evidence workflow.');
     }
 
-    /** Only verified, unbilled outcomes can release an uncertain reservation. */
+    /** Unbilled recovery stays closed until provider evidence can be verified. */
     public function reconcileUnbilled(TenantContext $tenant, string $callId, string $evidence): void
     {
-        $call = $this->reconciliationCall($tenant, $callId, $evidence);
-        DB::transaction(function () use ($call, $evidence): void {
-            $budget = DB::table('ai_budgets')->where('id', $call->budget_id)->lockForUpdate()->first();
-            $current = DB::table('ai_calls')->where('id', $call->id)->lockForUpdate()->first();
-            if (! $budget || ! $current || ! in_array($current->status, ['reserved', 'uncertain'], true)) {
-                throw new LogicException('AI call cannot be reconciled.');
-            }
-            DB::table('ai_budgets')->where('id', $budget->id)->update(['reserved_micros' => (int) $budget->reserved_micros - (int) $current->reserved_micros, 'unresolved_count' => (int) $budget->unresolved_count - 1, 'updated_at' => now()]);
-            DB::table('ai_calls')->where('id', $call->id)->update(['status' => 'failed', 'cost_micros' => 0, 'error_code' => 'confirmed_unbilled', 'reconciliation_evidence_hash' => hash('sha256', $evidence), 'updated_at' => now()]);
-        });
+        $this->reconciliationCall($tenant, $callId, $evidence);
+        // A free-form string is not proof that a provider did not charge.
+        throw new LogicException('Unbilled reconciliation requires a verified provider evidence workflow.');
     }
 
     private function reconciliationCall(TenantContext $tenant, string $callId, string $evidence): object

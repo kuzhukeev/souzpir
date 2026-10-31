@@ -55,7 +55,6 @@ final class ContactMasker
                 $message['content'] = $this->values($message['content']);
             }
             if (isset($message['tool_calls']) && is_array($message['tool_calls'])) {
-                $message['tool_calls'] = $this->schema($message['tool_calls']);
                 foreach ($message['tool_calls'] as &$call) {
                     if (isset($call['function']['arguments']) && is_string($call['function']['arguments'])) {
                         $args = json_decode($call['function']['arguments'], true, 512, JSON_THROW_ON_ERROR);
@@ -63,6 +62,7 @@ final class ContactMasker
                     }
                 }
                 unset($call);
+                $message['tool_calls'] = $this->schema($message['tool_calls']);
             }
             foreach (array_diff(array_keys($message), ['role', 'name', 'tool_call_id', 'content', 'tool_calls']) as $key) {
                 $message[$key] = $this->schema($message[$key]);
@@ -76,7 +76,14 @@ final class ContactMasker
     private function values(mixed $value): mixed
     {
         if (is_array($value)) {
-            return array_map(fn ($item) => $this->values($item), $value);
+            foreach ($value as $key => $item) {
+                if (is_string($key) && $this->values($key) !== $key) {
+                    throw new InvalidArgumentException('Contact data is not allowed in AI data keys.');
+                }
+                $value[$key] = $this->values($item);
+            }
+
+            return $value;
         }
         if (! is_string($value)) {
             return $value;

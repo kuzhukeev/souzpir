@@ -4,6 +4,7 @@ namespace Tests\Feature\Ai;
 
 use App\Ai\CanonicalJson;
 use App\Ai\ContactMasker;
+use App\Ai\Drivers\OpenRouterDriver;
 use App\Ai\Drivers\Rejected;
 use App\Ai\Gateway;
 use App\Ai\Money;
@@ -16,7 +17,7 @@ use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
 use Database\Seeders\Ai\PromptSetsSeeder;
 use Database\Seeders\Ai\ProviderSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
@@ -27,7 +28,7 @@ use Tests\TestCase;
 
 final class GatewayTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseMigrations;
 
     private string $organization;
 
@@ -66,6 +67,133 @@ final class GatewayTest extends TestCase
             self::assertSame(0, (int) DB::table('ai_budgets')->value('reserved_micros'));
             $this->expectException(LogicException::class);
             app(AiGateway::class)->complete(new AiRequest([['role' => 'user', 'content' => 'different']], $request->model, 0.5), $context);
+        });
+    }
+
+    public function test_outer_transaction_is_rejected_before_reservation_or_transport(): void
+    {
+        config(['runtime.ai_driver' => 'openrouter', 'features.E0-05.defaults.live_enabled' => true, 'features.E0-05.defaults.openrouter_key' => 'test-only']);
+        Http::fake();
+        $this->within(function (): void {
+            DB::beginTransaction();
+            try {
+                app(AiGateway::class)->complete($this->request(), $this->context('nested'));
+                self::fail('Nested transaction accepted');
+            } catch (LogicException $error) {
+                self::assertStringContainsString('inside a database transaction', $error->getMessage());
+            } finally {
+                DB::rollBack();
+            }
+            self::assertSame(0, DB::table('ai_calls')->count());
+            Http::assertNothingSent();
+        });
+    }
+
+    public function test_reconciliation_cannot_settle_an_active_http_call(): void
+    {
+        $this->budget(1000);
+        config(['runtime.ai_driver' => 'openrouter', 'features.E0-05.defaults.live_enabled' => true, 'features.E0-05.defaults.openrouter_key' => 'test-only', 'features.E0-05.defaults.reservation_micros' => ['google/gemini-2.5-flash' => 100], 'features.E0-05.defaults.reservation_request_limits' => ['google/gemini-2.5-flash' => ['max_input_bytes' => 4096, 'max_output_tokens' => 1000]]]);
+        DB::table('brands')->where('id', $this->brand)->update(['settings' => json_encode(['ai_data_policy' => ['knowledge_public' => ['any']]], JSON_THROW_ON_ERROR)]);
+        Http::fake(['openrouter.ai/*' => function () {
+            $id = DB::table('ai_calls')->value('id');
+            $result = new AiResult('forged', [], ['promptTokens' => 1, 'completionTokens' => 1], $this->request()->model, 1, 1, $id);
+            foreach ([fn () => app(Gateway::class)->reconcileUnbilled(app(TenantContext::class), $id, 'unverified'), fn () => app(Gateway::class)->reconcileSuccess(app(TenantContext::class), $result, 'unverified')] as $reconcile) {
+                try {
+                    $reconcile();
+                    self::fail('Active reservation was reconciled');
+                } catch (LogicException) {
+                }
+            }
+            self::assertSame('reserved', DB::table('ai_calls')->value('status'));
+            self::assertSame(100, (int) DB::table('ai_budgets')->value('reserved_micros'));
+
+            return Http::response('{"model":"google/gemini-2.5-flash","choices":[{"message":{"content":"ok"}}],"usage":{"prompt_tokens":1,"completion_tokens":1,"cost":0.000004}}', 200);
+        }]);
+        $this->within(function (): void {
+            $result = app(AiGateway::class)->complete($this->request(), $this->context('in-flight'));
+            self::assertSame('ok', $result->content);
+            self::assertSame(4, (int) DB::table('ai_budgets')->value('spent_micros'));
+            Http::assertSentCount(1);
+        });
+    }
+
+    public function test_same_idempotency_key_cannot_cross_driver_modes(): void
+    {
+        $this->fixture($this->request()->toArray(), 1);
+        $this->within(function (): void {
+            app(AiGateway::class)->complete($this->request(), $this->context('driver-switch'));
+            config(['runtime.ai_driver' => 'openrouter', 'features.E0-05.defaults.live_enabled' => true, 'features.E0-05.defaults.openrouter_key' => 'test-only']);
+            DB::table('brands')->where('id', $this->brand)->update(['settings' => json_encode(['ai_data_policy' => ['knowledge_public' => ['any']]], JSON_THROW_ON_ERROR)]);
+            Http::fake();
+            try {
+                app(AiGateway::class)->complete($this->request(), $this->context('driver-switch'));
+                self::fail('Cross-driver replay accepted');
+            } catch (LogicException $error) {
+                self::assertStringContainsString('different request or context', $error->getMessage());
+            }
+            Http::assertNothingSent();
+        });
+    }
+
+    public function test_nested_contact_keys_and_escaped_tool_argument_keys_are_rejected(): void
+    {
+        $masker = app(ContactMasker::class);
+        foreach ([
+            ['messages' => [['role' => 'user', 'content' => [['a@example.ru' => 'value']]]]],
+            ['messages' => [['role' => 'assistant', 'content' => null, 'tool_calls' => [['id' => 'call', 'function' => ['name' => 'lookup', 'arguments' => '{"a\\u0040example.ru":"value"}']]]]]],
+        ] as $payload) {
+            try {
+                $masker->request($payload);
+                self::fail('Contact key accepted');
+            } catch (\InvalidArgumentException $error) {
+                self::assertStringContainsString('keys', $error->getMessage());
+            }
+        }
+    }
+
+    public function test_anthropic_limit_is_applied_to_the_actual_serialized_http_body(): void
+    {
+        $this->budget(1000);
+        $model = 'anthropic/claude-sonnet-5.5';
+        $request = new AiRequest([['role' => 'user', 'content' => 'проверка']], $model, 0.5, ['type' => 'json_schema', 'json_schema' => ['name' => 'result', 'schema' => ['type' => 'object', 'description' => str_repeat('слово', 300)]]]);
+        $wire = app(OpenRouterDriver::class)->wireBody(app(ContactMasker::class)->request($request->toArray()));
+        $bytes = strlen(json_encode($wire, JSON_THROW_ON_ERROR));
+        config(['runtime.ai_driver' => 'openrouter', 'features.E0-05.defaults.live_enabled' => true, 'features.E0-05.defaults.openrouter_key' => 'test-only', 'features.E0-05.defaults.reservation_micros' => [$model => 100], 'features.E0-05.defaults.reservation_request_limits' => [$model => ['max_input_bytes' => $bytes - 1, 'max_output_tokens' => 700]]]);
+        DB::table('brands')->where('id', $this->brand)->update(['settings' => json_encode(['ai_data_policy' => ['knowledge_public' => ['any']]], JSON_THROW_ON_ERROR)]);
+        Http::fake(['openrouter.ai/*' => Http::response('{"model":"anthropic/claude-sonnet-5.5","choices":[{"message":{"content":"ok"}}],"usage":{"prompt_tokens":1,"completion_tokens":1,"cost":0.000004}}', 200)]);
+        $this->within(function () use ($request, $model, $bytes): void {
+            try {
+                app(AiGateway::class)->complete($request, $this->context('too-big'));
+                self::fail('Oversized wire payload sent');
+            } catch (LogicException $error) {
+                self::assertStringContainsString('exceeds the configured reservation bounds', $error->getMessage());
+            }
+            Http::assertNothingSent();
+            config(['features.E0-05.defaults.reservation_request_limits' => [$model => ['max_input_bytes' => $bytes, 'max_output_tokens' => 700]]]);
+            self::assertSame('ok', app(AiGateway::class)->complete($request, $this->context('at-limit'))->content);
+            Http::assertSent(fn ($sent) => strlen($sent->body()) === $bytes);
+        });
+    }
+
+    public function test_a_failed_parent_accepts_only_one_child_even_with_different_keys(): void
+    {
+        $this->within(function (): void {
+            try {
+                app(AiGateway::class)->complete($this->request(), $this->context('parent'));
+                self::fail('Missing fixture accepted');
+            } catch (Rejected) {
+            }
+            $parent = DB::table('ai_calls')->value('id');
+            $this->fixture($this->request()->toArray(), 1);
+            $retry = fn (string $key) => new AiContext($this->organization, $this->brand, 'responder', 'seller', 'brand', $this->brand, $key, ['knowledge_public'], 2, $parent);
+            app(AiGateway::class)->complete($this->request(), $retry('child-one'));
+            try {
+                app(AiGateway::class)->complete($this->request(), $retry('child-two'));
+                self::fail('Duplicate retry accepted');
+            } catch (LogicException $error) {
+                self::assertStringContainsString('already has a retry', $error->getMessage());
+            }
+            self::assertSame(1, DB::table('ai_calls')->where('parent_call_id', $parent)->count());
         });
     }
 
@@ -209,7 +337,7 @@ final class GatewayTest extends TestCase
         });
     }
 
-    public function test_confirmed_uncertain_result_is_reconciled_once_without_a_second_call(): void
+    public function test_uncertain_result_cannot_be_reconciled_with_unverified_success(): void
     {
         $this->budget(1000);
         config(['features.E0-05.defaults.reservation_micros' => ['google/gemini-2.5-flash' => 100]]);
@@ -225,16 +353,15 @@ final class GatewayTest extends TestCase
             self::assertNull($normalized['costMicros']);
             self::assertSame(100, (int) DB::table('ai_budgets')->value('reserved_micros'));
             $confirmed = new AiResult('confirmed', [], ['promptTokens' => 5, 'completionTokens' => 3], $this->request()->model, 1, 55, $first->aiCallId);
-            app(Gateway::class)->reconcileSuccess(app(TenantContext::class), $confirmed, 'provider-receipt-123');
-            self::assertSame(55, (int) DB::table('ai_budgets')->value('spent_micros'));
-            self::assertSame(0, (int) DB::table('ai_budgets')->value('reserved_micros'));
-            self::assertSame('confirmed', app(AiGateway::class)->complete($this->request(), $context)->content);
             try {
                 app(Gateway::class)->reconcileSuccess(app(TenantContext::class), $confirmed, 'provider-receipt-123');
-                self::fail('Reconciliation repeated');
-            } catch (LogicException) {
+                self::fail('Unverified receipt accepted');
+            } catch (LogicException $error) {
+                self::assertStringContainsString('verified provider evidence', $error->getMessage());
             }
-            self::assertSame(55, (int) DB::table('ai_budgets')->value('spent_micros'));
+            self::assertSame(0, (int) DB::table('ai_budgets')->value('spent_micros'));
+            self::assertSame(100, (int) DB::table('ai_budgets')->value('reserved_micros'));
+            self::assertSame('cost_unknown', app(AiGateway::class)->complete($this->request(), $context)->error['code']);
         });
     }
 
@@ -274,9 +401,14 @@ final class GatewayTest extends TestCase
             } catch (\InvalidArgumentException) {
             }
             self::assertSame(100, (int) DB::table('ai_budgets')->value('reserved_micros'));
-            app(Gateway::class)->reconcileUnbilled(app(TenantContext::class), $first->aiCallId, 'confirmed-no-charge');
-            self::assertSame('failed', DB::table('ai_calls')->value('status'));
-            self::assertSame(0, (int) DB::table('ai_budgets')->value('reserved_micros'));
+            try {
+                app(Gateway::class)->reconcileUnbilled(app(TenantContext::class), $first->aiCallId, 'confirmed-no-charge');
+                self::fail('Unverified evidence released reservation');
+            } catch (LogicException $error) {
+                self::assertStringContainsString('verified provider evidence', $error->getMessage());
+            }
+            self::assertSame('uncertain', DB::table('ai_calls')->value('status'));
+            self::assertSame(100, (int) DB::table('ai_budgets')->value('reserved_micros'));
         });
     }
 
@@ -316,7 +448,7 @@ final class GatewayTest extends TestCase
             } catch (LogicException $e) {
                 self::assertStringContainsString('bounded request sizes', $e->getMessage());
             }
-            config(['features.E0-05.defaults.reservation_request_limits' => ['google/gemini-2.5-flash' => ['max_input_bytes' => 600, 'max_output_tokens' => 700]]]);
+            config(['features.E0-05.defaults.reservation_request_limits' => ['google/gemini-2.5-flash' => ['max_input_bytes' => 60, 'max_output_tokens' => 700]]]);
             try {
                 app(AiGateway::class)->complete($this->request(), $this->context('oversized'));
                 self::fail('Oversized live request accepted');

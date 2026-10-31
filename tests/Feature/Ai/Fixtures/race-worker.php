@@ -11,6 +11,7 @@ require __DIR__.'/../../../../vendor/autoload.php';
 $app = require __DIR__.'/../../../../bootstrap/app.php';
 $app->make(Kernel::class)->bootstrap();
 [$script, $organization, $brand, $key, $directory, $barrier] = $argv;
+$parent = $argv[6] ?? null;
 config(['runtime.ai_driver' => 'fake', 'features.E0-05.defaults.fixture_directory' => $directory, 'features.E0-05.defaults.reservation_micros' => ['google/gemini-2.5-flash' => 60]]);
 $deadline = microtime(true) + 15;
 while (! is_file($barrier) && microtime(true) < $deadline) {
@@ -21,7 +22,7 @@ if (! is_file($barrier)) {
     exit(2);
 }
 try {
-    $context = new AiContext($organization, $brand, 'responder', 'seller', 'brand', $brand, $key, ['knowledge_public']);
+    $context = new AiContext($organization, $brand, 'responder', 'seller', 'brand', $brand, $key, ['knowledge_public'], $parent ? 2 : 1, $parent);
     $request = new AiRequest([['role' => 'user', 'content' => 'concurrent test']], 'google/gemini-2.5-flash', 0.5);
     $result = app(TenantContextRunner::class)->run(new TenantContext($organization, $brand, source: 'job'), fn () => app(AiGateway::class)->complete($request, $context));
     echo json_encode(['status' => $result->error['code'] ?? 'completed', 'id' => $result->aiCallId], JSON_THROW_ON_ERROR);
