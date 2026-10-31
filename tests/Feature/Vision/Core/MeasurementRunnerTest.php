@@ -110,6 +110,28 @@ final class MeasurementRunnerTest extends TestCase
         Http::assertNothingSent();
     }
 
+    public function test_planned_models_and_invalid_repeat_counts_do_not_create_a_run(): void
+    {
+        $this->within(function (): void {
+            $set = app(QuestionSets::class)->create([['id' => 'q1', 'text' => 'Вопрос', 'intent' => 'choose']]);
+            $attempts = [
+                fn () => app(MeasurementRunner::class)->start($set, ['gigachat' => 'gigachat'], 1),
+                fn () => app(MeasurementRunner::class)->start($set, ['gemini' => 'google/gemini-2.5-flash'], 0),
+                fn () => app(MeasurementRunner::class)->start($set, ['wrong-provider' => 'google/gemini-2.5-flash'], 1),
+            ];
+            foreach ($attempts as $attempt) {
+                try {
+                    $attempt();
+                    self::fail('An invalid measurement plan was accepted.');
+                } catch (\InvalidArgumentException) {
+                    self::assertSame(0, DB::table('measurements')->count());
+                    self::assertSame(0, DB::table('measurement_answers')->count());
+                }
+            }
+            Http::assertNothingSent();
+        });
+    }
+
     public function test_missing_fake_fixture_fails_once_without_retrying(): void
     {
         $this->within(function (): void {
