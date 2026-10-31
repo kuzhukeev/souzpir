@@ -40,13 +40,22 @@ final class DeterministicGuard
             return false;
         };
         $matchAny = function (array $patterns) use ($reply): bool {
+            $matched = false;
             foreach ($patterns as $p) {
-                if (@preg_match('~'.str_replace('~', '\~', $p).'~ium', $reply)) {
-                    return true;
+                // Do not expose PCRE diagnostics to the caller's error handler.
+                set_error_handler(static fn (): bool => true, E_WARNING);
+                try {
+                    $result = preg_match('~'.str_replace('~', '\~', $p).'~ium', $reply);
+                } finally {
+                    restore_error_handler();
                 }
+                if ($result === false) {
+                    throw new \LogicException('Guard pattern could not be evaluated.');
+                }
+                $matched = $matched || $result === 1;
             }
 
-            return false;
+            return $matched;
         };
         $push = function (array $rule, string $msg) use (&$issues, &$warnings) {
             if (($rule['severity'] ?? 'block') === 'block') {
