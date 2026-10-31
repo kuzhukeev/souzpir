@@ -24,7 +24,7 @@ use Throwable;
 
 final class Gateway implements AiGateway
 {
-    public function complete(AiRequest $request, AiContext $context): AiResult
+    public function complete(#[\SensitiveParameter] AiRequest $request, #[\SensitiveParameter] AiContext $context): AiResult
     {
         // An outer rollback must never undo accounting for an already sent request.
         if (DB::connection()->transactionLevel() !== 0) {
@@ -49,7 +49,12 @@ final class Gateway implements AiGateway
         if ($driverName !== 'fake') {
             $this->assertLiveAllowed($context);
         }
-        $body = app(ContactMasker::class)->request($request->toArray());
+        try {
+            $body = app(ContactMasker::class)->request($request->toArray());
+        } catch (Throwable) {
+            // Do not chain exceptions whose stack may contain unmasked input.
+            throw new InvalidArgumentException('AI data could not be safely prepared.');
+        }
         $contextHash = [
             'request' => $body,
             // Keyed digest detects changes hidden by masking without persisting contact data.

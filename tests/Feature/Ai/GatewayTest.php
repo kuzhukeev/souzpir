@@ -185,7 +185,7 @@ final class GatewayTest extends TestCase
                 app(AiGateway::class)->complete($request, $this->context('encoded-contact'));
                 self::fail('Unsafe message reached transport');
             } catch (\InvalidArgumentException $error) {
-                self::assertStringContainsString('Escaped contact', $error->getMessage());
+                self::assertSame('AI data could not be safely prepared.', $error->getMessage());
             }
             Http::assertNothingSent();
             self::assertSame(0, DB::table('ai_calls')->count());

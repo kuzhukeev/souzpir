@@ -64,7 +64,7 @@ class Extractor
         'already_received', 'budget_declined', 'delivery_expensive', 'far_away', 'waiting_permission', 'leftovers',
     ];
 
-    public function extract(LeadState $state, array $history, string $clientMessage, AiContext $ctx): array
+    public function extract(#[\SensitiveParameter] LeadState $state, #[\SensitiveParameter] array $history, #[\SensitiveParameter] string $clientMessage, #[\SensitiveParameter] AiContext $ctx): array
     {
         $tenant = app(TenantContext::class);
         if ($tenant->organizationId !== $ctx->organizationId || $tenant->brandId !== $ctx->brandId || $ctx->organizationId !== $this->prompt->organizationId || $ctx->brandId !== $this->prompt->brandId || $ctx->family !== 'seller' || $ctx->purpose !== 'extractor' || $ctx->objectType !== 'conversation') {
@@ -86,7 +86,7 @@ class Extractor
         return $verified->extractVerified($state, $history, $clientMessage, $ctx);
     }
 
-    private function extractVerified(LeadState $state, array $history, string $clientMessage, AiContext $ctx): array
+    private function extractVerified(#[\SensitiveParameter] LeadState $state, #[\SensitiveParameter] array $history, #[\SensitiveParameter] string $clientMessage, #[\SensitiveParameter] AiContext $ctx): array
     {
         $system = Blade::render($this->prompt->body, [
             'card' => $state->cardText(),
@@ -139,7 +139,7 @@ class Extractor
     }
 
     /** Дозаполнить обязательные ключи, если модель их опустила (не строгие провайдеры). */
-    public function normalize(array $d): array
+    public function normalize(#[\SensitiveParameter] array $d): array
     {
         $objections = $d['objections'] ?? [];
         if (! is_array($objections) || ! array_is_list($objections)) {
@@ -175,7 +175,7 @@ class Extractor
         return $d;
     }
 
-    public function valid(array $data): bool
+    public function valid(#[\SensitiveParameter] array $data): bool
     {
         try {
             $validator = new Validator;
@@ -205,7 +205,7 @@ class Extractor
         }
     }
 
-    private function recoverContacts(LeadState $state, string $message, array $data): array
+    private function recoverContacts(#[\SensitiveParameter] LeadState $state, #[\SensitiveParameter] string $message, #[\SensitiveParameter] array $data): array
     {
         preg_match_all('/[A-Z0-9.!#$%&\'*+\/=?^_`{|}~-]+@[A-Z0-9](?:[A-Z0-9-]*[A-Z0-9])?(?:\.[A-Z0-9](?:[A-Z0-9-]*[A-Z0-9])?)+/iu', $message, $matches);
         $emails = [];
@@ -230,7 +230,7 @@ class Extractor
     }
 
     /** Если LLM недоступен — минимальный разбор регулярками, чтобы диалог не падал. */
-    private function fallback(string $msg, string $err): array
+    private function fallback(#[\SensitiveParameter] string $msg, string $err): array
     {
         $low = mb_strtolower($msg);
         $intent = 'unclear';

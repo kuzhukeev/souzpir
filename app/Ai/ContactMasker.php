@@ -6,7 +6,7 @@ use InvalidArgumentException;
 
 final class ContactMasker
 {
-    public function request(array $body): array
+    public function request(#[\SensitiveParameter] array $body): array
     {
         $body['messages'] = $this->messages($body['messages']);
         foreach ($body as $key => $value) {
@@ -21,7 +21,7 @@ final class ContactMasker
         return $body;
     }
 
-    private function schema(mixed $value): mixed
+    private function schema(#[\SensitiveParameter] mixed $value): mixed
     {
         if (! is_array($value)) {
             return $this->values($value);
@@ -43,7 +43,7 @@ final class ContactMasker
         return $value;
     }
 
-    public function messages(array $messages): array
+    public function messages(#[\SensitiveParameter] array $messages): array
     {
         foreach ($messages as &$message) {
             if (! is_array($message) || ! in_array($message['role'] ?? null, ['system', 'user', 'assistant', 'tool'], true)) {
@@ -84,7 +84,7 @@ final class ContactMasker
         return $messages;
     }
 
-    private function values(mixed $value): mixed
+    private function values(#[\SensitiveParameter] mixed $value): mixed
     {
         if (is_array($value)) {
             foreach ($value as $key => $item) {
@@ -128,7 +128,7 @@ final class ContactMasker
         return $this->maskText($value);
     }
 
-    private function maskText(string $value): string
+    private function maskText(#[\SensitiveParameter] string $value): string
     {
         $value = preg_replace('/(?<![\p{L}\p{N}._%+\-])[\p{L}\p{N}._%+\-]+@[\p{L}\p{N}.\-]+\.[\p{L}]{2,}(?![\p{L}\p{N}_])/u', '[EMAIL]', $value);
         if ($value === null) {

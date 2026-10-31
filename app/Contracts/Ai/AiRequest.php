@@ -7,12 +7,12 @@ use InvalidArgumentException;
 final readonly class AiRequest
 {
     public function __construct(
-        public array $messages,
+        #[\SensitiveParameter] public array $messages,
         public string $model,
         public float $temperature,
-        public ?array $responseFormat = null,
-        public array $tools = [],
-        public mixed $toolChoice = null,
+        #[\SensitiveParameter] public ?array $responseFormat = null,
+        #[\SensitiveParameter] public array $tools = [],
+        #[\SensitiveParameter] public mixed $toolChoice = null,
         public ?int $maxTokens = null,
         public ?string $promptVersion = null,
         public ?string $promptChecksum = null,
