@@ -85,6 +85,9 @@ final class WebhookConfigurationClosedTest extends TenancyTestCase
         self::assertStringNotContainsString($url, $response->getContent());
         self::assertStringNotContainsString('fixture-query-secret', json_encode($props, JSON_THROW_ON_ERROR));
         self::assertStringNotContainsString('private-fixture-path', json_encode($props, JSON_THROW_ON_ERROR));
+        // CI runs PHP tests before the frontend build; use a deterministic
+        // Inertia asset version even when build/manifest.json does not exist.
+        config(['app.asset_url' => 'https://e110-assets.invalid']);
         $version = app(HandleInertiaRequests::class)->version(Request::create('/integrations/api'));
         $inertia = $this->get('/integrations/api', ['X-Inertia' => 'true', 'X-Inertia-Version' => $version, 'X-Requested-With' => 'XMLHttpRequest'])->assertOk();
         self::assertStringNotContainsString($url, $inertia->getContent());
