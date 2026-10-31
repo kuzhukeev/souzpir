@@ -596,6 +596,43 @@
       "description": "Прочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: Закрыть обходы маскирования email и телефонов: quoted local-part, domain literals, Unicode NFKC, fullwidth символы, нестандартные пробелы/тире, HTML entities, percent-encoding и вложенные JSON/tool arguments. При неоднозначном или неразбираемом представлении отклонять запрос до создания ai_calls и отправки провайдеру. Сохранить ожидаемое маскирование обычных контактов и не повреждать безобидный текст.\n\nЗависимости (нужен done после merge): SP-E0-05.\nОбласть записи: app/Privacy/, config/features/E0-05C.php, docs/modules/E0-05C.md, tests/Feature/Privacy/, tests/Unit/Privacy/, docs/results/SP-E0-05C.md.\nЭкраны: инфраструктура/контракты.\nИсточники: E0-05.\n- E0-05: 04 §10, 08 §2.3, eyon `Services/Ai/*`, proto `Llm/OpenRouterClient`, `config/agent.php`\n\nПриёмка:\n- Проверки каждой выявленной формы: mask или безопасный отказ до driver/HTTP/DB; nested arrays и tool arguments; обычные email/plus/кириллица/телефоны/текст остаются работоспособны. Только fake transport, без внешней сети.\n\nДополнительно: Интегратор подключит новый изолированный сервис в общий ContactMasker/Gateway после review. До этой защиты live ИИ запрещён; регрессию проверить с E3-02.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E0-05C.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n"
     },
     {
+      "taskKey": "SP-E0-05D",
+      "title": "SP-E0-05D · Защита секретов перед внешним ИИ",
+      "goal": "Не допускать отправку ключей API, токенов, паролей и других секретов из текста и вложенных структур во внешний ИИ; сочетать явную классификацию и разрешение на передачу с проверкой известных форм, безопасным отказом при сомнении и отсутствием секретов в логах. Не заявлять, что эвристики распознают все возможные секреты.",
+      "dependsOn": [
+        "SP-E0-05C"
+      ],
+      "scope": [
+        "app/Privacy/Secrets/",
+        "config/features/E0-05D.php",
+        "docs/modules/E0-05D.md",
+        "tests/Feature/Privacy/Secrets/",
+        "tests/Unit/Privacy/Secrets/",
+        "docs/results/SP-E0-05D.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Тесты синтетических API-ключей, bearer-токенов, паролей и приватных ключей во вложенных структурах, кодировках и JSON/tool arguments: отказ до HTTP и безопасные логи; проверка явно разрешённого публичного материала и отрицательных случаев. Только fake transport.",
+        "Интегратор проверяет реальный вызов Gateway и Vision knowledge bridge. Не полагаться только на регулярные выражения: явно разрешённый набор публичных данных и понятные ограничения. До интеграции live AI запрещён."
+      ],
+      "sourceIds": [
+        "E0-05"
+      ],
+      "screenIds": [],
+      "notes": "Сервис изолирован; подключение в общий Gateway и политику опубликованных знаний выполняет интегратор. Не использовать настоящие ключи в тестах.",
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/contracts/",
+        "docs/sources/10_backlog.md",
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02c_discrepancies.md",
+        "docs/sources/04c_settings_paths.md"
+      ],
+      "promptPath": "docs/tasks/SP-E0-05D.md",
+      "wave": 5,
+      "description": "Прочитать AGENTS.md и docs/preparation/decisions.md. Атомарный claim и отдельный Git worktree.\n\nЦель: Не допускать отправку ключей API, токенов, паролей и других секретов из текста и вложенных структур во внешний ИИ; сочетать явную классификацию и разрешение на передачу с проверкой известных форм, безопасным отказом при сомнении и отсутствием секретов в логах. Не заявлять, что эвристики распознают все возможные секреты.\n\nЗависимости: SP-E0-05C.\nОбласть записи: app/Privacy/Secrets/, config/features/E0-05D.php, docs/modules/E0-05D.md, tests/Feature/Privacy/Secrets/, tests/Unit/Privacy/Secrets/, docs/results/SP-E0-05D.md.\nПриёмка:\n- Тесты синтетических API-ключей, bearer-токенов, паролей и приватных ключей во вложенных структурах, кодировках и JSON/tool arguments: отказ до HTTP и безопасные логи; проверка явно разрешённого публичного материала и отрицательных случаев. Только fake transport.\n- Интегратор проверяет реальный вызов Gateway и Vision knowledge bridge. Не полагаться только на регулярные выражения: явно разрешённый набор публичных данных и понятные ограничения. До интеграции live AI запрещён.\n\nСервис изолирован; подключение в общий Gateway и политику опубликованных знаний выполняет интегратор. Не использовать настоящие ключи в тестах.\nНе менять общие контракты за пределами scope; после работы commit и submit, done ставит интегратор после независимой проверки.\n"
+    },
+    {
       "taskKey": "SP-E0-08",
       "title": "SP-E0-08 · Типы и маршруты для фронта",
       "goal": "`laravel-data` DTO + генерация TS, Ziggy, `HandleInertiaRequests::share` (auth, organization, brand, brands[], modules, can, theme, unread)",
@@ -4348,7 +4385,8 @@
         "SP-E1-01B",
         "SP-E3-07",
         "SP-E5-01",
-        "SP-E9-01"
+        "SP-E9-01",
+        "SP-E0-05D"
       ],
       "scope": [
         "app/Shadow/",
@@ -4386,7 +4424,7 @@
       ],
       "promptPath": "docs/tasks/SP-E9-03.md",
       "wave": 14,
-      "description": "Прочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: Новый движок в suggest-режиме параллельно прототипу 2 недели; сравнение Judge’ом\n\nЗависимости (нужен done после merge): SP-E0-05B, SP-E0-05C, SP-E1-01B, SP-E3-07, SP-E5-01, SP-E9-01.\nОбласть записи: app/Shadow/, config/features/E9-03.php, database/factories/Shadow/, database/migrations/E9-03/, database/seeders/Shadow/, docs/modules/E9-03.md, lang/ru/Shadow/, resources/js/features/Shadow/, resources/js/pages/Shadow/, resources/js/types/Shadow/, routes/features/E9-03.php, tests/Browser/E9-03/, tests/Feature/Shadow/, tests/Unit/Shadow/, docs/results/SP-E9-03.md.\nЭкраны: инфраструктура/контракты.\nИсточники: E9-03.\n- E9-03: 07 §2 п.7\n\nПриёмка:\n- отчёт расхождений\n\nДополнительно: Операторский этап с отдельным разрешением на live shadow, данными и бюджетом. 2-недельное наблюдение нельзя подменять smoke тестом; реальная исходящая доставка выключена.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E9-03.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n"
+      "description": "Прочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: Новый движок в suggest-режиме параллельно прототипу 2 недели; сравнение Judge’ом\n\nЗависимости (нужен done после merge): SP-E0-05D, SP-E0-05B, SP-E0-05C, SP-E1-01B, SP-E3-07, SP-E5-01, SP-E9-01.\nОбласть записи: app/Shadow/, config/features/E9-03.php, database/factories/Shadow/, database/migrations/E9-03/, database/seeders/Shadow/, docs/modules/E9-03.md, lang/ru/Shadow/, resources/js/features/Shadow/, resources/js/pages/Shadow/, resources/js/types/Shadow/, routes/features/E9-03.php, tests/Browser/E9-03/, tests/Feature/Shadow/, tests/Unit/Shadow/, docs/results/SP-E9-03.md.\nЭкраны: инфраструктура/контракты.\nИсточники: E9-03.\n- E9-03: 07 §2 п.7\n\nПриёмка:\n- отчёт расхождений\n\nДополнительно: Операторский этап с отдельным разрешением на live shadow, данными и бюджетом. 2-недельное наблюдение нельзя подменять smoke тестом; реальная исходящая доставка выключена.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E9-03.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n"
     },
     {
       "taskKey": "SP-E9-04",
@@ -4481,7 +4519,8 @@
         "SP-F-04",
         "SP-T-01",
         "SP-T-02",
-        "SP-T-03"
+        "SP-T-03",
+        "SP-E0-05D"
       ],
       "scope": [
         "README.md",
@@ -4508,7 +4547,7 @@
       ],
       "promptPath": "docs/tasks/SP-E9-04.md",
       "wave": 15,
-      "description": "Прочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: README по доменам, runbook очередей/планировщика, перечень env, чек-лист приёмки Приложения Г ТЗ\n\nЗависимости (нужен done после merge): SP-C-01, SP-E0-01, SP-E0-02, SP-E0-03, SP-E0-04, SP-E0-05, SP-E0-05B, SP-E0-05C, SP-E0-06, SP-E0-07, SP-E0-08, SP-E1-01, SP-E1-01B, SP-E1-01C, SP-E1-01D, SP-E1-01F, SP-E1-02, SP-E1-03, SP-E1-04, SP-E1-05, SP-E1-06, SP-E1-07, SP-E1-08, SP-E1-09, SP-E1-10, SP-E1-11, SP-E1-12, SP-E3-01, SP-E3-02, SP-E3-03, SP-E3-03B, SP-E3-04, SP-E3-05, SP-E3-06, SP-E3-07, SP-E4-01, SP-E4-02, SP-E4-03, SP-E4-04, SP-E4-05, SP-E4-06, SP-E4-07, SP-E4-08, SP-E5-01, SP-E5-02, SP-E5-03, SP-E5-04, SP-E5-04B, SP-E5-05, SP-E5-06, SP-E5-07, SP-E5-08, SP-E6-01, SP-E6-02, SP-E6-03, SP-E6-04, SP-E6-05, SP-E6-06, SP-E6-07, SP-E6-08, SP-E6-09, SP-E7-01, SP-E7-02, SP-E7-03, SP-E7-04, SP-E7-05, SP-E8-01, SP-E8-01B, SP-E8-01C, SP-E8-01D, SP-E8-01E, SP-E8-02, SP-E8-03, SP-E8-04, SP-E8-05, SP-E8-05B, SP-E8-05C, SP-E8-06, SP-E8-07, SP-E9-01, SP-E9-02, SP-E9-03, SP-F-01, SP-F-02, SP-F-03, SP-F-04, SP-T-01, SP-T-02, SP-T-03.\nОбласть записи: README.md, docs/runbooks/, docs/validation/final.md, docs/results/SP-E9-04.md.\nЭкраны: инфраструктура/контракты.\nИсточники: E9-04.\n- E9-04: ТЗ Прил. Г\n\nПриёмка:\n- чек-лист заполнен с фактическим статусом (A/B/C/D)\n\nДополнительно: Сохранять поведение донора; изменения только по принятым решениям.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E9-04.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n"
+      "description": "Прочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: README по доменам, runbook очередей/планировщика, перечень env, чек-лист приёмки Приложения Г ТЗ\n\nЗависимости (нужен done после merge): SP-E0-05D, SP-C-01, SP-E0-01, SP-E0-02, SP-E0-03, SP-E0-04, SP-E0-05, SP-E0-05B, SP-E0-05C, SP-E0-06, SP-E0-07, SP-E0-08, SP-E1-01, SP-E1-01B, SP-E1-01C, SP-E1-01D, SP-E1-01F, SP-E1-02, SP-E1-03, SP-E1-04, SP-E1-05, SP-E1-06, SP-E1-07, SP-E1-08, SP-E1-09, SP-E1-10, SP-E1-11, SP-E1-12, SP-E3-01, SP-E3-02, SP-E3-03, SP-E3-03B, SP-E3-04, SP-E3-05, SP-E3-06, SP-E3-07, SP-E4-01, SP-E4-02, SP-E4-03, SP-E4-04, SP-E4-05, SP-E4-06, SP-E4-07, SP-E4-08, SP-E5-01, SP-E5-02, SP-E5-03, SP-E5-04, SP-E5-04B, SP-E5-05, SP-E5-06, SP-E5-07, SP-E5-08, SP-E6-01, SP-E6-02, SP-E6-03, SP-E6-04, SP-E6-05, SP-E6-06, SP-E6-07, SP-E6-08, SP-E6-09, SP-E7-01, SP-E7-02, SP-E7-03, SP-E7-04, SP-E7-05, SP-E8-01, SP-E8-01B, SP-E8-01C, SP-E8-01D, SP-E8-01E, SP-E8-02, SP-E8-03, SP-E8-04, SP-E8-05, SP-E8-05B, SP-E8-05C, SP-E8-06, SP-E8-07, SP-E9-01, SP-E9-02, SP-E9-03, SP-F-01, SP-F-02, SP-F-03, SP-F-04, SP-T-01, SP-T-02, SP-T-03.\nОбласть записи: README.md, docs/runbooks/, docs/validation/final.md, docs/results/SP-E9-04.md.\nЭкраны: инфраструктура/контракты.\nИсточники: E9-04.\n- E9-04: ТЗ Прил. Г\n\nПриёмка:\n- чек-лист заполнен с фактическим статусом (A/B/C/D)\n\nДополнительно: Сохранять поведение донора; изменения только по принятым решениям.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E9-04.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n"
     }
   ],
   "excludedSourceTasks": {
