@@ -109,7 +109,8 @@ final class EvidenceValidator
             return 'brand_quote';
         }
         if ($value['brand_recommended'] && ($value['tone'] === 'negative'
-            || ! $this->recommendationEvidence($value['mention_quote'], $value['companies'], $profile))) {
+            || ! $this->recommendationEvidence($value['mention_quote'], $value['companies'], $profile)
+            || ! app(RecommendationVerifier::class)->verifies($text, $value['mention_quote'], $profile))) {
             return 'recommendation_evidence';
         }
         foreach ($value['claims'] as $claim) {

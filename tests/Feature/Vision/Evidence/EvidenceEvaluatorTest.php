@@ -123,6 +123,12 @@ final class EvidenceEvaluatorTest extends TestCase
         DB::table('measurements')->where('id', $measurement)->update(['configuration' => json_encode($badConfiguration, JSON_THROW_ON_ERROR)]);
         self::assertSame('unknown', $evaluate()['status']);
         DB::table('measurements')->where('id', $measurement)->update(['configuration' => json_encode($configuration, JSON_THROW_ON_ERROR)]);
+        self::assertArrayHasKey('evidence_rules', $service->artifacts());
+        $oldRules = $configuration;
+        $oldRules['parser']['evidence_rules'] = str_repeat('0', 64);
+        DB::table('measurements')->where('id', $measurement)->update(['configuration' => json_encode($oldRules, JSON_THROW_ON_ERROR)]);
+        self::assertSame('unknown', $evaluate()['status']);
+        DB::table('measurements')->where('id', $measurement)->update(['configuration' => json_encode($configuration, JSON_THROW_ON_ERROR)]);
         DB::table('measurement_answers')->where('id', $answer)->update(['protocol_valid' => false]);
         self::assertSame('unknown', $evaluate()['status']);
         DB::table('measurement_answers')->where('id', $answer)->update(['protocol_valid' => true]);
@@ -238,6 +244,19 @@ final class EvidenceEvaluatorTest extends TestCase
         self::assertNull($checked['fact']['confidence']);
         self::assertNull($checked['fact']['brand_recommended']);
         self::assertNull($checked['mentions'][0]['role']);
+        self::assertNull($checked['fact']['brand_position']);
+        self::assertFalse($checked['mentions_complete']);
+        $text = "1. МеталлСевер — поставщик.\n2. СтальПлюс — поставщик.";
+        DB::table('measurement_answers')->where('id', $answer)->update(['answer_text' => $text]);
+        $gateway->result = ['brand_mentioned' => true, 'brand_position' => 1, 'brand_recommended' => false,
+            'mention_quote' => 'СтальПлюс — поставщик', 'companies' => [
+                ['name' => 'СтальПлюс', 'position' => 1, 'role' => 'supplier', 'is_brand' => true],
+            ], 'tone' => 'neutral', 'claims' => [], 'suspected_errors' => [], 'confidence' => 0.9];
+        $partial = $evaluate();
+        self::assertSame('confirmed', $partial['status']);
+        self::assertNull($partial['fact']['brand_position']);
+        self::assertNull($partial['mentions'][0]['position']);
+        self::assertFalse($partial['mentions_complete']);
         Http::assertNothingSent();
     }
 }

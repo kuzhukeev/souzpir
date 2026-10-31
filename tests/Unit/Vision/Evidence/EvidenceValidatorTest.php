@@ -6,6 +6,7 @@ use App\Vision\Evidence\ConfirmationValidator;
 use App\Vision\Evidence\EntityNormalizer;
 use App\Vision\Evidence\EvidenceValidator;
 use App\Vision\Evidence\MentionConfirmer;
+use App\Vision\Evidence\PositionVerifier;
 use App\Vision\Evidence\RecommendationVerifier;
 use App\Vision\Evidence\SourceExtractor;
 use App\Vision\Evidence\VisibilityProfile;
@@ -22,8 +23,11 @@ final class EvidenceValidatorTest extends TestCase
         foreach ($fixtures['cases'] as $case) {
             $candidate = $validator->deduplicateCompanies($case['expected']);
             $reason = $validator->validationReason($candidate, $case['text'], $case['profile']);
-            // This donor example remains unknown under the stricter direct-object rule.
-            if ($case['id'] === 'methodology-domain-choice') {
+            // Conservative rule declines interpretation when the whole answer is not a direct choice.
+            $uncertain = ['openai-1', 'perplexity-1', 'gemini-1', 'claude-1', 'identity-distinctive-two-facts',
+                'identity-domain-confirmed', 'methodology-domain-choice', 'methodology-start-with',
+                'methodology-first-person-recommended-list', 'methodology-parenthetical-catalog-shortlist'];
+            if (in_array($case['id'], $uncertain, true)) {
                 self::assertSame('recommendation_evidence', $reason, $case['id']);
             } else {
                 self::assertNull($reason, $case['id']);
@@ -69,6 +73,25 @@ final class EvidenceValidatorTest extends TestCase
         self::assertFalse($verifier->verifies($text, $text, $profile));
         self::assertTrue($verifier->verifies('Рекомендую СтальПлюс.', 'Рекомендую СтальПлюс', $profile));
         self::assertFalse($verifier->verifies('Рекомендую СтальПлюс, но не покупать без проверки.', 'Рекомендую СтальПлюс', $profile));
+        foreach (['Рекомендую СтальПлюс? Скорее наоборот.', 'Рекомендую СтальПлюс: держитесь подальше.', 'Рекомендую СтальПлюс... только врагам.'] as $uncertain) {
+            self::assertFalse($verifier->verifies($uncertain, $uncertain, $profile));
+            $value['mention_quote'] = $uncertain;
+            self::assertSame('recommendation_evidence', app(EvidenceValidator::class)->validationReason($value, $uncertain, $profile));
+        }
+    }
+
+    public function test_position_is_unknown_when_a_preceding_company_is_omitted(): void
+    {
+        $verify = app(PositionVerifier::class);
+        $text = "1. МеталлСевер — поставщик.\n2. СтальПлюс — поставщик.";
+        $partial = [['name' => 'СтальПлюс', 'position' => 1, 'role' => 'supplier', 'is_brand' => true]];
+        self::assertFalse($verify->complete($text, $partial));
+        $complete = [
+            ['name' => 'МеталлСевер', 'position' => 1, 'role' => 'supplier', 'is_brand' => false],
+            ['name' => 'СтальПлюс', 'position' => 2, 'role' => 'supplier', 'is_brand' => true],
+        ];
+        self::assertFalse($verify->complete($text, $complete));
+        self::assertTrue($verify->complete("1. МеталлСевер\n2. СтальПлюс", $complete));
     }
 
     public function test_ambiguous_alias_requires_literal_identity_facts_not_model_assertions(): void

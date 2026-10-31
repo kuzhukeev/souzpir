@@ -26,7 +26,7 @@ final class EvidenceEvaluator
     /** @return array{status:string, fact:?array, mentions:array, sources:array, signature:?string} */
     public function evaluate(TenantContext $tenant, string $answerId): array
     {
-        $unknown = ['status' => 'unknown', 'fact' => null, 'mentions' => [], 'sources' => [], 'signature' => null];
+        $unknown = ['status' => 'unknown', 'fact' => null, 'mentions' => [], 'mentions_complete' => false, 'sources' => [], 'signature' => null];
         $current = app(TenantContext::class);
         if (! $tenant->organizationId || ! $tenant->brandId || $tenant->organizationId !== $current->organizationId
             || $tenant->brandId !== $current->brandId || ! Str::isUlid($answerId)
@@ -68,7 +68,14 @@ final class EvidenceEvaluator
                 return $unknown;
             }
             $candidate = $this->validator->deduplicateCompanies($candidate);
-            if ($this->validator->validationReason($candidate, $record->answer_text, $profile) !== null) {
+            $reason = $this->validator->validationReason($candidate, $record->answer_text, $profile);
+            $recommendationVerified = $reason === null && $candidate['brand_recommended'];
+            if ($reason === 'recommendation_evidence') {
+                // Keep a verifiable mention, but never turn a doubtful recommendation into false.
+                $candidate['brand_recommended'] = false;
+                $reason = $this->validator->validationReason($candidate, $record->answer_text, $profile);
+            }
+            if ($reason !== null) {
                 return $unknown;
             }
             if (! $candidate['brand_mentioned'] && $this->validator->matchedAlias($record->answer_text, $profile) !== null) {
@@ -124,11 +131,13 @@ final class EvidenceEvaluator
             $fact['claims'] = null;
             $fact['suspected_errors'] = null;
             $fact['confidence'] = null;
-            $fact['brand_recommended'] = $candidate['brand_recommended']
-                && app(RecommendationVerifier::class)->verifies($record->answer_text, $candidate['mention_quote'], $profile) ? true : null;
-            $fact['companies'] = array_map(fn (array $company): array => [...$company, 'role' => null], $candidate['companies']);
+            $fact['brand_recommended'] = $recommendationVerified ? true : null;
+            $complete = app(PositionVerifier::class)->complete($record->answer_text, $candidate['companies']);
+            $fact['brand_position'] = $complete ? $candidate['brand_position'] : null;
+            $fact['companies'] = array_map(fn (array $company): array => [...$company, 'role' => null, 'position' => $complete ? $company['position'] : null], $candidate['companies']);
 
-            return ['status' => 'confirmed', 'fact' => $fact, 'mentions' => $fact['companies'], 'sources' => $this->sources->extract($record->answer_text, $profile), 'signature' => $signature];
+            return ['status' => 'confirmed', 'fact' => $fact, 'mentions' => $fact['companies'], 'mentions_complete' => $complete,
+                'sources' => $this->sources->extract($record->answer_text, $profile), 'signature' => $signature];
         } catch (Throwable) {
             // No source text, profile, provider exception or credentials leave this boundary.
             return $unknown;
@@ -181,6 +190,11 @@ final class EvidenceEvaluator
             'confirmation_prompt' => hash_file('sha256', resource_path('prompts/Vision/Evidence/mention-confirmer.ru.v1.md')),
             'source_types' => hash_file('sha256', resource_path('prompts/Vision/Evidence/source-types.ru.json')),
             'ambiguous_words' => hash_file('sha256', resource_path('prompts/Vision/Evidence/ambiguous-words.ru.txt')),
+            'evidence_rules' => CanonicalJson::hash(array_map(
+                fn (string $class): string => hash_file('sha256', __DIR__.'/'.$class.'.php'),
+                ['EvidenceEvaluator', 'EvidenceValidator', 'RecommendationVerifier', 'PositionVerifier', 'ConfirmationValidator',
+                    'EntityNormalizer', 'MentionConfirmer', 'SourceExtractor', 'VisibilityProfile']
+            )),
             'normalizer_version' => EntityNormalizer::VERSION,
             'confirmation_version' => MentionConfirmer::VERSION,
         ];

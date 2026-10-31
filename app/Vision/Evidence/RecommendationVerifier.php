@@ -20,8 +20,8 @@ final class RecommendationVerifier
             if ($alias === '') {
                 continue;
             }
-            $pattern = '/(?<![\p{L}\p{N}_@.-])(?:рекомендую|рекомендуем|советую|советуем|выбираю|i recommend)\s+[*_«»"„“”]*'
-                .preg_quote($alias, '/').'[*_«»"„“”]*(?![\p{L}\p{N}_-]|\.[\p{L}\p{N}])(?=\s*(?:[.!?:;—]|$))/iu';
+            $pattern = '/\A\s*(?:рекомендую|рекомендуем|советую|советуем|выбираю|i recommend)\s+[*_«»"„“”]*'
+                .preg_quote($alias, '/').'[*_«»"„“”]*\s*[.!]?\s*\z/iu';
             if (preg_match($pattern, $quote) && preg_match($pattern, $text)) {
                 return true;
             }
