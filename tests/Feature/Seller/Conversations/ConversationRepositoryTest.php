@@ -5,6 +5,7 @@ namespace Tests\Feature\Seller\Conversations;
 use App\Seller\Channels\Core\ChannelAccount;
 use App\Seller\Channels\Core\InboundRecorder;
 use App\Seller\Conversations\Contracts\ConversationRepository;
+use App\Seller\Conversations\Data\TurnClaim;
 use App\Seller\Conversations\Data\TurnCommand;
 use App\Seller\Conversations\Data\TurnOutcome;
 use App\Seller\Conversations\Models\Contact;
@@ -218,6 +219,49 @@ final class ConversationRepositoryTest extends TenancyTestCase
         try {
             DB::transaction(fn () => DB::table('seller_tasks')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $brand->id, 'conversation_id' => $conversation->id, 'type' => 'handoff', 'assigned_user_id' => $other->id]));
             $this->fail('Non-member accepted by database');
+        } catch (QueryException) {
+            $this->assertTrue(true);
+        }
+    }
+
+    public function test_claim_secret_cannot_be_serialized_or_unserialized(): void
+    {
+        [, $org, $brand] = $this->cabinet();
+        [$conversation, $input] = $this->setupConversation($org, $brand);
+        $claim = app(ConversationRepository::class)->claimTurn($this->context($org, $brand), new TurnCommand($conversation->id, $input->id, $input->text, null, 'serialization', 0));
+        try {
+            serialize($claim);
+            $this->fail('Claim token was serializable');
+        } catch (\LogicException $e) {
+            $this->assertStringNotContainsString($claim->token(), $e->getMessage());
+        }
+        $class = TurnClaim::class;
+        try {
+            unserialize('O:'.strlen($class).':"'.$class.'":0:{}');
+            $this->fail('Claim could be restored');
+        } catch (\LogicException) {
+            $this->assertTrue(true);
+        }
+    }
+
+    public function test_inbound_event_unique_constraint_and_exact_replay(): void
+    {
+        [, $org, $brand] = $this->cabinet();
+        $channel = $this->within($org, $brand, fn () => ChannelAccount::create(['type' => 'api']));
+        [$a, $aMessage] = $this->setupConversation($org, $brand, $channel);
+        [$b, $bMessage] = $this->setupConversation($org, $brand, $channel);
+        $context = $this->context($org, $brand);
+        $recorder = app(InboundRecorder::class);
+        $repo = app(ConversationRepository::class);
+        $first = $recorder->record($context, $channel->id, 'first', []);
+        $second = $recorder->record($context, $channel->id, 'second', []);
+        $command = new TurnCommand($a->id, $aMessage->id, $aMessage->text, $first->id, 'a-key', 0);
+        $repo->claimTurn($context, $command);
+        $this->assertSame('in_progress', $repo->claimTurn($context, $command)->status);
+        $bClaim = $repo->claimTurn($context, new TurnCommand($b->id, $bMessage->id, $bMessage->text, $second->id, 'b-key', 0));
+        try {
+            DB::transaction(fn () => DB::table('seller_turns')->where('id', $bClaim->turnId)->update(['external_event_id' => $first->id]));
+            $this->fail('Database accepted duplicate inbound event');
         } catch (QueryException) {
             $this->assertTrue(true);
         }

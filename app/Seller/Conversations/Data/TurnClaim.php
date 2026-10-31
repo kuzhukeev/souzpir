@@ -11,6 +11,16 @@ final readonly class TurnClaim
         return $this->token;
     }
 
+    public function __serialize(): array
+    {
+        throw new \LogicException('Turn claims cannot be serialized.');
+    }
+
+    public function __unserialize(array $data): void
+    {
+        throw new \LogicException('Turn claims cannot be unserialized.');
+    }
+
     public function __debugInfo(): array
     {
         return ['status' => $this->status, 'turnId' => $this->turnId, 'conversationId' => $this->conversationId, 'baseVersion' => $this->baseVersion, 'token' => '[REDACTED]'];

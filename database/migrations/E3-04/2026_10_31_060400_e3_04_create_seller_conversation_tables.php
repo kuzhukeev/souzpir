@@ -131,6 +131,7 @@ return new class extends Migration
             $t->foreign(['external_event_id', 'brand_id', 'organization_id'])->references(['id', 'brand_id', 'organization_id'])->on('channel_inbound_events')->restrictOnDelete();
             $t->unique(['brand_id', 'idempotency_key']);
             $t->unique('input_message_id');
+            $t->unique('external_event_id');
         });
         Schema::create('seller_tasks', function (Blueprint $t): void {
             $t->ulid('id')->primary();

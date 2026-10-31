@@ -49,7 +49,7 @@ final class EloquentConversationRepository implements ConversationRepository
                 if (! Str::isUlid($command->externalEventId)) {
                     abort(404);
                 }
-                $event = ChannelInboundEvent::whereKey($command->externalEventId)->firstOrFail();
+                $event = ChannelInboundEvent::whereKey($command->externalEventId)->lockForUpdate()->firstOrFail();
                 if ($conversation->channel_account_id === null || $event->channel_account_id !== $conversation->channel_account_id) {
                     abort(404);
                 }
@@ -63,8 +63,11 @@ final class EloquentConversationRepository implements ConversationRepository
 
                 return new TurnClaim($existing->status === 'processing' ? 'in_progress' : 'finished', $existing->id, $existing->conversation_id, $existing->organization_id, $existing->brand_id, $existing->base_version, outcome: $existing->outcome);
             }
+            if ($command->externalEventId !== null && SellerTurn::where('external_event_id', $command->externalEventId)->exists()) {
+                abort(409, 'Входящее событие уже обработано с другим ключом.');
+            }
             if (SellerTurn::where('input_message_id', $input->id)->exists()) {
-                abort(409, '��������� ��� �������������� � ������ ������.');
+                abort(409, 'Сообщение уже обработано с другим ключом.');
             }
             if ($command->expectedVersion !== null && $conversation->version !== $command->expectedVersion) {
                 abort(409, 'Диалог изменился.');
