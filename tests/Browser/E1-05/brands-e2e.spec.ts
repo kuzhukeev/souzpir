@@ -71,10 +71,19 @@ test('owner saves settings and draft alias twice, changes theme, manages a domai
   await expect(page.getByRole('status').filter({ hasText: 'Изменения сохранены' })).toBeVisible();
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'pyro');
+  await expect(page.locator('aside').first()).toContainText('Проверено в браузере');
+  await expect(page.locator('aside').first().getByText('Новости и возможности')).toHaveCount(0);
+  await page.goto(base + '/brands');
+  await expect(page.getByRole('link', { name: 'Настройки', exact: true })).toHaveAttribute('href', '/brands/01J00000000000000000000004/settings');
+  await page.getByRole('link', { name: 'Настройки', exact: true }).click();
+  await expect(page).toHaveURL(settings);
   await page.getByRole('tab', { name: 'Оформление кабинета', exact: true }).click();
   await expect(
     page.getByRole('textbox', { name: 'Подпись под логотипом', exact: true }),
   ).toHaveValue('Проверено в браузере');
+  const actualBrandColor = await page.locator('[data-brand-header]').first().evaluate((element) => getComputedStyle(element).backgroundColor);
+  const previewBrandColor = await page.locator('[data-brand-preview-header]').evaluate((element) => getComputedStyle(element).backgroundColor);
+  expect(actualBrandColor).toBe(previewBrandColor);
   await expect(
     page.getByRole('switch', { name: 'Показывать промо-карту в меню', exact: true }),
   ).toHaveAttribute('aria-checked', 'false');

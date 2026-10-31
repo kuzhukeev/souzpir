@@ -104,6 +104,62 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "brands.settings.show": [
+        {
+            "name": "brand",
+            "required": true
+        }
+    ],
+    "brands.settings.general": [
+        {
+            "name": "brand",
+            "required": true
+        }
+    ],
+    "brands.settings.theme": [
+        {
+            "name": "brand",
+            "required": true
+        }
+    ],
+    "brands.settings.logo": [
+        {
+            "name": "brand",
+            "required": true
+        }
+    ],
+    "brands.settings.domains.add": [
+        {
+            "name": "brand",
+            "required": true
+        }
+    ],
+    "brands.settings.domains.verify": [
+        {
+            "name": "brand",
+            "required": true
+        },
+        {
+            "name": "domain",
+            "required": true
+        }
+    ],
+    "brands.settings.domains.remove": [
+        {
+            "name": "brand",
+            "required": true
+        },
+        {
+            "name": "domain",
+            "required": true
+        }
+    ],
+    "brands.settings.website.check": [
+        {
+            "name": "brand",
+            "required": true
+        }
+    ],
     "journal.index": [],
     "journal.export": [],
     "journal.notifications": [],

@@ -128,7 +128,8 @@ export function Sidebar({
   return (
     <div className="flex h-full min-h-0 flex-col bg-(--color-sidebar)">
       <div
-        className={`flex min-h-(--spacing-header) items-center gap-3 border-b border-(--color-border) px-4 py-3 ${compact ? 'justify-center px-2' : ''}`}
+        data-brand-header
+        className={`flex min-h-(--spacing-header) items-center gap-3 px-4 py-3 ${appearance ? 'border-b-4 border-(--color-brand-accent) bg-(--color-brand-primary)' : 'border-b border-(--color-border)'} ${compact ? 'justify-center px-2' : ''}`}
       >
         {logo && failedLogo !== logo ? (
           <img src={logo} alt="" onError={() => setFailedLogo(logo)} className="size-10 shrink-0 rounded-xl object-contain" />
@@ -141,11 +142,11 @@ export function Sidebar({
           </span>
         )}
         <div className={compact ? 'sr-only' : 'min-w-0'}>
-          <div className="break-words text-base font-bold text-(--color-ink)">
+          <div className={`break-words text-base font-bold ${appearance ? 'text-white' : 'text-(--color-ink)'}`}>
             {props.brand?.name ?? 'Бренд не выбран'}
           </div>
           {(appearance?.subtitle || props.organization?.name) && (
-            <div className="break-words text-sm text-(--color-ink-muted)">
+            <div className={`break-words text-sm ${appearance ? 'text-white' : 'text-(--color-ink-muted)'}`}>
               {appearance?.subtitle || props.organization?.name}
             </div>
           )}
