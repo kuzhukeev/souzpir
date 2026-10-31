@@ -10,6 +10,7 @@ use App\Seller\Conversations\Data\TurnOutcome;
 use App\Seller\Conversations\Models\Conversation;
 use App\Seller\Conversations\Models\Message;
 use App\Tenancy\TenantContext;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\Feature\Tenancy\TenancyTestCase;
@@ -36,15 +37,18 @@ final class PrivateTraceTest extends TenancyTestCase
 
     private function assertPrivate(Throwable $exception, array $secrets): void
     {
-        $this->assertNull($exception->getPrevious());
-        $rendered = $exception->getMessage().$exception->getTraceAsString();
+        $rendered = '';
         $sellerFrames = 0;
-        foreach ($exception->getTrace() as $frame) {
-            if (str_starts_with($frame['class'] ?? '', 'App\\Seller\\')) {
-                $sellerFrames++;
-                $rendered .= json_encode($frame['args'] ?? [], JSON_PARTIAL_OUTPUT_ON_ERROR);
+        do {
+            $rendered .= $exception->getMessage().$exception->getTraceAsString();
+            foreach ($exception->getTrace() as $frame) {
+                if (str_starts_with($frame['class'] ?? '', 'App\\Seller\\')) {
+                    $sellerFrames++;
+                    $rendered .= json_encode($frame['args'] ?? [], JSON_PARTIAL_OUTPUT_ON_ERROR);
+                }
             }
-        }
+            $exception = $exception->getPrevious();
+        } while ($exception !== null);
         $this->assertGreaterThan(0, $sellerFrames);
         foreach ($secrets as $secret) {
             $this->assertStringNotContainsString($secret, $rendered);
@@ -82,7 +86,10 @@ final class PrivateTraceTest extends TenancyTestCase
         try {
             app(InboundRecorder::class)->record($tenant, $channel->id, 'event-db', ['private' => "PRIVATE_DB_BOUND\0"]);
             $this->fail('Expected PostgreSQL to reject NUL in JSON.');
-        } catch (\RuntimeException $exception) {
+        } catch (QueryException $exception) {
+            $this->assertSame('22P05', $exception->errorInfo[0]);
+            $this->assertSame('[redacted]', $exception->getSql());
+            $this->assertSame([], $exception->getBindings());
             $this->assertPrivate($exception, ['PRIVATE_DB_BOUND']);
         }
 
