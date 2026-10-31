@@ -15,6 +15,6 @@ final class BrandSwitchController
         $request->session()->put('brand_id', $brand->id);
 
         // Fixed same-origin destination; no user-supplied redirect URL.
-        return redirect('/');
+        return redirect()->route('auth.ready');
     }
 }
