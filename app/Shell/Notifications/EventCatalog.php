@@ -19,6 +19,7 @@ final class EventCatalog
         'vision.competitor.top5_added' => 'Новый конкурент в топ-5',
         'vision.visibility.dropped' => 'Видимость снизилась',
         'shell.member.invited' => 'Участник приглашён',
+        'shell.plan_request.created' => 'Заявка на смену тарифа создана',
         'ai.budget.threshold_reached' => 'Достигнут порог бюджета ИИ',
     ];
 }
