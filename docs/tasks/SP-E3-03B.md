@@ -12,8 +12,9 @@
 
 Приёмка:
 - TurnTest/open/regeneration/fallback, tenant isolation, double-submit/idempotency и defaults-equivalence проходят.
+- Чужие или подменённые state/history/input и несовпадающая claimed message отвергаются до ИИ и сохранения; проверены гонки и отсутствие передачи контактов.
 
-Дополнительно: Сохранять поведение донора; изменения только по принятым решениям.
+Дополнительно:  Обязательная граница: state/history/clientMessage и claimed input загружать из persistence по tenant + conversation + inputMessage, сверять с захваченным turn; не доверять произвольным значениям caller. Использовать проверенные опубликованные release/prompt, обязательные dataClasses и сохранять исходные контакты локально без отправки наружу. Pending/uncertain не финализировать как fallback и не запускать платный запрос повторно.
 Не изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.
 Проверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.
 Результат: commit в ветке, docs/results/SP-E3-03B.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.
