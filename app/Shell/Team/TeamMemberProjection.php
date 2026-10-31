@@ -75,6 +75,32 @@ final class TeamMemberProjection
             ->whereRaw("COALESCE(NULLIF(settings->'sales_manager', 'null'::jsonb), 'false'::jsonb) = ?::jsonb", [$manager]);
     }
 
+    /** Only active brands available to the current actor can be disclosed or selected. */
+    public function availableBrands(): array
+    {
+        return $this->brands->map(fn (Brand $brand) => ['id' => $brand->id, 'name' => $brand->name])->all();
+    }
+
+    public function permitsBrandFilter(string $brand): bool
+    {
+        return $brand === 'all' || $this->brands->contains(fn (Brand $item) => $item->id === $brand);
+    }
+
+    /** A full owner/admin grant also includes the selected brand. */
+    public function scopeBrand(Builder $query, string $brand): Builder
+    {
+        if ($brand === 'all') {
+            return $query;
+        }
+
+        return $query->where(function (Builder $matching) use ($brand): void {
+            $matching->whereJsonContains('brand_ids', $brand)
+                ->orWhere(function (Builder $allBrands): void {
+                    $allBrands->whereIn('role', ['owner', 'admin'])->where('brand_ids', '=', '[]');
+                });
+        });
+    }
+
     public function grant(string $baseRole, mixed $settings, mixed $brandIds): array
     {
         $manager = is_array($settings) ? ($settings['sales_manager'] ?? false) : null;

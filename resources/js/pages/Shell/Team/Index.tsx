@@ -133,18 +133,22 @@ export default function Index({
   invitations,
   teamBrandRevision,
   roleFilter = 'all',
+  brandFilter = 'all',
+  filterBrands = [],
 }: {
   members: TeamPage;
   canViewRoles: boolean;
   invitations: TeamInvitations;
   teamBrandRevision: string;
   roleFilter?: string;
+  brandFilter?: string;
+  filterBrands?: { id: string; name: string }[];
 }) {
   const [loading, setLoading] = useState(false);
   const [failedPage, setFailedPage] = useState<number | null>(null);
   const [invitationLoading, setInvitationLoading] = useState(false);
   const [failedInvitationPage, setFailedInvitationPage] = useState<number | null>(null);
-  const [failedRole, setFailedRole] = useState<string | null>(null);
+  const [failedFilters, setFailedFilters] = useState<{ role: string; brand: string } | null>(null);
   const [selected, setSelected] = useState<{
     invitation: TeamInvitations['data'][number];
     revision: string;
@@ -161,7 +165,7 @@ export default function Index({
     };
     router.get(
       '/team',
-      { page, invitation_page: invitations.current_page, role: roleFilter },
+      { page, invitation_page: invitations.current_page, role: roleFilter, brand: brandFilter },
       {
         preserveState: true,
         preserveScroll: true,
@@ -181,7 +185,7 @@ export default function Index({
     };
     router.get(
       '/team',
-      { page: members.current_page, invitation_page: page, role: roleFilter },
+      { page: members.current_page, invitation_page: page, role: roleFilter, brand: brandFilter },
       {
         preserveState: true,
         preserveScroll: true,
@@ -192,19 +196,19 @@ export default function Index({
       },
     );
   };
-  const changeRole = (role: string) => {
+  const changeFilters = (role: string, brand: string) => {
     setLoading(true);
     setInvitationLoading(true);
-    setFailedRole(null);
+    setFailedFilters(null);
     setFailedPage(null);
     setFailedInvitationPage(null);
     const failed = () => {
-      setFailedRole(role);
+      setFailedFilters({ role, brand });
       return false;
     };
     router.get(
       '/team',
-      { role, page: 1, invitation_page: 1 },
+      { role, brand, page: 1, invitation_page: 1 },
       {
         preserveState: true,
         preserveScroll: true,
@@ -265,59 +269,103 @@ export default function Index({
           )}
         </header>
         <div className="mb-4 flex flex-wrap items-center gap-3">
-          <span id="team-role-label" className="text-sm font-semibold">
-            Роль
-          </span>
-          <Select.Root
-            value={roleFilter}
-            onValueChange={changeRole}
-            disabled={loading || invitationLoading}
-          >
-            <Select.Trigger
-              aria-labelledby="team-role-label"
-              className={`flex min-h-11 min-w-44 cursor-pointer items-center justify-between gap-3 rounded-lg border border-(--color-border) bg-(--color-surface) px-3 text-sm disabled:cursor-wait ${focus}`}
+          <div className="flex max-w-full items-center gap-3">
+            <span id="team-role-label" className="text-sm font-semibold">
+              Роль
+            </span>
+            <Select.Root
+              value={roleFilter}
+              onValueChange={(role) => changeFilters(role, brandFilter)}
+              disabled={loading || invitationLoading}
             >
-              <Select.Value />
-              <Select.Icon>
-                <ChevronDown size={16} />
-              </Select.Icon>
-            </Select.Trigger>
-            <Select.Portal>
-              <Select.Content
-                position="popper"
-                sideOffset={6}
-                className="z-50 min-w-[var(--radix-select-trigger-width)] rounded-xl border border-(--color-border) bg-(--color-surface) p-1.5 shadow-xl"
+              <Select.Trigger
+                aria-labelledby="team-role-label"
+                className={`flex min-h-11 min-w-44 cursor-pointer items-center justify-between gap-3 rounded-lg border border-(--color-border) bg-(--color-surface) px-3 text-sm disabled:cursor-wait ${focus}`}
               >
-                <Select.Viewport>
-                  {[
-                    ['all', 'Все роли'],
-                    ['owner', 'Владелец'],
-                    ['admin', 'Администратор'],
-                    ['editor', 'Редактор'],
-                    ['manager', 'Менеджер'],
-                    ['viewer', 'Наблюдатель'],
-                  ].map(([value, label]) => (
-                    <Select.Item
-                      key={value}
-                      value={value}
-                      className="relative flex min-h-11 cursor-pointer items-center rounded-lg px-3 pr-9 text-sm outline-none data-[highlighted]:bg-(--color-surface-muted)"
-                    >
-                      <Select.ItemText>{label}</Select.ItemText>
-                      <Select.ItemIndicator className="absolute right-3">
-                        <Check size={16} />
-                      </Select.ItemIndicator>
-                    </Select.Item>
-                  ))}
-                </Select.Viewport>
-              </Select.Content>
-            </Select.Portal>
-          </Select.Root>
-          {failedRole !== null && (
+                <Select.Value />
+                <Select.Icon>
+                  <ChevronDown size={16} />
+                </Select.Icon>
+              </Select.Trigger>
+              <Select.Portal>
+                <Select.Content
+                  position="popper"
+                  sideOffset={6}
+                  className="z-50 min-w-[var(--radix-select-trigger-width)] rounded-xl border border-(--color-border) bg-(--color-surface) p-1.5 shadow-xl"
+                >
+                  <Select.Viewport>
+                    {[
+                      ['all', 'Все роли'],
+                      ['owner', 'Владелец'],
+                      ['admin', 'Администратор'],
+                      ['editor', 'Редактор'],
+                      ['manager', 'Менеджер'],
+                      ['viewer', 'Наблюдатель'],
+                    ].map(([value, label]) => (
+                      <Select.Item
+                        key={value}
+                        value={value}
+                        className="relative flex min-h-11 cursor-pointer items-center rounded-lg px-3 pr-9 text-sm outline-none data-[highlighted]:bg-(--color-surface-muted)"
+                      >
+                        <Select.ItemText>{label}</Select.ItemText>
+                        <Select.ItemIndicator className="absolute right-3">
+                          <Check size={16} />
+                        </Select.ItemIndicator>
+                      </Select.Item>
+                    ))}
+                  </Select.Viewport>
+                </Select.Content>
+              </Select.Portal>
+            </Select.Root>
+          </div>
+          <div className="flex max-w-full items-center gap-3">
+            <span id="team-brand-label" className="text-sm font-semibold">
+              Бренд
+            </span>
+            <Select.Root
+              value={brandFilter}
+              onValueChange={(brand) => changeFilters(roleFilter, brand)}
+              disabled={loading || invitationLoading}
+            >
+              <Select.Trigger
+                aria-labelledby="team-brand-label"
+                className={`flex min-h-11 min-w-44 max-w-full cursor-pointer items-center justify-between gap-3 rounded-lg border border-(--color-border) bg-(--color-surface) px-3 text-left text-sm disabled:cursor-wait [&>span]:min-w-0 [&>span]:break-words ${focus}`}
+              >
+                <Select.Value />
+                <Select.Icon>
+                  <ChevronDown size={16} />
+                </Select.Icon>
+              </Select.Trigger>
+              <Select.Portal>
+                <Select.Content
+                  position="popper"
+                  sideOffset={6}
+                  className="z-50 min-w-[var(--radix-select-trigger-width)] max-w-[calc(100vw-32px)] rounded-xl border border-(--color-border) bg-(--color-surface) p-1.5 shadow-xl"
+                >
+                  <Select.Viewport>
+                    {[{ id: 'all', name: 'Все бренды' }, ...filterBrands].map((brand) => (
+                      <Select.Item
+                        key={brand.id}
+                        value={brand.id}
+                        className="relative flex min-h-11 cursor-pointer items-center rounded-lg px-3 pr-9 text-sm outline-none data-[highlighted]:bg-(--color-surface-muted)"
+                      >
+                        <Select.ItemText>{brand.name}</Select.ItemText>
+                        <Select.ItemIndicator className="absolute right-3">
+                          <Check size={16} />
+                        </Select.ItemIndicator>
+                      </Select.Item>
+                    ))}
+                  </Select.Viewport>
+                </Select.Content>
+              </Select.Portal>
+            </Select.Root>
+          </div>
+          {failedFilters !== null && (
             <p role="alert" className="text-sm text-(--color-danger-ink)">
               Не удалось применить фильтр.{' '}
               <button
                 type="button"
-                onClick={() => changeRole(failedRole)}
+                onClick={() => changeFilters(failedFilters.role, failedFilters.brand)}
                 className={`cursor-pointer font-semibold underline ${focus}`}
               >
                 Повторить
@@ -371,16 +419,20 @@ export default function Index({
               />
               <p className="font-semibold">
                 {members.total === 0
-                  ? roleFilter === 'all'
-                    ? 'Участников пока нет'
-                    : 'Участников с этой ролью нет'
+                  ? brandFilter !== 'all'
+                    ? 'Участников по выбранным фильтрам нет'
+                    : roleFilter === 'all'
+                      ? 'Участников пока нет'
+                      : 'Участников с этой ролью нет'
                   : 'На этой странице нет участников'}
               </p>
               <p className="mt-2 text-sm text-(--color-ink-muted)">
                 {members.total === 0
-                  ? roleFilter === 'all'
-                    ? 'Данные появятся после добавления участников компании.'
-                    : 'Выберите другую роль или покажите все роли.'
+                  ? brandFilter !== 'all'
+                    ? 'Измените роль или бренд, чтобы увидеть другие результаты.'
+                    : roleFilter === 'all'
+                      ? 'Данные появятся после добавления участников компании.'
+                      : 'Выберите другую роль или покажите все роли.'
                   : 'Вернитесь на предыдущую страницу.'}
               </p>
             </div>
@@ -549,9 +601,11 @@ export default function Index({
               className="rounded-xl bg-(--color-surface-muted) px-4 py-8 text-center text-sm"
             >
               {invitations.total === 0
-                ? roleFilter === 'all'
-                  ? 'Приглашений в ожидании нет'
-                  : 'Приглашений с этой ролью нет'
+                ? brandFilter !== 'all'
+                  ? 'Приглашений по выбранным фильтрам нет'
+                  : roleFilter === 'all'
+                    ? 'Приглашений в ожидании нет'
+                    : 'Приглашений с этой ролью нет'
                 : 'На этой странице нет приглашений'}
             </div>
           ) : (

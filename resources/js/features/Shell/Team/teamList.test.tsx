@@ -107,6 +107,9 @@ it('показывает загрузку, ошибку перехода и по
       members={{ ...members, last_page: 2, total: 27 }}
       canViewRoles
       invitations={emptyInvitations}
+      roleFilter="manager"
+      brandFilter="brand-a"
+      filterBrands={[{ id: 'brand-a', name: 'Бренд А' }]}
     />,
   );
   fireEvent.click(screen.getByRole('button', { name: 'Вперёд' }));
@@ -114,7 +117,12 @@ it('показывает загрузку, ошибку перехода и по
     within(screen.getByRole('region', { name: 'Участники' })).getByRole('status').textContent,
   ).toContain('Загружаем');
   expect(calls.get.mock.calls[0][0]).toBe('/team');
-  expect(calls.get.mock.calls[0][1]).toEqual({ page: 2, invitation_page: 1 });
+  expect(calls.get.mock.calls[0][1]).toEqual({
+    page: 2,
+    invitation_page: 1,
+    role: 'manager',
+    brand: 'brand-a',
+  });
   const options = calls.get.mock.calls[0][2];
   act(() => {
     options.onNetworkError();
@@ -122,7 +130,12 @@ it('показывает загрузку, ошибку перехода и по
   });
   expect(screen.getByRole('alert').textContent).toContain('Не удалось загрузить');
   fireEvent.click(screen.getByRole('button', { name: 'Повторить' }));
-  expect(calls.get.mock.calls[1][1]).toEqual({ page: 2, invitation_page: 1 });
+  expect(calls.get.mock.calls[1][1]).toEqual({
+    page: 2,
+    invitation_page: 1,
+    role: 'manager',
+    brand: 'brand-a',
+  });
 });
 
 it('показывает данные приглашения и повторяет страницу после ошибки без изменения страницы участников', () => {
@@ -148,6 +161,9 @@ it('показывает данные приглашения и повторяе
       members={{ ...members, current_page: 2, last_page: 2 }}
       canViewRoles
       invitations={invitations}
+      roleFilter="viewer"
+      brandFilter="brand-a"
+      filterBrands={[{ id: 'brand-a', name: 'Бренд А' }]}
     />,
   );
   const section = screen.getByRole('region', { name: 'Приглашения в ожидании' });
@@ -157,7 +173,12 @@ it('показывает данные приглашения и повторяе
   expect(within(section).getByText(/не подтверждает доставку/)).toBeTruthy();
   fireEvent.click(within(section).getByRole('button', { name: 'Вперёд' }));
   expect(within(section).getByRole('status').textContent).toContain('Загружаем приглашения');
-  expect(calls.get.mock.calls[0][1]).toEqual({ page: 2, invitation_page: 2 });
+  expect(calls.get.mock.calls[0][1]).toEqual({
+    page: 2,
+    invitation_page: 2,
+    role: 'viewer',
+    brand: 'brand-a',
+  });
   const options = calls.get.mock.calls[0][2];
   act(() => {
     options.onHttpException();
@@ -165,7 +186,12 @@ it('показывает данные приглашения и повторяе
   });
   expect(within(section).getByRole('alert').textContent).toContain('Не удалось загрузить');
   fireEvent.click(within(section).getByRole('button', { name: 'Повторить' }));
-  expect(calls.get.mock.calls[1][1]).toEqual({ page: 2, invitation_page: 2 });
+  expect(calls.get.mock.calls[1][1]).toEqual({
+    page: 2,
+    invitation_page: 2,
+    role: 'viewer',
+    brand: 'brand-a',
+  });
 });
 
 it('подтверждает отзыв и при неизвестном результате требует обновить страницу', () => {
