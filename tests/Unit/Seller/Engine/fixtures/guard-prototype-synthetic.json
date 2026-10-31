@@ -1,0 +1,418 @@
+{
+    "knowledge": {
+        "conditions": {
+            "max_pct_unapproved": 30,
+            "approved_by": null,
+            "min_order": 100000,
+            "discount": 20
+        },
+        "facts": [
+            {
+                "id": "f1",
+                "facts": [
+                    "один два три четыре пять шесть семь восемь девять"
+                ]
+            }
+        ],
+        "triggers": [],
+        "guard_rules": {
+            "forbidden_promises": [
+                {
+                    "patterns": [
+                        "гарантирую"
+                    ],
+                    "description": "гарантия",
+                    "severity": "block",
+                    "allow_if": [
+                        "не гарантирую"
+                    ]
+                }
+            ],
+            "style": [
+                {
+                    "id": "two_questions",
+                    "check": "count_question_marks > 1",
+                    "severity": "block"
+                },
+                {
+                    "id": "too_long",
+                    "check": "words > persona.length.max_words",
+                    "severity": "warning"
+                },
+                {
+                    "id": "stop",
+                    "check": "persona_stop_phrases"
+                },
+                {
+                    "id": "bot_disclosure_unprompted",
+                    "patterns": [
+                        "я бот"
+                    ],
+                    "description": "бот без вопроса",
+                    "severity": "warning"
+                }
+            ],
+            "knowledge": [
+                {
+                    "check": "ngram_overlap_with_facts > 0.6",
+                    "severity": "block"
+                },
+                {
+                    "check": "numbers_vs_conditions",
+                    "severity": "block"
+                },
+                {
+                    "check": "pct_above_cap",
+                    "severity": "block"
+                }
+            ],
+            "repetition": [
+                {
+                    "check": "question_targets_filled_slot",
+                    "severity": "block"
+                },
+                {
+                    "check": "budget_asks_over_limit",
+                    "severity": "block"
+                }
+            ]
+        },
+        "policy": [],
+        "intents": [],
+        "escalation": [],
+        "persona": {
+            "length": {
+                "max_questions": 1,
+                "max_words": 90,
+                "target_words": [
+                    20,
+                    70
+                ]
+            },
+            "stop_phrases": [
+                "запретная фраза"
+            ]
+        },
+        "fewshot": [],
+        "closed_topics": []
+    },
+    "cases": [
+        {
+            "name": "one_question",
+            "reply": "Можем обсудить заказ?",
+            "kind": "ask_slot",
+            "state": [],
+            "context": [],
+            "expected": {
+                "verdict": "ok",
+                "issues": [],
+                "warnings": [],
+                "words": 3,
+                "questions": 1
+            }
+        },
+        {
+            "name": "two_questions",
+            "reply": "Обсудим заказ? А цену?",
+            "kind": "ask_slot",
+            "state": [],
+            "context": [],
+            "expected": {
+                "verdict": "regenerate",
+                "issues": [
+                    "в реплике 2 вопроса — оставь один"
+                ],
+                "warnings": [],
+                "words": 4,
+                "questions": 2
+            }
+        },
+        {
+            "name": "short_regular",
+            "reply": "да",
+            "kind": "ask_slot",
+            "state": [],
+            "context": [],
+            "expected": {
+                "verdict": "regenerate",
+                "issues": [
+                    "пустая реплика"
+                ],
+                "warnings": [],
+                "words": 1,
+                "questions": 0
+            }
+        },
+        {
+            "name": "short_silent",
+            "reply": "да",
+            "kind": "silent",
+            "state": [],
+            "context": [],
+            "expected": {
+                "verdict": "ok",
+                "issues": [],
+                "warnings": [],
+                "words": 1,
+                "questions": 0
+            }
+        },
+        {
+            "name": "promise",
+            "reply": "Гарантирую результат сегодня.",
+            "kind": "answer_only",
+            "state": [],
+            "context": [],
+            "expected": {
+                "verdict": "regenerate",
+                "issues": [
+                    "запрещённое обещание: гарантия"
+                ],
+                "warnings": [],
+                "words": 3,
+                "questions": 0
+            }
+        },
+        {
+            "name": "promise_negated",
+            "reply": "Я не гарантирую результат.",
+            "kind": "answer_only",
+            "state": [],
+            "context": [],
+            "expected": {
+                "verdict": "ok",
+                "issues": [],
+                "warnings": [],
+                "words": 4,
+                "questions": 0
+            }
+        },
+        {
+            "name": "stop_phrase",
+            "reply": "Это запретная фраза, согласен.",
+            "kind": "answer_only",
+            "state": [],
+            "context": [],
+            "expected": {
+                "verdict": "regenerate",
+                "issues": [
+                    "стоп-фраза «запретная фраза» — скажи проще, по-человечески"
+                ],
+                "warnings": [],
+                "words": 4,
+                "questions": 0
+            }
+        },
+        {
+            "name": "unprompted_bot",
+            "reply": "Я бот и помогу.",
+            "kind": "answer_only",
+            "state": [],
+            "context": [],
+            "expected": {
+                "verdict": "ok",
+                "issues": [],
+                "warnings": [
+                    "бот без вопроса"
+                ],
+                "words": 4,
+                "questions": 0
+            }
+        },
+        {
+            "name": "prompted_bot",
+            "reply": "Я бот и помогу.",
+            "kind": "bot_disclosure",
+            "state": [],
+            "context": [],
+            "expected": {
+                "verdict": "ok",
+                "issues": [],
+                "warnings": [],
+                "words": 4,
+                "questions": 0
+            }
+        },
+        {
+            "name": "price_without_tool",
+            "reply": "Прайс в чате, посмотрите.",
+            "kind": "ask_slot",
+            "state": [],
+            "context": [],
+            "expected": {
+                "verdict": "regenerate",
+                "issues": [
+                    "прайс не отправлен: не говори, что он уже в чате или ушёл — он уходит на почту/в мессенджер после того, как клиент даст контакт"
+                ],
+                "warnings": [],
+                "words": 4,
+                "questions": 0
+            }
+        },
+        {
+            "name": "price_with_tool",
+            "reply": "Прайс в чате, посмотрите.",
+            "kind": "ask_slot",
+            "state": [],
+            "context": {
+                "tools_called": [
+                    "send_price"
+                ]
+            },
+            "expected": {
+                "verdict": "ok",
+                "issues": [],
+                "warnings": [],
+                "words": 4,
+                "questions": 0
+            }
+        },
+        {
+            "name": "known_number",
+            "reply": "Скидка обычно 20%.",
+            "kind": "answer_only",
+            "state": [],
+            "context": [],
+            "expected": {
+                "verdict": "ok",
+                "issues": [],
+                "warnings": [],
+                "words": 3,
+                "questions": 0
+            }
+        },
+        {
+            "name": "unknown_number",
+            "reply": "Скидка обычно 45%.",
+            "kind": "answer_only",
+            "state": [],
+            "context": [],
+            "expected": {
+                "verdict": "regenerate",
+                "issues": [
+                    "цифра «45%» не из условий — убери или замени на то, что есть в условиях",
+                    "процент 45% выше допустимого 30% — не называй"
+                ],
+                "warnings": [],
+                "words": 3,
+                "questions": 0
+            }
+        },
+        {
+            "name": "fact_overlap",
+            "reply": "один два три четыре пять шесть семь восемь девять",
+            "kind": "answer_only",
+            "state": [],
+            "context": [],
+            "expected": {
+                "verdict": "regenerate",
+                "issues": [
+                    "реплика почти дословно повторяет факт из базы (совпадение 100%) — перескажи своими словами"
+                ],
+                "warnings": [],
+                "words": 9,
+                "questions": 0
+            }
+        },
+        {
+            "name": "known_city_question",
+            "reply": "Понял. А вы из какого города?",
+            "kind": "ask_slot",
+            "state": {
+                "slots": {
+                    "city": "Тула"
+                }
+            },
+            "context": [],
+            "expected": {
+                "verdict": "regenerate",
+                "issues": [
+                    "вопрос про «city» — это уже известно из карточки, не спрашивай"
+                ],
+                "warnings": [],
+                "words": 6,
+                "questions": 1
+            }
+        },
+        {
+            "name": "budget_limit",
+            "reply": "Какая сумма бюджета нужна?",
+            "kind": "ask_slot",
+            "state": {
+                "counters": {
+                    "budget_asks": 2
+                }
+            },
+            "context": [],
+            "expected": {
+                "verdict": "regenerate",
+                "issues": [
+                    "бюджет уже спрашивали дважды — больше не спрашивай"
+                ],
+                "warnings": [],
+                "words": 4,
+                "questions": 1
+            }
+        },
+        {
+            "name": "refusal_60",
+            "reply": "слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово",
+            "kind": "decline_off_topic",
+            "state": [],
+            "context": [],
+            "expected": {
+                "verdict": "ok",
+                "issues": [],
+                "warnings": [],
+                "words": 60,
+                "questions": 0
+            }
+        },
+        {
+            "name": "refusal_61",
+            "reply": "слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово",
+            "kind": "decline_off_topic",
+            "state": [],
+            "context": [],
+            "expected": {
+                "verdict": "regenerate",
+                "issues": [
+                    "при отказе от посторонней просьбы реплика должна быть короткой (до 40 слов)"
+                ],
+                "warnings": [],
+                "words": 61,
+                "questions": 0
+            }
+        },
+        {
+            "name": "warning_90",
+            "reply": "слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово",
+            "kind": "answer_only",
+            "state": [],
+            "context": [],
+            "expected": {
+                "verdict": "ok",
+                "issues": [],
+                "warnings": [],
+                "words": 90,
+                "questions": 0
+            }
+        },
+        {
+            "name": "warning_91",
+            "reply": "слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово слово",
+            "kind": "answer_only",
+            "state": [],
+            "context": [],
+            "expected": {
+                "verdict": "ok",
+                "issues": [],
+                "warnings": [
+                    "слишком длинно (91 слов) — сократи до 70"
+                ],
+                "words": 91,
+                "questions": 0
+            }
+        }
+    ]
+}
