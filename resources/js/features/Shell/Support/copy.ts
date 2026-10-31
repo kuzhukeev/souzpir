@@ -103,7 +103,7 @@ export const supportCopy = {
   planned: 'Запланирован',
   httpHealth: 'Проверка HTTP приложения',
   readonlySupport:
-    'Создание обращений для вашей роли пока недоступно. Вы можете просматривать свои обращения.',
+    'Создание обращений временно недоступно. Вы можете просматривать свои обращения.',
 } as const;
 export type SupportCopy = { [K in keyof typeof supportCopy]: string };
 export function useSupportCopy(): SupportCopy {

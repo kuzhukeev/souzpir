@@ -73,18 +73,16 @@ final class SupportFlowTest extends SupportTestCase
         $this->get('/help/support')->assertInertia(fn (Assert $page) => $page->where('support.tickets.data.0.access.can_revoke', false));
     }
 
-    public function test_role_capabilities_are_honest_and_viewer_cannot_mutate(): void
+    public function test_all_active_roles_can_submit_their_own_tickets(): void
     {
         [$owner, $org, $brand] = $this->cabinet();
         foreach ([['admin', false], ['member', false], ['member', true], ['viewer', false]] as [$role, $manager]) {
             [$user] = $this->member($org, $role, [$brand->id], $manager);
             $this->signIn($user, $brand);
-            $canSubmit = $role !== 'viewer';
-            $this->get('/help/support')->assertInertia(fn (Assert $page) => $page->where('support.can_submit', $canSubmit));
-            $response = $this->postJson('/help/support', $this->payload());
-            self::assertSame($canSubmit ? 201 : 403, $response->status());
+            $this->get('/help/support')->assertInertia(fn (Assert $page) => $page->where('support.can_submit', true));
+            $this->postJson('/help/support', $this->payload())->assertCreated();
         }
-        self::assertSame(3, Ticket::withoutGlobalScopes()->count());
+        self::assertSame(4, Ticket::withoutGlobalScopes()->count());
         $this->signIn($owner, $brand);
         $this->get('/help/support')->assertInertia(fn (Assert $page) => $page->where('support.tickets.total', 0));
     }

@@ -12,8 +12,7 @@ final class TicketPolicy
     {
         $member = app(SupportAccess::class)->actor();
 
-        // Current shared tenant middleware does not yet allow viewer self-service POSTs.
-        return $member->user_id === $user->id && $member->canWrite();
+        return $member->user_id === $user->id;
     }
 
     public function view(User $user, Ticket $ticket): bool

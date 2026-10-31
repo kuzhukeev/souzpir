@@ -63,7 +63,7 @@ final class SupportBoundaryTest extends SupportTestCase
         }
     }
 
-    public function test_downgraded_viewer_can_read_own_ticket_but_cannot_revoke_consent(): void
+    public function test_downgraded_viewer_can_read_and_revoke_own_consent(): void
     {
         [, $org, $brand] = $this->cabinet();
         [$actor, $member] = $this->member($org, 'member', [$brand->id]);
@@ -71,10 +71,10 @@ final class SupportBoundaryTest extends SupportTestCase
         $ticket = $this->ticket(['attachments' => [$this->attachment()]])['ticket'];
         DB::table('memberships')->where('id', $member->id)->update(['role' => 'viewer']);
         $this->signIn($actor, $brand);
-        $this->get('/help/support')->assertInertia(fn (Assert $page) => $page->where('support.can_submit', false)->where('support.tickets.data.0.access.can_revoke', false));
+        $this->get('/help/support')->assertInertia(fn (Assert $page) => $page->where('support.can_submit', true)->where('support.tickets.data.0.access.can_revoke', true));
         $this->get($ticket['attachments'][0]['download_url'])->assertOk();
-        $this->postJson('/help/support/'.$ticket['id'].'/access/revoke')->assertForbidden();
-        self::assertNull(SupportAccessGrant::withoutGlobalScopes()->findOrFail($ticket['access']['id'])->revoked_at);
-        self::assertSame(0, DB::table('audit_logs')->where('action', 'support.access.revoked')->count());
+        $this->postJson('/help/support/'.$ticket['id'].'/access/revoke')->assertOk();
+        self::assertNotNull(SupportAccessGrant::withoutGlobalScopes()->findOrFail($ticket['access']['id'])->revoked_at);
+        self::assertSame(1, DB::table('audit_logs')->where('action', 'support.access.revoked')->count());
     }
 }

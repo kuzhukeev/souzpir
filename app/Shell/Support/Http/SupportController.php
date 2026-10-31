@@ -11,13 +11,25 @@ use App\Shell\Support\SupportAccess;
 use App\Shell\Support\SupportActions;
 use App\Shell\Support\SupportQueries;
 use App\Shell\Support\TicketDelivery;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Auth\AuthenticationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\File;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
+use ReflectionProperty;
+use RuntimeException;
+use SensitiveParameter;
 use Symfony\Component\HttpFoundation\HeaderUtils;
+use Symfony\Component\HttpFoundation\InputBag;
+use Symfony\Component\HttpKernel\Exception\HttpException;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
+use Throwable;
 
 final class SupportController
 {
@@ -36,21 +48,65 @@ final class SupportController
         return Inertia::render('Shell/Support/Tickets', ['support' => $query->index($request)]);
     }
 
-    public function store(Request $request, SupportActions $actions, SupportQueries $query, TicketDelivery $delivery): mixed
+    public function store(#[SensitiveParameter] Request $request, SupportActions $actions, SupportQueries $query, TicketDelivery $delivery): mixed
     {
-        Gate::authorize('create', Ticket::class);
-        $data = $request->validate([
-            'subject' => ['required', Rule::in(array_keys(__('Shell/Support/messages.topics')))],
-            'module' => ['required', Rule::in(array_keys(__('Shell/Support/messages.modules')))],
-            'body' => ['required', 'string', 'min:10', 'max:10000'],
-            'support_access' => ['required', 'boolean'],
-            'attachments' => ['sometimes', 'array', 'max:'.(int) config('features.E1-12.defaults.max_files')],
-            'attachments.*' => ['required', 'extensions:jpg,jpeg,png,webp,pdf,txt', File::types(['jpg', 'jpeg', 'png', 'webp', 'pdf', 'txt'])->max((int) config('features.E1-12.defaults.max_file_kb'))],
-        ], __('Shell/Support/messages.validation'), __('Shell/Support/messages.attributes'));
-        $ticket = $actions->create($request, $data);
-        $result = $delivery->send($ticket);
+        // Framework frames retain this Request object. Move the payload to a local variable,
+        // then remove form, JSON, raw body, query input and uploaded file references from it.
+        $input = $request->all();
+        $server = $request->server->all();
+        $server['QUERY_STRING'] = '';
+        $server['REQUEST_URI'] = explode('?', $server['REQUEST_URI'] ?? '/help/support', 2)[0];
+        $request->initialize([], [], $request->attributes->all(), $request->cookies->all(), [], $server, '');
+        $request->setJson(new InputBag);
+        // Laravel caches converted uploads separately from the Symfony file bag.
+        (new ReflectionProperty(Request::class, 'convertedFiles'))->setValue($request, null);
 
-        return response()->json(['data' => ['ticket' => $query->ticket($ticket->fresh()), 'delivery' => $result]], 201);
+        $stage = 'authorize';
+        try {
+            Gate::authorize('create', Ticket::class);
+            $stage = 'validation';
+            if (isset($input['attachments']) && is_array($input['attachments']) && ! array_is_list($input['attachments'])) {
+                throw ValidationException::withMessages(['attachments' => __('Shell/Support/messages.validation.array', ['attribute' => __('Shell/Support/messages.attributes.attachments')])]);
+            }
+            $data = Validator::make($input, [
+                'subject' => ['required', Rule::in(array_keys(__('Shell/Support/messages.topics')))],
+                'module' => ['required', Rule::in(array_keys(__('Shell/Support/messages.modules')))],
+                'body' => ['required', 'string', 'min:10', 'max:10000'],
+                'support_access' => ['required', 'boolean'],
+                'attachments' => ['sometimes', 'array', 'max:'.(int) config('features.E1-12.defaults.max_files')],
+                'attachments.*' => ['required', 'extensions:jpg,jpeg,png,webp,pdf,txt', File::types(['jpg', 'jpeg', 'png', 'webp', 'pdf', 'txt'])->max((int) config('features.E1-12.defaults.max_file_kb'))],
+            ], __('Shell/Support/messages.validation'), __('Shell/Support/messages.attributes'))->validate();
+            $stage = 'create';
+            $ticket = $actions->create($request, $data);
+            $stage = 'delivery';
+            $result = $delivery->send($ticket);
+
+            return response()->json(['data' => ['ticket' => $query->ticket($ticket->fresh()), 'delivery' => $result]], 201);
+        } catch (Throwable $error) {
+            // Reconstruct known responses, without their original traces, previous exception,
+            // SQL bindings, or Request. Validation messages come from this module's fixed rules.
+            if ($error instanceof ValidationException && in_array($stage, ['validation', 'create'], true)) {
+                $errors = $stage === 'create' ? ['attachments' => __('Shell/Support/messages.upload_failed')] : $error->errors();
+                $safe = ValidationException::withMessages($errors);
+                $safe->status = $error->status;
+                $safe->errorBag = $error->errorBag;
+                $safe->redirectTo = $error->redirectTo;
+                throw $safe;
+            }
+            if ($error instanceof AuthenticationException) {
+                throw new AuthenticationException;
+            }
+            if ($error instanceof AuthorizationException) {
+                throw (new AuthorizationException)->withStatus($error->status());
+            }
+            if ($error instanceof ModelNotFoundException) {
+                throw new ModelNotFoundException;
+            }
+            if ($error instanceof HttpExceptionInterface) {
+                throw new HttpException($error->getStatusCode(), '', null, $error->getHeaders());
+            }
+            throw new RuntimeException('Support request failed.');
+        }
     }
 
     public function revoke(Request $request, string $ticket, SupportActions $actions, SupportQueries $query): mixed

@@ -153,7 +153,7 @@ it('offers no forbidden submission action in readonly support mode', () => {
   render(<Tickets support={support} />);
   expect(screen.queryByRole('button', { name: 'Отправить обращение' })).toBeNull();
   expect((screen.getByLabelText('Описание') as HTMLTextAreaElement).disabled).toBe(true);
-  expect(screen.getByText(/Создание обращений для вашей роли пока недоступно/)).toBeTruthy();
+  expect(screen.getByText(/Создание обращений временно недоступно/)).toBeTruthy();
 });
 
 it('keeps an expanded ticket and keyboard focus while refreshing its revoked consent', () => {
