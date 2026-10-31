@@ -92,7 +92,7 @@ export default function CabinetLayout({
           </div>
         </aside>
         <div className="min-w-0 flex-1">
-          <header className="flex min-h-(--spacing-header) items-center gap-3 border-b border-(--color-border) bg-(--color-surface) px-4 md:px-6">
+          <header className={`flex min-h-(--spacing-header) items-center gap-3 border-b border-(--color-border) px-4 md:px-6 ${props.brandAppearance ? 'bg-(--color-brand-primary-soft)' : 'bg-(--color-surface)'}`}>
             <Dialog.Root open={mobileOpen} onOpenChange={setMobileOpen}>
               <Dialog.Trigger asChild>
                 <button type="button" aria-label="Открыть меню" className={`${button} md:hidden`}>

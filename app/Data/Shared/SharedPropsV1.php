@@ -25,5 +25,6 @@ final class SharedPropsV1 extends Data
         public Theme $theme,
         public array $translations,
         public ZiggyData $ziggy,
+        public ?BrandAppearanceData $brandAppearance = null,
     ) {}
 }
