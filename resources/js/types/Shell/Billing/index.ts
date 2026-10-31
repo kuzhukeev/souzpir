@@ -9,7 +9,6 @@ export type BillingProps = {
   limits: BillingLimit[];
   usage: BillingUsage[];
   plans: BillingPlan[];
-  payer: Payer | null;
   canManage: boolean;
   requestEnabled: boolean;
   submissionKey?: string | null;

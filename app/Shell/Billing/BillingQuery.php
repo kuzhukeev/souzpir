@@ -2,7 +2,6 @@
 
 namespace App\Shell\Billing;
 
-use App\Models\Organization;
 use App\Shell\Plans\Contracts\PlanLimits;
 use App\Shell\Plans\Contracts\UsageQuery;
 use App\Shell\Plans\Contracts\UsageReader;
@@ -30,7 +29,7 @@ final class BillingQuery
 
     public function __construct(private PlanLimits $limits, private UsageReader $usage) {}
 
-    public function read(TenantContext $tenant, Organization $org, string $tab, CarbonImmutable $from, CarbonImmutable $to, bool $canManage): array
+    public function read(TenantContext $tenant, string $tab, CarbonImmutable $from, CarbonImmutable $to, bool $canManage): array
     {
         $assigned = DB::table('organization_plan as assignment')->join('plans as plan', 'plan.id', '=', 'assignment.plan_id')
             ->where('assignment.organization_id', $tenant->organizationId)->where('assignment.starts_at', '<=', now())
@@ -54,24 +53,14 @@ final class BillingQuery
             $metric = $snapshot->metrics[$key] ?? ['value' => null, 'unit' => '', 'status' => 'unavailable'];
             $usage[] = ['key' => $key, 'label' => __('Shell/Billing/messages.metrics.'.$label), 'value' => $metric['value'], 'unit' => $metric['unit'], 'status' => $metric['status']];
         }
-        $payer = null;
-        if ($canManage) {
-            $stored = $org->settings['payer'] ?? [];
-            $stored = is_array($stored) ? $stored : [];
-            $payer = [];
-            foreach (['legal_name', 'inn', 'kpp', 'address', 'email'] as $field) {
-                $payer[$field] = is_string($stored[$field] ?? null) ? $stored[$field] : '';
-            }
-        }
-
         $scope = SubmissionScope::for($tenant);
         $requestEnabled = $canManage && app()->bound(PlanRequestPort::class) && $scope !== null;
-        $scope = $requestEnabled ? $scope : null;
+        $scope = $canManage ? $scope : null;
 
         return ['tab' => $tab, 'currentPlan' => $assigned ? ['id' => $assigned->id, 'name' => $assigned->name] : null,
             'limits' => $limits, 'usage' => $usage,
             'plans' => $canManage ? DB::table('plans')->where('is_public', true)->orderBy('name')->get(['id', 'name'])->toArray() : [],
-            'payer' => $payer, 'canManage' => $canManage, 'requestEnabled' => $requestEnabled,
+            'canManage' => $canManage, 'requestEnabled' => $requestEnabled,
             'submissionScope' => $scope, 'submissionKey' => $requestEnabled ? (string) Str::ulid() : null,
             'period' => ['from' => $from->format('Y-m-d'), 'to' => $to->format('Y-m-d')]];
     }

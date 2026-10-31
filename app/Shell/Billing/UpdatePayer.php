@@ -10,6 +10,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use SensitiveParameter;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
@@ -22,8 +23,10 @@ final class UpdatePayer
     public function run(#[SensitiveParameter] Request $request, #[SensitiveParameter] array $data): void
     {
         try {
-            app(AuthSessionRegistry::class)->withinActive($request, function () use ($data): void {
-                $org = $this->access->lock(true);
+            app(AuthSessionRegistry::class)->withinActive($request, function () use ($request, $data): void {
+                $org = $this->access->lockPayer($request);
+                $expected = $request->header('X-Payer-Revision');
+                abort_unless(is_string($expected) && hash_equals(PayerSnapshot::read($org)['revision'], $expected), 409);
                 $settings = $org->settings ?? [];
                 $payer = $settings['payer'] ?? [];
                 if (! is_array($payer)) {
@@ -43,6 +46,7 @@ final class UpdatePayer
                 if ($changed === []) {
                     return;
                 }
+                $payer['_revision'] = (string) Str::ulid();
                 $settings['payer'] = $payer;
                 $org->forceFill(['settings' => $settings])->save();
                 $this->audit->record(app(TenantContext::class), new AuditEntry('billing.payer.updated', 'organization', $org->id,

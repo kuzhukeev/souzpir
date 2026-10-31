@@ -1,31 +1,27 @@
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import type { ReactNode } from 'react';
 import BillingIndex from '@/pages/Shell/Billing/Index';
 import type { BillingProps } from '@/types/Shell/Billing';
 import { deliveryMessages } from './request';
 import { rememberPlanRequest } from './submission';
 
-const calls = vi.hoisted(() => ({ put: vi.fn(), post: vi.fn(), get: vi.fn() }));
-vi.mock('@inertiajs/react', async () => {
-  const { useState } = await import('react');
+const calls = vi.hoisted(() => ({ post: vi.fn(), get: vi.fn(), on: vi.fn(() => () => {}) }));
+vi.mock('@inertiajs/react', () => {
   return {
     Head: () => null,
     Link: ({ href, children, ...props }: { href: string; children: ReactNode }) => <a href={href} {...props}>{children}</a>,
-    router: { get: calls.get, post: calls.post },
-    useForm: <T extends Record<string, string>>(initial: T) => {
-      const [data, setDataState] = useState(initial);
-      return { data, errors: {}, processing: false, setData: (key: keyof T, value: string) => setDataState((old) => ({ ...old, [key]: value })), put: (url: string) => calls.put(url, data) };
-    },
+    router: { get: calls.get, post: calls.post, on: calls.on },
   };
 });
 vi.mock('@/layouts/CabinetLayout', () => ({ default: ({ children }: { children: ReactNode }) => <main>{children}</main> }));
+beforeEach(() => { vi.spyOn(document, 'hasFocus').mockReturnValue(true); });
 afterEach(() => { cleanup(); sessionStorage.clear(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.clearAllMocks(); });
+const revision = 'a'.repeat(64);
 const base: BillingProps = {
   tab: 'overview', currentPlan: null, limits: [], usage: [], plans: [],
-  payer: { legal_name: '', inn: '', kpp: '', address: '', email: '' },
-  canManage: true, requestEnabled: false, period: { from: '2026-10-01', to: '2026-10-31' },
+  canManage: true, requestEnabled: false, submissionScope: 'org-actor-brand-test', period: { from: '2026-10-01', to: '2026-10-31' },
 };
 it('различает реальный ноль и недоступный источник', () => {
   render(<BillingIndex {...base} tab="usage" usage={[
@@ -46,14 +42,132 @@ it('не придумывает тарифы, цены и лимиты и не �
 });
 it('передаёт введённые реквизиты и поддерживает клавиатуру', async () => {
   const user = userEvent.setup();
+  const fetchMock = vi.fn().mockResolvedValueOnce({ ok: true, json: async () => ({ data: { legal_name: '', inn: '', kpp: '', address: '', email: '' }, revision }) }).mockResolvedValueOnce({ ok: true, status: 204 }).mockResolvedValueOnce({ ok: true, json: async () => ({ data: { legal_name: 'ООО Тест', inn: '1234567890', kpp: '', address: '', email: '' }, revision: 'b'.repeat(64) }) });
+  vi.stubGlobal('fetch', fetchMock);
   render(<BillingIndex {...base} tab="payer" />);
-  await user.click(screen.getByLabelText('Юридическое название'));
+  await user.click(await screen.findByLabelText('Юридическое название'));
   await user.keyboard('ООО Тест');
   await user.tab();
   expect(document.activeElement).toBe(screen.getByLabelText('ИНН'));
   await user.keyboard('1234567890');
   fireEvent.submit(screen.getByRole('button', { name: 'Сохранить реквизиты' }).closest('form')!);
-  expect(calls.put).toHaveBeenCalledWith('/billing/payer', expect.objectContaining({ legal_name: 'ООО Тест', inn: '1234567890' }));
+  await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
+  const [url, options] = fetchMock.mock.calls[1];
+  expect(url).toBe('/billing/payer');
+  expect(JSON.parse(options.body)).toEqual(expect.objectContaining({ legal_name: 'ООО Тест', inn: '1234567890' }));
+  expect(options.headers['X-Billing-Context']).toBe('org-actor-brand-test');
+  expect(options.headers['X-Payer-Revision']).toBe(revision);
+  expect(options.cache).toBe('no-store');
+  expect(JSON.stringify(window.history.state)).not.toContain('ООО Тест');
+});
+it('не отображает старые payer props из истории до повторной авторизации', async () => {
+  vi.stubGlobal('crypto', undefined);
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 403 }));
+  const stale = { ...base, tab: 'payer' as const, payer: { legal_name: 'Чужие реквизиты', inn: '1234567890', kpp: '', address: '', email: '' } };
+  render(<BillingIndex {...stale} />);
+  expect(screen.queryByDisplayValue('Чужие реквизиты')).toBeNull();
+  expect((await screen.findByRole('alert')).textContent).toContain('Не удалось загрузить');
+  expect(screen.queryByDisplayValue('Чужие реквизиты')).toBeNull();
+});
+it('не загружает реквизиты при открытии скрытой вкладки до возвращения фокуса', async () => {
+  const visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+  vi.mocked(document.hasFocus).mockReturnValue(false);
+  const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ data: { legal_name: 'Только после возврата', inn: '', kpp: '', address: '', email: '' }, revision }) });
+  vi.stubGlobal('fetch', fetchMock);
+  render(<BillingIndex {...base} tab="payer" />);
+  expect(fetchMock).not.toHaveBeenCalled();
+  visibility.mockReturnValue('visible');
+  act(() => document.dispatchEvent(new Event('visibilitychange')));
+  expect(fetchMock).not.toHaveBeenCalled();
+  vi.mocked(document.hasFocus).mockReturnValue(true);
+  act(() => window.dispatchEvent(new Event('focus')));
+  expect(await screen.findByDisplayValue('Только после возврата')).toBeTruthy();
+  expect(fetchMock).toHaveBeenCalledTimes(1);
+});
+it('не загружает реквизиты в видимой, но неактивной вкладке до фокуса', async () => {
+  vi.mocked(document.hasFocus).mockReturnValue(false);
+  const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ data: { legal_name: 'Текущий владелец', inn: '', kpp: '', address: '', email: '' }, revision }) });
+  vi.stubGlobal('fetch', fetchMock);
+  render(<BillingIndex {...base} tab="payer" />);
+  expect(fetchMock).not.toHaveBeenCalled();
+  vi.mocked(document.hasFocus).mockReturnValue(true);
+  act(() => window.dispatchEvent(new Event('focus')));
+  expect(await screen.findByDisplayValue('Текущий владелец')).toBeTruthy();
+});
+it('очищает данные до bfcache и не принимает устаревший ответ после восстановления', async () => {
+  let complete: (value: unknown) => void = () => {};
+  const deferred = new Promise((resolve) => { complete = resolve; });
+  const fetchMock = vi.fn().mockReturnValueOnce(deferred).mockResolvedValueOnce({ ok: true, json: async () => ({ data: { legal_name: 'Актуальные данные', inn: '', kpp: '', address: '', email: '' }, revision }) });
+  vi.stubGlobal('fetch', fetchMock);
+  render(<BillingIndex {...base} tab="payer" />);
+  act(() => window.dispatchEvent(new Event('pagehide')));
+  await act(async () => complete({ ok: true, json: async () => ({ data: { legal_name: 'Устаревшие данные', inn: '', kpp: '', address: '', email: '' }, revision }) }));
+  expect(screen.queryByDisplayValue('Устаревшие данные')).toBeNull();
+  const restored = new Event('pageshow');
+  Object.defineProperty(restored, 'persisted', { value: true });
+  act(() => window.dispatchEvent(restored));
+  expect(await screen.findByDisplayValue('Актуальные данные')).toBeTruthy();
+  expect(screen.queryByDisplayValue('Устаревшие данные')).toBeNull();
+  expect(fetchMock.mock.calls[0][1].cache).toBe('no-store');
+  expect(fetchMock.mock.calls[1][1].headers['X-Billing-Context']).toBe('org-actor-brand-test');
+});
+it('после скрытия или смены контекста не показывает старые реквизиты', async () => {
+  const fetchMock = vi.fn().mockResolvedValueOnce({ ok: true, json: async () => ({ data: { legal_name: 'Прежняя организация', inn: '', kpp: '', address: '', email: '' }, revision }) }).mockResolvedValueOnce({ ok: false, status: 409 });
+  vi.stubGlobal('fetch', fetchMock);
+  const page = render(<BillingIndex {...base} tab="payer" />);
+  expect(await screen.findByDisplayValue('Прежняя организация')).toBeTruthy();
+  act(() => window.dispatchEvent(new Event('blur')));
+  expect(screen.queryByDisplayValue('Прежняя организация')).toBeNull();
+  act(() => window.dispatchEvent(new Event('focus')));
+  expect((await screen.findByRole('alert')).textContent).toContain('Не удалось загрузить');
+  expect(screen.queryByDisplayValue('Прежняя организация')).toBeNull();
+  page.rerender(<BillingIndex {...base} tab="payer" canManage={false} />);
+  expect(screen.queryByLabelText('Юридическое название')).toBeNull();
+});
+it('не показывает результат старого PUT после ухода и отказа повторной авторизации', async () => {
+  const user = userEvent.setup();
+  let complete: (value: unknown) => void = () => {};
+  const delayed = new Promise((resolve) => { complete = resolve; });
+  const fetchMock = vi.fn().mockResolvedValueOnce({ ok: true, json: async () => ({ data: { legal_name: 'Частные реквизиты', inn: '', kpp: '', address: '', email: '' }, revision }) }).mockReturnValueOnce(delayed).mockResolvedValueOnce({ ok: false, status: 403 });
+  vi.stubGlobal('fetch', fetchMock);
+  render(<BillingIndex {...base} tab="payer" />);
+  expect(await screen.findByDisplayValue('Частные реквизиты')).toBeTruthy();
+  await user.click(screen.getByRole('button', { name: 'Сохранить реквизиты' }));
+  act(() => window.dispatchEvent(new Event('pagehide')));
+  expect(screen.queryByDisplayValue('Частные реквизиты')).toBeNull();
+  const restored = new Event('pageshow');
+  Object.defineProperty(restored, 'persisted', { value: true });
+  act(() => window.dispatchEvent(restored));
+  expect(await screen.findByRole('alert')).toBeTruthy();
+  await act(async () => complete({ ok: true, status: 204 }));
+  expect(screen.queryByText('Реквизиты сохранены.')).toBeNull();
+  expect(screen.queryByDisplayValue('Частные реквизиты')).toBeNull();
+});
+it('показывает ошибки валидации и не помещает реквизиты в историю', async () => {
+  const user = userEvent.setup();
+  const fetchMock = vi.fn().mockResolvedValueOnce({ ok: true, json: async () => ({ data: { legal_name: 'Тест', inn: '', kpp: '', address: '', email: '' }, revision }) }).mockResolvedValueOnce({ ok: false, status: 422, json: async () => ({ errors: { inn: ['ИНН должен содержать 10 или 12 цифр.'] } }) });
+  vi.stubGlobal('fetch', fetchMock);
+  render(<BillingIndex {...base} tab="payer" />);
+  const inn = await screen.findByLabelText('ИНН');
+  await user.type(inn, '123');
+  await user.click(screen.getByRole('button', { name: 'Сохранить реквизиты' }));
+  await waitFor(() => expect(inn.getAttribute('aria-invalid')).toBe('true'));
+  expect(screen.getAllByText('ИНН должен содержать 10 или 12 цифр.').length).toBeGreaterThan(0);
+  expect(JSON.stringify(window.history.state)).not.toContain('Тест');
+});
+it('при конфликте ревизии очищает черновик и требует повторной загрузки', async () => {
+  const user = userEvent.setup();
+  const fetchMock = vi.fn().mockResolvedValueOnce({ ok: true, json: async () => ({ data: { legal_name: 'Исходное', inn: '', kpp: '', address: '', email: '' }, revision }) }).mockResolvedValueOnce({ ok: false, status: 409 }).mockResolvedValueOnce({ ok: true, json: async () => ({ data: { legal_name: 'Обновлённое', inn: '', kpp: '', address: '', email: '' }, revision: 'b'.repeat(64) }) });
+  vi.stubGlobal('fetch', fetchMock);
+  render(<BillingIndex {...base} tab="payer" />);
+  const name = await screen.findByLabelText('Юридическое название');
+  await user.clear(name); await user.type(name, 'Черновик');
+  await user.click(screen.getByRole('button', { name: 'Сохранить реквизиты' }));
+  expect((await screen.findByRole('alert')).textContent).toContain('Загрузите реквизиты заново');
+  expect(screen.queryByDisplayValue('Черновик')).toBeNull();
+  expect(fetchMock.mock.calls[1][1].headers['X-Payer-Revision']).toBe(revision);
+  await user.click(screen.getByRole('button', { name: 'Повторить' }));
+  expect(await screen.findByDisplayValue('Обновлённое')).toBeTruthy();
 });
 it('показывает ненастроенный лимит без ложного прогресса', () => {
   render(<BillingIndex {...base} limits={[{ key: 'x', label: 'Лимит', value: null, unit: 'count', used: null }]} />);
@@ -61,7 +175,7 @@ it('показывает ненастроенный лимит без ложно
   expect(screen.queryByRole('progressbar')).toBeNull();
 });
 it('не показывает разделы владельца пользователю с доступом только на чтение', () => {
-  render(<BillingIndex {...base} canManage={false} payer={null} />);
+  render(<BillingIndex {...base} canManage={false} />);
   expect(screen.getByRole('link', { name: 'Использование' })).toBeTruthy();
   expect(screen.queryByRole('link', { name: 'Смена тарифа' })).toBeNull();
   expect(screen.queryByRole('link', { name: 'Реквизиты' })).toBeNull();

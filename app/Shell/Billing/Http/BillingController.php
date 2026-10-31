@@ -6,6 +6,7 @@ use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Billing\BillingAccess;
 use App\Shell\Billing\BillingPeriod;
 use App\Shell\Billing\BillingQuery;
+use App\Shell\Billing\PayerSnapshot;
 use App\Shell\Billing\SubmissionScope;
 use App\Shell\Billing\UpdatePayer;
 use App\Shell\Support\Contracts\PlanRequestCommand;
@@ -46,16 +47,51 @@ final class BillingController
             $org = $this->access->lock($manage);
             $owner = $org->owner_user_id === $tenant->actorId && Gate::allows('billing.manage');
 
-            return $query->read($tenant, $org, $tab, $from, $to, $owner);
+            return $query->read($tenant, $tab, $from, $to, $owner);
         });
 
         return Inertia::render('Shell/Billing/Index', $props);
     }
 
-    public function updatePayer(#[SensitiveParameter] Request $request, UpdatePayer $action): RedirectResponse
+    public function payerData(#[SensitiveParameter] Request $request): JsonResponse
+    {
+        try {
+            $payer = app(AuthSessionRegistry::class)->withinActive($request,
+                fn () => PayerSnapshot::read($this->access->lockPayer($request)));
+
+            return response()->json($payer)->header('Cache-Control', 'private, no-store');
+        } catch (AuthenticationException) {
+            throw new AuthenticationException;
+        } catch (AuthorizationException $error) {
+            throw (new AuthorizationException)->withStatus($error->status());
+        } catch (ModelNotFoundException) {
+            throw new ModelNotFoundException;
+        } catch (HttpExceptionInterface $error) {
+            throw new HttpException($error->getStatusCode(), '', null, $error->getHeaders());
+        } catch (Throwable) {
+            // Exception details or JSON encoding failures can contain sensitive settings.
+            throw new \RuntimeException(__('Shell/Billing/messages.payer.load_failed'));
+        }
+    }
+
+    public function updatePayer(#[SensitiveParameter] Request $request, UpdatePayer $action): RedirectResponse|JsonResponse
     {
         // Check authorization before validation and again under the same lock as the write.
-        app(AuthSessionRegistry::class)->withinActive($request, fn () => $this->access->lock(true));
+        try {
+            app(AuthSessionRegistry::class)->withinActive($request, fn () => $this->access->lockPayer($request));
+        } catch (AuthenticationException) {
+            throw new AuthenticationException;
+        } catch (AuthorizationException $error) {
+            throw (new AuthorizationException)->withStatus($error->status());
+        } catch (ModelNotFoundException) {
+            throw new ModelNotFoundException;
+        } catch (HttpExceptionInterface $error) {
+            throw new HttpException($error->getStatusCode(), '', null, $error->getHeaders());
+        } catch (Throwable) {
+            throw new \RuntimeException(__('Shell/Billing/messages.payer.failed'));
+        }
+        $revision = $request->header('X-Payer-Revision');
+        abort_unless(is_string($revision) && preg_match('/^[a-f0-9]{64}$/D', $revision) === 1, 409);
         $validator = Validator::make($request->all(), [
             'legal_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'inn' => ['sometimes', 'nullable', 'string', 'regex:/^(?:[0-9]{10}|[0-9]{12})$/D'],
@@ -71,9 +107,17 @@ final class BillingController
         ]);
         if ($validator->fails()) {
             // Payer information is not flashed into the session on validation errors.
+            if ($request->expectsJson()) {
+                return response()->json(['errors' => $validator->errors()], 422)->header('Cache-Control', 'private, no-store');
+            }
+
             return redirect()->route('billing.payer')->withErrors($validator);
         }
         $action->run($request, $validator->validated());
+
+        if ($request->expectsJson()) {
+            return response()->json(['data' => ['saved' => true]])->header('Cache-Control', 'private, no-store');
+        }
 
         return redirect()->route('billing.payer');
     }

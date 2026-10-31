@@ -2,8 +2,12 @@
 
 namespace Tests\Feature\Shell\Billing;
 
+use App\Http\Middleware\HandleInertiaRequests;
 use App\Shell\Audit\Contracts\AuditWriter;
+use App\Shell\Billing\SubmissionScope;
+use App\Tenancy\TenantContext;
 use Illuminate\Database\QueryException;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
@@ -57,23 +61,28 @@ final class BillingWorkflowTest extends TenancyTestCase
         [$owner, $org, $brand] = $this->cabinet();
         [$admin] = $this->member($org, 'admin', [$brand->id]);
         [$viewer] = $this->member($org, 'viewer', [$brand->id]);
-        DB::table('organizations')->where('id', $org->id)->update(['settings' => json_encode(['other' => ['keep' => true]], JSON_THROW_ON_ERROR)]);
+        DB::table('organizations')->where('id', $org->id)->update(['settings' => json_encode(['other' => ['keep' => true], 'payer' => ['legacy_field' => 'keep']], JSON_THROW_ON_ERROR)]);
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
-        $this->put('/billing/payer', ['legal_name' => 'Компания', 'inn' => '123', 'kpp' => 'bad', 'email' => 'bad'])
+        $headers = $this->payerHeaders($org, $owner, $brand);
+        $this->put('/billing/payer', ['legal_name' => 'Компания', 'inn' => '123', 'kpp' => 'bad', 'email' => 'bad'], $headers)
             ->assertSessionHasErrors(['inn', 'kpp', 'email'])->assertSessionMissing('_old_input.inn');
-        $this->put('/billing/payer', ['legal_name' => 'Компания', 'inn' => '1234567890', 'kpp' => '123456789', 'address' => 'Тестовый адрес', 'email' => 'billing@example.test'])
+        $this->put('/billing/payer', ['legal_name' => 'Компания', 'inn' => '1234567890', 'kpp' => '123456789', 'address' => 'Тестовый адрес', 'email' => 'billing@example.test'], $headers)
             ->assertRedirect('/billing/payer')->assertSessionHasNoErrors();
         $settings = json_decode(DB::table('organizations')->where('id', $org->id)->value('settings'), true, flags: JSON_THROW_ON_ERROR);
         self::assertTrue($settings['other']['keep']);
         self::assertSame('1234567890', $settings['payer']['inn']);
+        self::assertSame('keep', $settings['payer']['legacy_field']);
+        self::assertTrue(Str::isUlid($settings['payer']['_revision']));
+        self::assertArrayNotHasKey('payer_revision', $settings);
+        $this->getJson('/billing/payer/data', $this->scopeHeaders($org, $owner, $brand))->assertJsonMissingPath('data._revision')->assertJsonMissingPath('data.legacy_field');
         $audit = DB::table('audit_logs')->where('action', 'billing.payer.updated')->sole();
         self::assertStringNotContainsString('1234567890', json_encode($audit, JSON_THROW_ON_ERROR));
         $this->actingAs($admin)->withSession(['brand_id' => $brand->id])->get('/billing')->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->where('payer', null)->where('canManage', false));
+            ->assertInertia(fn (Assert $page) => $page->missing('payer')->where('canManage', false));
         $this->get('/billing/payer')->assertForbidden();
         $this->put('/billing/payer', ['legal_name' => 'Нет'])->assertForbidden();
         $this->actingAs($viewer)->withSession(['brand_id' => $brand->id])->get('/billing')->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->where('payer', null)->where('canManage', false));
+            ->assertInertia(fn (Assert $page) => $page->missing('payer')->where('canManage', false));
         $this->get('/billing/plans')->assertForbidden();
     }
 
@@ -84,8 +93,9 @@ final class BillingWorkflowTest extends TenancyTestCase
         $audit->shouldReceive('record')->once()->andThrow(new \RuntimeException('audit unavailable'));
         $this->app->instance(AuditWriter::class, $audit);
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->withoutExceptionHandling();
+        $headers = $this->payerHeaders($org, $owner, $brand);
         try {
-            $this->put('/billing/payer', ['legal_name' => 'Не сохранять']);
+            $this->put('/billing/payer', ['legal_name' => 'Не сохранять'], $headers);
             self::fail('Audit failure must roll back payer.');
         } catch (\RuntimeException $error) {
             self::assertSame('Не удалось сохранить реквизиты.', $error->getMessage());
@@ -102,13 +112,14 @@ final class BillingWorkflowTest extends TenancyTestCase
     {
         [$owner, $org, $brand] = $this->cabinet();
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->withoutExceptionHandling();
+        $headers = $this->payerHeaders($org, $owner, $brand);
         DB::listen(static function ($event): void {
             if (str_starts_with(strtolower($event->sql), 'update "organizations"')) {
                 throw new QueryException('pgsql', $event->sql, $event->bindings, new \RuntimeException('fixture database failure'));
             }
         });
         try {
-            $this->put('/billing/payer', ['inn' => '1234567890', 'address' => 'PRIVATE-ADDRESS-MARKER']);
+            $this->put('/billing/payer', ['inn' => '1234567890', 'address' => 'PRIVATE-ADDRESS-MARKER'], $headers);
             self::fail('Database failure must be reported safely.');
         } catch (\RuntimeException $error) {
             self::assertSame('Не удалось сохранить реквизиты.', $error->getMessage());
@@ -126,13 +137,132 @@ final class BillingWorkflowTest extends TenancyTestCase
         DB::table('organizations')->where('id', $org->id)->update(['settings' => json_encode(['payer' => ['inn' => '1234567890']], JSON_THROW_ON_ERROR)]);
         DB::table('memberships')->where('id', $membership->id)->update(['role' => 'admin']);
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->get('/billing')->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->where('payer', null)->where('canManage', false));
+            ->assertInertia(fn (Assert $page) => $page->missing('payer')->where('canManage', false));
         $this->get('/billing/payer')->assertForbidden();
+    }
+
+    public function test_payer_is_absent_from_every_inertia_response_and_loaded_only_on_private_endpoint(): void
+    {
+        [$owner, $org, $brand] = $this->cabinet();
+        DB::table('organizations')->where('id', $org->id)->update(['settings' => json_encode(['payer' => [
+            'inn' => '1234567890', 'address' => 'PRIVATE-ADDRESS-MARKER',
+        ]], JSON_THROW_ON_ERROR)]);
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        foreach (['/billing', '/billing/usage', '/billing/plans', '/billing/invoices', '/billing/payer'] as $url) {
+            $this->get($url)->assertOk()->assertDontSee('PRIVATE-ADDRESS-MARKER')->assertDontSee('1234567890')
+                ->assertInertia(fn (Assert $page) => $page->missing('payer'));
+            $version = app(HandleInertiaRequests::class)->version(Request::create($url));
+            $this->get($url, ['X-Inertia' => 'true', 'X-Inertia-Version' => $version, 'X-Requested-With' => 'XMLHttpRequest'])
+                ->assertOk()->assertDontSee('PRIVATE-ADDRESS-MARKER')->assertDontSee('1234567890')
+                ->assertJsonMissingPath('props.payer');
+        }
+        $response = $this->getJson('/billing/payer/data', $this->scopeHeaders($org, $owner, $brand))
+            ->assertOk()->assertJsonPath('data.inn', '1234567890')->assertJsonPath('data.address', 'PRIVATE-ADDRESS-MARKER')
+            ->assertJsonPath('data.legal_name', '');
+        self::assertStringContainsString('no-store', $response->headers->get('Cache-Control'));
+        self::assertStringContainsString('private', $response->headers->get('Cache-Control'));
+    }
+
+    public function test_payer_endpoint_checks_role_context_organization_logout_and_revoked_session(): void
+    {
+        [$owner, $org, $brand, $other] = $this->cabinet();
+        [$admin] = $this->member($org, 'admin', [$brand->id]);
+        [$viewer] = $this->member($org, 'viewer', [$brand->id]);
+        [$foreignOwner, $foreignOrg, $foreignBrand] = $this->cabinet(false);
+        DB::table('organizations')->where('id', $org->id)->update(['settings' => json_encode(['payer' => ['inn' => '1234567890']], JSON_THROW_ON_ERROR)]);
+        DB::table('organizations')->where('id', $foreignOrg->id)->update(['settings' => json_encode(['payer' => ['inn' => '9876543210']], JSON_THROW_ON_ERROR)]);
+        $headers = $this->scopeHeaders($org, $owner, $brand);
+        foreach ([$admin, $viewer] as $actor) {
+            $this->actingAs($actor)->withSession(['brand_id' => $brand->id]);
+            $this->getJson('/billing/payer/data', $headers)->assertForbidden()->assertDontSee('1234567890');
+            $this->putJson('/billing/payer', ['inn' => '1234567890'], $headers)->assertForbidden();
+        }
+        $this->actingAs($owner)->withSession(['brand_id' => $other->id]);
+        $this->getJson('/billing/payer/data', $headers)->assertConflict()->assertDontSee('1234567890');
+        $this->putJson('/billing/payer', ['inn' => '9999999999'], $headers)->assertConflict();
+        $this->getJson('/billing/payer/data')->assertConflict();
+        config(['features.E0-02.defaults.organization_id' => $foreignOrg->id]);
+        $this->actingAs($foreignOwner)->withSession(['brand_id' => $foreignBrand->id]);
+        $this->getJson('/billing/payer/data', $headers)->assertConflict()->assertDontSee('9876543210');
+        $this->getJson('/billing/payer/data', $this->scopeHeaders($foreignOrg, $foreignOwner, $foreignBrand))
+            ->assertOk()->assertJsonPath('data.inn', '9876543210');
+        DB::table('auth_session_registry')->where('user_id', $foreignOwner->id)->update(['revoked_at' => now()]);
+        $this->getJson('/billing/payer/data', $this->scopeHeaders($foreignOrg, $foreignOwner, $foreignBrand))->assertUnauthorized();
+        auth()->logout();
+        $this->getJson('/billing/payer/data', $headers)->assertUnauthorized();
+    }
+
+    public function test_payer_json_validation_and_success_do_not_echo_sensitive_input(): void
+    {
+        [$owner, $org, $brand] = $this->cabinet();
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $headers = $this->payerHeaders($org, $owner, $brand);
+        $this->putJson('/billing/payer', ['inn' => 'PRIVATE-INVALID-MARKER', 'address' => 'PRIVATE-ADDRESS-MARKER'], $headers)
+            ->assertUnprocessable()->assertJsonValidationErrors('inn')->assertDontSee('PRIVATE-INVALID-MARKER')
+            ->assertDontSee('PRIVATE-ADDRESS-MARKER')->assertSessionMissing('_old_input');
+        $response = $this->putJson('/billing/payer', ['inn' => '1234567890', 'address' => 'PRIVATE-ADDRESS-MARKER'], $headers)
+            ->assertOk()->assertJsonPath('data.saved', true)->assertDontSee('1234567890')->assertDontSee('PRIVATE-ADDRESS-MARKER');
+        self::assertStringContainsString('no-store', $response->headers->get('Cache-Control'));
+    }
+
+    public function test_payer_read_sql_failure_does_not_leak_sensitive_exception(): void
+    {
+        [$owner, $org, $brand] = $this->cabinet();
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->withoutExceptionHandling();
+        DB::listen(static function ($event): void {
+            if (str_contains(strtolower($event->sql), 'from "organizations"') && str_contains(strtolower($event->sql), 'for update')) {
+                throw new QueryException('pgsql', 'select ? as secret', ['PRIVATE-ADDRESS-MARKER'], new \RuntimeException('sensitive database failure'));
+            }
+        });
+        try {
+            $this->getJson('/billing/payer/data', $this->scopeHeaders($org, $owner, $brand));
+            self::fail('Database failure must be reported safely.');
+        } catch (\RuntimeException $error) {
+            self::assertSame('Не удалось загрузить реквизиты.', $error->getMessage());
+            self::assertNull($error->getPrevious());
+            self::assertStringNotContainsString('PRIVATE-ADDRESS-MARKER', $error->getMessage().$error->getTraceAsString());
+        }
+    }
+
+    public function test_delayed_independent_payer_write_cannot_overwrite_newer_save_even_after_values_return(): void
+    {
+        [$owner, $org, $brand] = $this->cabinet();
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $scope = $this->scopeHeaders($org, $owner, $brand);
+        // Two independent page loads race from the same initial snapshot.
+        $old = $this->payerHeaders($org, $owner, $brand);
+        $new = $this->payerHeaders($org, $owner, $brand);
+        self::assertSame($old['X-Payer-Revision'], $new['X-Payer-Revision']);
+        self::assertMatchesRegularExpression('/^[a-f0-9]{64}$/', $old['X-Payer-Revision']);
+        $this->putJson('/billing/payer', ['legal_name' => 'New'], $scope)->assertConflict();
+        $this->putJson('/billing/payer', ['legal_name' => 'New'], $new)->assertOk();
+        $this->putJson('/billing/payer', ['legal_name' => 'Delayed'], $old)->assertConflict()->assertDontSee('Delayed');
+        $current = $this->payerHeaders($org, $owner, $brand);
+        self::assertNotSame($old['X-Payer-Revision'], $current['X-Payer-Revision']);
+        $this->getJson('/billing/payer/data', $scope)->assertOk()->assertJsonPath('data.legal_name', 'New');
+        $this->putJson('/billing/payer', ['legal_name' => ''], $current)->assertOk();
+        // Reverting the value does not revive an earlier revision (ABA).
+        $this->putJson('/billing/payer', ['legal_name' => 'Delayed'], $old)->assertConflict();
+        $this->getJson('/billing/payer/data', $scope)->assertOk()->assertJsonPath('data.legal_name', '');
+        self::assertSame(2, DB::table('audit_logs')->where('action', 'billing.payer.updated')->count());
     }
 
     private function conversation(string $organization, string $brand, string $createdAt): void
     {
         DB::table('conversations')->insert(['id' => (string) Str::ulid(), 'organization_id' => $organization,
             'brand_id' => $brand, 'created_at' => $createdAt, 'updated_at' => $createdAt]);
+    }
+
+    private function scopeHeaders(object $org, object $user, object $brand): array
+    {
+        return ['X-Billing-Context' => SubmissionScope::for(new TenantContext($org->id, $brand->id, $user->id))];
+    }
+
+    private function payerHeaders(object $org, object $user, object $brand): array
+    {
+        $headers = $this->scopeHeaders($org, $user, $brand);
+        $revision = $this->getJson('/billing/payer/data', $headers)->assertOk()->json('revision');
+
+        return [...$headers, 'X-Payer-Revision' => $revision];
     }
 }

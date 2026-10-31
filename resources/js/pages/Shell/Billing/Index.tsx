@@ -1,10 +1,11 @@
-import { Head, Link, router, useForm } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { BarChart3, Crown, FileText, Info } from 'lucide-react';
-import { useState, type FormEvent } from 'react';
+import { useState } from 'react';
 import { Button, EmptyState, Input } from '@/components/ui';
 import { BillingPage, Notice, panel } from '@/features/Shell/Billing/Shared';
 import { PlanRequests } from '@/features/Shell/Billing/PlanRequests';
-import { Errors, focus } from '@/features/Shell/Organizations/Shared';
+import { PayerForm } from '@/features/Shell/Billing/PayerForm';
+import { focus } from '@/features/Shell/Organizations/Shared';
 import type { BillingLimit, BillingProps } from '@/types/Shell/Billing';
 
 const titles = {
@@ -25,22 +26,15 @@ function LimitRow({ limit }: { limit: BillingLimit }) {
   </li>;
 }
 
-export default function BillingIndex({ tab, currentPlan, limits, usage, plans, payer, canManage, requestEnabled, submissionKey, submissionScope, period }: BillingProps) {
-  const form = useForm(payer ?? { legal_name: '', inn: '', kpp: '', address: '', email: '' });
+export default function BillingIndex({ tab, currentPlan, limits, usage, plans, canManage, requestEnabled, submissionKey, submissionScope, period }: BillingProps) {
   const [from, setFrom] = useState(period.from);
   const [to, setTo] = useState(period.to);
   const [loadingUsage, setLoadingUsage] = useState(false);
-  const [notice, setNotice] = useState('');
   const [failure, setFailure] = useState('');
   const [title, subtitle] = titles[tab];
   const transport = () => { setFailure('Не удалось связаться с сервером. Попробуйте ещё раз.'); return false; };
-  const save = (event: FormEvent) => {
-    event.preventDefault(); setNotice(''); setFailure('');
-    form.put('/billing/payer', { preserveScroll: true, onSuccess: () => setNotice('Реквизиты сохранены.'), onNetworkError: transport, onHttpException: transport });
-  };
   return <><Head title={title} /><BillingPage active={tab} canManage={canManage} title={title} subtitle={subtitle}>
     {failure && <div role="alert" className="mb-5 rounded-xl bg-(--color-danger-soft) p-4 text-sm text-(--color-danger-ink)">{failure}</div>}
-    {notice && <div role="status" className="mb-5 rounded-xl bg-(--color-success-soft) p-4 text-sm text-(--color-success-ink)">{notice}</div>}
     {tab === 'overview' && <div className="space-y-5">
       <section className={`${panel} flex flex-wrap items-center gap-4`}><span className="grid size-14 shrink-0 place-items-center rounded-full bg-(--color-info-soft) text-(--color-link)"><Crown size={27} aria-hidden="true" /></span><div className="min-w-0 flex-1"><h2 className="text-xl font-bold">{currentPlan?.name ?? 'План не задан'}</h2><p className="mt-1 text-sm text-(--color-ink-muted)">Текущий план организации</p></div>{canManage && <Link href="/billing/plans" className={`cursor-pointer rounded-lg border border-(--color-border) px-4 py-3 text-sm font-semibold text-(--color-link) ${focus}`}>Сменить тариф</Link>}</section>
       <section className={panel}><div className="flex items-center gap-3"><BarChart3 aria-hidden="true" className="text-(--color-link)" /><div><h2 className="text-xl font-bold">Лимиты и использование</h2><p className="text-sm text-(--color-ink-muted)">Значения тарифа организации</p></div></div>{limits.length ? <ul className="mt-4 grid gap-x-8 md:grid-cols-2">{limits.map((limit) => <LimitRow key={limit.key} limit={limit} />)}</ul> : <p className="mt-5 text-sm text-(--color-ink-muted)">Лимиты не заданы.</p>}</section>
@@ -49,6 +43,6 @@ export default function BillingIndex({ tab, currentPlan, limits, usage, plans, p
     {tab === 'usage' && <section className={panel}><h2 className="text-xl font-bold">Использование</h2><p className="mt-1 text-sm text-(--color-ink-muted)">Данные по текущему бренду и доступным источникам</p><form className="mt-5 flex flex-wrap items-end gap-3" onSubmit={(event) => { event.preventDefault(); setFailure(''); router.get('/billing/usage', { from, to }, { preserveState: true, preserveScroll: true, onStart: () => setLoadingUsage(true), onFinish: () => setLoadingUsage(false), onError: (errors) => setFailure(Object.values(errors).join(' ') || 'Не удалось загрузить данные.'), onNetworkError: transport, onHttpException: transport }); }}><Input type="date" label="С" value={from} onChange={(event) => setFrom(event.target.value)} required /><Input type="date" label="По" value={to} onChange={(event) => setTo(event.target.value)} required /><Button className="cursor-pointer" type="submit" loading={loadingUsage}>Показать</Button></form><div aria-busy={loadingUsage}>{usage.length ? <dl className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{usage.map((item) => <div key={item.key} className="rounded-xl border border-(--color-border) p-4"><dt className="text-sm text-(--color-ink-muted)">{item.label}</dt><dd className="mt-2 text-2xl font-bold">{item.status === 'ready' && item.value !== null ? item.value.toLocaleString('ru-RU') : 'Недоступно'}</dd></div>)}</dl> : <EmptyState title="Нет данных об использовании" description="Данные появятся, когда будут доступны источники." />}</div></section>}
     {tab === 'plans' && <PlanRequests key={`${submissionScope ?? ''}:${requestEnabled}`} plans={plans} canManage={canManage} enabled={requestEnabled} scope={submissionScope} initialKey={submissionKey} />}
     {tab === 'invoices' && <><Notice>Раздел появится позже. Здесь будут счета и документы по оплате.</Notice><section className={panel}><h2 className="text-xl font-bold">Счета <span className="ml-2 rounded-full bg-(--color-surface-muted) px-3 py-1 text-sm">Скоро</span></h2><div className="py-12 text-center"><FileText aria-hidden="true" size={50} className="mx-auto text-(--color-ink-muted)" /><p className="mt-4 text-lg font-bold">Счета появятся здесь</p><p className="mt-2 text-sm text-(--color-ink-muted)">Функция скоро будет доступна</p></div></section></>}
-    {tab === 'payer' && <><Notice>Реквизиты можно сохранить сейчас. Выставление счетов появится позже.</Notice><section className={panel}><h2 className="mb-5 text-xl font-bold">Данные плательщика</h2><Errors errors={form.errors} transport="" /><form onSubmit={save} className="space-y-5"><div className="grid gap-4 sm:grid-cols-2"><Input label="Юридическое название" value={form.data.legal_name} onChange={(event) => form.setData('legal_name', event.target.value)} error={form.errors.legal_name} disabled={!canManage} /><Input label="ИНН" inputMode="numeric" value={form.data.inn} onChange={(event) => form.setData('inn', event.target.value)} error={form.errors.inn} disabled={!canManage} /><Input label="КПП" inputMode="numeric" value={form.data.kpp} onChange={(event) => form.setData('kpp', event.target.value)} error={form.errors.kpp} disabled={!canManage} /><Input label="Юридический адрес" value={form.data.address} onChange={(event) => form.setData('address', event.target.value)} error={form.errors.address} disabled={!canManage} /><div className="sm:col-span-2"><Input label="Почта для счетов" type="email" value={form.data.email} onChange={(event) => form.setData('email', event.target.value)} error={form.errors.email} disabled={!canManage} /></div></div>{canManage && <Button className="cursor-pointer" type="submit" loading={form.processing}>Сохранить реквизиты</Button>}</form></section></>}
+    {tab === 'payer' && (canManage ? <PayerForm key={submissionScope ?? ''} scope={submissionScope} /> : <p role="alert" className="text-sm text-(--color-danger-ink)">Недостаточно прав для просмотра реквизитов.</p>)}
   </BillingPage></>;
 }

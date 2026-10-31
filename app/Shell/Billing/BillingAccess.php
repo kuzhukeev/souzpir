@@ -5,6 +5,7 @@ namespace App\Shell\Billing;
 use App\Models\Organization;
 use App\Shell\Support\SupportAccess;
 use App\Tenancy\TenantContext;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
 final class BillingAccess
@@ -23,6 +24,17 @@ final class BillingAccess
         } else {
             Gate::authorize('billing.read');
         }
+
+        return $org;
+    }
+
+    /** Bind sensitive payer operations to the context captured by the originating page. */
+    public function lockPayer(Request $request): Organization
+    {
+        $org = $this->lock(true);
+        $scope = SubmissionScope::for(app(TenantContext::class));
+        $expected = $request->header('X-Billing-Context');
+        abort_unless($scope !== null && is_string($expected) && hash_equals($scope, $expected), 409);
 
         return $org;
     }

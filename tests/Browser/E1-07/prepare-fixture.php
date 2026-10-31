@@ -52,6 +52,13 @@ $manifest = DB::transaction(function () use ($orgId): array {
     }
     $user ??= User::create(['name' => 'Тестовый владелец', 'email' => $email, 'password' => 'test-only-password-123']);
     $user->forceFill(['email_verified_at' => now(), 'terms_accepted_at' => now(), 'ai_consent_at' => now()])->save();
+    $adminEmail = 'billing-e107-admin@example.test';
+    $admin = User::where('email', $adminEmail)->lockForUpdate()->first();
+    if ($admin && ($admin->name !== 'Тестовый администратор' || DB::table('memberships')->where('user_id', $admin->id)->where('organization_id', '!=', $orgId)->exists())) {
+        throw new LogicException('Fixture admin collision.');
+    }
+    $admin ??= User::create(['name' => 'Тестовый администратор', 'email' => $adminEmail, 'password' => 'test-only-password-123']);
+    $admin->forceFill(['email_verified_at' => now(), 'terms_accepted_at' => now(), 'ai_consent_at' => now()])->save();
 
     $organization = Organization::whereKey($orgId)->lockForUpdate()->first();
     if ($organization && (($organization->settings['test_fixture'] ?? null) !== $marker || $organization->owner_user_id !== $user->id)) {
@@ -62,7 +69,7 @@ $manifest = DB::transaction(function () use ($orgId): array {
         $organization->forceFill(['id' => $orgId, 'name' => 'Тестовая организация', 'settings' => ['test_fixture' => $marker]])->save();
     }
     $brands = [];
-    app(TenantContextRunner::class)->run(new TenantContext($orgId, actorId: $user->id, source: 'job'), function () use ($orgId, $user, $marker, &$brands): void {
+    app(TenantContextRunner::class)->run(new TenantContext($orgId, actorId: $user->id, source: 'job'), function () use ($orgId, $user, $admin, $marker, &$brands): void {
         foreach (['neutral' => 'Тестовый основной бренд', 'pyro' => 'Тестовая пиротехника и праздничные огни', 'confectionery' => 'Тестовая кондитерская'] as $theme => $name) {
             $brand = Brand::withoutGlobalScopes()->where('organization_id', $orgId)->where('name', $name)->first();
             if ($brand && ($brand->settings['test_fixture'] ?? null) !== $marker) {
@@ -74,10 +81,13 @@ $manifest = DB::transaction(function () use ($orgId): array {
         if (! Membership::withoutGlobalScopes()->where('organization_id', $orgId)->where('user_id', $user->id)->exists()) {
             Membership::create(['user_id' => $user->id, 'role' => 'owner', 'brand_ids' => []]);
         }
+        if (! Membership::withoutGlobalScopes()->where('organization_id', $orgId)->where('user_id', $admin->id)->exists()) {
+            Membership::create(['user_id' => $admin->id, 'role' => 'admin', 'brand_ids' => []]);
+        }
     });
     $organization->forceFill(['owner_user_id' => $user->id])->save();
 
-    return ['owner_email' => $email, 'brands' => $brands, 'plan_id' => $planId, 'plan_name' => $planName];
+    return ['owner_email' => $email, 'admin_email' => $adminEmail, 'brands' => $brands, 'plan_id' => $planId, 'plan_name' => $planName];
 });
 file_put_contents(base_path('.local/runtime/e1-07-browser.json'), json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
 fwrite(STDOUT, "Isolated billing fixture ready.\n");
