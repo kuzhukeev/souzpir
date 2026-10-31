@@ -2,6 +2,7 @@
 
 namespace App\Privacy;
 
+use App\Privacy\Secrets\JsonObjectInspector;
 use InvalidArgumentException;
 use Normalizer;
 use Throwable;
@@ -26,12 +27,34 @@ final class ContactBoundary
 
     public function assertSafe(#[\SensitiveParameter] array $request): void
     {
+        $review = false;
+        $this->assertSafeInternal($request, false, $review);
+    }
+
+    /** A review means a local pattern fired; it is not proof of a contact or authorization. */
+    public function inspectTyped(#[\SensitiveParameter] array $request): InspectionOutcome
+    {
+        try {
+            $review = false;
+            $this->assertSafeInternal($request, true, $review);
+
+            return $review ? InspectionOutcome::ReviewRequired : InspectionOutcome::Clear;
+        } catch (Throwable) {
+            return InspectionOutcome::Unavailable;
+        }
+    }
+
+    private function assertSafeInternal(#[\SensitiveParameter] array $request, bool $typed, bool &$review): void
+    {
         if (! isset($request['messages']) || ! is_array($request['messages']) || $request['messages'] === [] || ! array_is_list($request['messages'])) {
             throw new InvalidArgumentException('Cannot inspect malformed AI messages.');
         }
+        if ($typed) {
+            $this->validateTypedToolArguments($request['messages']);
+        }
         $budget = 0;
         $nodes = 0;
-        $this->walk($request, 0, $budget, $nodes);
+        $this->walk($request, 0, $budget, $nodes, $typed, $review);
 
         // A phone can be split across separate content blocks or messages.
         // Inspect the concatenation as well; the unchanged body is still sent.
@@ -57,11 +80,45 @@ final class ContactBoundary
             }
         }
         if ($chunks !== []) {
-            $this->inspectString(implode("\n", $chunks), $budget);
+            $this->inspectString(implode("\n", $chunks), $budget, $typed, $review);
         }
     }
 
-    private function walk(#[\SensitiveParameter] mixed $value, int $depth, int &$budget, int &$nodes): void
+    /** Only JSON strings at the explicit tool-call argument path get strict parsing. */
+    private function validateTypedToolArguments(#[\SensitiveParameter] array $messages): void
+    {
+        $visited = 0;
+        $bytes = 0;
+        foreach ($messages as $message) {
+            if (++$visited > self::MAX_NODES || ! is_array($message)) {
+                throw new InvalidArgumentException('Cannot inspect malformed AI messages.');
+            }
+            $calls = $message['tool_calls'] ?? [];
+            if (! is_array($calls) || ! array_is_list($calls)) {
+                throw new InvalidArgumentException('Cannot inspect malformed AI tool calls.');
+            }
+            foreach ($calls as $call) {
+                if (++$visited > self::MAX_NODES || ! is_array($call)) {
+                    throw new InvalidArgumentException('Cannot inspect malformed AI tool calls.');
+                }
+                $function = $call['function'] ?? null;
+                $arguments = is_array($function) ? ($function['arguments'] ?? null) : null;
+                if (! is_string($arguments)) {
+                    continue;
+                }
+                $length = strlen($arguments);
+                $bytes += $length;
+                if ($length > self::MAX_STRING_BYTES || $bytes > self::MAX_INPUT_BYTES) {
+                    throw new InvalidArgumentException('AI text cannot be safely inspected.');
+                }
+                // The inspector accepts object/array roots only and detects
+                // duplicate keys after JSON-unescape at every nesting level.
+                (new JsonObjectInspector)->decode($arguments);
+            }
+        }
+    }
+
+    private function walk(#[\SensitiveParameter] mixed $value, int $depth, int &$budget, int &$nodes, bool $typed, bool &$review): void
     {
         if ($depth > self::MAX_DEPTH || ++$nodes > self::MAX_NODES) {
             throw new InvalidArgumentException('AI data is too complex to inspect.');
@@ -70,13 +127,19 @@ final class ContactBoundary
             $hasPhoneKey = false;
             foreach ($value as $key => $child) {
                 if (is_string($key)) {
-                    $this->inspectString($key, $budget);
-                    $hasPhoneKey = $hasPhoneKey || preg_match('/(?:^|[_-])(?:phone|tel|mobile|телефон|контакт)(?:$|[_0-9-])/iu', $key) === 1;
+                    $this->inspectString($key, $budget, $typed, $review);
+                    if ($typed || ! $hasPhoneKey) {
+                        $phoneKeyMatch = preg_match('/(?:^|[_-])(?:phone|tel|mobile|телефон|контакт)(?:$|[_0-9-])/iu', $key);
+                        if ($typed && $phoneKeyMatch === false) {
+                            throw new InvalidArgumentException('AI text cannot be safely inspected.');
+                        }
+                        $hasPhoneKey = $hasPhoneKey || $phoneKeyMatch === 1;
+                    }
                 }
                 if (is_int($key) && abs($key) >= 1_000_000_000) {
                     throw new InvalidArgumentException('AI data contains an ambiguous numeric key.');
                 }
-                $this->walk($child, $depth + 1, $budget, $nodes);
+                $this->walk($child, $depth + 1, $budget, $nodes, $typed, $review);
             }
             if ($hasPhoneKey) {
                 $values = [];
@@ -84,29 +147,33 @@ final class ContactBoundary
                 $numberParts = [];
                 foreach ($values as $part) {
                     $probe = $this->inspectionForm($part);
-                    if (preg_match('/^[+\p{Nd}\p{Z}\p{Pd}\p{Cf}\s().\/_*#,|;:]+$/u', $probe) === 1) {
+                    $numberPart = preg_match('/^[+\p{Nd}\p{Z}\p{Pd}\p{Cf}\s().\/_*#,|;:]+$/u', $probe);
+                    if ($typed && $numberPart === false) {
+                        throw new InvalidArgumentException('AI text cannot be safely inspected.');
+                    }
+                    if ($numberPart === 1) {
                         $numberParts[] = $probe;
                     }
                 }
                 if ($numberParts !== []) {
-                    $this->inspectString('phone '.implode("\n", $numberParts), $budget);
+                    $this->inspectString('phone '.implode("\n", $numberParts), $budget, $typed, $review);
                 }
             }
 
             return;
         }
         if (is_string($value)) {
-            $this->inspectString($value, $budget);
+            $this->inspectString($value, $budget, $typed, $review);
             // Tool arguments and message content may themselves be JSON strings.
             $trimmed = trim($value);
             if (($trimmed[0] ?? '') === '{' || ($trimmed[0] ?? '') === '[') {
                 $decoded = json_decode($trimmed, true);
                 if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-                    $this->walk($decoded, $depth + 1, $budget, $nodes);
+                    $this->walk($decoded, $depth + 1, $budget, $nodes, $typed, $review);
                     $chunks = [];
                     $this->collectValues($decoded, $chunks, $depth + 1);
                     if ($chunks !== []) {
-                        $this->inspectString(implode("\n", $chunks), $budget);
+                        $this->inspectString(implode("\n", $chunks), $budget, $typed, $review);
                     }
                 }
             }
@@ -143,7 +210,7 @@ final class ContactBoundary
         }
     }
 
-    private function inspectString(#[\SensitiveParameter] string $value, int &$budget): void
+    private function inspectString(#[\SensitiveParameter] string $value, int &$budget, bool $typed, bool &$review): void
     {
         $length = strlen($value);
         $budget += $length;
@@ -162,18 +229,24 @@ final class ContactBoundary
             throw new InvalidArgumentException('AI text cannot be safely inspected.');
         }
         foreach (array_unique([$text, $plain, strip_tags($plain)]) as $probe) {
-            $this->inspectContacts($probe);
+            $this->inspectContacts($probe, $typed, $review);
         }
     }
 
-    private function inspectContacts(#[\SensitiveParameter] string $text): void
+    private function inspectContacts(#[\SensitiveParameter] string $text, bool $typed, bool &$review): void
     {
         // Remaining @ is ambiguous: it can be an email, a handle or an
         // unrecognised encoding. Legacy-masked ordinary emails contain no @.
         $bracketed = preg_match('/[\p{L}\p{N}._%+\-]+\s*[\[(]\s*(?:at|собака)\s*[\])]\s*[\p{L}\p{N}]/iu', $text);
         $worded = preg_match('/[\p{L}\p{N}._%+\-]+\s+(?:at|собака)\s+[\p{L}\p{N}-]+(?:(?:\s*[.\x{3002}]\s*|\s+(?:dot|точка)\s+|\s*[\[(]\s*(?:dot|точка|[.\x{3002}])\s*[\])]\s*)[\p{L}\p{N}-]+)+/iu', $text);
-        if (str_contains($text, '@') || $bracketed !== 0 || $worded !== 0) {
+        if ($bracketed === false || $worded === false) {
             throw new InvalidArgumentException('AI text contains an unresolved contact.');
+        }
+        if (str_contains($text, '@') || $bracketed === 1 || $worded === 1) {
+            if (! $typed) {
+                throw new InvalidArgumentException('AI text contains an unresolved contact.');
+            }
+            $review = true;
         }
 
         // Contact-like sequences in uncommon Unicode/encoded forms must not
@@ -184,8 +257,14 @@ final class ContactBoundary
         // them as separators when the groups have a recognisable phone shape;
         // the label-aware check above also covers other explicitly named phones.
         $grouped = preg_match('/(?<![\p{L}\p{N}_])\+?\p{Nd}{1,2}[;:\p{Z}\p{Pd}\s().\/_+*#,|]{1,6}\p{Nd}{3}[;:\p{Z}\p{Pd}\s().\/_+*#,|]{1,6}\p{Nd}{3}[;:\p{Z}\p{Pd}\s().\/_+*#,|]{0,6}\p{Nd}{2}[;:\p{Z}\p{Pd}\s().\/_+*#,|]{0,6}\p{Nd}{2}(?![\p{L}\p{N}_])/u', $text);
-        if ($match === false || $match === 1 || $labelled === false || $labelled === 1 || $grouped === false || $grouped === 1) {
+        if ($match === false || $labelled === false || $grouped === false) {
             throw new InvalidArgumentException('AI text contains an ambiguous phone-like number.');
+        }
+        if ($match === 1 || $labelled === 1 || $grouped === 1) {
+            if (! $typed) {
+                throw new InvalidArgumentException('AI text contains an ambiguous phone-like number.');
+            }
+            $review = true;
         }
     }
 
