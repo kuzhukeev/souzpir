@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Seller\Knowledge\DatabaseKnowledgeRepository;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
+use App\Vision\Core\BoundedEvidenceSource;
 use App\Vision\Core\EvidenceStore;
 use App\Vision\Core\MeasurementRunner;
 use App\Vision\Core\QuestionSets;
@@ -324,6 +325,161 @@ final class MeasurementRunnerTest extends TestCase
                 self::assertSame([], $fullReads, 'Large plan, answer, call or payload was loaded before preflight.');
             }
             self::assertSame('pending', DB::table('measurement_answers')->where('id', $pendingAnswer)->value('status'));
+            Http::assertNothingSent();
+        });
+    }
+
+    public function test_snapshot_rejects_aggregate_answer_and_ai_result_bytes_before_materializing_rows(): void
+    {
+        foreach (['answer', 'call'] as $kind) {
+            $this->within(function () use ($kind): void {
+                $questions = array_map(fn ($n) => ['id' => 'q'.$n, 'text' => 'Вопрос', 'intent' => 'choose'], range(1, 3));
+                $set = app(QuestionSets::class)->create($questions);
+                $measurement = app(MeasurementRunner::class)->start($set, ['gemini' => 'google/gemini-2.5-flash'], 1);
+                $answers = DB::table('measurement_answers')->where('measurement_id', $measurement)->pluck('id');
+                $this->fixture('Вопрос', 'Ответ');
+                foreach ($answers as $answer) {
+                    self::assertSame('ok', app(MeasurementRunner::class)->measure($answer));
+                }
+                $large = str_repeat('x', intdiv(WorkloadLimits::dataBytes(), 2) + 1);
+                if ($kind === 'answer') {
+                    DB::table('measurement_answers')->where('measurement_id', $measurement)->update(['answer_text' => $large]);
+                } else {
+                    $ids = DB::table('measurement_answers')->where('measurement_id', $measurement)->pluck('ai_call_id');
+                    DB::table('ai_calls')->whereIn('id', $ids)->update(['result_encrypted' => $large]);
+                }
+                $fullReads = [];
+                DB::listen(function ($event) use (&$fullReads): void {
+                    if (preg_match('/select\s+\*\s+from\s+"(?:measurement_answers|ai_calls)"/', strtolower($event->sql))) {
+                        $fullReads[] = true;
+                    }
+                });
+                try {
+                    app(ReportPreparation::class)->snapshot($measurement);
+                    self::fail('Aggregate bytes over the limit were accepted.');
+                } catch (LogicException $exception) {
+                    self::assertSame('Vision report could not be safely prepared.', $exception->getMessage());
+                    self::assertSame([], $fullReads);
+                    self::assertSame(0, DB::table('vision_reports')->where('measurement_id', $measurement)->count());
+                }
+            });
+        }
+        Http::assertNothingSent();
+    }
+
+    public function test_snapshot_locks_sized_answers_until_its_fixed_set_is_read(): void
+    {
+        $this->within(function (): void {
+            $set = app(QuestionSets::class)->create([['id' => 'q1', 'text' => 'Вопрос', 'intent' => 'choose']]);
+            $measurement = app(MeasurementRunner::class)->start($set, ['gemini' => 'google/gemini-2.5-flash'], 1);
+            $answer = DB::table('measurement_answers')->where('measurement_id', $measurement)->value('id');
+            $this->fixture('Вопрос', 'Ответ');
+            self::assertSame('ok', app(MeasurementRunner::class)->measure($answer));
+            $triggered = false;
+            $waited = false;
+            $process = null;
+            DB::listen(function ($event) use (&$triggered, &$waited, &$process, $answer): void {
+                $sql = strtolower($event->sql);
+                if ($triggered || ! str_contains($sql, 'measurement_answers') || ! str_contains($sql, 'as data_bytes') || ! str_contains($sql, 'for update')) {
+                    return;
+                }
+                $triggered = true;
+                $process = new Process([PHP_BINARY, '-d', 'sys_temp_dir='.base_path('.local/tmp'), __DIR__.'/Fixtures/snapshot-answer-worker.php',
+                    $answer, base_path(), DB::connection()->getDatabaseName()], base_path(), ['APP_ENV' => 'testing'], null, 40);
+                $process->start();
+                for ($i = 0; $i < 200 && $process->isRunning(); $i++) {
+                    DB::statement('SELECT pg_stat_clear_snapshot()');
+                    if (DB::table('pg_stat_activity')->where('application_name', 'vision_snapshot_answer_test')->where('wait_event_type', 'Lock')->exists()) {
+                        $waited = true;
+                        break;
+                    }
+                    usleep(25000);
+                }
+            });
+            try {
+                $report = app(ReportPreparation::class)->snapshot($measurement);
+                self::assertTrue($triggered);
+                self::assertTrue($waited, 'The competing update must wait on the captured answer lock.');
+                self::assertNotNull($process);
+                $process->wait();
+                self::assertSame(0, $process->getExitCode(), $process->getErrorOutput());
+                self::assertSame("READY\nCOMMITTED", trim(str_replace("\r\n", "\n", $process->getOutput())));
+                self::assertDatabaseHas('vision_reports', ['id' => $report, 'measurement_id' => $measurement]);
+                self::assertGreaterThan(WorkloadLimits::dataBytes(), (int) DB::table('measurement_answers')->where('id', $answer)->selectRaw('octet_length(answer_text) as n')->value('n'));
+            } finally {
+                if ($process?->isRunning()) {
+                    $process->stop();
+                }
+            }
+            Http::assertNothingSent();
+        });
+    }
+
+    public function test_snapshot_rechecks_size_after_waiting_for_a_competing_answer_write(): void
+    {
+        $this->within(function (): void {
+            $set = app(QuestionSets::class)->create([['id' => 'q1', 'text' => 'Вопрос', 'intent' => 'choose']]);
+            $measurement = app(MeasurementRunner::class)->start($set, ['gemini' => 'google/gemini-2.5-flash'], 1);
+            $answer = DB::table('measurement_answers')->where('measurement_id', $measurement)->value('id');
+            $this->fixture('Вопрос', 'Ответ');
+            self::assertSame('ok', app(MeasurementRunner::class)->measure($answer));
+            DB::beginTransaction();
+            $process = null;
+            try {
+                DB::table('measurement_answers')->where('id', $answer)->lockForUpdate()->first(['id']);
+                $process = new Process([PHP_BINARY, '-d', 'sys_temp_dir='.base_path('.local/tmp'), __DIR__.'/Fixtures/snapshot-create-worker.php',
+                    $this->organization, $this->brand, $measurement, base_path(), DB::connection()->getDatabaseName()], base_path(), ['APP_ENV' => 'testing'], null, 40);
+                $process->start();
+                $waited = false;
+                for ($i = 0; $i < 200 && $process->isRunning(); $i++) {
+                    DB::statement('SELECT pg_stat_clear_snapshot()');
+                    if (DB::table('pg_stat_activity')->where('application_name', 'vision_snapshot_create_test')->where('wait_event_type', 'Lock')->exists()) {
+                        $waited = true;
+                        break;
+                    }
+                    usleep(25000);
+                }
+                self::assertTrue($waited, 'Snapshot must wait for the answer lock.');
+                DB::table('measurement_answers')->where('id', $answer)->update(['answer_text' => str_repeat('x', WorkloadLimits::dataBytes() + 1)]);
+                DB::commit();
+                $process->wait();
+                self::assertSame(0, $process->getExitCode(), $process->getErrorOutput());
+                self::assertSame("READY\nDENIED", trim(str_replace("\r\n", "\n", $process->getOutput())));
+                self::assertSame(0, DB::table('vision_reports')->where('measurement_id', $measurement)->count());
+            } finally {
+                if (DB::transactionLevel() > 0) {
+                    DB::rollBack();
+                }
+                if ($process?->isRunning()) {
+                    $process->stop();
+                }
+            }
+            Http::assertNothingSent();
+        });
+    }
+
+    public function test_bounded_evidence_source_rechecks_answer_size_in_the_actual_read(): void
+    {
+        $this->within(function (): void {
+            $set = app(QuestionSets::class)->create([['id' => 'q1', 'text' => 'Вопрос', 'intent' => 'choose']]);
+            $measurement = app(MeasurementRunner::class)->start($set, ['gemini' => 'google/gemini-2.5-flash'], 1);
+            $answer = DB::table('measurement_answers')->where('measurement_id', $measurement)->value('id');
+            $this->fixture('Вопрос', 'Ответ');
+            self::assertSame('ok', app(MeasurementRunner::class)->measure($answer));
+            $source = app(BoundedEvidenceSource::class);
+            self::assertNotNull($source->read(app(TenantContext::class), $answer));
+            app(TenantContextRunner::class)->run(new TenantContext($this->organization, $this->brand, source: 'public'), function () use ($source, $answer): void {
+                self::assertNull($source->read(app(TenantContext::class), $answer));
+            });
+            $changed = false;
+            DB::listen(function ($event) use (&$changed, $answer): void {
+                if (! $changed && str_contains(strtolower($event->sql), 'as question_count')) {
+                    $changed = true;
+                    DB::table('measurement_answers')->where('id', $answer)->update(['answer_text' => str_repeat('x', WorkloadLimits::dataBytes() + 1)]);
+                }
+            });
+            self::assertNull($source->read(app(TenantContext::class), $answer));
+            self::assertTrue($changed);
             Http::assertNothingSent();
         });
     }

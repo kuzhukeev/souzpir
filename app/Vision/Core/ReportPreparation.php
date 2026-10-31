@@ -57,13 +57,45 @@ final class ReportPreparation
                 WorkloadLimits::grid(count($questions), count($providers), $runs);
                 $maxRows = WorkloadLimits::limit('max_slots');
                 $baseRows = DB::table('measurement_answers')->where($tenant)->where('measurement_id', $measurementId);
-                $rowCount = (clone $baseRows)->count();
                 $sizeExpression = 'coalesce(octet_length(answer_text), 0) + coalesce(octet_length(fact::text), 0) + coalesce(octet_length(mentions::text), 0) + coalesce(octet_length(sources::text), 0)';
-                if ($rowCount > $maxRows || (clone $baseRows)->whereRaw($sizeExpression.' > ?', [WorkloadLimits::dataBytes()])->exists()) {
+                // Lock identities and sizes before materializing any answer fields.
+                $references = (clone $baseRows)->orderBy('id')->lockForUpdate()->limit($maxRows + 1)
+                    ->get(['id', 'ai_call_id', DB::raw($sizeExpression.' as data_bytes')]);
+                if ($references->count() > $maxRows) {
                     throw new LogicException('Frozen measurement plan is invalid.');
                 }
-                $rows = $baseRows->whereRaw($sizeExpression.' <= ?', [WorkloadLimits::dataBytes()])->orderBy('provider')->orderBy('question_n')->orderBy('run_no')->lockForUpdate()->limit($maxRows + 1)->get();
-                if ($rows->count() !== $rowCount) {
+                $remaining = WorkloadLimits::dataBytes();
+                $consume = static function (int $bytes) use (&$remaining): void {
+                    if ($bytes < 0 || $bytes > $remaining) {
+                        throw new LogicException('Vision report exceeds the technical limit.');
+                    }
+                    $remaining -= $bytes;
+                };
+                $consume(strlen($measurement->configuration) + strlen((string) ($measurement->profile_snapshot ?? '')));
+                foreach ($references as $reference) {
+                    if (! is_numeric($reference->data_bytes)) {
+                        throw new LogicException('Frozen measurement plan is invalid.');
+                    }
+                    $consume((int) $reference->data_bytes);
+                }
+                if ($permitted) {
+                    $callIds = $references->pluck('ai_call_id')->filter()->unique()->values()->all();
+                    $calls = $callIds ? DB::table('ai_calls')->where($tenant)->whereIn('id', $callIds)->orderBy('id')->sharedLock()
+                        ->get(['id', DB::raw('octet_length(result_encrypted) as data_bytes')])->keyBy('id') : collect();
+                    foreach ($references as $reference) {
+                        $call = $reference->ai_call_id ? $calls->get($reference->ai_call_id) : null;
+                        if ($call && $call->data_bytes !== null) {
+                            if (! is_numeric($call->data_bytes)) {
+                                throw new LogicException('Frozen measurement plan is invalid.');
+                            }
+                            $consume((int) $call->data_bytes);
+                        }
+                    }
+                }
+                // IDs are fixed under row locks; concurrent inserts cannot enlarge this set.
+                $rows = (clone $baseRows)->whereIn('id', $references->pluck('id')->all())
+                    ->orderBy('provider')->orderBy('question_n')->orderBy('run_no')->get();
+                if ($rows->count() !== $references->count()) {
                     throw new LogicException('Frozen measurement plan is invalid.');
                 }
                 $slots = [];
@@ -74,7 +106,7 @@ final class ReportPreparation
                         || $providers[$row->provider] !== $row->requested_model || $row->run_no < 1 || $row->run_no > $runs) {
                         throw new LogicException('Measurement contains an unplanned slot.');
                     }
-                    $call = $permitted && $row->ai_call_id ? DB::table('ai_calls')->where($tenant)->where('id', $row->ai_call_id)->whereRaw('octet_length(result_encrypted) <= ?', [WorkloadLimits::dataBytes()])->sharedLock()->first() : null;
+                    $call = $permitted && $row->ai_call_id ? DB::table('ai_calls')->where($tenant)->where('id', $row->ai_call_id)->whereRaw('octet_length(result_encrypted) <= ?', [WorkloadLimits::dataBytes()])->sharedLock()->first(['id', 'status', 'purpose', 'family', 'object_type', 'object_id', 'requested_model', 'model', 'idempotency_key_hash', 'result_encrypted']) : null;
                     $verified = $call ? app(EvidenceStore::class)->verifiedEvidence($row, $measurement, $call) : null;
                     $verifiedCount += (int) ($verified !== null);
                     $slots[] = [

@@ -120,7 +120,7 @@ final class EvidenceStore
         }
         $cq = DB::table('ai_calls')->where($tenant)->where('id', $answer->ai_call_id)
             ->whereRaw('octet_length(result_encrypted) <= ?', [WorkloadLimits::dataBytes()]);
-        $call = ($lock ? $cq->lockForUpdate() : $cq)->first();
+        $call = ($lock ? $cq->lockForUpdate() : $cq)->first(['id', 'status', 'purpose', 'family', 'object_type', 'object_id', 'requested_model', 'model', 'idempotency_key_hash', 'result_encrypted']);
 
         return $call ? [$answer, $measurement, $call] : null;
     }
