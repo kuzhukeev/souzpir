@@ -5,6 +5,7 @@ namespace App\Shell\Onboarding\Http;
 use App\Models\Brand;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
+use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Onboarding\OwnerLock;
 use App\Shell\Plans\LimitEnforcer;
 use App\Tenancy\TenantContext;
@@ -45,7 +46,7 @@ final class OnboardingController
     {
         $data = $this->validated($request, false);
         $context = app(TenantContext::class);
-        DB::transaction(function () use ($context, $data): void {
+        app(AuthSessionRegistry::class)->withinActive($request, function () use ($context, $data): void {
             OwnerLock::acquire($context);
             $progress = DB::table('onboarding_progress')->where('organization_id', $context->organizationId)->lockForUpdate()->first();
             if ($progress?->completed_at !== null || DB::table('brands')->where('organization_id', $context->organizationId)->exists()) {
@@ -68,7 +69,7 @@ final class OnboardingController
         $data = $this->validated($request, true);
         unset($data['step']);
         $context = app(TenantContext::class);
-        $result = DB::transaction(function () use ($context, $data): array {
+        $result = app(AuthSessionRegistry::class)->withinActive($request, function () use ($context, $data): array {
             $organization = OwnerLock::acquire($context);
             $progress = DB::table('onboarding_progress')->where('organization_id', $context->organizationId)->lockForUpdate()->first();
             if ($progress?->completed_at !== null) {

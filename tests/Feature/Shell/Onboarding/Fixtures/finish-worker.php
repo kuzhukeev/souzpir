@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\User;
+use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Onboarding\Http\OnboardingController;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
@@ -23,6 +25,11 @@ $request = Request::create('/start', 'POST', $data);
 $session = app('session')->driver('array');
 $session->start();
 $request->setLaravelSession($session);
+// Exercise the same server-side authorization lease used by real sessions.
+$actor = User::findOrFail($user);
+$session->put('auth.version', $actor->auth_version);
+$request->setUserResolver(fn () => $actor);
+app(AuthSessionRegistry::class)->issue($request, $actor, $actor->auth_version);
 try {
     $context = new TenantContext($org, null, $user, $member, 'job');
     app(TenantContextRunner::class)->run($context, fn () => app(OnboardingController::class)->finish($request));

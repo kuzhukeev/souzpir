@@ -2,13 +2,18 @@
 
 namespace Tests\Feature\Shell\Auth;
 
+use App\Models\Brand;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\User;
 use App\Shell\Auth\AuthSessionRegistry;
+use App\Shell\Notifications\ConfigureNotification;
+use App\Shell\Notifications\Http\NotificationSettingsController;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
@@ -35,6 +40,33 @@ final class AuthSessionLifecycleTest extends TestCase
         $this->withCookie(config('session.cookie'), $id);
 
         return $id;
+    }
+
+    public function test_notification_change_rechecks_session_after_request_was_authenticated(): void
+    {
+        $user = $this->actor();
+        $this->login($user);
+        $organization = Organization::query()->firstOrFail();
+        $membership = Membership::withoutGlobalScopes()->where('organization_id', $organization->id)->where('user_id', $user->id)->firstOrFail();
+        $brand = app(TenantContextRunner::class)->run(
+            new TenantContext($organization->id, actorId: $user->id, source: 'job'),
+            fn () => Brand::create(['name' => 'Session test brand', 'theme' => 'neutral'])
+        );
+        $context = new TenantContext($organization->id, $brand->id, $user->id, $membership->id, 'session');
+        $request = Request::create('/notifications/settings', 'PATCH', [
+            'event_key' => 'seller.conversation.handed_off', 'channel' => 'cabinet', 'enabled' => false,
+        ]);
+        $request->setLaravelSession(app('session.store'));
+        $request->setUserResolver(fn () => $user);
+        // Simulates logout after middleware authenticated this request.
+        DB::table('auth_session_registry')->where('user_id', $user->id)->update(['revoked_at' => now()]);
+        try {
+            app(NotificationSettingsController::class)->update($request, app(ConfigureNotification::class), $context);
+            self::fail('Revoked session must not update settings.');
+        } catch (AuthenticationException) {
+            self::assertSame(0, DB::table('notification_settings')->where('user_id', $user->id)->count());
+            self::assertSame(0, DB::table('audit_logs')->where('organization_id', $organization->id)->count());
+        }
     }
 
     public function test_expired_registry_entry_denies_access_without_changing_password_version(): void

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\User;
 use App\Shell\Auth\AuthSessionRegistry;
 use Illuminate\Contracts\Console\Kernel as ConsoleKernel;
@@ -100,6 +101,7 @@ if ($mode === 'sensitive') {
 $request = Request::create($uri, $method, $parameters);
 if (in_array($mode, ['view', 'remember'], true)) {
     $request->headers->set('X-Inertia', 'true');
+    $request->headers->set('X-Inertia-Version', app(HandleInertiaRequests::class)->version($request) ?? '');
 }
 if ($cookie !== '-') {
     $name = $mode === 'remember' ? Auth::guard()->getRecallerName() : config('session.cookie');

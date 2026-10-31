@@ -5,6 +5,7 @@ namespace App\Shell\Journal;
 use App\Models\Membership;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
+use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Notifications\EventCatalog;
 use App\Shell\Notifications\Jobs\DeliverNotification;
 use App\Tenancy\TenantContext;
@@ -160,11 +161,11 @@ final class JournalController
         return Inertia::render('Shell/Journal/Notifications', ['rows' => $rows, 'filters' => $filters]);
     }
 
-    public function retry(string $id)
+    public function retry(Request $request, string $id)
     {
         Gate::authorize('journal.retry');
         $context = app(TenantContext::class);
-        DB::transaction(function () use ($context, $id): void {
+        app(AuthSessionRegistry::class)->withinActive($request, function () use ($context, $id): void {
             DB::table('organizations')->where('id', $context->organizationId)->where('status', 'active')->lockForUpdate()->first() ?? abort(404);
             DB::table('brands')->where('id', $context->brandId)->where('organization_id', $context->organizationId)->where('status', 'active')->lockForUpdate()->first() ?? abort(404);
             $member = Membership::withoutGlobalScopes()->where('id', $context->membershipId)->where('organization_id', $context->organizationId)->where('user_id', $context->actorId)->where('status', 'active')->lockForUpdate()->first() ?? abort(403);

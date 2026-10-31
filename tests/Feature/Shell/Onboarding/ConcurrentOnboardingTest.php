@@ -92,6 +92,7 @@ final class ConcurrentOnboardingTest extends TestCase
             DB::table('brands')->where('organization_id', $org->id)->delete();
             DB::table('memberships')->where('organization_id', $org->id)->delete();
             DB::table('organizations')->where('id', $org->id)->delete();
+            DB::table('auth_session_registry')->where('user_id', $user->id)->delete();
             DB::table('users')->where('id', $user->id)->delete();
         }
     }

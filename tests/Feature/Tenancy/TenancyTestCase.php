@@ -6,11 +6,13 @@ use App\Models\Brand;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\User;
+use App\Shell\Auth\AuthSessionRegistry;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
@@ -28,8 +30,23 @@ abstract class TenancyTestCase extends TestCase
     {
         $user->refresh();
         parent::actingAs($user, $guard);
+        $this->startSession();
+        session()->invalidate();
+        $this->withSession(['auth.version' => $user->auth_version]);
+        $request = Request::create('/', 'GET');
+        $request->setLaravelSession(app('session.store'));
+        $request->setUserResolver(fn () => $user);
+        app(AuthSessionRegistry::class)->issue($request, $user, $user->auth_version);
 
-        return $this->withSession(['auth.version' => $user->auth_version]);
+        return $this->withCredentials()->withCookie(config('session.cookie'), session()->getId());
+    }
+
+    public function withSession(array $data)
+    {
+        parent::withSession($data);
+        $this->app['session']->save();
+
+        return $this;
     }
 
     protected function setUp(): void

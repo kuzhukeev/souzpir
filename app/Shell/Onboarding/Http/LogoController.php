@@ -4,6 +4,7 @@ namespace App\Shell\Onboarding\Http;
 
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
+use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Onboarding\OwnerLock;
 use App\Tenancy\TenantContext;
 use Illuminate\Http\RedirectResponse;
@@ -49,7 +50,7 @@ final class LogoController
             throw new RuntimeException('Unable to store onboarding logo.');
         }
         try {
-            DB::transaction(function () use ($context, $path, $disk): void {
+            app(AuthSessionRegistry::class)->withinActive($request, function () use ($context, $path, $disk): void {
                 $org = OwnerLock::acquire($context);
                 $progress = DB::table('onboarding_progress')->where('organization_id', $context->organizationId)->lockForUpdate()->first();
                 if ($progress?->completed_at !== null || DB::table('brands')->where('organization_id', $context->organizationId)->exists()) {
@@ -72,7 +73,15 @@ final class LogoController
                 }
             });
         } catch (Throwable $exception) {
-            $disk->delete($path);
+            // A commit may have succeeded even if a later callback failed. Delete
+            // only when a fresh database read proves the file is unreferenced.
+            try {
+                if (! DB::table('onboarding_progress')->where('organization_id', $context->organizationId)->where('logo_path', $path)->exists()) {
+                    $disk->delete($path);
+                }
+            } catch (Throwable) {
+                // Unknown outcome: keep the private file for later cleanup.
+            }
             throw $exception;
         }
 
