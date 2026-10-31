@@ -1,0 +1,10 @@
+import { createInertiaApp } from '@inertiajs/react';
+import { createRoot } from 'react-dom/client';
+import Start from '../../../resources/js/pages/Shell/Onboarding/Start';
+import '../../../resources/css/app.css';
+import '../../../resources/css/themes/tokens.css';
+const params = new URLSearchParams(location.search);
+const initial = { organization_name: 'Союз Пир', industry: 'Пиротехника', region: 'Москва', timezone: 'Europe/Moscow', website: '', brand_name: 'Союз Пир', alias: '', theme: 'pyro', seller: true, vision: true, step: Number(params.get('step') || 1), completed: params.has('completed'), already_configured: params.has('configured'), logo_url: null };
+const shared = { initial, auth: { user: { id: 'test', name: 'Иван Петров', email: 'test@example.test' } }, organization: null, brand: null, brands: [], modules: { seller: null, vision: null }, can: {}, unread: null, request_id: 'fixture', theme: 'neutral', translations: {}, ziggy: { routes: {}, url: location.origin, port: null, defaults: {}, location: { host: location.host, pathname: location.pathname, search: '' } }, errors: {} };
+const script = document.createElement('script'); script.type = 'application/json'; script.dataset.page = 'app'; script.textContent = JSON.stringify({ component: 'Fixture', props: shared, url: '/start', version: 'fixture', clearHistory: false, encryptHistory: false }); document.body.append(script);
+void createInertiaApp({ resolve: () => Start, setup: ({ el, App, props }) => createRoot(el).render(<App {...props} />) });
