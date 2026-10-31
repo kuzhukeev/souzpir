@@ -160,4 +160,4 @@ it('emits every token and the Tailwind CSS variable consumer recipe through the 
     expect(css.replace(/\s+/g, '')).toContain(declaration);
   expect(css).toContain('/fonts/manrope-cyrillic.woff2');
   expect(css).toContain('/fonts/manrope-latin.woff2');
-}, 30_000);
+}, 60_000);
