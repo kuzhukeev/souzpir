@@ -58,6 +58,9 @@ for (const width of [1440, 1024, 390])
           await expect(page.getByText('Доставлено (200)')).toBeVisible();
           await expect(page.getByRole('button', { name: 'Отправить тест' })).toBeDisabled();
         }
+        if (screen === 'api') {
+          await expect(page.getByText('Запросы API для работы с диалогами и лидами пока недоступны.')).toBeVisible();
+        }
         if (screen === 'notifications') {
           await expect(
             page.getByText('Настройка и доставка уведомлений компании пока недоступны.'),

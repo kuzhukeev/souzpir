@@ -19,6 +19,91 @@ final class SecretSharedSessionRaceTest extends TestCase
 {
     use DatabaseMigrations;
 
+    public function test_logout_waits_for_an_already_authorized_secret_reveal(): void
+    {
+        $this->assertLogoutRevealRace(false);
+    }
+
+    public function test_secret_reveal_is_denied_when_logout_wins(): void
+    {
+        $this->assertLogoutRevealRace(true);
+    }
+
+    private function assertLogoutRevealRace(bool $logoutFirst): void
+    {
+        Http::preventStrayRequests();
+        $owner = User::create(['name' => 'Race owner', 'email' => 'e110-race@example.test', 'password' => 'race-password-strong']);
+        $owner->forceFill(['email_verified_at' => now()])->save();
+        $organization = Organization::create(['name' => 'Race fixture', 'owner_user_id' => $owner->id]);
+        app(TenantContextRunner::class)->run(new TenantContext($organization->id, actorId: $owner->id), function () use ($owner): void {
+            Membership::create(['user_id' => $owner->id, 'role' => 'owner']);
+            Brand::create(['name' => 'Race brand', 'theme' => 'neutral']);
+        });
+        $barrier = base_path('.local/tmp/e110-logout-race-'.Str::random(16));
+        $first = $second = null;
+        try {
+            $login = $this->worker('login', null, $barrier, $organization->id);
+            $login->mustRun();
+            $loginResult = json_decode($login->getOutput(), true, flags: JSON_THROW_ON_ERROR);
+            self::assertSame(302, $loginResult['status']);
+            $select = $this->worker('select', $loginResult['cookie'], $barrier, $organization->id);
+            $select->mustRun();
+            $selected = json_decode($select->getOutput(), true, flags: JSON_THROW_ON_ERROR);
+            self::assertSame(204, $selected['status']);
+            $create = $this->worker('create', $selected['cookie'], $barrier, $organization->id);
+            $create->mustRun();
+            $created = json_decode($create->getOutput(), true, flags: JSON_THROW_ON_ERROR);
+            self::assertSame(302, $created['status']);
+            $first = $this->worker($logoutFirst ? 'logout-first' : 'first', $created['cookie'], $barrier, $organization->id);
+            $secondMode = $logoutFirst ? 'second' : 'logout';
+            $first->start();
+            $this->waitFor($barrier.'.locked');
+            $second = $this->worker($secondMode, $created['cookie'], $barrier, $organization->id);
+            $second->start();
+            $this->waitFor($barrier.'.second-started');
+            $this->waitForDatabaseLock('e110_secret_'.$secondMode);
+            file_put_contents($barrier.'.release', '1');
+            self::assertSame(0, $first->wait(), $first->getErrorOutput());
+            self::assertSame(0, $second->wait(), $second->getErrorOutput());
+            $one = json_decode($first->getOutput(), true, flags: JSON_THROW_ON_ERROR);
+            $two = json_decode($second->getOutput(), true, flags: JSON_THROW_ON_ERROR);
+            self::assertSame($logoutFirst ? 302 : 200, $one['status']);
+            self::assertSame(! $logoutFirst, $one['has_value']);
+            self::assertSame($logoutFirst ? 401 : 302, $two['status']);
+            self::assertFalse($two['has_value']);
+            $replay = $this->worker('second', $created['cookie'], $barrier, $organization->id);
+            $replay->mustRun();
+            $replayed = json_decode($replay->getOutput(), true, flags: JSON_THROW_ON_ERROR);
+            self::assertSame(401, $replayed['status']);
+            self::assertFalse($replayed['has_value']);
+        } finally {
+            file_put_contents($barrier.'.release', '1');
+            foreach ([$first, $second] as $worker) {
+                if ($worker && $worker->isRunning()) {
+                    $worker->wait();
+                }
+            }
+            foreach (['.locked', '.second-started', '.release'] as $suffix) {
+                if (is_file($barrier.$suffix)) {
+                    unlink($barrier.$suffix);
+                }
+            }
+        }
+    }
+
+    private function waitForDatabaseLock(string $applicationName): void
+    {
+        $deadline = microtime(true) + 15;
+        do {
+            $waiting = DB::selectOne('select count(*) as n from pg_stat_activity where datname = current_database() and application_name = ? and wait_event_type = ?', [$applicationName, 'Lock']);
+            if ((int) $waiting->n > 0) {
+                return;
+            }
+            usleep(20000);
+        } while (microtime(true) < $deadline);
+        self::fail('The concurrent request did not reach the database lock.');
+    }
+
     public function test_two_processes_with_shared_database_session_deliver_secret_only_once(): void
     {
         Http::preventStrayRequests();
@@ -86,6 +171,7 @@ final class SecretSharedSessionRaceTest extends TestCase
     {
         return new Process([PHP_BINARY, '-d', 'sys_temp_dir='.base_path('.local/tmp'), __DIR__.'/Fixtures/secret-session-worker.php'], base_path(), [
             'APP_ENV' => 'testing', 'SESSION_DRIVER' => 'database', 'CACHE_STORE' => 'database', 'CABINET_ORGANIZATION_ID' => $organization,
+            'PGAPPNAME' => 'e110_secret_'.$mode,
         ], json_encode(compact('mode', 'cookie', 'barrier'), JSON_THROW_ON_ERROR), 25);
     }
 

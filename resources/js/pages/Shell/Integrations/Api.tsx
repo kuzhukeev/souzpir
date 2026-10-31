@@ -209,8 +209,7 @@ export default function Api({
             role="status"
             className="mb-5 rounded-xl bg-(--color-warning-soft) p-4 text-sm text-(--color-warning-ink)"
           >
-            Подключение API-ключей к API пока недоступно. Созданный ключ ещё нельзя использовать для
-            запросов.
+            Запросы API для работы с диалогами и лидами пока недоступны.
           </p>
         )}
         {integration_api_key_available && !consumedKey && (

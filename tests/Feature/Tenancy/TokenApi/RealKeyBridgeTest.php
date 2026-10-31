@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Tenancy\TokenApi;
 
+use App\Shell\Integrations\SecretSessionStore;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Tests\Feature\Tenancy\TenancyTestCase;
@@ -12,11 +13,16 @@ final class RealKeyBridgeTest extends TenancyTestCase
     public function createApplication()
     {
         $app = parent::createApplication();
-        $actual = DB::selectOne('select current_database() as name, current_user as role, inet_server_addr() as host, inet_server_port() as port');
-        if (! $app->environment('testing') || $actual->name !== 'souzpir_test_e110_api_bridge'
-            || $actual->role !== 'e110_api_bridge' || (string) $actual->host !== '127.0.0.1' || (int) $actual->port !== 56541
-            || $actual->name !== config('runtime.test_database') || $actual->name === config('runtime.preview_database')
-            || ! str_ends_with(str_replace('\\', '/', $app->basePath()), '/.worktrees/sp-e1-10-api-integration')) {
+        $actual = DB::selectOne('select current_database() as name, inet_server_addr() as host, inet_server_port() as port, rolsuper, rolcreatedb, rolcreaterole from pg_roles where rolname = current_user');
+        $base = realpath($app->basePath());
+        $testDatabase = config('runtime.test_database');
+        if (! $app->environment('testing') || ! $base || strcasecmp($base, (string) realpath(getcwd())) !== 0
+            || ! is_string($testDatabase) || ! preg_match('/(?:^|_)test(?:_|$)/', $testDatabase)
+            || $actual->name !== $testDatabase || $actual->name === config('runtime.preview_database')
+            || (! str_starts_with((string) $actual->host, '127.') && $actual->host !== '::1')
+            || (int) $actual->port !== (int) config('database.connections.pgsql.port')
+            || $actual->rolsuper || $actual->rolcreatedb || $actual->rolcreaterole
+            || ! str_starts_with(strtolower(str_replace('\\', '/', storage_path())), strtolower(str_replace('\\', '/', $base).'/.local/runtime/testing/'))) {
             throw new \RuntimeException('Bridge tests require their isolated database and checkout.');
         }
 
@@ -26,7 +32,7 @@ final class RealKeyBridgeTest extends TenancyTestCase
     public function test_real_key_creation_use_abilities_and_revocation(): void
     {
         Http::preventStrayRequests();
-        self::assertTrue(\App\Shell\Integrations\SecretSessionStore::ready(), json_encode([
+        self::assertTrue(SecretSessionStore::ready(), json_encode([
             'env' => app()->environment(), 'session' => config('session.driver'), 'cache' => config('cache.default'),
             'block' => config('session.block_store'), 'phpunit' => defined('PHPUNIT_COMPOSER_INSTALL'),
         ], JSON_THROW_ON_ERROR));

@@ -11,18 +11,26 @@ require __DIR__.'/../../../../../vendor/autoload.php';
 $app = require __DIR__.'/../../../../../bootstrap/app.php';
 $app->make(ConsoleKernel::class)->bootstrap();
 $input = json_decode(stream_get_contents(STDIN), true, 16, JSON_THROW_ON_ERROR);
-$base = str_replace('\\', '/', realpath($app->basePath()));
-$database = DB::selectOne('select current_database() as name')->name;
-if (! $app->environment('testing') || ! str_ends_with(strtolower($base), '/.worktrees/sp-e1-10') || $database !== 'souzpir_test_sp_e1_10'
+$base = realpath($app->basePath());
+$actual = DB::selectOne('select current_database() as name, inet_server_addr() as host, inet_server_port() as port, rolsuper, rolcreatedb, rolcreaterole from pg_roles where rolname = current_user');
+$testDatabase = config('runtime.test_database');
+if (! $app->environment('testing') || ! $base || strcasecmp($base, (string) realpath(getcwd())) !== 0
+    || ! is_string($testDatabase) || ! preg_match('/(?:^|_)test(?:_|$)/', $testDatabase)
+    || $actual->name !== $testDatabase || $actual->name === config('runtime.preview_database')
+    || (! str_starts_with((string) $actual->host, '127.') && $actual->host !== '::1')
+    || (int) $actual->port !== (int) config('database.connections.pgsql.port')
+    || $actual->rolsuper || $actual->rolcreatedb || $actual->rolcreaterole
     || config('session.driver') !== 'database' || config('cache.default') !== 'database') {
     fwrite(STDERR, 'Isolated shared-session worker guard failed.');
     exit(1);
 }
 Route::middleware(['web', 'auth', 'verified', 'tenant'])->get('/_e110-select-brand', fn () => response('', 204));
-if ($input['mode'] === 'first') {
+if (in_array($input['mode'], ['first', 'logout-first'], true)) {
     DB::listen(function (QueryExecuted $query) use ($input): void {
         static $paused = false;
-        if ($paused || ! str_contains($query->sql, 'auth_session_registry') || ! str_contains(strtolower($query->sql), 'for update')) {
+        $sql = strtolower($query->sql);
+        $target = $input['mode'] === 'first' ? 'integration_secret_receipts' : 'auth_session_registry';
+        if ($paused || ! str_starts_with(ltrim($sql), 'update') || ! str_contains($sql, $target)) {
             return;
         }
         $paused = true;
@@ -41,13 +49,14 @@ if ($input['mode'] === 'first') {
     'select' => ['GET', '/_e110-select-brand', []],
     'create', 'outer' => ['POST', '/integrations/api/keys', ['name' => 'Race fixture', 'abilities' => ['read']]],
     'first', 'second' => ['POST', '/integrations/api/secrets', ['type' => 'api_key']],
+    'logout', 'logout-first' => ['POST', '/logout', []],
 };
 $request = Request::create('https://localhost'.$path, $method, $data, server: ['REMOTE_ADDR' => '127.0.0.1', 'SERVER_ADDR' => '127.0.0.1']);
 $request->headers->set('Accept', 'application/json');
 if (is_string($input['cookie'] ?? null)) {
     $request->cookies->set(config('session.cookie'), base64_decode($input['cookie'], true));
 }
-if ($input['mode'] === 'second') {
+if (in_array($input['mode'], ['second', 'logout'], true)) {
     file_put_contents($input['barrier'].'.second-started', '1');
 }
 $kernel = $app->make(HttpKernel::class);
