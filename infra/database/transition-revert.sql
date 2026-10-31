@@ -4,6 +4,7 @@ BEGIN;
 SET LOCAL search_path = pg_catalog;
 SELECT set_config('souzpir.transition_runtime', :'runtime_role', true);
 SELECT set_config('souzpir.transition_database', :'expected_database', true);
+SELECT set_config('souzpir.transition_host', :'expected_host', true);
 SELECT set_config('souzpir.transition_port', :'expected_port', true);
 SELECT set_config('souzpir.transition_mode', :'execution_mode', true);
 SELECT set_config('souzpir.transition_approval', :'approval', true);
@@ -17,10 +18,14 @@ BEGIN
   IF current_setting('souzpir.transition_port') !~ '^[1-9][0-9]{0,4}$' THEN
     RAISE EXCEPTION 'Explicit numeric local port required';
   END IF;
-  IF inet_server_addr() IS DISTINCT FROM '127.0.0.1'::inet
+  IF current_setting('souzpir.transition_host') !~ '^127\.([0-9]{1,3}\.){2}[0-9]{1,3}$' THEN
+    RAISE EXCEPTION 'Explicit IPv4 loopback address required';
+  END IF;
+  IF NOT (current_setting('souzpir.transition_host')::inet <<= '127.0.0.0/8'::inet)
+     OR inet_server_addr() IS DISTINCT FROM current_setting('souzpir.transition_host')::inet
      OR inet_server_port() <> current_setting('souzpir.transition_port')::integer
      OR current_database() <> current_setting('souzpir.transition_database') THEN
-    RAISE EXCEPTION 'Expected explicit local database and port';
+    RAISE EXCEPTION 'Expected exact loopback address, database and port';
   END IF;
   IF NOT ((current_setting('souzpir.transition_mode')='isolated_test'
            AND current_database() ~ '^souzpir_test_[a-z0-9_]+$')

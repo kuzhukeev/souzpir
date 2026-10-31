@@ -27,7 +27,7 @@ class TransitionRehearsalTest(unittest.TestCase):
             setattr(cls, field, os.environ[key])
         cls.data = Path(os.environ['SP_ROLE_TEST_DATA']).resolve(strict=True)
         local = (ROOT / '.local').resolve(strict=True)
-        if (cls.host != '127.0.0.1' or not cls.port.isdigit()
+        if (not common.is_ipv4_loopback(cls.host) or not cls.port.isdigit()
             or not re.fullmatch(r'souzpir_test_[a-z0-9_]+', cls.db)
             or not cls.preview or cls.preview == cls.db or not cls.data.is_relative_to(local)
             or len({cls.admin, cls.owner, cls.runtime}) != 3
@@ -38,6 +38,9 @@ class TransitionRehearsalTest(unittest.TestCase):
         actual = cls.sql(cls.admin, 'SHOW data_directory', database='postgres').stdout.strip()
         if Path(actual).resolve(strict=True) != cls.data:
             raise RuntimeError('PostgreSQL data directory is not the worktree-local test cluster')
+        address = cls.sql(cls.admin, "SELECT host(inet_server_addr()) || '|' || inet_server_port()", database='postgres').stdout.strip()
+        if address != f'{cls.host}|{cls.port}':
+            raise RuntimeError('PostgreSQL server address or port did not match the isolated test target')
         for role in (cls.owner, cls.runtime):
             identity = cls.sql(role, "SELECT current_database() || '|' || current_user").stdout.strip()
             if identity != f'{cls.db}|{role}':
@@ -70,18 +73,20 @@ class TransitionRehearsalTest(unittest.TestCase):
                               capture_output=True, env=cls.env, check=check, timeout=30)
 
     def script(self, name, *, check=True, mode='isolated_test', approval='none', port=None,
-               database=None, runtime=None, review='synthetic-review', backup='synthetic-backup'):
+               database=None, runtime=None, review='synthetic-review', backup='synthetic-backup', expected_host=None):
         command = self.command(self.owner) + ['-v', f'expected_database={database or self.db}',
-                  '-v', f'runtime_role={runtime or self.runtime}', '-v', f'expected_port={port or self.port}',
+                  '-v', f'runtime_role={runtime or self.runtime}', '-v', f'expected_host={self.host if expected_host is None else expected_host}',
+                  '-v', f'expected_port={port or self.port}',
                   '-v', f'execution_mode={mode}', '-v', f'approval={approval}',
                   '-v', f'review_reference={review}', '-v', f'backup_reference={backup}',
                   '-f', str(ROOT / 'infra/database' / name)]
         return subprocess.run(command, text=True, encoding='utf-8', capture_output=True,
                               env=self.env, check=check, timeout=30)
 
-    def snapshot(self):
+    def snapshot(self, expected_host=None):
         command = self.command(self.owner) + ['-v', f'expected_database={self.db}',
-                  '-v', f'runtime_role={self.runtime}', '-v', f'expected_port={self.port}',
+                  '-v', f'runtime_role={self.runtime}', '-v', f'expected_host={self.host if expected_host is None else expected_host}',
+                  '-v', f'expected_port={self.port}',
                   '-f', str(ROOT / 'infra/database/transition-inventory.sql')]
         result = subprocess.run(command, cwd=ROOT, text=True, encoding='utf-8', capture_output=True,
                                 env=self.env, check=True, timeout=30)
@@ -138,6 +143,47 @@ class TransitionRehearsalTest(unittest.TestCase):
             result = self.script('transition-apply.sql', check=False, **options)
             self.assertNotEqual(0, result.returncode)
             self.assertEqual('f', self.sql(self.owner, "SELECT to_regnamespace('sp_e106_transition') IS NOT NULL").stdout.strip())
+
+    def test_refuses_wrong_or_non_loopback_expected_address(self):
+        wrong = '127.0.0.1' if self.host != '127.0.0.1' else '127.0.1.48'
+        for candidate in (wrong, '192.0.2.1', '127.0.1.48/24', '127.0.999.1', ''):
+            result = self.script('transition-apply.sql', check=False, expected_host=candidate)
+            self.assertNotEqual(0, result.returncode)
+            self.assertEqual('f', self.sql(self.owner, "SELECT to_regnamespace('sp_e106_transition') IS NOT NULL").stdout.strip())
+            with self.assertRaises(subprocess.CalledProcessError):
+                self.snapshot(expected_host=candidate)
+        for name in ('transition-apply.sql', 'transition-inventory.sql', 'transition-revert.sql'):
+            command = self.command(self.owner) + ['-v', f'expected_database={self.db}',
+                      '-v', f'runtime_role={self.runtime}', '-v', f'expected_port={self.port}',
+                      '-v', 'execution_mode=isolated_test', '-v', 'approval=none',
+                      '-v', 'review_reference=synthetic-review', '-v', 'backup_reference=synthetic-backup',
+                      '-f', str(ROOT / 'infra/database' / name)]
+            result = subprocess.run(command, cwd=ROOT, text=True, encoding='utf-8', capture_output=True,
+                                    env=self.env, timeout=30)
+            self.assertNotEqual(0, result.returncode)
+            self.assertIn('42601', result.stderr)
+
+    def test_rehearsal_refuses_wrong_server_data_directory(self):
+        env = dict(self.env)
+        env['SP_ROLE_TEST_DATA'] = str(self.data.parent)
+        result = subprocess.run([sys.executable, '-m', 'unittest', 'discover', '-s', 'infra/database/tests',
+                                 '-p', 'test_transition_rehearsal.py'],
+                                cwd=ROOT, env=env, text=True, encoding='utf-8', capture_output=True, timeout=30)
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn('PostgreSQL data directory is not the worktree-local test cluster', result.stderr)
+
+    @unittest.skipUnless(os.environ.get('SP_ROLE_TEST_HOST') == '127.0.1.48', 'requires isolated 127.0.1.48 listener')
+    def test_explicit_os_panel_loopback_with_isolated_cluster(self):
+        identity = self.sql(self.admin, "SELECT host(inet_server_addr()) || '|' || inet_server_port()", database='postgres').stdout.strip()
+        self.assertEqual(f'127.0.1.48|{self.port}', identity)
+        self.assertEqual(self.data, Path(self.sql(self.admin, 'SHOW data_directory', database='postgres').stdout.strip()).resolve(strict=True))
+        baseline = self.snapshot(expected_host='127.0.1.48')
+        self.script('transition-apply.sql', expected_host='127.0.1.48')
+        try:
+            self.assertNotEqual(baseline, self.snapshot(expected_host='127.0.1.48'))
+        finally:
+            self.script('transition-revert.sql', expected_host='127.0.1.48')
+        self.assertEqual(baseline, self.snapshot(expected_host='127.0.1.48'))
 
     def test_refuses_privileged_replication_parameter(self):
         self.assertEqual('f', self.sql(self.owner,
@@ -204,7 +250,7 @@ class TransitionRehearsalTest(unittest.TestCase):
                 self.assertIn('P0001', result.stderr)
                 self.assertNotIn('P0T02', result.stderr)
             command = self.command(self.owner) + ['-v', f'expected_database={self.db}',
-                      '-v', f'runtime_role={self.runtime}', '-v', f'expected_port={self.port}',
+                      '-v', f'runtime_role={self.runtime}', '-v', f'expected_host={self.host}', '-v', f'expected_port={self.port}',
                       '-f', str(ROOT / 'infra/database/transition-inventory.sql')]
             result = subprocess.run(command, cwd=ROOT, text=True, encoding='utf-8', capture_output=True,
                                     env=self.env, timeout=30)
@@ -293,6 +339,10 @@ class TransitionRehearsalTest(unittest.TestCase):
             self.assertIn('42501', denied.stderr)
             wrong_role = self.script('transition-revert.sql', check=False, mode=mode, approval=approval, runtime=self.owner)
             self.assertNotEqual(0, wrong_role.returncode)
+            wrong = '127.0.0.1' if self.host != '127.0.0.1' else '127.0.1.48'
+            wrong_host = self.script('transition-revert.sql', check=False, mode=mode, approval=approval, expected_host=wrong)
+            self.assertNotEqual(0, wrong_host.returncode)
+            self.assertEqual('42', self.sql(self.runtime, f'SELECT public."{self.fn}"(41);').stdout.strip())
             self.assertEqual('f', self.sql(self.runtime,
                 "SELECT has_table_privilege(current_user,'public.migrations','DELETE')").stdout.strip())
             temp_result = self.sql(self.runtime, """

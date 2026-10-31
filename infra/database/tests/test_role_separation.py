@@ -5,6 +5,7 @@ No shared or non-loopback database is accepted. psql authenticates using the
 environment's normal mechanism; never pass a password on the command line.
 """
 
+import ipaddress
 import os
 from pathlib import Path
 import re
@@ -15,6 +16,14 @@ import uuid
 
 ROOT = Path(__file__).resolve().parents[3]
 BOOTSTRAP = ROOT / 'infra' / 'database' / 'grant-isolated-runtime.sql'
+
+
+def is_ipv4_loopback(host):
+    try:
+        address = ipaddress.ip_address(host)
+        return isinstance(address, ipaddress.IPv4Address) and address in ipaddress.ip_network('127.0.0.0/8') and str(address) == host
+    except ValueError:
+        return False
 
 
 class RoleSeparationTest(unittest.TestCase):
@@ -30,7 +39,7 @@ class RoleSeparationTest(unittest.TestCase):
         cls.runtime = os.environ['SP_ROLE_TEST_RUNTIME']
         cls.data = Path(os.environ['SP_ROLE_TEST_DATA']).resolve(strict=True)
         local = (ROOT / '.local').resolve(strict=True)
-        if (cls.host != '127.0.0.1' or not cls.port.isdigit()
+        if (not is_ipv4_loopback(cls.host) or not cls.port.isdigit()
             or not re.fullmatch(r'souzpir_test_[a-z0-9_]+', cls.db)
             or not cls.preview or cls.preview == cls.db
             or len({cls.admin, cls.owner, cls.runtime}) != 3
@@ -43,6 +52,9 @@ class RoleSeparationTest(unittest.TestCase):
         data = cls.sql(cls.admin, 'SHOW data_directory', database='postgres').stdout.strip()
         if Path(data).resolve(strict=True) != cls.data:
             raise RuntimeError('PostgreSQL data directory is not the worktree-local test cluster')
+        address = cls.sql(cls.admin, "SELECT host(inet_server_addr()) || '|' || inet_server_port()", database='postgres').stdout.strip()
+        if address != f'{cls.host}|{cls.port}':
+            raise RuntimeError('PostgreSQL server address or port did not match the isolated test target')
         identity = cls.sql(cls.owner, "SELECT current_database() || '|' || current_user").stdout.strip()
         if identity != f'{cls.db}|{cls.owner}':
             raise RuntimeError('Migration connection did not reach the expected test database and role')

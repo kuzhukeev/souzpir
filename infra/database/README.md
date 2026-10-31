@@ -9,7 +9,7 @@
 После миграций для созданного стенда запустите, подставив только проверенные значения:
 
 ```text
-psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -p <test-port> -U <migration-owner> -d <souzpir_test_database> -v expected_database=<souzpir_test_database> -v runtime_role=<runtime-role> -f infra/database/grant-isolated-runtime.sql
+psql -X -v ON_ERROR_STOP=1 -h <test-loopback-host> -p <test-port> -U <migration-owner> -d <souzpir_test_database> -v expected_database=<souzpir_test_database> -v runtime_role=<runtime-role> -f infra/database/grant-isolated-runtime.sql
 ```
 
 В транзакции скрипт запрещает `CREATE` в `public` для `PUBLIC`, назначает runtime `USAGE` схемы, DML к имеющимся таблицам и `USAGE, SELECT` последовательностей, исключает таблицу `migrations` и её последовательность, настраивает аналогичные default privileges для **будущих объектов, созданных текущей ролью миграций**, и отказывает при обнаружении опасных действующих прав, в том числе через `PUBLIC`. Проверяет также по отдельности столбцовые `INSERT`/`UPDATE` для `migrations`. Ошибка откатывает весь bootstrap. `TRUNCATE`, `TRIGGER`, `REFERENCES`, владение и возможность `SET session_replication_role` runtime не выдаются. Это широкие DML-права приложения, а не предметная матрица прав отдельных таблиц. Права на функции скрипт не меняет.
@@ -23,7 +23,7 @@ Default privileges PostgreSQL принадлежат создающей роли
 | Переменная | Значение |
 | --- | --- |
 | `SP_ROLE_TEST_PSQL`, `SP_ROLE_TEST_PHP` | Абсолютные пути к `psql` PostgreSQL 16 и PHP приложения. |
-| `SP_ROLE_TEST_HOST`, `SP_ROLE_TEST_PORT` | `127.0.0.1` и порт отдельного кластера. |
+| `SP_ROLE_TEST_HOST`, `SP_ROLE_TEST_PORT` | Явный IPv4-адрес из `127.0.0.0/8` и порт отдельного кластера. |
 | `SP_ROLE_TEST_DB`, `SP_ROLE_PREVIEW_DB` | Имя `souzpir_test_*` и отличающееся имя preview-базы. |
 | `SP_ROLE_TEST_ADMIN`, `SP_ROLE_TEST_OWNER`, `SP_ROLE_TEST_RUNTIME` | Три разные роли только этого тестового кластера. |
 | `SP_ROLE_TEST_DATA` | Абсолютный путь к data directory внутри `.local` текущего worktree. |
