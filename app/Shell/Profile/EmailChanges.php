@@ -10,6 +10,7 @@ use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Auth\SecureAccountContext;
 use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Bus;
@@ -20,6 +21,7 @@ use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use LogicException;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Throwable;
 
 final class EmailChanges
@@ -173,12 +175,25 @@ final class EmailChanges
         $request->user()->refresh();
     }
 
-    public function cancel(Request $request): void
+    public function cancel(#[\SensitiveParameter] Request $request): bool
     {
-        app(ProfileAccess::class)->run($request, function (User $user, TenantContext $context): void {
-            DB::table('profile_email_changes')->where('user_id', $user->id)->update($this->cleared('cancelled'));
-            app(AuditWriter::class)->record($context, new AuditEntry('profile.email.cancelled', 'user', $user->id));
-        });
+        try {
+            return app(ProfileAccess::class)->run($request, function (User $user, TenantContext $context): bool {
+                $cancelled = DB::table('profile_email_changes')->where('user_id', $user->id)
+                    ->whereIn('status', ['pending', 'sending', 'sent', 'uncertain'])
+                    ->update($this->cleared('cancelled'));
+                if ($cancelled === 0) {
+                    return false;
+                }
+                app(AuditWriter::class)->record($context, new AuditEntry('profile.email.cancelled', 'user', $user->id));
+
+                return true;
+            });
+        } catch (AuthenticationException|ValidationException|HttpExceptionInterface $error) {
+            throw $error;
+        } catch (Throwable) {
+            throw new \RuntimeException('Email cancellation processing failed.');
+        }
     }
 
     private function fingerprint(#[\SensitiveParameter] string $email): string
