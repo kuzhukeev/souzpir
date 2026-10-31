@@ -2,6 +2,8 @@
 
 namespace App\Shell\Notifications\Jobs;
 
+use App\Shell\Notifications\DeferredNotificationReporter;
+use App\Shell\Notifications\NotificationDeferred;
 use App\Shell\Notifications\NotificationProcessor;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -17,6 +19,10 @@ final class ProcessNotificationEvent implements ShouldQueue
 
     public function handle(NotificationProcessor $processor): void
     {
-        $processor->process($this->eventId);
+        try {
+            $processor->process($this->eventId);
+        } catch (NotificationDeferred $deferred) {
+            app(DeferredNotificationReporter::class)->report($deferred);
+        }
     }
 }

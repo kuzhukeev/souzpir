@@ -246,7 +246,8 @@ final class NotificationCoreTest extends TenancyTestCase
             $this->assertSame(1, $delivery->attempts);
             app(ExternalDelivery::class)->send($ids[$channel]);
         }
-        $this->artisan('notifications:drain', ['--retry-failed' => true])->assertSuccessful();
+        // RefreshDatabase holds an outer transaction; the scanner must refuse to run under it.
+        $this->artisan('notifications:drain', ['--retry-failed' => true])->assertFailed();
         $this->assertSame(1, $calls);
         $this->assertSame(1, DB::table('notification_deliveries')->where('id', $ids['telegram'])->value('attempts'));
         $this->assertSame(1, DB::table('notification_deliveries')->where('id', $ids['email'])->value('attempts'));
@@ -285,7 +286,8 @@ final class NotificationCoreTest extends TenancyTestCase
         Mail::shouldReceive('to')->once()->with($user->email)->andReturn($pending);
         app(ExternalDelivery::class)->send($id);
         app(ExternalDelivery::class)->send($id);
-        $this->artisan('notifications:drain', ['--retry-failed' => true])->assertSuccessful();
+        // RefreshDatabase holds an outer transaction; the scanner must refuse to run under it.
+        $this->artisan('notifications:drain', ['--retry-failed' => true])->assertFailed();
         $this->assertDatabaseHas('notification_deliveries', ['id' => $id, 'status' => 'uncertain', 'last_error' => 'delivery_uncertain', 'attempts' => 1]);
     }
 }
