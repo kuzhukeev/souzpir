@@ -4,6 +4,8 @@ namespace App\Tenancy\TokenApi;
 
 use Closure;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\IpUtils;
+use Throwable;
 
 /** Replace the bearer with its SHA-256 before framework auth or exception handling. */
 final class BearerBoundary
@@ -25,7 +27,8 @@ final class BearerBoundary
 
             return response()->json(['message' => 'Для API требуется защищённое соединение.'], 403)
                 ->header('Cache-Control', 'private, no-store');
-        }        if (is_string($header) && preg_match('/^Bearer ([1-9][0-9]{0,18})\|([A-Za-z0-9]{64})$/D', $header, $matches)
+        }
+        if (is_string($header) && preg_match('/^Bearer ([1-9][0-9]{0,18})\|([A-Za-z0-9]{64})$/D', $header, $matches)
             && (strlen($matches[1]) < 19 || strcmp($matches[1], (string) PHP_INT_MAX) <= 0)) {
             $request->headers->set('Authorization', 'Bearer '.$matches[1].'|'.hash('sha256', $matches[2]));
             $request->attributes->set('token_api.boundary', true);
@@ -45,8 +48,25 @@ final class BearerBoundary
 
     private function secureTransport(Request $request): bool
     {
-        if ($request->isSecure()) {
+        // A client-controlled Host can trigger Laravel's automatic proxy trust.
+        // Native TLS is server-provided; forwarded HTTPS requires an explicit,
+        // narrowly configured proxy address and the framework's trust check.
+        $nativeTls = $request->server('HTTPS');
+        if (is_string($nativeTls) && in_array(strtolower(trim($nativeTls)), ['on', '1'], true)) {
             return true;
+        }
+        $configured = config('trustedproxy.proxies');
+        $proxies = is_string($configured) ? array_map('trim', explode(',', $configured)) : $configured;
+        try {
+            if (is_array($proxies) && $proxies !== []
+                && count(array_filter($proxies, 'is_string')) === count($proxies)
+                && ! array_intersect($proxies, ['*', '**', 'REMOTE_ADDR', 'PRIVATE_SUBNETS'])
+                && $request->isFromTrustedProxy() && $request->isSecure()
+                && IpUtils::checkIp((string) $request->server('REMOTE_ADDR'), $proxies)) {
+                return true;
+            }
+        } catch (Throwable) {
+            return false;
         }
         if (! app()->environment(['local', 'testing'])) {
             return false;

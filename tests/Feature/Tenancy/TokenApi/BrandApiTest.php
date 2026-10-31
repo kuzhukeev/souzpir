@@ -8,9 +8,11 @@ use App\Models\Organization;
 use App\Models\User;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
+use App\Tenancy\TokenApi\BearerBoundary;
 use App\Tenancy\TokenApi\BrandAccessToken;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\Request;
 use Illuminate\Log\Events\MessageLogged;
 use Illuminate\Support\Facades\DB;
@@ -194,6 +196,42 @@ final class BrandApiTest extends TestCase
         $this->flushHeaders()->withHeader('Authorization', 'Bearer '.$raw)
             ->withServerVariables(['REMOTE_ADDR' => '198.51.100.10', 'SERVER_ADDR' => '203.0.113.20'])
             ->getJson('https://localhost/api/v1/brand')->assertOk();
+    }
+
+    public function test_forwarded_https_requires_explicit_proxy_even_for_forge_host(): void
+    {
+        $secret = str_repeat('T', 64);
+        $make = static fn () => Request::create('http://x.on-forge.com/api/v1/brand', 'GET', [], [], [], [
+            'REMOTE_ADDR' => '198.51.100.10', 'SERVER_ADDR' => '203.0.113.20',
+            'HTTP_X_FORWARDED_PROTO' => 'https', 'HTTP_AUTHORIZATION' => 'Bearer 1|'.$secret,
+        ]);
+        $proxy = new TrustProxies;
+        $boundary = app(BearerBoundary::class);
+        $dispatch = static fn ($request) => $boundary->handle($request, static fn () => response()->noContent());
+        try {
+            config(['trustedproxy.proxies' => null]);
+            $proxy->handle($make(), static function ($request) use ($dispatch, $secret): void {
+                self::assertTrue($request->isSecure()); // Laravel automatically trusts Forge hosts.
+                $response = $dispatch($request);
+                self::assertSame(403, $response->getStatusCode());
+                self::assertStringNotContainsString($secret, $response->getContent());
+                self::assertNull($request->headers->get('Authorization'));
+                self::assertNull($request->server->get('HTTP_AUTHORIZATION'));
+            });
+            config(['trustedproxy.proxies' => ['198.51.100.10']]);
+            $proxy->handle($make(), static function ($request) use ($dispatch): void {
+                self::assertSame(204, $dispatch($request)->getStatusCode());
+            });
+            foreach ([['*'], ['**'], ['REMOTE_ADDR'], ['PRIVATE_SUBNETS']] as $unbounded) {
+                config(['trustedproxy.proxies' => $unbounded]);
+                $proxy->handle($make(), static function ($request) use ($dispatch): void {
+                    self::assertSame(403, $dispatch($request)->getStatusCode());
+                });
+            }
+        } finally {
+            config(['trustedproxy.proxies' => null]);
+            Request::setTrustedProxies([], 0);
+        }
     }
 
     public function test_database_digest_is_not_a_standalone_authentication_capability(): void
