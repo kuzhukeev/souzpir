@@ -162,6 +162,36 @@ declare module 'ziggy-js' {
     "seller.settings.notifications.digests": [],
     "seller.settings.notifications.digests.time": [],
     "seller.settings.notifications.test": [],
+    "vision.start": [],
+    "vision.private.access": [],
+    "vision.private.verify": [],
+    "vision.quiz.start": [],
+    "vision.quiz.show": [
+        {
+            "name": "step",
+            "required": true
+        }
+    ],
+    "vision.quiz.save": [
+        {
+            "name": "step",
+            "required": true
+        }
+    ],
+    "vision.quiz.submit": [],
+    "vision.profile.show": [],
+    "vision.profile.version": [
+        {
+            "name": "profileId",
+            "required": true
+        }
+    ],
+    "vision.profile.edit": [
+        {
+            "name": "step",
+            "required": true
+        }
+    ],
     "vision.site.overview": [],
     "vision.site.criteria": [],
     "vision.site.bots": [],
