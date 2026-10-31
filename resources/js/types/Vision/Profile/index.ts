@@ -1,0 +1,32 @@
+export type Competitor = { name: string; website: string; reason: string };
+export type SiteFact = {
+  label: string;
+  value: string;
+  decision: 'pending' | 'confirmed' | 'rejected';
+};
+export type Platform = { name: string; url: string };
+export type Questionnaire = {
+  website: string;
+  brand_name: string;
+  legal_name: string;
+  founded_year: string;
+  regions: string[];
+  response_language: string;
+  official_names: string[];
+  abbreviations: string[];
+  transliterations: string[];
+  misspellings: string[];
+  former_names: string[];
+  categories: string[];
+  products: string[];
+  audience: string;
+  customer_types: string[];
+  price_segment: string;
+  differentiators: string[];
+  competitors: Competitor[];
+  facts: string[];
+  site_facts: SiteFact[];
+  platforms: Platform[];
+  questions: string[];
+};
+export type SiteHint = { label: string; value: string };
