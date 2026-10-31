@@ -533,6 +533,7 @@
         "app/Http/Middleware/HandleInertiaRequests.php",
         "docs/contracts/frontend.md",
         "resources/js/hooks/usePermissions.ts",
+        "resources/js/lib/i18n/",
         "resources/js/types/generated/",
         "scripts/generate-types/",
         "tests/Feature/SharedProps/",
@@ -546,7 +547,7 @@
         "E0-08"
       ],
       "screenIds": [],
-      "notes": "",
+      "notes": "Добавить типизированный frontend i18n helper и словарь в SharedProps; публичный usePermissions согласовать с feature-local hook E0-03 без ослабления серверных политик.",
       "sourceRefs": [
         "docs/preparation/decisions.md",
         "docs/contracts/",
@@ -557,7 +558,7 @@
       ],
       "promptPath": "docs/tasks/SP-E0-08.md",
       "wave": 4,
-      "description": "Прочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: `laravel-data` DTO + генерация TS, Ziggy, `HandleInertiaRequests::share` (auth, organization, brand, brands[], modules, can, theme, unread)\n\nЗависимости (нужен done после merge): SP-E0-03.\nОбласть записи: app/Data/Shared/, app/Http/Middleware/HandleInertiaRequests.php, docs/contracts/frontend.md, resources/js/hooks/usePermissions.ts, resources/js/types/generated/, scripts/generate-types/, tests/Feature/SharedProps/, docs/results/SP-E0-08.md.\nЭкраны: инфраструктура/контракты.\nИсточники: E0-08.\n- E0-08: 05 §2, §3\n\nПриёмка:\n- генерация типов в CI падает при рассинхроне\n\nДополнительно: Сохранять поведение донора; изменения только по принятым решениям.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E0-08.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n"
+      "description": "Прочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: `laravel-data` DTO + генерация TS, Ziggy, `HandleInertiaRequests::share` (auth, organization, brand, brands[], modules, can, theme, unread)\n\nЗависимости (нужен done после merge): SP-E0-03.\nОбласть записи: app/Data/Shared/, app/Http/Middleware/HandleInertiaRequests.php, docs/contracts/frontend.md, resources/js/hooks/usePermissions.ts, resources/js/lib/i18n/, resources/js/types/generated/, scripts/generate-types/, tests/Feature/SharedProps/, docs/results/SP-E0-08.md.\nЭкраны: инфраструктура/контракты.\nИсточники: E0-08.\n- E0-08: 05 §2, §3\n\nПриёмка:\n- генерация типов в CI падает при рассинхроне\n\nДополнительно: Добавить типизированный frontend i18n helper и словарь в SharedProps; публичный usePermissions согласовать с feature-local hook E0-03 без ослабления серверных политик.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E0-08.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n"
     },
     {
       "taskKey": "SP-E1-01",

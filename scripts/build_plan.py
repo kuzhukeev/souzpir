@@ -65,7 +65,8 @@ change('E0-02',notes='Организация одна для текущего к
 extra('E0-03','config/permissions.php')
 extra('E0-04','app/Shell/Audit/')
 extra('E0-05','resources/views/prompts/','app/Contracts/Ai/')
-deps('E0-08','E0-03'); scope('E0-08','app/Http/Middleware/HandleInertiaRequests.php','app/Data/Shared/','resources/js/types/generated/','resources/js/hooks/usePermissions.ts','scripts/generate-types/','tests/Feature/SharedProps/','docs/contracts/frontend.md')
+deps('E0-08','E0-03'); scope('E0-08','app/Http/Middleware/HandleInertiaRequests.php','app/Data/Shared/','resources/js/types/generated/','resources/js/hooks/usePermissions.ts','resources/js/lib/i18n/','scripts/generate-types/','tests/Feature/SharedProps/','docs/contracts/frontend.md')
+tasks['E0-08']['notes'] = 'Добавить типизированный frontend i18n helper и словарь в SharedProps; публичный usePermissions согласовать с feature-local hook E0-03 без ослабления серверных политик.'
 deps('F-01','E0-01'); scope('F-01','resources/css/themes/','public/fonts/','tests/Unit/ThemeTokens/','docs/design/tokens.md')
 scope('F-02','resources/js/components/ui/','resources/js/pages/Dev/','routes/features/F-02.php','tests/Browser/DesignSystem/','docs/design/components.md')
 scope('F-03','resources/js/layouts/','resources/js/components/navigation/','config/navigation.php','lang/ru/navigation.php','tests/Browser/Layout/','docs/design/layout.md')
