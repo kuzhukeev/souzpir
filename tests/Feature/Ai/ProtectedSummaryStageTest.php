@@ -154,6 +154,50 @@ final class ProtectedSummaryStageTest extends TestCase
         });
     }
 
+    public function test_unsolicited_create_promise_in_summary_cannot_be_read_as_a_protected_result(): void
+    {
+        [$tenant, $http, $claim] = $this->fixture();
+        $this->within($tenant, function () use ($http, $claim): void {
+            $stage = app(SellerSummaryStages::class)->prepare($http, $claim);
+            [$request, $context] = app(SellerSummaryStages::class)->load($http, $claim, $stage);
+            self::assertSame([], $request->tools);
+            self::assertNull($request->toolChoice);
+            $file = $this->fakeFixture($request->toArray(), 5);
+            file_put_contents($file, json_encode(['result' => [
+                'content' => null,
+                'toolCalls' => [['id' => 'synthetic-call', 'name' => 'create_promise', 'arguments' => ['text' => 'Synthetic promise']]],
+                'usage' => ['promptTokens' => 1, 'completionTokens' => 1],
+                'model' => $request->model, 'latencyMs' => 1, 'costMicros' => 5,
+            ]], JSON_THROW_ON_ERROR));
+            $gateway = app(Gateway::class);
+            self::assertSame('completed', $gateway->completeProtectedSummary($http, $claim, $stage));
+            unlink($file);
+            self::assertSame('completed', $gateway->completeProtectedSummary($http, $claim, $stage));
+            try {
+                DB::transaction(fn () => $gateway->readProtectedSummaryLocked($http, $claim, $stage));
+                self::fail('A tool not included in the request was exposed by the protected summary reader.');
+            } catch (LogicException $error) {
+                self::assertSame('Protected summary result unavailable.', $error->getMessage());
+                self::assertNull($error->getPrevious());
+                self::assertStringNotContainsString('Synthetic promise', json_encode($error->getTrace(), JSON_PARTIAL_OUTPUT_ON_ERROR | JSON_THROW_ON_ERROR));
+            }
+            try {
+                $gateway->complete($request, $context);
+                self::fail('Public replay exposed a protected tool result.');
+            } catch (LogicException $error) {
+                self::assertSame('AI request could not be safely completed.', $error->getMessage());
+            }
+            self::assertSame(1, DB::table('ai_calls')->where('status', 'completed')->count());
+            self::assertSame(5, (int) DB::table('ai_budgets')->value('spent_micros'));
+            self::assertSame(0, (int) DB::table('ai_budgets')->value('unresolved_count'));
+            self::assertSame(0, DB::table('seller_tasks')->count());
+            self::assertSame(0, DB::table('outbox_events')->count());
+            self::assertSame(1, DB::table('messages')->where('conversation_id', $claim->conversationId)->count());
+            self::assertSame('processing', DB::table('seller_turns')->where('id', $claim->turnId)->value('status'));
+            Http::assertNothingSent();
+        });
+    }
+
     public function test_a_stage_is_not_authority_for_another_session_or_after_brand_selection_changes(): void
     {
         [$tenant, $http, $claim] = $this->fixture();

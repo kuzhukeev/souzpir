@@ -66,7 +66,7 @@ final class Gateway implements AiGateway
                 throw new LogicException;
             }
             [$request, $context, , $callId, $requestHash] = app(SellerSummaryStages::class)->load($http, $claim, $stageId);
-            if (! is_string($callId) || ! is_string($requestHash)) {
+            if (! is_string($callId) || ! is_string($requestHash) || $request->tools !== [] || $request->toolChoice !== null) {
                 throw new LogicException;
             }
             $body = app(ContactMasker::class)->request($request->toArray());
@@ -79,7 +79,14 @@ final class Gateway implements AiGateway
                 throw new LogicException;
             }
 
-            return $this->replay($call, $request->model);
+            $result = $this->replay($call, $request->model);
+            // A summary request never authorizes tools. Even an authenticated,
+            // successfully stored provider response cannot invent one.
+            if ($result->toolCalls !== []) {
+                throw new LogicException;
+            }
+
+            return $result;
         } catch (Throwable) {
             throw new LogicException('Protected summary result unavailable.');
         }
