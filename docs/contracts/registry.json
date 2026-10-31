@@ -725,6 +725,23 @@
         "visibility_quizzes",
         "brand_profiles"
       ]
+    },
+    "migration_batch_records": {
+      "owner": "SP-E9-02",
+      "tenant": "organization",
+      "parents": [
+        "organizations",
+        "migration_batches",
+        "migration_records"
+      ]
+    },
+    "migration_record_dependencies": {
+      "owner": "SP-E9-02",
+      "tenant": "organization",
+      "parents": [
+        "organizations",
+        "migration_records"
+      ]
     }
   },
   "contracts": {
