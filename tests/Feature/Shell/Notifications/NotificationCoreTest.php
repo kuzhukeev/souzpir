@@ -176,6 +176,21 @@ final class NotificationCoreTest extends TenancyTestCase
         $this->assertDatabaseCount('notification_settings', 1);
     }
 
+    public function test_viewer_can_change_only_own_notification_settings_in_authorized_brand(): void
+    {
+        [$owner, $org, $brand, $otherBrand] = $this->cabinet();
+        [$viewer] = $this->member($org, 'viewer', [$brand->id]);
+        $body = ['event_key' => 'seller.conversation.handed_off', 'channel' => 'cabinet', 'enabled' => false];
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->patchJson('/notifications/settings', $body)->assertNoContent();
+        $this->actingAs($viewer)->withSession(['brand_id' => $brand->id])->patchJson('/notifications/settings', [...$body, 'enabled' => true, 'user_id' => $owner->id, 'brand_id' => $otherBrand->id])->assertNoContent();
+        $this->assertDatabaseHas('notification_settings', ['user_id' => $viewer->id, 'brand_id' => $brand->id, 'enabled' => true]);
+        $this->assertDatabaseHas('notification_settings', ['user_id' => $owner->id, 'brand_id' => $brand->id, 'enabled' => false]);
+        $this->withHeader('X-Brand-Id', $otherBrand->id)->patchJson('/notifications/settings', $body)->assertNotFound();
+        $this->flushHeaders();
+        $this->postJson('/tenancy-test/records')->assertForbidden();
+        $this->withSession(['brand_id' => $otherBrand->id])->patchJson('/notifications/settings', $body)->assertNotFound();
+    }
+
     public function test_observer_tracks_model_changes_with_secrets_redacted(): void
     {
         Schema::create('notification_observer_records', function (Blueprint $table): void {

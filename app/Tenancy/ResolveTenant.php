@@ -33,7 +33,8 @@ final class ResolveTenant
         if ($request->hasHeader('X-Brand-Id')) {
             abort_unless($request->header('X-Brand-Id') === $brand->id, 404);
         }
-        if (! $request->isMethodSafe() && ! $request->routeIs('brand.switch')) {
+        $ownNotificationSettings = $request->isMethod('PATCH') && $request->routeIs('notifications.settings.update');
+        if (! $request->isMethodSafe() && ! $request->routeIs('brand.switch') && ! $ownNotificationSettings) {
             abort_unless($membership->canWrite(), 403);
         }
         $request->session()->put('brand_id', $brand->id);
