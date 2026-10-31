@@ -3,12 +3,14 @@
 namespace App\Providers;
 
 use App\Providers\Features\FeatureRegistry;
+use App\Tenancy\TokenApi\BrandAccessToken;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Sanctum\Sanctum;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -20,6 +22,7 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        Sanctum::usePersonalAccessTokenModel(BrandAccessToken::class);
         if ($this->app->environment('testing')) {
             // DatabaseManager resolves DB_URL overrides before any connection is opened.
             $connection = DB::connection();

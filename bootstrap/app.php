@@ -5,6 +5,7 @@ use App\Http\Middleware\HandleInertiaRequests;
 use App\Shell\Auth\EnforceAuthVersion;
 use App\Shell\Auth\InvitationSecretBoundary;
 use App\Tenancy\ResolveTenant;
+use App\Tenancy\TokenApi\BearerBoundary;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -19,6 +20,7 @@ $app = Application::configure(basePath: $basePath)
     ->withRouting(web: __DIR__.'/../routes/web.php', commands: __DIR__.'/../routes/console.php', health: '/up')
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->prepend(InvitationSecretBoundary::class);
+        $middleware->prepend(BearerBoundary::class);
         $middleware->redirectGuestsTo('/login');
         $middleware->prependToPriorityList(SubstituteBindings::class, ResolveTenant::class);
         $middleware->web(append: [AuthenticateSession::class, EnforceAuthVersion::class, HandleInertiaRequests::class]);
