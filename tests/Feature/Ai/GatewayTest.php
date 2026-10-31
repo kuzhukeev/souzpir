@@ -109,6 +109,32 @@ final class GatewayTest extends TestCase
         });
     }
 
+    public function test_empty_schema_objects_survive_fake_gateway_and_remain_distinct_for_idempotency(): void
+    {
+        Http::fake();
+        $format = ['type' => 'json_schema', 'json_schema' => ['name' => 'result', 'schema' => ['type' => 'object', 'properties' => new \stdClass]]];
+        $tools = [['type' => 'function', 'function' => ['name' => 'search', 'parameters' => ['type' => 'object', 'properties' => new \stdClass]]]];
+        $request = new AiRequest([['role' => 'user', 'content' => 'Привет']], 'google/gemini-2.5-flash', 0.5, $format, $tools);
+        $this->fixture((new ContactMasker)->request($request->toArray()), 7);
+        $this->within(function () use ($request, $format, $tools): void {
+            $context = $this->context('empty-object-schema');
+            $first = app(AiGateway::class)->complete($request, $context);
+            $second = app(AiGateway::class)->complete($request, $context);
+            self::assertSame('Ответ', $first->content);
+            self::assertSame($first->aiCallId, $second->aiCallId);
+            self::assertSame(1, DB::table('ai_calls')->count());
+            $tools[0]['function']['parameters']['properties'] = [];
+            $different = new AiRequest($request->messages, $request->model, $request->temperature, $format, $tools);
+            try {
+                app(AiGateway::class)->complete($different, $context);
+                self::fail('A different JSON shape reused an idempotency key.');
+            } catch (\InvalidArgumentException|LogicException) {
+                self::assertSame(1, DB::table('ai_calls')->count());
+            }
+        });
+        Http::assertNothingSent();
+    }
+
     public function test_fixture_masking_idempotency_and_cost_attribution(): void
     {
         $request = new AiRequest([['role' => 'user', 'content' => 'Позвоните +7 (999) 111-22-33 или a@example.ru']], 'google/gemini-2.5-flash', 0.5);

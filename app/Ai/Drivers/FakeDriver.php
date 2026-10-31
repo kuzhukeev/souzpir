@@ -3,11 +3,13 @@
 namespace App\Ai\Drivers;
 
 use App\Ai\CanonicalJson;
+use App\Ai\SchemaObjects;
 
 final class FakeDriver implements Driver
 {
     public function complete(#[\SensitiveParameter] array $body): array
     {
+        SchemaObjects::forInspection($body);
         $hash = CanonicalJson::hash($body);
         $directory = config('features.E0-05.defaults.fixture_directory', base_path('tests/fixtures/llm'));
         $file = rtrim($directory, '/\\').DIRECTORY_SEPARATOR.$hash.'.json';

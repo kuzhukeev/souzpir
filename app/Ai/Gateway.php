@@ -126,10 +126,11 @@ final class Gateway implements AiGateway
             $this->assertLiveAllowed($context);
         }
         try {
-            app(SecretBoundary::class)->assertSafe($request->toArray());
+            app(SecretBoundary::class)->assertSafe(SchemaObjects::forInspection($request->toArray()));
             $body = app(ContactMasker::class)->request($request->toArray());
-            app(ContactBoundary::class)->assertSafe($body);
-            app(SecretBoundary::class)->assertSafe($body);
+            $inspectionBody = SchemaObjects::forInspection($body);
+            app(ContactBoundary::class)->assertSafe($inspectionBody);
+            app(SecretBoundary::class)->assertSafe($inspectionBody);
         } catch (Throwable) {
             // Do not chain exceptions whose stack may contain unmasked input.
             throw new InvalidArgumentException('AI data could not be safely prepared.');
