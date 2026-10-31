@@ -117,7 +117,18 @@ final class EvidenceEvaluator
             }
             $knowledge->assertAllowed($tenant, $record->measurement_id, $profile);
 
-            return ['status' => 'confirmed', 'fact' => $candidate, 'mentions' => $candidate['companies'], 'sources' => $this->sources->extract($record->answer_text, $profile), 'signature' => $signature];
+            // Model sentiment, claims, inferred company roles and confidence have
+            // no independent semantic proof. Expose unknown, not invented facts.
+            $fact = $candidate;
+            $fact['tone'] = null;
+            $fact['claims'] = null;
+            $fact['suspected_errors'] = null;
+            $fact['confidence'] = null;
+            $fact['brand_recommended'] = $candidate['brand_recommended']
+                && app(RecommendationVerifier::class)->verifies($record->answer_text, $candidate['mention_quote'], $profile) ? true : null;
+            $fact['companies'] = array_map(fn (array $company): array => [...$company, 'role' => null], $candidate['companies']);
+
+            return ['status' => 'confirmed', 'fact' => $fact, 'mentions' => $fact['companies'], 'sources' => $this->sources->extract($record->answer_text, $profile), 'signature' => $signature];
         } catch (Throwable) {
             // No source text, profile, provider exception or credentials leave this boundary.
             return $unknown;
@@ -169,6 +180,7 @@ final class EvidenceEvaluator
             'schema' => hash_file('sha256', resource_path('prompts/Vision/Evidence/measure_parse.schema.json')),
             'confirmation_prompt' => hash_file('sha256', resource_path('prompts/Vision/Evidence/mention-confirmer.ru.v1.md')),
             'source_types' => hash_file('sha256', resource_path('prompts/Vision/Evidence/source-types.ru.json')),
+            'ambiguous_words' => hash_file('sha256', resource_path('prompts/Vision/Evidence/ambiguous-words.ru.txt')),
             'normalizer_version' => EntityNormalizer::VERSION,
             'confirmation_version' => MentionConfirmer::VERSION,
         ];

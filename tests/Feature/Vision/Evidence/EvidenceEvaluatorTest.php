@@ -119,7 +119,7 @@ final class EvidenceEvaluatorTest extends TestCase
         app()->instance(KnowledgeGate::class, $gate);
 
         $badConfiguration = $configuration;
-        $badConfiguration['parser']['schema'] = str_repeat('0', 64);
+        $badConfiguration['parser']['ambiguous_words'] = str_repeat('0', 64);
         DB::table('measurements')->where('id', $measurement)->update(['configuration' => json_encode($badConfiguration, JSON_THROW_ON_ERROR)]);
         self::assertSame('unknown', $evaluate()['status']);
         DB::table('measurements')->where('id', $measurement)->update(['configuration' => json_encode($configuration, JSON_THROW_ON_ERROR)]);
@@ -219,6 +219,25 @@ final class EvidenceEvaluatorTest extends TestCase
         DB::table('measurement_answers')->where('id', $answer)->update(['answer_text' => 'Торты продаются здесь.']);
         $gateway->result['companies'] = [['name' => 'Торты', 'position' => 1, 'role' => 'other', 'is_brand' => false]];
         self::assertSame('unknown', $evaluate()['status']);
+        $profile = ['name' => 'СтальПлюс', 'aliases' => ['СтальПлюс'], 'facts' => []];
+        DB::table('measurements')->where('id', $measurement)->update([
+            'profile_snapshot' => json_encode($profile, JSON_THROW_ON_ERROR), 'profile_checksum' => CanonicalJson::hash($profile),
+        ]);
+        $text = 'СтальПлюс ужасный поставщик. Конкурент гарантирует доставку за час.';
+        DB::table('measurement_answers')->where('id', $answer)->update(['answer_text' => $text]);
+        $gateway->result = ['brand_mentioned' => true, 'brand_position' => 1, 'brand_recommended' => false,
+            'mention_quote' => 'СтальПлюс ужасный поставщик', 'companies' => [
+                ['name' => 'СтальПлюс', 'position' => 1, 'role' => 'supplier', 'is_brand' => true],
+                ['name' => 'Конкурент', 'position' => 2, 'role' => 'supplier', 'is_brand' => false],
+            ], 'tone' => 'positive', 'claims' => ['Конкурент гарантирует доставку за час'], 'suspected_errors' => [], 'confidence' => 0.9];
+        $checked = $evaluate();
+        self::assertSame('confirmed', $checked['status']);
+        self::assertNull($checked['fact']['tone']);
+        self::assertNull($checked['fact']['claims']);
+        self::assertNull($checked['fact']['suspected_errors']);
+        self::assertNull($checked['fact']['confidence']);
+        self::assertNull($checked['fact']['brand_recommended']);
+        self::assertNull($checked['mentions'][0]['role']);
         Http::assertNothingSent();
     }
 }

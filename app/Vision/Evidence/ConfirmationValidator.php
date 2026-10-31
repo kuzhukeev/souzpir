@@ -33,6 +33,9 @@ final class ConfirmationValidator
             return ['status' => 'unknown', 'evidence' => null];
         }
         $quote = $modelResult['evidence'];
+        if (preg_match('/(?<!\p{L})(?:не|нет|без|кроме|not|no|without)(?!\p{L})/iu', $quote)) {
+            return ['status' => 'unknown', 'evidence' => null];
+        }
         if (! collect($matched)->contains(fn (string $alias): bool => $this->aliases->contains($quote, $alias))) {
             return ['status' => 'unknown', 'evidence' => null];
         }

@@ -6,6 +6,7 @@ use App\Vision\Evidence\ConfirmationValidator;
 use App\Vision\Evidence\EntityNormalizer;
 use App\Vision\Evidence\EvidenceValidator;
 use App\Vision\Evidence\MentionConfirmer;
+use App\Vision\Evidence\RecommendationVerifier;
 use App\Vision\Evidence\SourceExtractor;
 use App\Vision\Evidence\VisibilityProfile;
 use Tests\TestCase;
@@ -20,7 +21,13 @@ final class EvidenceValidatorTest extends TestCase
         $validator = app(EvidenceValidator::class);
         foreach ($fixtures['cases'] as $case) {
             $candidate = $validator->deduplicateCompanies($case['expected']);
-            self::assertNull($validator->validationReason($candidate, $case['text'], $case['profile']), $case['id']);
+            $reason = $validator->validationReason($candidate, $case['text'], $case['profile']);
+            // This donor example remains unknown under the stricter direct-object rule.
+            if ($case['id'] === 'methodology-domain-choice') {
+                self::assertSame('recommendation_evidence', $reason, $case['id']);
+            } else {
+                self::assertNull($reason, $case['id']);
+            }
         }
     }
 
@@ -50,6 +57,20 @@ final class EvidenceValidatorTest extends TestCase
         self::assertSame('claim_quote', $validator->validationReason($inventedClaim, $text, $profile));
     }
 
+    public function test_checking_a_supplier_is_not_recommending_the_supplier(): void
+    {
+        $profile = ['name' => 'СтальПлюс', 'aliases' => ['СтальПлюс']];
+        $text = 'Рекомендую тщательно проверить СтальПлюс перед заказом.';
+        $value = ['brand_mentioned' => true, 'brand_position' => 1, 'brand_recommended' => true,
+            'mention_quote' => $text, 'companies' => [['name' => 'СтальПлюс', 'position' => 1, 'role' => 'supplier', 'is_brand' => true]],
+            'tone' => 'positive', 'claims' => [], 'suspected_errors' => [], 'confidence' => 0.9];
+        self::assertSame('recommendation_evidence', app(EvidenceValidator::class)->validationReason($value, $text, $profile));
+        $verifier = app(RecommendationVerifier::class);
+        self::assertFalse($verifier->verifies($text, $text, $profile));
+        self::assertTrue($verifier->verifies('Рекомендую СтальПлюс.', 'Рекомендую СтальПлюс', $profile));
+        self::assertFalse($verifier->verifies('Рекомендую СтальПлюс, но не покупать без проверки.', 'Рекомендую СтальПлюс', $profile));
+    }
+
     public function test_ambiguous_alias_requires_literal_identity_facts_not_model_assertions(): void
     {
         $validator = app(ConfirmationValidator::class);
@@ -62,6 +83,9 @@ final class EvidenceValidatorTest extends TestCase
         self::assertSame('unknown', $validator->validate($text, $profile, null)['status']);
         $model = ['decision' => 'confirmed', 'evidence' => $text, 'matched_facts' => ['Ленина 15', 'гарантия 3 дня']];
         self::assertSame('confirmed', $validator->validate($text, $profile, $model)['status']);
+        $negated = 'Торты не по адресу Ленина 15; гарантия 3 дня не действует.';
+        $negatedModel = ['decision' => 'confirmed', 'evidence' => $negated, 'matched_facts' => ['Ленина 15', 'гарантия 3 дня']];
+        self::assertSame('unknown', $validator->validate($negated, $profile, $negatedModel)['status']);
         $inventedQuote = $model;
         $inventedQuote['evidence'] = 'Торты: Ленина 15, гарантия 4 дня.';
         self::assertSame('unknown', $validator->validate($text, $profile, $inventedQuote)['status']);

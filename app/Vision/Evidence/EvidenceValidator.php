@@ -153,18 +153,21 @@ final class EvidenceValidator
             foreach ($companies as $company) {
                 $offset = $this->literalOffset($clause, $this->text($company['name']));
                 if ($offset !== null) {
-                    $named[] = ['offset' => $offset, 'brand' => $company['is_brand']];
+                    $named[] = ['offset' => $offset, 'end' => $offset + strlen($this->text($company['name'])), 'brand' => $company['is_brand']];
                 }
             }
             usort($named, fn (array $a, array $b): int => $a['offset'] <=> $b['offset']);
             $after = array_values(array_filter($named, fn (array $entity): bool => $entity['offset'] >= $cueEnd));
-            if (($after[0]['brand'] ?? false) === true) {
+            if ($this->directChoiceIncludesBrand(substr($clause, $cueEnd), $companies)) {
                 return true;
             }
             // "СтальПлюс — мой выбор" is explicit too. A different company between
             // the cue and the brand never transfers its recommendation to the brand.
             $before = array_values(array_filter($named, fn (array $entity): bool => $entity['offset'] < $cueStart));
-            if ($after === [] && ($before[array_key_last($before)]['brand'] ?? false) === true) {
+            $last = $before[array_key_last($before)] ?? null;
+            if ($after === [] && ($last['brand'] ?? false) === true
+                && preg_match('/^[\s*_«»"„“”()—:–-]*$/u', substr($clause, $last['end'], $cueStart - $last['end'])) === 1
+                && preg_match('/^(?:мой\s+выбор|my\s+(?:pick|choice))$/u', $cue[0][0]) === 1) {
                 return true;
             }
         }
