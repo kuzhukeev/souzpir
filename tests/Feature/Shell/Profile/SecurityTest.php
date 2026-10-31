@@ -100,6 +100,18 @@ final class SecurityTest extends TestCase
         return $request;
     }
 
+    /** Capture the request that actually passed ResolveTenant in login(), before simulating a race. */
+    private function resolvedSecurityRequest(User $user, string $raw): Request
+    {
+        $request = request();
+        self::assertSame($raw, $request->session()->getId());
+        self::assertSame($user->id, $request->user()?->id);
+        self::assertIsString($request->attributes->get('tenant.brand_revision'));
+        self::assertInstanceOf(Brand::class, $request->attributes->get('tenant.brand'));
+
+        return $request;
+    }
+
     private function active(User $user, string $raw): bool
     {
         try {
@@ -207,7 +219,7 @@ final class SecurityTest extends TestCase
         $actor = $this->actor();
         [, $user] = $actor;
         $raw = $this->login($user);
-        $request = $this->leaseRequest($user, $raw);
+        $request = $this->resolvedSecurityRequest($user, $raw);
         DB::table('users')->where('id', $user->id)->update(['password' => Hash::make(self::REPLACEMENT)]);
         try {
             app(TenantContextRunner::class)->run($this->context($actor), fn () => app(SecuritySettings::class)->password($request, ['current_password' => self::PASSWORD, 'password' => 'another-safe-password']));
@@ -225,7 +237,7 @@ final class SecurityTest extends TestCase
         $actor = $this->actor();
         [, $user] = $actor;
         $raw = $this->login($user);
-        $request = $this->leaseRequest($user, $raw);
+        $request = $this->resolvedSecurityRequest($user, $raw);
         $this->mock(AuditWriter::class)->shouldReceive('record')->once()->andThrow(new \RuntimeException('sensitive original exception'));
         try {
             app(TenantContextRunner::class)->run($this->context($actor), fn () => app(SecuritySettings::class)->password($request, ['current_password' => self::PASSWORD, 'password' => self::REPLACEMENT]));
@@ -299,7 +311,7 @@ final class SecurityTest extends TestCase
         [, $user] = $actor;
         $current = $this->login($user);
         [$target, , $id] = $this->lease($user);
-        $request = $this->leaseRequest($user, $current);
+        $request = $this->resolvedSecurityRequest($user, $current);
         $this->mock(AuditWriter::class)->shouldReceive('record')->once()->andThrow(new \RuntimeException('audit unavailable'));
         try {
             app(TenantContextRunner::class)->run($this->context($actor), fn () => app(SecuritySettings::class)->revoke($request, $id));
@@ -390,9 +402,11 @@ final class SecurityTest extends TestCase
     {
         [, $user, $brand] = $this->actor();
         $this->login($user);
+        $this->withHeader('X-Brand-Revision', $this->get('/profile')->assertOk()->viewData('page')['props']['profileBrandRevision']);
         $this->put('/profile', ['name' => 'Пользователь', 'phone' => null, 'language' => 'ru', 'timezone' => 'Asia/Tokyo'])
             ->assertRedirect(route('profile.show'));
         self::assertSame('Asia/Tokyo', $this->get('/profile/security')->assertOk()->viewData('page')['props']['security']['timezone']);
+        $this->withHeader('X-Brand-Revision', $this->get('/profile')->assertOk()->viewData('page')['props']['profileBrandRevision']);
         $this->put('/profile', ['name' => 'Пользователь', 'phone' => null, 'language' => 'ru', 'timezone' => null])
             ->assertRedirect(route('profile.show'));
         self::assertSame(DB::table('brands')->where('id', $brand->id)->value('timezone'), $this->get('/profile/security')->assertOk()->viewData('page')['props']['security']['timezone']);
