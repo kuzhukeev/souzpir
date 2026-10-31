@@ -88,6 +88,14 @@ final class SecretBoundaryTest extends TestCase
             'AWS access key id' => [['content' => 'AKIA'.str_repeat('A', 16)]],
             'AWS temporary access key id' => [['content' => 'ASIA'.str_repeat('A', 16)]],
             'basic authorization' => [['content' => 'Authorization: Basic '.base64_encode('synthetic:pass123')]],
+            'basic minimal username and password' => [['content' => 'Basic YTpi']],
+            'basic empty password' => [['content' => 'Basic YTo=']],
+            'basic empty username' => [['content' => 'Basic OmI=']],
+            'basic only separator' => [['content' => 'Basic Og==']],
+            'basic unpadded' => [['content' => 'Basic Og']],
+            'percent encoded basic' => [['content' => 'Basic%20YTpi']],
+            'unicode basic' => [['content' => 'Ｂａｓｉｃ　ＹＴｐｉ']],
+            'html encoded basic' => [['content' => 'Basic&#32;YTpi']],
             'credential URL' => [['content' => 'https://synthetic:pass123@example.test/path']],
             'url-encoded credential URL' => [['content' => 'https%3A%2F%2Fsynthetic%3Apass123%40example.test']],
             'html-encoded credential assignment' => [['content' => 'password&#61;synthetic123']],
@@ -112,6 +120,9 @@ final class SecretBoundaryTest extends TestCase
         return [
             'normal public Russian content' => [['content' => 'Компания поставляет фейерверки, цены по запросу.']],
             'public English basic text' => [['content' => 'Basic configuration is available in the documentation.']],
+            'basic plain word' => [['content' => 'Basic editing is available.']],
+            'basic valid base64 without colon' => [['content' => 'Basic '.base64_encode('public')]],
+            'basic invalid base64 text' => [['content' => 'Basic !!!']],
             'public design tokens' => [['tokens' => ['textColor' => '#123456']]],
             'unrelated key name' => [['passwordlessLogin' => true]],
             'similar short AWS prefix' => [['content' => 'AKIA1234 is a warehouse label.']],
@@ -152,5 +163,17 @@ final class SecretBoundaryTest extends TestCase
         $payload = ['tool_calls' => [['arguments' => $raw]]];
         app(SecretBoundary::class)->assertSafe($payload);
         self::assertSame($raw, $payload['tool_calls'][0]['arguments']);
+    }
+
+    public function test_short_basic_rejection_exposes_neither_input_nor_previous_exception(): void
+    {
+        try {
+            app(SecretBoundary::class)->assertSafe(['content' => 'Basic YTpi']);
+            self::fail('Expected rejection.');
+        } catch (InvalidArgumentException $exception) {
+            self::assertSame('AI data cannot be safely inspected for secrets.', $exception->getMessage());
+            self::assertNull($exception->getPrevious());
+            self::assertStringNotContainsString('YTpi', print_r($exception->getTrace()[0] ?? [], true));
+        }
     }
 }

@@ -179,7 +179,8 @@ final class SecretBoundary
                 throw new InvalidArgumentException;
             }
         }
-        $basicMatched = preg_match_all('/\bBasic\s+([A-Za-z0-9+\/]{8,}={0,2})/i', $plain, $basicTokens);
+        // Even ':' encodes to just two Base64 characters (plus padding).
+        $basicMatched = preg_match_all('/\bBasic\s+([A-Za-z0-9+\/]{2,}={0,2})/i', $plain, $basicTokens);
         if ($basicMatched === false) {
             throw new InvalidArgumentException;
         }
