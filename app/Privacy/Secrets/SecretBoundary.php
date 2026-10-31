@@ -192,7 +192,7 @@ final class SecretBoundary
         }
         $patterns = [
             '/-----BEGIN (?:RSA |EC |OPENSSH |DSA |ENCRYPTED )?PRIVATE KEY-----/i',
-            '/\bBearer\s+[A-Za-z0-9._~+\/-]{8,}={0,2}\b/i',
+            '/\bBearer\s+[A-Za-z0-9._~+\/-]+={0,2}/i',
             '/\b(?:AKIA|ASIA)[A-Z0-9]{16}\b/',
             '/\b[a-z][a-z0-9+.-]*:\/\/[^@\s\/:]+:[^@\s\/]+@/i',
             '/\b(?:sk|pk)_(?:live|test)_[A-Za-z0-9_-]{12,}\b/i',

@@ -12,6 +12,8 @@ final class SecretBoundaryTest extends TestCase
             'api key field' => [['messages' => [['content' => ['api_key' => 'demo_value_not_real']]]]],
             'zero width key' => [['messages' => [['content' => ["a\u{200b}pi_key" => 'arbitrary']]]]],
             'encoded classifier' => [['messages' => [['content' => ['facts' => [['topic' => 'api&#95;key', 'value' => 'arbitrary']]]]]]],
+            'short bearer' => [['messages' => [['content' => 'Bearer a']]]],
+            'url encoded short bearer' => [['messages' => [['content' => 'Bearer%20z']]]],
             'bearer' => [['messages' => [['content' => 'Bearer syntheticvalue987654321']]]],
             'password text' => [['messages' => [['content' => 'password = pretend-value']]]],
             'topic marked secret' => [['messages' => [['content' => ['facts' => [['topic' => 'api_key', 'value' => 'arbitrary']]]]]]],
