@@ -6,6 +6,7 @@ use App\Seller\Conversations\ActiveTenantLock;
 use App\Seller\Conversations\CanonicalJson;
 use App\Seller\Conversations\Models\Conversation;
 use App\Seller\Conversations\Models\Message;
+use App\Seller\Conversations\PrivateOperation;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
 use Illuminate\Support\Facades\DB;
@@ -14,7 +15,12 @@ use LogicException;
 final class InboundRecorder
 {
     /** Store an event only. Channel adapters must use ingest for messages. */
-    public function record(TenantContext $context, string $channelId, string $externalId, array $payload): ChannelInboundEvent
+    public function record(#[\SensitiveParameter] TenantContext $context, string $channelId, #[\SensitiveParameter] string $externalId, #[\SensitiveParameter] array $payload): ChannelInboundEvent
+    {
+        return PrivateOperation::run(fn () => $this->recordInternal($context, $channelId, $externalId, $payload));
+    }
+
+    private function recordInternal(#[\SensitiveParameter] TenantContext $context, string $channelId, #[\SensitiveParameter] string $externalId, #[\SensitiveParameter] array $payload): ChannelInboundEvent
     {
         $this->validateInput($context, $externalId);
 
@@ -27,7 +33,12 @@ final class InboundRecorder
     }
 
     /** Atomically bind one event to one client message and conversation; sender routing is the adapter's responsibility. */
-    public function ingest(TenantContext $context, string $channelId, string $externalId, array $payload, string $conversationId, string $text): Message
+    public function ingest(#[\SensitiveParameter] TenantContext $context, string $channelId, #[\SensitiveParameter] string $externalId, #[\SensitiveParameter] array $payload, string $conversationId, #[\SensitiveParameter] string $text): Message
+    {
+        return PrivateOperation::run(fn () => $this->ingestInternal($context, $channelId, $externalId, $payload, $conversationId, $text));
+    }
+
+    private function ingestInternal(#[\SensitiveParameter] TenantContext $context, string $channelId, #[\SensitiveParameter] string $externalId, #[\SensitiveParameter] array $payload, string $conversationId, #[\SensitiveParameter] string $text): Message
     {
         $this->validateInput($context, $externalId);
 
