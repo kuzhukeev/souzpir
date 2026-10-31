@@ -49,20 +49,20 @@ final class BearerBoundary
     private function secureTransport(Request $request): bool
     {
         // A client-controlled Host can trigger Laravel's automatic proxy trust.
-        // Native TLS is server-provided; forwarded HTTPS requires an explicit,
-        // narrowly configured proxy address and the framework's trust check.
+        // Native TLS is server-provided; forwarded HTTPS is verified against
+        // the current connection's peer and explicit proxy config, before TrustProxies runs.
         $nativeTls = $request->server('HTTPS');
         if (is_string($nativeTls) && in_array(strtolower(trim($nativeTls)), ['on', '1'], true)) {
             return true;
         }
         $configured = config('trustedproxy.proxies');
-        $proxies = is_string($configured) ? array_map('trim', explode(',', $configured)) : $configured;
+        $proxies = is_string($configured) ? explode(',', $configured) : $configured;
+        $forwarded = $request->headers->all('X-Forwarded-Proto');
         try {
-            if (is_array($proxies) && $proxies !== []
-                && count(array_filter($proxies, 'is_string')) === count($proxies)
-                && ! array_intersect($proxies, ['*', '**', 'REMOTE_ADDR', 'PRIVATE_SUBNETS'])
-                && $request->isFromTrustedProxy() && $request->isSecure()
-                && IpUtils::checkIp((string) $request->server('REMOTE_ADDR'), $proxies)) {
+            if (is_array($proxies) && $proxies !== [] && $this->explicitNetworks($proxies)
+                && ! $request->headers->has('Forwarded') && count($forwarded) === 1
+                && is_string($forwarded[0]) && strtolower(trim($forwarded[0])) === 'https'
+                && IpUtils::checkIp((string) $request->server('REMOTE_ADDR'), array_map('trim', $proxies))) {
                 return true;
             }
         } catch (Throwable) {
@@ -79,6 +79,28 @@ final class BearerBoundary
 
         return $this->loopback($request->server->get('REMOTE_ADDR'))
             && $this->loopback($request->server->get('SERVER_ADDR'));
+    }
+
+    /** Reject wildcard, invalid, or universal CIDR entries before trusting any proxy headers. */
+    private function explicitNetworks(array $proxies): bool
+    {
+        foreach ($proxies as $proxy) {
+            if (! is_string($proxy)) {
+                return false;
+            }
+            $parts = explode('/', trim($proxy));
+            if (count($parts) > 2 || filter_var($parts[0], FILTER_VALIDATE_IP) === false) {
+                return false;
+            }
+            if (count($parts) === 2) {
+                $maximum = filter_var($parts[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false ? 32 : 128;
+                if (! ctype_digit($parts[1]) || (int) $parts[1] < 1 || (int) $parts[1] > $maximum) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     private function loopback(mixed $address): bool

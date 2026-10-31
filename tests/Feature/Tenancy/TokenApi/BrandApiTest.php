@@ -10,8 +10,10 @@ use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
 use App\Tenancy\TokenApi\BearerBoundary;
 use App\Tenancy\TokenApi\BrandAccessToken;
+use Illuminate\Contracts\Debug\ShouldntReport;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\Request;
 use Illuminate\Log\Events\MessageLogged;
@@ -19,6 +21,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 final class BrandApiTest extends TestCase
@@ -234,6 +237,77 @@ final class BrandApiTest extends TestCase
         }
     }
 
+    public function test_kernel_proxy_tls_uses_only_current_explicit_peer_and_unambiguous_proto(): void
+    {
+        [$org, $brand] = $this->brand('Proxy fixture');
+        $raw = $this->token($org, $brand, ['read']);
+        $trusted = ['REMOTE_ADDR' => '198.51.100.10', 'SERVER_ADDR' => '203.0.113.20'];
+        try {
+            // BearerBoundary runs before TrustProxies: a fresh process has no trusted static state.
+            Request::setTrustedProxies([], 0);
+            config(['trustedproxy.proxies' => ['198.51.100.10']]);
+            $this->withServerVariables($trusted)->withHeader('Authorization', 'Bearer '.$raw)
+                ->withHeader('X-Forwarded-Proto', 'https')->getJson('http://api.example.test/api/v1/brand')->assertOk();
+
+            // Simulate contaminated static state from an earlier Forge/Vapor request.
+            Request::setTrustedProxies(['0.0.0.0/0'], Request::HEADER_X_FORWARDED_PROTO);
+            $this->withServerVariables(['REMOTE_ADDR' => '198.51.100.11', 'SERVER_ADDR' => '203.0.113.20'])
+                ->getJson('http://x.on-forge.com/api/v1/brand')->assertForbidden();
+            $this->withServerVariables($trusted)->withHeader('X-Forwarded-Proto', 'https,http')
+                ->getJson('http://api.example.test/api/v1/brand')->assertForbidden();
+            $this->withHeader('X-Forwarded-Proto', 'https')->withHeader('Forwarded', 'proto=http')
+                ->getJson('http://api.example.test/api/v1/brand')->assertForbidden();
+            $this->flushHeaders()->withHeader('Authorization', 'Bearer '.$raw)->withHeader('X-Forwarded-Proto', 'https');
+            foreach ([['0.0.0.0/0'], ['::/0'], ['*'], ['198.51.100.10', 'invalid']] as $proxies) {
+                config(['trustedproxy.proxies' => $proxies]);
+                $this->getJson('http://api.example.test/api/v1/brand')->assertForbidden();
+            }
+            // A real IPv6 peer must not gain trust from an IPv6 /0 either.
+            $this->withServerVariables(['REMOTE_ADDR' => '2001:db8::10', 'SERVER_ADDR' => '2001:db8::20']);
+            config(['trustedproxy.proxies' => ['::/0']]);
+            $this->getJson('http://api.example.test/api/v1/brand')->assertForbidden();
+            config(['trustedproxy.proxies' => ['2001:db8::10']]);
+            Request::setTrustedProxies([], 0);
+            $this->getJson('http://api.example.test/api/v1/brand')->assertOk();
+            // Actual direct TLS remains valid irrespective of proxy configuration.
+            $this->flushHeaders()->withHeader('Authorization', 'Bearer '.$raw)
+                ->getJson('https://api.example.test/api/v1/brand')->assertOk();
+        } finally {
+            config(['trustedproxy.proxies' => null]);
+            Request::setTrustedProxies([], 0);
+        }
+    }
+
+    public function test_api_transaction_commits_only_successful_responses(): void
+    {
+        [$org, $brand] = $this->brand('Before');
+        $raw = $this->token($org, $brand, ['read']);
+        $logs = [];
+        $this->app['events']->listen(MessageLogged::class, function (MessageLogged $event) use (&$logs): void {
+            $logs[] = $event->message;
+        });
+        Route::middleware(['api', 'auth:sanctum', 'tenant.token', 'token.ability:read'])->post('/api/v1/transaction-probe/{kind}', function (string $kind) use ($org) {
+            DB::table('organizations')->where('id', $org->id)->update(['name' => $kind]);
+
+            return match ($kind) {
+                'success' => response()->json(['result' => 'committed']),
+                'validation' => throw ValidationException::withMessages(['field' => 'Invalid value']),
+                'forbidden' => response()->json(['result' => 'forbidden'], 403),
+                'not-found' => response()->json(['result' => 'not found'], 404),
+                'exception-2xx' => throw new SyntheticHandledApiException,
+                default => throw new \RuntimeException('synthetic action failure'),
+            };
+        });
+        $this->withHeader('Authorization', 'Bearer '.$raw);
+        foreach (['validation' => 422, 'forbidden' => 403, 'not-found' => 404, 'exception-2xx' => 200, 'failure' => 500] as $kind => $status) {
+            $this->postJson('/api/v1/transaction-probe/'.$kind)->assertStatus($status);
+            self::assertSame('Fixture', DB::table('organizations')->where('id', $org->id)->value('name'));
+        }
+        $this->postJson('/api/v1/transaction-probe/success')->assertOk()->assertJsonPath('result', 'committed');
+        self::assertSame('success', DB::table('organizations')->where('id', $org->id)->value('name'));
+        self::assertStringNotContainsString('Token API transaction rolled back.', implode(' ', $logs));
+    }
+
     public function test_database_digest_is_not_a_standalone_authentication_capability(): void
     {
         [$org, $brand] = $this->brand('First');
@@ -262,5 +336,14 @@ final class BrandApiTest extends TestCase
         ]);
 
         return $id.'|'.$secret;
+    }
+}
+
+/** Test-only exception really rendered into a success response by Laravel's pipeline. */
+final class SyntheticHandledApiException extends \RuntimeException implements ShouldntReport
+{
+    public function render(): JsonResponse
+    {
+        return response()->json(['result' => 'handled']);
     }
 }
