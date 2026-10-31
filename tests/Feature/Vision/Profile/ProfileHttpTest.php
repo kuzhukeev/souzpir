@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -15,6 +16,12 @@ use Tests\Feature\Tenancy\TenancyTestCase;
 
 final class ProfileHttpTest extends TenancyTestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+        URL::useOrigin('http://127.0.0.1');
+    }
+
     private function privateGet(string $path): TestResponse
     {
         $this->get($path)->assertRedirect('/vision/private-access');
