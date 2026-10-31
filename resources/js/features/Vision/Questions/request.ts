@@ -30,6 +30,10 @@ export async function request<T>(
     headers,
     body: body === undefined ? undefined : JSON.stringify(body),
   });
+  if (response.status === 401) {
+    window.location.replace('/login');
+    throw new Error('Сессия истекла. Войдите снова.');
+  }
   const data: unknown = await response.json().catch(() => null);
   if (!response.ok) {
     const message =

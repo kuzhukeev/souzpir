@@ -8,6 +8,7 @@ use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
 use App\Vision\Core\MeasurementRunner;
 use App\Vision\KnowledgeGrants\GrantRegistry;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -18,6 +19,7 @@ final class QuestionsHttpTest extends TenancyTestCase
 {
     private function fixture(): array
     {
+        $this->app['url']->forceScheme('https');
         [$owner, $org, $brand, $other] = $this->cabinet();
         foreach ([$brand, $other] as $b) {
             DB::table('brand_modules')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $b->id, 'module' => 'vision', 'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
@@ -165,9 +167,48 @@ final class QuestionsHttpTest extends TenancyTestCase
     public function test_sensitive_api_requires_secure_origin(): void
     {
         $this->fixture();
+        $this->withServerVariables(['HTTPS' => 'off', 'REMOTE_ADDR' => '203.0.113.55', 'SERVER_ADDR' => '127.0.0.1']);
         $this->getJson('http://souzpir.local/vision/questions/data')->assertForbidden()->assertJsonMissingPath('candidates');
         $this->postJson('http://souzpir.local/vision/questions/candidates', ['text' => 'Где найти качественные услуги рядом?', 'intent' => 'choose'])->assertForbidden();
         self::assertSame(0, DB::table('question_candidates')->count());
+    }
+
+    public function test_transport_accepts_only_verified_https_or_named_direct_local_http(): void
+    {
+        $this->fixture();
+        $oldEnv = app()->environment();
+        $priorProxies = config('trustedproxy.proxies');
+        try {
+            app()->instance('env', 'local');
+            $this->withServerVariables(['HTTPS' => 'off', 'REMOTE_ADDR' => '127.0.0.1', 'SERVER_ADDR' => '127.0.0.1']);
+            $this->getJson('http://souzpir.local/vision/questions/data')->assertOk();
+            $this->getJson('http://localhost/vision/questions/data')->assertForbidden();
+            $this->withHeader('X-Real-IP', '127.0.0.1')->getJson('http://souzpir.local/vision/questions/data')->assertForbidden();
+            $this->flushHeaders()->withServerVariables(['SERVER_ADDR' => '203.0.113.20']);
+            $this->getJson('http://souzpir.local/vision/questions/data')->assertForbidden();
+            $this->withServerVariables(['SERVER_ADDR' => '127.0.0.1', 'REMOTE_ADDR' => '203.0.113.55']);
+            $this->getJson('http://souzpir.local/vision/questions/data')->assertForbidden();
+
+            app()->instance('env', 'production');
+            $this->withServerVariables(['REMOTE_ADDR' => '127.0.0.1']);
+            $this->getJson('http://souzpir.local/vision/questions/data')->assertForbidden();
+            $this->withServerVariables(['REMOTE_ADDR' => '198.51.100.10', 'SERVER_ADDR' => '203.0.113.20'])
+                ->withHeader('X-Forwarded-Proto', 'https');
+            foreach ([null, ['*'], ['0.0.0.0/0'], ['198.51.100.10', 'invalid']] as $proxies) {
+                config(['trustedproxy.proxies' => $proxies]);
+                Request::setTrustedProxies(['0.0.0.0/0'], Request::HEADER_X_FORWARDED_PROTO);
+                $this->getJson('http://x.on-forge.com/vision/questions/data')->assertForbidden();
+            }
+            config(['trustedproxy.proxies' => ['198.51.100.10/32']]);
+            $this->getJson('http://cabinet.example.test/vision/questions/data')->assertOk();
+            $this->withHeader('Forwarded', 'proto=http')->getJson('http://cabinet.example.test/vision/questions/data')->assertForbidden();
+            $this->flushHeaders()->withServerVariables(['HTTPS' => 'on']);
+            $this->getJson('https://cabinet.example.test/vision/questions/data')->assertOk();
+        } finally {
+            app()->instance('env', $oldEnv);
+            config(['trustedproxy.proxies' => $priorProxies]);
+            Request::setTrustedProxies([], 0);
+        }
     }
 
     public function test_blocked_nonmanual_batch_cannot_be_approved_and_scheduling_is_not_implied(): void

@@ -2,6 +2,7 @@
 
 namespace App\Vision\Questions;
 
+use App\Privacy\VerifiedHttps;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -94,7 +95,10 @@ final class QuestionsController
     private function guard(#[\SensitiveParameter] Closure $callback): mixed
     {
         $request = request();
-        if (! $request->isSecure() && ! in_array(strtolower($request->getHost()), ['localhost', '127.0.0.1', '[::1]', '::1'], true)) {
+        $localHttp = app()->environment('local')
+            && strtolower($request->getHost()) === 'souzpir.local'
+            && VerifiedHttps::directLoopback($request);
+        if (! VerifiedHttps::allows($request) && ! $localHttp) {
             return response()->json(['message' => 'Для работы с вопросами откройте кабинет по HTTPS или на localhost.'], 403);
         }
         try {

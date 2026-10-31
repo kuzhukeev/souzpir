@@ -1,7 +1,10 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
-const base = 'http://127.0.0.1:8258';
+const base = process.env.E803_BROWSER_BASE ?? 'http://souzpir.local:8258';
 test.use({
-  launchOptions: { executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe' },
+  launchOptions: {
+    executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe',
+    args: ['--host-resolver-rules=MAP souzpir.local 127.0.0.1'],
+  },
 });
 async function guard(context: BrowserContext) {
   await context.route('**/*', (r) =>
@@ -69,11 +72,15 @@ test('actual questions create, select, publish, version, permissions and CSRF', 
     await page.getByRole('button', { name: 'Сравнить с предыдущим' }).click();
     await expect(page.getByText('Как узнать цену доставки?')).toBeVisible();
     await page.screenshot({ path: '.local/screenshots/e8-03/real-history.png', fullPage: true });
-    const rejected = await ctx.request.post(base + '/vision/questions/candidates', {
-      headers: { Accept: 'application/json', 'Sec-Fetch-Site': 'cross-site' },
-      data: { text: 'Как узнать размер?', intent: 'choose' },
+    const rejected = await page.evaluate(async () => {
+      const response = await fetch('/vision/questions/candidates', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: 'Как узнать размер?', intent: 'choose' }),
+      });
+      return response.status;
     });
-    expect(rejected.status()).toBe(419);
+    expect(rejected).toBe(419);
     const otherBrand = await page.evaluate(() => {
       const node = document.querySelector('script[data-page="app"]');
       if (!node?.textContent) return null;
@@ -92,6 +99,47 @@ test('actual questions create, select, publish, version, permissions and CSRF', 
     }, otherBrand);
     expect(foreign.status).toBeGreaterThanOrEqual(400);
     expect(foreign.text).not.toContain('Как выбрать торт на свадьбу?');
+
+    // A cached private DOM must be hidden before BFCache and refetched after restoration.
+    await page.goto(base + '/vision/questions');
+    const marker = page.getByText('Как выбрать торт на свадьбу?');
+    await expect(marker).toBeVisible();
+    await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true })));
+    await expect(marker).toBeHidden();
+    const freshData = page.waitForResponse((response) => response.url().endsWith('/vision/questions/data'));
+    await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })));
+    await freshData;
+    await expect(marker).toBeVisible();
+
+    // Change the active brand through the real session endpoint, then navigate back.
+    const switched = await page.evaluate(async (id) => {
+      const token = decodeURIComponent(document.cookie.split('; ').find((c) => c.startsWith('XSRF-TOKEN='))!.slice(11));
+      const response = await fetch('/brand/switch', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-XSRF-TOKEN': token },
+        body: JSON.stringify({ brand_id: id }),
+      });
+      return response.ok;
+    }, otherBrand);
+    expect(switched).toBe(true);
+    await page.goto(base + '/vision/questions');
+    await expect(marker).toHaveCount(0);
+    const afterSwitchLoad = page.waitForResponse((response) => response.url().endsWith('/vision/questions/data'));
+    await page.goBack();
+    await afterSwitchLoad;
+    await expect(marker).toHaveCount(0);
+
+    // Revoke the same session in another tab while this history entry is away.
+    const logoutTab = await ctx.newPage();
+    await logoutTab.goto(base + '/');
+    const loggedOut = await logoutTab.evaluate(async () => {
+      const token = decodeURIComponent(document.cookie.split('; ').find((c) => c.startsWith('XSRF-TOKEN='))!.slice(11));
+      return (await fetch('/logout', { method: 'POST', credentials: 'same-origin', headers: { 'X-XSRF-TOKEN': token } })).ok;
+    });
+    expect(loggedOut).toBe(true);
+    await page.goBack();
+    await expect(marker).toHaveCount(0);
+    await expect(page).toHaveURL(/\/login/);
   } finally {
     await ctx.close();
     await view.close();

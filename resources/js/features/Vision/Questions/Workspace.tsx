@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, usePage } from '@inertiajs/react';
 import CabinetLayout from '@/layouts/CabinetLayout';
 import { Button, Textarea } from '@/components/ui/forms';
@@ -216,6 +216,7 @@ export default function Workspace({ screen }: { screen: Screen }) {
   return <WorkspaceBody key={brand?.id ?? 'none'} screen={screen} brandId={brand?.id ?? ''} />;
 }
 function WorkspaceBody({ screen, brandId }: { screen: Screen; brandId: string }) {
+  const privateContent = useRef<HTMLDivElement>(null);
   const [data, setData] = useState<Data | null>(null);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -239,12 +240,7 @@ function WorkspaceBody({ screen, brandId }: { screen: Screen; brandId: string })
       return false;
     }
   }, [brandId]);
-  const secure =
-    typeof window !== 'undefined' &&
-    (window.location.protocol === 'https:' ||
-      ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname));
   useEffect(() => {
-    if (!secure) return;
     let active = true;
     request<Data>('/vision/questions/data', brandId)
       .then((result) => {
@@ -259,7 +255,21 @@ function WorkspaceBody({ screen, brandId }: { screen: Screen; brandId: string })
     return () => {
       active = false;
     };
-  }, [brandId, secure]);
+  }, [brandId]);
+  useEffect(() => {
+    const hidePrivateContent = () => {
+      if (privateContent.current) privateContent.current.style.visibility = 'hidden';
+    };
+    const revalidateRestoredPage = (event: PageTransitionEvent) => {
+      if (event.persisted) window.location.reload();
+    };
+    window.addEventListener('pagehide', hidePrivateContent);
+    window.addEventListener('pageshow', revalidateRestoredPage);
+    return () => {
+      window.removeEventListener('pagehide', hidePrivateContent);
+      window.removeEventListener('pageshow', revalidateRestoredPage);
+    };
+  }, []);
   async function action(path: string, method: 'POST' | 'PATCH' | 'DELETE', body?: unknown) {
     setBusy(true);
     setError('');
@@ -316,7 +326,7 @@ function WorkspaceBody({ screen, brandId }: { screen: Screen; brandId: string })
     data?.candidates.filter((item) => item.selected && item.status !== 'disabled') ?? [];
   return (
     <CabinetLayout breadcrumbs={[{ label: 'Видение', href: '/vision' }, { label: 'Вопросы' }]}>
-      <div className="space-y-5">
+      <div ref={privateContent} className="space-y-5">
         <header>
           <h1 className="text-3xl font-bold">
             {screen === 'index'
@@ -344,11 +354,7 @@ function WorkspaceBody({ screen, brandId }: { screen: Screen; brandId: string })
             {notice}
           </p>
         )}
-        {!secure ? (
-          <p role="alert" className={card}>
-            Вопросы доступны по HTTPS или на localhost.
-          </p>
-        ) : !data ? (
+        {!data ? (
           <div className={card} role="status">
             {error ? (
               <button type="button" className={secondary} onClick={() => void load()}>
