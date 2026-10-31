@@ -194,7 +194,7 @@ final class GatewayTest extends TestCase
             self::assertSame('reserved', DB::table('ai_calls')->value('status'));
             self::assertSame(100, (int) DB::table('ai_budgets')->value('reserved_micros'));
 
-            return Http::response('{"model":"google/gemini-2.5-flash","choices":[{"message":{"content":"ok"}}],"usage":{"prompt_tokens":1,"completion_tokens":1,"cost":0.000004}}', 200);
+            return Http::response('{"model":"google/gemini-2.5-flash","choices":[{"finish_reason":"stop","message":{"content":"ok"}}],"usage":{"prompt_tokens":1,"completion_tokens":1,"cost":0.000004}}', 200);
         }]);
         $this->within(function (): void {
             $result = app(AiGateway::class)->complete($this->request(), $this->context('in-flight'));
@@ -288,7 +288,7 @@ final class GatewayTest extends TestCase
         $bytes = strlen(json_encode($wire, JSON_THROW_ON_ERROR));
         config(['runtime.ai_driver' => 'openrouter', 'features.E0-05.defaults.live_enabled' => true, 'features.E0-05.defaults.openrouter_key' => 'test-only', 'features.E0-05.defaults.reservation_micros' => [$model => 100], 'features.E0-05.defaults.reservation_request_limits' => [$model => ['max_input_bytes' => $bytes - 1, 'max_output_tokens' => 700]]]);
         DB::table('brands')->where('id', $this->brand)->update(['settings' => json_encode(['ai_data_policy' => ['knowledge_public' => ['any']]], JSON_THROW_ON_ERROR)]);
-        Http::fake(['openrouter.ai/*' => Http::response('{"model":"anthropic/claude-sonnet-5.5","choices":[{"message":{"content":"ok"}}],"usage":{"prompt_tokens":1,"completion_tokens":1,"cost":0.000004}}', 200)]);
+        Http::fake(['openrouter.ai/*' => Http::response('{"model":"anthropic/claude-sonnet-5.5","choices":[{"finish_reason":"stop","message":{"content":"ok"}}],"usage":{"prompt_tokens":1,"completion_tokens":1,"cost":0.000004}}', 200)]);
         $this->within(function () use ($request, $model, $bytes): void {
             try {
                 app(AiGateway::class)->complete($request, $this->context('too-big'));
@@ -592,7 +592,7 @@ final class GatewayTest extends TestCase
     {
         config(['runtime.ai_driver' => 'record', 'features.E0-05.defaults.live_enabled' => true, 'features.E0-05.defaults.openrouter_key' => 'test-only']);
         DB::table('brands')->where('id', $this->brand)->update(['settings' => json_encode(['ai_data_policy' => ['knowledge_public' => ['any']]], JSON_THROW_ON_ERROR)]);
-        Http::fake(['openrouter.ai/*' => Http::response('{"model":"google/gemini-2.5-flash","choices":[{"message":{"content":null,"tool_calls":[{"id":"call_1","function":{"name":"test","arguments":"{\\"test\\":1}"}}]}}],"usage":{"prompt_tokens":5,"completion_tokens":3,"cost":0.000000100000000001}}', 200, ['Content-Type' => 'application/json'])]);
+        Http::fake(['openrouter.ai/*' => Http::response('{"model":"google/gemini-2.5-flash","choices":[{"finish_reason":"tool_calls","message":{"content":null,"tool_calls":[{"id":"call_1","function":{"name":"test","arguments":"{\\"test\\":1}"}}]}}],"usage":{"prompt_tokens":5,"completion_tokens":3,"cost":0.000000100000000001}}', 200, ['Content-Type' => 'application/json'])]);
         $this->within(function (): void {
             $request = new AiRequest([['role' => 'user', 'content' => 'Почта a@example.ru']], 'google/gemini-2.5-flash', 0.5);
             $recorded = app(AiGateway::class)->complete($request, $this->context('record'));
@@ -649,18 +649,20 @@ final class GatewayTest extends TestCase
         });
     }
 
-    public function test_only_explicit_rate_limit_is_retried_and_only_one_call_is_charged(): void
+    public function test_rate_limit_is_not_retried_or_treated_as_unbilled(): void
     {
         config(['runtime.ai_driver' => 'openrouter', 'features.E0-05.defaults.live_enabled' => true, 'features.E0-05.defaults.openrouter_key' => 'test-only']);
         DB::table('brands')->where('id', $this->brand)->update(['settings' => json_encode(['ai_data_policy' => ['knowledge_public' => ['any']]], JSON_THROW_ON_ERROR)]);
-        Http::fake(['openrouter.ai/*' => Http::sequence()->push('rate-limited', 429)->push('rate-limited', 429)->push('{"model":"google/gemini-2.5-flash","choices":[{"message":{"content":"ok"}}],"usage":{"prompt_tokens":5,"completion_tokens":3,"cost":0.000004}}', 200)]);
+        Http::fake(['openrouter.ai/*' => Http::sequence()->push('rate-limited', 429)->push('rate-limited', 429)->push('{"model":"google/gemini-2.5-flash","choices":[{"finish_reason":"stop","message":{"content":"ok"}}],"usage":{"prompt_tokens":5,"completion_tokens":3,"cost":0.000004}}', 200)]);
         $this->within(function (): void {
             $result = app(AiGateway::class)->complete($this->request(), $this->context('rate-limit'));
-            self::assertSame('ok', $result->content);
-            self::assertSame(4, $result->costMicros);
-            self::assertSame(4, (int) DB::table('ai_budgets')->value('spent_micros'));
+            self::assertSame('provider_uncertain', $result->error['code']);
+            self::assertNull($result->costMicros);
+            self::assertSame('uncertain', DB::table('ai_calls')->value('status'));
+            self::assertSame(1, (int) DB::table('ai_budgets')->value('unresolved_count'));
+            self::assertSame(0, (int) DB::table('ai_budgets')->value('spent_micros'));
             self::assertSame(1, DB::table('ai_calls')->count());
-            Http::assertSentCount(3);
+            Http::assertSentCount(1);
         });
     }
 

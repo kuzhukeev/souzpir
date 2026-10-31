@@ -17,25 +17,18 @@ final class OpenRouterDriver implements Driver
         }
         $body = $this->wireBody($body);
         $start = hrtime(true);
-        for ($attempt = 0; $attempt < 3; $attempt++) {
-            try {
-                $response = Http::withToken($key)->acceptJson()->timeout(60)->post('https://openrouter.ai/api/v1/chat/completions', $body);
-            } catch (Throwable) {
-                throw new Uncertain('Provider outcome is unknown.');
-            }
-            if ($response->successful()) {
-                break;
-            }
-            // Only an explicit unbilled 429 can be retried. Transport/5xx are uncertain.
-            if ($response->status() === 429 && $attempt < 2) {
-                usleep(400_000 * (2 ** $attempt));
-
-                continue;
-            }
-            if (in_array($response->status(), [400, 401, 402, 403, 404, 422, 429], true)) {
-                throw new Rejected('Provider rejected request: HTTP '.$response->status());
-            }
-            throw new Uncertain('Provider outcome is unknown: HTTP '.$response->status());
+        try {
+            // A redirect can repeat a POST (307/308); no second transport is
+            // justified without a verified provider idempotency contract.
+            $response = Http::withToken($key)->acceptJson()->withoutRedirecting()->timeout(60)
+                ->post('https://openrouter.ai/api/v1/chat/completions', $body);
+        } catch (Throwable) {
+            throw new Uncertain('Provider outcome is unknown.');
+        }
+        if ($response->status() !== 200) {
+            // A status alone does not prove an unbilled call; partial or merely
+            // accepted responses (including 206/202) are also indeterminate.
+            throw new Uncertain('Provider outcome is unknown.');
         }
         try {
             $data = Money::decode($response->body());
@@ -43,8 +36,26 @@ final class OpenRouterDriver implements Driver
             if (! is_array($message) || isset($data['error'])) {
                 throw new \UnexpectedValueException('Invalid AI response.');
             }
+            // Only explicitly complete text and tool-call outcomes are handled.
+            // A length limit, missing or unknown finish reason must never release
+            // the reservation merely because a partial response has a cost.
+            $finishReason = $data['choices'][0]['finish_reason'] ?? null;
+            if (! in_array($finishReason, ['stop', 'tool_calls'], true)) {
+                throw new \UnexpectedValueException('AI response completion is unconfirmed.');
+            }
+            // A syntactically valid but incomplete JSON object is not a
+            // confirmed empty response. Tool-only messages are still valid.
+            $toolCalls = $message['tool_calls'] ?? [];
+            if (! is_array($toolCalls) || ! array_is_list($toolCalls)
+                || (! array_key_exists('content', $message) && $toolCalls === [])) {
+                throw new \UnexpectedValueException('Invalid AI response.');
+            }
+            if (($finishReason === 'stop' && ($toolCalls !== [] || ! is_string($message['content'] ?? null)))
+                || ($finishReason === 'tool_calls' && $toolCalls === [])) {
+                throw new \UnexpectedValueException('AI response completion does not match its message.');
+            }
             $calls = [];
-            foreach ($message['tool_calls'] ?? [] as $call) {
+            foreach ($toolCalls as $call) {
                 if (! is_string($call['id'] ?? null) || ! is_string($call['function']['name'] ?? null) || ! is_string($call['function']['arguments'] ?? null)) {
                     throw new \UnexpectedValueException('Invalid AI tool call.');
                 }
