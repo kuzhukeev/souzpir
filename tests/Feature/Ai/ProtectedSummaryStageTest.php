@@ -212,6 +212,95 @@ final class ProtectedSummaryStageTest extends TestCase
         });
     }
 
+    public function test_unknown_ai_calls_remain_isolated_by_brand_and_unverified_reconciliation_cannot_release_them(): void
+    {
+        [$firstTenant, $firstHttp, $firstClaim] = $this->fixture();
+        $user = $firstHttp->user();
+        $organization = $firstTenant->organizationId;
+        $otherBrand = $this->within(new TenantContext($organization, actorId: $user->id), fn () => Brand::create(['name' => 'Second synthetic brand', 'timezone' => 'Europe/Moscow']));
+        DB::table('brand_modules')->insert(['id' => (string) Str::ulid(), 'organization_id' => $organization, 'brand_id' => $otherBrand->id, 'module' => 'seller', 'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
+        $otherTenant = new TenantContext($organization, $otherBrand->id, $user->id, $firstTenant->membershipId);
+        $session = new Store('c02-second-brand', new ArraySessionHandler(120));
+        $session->setId(Str::random(40));
+        $session->start();
+        $session->put('auth.version', $user->auth_version);
+        $otherHttp = Request::create('/', 'POST');
+        $otherHttp->setLaravelSession($session);
+        $otherHttp->setUserResolver(fn () => $user);
+        app(AuthSessionRegistry::class)->issue($otherHttp, $user, $user->auth_version);
+        app(AuthSessionRegistry::class)->withinActive($otherHttp, fn () => app(SessionBrandSelection::class)->initialize($otherHttp, $organization, $otherBrand->id));
+        [$conversation, $input] = $this->within($otherTenant, function (): array {
+            $conversation = Conversation::create(['state' => []]);
+            $input = Message::create(['conversation_id' => $conversation->id, 'role' => 'client', 'text' => 'Synthetic question', 'meta' => []]);
+
+            return [$conversation, $input];
+        });
+        $otherClaim = app(ConversationRepository::class)->claimTurn($otherTenant, new TurnCommand($conversation->id, $input->id, $input->text, null, 'c02-unknown-'.Str::random(16), 0));
+        config(['features.E0-05.defaults.reservation_micros' => ['google/gemini-2.5-flash' => 100]]);
+
+        [$firstStage, $firstCall] = $this->within($firstTenant, function () use ($firstHttp, $firstClaim): array {
+            $stage = app(SellerSummaryStages::class)->prepare($firstHttp, $firstClaim);
+            [$request] = app(SellerSummaryStages::class)->load($firstHttp, $firstClaim, $stage);
+            $file = $this->fakeFixture($request->toArray(), null);
+            self::assertSame('uncertain', app(Gateway::class)->completeProtectedSummary($firstHttp, $firstClaim, $stage));
+            unlink($file);
+
+            return [$stage, DB::table('c02_ai_stages')->where('id', $stage)->value('ai_call_id')];
+        });
+        [$otherStage, $otherCall] = $this->within($otherTenant, function () use ($otherHttp, $otherClaim): array {
+            $stage = app(SellerSummaryStages::class)->prepare($otherHttp, $otherClaim);
+            [$request] = app(SellerSummaryStages::class)->load($otherHttp, $otherClaim, $stage);
+            $file = $this->fakeFixture($request->toArray(), null);
+            self::assertSame('uncertain', app(Gateway::class)->completeProtectedSummary($otherHttp, $otherClaim, $stage));
+            unlink($file);
+
+            return [$stage, DB::table('c02_ai_stages')->where('id', $stage)->value('ai_call_id')];
+        });
+        self::assertNotSame($firstCall, $otherCall);
+        $this->within($firstTenant, function () use ($firstHttp, $firstClaim, $firstStage): void {
+            self::assertSame('uncertain', app(Gateway::class)->completeProtectedSummary($firstHttp, $firstClaim, $firstStage));
+        });
+        $this->within($otherTenant, function () use ($otherTenant, $otherHttp, $otherClaim, $firstStage, $firstCall, $otherStage, $otherCall): void {
+            self::assertSame('uncertain', app(Gateway::class)->completeProtectedSummary($otherHttp, $otherClaim, $otherStage));
+            try {
+                app(Gateway::class)->completeProtectedSummary($otherHttp, $otherClaim, $firstStage);
+                self::fail('A different brand accessed the first stage.');
+            } catch (LogicException $error) {
+                self::assertSame('Protected summary stage could not be completed.', $error->getMessage());
+            }
+            foreach ([[$firstCall, 'AI call not found.'], [$otherCall, 'Unbilled reconciliation requires a verified provider evidence workflow.']] as [$callId, $message]) {
+                try {
+                    app(Gateway::class)->reconcileUnbilled($otherTenant, $callId, 'unverified-synthetic-evidence');
+                    self::fail('Unverified reconciliation released an uncertain call.');
+                } catch (LogicException $error) {
+                    self::assertSame($message, $error->getMessage());
+                    self::assertNull($error->getPrevious());
+                }
+            }
+        });
+        [$foreignTenant] = $this->fixture();
+        $this->within($foreignTenant, function () use ($foreignTenant, $firstCall): void {
+            try {
+                app(Gateway::class)->reconcileUnbilled($foreignTenant, $firstCall, 'unverified-synthetic-evidence');
+                self::fail('A different organization accessed the uncertain call.');
+            } catch (LogicException $error) {
+                self::assertSame('AI call not found.', $error->getMessage());
+                self::assertNull($error->getPrevious());
+            }
+        });
+        self::assertSame(2, DB::table('ai_calls')->where('organization_id', $organization)->where('status', 'uncertain')->count());
+        foreach ([[$firstTenant, $firstCall], [$otherTenant, $otherCall]] as [$tenant, $callId]) {
+            $call = DB::table('ai_calls')->where('id', $callId)->where('organization_id', $organization)->where('brand_id', $tenant->brandId)->first();
+            self::assertNotNull($call);
+            self::assertSame('cost_unknown', $call->error_code);
+            $budget = DB::table('ai_budgets')->where('id', $call->budget_id)->first();
+            self::assertSame(100, (int) $budget->reserved_micros);
+            self::assertSame(1, (int) $budget->unresolved_count);
+            self::assertSame(0, (int) $budget->spent_micros);
+        }
+        Http::assertNothingSent();
+    }
+
     public function test_a_preexisting_unprotected_call_cannot_be_bound_after_it_was_sent(): void
     {
         [$tenant, $http, $claim] = $this->fixture();
