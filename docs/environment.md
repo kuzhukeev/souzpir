@@ -35,6 +35,8 @@ PostgreSQL сейчас запущен через штатный pg_ctl start, �
 
 PHP8.4 pdo_pgsql/pgsql включены в persistent OSPanel template и проверены CLI + HTTP. Настройка только generated php.ini будет потеряна при regen. Для osp CLI требуется cmd.exe без PowerShell parent guard; не изменять сам osp.bat. Не перезапускать весь OSPanel для задач разработки.
 
+Для CGI/FastCGI в `public/.user.ini` задано `zend.exception_ignore_args=1`: аргументы не должны попадать в новые трассы исключений сайта. OSPanel/PHP может кэшировать `.user.ini` до пяти минут; после изменения нужно проверять действующее значение у каждого обслуживающего процесса. PHP CLI не читает `.user.ini`: для artisan, scheduler и queue workers настройку необходимо задавать отдельно в их PHP-конфигурации или параметром `-d zend.exception_ignore_args=1`. Это не защищает сообщения ошибок, SQL bindings, HTTP-события и сторонние логи и не заменяет их очистку. Для production и иных серверов проверить поддержку и фактическое применение настройки перед запуском обработки пользовательских данных.
+
 ## Изоляция каждого worktree
 
 Каждый task получает собственные DB preview/test и ограниченную роль; нельзя использовать test_main параллельно с тестами main. Имена тестовых БД содержат отдельный сегмент test (например souzpir_test_sp_e0_01); APP_PREVIEW_DATABASE всегда явно указывает preview DB. Framework provider проверяет фактически разобранный connection (включая DB_URL), PostgreSQL/test marker/точный DB_TEST_DATABASE/различие с preview до запуска тестовых миграций.
