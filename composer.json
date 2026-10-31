@@ -10,9 +10,11 @@
   "license": "proprietary",
   "require": {
     "php": "^8.4",
+    "ext-gd": "*",
     "inertiajs/inertia-laravel": "^3.0",
     "laravel/framework": "^13.17",
     "laravel/tinker": "^3.0",
+    "opis/json-schema": "^2.6",
     "spatie/laravel-data": "^4.20",
     "spatie/laravel-typescript-transformer": "^3.0",
     "symfony/yaml": "^8.0",
