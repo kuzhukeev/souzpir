@@ -41,7 +41,7 @@ final class NotificationController
 
     public function update(Request $request): RedirectResponse
     {
-        $values = ProfileValidation::validate($request, ['changes' => ['required', 'array', 'min:1', 'max:45'], 'changes.*' => ['required', 'array:event,channel,enabled'], 'changes.*.event' => ['required', 'string', Rule::in(array_keys(EventCatalog::TITLES))], 'changes.*.channel' => ['required', Rule::in(['cabinet', 'email', 'telegram'])], 'changes.*.enabled' => ['required', 'boolean']]);
+        $values = ProfileValidation::validate($request, ['changes' => ['required', 'array', 'min:1', 'max:'.(count(EventCatalog::TITLES) * 3)], 'changes.*' => ['required', 'array:event,channel,enabled'], 'changes.*.event' => ['required', 'string', Rule::in(array_keys(EventCatalog::TITLES))], 'changes.*.channel' => ['required', Rule::in(['cabinet', 'email', 'telegram'])], 'changes.*.enabled' => ['required', 'boolean']]);
         app(ProfileAccess::class)->run($request, function (User $user, TenantContext $context) use ($values): void {
             $available = $this->events($context);
             $seen = [];

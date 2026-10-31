@@ -2,12 +2,14 @@
 
 namespace Tests\Feature\Shell\Profile;
 
+use App\Shell\Notifications\EventCatalog;
 use App\Shell\Profile\TelegramLinks;
 use App\Tenancy\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Validation\ValidationException;
 use Tests\Feature\Tenancy\TenancyTestCase;
 
 final class TelegramLinkTest extends TenancyTestCase
@@ -41,6 +43,76 @@ final class TelegramLinkTest extends TenancyTestCase
         return $this->withHeader('X-Telegram-Bot-Api-Secret-Token', self::SECRET)->postJson('/webhooks/profile/telegram', $update);
     }
 
+    public function test_local_site_can_open_telegram_capability_without_exposing_it_in_inertia(): void
+    {
+        [$user, , $brand] = $this->cabinet();
+        $this->app->instance('env', 'local');
+        $csrf = str_repeat('c', 40);
+        $this->actingAs($user)->withSession(['brand_id' => $brand->id, '_token' => $csrf])->withHeader('X-CSRF-TOKEN', $csrf);
+        $this->withServerVariables(['SERVER_ADDR' => '127.0.1.11', 'REMOTE_ADDR' => '127.0.0.1']);
+        $this->post('http://souzpir.local/profile/notifications/telegram')->assertRedirect('/profile/notifications');
+        $url = session('profile.telegram_link.url');
+        self::assertIsString($url);
+        parse_str((string) parse_url($url, PHP_URL_QUERY), $query);
+        self::assertMatchesRegularExpression('/^[a-f0-9]{48}$/D', $query['start']);
+        $page = $this->get('http://souzpir.local/profile/notifications')->assertOk()->assertDontSee($query['start'], false);
+        self::assertTrue($page->viewData('page')['props']['notificationSettings']['telegram']['link_available']);
+        $this->get('http://souzpir.local/profile/notifications/telegram/link')->assertRedirect($url)
+            ->assertHeader('Cache-Control', 'no-store, private')->assertHeader('Referrer-Policy', 'no-referrer');
+        $this->withServerVariables(['SERVER_ADDR' => '127.0.1.11', 'REMOTE_ADDR' => '198.51.100.2']);
+        $this->get('http://souzpir.local/profile/notifications/telegram/link')->assertForbidden()->assertDontSee($query['start'], false);
+        $this->withServerVariables(['SERVER_ADDR' => '127.0.1.11', 'REMOTE_ADDR' => '127.0.0.1']);
+        $this->withHeader('X-Forwarded-Host', 'souzpir.local');
+        $this->get('http://souzpir.local/profile/notifications/telegram/link')->assertForbidden()->assertDontSee($query['start'], false);
+        $this->flushHeaders();
+        $this->app->instance('env', 'production');
+        $this->get('http://souzpir.local/profile/notifications/telegram/link')->assertForbidden();
+        Http::assertNothingSent();
+    }
+
+    public function test_local_telegram_exception_rejects_remote_peers_forwarding_and_production(): void
+    {
+        [$user, , $brand] = $this->cabinet();
+        $testingRequest = Request::create('http://souzpir.local/profile/notifications/telegram', 'POST', [], [], [], [
+            'SERVER_ADDR' => '127.0.1.11', 'REMOTE_ADDR' => '127.0.0.1',
+        ]);
+        try {
+            app(TelegramLinks::class)->start($testingRequest);
+            self::fail('The local HTTP exception must not activate in testing or other environments.');
+        } catch (ValidationException $error) {
+            self::assertArrayHasKey('telegram', $error->errors());
+        }
+        $this->app->instance('env', 'local');
+        $csrf = str_repeat('c', 40);
+        $this->actingAs($user)->withSession(['brand_id' => $brand->id, '_token' => $csrf])->withHeader('X-CSRF-TOKEN', $csrf);
+        $this->withServerVariables(['SERVER_ADDR' => '127.0.1.11', 'REMOTE_ADDR' => '198.51.100.2']);
+        $this->postJson('http://souzpir.local/profile/notifications/telegram')->assertUnprocessable()->assertJsonValidationErrors('telegram');
+        self::assertNull(session('profile.telegram_link'));
+
+        $this->withServerVariables(['SERVER_ADDR' => '127.0.1.11', 'REMOTE_ADDR' => '127.0.0.1']);
+        $this->withHeader('X-Forwarded-Port', '80');
+        $this->postJson('http://souzpir.local/profile/notifications/telegram')->assertUnprocessable()->assertJsonValidationErrors('telegram');
+        self::assertNull(session('profile.telegram_link'));
+        $this->flushHeaders();
+        $this->withHeader('X-CSRF-TOKEN', $csrf);
+
+        $this->postJson('http://souzpir.local.attacker.test/profile/notifications/telegram')->assertUnprocessable()->assertJsonValidationErrors('telegram');
+        self::assertNull(session('profile.telegram_link'));
+        $this->app->instance('env', 'production');
+        $productionRequest = Request::create('http://souzpir.local/profile/notifications/telegram', 'POST', [], [], [], [
+            'SERVER_ADDR' => '127.0.1.11', 'REMOTE_ADDR' => '127.0.0.1',
+        ]);
+        try {
+            app(TelegramLinks::class)->start($productionRequest);
+            self::fail('Production must not use the local HTTP exception.');
+        } catch (ValidationException $error) {
+            self::assertArrayHasKey('telegram', $error->errors());
+        }
+        self::assertNull(session('profile.telegram_link'));
+        $this->assertDatabaseCount('profile_telegram_links', 0);
+        Http::assertNothingSent();
+    }
+
     public function test_deep_link_requires_private_callback_then_explicit_browser_confirmation(): void
     {
         [$user,,$brand] = $this->cabinet();
@@ -53,7 +125,8 @@ final class TelegramLinkTest extends TenancyTestCase
         $this->assertDatabaseCount('notification_settings', 0);
         $this->get('/profile/notifications')->assertViewHas('page', fn ($p) => $p['props']['notificationSettings']['telegram']['pending'] && $p['props']['notificationSettings']['telegram']['link_available'] === false);
         $this->post('/profile/notifications/telegram/confirm')->assertRedirect('/profile/notifications');
-        $this->assertDatabaseCount('notification_settings', 15);
+        $this->assertDatabaseCount('notification_settings', count(EventCatalog::TITLES));
+        $this->assertDatabaseHas('notification_settings', ['event_key' => 'shell.plan_request.created', 'channel' => 'telegram']);
         $setting = DB::table('notification_settings')->where('event_key', 'shell.member.invited')->where('channel', 'telegram')->first();
         $this->assertFalse((bool) $setting->enabled);
         $this->assertSame('123456', Crypt::decryptString($setting->destination));
@@ -116,7 +189,7 @@ final class TelegramLinkTest extends TenancyTestCase
         $this->webhook($this->update($token))->assertNoContent();
         $this->post('/profile/notifications/telegram/confirm')->assertRedirect();
         $this->assertDatabaseCount('profile_telegram_accounts', 1);
-        $this->assertDatabaseCount('notification_settings', 30);
+        $this->assertDatabaseCount('notification_settings', 2 * count(EventCatalog::TITLES));
     }
 
     public function test_disconnect_disables_runtime_destinations_and_replay(): void
@@ -194,7 +267,7 @@ final class TelegramLinkTest extends TenancyTestCase
         $this->assertDatabaseMissing('profile_telegram_links', ['user_id' => $user->id, 'brand_id' => $brand->id]);
         $ownerRow = DB::table('profile_telegram_links')->where('user_id', $owner->id)->first();
         $this->assertSame('999999', Crypt::decryptString($ownerRow->chat_id));
-        $this->assertSame(15, DB::table('notification_settings')->where('user_id', $owner->id)->whereNotNull('destination')->count());
+        $this->assertSame(count(EventCatalog::TITLES), DB::table('notification_settings')->where('user_id', $owner->id)->whereNotNull('destination')->count());
     }
 
     public function test_accessible_brand_binding_cannot_be_overwritten_by_new_chat_confirmation(): void

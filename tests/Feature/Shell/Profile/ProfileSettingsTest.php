@@ -93,16 +93,17 @@ final class ProfileSettingsTest extends TenancyTestCase
         $this->post('/profile/avatar', ['avatar' => UploadedFile::fake()->create('bad.svg', 1, 'image/svg+xml')])->assertSessionHasErrors('avatar');
     }
 
-    public function test_catalog_has_seven_seller_six_vision_two_shell_events_and_real_defaults(): void
+    public function test_catalog_has_seven_seller_six_vision_three_cabinet_events_and_real_defaults(): void
     {
         [$user,$org,$brand] = $this->cabinet();
         $this->modules($org, $brand);
         $this->actingAs($user)->withSession(['brand_id' => $brand->id]);
         $response = $this->get('/profile/notifications')->assertOk();
         $settings = $response->viewData('page')['props']['notificationSettings'];
-        $this->assertCount(15, $settings['events']);
+        $this->assertCount(16, $settings['events']);
         $this->assertCount(7, array_filter($settings['events'], fn ($e) => $e['group'] === 'seller'));
         $this->assertCount(6, array_filter($settings['events'], fn ($e) => $e['group'] === 'vision'));
+        $this->assertCount(3, array_filter($settings['events'], fn ($e) => $e['group'] === 'shell'));
         foreach ($settings['events'] as $event) {
             $this->assertSame(['cabinet' => true, 'email' => false, 'telegram' => false], $event['channels']);
         }
@@ -114,9 +115,27 @@ final class ProfileSettingsTest extends TenancyTestCase
     {
         [$user,,$brand] = $this->cabinet();
         $this->actingAs($user)->withSession(['brand_id' => $brand->id]);
-        $this->get('/profile/notifications')->assertViewHas('page', fn ($p) => count($p['props']['notificationSettings']['events']) === 2);
+        $this->get('/profile/notifications')->assertViewHas('page', fn ($p) => count($p['props']['notificationSettings']['events']) === 3);
         $this->putJson('/profile/notifications', ['changes' => [['event' => 'seller.promise.overdue', 'channel' => 'cabinet', 'enabled' => false]]])->assertUnprocessable();
         $this->assertDatabaseCount('notification_settings', 0);
+    }
+
+    public function test_complete_expanded_event_matrix_can_be_saved(): void
+    {
+        [$user, $org, $brand] = $this->cabinet();
+        $this->modules($org, $brand);
+        $this->actingAs($user)->withSession(['brand_id' => $brand->id]);
+        $events = $this->get('/profile/notifications')->assertOk()->viewData('page')['props']['notificationSettings']['events'];
+        $changes = [];
+        foreach ($events as $event) {
+            foreach (['cabinet', 'email', 'telegram'] as $channel) {
+                $changes[] = ['event' => $event['key'], 'channel' => $channel, 'enabled' => $channel === 'cabinet'];
+            }
+        }
+        self::assertCount(48, $changes);
+        $this->put('/profile/notifications', ['changes' => $changes])->assertRedirect('/profile/notifications')->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('notification_settings', ['user_id' => $user->id, 'brand_id' => $brand->id, 'event_key' => 'shell.plan_request.created', 'channel' => 'cabinet', 'enabled' => true]);
+        $this->assertDatabaseCount('notification_settings', 48);
     }
 
     public function test_matrix_updates_are_atomic_and_user_brand_scoped(): void
