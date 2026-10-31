@@ -17,7 +17,9 @@
 - Изменять только scope карточки. Новые общие dependencies/модели/контракты или расширение scope передать интегратору как точный запрос; не менять чужие файлы и не дублировать реализацию.
 - Manifests/lockfiles, bootstrap/loaders и generated shared DTO имеют одного владельца. Модульные routes, migrations, config, i18n и tests подключаются по соглашению SP-C-01/SP-E0-01.
 - Отдельные БД/схемы, Redis prefixes, очереди, storage/cache, cookies и порты на worktree. Тесты не используют рабочую БД или живые отправки.
+- Для PHP-тестов не делать junction/symlink `vendor` к другому checkout: Composer может загрузить приложение и `.env.testing` чужой ветки. Перед миграциями проверить текущий basePath и имя отдельной test DB; запускать тесты из корня своего worktree.
 - Claim не истекает автоматически. Не восстанавливать чужой claim без подтвержденной остановки исполнителя. Token только в игнорируемом локальном файле, не в Git/карточке/чате.
+- Если sandbox разрешает запись в проект, но запрещает запись в `.git`, команды `scripts/task.py claim`, `git worktree`, commit и merge выполняются через `exec_command` с `sandbox_permissions: "require_escalated"`. Не менять ACL и не обходить правила sandbox. При неудачном claim не перезаписывать локальную запись: сначала проверить статус очереди, ownership, наличие ветки/worktree; запись released без токена архивирует интегратор.
 - submit → review; review удерживает ownership. Интегратор проверяет diff/тесты, делает обычный merge/FF и mark-merged. Исполнитель не ставит done и не меняет main. Squash не используется базовым workflow.
 
 ## Приоритет и ограничения
