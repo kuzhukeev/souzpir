@@ -93,7 +93,7 @@ final class SupportSecurityTest extends SupportTestCase
                 }
             });
             $response = $this->post('/help/support', [...$this->payload(), 'attachments' => [$this->attachment()]], ['Accept' => 'application/json']);
-            self::assertSame($mode === 'membership' ? 404 : 401, $response->status());
+            self::assertSame($mode === 'membership' ? 404 : 401, $response->getStatusCode());
         }
         self::assertSame(0, Ticket::withoutGlobalScopes()->count());
         self::assertSame(0, SupportAccessGrant::withoutGlobalScopes()->count());
@@ -315,13 +315,8 @@ final class SupportSecurityTest extends SupportTestCase
         self::assertSame(1, Ticket::withoutGlobalScopes()->count());
         $attachment = TicketAttachment::withoutGlobalScopes()->firstOrFail();
         Storage::disk('local')->assertExists($attachment->storage_path);
-        self::assertNotEmpty($reported);
-        foreach ($reported as $event) {
-            self::assertStringNotContainsString($marker, (string) $event->message);
-            if (($event->context['exception'] ?? null) instanceof Throwable) {
-                self::assertSafeSupportException($event->context['exception'], $marker);
-            }
-        }
+        // The shared support boundary suppresses reporting of the original throwable.
+        self::assertEmpty($reported);
         Mail::assertNothingSent();
     }
 
