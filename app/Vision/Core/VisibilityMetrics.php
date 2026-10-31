@@ -30,7 +30,7 @@ final class VisibilityMetrics
                     $cells[] = $slot;
                     $question[] = $slot;
                 }
-                if (count(array_filter($question, fn (array $s): bool => $s['valid'])) === $runs) {
+                if (count(array_filter($question, fn (array $s): bool => $this->decisive($s))) === $runs) {
                     $complete[$q] = $question;
                 }
             }
@@ -56,7 +56,7 @@ final class VisibilityMetrics
                 'ever_mentioned_rate' => $this->percent($ever, count($complete)),
                 'range_label' => 'Наблюдаемый разброс повторов, не доверительный интервал',
             ];
-            $legacy[] = ['cells' => array_map(fn (array $s): array => ['weight' => 1 / ($questions * $runs), 'valid' => $s['valid'], 'positive' => $this->confirmed($s)], $cells)];
+            $legacy[] = ['cells' => array_map(fn (array $s): array => ['weight' => 1 / ($questions * $runs), 'valid' => $this->decisive($s), 'positive' => $this->confirmed($s)], $cells)];
             array_push($all, ...$cells);
         }
         $panel = $this->statistics($all);
@@ -68,12 +68,15 @@ final class VisibilityMetrics
 
         $entities = $this->entities($all);
         $companyMentions = $panel['mentioned'] + array_sum(array_column(array_filter($entities, fn (array $entity): bool => ! $entity['is_brand'] && (! isset($entity['relevance']) || $entity['relevance'] === 'confirmed')), 'answers'));
+        $completeMentions = count(array_filter($all, fn (array $slot): bool => $slot['valid'] && (($slot['mentions_complete'] ?? false) !== true || ! $this->decisive($slot)))) === 0;
         foreach ($entities as &$entity) {
-            $entity['share_of_voice'] = ($entity['relevance'] ?? null) === 'candidate' ? null : $this->percent($entity['answers'], $companyMentions);
+            $entity['share_of_voice'] = ! $completeMentions || ($entity['relevance'] ?? null) === 'candidate' ? null : $this->percent($entity['answers'], $companyMentions);
         }
         unset($entity);
-        $panel['share_of_voice'] = $this->percent($panel['mentioned'], $companyMentions);
-        $panel['share_of_voice_denominator'] = $companyMentions;
+        $panel['share_of_voice'] = $completeMentions ? $this->percent($panel['mentioned'], $companyMentions) : null;
+        $panel['share_of_voice_complete'] = $completeMentions;
+        $panel['share_of_voice_denominator'] = $completeMentions ? $companyMentions : null;
+        $panel['observed_company_mentions'] = $companyMentions;
         $intents = [];
         $questionsById = [];
         foreach ($all as $slot) {
@@ -97,7 +100,7 @@ final class VisibilityMetrics
         }
         $before = [];
         foreach ($previous as $slot) {
-            if ($this->valid($slot)) {
+            if ($this->decisive($slot)) {
                 $before[$this->comparisonKey($slot)] = $slot;
             }
         }
@@ -108,7 +111,7 @@ final class VisibilityMetrics
             $providers[$provider] ??= ['planned' => 0, 'paired_slots' => 0, 'mentioned_before' => 0, 'mentioned_after' => 0];
             $providers[$provider]['planned']++;
             $key = $this->comparisonKey($slot);
-            if ($this->valid($slot) && isset($before[$key])) {
+            if ($this->decisive($slot) && isset($before[$key])) {
                 $pairs[] = $key;
                 $old += (int) $this->confirmed($before[$key]);
                 $new += (int) $this->confirmed($slot);
@@ -139,6 +142,16 @@ final class VisibilityMetrics
             && ($slot['fact']['mention_status'] ?? '') !== 'unverified';
     }
 
+    private function decisive(array $slot): bool
+    {
+        if (! $this->valid($slot)) {
+            return false;
+        }
+        $status = $slot['fact']['mention_status'] ?? (($slot['fact']['brand_mentioned'] ?? false) ? 'confirmed' : 'not_mentioned');
+
+        return in_array($status, ['confirmed', 'not_mentioned'], true);
+    }
+
     private function confirmed(array $slot): bool
     {
         return ($slot['fact']['mention_status'] ?? (($slot['fact']['brand_mentioned'] ?? false) ? 'confirmed' : 'not_mentioned')) === 'confirmed';
@@ -160,7 +173,7 @@ final class VisibilityMetrics
     {
         $counts = array_fill_keys(['ok', 'parse_failed', 'protocol_invalid', 'failed', 'not_checked', 'uncertain'], 0);
         $search = array_fill_keys(['requested', 'confirmed', 'not_used', 'unknown'], 0);
-        $valid = $mentioned = $recommended = $possible = 0;
+        $valid = $decisive = $mentioned = $recommended = $recommendedKnown = $possible = 0;
         $positions = $tones = [];
         foreach ($slots as $slot) {
             $counts[$slot['classification']]++;
@@ -172,11 +185,15 @@ final class VisibilityMetrics
                 continue;
             }
             $valid++;
+            $decisive += (int) $this->decisive($slot);
             $fact = $slot['fact'];
             $confirmed = ($fact['mention_status'] ?? ($fact['brand_mentioned'] ? 'confirmed' : 'not_mentioned')) === 'confirmed';
             $possible += (int) (($fact['mention_status'] ?? '') === 'possible');
             $mentioned += (int) $confirmed;
-            $recommended += (int) ($confirmed && ($fact['brand_recommended'] ?? false));
+            if (is_bool($fact['brand_recommended'] ?? null)) {
+                $recommendedKnown++;
+                $recommended += (int) ($confirmed && $fact['brand_recommended']);
+            }
             if ($confirmed) {
                 if (is_numeric($fact['brand_position'] ?? null) && $fact['brand_position'] > 0) {
                     $positions[] = (int) $fact['brand_position'];
@@ -189,13 +206,12 @@ final class VisibilityMetrics
         $planned = count($slots);
 
         return ['planned' => $planned, 'valid' => $valid, 'mentioned' => $mentioned, 'possible' => $possible, 'possible_rate' => $this->percent($possible, $valid), 'unverified' => $planned - $valid,
-            'recommended' => $recommended, 'coverage' => $this->percent($valid, $planned), 'mention_rate' => $this->percent($mentioned, $valid), 'recommended_rate' => $this->percent($recommended, $valid), 'position_average' => $positions ? round(array_sum($positions) / count($positions), 2) : null, 'position_denominator' => count($positions), 'tones' => $tones, 'tone_denominator' => array_sum($tones), 'counts' => $counts, 'search' => $search, 'unknown_bounds' => ['lower' => $this->percent($mentioned, $planned), 'upper' => $this->percent($mentioned + $possible + $planned - $valid, $planned), 'label' => 'Границы с учётом неизвестных результатов']];
+            'recommended' => $recommended, 'recommendation_denominator' => $recommendedKnown, 'mention_denominator' => $decisive, 'coverage' => $this->percent($valid, $planned), 'mention_rate' => $this->percent($mentioned, $decisive), 'recommended_rate' => $this->percent($recommended, $recommendedKnown), 'position_average' => $positions ? round(array_sum($positions) / count($positions), 2) : null, 'position_denominator' => count($positions), 'tones' => $tones, 'tone_denominator' => array_sum($tones), 'counts' => $counts, 'search' => $search, 'unknown_bounds' => ['lower' => $this->percent($mentioned, $planned), 'upper' => $this->percent($mentioned + ($valid - $decisive) + $planned - $valid, $planned), 'label' => 'Границы с учётом неизвестных результатов']];
     }
 
     private function entities(array $slots): array
     {
         $entities = [];
-        $valid = count(array_filter($slots, fn (array $s): bool => $s['valid']));
         foreach ($slots as $slot) {
             if (! $slot['valid']) {
                 continue;
@@ -210,23 +226,30 @@ final class VisibilityMetrics
                     continue;
                 }
                 $seen[$key] = true;
-                $entities[$key] ??= ['name' => $mention['name'], 'role' => 'other', 'role_counts' => [], 'is_brand' => false, 'answers' => 0,
+                $entities[$key] ??= ['name' => $mention['name'], 'role' => null, 'role_counts' => [], 'is_brand' => false, 'answers' => 0, '_seen_slots' => [],
                     ...($mention['entity_id'] ?? null ? ['entity_id' => $mention['entity_id']] : []),
                     ...(isset($mention['relevance']) ? ['relevance' => $mention['relevance'], 'relevance_reasons' => $mention['relevance_reasons'] ?? []] : [])];
                 $entities[$key]['is_brand'] = $entities[$key]['is_brand'] || ($mention['is_brand'] ?? false);
                 $entities[$key]['answers']++;
-                $role = in_array($mention['role'] ?? null, ['manufacturer', 'supplier', 'marketplace', 'aggregator'], true) ? $mention['role'] : 'other';
-                $entities[$key]['role_counts'][$role] = ($entities[$key]['role_counts'][$role] ?? 0) + 1;
+                $entities[$key]['_seen_slots'][$this->key($slot)] = true;
+                $role = $mention['role'] ?? null;
+                if (in_array($role, ['manufacturer', 'supplier', 'marketplace', 'aggregator', 'other'], true)) {
+                    $entities[$key]['role_counts'][$role] = ($entities[$key]['role_counts'][$role] ?? 0) + 1;
+                }
             }
         }
         foreach ($entities as &$entity) {
-            $entity['frequency'] = $this->percent($entity['answers'], $valid);
-            $entity['denominator'] = $valid;
+            $denominator = count(array_filter($slots, fn (array $slot): bool => $slot['valid'] && (($slot['mentions_complete'] ?? false) === true || isset($entity['_seen_slots'][$this->key($slot)]))));
+            unset($entity['_seen_slots']);
+            $entity['frequency'] = $this->percent($entity['answers'], $denominator);
+            $entity['denominator'] = $denominator;
             ksort($entity['role_counts'], SORT_STRING);
             $knownRoles = array_diff_key($entity['role_counts'], ['other' => true]);
             if ($knownRoles) {
                 $leaders = array_keys($knownRoles, max($knownRoles), true);
-                $entity['role'] = count($leaders) === 1 ? $leaders[0] : 'other';
+                $entity['role'] = count($leaders) === 1 ? $leaders[0] : null;
+            } elseif (isset($entity['role_counts']['other'])) {
+                $entity['role'] = 'other';
             }
             $entity['role_conflict'] = count($knownRoles) > 1;
         }
@@ -240,16 +263,30 @@ final class VisibilityMetrics
     {
         $domains = [];
         foreach ($slots as $slot) {
+            if (! $slot['valid']) {
+                continue;
+            }
             $seen = [];
             foreach ($slot['sources'] ?? [] as $source) {
-                $domain = $source['domain'] ?? parse_url($source['url'] ?? '', PHP_URL_HOST);
-                if (! $domain) {
+                $url = $source['url'] ?? null;
+                $domain = $source['domain'] ?? (is_string($url) ? parse_url($url, PHP_URL_HOST) : null);
+                if (! is_string($domain) || $domain === '' || ! is_string($url) || $url === '') {
                     continue;
                 }
-                $domains[$domain] ??= ['domain' => $domain, 'type' => $source['type'] ?? 'other', 'urls' => [], 'answers' => 0, 'presence' => null];
-                $domains[$domain]['urls'][$source['url']] = true;
-                if (($source['presence'] ?? null) === true) {
-                    $domains[$domain]['presence'] = true;
+                $type = array_key_exists('source_type', $source) ? $source['source_type'] : ($source['type'] ?? null);
+                $presence = array_key_exists('mentions_brand', $source) ? $source['mentions_brand'] : ($source['presence'] ?? null);
+                $evidence = $source['presence_evidence'] ?? null;
+                $domains[$domain] ??= ['domain' => $domain, 'type' => null, 'urls' => [], 'answers' => 0,
+                    'presence' => null, 'presence_evidence' => [], '_types' => [], '_presence' => []];
+                $domains[$domain]['urls'][$url] = true;
+                if (is_string($type) && $type !== '') {
+                    $domains[$domain]['_types'][$type] = true;
+                }
+                if (is_bool($presence)) {
+                    $domains[$domain]['_presence'][$presence ? 'yes' : 'no'] = true;
+                }
+                if (is_string($evidence) && $evidence !== '') {
+                    $domains[$domain]['presence_evidence'][$evidence] = true;
                 }
                 if (! isset($seen[$domain])) {
                     $domains[$domain]['answers']++;
@@ -258,8 +295,16 @@ final class VisibilityMetrics
             }
         }
         foreach ($domains as &$domain) {
+            $types = array_keys($domain['_types']);
+            $presence = array_keys($domain['_presence']);
+            $domain['type'] = count($types) === 1 ? $types[0] : null;
+            $domain['type_conflict'] = count($types) > 1;
+            $domain['presence'] = count($presence) === 1 ? $presence[0] === 'yes' : null;
+            $domain['presence_conflict'] = count($presence) > 1;
+            $domain['presence_evidence'] = array_keys($domain['presence_evidence']);
             $domain['url_count'] = count($domain['urls']);
             $domain['urls'] = array_keys($domain['urls']);
+            unset($domain['_types'], $domain['_presence']);
         }
         unset($domain);
         usort($domains, fn (array $a, array $b): int => $b['answers'] <=> $a['answers']);

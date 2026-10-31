@@ -3,17 +3,26 @@
 namespace Tests\Feature\Vision\Core;
 
 use App\Ai\CanonicalJson;
+use App\Ai\Drivers\Driver;
+use App\Ai\Drivers\FakeDriver;
+use App\Models\Membership;
+use App\Models\User;
+use App\Seller\Knowledge\DatabaseKnowledgeRepository;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
+use App\Vision\Core\EvidenceStore;
 use App\Vision\Core\MeasurementRunner;
 use App\Vision\Core\QuestionSets;
 use App\Vision\Core\ReportPreparation;
+use App\Vision\Evidence\Contracts\KnowledgeGate;
+use App\Vision\KnowledgeGrants\GrantRegistry;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use LogicException;
+use Symfony\Component\Process\Process;
 use Tests\TestCase;
 
 final class MeasurementRunnerTest extends TestCase
@@ -26,6 +35,10 @@ final class MeasurementRunnerTest extends TestCase
 
     private string $fixtures;
 
+    private TenantContext $ownerContext;
+
+    private string $grantId;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -35,7 +48,9 @@ final class MeasurementRunnerTest extends TestCase
         DB::table('brands')->insert(['id' => $this->brand, 'organization_id' => $this->organization, 'name' => 'Test', 'status' => 'active', 'theme' => 'neutral', 'settings' => '{}']);
         $this->fixtures = storage_path('app/vision-fixtures-'.Str::random(12));
         mkdir($this->fixtures, 0700, true);
-        config(['runtime.ai_driver' => 'fake', 'features.E0-05.defaults.fixture_directory' => $this->fixtures]);
+        config(['runtime.ai_driver' => 'fake', 'features.E0-05.defaults.fixture_directory' => $this->fixtures,
+            'features.E8-01.defaults.parser' => ['model' => 'google/gemini-2.5-flash', 'temperature' => 0.0, 'max_tokens' => 1200]]);
+        $this->prepareKnowledge();
         Http::preventStrayRequests();
         Http::fake();
     }
@@ -50,11 +65,11 @@ final class MeasurementRunnerTest extends TestCase
             $id = app(MeasurementRunner::class)->start($set, ['gemini' => 'google/gemini-2.5-flash'], 2);
             self::assertSame(4, DB::table('measurement_answers')->where('measurement_id', $id)->count());
             $frozen = DB::table('measurements')->where('id', $id)->first();
-            self::assertNull($frozen->profile_snapshot);
-            self::assertNull($frozen->profile_checksum);
+            self::assertNotNull($frozen->profile_snapshot);
+            self::assertNotNull($frozen->profile_checksum);
             $plan = json_decode($frozen->configuration, true, flags: JSON_THROW_ON_ERROR);
             self::assertArrayHasKey('parser', $plan);
-            self::assertNull($plan['parser']);
+            self::assertSame('google/gemini-2.5-flash', $plan['parser']['model']);
             try {
                 DB::table('measurements')->where('id', $id)->update(['configuration' => '{}']);
                 self::fail('The frozen measurement plan cannot be rewritten.');
@@ -66,6 +81,12 @@ final class MeasurementRunnerTest extends TestCase
             self::assertSame('ok', app(MeasurementRunner::class)->measure($answer->id));
             self::assertSame('ok', app(MeasurementRunner::class)->measure($answer->id));
             $saved = DB::table('measurement_answers')->where('id', $answer->id)->first();
+            try {
+                DB::table('measurement_answers')->where('id', $answer->id)->update(['question_n' => 2]);
+                self::fail('A completed answer cannot be moved to another question slot.');
+            } catch (QueryException) {
+                self::assertSame(1, DB::table('measurement_answers')->where('id', $answer->id)->value('question_n'));
+            }
             self::assertSame('Проверочный ответ', $saved->answer_text);
             self::assertNull($saved->fact); // A raw answer is not a verified fact.
             self::assertSame(1, DB::table('ai_calls')->count());
@@ -319,6 +340,268 @@ final class MeasurementRunnerTest extends TestCase
                 proc_close($process);
             }
         }
+    }
+
+    public function test_real_evidence_is_persisted_with_provenance_and_used_in_report(): void
+    {
+        $this->within(function (): void {
+            $set = app(QuestionSets::class)->create([['id' => 'q1', 'text' => 'Какие марки выбрать?', 'intent' => 'choose']]);
+            $measurement = app(MeasurementRunner::class)->start($set, ['gemini' => 'google/gemini-2.5-flash'], 1);
+            $answer = DB::table('measurement_answers')->where('measurement_id', $measurement)->value('id');
+            $this->fixture('Какие марки выбрать?', 'Рекомендую Test.');
+            self::assertSame('ok', app(MeasurementRunner::class)->measure($answer));
+            $candidate = ['brand_mentioned' => true, 'brand_position' => 1, 'brand_recommended' => true,
+                'mention_quote' => 'Рекомендую Test', 'companies' => [['name' => 'Test', 'position' => 1, 'role' => 'supplier', 'is_brand' => true]],
+                'tone' => 'positive', 'claims' => [], 'suspected_errors' => [], 'confidence' => 0.9];
+            $driver = new class($candidate) implements Driver
+            {
+                public int $calls = 0;
+
+                public function __construct(private array $candidate) {}
+
+                public function complete(array $body): array
+                {
+                    $this->calls++;
+
+                    return ['content' => json_encode($this->candidate, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE), 'toolCalls' => [],
+                        'usage' => ['promptTokens' => 1, 'completionTokens' => 1], 'model' => $body['model'], 'latencyMs' => 1, 'costMicros' => 0];
+                }
+            };
+            app()->instance(FakeDriver::class, $driver);
+            self::assertSame('confirmed', app(EvidenceStore::class)->evaluate($answer));
+            self::assertSame(1, $driver->calls);
+            $row = DB::table('measurement_answers')->where('id', $answer)->first();
+            self::assertNotNull($row->evidence_signature);
+            self::assertNotNull($row->evidence_mac);
+            $report = app(ReportPreparation::class)->snapshot($measurement);
+            $payload = json_decode(DB::table('vision_reports')->where('id', $report)->value('payload'), true, flags: JSON_THROW_ON_ERROR);
+            self::assertSame('available', $payload['evidence_status']);
+            self::assertSame(100.0, $payload['metrics']['panel']['mention_rate']);
+            self::assertSame(100.0, $payload['metrics']['panel']['recommended_rate']);
+            self::assertNull($payload['metrics']['slots'][0]['mentions'][0]['role']);
+            DB::table('measurement_answers')->where('id', $answer)->update(['fact' => json_encode(['brand_mentioned' => false], JSON_THROW_ON_ERROR)]);
+            $tamperedReport = app(ReportPreparation::class)->snapshot($measurement);
+            $tampered = json_decode(DB::table('vision_reports')->where('id', $tamperedReport)->value('payload'), true, flags: JSON_THROW_ON_ERROR);
+            self::assertNull($tampered['metrics']['slots'][0]['fact']);
+            DB::table('measurement_answers')->where('id', $answer)->update(['fact' => $row->fact]);
+            app(TenantContextRunner::class)->run($this->ownerContext, fn () => app(GrantRegistry::class)->revoke($this->ownerContext, $this->grantId));
+            $revokedReport = app(ReportPreparation::class)->snapshot($measurement);
+            $revoked = json_decode(DB::table('vision_reports')->where('id', $revokedReport)->value('payload'), true, flags: JSON_THROW_ON_ERROR);
+            self::assertNull($revoked['metrics']['slots'][0]['fact']);
+            self::assertSame(0, $revoked['metrics']['panel']['valid']);
+            Http::assertNothingSent();
+        });
+    }
+
+    public function test_missing_parser_or_revoked_grant_never_sends_to_gateway(): void
+    {
+        $this->within(function (): void {
+            $set = app(QuestionSets::class)->create([['id' => 'q1', 'text' => 'Вопрос', 'intent' => 'choose']]);
+            config(['features.E8-01.defaults.parser' => null]);
+            try {
+                app(MeasurementRunner::class)->start($set, ['gemini' => 'google/gemini-2.5-flash'], 1);
+                self::fail('Missing parser must fail closed.');
+            } catch (LogicException) {
+                self::assertSame(0, DB::table('measurements')->count());
+            }
+            config(['features.E8-01.defaults.parser' => ['model' => 'google/gemini-2.5-flash', 'temperature' => 0.0, 'max_tokens' => 1200]]);
+            $measurement = app(MeasurementRunner::class)->start($set, ['gemini' => 'google/gemini-2.5-flash'], 1);
+            $answer = DB::table('measurement_answers')->where('measurement_id', $measurement)->value('id');
+            app(TenantContextRunner::class)->run($this->ownerContext, fn () => app(GrantRegistry::class)->revoke($this->ownerContext, $this->grantId));
+            try {
+                app(MeasurementRunner::class)->measure($answer);
+                self::fail('Revoked knowledge must stop the call.');
+            } catch (LogicException) {
+                self::assertSame(0, DB::table('ai_calls')->count());
+                self::assertSame('pending', DB::table('measurement_answers')->where('id', $answer)->value('status'));
+            }
+            self::assertSame('unknown', app(EvidenceStore::class)->evaluate($answer));
+            Http::assertNothingSent();
+        });
+    }
+
+    public function test_concurrent_revocation_before_evidence_persist_leaves_fact_unknown(): void
+    {
+        $this->within(function (): void {
+            $set = app(QuestionSets::class)->create([['id' => 'q1', 'text' => 'Какие марки выбрать?', 'intent' => 'choose']]);
+            $measurement = app(MeasurementRunner::class)->start($set, ['gemini' => 'google/gemini-2.5-flash'], 1);
+            $answer = DB::table('measurement_answers')->where('measurement_id', $measurement)->value('id');
+            $this->fixture('Какие марки выбрать?', 'Рекомендую Test.');
+            self::assertSame('ok', app(MeasurementRunner::class)->measure($answer));
+            $candidate = ['brand_mentioned' => true, 'brand_position' => 1, 'brand_recommended' => true, 'mention_quote' => 'Рекомендую Test',
+                'companies' => [['name' => 'Test', 'position' => 1, 'role' => 'supplier', 'is_brand' => true]],
+                'tone' => 'positive', 'claims' => [], 'suspected_errors' => [], 'confidence' => 0.9];
+            app()->instance(FakeDriver::class, new class($candidate) implements Driver
+            {
+                public function __construct(private array $candidate) {}
+
+                public function complete(array $body): array
+                {
+                    return ['content' => json_encode($this->candidate, JSON_THROW_ON_ERROR), 'toolCalls' => [],
+                        'usage' => ['promptTokens' => 1, 'completionTokens' => 1], 'model' => $body['model'], 'latencyMs' => 1, 'costMicros' => 0];
+                }
+            });
+            $delegate = app(KnowledgeGate::class);
+            $revoke = fn () => $this->revokeInWorker();
+            $gate = new class($delegate, $revoke) implements KnowledgeGate
+            {
+                public int $checks = 0;
+
+                public function __construct(private KnowledgeGate $delegate, private \Closure $revoke) {}
+
+                public function assertAllowed(TenantContext $tenant, string $measurementId, array $frozenProfile): void
+                {
+                    $this->checks++;
+                    if ($this->checks === 3) {
+                        ($this->revoke)();
+                    }
+                    $this->delegate->assertAllowed($tenant, $measurementId, $frozenProfile);
+                }
+            };
+            app()->instance(KnowledgeGate::class, $gate);
+            self::assertSame('unknown', app(EvidenceStore::class)->evaluate($answer));
+            self::assertSame(3, $gate->checks);
+            $row = DB::table('measurement_answers')->where('id', $answer)->first();
+            self::assertNull($row->fact);
+            self::assertNull($row->evidence_signature);
+            self::assertNotNull(DB::table('vision_knowledge_grants')->where('id', $this->grantId)->value('revoked_at'));
+            $report = app(ReportPreparation::class)->snapshot($measurement);
+            $payload = json_decode(DB::table('vision_reports')->where('id', $report)->value('payload'), true, flags: JSON_THROW_ON_ERROR);
+            self::assertSame(0, $payload['metrics']['panel']['valid']);
+            self::assertNull($payload['metrics']['slots'][0]['fact']);
+            Http::assertNothingSent();
+        });
+    }
+
+    public function test_concurrent_revocation_during_generation_discards_the_result(): void
+    {
+        $this->within(function (): void {
+            $set = app(QuestionSets::class)->create([['id' => 'q1', 'text' => 'Вопрос', 'intent' => 'choose']]);
+            $measurement = app(MeasurementRunner::class)->start($set, ['gemini' => 'google/gemini-2.5-flash'], 1);
+            $answer = DB::table('measurement_answers')->where('measurement_id', $measurement)->value('id');
+            $revoke = fn () => $this->revokeInWorker();
+            app()->instance(FakeDriver::class, new class($revoke) implements Driver
+            {
+                public function __construct(private \Closure $revoke) {}
+
+                public function complete(array $body): array
+                {
+                    ($this->revoke)();
+
+                    return ['content' => 'Рекомендую Test.', 'toolCalls' => [], 'usage' => ['promptTokens' => 1, 'completionTokens' => 1],
+                        'model' => $body['model'], 'latencyMs' => 1, 'costMicros' => 0];
+                }
+            });
+            self::assertSame('failed', app(MeasurementRunner::class)->measure($answer));
+            $row = DB::table('measurement_answers')->where('id', $answer)->first();
+            self::assertNull($row->answer_text);
+            self::assertNull($row->fact);
+            self::assertSame('knowledge_unavailable', $row->error_code);
+            Http::assertNothingSent();
+        });
+    }
+
+    public function test_concurrent_answer_change_before_fact_save_is_rejected(): void
+    {
+        $this->within(function (): void {
+            $set = app(QuestionSets::class)->create([['id' => 'q1', 'text' => 'Какие марки выбрать?', 'intent' => 'choose']]);
+            $measurement = app(MeasurementRunner::class)->start($set, ['gemini' => 'google/gemini-2.5-flash'], 1);
+            $answer = DB::table('measurement_answers')->where('measurement_id', $measurement)->value('id');
+            $this->fixture('Какие марки выбрать?', 'Рекомендую Test.');
+            self::assertSame('ok', app(MeasurementRunner::class)->measure($answer));
+            $candidate = ['brand_mentioned' => true, 'brand_position' => 1, 'brand_recommended' => true, 'mention_quote' => 'Рекомендую Test',
+                'companies' => [['name' => 'Test', 'position' => 1, 'role' => 'supplier', 'is_brand' => true]],
+                'tone' => 'positive', 'claims' => [], 'suspected_errors' => [], 'confidence' => 0.9];
+            app()->instance(FakeDriver::class, new class($candidate) implements Driver
+            {
+                public function __construct(private array $candidate) {}
+
+                public function complete(array $body): array
+                {
+                    return ['content' => json_encode($this->candidate, JSON_THROW_ON_ERROR), 'toolCalls' => [],
+                        'usage' => ['promptTokens' => 1, 'completionTokens' => 1], 'model' => $body['model'], 'latencyMs' => 1, 'costMicros' => 0];
+                }
+            });
+            $delegate = app(KnowledgeGate::class);
+            $change = function () use ($answer): void {
+                $process = new Process([PHP_BINARY, '-d', 'sys_temp_dir='.base_path('.local/tmp'), __DIR__.'/Fixtures/change-answer-worker.php',
+                    $answer, base_path(), DB::connection()->getDatabaseName()], base_path(), ['APP_ENV' => 'testing'], null, 45);
+                $process->run();
+                self::assertSame(0, $process->getExitCode(), $process->getErrorOutput());
+            };
+            $gate = new class($delegate, $change) implements KnowledgeGate
+            {
+                public int $checks = 0;
+
+                public function __construct(private KnowledgeGate $delegate, private \Closure $change) {}
+
+                public function assertAllowed(TenantContext $tenant, string $measurementId, array $frozenProfile): void
+                {
+                    $this->checks++;
+                    if ($this->checks === 3) {
+                        ($this->change)();
+                    }
+                    $this->delegate->assertAllowed($tenant, $measurementId, $frozenProfile);
+                }
+            };
+            app()->instance(KnowledgeGate::class, $gate);
+            self::assertSame('unknown', app(EvidenceStore::class)->evaluate($answer));
+            self::assertSame(3, $gate->checks);
+            self::assertNull(DB::table('measurement_answers')->where('id', $answer)->value('fact'));
+            Http::assertNothingSent();
+        });
+    }
+
+    public function test_legacy_measurement_without_frozen_profile_stays_unknown(): void
+    {
+        $this->within(function (): void {
+            $questions = [['id' => 'q1', 'text' => 'Вопрос', 'intent' => 'choose']];
+            $set = app(QuestionSets::class)->create($questions);
+            $id = (string) Str::ulid();
+            DB::table('measurements')->insert(['id' => $id, 'organization_id' => $this->organization, 'brand_id' => $this->brand,
+                'question_set_id' => $set, 'status' => 'completed', 'configuration' => json_encode(['questions' => $questions,
+                    'question_set_checksum' => CanonicalJson::hash($questions), 'providers' => ['gemini' => 'google/gemini-2.5-flash'], 'runs' => 1, 'parser' => null], JSON_THROW_ON_ERROR),
+                'created_at' => now(), 'updated_at' => now()]);
+            $answer = (string) Str::ulid();
+            DB::table('measurement_answers')->insert(['id' => $answer, 'organization_id' => $this->organization, 'brand_id' => $this->brand,
+                'measurement_id' => $id, 'question_n' => 1, 'provider' => 'gemini', 'run_no' => 1, 'requested_model' => 'google/gemini-2.5-flash',
+                'status' => 'ok', 'protocol_valid' => true, 'answer_text' => 'Старый ответ Test', 'created_at' => now(), 'updated_at' => now()]);
+            self::assertSame('unknown', app(EvidenceStore::class)->evaluate($answer));
+            $report = app(ReportPreparation::class)->snapshot($id);
+            $payload = json_decode(DB::table('vision_reports')->where('id', $report)->value('payload'), true, flags: JSON_THROW_ON_ERROR);
+            self::assertSame(0, $payload['metrics']['panel']['valid']);
+            self::assertNull($payload['metrics']['slots'][0]['fact']);
+            self::assertSame(0, DB::table('ai_calls')->count());
+        });
+    }
+
+    private function revokeInWorker(): void
+    {
+        $process = new Process([PHP_BINARY, '-d', 'sys_temp_dir='.base_path('.local/tmp'), __DIR__.'/Fixtures/revoke-worker.php',
+            $this->organization, $this->brand, $this->ownerContext->actorId, $this->ownerContext->membershipId, $this->grantId,
+            base_path(), DB::connection()->getDatabaseName()], base_path(), ['APP_ENV' => 'testing'], null, 45);
+        $process->run();
+        self::assertSame(0, $process->getExitCode(), $process->getErrorOutput());
+    }
+
+    private function prepareKnowledge(): void
+    {
+        $owner = User::create(['name' => 'Owner', 'email' => 'owner-'.Str::lower(Str::random(12)).'@example.test', 'password' => 'test-only-password']);
+        DB::table('organizations')->where('id', $this->organization)->update(['owner_user_id' => $owner->id]);
+        $member = app(TenantContextRunner::class)->run(new TenantContext($this->organization, source: 'job'), fn () => Membership::create(['user_id' => $owner->id, 'role' => 'owner']));
+        $context = new TenantContext($this->organization, $this->brand, $owner->id, $member->id);
+        $this->ownerContext = $context;
+        app(TenantContextRunner::class)->run($context, function () use ($context): void {
+            $source = ['conditions' => [], 'facts' => [['id' => 'assortment', 'facts' => ['Широкий ассортимент']]], 'triggers' => [], 'guard_rules' => [], 'policy' => [], 'intents' => [], 'escalation' => [], 'persona' => [], 'fewshot' => [], 'closed_topics' => []];
+            $repo = app(DatabaseKnowledgeRepository::class);
+            $draft = $repo->createDraft($context, $source);
+            $release = $repo->publish($context, $draft['id'], 1);
+            $fact = DB::table('kn_facts as f')->join('kn_fact_groups as g', 'g.id', '=', 'f.group_id')->where('g.release_id', $release->releaseId())->value('f.logical_id');
+            DB::table('brand_modules')->insert(['id' => (string) Str::ulid(), 'organization_id' => $this->organization, 'brand_id' => $this->brand, 'module' => 'vision', 'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
+            DB::table('brands')->where('id', $this->brand)->update(['settings' => json_encode(['ai_data_policy' => ['knowledge_public' => ['any']]], JSON_THROW_ON_ERROR)]);
+            $grant = app(GrantRegistry::class)->issue($context, $release->releaseId(), [$fact]);
+            $this->grantId = $grant['id'];
+        });
     }
 
     private function within(\Closure $action): mixed

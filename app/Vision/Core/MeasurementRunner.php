@@ -8,6 +8,10 @@ use App\Ai\ProviderCatalog;
 use App\Contracts\Ai\AiContext;
 use App\Contracts\Ai\AiGateway;
 use App\Contracts\Ai\AiRequest;
+use App\Tenancy\TenantContext;
+use App\Vision\Evidence\Contracts\KnowledgeGate;
+use App\Vision\Evidence\EvidenceEvaluator;
+use App\Vision\KnowledgeBridge\PublishedKnowledgeBridge;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
@@ -40,8 +44,18 @@ final class MeasurementRunner
             }
         }
         ksort($providers);
+        $parser = config('features.E8-01.defaults.parser');
+        if (! is_array($parser) || array_diff(array_keys($parser), ['model', 'temperature', 'max_tokens'])
+            || ! is_string($parser['model'] ?? null) || ($models[$parser['model']]['status'] ?? null) !== 'active'
+            || (! is_float($parser['temperature'] ?? null) && ! is_int($parser['temperature'] ?? null))
+            || ! is_finite((float) $parser['temperature']) || $parser['temperature'] < 0 || $parser['temperature'] > 2
+            || ! is_int($parser['max_tokens'] ?? null) || $parser['max_tokens'] < 1 || $parser['max_tokens'] > 4096) {
+            throw new LogicException('The trusted evidence parser is not configured.');
+        }
+        $parser = [...$parser, ...app(EvidenceEvaluator::class)->artifacts()];
+        $context = app(TenantContext::class);
 
-        return DB::transaction(function () use ($questionSetId, $providers, $runs, $tenant, $temperature, $maxTokens): string {
+        return DB::transaction(function () use ($questionSetId, $providers, $runs, $tenant, $temperature, $maxTokens, $parser, $context): string {
             $set = DB::table('question_sets')->where($tenant)->where('id', $questionSetId)->first();
             if (! $set) {
                 throw new LogicException('Question set not found.');
@@ -50,10 +64,12 @@ final class MeasurementRunner
             if (! is_array($questions) || count($questions) !== $set->size || ! hash_equals($set->checksum, CanonicalJson::hash($questions))) {
                 throw new LogicException('Question set integrity check failed.');
             }
+            $profile = app(PublishedKnowledgeBridge::class)->buildProfile($context);
             $id = (string) Str::ulid();
             DB::table('measurements')->insert(['id' => $id, ...$tenant, 'question_set_id' => $questionSetId,
                 'status' => 'pending', 'configuration' => json_encode(['questions' => $questions, 'question_set_checksum' => $set->checksum,
-                    'providers' => $providers, 'runs' => $runs, 'temperature' => $temperature, 'max_output_tokens' => $maxTokens, 'parser' => null], JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR),
+                    'providers' => $providers, 'runs' => $runs, 'temperature' => $temperature, 'max_output_tokens' => $maxTokens, 'parser' => $parser], JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR),
+                'profile_snapshot' => json_encode($profile, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), 'profile_checksum' => CanonicalJson::hash($profile),
                 'created_at' => now(), 'updated_at' => now()]);
             foreach ($providers as $provider => $model) {
                 foreach ($questions as $index => $question) {
@@ -85,7 +101,10 @@ final class MeasurementRunner
             if (! $reference) {
                 throw new LogicException('Measurement answer not found.');
             }
-            // Always acquire parent before slot, matching finish() to avoid deadlocks.
+            MeasurementLock::acquire($reference->measurement_id);
+            // The gate acquires organization, brand and grant before the measurement.
+            $candidate = DB::table('measurements')->where($tenant)->where('id', $reference->measurement_id)->first();
+            $this->assertKnowledge($candidate);
             $measurement = DB::table('measurements')->where($tenant)->where('id', $reference->measurement_id)->lockForUpdate()->first();
             if (! $measurement) {
                 throw new LogicException('Measurement not found.');
@@ -119,6 +138,14 @@ final class MeasurementRunner
         }
         [$answer, $question, $configuration] = $claimed;
         try {
+            DB::transaction(function () use ($tenant, $answer): void {
+                $measurement = DB::table('measurements')->where($tenant)->where('id', $answer->measurement_id)->first();
+                $this->assertKnowledge($measurement);
+            });
+        } catch (Throwable) {
+            return $this->finish($tenant, $answerId, $answer->measurement_id, ['status' => 'failed', 'error_code' => 'knowledge_unavailable']);
+        }
+        try {
             $result = $this->gateway->complete(
                 new AiRequest([['role' => 'user', 'content' => $question['text']]], $answer->requested_model, (float) $configuration['temperature'], maxTokens: $configuration['max_output_tokens']),
                 new AiContext($tenant['organization_id'], $tenant['brand_id'], 'vis.measure', 'vision',
@@ -137,19 +164,25 @@ final class MeasurementRunner
             'empty_response' => 'failed',
             default => 'uncertain',
         };
-        $this->finish($tenant, $answerId, $answer->measurement_id, [
+
+        return $this->finish($tenant, $answerId, $answer->measurement_id, [
             'status' => $status, 'ai_call_id' => $result->aiCallId,
             'answer_text' => $status === 'ok' ? $result->content : null, 'model' => $result->model,
             'protocol_valid' => $status === 'ok' ? $result->model === $answer->requested_model : null,
             'error_code' => $result->error['code'] ?? null,
         ]);
-
-        return $status;
     }
 
-    private function finish(array $tenant, string $answerId, string $measurementId, array $changes): void
+    private function finish(array $tenant, string $answerId, string $measurementId, array $changes): string
     {
-        DB::transaction(function () use ($tenant, $answerId, $measurementId, $changes): void {
+        return DB::transaction(function () use ($tenant, $answerId, $measurementId, $changes): string {
+            MeasurementLock::acquire($measurementId);
+            $candidate = DB::table('measurements')->where($tenant)->where('id', $measurementId)->first();
+            try {
+                $this->assertKnowledge($candidate);
+            } catch (Throwable) {
+                $changes = ['status' => 'failed', 'error_code' => 'knowledge_unavailable', 'answer_text' => null, 'protocol_valid' => null];
+            }
             $measurement = DB::table('measurements')->where($tenant)->where('id', $measurementId)->lockForUpdate()->first();
             if (! $measurement) {
                 throw new LogicException('Measurement not found.');
@@ -168,6 +201,20 @@ final class MeasurementRunner
                     'status' => $partial ? 'partial' : 'completed', 'finished_at' => now(), 'updated_at' => now(),
                 ]);
             }
+
+            return $changes['status'];
         });
+    }
+
+    private function assertKnowledge(?object $measurement): void
+    {
+        if (! $measurement || ! is_string($measurement->profile_snapshot) || ! is_string($measurement->profile_checksum)) {
+            throw new LogicException('An approved frozen profile is required.');
+        }
+        $profile = json_decode($measurement->profile_snapshot, true, 64, JSON_THROW_ON_ERROR);
+        if (! is_array($profile) || ! hash_equals($measurement->profile_checksum, CanonicalJson::hash($profile))) {
+            throw new LogicException('An approved frozen profile is required.');
+        }
+        app(KnowledgeGate::class)->assertAllowed(app(TenantContext::class), $measurement->id, $profile);
     }
 }

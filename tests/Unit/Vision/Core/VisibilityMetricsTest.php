@@ -138,7 +138,7 @@ class VisibilityMetricsTest extends TestCase
         $second = $this->slot('a', 2, 1, false);
         $second['mentions'] = [['name' => 'Company', 'role' => 'manufacturer']];
         $entity = (new VisibilityMetrics)->calculate([$first, $second], ['a'], 2, 1)['entities'][0];
-        $this->assertSame('other', $entity['role']);
+        $this->assertNull($entity['role']);
         $this->assertTrue($entity['role_conflict']);
     }
 
@@ -157,8 +157,58 @@ class VisibilityMetricsTest extends TestCase
         }
     }
 
+    public function test_unknown_recommendations_roles_and_incomplete_entities_have_separate_denominators(): void
+    {
+        $one = $this->slot('a', 1, 1, true);
+        $one['fact']['brand_recommended'] = true;
+        $one['mentions_complete'] = false;
+        $one['mentions'] = [['name' => 'Competitor', 'role' => null]];
+        $two = $this->slot('a', 2, 1, true);
+        $two['fact']['brand_recommended'] = null;
+        $two['mentions_complete'] = false;
+        $two['mentions'] = [];
+        $three = $this->slot('a', 3, 1, false);
+        $three['fact']['brand_recommended'] = false;
+        $three['mentions_complete'] = true;
+        $result = (new VisibilityMetrics)->calculate([$one, $two, $three], ['a'], 3, 1);
+        $this->assertSame(2, $result['panel']['recommendation_denominator']);
+        $this->assertSame(50.0, $result['panel']['recommended_rate']);
+        $this->assertNull($result['panel']['share_of_voice']);
+        $this->assertSame(2, $result['entities'][0]['denominator']);
+        $this->assertSame(50.0, $result['entities'][0]['frequency']);
+        $this->assertNull($result['entities'][0]['role']);
+        $this->assertSame([], $result['entities'][0]['role_counts']);
+    }
+
+    public function test_evidence_source_fields_preserve_unknown_and_explicit_presence(): void
+    {
+        $one = $this->slot('a', 1, 1, true);
+        $one['sources'] = [['domain' => 'example.org', 'url' => 'https://example.org/', 'source_type' => 'media', 'mentions_brand' => null, 'presence_evidence' => 'not_checked']];
+        $result = (new VisibilityMetrics)->calculate([$one], ['a'], 1, 1);
+        $this->assertSame('media', $result['sources'][0]['type']);
+        $this->assertNull($result['sources'][0]['presence']);
+        $this->assertSame(['not_checked'], $result['sources'][0]['presence_evidence']);
+        $one['sources'][0]['mentions_brand'] = false;
+        $result = (new VisibilityMetrics)->calculate([$one], ['a'], 1, 1);
+        $this->assertFalse($result['sources'][0]['presence']);
+    }
+
+    public function test_possible_mentions_do_not_become_negative_measurements(): void
+    {
+        $one = $this->slot('a', 1, 1, true);
+        $two = $this->slot('a', 2, 1, false);
+        $two['fact']['mention_status'] = 'possible';
+        $result = (new VisibilityMetrics)->calculate([$one, $two], ['a'], 2, 1);
+        $this->assertSame(2, $result['panel']['valid']);
+        $this->assertSame(1, $result['panel']['mention_denominator']);
+        $this->assertSame(100.0, $result['panel']['mention_rate']);
+        $this->assertSame(1, $result['panel']['possible']);
+        $this->assertSame(1, $result['providers']['a']['complete_questions']);
+        $this->assertNull($result['panel']['share_of_voice']);
+    }
+
     private function slot(string $provider, int $question, int $run, bool $mentioned): array
     {
-        return ['provider' => $provider, 'question_n' => $question, 'run_no' => $run, 'status' => 'ok', 'protocol_valid' => true, 'fact' => ['brand_mentioned' => $mentioned, 'brand_recommended' => false]];
+        return ['provider' => $provider, 'question_n' => $question, 'run_no' => $run, 'status' => 'ok', 'protocol_valid' => true, 'mentions_complete' => true, 'fact' => ['brand_mentioned' => $mentioned, 'brand_recommended' => false]];
     }
 }
