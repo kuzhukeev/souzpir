@@ -3,6 +3,7 @@
 namespace App\Ai\Drivers;
 
 use App\Ai\Money;
+use App\Ai\SchemaObjects;
 use Illuminate\Support\Facades\Http;
 use Throwable;
 
@@ -67,6 +68,8 @@ final class OpenRouterDriver implements Driver
     public function wireBody(#[\SensitiveParameter] array $body): array
     {
         try {
+            SchemaObjects::forInspection($body);
+
             return $this->wireBodyInternal($body);
         } catch (Throwable) {
             throw new \InvalidArgumentException('AI payload cannot be safely prepared.');

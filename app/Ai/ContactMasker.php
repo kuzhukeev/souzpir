@@ -8,6 +8,7 @@ final class ContactMasker
 {
     public function request(#[\SensitiveParameter] array $body): array
     {
+        SchemaObjects::forInspection($body);
         $body['messages'] = $this->messages($body['messages']);
         foreach ($body as $key => $value) {
             if (is_string($key) && $this->values($key) !== $key) {
@@ -23,6 +24,9 @@ final class ContactMasker
 
     private function schema(#[\SensitiveParameter] mixed $value): mixed
     {
+        if (is_object($value) && get_class($value) === \stdClass::class && get_object_vars($value) === []) {
+            return $value;
+        }
         if (! is_array($value)) {
             return $this->values($value);
         }
@@ -68,8 +72,8 @@ final class ContactMasker
                 }
                 foreach ($message['tool_calls'] as &$call) {
                     if (isset($call['function']['arguments']) && is_string($call['function']['arguments'])) {
-                        $args = json_decode($call['function']['arguments'], true, 512, JSON_THROW_ON_ERROR);
-                        $call['function']['arguments'] = json_encode($this->values($args), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+                        $args = json_decode($call['function']['arguments'], false, 512, JSON_THROW_ON_ERROR);
+                        $call['function']['arguments'] = json_encode($this->decodedJson($args), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
                     }
                 }
                 unset($call);
@@ -82,6 +86,26 @@ final class ContactMasker
         unset($message);
 
         return $messages;
+    }
+
+    /** Only used on JSON produced by json_decode, never on caller-supplied objects. */
+    private function decodedJson(#[\SensitiveParameter] mixed $value): mixed
+    {
+        if ($value instanceof \stdClass) {
+            foreach ($value as $key => $child) {
+                if ($this->values((string) $key) !== (string) $key) {
+                    throw new InvalidArgumentException('Contact data is not allowed in AI data keys.');
+                }
+                $value->{$key} = $this->decodedJson($child);
+            }
+
+            return $value;
+        }
+        if (is_array($value)) {
+            return array_map($this->decodedJson(...), $value);
+        }
+
+        return $this->values($value);
     }
 
     private function values(#[\SensitiveParameter] mixed $value): mixed
