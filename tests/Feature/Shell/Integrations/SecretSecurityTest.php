@@ -90,7 +90,7 @@ final class SecretSecurityTest extends TenancyTestCase
         self::assertStringNotContainsString($plain, serialize(session()->all()));
         $this->withServerVariables(['HTTP_HOST' => 'localhost', 'REMOTE_ADDR' => '203.0.113.12', 'SERVER_ADDR' => '127.0.0.1']);
         $this->post('/integrations/api/keys', ['name' => 'Denied', 'abilities' => ['read']])->assertForbidden();
-        $this->post('/integrations/api/webhooks', ['url' => 'https://public.org/hook', 'events' => ['seller.lead.created']])->assertForbidden();
+        $this->post('/integrations/api/webhooks', ['url' => 'https://public.org/hook', 'events' => ['seller.lead.created']])->assertStatus(503);
         $this->postJson('/integrations/api/secrets', ['type' => 'api_key'])->assertForbidden();
         $this->assertDatabaseCount('personal_access_tokens', 1);
         $this->assertDatabaseCount('webhooks', 0);
@@ -124,7 +124,7 @@ final class SecretSecurityTest extends TenancyTestCase
         $this->withServerVariables(['HTTP_HOST' => 'attacker.on-forge.com', 'REMOTE_ADDR' => '203.0.113.22', 'SERVER_ADDR' => '192.0.2.33', 'HTTPS' => 'off']);
         $this->withHeaders(['X-Forwarded-Proto' => 'https']);
         $this->post('/integrations/api/keys', ['name' => 'No', 'abilities' => ['read']])->assertForbidden();
-        $this->post('/integrations/api/webhooks', ['url' => 'https://public.org/hook', 'events' => ['seller.lead.created']])->assertForbidden();
+        $this->post('/integrations/api/webhooks', ['url' => 'https://public.org/hook', 'events' => ['seller.lead.created']])->assertStatus(503);
         $this->postJson('/integrations/api/secrets', ['type' => 'api_key'])->assertForbidden();
         $this->assertDatabaseCount('personal_access_tokens', 0);
         $this->assertDatabaseCount('webhooks', 0);
@@ -157,7 +157,7 @@ final class SecretSecurityTest extends TenancyTestCase
         $this->post('/integrations/api/keys', ['name' => 'Key', 'abilities' => ['read']])->assertRedirect();
         $sealed = session('integration_api_key');
         $this->withSession(['webhook_secret' => $sealed]);
-        $this->postJson('/integrations/api/secrets', ['type' => 'webhook_secret'])->assertNotFound();
+        $this->postJson('/integrations/api/secrets', ['type' => 'webhook_secret'])->assertStatus(503);
         $this->withSession(['integration_api_key' => substr($sealed, 0, -2).'xx']);
         $this->postJson('/integrations/api/secrets', ['type' => 'api_key'])->assertNotFound();
         Http::assertNothingSent();
@@ -188,11 +188,11 @@ final class SecretSecurityTest extends TenancyTestCase
         $this->postJson('/integrations/api/secrets', ['type' => 'api_key'])->assertNotFound();
     }
 
-    public function test_failed_receipt_storage_rolls_back_key_and_webhook_creation(): void
+    public function test_failed_receipt_storage_rolls_back_key_and_webhook_is_closed(): void
     {
         [$owner, , $brand] = $this->cabinet();
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
-        $remaining = 2;
+        $remaining = 1;
         DB::listen(function (QueryExecuted $query) use (&$remaining): void {
             if ($remaining > 0 && str_starts_with(strtolower($query->sql), 'insert') && str_contains($query->sql, 'integration_secret_receipts')) {
                 $remaining--;
@@ -200,7 +200,7 @@ final class SecretSecurityTest extends TenancyTestCase
             }
         });
         $this->post('/integrations/api/keys', ['name' => 'Key', 'abilities' => ['read']])->assertStatus(500);
-        $this->post('/integrations/api/webhooks', ['url' => 'https://public.org/hook', 'events' => ['seller.lead.created']])->assertStatus(500);
+        $this->post('/integrations/api/webhooks', ['url' => 'https://public.org/hook', 'events' => ['seller.lead.created']])->assertStatus(503);
         self::assertSame(0, $remaining);
         $this->assertDatabaseCount('personal_access_tokens', 0);
         $this->assertDatabaseCount('webhooks', 0);

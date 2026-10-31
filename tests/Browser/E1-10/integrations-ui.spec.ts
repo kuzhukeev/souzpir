@@ -60,6 +60,9 @@ for (const width of [1440, 1024, 390])
         }
         if (screen === 'api') {
           await expect(page.getByText('Запросы API для работы с диалогами и лидами пока недоступны.')).toBeVisible();
+          await expect(page.getByText('Адрес скрыт', { exact: true })).toBeVisible();
+          await expect(page.getByRole('button', { name: 'Добавить вебхук' })).toHaveCount(0);
+          await expect(page.getByRole('button', { name: 'Отправить тест' })).toBeDisabled();
         }
         if (screen === 'notifications') {
           await expect(
@@ -157,7 +160,7 @@ test('insecure transport explains why secret actions are unavailable', async ({ 
     ),
   ).toBeVisible();
   await expect(page.getByRole('button', { name: 'Создать ключ' })).toBeDisabled();
-  await expect(page.getByRole('button', { name: 'Добавить вебхук' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Добавить вебхук' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Показать ключ один раз' })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Показать секрет один раз' })).toBeDisabled();
   await readable(page);
@@ -174,6 +177,6 @@ test('unsafe session storage prevents secret creation and gives clear feedback',
     ),
   ).toBeVisible();
   await expect(page.getByRole('button', { name: 'Создать ключ' })).toBeDisabled();
-  await expect(page.getByRole('button', { name: 'Добавить вебхук' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Добавить вебхук' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Показать ключ один раз' })).toBeDisabled();
 });

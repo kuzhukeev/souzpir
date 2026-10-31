@@ -19,7 +19,7 @@ type Delivery = {
   status_code: number | null;
   created_at: string;
 };
-type Hook = { id: string; url: string; events: string[]; secret: string; deliveries: Delivery[] };
+type Hook = { id: string; events: string[]; secret: string; deliveries: Delivery[] };
 type Props = {
   keys: ApiKey[];
   webhooks: Hook[];
@@ -75,7 +75,6 @@ export default function Api({
     }
   };
   const form = useForm({ name: '', abilities: [] as string[] });
-  const hookForm = useForm({ url: '', events: [] as string[] });
   const reveal = async (type: 'api_key' | 'webhook_secret') => {
     setError('');
     setRevealing(true);
@@ -133,19 +132,6 @@ export default function Api({
       onStart: () => setPending(id),
       onFinish: () => setPending(null),
       onError: (errors) => setError(Object.values(errors).join(' ')),
-      onNetworkError: fail,
-      onHttpException: fail,
-    });
-  };
-  const addHook = (event: FormEvent) => {
-    event.preventDefault();
-    setError('');
-    hookForm.post('/integrations/api/webhooks', {
-      preserveScroll: true,
-      onSuccess: () => {
-        setConsumedHook(false);
-        hookForm.reset();
-      },
       onNetworkError: fail,
       onHttpException: fail,
     });
@@ -300,7 +286,7 @@ export default function Api({
           <p className="mt-1 text-sm text-(--color-ink-muted)">Получайте события в вашей системе</p>
           {!webhookDeliveryAvailable && (
             <p className="mt-4 text-sm text-(--color-warning-ink)">
-              Отправка вебхуков пока отключена.
+              Настройка и отправка вебхуков временно недоступны. Адреса ранее созданных вебхуков скрыты.
             </p>
           )}{' '}
           {webhooks.length === 0 && (
@@ -311,7 +297,7 @@ export default function Api({
               <div className="flex flex-wrap items-end justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-sm font-semibold">Адрес эндпоинта</p>
-                  <p className="mt-1 break-all text-sm">{hook.url}</p>
+                  <p className="mt-1 text-sm">Адрес скрыт</p>
                   <p className="mt-3 text-sm font-semibold">Секретный токен</p>
                   <input
                     aria-label="Секретный токен вебхука"
@@ -332,7 +318,7 @@ export default function Api({
               <p className="mt-4 text-sm">
                 События:{' '}
                 {hook.events
-                  .map((event) => webhookEvents.find((e) => e.value === event)?.label ?? event)
+                  .map((event) => webhookEvents.find((e) => e.value === event)?.label ?? 'Недоступное событие')
                   .join(', ') || '—'}
               </p>
               <h3 className="mt-5 font-semibold">Последние 10 доставок</h3>
@@ -348,10 +334,10 @@ export default function Api({
                       <span>
                         {date(delivery.created_at)} ·{' '}
                         {webhookEvents.find((e) => e.value === delivery.event)?.label ??
-                          delivery.event}
+                          'Недоступное событие'}
                       </span>
                       <span>
-                        {deliveryLabels[delivery.status] ?? delivery.status}
+                        {deliveryLabels[delivery.status] ?? 'Недоступен'}
                         {delivery.status_code ? ` (${delivery.status_code})` : ''}
                       </span>
                     </li>
@@ -360,47 +346,6 @@ export default function Api({
               )}
             </div>
           ))}
-          <form onSubmit={addHook} className="mt-5 space-y-4">
-            <h3 className="font-semibold">Добавить вебхук</h3>
-            <Errors errors={hookForm.errors} transport="" />
-            <Input
-              label="URL-адрес эндпоинта"
-              type="url"
-              required
-              maxLength={2048}
-              value={hookForm.data.url}
-              onChange={(e) => hookForm.setData('url', e.target.value)}
-              disabled={!permissions.manage}
-            />
-            <fieldset>
-              <legend className="mb-2 text-sm font-semibold">События</legend>
-              <div className="flex flex-wrap gap-4">
-                {webhookEvents.map((item) => (
-                  <Checkbox
-                    key={item.value}
-                    label={item.label}
-                    checked={hookForm.data.events.includes(item.value)}
-                    disabled={!permissions.manage}
-                    onChange={(e) =>
-                      hookForm.setData(
-                        'events',
-                        e.target.checked
-                          ? [...hookForm.data.events, item.value]
-                          : hookForm.data.events.filter((value) => value !== item.value),
-                      )
-                    }
-                  />
-                ))}
-              </div>
-            </fieldset>
-            <Button
-              type="submit"
-              disabled={!permissions.manage || !secureSecretTransport || !secretStorageReady}
-              loading={hookForm.processing}
-            >
-              Добавить вебхук
-            </Button>
-          </form>
         </section>
       </Page>
       <Modal open={showCreate} title="Создать API-ключ" onClose={() => setShowCreate(false)}>

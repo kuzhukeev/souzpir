@@ -14,7 +14,6 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use LogicException;
-use RuntimeException;
 use Tests\Feature\Tenancy\TenancyTestCase;
 
 final class WebhookTest extends TenancyTestCase
@@ -31,108 +30,17 @@ final class WebhookTest extends TenancyTestCase
         $this->app->instance(DomainDnsResolver::class, $this->dns);
     }
 
-    public function test_create_validates_and_scopes_webhook_and_hides_secret(): void
+    public function test_test_delivery_is_disabled_for_both_brands(): void
     {
         Http::fake();
-        [$owner, $org, $brand] = $this->cabinet();
-        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
-        $this->post('/integrations/api/webhooks', ['url' => 'http://private.local/', 'events' => ['unknown']])->assertSessionHasErrors(['url', 'events.0']);
-        $this->post('/integrations/api/webhooks', ['url' => 'https://user:pass@public.org/hook', 'events' => ['seller.lead.created']])->assertSessionHasErrors('url');
-        $this->post('/integrations/api/webhooks', ['url' => 'https://public.org/hook', 'events' => ['seller.lead.created']])->assertSessionHasNoErrors()->assertSessionHas('webhook_secret');
-        $row = DB::table('webhooks')->first();
-        $secret = Crypt::decryptString($row->secret);
-        self::assertIsString(session('webhook_secret'));
-        self::assertSame($secret, json_decode(Crypt::decryptString(session('webhook_secret')), true, flags: JSON_THROW_ON_ERROR)['value']);
-        self::assertStringNotContainsString($secret, serialize(session()->all()));
-        $page = $this->get('/integrations/api')->assertOk()->assertHeader('Cache-Control', 'no-store, private');
-        $pageProps = $page->viewData('page')['props'];
-        self::assertTrue($pageProps['integration_webhook_secret_available']);
-        self::assertStringNotContainsString($secret, json_encode($pageProps, JSON_THROW_ON_ERROR));
-        self::assertStringNotContainsString($secret, $page->getContent());
-        $revealed = $this->postJson('/integrations/api/secrets', ['type' => 'webhook_secret'])->assertOk()->assertHeader('Cache-Control', 'no-store, private');
-        $revealed->assertExactJson(['value' => $secret]);
-        $this->postJson('/integrations/api/secrets', ['type' => 'webhook_secret'])->assertNotFound();
-        $nextPage = $this->get('/integrations/api')->assertOk();
-        self::assertFalse($nextPage->viewData('page')['props']['integration_webhook_secret_available']);
-        self::assertSame($brand->id, $row->brand_id);
-        self::assertNotSame(Crypt::decryptString($row->secret), $row->secret);
-        $ctx = new TenantContext($org->id, $brand->id, source: 'job');
-        $props = app(WebhookService::class)->forBrand($ctx);
-        self::assertSame('••••••••', $props[0]['secret']);
-        self::assertStringNotContainsString(Crypt::decryptString($row->secret), json_encode($props, JSON_THROW_ON_ERROR));
-        $this->assertDatabaseHas('audit_logs', ['organization_id' => $org->id, 'brand_id' => $brand->id, 'action' => 'integrations.webhook.created']);
-        Http::assertNothingSent();
-    }
-
-    public function test_one_time_secret_cannot_be_retrieved_for_another_brand(): void
-    {
-        Http::fake();
-        [$owner, , $first, $second] = $this->cabinet();
+        [$owner, $organization, $first, $second] = $this->cabinet();
         $this->actingAs($owner)->withSession(['brand_id' => $first->id]);
-        $this->post('/integrations/api/webhooks', ['url' => 'https://public.org/hook', 'events' => ['seller.lead.created']])->assertSessionHasNoErrors();
-        $this->withSession(['brand_id' => $second->id])->postJson('/integrations/api/secrets', ['type' => 'webhook_secret'])->assertNotFound();
-        $this->withSession(['brand_id' => $first->id])->postJson('/integrations/api/secrets', ['type' => 'webhook_secret'])->assertNotFound();
-        Http::assertNothingSent();
-    }
-
-    public function test_encryption_failure_does_not_expose_secret_in_exception_chain_or_trace(): void
-    {
-        if (ini_get('zend.exception_ignore_args') !== '0') {
-            self::markTestSkipped('Run with zend.exception_ignore_args=0 to exercise exception arguments.');
-        }
-
-        [$owner, , $brand] = $this->cabinet();
-        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
-        $secret = null;
-        $original = null;
-        $encrypter = \Mockery::mock(Crypt::getFacadeRoot())->makePartial();
-        Crypt::swap($encrypter);
-        $encrypter->shouldReceive('encryptString')->once()->andReturnUsing(function (string $value) use (&$secret, &$original): never {
-            $secret = $value;
-            throw $original = new RuntimeException('Simulated encryption failure.');
-        });
-
-        $this->withoutExceptionHandling();
-        try {
-            $this->post('/integrations/api/webhooks', ['url' => 'https://public.org/hook', 'events' => ['seller.lead.created']]);
-            self::fail('Expected encryption failure.');
-        } catch (RuntimeException $error) {
-            self::assertSame('Unable to protect webhook secret.', $error->getMessage());
-            self::assertNull($error->getPrevious());
-            self::assertNotNull($secret);
-            self::assertNotNull($original);
-            $traceArguments = static function (array $trace): array {
-                $strings = [];
-                array_walk_recursive($trace, static function ($value) use (&$strings): void {
-                    if (is_string($value)) {
-                        $strings[] = $value;
-                    }
-                });
-
-                return $strings;
-            };
-            self::assertContains($secret, $traceArguments($original->getTrace()));
-            self::assertNotContains($secret, $traceArguments($error->getTrace()));
-            self::assertStringNotContainsString($secret, $error->getTraceAsString());
-        } finally {
-            $this->withExceptionHandling();
-        }
-        $this->assertDatabaseCount('webhooks', 0);
-        $this->assertDatabaseCount('integration_secret_receipts', 0);
-    }
-
-    public function test_test_delivery_is_disabled_by_default_and_rejects_other_brand(): void
-    {
-        Http::fake();
-        [$owner, , $first, $second] = $this->cabinet();
-        $this->actingAs($owner)->withSession(['brand_id' => $first->id]);
-        $this->post('/integrations/api/webhooks', ['url' => 'https://public.org/hook', 'events' => ['seller.lead.created']]);
-        $id = DB::table('webhooks')->value('id');
+        $id = $this->insertLegacyWebhook($organization->id, $first->id);
         $this->post('/integrations/api/webhooks/'.$id.'/test')->assertStatus(503);
         config(['features.E1-10.defaults.webhook_delivery' => true]);
         $this->post('/integrations/api/webhooks/'.$id.'/test')->assertStatus(503);
         $this->get('/integrations/api')->assertOk()->assertInertia(fn ($page) => $page->where('webhookDeliveryAvailable', false));
-        $this->withSession(['brand_id' => $second->id])->post('/integrations/api/webhooks/'.$id.'/test')->assertNotFound();
+        $this->withSession(['brand_id' => $second->id])->post('/integrations/api/webhooks/'.$id.'/test')->assertStatus(503);
         $this->assertDatabaseCount('webhook_deliveries', 0);
         Http::assertNothingSent();
     }
@@ -144,7 +52,7 @@ final class WebhookTest extends TenancyTestCase
         [$owner, $org, $brand] = $this->cabinet();
         config(['features.E1-10.defaults.webhook_delivery' => true]);
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
-        $this->post('/integrations/api/webhooks', ['url' => 'https://public.org/hook', 'events' => ['seller.lead.created']]);
+        $this->insertLegacyWebhook($org->id, $brand->id);
         $hook = DB::table('webhooks')->first();
         $this->post('/integrations/api/webhooks/'.$hook->id.'/test')->assertSessionHasNoErrors();
         $delivery = DB::table('webhook_deliveries')->first();
@@ -189,7 +97,7 @@ final class WebhookTest extends TenancyTestCase
         Http::fake();
         [$owner, $org, $brand, $other] = $this->cabinet();
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
-        $this->post('/integrations/api/webhooks', ['url' => 'https://public.org/hook', 'events' => ['seller.lead.created']]);
+        $this->insertLegacyWebhook($org->id, $brand->id);
         $eventId = (string) Str::ulid();
         $envelope = ['event_id' => $eventId, 'schema_version' => 1, 'type' => 'seller.lead.created', 'occurred_at' => now()->toIso8601String(),
             'organization_id' => $org->id, 'brand_id' => $brand->id, 'actor_id' => null,
@@ -280,6 +188,16 @@ final class WebhookTest extends TenancyTestCase
         }
         Queue::assertNothingPushed();
         Http::assertNothingSent();
+    }
+
+    private function insertLegacyWebhook(string $organizationId, string $brandId): string
+    {
+        $id = (string) Str::ulid();
+        DB::table('webhooks')->insert(['id' => $id, 'organization_id' => $organizationId, 'brand_id' => $brandId,
+            'url' => 'https://public.org/hook', 'events' => json_encode(['seller.lead.created'], JSON_THROW_ON_ERROR),
+            'secret' => Crypt::encryptString('synthetic-secret'), 'created_at' => now(), 'updated_at' => now()]);
+
+        return $id;
     }
 }
 

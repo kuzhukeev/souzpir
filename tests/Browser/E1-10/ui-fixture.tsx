@@ -137,7 +137,6 @@ const props = {
   webhooks: [
     {
       id: 'w1',
-      url: 'https://example.test/webhook',
       events: ['seller.lead.created'],
       secret: '••••••••',
       deliveries: [

@@ -6,6 +6,7 @@ use App\Privacy\SupportExceptionHandler;
 use App\Privacy\SupportRequestBoundary;
 use App\Shell\Auth\EnforceAuthVersion;
 use App\Shell\Auth\InvitationSecretBoundary;
+use App\Shell\Integrations\Webhooks\WebhookConfigurationBoundary;
 use App\Tenancy\ResolveTenant;
 use App\Tenancy\TokenApi\BearerBoundary;
 use Illuminate\Contracts\Debug\ExceptionHandler;
@@ -26,6 +27,7 @@ $app = Application::configure(basePath: $basePath)
         $middleware->prepend(InvitationSecretBoundary::class);
         $middleware->prepend(SupportRequestBoundary::class);
         $middleware->prepend(BearerBoundary::class);
+        $middleware->prepend(WebhookConfigurationBoundary::class);
         $middleware->redirectGuestsTo('/login');
         $middleware->prependToPriorityList(SubstituteBindings::class, ResolveTenant::class);
         $middleware->web(append: [AuthenticateSession::class, EnforceAuthVersion::class, HandleInertiaRequests::class]);

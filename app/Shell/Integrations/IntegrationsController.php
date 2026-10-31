@@ -61,7 +61,7 @@ final class IntegrationsController
             'secretStorageReady' => SecretSessionStore::ready(),
             'webhookDeliveryAvailable' => WebhookDelivery::available(),
             'integration_api_key_available' => $this->keepSecretForPage($request, $context, 'integration_api_key'),
-            'integration_webhook_secret_available' => $this->keepSecretForPage($request, $context, 'webhook_secret'),
+            'integration_webhook_secret_available' => false,
         ]);
     }
 
@@ -75,6 +75,7 @@ final class IntegrationsController
         $context = app(TenantContext::class);
         abort_unless($context->organizationId && $context->brandId && $context->actorId, 404);
         $data = $request->validate(['type' => ['required', Rule::in(['api_key', 'webhook_secret'])]]);
+        abort_if($data['type'] === 'webhook_secret', 503, 'Настройка вебхуков временно недоступна.');
         $key = $data['type'] === 'api_key' ? 'integration_api_key' : 'webhook_secret';
 
         // The shared service locks session, user, organization, membership and brand in order.
