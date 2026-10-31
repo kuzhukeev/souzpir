@@ -169,4 +169,62 @@ final class ConcurrentClaimTest extends TestCase
             }
         }
     }
+
+    public function test_channel_update_and_internal_message_creation_are_serialized_in_both_orders(): void
+    {
+        $owner = User::create(['name' => 'Owner', 'email' => 'channel-race@example.test', 'password' => 'test-only-password']);
+        $organization = Organization::create(['name' => 'Test', 'owner_user_id' => $owner->id]);
+        [$brand, $channel, $first, $second] = app(TenantContextRunner::class)->run(new TenantContext($organization->id, source: 'job'), function () use ($organization, $owner): array {
+            Membership::create(['user_id' => $owner->id, 'role' => 'owner']);
+            $brand = Brand::create(['name' => 'Test', 'theme' => 'pyro']);
+
+            return app(TenantContextRunner::class)->run(new TenantContext($organization->id, $brand->id, source: 'job'), fn () => [
+                $brand, ChannelAccount::create(['type' => 'api']), Conversation::create(['state' => []]), Conversation::create(['state' => []]),
+            ]);
+        });
+        foreach ([['change', $first], ['insert', $second]] as [$operation, $conversation]) {
+            $barrier = sys_get_temp_dir().DIRECTORY_SEPARATOR.'channel-'.Str::random(24);
+            $process = new Process([PHP_BINARY, base_path('tests/Feature/Seller/Conversations/Fixtures/channel-race.php'), $barrier, $operation, $organization->id, $brand->id, $conversation->id, $channel->id], base_path(), ['APP_ENV' => 'testing']);
+            DB::beginTransaction();
+            try {
+                if ($operation === 'change') {
+                    DB::table('messages')->insert(['id' => (string) Str::ulid(), 'organization_id' => $organization->id, 'brand_id' => $brand->id, 'conversation_id' => $conversation->id, 'role' => 'client', 'text' => 'internal']);
+                } else {
+                    DB::table('conversations')->where('id', $conversation->id)->update(['channel_account_id' => $channel->id]);
+                }
+                $process->start();
+                file_put_contents($barrier, 'go');
+                $deadline = microtime(true) + 8;
+                do {
+                    DB::select('SELECT pg_stat_clear_snapshot()');
+                    $waiting = DB::selectOne("SELECT EXISTS (SELECT 1 FROM pg_stat_activity WHERE usename = current_user AND pid <> pg_backend_pid() AND wait_event_type = 'Lock' AND (query LIKE '%conversations%' OR query LIKE '%messages%')) AS waiting")->waiting;
+                    if ($waiting) {
+                        break;
+                    }
+                    usleep(20000);
+                } while (microtime(true) < $deadline && $process->isRunning());
+                $this->assertTrue($waiting, 'Worker did not reach the conversation lock');
+                DB::commit();
+                $process->wait();
+                $this->assertFalse($process->isSuccessful(), 'Conflicting operation succeeded');
+                $this->assertStringContainsString('23514', $process->getErrorOutput());
+                if ($operation === 'change') {
+                    $this->assertDatabaseHas('conversations', ['id' => $conversation->id, 'channel_account_id' => null]);
+                } else {
+                    $this->assertDatabaseHas('conversations', ['id' => $conversation->id, 'channel_account_id' => $channel->id]);
+                    $this->assertDatabaseMissing('messages', ['conversation_id' => $conversation->id]);
+                }
+            } finally {
+                if (DB::transactionLevel() > 0) {
+                    DB::rollBack();
+                }
+                if ($process->isRunning()) {
+                    $process->stop();
+                }
+                if (file_exists($barrier)) {
+                    unlink($barrier);
+                }
+            }
+        }
+    }
 }

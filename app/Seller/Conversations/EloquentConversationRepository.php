@@ -45,6 +45,9 @@ final class EloquentConversationRepository implements ConversationRepository
             if (! hash_equals($input->text, $command->text)) {
                 abort(409, 'Входное сообщение изменилось.');
             }
+            if ($conversation->channel_account_id !== null && $input->external_event_id === null) {
+                abort(409, 'Channel input requires an inbound event.');
+            }
             if ($input->external_event_id !== $command->externalEventId) {
                 abort(409, 'Input event does not match message origin.');
             }

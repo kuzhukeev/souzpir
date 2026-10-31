@@ -360,4 +360,38 @@ final class ConversationRepositoryTest extends TenancyTestCase
         $this->assertDatabaseHas('seller_turns', ['id' => $claim->turnId, 'status' => 'processing']);
         $this->assertDatabaseCount('messages', 1);
     }
+
+    public function test_channel_cannot_be_attached_after_internal_message_and_claim_rejects_legacy_bad_origin(): void
+    {
+        [, $org, $brand] = $this->cabinet();
+        $channel = $this->within($org, $brand, fn () => ChannelAccount::create(['type' => 'api']));
+        [$conversation, $input] = $this->setupConversation($org, $brand);
+        try {
+            DB::transaction(fn () => DB::table('conversations')->where('id', $conversation->id)->update(['channel_account_id' => $channel->id]));
+            $this->fail('Channel changed after a message');
+        } catch (QueryException) {
+            $this->assertTrue(true);
+        }
+        // Simulate an inconsistent historical row, bypassing only the new channel guard.
+        DB::statement('ALTER TABLE conversations DISABLE TRIGGER e304_immutable_conversation_channel');
+        try {
+            DB::table('conversations')->where('id', $conversation->id)->update(['channel_account_id' => $channel->id]);
+        } finally {
+            DB::statement('ALTER TABLE conversations ENABLE TRIGGER e304_immutable_conversation_channel');
+        }
+        $repo = app(ConversationRepository::class);
+        try {
+            $repo->claimTurn($this->context($org, $brand), new TurnCommand($conversation->id, $input->id, $input->text, null, 'legacy', 0));
+            $this->fail('Unbound channel input accepted');
+        } catch (HttpException $e) {
+            $this->assertSame(409, $e->getStatusCode());
+        }
+        try {
+            DB::transaction(fn () => DB::table('seller_turns')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $brand->id, 'conversation_id' => $conversation->id, 'input_message_id' => $input->id, 'external_event_id' => null, 'idempotency_key' => 'direct', 'request_hash' => str_repeat('a', 64), 'claim_hash' => str_repeat('b', 64), 'base_version' => 0]));
+            $this->fail('Database accepted unbound channel input');
+        } catch (QueryException) {
+            $this->assertTrue(true);
+        }
+        $this->assertDatabaseCount('seller_turns', 0);
+    }
 }
