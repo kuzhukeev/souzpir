@@ -36,6 +36,7 @@ return [
         'vision.report.read' => ['owner', 'admin', 'editor', 'manager', 'viewer'],
         'vision.measure.read' => ['owner', 'admin', 'editor', 'viewer'],
         'vision.measure.run' => ['owner', 'admin', 'editor'],
+        'vision.actions.write' => ['owner', 'admin', 'editor'],
         'vision.quiz.write' => ['owner', 'admin', 'editor'],
         'vision.settings.read' => ['owner', 'admin', 'editor', 'viewer'],
         'vision.settings.write' => ['owner', 'admin'],
