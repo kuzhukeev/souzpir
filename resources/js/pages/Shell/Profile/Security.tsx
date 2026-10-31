@@ -1,4 +1,5 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { flushSync } from 'react-dom';
 import { useForm } from '@inertiajs/react';
 import { supportsPrivateHistory } from '@/features/Shell/Profile/browser';
 import { KeyRound, LockKeyhole, Monitor, ShieldCheck } from 'lucide-react';
@@ -25,6 +26,21 @@ export default function Security({
   const [dismissedSetup, setDismissedSetup] = useState<string | null>(null);
   const [targetSession, setTargetSession] = useState<string | null>(null);
   const [copyStatus, setCopyStatus] = useState('');
+  const [recoveryOpen, setRecoveryOpen] = useState(false);
+  const [recoveryInput, setRecoveryInput] = useState('');
+  const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
+  const [recoveryError, setRecoveryError] = useState('');
+  const [recoveryBusy, setRecoveryBusy] = useState(false);
+  const recoveryRequest = useRef<AbortController | null>(null);
+  useEffect(() => {
+    const clear = () => {
+      recoveryRequest.current?.abort();
+      recoveryRequest.current = null;
+      flushSync(() => { setRecoveryCodes([]); setRecoveryInput(''); setRecoveryOpen(false); setRecoveryBusy(false); });
+    };
+    window.addEventListener('pagehide', clear);
+    return () => { window.removeEventListener('pagehide', clear); recoveryRequest.current?.abort(); recoveryRequest.current = null; };
+  }, []);
   const setup =
     privateHistory && security.setup && security.setup.secret !== dismissedSetup
       ? security.setup
@@ -79,6 +95,38 @@ export default function Security({
       setCopyStatus(t('copied'));
     } catch {
       setCopyStatus(t('copy_failed'));
+    }
+  };
+  const issueRecovery = async (event: FormEvent) => {
+    event.preventDefault();
+    if (recoveryBusy || !privateHistory) return;
+    setRecoveryError('');
+    setRecoveryBusy(true);
+    const controller = new AbortController();
+    recoveryRequest.current = controller;
+    try {
+      const cookie = document.cookie.split('; ').find((item) => item.startsWith('XSRF-TOKEN='));
+      if (!cookie) throw new Error('Missing CSRF cookie');
+      const response = await fetch('/profile/security/mfa/recovery', {
+        method: 'POST', credentials: 'same-origin', cache: 'no-store', signal: controller.signal,
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-XSRF-TOKEN': decodeURIComponent(cookie.slice('XSRF-TOKEN='.length)) },
+        body: JSON.stringify({ code: recoveryInput }),
+      });
+      if (!response.ok) throw new Error('Recovery codes unavailable');
+      const payload: unknown = await response.json();
+      if (!payload || typeof payload !== 'object' || !('codes' in payload) || !Array.isArray(payload.codes)
+        || payload.codes.length !== 10 || !payload.codes.every((code: unknown) => typeof code === 'string' && /^([A-F0-9]{8}-){3}[A-F0-9]{8}$/.test(code))) {
+        throw new Error('Invalid response');
+      }
+      if (recoveryRequest.current === controller && !controller.signal.aborted) setRecoveryCodes(payload.codes as string[]);
+    } catch {
+      if (!controller.signal.aborted) setRecoveryError('Не удалось получить коды. Проверьте код приложения и попробуйте снова. Если ответ потерялся, создайте новый набор.');
+    } finally {
+      if (recoveryRequest.current === controller) {
+        recoveryRequest.current = null;
+        setRecoveryInput('');
+        setRecoveryBusy(false);
+      }
     }
   };
   const endSessions = () => {
@@ -185,11 +233,16 @@ export default function Security({
             <div className="flex items-center gap-2">
               <KeyRound size={20} className="text-(--color-link)" aria-hidden="true" />
               <h3 className="text-base font-bold">{t('backup_title')}</h3>
-              <Badge>{t('soon')}</Badge>
             </div>
             <p className="mt-2 text-sm leading-6 text-(--color-ink-muted)">
-              {t('backup_description')}
+              Сохраните одноразовые коды в безопасном месте. Создание нового набора отменит предыдущий и завершит другие сессии.
             </p>
+            <Button variant="secondary" className="mt-4 cursor-pointer" disabled={!security.mfa_enabled || !privateHistory} onClick={() => { setRecoveryError(''); setRecoveryOpen(true); }}>
+              Создать резервные коды
+            </Button>
+            {security.mfa_enabled && !privateHistory && typeof window !== 'undefined' && window.location.hostname === 'souzpir.local' && (
+              <p className="mt-3 text-sm"><a className="cursor-pointer text-(--color-link) underline" href="/profile/security/mfa/recovery-local">Открыть локальное создание кодов</a></p>
+            )}
           </div>
         </section>
       </div>
@@ -332,6 +385,28 @@ export default function Security({
             </Button>
           </div>
         </form>
+      </Modal>
+      <Modal
+        open={recoveryOpen}
+        title="Резервные коды"
+        onClose={() => { if (!recoveryBusy) { setRecoveryCodes([]); setRecoveryInput(''); setRecoveryError(''); setRecoveryOpen(false); } }}
+      >
+        {recoveryCodes.length ? (
+          <div className="space-y-4">
+            <p>Сохраните коды сейчас. Каждый код работает один раз; повторно показать их нельзя.</p>
+            <ul className="grid gap-2 rounded-xl bg-(--color-surface-muted) p-4 font-mono text-sm sm:grid-cols-2">
+              {recoveryCodes.map((code) => <li key={code}>{code}</li>)}
+            </ul>
+            <Button onClick={() => { setRecoveryCodes([]); setRecoveryOpen(false); }}>Готово</Button>
+          </div>
+        ) : (
+          <form onSubmit={(event) => void issueRecovery(event)} className="space-y-4">
+            <p>Введите текущий код приложения-аутентификатора. Если вы только что использовали его, дождитесь нового кода. Предыдущие резервные коды перестанут действовать.</p>
+            <Input label="Код приложения" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} required value={recoveryInput} onChange={(event) => setRecoveryInput(event.target.value)} />
+            <Errors transport={recoveryError} />
+            <Button type="submit" loading={recoveryBusy}>Создать коды</Button>
+          </form>
+        )}
       </Modal>
       <Modal
         open={!!targetSession}

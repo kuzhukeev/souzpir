@@ -4,6 +4,7 @@ use App\Shell\Auth\Http\MfaSettingsController;
 use App\Shell\Profile\EmailController;
 use App\Shell\Profile\NotificationController;
 use App\Shell\Profile\ProfileController;
+use App\Shell\Profile\Security\MfaRecoveryController;
 use App\Shell\Profile\Security\SecurityController;
 use App\Shell\Profile\TelegramController;
 use App\Shell\Profile\TestNotifications\TestNotificationController;
@@ -39,6 +40,8 @@ return [
             Route::delete('/profile/security/mfa/setup', [MfaSettingsController::class, 'cancel'])->middleware('throttle:6,1,profile-mfa:')->name('profile.security.mfa.cancel');
             Route::post('/profile/security/mfa/confirm', [MfaSettingsController::class, 'confirm'])->middleware('throttle:6,1,profile-mfa:')->name('profile.security.mfa.confirm');
             Route::post('/profile/security/mfa/disable', [MfaSettingsController::class, 'disable'])->middleware('throttle:6,1,profile-mfa:')->name('profile.security.mfa.disable');
+            Route::get('/profile/security/mfa/recovery-local', [MfaRecoveryController::class, 'localPage'])->name('profile.security.mfa.recovery.local');
+            Route::post('/profile/security/mfa/recovery', [MfaRecoveryController::class, 'issue'])->middleware('throttle:6,1,profile-mfa:')->name('profile.security.mfa.recovery');
         });
     },
     'webhook' => static function (): void {

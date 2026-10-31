@@ -126,6 +126,20 @@
         "users"
       ]
     },
+    "mfa_recovery_codes": {
+      "owner": "SP-E1-08",
+      "tenant": "global",
+      "parents": [
+        "users"
+      ]
+    },
+    "mfa_challenge_limits": {
+      "owner": "SP-E1-08",
+      "tenant": "global",
+      "parents": [
+        "users"
+      ]
+    },
     "invitation_exchange_sessions": {
       "owner": "SP-E1-01",
       "tenant": "global",

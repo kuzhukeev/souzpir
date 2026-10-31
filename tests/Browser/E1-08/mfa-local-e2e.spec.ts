@@ -1,0 +1,68 @@
+import { expect, test } from '@playwright/test';
+import { createHmac } from 'node:crypto';
+import { mkdirSync } from 'node:fs';
+
+const base = 'http://souzpir.local:8268';
+test.use({ launchOptions: { executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe', args: ['--host-resolver-rules=MAP souzpir.local 127.0.0.1', '--no-proxy-server'] }, trace: 'off' });
+function totp(offset: number) {
+  const counter = Buffer.alloc(8);
+  counter.writeBigUInt64BE(BigInt(Math.floor(Date.now() / 30000) + offset));
+  const digest = createHmac('sha1', Buffer.from('12345678901234567890')).update(counter).digest();
+  const position = digest[digest.length - 1] & 15;
+  return ((digest.readUInt32BE(position) & 0x7fffffff) % 1000000).toString().padStart(6, '0');
+}
+test('local HTTP one-time issue and login, without Inertia props or history', async ({ page, context }) => {
+  await context.route('**/*', route => new URL(route.request().url()).origin === base ? route.continue() : route.abort('blockedbyclient'));
+  await page.goto(base + '/login');
+  await page.locator('input[type=email]').fill('mfa-recovery@example.test');
+  await page.locator('input[type=password]').fill('fixture-only-password');
+  await page.getByRole('button', { name: 'Войти', exact: true }).click();
+  await page.waitForURL('**/mfa/challenge');
+  await page.getByLabel('Код подтверждения').fill(totp(0));
+  await page.getByRole('button', { name: 'Подтвердить' }).click();
+  await page.waitForURL(url => !url.pathname.includes('/mfa/'));
+  await page.goto(base + '/profile/security');
+  await page.getByRole('link', { name: 'Открыть локальное создание кодов' }).click();
+  await expect(page.getByRole('heading', { name: 'Резервные коды' })).toBeVisible();
+  mkdirSync('.local/screenshots', { recursive: true });
+  await page.screenshot({ path: '.local/screenshots/mfa-recovery-local.png', fullPage: true });
+  expect(await page.evaluate(() => Boolean(window.crypto.subtle))).toBe(false);
+  await page.getByLabel('Код приложения').fill(totp(1));
+  await page.getByRole('button', { name: 'Создать коды' }).click();
+  await expect(page.locator('#codes li')).toHaveCount(10);
+  const code = await page.locator('#codes li').first().innerText();
+  expect(await page.evaluate(() => JSON.stringify(history.state))).not.toContain(code);
+  await page.goto(base + '/profile');
+  await page.goBack();
+  await expect(page.getByRole('heading', { name: 'Резервные коды' })).toBeVisible();
+  await expect(page.locator('#codes li')).toHaveCount(0);
+  await page.evaluate(async () => {
+    const cookie = document.cookie.split('; ').find(item => item.startsWith('XSRF-TOKEN='));
+    if (!cookie) throw new Error('Missing CSRF cookie');
+    await fetch('/logout', { method: 'POST', headers: { 'X-XSRF-TOKEN': decodeURIComponent(cookie.slice('XSRF-TOKEN='.length)) }, credentials: 'same-origin' });
+  });
+  await page.goto(base + '/login');
+  await page.locator('input[type=email]').fill('mfa-recovery@example.test');
+  await page.locator('input[type=password]').fill('fixture-only-password');
+  await page.getByRole('button', { name: 'Войти', exact: true }).click();
+  await page.waitForURL('**/mfa/challenge');
+  await page.getByRole('button', { name: 'Использовать резервный код' }).click();
+  await page.getByLabel('Резервный код').fill(code);
+  await page.getByRole('button', { name: 'Подтвердить' }).click();
+  await page.waitForURL(url => !url.pathname.includes('/mfa/'));
+  await page.evaluate(async () => {
+    const cookie = document.cookie.split('; ').find(item => item.startsWith('XSRF-TOKEN='));
+    if (!cookie) throw new Error('Missing CSRF cookie');
+    await fetch('/logout', { method: 'POST', headers: { 'X-XSRF-TOKEN': decodeURIComponent(cookie.slice('XSRF-TOKEN='.length)) }, credentials: 'same-origin' });
+  });
+  await page.goto(base + '/login');
+  await page.locator('input[type=email]').fill('mfa-recovery@example.test');
+  await page.locator('input[type=password]').fill('fixture-only-password');
+  await page.getByRole('button', { name: 'Войти', exact: true }).click();
+  await page.waitForURL('**/mfa/challenge');
+  await page.getByRole('button', { name: 'Использовать резервный код' }).click();
+  await page.getByLabel('Резервный код').fill(code);
+  await page.getByRole('button', { name: 'Подтвердить' }).click();
+  await expect(page.getByText('Не удалось подтвердить вход. Проверьте код и соединение.', { exact: false })).toBeVisible();
+  expect(new URL(page.url()).pathname).toBe('/mfa/challenge');
+});

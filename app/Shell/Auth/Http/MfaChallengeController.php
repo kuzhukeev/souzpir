@@ -2,12 +2,11 @@
 
 namespace App\Shell\Auth\Http;
 
-use App\Models\User;
-use App\Shell\Auth\Totp;
+use App\Shell\Auth\MfaChallenge;
+use App\Shell\Auth\MfaRecoveryTransport;
+use App\Shell\Auth\SecureAccountContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -23,35 +22,22 @@ final class MfaChallengeController
         return Inertia::render('Shell/Auth/Mfa');
     }
 
-    public function store(Request $request, Totp $totp, SessionController $session): RedirectResponse
+    public function store(#[\SensitiveParameter] Request $request, SessionController $session): RedirectResponse
     {
-        $data = $request->validate(['code' => ['required', 'digits:6']]);
         $pending = $this->pending($request);
         if (! $pending) {
             return redirect()->route('login');
         }
-        $key = 'auth.mfa:'.hash('sha256', $pending['user_id']);
-        if (RateLimiter::tooManyAttempts($key, 5)) {
-            throw ValidationException::withMessages(['code' => 'Слишком много попыток. Повторите через 15 минут.']);
+        $safeCode = $request->attributes->get('mfa.safe_code');
+        if (is_array($safeCode) && ($safeCode['kind'] ?? null) === 'recovery') {
+            if (! MfaRecoveryTransport::allows($request)) {
+                throw ValidationException::withMessages(['code' => SecureAccountContext::MESSAGE]);
+            }
         }
-        $user = DB::transaction(function () use ($pending, $data, $totp): ?User {
-            $user = User::whereKey($pending['user_id'])->lockForUpdate()->first();
-            if (! $user || ! $user->mfa_confirmed_at || ! $user->mfa_secret || $user->auth_version !== $pending['version']) {
-                return null;
-            }
-            $counter = $totp->matchingCounter($user->mfa_secret, (string) $data['code'], now()->timestamp, $user->mfa_last_counter);
-            if ($counter === null) {
-                return null;
-            }
-            $user->forceFill(['mfa_last_counter' => $counter])->save();
-
-            return $user;
-        });
+        $user = app(MfaChallenge::class)->verify($pending, is_array($safeCode) ? $safeCode : null);
         if (! $user) {
-            RateLimiter::hit($key, 900);
             throw ValidationException::withMessages(['code' => 'Неверный код.']);
         }
-        RateLimiter::clear($key);
         $session->complete($request, $user, $pending['remember'], $pending['version']);
 
         return redirect()->intended(route('auth.ready'));

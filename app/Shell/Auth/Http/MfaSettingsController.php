@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
 use App\Shell\Auth\AuthSessionRegistry;
+use App\Shell\Auth\MfaSettingsThrottle;
 use App\Shell\Auth\MfaSetupState;
 use App\Shell\Auth\SecureAccountContext;
 use App\Shell\Auth\Totp;
@@ -15,13 +16,11 @@ use App\Shell\Profile\ProfileValidation;
 use App\Tenancy\Cabinet;
 use App\Tenancy\TenantContext;
 use Illuminate\Auth\AuthenticationException;
-use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -115,6 +114,7 @@ final class MfaSettingsController
                 throw ValidationException::withMessages(['code' => 'Неверный код.']);
             }
             $user->forceFill(['mfa_secret' => null, 'mfa_confirmed_at' => null, 'mfa_last_counter' => null, 'auth_version' => $user->auth_version + 1, 'remember_token' => Str::random(60)])->save();
+            DB::table('mfa_recovery_codes')->where('user_id', $user->id)->delete();
             app(AuthSessionRegistry::class)->advanceVersion($request, $user->auth_version);
             app(AuditWriter::class)->record(new TenantContext($org, actorId: $user->id), new AuditEntry('account.mfa.disabled', 'user', $user->id));
 
@@ -131,23 +131,7 @@ final class MfaSettingsController
     /** Both the legacy and profile aliases share this per-account credential limit. */
     private function limitAttempts(Request $request): void
     {
-        $user = $request->user();
-        if (! $user) {
-            throw new AuthenticationException('Unauthenticated.');
-        }
-
-        $key = 'auth.mfa.settings:'.hash('sha256', (string) $user->getAuthIdentifier());
-        // FileStore increment is not atomic. Hold a per-account cache lock across
-        // the check and hit so concurrent requests cannot multiply the allowance.
-        Cache::lock($key.':lock', 10)->block(2, static function () use ($key): void {
-            if (RateLimiter::tooManyAttempts($key, 6)) {
-                throw new ThrottleRequestsException('Слишком много попыток. Повторите позже.', null, [
-                    'Retry-After' => (string) max(1, RateLimiter::availableIn($key)),
-                ]);
-            }
-
-            RateLimiter::hit($key, 60);
-        });
+        app(MfaSettingsThrottle::class)->hit($request);
     }
 
     private function assertFreshSession(Request $request, User $user): void
