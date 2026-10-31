@@ -390,6 +390,16 @@
         "brands"
       ]
     },
+    "seller_planned_integration_interests": {
+      "owner": "SP-E5-06",
+      "tenant": "brand",
+      "parents": [
+        "organizations",
+        "brands",
+        "users",
+        "memberships"
+      ]
+    },
     "channel_inbound_events": {
       "owner": "SP-E3-04",
       "tenant": "parent:channel_accounts",
