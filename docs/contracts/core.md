@@ -71,6 +71,20 @@ AiContext: `{organizationId, brandId, purpose, family:seller|vision, objectType,
 
 AiRequest: OpenAI-shaped `messages`, `model`, `temperature`, `responseFormat?`, `tools[]?`, `toolChoice?`, `maxTokens?`, prompt version/checksum. AiResult: `{content:?string, toolCalls:list, usage:{promptTokens,completionTokens}, model, latencyMs, costMicros:?int, aiCallId, error:?{code,retryable}}`. `content=null` при tool-calls допустим. Полный raw response только в разрешённом внутреннем record storage. Fake fixture missing — ошибка теста, не пустой успешный ответ. Responder adapter сохраняет полный tool call ID/name/arguments и семантику LlmResult::json; accounting не использует float.
 
+SP-C-02 добавляет отдельный внутренний fake-only путь стадии summary: созданная
+сервером запись закрепляет текущие историю, turn, сессию и фактический запрос;
+связь с `ai_calls` фиксируется в той же транзакции, в которой создаётся вызов,
+до обращения к драйверу. Помимо XID используется случайный nonce, созданный
+триггером и доступный только в текущей транзакции: повтор XID после логического
+восстановления не позволяет прикрепить прежний вызов. Dispatch возвращает только
+`completed`, `in_progress` или `uncertain`, не содержимое и не ID вызова;
+обычный `complete` не воспроизводит привязанный защищённый вызов. Чтение
+подтверждённого ответа требует активной транзакции и повторно проверяет
+сессию, доступ, fence, запрос и сохранённый результат. Идентификатор стадии,
+claim или публичный `AiResult` не являются авторизацией либо самостоятельным
+доказательством. Это не runtime или finalizer: реальный драйвер в этом пути
+закрыт, `commitTurn` не изменён; неопределённый исход не отправляется повторно.
+
 UsageQuery: `{from,to,metrics:list<string>}`. UsageSnapshot: `{as_of, metrics:{metric_key:{value:number|null,unit,status:ready|unavailable}}}`. Count=0 — измеренное отсутствие, null — нет источника/не настроено. UI не подменяет unavailable нулём. Основные keys: seller.dialogues, seller.handoffs_pending, vision.measurements, vision.latest_visibility, ai.calls, ai.tokens. Суммы/лимиты не смешиваются с display numbers. Домены экспортируют read DTO, Shell не делает cross-domain SQL.
 
 ## Concurrency, доставка и события

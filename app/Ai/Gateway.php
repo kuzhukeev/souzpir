@@ -7,15 +7,19 @@ use App\Ai\Drivers\FakeDriver;
 use App\Ai\Drivers\OpenRouterDriver;
 use App\Ai\Drivers\Rejected;
 use App\Ai\Drivers\Uncertain;
+use App\Ai\Protected\RequestFingerprint;
+use App\Ai\Protected\SellerSummaryStages;
 use App\Contracts\Ai\AiContext;
 use App\Contracts\Ai\AiGateway;
 use App\Contracts\Ai\AiRequest;
 use App\Contracts\Ai\AiResult;
 use App\Privacy\ContactBoundary;
 use App\Privacy\Secrets\SecretBoundary;
+use App\Seller\Conversations\Data\TurnClaim;
 use App\Shell\Notifications\Contracts\NotificationDispatcher;
 use App\Shell\Notifications\DomainEvent;
 use App\Tenancy\TenantContext;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -26,6 +30,61 @@ use Throwable;
 
 final class Gateway implements AiGateway
 {
+    /** Internal summary stage; the reference and claim do not replace session authorization. */
+    public function completeProtectedSummary(#[\SensitiveParameter] Request $http, #[\SensitiveParameter] TurnClaim $claim, #[\SensitiveParameter] string $stageId): string
+    {
+        try {
+            // This first protected path is deliberately limited to the fake driver
+            // until runtime, plan-revocation and external-effect ownership are joined.
+            if (config('runtime.ai_driver', 'fake') !== 'fake') {
+                throw new LogicException;
+            }
+            $stages = app(SellerSummaryStages::class);
+            [$request, $context, $digest] = $stages->load($http, $claim, $stageId);
+
+            $result = $this->completeInternal($request, $context,
+                fn () => $stages->lockForGateway($http, $claim, $stageId, $digest),
+                fn (object $call, string $hash) => $stages->bindCall($http, $claim, $stageId, $call, $hash));
+
+            // Provider data is only available through readProtectedSummaryLocked,
+            // which rechecks authority and freshness after the external boundary.
+            if (($result->error['code'] ?? null) === 'in_progress') {
+                return 'in_progress';
+            }
+
+            return $result->costMicros === null ? 'uncertain' : 'completed';
+        } catch (Throwable) {
+            throw new LogicException('Protected summary stage could not be completed.');
+        }
+    }
+
+    /** Read under the caller's finalization transaction; this does not authorize effects. */
+    public function readProtectedSummaryLocked(#[\SensitiveParameter] Request $http, #[\SensitiveParameter] TurnClaim $claim, #[\SensitiveParameter] string $stageId): AiResult
+    {
+        try {
+            if (DB::connection()->transactionLevel() < 1) {
+                throw new LogicException;
+            }
+            [$request, $context, , $callId, $requestHash] = app(SellerSummaryStages::class)->load($http, $claim, $stageId);
+            if (! is_string($callId) || ! is_string($requestHash)) {
+                throw new LogicException;
+            }
+            $body = app(ContactMasker::class)->request($request->toArray());
+            $expected = app(RequestFingerprint::class)->hash($request, $context, $body, config('runtime.ai_driver', 'fake'));
+            $call = DB::table('ai_calls')->where('id', $callId)->where('organization_id', $context->organizationId)
+                ->where('brand_id', $context->brandId)->lockForUpdate()->first();
+            if (! $call || $call->status !== 'completed' || ! hash_equals($expected, $requestHash)
+                || ! hash_equals($expected, $call->request_hash)
+                || ! hash_equals(hash_hmac('sha256', $context->idempotencyKey, (string) config('app.key')), $call->idempotency_key_hash)) {
+                throw new LogicException;
+            }
+
+            return $this->replay($call, $request->model);
+        } catch (Throwable) {
+            throw new LogicException('Protected summary result unavailable.');
+        }
+    }
+
     public function complete(#[\SensitiveParameter] AiRequest $request, #[\SensitiveParameter] AiContext $context): AiResult
     {
         try {
@@ -91,7 +150,7 @@ final class Gateway implements AiGateway
         return in_array($message, $allowed, true) ? $message : 'AI request could not be safely completed.';
     }
 
-    private function completeInternal(#[\SensitiveParameter] AiRequest $request, #[\SensitiveParameter] AiContext $context): AiResult
+    private function completeInternal(#[\SensitiveParameter] AiRequest $request, #[\SensitiveParameter] AiContext $context, ?\Closure $beforeReserve = null, ?\Closure $afterReserve = null): AiResult
     {
         // An outer rollback must never undo accounting for an already sent request.
         if (DB::connection()->transactionLevel() !== 0) {
@@ -135,21 +194,11 @@ final class Gateway implements AiGateway
             // Do not chain exceptions whose stack may contain unmasked input.
             throw new InvalidArgumentException('AI data could not be safely prepared.');
         }
-        $contextHash = [
-            'request' => $body,
-            // Keyed digest detects changes hidden by masking without persisting contact data.
-            'original_request_hmac' => hash_hmac('sha256', CanonicalJson::hash($request->toArray()), (string) config('app.key')),
-            'family' => $context->family, 'purpose' => $context->purpose,
-            'object_type' => $context->objectType, 'object_id' => $context->objectId,
-            'data_classes' => $context->dataClasses, 'attempt' => $context->attempt,
-            'parent_call_id' => $context->parentCallId,
-            'driver' => $driverName,
-        ];
-        $requestHash = CanonicalJson::hash($contextHash);
+        $requestHash = app(RequestFingerprint::class)->hash($request, $context, $body, $driverName);
         $wireBytes = $driverName === 'fake' ? null : strlen(json_encode(
             app(OpenRouterDriver::class)->wireBody($body), JSON_THROW_ON_ERROR,
         ));
-        [$call, $existing] = $this->reserve($request, $context, $model['provider'], $requestHash, $wireBytes);
+        [$call, $existing] = $this->reserve($request, $context, $model['provider'], $requestHash, $wireBytes, $beforeReserve, $afterReserve);
         if ($existing) {
             return $this->replay($call, $request->model);
         }
@@ -190,15 +239,28 @@ final class Gateway implements AiGateway
         }
     }
 
-    private function reserve(#[\SensitiveParameter] AiRequest $request, #[\SensitiveParameter] AiContext $context, string $provider, string $requestHash, ?int $wireBytes): array
+    private function reserve(#[\SensitiveParameter] AiRequest $request, #[\SensitiveParameter] AiContext $context, string $provider, string $requestHash, ?int $wireBytes, ?\Closure $beforeReserve = null, ?\Closure $afterReserve = null): array
     {
-        return DB::transaction(function () use ($request, $context, $provider, $requestHash, $wireBytes): array {
+        return DB::transaction(function () use ($request, $context, $provider, $requestHash, $wireBytes, $beforeReserve, $afterReserve): array {
+            if ($beforeReserve !== null) {
+                $beforeReserve();
+            }
             $keyHash = hash_hmac('sha256', $context->idempotencyKey, (string) config('app.key'));
             DB::select('SELECT pg_advisory_xact_lock(hashtextextended(?, 0))', [$context->organizationId.':'.$context->brandId.':'.$keyHash]);
             $existing = DB::table('ai_calls')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)->where('idempotency_key_hash', $keyHash)->lockForUpdate()->first();
             if ($existing) {
                 if (! hash_equals($existing->request_hash, $requestHash)) {
                     throw new LogicException('AI idempotency key reused with different request or context.');
+                }
+
+                // A copied request or idempotency key cannot bypass the
+                // protected transactional read of an already bound result.
+                if ($beforeReserve === null && Schema::hasTable('c02_ai_stages')
+                    && DB::table('c02_ai_stages')->where('ai_call_id', $existing->id)->exists()) {
+                    throw new LogicException('Protected AI call requires protected reading.');
+                }
+                if ($afterReserve !== null) {
+                    $afterReserve($existing, $requestHash);
                 }
 
                 return [$existing, true];
@@ -254,7 +316,12 @@ final class Gateway implements AiGateway
             DB::table('ai_calls')->insert(['id' => $id, 'organization_id' => $context->organizationId, 'brand_id' => $context->brandId, 'budget_id' => $budget->id, 'idempotency_key_hash' => $keyHash, 'request_hash' => $requestHash, 'family' => $context->family, 'purpose' => $context->purpose, 'provider' => $provider, 'requested_model' => $request->model, 'model' => $request->model, 'object_type' => $context->objectType, 'object_id' => $context->objectId, 'data_classes' => json_encode($context->dataClasses, JSON_THROW_ON_ERROR), 'attempt' => $context->attempt, 'parent_call_id' => $context->parentCallId, 'status' => 'reserved', 'reserved_micros' => $reserved, 'created_at' => now(), 'updated_at' => now()]);
             DB::table('ai_budgets')->where('id', $budget->id)->increment('reserved_micros', $reserved, ['unresolved_count' => (int) $budget->unresolved_count + 1, 'updated_at' => now()]);
 
-            return [DB::table('ai_calls')->where('id', $id)->first(), false];
+            $call = DB::table('ai_calls')->where('id', $id)->first();
+            if ($afterReserve !== null) {
+                $afterReserve($call, $requestHash);
+            }
+
+            return [$call, false];
         });
     }
 
