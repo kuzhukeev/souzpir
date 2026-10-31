@@ -11,11 +11,19 @@ return new class extends Migration
         DB::unprepared(<<<'SQL'
 -- Older calls have no provable creation transaction and cannot be attached.
 ALTER TABLE ai_calls ADD COLUMN c02_creation_xid xid8 NULL;
+ALTER TABLE ai_calls ADD COLUMN c02_reservation_digest char(64) NULL;
 CREATE OR REPLACE FUNCTION c02_ai_call_creation_xid() RETURNS trigger LANGUAGE plpgsql AS $$
+DECLARE reservation_nonce text;
 BEGIN
   IF TG_OP = 'INSERT' THEN
     NEW.c02_creation_xid := pg_current_xact_id();
-  ELSIF NEW.c02_creation_xid IS DISTINCT FROM OLD.c02_creation_xid THEN
+    -- The raw nonce exists only in this transaction, never in the row or dump.
+    -- It is generated here, ignoring any caller-provided session setting.
+    reservation_nonce := replace(gen_random_uuid()::text, '-', '') || replace(gen_random_uuid()::text, '-', '');
+    PERFORM set_config('c02.reservation_nonce', reservation_nonce, true);
+    NEW.c02_reservation_digest := encode(sha256(convert_to('c02-reservation:' || reservation_nonce, 'UTF8')), 'hex');
+  ELSIF NEW.c02_creation_xid IS DISTINCT FROM OLD.c02_creation_xid
+     OR NEW.c02_reservation_digest IS DISTINCT FROM OLD.c02_reservation_digest THEN
     RAISE EXCEPTION 'AI creation transaction is immutable' USING ERRCODE = '23514';
   END IF;
   RETURN NEW;
@@ -83,6 +91,9 @@ BEGIN
           -- before Gateway can leave it and invoke a driver. A prior unprotected
           -- call cannot be retroactively made into protected evidence.
           AND a.c02_creation_xid = pg_current_xact_id()
+          AND a.c02_reservation_digest IS NOT NULL
+          AND current_setting('c02.reservation_nonce', true) ~ '^[0-9a-f]{64}$'
+          AND a.c02_reservation_digest = encode(sha256(convert_to('c02-reservation:' || current_setting('c02.reservation_nonce', true), 'UTF8')), 'hex')
       ) THEN
     RAISE EXCEPTION 'Protected stage is immutable' USING ERRCODE = '23514';
   END IF;
@@ -105,6 +116,6 @@ SQL);
             throw new RuntimeException('Cannot discard protected AI stage history.');
         }
         Schema::dropIfExists('c02_ai_stages');
-        DB::unprepared('DROP FUNCTION IF EXISTS c02_ai_stage_guard(); DROP FUNCTION IF EXISTS c02_ai_stage_no_truncate(); DROP TRIGGER IF EXISTS c02_ai_call_creation_xid ON ai_calls; DROP FUNCTION IF EXISTS c02_ai_call_creation_xid(); ALTER TABLE ai_calls DROP COLUMN c02_creation_xid;');
+        DB::unprepared('DROP FUNCTION IF EXISTS c02_ai_stage_guard(); DROP FUNCTION IF EXISTS c02_ai_stage_no_truncate(); DROP TRIGGER IF EXISTS c02_ai_call_creation_xid ON ai_calls; DROP FUNCTION IF EXISTS c02_ai_call_creation_xid(); ALTER TABLE ai_calls DROP COLUMN c02_creation_xid; ALTER TABLE ai_calls DROP COLUMN c02_reservation_digest;');
     }
 };

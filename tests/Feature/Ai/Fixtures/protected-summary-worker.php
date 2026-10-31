@@ -29,7 +29,7 @@ $tenant = new TenantContext($input['org'], $input['brand'], $user->id, $input['m
 $claim = new TurnClaim('claimed', $input['turn'], $input['conversation'], $input['org'], $input['brand'], $input['version'], $input['token']);
 try {
     $result = app(TenantContextRunner::class)->run($tenant, fn () => app(Gateway::class)->completeProtectedSummary($http, $claim, $input['stage']));
-    echo json_encode(['call' => $result->aiCallId, 'error' => $result->error['code'] ?? null], JSON_THROW_ON_ERROR);
+    echo json_encode(['status' => $result], JSON_THROW_ON_ERROR);
 } catch (Throwable) {
     fwrite(STDERR, 'Protected worker failed.');
     exit(1);

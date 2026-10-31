@@ -77,15 +77,20 @@ final class ProtectedSummaryStageTest extends TestCase
             $file = $this->fakeFixture($request->toArray(), 7);
             $gateway = app(Gateway::class);
             $first = $gateway->completeProtectedSummary($http, $claim, $stage);
-            self::assertNull($first->error);
-            self::assertSame('Synthetic summary', $first->content);
-            self::assertSame($first->aiCallId, DB::table('c02_ai_stages')->where('id', $stage)->value('ai_call_id'));
+            self::assertSame('completed', $first);
             unlink($file);
             $repeat = $gateway->completeProtectedSummary($http, $claim, $stage);
-            self::assertSame($first->toArray(), $repeat->toArray());
+            self::assertSame($first, $repeat);
             self::assertSame(1, DB::table('ai_calls')->count());
+            try {
+                $gateway->readProtectedSummaryLocked($http, $claim, $stage);
+                self::fail('Protected result escaped a transaction.');
+            } catch (LogicException $error) {
+                self::assertSame('Protected summary result unavailable.', $error->getMessage());
+            }
             $read = DB::transaction(fn () => $gateway->readProtectedSummaryLocked($http, $claim, $stage));
-            self::assertSame($first->toArray(), $read->toArray());
+            self::assertSame('Synthetic summary', $read->content);
+            self::assertSame($read->aiCallId, DB::table('c02_ai_stages')->where('id', $stage)->value('ai_call_id'));
             Http::assertNothingSent();
         });
     }
@@ -118,6 +123,34 @@ final class ProtectedSummaryStageTest extends TestCase
                 self::assertNull($error->getPrevious());
             }
             self::assertSame(0, DB::table('ai_calls')->count());
+        });
+    }
+
+    public function test_copied_request_and_context_cannot_replay_protected_result_through_public_gateway(): void
+    {
+        [$tenant, $http, $claim] = $this->fixture();
+        $this->within($tenant, function () use ($http, $claim): void {
+            $stage = app(SellerSummaryStages::class)->prepare($http, $claim);
+            [$request, $context] = app(SellerSummaryStages::class)->load($http, $claim, $stage);
+            $this->fakeFixture($request->toArray(), 4);
+            $gateway = app(Gateway::class);
+            self::assertSame('completed', $gateway->completeProtectedSummary($http, $claim, $stage));
+            self::assertSame('Synthetic summary', DB::transaction(fn () => $gateway->readProtectedSummaryLocked($http, $claim, $stage))->content);
+            app(AuthSessionRegistry::class)->withinActive($http, fn () => app(AuthSessionRegistry::class)->revokeCurrent($http));
+            try {
+                $gateway->complete($request, $context);
+                self::fail('Copied DTOs replayed a protected result without session authorization.');
+            } catch (LogicException $error) {
+                self::assertSame('AI request could not be safely completed.', $error->getMessage());
+                self::assertNull($error->getPrevious());
+            }
+            try {
+                DB::transaction(fn () => $gateway->readProtectedSummaryLocked($http, $claim, $stage));
+                self::fail('Revoked session read a protected result.');
+            } catch (LogicException $error) {
+                self::assertSame('Protected summary result unavailable.', $error->getMessage());
+            }
+            self::assertSame(1, DB::table('ai_calls')->count());
         });
     }
 
@@ -165,11 +198,10 @@ final class ProtectedSummaryStageTest extends TestCase
             $file = $this->fakeFixture($request->toArray(), null);
             $gateway = app(Gateway::class);
             $first = $gateway->completeProtectedSummary($http, $claim, $stage);
-            self::assertSame('cost_unknown', $first->error['code']);
+            self::assertSame('uncertain', $first);
             unlink($file);
             $again = $gateway->completeProtectedSummary($http, $claim, $stage);
-            self::assertSame($first->aiCallId, $again->aiCallId);
-            self::assertSame('cost_unknown', $again->error['code']);
+            self::assertSame('uncertain', $again);
             self::assertSame(1, DB::table('ai_calls')->count());
             try {
                 DB::transaction(fn () => $gateway->readProtectedSummaryLocked($http, $claim, $stage));
@@ -190,6 +222,8 @@ final class ProtectedSummaryStageTest extends TestCase
             $gateway = app(Gateway::class);
             $unprotected = $gateway->complete($request, $context);
             self::assertNotNull($unprotected->aiCallId);
+            $nonceAfterCommit = DB::selectOne("select current_setting('c02.reservation_nonce', true) as nonce")->nonce;
+            self::assertContains($nonceAfterCommit, [null, '']);
             try {
                 $gateway->completeProtectedSummary($http, $claim, $stage);
                 self::fail('A preexisting call became protected evidence.');
@@ -205,6 +239,123 @@ final class ProtectedSummaryStageTest extends TestCase
                 self::assertSame('23514', $error->errorInfo[0]);
             }
         });
+    }
+
+    public function test_real_restore_with_reused_xid_cannot_bind_a_previous_call(): void
+    {
+        $restorePort = getenv('C02_RESTORE_PORT');
+        $restoreDb = getenv('C02_RESTORE_DATABASE');
+        $pgBin = getenv('C02_PG_BIN');
+        if (! $restorePort || ! $restoreDb || ! $pgBin) {
+            self::markTestSkipped('Set a dedicated empty restore database and PostgreSQL bin to run the restore test.');
+        }
+        if (! preg_match('/\A[0-9]{1,5}\z/D', $restorePort) || ! preg_match('/\Asouzpir_test_sp_c02_restore[a-z0-9_]*\z/D', $restoreDb)
+            || $restoreDb === DB::connection()->getDatabaseName() || config('database.connections.pgsql.host') !== '127.0.0.1') {
+            throw new LogicException('A separate isolated restore target is required.');
+        }
+        $source = config('database.connections.pgsql');
+        $restore = [...$source, 'host' => '127.0.0.1', 'port' => (int) $restorePort, 'database' => $restoreDb];
+        config(['database.connections.c02_restore' => $restore]);
+        $target = DB::connection('c02_restore');
+        $targetInfo = $target->selectOne("select current_database() as db, current_setting('data_directory') as data_dir, (select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind in ('r','p','v','m','S')) as relations");
+        $localRoot = realpath(base_path('.local'));
+        $dataDir = realpath($targetInfo->data_dir);
+        $sourceDir = realpath(DB::selectOne("select current_setting('data_directory') as data_dir")->data_dir);
+        if ($targetInfo->db !== $restoreDb || (int) $targetInfo->relations !== 0 || ! is_string($localRoot) || ! is_string($dataDir)
+            || ! is_string($sourceDir) || $sourceDir === $dataDir
+            || ! str_starts_with(strtolower($dataDir), strtolower($localRoot).DIRECTORY_SEPARATOR)
+            || ! str_starts_with(strtolower($sourceDir), strtolower($localRoot).DIRECTORY_SEPARATOR)) {
+            throw new LogicException('Restore source and empty target must be separate clusters inside this worktree.');
+        }
+
+        // Reserve enough space to make exact XID reuse reproducible even when
+        // this isolated target cluster has already run another restore test.
+        $targetXid = (int) $target->selectOne('select pg_current_xact_id()::text as xid')->xid;
+        DB::unprepared(<<<'SQL'
+CREATE OR REPLACE PROCEDURE c02_test_advance_source(IN last_xid bigint) LANGUAGE plpgsql AS $$
+DECLARE value bigint;
+BEGIN
+  LOOP
+    value := pg_current_xact_id()::text::bigint;
+    IF value >= last_xid THEN EXIT; END IF;
+    COMMIT;
+  END LOOP;
+END;
+$$;
+SQL);
+        DB::statement('CALL c02_test_advance_source(?)', [$targetXid + 1500]);
+
+        [$tenant, $http, $claim] = $this->fixture();
+        [$stage, $call] = $this->within($tenant, function () use ($http, $claim): array {
+            $stage = app(SellerSummaryStages::class)->prepare($http, $claim);
+            [$request, $context] = app(SellerSummaryStages::class)->load($http, $claim, $stage);
+            $this->fakeFixture($request->toArray(), 4);
+            $result = app(Gateway::class)->complete($request, $context);
+
+            return [$stage, DB::table('ai_calls')->where('id', $result->aiCallId)->first()];
+        });
+        self::assertNotNull($call->c02_reservation_digest);
+        $oldXid = (int) $call->c02_creation_xid;
+        $dumpFile = base_path('.local/tmp/c02-restore-'.Str::random(12).'.dump');
+        $suffix = PHP_OS_FAMILY === 'Windows' ? '.exe' : '';
+        $bin = rtrim($pgBin, '/\\').DIRECTORY_SEPARATOR;
+        $sourcePort = (string) config('database.connections.pgsql.port');
+        $sourceDb = DB::connection()->getDatabaseName();
+        $username = config('database.connections.pgsql.username');
+        try {
+            $dump = new Process([$bin.'pg_dump'.$suffix, '-h', '127.0.0.1', '-p', $sourcePort, '-U', $username, '-Fc', '--no-owner', '--no-acl', '-f', $dumpFile, $sourceDb], base_path());
+            $dump->mustRun();
+            $restoreProcess = new Process([$bin.'pg_restore'.$suffix, '-h', '127.0.0.1', '-p', $restorePort, '-U', $username, '--no-owner', '--no-acl', '-d', $restoreDb, $dumpFile], base_path());
+            $restoreProcess->mustRun();
+            $copied = $target->table('ai_calls')->where('id', $call->id)->first();
+            self::assertSame((string) $oldXid, (string) $copied->c02_creation_xid);
+            self::assertSame($call->c02_reservation_digest, $copied->c02_reservation_digest);
+            $forgedNonce = str_repeat('a', 64);
+            self::assertNotSame(hash('sha256', 'c02-reservation:'.$forgedNonce), $copied->c02_reservation_digest);
+            $target->select("select set_config('c02.reservation_nonce', ?, false)", [$forgedNonce]);
+            $target->unprepared(<<<'SQL'
+CREATE PROCEDURE c02_test_advance_xid(IN last_xid bigint) LANGUAGE plpgsql AS $$
+DECLARE value bigint;
+BEGIN
+  LOOP
+    value := pg_current_xact_id()::text::bigint;
+    IF value >= last_xid THEN EXIT; END IF;
+    COMMIT;
+  END LOOP;
+END;
+$$;
+SQL);
+            $next = (int) $target->selectOne('select pg_current_xact_id()::text as xid')->xid;
+            self::assertLessThan($oldXid - 1, $next, 'Restore target must have an older XID sequence.');
+            $target->statement('CALL c02_test_advance_xid(?)', [$oldXid - 1]);
+            $original = DB::getDefaultConnection();
+            DB::setDefaultConnection('c02_restore');
+            try {
+                $this->within($tenant, function () use ($http, $claim, $stage, $call, $oldXid): void {
+                    try {
+                        DB::transaction(function () use ($http, $claim, $stage, $call, $oldXid): void {
+                            self::assertSame($oldXid, (int) DB::selectOne('select pg_current_xact_id()::text as xid')->xid);
+                            $restoredCall = DB::table('ai_calls')->where('id', $call->id)->first();
+                            $proof = DB::selectOne("select c02_creation_xid = pg_current_xact_id() as xid_matches, c02_reservation_digest = encode(sha256(convert_to('c02-reservation:' || current_setting('c02.reservation_nonce', true), 'UTF8')), 'hex') as nonce_matches from ai_calls where id = ?", [$call->id]);
+                            self::assertTrue($proof->xid_matches);
+                            self::assertFalse($proof->nonce_matches);
+                            app(SellerSummaryStages::class)->bindCall($http, $claim, $stage, $restoredCall, $restoredCall->request_hash);
+                        });
+                        self::fail('A restored call was attached after XID reuse.');
+                    } catch (QueryException $error) {
+                        self::assertSame('23514', $error->errorInfo[0]);
+                    }
+                });
+                self::assertNull(DB::table('c02_ai_stages')->where('id', $stage)->value('ai_call_id'));
+            } finally {
+                DB::setDefaultConnection($original);
+            }
+        } finally {
+            if (is_file($dumpFile)) {
+                unlink($dumpFile);
+            }
+            DB::purge('c02_restore');
+        }
     }
 
     public function test_the_incomplete_port_refuses_live_drivers_before_reservation(): void
@@ -232,16 +383,18 @@ final class ProtectedSummaryStageTest extends TestCase
             $stage = app(SellerSummaryStages::class)->prepare($http, $claim);
             [$request] = app(SellerSummaryStages::class)->load($http, $claim, $stage);
             $this->fakeFixture($request->toArray(), 2);
-            $result = app(Gateway::class)->completeProtectedSummary($http, $claim, $stage);
+            app(Gateway::class)->completeProtectedSummary($http, $claim, $stage);
 
-            return [$stage, $result->aiCallId];
+            return [$stage, DB::table('c02_ai_stages')->where('id', $stage)->value('ai_call_id')];
         });
         $otherCall = $this->within($otherTenant, function () use ($otherHttp, $otherClaim): string {
             $stage = app(SellerSummaryStages::class)->prepare($otherHttp, $otherClaim);
             [$request] = app(SellerSummaryStages::class)->load($otherHttp, $otherClaim, $stage);
             $this->fakeFixture($request->toArray(), 2);
 
-            return app(Gateway::class)->completeProtectedSummary($otherHttp, $otherClaim, $stage)->aiCallId;
+            app(Gateway::class)->completeProtectedSummary($otherHttp, $otherClaim, $stage);
+
+            return DB::table('c02_ai_stages')->where('id', $stage)->value('ai_call_id');
         });
         $ciphertext = DB::table('ai_calls')->where('id', $otherCall)->value('result_encrypted');
         DB::table('ai_calls')->where('id', $firstCall)->update(['result_encrypted' => $ciphertext]);
@@ -312,12 +465,65 @@ final class ProtectedSummaryStageTest extends TestCase
         self::assertTrue($second->isSuccessful(), $second->getErrorOutput());
         $a = json_decode($first->getOutput(), true, 512, JSON_THROW_ON_ERROR);
         $b = json_decode($second->getOutput(), true, 512, JSON_THROW_ON_ERROR);
-        self::assertSame($a['call'], $b['call']);
-        self::assertContains($a['error'], [null, 'in_progress']);
-        self::assertContains($b['error'], [null, 'in_progress']);
-        self::assertTrue($a['error'] === null || $b['error'] === null);
+        self::assertContains($a['status'], ['completed', 'in_progress']);
+        self::assertContains($b['status'], ['completed', 'in_progress']);
+        self::assertTrue($a['status'] === 'completed' || $b['status'] === 'completed');
         self::assertSame(1, DB::table('ai_calls')->count());
-        self::assertSame($a['call'], DB::table('c02_ai_stages')->where('id', $stage)->value('ai_call_id'));
+        self::assertSame(DB::table('ai_calls')->value('id'), DB::table('c02_ai_stages')->where('id', $stage)->value('ai_call_id'));
+        DB::purge('c02_advisory');
+    }
+
+    public function test_new_input_while_fake_driver_finishes_hides_result_and_only_returns_safe_status(): void
+    {
+        [$tenant, $http, $claim] = $this->fixture();
+        $stage = $this->within($tenant, fn () => app(SellerSummaryStages::class)->prepare($http, $claim));
+        [$request] = $this->within($tenant, fn () => app(SellerSummaryStages::class)->load($http, $claim, $stage));
+        $file = $this->fakeFixture($request->toArray(), 5);
+        DB::unprepared(<<<'SQL'
+CREATE OR REPLACE FUNCTION c02_test_delay_result() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.result_encrypted IS NOT NULL AND OLD.result_encrypted IS NULL THEN
+    PERFORM pg_advisory_xact_lock(8620249);
+  END IF;
+  RETURN NEW;
+END;
+$$;
+CREATE TRIGGER c02_test_delay_result BEFORE UPDATE ON ai_calls FOR EACH ROW EXECUTE FUNCTION c02_test_delay_result();
+SQL);
+        config(['database.connections.c02_advisory' => config('database.connections.pgsql')]);
+        $blocker = DB::connection('c02_advisory');
+        $blocker->beginTransaction();
+        $blocker->select('SELECT pg_advisory_xact_lock(8620249)');
+        $payload = json_encode([
+            'org' => $tenant->organizationId, 'brand' => $tenant->brandId, 'user' => $tenant->actorId,
+            'member' => $tenant->membershipId, 'session' => $http->session()->getId(),
+            'turn' => $claim->turnId, 'conversation' => $claim->conversationId, 'version' => $claim->baseVersion,
+            'token' => $claim->token(), 'stage' => $stage, 'fixtures' => dirname($file),
+        ], JSON_THROW_ON_ERROR);
+        $command = [PHP_BINARY, '-d', 'allow_url_fopen=0', '-d', 'disable_functions=fsockopen,pfsockopen,stream_socket_client,curl_exec,curl_multi_exec', base_path('tests/Feature/Ai/Fixtures/protected-summary-worker.php')];
+        $worker = new Process($command, base_path(), ['APP_ENV' => 'testing']);
+        $worker->setInput($payload);
+        try {
+            $worker->start();
+            $this->waitForBlockedProcesses(1);
+            $this->within($tenant, fn () => Message::create(['conversation_id' => $claim->conversationId, 'role' => 'client', 'text' => 'Input during fake driver', 'meta' => []]));
+        } finally {
+            $blocker->rollBack();
+        }
+        $worker->wait();
+        self::assertTrue($worker->isSuccessful(), $worker->getErrorOutput());
+        self::assertSame(['status' => 'completed'], json_decode($worker->getOutput(), true, 512, JSON_THROW_ON_ERROR));
+        self::assertStringNotContainsString('Synthetic summary', $worker->getOutput());
+        $this->within($tenant, function () use ($http, $claim, $stage): void {
+            try {
+                DB::transaction(fn () => app(Gateway::class)->readProtectedSummaryLocked($http, $claim, $stage));
+                self::fail('A stale driver result was exposed.');
+            } catch (LogicException $error) {
+                self::assertSame('Protected summary result unavailable.', $error->getMessage());
+            }
+        });
+        self::assertSame(2, DB::table('messages')->where('conversation_id', $claim->conversationId)->count());
+        self::assertSame('completed', DB::table('ai_calls')->value('status'));
         DB::purge('c02_advisory');
     }
 
@@ -365,7 +571,7 @@ SQL);
         }
         unlink($file);
         $result = $this->within($tenant, fn () => app(Gateway::class)->completeProtectedSummary($http, $claim, $stage));
-        self::assertSame('provider_uncertain', $result->error['code']);
+        self::assertSame('uncertain', $result);
         self::assertSame(1, DB::table('ai_calls')->count());
         self::assertSame('uncertain', DB::table('ai_calls')->value('status'));
         DB::purge('c02_advisory');
@@ -392,8 +598,9 @@ SQL);
             [$request] = app(SellerSummaryStages::class)->load($http, $claim, $stage);
             $this->fakeFixture($request->toArray(), 3);
             $gateway = app(Gateway::class);
-            $result = $gateway->completeProtectedSummary($http, $claim, $stage);
-            DB::table('ai_calls')->where('id', $result->aiCallId)->update(['request_hash' => str_repeat('a', 64)]);
+            $gateway->completeProtectedSummary($http, $claim, $stage);
+            $callId = DB::table('c02_ai_stages')->where('id', $stage)->value('ai_call_id');
+            DB::table('ai_calls')->where('id', $callId)->update(['request_hash' => str_repeat('a', 64)]);
             try {
                 DB::transaction(fn () => $gateway->readProtectedSummaryLocked($http, $claim, $stage));
                 self::fail('Altered Gateway request accepted.');

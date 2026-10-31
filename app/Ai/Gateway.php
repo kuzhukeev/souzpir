@@ -31,7 +31,7 @@ use Throwable;
 final class Gateway implements AiGateway
 {
     /** Internal summary stage; the reference and claim do not replace session authorization. */
-    public function completeProtectedSummary(#[\SensitiveParameter] Request $http, #[\SensitiveParameter] TurnClaim $claim, #[\SensitiveParameter] string $stageId): AiResult
+    public function completeProtectedSummary(#[\SensitiveParameter] Request $http, #[\SensitiveParameter] TurnClaim $claim, #[\SensitiveParameter] string $stageId): string
     {
         try {
             // This first protected path is deliberately limited to the fake driver
@@ -42,9 +42,17 @@ final class Gateway implements AiGateway
             $stages = app(SellerSummaryStages::class);
             [$request, $context, $digest] = $stages->load($http, $claim, $stageId);
 
-            return $this->completeInternal($request, $context,
+            $result = $this->completeInternal($request, $context,
                 fn () => $stages->lockForGateway($http, $claim, $stageId, $digest),
                 fn (object $call, string $hash) => $stages->bindCall($http, $claim, $stageId, $call, $hash));
+
+            // Provider data is only available through readProtectedSummaryLocked,
+            // which rechecks authority and freshness after the external boundary.
+            if (($result->error['code'] ?? null) === 'in_progress') {
+                return 'in_progress';
+            }
+
+            return $result->costMicros === null ? 'uncertain' : 'completed';
         } catch (Throwable) {
             throw new LogicException('Protected summary stage could not be completed.');
         }
@@ -245,6 +253,12 @@ final class Gateway implements AiGateway
                     throw new LogicException('AI idempotency key reused with different request or context.');
                 }
 
+                // A copied request or idempotency key cannot bypass the
+                // protected transactional read of an already bound result.
+                if ($beforeReserve === null && Schema::hasTable('c02_ai_stages')
+                    && DB::table('c02_ai_stages')->where('ai_call_id', $existing->id)->exists()) {
+                    throw new LogicException('Protected AI call requires protected reading.');
+                }
                 if ($afterReserve !== null) {
                     $afterReserve($existing, $requestHash);
                 }
