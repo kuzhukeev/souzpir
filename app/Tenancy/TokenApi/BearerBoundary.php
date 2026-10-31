@@ -20,6 +20,9 @@ final class BearerBoundary
         $request->headers->remove('Authorization');
         foreach (['HTTP_AUTHORIZATION', 'REDIRECT_HTTP_AUTHORIZATION', 'AUTHORIZATION', 'PHP_AUTH_USER', 'PHP_AUTH_PW', 'PHP_AUTH_DIGEST'] as $key) {
             $request->server->remove($key);
+            // Framework and third-party exception handlers may inspect PHP's
+            // original superglobal instead of Symfony's copied server bag.
+            unset($_SERVER[$key]);
         }
         $request->headers->set('Accept', 'application/json');
         if (is_string($header) && $header !== '' && ! $this->secureTransport($request)) {

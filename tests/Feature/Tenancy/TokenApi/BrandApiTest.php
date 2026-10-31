@@ -168,6 +168,33 @@ final class BrandApiTest extends TestCase
         self::assertStringNotContainsString($secret, json_encode($logged, JSON_PARTIAL_OUTPUT_ON_ERROR));
     }
 
+    public function test_raw_bearer_is_removed_from_php_server_superglobal_before_downstream_work(): void
+    {
+        $secret = str_repeat('S', 64);
+        $raw = '1|'.$secret;
+        $keys = ['HTTP_AUTHORIZATION', 'REDIRECT_HTTP_AUTHORIZATION', 'AUTHORIZATION', 'PHP_AUTH_USER', 'PHP_AUTH_PW', 'PHP_AUTH_DIGEST'];
+        $previous = [];
+        foreach ($keys as $key) {
+            $previous[$key] = [array_key_exists($key, $_SERVER), $_SERVER[$key] ?? null];
+            $_SERVER[$key] = 'Bearer '.$raw;
+        }
+        Route::get('/api/v1/server-snapshot', static function () use ($keys) {
+            return response()->json(['present' => array_values(array_filter($keys, static fn ($key) => array_key_exists($key, $_SERVER)))]);
+        });
+        try {
+            $this->withHeader('Authorization', 'Bearer '.$raw)->getJson('/api/v1/server-snapshot')
+                ->assertOk()->assertExactJson(['present' => []]);
+        } finally {
+            foreach ($previous as $key => [$exists, $value]) {
+                if ($exists) {
+                    $_SERVER[$key] = $value;
+                } else {
+                    unset($_SERVER[$key]);
+                }
+            }
+        }
+    }
+
     public function test_revocation_between_guard_and_scoped_action_is_rechecked(): void
     {
         [$org, $brand] = $this->brand('First');
