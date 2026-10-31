@@ -3,6 +3,8 @@
 namespace Tests\Feature\Vision\Evidence;
 
 use App\Ai\CanonicalJson;
+use App\Ai\Drivers\Driver;
+use App\Ai\Drivers\FakeDriver;
 use App\Contracts\Ai\AiContext;
 use App\Contracts\Ai\AiGateway;
 use App\Contracts\Ai\AiRequest;
@@ -111,6 +113,19 @@ final class EvidenceEvaluatorTest extends TestCase
         self::assertSame(2, $gate->checks);
         self::assertSame(1, $gateway->calls);
 
+        $badConfiguration = $configuration;
+        $badConfiguration['parser']['schema'] = str_repeat('0', 64);
+        DB::table('measurements')->where('id', $measurement)->update(['configuration' => json_encode($badConfiguration, JSON_THROW_ON_ERROR)]);
+        self::assertSame('unknown', $evaluate()['status']);
+        DB::table('measurements')->where('id', $measurement)->update(['configuration' => json_encode($configuration, JSON_THROW_ON_ERROR)]);
+        DB::table('measurement_answers')->where('id', $answer)->update(['protocol_valid' => false]);
+        self::assertSame('unknown', $evaluate()['status']);
+        DB::table('measurement_answers')->where('id', $answer)->update(['protocol_valid' => true]);
+        config(['runtime.ai_driver' => 'openrouter']);
+        self::assertSame('unknown', $evaluate()['status']);
+        config(['runtime.ai_driver' => 'fake']);
+        self::assertSame(1, $gateway->calls);
+
         DB::table('measurements')->where('id', $measurement)->update(['profile_checksum' => str_repeat('0', 64)]);
         self::assertSame('unknown', $evaluate()['status']);
         self::assertSame(1, $gateway->calls);
@@ -141,6 +156,44 @@ final class EvidenceEvaluatorTest extends TestCase
         $confirmation['evidence'] = 'Торты: Ленина 15, гарантия 4 дня.';
         $gateway->responses = [$candidate, $confirmation];
         self::assertSame('unknown', $evaluate()['status']);
+        $profile = ['name' => 'СтальПлюс', 'aliases' => ['СтальПлюс'], 'facts' => []];
+        DB::table('measurements')->where('id', $measurement)->update([
+            'profile_snapshot' => json_encode($profile, JSON_THROW_ON_ERROR), 'profile_checksum' => CanonicalJson::hash($profile),
+        ]);
+        DB::table('measurement_answers')->where('id', $answer)->update(['answer_text' => 'Рекомендую СтальПлюс.']);
+        $candidate = ['brand_mentioned' => true, 'brand_position' => 1, 'brand_recommended' => true,
+            'mention_quote' => 'Рекомендую СтальПлюс', 'companies' => [['name' => 'СтальПлюс', 'position' => 1, 'role' => 'supplier', 'is_brand' => true]],
+            'tone' => 'positive', 'claims' => [], 'suspected_errors' => [], 'confidence' => 0.9];
+        $driver = new class($candidate) implements Driver
+        {
+            public int $calls = 0;
+
+            public function __construct(private array $candidate) {}
+
+            public function complete(array $body): array
+            {
+                $this->calls++;
+
+                return ['content' => json_encode($this->candidate, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE), 'toolCalls' => [],
+                    'usage' => ['promptTokens' => 1, 'completionTokens' => 1], 'model' => $body['model'], 'latencyMs' => 1, 'costMicros' => 0];
+            }
+        };
+        app()->instance(FakeDriver::class, $driver);
+        $actual = new EvidenceEvaluator(app(AiGateway::class), $gate, app(EvidenceValidator::class), app(ConfirmationValidator::class), app(SourceExtractor::class));
+        $result = app(TenantContextRunner::class)->run($tenant, fn () => $actual->evaluate($tenant, $answer));
+        self::assertSame('confirmed', $result['status']);
+        self::assertSame(1, $driver->calls);
+        self::assertSame(1, DB::table('ai_calls')->count());
+        $unsafe = ['name' => 'СтальПлюс', 'aliases' => ['СтальПлюс'], 'facts' => [['topic' => 'contact', 'value' => 'user at example.test']]];
+        DB::table('measurements')->where('id', $measurement)->update([
+            'profile_snapshot' => json_encode($unsafe, JSON_THROW_ON_ERROR), 'profile_checksum' => CanonicalJson::hash($unsafe),
+        ]);
+        $blocked = app(TenantContextRunner::class)->run($tenant, fn () => $actual->evaluate($tenant, $answer));
+        self::assertSame('unknown', $blocked['status']);
+        self::assertSame(1, $driver->calls);
+        self::assertSame(1, DB::table('ai_calls')->count());
+        $other = new TenantContext((string) Str::ulid(), (string) Str::ulid(), source: 'job');
+        self::assertSame('unknown', app(TenantContextRunner::class)->run($tenant, fn () => $actual->evaluate($other, $answer))['status']);
         Http::assertNothingSent();
     }
 }
