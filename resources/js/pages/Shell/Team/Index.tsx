@@ -1,6 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { useState } from 'react';
-import { Users } from 'lucide-react';
+import * as Dialog from '@radix-ui/react-dialog';
+import { useRef, useState, type ReactNode } from 'react';
+import { Users, X } from 'lucide-react';
 import CabinetLayout from '@/layouts/CabinetLayout';
 import type { TeamInvitations, TeamMember, TeamPage } from '@/types/Shell/Team/members';
 
@@ -9,6 +10,58 @@ const panel =
 const focus =
   'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus)';
 const button = `inline-flex min-h-11 cursor-pointer items-center justify-center rounded-lg border border-(--color-border) px-4 text-sm font-semibold text-(--color-link) disabled:cursor-not-allowed disabled:opacity-50 ${focus}`;
+
+function RevokeDialog({
+  open,
+  onClose,
+  busy,
+  children,
+}: {
+  open: boolean;
+  onClose: () => void;
+  busy: boolean;
+  children: ReactNode;
+}) {
+  const opener = useRef<HTMLElement | null>(null);
+  return (
+    <Dialog.Root
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) onClose();
+      }}
+    >
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-[#10264a]/30" />
+        <Dialog.Content
+          aria-describedby={undefined}
+          onOpenAutoFocus={() => {
+            opener.current =
+              document.activeElement instanceof HTMLElement ? document.activeElement : null;
+          }}
+          onCloseAutoFocus={(event) => {
+            if (opener.current?.isConnected) {
+              event.preventDefault();
+              opener.current.focus();
+            }
+          }}
+          className="fixed top-1/2 left-1/2 z-50 max-h-dvh w-[min(480px,calc(100vw-32px))] max-w-full -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-(--radius-card) bg-(--color-surface) text-(--color-ink) shadow-xl"
+        >
+          <header className="flex items-center justify-between gap-4 border-b border-(--color-border) p-5">
+            <Dialog.Title className="text-lg font-bold">Отозвать приглашение</Dialog.Title>
+            <Dialog.Close
+              aria-label="Закрыть"
+              disabled={busy}
+              className={`cursor-pointer rounded p-2 text-(--color-icon) disabled:cursor-not-allowed disabled:opacity-50 ${focus}`}
+            >
+              <X aria-hidden="true" size={20} />
+            </Dialog.Close>
+          </header>
+          <div className="p-5 text-sm">{children}</div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
 
 function Person({ member }: { member: TeamMember }) {
   const name = member.name?.trim() || 'Имя недоступно';
@@ -86,6 +139,10 @@ export default function Index({
   const [failedPage, setFailedPage] = useState<number | null>(null);
   const [invitationLoading, setInvitationLoading] = useState(false);
   const [failedInvitationPage, setFailedInvitationPage] = useState<number | null>(null);
+  const [selected, setSelected] = useState<TeamInvitations['data'][number] | null>(null);
+  const [revoking, setRevoking] = useState(false);
+  const [revokeUncertain, setRevokeUncertain] = useState(false);
+  const [revokeMessage, setRevokeMessage] = useState('');
   const go = (page: number) => {
     setLoading(true);
     setFailedPage(null);
@@ -123,6 +180,34 @@ export default function Index({
         onNetworkError: failed,
         onHttpException: failed,
         onFinish: () => setInvitationLoading(false),
+      },
+    );
+  };
+  const revoke = () => {
+    if (!selected || revoking || revokeUncertain) return;
+    setRevoking(true);
+    setRevokeMessage('');
+    const uncertain = () => {
+      setRevokeUncertain(true);
+      setRevokeMessage(
+        'Не удалось подтвердить результат. Обновите страницу и проверьте приглашение.',
+      );
+      return false;
+    };
+    router.post(
+      `/team/invitations/${encodeURIComponent(selected.id)}/revoke`,
+      {},
+      {
+        preserveScroll: true,
+        onSuccess: () => {
+          setSelected(null);
+          setRevokeMessage('Приглашение отозвано.');
+        },
+        onError: uncertain,
+        onHttpException: uncertain,
+        onNetworkError: uncertain,
+        onCancel: uncertain,
+        onFinish: () => setRevoking(false),
       },
     );
   };
@@ -334,6 +419,22 @@ export default function Index({
               </button>
             </div>
           )}
+          {revokeMessage && (
+            <div
+              role={revokeUncertain ? 'alert' : 'status'}
+              className="mb-4 rounded-xl bg-(--color-surface-muted) p-4 text-sm"
+            >
+              <p>{revokeMessage}</p>
+              {revokeUncertain && (
+                <a
+                  href="/team"
+                  className={`mt-2 inline-block cursor-pointer font-semibold text-(--color-link) underline ${focus}`}
+                >
+                  Обновить страницу
+                </a>
+              )}
+            </div>
+          )}
           {invitationLoading && (
             <p role="status" className="mb-4 text-sm text-(--color-ink-muted)">
               Загружаем приглашения…
@@ -357,9 +458,24 @@ export default function Index({
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <p className="min-w-0 break-all font-semibold">{invitation.email}</p>
-                    <span className="rounded-full bg-(--color-surface-muted) px-3 py-1 text-(--color-ink-muted)">
-                      {invitation.opened ? 'Ссылка открыта' : 'Ссылка не открыта'}
-                    </span>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <span className="rounded-full bg-(--color-surface-muted) px-3 py-1 text-(--color-ink-muted)">
+                        {invitation.opened ? 'Ссылка открыта' : 'Ссылка не открыта'}
+                      </span>
+                      {invitation.can_revoke && (
+                        <button
+                          type="button"
+                          disabled={revoking || revokeUncertain || loading || invitationLoading}
+                          onClick={() => {
+                            setSelected(invitation);
+                            setRevokeMessage('');
+                          }}
+                          className={button}
+                        >
+                          Отозвать
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <dl className="mt-3 grid gap-3 sm:grid-cols-3">
                     <div>
@@ -435,6 +551,41 @@ export default function Index({
           )}
         </section>
       </div>
+      <RevokeDialog
+        open={selected !== null}
+        busy={revoking}
+        onClose={() => {
+          if (!revoking) setSelected(null);
+        }}
+      >
+        <p className="break-words text-sm leading-6">
+          Отозвать приглашение для <strong className="break-all">{selected?.email}</strong>?
+          Получатель больше не сможет принять его по этой ссылке.
+        </p>
+        {revokeUncertain && (
+          <p role="alert" className="mt-4 text-sm text-(--color-danger-ink)">
+            {revokeMessage}
+          </p>
+        )}
+        <div className="mt-5 flex flex-wrap justify-end gap-2">
+          <button
+            type="button"
+            disabled={revoking}
+            onClick={() => setSelected(null)}
+            className={button}
+          >
+            Отмена
+          </button>
+          <button
+            type="button"
+            disabled={revoking || revokeUncertain}
+            onClick={revoke}
+            className={button}
+          >
+            {revoking ? 'Отзываем…' : 'Отозвать приглашение'}
+          </button>
+        </div>
+      </RevokeDialog>
     </CabinetLayout>
   );
 }

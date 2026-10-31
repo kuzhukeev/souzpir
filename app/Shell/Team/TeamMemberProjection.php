@@ -83,4 +83,24 @@ final class TeamMemberProjection
             'brands' => $shared,
         ];
     }
+
+    public function canRevokeInvitation(mixed $brandIds, bool $canWrite): bool
+    {
+        if (! $canWrite || ! is_array($brandIds) || ! array_is_list($brandIds)) {
+            return false;
+        }
+        if ($brandIds === []) {
+            return $this->allInvitations;
+        }
+        $allowed = $this->brands->pluck('id')->all();
+        $seen = [];
+        foreach ($brandIds as $id) {
+            if (! is_string($id) || in_array($id, $seen, true) || ! in_array($id, $allowed, true)) {
+                return false;
+            }
+            $seen[] = $id;
+        }
+
+        return true;
+    }
 }

@@ -25,6 +25,7 @@ export type TeamInvitations = {
     brands: { id: string; name: string }[];
     expires_at: string;
     opened: boolean;
+    can_revoke: boolean;
   }[];
   current_page: number;
   last_page: number;
