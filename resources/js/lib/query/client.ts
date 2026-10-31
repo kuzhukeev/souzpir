@@ -22,3 +22,21 @@ export async function clearBrandQueries(client: QueryClient, scope: BrandScope):
   await client.cancelQueries({ queryKey });
   client.removeQueries({ queryKey });
 }
+
+/** Drop cached private data when navigation logs out or changes authenticated user. */
+export function sessionCacheSync(client: QueryClient, initialProps: Record<string, unknown>) {
+  const principal = (props: Record<string, unknown>): string | null => {
+    const auth = props.auth;
+    if (!auth || typeof auth !== 'object' || !('user' in auth)) return null;
+    const user = auth.user;
+    if (!user || typeof user !== 'object' || !('id' in user) || typeof user.id !== 'string')
+      return null;
+    return user.id;
+  };
+  let current = principal(initialProps);
+  return (props: Record<string, unknown>) => {
+    const next = principal(props);
+    if (next === null || next !== current) client.clear();
+    current = next;
+  };
+}

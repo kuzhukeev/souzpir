@@ -1,4 +1,6 @@
-import { createInertiaApp } from '@inertiajs/react';
+import { createInertiaApp, router } from '@inertiajs/react';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { createQueryClient, sessionCacheSync } from '@/lib/query/client';
 import { CheckCircle2 } from 'lucide-react';
 import type { ComponentType } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -33,7 +35,14 @@ void createInertiaApp({
     return (await page()).default;
   },
   setup({ el, App, props }) {
-    createRoot(el).render(<App {...props} />);
+    const client = createQueryClient();
+    const onNavigation = sessionCacheSync(client, props.initialPage.props);
+    router.on('success', (event) => onNavigation(event.detail.page.props));
+    createRoot(el).render(
+      <QueryClientProvider client={client}>
+        <App {...props} />
+      </QueryClientProvider>,
+    );
   },
   progress: { color: '#235c41' },
 });

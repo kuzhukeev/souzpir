@@ -2,7 +2,12 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import { brandQueryKey, clearBrandQueries, createQueryClient } from '@/lib/query/client';
+import {
+  brandQueryKey,
+  clearBrandQueries,
+  createQueryClient,
+  sessionCacheSync,
+} from '@/lib/query/client';
 import { usePolling } from '@/hooks/usePolling';
 
 const a = { organizationId: 'org-a', brandId: 'brand-a' };
@@ -20,6 +25,19 @@ describe('brand-scoped live data', () => {
     expect(client.getQueryData(brandQueryKey(a, 'dialogue', '1'))).toBeUndefined();
     expect(client.getQueryData(brandQueryKey(b, 'dialogue', '1'))).toBe('private B');
     expect(client.getQueryData(brandQueryKey(other, 'dialogue', '1'))).toBe('private other');
+  });
+
+  it('clears private cache on logout or a different authenticated account', () => {
+    const client = createQueryClient();
+    const sync = sessionCacheSync(client, { auth: { user: { id: 'user-a' } } });
+    client.setQueryData(brandQueryKey(a, 'private'), 'secret A');
+    sync({ auth: { user: { id: 'user-a' } } });
+    expect(client.getQueryData(brandQueryKey(a, 'private'))).toBe('secret A');
+    sync({ auth: { user: null } });
+    expect(client.getQueryData(brandQueryKey(a, 'private'))).toBeUndefined();
+    client.setQueryData(brandQueryKey(a, 'private'), 'secret B');
+    sync({ auth: { user: { id: 'user-b' } } });
+    expect(client.getQueryData(brandQueryKey(a, 'private'))).toBeUndefined();
   });
 
   it('cancels an in-flight request before dropping its old-brand result', async () => {
@@ -107,29 +125,45 @@ describe('brand-scoped live data', () => {
     const wrapper = ({ children }: { children: ReactNode }) => (
       <QueryClientProvider client={client}>{children}</QueryClientProvider>
     );
-    const first = renderHook(({ enabled }) => usePolling({ scope: a, key: ['pending'], fetch, interval: 60_000, enabled }), { wrapper, initialProps: { enabled: true } });
-    const second = renderHook(({ enabled }) => usePolling({ scope: a, key: ['pending'], fetch, interval: 60_000, enabled }), { wrapper, initialProps: { enabled: true } });
+    const first = renderHook(
+      ({ enabled }) => usePolling({ scope: a, key: ['pending'], fetch, interval: 60_000, enabled }),
+      { wrapper, initialProps: { enabled: true } },
+    );
+    const second = renderHook(
+      ({ enabled }) => usePolling({ scope: a, key: ['pending'], fetch, interval: 60_000, enabled }),
+      { wrapper, initialProps: { enabled: true } },
+    );
     await waitFor(() => expect(signal).toBeDefined());
     first.rerender({ enabled: false });
     expect(signal?.aborted).toBe(false);
     expect(first.result.current.data).toBeUndefined();
     second.rerender({ enabled: false });
     await waitFor(() => expect(signal?.aborted).toBe(true));
-    first.unmount(); second.unmount(); client.clear();
+    first.unmount();
+    second.unmount();
+    client.clear();
   });
 
   it('switching brands detaches only the switching observer', async () => {
     const client = createQueryClient();
     const signals: Record<string, AbortSignal> = {};
-    const fetch = vi.fn(({ queryKey, signal }: { queryKey: readonly unknown[]; signal: AbortSignal }) => {
-      signals[String(queryKey[2])] = signal;
-      return new Promise<string>(() => undefined);
-    });
+    const fetch = vi.fn(
+      ({ queryKey, signal }: { queryKey: readonly unknown[]; signal: AbortSignal }) => {
+        signals[String(queryKey[2])] = signal;
+        return new Promise<string>(() => undefined);
+      },
+    );
     const wrapper = ({ children }: { children: ReactNode }) => (
       <QueryClientProvider client={client}>{children}</QueryClientProvider>
     );
-    const switching = renderHook(({ scope }) => usePolling({ scope, key: ['pending'], fetch, interval: 60_000 }), { wrapper, initialProps: { scope: a } });
-    const staying = renderHook(() => usePolling({ scope: a, key: ['pending'], fetch, interval: 60_000 }), { wrapper });
+    const switching = renderHook(
+      ({ scope }) => usePolling({ scope, key: ['pending'], fetch, interval: 60_000 }),
+      { wrapper, initialProps: { scope: a } },
+    );
+    const staying = renderHook(
+      () => usePolling({ scope: a, key: ['pending'], fetch, interval: 60_000 }),
+      { wrapper },
+    );
     await waitFor(() => expect(signals['brand-a']).toBeDefined());
     switching.rerender({ scope: b });
     await waitFor(() => expect(signals['brand-b']).toBeDefined());
@@ -137,7 +171,7 @@ describe('brand-scoped live data', () => {
     expect(switching.result.current.data).toBeUndefined();
     staying.unmount();
     await waitFor(() => expect(signals['brand-a'].aborted).toBe(true));
-    switching.unmount(); client.clear();
+    switching.unmount();
+    client.clear();
   });
-
 });
