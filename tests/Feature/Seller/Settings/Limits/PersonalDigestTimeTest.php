@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Seller\Settings\Limits\DigestService;
 use App\Seller\Settings\Limits\SellerNotificationRouter;
 use App\Shell\Notifications\DomainEvent;
+use App\Shell\Notifications\NotificationDeferred;
 use App\Shell\Notifications\NotificationProcessor;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
@@ -119,11 +120,13 @@ final class PersonalDigestTimeTest extends TenancyTestCase
         try {
             app(NotificationProcessor::class)->process($event->envelope['event_id']);
             self::fail('Disabled digest must defer the outbox event.');
-        } catch (\LogicException $e) {
-            self::assertStringContainsString('disabled', $e->getMessage());
+        } catch (NotificationDeferred $e) {
+            self::assertSame('digest_disabled', $e->reason);
         }
         $this->assertDatabaseHas('outbox_events', ['id' => $event->envelope['event_id'], 'processed_at' => null]);
         $this->assertDatabaseCount('seller_digest_items', 0);
+        $this->assertDatabaseMissing('consumed_events', ['event_id' => $event->envelope['event_id']]);
+        $this->assertDatabaseMissing('notification_deliveries', ['event_id' => $event->envelope['event_id']]);
         $this->assertDatabaseHas('seller_notification_rules', ['event_key' => self::HANDOFF, 'timing' => 'digest']);
         config(['features.E6-07.defaults.digest_enabled' => true]);
         app(NotificationProcessor::class)->process($event->envelope['event_id']);
