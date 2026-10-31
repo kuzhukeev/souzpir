@@ -29,6 +29,7 @@ final class PermissionsTest extends TenancyTestCase
         $actors = [[$owner, $ownerMembership], [$admin, $adminMembership], [$editor, $editorMembership], [$manager, $managerMembership], [$viewer, $viewerMembership]];
         $expected = [
             'team.read' => [1, 1, 0, 0, 1], 'team.write' => [1, 1, 0, 0, 0],
+            'journal.read' => [1, 1, 1, 0, 0], 'journal.notifications.read' => [1, 1, 0, 0, 0], 'journal.retry' => [1, 1, 0, 0, 0],
             'org.billing' => [1, 0, 0, 0, 0], 'billing.read' => [1, 1, 0, 0, 1],
             'seller.dialogs.read' => [1, 1, 1, 1, 1], 'seller.dialogs.write' => [1, 1, 1, 1, 0],
             'seller.knowledge.read' => [1, 1, 1, 0, 1], 'seller.knowledge.write' => [1, 1, 1, 0, 0],

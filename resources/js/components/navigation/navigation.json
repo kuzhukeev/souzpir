@@ -140,7 +140,8 @@
       "id": "journal",
       "label": "Журнал",
       "icon": "ClipboardList",
-      "path": "/journal"
+      "path": "/journal",
+      "permission": "journal.read"
     },
     {
       "id": "settings",

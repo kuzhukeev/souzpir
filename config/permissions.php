@@ -41,6 +41,9 @@ return [
         'vision.settings.write' => ['owner', 'admin'],
         'reports.read' => ['owner', 'admin', 'editor', 'manager', 'viewer'],
         'data.export' => ['owner'],
+        'journal.read' => ['owner', 'admin', 'editor'],
+        'journal.notifications.read' => ['owner', 'admin'],
+        'journal.retry' => ['owner', 'admin'],
         'profile.own' => ['owner', 'admin', 'editor', 'manager', 'viewer'],
     ],
 ];

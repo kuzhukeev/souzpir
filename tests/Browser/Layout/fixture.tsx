@@ -5,9 +5,13 @@ const routes = {
   dashboard: { uri: 'dashboard', methods: ['GET'] },
   dialogs: { uri: 'seller/dialogs', methods: ['GET'] },
   switch: { uri: 'brand/switch', methods: ['POST'] },
+  journal: { uri: 'journal', methods: ['GET'] },
+  notifications: { uri: 'journal/notifications', methods: ['GET'] },
 };
 const can = Object.fromEntries(
   [
+    'journal.read',
+    'journal.notifications.read',
     'org.read',
     'team.read',
     'billing.read',
@@ -21,7 +25,11 @@ const can = Object.fromEntries(
     'vision.measure.read',
   ].map((key) => [key, true]),
 );
-if (location.search.includes('limited=1')) can['seller.knowledge.read'] = false;
+if (location.search.includes('limited=1')) {
+  can['seller.knowledge.read'] = false;
+  can['journal.read'] = false;
+  can['journal.notifications.read'] = false;
+}
 const props = {
   auth: { user: { id: 'user', name: 'Иван Петров', email: 'test@example.test' } },
   organization: { id: 'org', name: 'Оптовые поставки пиротехники' },
