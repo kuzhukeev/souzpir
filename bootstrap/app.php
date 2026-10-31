@@ -6,6 +6,7 @@ use App\Privacy\SupportExceptionHandler;
 use App\Privacy\SupportRequestBoundary;
 use App\Shell\Auth\EnforceAuthVersion;
 use App\Shell\Auth\InvitationSecretBoundary;
+use App\Shell\Auth\MfaCodeBoundary;
 use App\Shell\Integrations\Webhooks\WebhookConfigurationBoundary;
 use App\Tenancy\ResolveTenant;
 use App\Tenancy\TokenApi\BearerBoundary;
@@ -27,6 +28,7 @@ $app = Application::configure(basePath: $basePath)
     ->withRouting(web: __DIR__.'/../routes/web.php', commands: __DIR__.'/../routes/console.php', health: '/up')
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->prepend(InvitationSecretBoundary::class);
+        $middleware->prepend(MfaCodeBoundary::class);
         $middleware->prepend(SupportRequestBoundary::class);
         $middleware->prepend(BearerBoundary::class);
         $middleware->prepend(WebhookConfigurationBoundary::class);

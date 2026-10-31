@@ -23,7 +23,7 @@ final class Totp
         return $secret;
     }
 
-    public function matchingCounter(string $secret, string $code, int $timestamp, ?int $lastCounter): ?int
+    public function matchingCounter(#[\SensitiveParameter] string $secret, #[\SensitiveParameter] string $code, int $timestamp, ?int $lastCounter): ?int
     {
         if (! preg_match('/^[0-9]{6}$/D', $code)) {
             return null;
@@ -41,7 +41,7 @@ final class Totp
         return null;
     }
 
-    public function at(string $secret, int $counter): string
+    public function at(#[\SensitiveParameter] string $secret, int $counter): string
     {
         if ($counter < 0 || ! preg_match('/^[A-Z2-7]{16,128}$/D', $secret)) {
             throw new InvalidArgumentException('Invalid TOTP secret or counter.');

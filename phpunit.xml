@@ -15,5 +15,7 @@
         <env name="AI_DRIVER" value="fake"/>
         <env name="DELIVERY_DRIVER" value="fake"/>
         <env name="FEATURES_SCHEDULING_ENABLED" value="false"/>
+        <!-- Integration suites exercise the enabled feature; gating tests override it explicitly. -->
+        <env name="PROFILE_SETTINGS_ENABLED" value="true"/>
     </php>
 </phpunit>

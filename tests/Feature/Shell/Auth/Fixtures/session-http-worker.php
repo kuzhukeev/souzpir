@@ -102,6 +102,8 @@ if ($mode === 'sensitive') {
     'remember' => ['GET', '/auth/ready', []],
 };
 $request = Request::create($uri, $method, $parameters);
+// Synthetic localhost requests must provide both ends for the MFA secure-context check.
+$request->server->set('SERVER_ADDR', '127.0.0.1');
 if (in_array($mode, ['view', 'remember'], true)) {
     $request->headers->set('X-Inertia', 'true');
     $request->headers->set('X-Inertia-Version', app(HandleInertiaRequests::class)->version($request) ?? '');

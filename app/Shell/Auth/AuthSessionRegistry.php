@@ -136,6 +136,7 @@ final class AuthSessionRegistry
             throw new AuthenticationException('Unauthenticated.');
         }
         DB::table('auth_session_registry')->insert(['session_hash' => $this->sessionHash($request->session()->getId()), 'user_id' => $user->id, 'auth_version' => $user->auth_version, 'remember_fingerprint' => $remember, 'expires_at' => $this->expiresAt(), 'created_at' => now(), 'updated_at' => now()]);
+        event(new SessionRegistered($this->sessionHash($request->session()->getId()), $user->id, $request->ip(), $request->userAgent()));
     }
 
     private function sessionHash(string $sessionId): string

@@ -321,7 +321,7 @@ final class PasswordDeliveryTest extends TestCase
         $token = $this->fake->token;
         $this->post('/login', ['email' => $this->user->email, 'password' => 'old-password-example'])->assertRedirect();
         $this->withCookie(config('session.cookie'), session()->getId());
-        $this->post('/mfa/setup', ['password' => 'old-password-example'])->assertRedirect(route('mfa.setup'));
+        $this->post('https://localhost/mfa/setup', ['password' => 'old-password-example'])->assertRedirect(route('mfa.setup'));
         $secret = session('auth.mfa_setup.secret');
         $code = app(Totp::class)->at($secret, intdiv(now()->timestamp, 30));
         $this->post('/mfa/setup/confirm', ['code' => $code])->assertRedirect(route('auth.ready'));
