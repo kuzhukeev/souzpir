@@ -57,7 +57,8 @@ final class AuthSessionRegistry
                 throw new AuthenticationException('Unauthenticated.');
             }
             $row = DB::table('auth_session_registry')->where('session_hash', $this->sessionHash($request->session()->getId()))->lockForUpdate()->first();
-            $user = User::whereKey($request->user()->getAuthIdentifier())->lockForUpdate()->first();
+            // Keep serialization against changes/deletion, while allowing FK KEY SHARE during concurrent routing.
+            $user = User::whereKey($request->user()->getAuthIdentifier())->lock('for no key update')->first();
             $version = $request->session()->get('auth.version');
             if (! $row || ! $user || $row->user_id !== $user->id || $row->revoked_at !== null || now()->greaterThanOrEqualTo($row->expires_at)
                 || ! is_int($version) || $version !== $user->auth_version || (int) $row->auth_version !== $user->auth_version
