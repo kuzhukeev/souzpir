@@ -5,6 +5,7 @@ namespace App\Seller\Settings\Limits;
 use App\Models\Membership;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
+use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Notifications\EventCatalog;
 use App\Tenancy\TenantContext;
 use Illuminate\Http\RedirectResponse;
@@ -24,6 +25,7 @@ final class NotificationsController
     public function index(TenantContext $context): Response
     {
         Gate::authorize('seller.settings.read');
+        abort_unless($context->organizationId && $context->brandId && app(SellerModuleAccess::class)->enabled($context->organizationId, $context->brandId), 404);
         $this->member($context);
         $settings = DB::table('seller_notification_rules')->where('organization_id', $context->organizationId)
             ->where('brand_id', $context->brandId)->get()->keyBy('event_key');
@@ -73,11 +75,12 @@ final class NotificationsController
             }
             $seen[$change['event']] = true;
         }
-        DB::transaction(function () use ($context, $changes): void {
+        app(AuthSessionRegistry::class)->withinActive($request, function () use ($context, $changes): void {
             DB::table('organizations')->where('id', $context->organizationId)->where('status', 'active')->lockForUpdate()->first() ?? abort(404);
             DB::table('brands')->where('id', $context->brandId)->where('organization_id', $context->organizationId)->where('status', 'active')->lockForUpdate()->first() ?? abort(404);
             $member = $this->member($context, true);
             abort_unless(in_array($member->role, ['owner', 'admin'], true), 403);
+            abort_unless(app(SellerModuleAccess::class)->enabled($context->organizationId, $context->brandId), 404);
             foreach ($changes as $change) {
                 $where = ['organization_id' => $context->organizationId, 'brand_id' => $context->brandId, 'event_key' => $change['event']];
                 $old = DB::table('seller_notification_rules')->where($where)->lockForUpdate()->first();

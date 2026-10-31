@@ -13,9 +13,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
-use Tests\Feature\Tenancy\TenancyTestCase;
 
-final class NotificationsTest extends TenancyTestCase
+final class NotificationsTest extends LimitsTestCase
 {
     private const EVENT = 'seller.conversation.handed_off';
 
@@ -88,6 +87,27 @@ final class NotificationsTest extends TenancyTestCase
         $this->assertDatabaseHas('seller_digest_items', ['event_id' => $eventId, 'user_id' => $owner->id, 'channel' => 'cabinet']);
         $this->assertDatabaseMissing('notification_deliveries', ['event_id' => $eventId]);
         self::assertSame(1, DB::table('seller_digest_items')->where('event_id', $eventId)->count());
+    }
+
+    public function test_disabled_module_blocks_outbox_routing_and_immediate_delivery(): void
+    {
+        [$owner, $org, $brand] = $this->cabinet();
+        $id = (string) Str::ulid();
+        $event = new DomainEvent(['event_id' => $id, 'schema_version' => 1, 'type' => self::EVENT, 'occurred_at' => now()->toIso8601String(), 'organization_id' => $org->id, 'brand_id' => $brand->id, 'actor_id' => null, 'aggregate' => ['type' => 'conversation', 'id' => (string) Str::ulid(), 'version' => 1], 'data' => ['reason' => 'want_human', 'task_id' => (string) Str::ulid()]]);
+        DB::table('outbox_events')->insert(['id' => $id, 'organization_id' => $org->id, 'brand_id' => $brand->id, 'envelope' => json_encode($event->envelope, JSON_THROW_ON_ERROR), 'created_at' => now()]);
+        DB::table('notification_settings')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $brand->id, 'user_id' => $owner->id, 'event_key' => self::EVENT, 'channel' => 'telegram', 'enabled' => true, 'destination' => Crypt::encryptString('12345'), 'created_at' => now(), 'updated_at' => now()]);
+        $delivery = (string) Str::ulid();
+        DB::table('notification_deliveries')->insert(['id' => $delivery, 'organization_id' => $org->id, 'brand_id' => $brand->id, 'event_id' => $id, 'user_id' => $owner->id, 'channel' => 'telegram', 'status' => 'pending', 'attempts' => 0, 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('brand_modules')->where('brand_id', $brand->id)->where('module', 'seller')->update(['enabled' => false]);
+        config(['features.E6-07.defaults.digest_enabled' => true, 'features.E0-04.defaults.external_delivery' => true, 'features.E0-04.defaults.telegram_bot_token' => 'test-only']);
+        Http::fake();
+        app(NotificationProcessor::class)->process($id);
+        app(ExternalDelivery::class)->send($delivery);
+        Http::assertNothingSent();
+        $this->assertDatabaseMissing('seller_digest_items', ['event_id' => $id]);
+        $this->assertDatabaseHas('notification_deliveries', ['id' => $delivery, 'status' => 'failed']);
+        self::assertSame(1, DB::table('notification_deliveries')->where('event_id', $id)->count());
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->get('/seller/settings/notifications/digests')->assertNotFound();
     }
 
     public function test_immediate_recheck_rejects_rule_or_role_changes_without_side_effects(): void

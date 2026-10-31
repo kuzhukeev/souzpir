@@ -33,6 +33,7 @@ final class ExternalDigestTest extends TestCase
 
             return [Brand::create(['name' => 'Digest brand', 'timezone' => 'Europe/Moscow'])];
         });
+        DB::table('brand_modules')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $brand->id, 'module' => 'seller', 'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
         $type = 'seller.conversation.handed_off';
         $event = new DomainEvent(['event_id' => (string) Str::ulid(), 'schema_version' => 1, 'type' => $type, 'occurred_at' => now()->toIso8601String(), 'organization_id' => $org->id, 'brand_id' => $brand->id, 'actor_id' => null, 'aggregate' => ['type' => 'conversation', 'id' => (string) Str::ulid(), 'version' => 1], 'data' => ['reason' => 'want_human', 'task_id' => (string) Str::ulid()]]);
         DB::table('outbox_events')->insert(['id' => $event->envelope['event_id'], 'organization_id' => $org->id, 'brand_id' => $brand->id, 'envelope' => json_encode($event->envelope, JSON_THROW_ON_ERROR), 'created_at' => now()]);
@@ -149,6 +150,7 @@ final class ExternalDigestTest extends TestCase
         $process = null;
         DB::beginTransaction();
         try {
+            DB::table('organizations')->where('id', $batch->organization_id)->lockForUpdate()->first();
             app(DigestSlotLock::class)->acquire($batch->organization_id, $batch->brand_id, $batch->user_id, 'cabinet', '2026-10-31');
             $cmd = [PHP_BINARY, '-d', 'sys_temp_dir='.base_path('.local/tmp'), __DIR__.'/Fixtures/digest-route-worker.php', $eventId, $batch->user_id, $base];
             $process = proc_open($cmd, [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, base_path(), array_merge(getenv(), ['APP_ENV' => 'testing']));
@@ -208,6 +210,7 @@ final class ExternalDigestTest extends TestCase
         $process = null;
         DB::beginTransaction();
         try {
+            DB::table('organizations')->where('id', $batch->organization_id)->lockForUpdate()->first();
             app(DigestSlotLock::class)->acquire($batch->organization_id, $batch->brand_id, $batch->user_id, 'email', '2026-10-31');
             $cmd = [PHP_BINARY, '-d', 'sys_temp_dir='.base_path('.local/tmp'), __DIR__.'/Fixtures/digest-worker.php', $id, $base, '0'];
             $env = array_merge(getenv(), ['APP_ENV' => 'testing', 'DIGEST_TEST_NOW' => '2026-10-31T06:01:00Z']);
@@ -230,6 +233,7 @@ final class ExternalDigestTest extends TestCase
             self::assertSame(0, proc_close($process), $output.$error);
             $process = null;
             $this->assertDatabaseHas('seller_digest_items', ['event_id' => $eventId, 'batch_id' => $id]);
+            self::assertFileExists($base.'.calls', $output.' '.json_encode(DB::table('seller_digest_batches')->where('id', $id)->first(), JSON_THROW_ON_ERROR));
             $calls = file($base.'.calls', FILE_IGNORE_NEW_LINES);
             self::assertCount(1, $calls);
             self::assertCount(2, json_decode($calls[0], true, 512, JSON_THROW_ON_ERROR));

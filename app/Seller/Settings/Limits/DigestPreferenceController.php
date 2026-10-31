@@ -5,6 +5,7 @@ namespace App\Seller\Settings\Limits;
 use App\Models\Membership;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
+use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Notifications\RecipientPolicy;
 use App\Tenancy\TenantContext;
 use Illuminate\Http\RedirectResponse;
@@ -19,11 +20,12 @@ final class DigestPreferenceController
     {
         Gate::authorize('profile.own');
         $data = $request->validate(['digest_time' => ['required', 'date_format:H:i']]);
-        DB::transaction(function () use ($context, $data): void {
+        app(AuthSessionRegistry::class)->withinActive($request, function () use ($context, $data): void {
             DB::table('organizations')->where('id', $context->organizationId)->where('status', 'active')->lockForUpdate()->first() ?? abort(404);
             DB::table('brands')->where('id', $context->brandId)->where('organization_id', $context->organizationId)->where('status', 'active')->lockForUpdate()->first() ?? abort(404);
             $member = Membership::withoutGlobalScopes()->whereKey($context->membershipId)->where('organization_id', $context->organizationId)->where('user_id', $context->actorId)->where('status', 'active')->lockForUpdate()->first() ?? abort(403);
             abort_unless($context->brandId && $member->permitsBrand($context->brandId), 403);
+            abort_unless(app(SellerModuleAccess::class)->enabled($context->organizationId, $context->brandId), 404);
             abort_unless(collect(SellerNotificationRouter::EVENTS)->contains(fn ($event) => app(RecipientPolicy::class)->permits($member, $context->brandId, $event)), 403);
             $where = ['organization_id' => $context->organizationId, 'brand_id' => $context->brandId, 'user_id' => $context->actorId];
             $old = DB::table('seller_digest_preferences')->where($where)->lockForUpdate()->first();

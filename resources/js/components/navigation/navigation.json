@@ -98,11 +98,18 @@
           "path": "/seller/integrations/catalog"
         },
         {
+          "id": "seller_digests",
+          "label": "Мои сводки",
+          "icon": "Bell",
+          "path": "/seller/settings/notifications/digests",
+          "permission": "profile.own"
+        },
+        {
           "id": "seller_settings",
           "label": "Настройки",
           "icon": "Settings",
-          "path": "/seller/settings",
-          "permission": "seller.settings.read"
+          "path": "/seller/settings/limits",
+          "permission": "seller.dialogs.read"
         }
       ]
     }

@@ -48,17 +48,18 @@ final class DigestService
             throw new LogicException('External digest delivery cannot run inside a transaction.');
         }
         $claimed = DB::transaction(function () use ($id, $snapshot): ?array {
-            app(DigestSlotLock::class)->acquire($snapshot->organization_id, $snapshot->brand_id, $snapshot->user_id, $snapshot->channel, $snapshot->slot_date);
             // Consistent with web actions: user -> organization -> brand -> membership -> batch.
-            $user = User::whereKey($snapshot->user_id)->lockForUpdate()->first();
+            // FK inserts need KEY SHARE while this delivery waits on the organization.
+            $user = User::whereKey($snapshot->user_id)->lock('for no key update')->first();
             $org = DB::table('organizations')->where('id', $snapshot->organization_id)->where('status', 'active')->lockForUpdate()->first();
             $brand = DB::table('brands')->where('id', $snapshot->brand_id)->where('organization_id', $snapshot->organization_id)->where('status', 'active')->lockForUpdate()->first();
             $member = Membership::withoutGlobalScopes()->where('organization_id', $snapshot->organization_id)->where('user_id', $snapshot->user_id)->where('status', 'active')->lockForUpdate()->first();
+            app(DigestSlotLock::class)->acquire($snapshot->organization_id, $snapshot->brand_id, $snapshot->user_id, $snapshot->channel, $snapshot->slot_date);
             $batch = DB::table('seller_digest_batches')->where('id', $id)->lockForUpdate()->first();
             if (! $batch || $batch->status !== 'pending' || now()->lessThan($batch->due_at)) {
                 return null;
             }
-            if (! $user || ! $org || ! $brand || ! $member || ! $member->permitsBrand($batch->brand_id)) {
+            if (! $user || ! $org || ! $brand || ! $member || ! $member->permitsBrand($batch->brand_id) || ! app(SellerModuleAccess::class)->enabled($batch->organization_id, $batch->brand_id)) {
                 $this->update($id, 'cancelled', 'access_revoked');
 
                 return null;

@@ -36,7 +36,7 @@ final class TestDeliveryService
             throw new LogicException('External test delivery cannot run inside a transaction.');
         }
         $claimed = DB::transaction(function () use ($snapshot, $id): ?array {
-            $user = User::whereKey($snapshot->user_id)->lockForUpdate()->first();
+            $user = User::whereKey($snapshot->user_id)->lock('for no key update')->first();
             $org = DB::table('organizations')->where('id', $snapshot->organization_id)->where('status', 'active')->lockForUpdate()->first();
             $brand = DB::table('brands')->where('id', $snapshot->brand_id)->where('organization_id', $snapshot->organization_id)->where('status', 'active')->lockForUpdate()->first();
             $member = Membership::withoutGlobalScopes()->where('organization_id', $snapshot->organization_id)->where('user_id', $snapshot->user_id)->where('status', 'active')->lockForUpdate()->first();
@@ -46,7 +46,7 @@ final class TestDeliveryService
             }
             $rule = DB::table('seller_notification_rules')->where(['organization_id' => $row->organization_id, 'brand_id' => $row->brand_id, 'event_key' => $row->event_key])->first();
             $personal = DB::table('notification_settings')->where(['organization_id' => $row->organization_id, 'brand_id' => $row->brand_id, 'user_id' => $row->user_id, 'event_key' => $row->event_key, 'channel' => $row->channel])->first();
-            if (! $user || ! $org || ! $brand || ! $member || ! in_array($row->event_key, SellerNotificationRouter::EVENTS, true)
+            if (! $user || ! $org || ! $brand || ! $member || ! app(SellerModuleAccess::class)->enabled($row->organization_id, $row->brand_id) || ! in_array($row->event_key, SellerNotificationRouter::EVENTS, true)
                 || ! app(RecipientPolicy::class)->permits($member, $row->brand_id, $row->event_key)
                 || ($rule && (! $rule->{$row->channel} || ! app(SellerNotificationRouter::class)->matches($member, $rule->recipient)))
                 || ($personal && ! $personal->enabled) || (! $personal && $row->channel !== 'cabinet')) {
