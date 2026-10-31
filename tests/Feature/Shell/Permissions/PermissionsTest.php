@@ -34,6 +34,10 @@ final class PermissionsTest extends TenancyTestCase
             'seller.knowledge.read' => [1, 1, 1, 0, 1], 'seller.knowledge.write' => [1, 1, 1, 0, 0],
             'vision.report.read' => [1, 1, 1, 1, 1], 'vision.measure.run' => [1, 1, 1, 0, 0],
             'integrations.write' => [1, 1, 0, 0, 0], 'brand.write' => [1, 1, 0, 0, 0],
+            'organization.manage' => [1, 1, 0, 0, 0], 'team.manage' => [1, 1, 0, 0, 0],
+            'billing.manage' => [1, 0, 0, 0, 0], 'seller.dialogues.operate' => [1, 1, 1, 1, 0],
+            'vision.quiz.write' => [1, 1, 1, 0, 0], 'reports.read' => [1, 1, 1, 1, 1],
+            'seller.settings.write' => [1, 1, 0, 0, 0], 'vision.settings.write' => [1, 1, 0, 0, 0],
         ];
         foreach ($actors as $index => [$user, $membership]) {
             $this->withActor($org->id, $brand->id, $user, $membership, function () use ($user, $expected, $index): void {
