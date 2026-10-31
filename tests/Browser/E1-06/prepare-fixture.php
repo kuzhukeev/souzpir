@@ -71,6 +71,7 @@ DB::transaction(function () use ($organizationId): void {
     $organization->forceFill(['id' => $organizationId, 'name' => 'Тестовая компания', 'settings' => ['test_fixture' => 'e106-role-ui']])->save();
     app(TenantContextRunner::class)->run(new TenantContext($organizationId, actorId: $owner->id, source: 'job'), function () use ($owner, $viewer): void {
         $brand = Brand::create(['name' => 'Пиротехника — Северные огни', 'theme' => 'pyro']);
+        Brand::create(['name' => 'Фейерверки — Второй бренд', 'theme' => 'neutral']);
         Membership::create(['user_id' => $owner->id, 'role' => 'owner']);
         Membership::create(['user_id' => $viewer->id, 'role' => 'viewer', 'brand_ids' => [$brand->id]]);
         Invitation::create(['email' => 'team-e106-invite@example.test', 'role' => 'viewer', 'brand_ids' => [$brand->id], 'token_hash' => hash('sha256', str_repeat('A', 64)), 'invited_by' => $owner->id, 'expires_at' => now()->addDay()]);

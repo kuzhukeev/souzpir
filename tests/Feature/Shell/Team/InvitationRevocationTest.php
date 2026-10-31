@@ -34,6 +34,8 @@ final class InvitationRevocationTest extends TenancyTestCase
         [$owner, $org, $brand] = $this->cabinet();
         $invitation = $this->invite($org, $owner, [$brand->id]);
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $revision = $this->get('/team')->assertOk()->inertiaProps('teamBrandRevision');
+        $this->withHeader('X-Brand-Revision', $revision);
         $this->post('/team/invitations/'.$invitation->id.'/revoke')->assertRedirect('/team');
         $this->assertNotNull(DB::table('invitations')->where('id', $invitation->id)->value('revoked_at'));
         $this->assertDatabaseHas('audit_logs', ['organization_id' => $org->id, 'actor_id' => $owner->id, 'action' => 'team.invitation.revoked', 'subject_type' => 'invitation', 'subject_id' => $invitation->id]);
@@ -57,7 +59,9 @@ final class InvitationRevocationTest extends TenancyTestCase
         $invalid = $this->invite($org, $owner, [$first->id]);
         DB::table('invitations')->where('id', $invalid->id)->update(['brand_ids' => json_encode([$first->id, $first->id], JSON_THROW_ON_ERROR)]);
         $this->actingAs($admin)->withSession(['brand_id' => $first->id]);
-        $rows = collect($this->get('/team')->assertOk()->inertiaProps('invitations.data'))->keyBy('id');
+        $page = $this->get('/team')->assertOk();
+        $this->withHeader('X-Brand-Revision', $page->inertiaProps('teamBrandRevision'));
+        $rows = collect($page->inertiaProps('invitations.data'))->keyBy('id');
         $this->assertTrue($rows[$allowed->id]['can_revoke']);
         $this->assertFalse($rows[$mixed->id]['can_revoke']);
         $this->assertFalse($rows[$wildcard->id]['can_revoke']);
@@ -88,6 +92,7 @@ final class InvitationRevocationTest extends TenancyTestCase
             $this->actingAs($actor)->withSession(['brand_id' => $brand->id])->post('/team/invitations/'.$pending->id.'/revoke')->assertForbidden();
         }
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $this->withHeader('X-Brand-Revision', $this->get('/team')->assertOk()->inertiaProps('teamBrandRevision'));
         foreach ([$accepted, $expired, $foreign] as $denied) {
             $this->post('/team/invitations/'.$denied->id.'/revoke')->assertNotFound();
             $this->assertNull(DB::table('invitations')->where('id', $denied->id)->value('revoked_at'));
@@ -111,6 +116,7 @@ final class InvitationRevocationTest extends TenancyTestCase
             }
         });
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $this->withHeader('X-Brand-Revision', $this->get('/team')->assertOk()->inertiaProps('teamBrandRevision'));
         $this->post('/team/invitations/'.$invitation->id.'/revoke')->assertServerError();
         $this->assertNull(DB::table('invitations')->where('id', $invitation->id)->value('revoked_at'));
     }
@@ -124,6 +130,7 @@ final class InvitationRevocationTest extends TenancyTestCase
         $revision = $request->attributes->get('tenant.brand_revision');
         $this->assertIsString($revision);
         $selection = app(SessionBrandSelection::class);
+        $request->headers->set('X-Brand-Revision', $selection->profileRevision($request, $revision));
         app(AuthSessionRegistry::class)->withinActive($request, fn () => $selection->select($request, $org->id, $second->id, $revision));
         $context = new TenantContext($org->id, $first->id, $owner->id, $membership->id);
         foreach ([false, true] as $backToSameBrand) {
@@ -146,6 +153,43 @@ final class InvitationRevocationTest extends TenancyTestCase
         } catch (HttpException $exception) {
             $this->assertSame(409, $exception->getStatusCode());
         }
+        $this->assertNull(DB::table('invitations')->where('id', $invitation->id)->value('revoked_at'));
+        $this->assertSame(0, DB::table('audit_logs')->where('action', 'team.invitation.revoked')->count());
+    }
+
+    public function test_rendered_revision_rejects_missing_forged_and_stale_after_switch_back(): void
+    {
+        [$owner, $org, $first, $second] = $this->cabinet();
+        $invitation = $this->invite($org, $owner, [$first->id]);
+        $this->actingAs($owner)->withSession(['brand_id' => $first->id]);
+        $old = $this->get('/team')->assertOk()->inertiaProps('teamBrandRevision');
+        $this->assertIsString($old);
+        $url = '/team/invitations/'.$invitation->id.'/revoke';
+        $this->post($url)->assertStatus(409);
+        $this->withHeader('X-Brand-Revision', str_repeat('0', 64))->post($url)->assertStatus(409);
+        $this->flushHeaders();
+        $this->post('/brand/switch', ['brand_id' => $second->id])->assertRedirect();
+        $this->post('/brand/switch', ['brand_id' => $first->id])->assertRedirect();
+        $this->withHeader('X-Brand-Revision', $old)->post($url)->assertStatus(409);
+        $this->assertNull(DB::table('invitations')->where('id', $invitation->id)->value('revoked_at'));
+        $this->assertSame(0, DB::table('audit_logs')->where('action', 'team.invitation.revoked')->count());
+        $this->flushHeaders();
+        $new = $this->get('/team')->assertOk()->inertiaProps('teamBrandRevision');
+        $this->assertNotSame($old, $new);
+        $this->withHeader('X-Brand-Revision', $new)->post($url)->assertRedirect('/team');
+        $this->assertNotNull(DB::table('invitations')->where('id', $invitation->id)->value('revoked_at'));
+    }
+
+    public function test_revision_from_another_session_of_the_same_user_cannot_authorize_revocation(): void
+    {
+        [$owner, $org, $brand] = $this->cabinet();
+        $invitation = $this->invite($org, $owner, [$brand->id]);
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $old = $this->get('/team')->assertOk()->inertiaProps('teamBrandRevision');
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $new = $this->get('/team')->assertOk()->inertiaProps('teamBrandRevision');
+        $this->assertNotSame($old, $new);
+        $this->withHeader('X-Brand-Revision', $old)->post('/team/invitations/'.$invitation->id.'/revoke')->assertStatus(409);
         $this->assertNull(DB::table('invitations')->where('id', $invitation->id)->value('revoked_at'));
         $this->assertSame(0, DB::table('audit_logs')->where('action', 'team.invitation.revoked')->count());
     }

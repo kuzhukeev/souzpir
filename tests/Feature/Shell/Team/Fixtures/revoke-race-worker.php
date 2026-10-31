@@ -28,6 +28,7 @@ $request = Request::create('/team/invitations/test/revoke', 'POST');
 $request->setLaravelSession($session);
 $request->setUserResolver(fn () => $user);
 $request->attributes->set('tenant.brand_revision', getenv('E106_REVISION'));
+$request->headers->set('X-Brand-Revision', getenv('E106_HEADER_REVISION'));
 Auth::setUser($user);
 $context = new TenantContext(getenv('E106_ORG'), getenv('E106_BRAND'), $user->id, getenv('E106_MEMBERSHIP'));
 fwrite(STDOUT, "ready\n");

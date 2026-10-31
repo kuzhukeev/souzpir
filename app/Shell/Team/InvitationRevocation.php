@@ -27,6 +27,9 @@ final class InvitationRevocation
             abort_unless(is_string($expected) && (string) $selection->brand_revision === $expected
                 && $selection->selected_organization_id === $context->organizationId
                 && $selection->selected_brand_id === $context->brandId, 409);
+            $provided = $request->header('X-Brand-Revision');
+            $actual = app(SessionBrandSelection::class)->profileRevision($request, $expected);
+            abort_unless(is_string($provided) && hash_equals($actual, $provided), 409);
             // Auth's exchange and acceptance lock this organization before the invitation.
             Organization::query()->whereKey($context->organizationId)->where('status', 'active')->lockForUpdate()->firstOrFail();
             $actor = Membership::withoutGlobalScopes()->whereKey($context->membershipId)

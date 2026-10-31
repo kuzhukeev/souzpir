@@ -3,8 +3,11 @@
 namespace App\Shell\Team\Http;
 
 use App\Models\Membership;
+use App\Shell\Auth\AuthSessionRegistry;
+use App\Shell\Auth\SessionBrandSelection;
 use App\Shell\Team\Models\Invitation;
 use App\Shell\Team\TeamMemberProjection;
+use App\Tenancy\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -40,6 +43,17 @@ final class TeamMembersController
                 'can_revoke' => $projection->canRevokeInvitation($invitation->brand_ids, $canWrite),
             ];
         })->all();
+        $context = app(TenantContext::class);
+        $brandRevision = app(AuthSessionRegistry::class)->withinActive($request, function () use ($request, $context): string {
+            $expected = $request->attributes->get('tenant.brand_revision');
+            $selections = app(SessionBrandSelection::class);
+            $selection = $selections->current($request);
+            abort_unless(is_string($expected) && (string) $selection->brand_revision === $expected
+                && $selection->selected_organization_id === $context->organizationId
+                && $selection->selected_brand_id === $context->brandId, 409);
+
+            return $selections->profileRevision($request, $expected);
+        });
 
         return Inertia::render('Shell/Team/Index', [
             'members' => [
@@ -49,6 +63,7 @@ final class TeamMembersController
                 'total' => $members->total(),
             ],
             'canViewRoles' => Gate::allows('team.manage'),
+            'teamBrandRevision' => $brandRevision,
             'invitations' => [
                 'data' => $invitationItems,
                 'current_page' => $invitations->currentPage(),

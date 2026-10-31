@@ -43,6 +43,7 @@ const shared = {
     location: { host: location.host, pathname: '/team', search: '' },
   },
   canViewRoles: true,
+  teamBrandRevision: 'synthetic-revision',
   invitations: {
     data: [
       {

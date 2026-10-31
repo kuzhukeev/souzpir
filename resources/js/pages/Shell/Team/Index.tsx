@@ -130,16 +130,21 @@ export default function Index({
   members,
   canViewRoles,
   invitations,
+  teamBrandRevision,
 }: {
   members: TeamPage;
   canViewRoles: boolean;
   invitations: TeamInvitations;
+  teamBrandRevision: string;
 }) {
   const [loading, setLoading] = useState(false);
   const [failedPage, setFailedPage] = useState<number | null>(null);
   const [invitationLoading, setInvitationLoading] = useState(false);
   const [failedInvitationPage, setFailedInvitationPage] = useState<number | null>(null);
-  const [selected, setSelected] = useState<TeamInvitations['data'][number] | null>(null);
+  const [selected, setSelected] = useState<{
+    invitation: TeamInvitations['data'][number];
+    revision: string;
+  } | null>(null);
   const [revoking, setRevoking] = useState(false);
   const [revokeUncertain, setRevokeUncertain] = useState(false);
   const [revokeMessage, setRevokeMessage] = useState('');
@@ -195,10 +200,11 @@ export default function Index({
       return false;
     };
     router.post(
-      `/team/invitations/${encodeURIComponent(selected.id)}/revoke`,
+      `/team/invitations/${encodeURIComponent(selected.invitation.id)}/revoke`,
       {},
       {
         preserveScroll: true,
+        headers: { 'X-Brand-Revision': selected.revision },
         onSuccess: () => {
           setSelected(null);
           setRevokeMessage('Приглашение отозвано.');
@@ -467,7 +473,7 @@ export default function Index({
                           type="button"
                           disabled={revoking || revokeUncertain || loading || invitationLoading}
                           onClick={() => {
-                            setSelected(invitation);
+                            setSelected({ invitation, revision: teamBrandRevision });
                             setRevokeMessage('');
                           }}
                           className={button}
@@ -559,8 +565,9 @@ export default function Index({
         }}
       >
         <p className="break-words text-sm leading-6">
-          Отозвать приглашение для <strong className="break-all">{selected?.email}</strong>?
-          Получатель больше не сможет принять его по этой ссылке.
+          Отозвать приглашение для{' '}
+          <strong className="break-all">{selected?.invitation.email}</strong>? Получатель больше не
+          сможет принять его по этой ссылке.
         </p>
         {revokeUncertain && (
           <p role="alert" className="mt-4 text-sm text-(--color-danger-ink)">

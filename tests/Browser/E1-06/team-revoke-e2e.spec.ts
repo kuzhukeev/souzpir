@@ -9,7 +9,7 @@ test.use({
     ? { executablePath: process.env.TEAM_CHROMIUM_PATH }
     : {},
 });
-const origin = 'http://127.0.0.1:8217';
+const origin = process.env.TEAM_REVOKE_ORIGIN || 'http://127.0.0.1:8217';
 test.beforeEach(async ({ page }) => {
   await page.route('**/*', (route) =>
     new URL(route.request().url()).origin === origin

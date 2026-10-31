@@ -70,6 +70,7 @@ final class InvitationRevocationRaceTest extends TestCase
         app(AuthSessionRegistry::class)->issue($request, $owner, $owner->auth_version);
         $selection = app(AuthSessionRegistry::class)->withinActive($request, fn () => app(SessionBrandSelection::class)->initialize($request, $org->id, $brand->id));
         $request->attributes->set('tenant.brand_revision', (string) $selection->brand_revision);
+        $request->headers->set('X-Brand-Revision', app(SessionBrandSelection::class)->profileRevision($request, (string) $selection->brand_revision));
         $context = new TenantContext($org->id, $brand->id, $owner->id, $member->id);
 
         return [$owner, $guest, $org, $brand, $member, $invitation, $token, $request, $context];
@@ -130,6 +131,7 @@ final class InvitationRevocationRaceTest extends TestCase
             'E106_BRAND' => $brand->id, 'E106_MEMBERSHIP' => $member->id, 'E106_INVITATION' => $invitation->id,
             'E106_SESSION' => $request->session()->getId(), 'PGAPPNAME' => $name,
             'E106_REVISION' => $request->attributes->get('tenant.brand_revision'),
+            'E106_HEADER_REVISION' => $request->header('X-Brand-Revision'),
         ], timeout: 20);
         DB::beginTransaction();
         try {
@@ -199,6 +201,7 @@ final class InvitationRevocationRaceTest extends TestCase
             'E106_BRAND' => $brand->id, 'E106_MEMBERSHIP' => $member->id, 'E106_INVITATION' => $invitation->id,
             'E106_SESSION' => $ownerRequest->session()->getId(), 'PGAPPNAME' => $name,
             'E106_REVISION' => $ownerRequest->attributes->get('tenant.brand_revision'),
+            'E106_HEADER_REVISION' => $ownerRequest->header('X-Brand-Revision'),
         ], timeout: 20);
         DB::beginTransaction();
         try {
