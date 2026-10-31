@@ -1,0 +1,103 @@
+# Параметры Policy. Логика ветвления — в app/Agent/Policy.php, параметры — здесь.
+
+# Порядок слотов по типу клиента (п. 4.2 ТЗ). Слот, названный клиентом сам, не спрашивается.
+slot_order:
+  unknown:      [city, purpose, experience, outlet_type, categories, budget_range, timing, email, messenger, next_contact_at]
+  newbie:       [city, purpose, experience, outlet_type, categories, budget_range, timing, email, messenger, next_contact_at]
+  experienced:  [city, purpose, experience, outlet_type, current_supplier, categories, budget_range, timing, email, messenger, next_contact_at]
+  for_self:     [city, purpose, categories, budget_range, timing, email, messenger, next_contact_at]
+  prices_only:  [budget_range, city, email, messenger, next_contact_at]
+
+# Слоты, которые спрашиваются только при условии
+conditional_slots:
+  competitor_discount: "только если упомянут current_supplier или experience = много лет"
+  legal: "только при переходе к отправке/оплате; в прототипе не спрашивается инициативно"
+  outlet_floor: "только если outlet_type = ТЦ"
+
+# Лимиты
+limits:
+  budget_asks_max: 2
+  budget_second_ask_fork: ["50", "100", "200"]     # тысяч; с объяснением «для скидки, ни к чему не обязывает»
+  questions_per_reply: 1
+  history_turns_for_llm: 12
+  summary_every_turns: 6
+  off_topic_streak_silent: 3
+  negative_streak_escalate: 2
+  unknown_fact_insist_escalate: 2
+  max_turns_before_force_close: 14                   # после — переход к close_contact независимо от слотов
+
+# Переходы стадий
+stages:
+  open:          { next: qualify,       when: "первый ход; агент представился и отреагировал на заявку" }
+  qualify:       { next: need,          when: "city и purpose заполнены (или purpose = для себя)" }
+  need:          { next: budget,        when: "experience/outlet_type/categories заполнены или client_type in [experienced, for_self, prices_only]" }
+  budget:        { next: close_contact, when: "budget_range заполнен или budget_asks >= 2" }
+  close_contact: { next: followup,      when: "price_sent и (email или messenger) и next_contact_at" }
+  followup:      { next: done,          when: "ответ после фоллоу-апа обработан / outcome задан" }
+  handoff:       { next: done,          when: "менеджер снял флаг" }
+  spam:          { next: qualify,       when: "клиент написал по теме" }
+  lost:          { next: null }
+  done:          { next: null }
+
+# Доступные tools по стадиям (п. 9). send_requisites, escalate, mark_do_not_disturb, log_unknown_question, create_promise — всегда.
+tools_by_stage:
+  always:        [escalate, mark_do_not_disturb, create_promise, log_unknown_question, send_requisites, check_stock, calc_delivery]
+  open:          []
+  qualify:       []
+  need:          []
+  budget:        []
+  close_contact: [send_price, set_followup]
+  followup:      [send_price, set_followup]
+  handoff:       []
+  spam:          []
+
+# Условия для send_price: нужен email или messenger
+send_price_requires_any_of: [email, messenger]
+
+# Разрешённые триггеры по стадиям
+triggers_by_stage:
+  open:          []
+  qualify:       [cheap_logistics, visit_showroom]
+  need:          [fire_safety_consult, markup_howto, zerga_exclusive, free_selection, shortage_with_reason, honest_no]
+  budget:        [not_tied_to_volume, price_increase_calc, free_selection, honest_no, zerga_exclusive]
+  close_contact: [price_increase_calc, reserve_fixes_price, not_tied_to_volume, insider_news, zerga_exclusive]
+  followup:      [insider_news, shortage_with_reason, reserve_fixes_price]
+
+# Определение типа клиента (вычисляется каждый ход)
+client_type_rules:
+  prices_only:  "signals.wants_only_prices = true"
+  for_self:     "slots.purpose = для себя"
+  experienced:  "slots.experience in [один сезон, много лет] или current_supplier заполнен"
+  newbie:       "slots.experience = нет или outlet_type in [ищу, нет]"
+  unknown:      "иначе"
+
+# Фоллоу-апы
+followup:
+  default_days: 2
+  max_auto: 2
+  nudge_hours: 20                                    # через сколько часов тишины первое напоминание (второе — через 2×)
+  choices_for_client: ["завтра", "послезавтра"]      # «созвонимся/спишемся завтра или в пятницу?»
+
+# Исходы (п. 4.11). Проверяются в порядке списка.
+outcomes:
+  - { outcome: spam,            when: "off_topic_streak >= 3" }
+  - { outcome: declined,        when: "flags.do_not_disturb" }
+  - { outcome: handoff,         when: "flags.escalate" }
+  - { outcome: paused,          when: "intent too_early и next_contact_at задан" }
+  - { outcome: full_contact,    when: "price_sent и (email или messenger) и next_contact_at" }
+  - { outcome: partial_contact, when: "email или messenger или телефон канала" }
+  - { outcome: stale,           when: "followups_sent >= 2 без ответа" }
+
+# Предлагаемые вопросы для блока «чего не хватает» — берутся из fewshot.yaml по тегу ask_<slot>
+missing_question_tags:
+  city: ask_city
+  purpose: ask_purpose
+  experience: ask_experience
+  outlet_type: ask_outlet
+  categories: ask_categories
+  current_supplier: ask_supplier
+  budget_range: ask_budget_soft
+  timing: ask_timing
+  email: ask_email
+  messenger: ask_messenger
+  next_contact_at: ask_next_contact
