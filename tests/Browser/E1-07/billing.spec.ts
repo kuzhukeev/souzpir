@@ -17,7 +17,7 @@ let ownerCookies: Awaited<ReturnType<BrowserContext['cookies']>>;
 
 async function localOnly(context: BrowserContext) {
   await context.route('**/*', (route) =>
-    new URL(route.request().url()).origin === 'http://127.0.0.1:8107'
+    new URL(route.request().url()).origin === 'https://127.0.0.1:8107'
       ? route.continue()
       : route.abort(),
   );
@@ -94,7 +94,10 @@ async function checkAccessibility(page: Page) {
 test.beforeAll(async ({ browser }) => {
   fixture = JSON.parse(await readFile('.local/runtime/e1-07-browser.json', 'utf8')) as Fixture;
   await mkdir('.local/screenshots/e1-07', { recursive: true });
-  const context = await browser.newContext({ baseURL: 'http://127.0.0.1:8107' });
+  const context = await browser.newContext({
+    baseURL: 'https://127.0.0.1:8107',
+    ignoreHTTPSErrors: true,
+  });
   await localOnly(context);
   const page = await context.newPage();
   await page.goto('/login');

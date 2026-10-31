@@ -6,8 +6,9 @@ import BillingIndex from '@/pages/Shell/Billing/Index';
 import type { BillingProps } from '@/types/Shell/Billing';
 import { deliveryMessages } from './request';
 import { rememberPlanRequest } from './submission';
+import { discardPayerDraft } from './payerDraft';
 
-const calls = vi.hoisted(() => ({ post: vi.fn(), get: vi.fn(), on: vi.fn(() => () => {}) }));
+const calls = vi.hoisted(() => ({ post: vi.fn(), get: vi.fn(), on: vi.fn((...args: [string, (event: Event) => void]) => { void args; return () => {}; }) }));
 vi.mock('@inertiajs/react', () => {
   return {
     Head: () => null,
@@ -17,7 +18,7 @@ vi.mock('@inertiajs/react', () => {
 });
 vi.mock('@/layouts/CabinetLayout', () => ({ default: ({ children }: { children: ReactNode }) => <main>{children}</main> }));
 beforeEach(() => { vi.spyOn(document, 'hasFocus').mockReturnValue(true); });
-afterEach(() => { cleanup(); sessionStorage.clear(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.clearAllMocks(); });
+afterEach(() => { cleanup(); discardPayerDraft(); sessionStorage.clear(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.clearAllMocks(); });
 const revision = 'a'.repeat(64);
 const base: BillingProps = {
   tab: 'overview', currentPlan: null, limits: [], usage: [], plans: [],
@@ -123,6 +124,156 @@ it('после скрытия или смены контекста не пока
   expect(screen.queryByDisplayValue('Прежняя организация')).toBeNull();
   page.rerender(<BillingIndex {...base} tab="payer" canManage={false} />);
   expect(screen.queryByLabelText('Юридическое название')).toBeNull();
+});
+it('сохраняет черновик только в памяти при blur и восстанавливает после проверки той же ревизии', async () => {
+  const user = userEvent.setup();
+  const payer = { legal_name: 'Исходное', inn: '', kpp: '', address: '', email: '' };
+  const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ data: payer, revision }) });
+  vi.stubGlobal('fetch', fetchMock);
+  render(<BillingIndex {...base} tab="payer" />);
+  const field = await screen.findByLabelText('Юридическое название');
+  await user.clear(field); await user.type(field, 'Несохранённый черновик');
+  act(() => window.dispatchEvent(new Event('blur')));
+  expect(screen.queryByDisplayValue('Несохранённый черновик')).toBeNull();
+  expect(JSON.stringify(window.history.state)).not.toContain('Несохранённый черновик');
+  expect(JSON.stringify(sessionStorage)).not.toContain('Несохранённый черновик');
+  act(() => window.dispatchEvent(new Event('focus')));
+  expect(await screen.findByDisplayValue('Несохранённый черновик')).toBeTruthy();
+  expect(fetchMock).toHaveBeenCalledTimes(2);
+});
+it('не восстанавливает черновик если ревизия изменилась, сообщает об этом', async () => {
+  const user = userEvent.setup();
+  const fetchMock = vi.fn().mockResolvedValueOnce({ ok: true, json: async () => ({ data: { legal_name: 'Исходное', inn: '', kpp: '', address: '', email: '' }, revision }) }).mockResolvedValueOnce({ ok: true, json: async () => ({ data: { legal_name: 'Обновлённое', inn: '', kpp: '', address: '', email: '' }, revision: 'b'.repeat(64) }) });
+  vi.stubGlobal('fetch', fetchMock);
+  render(<BillingIndex {...base} tab="payer" />);
+  const field = await screen.findByLabelText('Юридическое название');
+  await user.clear(field); await user.type(field, 'Черновик');
+  act(() => window.dispatchEvent(new Event('blur')));
+  act(() => window.dispatchEvent(new Event('focus')));
+  expect(await screen.findByDisplayValue('Обновлённое')).toBeTruthy();
+  expect(screen.queryByDisplayValue('Черновик')).toBeNull();
+  expect(screen.getByRole('alert').textContent).toContain('Несохранённые изменения удалены');
+});
+it('удаляет скрытый черновик при отказе доступа и предупреждает пользователя', async () => {
+  const user = userEvent.setup();
+  const fetchMock = vi.fn().mockResolvedValueOnce({ ok: true, json: async () => ({ data: { legal_name: 'Исходное', inn: '', kpp: '', address: '', email: '' }, revision }) }).mockResolvedValueOnce({ ok: false, status: 403 });
+  vi.stubGlobal('fetch', fetchMock);
+  render(<BillingIndex {...base} tab="payer" />);
+  const field = await screen.findByLabelText('Юридическое название');
+  await user.clear(field); await user.type(field, 'Черновик');
+  act(() => window.dispatchEvent(new Event('blur')));
+  act(() => window.dispatchEvent(new Event('focus')));
+  expect((await screen.findByRole('alert')).textContent).toContain('Несохранённые изменения удалены');
+  expect(screen.queryByDisplayValue('Черновик')).toBeNull();
+});
+it('сбрасывает черновик при pagehide, даже если до этого был blur', async () => {
+  const user = userEvent.setup();
+  const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ data: { legal_name: 'Исходное', inn: '', kpp: '', address: '', email: '' }, revision }) });
+  vi.stubGlobal('fetch', fetchMock);
+  render(<BillingIndex {...base} tab="payer" />);
+  const field = await screen.findByLabelText('Юридическое название');
+  await user.clear(field); await user.type(field, 'Черновик');
+  act(() => window.dispatchEvent(new Event('blur')));
+  act(() => window.dispatchEvent(new Event('pagehide')));
+  const restored = new Event('pageshow'); Object.defineProperty(restored, 'persisted', { value: true });
+  act(() => window.dispatchEvent(restored));
+  expect(await screen.findByDisplayValue('Исходное')).toBeTruthy();
+  expect(screen.queryByDisplayValue('Черновик')).toBeNull();
+});
+it('сохраняет черновик только в памяти при SPA back и восстанавливает после проверки контекста и ревизии', async () => {
+  const user = userEvent.setup();
+  const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ data: { legal_name: 'Исходное', inn: '', kpp: '', address: '', email: '' }, revision }) });
+  vi.stubGlobal('fetch', fetchMock);
+  const page = render(<BillingIndex {...base} tab="payer" />);
+  const field = await screen.findByLabelText('Юридическое название');
+  await user.clear(field); await user.type(field, 'Черновик при back');
+  page.rerender(<BillingIndex {...base} tab="overview" />);
+  expect(screen.queryByDisplayValue('Черновик при back')).toBeNull();
+  expect(JSON.stringify(window.history.state)).not.toContain('Черновик при back');
+  expect(JSON.stringify(sessionStorage)).not.toContain('Черновик при back');
+  page.rerender(<BillingIndex {...base} tab="payer" />);
+  expect(await screen.findByDisplayValue('Черновик при back')).toBeTruthy();
+  expect(fetchMock).toHaveBeenCalledTimes(2);
+});
+it('при изменении scope стирает память предыдущего черновика с предупреждением', async () => {
+  const user = userEvent.setup();
+  const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ data: { legal_name: 'Текущие реквизиты', inn: '', kpp: '', address: '', email: '' }, revision }) });
+  vi.stubGlobal('fetch', fetchMock);
+  const page = render(<BillingIndex {...base} tab="payer" />);
+  const field = await screen.findByLabelText('Юридическое название');
+  await user.clear(field); await user.type(field, 'Закрытый черновик');
+  page.rerender(<BillingIndex {...base} tab="payer" submissionScope="другой-контекст" />);
+  expect(await screen.findByDisplayValue('Текущие реквизиты')).toBeTruthy();
+  expect(screen.queryByDisplayValue('Закрытый черновик')).toBeNull();
+  expect(screen.getByRole('alert').textContent).toContain('Несохранённые изменения удалены');
+});
+it('предупреждает о несохранённом вводе при уходе и разрешает отменить SPA-навигацию', async () => {
+  const user = userEvent.setup();
+  const confirm = vi.fn().mockReturnValueOnce(false).mockReturnValueOnce(true);
+  vi.stubGlobal('confirm', confirm);
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ data: { legal_name: 'Исходное', inn: '', kpp: '', address: '', email: '' }, revision }) }));
+  render(<BillingIndex {...base} tab="payer" />);
+  const field = await screen.findByLabelText('Юридическое название');
+  await user.clear(field); await user.type(field, 'Черновик');
+  const before = calls.on.mock.calls.find(([name]) => name === 'before')?.[1];
+  expect(before).toBeTruthy();
+  const cancelled = new Event('before', { cancelable: true });
+  act(() => before!(cancelled));
+  expect(cancelled.defaultPrevented).toBe(true);
+  expect(screen.getByDisplayValue('Черновик')).toBeTruthy();
+  const unload = new Event('beforeunload', { cancelable: true });
+  act(() => window.dispatchEvent(unload));
+  expect(unload.defaultPrevented).toBe(true);
+  const accepted = new Event('before', { cancelable: true });
+  act(() => before!(accepted));
+  expect(accepted.defaultPrevented).toBe(false);
+  expect(confirm).toHaveBeenCalledTimes(2);
+});
+it('не прерывает уход, когда в форме нет несохранённых изменений', async () => {
+  const confirm = vi.fn(); vi.stubGlobal('confirm', confirm);
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ data: { legal_name: 'Исходное', inn: '', kpp: '', address: '', email: '' }, revision }) }));
+  render(<BillingIndex {...base} tab="payer" />);
+  await screen.findByDisplayValue('Исходное');
+  const before = calls.on.mock.calls.find(([name]) => name === 'before')?.[1];
+  const event = new Event('before', { cancelable: true });
+  act(() => before!(event));
+  const unload = new Event('beforeunload', { cancelable: true });
+  act(() => window.dispatchEvent(unload));
+  expect(event.defaultPrevented).toBe(false);
+  expect(unload.defaultPrevented).toBe(false);
+  expect(confirm).not.toHaveBeenCalled();
+});
+it('восстанавливает ошибки валидации вместе с черновиком при неизменной ревизии', async () => {
+  const user = userEvent.setup();
+  const payer = { legal_name: 'Исходное', inn: '', kpp: '', address: '', email: '' };
+  const fetchMock = vi.fn().mockResolvedValueOnce({ ok: true, json: async () => ({ data: payer, revision }) }).mockResolvedValueOnce({ ok: false, status: 422, json: async () => ({ errors: { inn: ['Введите корректный ИНН.'] } }) }).mockResolvedValueOnce({ ok: true, json: async () => ({ data: payer, revision }) });
+  vi.stubGlobal('fetch', fetchMock);
+  render(<BillingIndex {...base} tab="payer" />);
+  await user.type(await screen.findByLabelText('ИНН'), '123');
+  await user.click(screen.getByRole('button', { name: 'Сохранить реквизиты' }));
+  await waitFor(() => expect(screen.getAllByText('Введите корректный ИНН.').length).toBeGreaterThan(0));
+  act(() => window.dispatchEvent(new Event('blur')));
+  act(() => window.dispatchEvent(new Event('focus')));
+  expect(await screen.findByDisplayValue('123')).toBeTruthy();
+  expect(screen.getAllByText('Введите корректный ИНН.').length).toBeGreaterThan(0);
+});
+it('предупреждает о неопределённом сохранении, если blur прервал PUT', async () => {
+  const user = userEvent.setup();
+  let complete: (value: unknown) => void = () => {};
+  const delayed = new Promise((resolve) => { complete = resolve; });
+  const payer = { legal_name: 'Исходное', inn: '', kpp: '', address: '', email: '' };
+  const fetchMock = vi.fn().mockResolvedValueOnce({ ok: true, json: async () => ({ data: payer, revision }) }).mockReturnValueOnce(delayed).mockResolvedValueOnce({ ok: true, json: async () => ({ data: payer, revision }) });
+  vi.stubGlobal('fetch', fetchMock);
+  render(<BillingIndex {...base} tab="payer" />);
+  const field = await screen.findByLabelText('Юридическое название');
+  await user.clear(field); await user.type(field, 'Черновик');
+  await user.click(screen.getByRole('button', { name: 'Сохранить реквизиты' }));
+  act(() => window.dispatchEvent(new Event('blur')));
+  act(() => window.dispatchEvent(new Event('focus')));
+  expect(await screen.findByDisplayValue('Исходное')).toBeTruthy();
+  expect(screen.getByRole('alert').textContent).toContain('Результат сохранения неизвестен');
+  await act(async () => complete({ ok: true, status: 204 }));
+  expect(screen.queryByText('Реквизиты сохранены.')).toBeNull();
 });
 it('не показывает результат старого PUT после ухода и отказа повторной авторизации', async () => {
   const user = userEvent.setup();

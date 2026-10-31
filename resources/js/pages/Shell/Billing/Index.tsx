@@ -1,10 +1,11 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { BarChart3, Crown, FileText, Info } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button, EmptyState, Input } from '@/components/ui';
 import { BillingPage, Notice, panel } from '@/features/Shell/Billing/Shared';
 import { PlanRequests } from '@/features/Shell/Billing/PlanRequests';
 import { PayerForm } from '@/features/Shell/Billing/PayerForm';
+import { discardPayerDraft } from '@/features/Shell/Billing/payerDraft';
 import { focus } from '@/features/Shell/Organizations/Shared';
 import type { BillingLimit, BillingProps } from '@/types/Shell/Billing';
 
@@ -27,6 +28,7 @@ function LimitRow({ limit }: { limit: BillingLimit }) {
 }
 
 export default function BillingIndex({ tab, currentPlan, limits, usage, plans, canManage, requestEnabled, submissionKey, submissionScope, period }: BillingProps) {
+  useEffect(() => { if (!canManage) discardPayerDraft(); }, [canManage]);
   const [from, setFrom] = useState(period.from);
   const [to, setTo] = useState(period.to);
   const [loadingUsage, setLoadingUsage] = useState(false);
@@ -43,6 +45,6 @@ export default function BillingIndex({ tab, currentPlan, limits, usage, plans, c
     {tab === 'usage' && <section className={panel}><h2 className="text-xl font-bold">Использование</h2><p className="mt-1 text-sm text-(--color-ink-muted)">Данные по текущему бренду и доступным источникам</p><form className="mt-5 flex flex-wrap items-end gap-3" onSubmit={(event) => { event.preventDefault(); setFailure(''); router.get('/billing/usage', { from, to }, { preserveState: true, preserveScroll: true, onStart: () => setLoadingUsage(true), onFinish: () => setLoadingUsage(false), onError: (errors) => setFailure(Object.values(errors).join(' ') || 'Не удалось загрузить данные.'), onNetworkError: transport, onHttpException: transport }); }}><Input type="date" label="С" value={from} onChange={(event) => setFrom(event.target.value)} required /><Input type="date" label="По" value={to} onChange={(event) => setTo(event.target.value)} required /><Button className="cursor-pointer" type="submit" loading={loadingUsage}>Показать</Button></form><div aria-busy={loadingUsage}>{usage.length ? <dl className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{usage.map((item) => <div key={item.key} className="rounded-xl border border-(--color-border) p-4"><dt className="text-sm text-(--color-ink-muted)">{item.label}</dt><dd className="mt-2 text-2xl font-bold">{item.status === 'ready' && item.value !== null ? item.value.toLocaleString('ru-RU') : 'Недоступно'}</dd></div>)}</dl> : <EmptyState title="Нет данных об использовании" description="Данные появятся, когда будут доступны источники." />}</div></section>}
     {tab === 'plans' && <PlanRequests key={`${submissionScope ?? ''}:${requestEnabled}`} plans={plans} canManage={canManage} enabled={requestEnabled} scope={submissionScope} initialKey={submissionKey} />}
     {tab === 'invoices' && <><Notice>Раздел появится позже. Здесь будут счета и документы по оплате.</Notice><section className={panel}><h2 className="text-xl font-bold">Счета <span className="ml-2 rounded-full bg-(--color-surface-muted) px-3 py-1 text-sm">Скоро</span></h2><div className="py-12 text-center"><FileText aria-hidden="true" size={50} className="mx-auto text-(--color-ink-muted)" /><p className="mt-4 text-lg font-bold">Счета появятся здесь</p><p className="mt-2 text-sm text-(--color-ink-muted)">Функция скоро будет доступна</p></div></section></>}
-    {tab === 'payer' && (canManage ? <PayerForm key={submissionScope ?? ''} scope={submissionScope} /> : <p role="alert" className="text-sm text-(--color-danger-ink)">Недостаточно прав для просмотра реквизитов.</p>)}
+    {tab === 'payer' && (canManage ? <PayerForm key={submissionScope ?? ''} scope={submissionScope} /> : <p role="alert" className="text-sm text-(--color-danger-ink)">Недостаточно прав для просмотра реквизитов. Несохранённые изменения удалены.</p>)}
   </BillingPage></>;
 }

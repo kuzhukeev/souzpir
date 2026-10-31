@@ -20,6 +20,7 @@ final class BillingWorkflowTest extends TenancyTestCase
     protected function setUp(): void
     {
         parent::setUp();
+        app('url')->forceScheme('https');
         Http::preventStrayRequests();
     }
 
@@ -245,6 +246,53 @@ final class BillingWorkflowTest extends TenancyTestCase
         $this->putJson('/billing/payer', ['legal_name' => 'Delayed'], $old)->assertConflict();
         $this->getJson('/billing/payer/data', $scope)->assertOk()->assertJsonPath('data.legal_name', '');
         self::assertSame(2, DB::table('audit_logs')->where('action', 'billing.payer.updated')->count());
+    }
+
+    public function test_payer_transport_requires_verified_https_or_named_direct_loopback_in_local_environment(): void
+    {
+        [$owner, $org, $brand] = $this->cabinet();
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $headers = [...$this->scopeHeaders($org, $owner, $brand), 'X-CSRF-TOKEN' => csrf_token()];
+        $oldEnv = app()->environment();
+        $proxies = config('trustedproxy.proxies');
+        try {
+            app()->instance('env', 'production');
+            config(['trustedproxy.proxies' => null]);
+            $this->withServerVariables(['HTTPS' => 'on', 'REMOTE_ADDR' => '198.51.100.10', 'SERVER_ADDR' => '203.0.113.20']);
+            $revision = $this->getJson('https://cabinet.example.test/billing/payer/data', $headers)->assertOk()->json('revision');
+            $this->putJson('https://cabinet.example.test/billing/payer', ['legal_name' => 'HTTPS'], [...$headers, 'X-Payer-Revision' => $revision])->assertOk();
+            $revision = $this->getJson('https://cabinet.example.test/billing/payer/data', $headers)->assertOk()->json('revision');
+            $writeHeaders = [...$headers, 'X-Payer-Revision' => $revision];
+
+            $this->withServerVariables(['HTTPS' => 'off', 'REMOTE_ADDR' => '198.51.100.10', 'SERVER_ADDR' => '203.0.113.20']);
+            $this->getJson('http://souzpir.local/billing/payer/data', $headers)->assertForbidden()->assertJsonMissingPath('data');
+            $this->putJson('http://souzpir.local/billing/payer', ['legal_name' => 'Denied'], $writeHeaders)->assertForbidden();
+            $this->withHeader('X-Forwarded-Proto', 'https')->withHeader('X-Forwarded-For', '127.0.0.1');
+            Request::setTrustedProxies(['0.0.0.0/0'], Request::HEADER_X_FORWARDED_PROTO | Request::HEADER_X_FORWARDED_FOR);
+            $this->getJson('http://souzpir.local/billing/payer/data', $headers)->assertForbidden();
+            $this->putJson('http://souzpir.local/billing/payer', ['legal_name' => 'Spoof'], $writeHeaders)->assertForbidden();
+
+            $this->flushHeaders()->withServerVariables(['REMOTE_ADDR' => '127.0.0.1', 'SERVER_ADDR' => '127.0.0.1']);
+            $this->getJson('http://souzpir.local/billing/payer/data', $headers)->assertForbidden();
+            app()->instance('env', 'testing');
+            $this->getJson('http://souzpir.local/billing/payer/data', $headers)->assertForbidden();
+            app()->instance('env', 'local');
+            $this->getJson('http://localhost/billing/payer/data', $headers)->assertForbidden();
+            $this->getJson('http://souzpir.local/billing/payer/data', $headers)->assertOk()->assertJsonPath('data.legal_name', 'HTTPS');
+            $this->putJson('http://souzpir.local/billing/payer', ['legal_name' => 'Local'], $writeHeaders)->assertOk();
+            $this->withHeader('X-Real-IP', '127.0.0.1')->getJson('http://souzpir.local/billing/payer/data', $headers)->assertForbidden();
+            $this->flushHeaders()->withHeader('X-Forwarded-Host', 'souzpir.local')->getJson('http://other.example.test/billing/payer/data', $headers)->assertForbidden();
+            $this->flushHeaders()->withServerVariables(['REMOTE_ADDR' => '198.51.100.10']);
+            $this->getJson('http://souzpir.local/billing/payer/data', $headers)->assertForbidden();
+            $this->withServerVariables(['REMOTE_ADDR' => '127.0.0.1', 'SERVER_ADDR' => '203.0.113.20']);
+            $this->getJson('http://souzpir.local/billing/payer/data', $headers)->assertForbidden();
+            self::assertSame(2, DB::table('audit_logs')->where('action', 'billing.payer.updated')->count());
+        } finally {
+            app()->instance('env', $oldEnv);
+            config(['trustedproxy.proxies' => $proxies]);
+            Request::setTrustedProxies([], 0);
+            $this->flushHeaders();
+        }
     }
 
     private function conversation(string $organization, string $brand, string $createdAt): void

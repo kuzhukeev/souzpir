@@ -2,6 +2,7 @@
 
 namespace App\Shell\Billing\Http;
 
+use App\Privacy\VerifiedHttps;
 use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Billing\BillingAccess;
 use App\Shell\Billing\BillingPeriod;
@@ -55,6 +56,7 @@ final class BillingController
 
     public function payerData(#[SensitiveParameter] Request $request): JsonResponse
     {
+        $this->requireSecurePayer($request);
         try {
             $payer = app(AuthSessionRegistry::class)->withinActive($request,
                 fn () => PayerSnapshot::read($this->access->lockPayer($request)));
@@ -76,6 +78,7 @@ final class BillingController
 
     public function updatePayer(#[SensitiveParameter] Request $request, UpdatePayer $action): RedirectResponse|JsonResponse
     {
+        $this->requireSecurePayer($request);
         // Check authorization before validation and again under the same lock as the write.
         try {
             app(AuthSessionRegistry::class)->withinActive($request, fn () => $this->access->lockPayer($request));
@@ -120,6 +123,13 @@ final class BillingController
         }
 
         return redirect()->route('billing.payer');
+    }
+
+    private function requireSecurePayer(Request $request): void
+    {
+        $local = app()->environment('local') && strtolower($request->getHost()) === 'souzpir.local'
+            && VerifiedHttps::directLoopback($request);
+        abort_unless(VerifiedHttps::allows($request) || $local, 403, 'Для работы с реквизитами требуется защищённое соединение.');
     }
 
     public function requestPlan(#[SensitiveParameter] Request $request): JsonResponse

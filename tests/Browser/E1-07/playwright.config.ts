@@ -11,7 +11,8 @@ export default defineConfig({
   outputDir: '../../../.local/runtime/e1-07-playwright',
   reporter: [['list']],
   use: {
-    baseURL: 'http://127.0.0.1:8107',
+    baseURL: 'https://127.0.0.1:8107',
+    ignoreHTTPSErrors: true,
     channel: 'chrome',
     headless: true,
     launchOptions: {
