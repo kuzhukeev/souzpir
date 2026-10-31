@@ -126,6 +126,41 @@
         "users"
       ]
     },
+    "auth_session_registry": {
+      "owner": "SP-E1-01B",
+      "tenant": "global",
+      "parents": ["users"]
+    },
+    "profile_preferences": {
+      "owner": "SP-E1-08",
+      "tenant": "global",
+      "parents": ["users"]
+    },
+    "profile_email_changes": {
+      "owner": "SP-E1-08",
+      "tenant": "brand",
+      "parents": ["users", "organizations", "brands"]
+    },
+    "profile_telegram_accounts": {
+      "owner": "SP-E1-08",
+      "tenant": "global",
+      "parents": ["users"]
+    },
+    "profile_telegram_links": {
+      "owner": "SP-E1-08",
+      "tenant": "brand",
+      "parents": ["organizations", "brands", "users"]
+    },
+    "profile_session_details": {
+      "owner": "SP-E1-08",
+      "tenant": "global",
+      "parents": ["auth_session_registry", "users"]
+    },
+    "profile_test_notifications": {
+      "owner": "SP-E1-08",
+      "tenant": "brand",
+      "parents": ["organizations", "brands", "users"]
+    },
     "invitation_exchange_sessions": {
       "owner": "SP-E1-01",
       "tenant": "global",
