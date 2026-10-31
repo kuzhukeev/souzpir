@@ -50,7 +50,7 @@ final class PasswordController
         $request->merge(['email' => mb_strtolower(trim((string) $request->input('email')))]);
         $validator = Validator::make($request->all(), ['token' => ['required', 'string'], 'email' => ['required', 'email'], 'password' => ['required', 'confirmed', PasswordRule::min(12)]]);
         if ($validator->fails()) {
-            return back()->withErrors($validator)->withInput($request->except(['token', 'password', 'password_confirmation']));
+            return $this->resetErrorRedirect($request)->withErrors($validator)->withInput($request->except(['token', 'password', 'password_confirmation']));
         }
         $data = $validator->validated();
         try {
@@ -74,9 +74,24 @@ final class PasswordController
             throw new \RuntimeException('Password reset processing failed.');
         }
         if (! $changed) {
-            return back()->withErrors(['email' => 'Ссылка недействительна или истекла. Запросите новую.'])->withInput($request->except(['token', 'password', 'password_confirmation']));
+            return $this->resetErrorRedirect($request)->withErrors(['email' => 'Ссылка недействительна или истекла. Запросите новую.'])->withInput($request->except(['token', 'password', 'password_confirmation']));
         }
 
         return redirect()->route('login')->with('status', 'Пароль обновлён. Войдите снова.');
+    }
+
+    /** Never trust Referer when returning a form containing a recovery token. */
+    private function resetErrorRedirect(#[\SensitiveParameter] Request $request): RedirectResponse
+    {
+        $token = $request->input('token');
+        $email = $request->input('email');
+        if (is_string($token) && preg_match('/\A[A-Za-z0-9]{1,256}\z/D', $token) === 1
+            && is_string($email) && filter_var($email, FILTER_VALIDATE_EMAIL) !== false) {
+            $path = route('password.reset', ['token' => $token, 'email' => $email], absolute: false);
+        } else {
+            $path = route('password.request', absolute: false);
+        }
+
+        return (new RedirectResponse($path))->setRequest($request)->setSession($request->session());
     }
 }
