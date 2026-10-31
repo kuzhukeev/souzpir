@@ -47,6 +47,34 @@ def scope_allows(path: str, scope: list[str]) -> bool:
     return any(prefix == "/" or path == prefix or path.startswith(prefix + "/") for prefix in prefixes)
 
 
+def unapproved_changes(worktree: Path, base: str, head: str, scope: list[str]) -> list[str]:
+    """Permit upstream merge content only if it is already an ancestor of main."""
+    changed = git(worktree, "diff", "--name-only", "-z", "--no-renames", base, head).split("\0")
+    outside = [path for path in changed if path and not scope_allows(path, scope)]
+    if not outside:
+        return []
+    # An explicitly merged parent is reviewed upstream only when it is in main.
+    # Matching tree entries are compared at final HEAD, so later unauthorized
+    # edits to those same files are rejected. Non-merged branches never qualify.
+    approved = []
+    merges = git(worktree, "rev-list", "--first-parent", "--merges", base + ".." + head).splitlines()
+    for merge in merges:
+        parents = git(worktree, "rev-list", "--parents", "-n", "1", merge).split()[2:]
+        for parent in parents:
+            try:
+                git(worktree, "merge-base", "--is-ancestor", parent, "refs/heads/main")
+                git(worktree, "merge-base", "--is-ancestor", base, parent)
+            except TaskError:
+                continue
+            approved.append(parent)
+    remaining = set(outside)
+    forbidden_roots = {".local", ".worktrees", ".git"}
+    for parent in approved:
+        differing = set(git(worktree, "diff", "--name-only", "-z", "--no-renames", parent, head, "--", *outside).split("\0"))
+        remaining = {path for path in remaining if path in differing or path.replace("\\", "/").split("/", 1)[0].casefold() in forbidden_roots}
+    return [path for path in outside if path in remaining]
+
+
 def scope_signature(scope: list[str]) -> list[str]:
     return sorted({path.replace("\\", "/").casefold().rstrip("/") or "/" for path in scope})
 
@@ -272,8 +300,7 @@ class Coordinator:
         commit = git(worktree, "rev-parse", "HEAD^{commit}")
         if commit == record["baseCommit"]:
             raise TaskError("No task commit exists after the saved base")
-        changed = git(worktree, "diff", "--name-only", "-z", "--no-renames", record["baseCommit"], commit).split("\0")
-        outside = [path for path in changed if path and not scope_allows(path, record["scope"])]
+        outside = unapproved_changes(worktree, record["baseCommit"], commit, record["scope"])
         if outside:
             raise TaskError("Changes outside task ownership: " + ", ".join(outside))
         result = self.owner_action("submit", key, commit=commit, branch=record["branch"], summary=summary, checks=checks)
