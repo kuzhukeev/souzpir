@@ -131,3 +131,46 @@ test('one-time secret stays out of history and an expired secret reports an erro
   await page.getByRole('button', { name: 'Показать ключ один раз' }).click();
   await expect(page.getByRole('alert')).toContainText('Не удалось получить секрет');
 });
+
+test('existing channel statuses use Russian labels and planned channels are unavailable', async ({
+  page,
+}) => {
+  await page.goto(`${url}?screen=index&channel-statuses=1`);
+  const card = (title: string) =>
+    page.locator('article').filter({ has: page.getByRole('heading', { name: title }) });
+  await expect(card('Канал без настройки')).toContainText('Не подключён');
+  await expect(card('Выключенный канал')).toContainText('Выключен');
+  await expect(card('Планируемый канал')).toContainText('Скоро');
+  await expect(card('Планируемый канал').getByRole('link', { name: 'Настроить' })).toHaveCount(0);
+  await expect(card('Неизвестный канал')).toContainText('Статус неизвестен');
+  await expect(card('Неизвестный канал')).not.toContainText('future_internal_code');
+});
+
+test('insecure transport explains why secret actions are unavailable', async ({ page }) => {
+  await page.goto(`${url}?screen=api&insecure=1&secret=1`);
+  await expect(
+    page.getByText(
+      'Для создания и просмотра секретов откройте кабинет по HTTPS или через localhost на этом компьютере.',
+    ),
+  ).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Создать ключ' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Добавить вебхук' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Показать ключ один раз' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Показать секрет один раз' })).toBeDisabled();
+  await readable(page);
+  await page.screenshot({ path: '.local/screenshots/e1-10/api-insecure.png', fullPage: true });
+});
+
+test('unsafe session storage prevents secret creation and gives clear feedback', async ({
+  page,
+}) => {
+  await page.goto(`${url}?screen=api&unsafe-storage=1&secret=1`);
+  await expect(
+    page.getByText(
+      'Показ секретов временно недоступен: требуется безопасное хранилище сессий и блокировок.',
+    ),
+  ).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Создать ключ' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Добавить вебхук' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Показать ключ один раз' })).toBeDisabled();
+});

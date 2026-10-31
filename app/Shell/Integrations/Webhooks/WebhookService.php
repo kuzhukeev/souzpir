@@ -7,6 +7,7 @@ use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
 use App\Shell\Brands\BrandAccess;
 use App\Shell\Brands\Network\PublicHost;
+use App\Shell\Integrations\SecretEnvelope;
 use App\Tenancy\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
@@ -72,7 +73,7 @@ final class WebhookService
             throw ValidationException::withMessages(['url' => 'Укажите публичный HTTPS-адрес без логина, пароля и нестандартного порта.']);
         }
 
-        return app(BrandAccess::class)->change($request, $ctx->brandId, function (Brand $brand, TenantContext $tenant) use ($data): string {
+        return app(BrandAccess::class)->change($request, $ctx->brandId, function (Brand $brand, TenantContext $tenant) use ($data, $request): string {
             $secret = bin2hex(random_bytes(32));
             $id = (string) Str::ulid();
             DB::table('webhooks')->insert(['id' => $id, 'organization_id' => $tenant->organizationId, 'brand_id' => $brand->id,
@@ -80,7 +81,7 @@ final class WebhookService
                 'secret' => Crypt::encryptString($secret), 'created_at' => now(), 'updated_at' => now()]);
             app(AuditWriter::class)->record($tenant, new AuditEntry('integrations.webhook.created', 'webhook', $id, after: ['events' => $data['events']]));
 
-            return $secret;
+            return app(SecretEnvelope::class)->seal($request, $tenant, 'webhook_secret', $secret);
         });
     }
 

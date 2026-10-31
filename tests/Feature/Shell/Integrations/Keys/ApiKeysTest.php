@@ -6,6 +6,7 @@ use App\Shell\Audit\Contracts\AuditWriter;
 use App\Shell\Integrations\Keys\KeysController;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Http;
@@ -19,6 +20,8 @@ final class ApiKeysTest extends TenancyTestCase
     {
         parent::setUp();
         Http::preventStrayRequests();
+        $this->withServerVariables(['REMOTE_ADDR' => '127.0.0.1', 'SERVER_ADDR' => '127.0.0.1']);
+        config(['session.encrypt' => false]);
     }
 
     public function test_owner_can_create_list_and_revoke_without_persisting_plain_token(): void
@@ -28,7 +31,10 @@ final class ApiKeysTest extends TenancyTestCase
             'name' => 'Наш ключ', 'abilities' => ['read', 'turn'],
         ]);
         $response->assertRedirect('/integrations/api')->assertSessionHasNoErrors()->assertSessionHas('integration_api_key');
-        $plain = session('integration_api_key')['value'];
+        $sealed = session('integration_api_key');
+        self::assertIsString($sealed);
+        $plain = json_decode(Crypt::decryptString($sealed), true, flags: JSON_THROW_ON_ERROR)['value'];
+        self::assertStringNotContainsString($plain, serialize(session()->all()));
         [$id, $secret] = explode('|', $plain, 2);
         $row = DB::table('personal_access_tokens')->where('id', $id)->first();
         self::assertSame(hash('sha256', $secret), $row->token);
@@ -56,7 +62,10 @@ final class ApiKeysTest extends TenancyTestCase
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->post('/integrations/api/keys', [
             'name' => 'Once', 'abilities' => ['read'],
         ])->assertSessionHasNoErrors();
-        $plain = session('integration_api_key')['value'];
+        $sealed = session('integration_api_key');
+        self::assertIsString($sealed);
+        $plain = json_decode(Crypt::decryptString($sealed), true, flags: JSON_THROW_ON_ERROR)['value'];
+        self::assertStringNotContainsString($plain, serialize(session()->all()));
         $page = $this->get('/integrations/api');
         $page->assertOk()->assertInertia(fn (Assert $page) => $page->where('integration_api_key_available', true)->missing('integration_api_key'));
         self::assertStringNotContainsString($plain, json_encode($page->viewData('page'), JSON_THROW_ON_ERROR));

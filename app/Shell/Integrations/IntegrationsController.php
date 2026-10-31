@@ -2,6 +2,8 @@
 
 namespace App\Shell\Integrations;
 
+use App\Models\Brand;
+use App\Shell\Brands\BrandAccess;
 use App\Shell\Integrations\Keys\KeysController;
 use App\Shell\Integrations\Webhooks\WebhookService;
 use App\Tenancy\TenantContext;
@@ -54,6 +56,8 @@ final class IntegrationsController
             'webhookEvents' => WebhookService::eventOptions(),
             'permissions' => ['manage' => true],
             'apiKeyRuntimeAvailable' => false,
+            'secureSecretTransport' => SecretTransport::allows($request),
+            'secretStorageReady' => SecretSessionStore::ready(),
             'webhookDeliveryAvailable' => config('features.E1-10.defaults.webhook_delivery', false) === true,
             'integration_api_key_available' => $this->keepSecretForPage($request, $context, 'integration_api_key'),
             'integration_webhook_secret_available' => $this->keepSecretForPage($request, $context, 'webhook_secret'),
@@ -61,23 +65,40 @@ final class IntegrationsController
     }
 
     /** Return a one-time value separately from Inertia props and browser history. */
-    public function secret(Request $request): JsonResponse
+    public function secret(Request $request, BrandAccess $access, SecretEnvelope $envelope): JsonResponse
     {
+        SecretTransport::assertAllowed($request);
+        SecretSessionStore::assertReady();
+        SecretSessionStore::assertIndependentCommit();
         Gate::authorize('integrations.write');
         $context = app(TenantContext::class);
         abort_unless($context->organizationId && $context->brandId && $context->actorId, 404);
         $data = $request->validate(['type' => ['required', Rule::in(['api_key', 'webhook_secret'])]]);
         $key = $data['type'] === 'api_key' ? 'integration_api_key' : 'webhook_secret';
-        $stored = $request->session()->pull($key);
-        abort_unless($this->matchesSecret($stored, $context), 404);
 
-        return response()->json(['value' => $stored['value']])->header('Cache-Control', 'private, no-store');
+        // The shared service locks session, user, organization, membership and brand in order.
+        $value = $access->change($request, $context->brandId, function (Brand $brand, TenantContext $locked) use ($request, $key, $envelope): string {
+            Gate::authorize('integrations.write');
+            abort_unless($request->session()->get('brand_id') === $brand->id, 404);
+            $stored = $request->session()->pull($key);
+            $payload = $envelope->open($request, $locked, $key, $stored);
+            abort_unless($payload !== null, 404);
+            $claimed = DB::table('integration_secret_receipts')->where('nonce_hash', $payload['nonce_hash'])
+                ->whereNull('consumed_at')->where('expires_at', '>', now())->update(['consumed_at' => now()]);
+            abort_unless($claimed === 1, 404);
+
+            return $payload['value'];
+        });
+
+        return response()->json(['value' => $value])->header('Cache-Control', 'private, no-store');
     }
 
     private function keepSecretForPage(Request $request, TenantContext $context, string $key): bool
     {
         $stored = $request->session()->get($key);
-        if (! $this->matchesSecret($stored, $context)) {
+        $payload = app(SecretEnvelope::class)->open($request, $context, $key, $stored);
+        if ($payload === null || ! DB::table('integration_secret_receipts')->where('nonce_hash', $payload['nonce_hash'])
+            ->whereNull('consumed_at')->where('expires_at', '>', now())->exists()) {
             $request->session()->forget($key);
 
             return false;
@@ -85,15 +106,6 @@ final class IntegrationsController
         $request->session()->keep($key);
 
         return true;
-    }
-
-    private function matchesSecret(mixed $stored, TenantContext $context): bool
-    {
-        return is_array($stored) && $context->organizationId !== null && $context->brandId !== null && $context->actorId !== null
-            && ($stored['organization_id'] ?? null) === $context->organizationId
-            && ($stored['brand_id'] ?? null) === $context->brandId
-            && ($stored['actor_id'] ?? null) === $context->actorId
-            && is_string($stored['value'] ?? null) && $stored['value'] !== '';
     }
 
     public function notifications(): Response

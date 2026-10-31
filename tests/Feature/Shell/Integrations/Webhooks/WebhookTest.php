@@ -22,6 +22,8 @@ final class WebhookTest extends TenancyTestCase
     {
         parent::setUp();
         Http::preventStrayRequests();
+        $this->withServerVariables(['REMOTE_ADDR' => '127.0.0.1', 'SERVER_ADDR' => '127.0.0.1']);
+        config(['session.encrypt' => false]);
         $this->dns = new WebhookDns;
         $this->app->instance(DomainDnsResolver::class, $this->dns);
     }
@@ -36,7 +38,9 @@ final class WebhookTest extends TenancyTestCase
         $this->post('/integrations/api/webhooks', ['url' => 'https://public.org/hook', 'events' => ['seller.lead.created']])->assertSessionHasNoErrors()->assertSessionHas('webhook_secret');
         $row = DB::table('webhooks')->first();
         $secret = Crypt::decryptString($row->secret);
-        self::assertSame($secret, session('webhook_secret')['value']);
+        self::assertIsString(session('webhook_secret'));
+        self::assertSame($secret, json_decode(Crypt::decryptString(session('webhook_secret')), true, flags: JSON_THROW_ON_ERROR)['value']);
+        self::assertStringNotContainsString($secret, serialize(session()->all()));
         $page = $this->get('/integrations/api')->assertOk()->assertHeader('Cache-Control', 'no-store, private');
         $pageProps = $page->viewData('page')['props'];
         self::assertTrue($pageProps['integration_webhook_secret_available']);

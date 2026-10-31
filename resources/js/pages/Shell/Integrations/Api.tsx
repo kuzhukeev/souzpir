@@ -27,6 +27,8 @@ type Props = {
   permissions: { manage: boolean };
   apiKeyRuntimeAvailable: boolean;
   webhookDeliveryAvailable: boolean;
+  secureSecretTransport: boolean;
+  secretStorageReady: boolean;
   integration_api_key_available?: boolean;
   integration_webhook_secret_available?: boolean;
 };
@@ -49,6 +51,8 @@ export default function Api({
   permissions,
   apiKeyRuntimeAvailable,
   webhookDeliveryAvailable,
+  secureSecretTransport,
+  secretStorageReady,
   integration_api_key_available,
   integration_webhook_secret_available,
 }: Props) {
@@ -183,6 +187,23 @@ export default function Api({
             {notice}
           </p>
         )}
+        {!secureSecretTransport && (
+          <p
+            role="status"
+            className="mb-5 rounded-xl bg-(--color-warning-soft) p-4 text-sm text-(--color-warning-ink)"
+          >
+            Для создания и просмотра секретов откройте кабинет по HTTPS или через localhost на этом
+            компьютере.
+          </p>
+        )}
+        {!secretStorageReady && (
+          <p
+            role="status"
+            className="mb-5 rounded-xl bg-(--color-warning-soft) p-4 text-sm text-(--color-warning-ink)"
+          >
+            Показ секретов временно недоступен: требуется безопасное хранилище сессий и блокировок.
+          </p>
+        )}
         {!apiKeyRuntimeAvailable && (
           <p
             role="status"
@@ -195,7 +216,11 @@ export default function Api({
         {integration_api_key_available && !consumedKey && (
           <p className="mb-4 text-sm">
             Создан новый ключ.{' '}
-            <Button variant="secondary" disabled={revealing} onClick={() => void reveal('api_key')}>
+            <Button
+              variant="secondary"
+              disabled={revealing || !secureSecretTransport || !secretStorageReady}
+              onClick={() => void reveal('api_key')}
+            >
               Показать ключ один раз
             </Button>
           </p>
@@ -205,7 +230,7 @@ export default function Api({
             Создан новый вебхук.{' '}
             <Button
               variant="secondary"
-              disabled={revealing}
+              disabled={revealing || !secureSecretTransport || !secretStorageReady}
               onClick={() => void reveal('webhook_secret')}
             >
               Показать секрет один раз
@@ -217,7 +242,10 @@ export default function Api({
             <h2 id="keys-heading" className="flex items-center gap-2 text-xl font-bold">
               <KeyRound size={22} aria-hidden="true" /> API-ключи
             </h2>
-            <Button disabled={!permissions.manage} onClick={() => setShowCreate(true)}>
+            <Button
+              disabled={!permissions.manage || !secureSecretTransport || !secretStorageReady}
+              onClick={() => setShowCreate(true)}
+            >
               <Plus size={17} aria-hidden="true" /> Создать ключ
             </Button>
           </div>
@@ -366,7 +394,11 @@ export default function Api({
                 ))}
               </div>
             </fieldset>
-            <Button type="submit" disabled={!permissions.manage} loading={hookForm.processing}>
+            <Button
+              type="submit"
+              disabled={!permissions.manage || !secureSecretTransport || !secretStorageReady}
+              loading={hookForm.processing}
+            >
               Добавить вебхук
             </Button>
           </form>

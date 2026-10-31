@@ -16,6 +16,9 @@ const statusLabels: Record<string, string> = {
   active: 'Подключён',
   disconnected: 'Не подключён',
   inactive: 'Не подключён',
+  unconfigured: 'Не подключён',
+  disabled: 'Выключен',
+  planned: 'Скоро',
   pending: 'Ожидает подключения',
   error: 'Ошибка подключения',
   soon: 'Скоро',
@@ -38,7 +41,7 @@ export default function Index({ connections }: Props) {
                   <div className="min-w-0 flex-1">
                     <h2 className="break-words text-xl font-bold">{item.title}</h2>
                     <p className="mt-1 text-sm text-(--color-ink-muted)">
-                      {statusLabels[item.status] ?? item.status}
+                      {statusLabels[item.status] ?? 'Статус неизвестен'}
                     </p>
                     {item.connected_at && (
                       <p className="mt-1 text-sm text-(--color-ink-muted)">
@@ -46,7 +49,7 @@ export default function Index({ connections }: Props) {
                       </p>
                     )}
                   </div>
-                  {item.href && item.status !== 'soon' ? (
+                  {item.href && item.status !== 'soon' && item.status !== 'planned' ? (
                     <Link
                       href={item.href}
                       className={
@@ -56,7 +59,7 @@ export default function Index({ connections }: Props) {
                     >
                       Настроить <ArrowRight size={16} aria-hidden="true" />
                     </Link>
-                  ) : item.status === 'soon' ? (
+                  ) : item.status === 'soon' || item.status === 'planned' ? (
                     <span className="rounded-lg bg-(--color-surface-muted) px-4 py-2 text-sm text-(--color-ink-muted)">
                       Скоро
                     </span>

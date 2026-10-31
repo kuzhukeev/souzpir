@@ -87,6 +87,42 @@ const props = {
       href: '/integrations/notifications',
       connected_at: null,
     },
+    ...(params.has('channel-statuses')
+      ? [
+          {
+            id: 'case-unconfigured',
+            title: 'Канал без настройки',
+            description: '',
+            status: 'unconfigured',
+            href: '/setup',
+            connected_at: null,
+          },
+          {
+            id: 'case-disabled',
+            title: 'Выключенный канал',
+            description: '',
+            status: 'disabled',
+            href: '/setup',
+            connected_at: null,
+          },
+          {
+            id: 'case-planned',
+            title: 'Планируемый канал',
+            description: '',
+            status: 'planned',
+            href: '/setup',
+            connected_at: null,
+          },
+          {
+            id: 'case-unknown',
+            title: 'Неизвестный канал',
+            description: '',
+            status: 'future_internal_code',
+            href: null,
+            connected_at: null,
+          },
+        ]
+      : []),
   ],
   keys: [
     {
@@ -123,6 +159,8 @@ const props = {
   integration_webhook_secret_available: params.has('secret'),
   permissions: { manage: true },
   apiKeyRuntimeAvailable: false,
+  secureSecretTransport: !params.has('insecure'),
+  secretStorageReady: !params.has('unsafe-storage'),
   webhookDeliveryAvailable: false,
   telegram_configured: false,
   telegram_mask: null,

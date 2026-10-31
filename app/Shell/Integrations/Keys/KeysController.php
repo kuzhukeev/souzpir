@@ -6,6 +6,9 @@ use App\Models\Brand;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
 use App\Shell\Brands\BrandAccess;
+use App\Shell\Integrations\SecretEnvelope;
+use App\Shell\Integrations\SecretSessionStore;
+use App\Shell\Integrations\SecretTransport;
 use App\Tenancy\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -44,6 +47,9 @@ final class KeysController
 
     public function store(Request $request): RedirectResponse
     {
+        SecretTransport::assertAllowed($request);
+        SecretSessionStore::assertReady();
+        SecretSessionStore::assertIndependentCommit();
         $ctx = app(TenantContext::class);
         abort_unless($ctx->brandId, 404);
         $this->access->read($request, $ctx->brandId, 'integrations.write');
@@ -57,7 +63,7 @@ final class KeysController
             throw ValidationException::withMessages(['name' => 'Укажите название ключа.']);
         }
 
-        $plain = $this->access->change($request, $ctx->brandId, function (Brand $brand, TenantContext $context) use ($data, $name): string {
+        $sealed = $this->access->change($request, $ctx->brandId, function (Brand $brand, TenantContext $context) use ($data, $name, $request): string {
             $secret = Str::random(64);
             $id = DB::table('personal_access_tokens')->insertGetId([
                 'tokenable_type' => Brand::class, 'tokenable_id' => $brand->id,
@@ -68,10 +74,10 @@ final class KeysController
             ]);
             app(AuditWriter::class)->record($context, new AuditEntry('integration.api_key.created', 'personal_access_token', (string) $id, after: ['name' => $name, 'abilities' => array_values($data['abilities'])]));
 
-            return $id.'|'.$secret;
+            return app(SecretEnvelope::class)->seal($request, $context, 'integration_api_key', $id.'|'.$secret);
         });
 
-        return redirect('/integrations/api')->with('integration_api_key', ['organization_id' => $ctx->organizationId, 'brand_id' => $ctx->brandId, 'actor_id' => $ctx->actorId, 'value' => $plain]);
+        return redirect('/integrations/api')->with('integration_api_key', $sealed);
     }
 
     public function destroy(Request $request, string $id): RedirectResponse

@@ -31,6 +31,7 @@ final class WebhookCommitTest extends TestCase
         Mail::fake();
         $this->withoutVite();
         Http::preventStrayRequests();
+        $this->withServerVariables(['REMOTE_ADDR' => '127.0.0.1', 'SERVER_ADDR' => '127.0.0.1']);
         config(['queue.default' => 'sync', 'features.E1-10.defaults.webhook_delivery' => true]);
         $this->app->instance(DomainDnsResolver::class, new CommitTestDns);
     }
