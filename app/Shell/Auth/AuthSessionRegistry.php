@@ -50,7 +50,7 @@ final class AuthSessionRegistry
     }
 
     /** Check current session and hold its row plus the user lock until the action commits. */
-    public function withinActive(Request $request, Closure $action): mixed
+    public function withinActive(#[\SensitiveParameter] Request $request, #[\SensitiveParameter] Closure $action): mixed
     {
         return DB::transaction(function () use ($request, $action): mixed {
             if (! $request->hasSession() || ! $request->user()) {

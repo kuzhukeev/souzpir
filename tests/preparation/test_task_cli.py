@@ -139,6 +139,34 @@ class TaskCliTests(unittest.TestCase):
             self.client.submit("SP-001", "Changes", ["Tests passed"])
         self.assertNotIn("submit", self.api.calls)
 
+    def test_submit_allows_unchanged_files_from_merged_main(self):
+        worktree, _ = self.claim()
+        self.commit(worktree)
+        self.commit(self.root, 'app/Common/dependency.php')
+        task_cli.git(worktree, 'merge', '--no-ff', 'main', '-m', 'Bring approved dependency')
+        self.assertEqual(self.client.submit('SP-001', 'Changes', ['Tests passed'])['status'], 'review')
+
+    def test_submit_rejects_outside_scope_modified_after_main_merge(self):
+        worktree, _ = self.claim()
+        self.commit(worktree)
+        self.commit(self.root, 'app/Common/dependency.php')
+        task_cli.git(worktree, 'merge', '--no-ff', 'main', '-m', 'Bring approved dependency')
+        (worktree / 'app/Common/dependency.php').write_text('unauthorized\n', encoding='utf-8')
+        task_cli.git(worktree, 'add', 'app/Common/dependency.php')
+        task_cli.git(worktree, 'commit', '-m', 'Unauthorized change')
+        with self.assertRaisesRegex(task_cli.TaskError, 'outside task ownership'):
+            self.client.submit('SP-001', 'Changes', ['Tests passed'])
+
+    def test_submit_rejects_unmerged_dependency_from_other_branch(self):
+        worktree, _ = self.claim()
+        self.commit(worktree)
+        task_cli.git(self.root, 'checkout', '-b', 'unapproved')
+        self.commit(self.root, 'app/Common/dependency.php')
+        task_cli.git(self.root, 'checkout', 'main')
+        task_cli.git(worktree, 'merge', '--no-ff', 'unapproved', '-m', 'Bring unapproved code')
+        with self.assertRaisesRegex(task_cli.TaskError, 'outside task ownership'):
+            self.client.submit('SP-001', 'Changes', ['Tests passed'])
+
     def test_submit_review_then_merge_gate(self):
         worktree, _ = self.claim()
         self.commit(worktree)
