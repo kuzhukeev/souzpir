@@ -72,6 +72,11 @@ export default function Index({ section, planned }: PlannedProps) {
     <div className="mx-auto max-w-[1440px] space-y-6"><header><h1 className="text-3xl font-bold leading-tight">{title}</h1><p className="mt-2 text-base text-(--color-ink-muted)">{subtitle}</p></header>
       {(section === 'vk' || section === 'whatsapp') && (item ? <Channel item={item} section={section} canManage={planned.canManage} available={planned.interestAvailable} brandId={planned.brandId} /> : <p role="alert" className={panel}>Не удалось загрузить данные канала.</p>)}
       {section === 'calendar' && <Calendar planned={planned} />}
+      {section === 'planned' && <nav aria-label="Будущие каналы и напоминания" className="flex flex-wrap gap-3">
+        <Link href="/seller/channels/vk" className="inline-flex min-h-10 items-center rounded-lg bg-(--color-surface) px-4 text-sm font-semibold text-(--color-link)">ВКонтакте · Скоро</Link>
+        <Link href="/seller/channels/whatsapp" className="inline-flex min-h-10 items-center rounded-lg bg-(--color-surface) px-4 text-sm font-semibold text-(--color-link)">WhatsApp · Скоро</Link>
+        <Link href="/seller/integrations/calendar" className="inline-flex min-h-10 items-center rounded-lg bg-(--color-surface) px-4 text-sm font-semibold text-(--color-link)">Почта и календарь · Скоро</Link>
+      </nav>}
       {section === 'planned' && <Integrations planned={planned} />}
       {section !== 'planned' && <Link href="/seller/integrations/planned" className="inline-flex min-h-10 items-center text-sm font-semibold text-(--color-link)">Другие будущие интеграции</Link>}
     </div>

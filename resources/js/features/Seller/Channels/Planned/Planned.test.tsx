@@ -50,6 +50,9 @@ describe('planned channels and integrations', () => {
     render(<Index section="planned" planned={planned} />);
     expect(screen.getByRole('heading', { name: 'amoCRM' })).toBeTruthy();
     expect(screen.getByText('Скоро')).toBeTruthy();
+    expect(screen.getByRole('link', { name: /ВКонтакте/ }).getAttribute('href')).toBe('/seller/channels/vk');
+    expect(screen.getByRole('link', { name: /WhatsApp/ }).getAttribute('href')).toBe('/seller/channels/whatsapp');
+    expect(screen.getByRole('link', { name: /Почта и календарь/ }).getAttribute('href')).toBe('/seller/integrations/calendar');
     expect(screen.queryByText(/подключено/i)).toBeNull();
   });
 

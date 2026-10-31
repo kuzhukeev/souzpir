@@ -119,6 +119,13 @@
           "path": "/seller/integrations/catalog"
         },
         {
+          "id": "seller_planned_integrations",
+          "label": "Будущие интеграции",
+          "icon": "Link2",
+          "path": "/seller/integrations/planned",
+          "permission": "seller.settings.read"
+        },
+        {
           "id": "seller_digests",
           "label": "Мои сводки",
           "icon": "Bell",
