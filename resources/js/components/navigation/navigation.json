@@ -1,0 +1,159 @@
+{
+  "home": {
+    "id": "home",
+    "label": "Главная",
+    "icon": "Home",
+    "path": "/dashboard"
+  },
+  "modules": [
+    {
+      "id": "vision",
+      "label": "Видение",
+      "icon": "Eye",
+      "children": [
+        {
+          "id": "vision_overview",
+          "label": "Обзор видимости",
+          "icon": "ChartNoAxesCombined",
+          "path": "/vision",
+          "permission": "vision.report.read"
+        },
+        {
+          "id": "vision_measurements",
+          "label": "Замеры",
+          "icon": "Gauge",
+          "path": "/vision/runs",
+          "permission": "vision.measure.read"
+        }
+      ]
+    },
+    {
+      "id": "seller",
+      "label": "Продавец",
+      "icon": "MessageCircle",
+      "children": [
+        {
+          "id": "seller_overview",
+          "label": "Сводка",
+          "icon": "LayoutDashboard",
+          "path": "/seller"
+        },
+        {
+          "id": "dialogs",
+          "label": "Диалоги",
+          "icon": "MessagesSquare",
+          "path": "/seller/dialogs",
+          "permission": "seller.dialogs.read"
+        },
+        {
+          "id": "clients",
+          "label": "Клиенты",
+          "icon": "Users",
+          "path": "/seller/customers",
+          "permission": "seller.customers.read"
+        },
+        {
+          "id": "knowledge",
+          "label": "База знаний",
+          "icon": "BookOpen",
+          "path": "/seller/knowledge",
+          "permission": "seller.knowledge.read"
+        },
+        {
+          "id": "scenario",
+          "label": "Сценарий",
+          "icon": "ClipboardList",
+          "path": "/seller/scenario/fields",
+          "permission": "seller.settings.read"
+        },
+        {
+          "id": "character",
+          "label": "Персонаж",
+          "icon": "UserRound",
+          "path": "/seller/persona",
+          "permission": "seller.settings.read"
+        },
+        {
+          "id": "quality",
+          "label": "Качество",
+          "icon": "Star",
+          "path": "/seller/quality"
+        },
+        {
+          "id": "analytics",
+          "label": "Аналитика",
+          "icon": "ChartNoAxesCombined",
+          "path": "/seller/analytics"
+        },
+        {
+          "id": "channels",
+          "label": "Каналы",
+          "icon": "Share2",
+          "path": "/seller/channels"
+        },
+        {
+          "id": "seller_integrations",
+          "label": "Интеграции",
+          "icon": "Link2",
+          "path": "/seller/integrations/catalog"
+        },
+        {
+          "id": "seller_settings",
+          "label": "Настройки",
+          "icon": "Settings",
+          "path": "/seller/settings",
+          "permission": "seller.settings.read"
+        }
+      ]
+    }
+  ],
+  "account": [
+    {
+      "id": "company",
+      "label": "Компания и бренды",
+      "icon": "Building2",
+      "path": "/company",
+      "permission": "org.read"
+    },
+    {
+      "id": "team",
+      "label": "Команда",
+      "icon": "Users",
+      "path": "/team",
+      "permission": "team.read"
+    },
+    {
+      "id": "billing",
+      "label": "Тариф и оплата",
+      "icon": "CreditCard",
+      "path": "/billing",
+      "permission": "billing.read"
+    },
+    {
+      "id": "integrations",
+      "label": "Интеграции",
+      "icon": "Share2",
+      "path": "/integrations",
+      "permission": "integrations.read"
+    },
+    {
+      "id": "journal",
+      "label": "Журнал",
+      "icon": "ClipboardList",
+      "path": "/journal"
+    },
+    {
+      "id": "settings",
+      "label": "Настройки",
+      "icon": "Settings",
+      "path": "/settings/notifications",
+      "permission": "profile.own"
+    },
+    {
+      "id": "help",
+      "label": "Помощь",
+      "icon": "CircleHelp",
+      "path": "/help"
+    }
+  ]
+}
