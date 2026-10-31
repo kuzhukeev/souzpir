@@ -1,0 +1,206 @@
+[
+    {
+        "id": "empty-history",
+        "history": [],
+        "previous": null,
+        "content": "  Новый итог  ",
+        "error": null,
+        "request": {
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "synthetic-render:[\"prompts.summary\",{\"previous\":null}]"
+                },
+                {
+                    "role": "user",
+                    "content": ""
+                }
+            ],
+            "options": {
+                "model": "synthetic-summary-model",
+                "temperature": 0.2,
+                "max_tokens": 300,
+                "component": "summary"
+            }
+        },
+        "summary": "Новый итог"
+    },
+    {
+        "id": "roles-and-lines",
+        "history": [
+            {
+                "role": "client",
+                "text": "Привет\nЕщё вопрос"
+            },
+            {
+                "role": "agent",
+                "text": "Ответ"
+            },
+            {
+                "role": "system",
+                "text": "Служебное"
+            },
+            {
+                "role": "CLIENT",
+                "text": ""
+            },
+            {
+                "role": "",
+                "text": "  пробелы\t"
+            }
+        ],
+        "previous": "Предыдущий итог",
+        "content": "\n  Итог\t",
+        "error": null,
+        "request": {
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "synthetic-render:[\"prompts.summary\",{\"previous\":\"Предыдущий итог\"}]"
+                },
+                {
+                    "role": "user",
+                    "content": "Клиент: Привет\nЕщё вопрос\nМенеджер: Ответ\nМенеджер: Служебное\nМенеджер: \nМенеджер:   пробелы\t"
+                }
+            ],
+            "options": {
+                "model": "synthetic-summary-model",
+                "temperature": 0.2,
+                "max_tokens": 300,
+                "component": "summary"
+            }
+        },
+        "summary": "Итог"
+    },
+    {
+        "id": "digits-and-order",
+        "history": [
+            {
+                "role": "client",
+                "text": "0"
+            },
+            {
+                "role": "client",
+                "text": "01"
+            },
+            {
+                "role": "tool",
+                "text": "Статус: есть"
+            },
+            {
+                "role": "agent",
+                "text": "Готово"
+            }
+        ],
+        "previous": "",
+        "content": "0",
+        "error": null,
+        "request": {
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "synthetic-render:[\"prompts.summary\",{\"previous\":\"\"}]"
+                },
+                {
+                    "role": "user",
+                    "content": "Клиент: 0\nКлиент: 01\nМенеджер: Статус: есть\nМенеджер: Готово"
+                }
+            ],
+            "options": {
+                "model": "synthetic-summary-model",
+                "temperature": 0.2,
+                "max_tokens": 300,
+                "component": "summary"
+            }
+        },
+        "summary": "0"
+    },
+    {
+        "id": "provider-failure",
+        "history": [
+            {
+                "role": "client",
+                "text": "Да"
+            }
+        ],
+        "previous": "До ошибки",
+        "content": null,
+        "error": "provider-failure",
+        "request": {
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "synthetic-render:[\"prompts.summary\",{\"previous\":\"До ошибки\"}]"
+                },
+                {
+                    "role": "user",
+                    "content": "Клиент: Да"
+                }
+            ],
+            "options": {
+                "model": "synthetic-summary-model",
+                "temperature": 0.2,
+                "max_tokens": 300,
+                "component": "summary"
+            }
+        },
+        "summary": "До ошибки"
+    },
+    {
+        "id": "empty-success",
+        "history": [
+            {
+                "role": "client",
+                "text": "Нет"
+            }
+        ],
+        "previous": "Старый",
+        "content": " \n\t",
+        "error": null,
+        "request": {
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "synthetic-render:[\"prompts.summary\",{\"previous\":\"Старый\"}]"
+                },
+                {
+                    "role": "user",
+                    "content": "Клиент: Нет"
+                }
+            ],
+            "options": {
+                "model": "synthetic-summary-model",
+                "temperature": 0.2,
+                "max_tokens": 300,
+                "component": "summary"
+            }
+        },
+        "summary": ""
+    },
+    {
+        "id": "null-success",
+        "history": [],
+        "previous": "Старый",
+        "content": null,
+        "error": null,
+        "request": {
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "synthetic-render:[\"prompts.summary\",{\"previous\":\"Старый\"}]"
+                },
+                {
+                    "role": "user",
+                    "content": ""
+                }
+            ],
+            "options": {
+                "model": "synthetic-summary-model",
+                "temperature": 0.2,
+                "max_tokens": 300,
+                "component": "summary"
+            }
+        },
+        "summary": ""
+    }
+]
