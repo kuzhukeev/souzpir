@@ -71,6 +71,30 @@ final class AuthSessionRegistry
         });
     }
 
+    /**
+     * A concurrent security change may advance this very lease after logout has
+     * already loaded the previous session version. Permit that older snapshot to
+     * revoke only its own still-current lease; it cannot authorize any other action.
+     */
+    public function withinLogout(#[\SensitiveParameter] Request $request, #[\SensitiveParameter] Closure $action): mixed
+    {
+        return DB::transaction(function () use ($request, $action): mixed {
+            if (! $request->hasSession() || ! $request->user()) {
+                throw new AuthenticationException('Unauthenticated.');
+            }
+            $row = DB::table('auth_session_registry')->where('session_hash', $this->sessionHash($request->session()->getId()))->lockForUpdate()->first();
+            $user = User::whereKey($request->user()->getAuthIdentifier())->lock('for no key update')->first();
+            $version = $request->session()->get('auth.version');
+            if (! $row || ! $user || $row->user_id !== $user->id || $row->revoked_at !== null || now()->greaterThanOrEqualTo($row->expires_at)
+                || ! is_int($version) || $version < 0 || $version > $user->auth_version || (int) $row->auth_version !== $user->auth_version
+                || ($row->remember_fingerprint !== null && (! is_string($user->getRememberToken()) || ! hash_equals($row->remember_fingerprint, $this->rememberHash($user->getRememberToken()))))) {
+                throw new AuthenticationException('Unauthenticated.');
+            }
+
+            return $action($user);
+        });
+    }
+
     /** Invoke only within withinActive, in the same transaction as the action. */
     public function revokeCurrent(Request $request): void
     {

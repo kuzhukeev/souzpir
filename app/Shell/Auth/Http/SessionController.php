@@ -87,7 +87,7 @@ final class SessionController
 
     public function destroy(Request $request): RedirectResponse
     {
-        app(AuthSessionRegistry::class)->withinActive($request, function (User $fresh) use ($request): void {
+        app(AuthSessionRegistry::class)->withinLogout($request, function (User $fresh) use ($request): void {
             app(AuthSessionRegistry::class)->revokeCurrent($request);
             app(InvitationExchangeGrants::class)->revoke($request);
             Auth::guard()->setUser($fresh);

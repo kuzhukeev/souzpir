@@ -60,6 +60,7 @@ final class MfaRecoveryTest extends TenancyTestCase
         $this->assertDatabaseCount('mfa_recovery_codes', 10);
         self::assertSame(1, DB::table('mfa_recovery_codes')->whereNotNull('used_at')->count());
         self::assertSame(1, DB::table('audit_logs')->where('action', 'account.mfa.recovery_code_used')->count());
+        $this->withCookie(config('session.cookie'), session()->getId());
         $this->post('/logout')->assertRedirect(route('login'));
         $this->post('/login', ['email' => $user->email, 'password' => 'test-only-password'])->assertRedirect(route('mfa.challenge'));
         $this->post('https://souzpir.local/mfa/challenge', ['code' => $codes[0]])->assertSessionHasErrors('code');

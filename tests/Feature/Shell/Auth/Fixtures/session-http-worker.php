@@ -99,6 +99,9 @@ if ($mode === 'sensitive') {
     'remember' => ['GET', '/auth/ready', []],
 };
 $request = Request::create($uri, $method, $parameters);
+// This test drives an in-process synthetic localhost request; Symfony does not
+// populate SERVER_ADDR by default, but the secure MFA context requires both ends.
+$request->server->set('SERVER_ADDR', '127.0.0.1');
 if (in_array($mode, ['view', 'remember'], true)) {
     $request->headers->set('X-Inertia', 'true');
     $request->headers->set('X-Inertia-Version', app(HandleInertiaRequests::class)->version($request) ?? '');
