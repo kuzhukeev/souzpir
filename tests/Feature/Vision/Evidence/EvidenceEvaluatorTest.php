@@ -194,6 +194,26 @@ final class EvidenceEvaluatorTest extends TestCase
         self::assertSame(1, DB::table('ai_calls')->count());
         $other = new TenantContext((string) Str::ulid(), (string) Str::ulid(), source: 'job');
         self::assertSame('unknown', app(TenantContextRunner::class)->run($tenant, fn () => $actual->evaluate($other, $answer))['status']);
+        $profile = ['name' => 'СтальПлюс', 'aliases' => ['СтальПлюс'], 'facts' => []];
+        DB::table('measurements')->where('id', $measurement)->update([
+            'profile_snapshot' => json_encode($profile, JSON_THROW_ON_ERROR), 'profile_checksum' => CanonicalJson::hash($profile),
+        ]);
+        DB::table('measurement_answers')->where('id', $answer)->update(['answer_text' => 'МеталлСевер поставляет металл.']);
+        $gateway->responses = [];
+        $gateway->result = ['brand_mentioned' => false, 'brand_position' => null, 'brand_recommended' => false,
+            'mention_quote' => null, 'companies' => [['name' => 'МеталлСевер', 'position' => 1, 'role' => 'supplier', 'is_brand' => false]],
+            'tone' => 'none', 'claims' => [], 'suspected_errors' => [], 'confidence' => 0.9];
+        $absent = $evaluate();
+        self::assertSame('confirmed', $absent['status']);
+        self::assertFalse($absent['fact']['brand_mentioned']);
+
+        $profile = ['name' => 'Торты', 'aliases' => ['Торты'], 'category' => 'торты', 'facts' => []];
+        DB::table('measurements')->where('id', $measurement)->update([
+            'profile_snapshot' => json_encode($profile, JSON_THROW_ON_ERROR), 'profile_checksum' => CanonicalJson::hash($profile),
+        ]);
+        DB::table('measurement_answers')->where('id', $answer)->update(['answer_text' => 'Торты продаются здесь.']);
+        $gateway->result['companies'] = [['name' => 'Торты', 'position' => 1, 'role' => 'other', 'is_brand' => false]];
+        self::assertSame('unknown', $evaluate()['status']);
         Http::assertNothingSent();
     }
 }

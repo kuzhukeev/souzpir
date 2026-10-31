@@ -64,39 +64,46 @@ final class EvidenceEvaluator
                 return $unknown;
             }
             $candidate = $this->validator->deduplicateCompanies($candidate);
-            if ($this->validator->validationReason($candidate, $record->answer_text, $profile) !== null || ! $candidate['brand_mentioned']) {
+            if ($this->validator->validationReason($candidate, $record->answer_text, $profile) !== null) {
                 return $unknown;
             }
-            $confirmed = $this->confirmation->validate($candidate['mention_quote'], $profile, null);
-            if ($confirmed['status'] !== 'confirmed') {
-                $this->knowledge->assertAllowed($tenant, $record->measurement_id, $profile);
-                $promptFile = file_get_contents(resource_path('prompts/Vision/Evidence/mention-confirmer.ru.v1.md'));
-                $system = explode('## Пользовательское сообщение', explode('## Системное сообщение', $promptFile, 2)[1] ?? '', 2)[0];
-                if (trim($system) === '') {
-                    return $unknown;
-                }
-                $schema = ['type' => 'object', 'additionalProperties' => false,
-                    'required' => ['decision', 'evidence', 'matched_facts'],
-                    'properties' => [
-                        'decision' => ['type' => 'string', 'enum' => ['confirmed', 'possible', 'not_mentioned']],
-                        'evidence' => ['type' => 'string', 'maxLength' => 200],
-                        'matched_facts' => ['type' => 'array', 'maxItems' => 5, 'items' => ['type' => 'string', 'maxLength' => 120]],
-                    ]];
-                $confirmContext = new AiContext($tenant->organizationId, $tenant->brandId, 'vision.mention.confirm', 'vision', 'measurement',
-                    $record->measurement_id, 'confirm:'.$answerId.':'.$signature, ['knowledge_public']);
-                $confirmInput = json_encode(['company' => $profile['name'], 'profile' => $profile, 'answer_text' => $record->answer_text], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
-                $check = $this->gateway->complete(new AiRequest([
-                    ['role' => 'system', 'content' => trim($system)],
-                    ['role' => 'user', 'content' => $confirmInput],
-                ], $config['parser']['model'], 0.0, ['type' => 'json_schema', 'json_schema' => ['name' => 'mention_confirmation', 'strict' => true, 'schema' => $schema]],
-                    maxTokens: 500, promptVersion: 'vision-confirmation-v1', promptChecksum: $artifacts['confirmation_prompt']), $confirmContext);
-                $confirmed = $check->ok() && $check->model === $config['parser']['model']
-                    ? $this->confirmation->validate($record->answer_text, $profile, $check->json())
-                    : ['status' => 'unknown', 'evidence' => null];
+            if (! $candidate['brand_mentioned'] && $this->validator->matchedAlias($record->answer_text, $profile) !== null) {
+                // A generic or ambiguous alias cannot support a confident absence.
+                return $unknown;
+            }
+            if ($candidate['brand_mentioned']) {
+                $confirmed = $this->confirmation->validate($candidate['mention_quote'], $profile, null);
                 if ($confirmed['status'] !== 'confirmed') {
-                    return $unknown;
+                    $this->knowledge->assertAllowed($tenant, $record->measurement_id, $profile);
+                    $promptFile = file_get_contents(resource_path('prompts/Vision/Evidence/mention-confirmer.ru.v1.md'));
+                    $system = explode('## Пользовательское сообщение', explode('## Системное сообщение', $promptFile, 2)[1] ?? '', 2)[0];
+                    if (trim($system) === '') {
+                        return $unknown;
+                    }
+                    $schema = ['type' => 'object', 'additionalProperties' => false,
+                        'required' => ['decision', 'evidence', 'matched_facts'],
+                        'properties' => [
+                            'decision' => ['type' => 'string', 'enum' => ['confirmed', 'possible', 'not_mentioned']],
+                            'evidence' => ['type' => 'string', 'maxLength' => 200],
+                            'matched_facts' => ['type' => 'array', 'maxItems' => 5, 'items' => ['type' => 'string', 'maxLength' => 120]],
+                        ]];
+                    $confirmContext = new AiContext($tenant->organizationId, $tenant->brandId, 'vision.mention.confirm', 'vision', 'measurement',
+                        $record->measurement_id, 'confirm:'.$answerId.':'.$signature, ['knowledge_public']);
+                    $confirmInput = json_encode(['company' => $profile['name'], 'profile' => $profile, 'answer_text' => $record->answer_text], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+                    $check = $this->gateway->complete(new AiRequest([
+                        ['role' => 'system', 'content' => trim($system)],
+                        ['role' => 'user', 'content' => $confirmInput],
+                    ], $config['parser']['model'], 0.0, ['type' => 'json_schema', 'json_schema' => ['name' => 'mention_confirmation', 'strict' => true, 'schema' => $schema]],
+                        maxTokens: 500, promptVersion: 'vision-confirmation-v1', promptChecksum: $artifacts['confirmation_prompt']), $confirmContext);
+                    $confirmed = $check->ok() && $check->model === $config['parser']['model']
+                        ? $this->confirmation->validate($record->answer_text, $profile, $check->json())
+                        : ['status' => 'unknown', 'evidence' => null];
+                    if ($confirmed['status'] !== 'confirmed') {
+                        return $unknown;
+                    }
                 }
             }
+
             $fresh = $this->record($tenant, $answerId);
             if (! $fresh || $fresh->status !== 'ok' || ! $fresh->protocol_valid
                 || $fresh->answer_text !== $record->answer_text || $fresh->profile_checksum !== $record->profile_checksum
