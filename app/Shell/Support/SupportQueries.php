@@ -7,20 +7,25 @@ use App\Shell\Support\Models\TicketAttachment;
 use App\Tenancy\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 
 final class SupportQueries
 {
     public function __construct(private SupportConsent $consent, private TicketDelivery $delivery) {}
 
-    public function index(Request $request): array
+    public function index(Request $request, bool $includeTickets = true): array
     {
         $request->validate(['page' => ['nullable', 'integer', 'min:1']], __('Shell/Support/messages.validation'), __('Shell/Support/messages.attributes'));
-        $tickets = Ticket::query()->where('user_id', app(TenantContext::class)->actorId)->where('type', 'support')
-            ->orderByDesc('created_at')->orderByDesc('id')->paginate(20);
+        $tickets = $includeTickets ? Ticket::query()->where('user_id', app(TenantContext::class)->actorId)->where('type', 'support')
+            ->orderByDesc('created_at')->orderByDesc('id')->paginate(20) : null;
         $canSubmit = Gate::allows('create', Ticket::class);
 
-        return ['tickets' => ['data' => $tickets->getCollection()->map(fn (Ticket $ticket) => $this->ticket($ticket))->all(),
-            'current_page' => $tickets->currentPage(), 'last_page' => $tickets->lastPage(), 'per_page' => $tickets->perPage(), 'total' => $tickets->total()],
+        $context = app(TenantContext::class);
+
+        return ['submission_key' => (string) Str::ulid(),
+            'submission_scope' => hash_hmac('sha256', $context->organizationId.'|'.$context->actorId, (string) config('app.key')),
+            'tickets' => ['data' => $tickets?->getCollection()->map(fn (Ticket $ticket) => $this->ticket($ticket))->all() ?? [],
+                'current_page' => $tickets?->currentPage() ?? 1, 'last_page' => $tickets?->lastPage() ?? 1, 'per_page' => $tickets?->perPage() ?? 20, 'total' => $tickets?->total() ?? 0],
             'topics' => $this->options(__('Shell/Support/messages.topics')), 'modules' => $this->options(__('Shell/Support/messages.modules')),
             'upload' => ['max_files' => (int) config('features.E1-12.defaults.max_files'), 'max_file_kb' => (int) config('features.E1-12.defaults.max_file_kb'),
                 'accept' => ['image/jpeg', 'image/png', 'image/webp', 'application/pdf', 'text/plain']],

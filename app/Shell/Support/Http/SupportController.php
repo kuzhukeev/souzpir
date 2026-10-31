@@ -18,6 +18,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\File;
 use Illuminate\Validation\ValidationException;
@@ -45,11 +46,47 @@ final class SupportController
 
     public function index(Request $request, SupportQueries $query): mixed
     {
-        return Inertia::render('Shell/Support/Tickets', ['support' => $query->index($request)]);
+        if (! $this->secureContext($request)) {
+            return response('Для защиты обращений необходим HTTPS.', 403);
+        }
+        if ($request->expectsJson() && ! $request->headers->has('X-Inertia')) {
+            $data = app(AuthSessionRegistry::class)->withinActive($request, function () use ($request, $query): array {
+                app(SupportAccess::class)->lock();
+
+                return $query->index($request);
+            });
+
+            return response()->json(['data' => $data])->header('Cache-Control', 'private, no-store');
+        }
+
+        return Inertia::render('Shell/Support/Tickets', ['support' => $query->index($request, false)]);
+    }
+
+    private function localHttp(Request $request): bool
+    {
+        foreach (array_keys($request->headers->all()) as $header) {
+            if ($header === 'forwarded' || $header === 'x-real-ip' || str_starts_with($header, 'x-forwarded-')) {
+                return false;
+            }
+        }
+
+        return app()->environment('local') && ! $request->isSecure() && strtolower($request->getHost()) === 'souzpir.local' && $this->loopback($request);
+    }
+
+    private function secureContext(Request $request): bool
+    {
+        return $request->isSecure() || $this->localHttp($request);
+    }
+
+    private function loopback(Request $request): bool
+    {
+        return in_array($request->server('REMOTE_ADDR'), ['127.0.0.1', '::1'], true)
+            && in_array($request->ip(), ['127.0.0.1', '::1'], true);
     }
 
     public function store(#[SensitiveParameter] Request $request, SupportActions $actions, SupportQueries $query, TicketDelivery $delivery): mixed
     {
+        $secureContext = $this->secureContext($request);
         // Framework frames retain this Request object. Move the payload to a local variable,
         // then remove form, JSON, raw body, query input and uploaded file references from it.
         $input = $request->all();
@@ -63,6 +100,7 @@ final class SupportController
 
         $stage = 'authorize';
         try {
+            abort_unless($secureContext, 403);
             Gate::authorize('create', Ticket::class);
             $stage = 'validation';
             if (isset($input['attachments']) && is_array($input['attachments']) && ! array_is_list($input['attachments'])) {
@@ -73,15 +111,19 @@ final class SupportController
                 'module' => ['required', Rule::in(array_keys(__('Shell/Support/messages.modules')))],
                 'body' => ['required', 'string', 'min:10', 'max:10000'],
                 'support_access' => ['required', 'boolean'],
+                'submission_key' => ['required', 'string', 'ulid'],
                 'attachments' => ['sometimes', 'array', 'max:'.(int) config('features.E1-12.defaults.max_files')],
                 'attachments.*' => ['required', 'extensions:jpg,jpeg,png,webp,pdf,txt', File::types(['jpg', 'jpeg', 'png', 'webp', 'pdf', 'txt'])->max((int) config('features.E1-12.defaults.max_file_kb'))],
             ], __('Shell/Support/messages.validation'), __('Shell/Support/messages.attributes'))->validate();
+            // ULIDs are case-insensitive; persist a single representation for uniqueness.
+            $data['submission_key'] = strtoupper($data['submission_key']);
             $stage = 'create';
-            $ticket = $actions->create($request, $data);
+            $submission = $actions->create($request, $data);
             $stage = 'delivery';
-            $result = $delivery->send($ticket);
+            $result = $submission->created ? $delivery->send($submission->ticket) : $delivery->existing($submission->ticket);
 
-            return response()->json(['data' => ['ticket' => $query->ticket($ticket->fresh()), 'delivery' => $result]], 201);
+            return response()->json(['data' => ['ticket' => $query->ticket($submission->ticket->fresh()), 'delivery' => $result, 'next_submission_key' => (string) Str::ulid()]], $submission->created ? 201 : 200)
+                ->header('Cache-Control', 'private, no-store');
         } catch (Throwable $error) {
             // Reconstruct known responses, without their original traces, previous exception,
             // SQL bindings, or Request. Validation messages come from this module's fixed rules.
@@ -111,11 +153,15 @@ final class SupportController
 
     public function revoke(Request $request, string $ticket, SupportActions $actions, SupportQueries $query): mixed
     {
+        abort_unless($this->secureContext($request), 403);
+
         return response()->json(['data' => ['ticket' => $query->ticket($actions->revoke($request, $ticket))]]);
     }
 
     public function download(Request $request, string $ticket, string $attachment, SupportAccess $access): mixed
     {
+        abort_unless($this->secureContext($request), 403);
+
         return app(AuthSessionRegistry::class)->withinActive($request, function () use ($ticket, $attachment, $access): mixed {
             $access->lock();
             $owned = $access->ticket($ticket);

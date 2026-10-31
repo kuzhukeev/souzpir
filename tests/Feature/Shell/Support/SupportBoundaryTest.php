@@ -13,7 +13,6 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
-use Inertia\Testing\AssertableInertia as Assert;
 
 final class SupportBoundaryTest extends SupportTestCase
 {
@@ -35,8 +34,7 @@ final class SupportBoundaryTest extends SupportTestCase
         self::assertSame($owner->id, Ticket::withoutGlobalScopes()->findOrFail($hidden['id'])->user_id);
         config(['features.E0-02.defaults.organization_id' => $org->id]);
         $this->signIn($owner, $brand);
-        $this->get('/help/support')->assertInertia(fn (Assert $page) => $page
-            ->where('support.tickets.total', 1)->where('support.tickets.data.0.id', $local['id']));
+        $this->getJson('/help/support')->assertOk()->assertJsonPath('data.tickets.total', 1)->assertJsonPath('data.tickets.data.0.id', $local['id']);
         $this->get($hidden['attachments'][0]['download_url'])->assertNotFound();
         $this->postJson('/help/support/'.$hidden['id'].'/access/revoke')->assertNotFound();
         self::assertNull(SupportAccessGrant::withoutGlobalScopes()->findOrFail($hidden['access']['id'])->revoked_at);
@@ -71,7 +69,7 @@ final class SupportBoundaryTest extends SupportTestCase
         $ticket = $this->ticket(['attachments' => [$this->attachment()]])['ticket'];
         DB::table('memberships')->where('id', $member->id)->update(['role' => 'viewer']);
         $this->signIn($actor, $brand);
-        $this->get('/help/support')->assertInertia(fn (Assert $page) => $page->where('support.can_submit', true)->where('support.tickets.data.0.access.can_revoke', true));
+        $this->getJson('/help/support')->assertOk()->assertJsonPath('data.can_submit', true)->assertJsonPath('data.tickets.data.0.access.can_revoke', true);
         $this->get($ticket['attachments'][0]['download_url'])->assertOk();
         $this->postJson('/help/support/'.$ticket['id'].'/access/revoke')->assertOk();
         self::assertNotNull(SupportAccessGrant::withoutGlobalScopes()->findOrFail($ticket['access']['id'])->revoked_at);

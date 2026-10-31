@@ -1,4 +1,5 @@
 import { supportCopy as c } from './copy';
+import type { TicketsData } from '@/types/Shell/Support';
 export class SupportRequestError extends Error {
   constructor(
     message: string,
@@ -44,14 +45,31 @@ export async function supportRequest<T>(url: string, body?: FormData): Promise<T
     throw new SupportRequestError(
       response.status === 422
         ? parsed?.message || c.invalid
-        : response.status === 403
-          ? c.forbidden
-          : response.status === 419
-            ? c.sessionExpired
-            : c.requestFailed,
+        : response.status === 409
+          ? c.submissionConflict
+          : response.status === 403
+            ? c.forbidden
+            : response.status === 419
+              ? c.sessionExpired
+              : c.requestFailed,
       fields,
     );
   }
   if (!parsed || !('data' in parsed)) throw new SupportRequestError(c.requestFailed);
   return parsed.data as T;
+}
+
+export async function supportList(page: number, signal: AbortSignal): Promise<TicketsData> {
+  const url = '/help/support?page=' + encodeURIComponent(String(page));
+  const response = await fetch(url, {
+    method: 'GET',
+    credentials: 'same-origin',
+    cache: 'no-store',
+    signal,
+    headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+  });
+  if (!response.ok) throw new SupportRequestError(c.loadFailed);
+  const parsed = (await response.json()) as { data?: TicketsData };
+  if (!parsed?.data?.tickets) throw new SupportRequestError(c.loadFailed);
+  return parsed.data;
 }

@@ -44,8 +44,9 @@ final class SupportFlowTest extends SupportTestCase
             self::assertStringNotContainsString($private, $audit->after);
         }
         $this->get('/help/support')->assertInertia(fn (Assert $page) => $page->component('Shell/Support/Tickets')
-            ->where('support.tickets.total', 1)->where('support.access.entry_available', false)
-            ->missing('support.tickets.data.0.attachments.0.storage_path')->missing('support.tickets.data.0.attachments.0.sha256'));
+            ->where('support.tickets.data', [])->where('support.access.entry_available', false));
+        $this->getJson('/help/support')->assertOk()->assertJsonPath('data.tickets.total', 1)
+            ->assertJsonMissingPath('data.tickets.data.0.attachments.0.storage_path')->assertJsonMissingPath('data.tickets.data.0.attachments.0.sha256');
         Mail::assertNothingSent();
     }
 
@@ -65,12 +66,12 @@ final class SupportFlowTest extends SupportTestCase
             self::assertFalse(app(SupportConsent::class)->hasCurrentConsent($ticket));
         });
         $this->signIn($owner, $brand);
-        $this->get('/help/support')->assertInertia(fn (Assert $page) => $page->where('support.tickets.data.0.access.status', 'expired')->where('support.tickets.data.0.access.can_revoke', false));
+        $this->getJson('/help/support')->assertOk()->assertJsonPath('data.tickets.data.0.access.status', 'expired')->assertJsonPath('data.tickets.data.0.access.can_revoke', false);
         $second = $this->ticket()['ticket'];
         $this->postJson('/help/support/'.$second['id'].'/access/revoke')->assertOk()->assertJsonPath('data.ticket.access.status', 'revoked');
         $this->postJson('/help/support/'.$second['id'].'/access/revoke')->assertOk();
         self::assertSame(1, DB::table('audit_logs')->where('action', 'support.access.revoked')->count());
-        $this->get('/help/support')->assertInertia(fn (Assert $page) => $page->where('support.tickets.data.0.access.can_revoke', false));
+        $this->getJson('/help/support')->assertOk()->assertJsonPath('data.tickets.data.0.access.can_revoke', false);
     }
 
     public function test_all_active_roles_can_submit_their_own_tickets(): void
@@ -84,7 +85,7 @@ final class SupportFlowTest extends SupportTestCase
         }
         self::assertSame(4, Ticket::withoutGlobalScopes()->count());
         $this->signIn($owner, $brand);
-        $this->get('/help/support')->assertInertia(fn (Assert $page) => $page->where('support.tickets.total', 0));
+        $this->getJson('/help/support')->assertOk()->assertJsonPath('data.tickets.total', 0);
     }
 
     public function test_attachment_validation_and_missing_or_tampered_private_file_fail_closed(): void

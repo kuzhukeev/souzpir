@@ -25,6 +25,7 @@ abstract class SupportTestCase extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        app('url')->forceScheme('https');
         $this->withoutVite();
         Mail::fake();
         Http::preventStrayRequests();
@@ -89,7 +90,7 @@ abstract class SupportTestCase extends TestCase
 
     protected function payload(): array
     {
-        return ['subject' => 'technical', 'module' => 'cabinet', 'body' => 'Подробное описание проблемы пользователя.', 'support_access' => true];
+        return ['subject' => 'technical', 'module' => 'cabinet', 'body' => 'Подробное описание проблемы пользователя.', 'support_access' => true, 'submission_key' => (string) Str::ulid()];
     }
 
     protected function attachment(string $name = 'details.txt'): UploadedFile

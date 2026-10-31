@@ -52,6 +52,11 @@ final class TicketDelivery
         return $this->result($status);
     }
 
+    public function existing(Ticket $ticket): array
+    {
+        return $this->result($ticket->fresh()->delivery_status);
+    }
+
     private function result(string $status): array
     {
         if (in_array($status, ['pending', 'sending'], true)) {

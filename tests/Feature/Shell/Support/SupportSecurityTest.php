@@ -20,7 +20,6 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
-use Inertia\Testing\AssertableInertia as Assert;
 use Mockery;
 use RuntimeException;
 use Throwable;
@@ -38,7 +37,7 @@ final class SupportSecurityTest extends SupportTestCase
         $this->signIn($owner, $other); // Tickets belong to the organization, not the selected brand.
         $this->get($first['attachments'][0]['download_url'])->assertOk();
         $this->signIn($admin, $brand);
-        $this->get('/help/support')->assertInertia(fn (Assert $page) => $page->where('support.tickets.total', 0));
+        $this->getJson('/help/support')->assertOk()->assertJsonPath('data.tickets.total', 0);
         $this->get($first['attachments'][0]['download_url'])->assertNotFound();
         $this->postJson('/help/support/'.$first['id'].'/access/revoke')->assertNotFound();
         $adminTicket = $this->ticket(['attachments' => [$this->attachment()]])['ticket'];
@@ -51,7 +50,7 @@ final class SupportSecurityTest extends SupportTestCase
             $this->get($hidden['attachments'][0]['download_url'])->assertNotFound();
             $this->postJson('/help/support/'.$hidden['id'].'/access/revoke')->assertNotFound();
         }
-        $this->get('/help/support')->assertInertia(fn (Assert $page) => $page->where('support.tickets.total', 2));
+        $this->getJson('/help/support')->assertOk()->assertJsonPath('data.tickets.total', 2);
         self::assertSame(0, DB::table('audit_logs')->where('action', 'support.access.revoked')->count());
         $file = TicketAttachment::withoutGlobalScopes()->findOrFail($first['attachments'][0]['id']);
         DB::table('ticket_attachments')->where('id', $file->id)->update(['storage_path' => 'private/unrelated.bin']);

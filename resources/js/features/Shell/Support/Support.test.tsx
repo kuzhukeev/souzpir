@@ -1,7 +1,6 @@
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import type { ReactNode } from 'react';
-import { router } from '@inertiajs/react';
 import Help from '@/pages/Shell/Support/Help';
 import Status from '@/pages/Shell/Support/Status';
 import Tickets from '@/pages/Shell/Support/Tickets';
@@ -18,7 +17,11 @@ vi.mock('@inertiajs/react', () => ({
 vi.mock('@/layouts/CabinetLayout', () => ({
   default: ({ children }: { children: ReactNode }) => <main>{children}</main>,
 }));
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+  sessionStorage.clear();
+});
 const help: HelpData = {
   configured: false,
   knowledge_base_url: null,
@@ -141,6 +144,8 @@ it('reveals a new error but does not steal focus on an unrelated render', () => 
 });
 it('offers no forbidden submission action in readonly support mode', () => {
   const support: TicketsData = {
+    submission_key: '01ARZ3NDEKTSV4RRFFQ69G5FAV',
+    submission_scope: 'test-scope',
     can_submit: false,
     submit_unavailable_reason: null,
     tickets: { data: [], current_page: 1, last_page: 1, per_page: 20, total: 0 },
@@ -150,14 +155,20 @@ it('offers no forbidden submission action in readonly support mode', () => {
     access: { duration_hours: 72, entry_available: false },
     delivery: { configured: false, enabled: false },
   };
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue({ ok: true, json: async () => ({ data: support }) }),
+  );
   render(<Tickets support={support} />);
   expect(screen.queryByRole('button', { name: 'Отправить обращение' })).toBeNull();
   expect((screen.getByLabelText('Описание') as HTMLTextAreaElement).disabled).toBe(true);
   expect(screen.getByText(/Создание обращений временно недоступно/)).toBeTruthy();
 });
 
-it('keeps an expanded ticket and keyboard focus while refreshing its revoked consent', () => {
+it('keeps an expanded ticket and keyboard focus while refreshing its revoked consent', async () => {
   const support: TicketsData = {
+    submission_key: '01ARZ3NDEKTSV4RRFFQ69G5FAV',
+    submission_scope: 'test-scope',
     can_submit: true,
     submit_unavailable_reason: null,
     tickets: {
@@ -194,44 +205,52 @@ it('keeps an expanded ticket and keyboard focus while refreshing its revoked con
     access: { duration_hours: 72, entry_available: false },
     delivery: { configured: false, enabled: false },
   };
-  const view = render(<Tickets support={support} />);
+  const ticket = support.tickets.data[0];
+  const revoked = {
+    ...support,
+    tickets: {
+      ...support.tickets,
+      data: [
+        {
+          ...ticket,
+          access: {
+            ...ticket.access!,
+            status: 'revoked',
+            can_revoke: false,
+            revoked_at: '2026-10-31T12:05:00Z',
+          },
+        },
+      ],
+    },
+  };
+  let complete: (value: unknown) => void = () => {};
+  const fetchMock = vi
+    .fn()
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ data: support }) })
+    .mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          complete = resolve;
+        }),
+    );
+  vi.stubGlobal('fetch', fetchMock);
+  render(<Tickets support={{ ...support, tickets: { ...support.tickets, data: [] } }} />);
+  await waitFor(() =>
+    expect(document.querySelector('[data-ticket-id="ticket-refresh"]')).toBeTruthy(),
+  );
   const card = document.querySelector<HTMLDetailsElement>('[data-ticket-id="ticket-refresh"]')!;
   const summary = card.querySelector('summary')!;
   fireEvent.click(summary);
   summary.focus();
   expect(card.open).toBe(true);
   fireEvent.click(screen.getByRole('button', { name: 'Обновить' }));
-  const callbacks = vi.mocked(router.get).mock.calls.at(-1)?.[2];
-  act(() => callbacks?.onStart?.({} as never));
   expect(document.querySelector('[data-ticket-id="ticket-refresh"]')).toBe(card);
   expect(card.open).toBe(true);
   expect(document.activeElement).toBe(summary);
   expect(
     (screen.getByRole('button', { name: 'Отозвать согласие' }) as HTMLButtonElement).disabled,
   ).toBe(true);
-  const ticket = support.tickets.data[0];
-  view.rerender(
-    <Tickets
-      support={{
-        ...support,
-        tickets: {
-          ...support.tickets,
-          data: [
-            {
-              ...ticket,
-              access: {
-                ...ticket.access!,
-                status: 'revoked',
-                can_revoke: false,
-                revoked_at: '2026-10-31T12:05:00Z',
-              },
-            },
-          ],
-        },
-      }}
-    />,
-  );
-  act(() => callbacks?.onFinish?.({} as never));
+  await act(async () => complete({ ok: true, json: async () => ({ data: revoked }) }));
   expect(card.open).toBe(true);
   expect(document.activeElement).toBe(summary);
   expect(screen.getByText('Отозвано', { selector: 'p' })).toBeTruthy();

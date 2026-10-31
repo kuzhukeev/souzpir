@@ -36,6 +36,8 @@ export type Ticket = {
   access: SupportAccess | null;
 };
 export type TicketsData = {
+  submission_key: string;
+  submission_scope: string;
   can_submit: boolean;
   submit_unavailable_reason: string | null;
   tickets: Pagination<Ticket>;
@@ -46,6 +48,7 @@ export type TicketsData = {
   delivery: { configured: boolean; enabled: boolean };
 };
 export type CreatedTicket = {
+  next_submission_key: string;
   ticket: Ticket;
   delivery: { status: DeliveryStatus; message: string };
 };

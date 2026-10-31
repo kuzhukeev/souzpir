@@ -30,7 +30,7 @@ final class SupportActions
 {
     public function __construct(private SupportAccess $access, private AuditWriter $audit) {}
 
-    public function create(#[SensitiveParameter] Request $request, #[SensitiveParameter] array $data): Ticket
+    public function create(#[SensitiveParameter] Request $request, #[SensitiveParameter] array $data): SubmissionResult
     {
         // The controller must return a confirmed post-commit delivery result, never send inside a caller's transaction.
         if (DB::transactionLevel() !== 0) {
@@ -39,10 +39,22 @@ final class SupportActions
         $paths = [];
         $bodyCompleted = false;
         try {
-            return app(AuthSessionRegistry::class)->withinActive($request, function () use ($data, &$paths, &$bodyCompleted): Ticket {
+            $fingerprint = app(TicketSubmission::class)->fingerprint($data);
+
+            return app(AuthSessionRegistry::class)->withinActive($request, function () use ($data, $fingerprint, &$paths, &$bodyCompleted): SubmissionResult {
                 $actor = $this->access->lock();
                 Gate::authorize('create', Ticket::class);
-                $ticket = Ticket::create(['user_id' => $actor->user_id, 'subject' => $data['subject'], 'module' => $data['module'], 'body' => $data['body']]);
+                $existing = Ticket::query()->where('user_id', $actor->user_id)->where('submission_key', $data['submission_key'])->lockForUpdate()->first();
+                if ($existing) {
+                    if (! is_string($existing->submission_hash) || ! hash_equals($existing->submission_hash, $fingerprint)) {
+                        throw new HttpException(409, '');
+                    }
+
+                    $bodyCompleted = true;
+
+                    return new SubmissionResult($existing, false);
+                }
+                $ticket = Ticket::create(['user_id' => $actor->user_id, 'subject' => $data['subject'], 'module' => $data['module'], 'body' => $data['body'], 'submission_key' => $data['submission_key'], 'submission_hash' => $fingerprint]);
                 foreach ($data['attachments'] ?? [] as $file) {
                     $attachment = new TicketAttachment(['ticket_id' => $ticket->id, 'user_id' => $actor->user_id,
                         'name' => mb_substr(preg_replace('/[\x00-\x1f\x7f]/u', '', basename(str_replace('\\', '/', $file->getClientOriginalName()))), 0, 180),
@@ -68,7 +80,7 @@ final class SupportActions
                 // Once the callback returns, a failed COMMIT has an unknown outcome.
                 $bodyCompleted = true;
 
-                return $ticket;
+                return new SubmissionResult($ticket, true);
             });
         } catch (Throwable $error) {
             $this->cleanupRolledBackFiles($paths, $bodyCompleted);
