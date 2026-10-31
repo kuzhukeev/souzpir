@@ -36,12 +36,23 @@ final class OpenRouterDriver implements Driver
             if (! is_array($message) || isset($data['error'])) {
                 throw new \UnexpectedValueException('Invalid AI response.');
             }
+            // Only explicitly complete text and tool-call outcomes are handled.
+            // A length limit, missing or unknown finish reason must never release
+            // the reservation merely because a partial response has a cost.
+            $finishReason = $data['choices'][0]['finish_reason'] ?? null;
+            if (! in_array($finishReason, ['stop', 'tool_calls'], true)) {
+                throw new \UnexpectedValueException('AI response completion is unconfirmed.');
+            }
             // A syntactically valid but incomplete JSON object is not a
             // confirmed empty response. Tool-only messages are still valid.
             $toolCalls = $message['tool_calls'] ?? [];
             if (! is_array($toolCalls) || ! array_is_list($toolCalls)
                 || (! array_key_exists('content', $message) && $toolCalls === [])) {
                 throw new \UnexpectedValueException('Invalid AI response.');
+            }
+            if (($finishReason === 'stop' && ($toolCalls !== [] || ! is_string($message['content'] ?? null)))
+                || ($finishReason === 'tool_calls' && $toolCalls === [])) {
+                throw new \UnexpectedValueException('AI response completion does not match its message.');
             }
             $calls = [];
             foreach ($toolCalls as $call) {
