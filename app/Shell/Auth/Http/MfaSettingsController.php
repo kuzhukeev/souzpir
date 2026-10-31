@@ -15,10 +15,13 @@ use App\Shell\Profile\ProfileValidation;
 use App\Tenancy\Cabinet;
 use App\Tenancy\TenantContext;
 use Illuminate\Auth\AuthenticationException;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -29,6 +32,7 @@ final class MfaSettingsController
 {
     public function start(#[\SensitiveParameter] Request $request, Totp $totp): RedirectResponse
     {
+        $this->limitAttempts($request);
         SecureAccountContext::validate($request, 'password');
         $data = ProfileValidation::validate($request, ['password' => ['required', 'current_password']]);
         $this->assertMember($request);
@@ -63,6 +67,7 @@ final class MfaSettingsController
 
     public function confirm(#[\SensitiveParameter] Request $request, Totp $totp): RedirectResponse
     {
+        $this->limitAttempts($request);
         $data = ProfileValidation::validate($request, ['code' => ['required', 'digits:6']]);
         $org = $this->assertMember($request);
         $setup = app(MfaSetupState::class)->pending($request);
@@ -98,6 +103,7 @@ final class MfaSettingsController
 
     public function disable(#[\SensitiveParameter] Request $request, Totp $totp): RedirectResponse
     {
+        $this->limitAttempts($request);
         $data = ProfileValidation::validate($request, ['password' => ['required', 'current_password'], 'code' => ['required', 'digits:6']]);
         $org = $this->assertMember($request);
         $updated = $this->withinActive($request, function () use ($request, $data, $totp, $org): User {
@@ -120,6 +126,28 @@ final class MfaSettingsController
         Inertia::clearHistory();
 
         return redirect()->route($request->routeIs('profile.security.mfa.*') ? 'profile.security' : 'auth.ready')->with('status', 'Двухфакторная проверка отключена.');
+    }
+
+    /** Both the legacy and profile aliases share this per-account credential limit. */
+    private function limitAttempts(Request $request): void
+    {
+        $user = $request->user();
+        if (! $user) {
+            throw new AuthenticationException('Unauthenticated.');
+        }
+
+        $key = 'auth.mfa.settings:'.hash('sha256', (string) $user->getAuthIdentifier());
+        // FileStore increment is not atomic. Hold a per-account cache lock across
+        // the check and hit so concurrent requests cannot multiply the allowance.
+        Cache::lock($key.':lock', 10)->block(2, static function () use ($key): void {
+            if (RateLimiter::tooManyAttempts($key, 6)) {
+                throw new ThrottleRequestsException('Слишком много попыток. Повторите позже.', null, [
+                    'Retry-After' => (string) max(1, RateLimiter::availableIn($key)),
+                ]);
+            }
+
+            RateLimiter::hit($key, 60);
+        });
     }
 
     private function assertFreshSession(Request $request, User $user): void

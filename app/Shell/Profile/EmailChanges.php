@@ -30,8 +30,9 @@ final class EmailChanges
             return false;
         }
 
-        return ! (app(EmailChangeSender::class) instanceof MailEmailChangeSender)
-            || (config('mail.default') === 'smtp' && is_string(config('mail.mailers.smtp.host')) && config('mail.mailers.smtp.host') !== '');
+        // The current confirmation route contains a bearer in its URL. Never
+        // enable the real sender until a capability-safe flow replaces it.
+        return app()->environment('testing') && ! (app(EmailChangeSender::class) instanceof MailEmailChangeSender);
     }
 
     public function pending(User $user): ?string
@@ -42,7 +43,7 @@ final class EmailChanges
             ? Crypt::decryptString($row->target_email) : null;
     }
 
-    public function request(Request $request, #[\SensitiveParameter] string $email, #[\SensitiveParameter] string $password): void
+    public function request(#[\SensitiveParameter] Request $request, #[\SensitiveParameter] string $email, #[\SensitiveParameter] string $password): void
     {
         try {
             app(ProfileAccess::class)->run($request, function (User $user, TenantContext $context) use ($email, $password): void {
@@ -83,7 +84,7 @@ final class EmailChanges
             if ($error->getCode() === '23505') {
                 throw ValidationException::withMessages(['email' => 'Этот адрес нельзя использовать.']);
             }
-            throw $error;
+            throw new \RuntimeException('Email change processing failed.');
         }
     }
 
@@ -135,13 +136,14 @@ final class EmailChanges
 
     public function validate(User $user, TenantContext $context, string $id, #[\SensitiveParameter] string $token): object
     {
+        abort_unless($this->available(), 404);
         $row = DB::table('profile_email_changes')->where('id', $id)->where('user_id', $user->id)->where('organization_id', $context->organizationId)->lockForUpdate()->first();
         abort_unless($row && in_array($row->status, ['pending', 'sending', 'sent', 'uncertain'], true) && $row->token_hash && hash_equals($row->token_hash, hash('sha256', $token)) && $row->target_email && $row->auth_version === $user->auth_version && hash_equals($row->source_fingerprint, $this->fingerprint($user->email)) && now()->lessThan($row->expires_at), 404);
 
         return $row;
     }
 
-    public function confirm(Request $request, string $id, #[\SensitiveParameter] string $token): void
+    public function confirm(#[\SensitiveParameter] Request $request, string $id, #[\SensitiveParameter] string $token): void
     {
         $version = null;
         try {
@@ -162,7 +164,7 @@ final class EmailChanges
             if ($error->getCode() === '23505') {
                 throw ValidationException::withMessages(['email' => 'Этот адрес нельзя использовать.']);
             }
-            throw $error;
+            throw new \RuntimeException('Email confirmation processing failed.');
         }
         $request->session()->put('auth.version', $version);
         $request->user()->refresh();

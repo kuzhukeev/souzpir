@@ -2,8 +2,11 @@
 
 namespace Tests\Feature\Shell\Profile;
 
+use App\Shell\Auth\SecureAccountContext;
 use App\Shell\Auth\Totp;
 use App\Shell\Profile\EmailChangeSender;
+use Illuminate\Http\Middleware\TrustProxies;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -17,6 +20,7 @@ final class SecureAccountContextTest extends TenancyTestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->withServerVariables(['SERVER_ADDR' => '127.0.0.1', 'REMOTE_ADDR' => '127.0.0.1']);
         Http::preventStrayRequests();
         Queue::fake();
         config(['features.E1-08.defaults.email_change_enabled' => true, 'app.url' => 'https://cabinet.example.test']);
@@ -144,5 +148,40 @@ final class SecureAccountContextTest extends TenancyTestCase
         $this->postJson('http://localhost.attacker.test/profile/security/mfa/setup', ['password' => 'test-only-password'])
             ->assertUnprocessable()->assertJsonValidationErrors('password');
         self::assertNull(session('auth.mfa_setup'));
+    }
+
+    public function test_local_http_requires_actual_loopback_on_both_sides_and_no_proxy_headers(): void
+    {
+        $make = static fn (array $server) => Request::create('http://127.0.0.1/profile/security', 'GET', [], [], [], $server);
+        $check = SecureAccountContext::class;
+        self::assertFalse($check::allows($make(['REMOTE_ADDR' => '198.51.100.10', 'SERVER_ADDR' => '203.0.113.20'])));
+        self::assertFalse($check::allows($make(['REMOTE_ADDR' => '127.0.0.1', 'SERVER_ADDR' => '203.0.113.20'])));
+        self::assertFalse($check::allows($make(['REMOTE_ADDR' => '198.51.100.10', 'SERVER_ADDR' => '127.0.0.1'])));
+        self::assertFalse($check::allows($make(['REMOTE_ADDR' => '127.0.0.1', 'SERVER_ADDR' => '127.0.0.1', 'HTTP_X_FORWARDED_FOR' => '198.51.100.10'])));
+        self::assertTrue($check::allows($make(['REMOTE_ADDR' => '127.0.0.1', 'SERVER_ADDR' => '127.0.0.1'])));
+        $this->app->instance('env', 'production');
+        self::assertFalse($check::allows($make(['REMOTE_ADDR' => '127.0.0.1', 'SERVER_ADDR' => '127.0.0.1'])));
+    }
+
+    public function test_forwarded_https_requires_an_explicit_trusted_proxy_even_for_forge_host(): void
+    {
+        $make = static fn () => Request::create('http://x.on-forge.com/profile/security', 'GET', [], [], [], [
+            'REMOTE_ADDR' => '198.51.100.10', 'SERVER_ADDR' => '203.0.113.20', 'HTTP_X_FORWARDED_PROTO' => 'https',
+        ]);
+        $middleware = new TrustProxies;
+        config(['trustedproxy.proxies' => null]);
+        $middleware->handle($make(), static function ($request): void {
+            self::assertTrue($request->isSecure()); // Laravel's Forge auto-trust behavior.
+            self::assertFalse(SecureAccountContext::allows($request));
+        });
+        config(['trustedproxy.proxies' => ['198.51.100.10']]);
+        $middleware->handle($make(), static function ($request): void {
+            self::assertTrue(SecureAccountContext::allows($request));
+        });
+        config(['trustedproxy.proxies' => ['*']]);
+        $middleware->handle($make(), static function ($request): void {
+            self::assertFalse(SecureAccountContext::allows($request));
+        });
+        Request::setTrustedProxies([], 0);
     }
 }

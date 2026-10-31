@@ -38,6 +38,7 @@ final class SecurityTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->withServerVariables(['SERVER_ADDR' => '127.0.0.1', 'REMOTE_ADDR' => '127.0.0.1']);
         $this->withoutVite();
         Http::preventStrayRequests();
         Mail::fake();
@@ -325,6 +326,7 @@ final class SecurityTest extends TestCase
     {
         [, $user] = $this->actor();
         $this->login($user);
+        $this->withServerVariables(['SERVER_ADDR' => '127.0.0.1', 'REMOTE_ADDR' => '127.0.0.1']);
         $this->post('/profile/security/mfa/setup', ['password' => 'wrong'])->assertSessionHasErrors('password');
         $this->post('/profile/security/mfa/setup', ['password' => self::PASSWORD])->assertRedirect(route('profile.security'));
         $secret = session('auth.mfa_setup.secret');

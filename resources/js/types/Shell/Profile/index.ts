@@ -27,7 +27,7 @@ export type NotificationSettings = {
     connected: boolean;
     pending: boolean;
     pending_label: string | null;
-    link: string | null;
+    link_available: boolean;
     expires_at: string | null;
   };
   timezone: string;

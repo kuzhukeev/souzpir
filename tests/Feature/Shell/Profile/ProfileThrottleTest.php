@@ -12,6 +12,7 @@ final class ProfileThrottleTest extends TenancyTestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->withServerVariables(['SERVER_ADDR' => '127.0.0.1', 'REMOTE_ADDR' => '127.0.0.1']);
         Http::preventStrayRequests();
     }
 
@@ -62,6 +63,41 @@ final class ProfileThrottleTest extends TenancyTestCase
         }
         $this->postJson('/profile/email', ['email' => 'invalid', 'current_password' => 'wrong-password'])->assertStatus(429);
         $this->delete('/profile/email')->assertRedirect()->assertHeader('X-RateLimit-Remaining', '9');
+    }
+
+    public function test_legacy_and_profile_mfa_routes_share_a_per_account_limit_across_sessions(): void
+    {
+        [$user, $organization, $brand] = $this->cabinet();
+        [$other] = $this->member($organization, 'member', [$brand->id]);
+        $this->actingAs($user)->withSession(['brand_id' => $brand->id]);
+        $attempts = [
+            ['/mfa/setup', ['password' => 'wrong-password']],
+            ['/profile/security/mfa/confirm', ['code' => 'invalid']],
+            ['/mfa/disable', ['password' => 'wrong-password', 'code' => 'invalid']],
+            ['/profile/security/mfa/setup', ['password' => 'wrong-password']],
+            ['/mfa/setup/confirm', ['code' => 'invalid']],
+            ['/profile/security/mfa/disable', ['password' => 'wrong-password', 'code' => 'invalid']],
+        ];
+        foreach ($attempts as [$path, $payload]) {
+            $this->postJson('https://cabinet.example.test'.$path, $payload)->assertUnprocessable();
+        }
+
+        // A new session must not restore attempts for the same account.
+        $this->actingAs($user)->withSession(['brand_id' => $brand->id]);
+        $this->postJson('https://cabinet.example.test/mfa/setup', ['password' => 'wrong-password'])
+            ->assertStatus(429)->assertHeader('Retry-After');
+        $this->postJson('https://cabinet.example.test/profile/security/mfa/confirm', ['code' => 'invalid'])
+            ->assertStatus(429)->assertHeader('Retry-After');
+
+        // Another account has an independent budget, even on the same IP.
+        $this->actingAs($other)->withSession(['brand_id' => $brand->id]);
+        $this->postJson('https://cabinet.example.test/profile/security/mfa/confirm', ['code' => 'invalid'])
+            ->assertUnprocessable();
+
+        $this->actingAs($user)->withSession(['brand_id' => $brand->id]);
+        $this->travel(61)->seconds();
+        $this->postJson('https://cabinet.example.test/mfa/setup/confirm', ['code' => 'invalid'])
+            ->assertUnprocessable();
     }
 
     private function invalidPassword(): array

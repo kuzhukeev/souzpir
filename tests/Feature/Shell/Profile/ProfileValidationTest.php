@@ -15,6 +15,7 @@ final class ProfileValidationTest extends TenancyTestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->withServerVariables(['SERVER_ADDR' => '127.0.0.1', 'REMOTE_ADDR' => '127.0.0.1']);
         Http::preventStrayRequests();
     }
 

@@ -98,7 +98,7 @@ const notificationSettings = {
     connected: params.has('connected'),
     pending: params.has('pending'),
     pending_label: params.has('pending') ? 'Иван Петров (@ivan_test)' : null,
-    link: null,
+    link_available: false,
     expires_at: null,
   },
   timezone: 'Europe/Moscow',

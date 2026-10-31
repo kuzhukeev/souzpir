@@ -2,8 +2,12 @@
 
 namespace Tests\Feature\Shell\Profile;
 
+use App\Shell\Audit\Contracts\AuditWriter;
+use App\Shell\Profile\EmailChanges;
 use App\Shell\Profile\EmailChangeSender;
+use App\Shell\Profile\MailEmailChangeSender;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -15,6 +19,7 @@ final class EmailChangeTest extends TenancyTestCase
 {
     private function enable(): void
     {
+        $this->withServerVariables(['SERVER_ADDR' => '127.0.0.1', 'REMOTE_ADDR' => '127.0.0.1']);
         config(['features.E1-08.defaults.email_change_enabled' => true]);
         $this->app->instance(EmailChangeSender::class, new class implements EmailChangeSender
         {
@@ -123,5 +128,59 @@ final class EmailChangeTest extends TenancyTestCase
         $this->assertSame($relative, $page['props']['emailConfirmationUrl']);
         $this->assertStringNotContainsString('untrusted.example', $page['props']['emailConfirmationUrl']);
         $this->assertTrue($page['encryptHistory']);
+    }
+
+    public function test_unexpected_database_error_does_not_expose_email_bindings(): void
+    {
+        $this->enable();
+        [$user, , $brand] = $this->cabinet();
+        $marker = 'synthetic-private-address@example.test';
+        $audit = $this->createStub(AuditWriter::class);
+        $audit->method('record')->willThrowException(new QueryException('pgsql', 'insert into synthetic values (?)', [$marker], new \RuntimeException('synthetic failure')));
+        $this->app->instance(AuditWriter::class, $audit);
+        $this->withoutExceptionHandling();
+        try {
+            $this->actingAs($user)->withSession(['brand_id' => $brand->id])->post('/profile/email', ['email' => $marker, 'current_password' => 'test-only-password']);
+            self::fail('Expected a sanitized exception.');
+        } catch (\RuntimeException $e) {
+            self::assertSame('Email change processing failed.', $e->getMessage());
+            self::assertNull($e->getPrevious());
+            self::assertStringNotContainsString($marker, $e->getTraceAsString());
+        }
+        $this->assertDatabaseCount('profile_email_changes', 0);
+    }
+
+    public function test_real_mail_sender_is_disabled_even_if_feature_flag_is_enabled(): void
+    {
+        config(['features.E1-08.defaults.email_change_enabled' => true, 'app.url' => 'https://cabinet.example.test', 'mail.default' => 'smtp', 'mail.mailers.smtp.host' => 'mail.example.test']);
+        $this->app->instance(EmailChangeSender::class, new MailEmailChangeSender);
+        self::assertFalse(app(EmailChanges::class)->available());
+    }
+
+    public function test_email_commit_database_error_redacts_new_address_and_token(): void
+    {
+        $this->enable();
+        [$user, , $brand] = $this->cabinet();
+        $marker = 'synthetic-commit-address@example.test';
+        $this->actingAs($user)->withSession(['brand_id' => $brand->id])->post('/profile/email', ['email' => $marker, 'current_password' => 'test-only-password'])->assertRedirect();
+        $url = $this->link($user->id);
+        $token = Crypt::decryptString(DB::table('profile_email_changes')->where('user_id', $user->id)->value('encrypted_token'));
+        $audit = $this->createStub(AuditWriter::class);
+        $audit->method('record')->willThrowException(new QueryException('pgsql', 'update synthetic set email = ?', [$marker], new \RuntimeException('synthetic failure')));
+        $this->app->instance(AuditWriter::class, $audit);
+        $this->withoutExceptionHandling();
+        try {
+            $this->post($url);
+            self::fail('Expected a sanitized exception.');
+        } catch (\RuntimeException $e) {
+            self::assertSame('Email confirmation processing failed.', $e->getMessage());
+            self::assertNull($e->getPrevious());
+            self::assertStringNotContainsString($marker, $e->getTraceAsString());
+            // The test client's own post($url) frame contains the synthetic URI.
+            // Inspect application/middleware frames separately; production email remains disabled.
+            $runtimeTrace = explode('Illuminate\\Foundation\\Testing\\Concerns\\MakesHttpRequests.php', $e->getTraceAsString(), 2)[0];
+            self::assertStringNotContainsString($token, $runtimeTrace);
+        }
+        self::assertNotSame($marker, $user->fresh()->email);
     }
 }

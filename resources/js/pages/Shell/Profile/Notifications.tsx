@@ -233,11 +233,11 @@ export default function Notifications({
             </Button>
           ) : (
             <div className="mt-4 space-y-3">
-              {settings.telegram.link ? (
+              {settings.telegram.link_available ? (
                 <>
                   <p className="text-sm leading-6">{t('telegram_link_hint')}</p>
                   <a
-                    href={settings.telegram.link}
+                    href="/profile/notifications/telegram/link"
                     target="_blank"
                     rel="noopener noreferrer"
                     className={`inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg bg-(--color-action) px-4 text-sm font-semibold text-(--color-on-action) ${focus}`}

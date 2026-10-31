@@ -6,6 +6,7 @@ use App\Models\Membership;
 use App\Models\User;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
+use App\Shell\Auth\SecureAccountContext;
 use App\Shell\Notifications\ConfigureNotification;
 use App\Shell\Notifications\EventCatalog;
 use App\Tenancy\TenantContext;
@@ -40,11 +41,12 @@ final class TelegramLinks
             $request->session()->forget('profile.telegram_link');
         }
 
-        return ['configured' => $this->configured(), 'connected' => $row !== null && $row->chat_id !== null, 'link' => $link, 'expires_at' => ($link || $pending) ? $row->expires_at : null, 'pending' => (bool) $pending, 'pending_label' => $pending ? $row->pending_label : null];
+        return ['configured' => $this->configured(), 'connected' => $row !== null && $row->chat_id !== null, 'link_available' => (bool) $link && SecureAccountContext::allows($request), 'expires_at' => ($link || $pending) ? $row->expires_at : null, 'pending' => (bool) $pending, 'pending_label' => $pending ? $row->pending_label : null];
     }
 
     public function start(Request $request): void
     {
+        SecureAccountContext::validate($request, 'telegram');
         $link = app(ProfileAccess::class)->run($request, function (User $user, TenantContext $context): array {
             if (! $this->configured()) {
                 throw ValidationException::withMessages(['telegram' => 'Подключение Telegram пока не настроено.']);
@@ -61,6 +63,23 @@ final class TelegramLinks
             return ['id' => $id, 'token_hash' => hash('sha256', $token), 'url' => 'https://t.me/'.config('features.E1-08.defaults.telegram_bot_username').'?start='.$token];
         });
         $request->session()->put('profile.telegram_link', $link);
+    }
+
+    /** Return a capability only via a separate no-store redirect, never an Inertia prop. */
+    public function link(Request $request): string
+    {
+        SecureAccountContext::assertRead($request);
+
+        return app(ProfileAccess::class)->run($request, function (User $user, TenantContext $context) use ($request): string {
+            $row = DB::table('profile_telegram_links')->where($this->where($context))->lockForUpdate()->first();
+            $session = $request->session()->get('profile.telegram_link');
+            abort_unless($row && $row->token_hash && $row->expires_at && now()->lessThan($row->expires_at)
+                && is_array($session) && ($session['id'] ?? null) === $row->id
+                && is_string($session['token_hash'] ?? null) && hash_equals($row->token_hash, $session['token_hash'])
+                && is_string($session['url'] ?? null), 404);
+
+            return $session['url'];
+        });
     }
 
     /** Secret checked before any body/token lookup; only private chat /start is accepted. */

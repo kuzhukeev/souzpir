@@ -8,6 +8,7 @@ use App\Shell\Audit\Contracts\AuditWriter;
 use App\Shell\Auth\SecureAccountContext;
 use App\Tenancy\TenantContext;
 use DateTimeZone;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -17,6 +18,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Throwable;
 
 final class ProfileController
@@ -40,7 +42,7 @@ final class ProfileController
         return Inertia::render('Shell/Profile/Profile', ['profile' => $profile, 'timezones' => DateTimeZone::listIdentifiers(), 'status' => session('status')]);
     }
 
-    public function update(Request $request): RedirectResponse
+    public function update(#[\SensitiveParameter] Request $request): RedirectResponse
     {
         $values = ProfileValidation::validate($request, [
             'name' => ['required', 'string', 'max:120', 'regex:/\S/u'],
@@ -48,13 +50,19 @@ final class ProfileController
             'timezone' => ['nullable', 'string', Rule::in(DateTimeZone::listIdentifiers())],
             'language' => ['required', Rule::in(['ru'])],
         ]);
-        app(ProfileAccess::class)->run($request, function (User $user, TenantContext $context) use ($values): void {
-            $nameChanged = $user->name !== trim($values['name']);
-            $phoneChanged = $user->phone !== ($values['phone'] ?? null);
-            $user->forceFill(['name' => trim($values['name']), 'phone' => $values['phone'] ?? null])->save();
-            DB::table('profile_preferences')->upsert([['user_id' => $user->id, 'timezone' => $values['timezone'] ?? null, 'language' => 'ru', 'created_at' => now(), 'updated_at' => now()]], ['user_id'], ['timezone', 'language', 'updated_at']);
-            app(AuditWriter::class)->record($context, new AuditEntry('profile.updated', 'user', $user->id, after: ['name_changed' => $nameChanged, 'phone_changed' => $phoneChanged, 'timezone' => $values['timezone'] ?? null, 'language' => 'ru']));
-        });
+        try {
+            app(ProfileAccess::class)->run($request, function (User $user, TenantContext $context) use ($values): void {
+                $nameChanged = $user->name !== trim($values['name']);
+                $phoneChanged = $user->phone !== ($values['phone'] ?? null);
+                $user->forceFill(['name' => trim($values['name']), 'phone' => $values['phone'] ?? null])->save();
+                DB::table('profile_preferences')->upsert([['user_id' => $user->id, 'timezone' => $values['timezone'] ?? null, 'language' => 'ru', 'created_at' => now(), 'updated_at' => now()]], ['user_id'], ['timezone', 'language', 'updated_at']);
+                app(AuditWriter::class)->record($context, new AuditEntry('profile.updated', 'user', $user->id, after: ['name_changed' => $nameChanged, 'phone_changed' => $phoneChanged, 'timezone' => $values['timezone'] ?? null, 'language' => 'ru']));
+            });
+        } catch (ValidationException|AuthenticationException|HttpExceptionInterface $error) {
+            throw $error;
+        } catch (Throwable) {
+            throw new \RuntimeException('Profile update processing failed.');
+        }
 
         return redirect()->route('profile.show')->with('status', 'Профиль сохранён.');
     }
@@ -72,7 +80,7 @@ final class ProfileController
         return response(Storage::disk('local')->get($path), 200, ['Content-Type' => 'image/png', 'Cache-Control' => 'private, no-store', 'X-Content-Type-Options' => 'nosniff', 'Content-Security-Policy' => "default-src 'none'"]);
     }
 
-    public function storeAvatar(Request $request): RedirectResponse
+    public function storeAvatar(#[\SensitiveParameter] Request $request): RedirectResponse
     {
         ProfileValidation::validate($request, ['avatar' => ['required', 'file', 'mimes:png,jpg,jpeg,webp', 'max:2048', 'dimensions:max_width=2048,max_height=2048']]);
         $image = @imagecreatefromstring($request->file('avatar')->getContent());
@@ -101,10 +109,12 @@ final class ProfileController
                 }
             });
         } catch (Throwable $error) {
-            if ($path) {
-                Storage::disk('local')->delete($path);
+            // A failed COMMIT acknowledgement does not prove a rollback. Keep the
+            // private file for later reconciliation; it may already be referenced.
+            if ($error instanceof ValidationException || $error instanceof AuthenticationException || $error instanceof HttpExceptionInterface) {
+                throw $error;
             }
-            throw $error;
+            throw new \RuntimeException('Avatar update processing failed.');
         }
 
         return redirect()->route('profile.show')->with('status', 'Аватар сохранён.');

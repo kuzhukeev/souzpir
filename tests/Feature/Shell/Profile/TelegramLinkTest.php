@@ -17,6 +17,7 @@ final class TelegramLinkTest extends TenancyTestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->withServerVariables(['SERVER_ADDR' => '127.0.0.1', 'REMOTE_ADDR' => '127.0.0.1']);
         config(['features.E1-08.defaults.telegram_bot_username' => 'souzpir_test_bot', 'features.E1-08.defaults.telegram_webhook_secret' => self::SECRET]);
         Http::preventStrayRequests();
     }
@@ -50,7 +51,7 @@ final class TelegramLinkTest extends TenancyTestCase
         $this->webhook($this->update($token))->assertNoContent();
         $this->assertDatabaseHas('profile_telegram_links', ['user_id' => $user->id, 'token_hash' => null, 'chat_id' => null]);
         $this->assertDatabaseCount('notification_settings', 0);
-        $this->get('/profile/notifications')->assertViewHas('page', fn ($p) => $p['props']['notificationSettings']['telegram']['pending'] && $p['props']['notificationSettings']['telegram']['link'] === null);
+        $this->get('/profile/notifications')->assertViewHas('page', fn ($p) => $p['props']['notificationSettings']['telegram']['pending'] && $p['props']['notificationSettings']['telegram']['link_available'] === false);
         $this->post('/profile/notifications/telegram/confirm')->assertRedirect('/profile/notifications');
         $this->assertDatabaseCount('notification_settings', 15);
         $setting = DB::table('notification_settings')->where('event_key', 'shell.member.invited')->where('channel', 'telegram')->first();
@@ -151,9 +152,12 @@ final class TelegramLinkTest extends TenancyTestCase
         $new = $this->start($user, $brand);
         $this->assertNotSame($old, $new);
         $state = app(TelegramLinks::class)->state($oldBrowser, new TenantContext($org->id, $brand->id, $user->id, $member->id));
-        $this->assertNull($state['link']);
+        $this->assertFalse($state['link_available']);
         $this->assertFalse($oldBrowser->session()->has('profile.telegram_link'));
-        $this->get('/profile/notifications')->assertViewHas('page', fn ($p) => str_contains($p['props']['notificationSettings']['telegram']['link'], $new));
+        $page = $this->get('/profile/notifications')->assertOk();
+        self::assertTrue($page->viewData('page')['props']['notificationSettings']['telegram']['link_available']);
+        self::assertStringNotContainsString($new, $page->getContent());
+        $this->get('/profile/notifications/telegram/link')->assertRedirect('https://t.me/souzpir_test_bot?start='.$new)->assertHeader('Cache-Control', 'no-store, private');
     }
 
     public function test_new_chat_can_replace_binding_in_archived_brand_only(): void
@@ -205,5 +209,20 @@ final class TelegramLinkTest extends TenancyTestCase
         $oldRow = DB::table('profile_telegram_links')->where('user_id', $user->id)->where('brand_id', $brand->id)->first();
         $this->assertSame('123456', Crypt::decryptString($oldRow->chat_id));
         $this->assertDatabaseHas('profile_telegram_links', ['user_id' => $user->id, 'brand_id' => $second->id, 'chat_id' => null]);
+    }
+
+    public function test_telegram_capability_is_not_in_inertia_and_is_never_served_over_http_remote(): void
+    {
+        [$user, , $brand] = $this->cabinet();
+        $token = $this->start($user, $brand);
+        $page = $this->get('/profile/notifications')->assertOk()->assertHeader('Cache-Control', 'no-store, private');
+        self::assertTrue($page->viewData('page')['props']['notificationSettings']['telegram']['link_available']);
+        self::assertStringNotContainsString($token, $page->getContent());
+        $this->withServerVariables(['SERVER_ADDR' => '203.0.113.1', 'REMOTE_ADDR' => '198.51.100.1']);
+        $this->get('http://127.0.0.1/profile/notifications/telegram/link')->assertForbidden();
+        $this->postJson('http://127.0.0.1/profile/notifications/telegram')->assertUnprocessable();
+        $this->withServerVariables(['SERVER_ADDR' => '127.0.0.1', 'REMOTE_ADDR' => '127.0.0.1']);
+        $this->webhook($this->update($token))->assertNoContent();
+        $this->get('/profile/notifications/telegram/link')->assertNotFound();
     }
 }

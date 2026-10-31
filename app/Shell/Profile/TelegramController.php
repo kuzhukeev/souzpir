@@ -22,6 +22,13 @@ final class TelegramController
         return redirect()->route('profile.notifications')->with('status', 'Telegram подключён. Выберите события для отправки.');
     }
 
+    public function link(Request $request): RedirectResponse
+    {
+        return redirect()->away(app(TelegramLinks::class)->link($request))
+            ->header('Cache-Control', 'private, no-store')
+            ->header('Referrer-Policy', 'no-referrer');
+    }
+
     public function disconnect(Request $request): RedirectResponse
     {
         app(TelegramLinks::class)->disconnect($request);
