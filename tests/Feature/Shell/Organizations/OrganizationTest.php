@@ -4,13 +4,18 @@ namespace Tests\Feature\Shell\Organizations;
 
 use App\Models\Membership;
 use App\Shell\Audit\Contracts\AuditWriter;
+use App\Shell\Organizations\Http\OrganizationController;
 use App\Shell\Organizations\ModuleEntitlements;
 use App\Tenancy\TenantContext;
+use App\Tenancy\TenantContextRunner;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\Feature\Tenancy\TenancyTestCase;
 
 final class OrganizationTest extends TenancyTestCase
@@ -224,5 +229,79 @@ final class OrganizationTest extends TenancyTestCase
         $this->get('/company')->assertInertia(fn (Assert $page) => $page->where('modules.seller', true));
         $this->plan($org->id, ['modules.seller' => '0']);
         $this->get('/company')->assertInertia(fn (Assert $page) => $page->where('modules.seller', false));
+    }
+
+    public function test_restricted_admin_gets_access_to_created_brand_atomically(): void
+    {
+        [, $org, $brand, $other] = $this->cabinet();
+        [$admin, $membership] = $this->member($org, 'admin', [$brand->id]);
+        $this->actingAs($admin)->withSession(['brand_id' => $brand->id])->post('/brands', ['name' => 'Restricted admin brand', 'theme' => 'neutral'])->assertSessionHasNoErrors();
+        $newId = DB::table('brands')->where('organization_id', $org->id)->where('name', 'Restricted admin brand')->value('id');
+        self::assertNotNull($newId);
+        self::assertSame([$brand->id, $newId], $membership->fresh()->brand_ids);
+        self::assertFalse($membership->fresh()->permitsBrand($other->id));
+        $this->get('/brands/'.$newId.'/modules')->assertOk();
+        $this->get('/brands')->assertInertia(fn (Assert $page) => $page->has('items', 2));
+    }
+
+    public function test_unrestricted_admin_remains_unrestricted_when_creating_brand(): void
+    {
+        [, $org, $brand, $other] = $this->cabinet();
+        [$admin, $membership] = $this->member($org, 'admin');
+        $this->actingAs($admin)->withSession(['brand_id' => $brand->id])->post('/brands', ['name' => 'Unrestricted admin brand', 'theme' => 'neutral'])->assertSessionHasNoErrors();
+        $newId = DB::table('brands')->where('organization_id', $org->id)->where('name', 'Unrestricted admin brand')->value('id');
+        self::assertNotNull($newId);
+        self::assertSame([], $membership->fresh()->brand_ids);
+        self::assertTrue($membership->fresh()->permitsBrand($newId));
+        self::assertTrue($membership->fresh()->permitsBrand($other->id));
+        $this->get('/brands/'.$newId.'/modules')->assertOk();
+    }
+
+    public function test_failed_brand_audit_rolls_back_new_brand_and_creator_grant(): void
+    {
+        [, $org, $brand] = $this->cabinet();
+        [$admin, $membership] = $this->member($org, 'admin', [$brand->id]);
+        $audit = \Mockery::mock(AuditWriter::class);
+        $audit->shouldReceive('record')->once()->andThrow(new \RuntimeException('audit unavailable'));
+        $this->app->instance(AuditWriter::class, $audit);
+        $this->actingAs($admin)->withSession(['brand_id' => $brand->id])->withoutExceptionHandling();
+        try {
+            $this->post('/brands', ['name' => 'Rolled back', 'theme' => 'neutral']);
+            self::fail('Expected failure');
+        } catch (\RuntimeException $e) {
+            self::assertSame('audit unavailable', $e->getMessage());
+        }
+        $this->assertDatabaseMissing('brands', ['organization_id' => $org->id, 'name' => 'Rolled back']);
+        self::assertSame([$brand->id], $membership->fresh()->brand_ids);
+    }
+
+    public function test_transfer_rechecks_locked_actor_access_and_selected_brand_status(): void
+    {
+        [$owner, $org, $brand, $other, $membership] = $this->cabinet();
+        [$target] = $this->member($org, 'member', [$brand->id]);
+        $this->actingAs($owner);
+        Gate::before(fn () => true);
+        $ctx = new TenantContext($org->id, $brand->id, $owner->id, $membership->id, 'session');
+        $request = Request::create('/company/transfer', 'POST', ['user_id' => $target->id, 'confirm_name' => $org->name]);
+        $transfer = fn (\Closure $change) => app(TenantContextRunner::class)->run($ctx, function () use ($change, $request) {
+            $change();
+
+            return app(OrganizationController::class)->transfer($request);
+        });
+        try {
+            $transfer(fn () => DB::table('memberships')->where('id', $membership->id)->update(['brand_ids' => json_encode([$other->id], JSON_THROW_ON_ERROR)]));
+            self::fail('Revoked brand access must prevent transfer');
+        } catch (HttpException $e) {
+            self::assertSame(403, $e->getStatusCode());
+        }
+        DB::table('memberships')->where('id', $membership->id)->update(['brand_ids' => '[]']);
+        try {
+            $transfer(fn () => DB::table('brands')->where('id', $brand->id)->update(['status' => 'archived']));
+            self::fail('Archived selected brand must prevent transfer');
+        } catch (HttpException $e) {
+            self::assertSame(403, $e->getStatusCode());
+        }
+        self::assertSame($owner->id, $org->fresh()->owner_user_id);
+        $this->assertDatabaseMissing('audit_logs', ['organization_id' => $org->id, 'action' => 'organization.owner.transferred']);
     }
 }

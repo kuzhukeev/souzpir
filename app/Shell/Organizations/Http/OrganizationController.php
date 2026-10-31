@@ -79,6 +79,7 @@ final class OrganizationController
             $actor = $members->get($ctx->actorId);
             $target = $members->get($data['user_id']);
             abort_unless($actor && $actor->id === $ctx->membershipId && $actor->role === 'owner' && $actor->status === 'active' && $org->owner_user_id === $ctx->actorId, 403);
+            $this->assertActiveBrandAccess($ctx, $actor, $org->id);
             if (! hash_equals($org->name, $data['confirm_name'])) {
                 throw ValidationException::withMessages(['confirm_name' => 'Название компании не совпадает.'])->redirectTo(route('organization.show'));
             }
@@ -121,7 +122,7 @@ final class OrganizationController
         $this->checkWebsite($data['website'] ?? null);
         $ctx = app(TenantContext::class);
         DB::transaction(function () use ($ctx, $data, $limits): void {
-            [$org] = $this->lockAdmin($ctx);
+            [$org, $member] = $this->lockAdmin($ctx);
             $name = trim($data['name']);
             if ($name === '') {
                 throw ValidationException::withMessages(['name' => 'Укажите название бренда.'])->redirectTo(route('brands.index'));
@@ -133,6 +134,9 @@ final class OrganizationController
                 throw $error->redirectTo(route('brands.index'));
             }
             $brand = Brand::create(['name' => $name, 'website' => $data['website'] ?? null, 'theme' => $data['theme'], 'settings' => []]);
+            if ($member->brand_ids !== []) {
+                $member->forceFill(['brand_ids' => [...$member->brand_ids, $brand->id]])->save();
+            }
             $this->audit($ctx, 'brand.created', 'brand', $brand->id, ['theme' => $brand->theme]);
         });
 
@@ -234,9 +238,15 @@ final class OrganizationController
     {
         $org = Organization::whereKey($ctx->organizationId)->where('status', 'active')->lockForUpdate()->firstOrFail();
         $member = Membership::withoutGlobalScopes()->whereKey($ctx->membershipId)->where('organization_id', $org->id)->where('user_id', $ctx->actorId)->where('status', 'active')->whereIn('role', ['owner', 'admin'])->lockForUpdate()->first();
-        abort_unless($member && $ctx->brandId && $member->permitsBrand($ctx->brandId) && DB::table('brands')->where('id', $ctx->brandId)->where('organization_id', $org->id)->where('status', 'active')->exists(), 403);
+        abort_unless($member, 403);
+        $this->assertActiveBrandAccess($ctx, $member, $org->id);
 
         return [$org, $member];
+    }
+
+    private function assertActiveBrandAccess(TenantContext $ctx, Membership $member, string $organizationId): void
+    {
+        abort_unless($ctx->brandId && $member->permitsBrand($ctx->brandId) && DB::table('brands')->where('id', $ctx->brandId)->where('organization_id', $organizationId)->where('status', 'active')->exists(), 403);
     }
 
     private function target(string $org, string $id, Membership $member, bool $lock = false): Brand
