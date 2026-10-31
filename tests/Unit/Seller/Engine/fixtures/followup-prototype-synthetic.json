@@ -1,0 +1,150 @@
+{
+    "source_sha256": "e29606398a1da572d4e6bbb6cf27c7a9ae755a618f4da7219dfa151e73909e64",
+    "default_days": 2,
+    "cases": [
+        {
+            "now": "2026-10-31 10:37:45",
+            "timezone": "Europe/Moscow",
+            "input": "завтра",
+            "prototype": "2026-11-01 11:00:00 +03:00"
+        },
+        {
+            "now": "2026-10-31 10:37:45",
+            "timezone": "Europe/Moscow",
+            "input": "послезавтра",
+            "prototype": "2026-11-02 11:00:00 +03:00"
+        },
+        {
+            "now": "2026-10-31 23:37:45",
+            "timezone": "Europe/Moscow",
+            "input": "сегодня",
+            "prototype": "2026-11-01 02:37:45 +03:00"
+        },
+        {
+            "now": "2026-10-30 12:00:00",
+            "timezone": "Europe/Moscow",
+            "input": "в пятницу",
+            "prototype": "2026-11-06 11:00:00 +03:00"
+        },
+        {
+            "now": "2026-10-31 10:37:45",
+            "timezone": "Europe/Moscow",
+            "input": "через 0 дней",
+            "prototype": "2026-10-31 11:00:00 +03:00"
+        },
+        {
+            "now": "2026-10-31 10:37:45",
+            "timezone": "Europe/Moscow",
+            "input": "через неделю",
+            "prototype": "2026-11-07 11:00:00 +03:00"
+        },
+        {
+            "now": "2026-10-15 11:00:00",
+            "timezone": "Europe/Moscow",
+            "input": "середина октября",
+            "prototype": "2026-10-15 11:00:00 +03:00"
+        },
+        {
+            "now": "2026-10-15 11:00:01",
+            "timezone": "Europe/Moscow",
+            "input": "середина октября",
+            "prototype": "2027-10-15 11:00:00 +03:00"
+        },
+        {
+            "now": "2026-12-31 10:00:00",
+            "timezone": "Europe/Moscow",
+            "input": "январь",
+            "prototype": "2027-01-05 11:00:00 +03:00"
+        },
+        {
+            "now": "2026-02-28 10:00:00",
+            "timezone": "Europe/Moscow",
+            "input": "31.02",
+            "prototype": "2026-03-03 11:00:00 +03:00"
+        },
+        {
+            "now": "2026-10-31 10:37:45",
+            "timezone": "Europe/Moscow",
+            "input": "неизвестно",
+            "prototype": "2026-11-02 11:00:00 +03:00"
+        },
+        {
+            "now": "2026-10-31 10:37:45",
+            "timezone": "Europe/Moscow",
+            "input": "2026-11-05 14:30",
+            "prototype": "2026-11-05 14:30:00 +03:00"
+        },
+        {
+            "now": "2026-10-31 10:37:45",
+            "timezone": "Europe/Moscow",
+            "input": "2026-11-05T14:30:00+05:00",
+            "prototype": "2026-11-05 14:30:00 +05:00"
+        },
+        {
+            "now": "2026-03-28 12:00:00",
+            "timezone": "Europe/Berlin",
+            "input": "завтра",
+            "prototype": "2026-03-29 11:00:00 +02:00"
+        },
+        {
+            "now": "2026-10-24 12:00:00",
+            "timezone": "Europe/Berlin",
+            "input": "через неделю",
+            "prototype": "2026-10-31 11:00:00 +01:00"
+        },
+        {
+            "now": "2026-03-29 00:30:00",
+            "timezone": "Europe/Berlin",
+            "input": "сегодня",
+            "prototype": "2026-03-29 04:30:00 +02:00"
+        },
+        {
+            "now": "2026-10-25 00:30:00",
+            "timezone": "Europe/Berlin",
+            "input": "сегодня",
+            "prototype": "2026-10-25 02:30:00 +01:00"
+        },
+        {
+            "now": "2026-02-28 12:00:00",
+            "timezone": "Asia/Kathmandu",
+            "input": "29.02",
+            "prototype": "2026-03-01 11:00:00 +05:45"
+        },
+        {
+            "now": "2026-10-31 10:37:45",
+            "timezone": "Europe/Moscow",
+            "input": "2026-02-30",
+            "prototype": "2026-03-02 00:00:00 +03:00"
+        },
+        {
+            "now": "2026-10-31 10:00:00",
+            "timezone": "Europe/Moscow",
+            "input": "конец октября",
+            "prototype": "2027-10-05 11:00:00 +03:00"
+        },
+        {
+            "now": "2026-10-01 10:00:00",
+            "timezone": "Europe/Moscow",
+            "input": "в конце октября",
+            "prototype": "2026-10-25 11:00:00 +03:00"
+        },
+        {
+            "now": "2026-04-30 09:00:00",
+            "timezone": "Europe/Moscow",
+            "input": "начало мая",
+            "prototype": "2026-05-05 11:00:00 +03:00"
+        },
+        {
+            "now": "2026-10-31 23:00:00",
+            "timezone": "Europe/Moscow",
+            "input": "через 0 дней",
+            "prototype": "2026-10-31 11:00:00 +03:00"
+        },
+        {
+            "now": "2026-10-31 10:00:00",
+            "timezone": "Europe/Moscow",
+            "input": "через 0003 дня",
+            "prototype": "2026-11-03 11:00:00 +03:00"
+        }
+    ]
+}
