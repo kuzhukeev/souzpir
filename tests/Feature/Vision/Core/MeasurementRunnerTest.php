@@ -135,6 +135,20 @@ final class MeasurementRunnerTest extends TestCase
         });
     }
 
+    public function test_definite_empty_response_is_failed_not_uncertain(): void
+    {
+        $this->within(function (): void {
+            $set = app(QuestionSets::class)->create([['id' => 'q1', 'text' => 'Пустой ответ', 'intent' => 'choose']]);
+            $measurement = app(MeasurementRunner::class)->start($set, ['gemini' => 'google/gemini-2.5-flash'], 1);
+            $answer = DB::table('measurement_answers')->where('measurement_id', $measurement)->value('id');
+            $this->fixture('Пустой ответ', '');
+            self::assertSame('failed', app(MeasurementRunner::class)->measure($answer));
+            self::assertSame('empty_response', DB::table('measurement_answers')->where('id', $answer)->value('error_code'));
+            self::assertSame('completed', DB::table('ai_calls')->value('status'));
+            self::assertSame('partial', DB::table('measurements')->where('id', $measurement)->value('status'));
+        });
+    }
+
     public function test_model_substitution_is_recorded_as_protocol_invalid(): void
     {
         $this->within(function (): void {

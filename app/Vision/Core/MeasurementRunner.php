@@ -132,7 +132,11 @@ final class MeasurementRunner
             $this->finish($tenant, $answerId, $answer->measurement_id, ['status' => 'uncertain', 'error_code' => 'provider_uncertain']);
             throw new LogicException('Vision measurement could not be safely completed.');
         }
-        $status = $result->error === null ? 'ok' : (($result->error['code'] ?? '') === 'in_progress' ? 'in_progress' : 'uncertain');
+        $status = $result->error === null ? 'ok' : match ($result->error['code'] ?? '') {
+            'in_progress' => 'in_progress',
+            'empty_response' => 'failed',
+            default => 'uncertain',
+        };
         $this->finish($tenant, $answerId, $answer->measurement_id, [
             'status' => $status, 'ai_call_id' => $result->aiCallId,
             'answer_text' => $status === 'ok' ? $result->content : null, 'model' => $result->model,
