@@ -55,35 +55,39 @@ final class MeasurementRunner
         $parser = [...$parser, ...app(EvidenceEvaluator::class)->artifacts()];
         $context = app(TenantContext::class);
 
-        return DB::transaction(function () use ($questionSetId, $providers, $runs, $tenant, $temperature, $maxTokens, $parser, $context): string {
-            $set = DB::table('question_sets')->where($tenant)->where('id', $questionSetId)->first();
-            if (! $set) {
-                throw new LogicException('Question set not found.');
-            }
-            $questions = json_decode($set->questions, true, flags: JSON_THROW_ON_ERROR);
-            if (! is_array($questions) || count($questions) !== $set->size || ! hash_equals($set->checksum, CanonicalJson::hash($questions))) {
-                throw new LogicException('Question set integrity check failed.');
-            }
-            $profile = app(PublishedKnowledgeBridge::class)->buildProfile($context);
-            $id = (string) Str::ulid();
-            DB::table('measurements')->insert(['id' => $id, ...$tenant, 'question_set_id' => $questionSetId,
-                'status' => 'pending', 'configuration' => json_encode(['questions' => $questions, 'question_set_checksum' => $set->checksum,
-                    'providers' => $providers, 'runs' => $runs, 'temperature' => $temperature, 'max_output_tokens' => $maxTokens, 'parser' => $parser], JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR),
-                'profile_snapshot' => json_encode($profile, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), 'profile_checksum' => CanonicalJson::hash($profile),
-                'created_at' => now(), 'updated_at' => now()]);
-            foreach ($providers as $provider => $model) {
-                foreach ($questions as $index => $question) {
-                    for ($run = 1; $run <= $runs; $run++) {
-                        DB::table('measurement_answers')->insert(['id' => (string) Str::ulid(), ...$tenant,
-                            'measurement_id' => $id, 'question_n' => $index + 1, 'provider' => $provider,
-                            'requested_model' => $model, 'run_no' => $run, 'status' => 'pending',
-                            'created_at' => now(), 'updated_at' => now()]);
+        try {
+            return DB::transaction(function () use ($questionSetId, $providers, $runs, $tenant, $temperature, $maxTokens, $parser, $context): string {
+                $set = DB::table('question_sets')->where($tenant)->where('id', $questionSetId)->first();
+                if (! $set) {
+                    throw new LogicException('Question set not found.');
+                }
+                $questions = json_decode($set->questions, true, flags: JSON_THROW_ON_ERROR);
+                if (! is_array($questions) || count($questions) !== $set->size || ! hash_equals($set->checksum, CanonicalJson::hash($questions))) {
+                    throw new LogicException('Question set integrity check failed.');
+                }
+                $profile = app(PublishedKnowledgeBridge::class)->buildProfile($context);
+                $id = (string) Str::ulid();
+                DB::table('measurements')->insert(['id' => $id, ...$tenant, 'question_set_id' => $questionSetId,
+                    'status' => 'pending', 'configuration' => json_encode(['questions' => $questions, 'question_set_checksum' => $set->checksum,
+                        'providers' => $providers, 'runs' => $runs, 'temperature' => $temperature, 'max_output_tokens' => $maxTokens, 'parser' => $parser], JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR),
+                    'profile_snapshot' => json_encode($profile, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), 'profile_checksum' => CanonicalJson::hash($profile),
+                    'created_at' => now(), 'updated_at' => now()]);
+                foreach ($providers as $provider => $model) {
+                    foreach ($questions as $index => $question) {
+                        for ($run = 1; $run <= $runs; $run++) {
+                            DB::table('measurement_answers')->insert(['id' => (string) Str::ulid(), ...$tenant,
+                                'measurement_id' => $id, 'question_n' => $index + 1, 'provider' => $provider,
+                                'requested_model' => $model, 'run_no' => $run, 'status' => 'pending',
+                                'created_at' => now(), 'updated_at' => now()]);
+                        }
                     }
                 }
-            }
 
-            return $id;
-        });
+                return $id;
+            });
+        } catch (Throwable) {
+            throw new LogicException('Vision measurement could not be safely started.');
+        }
     }
 
     /**
@@ -96,43 +100,47 @@ final class MeasurementRunner
         if (config('runtime.ai_driver', 'fake') !== 'fake') {
             throw new LogicException('Vision measurement is restricted to fake AI until an authorized live stage.');
         }
-        $claimed = DB::transaction(function () use ($answerId, $tenant): ?array {
-            $reference = DB::table('measurement_answers')->where($tenant)->where('id', $answerId)->first();
-            if (! $reference) {
-                throw new LogicException('Measurement answer not found.');
-            }
-            MeasurementLock::acquire($reference->measurement_id);
-            // The gate acquires organization, brand and grant before the measurement.
-            $candidate = DB::table('measurements')->where($tenant)->where('id', $reference->measurement_id)->first();
-            $this->assertKnowledge($candidate);
-            $measurement = DB::table('measurements')->where($tenant)->where('id', $reference->measurement_id)->lockForUpdate()->first();
-            if (! $measurement) {
-                throw new LogicException('Measurement not found.');
-            }
-            $answer = DB::table('measurement_answers')->where($tenant)->where('id', $answerId)
-                ->where('measurement_id', $measurement->id)->lockForUpdate()->first();
-            if (! $answer) {
-                throw new LogicException('Measurement answer not found.');
-            }
-            if ($answer->status !== 'pending') {
-                return null;
-            }
-            $configuration = json_decode($measurement->configuration, true, flags: JSON_THROW_ON_ERROR);
-            $questions = $configuration['questions'] ?? null;
-            if (! is_array($questions) || ! hash_equals((string) ($configuration['question_set_checksum'] ?? ''), CanonicalJson::hash($questions))) {
-                throw new LogicException('Frozen questions failed integrity validation.');
-            }
-            $question = $questions[$answer->question_n - 1] ?? null;
-            if (! is_array($question) || ! is_string($question['text'] ?? null)
-                || ($configuration['providers'][$answer->provider] ?? null) !== $answer->requested_model
-                || $answer->run_no < 1 || $answer->run_no > ($configuration['runs'] ?? 0)) {
-                throw new LogicException('Measurement slot is inconsistent with its plan.');
-            }
-            DB::table('measurement_answers')->where($tenant)->where('id', $answerId)->update(['status' => 'in_progress', 'updated_at' => now()]);
-            DB::table('measurements')->where($tenant)->where('id', $measurement->id)->update(['status' => 'running', 'started_at' => $measurement->started_at ?? now(), 'updated_at' => now()]);
+        try {
+            $claimed = DB::transaction(function () use ($answerId, $tenant): ?array {
+                $reference = DB::table('measurement_answers')->where($tenant)->where('id', $answerId)->first();
+                if (! $reference) {
+                    throw new LogicException('Measurement answer not found.');
+                }
+                MeasurementLock::acquire($reference->measurement_id);
+                // The gate acquires organization, brand and grant before the measurement.
+                $candidate = DB::table('measurements')->where($tenant)->where('id', $reference->measurement_id)->first();
+                $this->assertKnowledge($candidate);
+                $measurement = DB::table('measurements')->where($tenant)->where('id', $reference->measurement_id)->lockForUpdate()->first();
+                if (! $measurement) {
+                    throw new LogicException('Measurement not found.');
+                }
+                $answer = DB::table('measurement_answers')->where($tenant)->where('id', $answerId)
+                    ->where('measurement_id', $measurement->id)->lockForUpdate()->first();
+                if (! $answer) {
+                    throw new LogicException('Measurement answer not found.');
+                }
+                if ($answer->status !== 'pending') {
+                    return null;
+                }
+                $configuration = json_decode($measurement->configuration, true, flags: JSON_THROW_ON_ERROR);
+                $questions = $configuration['questions'] ?? null;
+                if (! is_array($questions) || ! hash_equals((string) ($configuration['question_set_checksum'] ?? ''), CanonicalJson::hash($questions))) {
+                    throw new LogicException('Frozen questions failed integrity validation.');
+                }
+                $question = $questions[$answer->question_n - 1] ?? null;
+                if (! is_array($question) || ! is_string($question['text'] ?? null)
+                    || ($configuration['providers'][$answer->provider] ?? null) !== $answer->requested_model
+                    || $answer->run_no < 1 || $answer->run_no > ($configuration['runs'] ?? 0)) {
+                    throw new LogicException('Measurement slot is inconsistent with its plan.');
+                }
+                DB::table('measurement_answers')->where($tenant)->where('id', $answerId)->update(['status' => 'in_progress', 'updated_at' => now()]);
+                DB::table('measurements')->where($tenant)->where('id', $measurement->id)->update(['status' => 'running', 'started_at' => $measurement->started_at ?? now(), 'updated_at' => now()]);
 
-            return [$answer, $question, $configuration];
-        });
+                return [$answer, $question, $configuration];
+            });
+        } catch (Throwable) {
+            throw new LogicException('Vision measurement could not be safely completed.');
+        }
         if ($claimed === null) {
             return (string) DB::table('measurement_answers')->where($tenant)->where('id', $answerId)->value('status');
         }
@@ -173,40 +181,44 @@ final class MeasurementRunner
         ]);
     }
 
-    private function finish(array $tenant, string $answerId, string $measurementId, array $changes): string
+    private function finish(array $tenant, string $answerId, string $measurementId, #[\SensitiveParameter] array $changes): string
     {
-        return DB::transaction(function () use ($tenant, $answerId, $measurementId, $changes): string {
-            MeasurementLock::acquire($measurementId);
-            $candidate = DB::table('measurements')->where($tenant)->where('id', $measurementId)->first();
-            try {
-                $this->assertKnowledge($candidate);
-            } catch (Throwable) {
-                $changes = ['status' => 'failed', 'error_code' => 'knowledge_unavailable', 'answer_text' => null, 'protocol_valid' => null];
-            }
-            $measurement = DB::table('measurements')->where($tenant)->where('id', $measurementId)->lockForUpdate()->first();
-            if (! $measurement) {
-                throw new LogicException('Measurement not found.');
-            }
-            $updated = DB::table('measurement_answers')->where($tenant)->where('id', $answerId)
-                ->where('status', 'in_progress')->update([...$changes, 'updated_at' => now()]);
-            if ($updated !== 1) {
-                throw new LogicException('Measurement slot changed while processing.');
-            }
-            $pending = DB::table('measurement_answers')->where($tenant)->where('measurement_id', $measurementId)
-                ->whereIn('status', ['pending', 'in_progress'])->exists();
-            if (! $pending) {
-                $partial = DB::table('measurement_answers')->where($tenant)->where('measurement_id', $measurementId)
-                    ->whereIn('status', ['failed', 'uncertain'])->exists();
-                DB::table('measurements')->where($tenant)->where('id', $measurementId)->update([
-                    'status' => $partial ? 'partial' : 'completed', 'finished_at' => now(), 'updated_at' => now(),
-                ]);
-            }
+        try {
+            return DB::transaction(function () use ($tenant, $answerId, $measurementId, $changes): string {
+                MeasurementLock::acquire($measurementId);
+                $candidate = DB::table('measurements')->where($tenant)->where('id', $measurementId)->first();
+                try {
+                    $this->assertKnowledge($candidate);
+                } catch (Throwable) {
+                    $changes = ['status' => 'failed', 'error_code' => 'knowledge_unavailable', 'answer_text' => null, 'protocol_valid' => null];
+                }
+                $measurement = DB::table('measurements')->where($tenant)->where('id', $measurementId)->lockForUpdate()->first();
+                if (! $measurement) {
+                    throw new LogicException('Measurement not found.');
+                }
+                $updated = DB::table('measurement_answers')->where($tenant)->where('id', $answerId)
+                    ->where('status', 'in_progress')->update([...$changes, 'updated_at' => now()]);
+                if ($updated !== 1) {
+                    throw new LogicException('Measurement slot changed while processing.');
+                }
+                $pending = DB::table('measurement_answers')->where($tenant)->where('measurement_id', $measurementId)
+                    ->whereIn('status', ['pending', 'in_progress'])->exists();
+                if (! $pending) {
+                    $partial = DB::table('measurement_answers')->where($tenant)->where('measurement_id', $measurementId)
+                        ->whereIn('status', ['failed', 'uncertain'])->exists();
+                    DB::table('measurements')->where($tenant)->where('id', $measurementId)->update([
+                        'status' => $partial ? 'partial' : 'completed', 'finished_at' => now(), 'updated_at' => now(),
+                    ]);
+                }
 
-            return $changes['status'];
-        });
+                return $changes['status'];
+            });
+        } catch (Throwable) {
+            throw new LogicException('Vision measurement could not be safely completed.');
+        }
     }
 
-    private function assertKnowledge(?object $measurement): void
+    private function assertKnowledge(#[\SensitiveParameter] ?object $measurement): void
     {
         if (! $measurement || ! is_string($measurement->profile_snapshot) || ! is_string($measurement->profile_checksum)) {
             throw new LogicException('An approved frozen profile is required.');

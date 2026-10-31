@@ -14,6 +14,7 @@ use App\Vision\Core\EvidenceStore;
 use App\Vision\Core\MeasurementRunner;
 use App\Vision\Core\QuestionSets;
 use App\Vision\Core\ReportPreparation;
+use App\Vision\Core\VisionReportReader;
 use App\Vision\Evidence\Contracts\KnowledgeGate;
 use App\Vision\KnowledgeGrants\GrantRegistry;
 use Illuminate\Database\QueryException;
@@ -38,6 +39,8 @@ final class MeasurementRunnerTest extends TestCase
     private TenantContext $ownerContext;
 
     private string $grantId;
+
+    private string $revokeFailure = '';
 
     protected function setUp(): void
     {
@@ -375,16 +378,70 @@ final class MeasurementRunnerTest extends TestCase
             self::assertNotNull($row->evidence_mac);
             $report = app(ReportPreparation::class)->snapshot($measurement);
             $payload = json_decode(DB::table('vision_reports')->where('id', $report)->value('payload'), true, flags: JSON_THROW_ON_ERROR);
+            self::assertSame($payload, app(VisionReportReader::class)->read($report));
+            $originalKey = config('app.key');
+            config(['app.key' => '']);
+            try {
+                app(VisionReportReader::class)->read($report);
+                self::fail('A report cannot be verified without a signing key.');
+            } catch (LogicException $exception) {
+                self::assertSame('Vision report is unavailable.', $exception->getMessage());
+            } finally {
+                config(['app.key' => $originalKey]);
+            }
             self::assertSame('available', $payload['evidence_status']);
             self::assertSame(100.0, $payload['metrics']['panel']['mention_rate']);
             self::assertSame(100.0, $payload['metrics']['panel']['recommended_rate']);
             self::assertNull($payload['metrics']['slots'][0]['mentions'][0]['role']);
+            $forged = (array) DB::table('vision_reports')->where('id', $report)->first();
+            $forged['id'] = (string) Str::ulid();
+            $forged['revision'] = 99;
+            $forgedPayload = $payload;
+            $forgedPayload['evidence_status'] = 'forged';
+            $forged['payload'] = json_encode($forgedPayload, JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
+            $forged['checksum'] = CanonicalJson::hash($forgedPayload);
+            DB::table('vision_reports')->insert($forged);
+            try {
+                app(VisionReportReader::class)->read($forged['id']);
+                self::fail('Corrupt report was returned.');
+            } catch (LogicException $exception) {
+                self::assertSame('Vision report is unavailable.', $exception->getMessage());
+                self::assertNull($exception->getPrevious());
+            }
+            $legacy = (array) DB::table('vision_reports')->where('id', $report)->first();
+            $legacy['id'] = (string) Str::ulid();
+            $legacy['revision'] = 100;
+            $legacy['snapshot_mac'] = null;
+            DB::table('vision_reports')->insert($legacy);
+            try {
+                app(VisionReportReader::class)->read($legacy['id']);
+                self::fail('An unsigned legacy report was returned.');
+            } catch (LogicException $exception) {
+                self::assertSame('Vision report is unavailable.', $exception->getMessage());
+            }
+            $other = (string) Str::ulid();
+            DB::table('brands')->insert(['id' => $other, 'organization_id' => $this->organization, 'name' => 'Other', 'status' => 'active', 'theme' => 'neutral', 'settings' => '{}']);
+            app(TenantContextRunner::class)->run(new TenantContext($this->organization, $other, source: 'job'), function () use ($report): void {
+                try {
+                    app(VisionReportReader::class)->read($report);
+                    self::fail('Cross-brand report was returned.');
+                } catch (LogicException $exception) {
+                    self::assertSame('Vision report is unavailable.', $exception->getMessage());
+                }
+            });
             DB::table('measurement_answers')->where('id', $answer)->update(['fact' => json_encode(['brand_mentioned' => false], JSON_THROW_ON_ERROR)]);
             $tamperedReport = app(ReportPreparation::class)->snapshot($measurement);
             $tampered = json_decode(DB::table('vision_reports')->where('id', $tamperedReport)->value('payload'), true, flags: JSON_THROW_ON_ERROR);
             self::assertNull($tampered['metrics']['slots'][0]['fact']);
             DB::table('measurement_answers')->where('id', $answer)->update(['fact' => $row->fact]);
             app(TenantContextRunner::class)->run($this->ownerContext, fn () => app(GrantRegistry::class)->revoke($this->ownerContext, $this->grantId));
+            try {
+                app(VisionReportReader::class)->read($report);
+                self::fail('Report was returned after revocation.');
+            } catch (LogicException $exception) {
+                self::assertSame('Vision report is unavailable.', $exception->getMessage());
+                self::assertNull($exception->getPrevious());
+            }
             $revokedReport = app(ReportPreparation::class)->snapshot($measurement);
             $revoked = json_decode(DB::table('vision_reports')->where('id', $revokedReport)->value('payload'), true, flags: JSON_THROW_ON_ERROR);
             self::assertNull($revoked['metrics']['slots'][0]['fact']);
@@ -416,6 +473,81 @@ final class MeasurementRunnerTest extends TestCase
                 self::assertSame('pending', DB::table('measurement_answers')->where('id', $answer)->value('status'));
             }
             self::assertSame('unknown', app(EvidenceStore::class)->evaluate($answer));
+            Http::assertNothingSent();
+        });
+    }
+
+    public function test_revocation_in_another_process_before_report_gate_prevents_reading(): void
+    {
+        $this->within(function (): void {
+            $set = app(QuestionSets::class)->create([['id' => 'q1', 'text' => 'Вопрос', 'intent' => 'choose']]);
+            $measurement = app(MeasurementRunner::class)->start($set, ['gemini' => 'google/gemini-2.5-flash'], 1);
+            $answer = DB::table('measurement_answers')->where('measurement_id', $measurement)->value('id');
+            $this->fixture('Вопрос', 'Ответ');
+            self::assertSame('ok', app(MeasurementRunner::class)->measure($answer));
+            $report = app(ReportPreparation::class)->snapshot($measurement);
+            $delegate = app(KnowledgeGate::class);
+            $revoke = fn () => $this->revokeInWorker();
+            app()->instance(KnowledgeGate::class, new class($delegate, $revoke) implements KnowledgeGate
+            {
+                public function __construct(private KnowledgeGate $delegate, private \Closure $revoke) {}
+
+                public function assertAllowed(TenantContext $tenant, string $measurementId, array $frozenProfile): void
+                {
+                    ($this->revoke)();
+                    $this->delegate->assertAllowed($tenant, $measurementId, $frozenProfile);
+                }
+            });
+            try {
+                app(VisionReportReader::class)->read($report);
+                self::fail('A report cannot be read after the grant is revoked.');
+            } catch (LogicException $exception) {
+                self::assertSame('', $this->revokeFailure, $this->revokeFailure);
+                self::assertSame('Vision report is unavailable.', $exception->getMessage());
+                self::assertNotNull(DB::table('vision_knowledge_grants')->where('id', $this->grantId)->value('revoked_at'));
+            }
+            Http::assertNothingSent();
+        });
+    }
+
+    public function test_gate_and_database_failures_do_not_expose_profile_or_answer_in_exceptions(): void
+    {
+        $this->within(function (): void {
+            $set = app(QuestionSets::class)->create([['id' => 'q1', 'text' => 'Вопрос', 'intent' => 'choose']]);
+            $measurement = app(MeasurementRunner::class)->start($set, ['gemini' => 'google/gemini-2.5-flash'], 1);
+            $answer = DB::table('measurement_answers')->where('measurement_id', $measurement)->value('id');
+            $gate = app(KnowledgeGate::class);
+            app()->instance(KnowledgeGate::class, new class implements KnowledgeGate
+            {
+                public function assertAllowed(TenantContext $tenant, string $measurementId, array $frozenProfile): void
+                {
+                    throw new LogicException('synthetic-profile-secret');
+                }
+            });
+            try {
+                app(MeasurementRunner::class)->measure($answer);
+                self::fail('The failed gate must stop the measurement.');
+            } catch (LogicException $exception) {
+                self::assertSame('Vision measurement could not be safely completed.', $exception->getMessage());
+                self::assertNull($exception->getPrevious());
+                $this->assertTraceDoesNotContain($exception, 'synthetic-profile-secret');
+            }
+            app()->instance(KnowledgeGate::class, $gate);
+            $this->fixture('Вопрос', 'synthetic-answer-secret');
+            DB::unprepared("CREATE FUNCTION vision_test_write_failure() RETURNS trigger LANGUAGE plpgsql AS \$\$ BEGIN IF NEW.status = 'ok' THEN RAISE EXCEPTION 'synthetic-answer-secret'; END IF; RETURN NEW; END \$\$");
+            DB::statement('CREATE TRIGGER vision_test_write_failure BEFORE UPDATE ON measurement_answers FOR EACH ROW EXECUTE FUNCTION vision_test_write_failure()');
+            try {
+                app(MeasurementRunner::class)->measure($answer);
+                self::fail('The simulated write must fail.');
+            } catch (LogicException $exception) {
+                self::assertSame('Vision measurement could not be safely completed.', $exception->getMessage());
+                self::assertNull($exception->getPrevious());
+                self::assertStringNotContainsString('synthetic-answer-secret', (string) $exception);
+                $this->assertTraceDoesNotContain($exception, 'synthetic-answer-secret');
+            } finally {
+                DB::statement('DROP TRIGGER IF EXISTS vision_test_write_failure ON measurement_answers');
+                DB::statement('DROP FUNCTION IF EXISTS vision_test_write_failure()');
+            }
             Http::assertNothingSent();
         });
     }
@@ -459,7 +591,9 @@ final class MeasurementRunnerTest extends TestCase
                 }
             };
             app()->instance(KnowledgeGate::class, $gate);
-            self::assertSame('unknown', app(EvidenceStore::class)->evaluate($answer));
+            $evaluation = app(EvidenceStore::class)->evaluate($answer);
+            self::assertSame('', $this->revokeFailure, $this->revokeFailure);
+            self::assertSame('unknown', $evaluation);
             self::assertSame(3, $gate->checks);
             $row = DB::table('measurement_answers')->where('id', $answer)->first();
             self::assertNull($row->fact);
@@ -492,7 +626,13 @@ final class MeasurementRunnerTest extends TestCase
                         'model' => $body['model'], 'latencyMs' => 1, 'costMicros' => 0];
                 }
             });
-            self::assertSame('failed', app(MeasurementRunner::class)->measure($answer));
+            try {
+                $status = app(MeasurementRunner::class)->measure($answer);
+            } catch (LogicException) {
+                $status = 'exception';
+            }
+            self::assertSame('', $this->revokeFailure, $this->revokeFailure);
+            self::assertSame('failed', $status);
             $row = DB::table('measurement_answers')->where('id', $answer)->first();
             self::assertNull($row->answer_text);
             self::assertNull($row->fact);
@@ -577,11 +717,46 @@ final class MeasurementRunnerTest extends TestCase
 
     private function revokeInWorker(): void
     {
-        $process = new Process([PHP_BINARY, '-d', 'sys_temp_dir='.base_path('.local/tmp'), __DIR__.'/Fixtures/revoke-worker.php',
-            $this->organization, $this->brand, $this->ownerContext->actorId, $this->ownerContext->membershipId, $this->grantId,
-            base_path(), DB::connection()->getDatabaseName()], base_path(), ['APP_ENV' => 'testing'], null, 45);
-        $process->run();
-        self::assertSame(0, $process->getExitCode(), $process->getErrorOutput());
+        try {
+            $process = new Process([PHP_BINARY, '-d', 'sys_temp_dir='.base_path('.local/tmp'), __DIR__.'/Fixtures/revoke-worker.php',
+                $this->organization, $this->brand, $this->ownerContext->actorId, $this->ownerContext->membershipId, $this->grantId,
+                base_path(), DB::connection()->getDatabaseName()], base_path(), ['APP_ENV' => 'testing'], null, 45);
+            $process->run();
+            if ($process->getExitCode() !== 0 || trim($process->getOutput()) !== 'REVOCATION_OK') {
+                $this->revokeFailure = 'Revoke worker failed: '.trim($process->getErrorOutput()).' exit='.$process->getExitCode();
+                throw new LogicException('Revoke worker failed.');
+            }
+        } catch (\Throwable $exception) {
+            $this->revokeFailure = $this->revokeFailure ?: 'Revoke worker process error: '.get_class($exception);
+            throw $exception;
+        }
+    }
+
+    private function assertTraceDoesNotContain(\Throwable $exception, string $marker): void
+    {
+        $contains = function (mixed $value, int $depth = 0) use (&$contains, $marker): bool {
+            if ($depth > 20 || $value instanceof \SensitiveParameterValue) {
+                return false;
+            }
+            if (is_string($value)) {
+                return str_contains($value, $marker);
+            }
+            if ($value instanceof \stdClass) {
+                $value = (array) $value;
+            }
+            if (is_array($value)) {
+                foreach ($value as $item) {
+                    if ($contains($item, $depth + 1)) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        };
+        foreach ($exception->getTrace() as $frame) {
+            self::assertFalse($contains($frame['args'] ?? []), 'A trace argument exposed the marker.');
+        }
     }
 
     private function prepareKnowledge(): void

@@ -22,69 +22,75 @@ final class ReportPreparation
     {
         $tenant = $this->tenant->current();
 
-        return DB::transaction(function () use ($measurementId, $tenant): string {
-            MeasurementLock::acquire($measurementId);
-            // Respect the global grant/release → measurement lock order.
-            $candidate = DB::table('measurements')->where($tenant)->where('id', $measurementId)->first();
-            $permitted = false;
-            try {
-                if ($candidate && is_string($candidate->profile_snapshot)) {
-                    $profile = json_decode($candidate->profile_snapshot, true, 64, JSON_THROW_ON_ERROR);
-                    if (is_array($profile)) {
-                        app(KnowledgeGate::class)->assertAllowed(app(TenantContext::class), $measurementId, $profile);
-                        $permitted = true;
-                    }
-                }
-            } catch (Throwable) {
+        try {
+            return DB::transaction(function () use ($measurementId, $tenant): string {
+                MeasurementLock::acquire($measurementId);
+                // Respect the global grant/release → measurement lock order.
+                $candidate = DB::table('measurements')->where($tenant)->where('id', $measurementId)->first();
                 $permitted = false;
-            }
-            $measurement = DB::table('measurements')->where($tenant)->where('id', $measurementId)->lockForUpdate()->first();
-            if (! $measurement) {
-                throw new LogicException('Measurement not found.');
-            }
-            if (! in_array($measurement->status, ['completed', 'partial'], true)) {
-                throw new LogicException('Measurement must reach a terminal state before the snapshot.');
-            }
-            $configuration = json_decode($measurement->configuration, true, flags: JSON_THROW_ON_ERROR);
-            $questions = $configuration['questions'] ?? null;
-            $providers = $configuration['providers'] ?? null;
-            $runs = $configuration['runs'] ?? null;
-            if (! is_array($questions) || $questions === [] || ! is_array($providers) || $providers === []
-                || ! is_int($runs) || $runs < 1 || ! hash_equals((string) ($configuration['question_set_checksum'] ?? ''), CanonicalJson::hash($questions))) {
-                throw new LogicException('Frozen measurement plan is invalid.');
-            }
-            $rows = DB::table('measurement_answers')->where($tenant)->where('measurement_id', $measurementId)->orderBy('provider')->orderBy('question_n')->orderBy('run_no')->lockForUpdate()->get();
-            $slots = [];
-            $verifiedCount = 0;
-            foreach ($rows as $row) {
-                $question = $questions[$row->question_n - 1] ?? null;
-                if (! is_array($question) || ! isset($providers[$row->provider])
-                    || $providers[$row->provider] !== $row->requested_model || $row->run_no < 1 || $row->run_no > $runs) {
-                    throw new LogicException('Measurement contains an unplanned slot.');
+                try {
+                    if ($candidate && is_string($candidate->profile_snapshot)) {
+                        $profile = json_decode($candidate->profile_snapshot, true, 64, JSON_THROW_ON_ERROR);
+                        if (is_array($profile)) {
+                            app(KnowledgeGate::class)->assertAllowed(app(TenantContext::class), $measurementId, $profile);
+                            $permitted = true;
+                        }
+                    }
+                } catch (Throwable) {
+                    $permitted = false;
                 }
-                $call = $permitted && $row->ai_call_id ? DB::table('ai_calls')->where($tenant)->where('id', $row->ai_call_id)->sharedLock()->first() : null;
-                $verified = $call ? app(EvidenceStore::class)->verifiedEvidence($row, $measurement, $call) : null;
-                $verifiedCount += (int) ($verified !== null);
-                $slots[] = [
-                    'id' => $row->id, 'provider' => $row->provider, 'question_n' => $row->question_n,
-                    'qid' => $question['id'], 'intent' => $question['intent'], 'run_no' => $row->run_no,
-                    'status' => $row->status, 'protocol_valid' => $row->protocol_valid ?? false,
-                    'fact' => $verified['fact'] ?? null, 'mentions' => $verified['mentions'] ?? [],
-                    'mentions_complete' => $verified['mentions_complete'] ?? false, 'sources' => $verified['sources'] ?? [],
-                ];
-            }
-            $metrics = $this->metrics->calculate($slots, array_keys($providers), count($questions), $runs);
-            $payload = ['measurement_id' => $measurementId, 'question_set_checksum' => $configuration['question_set_checksum'],
-                'questions' => $questions, 'providers' => $providers, 'runs' => $runs,
-                'metrics' => $metrics, 'recommendations' => ['items' => []], 'evidence_status' => $verifiedCount ? 'available' : 'not_available'];
-            $revision = 1 + (int) DB::table('vision_reports')->where($tenant)->where('measurement_id', $measurementId)->max('revision');
-            $id = (string) Str::ulid();
-            DB::table('vision_reports')->insert(['id' => $id, ...$tenant, 'measurement_id' => $measurementId,
-                'revision' => $revision, 'payload' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR),
-                'checksum' => CanonicalJson::hash($payload), 'created_at' => now(), 'updated_at' => now()]);
+                $measurement = DB::table('measurements')->where($tenant)->where('id', $measurementId)->lockForUpdate()->first();
+                if (! $measurement) {
+                    throw new LogicException('Measurement not found.');
+                }
+                if (! in_array($measurement->status, ['completed', 'partial'], true)) {
+                    throw new LogicException('Measurement must reach a terminal state before the snapshot.');
+                }
+                $configuration = json_decode($measurement->configuration, true, flags: JSON_THROW_ON_ERROR);
+                $questions = $configuration['questions'] ?? null;
+                $providers = $configuration['providers'] ?? null;
+                $runs = $configuration['runs'] ?? null;
+                if (! is_array($questions) || $questions === [] || ! is_array($providers) || $providers === []
+                    || ! is_int($runs) || $runs < 1 || ! hash_equals((string) ($configuration['question_set_checksum'] ?? ''), CanonicalJson::hash($questions))) {
+                    throw new LogicException('Frozen measurement plan is invalid.');
+                }
+                $rows = DB::table('measurement_answers')->where($tenant)->where('measurement_id', $measurementId)->orderBy('provider')->orderBy('question_n')->orderBy('run_no')->lockForUpdate()->get();
+                $slots = [];
+                $verifiedCount = 0;
+                foreach ($rows as $row) {
+                    $question = $questions[$row->question_n - 1] ?? null;
+                    if (! is_array($question) || ! isset($providers[$row->provider])
+                        || $providers[$row->provider] !== $row->requested_model || $row->run_no < 1 || $row->run_no > $runs) {
+                        throw new LogicException('Measurement contains an unplanned slot.');
+                    }
+                    $call = $permitted && $row->ai_call_id ? DB::table('ai_calls')->where($tenant)->where('id', $row->ai_call_id)->sharedLock()->first() : null;
+                    $verified = $call ? app(EvidenceStore::class)->verifiedEvidence($row, $measurement, $call) : null;
+                    $verifiedCount += (int) ($verified !== null);
+                    $slots[] = [
+                        'id' => $row->id, 'provider' => $row->provider, 'question_n' => $row->question_n,
+                        'qid' => $question['id'], 'intent' => $question['intent'], 'run_no' => $row->run_no,
+                        'status' => $row->status, 'protocol_valid' => $row->protocol_valid ?? false,
+                        'fact' => $verified['fact'] ?? null, 'mentions' => $verified['mentions'] ?? [],
+                        'mentions_complete' => $verified['mentions_complete'] ?? false, 'sources' => $verified['sources'] ?? [],
+                    ];
+                }
+                $metrics = $this->metrics->calculate($slots, array_keys($providers), count($questions), $runs);
+                $payload = ['measurement_id' => $measurementId, 'question_set_checksum' => $configuration['question_set_checksum'],
+                    'questions' => $questions, 'providers' => $providers, 'runs' => $runs,
+                    'metrics' => $metrics, 'recommendations' => ['items' => []], 'evidence_status' => $verifiedCount ? 'available' : 'not_available'];
+                $revision = 1 + (int) DB::table('vision_reports')->where($tenant)->where('measurement_id', $measurementId)->max('revision');
+                $id = (string) Str::ulid();
+                $checksum = CanonicalJson::hash($payload);
+                DB::table('vision_reports')->insert(['id' => $id, ...$tenant, 'measurement_id' => $measurementId,
+                    'revision' => $revision, 'payload' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR),
+                    'checksum' => $checksum, 'snapshot_mac' => ReportSeal::mac($tenant['organization_id'], $tenant['brand_id'], $id, $measurementId, $revision, $checksum),
+                    'created_at' => now(), 'updated_at' => now()]);
 
-            return $id;
-        });
+                return $id;
+            });
+        } catch (Throwable) {
+            throw new LogicException('Vision report could not be safely prepared.');
+        }
     }
 
     /**
