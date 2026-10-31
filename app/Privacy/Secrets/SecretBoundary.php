@@ -45,6 +45,9 @@ final class SecretBoundary
 
     private function inspectInternal(#[\SensitiveParameter] array $payload, bool $strict): bool
     {
+        if ($strict) {
+            $this->validateTypedToolCalls($payload);
+        }
         $nodes = 0;
         $bytes = 0;
         $chunks = [];
@@ -56,6 +59,41 @@ final class SecretBoundary
         }
 
         return $review;
+    }
+
+    /** Inspect only explicit message tool-call envelopes; this is not schema validation. */
+    private function validateTypedToolCalls(#[\SensitiveParameter] array $payload): void
+    {
+        if (! array_key_exists('messages', $payload)) {
+            return;
+        }
+        $messages = $payload['messages'];
+        if (! is_array($messages) || ! array_is_list($messages)) {
+            throw new InvalidArgumentException;
+        }
+        $visited = 0;
+        foreach ($messages as $message) {
+            if (++$visited > self::MAX_NODES || ! is_array($message)) {
+                throw new InvalidArgumentException;
+            }
+            if (! array_key_exists('tool_calls', $message)) {
+                continue;
+            }
+            $calls = $message['tool_calls'];
+            if (! is_array($calls) || ! array_is_list($calls)) {
+                throw new InvalidArgumentException;
+            }
+            foreach ($calls as $call) {
+                if (++$visited > self::MAX_NODES || ! is_array($call)) {
+                    throw new InvalidArgumentException;
+                }
+                $function = $call['function'] ?? null;
+                if (! is_array($function) || ! array_key_exists('arguments', $function)
+                    || (! is_array($function['arguments']) && ! is_string($function['arguments']))) {
+                    throw new InvalidArgumentException;
+                }
+            }
+        }
     }
 
     private function walk(#[\SensitiveParameter] mixed $value, int $depth, int &$nodes, int &$bytes, #[\SensitiveParameter] array &$chunks, bool &$review, bool $toolContext = false, bool $toolArguments = false, bool $strict = false): void

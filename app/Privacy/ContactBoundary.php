@@ -93,7 +93,7 @@ final class ContactBoundary
             if (++$visited > self::MAX_NODES || ! is_array($message)) {
                 throw new InvalidArgumentException('Cannot inspect malformed AI messages.');
             }
-            $calls = $message['tool_calls'] ?? [];
+            $calls = array_key_exists('tool_calls', $message) ? $message['tool_calls'] : [];
             if (! is_array($calls) || ! array_is_list($calls)) {
                 throw new InvalidArgumentException('Cannot inspect malformed AI tool calls.');
             }
@@ -102,8 +102,14 @@ final class ContactBoundary
                     throw new InvalidArgumentException('Cannot inspect malformed AI tool calls.');
                 }
                 $function = $call['function'] ?? null;
-                $arguments = is_array($function) ? ($function['arguments'] ?? null) : null;
-                if (! is_string($arguments)) {
+                if (! is_array($function) || ! array_key_exists('arguments', $function)) {
+                    throw new InvalidArgumentException('Cannot inspect malformed AI tool calls.');
+                }
+                $arguments = $function['arguments'];
+                if (! is_array($arguments) && ! is_string($arguments)) {
+                    throw new InvalidArgumentException('Cannot inspect malformed AI tool calls.');
+                }
+                if (is_array($arguments)) {
                     continue;
                 }
                 $length = strlen($arguments);
