@@ -4,12 +4,12 @@ namespace App\Shell\Auth\Http;
 
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
+use App\Shell\Auth\AuthSessionRegistry;
 use App\Tenancy\Cabinet;
 use App\Tenancy\TenantContext;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -35,7 +35,7 @@ final class VerificationController
 
     public function verify(EmailVerificationRequest $request): RedirectResponse
     {
-        DB::transaction(function () use ($request): void {
+        app(AuthSessionRegistry::class)->withinActive($request, function () use ($request): void {
             if (! $request->user()->hasVerifiedEmail()) {
                 $request->fulfill();
                 app(AuditWriter::class)->record(new TenantContext(app(Cabinet::class)->organizationId(), actorId: $request->user()->id), new AuditEntry('account.email.verified', 'user', $request->user()->id));

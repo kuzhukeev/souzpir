@@ -7,13 +7,13 @@ use App\Models\Organization;
 use App\Models\User;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
+use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Auth\Totp;
 use App\Tenancy\Cabinet;
 use App\Tenancy\TenantContext;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -26,7 +26,7 @@ final class MfaSettingsController
     {
         $data = $request->validate(['password' => ['required', 'current_password']]);
         $this->assertMember($request);
-        $setup = DB::transaction(function () use ($request, $data, $totp): array {
+        $setup = app(AuthSessionRegistry::class)->withinActive($request, function () use ($request, $data, $totp): array {
             $user = User::whereKey($request->user()->id)->lockForUpdate()->firstOrFail();
             $this->assertFreshSession($request, $user);
             $this->assertPassword($data['password'], $user);
@@ -64,7 +64,7 @@ final class MfaSettingsController
         if ($counter === null) {
             throw ValidationException::withMessages(['code' => 'Неверный код.']);
         }
-        $version = DB::transaction(function () use ($request, $org, $setup, $counter): int {
+        $version = app(AuthSessionRegistry::class)->withinActive($request, function () use ($request, $org, $setup, $counter): int {
             $user = User::whereKey($request->user()->id)->lockForUpdate()->firstOrFail();
             $this->assertFreshSession($request, $user);
             if ($setup['version'] !== $user->auth_version) {
@@ -74,6 +74,7 @@ final class MfaSettingsController
                 throw ValidationException::withMessages(['code' => 'Двухфакторная проверка уже включена.']);
             }
             $user->forceFill(['mfa_secret' => $setup['secret'], 'mfa_confirmed_at' => now(), 'mfa_last_counter' => $counter, 'auth_version' => $user->auth_version + 1, 'remember_token' => Str::random(60)])->save();
+            app(AuthSessionRegistry::class)->advanceVersion($request, $user->auth_version);
             app(AuditWriter::class)->record(new TenantContext($org, actorId: $user->id), new AuditEntry('account.mfa.enabled', 'user', $user->id));
 
             return $user->auth_version;
@@ -88,7 +89,7 @@ final class MfaSettingsController
     {
         $data = $request->validate(['password' => ['required', 'current_password'], 'code' => ['required', 'digits:6']]);
         $org = $this->assertMember($request);
-        $version = DB::transaction(function () use ($request, $data, $totp, $org): int {
+        $version = app(AuthSessionRegistry::class)->withinActive($request, function () use ($request, $data, $totp, $org): int {
             $user = User::whereKey($request->user()->id)->lockForUpdate()->firstOrFail();
             $this->assertFreshSession($request, $user);
             $this->assertPassword($data['password'], $user);
@@ -97,6 +98,7 @@ final class MfaSettingsController
                 throw ValidationException::withMessages(['code' => 'Неверный код.']);
             }
             $user->forceFill(['mfa_secret' => null, 'mfa_confirmed_at' => null, 'mfa_last_counter' => null, 'auth_version' => $user->auth_version + 1, 'remember_token' => Str::random(60)])->save();
+            app(AuthSessionRegistry::class)->advanceVersion($request, $user->auth_version);
             app(AuditWriter::class)->record(new TenantContext($org, actorId: $user->id), new AuditEntry('account.mfa.disabled', 'user', $user->id));
 
             return $user->auth_version;

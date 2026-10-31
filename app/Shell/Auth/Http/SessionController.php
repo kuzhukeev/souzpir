@@ -3,15 +3,18 @@
 namespace App\Shell\Auth\Http;
 
 use App\Models\User;
+use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Auth\EligibleAccount;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use Throwable;
 
 final class SessionController
 {
@@ -48,19 +51,40 @@ final class SessionController
 
     public function complete(Request $request, User $user, bool $remember, ?int $expectedVersion = null): void
     {
-        $user->refresh();
-        if ($expectedVersion !== null && $user->auth_version !== $expectedVersion) {
-            throw ValidationException::withMessages(['email' => 'Данные авторизации изменились. Войдите заново.']);
+        // New registration models have not yet loaded the database default (0).
+        $expectedVersion ??= $user->auth_version ?? 0;
+        $loginStarted = false;
+        try {
+            DB::transaction(function () use ($request, $user, $remember, $expectedVersion, &$loginStarted): void {
+                $fresh = User::whereKey($user->id)->lockForUpdate()->first();
+                if (! $fresh || $fresh->auth_version !== $expectedVersion) {
+                    throw ValidationException::withMessages(['email' => 'Данные авторизации изменились. Войдите заново.']);
+                }
+                // Laravel may create a remember token and queue its cookie during login.
+                // Both operations must happen only after the version check under this lock.
+                $loginStarted = true;
+                Auth::login($fresh, $remember);
+                $request->session()->regenerate();
+                $request->session()->forget('auth.mfa_pending');
+                $request->session()->put('auth.version', $fresh->auth_version);
+                app(AuthSessionRegistry::class)->issue($request, $fresh, $expectedVersion);
+            });
+        } catch (Throwable $error) {
+            if ($loginStarted) {
+                Auth::logoutCurrentDevice();
+                $request->session()->invalidate();
+            }
+            throw $error;
         }
-        Auth::login($user, $remember);
-        $request->session()->regenerate();
-        $request->session()->forget('auth.mfa_pending');
-        $request->session()->put('auth.version', $user->auth_version);
     }
 
     public function destroy(Request $request): RedirectResponse
     {
-        Auth::logout();
+        app(AuthSessionRegistry::class)->withinActive($request, function (User $fresh) use ($request): void {
+            app(AuthSessionRegistry::class)->revokeCurrent($request);
+            Auth::guard()->setUser($fresh);
+            Auth::logout();
+        });
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 

@@ -5,6 +5,7 @@ namespace Tests\Feature\Shell\Auth;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\User;
+use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Auth\Http\MfaSettingsController;
 use App\Shell\Auth\Totp;
 use App\Tenancy\TenantContext;
@@ -33,6 +34,10 @@ final class MfaRaceTest extends TestCase
         $user->refresh();
         $this->actingAs($user);
         session()->put('auth.version', $user->auth_version);
+        $request = Request::create('/mfa/test', 'POST');
+        $request->setLaravelSession(app('session.store'));
+        $request->setUserResolver(fn () => $user);
+        app(AuthSessionRegistry::class)->issue($request, $user, $user->auth_version);
 
         return $user;
     }
