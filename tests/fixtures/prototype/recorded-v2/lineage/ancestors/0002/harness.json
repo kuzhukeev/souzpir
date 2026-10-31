@@ -1,0 +1,11 @@
+{
+    "tools/baseline/ContactNormalizer.php": "13085bba8c19fdd9618a4c856c817c78d32617b5c9cc4273b4d513cb619f76fb",
+    "tools/baseline/FixtureClient.php": "64534c82be4c410bf4126fa405a1e23bf56016691fbe9333febbcfda99e9599c",
+    "tools/baseline/RecordedClient.php": "5de3a5784e6156af6dcf6ff617ac5a6e70a4810ec8ed007989937b8fe2b16a65",
+    "tools/baseline/bootstrap.php": "bc959da3680334f9ec4957ba916ac61f55180be73fc8f83cc5192835c4eec036",
+    "tools/baseline/capture-case.php": "03039d7606a8baf9b6ec032f8b86a9eb9ba4469282aba5d096a81f7e6a0a7361",
+    "tools/baseline/capture-scenarios.php": "38c40f3684bbc781858372725df4c821e0da717d20a9ca03f7552596c8f58c86",
+    "tools/baseline/capture.py": "ba5fd017a5df1e789a01a83692718b7be1277915cd279f309ec233b207f7019a",
+    "tools/baseline/capture_broker.py": "eda1ed4c6018b44a964686e0621690516ce19a0816c4ed5978731e5bb8d6ed16",
+    "tools/baseline/verify.py": "99ce46168dd0d04b843aef8292b7b5fcde9fa25a7b05d666f5df44befcdf7e75"
+}

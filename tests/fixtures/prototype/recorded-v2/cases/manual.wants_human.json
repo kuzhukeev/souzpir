@@ -1,0 +1,416 @@
+{
+    "capture": {
+        "byte_identical_persona_inputs": false,
+        "captured_at": "2026-10-31T10:42:10.770578+00:00",
+        "inputs_pseudonymized": true,
+        "method": "live",
+        "provider": "openrouter",
+        "run_id": "capture_20261031T104157_67845ea5",
+        "seed": {
+            "provider_support": "not_requested",
+            "requested": null,
+            "runner": 20261031
+        }
+    },
+    "case_id": "manual.wants_human",
+    "execution": {
+        "input_provenance": "authored_script",
+        "layer": "donor_orchestrator_scripted",
+        "scenario": {
+            "case_id": "manual.wants_human",
+            "inputs": [
+                "Соедините меня с живым менеджером, хочу поговорить с человеком."
+            ]
+        },
+        "scenario_sha256": "630c1bde6bfd4ba301c8dfc732ddbd886166d86ef6019cc37f34d923e907c924"
+    },
+    "kind": "manual",
+    "llm_calls": [
+        {
+            "path": "llm/manual.wants_human/0001.json",
+            "phase": "dialogue",
+            "sequence": 1,
+            "sha256": "d38771379ea7864c8e9ffed07cd23400dfe674efe27ca59f9e78f10cbed9d196"
+        },
+        {
+            "path": "llm/manual.wants_human/0002.json",
+            "phase": "dialogue",
+            "sequence": 2,
+            "sha256": "9b101b319f0924827af82d534e70d3de53ca5f11d54ee47709fe3b6e0a71fe7b"
+        },
+        {
+            "path": "llm/manual.wants_human/0003.json",
+            "phase": "dialogue",
+            "sequence": 3,
+            "sha256": "d0c40c5923c30c8250f6a90be5677d697e29692f0674c3ffc9b98df96a6fa289"
+        }
+    ],
+    "provenance": "recorded",
+    "replay": {
+        "consumed_sequences": [
+            [
+                1,
+                2,
+                3
+            ],
+            [
+                1,
+                2,
+                3
+            ]
+        ],
+        "network_calls": 0,
+        "passes": 2,
+        "run_trace_sha256": [
+            "13c49ef8db10f07870e50c242ea3c8387109a135eefca2fa03737d1ebee16baa",
+            "13c49ef8db10f07870e50c242ea3c8387109a135eefca2fa03737d1ebee16baa"
+        ],
+        "trace_sha256": "13c49ef8db10f07870e50c242ea3c8387109a135eefca2fa03737d1ebee16baa"
+    },
+    "schema_version": 2,
+    "trace": {
+        "final": {
+            "outcome": "handoff",
+            "stage": "handoff",
+            "state": {
+                "client_type": "unknown",
+                "counters": {
+                    "budget_asks": 0,
+                    "closed_topic_streak": 0,
+                    "followups_sent": 0,
+                    "guard_regens": 0,
+                    "negative_streak": 0,
+                    "off_topic_streak": 0,
+                    "turns": 1,
+                    "unclear_streak": 0,
+                    "unknown_facts": 0,
+                    "unknown_insist": 0,
+                    "wants_human_hits": 1
+                },
+                "flags": {
+                    "do_not_disturb": false,
+                    "duplicate_lead": false,
+                    "escalate": true,
+                    "escalate_reason": "Клиент просит живого менеджера",
+                    "introduced": true,
+                    "price_sent": false,
+                    "requisites_sent": false
+                },
+                "missing": [
+                    {
+                        "reason": "no_chance",
+                        "slot": "city",
+                        "suggested_question": "Подскажите, вы из какого города?"
+                    },
+                    {
+                        "reason": "no_chance",
+                        "slot": "purpose",
+                        "suggested_question": "А пиротехникой для себя интересуетесь или на продажу?"
+                    },
+                    {
+                        "reason": "no_chance",
+                        "slot": "experience",
+                        "suggested_question": "Раньше пиротехникой торговали или это первый сезон?"
+                    },
+                    {
+                        "reason": "no_chance",
+                        "slot": "outlet_type",
+                        "suggested_question": "А как планируете торговать — своя точка, аренда, через интернет?"
+                    },
+                    {
+                        "reason": "no_chance",
+                        "slot": "categories",
+                        "suggested_question": "Что в основном интересует — салюты, петарды, мелочь вроде бенгальских и фонтанов, или всё вместе?"
+                    },
+                    {
+                        "reason": "no_chance",
+                        "slot": "budget_range",
+                        "suggested_question": "Плюс-минус на какую сумму смотрите закупку? Это ни к чему не обязывает — просто от суммы скидку в прайсе выставлю."
+                    },
+                    {
+                        "reason": "no_chance",
+                        "slot": "timing",
+                        "suggested_question": "Закупаться планируете сейчас или ближе к сезону?"
+                    },
+                    {
+                        "reason": "no_chance",
+                        "slot": "email",
+                        "suggested_question": "На какую почту прайс отправить?"
+                    },
+                    {
+                        "reason": "no_chance",
+                        "slot": "messenger",
+                        "suggested_question": "И продублирую в мессенджер, чтобы мой контакт у вас был. На этом номере Макс, WhatsApp или Telegram?"
+                    },
+                    {
+                        "reason": "no_chance",
+                        "slot": "next_contact_at",
+                        "suggested_question": "Когда удобно списаться по обратной связи — завтра или в пятницу?"
+                    }
+                ],
+                "outcome": "handoff",
+                "promises": [],
+                "signals": {
+                    "asked_if_bot": false,
+                    "asked_slots": [],
+                    "client_claims": [],
+                    "client_questions": [
+                        "Соедините меня с живым менеджером",
+                        "хочу поговорить с человеком"
+                    ],
+                    "last_client_intent": "want_human",
+                    "last_unknown_topic": null,
+                    "objections": [],
+                    "sentiment": "neutral",
+                    "triggers_used": [],
+                    "wants_only_prices": false
+                },
+                "slots": {
+                    "brands_interest": [],
+                    "budget_range": null,
+                    "categories": [],
+                    "city": null,
+                    "competitor_discount": null,
+                    "current_supplier": null,
+                    "email": null,
+                    "experience": null,
+                    "legal": null,
+                    "messenger": null,
+                    "name": null,
+                    "next_contact_at": null,
+                    "outlet_floor": null,
+                    "outlet_type": null,
+                    "purpose": null,
+                    "timing": null
+                },
+                "stage": "handoff",
+                "summary": null,
+                "unknown_questions": []
+            },
+            "tasks": [
+                {
+                    "due_at": "2026-10-31T08:00:00.000000Z",
+                    "payload": {
+                        "card": "пока ничего не известно\nтип клиента: unknown; стадия: handoff",
+                        "client_claims": [],
+                        "reason": "Клиент просит живого менеджера",
+                        "summary": "Клиент сам попросил соединить с человеком. Данных о типе клиента и потребности пока нет."
+                    },
+                    "priority": "urgent",
+                    "status": "new",
+                    "type": "handoff"
+                }
+            ]
+        },
+        "turns": [
+            {
+                "client": "Соедините меня с живым менеджером, хочу поговорить с человеком.",
+                "meta": {
+                    "cost_usd": 0.013867,
+                    "extraction": {
+                        "asked_if_bot": false,
+                        "client_claims": [],
+                        "client_intent": "want_human",
+                        "client_questions": [
+                            "Соедините меня с живым менеджером",
+                            "хочу поговорить с человеком"
+                        ],
+                        "closed_topic": null,
+                        "confidence": 1,
+                        "do_not_disturb": false,
+                        "objections": [],
+                        "off_topic": false,
+                        "prompt_injection": false,
+                        "refused_slots": [],
+                        "sentiment": "neutral",
+                        "slot_updates": {
+                            "brands_interest": null,
+                            "budget_range": null,
+                            "categories": null,
+                            "city": null,
+                            "competitor_discount": null,
+                            "current_supplier": null,
+                            "email": null,
+                            "experience": null,
+                            "legal": null,
+                            "messenger": null,
+                            "name": null,
+                            "next_contact_at": null,
+                            "outlet_floor": null,
+                            "outlet_type": null,
+                            "purpose": null,
+                            "timing": null
+                        },
+                        "unknown_question": null,
+                        "wants_human": true,
+                        "wants_only_prices": false
+                    },
+                    "goal": {
+                        "allowed_tools": [
+                            "escalate",
+                            "send_price"
+                        ],
+                        "constraints": [],
+                        "extras": {
+                            "message_idea": "конечно, передаю менеджеру — напишет сегодня до конца рабочего дня, если написали вечером — завтра с утра; чтобы не начинать с нуля, передам ему всё, что обсудили",
+                            "reason": "want_human"
+                        },
+                        "facts": [],
+                        "fewshot_tags": [
+                            "handoff"
+                        ],
+                        "instruction": "Сообщить клиенту, что передаёте менеджеру, и когда ждать ответа. Один вопрос не задавать. Вызвать tool escalate.",
+                        "kind": "handoff",
+                        "slot": null,
+                        "trigger": null
+                    },
+                    "guard": {
+                        "issues": [],
+                        "questions": 0,
+                        "verdict": "ok",
+                        "warnings": [],
+                        "words": 37
+                    },
+                    "tool_calls": [
+                        {
+                            "args": {
+                                "reason": "Клиент просит живого менеджера",
+                                "summary": "Клиент сам попросил соединить с человеком. Данных о типе клиента и потребности пока нет."
+                            },
+                            "name": "escalate",
+                            "result": {
+                                "ok": true,
+                                "response_time": "сегодня до конца рабочего дня, если написали вечером — завтра с утра"
+                            }
+                        }
+                    ]
+                },
+                "outcome": "handoff",
+                "reply": "Передал вашу просьбу менеджеру, он свяжется с вами сегодня до конца рабочего дня. Если уже вечер, то завтра с утра. Пока мы с вами почти не успели поговорить, так что ему придётся уточнить детали у вас напрямую.",
+                "stage": "handoff",
+                "state": {
+                    "client_type": "unknown",
+                    "counters": {
+                        "budget_asks": 0,
+                        "closed_topic_streak": 0,
+                        "followups_sent": 0,
+                        "guard_regens": 0,
+                        "negative_streak": 0,
+                        "off_topic_streak": 0,
+                        "turns": 1,
+                        "unclear_streak": 0,
+                        "unknown_facts": 0,
+                        "unknown_insist": 0,
+                        "wants_human_hits": 1
+                    },
+                    "flags": {
+                        "do_not_disturb": false,
+                        "duplicate_lead": false,
+                        "escalate": true,
+                        "escalate_reason": "Клиент просит живого менеджера",
+                        "introduced": true,
+                        "price_sent": false,
+                        "requisites_sent": false
+                    },
+                    "missing": [
+                        {
+                            "reason": "no_chance",
+                            "slot": "city",
+                            "suggested_question": "Подскажите, вы из какого города?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "purpose",
+                            "suggested_question": "А пиротехникой для себя интересуетесь или на продажу?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "experience",
+                            "suggested_question": "Раньше пиротехникой торговали или это первый сезон?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "outlet_type",
+                            "suggested_question": "А как планируете торговать — своя точка, аренда, через интернет?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "categories",
+                            "suggested_question": "Что в основном интересует — салюты, петарды, мелочь вроде бенгальских и фонтанов, или всё вместе?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "budget_range",
+                            "suggested_question": "Плюс-минус на какую сумму смотрите закупку? Это ни к чему не обязывает — просто от суммы скидку в прайсе выставлю."
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "timing",
+                            "suggested_question": "Закупаться планируете сейчас или ближе к сезону?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "email",
+                            "suggested_question": "На какую почту прайс отправить?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "messenger",
+                            "suggested_question": "И продублирую в мессенджер, чтобы мой контакт у вас был. На этом номере Макс, WhatsApp или Telegram?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "next_contact_at",
+                            "suggested_question": "Когда удобно списаться по обратной связи — завтра или в пятницу?"
+                        }
+                    ],
+                    "outcome": "handoff",
+                    "promises": [],
+                    "signals": {
+                        "asked_if_bot": false,
+                        "asked_slots": [],
+                        "client_claims": [],
+                        "client_questions": [
+                            "Соедините меня с живым менеджером",
+                            "хочу поговорить с человеком"
+                        ],
+                        "last_client_intent": "want_human",
+                        "last_unknown_topic": null,
+                        "objections": [],
+                        "sentiment": "neutral",
+                        "triggers_used": [],
+                        "wants_only_prices": false
+                    },
+                    "slots": {
+                        "brands_interest": [],
+                        "budget_range": null,
+                        "categories": [],
+                        "city": null,
+                        "competitor_discount": null,
+                        "current_supplier": null,
+                        "email": null,
+                        "experience": null,
+                        "legal": null,
+                        "messenger": null,
+                        "name": null,
+                        "next_contact_at": null,
+                        "outlet_floor": null,
+                        "outlet_type": null,
+                        "purpose": null,
+                        "timing": null
+                    },
+                    "stage": "handoff",
+                    "summary": null,
+                    "unknown_questions": []
+                }
+            }
+        ]
+    },
+    "versions": {
+        "config_sha256": "d3a054c8662befb4a499584ca6f7134291aacf07013f88ff8b6cf06017947ffa",
+        "harness_sha256": "12c91a39025474b89734acfef7322b539772682e52ba0746668f0a56cacf2d57",
+        "normalization": "contacts-v1",
+        "prompts_sha256": "c3f1a4e64c0ac5336787c85a2373b586e2ebbaa85371fcdce2cceecc65ea0786",
+        "prototype_source_sha256": "ca981cc08d5352c214cad41d6d69a25b3b7b54f0d739344d52b0733e128435b6"
+    }
+}

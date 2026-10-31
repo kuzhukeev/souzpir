@@ -1,0 +1,194 @@
+{
+    "evidence": {
+        "budget": {
+            "call_id": 825,
+            "charged_micros": 545,
+            "reserved_micros": 821983
+        },
+        "captured_at": "2026-10-31T19:00:40.990949+00:00",
+        "case_id": "manual.force_close_14",
+        "http_status": 200,
+        "phase": "dialogue",
+        "pricing": {
+            "context_length": 1048576,
+            "endpoints_sha256": "9ab12d15453302051a72349c9cc6f65ac9d387c29cf5adcd77648622a144c21f",
+            "fetched_at": "2026-10-31T19:00:29.085288+00:00",
+            "max_completion_tokens": 65535,
+            "provider": "google-ai-studio",
+            "provider_names": [
+                "Google AI Studio"
+            ],
+            "rates": {
+                "audio": "0.0000018",
+                "completion": "0.0000045",
+                "discount": "0",
+                "image": "5.4E-7",
+                "input_audio_cache": "1.8E-7",
+                "input_cache_read": "5.4E-8",
+                "input_cache_write": "1.5E-7",
+                "internal_reasoning": "0.0000045",
+                "prompt": "5.4E-7",
+                "web_search": "0.014"
+            }
+        },
+        "provider_model": "google/gemini-2.5-flash",
+        "provider_request_id": "gen-1793473228-C9NWUF5HAHZ0EPgHyE3c",
+        "request_body": {
+            "max_tokens": 300,
+            "messages": [
+                {
+                    "content": "Сожми переписку менеджера по оптовой пиротехнике с клиентом в 3–5 предложений по-русски: что клиент хочет, что уже выяснено, какие возражения, что обещано, о чём договорились. Без оценок и советов. Только текст.\n\nПредыдущее резюме: Клиент не озвучил свои потребности, но менеджер пытался выяснить город клиента для расчёта доставки, цель приобретения пиротехники (для себя или на продажу) и опыт торговли ею. Клиент на все вопросы отвечал только &quot;Понял&quot;. В итоге менеджер предложил клиенту написать, когда понадобится прайс или расчёт, пообещав всё подготовить.\n",
+                    "role": "system"
+                },
+                {
+                    "content": "Клиент: Понял.\nМенеджер: Тогда последнее, и больше не пристаю. Если речь про продажу, что за точка: павильон, ТЦ (и какой этаж), жилой дом, интернет или с машины? От этого зависит, что по пожарке можно ставить.\nКлиент: Понял.\nМенеджер: Хорошо, спрошу совсем коротко. Где собираетесь продавать: в павильоне, в торговом центре или через интернет? Можно ответить одной буквой: П, Т или И.\nКлиент: Понял.\nМенеджер: Хорошо, зайду совсем просто. Что в основном интересует: салюты, петарды, мелочь вроде фонтанов и бенгальских или всё вместе?\nКлиент: Понял.\nМенеджер: Вижу, что «Понял» у нас получается лучше всего, и это нормально. Давайте проще: ответьте цифрой. Один, если салюты, два, если петарды, три, если мелочь вроде фонтанов, четыре, если всё сразу. Что выберете?\nКлиент: Понял.\nМенеджер: Ладно, вижу, что вопросы пока не заходят. Тогда один последний, про сумму: плюс-минус на сколько смотрите закупку? Это ни к чему не обязывает, просто от суммы я в прайсе скидку выставлю. Если неудобно отвечать, напишите «позже», и я не буду беспокоить.\nКлиент: Понял.\nМенеджер: Хорошо, тогда вилку подскажу сам, так проще: 50, 100 или 200 тысяч, что ближе? Это только чтобы понять, какую скидку заложить, ни к чему не обязывает. Если не то, просто не отвечайте, и я больше эту тему поднимать не буду.",
+                    "role": "user"
+                }
+            ],
+            "model": "google/gemini-2.5-flash",
+            "plugins": [],
+            "provider": {
+                "allow_fallbacks": false,
+                "max_price": {
+                    "completion": 4.5,
+                    "prompt": 0.54,
+                    "request": 0.0
+                },
+                "only": [
+                    "google-ai-studio"
+                ],
+                "order": [
+                    "google-ai-studio"
+                ],
+                "require_parameters": false
+            },
+            "reasoning": {
+                "effort": "low"
+            },
+            "stream": false,
+            "temperature": 0.2,
+            "usage": {
+                "include": true
+            }
+        },
+        "request_body_sha256": "961696540461066bb54d798d2fd894a0293ccdc085d6ad86668a059ce0974090",
+        "run_id": "capture_20261031T104157_67845ea5",
+        "seed_requested": null,
+        "sequence": 26,
+        "usage": {
+            "completion_tokens": 149,
+            "cost_usd": "0.0005444",
+            "prompt_tokens": 573,
+            "total_tokens": 722
+        }
+    },
+    "provenance": "recorded",
+    "provider": "openrouter",
+    "request": {
+        "messages": [
+            {
+                "content": "Сожми переписку менеджера по оптовой пиротехнике с клиентом в 3–5 предложений по-русски: что клиент хочет, что уже выяснено, какие возражения, что обещано, о чём договорились. Без оценок и советов. Только текст.\n\nПредыдущее резюме: Клиент не озвучил свои потребности, но менеджер пытался выяснить город клиента для расчёта доставки, цель приобретения пиротехники (для себя или на продажу) и опыт торговли ею. Клиент на все вопросы отвечал только &quot;Понял&quot;. В итоге менеджер предложил клиенту написать, когда понадобится прайс или расчёт, пообещав всё подготовить.\n",
+                "role": "system"
+            },
+            {
+                "content": "Клиент: Понял.\nМенеджер: Тогда последнее, и больше не пристаю. Если речь про продажу, что за точка: павильон, ТЦ (и какой этаж), жилой дом, интернет или с машины? От этого зависит, что по пожарке можно ставить.\nКлиент: Понял.\nМенеджер: Хорошо, спрошу совсем коротко. Где собираетесь продавать: в павильоне, в торговом центре или через интернет? Можно ответить одной буквой: П, Т или И.\nКлиент: Понял.\nМенеджер: Хорошо, зайду совсем просто. Что в основном интересует: салюты, петарды, мелочь вроде фонтанов и бенгальских или всё вместе?\nКлиент: Понял.\nМенеджер: Вижу, что «Понял» у нас получается лучше всего, и это нормально. Давайте проще: ответьте цифрой. Один, если салюты, два, если петарды, три, если мелочь вроде фонтанов, четыре, если всё сразу. Что выберете?\nКлиент: Понял.\nМенеджер: Ладно, вижу, что вопросы пока не заходят. Тогда один последний, про сумму: плюс-минус на сколько смотрите закупку? Это ни к чему не обязывает, просто от суммы я в прайсе скидку выставлю. Если неудобно отвечать, напишите «позже», и я не буду беспокоить.\nКлиент: Понял.\nМенеджер: Хорошо, тогда вилку подскажу сам, так проще: 50, 100 или 200 тысяч, что ближе? Это только чтобы понять, какую скидку заложить, ни к чему не обязывает. Если не то, просто не отвечайте, и я больше эту тему поднимать не буду.",
+                "role": "user"
+            }
+        ],
+        "options": {
+            "component": "summary",
+            "max_tokens": 300,
+            "model": "google/gemini-2.5-flash",
+            "temperature": 0.2,
+            "tools_called": []
+        }
+    },
+    "request_sha256": "6b9a0efbe6c9ccbb892a42826ced6fc6077fd3c6b48b933a68356f15f6d5a01f",
+    "response": {
+        "content": "Клиент продолжает отвечать «Понял» на все вопросы менеджера. Менеджер безуспешно пытался выяснить тип торговой точки клиента (павильон, ТЦ, интернет), интересующие категории пиротехники (салюты, петарды, мелочь или всё вместе) и ориентировочную сумму закупки для расчёта скидки. Клиент не озвучил ни одной своей потребности или предпочтения. Менеджер предложил клиенту выбрать вилку суммы закупки, но ответа не получил.",
+        "costUsd": 0.0005444,
+        "error": null,
+        "latencyMs": 0,
+        "model": "google/gemini-2.5-flash",
+        "raw": {
+            "choices": [
+                {
+                    "finish_reason": "stop",
+                    "index": 0,
+                    "logprobs": null,
+                    "message": {
+                        "content": "Клиент продолжает отвечать «Понял» на все вопросы менеджера. Менеджер безуспешно пытался выяснить тип торговой точки клиента (павильон, ТЦ, интернет), интересующие категории пиротехники (салюты, петарды, мелочь или всё вместе) и ориентировочную сумму закупки для расчёта скидки. Клиент не озвучил ни одной своей потребности или предпочтения. Менеджер предложил клиенту выбрать вилку суммы закупки, но ответа не получил.",
+                        "reasoning": "**Defining Client Needs**\n\nI'm focused on extracting the core requests from the client. My immediate goal is to pinpoint exactly what the client desires, filtering for already-confirmed elements to identify what remains unclear. This will establish a clear understanding of the client's needs, forming the basis for further analysis.\n\n\n",
+                        "reasoning_details": [
+                            {
+                                "format": "google-gemini-v1",
+                                "index": 0,
+                                "text": "**Defining Client Needs**\n\nI'm focused on extracting the core requests from the client. My immediate goal is to pinpoint exactly what the client desires, filtering for already-confirmed elements to identify what remains unclear. This will establish a clear understanding of the client's needs, forming the basis for further analysis.\n\n\n",
+                                "type": "reasoning.text"
+                            }
+                        ],
+                        "refusal": null,
+                        "role": "assistant"
+                    },
+                    "native_finish_reason": "STOP"
+                }
+            ],
+            "created": 1793473228,
+            "id": "gen-1793473228-C9NWUF5HAHZ0EPgHyE3c",
+            "model": "google/gemini-2.5-flash",
+            "object": "chat.completion",
+            "provider": "Google AI Studio",
+            "service_tier": "default",
+            "system_fingerprint": null,
+            "usage": {
+                "completion_tokens": 149,
+                "completion_tokens_details": {
+                    "audio_tokens": 0,
+                    "image_tokens": 0,
+                    "reasoning_tokens": 39
+                },
+                "cost": 0.0005444,
+                "cost_details": {
+                    "upstream_inference_completions_cost": 0.0003725,
+                    "upstream_inference_cost": 0.0005444,
+                    "upstream_inference_prompt_cost": 0.0001719
+                },
+                "is_byok": false,
+                "prompt_tokens": 573,
+                "prompt_tokens_details": {
+                    "audio_tokens": 0,
+                    "cache_write_tokens": 0,
+                    "cached_tokens": 0,
+                    "video_tokens": 0
+                },
+                "total_tokens": 722
+            }
+        },
+        "toolCalls": [],
+        "usage": {
+            "completion_tokens": 149,
+            "completion_tokens_details": {
+                "audio_tokens": 0,
+                "image_tokens": 0,
+                "reasoning_tokens": 39
+            },
+            "cost": 0.0005444,
+            "cost_details": {
+                "upstream_inference_completions_cost": 0.0003725,
+                "upstream_inference_cost": 0.0005444,
+                "upstream_inference_prompt_cost": 0.0001719
+            },
+            "is_byok": false,
+            "prompt_tokens": 573,
+            "prompt_tokens_details": {
+                "audio_tokens": 0,
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "video_tokens": 0
+            },
+            "total_tokens": 722
+        }
+    },
+    "response_sha256": "db22462a481f282e3581b172289651d3aca5ef34fe972558c15875d07064b87d",
+    "schema_version": 1
+}

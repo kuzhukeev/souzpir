@@ -1,0 +1,2069 @@
+{
+    "capture": {
+        "byte_identical_persona_inputs": false,
+        "captured_at": "2026-10-31T10:42:10.770578+00:00",
+        "inputs_pseudonymized": true,
+        "method": "import",
+        "provider": "openrouter",
+        "run_id": "capture_20261031T104157_67845ea5",
+        "seed": {
+            "provider_support": "not_requested",
+            "requested": null,
+            "runner": 20261031
+        }
+    },
+    "case_id": "persona.car_seller",
+    "execution": {
+        "input_provenance": "donor_persona",
+        "layer": "donor_orchestrator_persona",
+        "scenario": {
+            "case_id": "persona.car_seller",
+            "max_turns": 10,
+            "persona": {
+                "behavior": "Торгует с машины у рынка, спрашивает, не будет ли проблем и какая минималка. Почту не даст — только WhatsApp.",
+                "expect": [
+                    "no_legal_advice_argument",
+                    "min_order_approx",
+                    "partial_contact"
+                ],
+                "facts": {
+                    "budget": "40 тысяч",
+                    "city": "Волгоград",
+                    "experience": "один сезон",
+                    "messenger": "WhatsApp",
+                    "outlet_type": "с машины",
+                    "purpose": "на продажу"
+                },
+                "id": "car_seller",
+                "max_turns": 10,
+                "name": "Торговля с машины",
+                "type": "newbie"
+            }
+        },
+        "scenario_sha256": "d0e075bf3b6bb9b92f2028eec40404698116503e77528efccffd5abdc4006257"
+    },
+    "kind": "persona",
+    "llm_calls": [
+        {
+            "path": "llm/persona.car_seller/0001.json",
+            "phase": "dialogue",
+            "sequence": 1,
+            "sha256": "008a2d5490766724ccbdc76be971da3ab89f96bbdef973e21e3c52446269164c"
+        },
+        {
+            "path": "llm/persona.car_seller/0002.json",
+            "phase": "dialogue",
+            "sequence": 2,
+            "sha256": "a4e757a4d9123b56bc20181a808d99e7f0890389557d4a4cd7f381ef29adc933"
+        },
+        {
+            "path": "llm/persona.car_seller/0003.json",
+            "phase": "dialogue",
+            "sequence": 3,
+            "sha256": "02e55443b06488f32d40aa651b71f12eff88c27be6acd921c6c8bcc883de4fd3"
+        },
+        {
+            "path": "llm/persona.car_seller/0004.json",
+            "phase": "dialogue",
+            "sequence": 4,
+            "sha256": "5eb351b47bd1e1add657227b6119c31a01cecbf63c524ae341edfa7dddd57935"
+        },
+        {
+            "path": "llm/persona.car_seller/0005.json",
+            "phase": "dialogue",
+            "sequence": 5,
+            "sha256": "66aa21dec8a89919239352bb7119d81d2c0df86a9f668fc725534e443428e729"
+        },
+        {
+            "path": "llm/persona.car_seller/0006.json",
+            "phase": "dialogue",
+            "sequence": 6,
+            "sha256": "305c4db0848f27f5fd62bbefc8ef98859380020b7cb37c505bb3c140c641b14b"
+        },
+        {
+            "path": "llm/persona.car_seller/0007.json",
+            "phase": "dialogue",
+            "sequence": 7,
+            "sha256": "59b6c089e9842b73a977e39d509be0318234a16d95746df95adbd8a564b9d8fe"
+        },
+        {
+            "path": "llm/persona.car_seller/0008.json",
+            "phase": "dialogue",
+            "sequence": 8,
+            "sha256": "ac73aa9967eeaa179565c2f7992a6706a3a3898542b2ace6d3625b030cce1436"
+        },
+        {
+            "path": "llm/persona.car_seller/0009.json",
+            "phase": "dialogue",
+            "sequence": 9,
+            "sha256": "340e9a4aab91a1cb5c4f6b9f96683a373b08094811c79a03450c10744c0dabba"
+        },
+        {
+            "path": "llm/persona.car_seller/0010.json",
+            "phase": "dialogue",
+            "sequence": 10,
+            "sha256": "594fbd15fb6280a85c0031441658b2763a4a2e09b981088b1cc9524fca98963a"
+        },
+        {
+            "path": "llm/persona.car_seller/0011.json",
+            "phase": "dialogue",
+            "sequence": 11,
+            "sha256": "714527a21b698c89fc0cf7ad690294f140a5ffaa0adcef13c94c9a3f11f543e4"
+        },
+        {
+            "path": "llm/persona.car_seller/0012.json",
+            "phase": "dialogue",
+            "sequence": 12,
+            "sha256": "7f6b1fc6dc78f3114d33d948a0eb899e280d02649a31954e5047ff42ba42e52b"
+        },
+        {
+            "path": "llm/persona.car_seller/0013.json",
+            "phase": "dialogue",
+            "sequence": 13,
+            "sha256": "8253c65901c4ddb0db25dfc0e5576a1a00dac9e88f100fa389d3b97f8e8782c9"
+        },
+        {
+            "path": "llm/persona.car_seller/0014.json",
+            "phase": "dialogue",
+            "sequence": 14,
+            "sha256": "5a7456ab4061fb260d8e61674c03538ab2a6692d69029dab873f8fd60a46f667"
+        },
+        {
+            "path": "llm/persona.car_seller/0015.json",
+            "phase": "dialogue",
+            "sequence": 15,
+            "sha256": "a5b67a7b6c940cb3d491f0dfae859663521354bafc11236d1cb1af03752a2abe"
+        },
+        {
+            "path": "llm/persona.car_seller/0016.json",
+            "phase": "dialogue",
+            "sequence": 16,
+            "sha256": "e07825eb4da0bc339f40d1c39f1c1a2da1ca7707e7fedab8d24968f71ece226b"
+        },
+        {
+            "path": "llm/persona.car_seller/0017.json",
+            "phase": "dialogue",
+            "sequence": 17,
+            "sha256": "cfaf5519cf1f781c124438c287c345f56ddd78f2765e458431c3d5c811111bf4"
+        },
+        {
+            "path": "llm/persona.car_seller/0018.json",
+            "phase": "dialogue",
+            "sequence": 18,
+            "sha256": "c10106b55e14b466b91bbc959e9c87c8d267ed3cccdfcc5f0c88fa673550639d"
+        },
+        {
+            "path": "llm/persona.car_seller/0019.json",
+            "phase": "dialogue",
+            "sequence": 19,
+            "sha256": "9a76c3c751aa54163d1a5123e7eba30bf5f892fd7b87079cc44098b3fa35dd65"
+        },
+        {
+            "path": "llm/persona.car_seller/0020.json",
+            "phase": "dialogue",
+            "sequence": 20,
+            "sha256": "7be5f7df153e4efea6cb1458ce365d8768b31fc23473cff25c37dc5f11925bf5"
+        },
+        {
+            "path": "llm/persona.car_seller/0021.json",
+            "phase": "dialogue",
+            "sequence": 21,
+            "sha256": "5176a7fc1f89e11e7b2c4383af90a005898166a9560fb6425c18680e240fc75c"
+        },
+        {
+            "path": "llm/persona.car_seller/0022.json",
+            "phase": "dialogue",
+            "sequence": 22,
+            "sha256": "1d388a61f6822b6d2e430c082cef7c2540b23726838da5ea4298d34f6d0e1288"
+        },
+        {
+            "path": "llm/persona.car_seller/0023.json",
+            "phase": "dialogue",
+            "sequence": 23,
+            "sha256": "c8e051f761e332bce66f5281a8f323573689cda23c84145f368a27aedc31ff10"
+        },
+        {
+            "path": "llm/persona.car_seller/0024.json",
+            "phase": "dialogue",
+            "sequence": 24,
+            "sha256": "6509e1586e5b4d87dd0d95f2497a4f135683a211a6c6298f5146240258212388"
+        },
+        {
+            "path": "llm/persona.car_seller/0025.json",
+            "phase": "dialogue",
+            "sequence": 25,
+            "sha256": "8c3f67c0655e3c45b297000fe1d54f100e9eb903cd4ee1045476b56a53d89359"
+        },
+        {
+            "path": "llm/persona.car_seller/0026.json",
+            "phase": "dialogue",
+            "sequence": 26,
+            "sha256": "5fc055c8b65c93bbcd22ea13e25b459a31fe654a4762f3f16635a210642bfd23"
+        },
+        {
+            "path": "llm/persona.car_seller/0027.json",
+            "phase": "dialogue",
+            "sequence": 27,
+            "sha256": "8f18935c4600a3ade8894c232ebde546a8241abd9d1f83b0b0196bec89117bb4"
+        },
+        {
+            "path": "llm/persona.car_seller/0028.json",
+            "phase": "dialogue",
+            "sequence": 28,
+            "sha256": "e0b2d20cdf671c4becf9fcb733dcab111ec6056347947089669f000f4370417c"
+        },
+        {
+            "path": "llm/persona.car_seller/0029.json",
+            "phase": "dialogue",
+            "sequence": 29,
+            "sha256": "7a8ef6f053ca35b5d8bf6be6fdddb33fce5fb52592c73f6063d428d29aca81f4"
+        }
+    ],
+    "provenance": "recorded",
+    "replay": {
+        "consumed_sequences": [
+            [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+                12,
+                13,
+                14,
+                15,
+                16,
+                17,
+                18,
+                19,
+                20,
+                21,
+                22,
+                23,
+                24,
+                25,
+                26,
+                27,
+                28,
+                29
+            ],
+            [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+                12,
+                13,
+                14,
+                15,
+                16,
+                17,
+                18,
+                19,
+                20,
+                21,
+                22,
+                23,
+                24,
+                25,
+                26,
+                27,
+                28,
+                29
+            ]
+        ],
+        "network_calls": 0,
+        "passes": 2,
+        "run_trace_sha256": [
+            "56dc89793a8c4b8bbf3e4f0fd4c157dbd15f503c0cc77a4ae07a6443dc0330d9",
+            "56dc89793a8c4b8bbf3e4f0fd4c157dbd15f503c0cc77a4ae07a6443dc0330d9"
+        ],
+        "trace_sha256": "56dc89793a8c4b8bbf3e4f0fd4c157dbd15f503c0cc77a4ae07a6443dc0330d9"
+    },
+    "schema_version": 2,
+    "trace": {
+        "final": {
+            "outcome": "full_contact",
+            "stage": "followup",
+            "state": {
+                "client_type": "newbie",
+                "counters": {
+                    "budget_asks": 0,
+                    "closed_topic_streak": 0,
+                    "followups_sent": 0,
+                    "guard_regens": 0,
+                    "negative_streak": 0,
+                    "off_topic_streak": 0,
+                    "turns": 8,
+                    "unclear_streak": 0,
+                    "unknown_facts": 0,
+                    "unknown_insist": 0
+                },
+                "flags": {
+                    "do_not_disturb": false,
+                    "duplicate_lead": false,
+                    "escalate": false,
+                    "escalate_reason": null,
+                    "introduced": true,
+                    "price_sent": true,
+                    "requisites_sent": false
+                },
+                "missing": [
+                    {
+                        "reason": "declined",
+                        "slot": "email",
+                        "suggested_question": "На какую почту прайс отправить?"
+                    }
+                ],
+                "outcome": "full_contact",
+                "promises": [],
+                "signals": {
+                    "asked_counts": {
+                        "categories": 1,
+                        "city": 1,
+                        "email": 1,
+                        "experience": 1,
+                        "next_contact_at": 1,
+                        "purpose": 1,
+                        "timing": 1
+                    },
+                    "asked_if_bot": false,
+                    "asked_slots": [
+                        "city",
+                        "purpose",
+                        "experience",
+                        "categories",
+                        "timing",
+                        "email",
+                        "next_contact_at"
+                    ],
+                    "client_claims": [],
+                    "client_questions": [],
+                    "experience_old": true,
+                    "last_asked_slot": "next_contact_at",
+                    "last_client_intent": "small_talk",
+                    "last_trigger_turn": 3,
+                    "last_unknown_topic": null,
+                    "objections": [],
+                    "prev_intent": "small_talk",
+                    "refused_slots": {
+                        "email": true
+                    },
+                    "sentiment": "positive",
+                    "triggers_used": {
+                        "not_tied_to_volume": 1
+                    },
+                    "wants_only_prices": false
+                },
+                "slots": {
+                    "brands_interest": [],
+                    "budget_range": "до 50 тыс.",
+                    "categories": [
+                        "салюты",
+                        "петарды",
+                        "мелочь"
+                    ],
+                    "city": "Волгоград",
+                    "competitor_discount": null,
+                    "current_supplier": null,
+                    "email": null,
+                    "experience": "нет",
+                    "legal": "ИП",
+                    "messenger": "WhatsApp",
+                    "name": null,
+                    "next_contact_at": "в пятницу",
+                    "outlet_floor": null,
+                    "outlet_type": "с машины",
+                    "purpose": "на продажу",
+                    "timing": "ближе к сезону"
+                },
+                "stage": "followup",
+                "summary": "Клиент из Волгограда планирует начать торговлю бытовой пиротехникой с машины у рынка, с бюджетом около 40 тысяч рублей, делая упор на салюты и петарды. Менеджер подтвердил, что минимальная партия от 15-20 тысяч, и для торговли не нужна лицензия на пиротехнику 1-3 класса, но рекомендовал уточнить условия с администрацией рынка. Клиент отказался давать почту, и менеджер отправил прайс-лист в WhatsApp, предложив обсудить его завтра или в пятницу.",
+                "unknown_questions": []
+            },
+            "tasks": [
+                {
+                    "due_at": null,
+                    "payload": {
+                        "email": null,
+                        "messenger": "WhatsApp",
+                        "pricelists": [
+                            "общий"
+                        ],
+                        "template": "price_email"
+                    },
+                    "priority": "normal",
+                    "status": "new",
+                    "type": "send_price"
+                },
+                {
+                    "due_at": "2026-11-06T11:00:00.000000Z",
+                    "payload": {
+                        "raw": "в пятницу",
+                        "reason": "Обратная связь по прайсу, который отправлен в WhatsApp"
+                    },
+                    "priority": "normal",
+                    "status": "new",
+                    "type": "followup"
+                }
+            ]
+        },
+        "turns": [
+            {
+                "client": null,
+                "meta": {
+                    "cost_usd": 0.007628,
+                    "goal": {
+                        "allowed_tools": [
+                            "mark_do_not_disturb",
+                            "create_promise",
+                            "log_unknown_question",
+                            "send_requisites",
+                            "check_stock",
+                            "calc_delivery"
+                        ],
+                        "constraints": [],
+                        "extras": [],
+                        "facts": [],
+                        "fewshot_tags": [
+                            "open_greeting",
+                            "ask_city"
+                        ],
+                        "instruction": "Поздороваться, представиться именем и компанией, сослаться на заявку, при необходимости коротко ответить на вопрос и задать ровно один вопрос по слоту.",
+                        "kind": "intro_and_ask",
+                        "slot": "city",
+                        "trigger": null
+                    },
+                    "guard": {
+                        "issues": [],
+                        "questions": 1,
+                        "verdict": "ok",
+                        "warnings": [],
+                        "words": 29
+                    },
+                    "tool_calls": []
+                },
+                "outcome": null,
+                "reply": "Добрый день. Антон, компания «Союз Пир», оптовая пиротехника. Увидел вашу заявку на прайс, сейчас уточню пару моментов и отправлю. Чтобы сразу сориентировать по доставке, подскажите, вы из какого города?",
+                "stage": "qualify",
+                "state": {
+                    "client_type": "unknown",
+                    "counters": {
+                        "budget_asks": 0,
+                        "closed_topic_streak": 0,
+                        "followups_sent": 0,
+                        "guard_regens": 0,
+                        "negative_streak": 0,
+                        "off_topic_streak": 0,
+                        "turns": 0,
+                        "unclear_streak": 0,
+                        "unknown_facts": 0,
+                        "unknown_insist": 0
+                    },
+                    "flags": {
+                        "do_not_disturb": false,
+                        "duplicate_lead": false,
+                        "escalate": false,
+                        "escalate_reason": null,
+                        "introduced": true,
+                        "price_sent": false,
+                        "requisites_sent": false
+                    },
+                    "missing": [
+                        {
+                            "reason": "no_chance",
+                            "slot": "city",
+                            "suggested_question": "Подскажите, вы из какого города?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "purpose",
+                            "suggested_question": "А пиротехникой для себя интересуетесь или на продажу?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "experience",
+                            "suggested_question": "Раньше пиротехникой торговали или это первый сезон?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "outlet_type",
+                            "suggested_question": "А как планируете торговать — своя точка, аренда, через интернет?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "categories",
+                            "suggested_question": "Что в основном интересует — салюты, петарды, мелочь вроде бенгальских и фонтанов, или всё вместе?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "budget_range",
+                            "suggested_question": "Плюс-минус на какую сумму смотрите закупку? Это ни к чему не обязывает — просто от суммы скидку в прайсе выставлю."
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "timing",
+                            "suggested_question": "Закупаться планируете сейчас или ближе к сезону?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "email",
+                            "suggested_question": "На какую почту прайс отправить?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "messenger",
+                            "suggested_question": "И продублирую в мессенджер, чтобы мой контакт у вас был. На этом номере Макс, WhatsApp или Telegram?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "next_contact_at",
+                            "suggested_question": "Когда удобно списаться по обратной связи — завтра или в пятницу?"
+                        }
+                    ],
+                    "outcome": null,
+                    "promises": [],
+                    "signals": {
+                        "asked_counts": {
+                            "city": 1
+                        },
+                        "asked_if_bot": false,
+                        "asked_slots": [
+                            "city"
+                        ],
+                        "client_claims": [],
+                        "client_questions": [],
+                        "last_asked_slot": "city",
+                        "last_client_intent": null,
+                        "last_unknown_topic": null,
+                        "objections": [],
+                        "prev_intent": "answer_only",
+                        "sentiment": "neutral",
+                        "triggers_used": [],
+                        "wants_only_prices": false
+                    },
+                    "slots": {
+                        "brands_interest": [],
+                        "budget_range": null,
+                        "categories": [],
+                        "city": null,
+                        "competitor_discount": null,
+                        "current_supplier": null,
+                        "email": null,
+                        "experience": null,
+                        "legal": null,
+                        "messenger": null,
+                        "name": null,
+                        "next_contact_at": null,
+                        "outlet_floor": null,
+                        "outlet_type": null,
+                        "purpose": null,
+                        "timing": null
+                    },
+                    "stage": "qualify",
+                    "summary": null,
+                    "unknown_questions": []
+                }
+            },
+            {
+                "client": "Здравствуйте. Я из Волгограда, торгую с машины у рынка.",
+                "meta": {
+                    "cost_usd": 0.008626,
+                    "extraction": {
+                        "asked_if_bot": false,
+                        "client_claims": [],
+                        "client_intent": "answer_only",
+                        "client_questions": [],
+                        "closed_topic": null,
+                        "confidence": 1,
+                        "do_not_disturb": false,
+                        "objections": [],
+                        "off_topic": false,
+                        "prompt_injection": false,
+                        "refused_slots": [],
+                        "sentiment": "neutral",
+                        "slot_updates": {
+                            "brands_interest": null,
+                            "budget_range": null,
+                            "categories": null,
+                            "city": "Волгоград",
+                            "competitor_discount": null,
+                            "current_supplier": null,
+                            "email": null,
+                            "experience": null,
+                            "legal": null,
+                            "messenger": null,
+                            "name": null,
+                            "next_contact_at": null,
+                            "outlet_floor": null,
+                            "outlet_type": "с машины",
+                            "purpose": null,
+                            "timing": null
+                        },
+                        "unknown_question": null,
+                        "wants_human": false,
+                        "wants_only_prices": false
+                    },
+                    "goal": {
+                        "allowed_tools": [
+                            "mark_do_not_disturb",
+                            "create_promise",
+                            "log_unknown_question",
+                            "send_requisites",
+                            "check_stock",
+                            "calc_delivery"
+                        ],
+                        "constraints": [],
+                        "extras": [],
+                        "facts": [],
+                        "fewshot_tags": [
+                            "ask_purpose"
+                        ],
+                        "instruction": "Коротко отреагировать на слова клиента (одна фраза), затем ровно один вопрос по слоту.",
+                        "kind": "ask_slot",
+                        "slot": "purpose",
+                        "trigger": null
+                    },
+                    "guard": {
+                        "issues": [],
+                        "questions": 1,
+                        "verdict": "ok",
+                        "warnings": [],
+                        "words": 23
+                    },
+                    "tool_calls": []
+                },
+                "outcome": null,
+                "reply": "Волгоград понял, с машины у рынка тоже вариант, такие точки у нас берут. Скажите, а пиротехнику вы берёте на продажу или для себя?",
+                "stage": "qualify",
+                "state": {
+                    "client_type": "unknown",
+                    "counters": {
+                        "budget_asks": 0,
+                        "closed_topic_streak": 0,
+                        "followups_sent": 0,
+                        "guard_regens": 0,
+                        "negative_streak": 0,
+                        "off_topic_streak": 0,
+                        "turns": 1,
+                        "unclear_streak": 0,
+                        "unknown_facts": 0,
+                        "unknown_insist": 0
+                    },
+                    "flags": {
+                        "do_not_disturb": false,
+                        "duplicate_lead": false,
+                        "escalate": false,
+                        "escalate_reason": null,
+                        "introduced": true,
+                        "price_sent": false,
+                        "requisites_sent": false
+                    },
+                    "missing": [
+                        {
+                            "reason": "no_chance",
+                            "slot": "purpose",
+                            "suggested_question": "А пиротехникой для себя интересуетесь или на продажу?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "experience",
+                            "suggested_question": "Раньше пиротехникой торговали или это первый сезон?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "categories",
+                            "suggested_question": "Что в основном интересует — салюты, петарды, мелочь вроде бенгальских и фонтанов, или всё вместе?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "budget_range",
+                            "suggested_question": "Плюс-минус на какую сумму смотрите закупку? Это ни к чему не обязывает — просто от суммы скидку в прайсе выставлю."
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "timing",
+                            "suggested_question": "Закупаться планируете сейчас или ближе к сезону?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "email",
+                            "suggested_question": "На какую почту прайс отправить?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "messenger",
+                            "suggested_question": "И продублирую в мессенджер, чтобы мой контакт у вас был. На этом номере Макс, WhatsApp или Telegram?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "next_contact_at",
+                            "suggested_question": "Когда удобно списаться по обратной связи — завтра или в пятницу?"
+                        }
+                    ],
+                    "outcome": null,
+                    "promises": [],
+                    "signals": {
+                        "asked_counts": {
+                            "city": 1,
+                            "purpose": 1
+                        },
+                        "asked_if_bot": false,
+                        "asked_slots": [
+                            "city",
+                            "purpose"
+                        ],
+                        "client_claims": [],
+                        "client_questions": [],
+                        "last_asked_slot": "purpose",
+                        "last_client_intent": "answer_only",
+                        "last_unknown_topic": null,
+                        "objections": [],
+                        "prev_intent": "answer_only",
+                        "sentiment": "neutral",
+                        "triggers_used": [],
+                        "wants_only_prices": false
+                    },
+                    "slots": {
+                        "brands_interest": [],
+                        "budget_range": null,
+                        "categories": [],
+                        "city": "Волгоград",
+                        "competitor_discount": null,
+                        "current_supplier": null,
+                        "email": null,
+                        "experience": null,
+                        "legal": null,
+                        "messenger": null,
+                        "name": null,
+                        "next_contact_at": null,
+                        "outlet_floor": null,
+                        "outlet_type": "с машины",
+                        "purpose": null,
+                        "timing": null
+                    },
+                    "stage": "qualify",
+                    "summary": null,
+                    "unknown_questions": []
+                }
+            },
+            {
+                "client": "На продажу, торгую с машины. Подскажите, а какая минимальная партия вообще нужна, и не будет ли проблем с продажей у рынка?",
+                "meta": {
+                    "cost_usd": 0.010126,
+                    "extraction": {
+                        "asked_if_bot": false,
+                        "client_claims": [],
+                        "client_intent": "ask_min_order",
+                        "client_questions": [
+                            "какая минимальная партия вообще нужна",
+                            "не будет ли проблем с продажей у рынка"
+                        ],
+                        "closed_topic": null,
+                        "confidence": 1,
+                        "do_not_disturb": false,
+                        "objections": [],
+                        "off_topic": false,
+                        "prompt_injection": false,
+                        "refused_slots": [],
+                        "sentiment": "neutral",
+                        "slot_updates": {
+                            "brands_interest": null,
+                            "budget_range": null,
+                            "categories": null,
+                            "city": null,
+                            "competitor_discount": null,
+                            "current_supplier": null,
+                            "email": null,
+                            "experience": null,
+                            "legal": null,
+                            "messenger": null,
+                            "name": null,
+                            "next_contact_at": null,
+                            "outlet_floor": null,
+                            "outlet_type": "с машины",
+                            "purpose": "на продажу",
+                            "timing": null
+                        },
+                        "unknown_question": null,
+                        "wants_human": false,
+                        "wants_only_prices": false
+                    },
+                    "goal": {
+                        "allowed_tools": [
+                            "mark_do_not_disturb",
+                            "create_promise",
+                            "log_unknown_question",
+                            "send_requisites",
+                            "check_stock",
+                            "calc_delivery"
+                        ],
+                        "constraints": [
+                            "нельзя: называть другую минималку"
+                        ],
+                        "extras": [],
+                        "facts": [
+                            "min_order"
+                        ],
+                        "fewshot_tags": [
+                            "ask_experience"
+                        ],
+                        "instruction": "Ответить на вопрос клиента своими словами из фактов (одна-две мысли), затем мостик и ровно один вопрос по слоту.",
+                        "kind": "answer_and_ask",
+                        "slot": "experience",
+                        "trigger": null
+                    },
+                    "guard": {
+                        "issues": [],
+                        "questions": 1,
+                        "verdict": "ok",
+                        "warnings": [],
+                        "words": 46
+                    },
+                    "tool_calls": []
+                },
+                "outcome": null,
+                "reply": "Опт у нас обычно начинается от 20 тысяч, не в сезон примерно от 15. К объёму не привязываем: потом можно дозаказать хоть на 10 тысяч, скидка останется. По вопросу, можно ли торговать у рынка, лучше смотреть с администрацией рынка. Раньше пиротехникой торговали или это первый сезон?",
+                "stage": "budget",
+                "state": {
+                    "client_type": "unknown",
+                    "counters": {
+                        "budget_asks": 0,
+                        "closed_topic_streak": 0,
+                        "followups_sent": 0,
+                        "guard_regens": 0,
+                        "negative_streak": 0,
+                        "off_topic_streak": 0,
+                        "turns": 2,
+                        "unclear_streak": 0,
+                        "unknown_facts": 0,
+                        "unknown_insist": 0
+                    },
+                    "flags": {
+                        "do_not_disturb": false,
+                        "duplicate_lead": false,
+                        "escalate": false,
+                        "escalate_reason": null,
+                        "introduced": true,
+                        "price_sent": false,
+                        "requisites_sent": false
+                    },
+                    "missing": [
+                        {
+                            "reason": "no_chance",
+                            "slot": "experience",
+                            "suggested_question": "Раньше пиротехникой торговали или это первый сезон?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "categories",
+                            "suggested_question": "Что в основном интересует — салюты, петарды, мелочь вроде бенгальских и фонтанов, или всё вместе?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "budget_range",
+                            "suggested_question": "Плюс-минус на какую сумму смотрите закупку? Это ни к чему не обязывает — просто от суммы скидку в прайсе выставлю."
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "timing",
+                            "suggested_question": "Закупаться планируете сейчас или ближе к сезону?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "email",
+                            "suggested_question": "На какую почту прайс отправить?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "messenger",
+                            "suggested_question": "И продублирую в мессенджер, чтобы мой контакт у вас был. На этом номере Макс, WhatsApp или Telegram?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "next_contact_at",
+                            "suggested_question": "Когда удобно списаться по обратной связи — завтра или в пятницу?"
+                        }
+                    ],
+                    "outcome": null,
+                    "promises": [],
+                    "signals": {
+                        "asked_counts": {
+                            "city": 1,
+                            "experience": 1,
+                            "purpose": 1
+                        },
+                        "asked_if_bot": false,
+                        "asked_slots": [
+                            "city",
+                            "purpose",
+                            "experience"
+                        ],
+                        "client_claims": [],
+                        "client_questions": [
+                            "какая минимальная партия вообще нужна",
+                            "не будет ли проблем с продажей у рынка"
+                        ],
+                        "last_asked_slot": "experience",
+                        "last_client_intent": "ask_min_order",
+                        "last_unknown_topic": null,
+                        "objections": [],
+                        "prev_intent": "ask_min_order",
+                        "sentiment": "neutral",
+                        "triggers_used": [],
+                        "wants_only_prices": false
+                    },
+                    "slots": {
+                        "brands_interest": [],
+                        "budget_range": null,
+                        "categories": [],
+                        "city": "Волгоград",
+                        "competitor_discount": null,
+                        "current_supplier": null,
+                        "email": null,
+                        "experience": null,
+                        "legal": null,
+                        "messenger": null,
+                        "name": null,
+                        "next_contact_at": null,
+                        "outlet_floor": null,
+                        "outlet_type": "с машины",
+                        "purpose": "на продажу",
+                        "timing": null
+                    },
+                    "stage": "budget",
+                    "summary": null,
+                    "unknown_questions": []
+                }
+            },
+            {
+                "client": "Это первый сезон. Раньше не торговал, поэтому и спрашиваю про проблемы с рынком. Бюджет примерно 40 тысяч. А документы какие нужны, чтобы у меня всё легально было?",
+                "meta": {
+                    "cost_usd": 0.011147,
+                    "extraction": {
+                        "asked_if_bot": false,
+                        "client_claims": [],
+                        "client_intent": "ask_documents",
+                        "client_questions": [
+                            "какие документы нужны, чтобы всё легально было?"
+                        ],
+                        "closed_topic": null,
+                        "confidence": 1,
+                        "do_not_disturb": false,
+                        "objections": [],
+                        "off_topic": false,
+                        "prompt_injection": false,
+                        "refused_slots": [],
+                        "sentiment": "neutral",
+                        "slot_updates": {
+                            "brands_interest": null,
+                            "budget_range": "до 50 тыс.",
+                            "categories": null,
+                            "city": null,
+                            "competitor_discount": null,
+                            "current_supplier": null,
+                            "email": null,
+                            "experience": "нет",
+                            "legal": null,
+                            "messenger": null,
+                            "name": null,
+                            "next_contact_at": null,
+                            "outlet_floor": null,
+                            "outlet_type": null,
+                            "purpose": null,
+                            "timing": null
+                        },
+                        "unknown_question": null,
+                        "wants_human": false,
+                        "wants_only_prices": false
+                    },
+                    "goal": {
+                        "allowed_tools": [
+                            "mark_do_not_disturb",
+                            "create_promise",
+                            "log_unknown_question",
+                            "send_requisites",
+                            "check_stock",
+                            "calc_delivery"
+                        ],
+                        "constraints": [],
+                        "extras": [],
+                        "facts": [
+                            "documents",
+                            "work_with_individuals",
+                            "contract"
+                        ],
+                        "fewshot_tags": [
+                            "ask_categories"
+                        ],
+                        "instruction": "Ответить на вопрос клиента своими словами из фактов (одна-две мысли), затем мостик и ровно один вопрос по слоту.",
+                        "kind": "answer_and_ask",
+                        "slot": "categories",
+                        "trigger": "not_tied_to_volume"
+                    },
+                    "guard": {
+                        "issues": [],
+                        "questions": 1,
+                        "verdict": "ok",
+                        "warnings": [],
+                        "words": 46
+                    },
+                    "tool_calls": []
+                },
+                "outcome": null,
+                "reply": "Бюджет 40 тысяч для старта нормальный. По документам: на каждую позицию идут сертификаты, плюс накладная и чек, если вы физлицо, а если ИП или ООО, то договор поставки, счёт и УПД. Что в основном хотите брать: салюты, петарды, мелочь вроде фонтанов и бенгальских или всё понемногу?",
+                "stage": "budget",
+                "state": {
+                    "client_type": "newbie",
+                    "counters": {
+                        "budget_asks": 0,
+                        "closed_topic_streak": 0,
+                        "followups_sent": 0,
+                        "guard_regens": 0,
+                        "negative_streak": 0,
+                        "off_topic_streak": 0,
+                        "turns": 3,
+                        "unclear_streak": 0,
+                        "unknown_facts": 0,
+                        "unknown_insist": 0
+                    },
+                    "flags": {
+                        "do_not_disturb": false,
+                        "duplicate_lead": false,
+                        "escalate": false,
+                        "escalate_reason": null,
+                        "introduced": true,
+                        "price_sent": false,
+                        "requisites_sent": false
+                    },
+                    "missing": [
+                        {
+                            "reason": "no_chance",
+                            "slot": "categories",
+                            "suggested_question": "Что в основном интересует — салюты, петарды, мелочь вроде бенгальских и фонтанов, или всё вместе?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "timing",
+                            "suggested_question": "Закупаться планируете сейчас или ближе к сезону?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "email",
+                            "suggested_question": "На какую почту прайс отправить?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "messenger",
+                            "suggested_question": "И продублирую в мессенджер, чтобы мой контакт у вас был. На этом номере Макс, WhatsApp или Telegram?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "next_contact_at",
+                            "suggested_question": "Когда удобно списаться по обратной связи — завтра или в пятницу?"
+                        }
+                    ],
+                    "outcome": null,
+                    "promises": [],
+                    "signals": {
+                        "asked_counts": {
+                            "categories": 1,
+                            "city": 1,
+                            "experience": 1,
+                            "purpose": 1
+                        },
+                        "asked_if_bot": false,
+                        "asked_slots": [
+                            "city",
+                            "purpose",
+                            "experience",
+                            "categories"
+                        ],
+                        "client_claims": [],
+                        "client_questions": [
+                            "какие документы нужны, чтобы всё легально было?"
+                        ],
+                        "experience_old": true,
+                        "last_asked_slot": "categories",
+                        "last_client_intent": "ask_documents",
+                        "last_trigger_turn": 3,
+                        "last_unknown_topic": null,
+                        "objections": [],
+                        "prev_intent": "ask_documents",
+                        "sentiment": "neutral",
+                        "triggers_used": {
+                            "not_tied_to_volume": 1
+                        },
+                        "wants_only_prices": false
+                    },
+                    "slots": {
+                        "brands_interest": [],
+                        "budget_range": "до 50 тыс.",
+                        "categories": [],
+                        "city": "Волгоград",
+                        "competitor_discount": null,
+                        "current_supplier": null,
+                        "email": null,
+                        "experience": "нет",
+                        "legal": null,
+                        "messenger": null,
+                        "name": null,
+                        "next_contact_at": null,
+                        "outlet_floor": null,
+                        "outlet_type": "с машины",
+                        "purpose": "на продажу",
+                        "timing": null
+                    },
+                    "stage": "budget",
+                    "summary": null,
+                    "unknown_questions": []
+                }
+            },
+            {
+                "client": "Пока думаю, скорее всего всё понемногу, но основной упор на салюты и петарды. Ещё хотел уточнить: если оформлю ИП, нужна ли отдельная лицензия на торговлю пиротехникой?",
+                "meta": {
+                    "cost_usd": 0.011643,
+                    "extraction": {
+                        "asked_if_bot": false,
+                        "client_claims": [],
+                        "client_intent": "ask_license",
+                        "client_questions": [
+                            "если оформлю ИП, нужна ли отдельная лицензия на торговлю пиротехникой?"
+                        ],
+                        "closed_topic": null,
+                        "confidence": 1,
+                        "do_not_disturb": false,
+                        "objections": [],
+                        "off_topic": false,
+                        "prompt_injection": false,
+                        "refused_slots": [],
+                        "sentiment": "neutral",
+                        "slot_updates": {
+                            "brands_interest": null,
+                            "budget_range": null,
+                            "categories": [
+                                "салюты",
+                                "петарды",
+                                "мелочь"
+                            ],
+                            "city": null,
+                            "competitor_discount": null,
+                            "current_supplier": null,
+                            "email": null,
+                            "experience": null,
+                            "legal": "ИП",
+                            "messenger": null,
+                            "name": null,
+                            "next_contact_at": null,
+                            "outlet_floor": null,
+                            "outlet_type": null,
+                            "purpose": null,
+                            "timing": null
+                        },
+                        "unknown_question": null,
+                        "wants_human": false,
+                        "wants_only_prices": false
+                    },
+                    "goal": {
+                        "allowed_tools": [
+                            "mark_do_not_disturb",
+                            "create_promise",
+                            "log_unknown_question",
+                            "send_requisites",
+                            "check_stock",
+                            "calc_delivery"
+                        ],
+                        "constraints": [
+                            "нельзя: давать юридические советы, как обойти проверку"
+                        ],
+                        "extras": [],
+                        "facts": [
+                            "license_not_needed",
+                            "permission_not_needed",
+                            "okved"
+                        ],
+                        "fewshot_tags": [
+                            "license_certs",
+                            "ask_timing"
+                        ],
+                        "instruction": "Ответить на вопрос клиента своими словами из фактов (одна-две мысли), затем мостик и ровно один вопрос по слоту.",
+                        "kind": "answer_and_ask",
+                        "slot": "timing",
+                        "trigger": null
+                    },
+                    "guard": {
+                        "issues": [],
+                        "questions": 1,
+                        "verdict": "ok",
+                        "warnings": [],
+                        "words": 44
+                    },
+                    "tool_calls": []
+                },
+                "outcome": null,
+                "reply": "Лицензия не нужна: бытовая пиротехника с 1 по 3 класс продаётся без неё. Лицензия нужна только на профессиональную, 4–5 класса, её в розницу мы и не предлагаем. Отдельного разрешения тоже нет, главное, чтобы выполнялись требования пожарной безопасности. Закупаться планируете сейчас или ближе к сезону?",
+                "stage": "budget",
+                "state": {
+                    "client_type": "newbie",
+                    "counters": {
+                        "budget_asks": 0,
+                        "closed_topic_streak": 0,
+                        "followups_sent": 0,
+                        "guard_regens": 0,
+                        "negative_streak": 0,
+                        "off_topic_streak": 0,
+                        "turns": 4,
+                        "unclear_streak": 0,
+                        "unknown_facts": 0,
+                        "unknown_insist": 0
+                    },
+                    "flags": {
+                        "do_not_disturb": false,
+                        "duplicate_lead": false,
+                        "escalate": false,
+                        "escalate_reason": null,
+                        "introduced": true,
+                        "price_sent": false,
+                        "requisites_sent": false
+                    },
+                    "missing": [
+                        {
+                            "reason": "no_chance",
+                            "slot": "timing",
+                            "suggested_question": "Закупаться планируете сейчас или ближе к сезону?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "email",
+                            "suggested_question": "На какую почту прайс отправить?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "messenger",
+                            "suggested_question": "И продублирую в мессенджер, чтобы мой контакт у вас был. На этом номере Макс, WhatsApp или Telegram?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "next_contact_at",
+                            "suggested_question": "Когда удобно списаться по обратной связи — завтра или в пятницу?"
+                        }
+                    ],
+                    "outcome": null,
+                    "promises": [],
+                    "signals": {
+                        "asked_counts": {
+                            "categories": 1,
+                            "city": 1,
+                            "experience": 1,
+                            "purpose": 1,
+                            "timing": 1
+                        },
+                        "asked_if_bot": false,
+                        "asked_slots": [
+                            "city",
+                            "purpose",
+                            "experience",
+                            "categories",
+                            "timing"
+                        ],
+                        "client_claims": [],
+                        "client_questions": [
+                            "если оформлю ИП, нужна ли отдельная лицензия на торговлю пиротехникой?"
+                        ],
+                        "experience_old": true,
+                        "last_asked_slot": "timing",
+                        "last_client_intent": "ask_license",
+                        "last_trigger_turn": 3,
+                        "last_unknown_topic": null,
+                        "objections": [],
+                        "prev_intent": "ask_license",
+                        "sentiment": "neutral",
+                        "triggers_used": {
+                            "not_tied_to_volume": 1
+                        },
+                        "wants_only_prices": false
+                    },
+                    "slots": {
+                        "brands_interest": [],
+                        "budget_range": "до 50 тыс.",
+                        "categories": [
+                            "салюты",
+                            "петарды",
+                            "мелочь"
+                        ],
+                        "city": "Волгоград",
+                        "competitor_discount": null,
+                        "current_supplier": null,
+                        "email": null,
+                        "experience": "нет",
+                        "legal": "ИП",
+                        "messenger": null,
+                        "name": null,
+                        "next_contact_at": null,
+                        "outlet_floor": null,
+                        "outlet_type": "с машины",
+                        "purpose": "на продажу",
+                        "timing": null
+                    },
+                    "stage": "budget",
+                    "summary": null,
+                    "unknown_questions": []
+                }
+            },
+            {
+                "client": "Ближе к сезону, наверное, но хочу заранее понимать цены. Вы присылаете прайс сюда, в WhatsApp, или только на почту?",
+                "meta": {
+                    "cost_usd": 0.011833,
+                    "extraction": {
+                        "asked_if_bot": false,
+                        "client_claims": [],
+                        "client_intent": "ask_price_list",
+                        "client_questions": [
+                            "Вы присылаете прайс сюда, в WhatsApp, или только на почту?"
+                        ],
+                        "closed_topic": null,
+                        "confidence": 1,
+                        "do_not_disturb": false,
+                        "objections": [],
+                        "off_topic": false,
+                        "prompt_injection": false,
+                        "refused_slots": [],
+                        "sentiment": "neutral",
+                        "slot_updates": {
+                            "brands_interest": null,
+                            "budget_range": null,
+                            "categories": null,
+                            "city": null,
+                            "competitor_discount": null,
+                            "current_supplier": null,
+                            "email": null,
+                            "experience": null,
+                            "legal": null,
+                            "messenger": "WhatsApp",
+                            "name": null,
+                            "next_contact_at": null,
+                            "outlet_floor": null,
+                            "outlet_type": null,
+                            "purpose": null,
+                            "timing": "ближе к сезону"
+                        },
+                        "unknown_question": null,
+                        "wants_human": false,
+                        "wants_only_prices": false
+                    },
+                    "goal": {
+                        "allowed_tools": [
+                            "mark_do_not_disturb",
+                            "create_promise",
+                            "log_unknown_question",
+                            "send_requisites",
+                            "check_stock",
+                            "calc_delivery",
+                            "send_price",
+                            "set_followup",
+                            "send_price"
+                        ],
+                        "constraints": [],
+                        "extras": [],
+                        "facts": [
+                            "price_list_how_to_send"
+                        ],
+                        "fewshot_tags": [
+                            "price_sent",
+                            "ask_email"
+                        ],
+                        "instruction": "Если был вопрос — коротко ответить. Сказать, что отправите прайс на почту, и спросить адрес. Один вопрос.",
+                        "kind": "close_contact",
+                        "slot": "email",
+                        "trigger": null
+                    },
+                    "guard": {
+                        "issues": [],
+                        "questions": 1,
+                        "verdict": "ok",
+                        "warnings": [],
+                        "words": 24
+                    },
+                    "tool_calls": []
+                },
+                "outcome": "partial_contact",
+                "reply": "Прайс отправляю на почту и дублирую в WhatsApp, чтобы контакт у вас остался. Придёт с другого, рабочего номера, не пугайтесь. На какую почту отправить?",
+                "stage": "close_contact",
+                "state": {
+                    "client_type": "newbie",
+                    "counters": {
+                        "budget_asks": 0,
+                        "closed_topic_streak": 0,
+                        "followups_sent": 0,
+                        "guard_regens": 0,
+                        "negative_streak": 0,
+                        "off_topic_streak": 0,
+                        "turns": 5,
+                        "unclear_streak": 0,
+                        "unknown_facts": 0,
+                        "unknown_insist": 0
+                    },
+                    "flags": {
+                        "do_not_disturb": false,
+                        "duplicate_lead": false,
+                        "escalate": false,
+                        "escalate_reason": null,
+                        "introduced": true,
+                        "price_sent": false,
+                        "requisites_sent": false
+                    },
+                    "missing": [
+                        {
+                            "reason": "no_chance",
+                            "slot": "email",
+                            "suggested_question": "На какую почту прайс отправить?"
+                        },
+                        {
+                            "reason": "no_chance",
+                            "slot": "next_contact_at",
+                            "suggested_question": "Когда удобно списаться по обратной связи — завтра или в пятницу?"
+                        }
+                    ],
+                    "outcome": "partial_contact",
+                    "promises": [],
+                    "signals": {
+                        "asked_counts": {
+                            "categories": 1,
+                            "city": 1,
+                            "email": 1,
+                            "experience": 1,
+                            "purpose": 1,
+                            "timing": 1
+                        },
+                        "asked_if_bot": false,
+                        "asked_slots": [
+                            "city",
+                            "purpose",
+                            "experience",
+                            "categories",
+                            "timing",
+                            "email"
+                        ],
+                        "client_claims": [],
+                        "client_questions": [
+                            "Вы присылаете прайс сюда, в WhatsApp, или только на почту?"
+                        ],
+                        "experience_old": true,
+                        "last_asked_slot": "email",
+                        "last_client_intent": "ask_price_list",
+                        "last_trigger_turn": 3,
+                        "last_unknown_topic": null,
+                        "objections": [],
+                        "prev_intent": "ask_price_list",
+                        "sentiment": "neutral",
+                        "triggers_used": {
+                            "not_tied_to_volume": 1
+                        },
+                        "wants_only_prices": false
+                    },
+                    "slots": {
+                        "brands_interest": [],
+                        "budget_range": "до 50 тыс.",
+                        "categories": [
+                            "салюты",
+                            "петарды",
+                            "мелочь"
+                        ],
+                        "city": "Волгоград",
+                        "competitor_discount": null,
+                        "current_supplier": null,
+                        "email": null,
+                        "experience": "нет",
+                        "legal": "ИП",
+                        "messenger": "WhatsApp",
+                        "name": null,
+                        "next_contact_at": null,
+                        "outlet_floor": null,
+                        "outlet_type": "с машины",
+                        "purpose": "на продажу",
+                        "timing": "ближе к сезону"
+                    },
+                    "stage": "close_contact",
+                    "summary": null,
+                    "unknown_questions": []
+                }
+            },
+            {
+                "client": "Почту не дам, я пишу только через WhatsApp. Пришлите прайс сюда, пожалуйста, если можно.",
+                "meta": {
+                    "cost_usd": 0.021422,
+                    "extraction": {
+                        "asked_if_bot": false,
+                        "client_claims": [],
+                        "client_intent": "ask_price_list",
+                        "client_questions": [
+                            "Пришлите прайс сюда, пожалуйста, если можно?"
+                        ],
+                        "closed_topic": null,
+                        "confidence": 1,
+                        "do_not_disturb": false,
+                        "objections": [],
+                        "off_topic": false,
+                        "prompt_injection": false,
+                        "refused_slots": [
+                            "email"
+                        ],
+                        "sentiment": "neutral",
+                        "slot_updates": {
+                            "brands_interest": null,
+                            "budget_range": null,
+                            "categories": null,
+                            "city": null,
+                            "competitor_discount": null,
+                            "current_supplier": null,
+                            "email": null,
+                            "experience": null,
+                            "legal": null,
+                            "messenger": null,
+                            "name": null,
+                            "next_contact_at": null,
+                            "outlet_floor": null,
+                            "outlet_type": null,
+                            "purpose": null,
+                            "timing": null
+                        },
+                        "unknown_question": null,
+                        "wants_human": false,
+                        "wants_only_prices": false
+                    },
+                    "goal": {
+                        "allowed_tools": [
+                            "mark_do_not_disturb",
+                            "create_promise",
+                            "log_unknown_question",
+                            "send_requisites",
+                            "check_stock",
+                            "calc_delivery",
+                            "send_price",
+                            "set_followup"
+                        ],
+                        "constraints": [],
+                        "extras": [],
+                        "facts": [
+                            "price_list_how_to_send"
+                        ],
+                        "fewshot_tags": [
+                            "price_sent",
+                            "ask_next_contact"
+                        ],
+                        "instruction": "Вызвать send_price. Сказать, что отправили (куда), одной фразой как читать прайс, и спросить, когда удобно списаться по обратной связи — предложить два варианта. Один вопрос.",
+                        "kind": "close_contact",
+                        "slot": "next_contact_at",
+                        "trigger": null
+                    },
+                    "guard": {
+                        "issues": [],
+                        "questions": 1,
+                        "verdict": "ok",
+                        "warnings": [],
+                        "words": 41
+                    },
+                    "tool_calls": [
+                        {
+                            "args": {
+                                "messenger": "WhatsApp",
+                                "pricelists": [
+                                    "общий"
+                                ]
+                            },
+                            "name": "send_price",
+                            "result": {
+                                "pricelists": [
+                                    "общий"
+                                ],
+                                "sent": true,
+                                "to": {
+                                    "messenger": "WhatsApp"
+                                }
+                            }
+                        }
+                    ]
+                },
+                "outcome": "partial_contact",
+                "reply": "Отправил прайс вам в WhatsApp, придёт с рабочего номера. Там цены по всем категориям, для начала смотрите салюты и петарды, как раз ваш упор. Посмотрите спокойно, а потом сверимся по вопросам. Когда удобно списаться по обратной связи: завтра или в пятницу?",
+                "stage": "close_contact",
+                "state": {
+                    "client_type": "newbie",
+                    "counters": {
+                        "budget_asks": 0,
+                        "closed_topic_streak": 0,
+                        "followups_sent": 0,
+                        "guard_regens": 0,
+                        "negative_streak": 0,
+                        "off_topic_streak": 0,
+                        "turns": 6,
+                        "unclear_streak": 0,
+                        "unknown_facts": 0,
+                        "unknown_insist": 0
+                    },
+                    "flags": {
+                        "do_not_disturb": false,
+                        "duplicate_lead": false,
+                        "escalate": false,
+                        "escalate_reason": null,
+                        "introduced": true,
+                        "price_sent": true,
+                        "requisites_sent": false
+                    },
+                    "missing": [
+                        {
+                            "reason": "declined",
+                            "slot": "email",
+                            "suggested_question": "На какую почту прайс отправить?"
+                        },
+                        {
+                            "reason": "not_asked",
+                            "slot": "next_contact_at",
+                            "suggested_question": "Когда удобно списаться по обратной связи — завтра или в пятницу?"
+                        }
+                    ],
+                    "outcome": "partial_contact",
+                    "promises": [],
+                    "signals": {
+                        "asked_counts": {
+                            "categories": 1,
+                            "city": 1,
+                            "email": 1,
+                            "experience": 1,
+                            "next_contact_at": 1,
+                            "purpose": 1,
+                            "timing": 1
+                        },
+                        "asked_if_bot": false,
+                        "asked_slots": [
+                            "city",
+                            "purpose",
+                            "experience",
+                            "categories",
+                            "timing",
+                            "email",
+                            "next_contact_at"
+                        ],
+                        "client_claims": [],
+                        "client_questions": [
+                            "Пришлите прайс сюда, пожалуйста, если можно?"
+                        ],
+                        "experience_old": true,
+                        "last_asked_slot": "next_contact_at",
+                        "last_client_intent": "ask_price_list",
+                        "last_trigger_turn": 3,
+                        "last_unknown_topic": null,
+                        "objections": [],
+                        "prev_intent": "ask_price_list",
+                        "refused_slots": {
+                            "email": true
+                        },
+                        "sentiment": "neutral",
+                        "triggers_used": {
+                            "not_tied_to_volume": 1
+                        },
+                        "wants_only_prices": false
+                    },
+                    "slots": {
+                        "brands_interest": [],
+                        "budget_range": "до 50 тыс.",
+                        "categories": [
+                            "салюты",
+                            "петарды",
+                            "мелочь"
+                        ],
+                        "city": "Волгоград",
+                        "competitor_discount": null,
+                        "current_supplier": null,
+                        "email": null,
+                        "experience": "нет",
+                        "legal": "ИП",
+                        "messenger": "WhatsApp",
+                        "name": null,
+                        "next_contact_at": null,
+                        "outlet_floor": null,
+                        "outlet_type": "с машины",
+                        "purpose": "на продажу",
+                        "timing": "ближе к сезону"
+                    },
+                    "stage": "close_contact",
+                    "summary": "Клиент из Волгограда планирует начать торговлю бытовой пиротехникой с машины у рынка, с бюджетом около 40 тысяч рублей, делая упор на салюты и петарды. Менеджер подтвердил, что минимальная партия от 15-20 тысяч, и для торговли не нужна лицензия на пиротехнику 1-3 класса, но рекомендовал уточнить условия с администрацией рынка. Клиент отказался давать почту, и менеджер отправил прайс-лист в WhatsApp, предложив обсудить его завтра или в пятницу.",
+                    "unknown_questions": []
+                }
+            },
+            {
+                "client": "Ок, спасибо, посмотрю прайс. Давайте в пятницу, завтра не успею.",
+                "meta": {
+                    "cost_usd": 0.021097,
+                    "extraction": {
+                        "asked_if_bot": false,
+                        "client_claims": [],
+                        "client_intent": "answer_only",
+                        "client_questions": [],
+                        "closed_topic": null,
+                        "confidence": 1,
+                        "do_not_disturb": false,
+                        "objections": [],
+                        "off_topic": false,
+                        "prompt_injection": false,
+                        "refused_slots": [],
+                        "sentiment": "neutral",
+                        "slot_updates": {
+                            "brands_interest": null,
+                            "budget_range": null,
+                            "categories": null,
+                            "city": null,
+                            "competitor_discount": null,
+                            "current_supplier": null,
+                            "email": null,
+                            "experience": null,
+                            "legal": null,
+                            "messenger": null,
+                            "name": null,
+                            "next_contact_at": "в пятницу",
+                            "outlet_floor": null,
+                            "outlet_type": null,
+                            "purpose": null,
+                            "timing": null
+                        },
+                        "unknown_question": null,
+                        "wants_human": false,
+                        "wants_only_prices": false
+                    },
+                    "goal": {
+                        "allowed_tools": [
+                            "mark_do_not_disturb",
+                            "create_promise",
+                            "log_unknown_question",
+                            "send_requisites",
+                            "check_stock",
+                            "calc_delivery",
+                            "send_price",
+                            "set_followup"
+                        ],
+                        "constraints": [],
+                        "extras": [],
+                        "facts": [],
+                        "fewshot_tags": [
+                            "followup_close",
+                            "price_sent"
+                        ],
+                        "instruction": "Если клиент назвал дату — вызвать set_followup. Коротко подтвердить договорённость, ответить на вопрос, если был. Без нового вопроса.",
+                        "kind": "wrap_up",
+                        "slot": null,
+                        "trigger": null
+                    },
+                    "guard": {
+                        "issues": [],
+                        "questions": 0,
+                        "verdict": "ok",
+                        "warnings": [],
+                        "words": 24
+                    },
+                    "tool_calls": [
+                        {
+                            "args": {
+                                "datetime": "в пятницу",
+                                "reason": "Обратная связь по прайсу, который отправлен в WhatsApp"
+                            },
+                            "name": "set_followup",
+                            "result": {
+                                "next_contact_at": "2026-11-06T11:00:00+00:00",
+                                "ok": true
+                            }
+                        }
+                    ]
+                },
+                "outcome": "full_contact",
+                "reply": "Договорились, в пятницу напишу вам в WhatsApp. Спокойно посмотрите прайс, а что вызовет вопросы по ценам или позициям, отложите на разговор. Хорошего вам вечера.",
+                "stage": "followup",
+                "state": {
+                    "client_type": "newbie",
+                    "counters": {
+                        "budget_asks": 0,
+                        "closed_topic_streak": 0,
+                        "followups_sent": 0,
+                        "guard_regens": 0,
+                        "negative_streak": 0,
+                        "off_topic_streak": 0,
+                        "turns": 7,
+                        "unclear_streak": 0,
+                        "unknown_facts": 0,
+                        "unknown_insist": 0
+                    },
+                    "flags": {
+                        "do_not_disturb": false,
+                        "duplicate_lead": false,
+                        "escalate": false,
+                        "escalate_reason": null,
+                        "introduced": true,
+                        "price_sent": true,
+                        "requisites_sent": false
+                    },
+                    "missing": [
+                        {
+                            "reason": "declined",
+                            "slot": "email",
+                            "suggested_question": "На какую почту прайс отправить?"
+                        }
+                    ],
+                    "outcome": "full_contact",
+                    "promises": [],
+                    "signals": {
+                        "asked_counts": {
+                            "categories": 1,
+                            "city": 1,
+                            "email": 1,
+                            "experience": 1,
+                            "next_contact_at": 1,
+                            "purpose": 1,
+                            "timing": 1
+                        },
+                        "asked_if_bot": false,
+                        "asked_slots": [
+                            "city",
+                            "purpose",
+                            "experience",
+                            "categories",
+                            "timing",
+                            "email",
+                            "next_contact_at"
+                        ],
+                        "client_claims": [],
+                        "client_questions": [],
+                        "experience_old": true,
+                        "last_asked_slot": "next_contact_at",
+                        "last_client_intent": "answer_only",
+                        "last_trigger_turn": 3,
+                        "last_unknown_topic": null,
+                        "objections": [],
+                        "prev_intent": "answer_only",
+                        "refused_slots": {
+                            "email": true
+                        },
+                        "sentiment": "neutral",
+                        "triggers_used": {
+                            "not_tied_to_volume": 1
+                        },
+                        "wants_only_prices": false
+                    },
+                    "slots": {
+                        "brands_interest": [],
+                        "budget_range": "до 50 тыс.",
+                        "categories": [
+                            "салюты",
+                            "петарды",
+                            "мелочь"
+                        ],
+                        "city": "Волгоград",
+                        "competitor_discount": null,
+                        "current_supplier": null,
+                        "email": null,
+                        "experience": "нет",
+                        "legal": "ИП",
+                        "messenger": "WhatsApp",
+                        "name": null,
+                        "next_contact_at": "в пятницу",
+                        "outlet_floor": null,
+                        "outlet_type": "с машины",
+                        "purpose": "на продажу",
+                        "timing": "ближе к сезону"
+                    },
+                    "stage": "followup",
+                    "summary": "Клиент из Волгограда планирует начать торговлю бытовой пиротехникой с машины у рынка, с бюджетом около 40 тысяч рублей, делая упор на салюты и петарды. Менеджер подтвердил, что минимальная партия от 15-20 тысяч, и для торговли не нужна лицензия на пиротехнику 1-3 класса, но рекомендовал уточнить условия с администрацией рынка. Клиент отказался давать почту, и менеджер отправил прайс-лист в WhatsApp, предложив обсудить его завтра или в пятницу.",
+                    "unknown_questions": []
+                }
+            },
+            {
+                "client": "Спасибо, и вам хорошего вечера. До пятницы.",
+                "meta": {
+                    "cost_usd": 0.011205,
+                    "extraction": {
+                        "asked_if_bot": false,
+                        "client_claims": [],
+                        "client_intent": "small_talk",
+                        "client_questions": [],
+                        "closed_topic": null,
+                        "confidence": 1,
+                        "do_not_disturb": false,
+                        "objections": [],
+                        "off_topic": false,
+                        "prompt_injection": false,
+                        "refused_slots": [],
+                        "sentiment": "positive",
+                        "slot_updates": {
+                            "brands_interest": null,
+                            "budget_range": null,
+                            "categories": null,
+                            "city": null,
+                            "competitor_discount": null,
+                            "current_supplier": null,
+                            "email": null,
+                            "experience": null,
+                            "legal": null,
+                            "messenger": null,
+                            "name": null,
+                            "next_contact_at": null,
+                            "outlet_floor": null,
+                            "outlet_type": null,
+                            "purpose": null,
+                            "timing": null
+                        },
+                        "unknown_question": null,
+                        "wants_human": false,
+                        "wants_only_prices": false
+                    },
+                    "goal": {
+                        "allowed_tools": [
+                            "mark_do_not_disturb",
+                            "create_promise",
+                            "log_unknown_question",
+                            "send_requisites",
+                            "check_stock",
+                            "calc_delivery",
+                            "send_price",
+                            "set_followup"
+                        ],
+                        "constraints": [],
+                        "extras": [],
+                        "facts": [],
+                        "fewshot_tags": [
+                            "small_talk"
+                        ],
+                        "instruction": "Ответить коротко и тепло, без вопроса.",
+                        "kind": "small_talk",
+                        "slot": null,
+                        "trigger": null
+                    },
+                    "guard": {
+                        "issues": [],
+                        "questions": 0,
+                        "verdict": "ok",
+                        "warnings": [],
+                        "words": 4
+                    },
+                    "tool_calls": []
+                },
+                "outcome": "full_contact",
+                "reply": "До пятницы, на связи.",
+                "stage": "followup",
+                "state": {
+                    "client_type": "newbie",
+                    "counters": {
+                        "budget_asks": 0,
+                        "closed_topic_streak": 0,
+                        "followups_sent": 0,
+                        "guard_regens": 0,
+                        "negative_streak": 0,
+                        "off_topic_streak": 0,
+                        "turns": 8,
+                        "unclear_streak": 0,
+                        "unknown_facts": 0,
+                        "unknown_insist": 0
+                    },
+                    "flags": {
+                        "do_not_disturb": false,
+                        "duplicate_lead": false,
+                        "escalate": false,
+                        "escalate_reason": null,
+                        "introduced": true,
+                        "price_sent": true,
+                        "requisites_sent": false
+                    },
+                    "missing": [
+                        {
+                            "reason": "declined",
+                            "slot": "email",
+                            "suggested_question": "На какую почту прайс отправить?"
+                        }
+                    ],
+                    "outcome": "full_contact",
+                    "promises": [],
+                    "signals": {
+                        "asked_counts": {
+                            "categories": 1,
+                            "city": 1,
+                            "email": 1,
+                            "experience": 1,
+                            "next_contact_at": 1,
+                            "purpose": 1,
+                            "timing": 1
+                        },
+                        "asked_if_bot": false,
+                        "asked_slots": [
+                            "city",
+                            "purpose",
+                            "experience",
+                            "categories",
+                            "timing",
+                            "email",
+                            "next_contact_at"
+                        ],
+                        "client_claims": [],
+                        "client_questions": [],
+                        "experience_old": true,
+                        "last_asked_slot": "next_contact_at",
+                        "last_client_intent": "small_talk",
+                        "last_trigger_turn": 3,
+                        "last_unknown_topic": null,
+                        "objections": [],
+                        "prev_intent": "small_talk",
+                        "refused_slots": {
+                            "email": true
+                        },
+                        "sentiment": "positive",
+                        "triggers_used": {
+                            "not_tied_to_volume": 1
+                        },
+                        "wants_only_prices": false
+                    },
+                    "slots": {
+                        "brands_interest": [],
+                        "budget_range": "до 50 тыс.",
+                        "categories": [
+                            "салюты",
+                            "петарды",
+                            "мелочь"
+                        ],
+                        "city": "Волгоград",
+                        "competitor_discount": null,
+                        "current_supplier": null,
+                        "email": null,
+                        "experience": "нет",
+                        "legal": "ИП",
+                        "messenger": "WhatsApp",
+                        "name": null,
+                        "next_contact_at": "в пятницу",
+                        "outlet_floor": null,
+                        "outlet_type": "с машины",
+                        "purpose": "на продажу",
+                        "timing": "ближе к сезону"
+                    },
+                    "stage": "followup",
+                    "summary": "Клиент из Волгограда планирует начать торговлю бытовой пиротехникой с машины у рынка, с бюджетом около 40 тысяч рублей, делая упор на салюты и петарды. Менеджер подтвердил, что минимальная партия от 15-20 тысяч, и для торговли не нужна лицензия на пиротехнику 1-3 класса, но рекомендовал уточнить условия с администрацией рынка. Клиент отказался давать почту, и менеджер отправил прайс-лист в WhatsApp, предложив обсудить его завтра или в пятницу.",
+                    "unknown_questions": []
+                }
+            }
+        ]
+    },
+    "versions": {
+        "config_sha256": "d3a054c8662befb4a499584ca6f7134291aacf07013f88ff8b6cf06017947ffa",
+        "harness_sha256": "317271628a4382565e2881670f13600aa785b3247d76f2c2a7e91a2a452171c2",
+        "normalization": "contacts-v1",
+        "prompts_sha256": "c3f1a4e64c0ac5336787c85a2373b586e2ebbaa85371fcdce2cceecc65ea0786",
+        "prototype_source_sha256": "ca981cc08d5352c214cad41d6d69a25b3b7b54f0d739344d52b0733e128435b6"
+    }
+}

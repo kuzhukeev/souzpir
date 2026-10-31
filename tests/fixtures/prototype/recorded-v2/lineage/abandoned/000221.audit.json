@@ -1,0 +1,31 @@
+{
+    "call_id": 221,
+    "charged_micros": 1928,
+    "decided_at": "2026-10-31T13:33:56.410873+00:00",
+    "kind": "confirmed_response_lost",
+    "model": "google/gemini-2.5-flash",
+    "provider_content_recovery": "operator_attests_unavailable",
+    "reason": "normalization_failure_response_not_retained",
+    "receipt": {
+        "generation_id": "gen-1793450544-uewZHlZ8q7Sda5CgS5hX",
+        "recorded_at": "2026-10-31T12:42:30.587388+00:00",
+        "request_sha256": "5aeed6e2e31df8e76d976e99793f39ebb0ed53e6d09beb31d99a7538a5b67dbf",
+        "response_sha256": "70d6ebfb874078ecdadcaea3f12ebd92c4769ed9ff51c2af3c6cbbe73c786bf0"
+    },
+    "receipt_checkpoint_sha256": "009eb5049012a2baeb9602958964e19bfd77880ae651db916c5ce6d159cf9d91",
+    "replacement_authorized": true,
+    "replay_eligible": false,
+    "request_sha256": "5aeed6e2e31df8e76d976e99793f39ebb0ed53e6d09beb31d99a7538a5b67dbf",
+    "reserved_micros": 827653,
+    "response_retained": false,
+    "schema_version": 1,
+    "source": {
+        "case_id": "persona.unknown_item",
+        "inventory_sha256": "fd3a14acfe0d79812b294543d7ea7ebbca51aaf45044700b76c83b0657fd884b",
+        "request_body_sha256": "399ac5723b4093e3d3118d5bb47a85e616a6d5641044bb474023deaf13ca767b",
+        "request_sha256": "4c6cbd64112f20f65bdf62d287b18e80814d38664622d253a8f076cbe8d2d0f5",
+        "run_id": "capture_20261031T104157_67845ea5",
+        "sequence": 10
+    },
+    "source_audit_sha256": "d9a058a5f73d69fc581c96825035fb9689ffa922c556a68e16d7bcfcf078a2a9"
+}

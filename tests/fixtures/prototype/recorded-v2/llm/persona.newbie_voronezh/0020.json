@@ -1,0 +1,194 @@
+{
+    "evidence": {
+        "budget": {
+            "call_id": 21,
+            "charged_micros": 640,
+            "reserved_micros": 821983
+        },
+        "captured_at": "2026-10-31T10:46:12.383093+00:00",
+        "case_id": "persona.newbie_voronezh",
+        "http_status": 200,
+        "phase": "dialogue",
+        "pricing": {
+            "context_length": 1048576,
+            "endpoints_sha256": "1025625a0db5256fa5242a318c0173378426ead5207cbe8f828bbbf470e29ac4",
+            "fetched_at": "2026-10-31T10:46:00.295342+00:00",
+            "max_completion_tokens": 65535,
+            "provider": "google-ai-studio",
+            "provider_names": [
+                "Google AI Studio"
+            ],
+            "rates": {
+                "audio": "0.0000018",
+                "completion": "0.0000045",
+                "discount": "0",
+                "image": "5.4E-7",
+                "input_audio_cache": "1.8E-7",
+                "input_cache_read": "5.4E-8",
+                "input_cache_write": "1.5E-7",
+                "internal_reasoning": "0.0000045",
+                "prompt": "5.4E-7",
+                "web_search": "0.014"
+            }
+        },
+        "provider_model": "google/gemini-2.5-flash",
+        "provider_request_id": "gen-1793443557-MTXwsHJT8iYBbc3RhXVQ",
+        "request_body": {
+            "max_tokens": 300,
+            "messages": [
+                {
+                    "content": "Сожми переписку менеджера по оптовой пиротехнике с клиентом в 3–5 предложений по-русски: что клиент хочет, что уже выяснено, какие возражения, что обещано, о чём договорились. Без оценок и советов. Только текст.\n",
+                    "role": "system"
+                },
+                {
+                    "content": "Клиент: Добрый день. Да, оставлял заявку. Я из Воронежа.\nМенеджер: Понял, Воронеж, до вас отправляем транспортной компанией. Подскажите, пиротехнику вы берёте для себя или на продажу?\nКлиент: На продажу, у меня павильон у рынка.\nМенеджер: Павильон у рынка — место проходное, это хорошо. Раньше пиротехникой торговали или для вас это первый сезон?\nКлиент: Первый сезон, опыта пока нет.\nМенеджер: Ясно, с нуля начинать нормально, многие так заходят. Что в основном хотите брать: салюты, петарды, мелочь вроде бенгальских и фонтанов или всё понемногу?\nКлиент: Пока не знаю точно, хочу всё понемногу, а что лучше на первый раз, посоветуете?\nМенеджер: Для первого раза обычно берут батареи на 16–49 залпов, петарды вроде Корсара, бенгальские и фонтаны. Плюс пару крупных залпов на витрину для вида. Главное в первый год не перебрать. Плюс-минус на какую сумму смотрите закупку? Это ни к чему не обязывает, от суммы просто скидку в прайсе выставлю.\nКлиент: Примерно тысяч на 100, наверное. А отсрочка по оплате у вас есть?\nМенеджер: Сто тысяч для первого раза нормальная сумма. По отсрочке: новым клиентам мы работаем по предоплате, это не обойти. С постоянными, у кого есть история закупок, отсрочку обсуждает руководитель. Закупаться хотите сейчас или ближе к сезону?\nКлиент: Понятно, по предоплате так по предоплате. Мне к ноябрю нужно будет, так что, наверное, ближе к сезону.\nМенеджер: Тогда время есть, спокойно выберете. Прайс отправлю на почту, чтобы с компьютера было удобно открыть. Продиктуете адрес?",
+                    "role": "user"
+                }
+            ],
+            "model": "google/gemini-2.5-flash",
+            "plugins": [],
+            "provider": {
+                "allow_fallbacks": false,
+                "max_price": {
+                    "completion": 4.5,
+                    "prompt": 0.54,
+                    "request": 0.0
+                },
+                "only": [
+                    "google-ai-studio"
+                ],
+                "order": [
+                    "google-ai-studio"
+                ],
+                "require_parameters": false
+            },
+            "reasoning": {
+                "effort": "low"
+            },
+            "stream": false,
+            "temperature": 0.2,
+            "usage": {
+                "include": true
+            }
+        },
+        "request_body_sha256": "dcb153f00383c94d4c6591e063759f50143e003cb25031f8c34b10179041f31b",
+        "run_id": "capture_20261031T104157_67845ea5",
+        "seed_requested": null,
+        "sequence": 20,
+        "usage": {
+            "completion_tokens": 193,
+            "cost_usd": "0.0006397",
+            "prompt_tokens": 524,
+            "total_tokens": 717
+        }
+    },
+    "provenance": "recorded",
+    "provider": "openrouter",
+    "request": {
+        "messages": [
+            {
+                "content": "Сожми переписку менеджера по оптовой пиротехнике с клиентом в 3–5 предложений по-русски: что клиент хочет, что уже выяснено, какие возражения, что обещано, о чём договорились. Без оценок и советов. Только текст.\n",
+                "role": "system"
+            },
+            {
+                "content": "Клиент: Добрый день. Да, оставлял заявку. Я из Воронежа.\nМенеджер: Понял, Воронеж, до вас отправляем транспортной компанией. Подскажите, пиротехнику вы берёте для себя или на продажу?\nКлиент: На продажу, у меня павильон у рынка.\nМенеджер: Павильон у рынка — место проходное, это хорошо. Раньше пиротехникой торговали или для вас это первый сезон?\nКлиент: Первый сезон, опыта пока нет.\nМенеджер: Ясно, с нуля начинать нормально, многие так заходят. Что в основном хотите брать: салюты, петарды, мелочь вроде бенгальских и фонтанов или всё понемногу?\nКлиент: Пока не знаю точно, хочу всё понемногу, а что лучше на первый раз, посоветуете?\nМенеджер: Для первого раза обычно берут батареи на 16–49 залпов, петарды вроде Корсара, бенгальские и фонтаны. Плюс пару крупных залпов на витрину для вида. Главное в первый год не перебрать. Плюс-минус на какую сумму смотрите закупку? Это ни к чему не обязывает, от суммы просто скидку в прайсе выставлю.\nКлиент: Примерно тысяч на 100, наверное. А отсрочка по оплате у вас есть?\nМенеджер: Сто тысяч для первого раза нормальная сумма. По отсрочке: новым клиентам мы работаем по предоплате, это не обойти. С постоянными, у кого есть история закупок, отсрочку обсуждает руководитель. Закупаться хотите сейчас или ближе к сезону?\nКлиент: Понятно, по предоплате так по предоплате. Мне к ноябрю нужно будет, так что, наверное, ближе к сезону.\nМенеджер: Тогда время есть, спокойно выберете. Прайс отправлю на почту, чтобы с компьютера было удобно открыть. Продиктуете адрес?",
+                "role": "user"
+            }
+        ],
+        "options": {
+            "component": "summary",
+            "max_tokens": 300,
+            "model": "google/gemini-2.5-flash",
+            "temperature": 0.2,
+            "tools_called": []
+        }
+    },
+    "request_sha256": "c454f4be3fc13b747eb12e0a18c4a38e311aa913759bfb12ec86de632401df7c",
+    "response": {
+        "content": "Клиент из Воронежа, владелец павильона у рынка, впервые закупает пиротехнику на продажу и пока не имеет опыта. Он хочет взять всего понемногу на сумму около 100 тысяч рублей, ориентируясь на рекомендации менеджера по ассортименту для новичков (салюты 16-49 залпов, петарды, бенгальские огни, фонтаны). Клиент интересовался отсрочкой платежа, но ему было отказано, так как для новых клиентов предусмотрена только предоплата. В итоге договорились, что менеджер отправит прайс-лист на почту, а клиент сделает закупку ближе к ноябрю.",
+        "costUsd": 0.0006397,
+        "error": null,
+        "latencyMs": 0,
+        "model": "google/gemini-2.5-flash",
+        "raw": {
+            "choices": [
+                {
+                    "finish_reason": "stop",
+                    "index": 0,
+                    "logprobs": null,
+                    "message": {
+                        "content": "Клиент из Воронежа, владелец павильона у рынка, впервые закупает пиротехнику на продажу и пока не имеет опыта. Он хочет взять всего понемногу на сумму около 100 тысяч рублей, ориентируясь на рекомендации менеджера по ассортименту для новичков (салюты 16-49 залпов, петарды, бенгальские огни, фонтаны). Клиент интересовался отсрочкой платежа, но ему было отказано, так как для новых клиентов предусмотрена только предоплата. В итоге договорились, что менеджер отправит прайс-лист на почту, а клиент сделает закупку ближе к ноябрю.",
+                        "reasoning": "**Defining Client Needs**\n\nI'm currently focused on pinpointing the client's specific pyrotechnic requirements. I am actively extracting their desired outcomes from the conversation with the wholesale manager. Clarifications are still being evaluated.\n\n\n",
+                        "reasoning_details": [
+                            {
+                                "format": "google-gemini-v1",
+                                "index": 0,
+                                "text": "**Defining Client Needs**\n\nI'm currently focused on pinpointing the client's specific pyrotechnic requirements. I am actively extracting their desired outcomes from the conversation with the wholesale manager. Clarifications are still being evaluated.\n\n\n",
+                                "type": "reasoning.text"
+                            }
+                        ],
+                        "refusal": null,
+                        "role": "assistant"
+                    },
+                    "native_finish_reason": "STOP"
+                }
+            ],
+            "created": 1793443557,
+            "id": "gen-1793443557-MTXwsHJT8iYBbc3RhXVQ",
+            "model": "google/gemini-2.5-flash",
+            "object": "chat.completion",
+            "provider": "Google AI Studio",
+            "service_tier": "default",
+            "system_fingerprint": null,
+            "usage": {
+                "completion_tokens": 193,
+                "completion_tokens_details": {
+                    "audio_tokens": 0,
+                    "image_tokens": 0,
+                    "reasoning_tokens": 41
+                },
+                "cost": 0.0006397,
+                "cost_details": {
+                    "upstream_inference_completions_cost": 0.0004825,
+                    "upstream_inference_cost": 0.0006397,
+                    "upstream_inference_prompt_cost": 0.0001572
+                },
+                "is_byok": false,
+                "prompt_tokens": 524,
+                "prompt_tokens_details": {
+                    "audio_tokens": 0,
+                    "cache_write_tokens": 0,
+                    "cached_tokens": 0,
+                    "video_tokens": 0
+                },
+                "total_tokens": 717
+            }
+        },
+        "toolCalls": [],
+        "usage": {
+            "completion_tokens": 193,
+            "completion_tokens_details": {
+                "audio_tokens": 0,
+                "image_tokens": 0,
+                "reasoning_tokens": 41
+            },
+            "cost": 0.0006397,
+            "cost_details": {
+                "upstream_inference_completions_cost": 0.0004825,
+                "upstream_inference_cost": 0.0006397,
+                "upstream_inference_prompt_cost": 0.0001572
+            },
+            "is_byok": false,
+            "prompt_tokens": 524,
+            "prompt_tokens_details": {
+                "audio_tokens": 0,
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "video_tokens": 0
+            },
+            "total_tokens": 717
+        }
+    },
+    "response_sha256": "532a5ba9e9538bb5f27d0b2e5489b91c7ab57ba2d9e5458175a89fa20eb23292",
+    "schema_version": 1
+}

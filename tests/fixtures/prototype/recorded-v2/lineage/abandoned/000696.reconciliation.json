@@ -1,0 +1,72 @@
+{
+    "actual_cost_confirmed": true,
+    "call_id": 696,
+    "checkpoint": {
+        "receipt": {
+            "call_id": 696,
+            "generation_id": "gen-1793466533-bN0IU8kjmQmEVVkdnPNB",
+            "model_requested": "anthropic/claude-sonnet-5.5",
+            "recorded_at": "2026-10-31T17:08:57.038297+00:00",
+            "replay_eligible": false,
+            "request_sha256": "8f0392327ddb8533ffcc8312b525571b26c248a31cfe6ed3591495df9c1bc581",
+            "response_retained": false,
+            "response_sha256": "cb71b48f86b36e8e27ae7c62f16d5feee78456be071192a342752b81827781a8",
+            "schema_version": 1,
+            "usage": {
+                "completion_tokens": 94,
+                "cost_usd": "0.010816",
+                "prompt_tokens": 4938,
+                "total_tokens": 5032
+            }
+        },
+        "receipt_sha256": "c6ee2a1eccad60539a22612ee3b0d636c81371fafe40a5a1f7160959fe7da11f",
+        "reservation": {
+            "call_id": 696,
+            "model_requested": "anthropic/claude-sonnet-5.5",
+            "recorded_at": "2026-10-31T17:08:54.804000+00:00",
+            "replay_eligible": false,
+            "request_sha256": "8f0392327ddb8533ffcc8312b525571b26c248a31cfe6ed3591495df9c1bc581",
+            "reserved_micros": 9042600,
+            "schema_version": 1
+        },
+        "reservation_sha256": "f3d1d10cae663c81b9977b607ed014327bfc3bc706e267692ec9753da127d613"
+    },
+    "clock_skew_seconds": 5,
+    "decided_at": "2026-10-31T18:15:33.889796+00:00",
+    "kind": "reconciled_checkpoint_generation_metadata",
+    "metadata": {
+        "confirmed_cost_micros": 10816,
+        "counted_upstream_cost_usd": null,
+        "created_at": "2026-10-31T17:08:53.731000+00:00",
+        "generation_id": "gen-1793466533-bN0IU8kjmQmEVVkdnPNB",
+        "is_byok": false,
+        "model": "anthropic/claude-sonnet-5.5-20260928",
+        "native_tokens_completion": 94,
+        "native_tokens_prompt": 4938,
+        "openrouter_cost_usd": "0.010816",
+        "provider": "Anthropic",
+        "receipt_cost_usd": "0.010816",
+        "tokens_completion": 38,
+        "tokens_prompt": 4305
+    },
+    "original_call": {
+        "charged_micros": null,
+        "created_at": "2026-10-31T17:08:54.799104+00:00",
+        "id": 696,
+        "model": "anthropic/claude-sonnet-5.5",
+        "reason": "generation_billing_unknown",
+        "request_hash": "8f0392327ddb8533ffcc8312b525571b26c248a31cfe6ed3591495df9c1bc581",
+        "reserved_micros": 9042600,
+        "settled_at": "2026-10-31T17:23:07.923010+00:00",
+        "state": "uncertain"
+    },
+    "provider_confirmed_request_hash": false,
+    "replay_evidence_created": false,
+    "request_link_basis": "durable_receipt_checkpoint_and_matching_generation_metadata",
+    "request_sha256": "8f0392327ddb8533ffcc8312b525571b26c248a31cfe6ed3591495df9c1bc581",
+    "response_retained": false,
+    "schema_version": 2,
+    "source_audit_sha256": "8b051f5abf8492e297765eece5c7a64e2bbab395e4fe674926cbea5c396913a0",
+    "task_limit_micros": 50000000,
+    "upper_bound_micros": 9042600
+}

@@ -1,0 +1,198 @@
+{
+    "evidence": {
+        "budget": {
+            "call_id": 91,
+            "charged_micros": 101,
+            "reserved_micros": 2284275
+        },
+        "captured_at": "2026-10-31T12:09:26.342288+00:00",
+        "case_id": "persona.for_self_wedding",
+        "http_status": 200,
+        "phase": "dialogue",
+        "pricing": {
+            "context_length": 1000000,
+            "endpoints_sha256": "df98ba8d80b32588fd578a0e9b96f7920221311c0a2413114f2f66a5226a0d5f",
+            "fetched_at": "2026-10-31T12:09:18.931711+00:00",
+            "max_completion_tokens": 128000,
+            "provider": "anthropic",
+            "provider_names": [
+                "Anthropic"
+            ],
+            "rates": {
+                "completion": "0.0000025",
+                "discount": "0",
+                "input_cache_read": "5E-8",
+                "input_cache_write": "6.25E-7",
+                "input_cache_write_1h": "0.000001",
+                "prompt": "5E-7",
+                "web_search": "0.01"
+            }
+        },
+        "provider_model": "anthropic/claude-haiku-5.5",
+        "provider_request_id": "gen-1793448555-UkjFLTlMB9ukuR6Vf5Wu",
+        "request_body": {
+            "max_tokens": 200,
+            "messages": [
+                {
+                    "content": "Ты играешь КЛИЕНТА, который оставил заявку на прайс оптовой пиротехники на сайте компании «Союз Пир». Тебе пишет их менеджер Антон в мессенджере. Отвечай ТОЛЬКО репликой клиента, по-русски, 1–2 коротких предложения, как пишут живые люди в чате (без приветствий в каждом сообщении, без кавычек, без имени впереди).\n\nТвоя персона: Физлицо на свадьбу (тип: for_self).\nЧто ты знаешь о себе (говори только если спросят или если это уместно; не вываливай всё сразу):\n- budget: тысяч 30\n- categories: салюты\n- city: Москва\n- messenger: WhatsApp\n- purpose: для себя\n- timing: через две недели\nКак ты себя ведёшь: Хочет один большой салют на свадьбу, спрашивает, можно ли приехать посмотреть, нужна ли оплата заранее. Почту давать не хочет, только WhatsApp.\n\nПравила:\n- Отвечай на вопрос менеджера по одному факту за раз; если факта нет в списке — ответь уклончиво или «не знаю».\n- Не придумывай новых требований, кроме описанных в поведении.\n- Если менеджер задал два вопроса сразу — ответь только на один.\n- Если тебя всё устраивает и разговор логически закончен (прайс отправлен, договорились о связи) — напиши короткое «ок, спасибо» и затем в следующем сообщении «[конец]».\n- Если по сценарию ты должен пропасть — напиши «[молчание]».\n- Если менеджер передал тебя живому человеку или попрощался — напиши «[конец]».\n- Сейчас твоя реплика №2.\n",
+                    "role": "system"
+                },
+                {
+                    "content": "Добрый день. Антон, компания «Союз Пир», оптовая пиротехника. Увидел вашу заявку, сейчас быстро уточню пару моментов, и дальше по делу. Чтобы сразу сориентировать по доставке, подскажите, вы из какого города?",
+                    "role": "user"
+                },
+                {
+                    "content": "Здравствуйте. Я из Москвы.",
+                    "role": "assistant"
+                },
+                {
+                    "content": "Поняли, Москва, тогда проще. Можно забрать самому со склада на ВДНХ или мы бесплатно довезём до нужного терминала ТК. Скажите, вы берёте для себя или на продажу?",
+                    "role": "user"
+                }
+            ],
+            "model": "anthropic/claude-haiku-5.5",
+            "plugins": [],
+            "provider": {
+                "allow_fallbacks": false,
+                "max_price": {
+                    "completion": 2.5,
+                    "prompt": 0.5,
+                    "request": 0.0
+                },
+                "only": [
+                    "anthropic"
+                ],
+                "order": [
+                    "anthropic"
+                ],
+                "require_parameters": false
+            },
+            "reasoning": {
+                "effort": "low"
+            },
+            "stream": false,
+            "temperature": 0.8,
+            "usage": {
+                "include": true
+            }
+        },
+        "request_body_sha256": "c24243d8db44055929486d6b436458c52b033f1a80d288c8f2b9e12bf604b481",
+        "run_id": "capture_20261031T104157_67845ea5",
+        "seed_requested": null,
+        "sequence": 5,
+        "usage": {
+            "completion_tokens": 41,
+            "cost_usd": "0.0001003",
+            "prompt_tokens": 798,
+            "total_tokens": 839
+        }
+    },
+    "provenance": "recorded",
+    "provider": "openrouter",
+    "request": {
+        "messages": [
+            {
+                "content": "Ты играешь КЛИЕНТА, который оставил заявку на прайс оптовой пиротехники на сайте компании «Союз Пир». Тебе пишет их менеджер Антон в мессенджере. Отвечай ТОЛЬКО репликой клиента, по-русски, 1–2 коротких предложения, как пишут живые люди в чате (без приветствий в каждом сообщении, без кавычек, без имени впереди).\n\nТвоя персона: Физлицо на свадьбу (тип: for_self).\nЧто ты знаешь о себе (говори только если спросят или если это уместно; не вываливай всё сразу):\n- budget: тысяч 30\n- categories: салюты\n- city: Москва\n- messenger: WhatsApp\n- purpose: для себя\n- timing: через две недели\nКак ты себя ведёшь: Хочет один большой салют на свадьбу, спрашивает, можно ли приехать посмотреть, нужна ли оплата заранее. Почту давать не хочет, только WhatsApp.\n\nПравила:\n- Отвечай на вопрос менеджера по одному факту за раз; если факта нет в списке — ответь уклончиво или «не знаю».\n- Не придумывай новых требований, кроме описанных в поведении.\n- Если менеджер задал два вопроса сразу — ответь только на один.\n- Если тебя всё устраивает и разговор логически закончен (прайс отправлен, договорились о связи) — напиши короткое «ок, спасибо» и затем в следующем сообщении «[конец]».\n- Если по сценарию ты должен пропасть — напиши «[молчание]».\n- Если менеджер передал тебя живому человеку или попрощался — напиши «[конец]».\n- Сейчас твоя реплика №2.\n",
+                "role": "system"
+            },
+            {
+                "content": "Добрый день. Антон, компания «Союз Пир», оптовая пиротехника. Увидел вашу заявку, сейчас быстро уточню пару моментов, и дальше по делу. Чтобы сразу сориентировать по доставке, подскажите, вы из какого города?",
+                "role": "user"
+            },
+            {
+                "content": "Здравствуйте. Я из Москвы.",
+                "role": "assistant"
+            },
+            {
+                "content": "Поняли, Москва, тогда проще. Можно забрать самому со склада на ВДНХ или мы бесплатно довезём до нужного терминала ТК. Скажите, вы берёте для себя или на продажу?",
+                "role": "user"
+            }
+        ],
+        "options": {
+            "component": "simulator",
+            "max_tokens": 200,
+            "model": "anthropic/claude-haiku-5.5",
+            "temperature": 0.8
+        }
+    },
+    "request_sha256": "d870fd7a5868c23757391a572de0e19e35cfd967396399f8dbfa42c5fd8bff9e",
+    "response": {
+        "content": "Для себя, на свадьбу. Самому забирать не очень удобно, так что если довезёте, было бы проще.",
+        "costUsd": 0.0001003,
+        "error": null,
+        "latencyMs": 0,
+        "model": "anthropic/claude-haiku-5.5",
+        "raw": {
+            "choices": [
+                {
+                    "finish_reason": "stop",
+                    "index": 0,
+                    "logprobs": null,
+                    "message": {
+                        "content": "Для себя, на свадьбу. Самому забирать не очень удобно, так что если довезёте, было бы проще.",
+                        "reasoning": null,
+                        "refusal": null,
+                        "role": "assistant"
+                    },
+                    "native_finish_reason": "end_turn"
+                }
+            ],
+            "created": 1793448555,
+            "id": "gen-1793448555-UkjFLTlMB9ukuR6Vf5Wu",
+            "model": "anthropic/claude-haiku-5.5",
+            "object": "chat.completion",
+            "provider": "Anthropic",
+            "service_tier": "default",
+            "system_fingerprint": null,
+            "usage": {
+                "completion_tokens": 41,
+                "completion_tokens_details": {
+                    "audio_tokens": 0,
+                    "image_tokens": 0,
+                    "reasoning_tokens": 0
+                },
+                "cost": 0.0001003,
+                "cost_details": {
+                    "upstream_inference_completions_cost": 2.05e-5,
+                    "upstream_inference_cost": 0.0001003,
+                    "upstream_inference_prompt_cost": 7.98e-5
+                },
+                "is_byok": false,
+                "prompt_tokens": 798,
+                "prompt_tokens_details": {
+                    "audio_tokens": 0,
+                    "cache_write_tokens": 0,
+                    "cached_tokens": 0,
+                    "video_tokens": 0
+                },
+                "total_tokens": 839
+            }
+        },
+        "toolCalls": [],
+        "usage": {
+            "completion_tokens": 41,
+            "completion_tokens_details": {
+                "audio_tokens": 0,
+                "image_tokens": 0,
+                "reasoning_tokens": 0
+            },
+            "cost": 0.0001003,
+            "cost_details": {
+                "upstream_inference_completions_cost": 2.05e-5,
+                "upstream_inference_cost": 0.0001003,
+                "upstream_inference_prompt_cost": 7.98e-5
+            },
+            "is_byok": false,
+            "prompt_tokens": 798,
+            "prompt_tokens_details": {
+                "audio_tokens": 0,
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "video_tokens": 0
+            },
+            "total_tokens": 839
+        }
+    },
+    "response_sha256": "5aeb3810881331a504b000bf853d07058b01193053bd61e5a1cda10bc0b2b36e",
+    "schema_version": 1
+}

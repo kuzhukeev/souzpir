@@ -1,0 +1,194 @@
+{
+    "evidence": {
+        "budget": {
+            "call_id": 376,
+            "charged_micros": 490,
+            "reserved_micros": 821983
+        },
+        "captured_at": "2026-10-31T14:41:50.186723+00:00",
+        "case_id": "persona.tc_floor",
+        "http_status": 200,
+        "phase": "dialogue",
+        "pricing": {
+            "context_length": 1048576,
+            "endpoints_sha256": "b1061ba8b54783f22f3eabbcff1c4ffdf823f1d07d28e4dc760b0f193c54a0f0",
+            "fetched_at": "2026-10-31T14:41:38.005585+00:00",
+            "max_completion_tokens": 65535,
+            "provider": "google-ai-studio",
+            "provider_names": [
+                "Google AI Studio"
+            ],
+            "rates": {
+                "audio": "0.0000018",
+                "completion": "0.0000045",
+                "discount": "0",
+                "image": "5.4E-7",
+                "input_audio_cache": "1.8E-7",
+                "input_cache_read": "5.4E-8",
+                "input_cache_write": "1.5E-7",
+                "internal_reasoning": "0.0000045",
+                "prompt": "5.4E-7",
+                "web_search": "0.014"
+            }
+        },
+        "provider_model": "google/gemini-2.5-flash",
+        "provider_request_id": "gen-1793457697-Sxcw4PHIi0kQdJUMbQNG",
+        "request_body": {
+            "max_tokens": 300,
+            "messages": [
+                {
+                    "content": "Сожми переписку менеджера по оптовой пиротехнике с клиентом в 3–5 предложений по-русски: что клиент хочет, что уже выяснено, какие возражения, что обещано, о чём договорились. Без оценок и советов. Только текст.\n",
+                    "role": "system"
+                },
+                {
+                    "content": "Клиент: Здравствуйте. Да, оставлял заявку. Я из Рязани.\nМенеджер: Понял, Рязань, до вас доставим транспортной компанией. Подскажите, пиротехнику берёте для себя или на продажу?\nКлиент: На продажу.\nМенеджер: На продажу, понял. Раньше пиротехникой торговали или это первый сезон?\nКлиент: Первый раз, опыта нет.\nМенеджер: Ясно, с нуля начинать нормально, подскажем по ассортименту, чтобы не набрать лишнего. Расскажите, что за точка будет: павильон, торговый центр (и какой этаж), жилой дом, интернет или с машины? От этого зависит, что по пожарке можно ставить.\nКлиент: Точка в ТЦ, на первом этаже.\nМенеджер: В ТЦ на первом этаже — нормальное место, проходимость обычно хорошая. Что в основном интересует: салюты, петарды, мелочь вроде фонтанов и бенгальских или всё вместе?\nКлиент: Мне салюты нужны, в основном ими и торговать буду.\nМенеджер: Салюты — понятно, с них в ТЦ и начинают. Плюс-минус на какую сумму смотрите первую закупку? Это ни к чему не обязывает, просто от суммы я скидку в прайсе выставлю.\nКлиент: Примерно на 80 тысяч рублей.\nМенеджер: 80 тысяч для первой закупки салютов — разумно, можно собрать нормальную витрину. Скидку согласую сразу под этот объём, а если возьмёте меньше, она всё равно сохранится. Закупаться планируете сейчас или ближе к сезону?",
+                    "role": "user"
+                }
+            ],
+            "model": "google/gemini-2.5-flash",
+            "plugins": [],
+            "provider": {
+                "allow_fallbacks": false,
+                "max_price": {
+                    "completion": 4.5,
+                    "prompt": 0.54,
+                    "request": 0.0
+                },
+                "only": [
+                    "google-ai-studio"
+                ],
+                "order": [
+                    "google-ai-studio"
+                ],
+                "require_parameters": false
+            },
+            "reasoning": {
+                "effort": "low"
+            },
+            "stream": false,
+            "temperature": 0.2,
+            "usage": {
+                "include": true
+            }
+        },
+        "request_body_sha256": "f7acadb23a26ac2d9419b852a7e63a8e1e89590d7fe8b862200d1d73a66477d3",
+        "run_id": "capture_20261031T104157_67845ea5",
+        "seed_requested": null,
+        "sequence": 20,
+        "usage": {
+            "completion_tokens": 141,
+            "cost_usd": "0.0004893",
+            "prompt_tokens": 456,
+            "total_tokens": 597
+        }
+    },
+    "provenance": "recorded",
+    "provider": "openrouter",
+    "request": {
+        "messages": [
+            {
+                "content": "Сожми переписку менеджера по оптовой пиротехнике с клиентом в 3–5 предложений по-русски: что клиент хочет, что уже выяснено, какие возражения, что обещано, о чём договорились. Без оценок и советов. Только текст.\n",
+                "role": "system"
+            },
+            {
+                "content": "Клиент: Здравствуйте. Да, оставлял заявку. Я из Рязани.\nМенеджер: Понял, Рязань, до вас доставим транспортной компанией. Подскажите, пиротехнику берёте для себя или на продажу?\nКлиент: На продажу.\nМенеджер: На продажу, понял. Раньше пиротехникой торговали или это первый сезон?\nКлиент: Первый раз, опыта нет.\nМенеджер: Ясно, с нуля начинать нормально, подскажем по ассортименту, чтобы не набрать лишнего. Расскажите, что за точка будет: павильон, торговый центр (и какой этаж), жилой дом, интернет или с машины? От этого зависит, что по пожарке можно ставить.\nКлиент: Точка в ТЦ, на первом этаже.\nМенеджер: В ТЦ на первом этаже — нормальное место, проходимость обычно хорошая. Что в основном интересует: салюты, петарды, мелочь вроде фонтанов и бенгальских или всё вместе?\nКлиент: Мне салюты нужны, в основном ими и торговать буду.\nМенеджер: Салюты — понятно, с них в ТЦ и начинают. Плюс-минус на какую сумму смотрите первую закупку? Это ни к чему не обязывает, просто от суммы я скидку в прайсе выставлю.\nКлиент: Примерно на 80 тысяч рублей.\nМенеджер: 80 тысяч для первой закупки салютов — разумно, можно собрать нормальную витрину. Скидку согласую сразу под этот объём, а если возьмёте меньше, она всё равно сохранится. Закупаться планируете сейчас или ближе к сезону?",
+                "role": "user"
+            }
+        ],
+        "options": {
+            "component": "summary",
+            "max_tokens": 300,
+            "model": "google/gemini-2.5-flash",
+            "temperature": 0.2,
+            "tools_called": []
+        }
+    },
+    "request_sha256": "91dab8e59b9831c8187891f141c49f4465acb334ba6186afee904ad7e353f753",
+    "response": {
+        "content": "Клиент из Рязани, новичок в торговле пиротехникой, планирует открыть точку в ТЦ на первом этаже и заинтересован в оптовой закупке салютов. Он ориентируется на первую закупку примерно на 80 тысяч рублей. Менеджер подтвердил возможность доставки, обещал помочь с подбором ассортимента для новичка и согласовать скидку под заявленный объём, которая сохранится даже при меньшей сумме заказа.",
+        "costUsd": 0.0004893,
+        "error": null,
+        "latencyMs": 0,
+        "model": "google/gemini-2.5-flash",
+        "raw": {
+            "choices": [
+                {
+                    "finish_reason": "stop",
+                    "index": 0,
+                    "logprobs": null,
+                    "message": {
+                        "content": "Клиент из Рязани, новичок в торговле пиротехникой, планирует открыть точку в ТЦ на первом этаже и заинтересован в оптовой закупке салютов. Он ориентируется на первую закупку примерно на 80 тысяч рублей. Менеджер подтвердил возможность доставки, обещал помочь с подбором ассортимента для новичка и согласовать скидку под заявленный объём, которая сохранится даже при меньшей сумме заказа.",
+                        "reasoning": "**Defining Client Needs**\n\nI'm currently focused on identifying the client's specific requirements within the wholesale fireworks conversation. I'm extracting the desired products or services and distinguishing them from any already-clarified points. My goal is to capture the essence of their needs.\n\n\n",
+                        "reasoning_details": [
+                            {
+                                "format": "google-gemini-v1",
+                                "index": 0,
+                                "text": "**Defining Client Needs**\n\nI'm currently focused on identifying the client's specific requirements within the wholesale fireworks conversation. I'm extracting the desired products or services and distinguishing them from any already-clarified points. My goal is to capture the essence of their needs.\n\n\n",
+                                "type": "reasoning.text"
+                            }
+                        ],
+                        "refusal": null,
+                        "role": "assistant"
+                    },
+                    "native_finish_reason": "STOP"
+                }
+            ],
+            "created": 1793457697,
+            "id": "gen-1793457697-Sxcw4PHIi0kQdJUMbQNG",
+            "model": "google/gemini-2.5-flash",
+            "object": "chat.completion",
+            "provider": "Google AI Studio",
+            "service_tier": "default",
+            "system_fingerprint": null,
+            "usage": {
+                "completion_tokens": 141,
+                "completion_tokens_details": {
+                    "audio_tokens": 0,
+                    "image_tokens": 0,
+                    "reasoning_tokens": 41
+                },
+                "cost": 0.0004893,
+                "cost_details": {
+                    "upstream_inference_completions_cost": 0.0003525,
+                    "upstream_inference_cost": 0.0004893,
+                    "upstream_inference_prompt_cost": 0.0001368
+                },
+                "is_byok": false,
+                "prompt_tokens": 456,
+                "prompt_tokens_details": {
+                    "audio_tokens": 0,
+                    "cache_write_tokens": 0,
+                    "cached_tokens": 0,
+                    "video_tokens": 0
+                },
+                "total_tokens": 597
+            }
+        },
+        "toolCalls": [],
+        "usage": {
+            "completion_tokens": 141,
+            "completion_tokens_details": {
+                "audio_tokens": 0,
+                "image_tokens": 0,
+                "reasoning_tokens": 41
+            },
+            "cost": 0.0004893,
+            "cost_details": {
+                "upstream_inference_completions_cost": 0.0003525,
+                "upstream_inference_cost": 0.0004893,
+                "upstream_inference_prompt_cost": 0.0001368
+            },
+            "is_byok": false,
+            "prompt_tokens": 456,
+            "prompt_tokens_details": {
+                "audio_tokens": 0,
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "video_tokens": 0
+            },
+            "total_tokens": 597
+        }
+    },
+    "response_sha256": "99adcbf3b7f448def97637ece65047eab847dedfa076f3a3d4c9eb7febb6629c",
+    "schema_version": 1
+}
