@@ -427,7 +427,7 @@ SQL);
             'turn' => $claim->turnId, 'conversation' => $claim->conversationId, 'version' => $claim->baseVersion,
             'token' => $claim->token(), 'stage' => $stage, 'fixtures' => dirname($file),
         ], JSON_THROW_ON_ERROR);
-        $command = [PHP_BINARY, '-d', 'allow_url_fopen=0', '-d', 'disable_functions=fsockopen,pfsockopen,stream_socket_client,curl_exec,curl_multi_exec', base_path('tests/Feature/Ai/Fixtures/protected-summary-worker.php')];
+        $command = [PHP_BINARY, '-d', 'opcache.enable_cli=0', '-d', 'allow_url_fopen=0', '-d', 'disable_functions=fsockopen,pfsockopen,stream_socket_client,curl_exec,curl_multi_exec', base_path('tests/Feature/Ai/Fixtures/protected-summary-worker.php')];
         $first = new Process($command, base_path(), ['APP_ENV' => 'testing']);
         $second = new Process($command, base_path(), ['APP_ENV' => 'testing']);
         $first->setInput($payload);
@@ -439,7 +439,7 @@ SQL);
         $blocker->select('SELECT pg_advisory_xact_lock(hashtextextended(?, 0))', [$tenant->organizationId.':'.$tenant->brandId.':'.$keyHash]);
         try {
             $first->start();
-            $this->waitForBlockedProcesses(1);
+            $this->waitForBlockedProcesses(1, [$first]);
             config(['database.connections.c02_revoker' => config('database.connections.pgsql')]);
             $revoker = DB::connection('c02_revoker');
             $revoker->beginTransaction();
@@ -455,7 +455,7 @@ SQL);
                 DB::purge('c02_revoker');
             }
             $second->start();
-            $this->waitForBlockedProcesses(2);
+            $this->waitForBlockedProcesses(2, [$first, $second]);
         } finally {
             $blocker->rollBack();
         }
@@ -500,12 +500,12 @@ SQL);
             'turn' => $claim->turnId, 'conversation' => $claim->conversationId, 'version' => $claim->baseVersion,
             'token' => $claim->token(), 'stage' => $stage, 'fixtures' => dirname($file),
         ], JSON_THROW_ON_ERROR);
-        $command = [PHP_BINARY, '-d', 'allow_url_fopen=0', '-d', 'disable_functions=fsockopen,pfsockopen,stream_socket_client,curl_exec,curl_multi_exec', base_path('tests/Feature/Ai/Fixtures/protected-summary-worker.php')];
+        $command = [PHP_BINARY, '-d', 'opcache.enable_cli=0', '-d', 'allow_url_fopen=0', '-d', 'disable_functions=fsockopen,pfsockopen,stream_socket_client,curl_exec,curl_multi_exec', base_path('tests/Feature/Ai/Fixtures/protected-summary-worker.php')];
         $worker = new Process($command, base_path(), ['APP_ENV' => 'testing']);
         $worker->setInput($payload);
         try {
             $worker->start();
-            $this->waitForBlockedProcesses(1);
+            $this->waitForBlockedProcesses(1, [$worker]);
             $this->within($tenant, fn () => Message::create(['conversation_id' => $claim->conversationId, 'role' => 'client', 'text' => 'Input during fake driver', 'meta' => []]));
         } finally {
             $blocker->rollBack();
@@ -554,12 +554,12 @@ SQL);
             'turn' => $claim->turnId, 'conversation' => $claim->conversationId, 'version' => $claim->baseVersion,
             'token' => $claim->token(), 'stage' => $stage, 'fixtures' => dirname($file),
         ], JSON_THROW_ON_ERROR);
-        $command = [PHP_BINARY, '-d', 'allow_url_fopen=0', '-d', 'disable_functions=fsockopen,pfsockopen,stream_socket_client,curl_exec,curl_multi_exec', base_path('tests/Feature/Ai/Fixtures/protected-summary-worker.php')];
+        $command = [PHP_BINARY, '-d', 'opcache.enable_cli=0', '-d', 'allow_url_fopen=0', '-d', 'disable_functions=fsockopen,pfsockopen,stream_socket_client,curl_exec,curl_multi_exec', base_path('tests/Feature/Ai/Fixtures/protected-summary-worker.php')];
         $worker = new Process($command, base_path(), ['APP_ENV' => 'testing']);
         $worker->setInput($payload);
         try {
             $worker->start();
-            $this->waitForBlockedProcesses(1);
+            $this->waitForBlockedProcesses(1, [$worker]);
             self::assertSame('reserved', DB::table('ai_calls')->value('status'));
             self::assertNotNull(DB::table('c02_ai_stages')->where('id', $stage)->value('ai_call_id'));
             $cancelled = DB::selectOne("select pg_cancel_backend(pid) as cancelled from pg_stat_activity where datname = current_database() and wait_event = 'advisory' and query like 'update %ai_calls%' limit 1");
@@ -577,10 +577,17 @@ SQL);
         DB::purge('c02_advisory');
     }
 
-    private function waitForBlockedProcesses(int $count): void
+    /** @param list<Process> $workers */
+    private function waitForBlockedProcesses(int $count, array $workers): void
     {
         $deadline = microtime(true) + 10;
         do {
+            foreach ($workers as $worker) {
+                // Polling also pumps the private STDIN pipe; never report its contents.
+                if (! $worker->isRunning()) {
+                    self::fail('Protected test worker exited before reaching a database lock (exit code '.($worker->getExitCode() ?? 'unknown').').');
+                }
+            }
             $waiting = DB::selectOne("select count(*) as n from pg_stat_activity where datname = current_database() and wait_event_type = 'Lock'")->n;
             if ((int) $waiting >= $count) {
                 return;
