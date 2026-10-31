@@ -10,7 +10,7 @@ use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Str;
-use Tests\Support\MfaTestDatabase;
+use Tests\Support\IsolatedAuthDatabase;
 use Tests\TestCase;
 
 final class FileSessionRaceTest extends TestCase
@@ -19,7 +19,7 @@ final class FileSessionRaceTest extends TestCase
 
     protected function beforeRefreshingDatabase(): void
     {
-        MfaTestDatabase::assert();
+        IsolatedAuthDatabase::assert();
     }
 
     public function test_logout_remains_effective_after_parallel_request_restores_old_file(): void

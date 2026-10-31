@@ -9,12 +9,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
-use Tests\Support\MfaTestDatabase;
+use Tests\Support\IsolatedAuthDatabase;
 
 require __DIR__.'/../../../../../vendor/autoload.php';
 $app = require __DIR__.'/../../../../../bootstrap/app.php';
 $app->make(ConsoleKernel::class)->bootstrap();
-MfaTestDatabase::assert();
+IsolatedAuthDatabase::assert();
 [$script, $mode, $cookie, $barrier] = $argv;
 if (in_array($mode, ['login-remember-paused', 'logout-paused'], true)) {
     User::retrieved(function () use ($barrier) {
@@ -102,8 +102,7 @@ if ($mode === 'sensitive') {
     'remember' => ['GET', '/auth/ready', []],
 };
 $request = Request::create($uri, $method, $parameters);
-// This test drives an in-process synthetic localhost request; Symfony does not
-// populate SERVER_ADDR by default, but the secure MFA context requires both ends.
+// Synthetic localhost requests must provide both ends for the MFA secure-context check.
 $request->server->set('SERVER_ADDR', '127.0.0.1');
 if (in_array($mode, ['view', 'remember'], true)) {
     $request->headers->set('X-Inertia', 'true');

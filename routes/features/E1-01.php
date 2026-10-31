@@ -36,8 +36,7 @@ return [
         });
     },
     'auth' => static function (): void {
-        // Logout has its own current-lease check and must accept a stale snapshot
-        // of the same lease after a concurrent security-version change.
+        // Controller verifies its own lease and permits stale snapshots only for logout.
         Route::post('/logout', [SessionController::class, 'destroy'])->middleware('auth.nostore')
             ->withoutMiddleware(EnforceAuthVersion::class)->name('logout');
         Route::middleware(['auth.version', 'auth.nostore'])->group(static function (): void {

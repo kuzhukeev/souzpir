@@ -72,9 +72,8 @@ final class AuthSessionRegistry
     }
 
     /**
-     * A concurrent security change may advance this very lease after logout has
-     * already loaded the previous session version. Permit that older snapshot to
-     * revoke only its own still-current lease; it cannot authorize any other action.
+     * A security change can advance this lease after logout loaded the old
+     * session. Permit that snapshot only to revoke its own current lease.
      */
     public function withinLogout(#[\SensitiveParameter] Request $request, #[\SensitiveParameter] Closure $action): mixed
     {
@@ -95,7 +94,7 @@ final class AuthSessionRegistry
         });
     }
 
-    /** Invoke only within withinActive, in the same transaction as the action. */
+    /** Invoke only within withinActive or withinLogout, in the same transaction as the action. */
     public function revokeCurrent(Request $request): void
     {
         if (DB::connection()->transactionLevel() < 1 || ! $request->user()) {
