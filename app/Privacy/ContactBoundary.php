@@ -171,16 +171,20 @@ final class ContactBoundary
         // Remaining @ is ambiguous: it can be an email, a handle or an
         // unrecognised encoding. Legacy-masked ordinary emails contain no @.
         $bracketed = preg_match('/[\p{L}\p{N}._%+\-]+\s*[\[(]\s*(?:at|собака)\s*[\])]\s*[\p{L}\p{N}]/iu', $text);
-        $worded = preg_match('/[\p{L}\p{N}._%+\-]+\s+(?:at|собака)\s+[\p{L}\p{N}-]+(?:(?:[.\x{3002}]|\s+(?:dot|точка)\s+|\s*[\[(]\s*(?:dot|точка|[.\x{3002}])\s*[\])]\s*)[\p{L}\p{N}-]+)+/iu', $text);
+        $worded = preg_match('/[\p{L}\p{N}._%+\-]+\s+(?:at|собака)\s+[\p{L}\p{N}-]+(?:(?:\s*[.\x{3002}]\s*|\s+(?:dot|точка)\s+|\s*[\[(]\s*(?:dot|точка|[.\x{3002}])\s*[\])]\s*)[\p{L}\p{N}-]+)+/iu', $text);
         if (str_contains($text, '@') || $bracketed !== 0 || $worded !== 0) {
             throw new InvalidArgumentException('AI text contains an unresolved contact.');
         }
 
         // Contact-like sequences in uncommon Unicode/encoded forms must not
         // fall through simply because the earlier phone masker missed them.
-        $match = preg_match('/(?<![\p{L}\p{N}_])\p{Nd}(?:[\p{Z}\p{Pd}\p{Cf}\s().\/_+*#,|;:]{0,6}\p{Nd}){9,}(?![\p{L}\p{N}_])/u', $text);
+        $match = preg_match('/(?<![\p{L}\p{N}_])\p{Nd}(?:[\p{Z}\p{Pd}\p{Cf}\s().\/_+*#,|]{0,6}\p{Nd}){9,}(?![\p{L}\p{N}_])/u', $text);
         $labelled = preg_match('/(?:тел(?:ефон)?|tel(?:ephone)?|phone|mobile|мобильн(?:ый|ого)?|контакт|звоните|позвоните|call(?:\s+me)?|whatsapp|telegram)[\s_:=.+\-]{0,8}\p{Nd}(?:[\p{Z}\p{Pd}\p{Cf}\s().\/_+*#,|;:]{0,6}\p{Nd}){4,}/iu', $text);
-        if ($match === false || $match === 1 || $labelled === false || $labelled === 1) {
+        // Colons and semicolons occur in schedules and price lists. Treat
+        // them as separators when the groups have a recognisable phone shape;
+        // the label-aware check above also covers other explicitly named phones.
+        $grouped = preg_match('/(?<![\p{L}\p{N}_])\+?\p{Nd}{1,2}[;:\p{Z}\p{Pd}\s().\/_+*#,|]{1,6}\p{Nd}{3}[;:\p{Z}\p{Pd}\s().\/_+*#,|]{1,6}\p{Nd}{3}[;:\p{Z}\p{Pd}\s().\/_+*#,|]{1,6}\p{Nd}{2}[;:\p{Z}\p{Pd}\s().\/_+*#,|]{1,6}\p{Nd}{2}(?![\p{L}\p{N}_])/u', $text);
+        if ($match === false || $match === 1 || $labelled === false || $labelled === 1 || $grouped === false || $grouped === 1) {
             throw new InvalidArgumentException('AI text contains an ambiguous phone-like number.');
         }
     }
