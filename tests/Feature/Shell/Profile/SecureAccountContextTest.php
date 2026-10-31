@@ -184,4 +184,71 @@ final class SecureAccountContextTest extends TenancyTestCase
         });
         Request::setTrustedProxies([], 0);
     }
+
+    public function test_kernel_rejects_universal_or_invalid_proxy_networks_before_mfa_secret_creation(): void
+    {
+        [$user, , $brand] = $this->cabinet();
+        $this->actingAs($user)->withSession(['brand_id' => $brand->id]);
+        $this->withServerVariables(['REMOTE_ADDR' => '198.51.100.10', 'SERVER_ADDR' => '203.0.113.20'])
+            ->withHeader('X-Forwarded-Proto', 'https');
+        try {
+            foreach ([['0.0.0.0/0'], ['::/0'], ['198.51.100.10', '0.0.0.0/0'], ['198.51.100.10', 'invalid']] as $proxies) {
+                config(['trustedproxy.proxies' => $proxies]);
+                $this->postJson('http://x.on-forge.com/profile/security/mfa/setup', ['password' => 'test-only-password'])
+                    ->assertUnprocessable()->assertJsonValidationErrors('password');
+                self::assertNull(session('auth.mfa_setup'));
+            }
+            $this->withServerVariables(['REMOTE_ADDR' => '2001:db8::10', 'SERVER_ADDR' => '2001:db8::20']);
+            config(['trustedproxy.proxies' => ['::/0']]);
+            $this->postJson('http://cabinet.example.test/profile/security/mfa/setup', ['password' => 'test-only-password'])
+                ->assertUnprocessable()->assertJsonValidationErrors('password');
+            self::assertNull(session('auth.mfa_setup'));
+            config(['trustedproxy.proxies' => ['2001:db8::10/128']]);
+            $this->postJson('http://cabinet.example.test/profile/security/mfa/setup', ['password' => 'test-only-password'])
+                ->assertRedirect();
+            self::assertIsString(session('auth.mfa_setup.secret'));
+        } finally {
+            config(['trustedproxy.proxies' => null]);
+            Request::setTrustedProxies([], 0);
+        }
+    }
+
+    public function test_kernel_rejects_spoofed_or_ambiguous_forwarded_https_but_accepts_explicit_proxy_and_tls(): void
+    {
+        [$user, , $brand] = $this->cabinet();
+        $this->actingAs($user)->withSession(['brand_id' => $brand->id]);
+        config(['trustedproxy.proxies' => ['198.51.100.10']]);
+        try {
+            Request::setTrustedProxies(['0.0.0.0/0'], Request::HEADER_X_FORWARDED_PROTO);
+            $this->withServerVariables(['REMOTE_ADDR' => '198.51.100.11', 'SERVER_ADDR' => '203.0.113.20'])
+                ->withHeader('X-Forwarded-Proto', 'https')
+                ->postJson('http://x.on-forge.com/profile/security/mfa/setup', ['password' => 'test-only-password'])
+                ->assertUnprocessable()->assertJsonValidationErrors('password');
+            self::assertNull(session('auth.mfa_setup'));
+
+            $this->withServerVariables(['REMOTE_ADDR' => '198.51.100.10', 'SERVER_ADDR' => '203.0.113.20'])
+                ->withHeader('X-Forwarded-Proto', 'https,http')
+                ->postJson('http://cabinet.example.test/profile/security/mfa/setup', ['password' => 'test-only-password'])
+                ->assertUnprocessable()->assertJsonValidationErrors('password');
+            self::assertNull(session('auth.mfa_setup'));
+            $this->withHeader('X-Forwarded-Proto', 'https')->withHeader('Forwarded', 'proto=http')
+                ->postJson('http://cabinet.example.test/profile/security/mfa/setup', ['password' => 'test-only-password'])
+                ->assertUnprocessable()->assertJsonValidationErrors('password');
+            self::assertNull(session('auth.mfa_setup'));
+
+            $this->flushHeaders()->withHeader('X-Forwarded-Proto', 'https')
+                ->postJson('http://cabinet.example.test/profile/security/mfa/setup', ['password' => 'test-only-password'])
+                ->assertRedirect();
+            self::assertIsString(session('auth.mfa_setup.secret'));
+            session()->forget('auth.mfa_setup');
+            $this->flushHeaders();
+            config(['trustedproxy.proxies' => ['0.0.0.0/0']]);
+            $this->postJson('https://cabinet.example.test/profile/security/mfa/setup', ['password' => 'test-only-password'])
+                ->assertRedirect();
+            self::assertIsString(session('auth.mfa_setup.secret'));
+        } finally {
+            config(['trustedproxy.proxies' => null]);
+            Request::setTrustedProxies([], 0);
+        }
+    }
 }
