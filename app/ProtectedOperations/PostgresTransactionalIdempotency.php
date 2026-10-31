@@ -3,6 +3,7 @@
 namespace App\ProtectedOperations;
 
 use App\Contracts\ProtectedOperations\IdempotencyConflict;
+use App\Contracts\ProtectedOperations\IdempotencyFailure;
 use App\Contracts\ProtectedOperations\TransactionalIdempotency;
 use Closure;
 use Illuminate\Support\Facades\Crypt;
@@ -15,10 +16,33 @@ final class PostgresTransactionalIdempotency implements TransactionalIdempotency
     public function execute(
         #[\SensitiveParameter] string $organizationId,
         #[\SensitiveParameter] string $brandId,
-        string $operation,
+        #[\SensitiveParameter] string $operation,
         #[\SensitiveParameter] string $key,
         #[\SensitiveParameter] string $canonicalRequest,
         #[\SensitiveParameter] Closure $write,
+    ): array {
+        // Only this private sentinel represents our own verified conflict. A
+        // callback may throw the same public type with sensitive text.
+        $conflict = new IdempotencyConflict;
+        try {
+            return $this->executeInternal($organizationId, $brandId, $operation, $key, $canonicalRequest, $write, $conflict);
+        } catch (\Throwable $error) {
+            if ($error === $conflict) {
+                throw new IdempotencyConflict('Idempotency key was used with different content.');
+            }
+
+            throw new IdempotencyFailure('Idempotent operation could not be completed.');
+        }
+    }
+
+    private function executeInternal(
+        #[\SensitiveParameter] string $organizationId,
+        #[\SensitiveParameter] string $brandId,
+        #[\SensitiveParameter] string $operation,
+        #[\SensitiveParameter] string $key,
+        #[\SensitiveParameter] string $canonicalRequest,
+        #[\SensitiveParameter] Closure $write,
+        #[\SensitiveParameter] IdempotencyConflict $conflict,
     ): array {
         if (! Str::isUlid($organizationId) || ! Str::isUlid($brandId)
             || ! preg_match('/\A[a-z][a-z0-9_.-]{0,79}\z/D', $operation)
@@ -33,7 +57,7 @@ final class PostgresTransactionalIdempotency implements TransactionalIdempotency
         $requestDigest = hash_hmac('sha256', "protected-operation-request-v1\0".$canonicalRequest, $secret);
         $keyFingerprint = hash_hmac('sha256', 'protected-operation-key-fingerprint-v1', $secret);
 
-        return DB::transaction(function () use ($organizationId, $brandId, $operation, $keyDigest, $requestDigest, $keyFingerprint, $write): array {
+        return DB::transaction(function () use ($organizationId, $brandId, $operation, $keyDigest, $requestDigest, $keyFingerprint, $write, $conflict): array {
             DB::statement('INSERT INTO protected_operation_key_guard (id, fingerprint) VALUES (1, ?) ON CONFLICT (id) DO NOTHING', [$keyFingerprint]);
             $guard = DB::table('protected_operation_key_guard')->where('id', 1)->sharedLock()->first();
             if (! $guard || ! hash_equals($guard->fingerprint, $keyFingerprint)) {
@@ -45,8 +69,11 @@ final class PostgresTransactionalIdempotency implements TransactionalIdempotency
             );
             $row = DB::table('protected_operation_receipts')->where('organization_id', $organizationId)->where('brand_id', $brandId)
                 ->where('operation', $operation)->where('key_digest', $keyDigest)->lockForUpdate()->first();
-            if (! $row || ! hash_equals($row->request_digest, $requestDigest)) {
-                throw new IdempotencyConflict('Idempotency key was used with different content.');
+            if (! $row) {
+                throw new LogicException('Idempotency receipt is missing.');
+            }
+            if (! hash_equals($row->request_digest, $requestDigest)) {
+                throw $conflict;
             }
             if ($created === 0) {
                 if (! is_string($row->result_ciphertext)) {

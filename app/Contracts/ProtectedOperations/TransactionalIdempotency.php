@@ -16,7 +16,7 @@ interface TransactionalIdempotency
     public function execute(
         #[\SensitiveParameter] string $organizationId,
         #[\SensitiveParameter] string $brandId,
-        string $operation,
+        #[\SensitiveParameter] string $operation,
         #[\SensitiveParameter] string $key,
         #[\SensitiveParameter] string $canonicalRequest,
         #[\SensitiveParameter] Closure $write,

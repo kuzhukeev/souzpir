@@ -3,6 +3,7 @@
 namespace Tests\Feature\ProtectedOperations;
 
 use App\Contracts\ProtectedOperations\IdempotencyConflict;
+use App\Contracts\ProtectedOperations\IdempotencyFailure;
 use App\Models\Brand;
 use App\Models\Organization;
 use App\Models\User;
@@ -12,6 +13,7 @@ use App\Tenancy\TenantContextRunner;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Foundation\Testing\RefreshDatabaseState;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -60,7 +62,9 @@ final class PostgresIdempotencyTest extends TestCase
         try {
             $service->execute($org->id, $brand->id, 'test.write', 'key-private-synthetic', 'different', $callback);
             self::fail('Different request was accepted.');
-        } catch (IdempotencyConflict) {
+        } catch (IdempotencyConflict $error) {
+            self::assertSame('Idempotency key was used with different content.', $error->getMessage());
+            self::assertNull($error->getPrevious());
             self::assertSame('Syntheticx', DB::table('brands')->where('id', $brand->id)->value('name'));
         }
     }
@@ -79,7 +83,7 @@ final class PostgresIdempotencyTest extends TestCase
         try {
             $call($org->id, $otherBrand->id);
             self::fail('Cross-organization brand was accepted.');
-        } catch (QueryException) {
+        } catch (IdempotencyFailure) {
             self::assertSame(3, DB::table('protected_operation_receipts')->count());
         }
     }
@@ -126,8 +130,8 @@ final class PostgresIdempotencyTest extends TestCase
                 return $service->execute($org->id, $brand->id, 'test.write', 'key', 'body', fn () => $this->write($brand->id, 'second'));
             });
             self::fail('A recursive operation was treated as completed.');
-        } catch (\LogicException $e) {
-            self::assertStringContainsString('already in progress', $e->getMessage());
+        } catch (IdempotencyFailure $e) {
+            self::assertNull($e->getPrevious());
         }
         self::assertSame('Synthetic', DB::table('brands')->where('id', $brand->id)->value('name'));
         self::assertSame(0, DB::table('protected_operation_receipts')->count());
@@ -145,6 +149,69 @@ final class PostgresIdempotencyTest extends TestCase
             self::assertStringNotContainsString('sensitive-synthetic-key', (string) $error);
             self::assertStringNotContainsString('sensitive-synthetic-body', (string) $error);
         }
+    }
+
+    public static function sensitiveFailures(): array
+    {
+        return ['callback exception' => ['callback'], 'SQL exception' => ['sql'], 'forged conflict' => ['conflict']];
+    }
+
+    #[DataProvider('sensitiveFailures')]
+    public function test_callback_and_sql_failures_are_sanitized_and_rolled_back(string $failure): void
+    {
+        [$org, $brand] = $this->fixture();
+        $secret = 'private-synthetic-callback-secret';
+        $caught = null;
+        try {
+            app(PostgresTransactionalIdempotency::class)->execute($org->id, $brand->id, 'test.write', 'key', 'body', function () use ($brand, $failure, $secret): array {
+                $this->write($brand->id, 'before failure');
+                if ($failure === 'sql') {
+                    DB::statement('SELECT ?::integer', [$secret]);
+                }
+                if ($failure === 'conflict') {
+                    throw new IdempotencyConflict($secret);
+                }
+                throw new RuntimeException($secret, 0, new RuntimeException($secret));
+            });
+        } catch (\Throwable $error) {
+            $caught = $error;
+        }
+        self::assertNotNull($caught);
+        self::assertInstanceOf(IdempotencyFailure::class, $caught);
+        self::assertStringNotContainsString($secret, $caught->getMessage());
+        self::assertStringNotContainsString($secret, $caught->getTraceAsString());
+        self::assertStringNotContainsString($secret, (string) $caught);
+        self::assertNull($caught->getPrevious());
+        self::assertSame('Synthetic', DB::table('brands')->where('id', $brand->id)->value('name'));
+        self::assertSame(0, DB::table('protected_operation_receipts')->count());
+        self::assertSame(['value' => 'retry'], app(PostgresTransactionalIdempotency::class)->execute($org->id, $brand->id, 'test.write', 'key', 'body', fn () => $this->write($brand->id, 'retry')));
+        self::assertSame('Syntheticx', DB::table('brands')->where('id', $brand->id)->value('name'));
+    }
+
+    public function test_encryption_failure_is_sanitized_and_rolls_back_the_database_write(): void
+    {
+        [$org, $brand] = $this->fixture();
+        $secret = 'private-synthetic-encryption-secret';
+        $encrypter = app('encrypter');
+        Crypt::shouldReceive('encryptString')->once()->andThrow(new RuntimeException($secret, 0, new RuntimeException($secret)));
+        $caught = null;
+        try {
+            app(PostgresTransactionalIdempotency::class)->execute($org->id, $brand->id, 'test.write', 'key', 'body', fn () => $this->write($brand->id, 'result'));
+        } catch (\Throwable $error) {
+            $caught = $error;
+        } finally {
+            Crypt::swap($encrypter);
+        }
+        self::assertNotNull($caught);
+        self::assertInstanceOf(IdempotencyFailure::class, $caught);
+        self::assertStringNotContainsString($secret, $caught->getMessage());
+        self::assertStringNotContainsString($secret, $caught->getTraceAsString());
+        self::assertStringNotContainsString($secret, (string) $caught);
+        self::assertNull($caught->getPrevious());
+        self::assertSame('Synthetic', DB::table('brands')->where('id', $brand->id)->value('name'));
+        self::assertSame(0, DB::table('protected_operation_receipts')->count());
+        self::assertSame(['value' => 'retry'], app(PostgresTransactionalIdempotency::class)->execute($org->id, $brand->id, 'test.write', 'key', 'body', fn () => $this->write($brand->id, 'retry')));
+        self::assertSame('Syntheticx', DB::table('brands')->where('id', $brand->id)->value('name'));
     }
 
     public function test_history_guards_apply_to_a_restricted_database_role(): void
@@ -187,8 +254,8 @@ final class PostgresIdempotencyTest extends TestCase
                 throw new RuntimeException('synthetic failure');
             });
             self::fail('Failure was ignored.');
-        } catch (RuntimeException $e) {
-            self::assertSame('synthetic failure', $e->getMessage());
+        } catch (IdempotencyFailure $e) {
+            self::assertNull($e->getPrevious());
         }
         self::assertSame('Synthetic', DB::table('brands')->where('id', $brand->id)->value('name'));
         self::assertSame(0, DB::table('protected_operation_receipts')->count());
@@ -215,8 +282,8 @@ final class PostgresIdempotencyTest extends TestCase
         try {
             $service->execute($org->id, $brand->id, 'test.write', 'key', 'body', $callback);
             self::fail('Unexpected key rotation was accepted.');
-        } catch (\LogicException $e) {
-            self::assertStringContainsString('key changed', $e->getMessage());
+        } catch (IdempotencyFailure $e) {
+            self::assertNull($e->getPrevious());
         } finally {
             config(['app.key' => $original]);
         }
