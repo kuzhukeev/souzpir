@@ -48,7 +48,8 @@ final class TeamInvitationsTest extends TenancyTestCase
         $this->assertFalse($rows['admin@example.test']['opened']);
         $this->assertSame([$first->id], collect($rows['both@example.test']['brands'])->pluck('id')->all());
         $this->assertSame([$first->id], collect($rows['admin@example.test']['brands'])->pluck('id')->all());
-        $this->assertSame(['id', 'email', 'role_label', 'brands', 'expires_at', 'opened'], array_keys($rows['both@example.test']));
+        $this->assertSame(['id', 'email', 'role_label', 'brands', 'expires_at', 'opened', 'can_revoke'], array_keys($rows['both@example.test']));
+        $this->assertFalse($rows['both@example.test']['can_revoke']);
         $content = json_encode($response->inertiaProps(), JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
         foreach ([$second->id, $foreignBrand->id, $common->token_hash, $wildcard->token_hash, 'hidden@example.test', 'brandless@example.test', 'foreign@example.test', 'expired@example.test', 'revoked@example.test', 'accepted@example.test', 'token_hash'] as $secret) {
             $this->assertStringNotContainsString($secret, $content);

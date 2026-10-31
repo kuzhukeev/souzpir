@@ -62,10 +62,42 @@ for (const width of [1440, 1024, 390]) {
 
 test('клавиатура и доступность', async ({ page }) => {
   await page.goto(fixture);
+  await page.getByRole('button', { name: 'Отозвать' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Отозвать приглашение' });
+  await expect(dialog).toContainText('invite@example.test');
+  await expect(dialog.getByRole('button', { name: 'Закрыть' })).toHaveCSS('cursor', 'pointer');
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.screenshot({
+    path: '.local/screenshots/e1-06/team-revoke-modal-1440.png',
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 390, height: 900 });
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+  ).toBeTruthy();
+  await page.screenshot({
+    path: '.local/screenshots/e1-06/team-revoke-modal-390.png',
+    fullPage: true,
+  });
+  await page.addScriptTag({ path: 'node_modules/axe-core/axe.min.js' });
+  const modalViolations = await page.evaluate(
+    async () =>
+      (
+        await (
+          window as unknown as {
+            axe: {
+              run: (root: Document, options: object) => Promise<{ violations: { id: string }[] }>;
+            };
+          }
+        ).axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa'] } })
+      ).violations,
+  );
+  expect(modalViolations).toEqual([]);
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
   const next = page.getByRole('button', { name: 'Вперёд' });
   await next.focus();
   await expect(next).toBeFocused();
-  await page.addScriptTag({ path: 'node_modules/axe-core/axe.min.js' });
   const violations = await page.evaluate(
     async () =>
       (

@@ -43,6 +43,7 @@ const shared = {
     location: { host: location.host, pathname: '/team', search: '' },
   },
   canViewRoles: true,
+  teamBrandRevision: 'synthetic-revision',
   invitations: {
     data: [
       {
@@ -52,6 +53,7 @@ const shared = {
         brands: [brand],
         expires_at: '2027-03-14T12:00:00.000Z',
         opened: false,
+        can_revoke: true,
       },
     ],
     current_page: 1,
