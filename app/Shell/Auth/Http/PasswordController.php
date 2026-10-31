@@ -5,7 +5,7 @@ namespace App\Shell\Auth\Http;
 use App\Models\User;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
-use App\Shell\Auth\EligibleAccount;
+use App\Shell\Auth\PasswordDelivery\PasswordEligibility;
 use App\Shell\Auth\PasswordDelivery\PasswordRequests;
 use App\Tenancy\Cabinet;
 use App\Tenancy\TenantContext;
@@ -56,8 +56,9 @@ final class PasswordController
         try {
             $changed = DB::transaction(function () use ($data): bool {
                 $user = User::where('email', $data['email'])->lockForUpdate()->first();
+                $eligible = app(PasswordEligibility::class)->lock($user);
                 $token = DB::table('password_reset_tokens')->where('email', $data['email'])->lockForUpdate()->first();
-                if (! $token || ! $user || ! app(EligibleAccount::class)->includes($data['email']) || ! $token->created_at || Carbon::parse($token->created_at)->addMinutes((int) config('auth.passwords.users.expire', 60))->lessThanOrEqualTo(now()) || ! Hash::check($data['token'], $token->token)) {
+                if (! $token || ! $user || ! $eligible || $token->auth_version === null || (int) $token->auth_version !== $user->auth_version || ! $token->created_at || Carbon::parse($token->created_at)->addMinutes((int) config('auth.passwords.users.expire', 60))->lessThanOrEqualTo(now()) || ! Hash::check($data['token'], $token->token)) {
                     return false;
                 }
                 $user->forceFill(['password' => $data['password'], 'remember_token' => Str::random(60), 'auth_version' => $user->auth_version + 1])->save();

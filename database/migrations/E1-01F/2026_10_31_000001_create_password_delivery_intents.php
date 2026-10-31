@@ -9,6 +9,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Existing legacy tokens cannot prove the authorization version and fail closed.
+        Schema::table('password_reset_tokens', function (Blueprint $table): void {
+            $table->unsignedInteger('auth_version')->nullable();
+        });
         Schema::create('password_delivery_intents', function (Blueprint $table): void {
             $table->ulid('id')->primary();
             $table->foreignUlid('user_id')->constrained('users')->restrictOnDelete();
@@ -28,5 +32,6 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('password_delivery_intents');
+        Schema::table('password_reset_tokens', fn (Blueprint $table) => $table->dropColumn('auth_version'));
     }
 };

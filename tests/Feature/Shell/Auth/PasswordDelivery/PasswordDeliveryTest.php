@@ -9,6 +9,7 @@ use App\Shell\Auth\PasswordDelivery\Jobs\DeliverPassword;
 use App\Shell\Auth\PasswordDelivery\PasswordDelivery;
 use App\Shell\Auth\PasswordDelivery\PasswordTransport;
 use App\Shell\Auth\PasswordDelivery\SmtpPasswordTransport;
+use App\Shell\Auth\Totp;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
@@ -281,5 +282,263 @@ final class PasswordDeliveryTest extends TestCase
         self::assertSame(0, DB::table('password_delivery_intents')->count());
         self::assertSame(0, $this->fake->calls);
         Queue::assertNothingPushed();
+    }
+
+    public function test_issued_and_legacy_tokens_fail_closed_after_version_change_or_disabled_organization(): void
+    {
+        $id = $this->sendIntent();
+        $this->delivery->send($this->delivery->claim($id), $this->fake);
+        $data = ['email' => $this->user->email, 'token' => $this->fake->token, 'password' => 'new-secure-password', 'password_confirmation' => 'new-secure-password'];
+        $org = config('features.E0-02.defaults.organization_id');
+        DB::table('organizations')->where('id', $org)->update(['status' => 'disabled']);
+        $this->post('/reset-password', $data)->assertSessionHasErrors('email');
+        self::assertTrue(Hash::check('old-password-example', $this->user->fresh()->password));
+        DB::table('organizations')->where('id', $org)->update(['status' => 'active']);
+        DB::table('users')->where('id', $this->user->id)->increment('auth_version');
+        $this->post('/reset-password', $data)->assertSessionHasErrors('email');
+        self::assertTrue(Hash::check('old-password-example', $this->user->fresh()->password));
+        $legacy = app('auth.password.broker')->createToken($this->user);
+        $this->post('/reset-password', [...$data, 'token' => $legacy])->assertSessionHasErrors('email');
+        self::assertNull(DB::table('password_reset_tokens')->where('email', $this->user->email)->value('auth_version'));
+    }
+
+    public function test_enabling_mfa_invalidates_already_issued_reset_link(): void
+    {
+        $this->user->forceFill(['email_verified_at' => now()])->save();
+        $id = $this->sendIntent();
+        $this->delivery->send($this->delivery->claim($id), $this->fake);
+        $token = $this->fake->token;
+        $this->post('/login', ['email' => $this->user->email, 'password' => 'old-password-example'])->assertRedirect();
+        $this->withCookie(config('session.cookie'), session()->getId());
+        $this->post('/mfa/setup', ['password' => 'old-password-example'])->assertRedirect(route('mfa.setup'));
+        $secret = session('auth.mfa_setup.secret');
+        $code = app(Totp::class)->at($secret, intdiv(now()->timestamp, 30));
+        $this->post('/mfa/setup/confirm', ['code' => $code])->assertRedirect(route('auth.ready'));
+        self::assertSame(1, $this->user->fresh()->auth_version);
+        $this->post('/logout')->assertRedirect(route('login'));
+        $this->post('/reset-password', ['email' => $this->user->email, 'token' => $token, 'password' => 'new-secure-password', 'password_confirmation' => 'new-secure-password'])->assertSessionHasErrors('email');
+        self::assertTrue(Hash::check('old-password-example', $this->user->fresh()->password));
+    }
+
+    public function test_reset_and_revocation_serialize_in_both_orders(): void
+    {
+        $id = $this->sendIntent();
+        $this->delivery->send($this->delivery->claim($id), $this->fake);
+        $token = $this->fake->token;
+        [$worker, $input, $pid] = $this->raceWorker('revoke');
+        try {
+            DB::beginTransaction();
+            $this->post('/reset-password', ['email' => $this->user->email, 'token' => $token, 'password' => 'new-secure-password', 'password_confirmation' => 'new-secure-password'])->assertRedirect(route('login'));
+            $input->write("go\n");
+            $this->waitForLock($worker, $pid);
+            DB::commit();
+            $worker->wait();
+            self::assertSame(0, $worker->getExitCode(), $worker->getErrorOutput());
+            self::assertStringContainsString('revoked', $worker->getOutput());
+        } finally {
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+            if ($worker->isRunning()) {
+                $worker->stop();
+            }
+            $input->close();
+        }
+        DB::table('memberships')->where('user_id', $this->user->id)->update(['status' => 'active']);
+        $this->travel(61)->seconds();
+        $id = $this->delivery->enqueue($this->user->email);
+        $this->delivery->send($this->delivery->claim($id), $this->fake);
+        [$worker, $input, $pid] = $this->raceWorker('reset', ['token' => $this->fake->token]);
+        try {
+            DB::beginTransaction();
+            DB::table('organizations')->where('id', config('features.E0-02.defaults.organization_id'))->lockForUpdate()->first();
+            DB::table('memberships')->where('user_id', $this->user->id)->update(['status' => 'disabled']);
+            $input->write("go\n");
+            $this->waitForLock($worker, $pid);
+            DB::commit();
+            $worker->wait();
+            self::assertSame(0, $worker->getExitCode(), $worker->getErrorOutput());
+            self::assertStringContainsString('denied', $worker->getOutput());
+            self::assertSame(1, $this->user->fresh()->auth_version);
+        } finally {
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+            if ($worker->isRunning()) {
+                $worker->stop();
+            }
+            $input->close();
+        }
+    }
+
+    public function test_competing_claims_and_sends_are_once_only_and_revocation_cancels_send(): void
+    {
+        $id = $this->sendIntent();
+        [$first, $inFirst, $pidFirst] = $this->raceWorker('claim', ['id' => $id]);
+        [$second, $inSecond, $pidSecond] = $this->raceWorker('claim', ['id' => $id]);
+        try {
+            DB::beginTransaction();
+            DB::table('users')->where('id', $this->user->id)->lockForUpdate()->first();
+            $inFirst->write("go\n");
+            $inSecond->write("go\n");
+            $this->waitForLock($first, $pidFirst);
+            $this->waitForLock($second, $pidSecond);
+            DB::commit();
+            $first->wait();
+            $second->wait();
+            self::assertSame(0, $first->getExitCode(), $first->getErrorOutput());
+            self::assertSame(0, $second->getExitCode(), $second->getErrorOutput());
+            $output = $first->getOutput().' '.$second->getOutput();
+            self::assertSame(1, substr_count($output, 'claimed'));
+            self::assertSame(1, substr_count($output, 'skipped'));
+        } finally {
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+            if ($first->isRunning()) {
+                $first->stop();
+            }
+            if ($second->isRunning()) {
+                $second->stop();
+            }
+            $inFirst->close();
+            $inSecond->close();
+        }
+        // The first workers deliberately do not leak the claim secret; use a fresh real claim.
+        self::assertTrue($this->delivery->markUncertain($id));
+        $this->travel(61)->seconds();
+        $id = $this->delivery->enqueue($this->user->email);
+        $claim = $this->delivery->claim($id);
+        $secret = (new \ReflectionProperty($claim, 'token'))->getValue($claim);
+        [$first, $inFirst, $pidFirst] = $this->raceWorker('send', ['id' => $id, 'claim' => $secret]);
+        [$second, $inSecond, $pidSecond] = $this->raceWorker('send', ['id' => $id, 'claim' => $secret]);
+        try {
+            DB::beginTransaction();
+            DB::table('users')->where('id', $this->user->id)->lockForUpdate()->first();
+            $inFirst->write("go\n");
+            $inSecond->write("go\n");
+            $this->waitForLock($first, $pidFirst);
+            $this->waitForLock($second, $pidSecond);
+            DB::commit();
+            $first->wait();
+            $second->wait();
+            self::assertSame(0, $first->getExitCode(), $first->getErrorOutput());
+            self::assertSame(0, $second->getExitCode(), $second->getErrorOutput());
+            $output = $first->getOutput().' '.$second->getOutput();
+            self::assertSame(1, substr_count($output, 'calls:1'));
+            self::assertSame(1, substr_count($output, 'calls:0'));
+            self::assertSame('sent', DB::table('password_delivery_intents')->where('id', $id)->value('status'));
+        } finally {
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+            if ($first->isRunning()) {
+                $first->stop();
+            } if ($second->isRunning()) {
+                $second->stop();
+            }
+            $inFirst->close();
+            $inSecond->close();
+        }
+        $this->travel(61)->seconds();
+        $id = $this->delivery->enqueue($this->user->email);
+        $claim = $this->delivery->claim($id);
+        $secret = (new \ReflectionProperty($claim, 'token'))->getValue($claim);
+        [$worker, $input, $pid] = $this->raceWorker('send', ['id' => $id, 'claim' => $secret]);
+        try {
+            DB::beginTransaction();
+            DB::table('organizations')->where('id', config('features.E0-02.defaults.organization_id'))->lockForUpdate()->first();
+            DB::table('memberships')->where('user_id', $this->user->id)->update(['status' => 'disabled']);
+            $input->write("go\n");
+            $this->waitForLock($worker, $pid);
+            DB::commit();
+            $worker->wait();
+            self::assertSame(0, $worker->getExitCode(), $worker->getErrorOutput());
+            self::assertStringContainsString('calls:0', $worker->getOutput());
+            self::assertSame('cancelled', DB::table('password_delivery_intents')->where('id', $id)->value('status'));
+        } finally {
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+            if ($worker->isRunning()) {
+                $worker->stop();
+            }
+            $input->close();
+        }
+    }
+
+    public function test_revocation_after_transmission_claim_does_not_retry_or_cancel_inflight_send(): void
+    {
+        $id = $this->sendIntent();
+        $claim = $this->delivery->claim($id);
+        $secret = (new \ReflectionProperty($claim, 'token'))->getValue($claim);
+        [$sender, $sendInput] = $this->raceWorker('send', ['id' => $id, 'claim' => $secret, 'pause' => true]);
+        [$revoker, $revokeInput] = $this->raceWorker('revoke');
+        try {
+            $sendInput->write("go\n");
+            $deadline = microtime(true) + 20;
+            do {
+                $sender->isRunning();
+                if (str_contains($sender->getOutput(), 'transmitting')) {
+                    break;
+                }
+                usleep(10000);
+            } while (microtime(true) < $deadline);
+            self::assertStringContainsString('transmitting', $sender->getOutput());
+            self::assertSame('transmitting', DB::table('password_delivery_intents')->where('id', $id)->value('status'));
+            $revokeInput->write("go\n");
+            $revoker->wait();
+            self::assertSame(0, $revoker->getExitCode(), $revoker->getErrorOutput());
+            self::assertStringContainsString('revoked', $revoker->getOutput());
+            $sendInput->write("go\n");
+            $sender->wait();
+            self::assertSame(0, $sender->getExitCode(), $sender->getErrorOutput());
+            self::assertStringContainsString('calls:1', $sender->getOutput());
+            self::assertSame('sent', DB::table('password_delivery_intents')->where('id', $id)->value('status'));
+            self::assertNull($this->delivery->claim($id));
+        } finally {
+            if ($sender->isRunning()) {
+                $sender->stop();
+            }
+            if ($revoker->isRunning()) {
+                $revoker->stop();
+            }
+            $sendInput->close();
+            $revokeInput->close();
+        }
+    }
+
+    private function raceWorker(string $mode, array $extra = []): array
+    {
+        $input = new InputStream;
+        $worker = new Process([PHP_BINARY, '-d', 'sys_temp_dir='.base_path('.local/tmp'), __DIR__.'/Fixtures/eligibility-worker.php'], base_path(), ['APP_ENV' => 'testing'], $input, 45);
+        $worker->start();
+        $input->write(json_encode(['mode' => $mode, 'user' => $this->user->id, 'org' => config('features.E0-02.defaults.organization_id'), ...$extra], JSON_THROW_ON_ERROR)."\n");
+        $deadline = microtime(true) + 30;
+        do {
+            $worker->isRunning();
+            if (preg_match('/ready:(\d+)/', $worker->getOutput(), $matches)) {
+                return [$worker, $input, (int) $matches[1]];
+            }
+            usleep(10000);
+        } while (microtime(true) < $deadline);
+        $worker->stop();
+        $input->close();
+        self::fail('Worker not ready: '.$worker->getErrorOutput());
+    }
+
+    private function waitForLock(Process $worker, int $pid): void
+    {
+        $deadline = microtime(true) + 20;
+        do {
+            $worker->isRunning();
+            if (DB::table('pg_locks')->where('pid', $pid)->where('granted', false)->exists()) {
+                self::assertTrue(true);
+
+                return;
+            }
+            usleep(10000);
+        } while (microtime(true) < $deadline);
+        self::fail('Worker did not wait for lock: '.$worker->getErrorOutput());
     }
 }

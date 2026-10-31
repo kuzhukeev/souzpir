@@ -2,7 +2,6 @@
 
 namespace App\Shell\Auth\PasswordDelivery;
 
-use App\Models\Organization;
 use App\Models\User;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
@@ -35,7 +34,7 @@ final class PasswordDelivery
 
         return DB::transaction(function () use ($email): ?string {
             $user = User::where('email', $email)->lockForUpdate()->first();
-            if (! $user || ! $this->lockEligibility($user)) {
+            if (! $user || ! app(PasswordEligibility::class)->lock($user)) {
                 return null;
             }
             $last = DB::table('password_delivery_intents')->where('user_id', $user->id)->orderByDesc('created_at')->orderByDesc('id')->first();
@@ -107,7 +106,7 @@ final class PasswordDelivery
                 return null;
             }
             DB::table('password_reset_tokens')->where('email', $user->email)->delete();
-            DB::table('password_reset_tokens')->insert(['email' => $user->email, 'token' => Hash::make($token), 'created_at' => now()]);
+            DB::table('password_reset_tokens')->insert(['email' => $user->email, 'token' => Hash::make($token), 'auth_version' => $user->auth_version, 'created_at' => now()]);
             DB::table('password_delivery_intents')->where('id', $intent->id)->update(['status' => 'transmitting', 'updated_at' => now()]);
 
             return $user;
@@ -146,7 +145,7 @@ final class PasswordDelivery
 
         return DB::transaction(function () use ($id, $ref, $action) {
             $user = User::whereKey($ref->user_id)->lockForUpdate()->first();
-            $eligible = $this->lockEligibility($user);
+            $eligible = app(PasswordEligibility::class)->lock($user);
             $intent = DB::table('password_delivery_intents')->where('id', $id)->where('user_id', $ref->user_id)->lockForUpdate()->first();
 
             return $intent ? $action($intent, $user, $eligible) : null;
@@ -156,25 +155,6 @@ final class PasswordDelivery
     private function permitted(object $intent, ?User $user, bool $eligible): bool
     {
         return (bool) config('features.E1-01F.defaults.enabled') && $user && $eligible && (int) $intent->auth_version === $user->auth_version && hash_equals($intent->email_fingerprint, $this->emailFingerprint($user)) && CarbonImmutable::parse($intent->created_at)->addMinutes((int) config('auth.passwords.users.expire', 60))->greaterThan(now());
-    }
-
-    private function lockEligibility(?User $user): bool
-    {
-        if (DB::transactionLevel() < 1) {
-            throw new LogicException('Eligibility requires a transaction.');
-        }
-        if (! $user) {
-            return false;
-        }
-        $orgId = app(Cabinet::class)->organizationId();
-        $org = Organization::whereKey($orgId)->lockForUpdate()->first();
-        if (! $org || $org->status !== 'active') {
-            return false;
-        }
-        $invitations = DB::table('invitations')->where('organization_id', $orgId)->where('email', $user->email)->orderBy('id')->lockForUpdate()->get();
-        $membership = DB::table('memberships')->where('organization_id', $orgId)->where('user_id', $user->id)->lockForUpdate()->first();
-
-        return ($membership && $membership->status === 'active') || $invitations->contains(fn ($invitation) => $invitation->accepted_at === null && $invitation->revoked_at === null && CarbonImmutable::parse($invitation->expires_at)->greaterThan(now()));
     }
 
     private function emailFingerprint(#[\SensitiveParameter] User $user): string
