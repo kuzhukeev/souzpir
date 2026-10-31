@@ -32,13 +32,21 @@ final class QuestionSets
                 || ! is_string($question['id'] ?? null) || trim($question['id']) === '' || mb_strlen($question['id']) > 100
                 || ! is_string($question['text'] ?? null) || trim($question['text']) === '' || mb_strlen($question['text']) > 4000
                 || ! is_string($question['intent'] ?? null) || trim($question['intent']) === '' || mb_strlen($question['intent']) > 100
+                || ! mb_check_encoding($question['id'], 'UTF-8') || ! mb_check_encoding($question['text'], 'UTF-8') || ! mb_check_encoding($question['intent'], 'UTF-8')
                 || in_array($question['id'], $ids, true)) {
                 throw new InvalidArgumentException('Invalid question set.');
             }
             $ids[] = $question['id'];
         }
-        $encoded = json_encode($questions, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
-        if (strlen($encoded) > WorkloadLimits::limit('max_questions_bytes')) {
+        try {
+            $encoded = json_encode($questions, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+            // PostgreSQL JSONB canonicalizes whitespace, key order and escaping.
+            // Use the same stored representation that measurement preflight checks.
+            $size = DB::selectOne('select octet_length(cast(cast(? as jsonb) as text)) as bytes', [$encoded]);
+        } catch (\Throwable) {
+            throw new InvalidArgumentException('Question set cannot be safely inspected.');
+        }
+        if (! $size || ! is_numeric($size->bytes) || (int) $size->bytes > WorkloadLimits::limit('max_questions_bytes')) {
             throw new InvalidArgumentException('Question set exceeds the technical limit.');
         }
         $tenant = $this->tenant->current();

@@ -108,6 +108,46 @@ final class QuestionSetsTest extends TestCase
         }
     }
 
+    public function test_invalid_utf8_question_fails_without_exposing_input_in_exception_trace(): void
+    {
+        [$organization, $brand] = $this->cabinet();
+        $marker = 'synthetic-question-secret';
+        app(TenantContextRunner::class)->run(new TenantContext($organization, $brand, source: 'job'), function () use ($marker): void {
+            try {
+                app(QuestionSets::class)->create([['id' => 'q1', 'text' => $marker."\xFF", 'intent' => 'choose']]);
+                self::fail('Invalid UTF-8 accepted.');
+            } catch (InvalidArgumentException $exception) {
+                self::assertSame('Invalid question set.', $exception->getMessage());
+                self::assertNull($exception->getPrevious());
+                self::assertStringNotContainsString($marker, (string) $exception);
+                $contains = function (mixed $value, int $depth = 0) use (&$contains, $marker): bool {
+                    if ($depth > 20 || $value instanceof \SensitiveParameterValue) {
+                        return false;
+                    }
+                    if (is_string($value)) {
+                        return str_contains($value, $marker);
+                    }
+                    if ($value instanceof \stdClass) {
+                        $value = (array) $value;
+                    }
+                    if (is_array($value)) {
+                        foreach ($value as $item) {
+                            if ($contains($item, $depth + 1)) {
+                                return true;
+                            }
+                        }
+                    }
+
+                    return false;
+                };
+                foreach ($exception->getTrace() as $frame) {
+                    self::assertFalse($contains($frame['args'] ?? []));
+                }
+                self::assertSame(0, DB::table('question_sets')->count());
+            }
+        });
+    }
+
     #[DataProvider('tenantTargets')]
     public function test_archive_or_disable_during_lock_wait_prevents_creation(string $target): void
     {

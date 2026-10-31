@@ -213,6 +213,71 @@ final class MeasurementRunnerTest extends TestCase
         });
     }
 
+    public function test_question_byte_limit_uses_the_same_postgresql_representation_at_create_and_start(): void
+    {
+        $this->within(function (): void {
+            foreach (['Text', 'Фейерверк', "quoted \"name\" / path\nnext"] as $text) {
+                $questions = [['id' => 'q1', 'text' => $text, 'intent' => 'choose']];
+                $json = json_encode($questions, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+                $bytes = (int) DB::selectOne('select octet_length(cast(cast(? as jsonb) as text)) as bytes', [$json])->bytes;
+                config(['features.E8-01.defaults.workload.max_questions_bytes' => $bytes]);
+                $set = app(QuestionSets::class)->create($questions);
+                $measurement = app(MeasurementRunner::class)->start($set, ['gemini' => 'google/gemini-2.5-flash'], 1);
+                self::assertSame(1, DB::table('measurement_answers')->where('measurement_id', $measurement)->count());
+                $before = DB::table('question_sets')->count();
+                config(['features.E8-01.defaults.workload.max_questions_bytes' => $bytes - 1]);
+                try {
+                    app(QuestionSets::class)->create($questions);
+                    self::fail('A question set over the byte limit was accepted.');
+                } catch (\InvalidArgumentException) {
+                    self::assertSame($before, DB::table('question_sets')->count());
+                }
+            }
+            Http::assertNothingSent();
+        });
+    }
+
+    public function test_snapshot_rejects_oversized_legacy_grid_before_loading_answers(): void
+    {
+        $this->within(function (): void {
+            $questions = [['id' => 'q1', 'text' => 'Вопрос', 'intent' => 'choose']];
+            $set = app(QuestionSets::class)->create($questions);
+            $measurement = (string) Str::ulid();
+            DB::table('measurements')->insert(['id' => $measurement, 'organization_id' => $this->organization, 'brand_id' => $this->brand,
+                'question_set_id' => $set, 'status' => 'completed', 'configuration' => json_encode(['questions' => $questions,
+                    'question_set_checksum' => CanonicalJson::hash($questions), 'providers' => ['gemini' => 'google/gemini-2.5-flash'], 'runs' => PHP_INT_MAX], JSON_THROW_ON_ERROR),
+                'created_at' => now(), 'updated_at' => now()]);
+            $answerQueries = [];
+            DB::listen(function ($event) use (&$answerQueries): void {
+                if (str_contains(strtolower($event->sql), 'measurement_answers')) {
+                    $answerQueries[] = true;
+                }
+            });
+            try {
+                app(ReportPreparation::class)->snapshot($measurement);
+                self::fail('An oversized legacy plan was accepted.');
+            } catch (LogicException $exception) {
+                self::assertSame('Vision report could not be safely prepared.', $exception->getMessage());
+                self::assertNull($exception->getPrevious());
+                self::assertSame([], $answerQueries);
+                self::assertSame(0, DB::table('vision_reports')->count());
+            }
+            $oversized = (string) Str::ulid();
+            DB::table('measurements')->insert(['id' => $oversized, 'organization_id' => $this->organization, 'brand_id' => $this->brand,
+                'question_set_id' => $set, 'status' => 'completed', 'configuration' => json_encode(['questions' => $questions,
+                    'question_set_checksum' => CanonicalJson::hash($questions), 'providers' => ['gemini' => 'google/gemini-2.5-flash'],
+                    'runs' => 1, 'padding' => str_repeat('x', 1600000)], JSON_THROW_ON_ERROR), 'created_at' => now(), 'updated_at' => now()]);
+            try {
+                app(ReportPreparation::class)->snapshot($oversized);
+                self::fail('An oversized legacy configuration was accepted.');
+            } catch (LogicException $exception) {
+                self::assertSame('Vision report could not be safely prepared.', $exception->getMessage());
+                self::assertSame([], $answerQueries);
+                self::assertSame(0, DB::table('vision_reports')->count());
+            }
+        });
+    }
+
     public function test_uncertain_cost_is_not_retried_or_counted_as_success(): void
     {
         $this->within(function (): void {

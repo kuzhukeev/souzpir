@@ -3,10 +3,17 @@
 namespace Tests\Unit\Vision\Core;
 
 use App\Vision\Core\VisibilityMetrics;
-use PHPUnit\Framework\TestCase;
+use Tests\TestCase;
 
 class VisibilityMetricsTest extends TestCase
 {
+    public function test_rejects_unbounded_grid_before_iteration_without_overflow(): void
+    {
+        config(['features.E8-01.defaults.workload.max_slots' => 5]);
+        $this->expectException(\InvalidArgumentException::class);
+        (new VisibilityMetrics)->calculate([], ['provider'], 1, PHP_INT_MAX);
+    }
+
     public function test_unreviewed_candidates_do_not_dilute_confirmed_competitor_share(): void
     {
         $slot = $this->slot('a', 1, 1, true);

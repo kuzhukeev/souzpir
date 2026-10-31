@@ -10,6 +10,10 @@ final class VisibilityMetrics
         if ($questions < 1 || $runs < 1 || $providers === []) {
             throw new \InvalidArgumentException('A non-empty planned observation grid is required.');
         }
+        WorkloadLimits::grid($questions, count($providers), $runs);
+        if (count($slots) > WorkloadLimits::limit('max_slots')) {
+            throw new \InvalidArgumentException('Vision measurement workload exceeds the technical limit.');
+        }
         $grid = [];
         foreach ($slots as $slot) {
             $key = $this->key($slot);
