@@ -87,6 +87,11 @@ final class SessionController
 
     public function destroy(Request $request): RedirectResponse
     {
+        // The logout route bypasses the normal version middleware. Preserve its
+        // remembered-login bootstrap before revoking this newly restored lease.
+        if ($request->session()->get('auth.version') === null && Auth::viaRemember()) {
+            app(AuthSessionRegistry::class)->issueRemembered($request, $request->user());
+        }
         app(AuthSessionRegistry::class)->withinLogout($request, function (User $fresh) use ($request): void {
             app(AuthSessionRegistry::class)->revokeCurrent($request);
             app(InvitationExchangeGrants::class)->revoke($request);

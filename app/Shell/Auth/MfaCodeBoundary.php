@@ -14,7 +14,7 @@ final class MfaCodeBoundary
     public function handle(#[\SensitiveParameter] Request $request, Closure $next): Response
     {
         $path = trim($request->decodedPath(), '/');
-        if (! $request->isMethod('POST') || ! in_array($path, ['mfa/challenge', 'profile/security/mfa/recovery'], true)) {
+        if ($request->getRealMethod() !== 'POST' || ! in_array($path, ['mfa/challenge', 'profile/security/mfa/recovery'], true)) {
             return $next($request);
         }
         $parsed = null;

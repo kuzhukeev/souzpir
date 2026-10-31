@@ -103,6 +103,22 @@ final class MfaRecoveryTest extends TenancyTestCase
         }
     }
 
+    public function test_input_boundary_erases_post_body_even_with_method_override(): void
+    {
+        $code = 'AB123456-CD123456-EF123456-AB123456';
+        $request = Request::create('/mfa/challenge', 'POST', [], [], [], [
+            'CONTENT_TYPE' => 'application/json', 'HTTP_X_HTTP_METHOD_OVERRIDE' => 'PUT',
+        ], json_encode(['code' => $code], JSON_THROW_ON_ERROR));
+        self::assertSame('PUT', $request->getMethod());
+        self::assertSame('POST', $request->getRealMethod());
+        app(MfaCodeBoundary::class)->handle($request, function (Request $safe) use ($code) {
+            self::assertStringNotContainsString($code, $safe->getContent());
+            self::assertStringNotContainsString($code, json_encode([$safe->all(), $safe->attributes->all()], JSON_THROW_ON_ERROR));
+
+            return response('ok');
+        });
+    }
+
     public function test_totp_and_recovery_share_a_durable_account_limit(): void
     {
         [$user] = $this->cabinet();

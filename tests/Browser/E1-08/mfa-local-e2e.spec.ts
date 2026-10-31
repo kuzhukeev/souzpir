@@ -32,6 +32,12 @@ test('local HTTP one-time issue and login, without Inertia props or history', as
   await expect(page.locator('#codes li')).toHaveCount(10);
   const code = await page.locator('#codes li').first().innerText();
   expect(await page.evaluate(() => JSON.stringify(history.state))).not.toContain(code);
+  await page.route('**/profile/security/mfa/recovery', route => route.fulfill({ status: 503 }));
+  await page.getByLabel('Код приложения').fill(totp(1));
+  await page.getByRole('button', { name: 'Создать коды' }).click();
+  await expect(page.getByRole('alert')).toContainText('Если ответ потерялся');
+  await expect(page.locator('#codes li')).toHaveCount(0);
+  await page.unroute('**/profile/security/mfa/recovery');
   await page.goto(base + '/profile');
   await page.goBack();
   await expect(page.getByRole('heading', { name: 'Резервные коды' })).toBeVisible();

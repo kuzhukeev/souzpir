@@ -39,6 +39,9 @@
         event.preventDefault();
         if (pending) return;
         const controller = new AbortController(); pending = controller; button.disabled = true; error.textContent = '';
+        // Once a replacement is requested, the previous set may already have
+        // been invalidated even if the response is lost.
+        output.replaceChildren(); result.hidden = true;
         try {
             const response = await fetch('/profile/security/mfa/recovery', { method: 'POST', credentials: 'same-origin', cache: 'no-store', signal: controller.signal,
                 headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content }, body: JSON.stringify({code: input.value}) });

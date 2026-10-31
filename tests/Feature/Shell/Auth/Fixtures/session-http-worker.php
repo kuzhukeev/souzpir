@@ -95,6 +95,7 @@ if ($mode === 'sensitive') {
     'slow' => ['GET', '/_session-race', []],
     'sensitive' => ['GET', '/_session-sensitive', []],
     'logout' => ['POST', '/logout', []],
+    'logout-remember' => ['POST', '/logout', []],
     'view' => ['GET', '/auth/ready', []],
     'remember' => ['GET', '/auth/ready', []],
 };
@@ -107,7 +108,7 @@ if (in_array($mode, ['view', 'remember'], true)) {
     $request->headers->set('X-Inertia-Version', app(HandleInertiaRequests::class)->version($request) ?? '');
 }
 if ($cookie !== '-') {
-    $name = $mode === 'remember' ? Auth::guard()->getRecallerName() : config('session.cookie');
+    $name = in_array($mode, ['remember', 'logout-remember'], true) ? Auth::guard()->getRecallerName() : config('session.cookie');
     $request->cookies->set($name, base64_decode($cookie, true));
 }
 $kernel = $app->make(HttpKernel::class);
