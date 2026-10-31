@@ -6,6 +6,7 @@ use App\Models\Brand;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\User;
+use App\Shell\Audit\Contracts\AuditWriter;
 use App\Shell\Notifications\Contracts\NotificationDispatcher;
 use App\Shell\Notifications\NotificationProcessor;
 use App\Shell\Support\Contracts\PlanRequestCommand;
@@ -28,6 +29,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use RuntimeException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
+use Symfony\Component\Process\Process;
 
 final class PlanRequestsTest extends SupportTestCase
 {
@@ -168,6 +170,25 @@ final class PlanRequestsTest extends SupportTestCase
         self::assertSame(1, DB::table('outbox_events')->count());
     }
 
+    public function test_audit_failure_rolls_back_ticket_and_prevents_outbox_and_delivery(): void
+    {
+        [$owner, $org, $brand, , $member] = $this->cabinet();
+        $this->signIn($owner, $brand);
+        $plan = $this->plan();
+        $this->mock(AuditWriter::class)->shouldReceive('record')->once()->andThrow(new RuntimeException('synthetic audit failure'));
+        try {
+            $this->submit($owner, $org, $brand, $member, new PlanRequestCommand($plan, (string) Str::ulid()));
+            self::fail('Audit failure must abort the transaction.');
+        } catch (RuntimeException $error) {
+            self::assertSame('synthetic audit failure', $error->getMessage());
+        }
+        self::assertSame(0, DB::table('tickets')->count());
+        self::assertSame(0, DB::table('audit_logs')->count());
+        self::assertSame(0, DB::table('outbox_events')->count());
+        Mail::assertNothingSent();
+        Http::assertNothingSent();
+    }
+
     public function test_fake_delivery_is_uncertain_and_duplicate_does_not_resend(): void
     {
         [$owner, $org, $brand, , $member] = $this->cabinet();
@@ -240,5 +261,113 @@ final class PlanRequestsTest extends SupportTestCase
         $this->postJson('/_test/plan-request', $input)->assertOk()->assertJsonPath('created', false);
         self::assertSame(1, DB::table('tickets')->where('organization_id', $org->id)->count());
         self::assertSame(1, DB::table('outbox_events')->where('brand_id', $brand->id)->count());
+    }
+
+    public function test_two_processes_with_distinct_sessions_create_one_request_and_one_fake_delivery(): void
+    {
+        [$owner, $org, $brand, , $member] = $this->cabinet();
+        $plan = $this->plan();
+        $key = (string) Str::ulid();
+        $directory = base_path('.local/runtime/plan-request-race-'.Str::lower(Str::random(20)));
+        mkdir($directory, 0700, true);
+        foreach (['storage/app/private', 'storage/app/public', 'storage/framework/views', 'storage/framework/cache/data',
+            'storage/framework/cache/locks', 'storage/framework/sessions', 'storage/logs', 'cache'] as $path) {
+            mkdir($directory.'/'.$path, 0700, true);
+        }
+        $processes = [];
+        $locked = false;
+        try {
+            foreach ([1, 2] as $number) {
+                $processes[$number] = $this->raceWorker($directory, ['number' => $number, 'user' => $owner->id,
+                    'organization' => $org->id, 'brand' => $brand->id, 'member' => $member->id, 'plan' => $plan, 'key' => $key]);
+                $processes[$number]->start();
+            }
+            $pids = [];
+            foreach ($processes as $number => $process) {
+                $marker = $directory.'/ready-'.$number;
+                $deadline = microtime(true) + 30;
+                while (! is_file($marker) && $process->isRunning() && microtime(true) < $deadline) {
+                    usleep(10000);
+                }
+                self::assertFileExists($marker, 'Worker could not initialize: '.$process->getErrorOutput());
+                $pids[] = (int) file_get_contents($marker);
+            }
+            self::assertCount(2, array_unique($pids));
+            self::assertSame(2, DB::table('auth_session_registry')->where('user_id', $owner->id)->whereNull('revoked_at')->count());
+            DB::beginTransaction();
+            $locked = true;
+            DB::table('organizations')->where('id', $org->id)->lockForUpdate()->sole();
+            file_put_contents($directory.'/go', 'go', LOCK_EX);
+            $deadline = microtime(true) + 15;
+            do {
+                DB::select('select pg_stat_clear_snapshot()');
+                $blocked = DB::table('pg_stat_activity')->whereIn('pid', $pids)->where('wait_event_type', 'Lock')->count();
+                if ($blocked === 2) {
+                    break;
+                }
+                usleep(20000);
+            } while (microtime(true) < $deadline);
+            self::assertSame(2, $blocked, 'Both distinct database sessions must be blocked before the lock is released.');
+            DB::commit();
+            $locked = false;
+
+            $results = [];
+            foreach ($processes as $process) {
+                $process->wait();
+                self::assertTrue($process->isSuccessful(), $process->getErrorOutput());
+                self::assertJson($process->getOutput(), 'Worker produced invalid JSON: '.$process->getErrorOutput().' '.$process->getOutput());
+                $results[] = json_decode($process->getOutput(), true, 512, JSON_THROW_ON_ERROR);
+            }
+            $created = array_column($results, 'created');
+            sort($created);
+            self::assertSame([false, true], $created);
+            self::assertSame($results[0]['ticket'], $results[1]['ticket']);
+            self::assertSame(1, array_sum(array_column($results, 'fake_mail_count')));
+            self::assertSame(1, DB::table('tickets')->where('organization_id', $org->id)->where('submission_key', $key)->count());
+            self::assertSame(1, DB::table('audit_logs')->where('organization_id', $org->id)->where('action', 'billing.plan_request.created')->count());
+            self::assertSame(1, DB::table('outbox_events')->where('organization_id', $org->id)->where('id', $results[0]['ticket'])->count());
+        } finally {
+            if ($locked) {
+                DB::rollBack();
+            }
+            foreach ($processes as $process) {
+                if ($process->isRunning()) {
+                    $process->stop(2);
+                }
+            }
+            $this->removeRaceFixture($directory);
+        }
+    }
+
+    private function raceWorker(string $directory, array $input): Process
+    {
+        $connection = config('database.connections.pgsql');
+        $environment = ['APP_ENV' => 'testing', 'APP_KEY' => config('app.key'), 'CABINET_ORGANIZATION_ID' => $input['organization'],
+            'DB_URL' => '', 'DB_CONNECTION' => 'pgsql', 'DB_HOST' => $connection['host'], 'DB_PORT' => (string) $connection['port'],
+            'DB_DATABASE' => DB::connection()->getDatabaseName(), 'DB_USERNAME' => $connection['username'], 'DB_PASSWORD' => $connection['password'] ?? '',
+            'DB_TEST_DATABASE' => config('runtime.test_database'), 'APP_PREVIEW_DATABASE' => config('runtime.preview_database') ?? '',
+            'SESSION_DRIVER' => 'array', 'CACHE_STORE' => 'array', 'QUEUE_CONNECTION' => 'sync', 'AI_DRIVER' => 'fake', 'DELIVERY_DRIVER' => 'fake',
+            'APP_STORAGE_PATH' => $directory.'/storage', 'APP_CONFIG_CACHE' => $directory.'/cache/config.php', 'APP_ROUTES_CACHE' => $directory.'/cache/routes.php',
+            'APP_EVENTS_CACHE' => $directory.'/cache/events.php', 'APP_SERVICES_CACHE' => $directory.'/cache/services.php',
+            'APP_PACKAGES_CACHE' => $directory.'/cache/packages.php', 'VIEW_COMPILED_PATH' => $directory.'/storage/framework/views'];
+
+        return new Process([PHP_BINARY, '-d', 'sys_temp_dir='.$directory, __DIR__.'/Fixtures/plan-request-race-worker.php'], base_path(), $environment,
+            json_encode($input + ['directory' => $directory], JSON_THROW_ON_ERROR), 60);
+    }
+
+    private function removeRaceFixture(string $directory): void
+    {
+        $resolved = realpath($directory);
+        $root = realpath(base_path('.local/runtime'));
+        $normalize = static fn (string $path): string => strtolower(str_replace('\\', '/', rtrim($path, '/\\')));
+        if (! is_string($resolved) || ! is_string($root) || is_link($directory)
+            || ! str_starts_with($normalize($resolved), $normalize($root).'/plan-request-race-')) {
+            throw new RuntimeException('Refusing to remove an unexpected fixture path.');
+        }
+        $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($resolved, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
+        foreach ($iterator as $item) {
+            $item->isDir() && ! $item->isLink() ? rmdir($item->getPathname()) : unlink($item->getPathname());
+        }
+        rmdir($resolved);
     }
 }
