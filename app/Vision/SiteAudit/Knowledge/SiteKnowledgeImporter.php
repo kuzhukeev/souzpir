@@ -40,6 +40,7 @@ final class SiteKnowledgeImporter
         if ($maxPages < 1 || $maxPages > 100) {
             throw new InvalidArgumentException('Лимит страниц должен быть от 1 до 100.');
         }
+        $configuredSite = $this->pages->canonicalUrl($this->pages->url($brand->website ?? ''));
         $root = $this->pages->url($url ?: ($brand->website ?? ''));
         $origin = $this->pages->origin($root);
         if ($origin !== $this->pages->origin($this->pages->url($brand->website ?? '')) || parse_url($root, PHP_URL_QUERY) !== null) {
@@ -61,7 +62,7 @@ final class SiteKnowledgeImporter
             $seen[$identity] = true;
             try {
                 $currentBrand = DB::transaction(fn () => $this->access->lock($tenant));
-                if ($this->pages->origin($this->pages->url($currentBrand->website ?? '')) !== $origin) {
+                if ($this->pages->canonicalUrl($this->pages->url($currentBrand->website ?? '')) !== $configuredSite) {
                     throw new RuntimeException('Сайт бренда изменился во время импорта.');
                 }
                 if (! RobotsPolicy::allowed($target, $robots)) {
@@ -98,7 +99,15 @@ final class SiteKnowledgeImporter
         }
         $result['limited'] = $queue !== [];
 
-        return $result;
+        // A page failure may have hidden an access or website change; do not return any accumulated data until both are revalidated under the tenant locks.
+        return DB::transaction(function () use ($tenant, $configuredSite, $result): array {
+            $currentBrand = $this->access->lock($tenant);
+            if ($this->pages->canonicalUrl($this->pages->url($currentBrand->website ?? '')) !== $configuredSite) {
+                throw new LogicException('Сайт бренда изменился во время импорта.');
+            }
+
+            return $result;
+        });
     }
 
     /** Every redirect is a separate pinned request and remains inside the authorized origin. */

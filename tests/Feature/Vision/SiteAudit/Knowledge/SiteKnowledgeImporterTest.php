@@ -302,12 +302,104 @@ HTML;
         $tenant = new TenantContext($org->id, $owner->brandId, $user->id, $membership->id);
         $this->revokeMembership = $membership->id;
         app(TenantContextRunner::class)->run($tenant, function () use ($tenant): void {
-            $result = app(SiteKnowledgeImporter::class)->import($tenant);
-            self::assertSame(0, $result['pages']);
-            self::assertCount(1, $result['errors']);
+            try {
+                app(SiteKnowledgeImporter::class)->import($tenant);
+                self::fail('Revoked importer returned a result.');
+            } catch (LogicException $error) {
+                self::assertSame('Не удалось безопасно обработать сайт.', $error->getMessage());
+                self::assertNull($error->getPrevious());
+            }
             self::assertSame(0, DB::table('audit_logs')->where('action', 'vision.site_source.draft_stored')->count());
         });
         Http::assertSentCount(2);
+    }
+
+    public function test_revocation_after_last_stored_page_is_rechecked_before_return(): void
+    {
+        [$tenant, , , $membership] = $this->context();
+        $writer = app(AuditWriter::class);
+        app()->instance(AuditWriter::class, new class($writer, $membership->id) implements AuditWriter
+        {
+            public function __construct(private AuditWriter $delegate, private string $membershipId) {}
+
+            public function record(TenantContext $context, AuditEntry $entry): void
+            {
+                $this->delegate->record($context, $entry);
+                if ($entry->action === 'vision.site_source.draft_stored') {
+                    DB::table('memberships')->where('id', $this->membershipId)->update(['status' => 'disabled']);
+                }
+            }
+        });
+
+        app(TenantContextRunner::class)->run($tenant, function () use ($tenant): void {
+            try {
+                app(SiteKnowledgeImporter::class)->import($tenant, maxPages: 1);
+                self::fail('Importer returned a result after revocation at the final page.');
+            } catch (LogicException $error) {
+                self::assertSame('Не удалось безопасно обработать сайт.', $error->getMessage());
+                self::assertNull($error->getPrevious());
+            }
+        });
+        self::assertSame(1, DB::table('audit_logs')->where('action', 'vision.site_source.draft_stored')->count());
+        Http::assertSentCount(2);
+    }
+
+    public function test_site_path_change_on_same_origin_never_returns_partial_results(): void
+    {
+        [$tenant] = $this->context();
+        Http::fake(function ($request) use ($tenant) {
+            return match ($request->url()) {
+                'https://brand.example/robots.txt' => Http::response($this->robots, 200, ['Content-Type' => 'text/plain']),
+                'https://brand.example/' => $this->homeResponse(),
+                'https://brand.example/details' => (function () use ($tenant) {
+                    DB::table('brands')->where('id', $tenant->brandId)->update(['website' => 'https://brand.example/changed']);
+
+                    return Http::response(file_get_contents(__DIR__.'/Fixtures/details.html'), 200, ['Content-Type' => 'text/html']);
+                })(),
+                default => throw new RuntimeException('Unexpected request'),
+            };
+        });
+
+        app(TenantContextRunner::class)->run($tenant, function () use ($tenant): void {
+            try {
+                app(SiteKnowledgeImporter::class)->import($tenant);
+                self::fail('Importer returned a result after the original site changed.');
+            } catch (LogicException $error) {
+                self::assertSame('Не удалось безопасно обработать сайт.', $error->getMessage());
+                self::assertNull($error->getPrevious());
+            }
+        });
+        self::assertGreaterThanOrEqual(1, DB::table('audit_logs')->where('action', 'vision.site_source.draft_stored')->count());
+    }
+
+    public function test_revocation_after_a_successful_page_never_returns_partial_sources_or_errors(): void
+    {
+        [$owner, $org] = $this->context();
+        [$user, $membership] = $this->member($org, 'admin', [$owner->brandId]);
+        $tenant = new TenantContext($org->id, $owner->brandId, $user->id, $membership->id);
+        Http::fake(function ($request) use ($membership) {
+            return match ($request->url()) {
+                'https://brand.example/robots.txt' => Http::response($this->robots, 200, ['Content-Type' => 'text/plain']),
+                'https://brand.example/' => Http::response($this->home, 200, ['Content-Type' => 'text/html']),
+                'https://brand.example/details' => (function () use ($membership) {
+                    DB::table('memberships')->where('id', $membership->id)->update(['status' => 'disabled']);
+
+                    return Http::response(file_get_contents(__DIR__.'/Fixtures/details.html'), 200, ['Content-Type' => 'text/html']);
+                })(),
+                default => throw new RuntimeException('Unexpected request'),
+            };
+        });
+        app(TenantContextRunner::class)->run($tenant, function () use ($tenant): void {
+            try {
+                $result = app(SiteKnowledgeImporter::class)->import($tenant);
+                self::fail('Revoked importer returned '.count($result['sources']).' source(s).');
+            } catch (LogicException $error) {
+                self::assertSame('Не удалось безопасно обработать сайт.', $error->getMessage());
+                self::assertNull($error->getPrevious());
+            }
+        });
+        self::assertSame(1, DB::table('audit_logs')->where('action', 'vision.site_source.draft_stored')->count());
+        Http::assertSentCount(3);
     }
 
     public function test_caller_transaction_is_rejected_before_http(): void
