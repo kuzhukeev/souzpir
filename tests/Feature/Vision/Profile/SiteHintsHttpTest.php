@@ -47,6 +47,7 @@ final class SiteHintsHttpTest extends TestCase
     {
         parent::setUp();
         URL::useOrigin('http://127.0.0.1');
+        $this->withServerVariables(['REMOTE_ADDR' => '127.0.0.1', 'SERVER_ADDR' => '127.0.0.1']);
     }
 
     public function test_owner_can_choose_audited_site_title_but_editor_cannot_read_private_source(): void
