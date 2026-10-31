@@ -1,0 +1,170 @@
+{
+    "send_price": {
+        "type": "function",
+        "function": {
+            "name": "send_price",
+            "description": "Отправить прайс клиенту на почту и/или в мессенджер. Вызывать только когда известен email или мессенджер и прайс ещё не отправлен.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "email": {
+                        "type": "string"
+                    },
+                    "messenger": {
+                        "type": "string"
+                    },
+                    "pricelists": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "общий, zerga, volk, premier"
+                    }
+                },
+                "required": []
+            }
+        }
+    },
+    "calc_delivery": {
+        "type": "function",
+        "function": {
+            "name": "calc_delivery",
+            "description": "Ориентир стоимости и срока доставки ТК до города клиента. Возвращает диапазон, не точную цену.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "city": {
+                        "type": "string"
+                    },
+                    "weight_kg": {
+                        "type": "number"
+                    }
+                },
+                "required": [
+                    "city"
+                ]
+            }
+        }
+    },
+    "set_followup": {
+        "type": "function",
+        "function": {
+            "name": "set_followup",
+            "description": "Зафиксировать дату следующего контакта с клиентом (когда он сам назвал или согласился).",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "datetime": {
+                        "type": "string",
+                        "description": "ISO или «завтра», «в пятницу», «середина октября»"
+                    },
+                    "reason": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "datetime"
+                ]
+            }
+        }
+    },
+    "create_promise": {
+        "type": "function",
+        "function": {
+            "name": "create_promise",
+            "description": "Записать обещание клиенту (пришлю видео, посчитаю доставку, уточню).",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "text": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "text"
+                ]
+            }
+        }
+    },
+    "escalate": {
+        "type": "function",
+        "function": {
+            "name": "escalate",
+            "description": "Передать клиента живому менеджеру.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "reason": {
+                        "type": "string"
+                    },
+                    "summary": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "reason"
+                ]
+            }
+        }
+    },
+    "mark_do_not_disturb": {
+        "type": "function",
+        "function": {
+            "name": "mark_do_not_disturb",
+            "description": "Клиент попросил не писать — пометить и прекратить сообщения.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
+        }
+    },
+    "check_stock": {
+        "type": "function",
+        "function": {
+            "name": "check_stock",
+            "description": "Проверить наличие позиции (заглушка: создаёт обещание уточнить).",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "query"
+                ]
+            }
+        }
+    },
+    "log_unknown_question": {
+        "type": "function",
+        "function": {
+            "name": "log_unknown_question",
+            "description": "Зафиксировать вопрос клиента, на который нет факта в базе; создать задачу менеджеру и обещание клиенту.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "question": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "question"
+                ]
+            }
+        }
+    },
+    "send_requisites": {
+        "type": "function",
+        "function": {
+            "name": "send_requisites",
+            "description": "Отправить реквизиты юрлица клиенту отдельным сообщением.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
+        }
+    }
+}

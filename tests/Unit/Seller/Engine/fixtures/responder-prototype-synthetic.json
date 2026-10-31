@@ -1,0 +1,245 @@
+[
+    {
+        "name": "history_all_tools",
+        "history": [
+            {
+                "role": "client",
+                "text": "реплика 1"
+            },
+            {
+                "role": "agent",
+                "text": "реплика 2"
+            },
+            {
+                "role": "client",
+                "text": "реплика 3"
+            },
+            {
+                "role": "agent",
+                "text": "реплика 4"
+            },
+            {
+                "role": "client",
+                "text": "реплика 5"
+            },
+            {
+                "role": "agent",
+                "text": "реплика 6"
+            },
+            {
+                "role": "client",
+                "text": "реплика 7"
+            },
+            {
+                "role": "tool",
+                "text": "реплика 8"
+            },
+            {
+                "role": "client",
+                "text": "реплика 9"
+            },
+            {
+                "role": "agent",
+                "text": "реплика 10"
+            },
+            {
+                "role": "client",
+                "text": "реплика 11"
+            },
+            {
+                "role": "agent",
+                "text": "реплика 12"
+            },
+            {
+                "role": "client",
+                "text": "реплика 13"
+            },
+            {
+                "role": "agent",
+                "text": "реплика 14"
+            }
+        ],
+        "allowedTools": [
+            "send_price",
+            "calc_delivery",
+            "set_followup",
+            "create_promise",
+            "escalate",
+            "mark_do_not_disturb",
+            "check_stock",
+            "log_unknown_question",
+            "send_requisites"
+        ],
+        "toolResults": [],
+        "guardIssues": [],
+        "historyTurns": 12,
+        "expected": {
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "СИСТЕМНЫЙ ШАБЛОН"
+                },
+                {
+                    "role": "user",
+                    "content": "реплика 3"
+                },
+                {
+                    "role": "assistant",
+                    "content": "реплика 4"
+                },
+                {
+                    "role": "user",
+                    "content": "реплика 5"
+                },
+                {
+                    "role": "assistant",
+                    "content": "реплика 6"
+                },
+                {
+                    "role": "user",
+                    "content": "реплика 7"
+                },
+                {
+                    "role": "user",
+                    "content": "реплика 9"
+                },
+                {
+                    "role": "assistant",
+                    "content": "реплика 10"
+                },
+                {
+                    "role": "user",
+                    "content": "реплика 11"
+                },
+                {
+                    "role": "assistant",
+                    "content": "реплика 12"
+                },
+                {
+                    "role": "user",
+                    "content": "реплика 13"
+                },
+                {
+                    "role": "assistant",
+                    "content": "реплика 14"
+                }
+            ],
+            "tools": [
+                "send_price",
+                "calc_delivery",
+                "set_followup",
+                "create_promise",
+                "escalate",
+                "mark_do_not_disturb",
+                "check_stock",
+                "log_unknown_question",
+                "send_requisites"
+            ],
+            "toolChoice": "auto"
+        }
+    },
+    {
+        "name": "results_and_guard",
+        "history": [
+            {
+                "role": "client",
+                "text": "Что дальше?\nСпасибо!"
+            }
+        ],
+        "allowedTools": [
+            "send_price"
+        ],
+        "toolResults": [
+            {
+                "ok": true,
+                "data": {}
+            }
+        ],
+        "guardIssues": [
+            "Не обещать срок",
+            "Без скидки"
+        ],
+        "historyTurns": 12,
+        "expected": {
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "СИСТЕМНЫЙ ШАБЛОН"
+                },
+                {
+                    "role": "user",
+                    "content": "Что дальше?\nСпасибо!"
+                },
+                {
+                    "role": "user",
+                    "content": "[РЕЗУЛЬТАТЫ ИНСТРУМЕНТОВ, клиент их не видит]\n[\n    {\n        \"ok\": true,\n        \"data\": {}\n    }\n]\n\nТеперь напиши финальную реплику клиенту. Инструменты больше не вызывай."
+                },
+                {
+                    "role": "user",
+                    "content": "[ПЕРЕДЕЛАЙ РЕПЛИКУ. Замечания проверки: Не обещать срок; Без скидки. Напиши заново, только текст реплики.]"
+                }
+            ],
+            "tools": [],
+            "toolChoice": null
+        }
+    },
+    {
+        "name": "guard_only_last_one",
+        "history": [
+            {
+                "role": "client",
+                "text": "Первая"
+            },
+            {
+                "role": "agent",
+                "text": "Вторая"
+            }
+        ],
+        "allowedTools": [
+            "check_stock"
+        ],
+        "toolResults": [],
+        "guardIssues": [
+            "Исправить"
+        ],
+        "historyTurns": 1,
+        "expected": {
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "СИСТЕМНЫЙ ШАБЛОН"
+                },
+                {
+                    "role": "assistant",
+                    "content": "Вторая"
+                },
+                {
+                    "role": "user",
+                    "content": "[ПЕРЕДЕЛАЙ РЕПЛИКУ. Замечания проверки: Исправить. Напиши заново, только текст реплики.]"
+                }
+            ],
+            "tools": [],
+            "toolChoice": null
+        }
+    },
+    {
+        "name": "unknown_tool_name",
+        "history": [],
+        "allowedTools": [
+            "unknown"
+        ],
+        "toolResults": [],
+        "guardIssues": [],
+        "historyTurns": 12,
+        "expected": {
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "СИСТЕМНЫЙ ШАБЛОН"
+                }
+            ],
+            "tools": [],
+            "toolChoice": "auto"
+        }
+    }
+]
