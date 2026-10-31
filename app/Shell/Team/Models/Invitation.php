@@ -35,7 +35,7 @@ class Invitation extends Model
             if ($invitation->isDirty(['email', 'role', 'brand_ids', 'settings', 'token_hash', 'invited_by', 'expires_at'])) {
                 throw new \LogicException('Issue a new invitation instead of changing its signed grant.');
             }
-            foreach (['accepted_at', 'accepted_by', 'revoked_at'] as $field) {
+            foreach (['accepted_at', 'accepted_by', 'revoked_at', 'exchanged_at'] as $field) {
                 if ($invitation->getRawOriginal($field) !== null && $invitation->isDirty($field)) {
                     throw new \LogicException('Consumed or revoked invitation state is immutable.');
                 }

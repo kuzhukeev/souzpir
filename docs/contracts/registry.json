@@ -126,6 +126,13 @@
         "users"
       ]
     },
+    "invitation_exchange_sessions": {
+      "owner": "SP-E1-01",
+      "tenant": "global",
+      "parents": [
+        "invitations"
+      ]
+    },
     "audit_logs": {
       "owner": "SP-E0-04",
       "tenant": "organization",

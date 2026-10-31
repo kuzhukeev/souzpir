@@ -7,6 +7,7 @@ use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\User;
 use App\Shell\Auth\Http\SessionController;
+use App\Shell\Auth\InvitationExchangeGrants;
 use App\Shell\Auth\InvitationSecretBoundary;
 use App\Shell\Auth\PasswordDelivery\PasswordTransport;
 use App\Shell\Auth\Totp;
@@ -27,6 +28,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Testing\TestResponse;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
@@ -40,6 +42,67 @@ final class AuthFlowTest extends TestCase
         parent::setUp();
         $this->withoutVite();
         Notification::fake();
+    }
+
+    private function exchangeInvitation(string $token): TestResponse
+    {
+        $page = $this->get('/invitations/open')->assertOk();
+        self::assertSame(1, preg_match('/epoch:"([a-f0-9]{64})"/', $page->getContent(), $match));
+
+        $this->withCookie(config('session.cookie'), session()->getId());
+
+        return $this->withCredentials()->postJson('/invitations/exchange', ['token' => $token, 'epoch' => $match[1], 'sequence' => 1]);
+    }
+
+    public function test_invitation_grant_is_one_use_and_old_documents_and_sequence_numbers_cannot_replace_it(): void
+    {
+        [$org, $owner] = $this->fixture();
+        $tokens = [str_repeat('A', 64), str_repeat('B', 64)];
+        $invites = [];
+        foreach ($tokens as $index => $token) {
+            $invites[] = app(TenantContextRunner::class)->run(new TenantContext($org->id, actorId: $owner->id), fn () => Invitation::create([
+                'email' => 'user'.$index.'@example.test', 'role' => 'member', 'brand_ids' => [],
+                'token_hash' => hash('sha256', $token), 'invited_by' => $owner->id, 'expires_at' => now()->addDay(),
+            ]));
+        }
+        $first = $this->get('/invitations/open')->assertOk();
+        preg_match('/epoch:"([a-f0-9]{64})"/', $first->getContent(), $match);
+        $oldEpoch = $match[1];
+        $this->withCookie(config('session.cookie'), session()->getId())->withCredentials();
+        $second = $this->get('/invitations/open')->assertOk();
+        preg_match('/epoch:"([a-f0-9]{64})"/', $second->getContent(), $match);
+        $epoch = $match[1];
+        $this->postJson('/invitations/exchange', ['token' => $tokens[1], 'epoch' => $epoch, 'sequence' => 2])->assertOk();
+        $this->postJson('/invitations/exchange', ['token' => $tokens[0], 'epoch' => $oldEpoch, 'sequence' => 100])->assertNotFound();
+        $this->postJson('/invitations/exchange', ['token' => $tokens[0], 'epoch' => $epoch, 'sequence' => 1])->assertNotFound();
+        self::assertSame($invites[1]->id, app(InvitationExchangeGrants::class)->invitationId(request()));
+        self::assertNull($invites[0]->fresh()->exchanged_at);
+        self::assertNotNull($invites[1]->fresh()->exchanged_at);
+        $other = User::create(['name' => 'Invited', 'email' => $invites[1]->email, 'password' => 'another-secure-password']);
+        $other->forceFill(['email_verified_at' => now()])->save();
+        try {
+            app(InvitationAcceptance::class)->accept($other, $tokens[1]);
+            self::fail('The direct API accepted an already exchanged bearer.');
+        } catch (HttpException $error) {
+            self::assertSame(404, $error->getStatusCode());
+        }
+        $this->postJson('/invitations/exchange', ['token' => $tokens[1], 'epoch' => $epoch, 'sequence' => 3])->assertNotFound();
+        self::assertNull(app(InvitationExchangeGrants::class)->invitationId(request()));
+    }
+
+    public function test_exchange_cleanup_removes_only_expired_idle_sessions(): void
+    {
+        $old = now()->subMinutes((int) config('session.lifetime', 120) + 1);
+        foreach ([['a', $old, null], ['b', $old, now()->addHour()], ['c', now(), null]] as [$character, $updated, $expires]) {
+            DB::table('invitation_exchange_sessions')->insert([
+                'session_hash' => str_repeat($character, 64), 'document_epoch' => str_repeat('d', 64),
+                'sequence' => 0, 'grant_expires_at' => $expires, 'created_at' => $old, 'updated_at' => $updated,
+            ]);
+        }
+        $this->artisan('auth:prune-invitation-exchanges')->assertSuccessful();
+        self::assertFalse(DB::table('invitation_exchange_sessions')->where('session_hash', str_repeat('a', 64))->exists());
+        self::assertTrue(DB::table('invitation_exchange_sessions')->where('session_hash', str_repeat('b', 64))->exists());
+        self::assertTrue(DB::table('invitation_exchange_sessions')->where('session_hash', str_repeat('c', 64))->exists());
     }
 
     private function fixture(bool $withOwner = true): array
@@ -214,7 +277,7 @@ final class AuthFlowTest extends TestCase
             'token_hash' => hash('sha256', $token), 'invited_by' => $owner->id, 'expires_at' => now()->addDay(),
         ]));
         $this->get('/invitations/open')->assertOk()->assertHeader('Cache-Control', 'no-store, private')->assertHeader('Referrer-Policy', 'no-referrer');
-        $this->postJson('/invitations/exchange', ['token' => $token])->assertOk();
+        $this->exchangeInvitation($token)->assertOk();
         $this->get('/invitations/show')->assertOk();
         $this->post('/invitations/register', ['name' => 'Member', 'password' => 'another-secure-password', 'password_confirmation' => 'another-secure-password', 'terms' => true])->assertRedirect(route('verification.notice'));
         $member = User::where('email', 'member@example.test')->firstOrFail();
@@ -246,8 +309,8 @@ final class AuthFlowTest extends TestCase
             'email' => $guest->email, 'role' => 'member', 'brand_ids' => [$brand->id],
             'token_hash' => hash('sha256', $token), 'invited_by' => $owner->id, 'expires_at' => now()->addDay(),
         ]));
-        $this->postJson('/invitations/exchange', ['token' => $token])->assertOk()->assertJson(['ok' => true]);
-        self::assertSame($invitation->id, session('auth.invitation_id'));
+        $this->exchangeInvitation($token)->assertOk()->assertJson(['ok' => true]);
+        self::assertSame($invitation->id, app(InvitationExchangeGrants::class)->invitationId(request()));
         self::assertStringNotContainsString($token, serialize(session()->all()));
         self::assertStringNotContainsString($token, request()->getContent());
         self::assertStringNotContainsString($token, json_encode(request()->all()));
@@ -255,7 +318,7 @@ final class AuthFlowTest extends TestCase
         self::assertStringNotContainsString($token, $show->getContent());
         $login = $this->post('/login', ['email' => $guest->email, 'password' => 'another-secure-password']);
         $login->assertRedirect(route('invitation.show'));
-        self::assertSame($invitation->id, session('auth.invitation_id'));
+        self::assertSame($invitation->id, app(InvitationExchangeGrants::class)->invitationId(request()));
         $this->withCookie(config('session.cookie'), session()->getId());
         $this->post('/invitations/accept')->assertRedirect(route('auth.ready'));
         self::assertNull(session('auth.invitation_id'));
@@ -279,7 +342,7 @@ final class AuthFlowTest extends TestCase
         } catch (HttpException $error) {
             self::assertSame(404, $error->getStatusCode());
         }
-        $this->postJson('/invitations/exchange', ['token' => $token])->assertOk();
+        $this->exchangeInvitation($token)->assertOk();
         $this->post('/login', ['email' => $guest->email, 'password' => 'another-secure-password'])->assertRedirect(route('mfa.challenge'));
         $this->withCookie(config('session.cookie'), session()->getId());
         $code = app(Totp::class)->at($secret, intdiv(now()->timestamp, 30));
@@ -299,7 +362,7 @@ final class AuthFlowTest extends TestCase
             'email' => 'invited-other@example.test', 'role' => 'member', 'brand_ids' => [$brand->id],
             'token_hash' => hash('sha256', $token), 'invited_by' => $owner->id, 'expires_at' => now()->addDay(),
         ]));
-        $this->postJson('/invitations/exchange', ['token' => $token])->assertOk();
+        $this->exchangeInvitation($token)->assertOk();
         DB::table('invitations')->where('id', $invitation->id)->update(['revoked_at' => now()]);
         $this->get('/invitations/show')->assertNotFound();
         $this->post('/invitations/register', ['name' => 'Synthetic'])->assertNotFound();

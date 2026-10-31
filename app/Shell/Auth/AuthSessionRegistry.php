@@ -100,7 +100,9 @@ final class AuthSessionRegistry
     {
         $this->withinActive($request, function () use ($request): void {
             $old = $this->sessionHash($request->session()->getId());
+            $oldId = $request->session()->getId();
             $request->session()->regenerate(true);
+            app(InvitationExchangeGrants::class)->rotate($oldId, $request->session()->getId());
             DB::table('auth_session_registry')->where('session_hash', $old)->update(['session_hash' => $this->sessionHash($request->session()->getId()), 'updated_at' => now()]);
         });
     }

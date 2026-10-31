@@ -31,8 +31,14 @@ final class InvitationSecretBoundary
             $input = json_decode($raw, true, 4, JSON_THROW_ON_ERROR);
             $token = is_array($input) ? ($input['token'] ?? null) : null;
             $hash = is_string($token) && preg_match('/^[A-Za-z0-9]{64}$/D', $token) ? hash('sha256', $token) : null;
+            $epoch = is_array($input) ? ($input['epoch'] ?? null) : null;
+            $sequence = is_array($input) ? ($input['sequence'] ?? null) : null;
+            $epoch = is_string($epoch) && preg_match('/^[a-f0-9]{64}$/D', $epoch) ? $epoch : null;
+            $sequence = is_int($sequence) && $sequence >= 1 && $sequence <= 2147483647 ? $sequence : null;
             unset($raw, $input, $token, $stream);
             $request->attributes->set('invitation.exchange_hash', $hash);
+            $request->attributes->set('invitation.document_epoch', $epoch);
+            $request->attributes->set('invitation.sequence', $sequence);
 
             return $next($request);
         } catch (Throwable) {

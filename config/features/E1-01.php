@@ -1,11 +1,14 @@
 <?php
 
 use App\Shell\Auth\Console\PrepareAuthBrowserFixture;
+use App\Shell\Auth\Console\PruneInvitationExchangeSessions;
 use App\Shell\Auth\EnforceAuthVersion;
+use App\Shell\Auth\InvitationExchangeCleanupSchedule;
 use App\Shell\Auth\NoStore;
 
 return [
-    'commands' => [PrepareAuthBrowserFixture::class],
+    'commands' => [PrepareAuthBrowserFixture::class, PruneInvitationExchangeSessions::class],
+    'schedules' => [InvitationExchangeCleanupSchedule::class],
     'middleware_aliases' => ['auth.version' => EnforceAuthVersion::class, 'auth.nostore' => NoStore::class],
     'defaults' => [
         'bootstrap_token_hash' => env('AUTH_BOOTSTRAP_TOKEN_HASH'),
