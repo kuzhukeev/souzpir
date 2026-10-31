@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\DB;
 
 final class PrepareAuthBrowserFixture extends Command
 {
-    protected $signature = 'auth:test-browser-fixture';
+    protected $signature = 'auth:test-browser-fixture {--without-mfa}';
 
     protected $description = 'Prepare synthetic authentication fixture in the isolated test database';
 
@@ -41,7 +41,7 @@ final class PrepareAuthBrowserFixture extends Command
             throw new \LogicException('Fixture user collision.');
         }
         $user ??= User::create(['name' => 'Browser Fixture', 'email' => 'browser-auth@example.test', 'password' => 'test-only-password-123']);
-        $user->forceFill(['password' => 'test-only-password-123', 'email_verified_at' => now(), 'mfa_secret' => 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ', 'mfa_confirmed_at' => now(), 'mfa_last_counter' => null])->save();
+        $user->forceFill(['password' => 'test-only-password-123', 'email_verified_at' => now(), 'mfa_secret' => $this->option('without-mfa') ? null : 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ', 'mfa_confirmed_at' => $this->option('without-mfa') ? null : now(), 'mfa_last_counter' => null])->save();
         app(TenantContextRunner::class)->run(new TenantContext($organizationId, actorId: $user->id, source: 'job'), function () use ($user): void {
             if (! Brand::withoutGlobalScopes()->where('organization_id', app(Cabinet::class)->organizationId())->exists()) {
                 Brand::create(['name' => 'Browser fixture']);

@@ -95,3 +95,71 @@ test('auth forms remain usable at mobile width', async ({ page }) => {
     animations: 'disabled',
   });
 });
+
+test('enabling MFA revokes another session and its remembered login', async ({ browser }) => {
+  execFileSync(
+    process.env.PHP_BINARY || 'php',
+    [
+      '-d',
+      'sys_temp_dir=.local/tmp',
+      'artisan',
+      'auth:test-browser-fixture',
+      '--env=testing',
+      '--without-mfa',
+      '--no-ansi',
+    ],
+    {
+      cwd: process.cwd(),
+      env: { ...process.env, APP_ENV: 'testing' },
+      stdio: 'pipe',
+      timeout: 30000,
+    },
+  );
+  const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:8101';
+  const first = await browser.newContext({ baseURL });
+  const second = await browser.newContext({ baseURL });
+  const rememberedOnly = await browser.newContext({ baseURL });
+  try {
+    const firstPage = await first.newPage();
+    const secondPage = await second.newPage();
+    for (const page of [firstPage, secondPage]) {
+      await page.goto('/login');
+      await page.getByLabel('Рабочая почта').fill('browser-auth@example.test');
+      await page.getByLabel('Пароль', { exact: true }).fill('test-only-password-123');
+      await page.getByLabel('Запомнить меня').check();
+      await page.getByRole('button', { name: 'Войти', exact: true }).click();
+      await expect(page).toHaveURL(/\/auth\/ready$/);
+    }
+    const rememberCookies = (await second.cookies()).filter((cookie) =>
+      cookie.name.startsWith('remember_web_'),
+    );
+    expect(rememberCookies).toHaveLength(1);
+    await rememberedOnly.addCookies(rememberCookies);
+    await firstPage.getByLabel('Текущий пароль').fill('test-only-password-123');
+    await firstPage.getByRole('button', { name: 'Настроить двухфакторную проверку' }).click();
+    await expect(firstPage).toHaveURL(/\/mfa\/setup$/);
+    const secret = (await firstPage.locator('p.font-mono').innerText()).trim();
+    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+    let bits = '';
+    for (const char of secret) bits += alphabet.indexOf(char).toString(2).padStart(5, '0');
+    const bytes = Buffer.from((bits.match(/.{8}/g) || []).map((byte) => parseInt(byte, 2)));
+    const counter = Buffer.alloc(8);
+    counter.writeBigUInt64BE(BigInt(Math.floor(Date.now() / 30000)));
+    const digest = createHmac('sha1', bytes).update(counter).digest();
+    const offset = digest[19] & 15;
+    const code = String((digest.readUInt32BE(offset) & 0x7fffffff) % 1000000).padStart(6, '0');
+    await firstPage.getByLabel('Код из приложения').fill(code);
+    await firstPage.getByRole('button', { name: 'Включить проверку' }).click();
+    await expect(firstPage).toHaveURL(/\/auth\/ready$/);
+    await expect(firstPage.getByText('включена', { exact: true })).toBeVisible();
+    await secondPage.goto('/auth/ready');
+    await expect(secondPage).toHaveURL(/\/login$/);
+    const rememberedPage = await rememberedOnly.newPage();
+    await rememberedPage.goto('/auth/ready');
+    await expect(rememberedPage).toHaveURL(/\/login$/);
+    await firstPage.reload();
+    await expect(firstPage).toHaveURL(/\/auth\/ready$/);
+  } finally {
+    await Promise.all([first.close(), second.close(), rememberedOnly.close()]);
+  }
+});
