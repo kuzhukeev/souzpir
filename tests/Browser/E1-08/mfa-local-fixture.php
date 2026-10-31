@@ -9,15 +9,12 @@ use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\DB;
+use Tests\Support\MfaTestDatabase;
 
 require __DIR__.'/../../../vendor/autoload.php';
 $app = require __DIR__.'/../../../bootstrap/app.php';
 $app->make(Kernel::class)->bootstrap();
-if (getenv('MFA_LOCAL_FIXTURE') !== '1' || ! app()->environment('local') || DB::connection()->getDatabaseName() !== 'souzpir_test_sp_mfa_recovery'
-    || config('runtime.test_database') !== DB::connection()->getDatabaseName() || config('runtime.preview_database') === DB::connection()->getDatabaseName()) {
-    throw new LogicException('Refusing fixture outside isolated MFA database.');
-}
+MfaTestDatabase::assert(localFixture: true);
 Artisan::call('migrate:fresh', ['--force' => true, '--no-interaction' => true]);
 $id = app(Cabinet::class)->organizationId();
 if (Organization::whereKey($id)->exists() || User::where('email', 'mfa-recovery@example.test')->exists()) {

@@ -2,8 +2,9 @@ import { expect, test } from '@playwright/test';
 import { createHmac } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 
-const base = 'http://souzpir.local:8268';
-test.use({ launchOptions: { executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe', args: ['--host-resolver-rules=MAP souzpir.local 127.0.0.1', '--no-proxy-server'] }, trace: 'off' });
+const port = process.env.MFA_LOCAL_PORT || '8268';
+const base = `http://souzpir.local:${port}`;
+test.use({ launchOptions: { executablePath: process.env.MFA_BROWSER_EXECUTABLE_PATH || undefined, args: ['--host-resolver-rules=MAP souzpir.local 127.0.0.1', '--no-proxy-server'] }, trace: 'off' });
 function totp(offset: number) {
   const counter = Buffer.alloc(8);
   counter.writeBigUInt64BE(BigInt(Math.floor(Date.now() / 30000) + offset));
@@ -21,6 +22,8 @@ test('local HTTP one-time issue and login, without Inertia props or history', as
   await page.getByLabel('Код подтверждения').fill(totp(0));
   await page.getByRole('button', { name: 'Подтвердить' }).click();
   await page.waitForURL(url => !url.pathname.includes('/mfa/'));
+  await page.goto(base + '/billing');
+  await expect(page.getByRole('heading', { name: 'Текущий план и лимиты' })).toBeVisible();
   await page.goto(base + '/profile/security');
   await page.getByRole('link', { name: 'Открыть локальное создание кодов' }).click();
   await expect(page.getByRole('heading', { name: 'Резервные коды' })).toBeVisible();
@@ -56,6 +59,8 @@ test('local HTTP one-time issue and login, without Inertia props or history', as
   await page.getByLabel('Резервный код').fill(code);
   await page.getByRole('button', { name: 'Подтвердить' }).click();
   await page.waitForURL(url => !url.pathname.includes('/mfa/'));
+  await page.goto(base + '/billing');
+  await expect(page.getByRole('heading', { name: 'Текущий план и лимиты' })).toBeVisible();
   await page.evaluate(async () => {
     const cookie = document.cookie.split('; ').find(item => item.startsWith('XSRF-TOKEN='));
     if (!cookie) throw new Error('Missing CSRF cookie');

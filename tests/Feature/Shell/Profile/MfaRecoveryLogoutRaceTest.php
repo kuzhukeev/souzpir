@@ -17,6 +17,7 @@ use Illuminate\Session\Store;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Support\MfaTestDatabase;
 use Tests\TestCase;
 
 final class MfaRecoveryLogoutRaceTest extends TestCase
@@ -25,12 +26,7 @@ final class MfaRecoveryLogoutRaceTest extends TestCase
 
     protected function beforeRefreshingDatabase(): void
     {
-        $expected = basename(dirname(base_path())) === '.worktrees' ? 'souzpir_test_'.str_replace('-', '_', basename(base_path())) : 'souzpir_test_main';
-        if (! app()->environment('testing') || DB::connection()->getDatabaseName() !== $expected
-            || DB::connection()->getDatabaseName() !== config('runtime.test_database')
-            || DB::connection()->getDatabaseName() === config('runtime.preview_database')) {
-            throw new \LogicException('Isolated test database required.');
-        }
+        MfaTestDatabase::assert();
     }
 
     public static function orders(): array

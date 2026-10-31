@@ -10,11 +10,17 @@ use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Str;
+use Tests\Support\MfaTestDatabase;
 use Tests\TestCase;
 
 final class FileSessionRaceTest extends TestCase
 {
     use DatabaseMigrations;
+
+    protected function beforeRefreshingDatabase(): void
+    {
+        MfaTestDatabase::assert();
+    }
 
     public function test_logout_remains_effective_after_parallel_request_restores_old_file(): void
     {

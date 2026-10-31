@@ -9,10 +9,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
+use Tests\Support\MfaTestDatabase;
 
 require __DIR__.'/../../../../../vendor/autoload.php';
 $app = require __DIR__.'/../../../../../bootstrap/app.php';
 $app->make(ConsoleKernel::class)->bootstrap();
+MfaTestDatabase::assert();
 [$script, $mode, $cookie, $barrier] = $argv;
 if (in_array($mode, ['login-remember-paused', 'logout-paused'], true)) {
     User::retrieved(function () use ($barrier) {

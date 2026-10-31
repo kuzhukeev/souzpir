@@ -1,7 +1,8 @@
 <?php
 
-if (PHP_SAPI !== 'cli-server' || getenv('APP_ENV') !== 'local' || getenv('MFA_LOCAL_FIXTURE') !== '1'
-    || ($_SERVER['REMOTE_ADDR'] ?? '') !== '127.0.0.1' || ($_SERVER['SERVER_PORT'] ?? '') !== '8268') {
+$port = getenv('MFA_LOCAL_PORT') ?: '8268';
+if (! ctype_digit($port) || (int) $port < 1024 || (int) $port > 65535 || PHP_SAPI !== 'cli-server' || getenv('APP_ENV') !== 'local' || getenv('MFA_LOCAL_FIXTURE') !== '1'
+    || ($_SERVER['REMOTE_ADDR'] ?? '') !== '127.0.0.1' || ($_SERVER['SERVER_PORT'] ?? '') !== $port) {
     http_response_code(404);
 
     return;

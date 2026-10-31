@@ -31,11 +31,17 @@ use Illuminate\Support\Facades\URL;
 use Illuminate\Testing\TestResponse;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
+use Tests\Support\MfaTestDatabase;
 use Tests\TestCase;
 
 final class AuthFlowTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function beforeRefreshingDatabase(): void
+    {
+        MfaTestDatabase::assert();
+    }
 
     protected function setUp(): void
     {
@@ -193,8 +199,11 @@ final class AuthFlowTest extends TestCase
         $this->assertGuest();
         $this->post('/mfa/challenge', ['code' => $code])->assertRedirect(route('auth.ready'));
         $this->assertAuthenticatedAs($user);
-        $this->post('/logout');
-        $this->post('/login', ['email' => $user->email, 'password' => 'secure-password-example']);
+        $this->withCookie(config('session.cookie'), session()->getId());
+        $this->post('/logout')->assertRedirect(route('login'));
+        $this->withCookie(config('session.cookie'), session()->getId());
+        $this->post('/login', ['email' => $user->email, 'password' => 'secure-password-example'])->assertRedirect(route('mfa.challenge'));
+        $this->withCookie(config('session.cookie'), session()->getId());
         $this->post('/mfa/challenge', ['code' => $code])->assertSessionHasErrors('code');
         $this->assertGuest();
     }
@@ -254,6 +263,8 @@ final class AuthFlowTest extends TestCase
 
     public function test_mfa_enrolment_requires_password_and_rotates_other_sessions(): void
     {
+        // Symfony's synthetic request otherwise has no server address.
+        $this->withServerVariables(['REMOTE_ADDR' => '127.0.0.1', 'SERVER_ADDR' => '127.0.0.1']);
         [$org, $user] = $this->fixture();
         $this->post('/login', ['email' => $user->email, 'password' => 'secure-password-example'])->assertRedirect();
         $this->withCookie(config('session.cookie'), session()->getId());

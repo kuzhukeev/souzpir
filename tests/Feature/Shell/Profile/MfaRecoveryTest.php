@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Tests\Feature\Tenancy\TenancyTestCase;
+use Tests\Support\MfaTestDatabase;
 
 final class MfaRecoveryTest extends TenancyTestCase
 {
@@ -18,12 +19,7 @@ final class MfaRecoveryTest extends TenancyTestCase
 
     protected function beforeRefreshingDatabase(): void
     {
-        $expected = basename(dirname(base_path())) === '.worktrees' ? 'souzpir_test_'.str_replace('-', '_', basename(base_path())) : 'souzpir_test_main';
-        if (! app()->environment('testing') || DB::connection()->getDatabaseName() !== $expected
-            || DB::connection()->getDatabaseName() !== config('runtime.test_database')
-            || DB::connection()->getDatabaseName() === config('runtime.preview_database')) {
-            throw new \LogicException('Isolated test database required.');
-        }
+        MfaTestDatabase::assert();
     }
 
     protected function setUp(): void
@@ -31,6 +27,30 @@ final class MfaRecoveryTest extends TenancyTestCase
         parent::setUp();
         $this->withServerVariables(['SERVER_ADDR' => '127.0.0.1', 'REMOTE_ADDR' => '127.0.0.1']);
         Http::preventStrayRequests();
+    }
+
+    public function test_database_guard_refuses_mismatched_test_and_preview_database(): void
+    {
+        $test = config('runtime.test_database');
+        $preview = config('runtime.preview_database');
+        try {
+            config(['runtime.test_database' => 'souzpir_test_a_different_database']);
+            try {
+                MfaTestDatabase::assert();
+                self::fail('A mismatched configured test database must be refused.');
+            } catch (\LogicException) {
+                self::assertTrue(true);
+            }
+            config(['runtime.test_database' => $test, 'runtime.preview_database' => $test]);
+            try {
+                MfaTestDatabase::assert();
+                self::fail('The preview database must never be a fixture target.');
+            } catch (\LogicException) {
+                self::assertTrue(true);
+            }
+        } finally {
+            config(['runtime.test_database' => $test, 'runtime.preview_database' => $preview]);
+        }
     }
 
     public function test_issue_then_log_in_once_with_a_recovery_code(): void

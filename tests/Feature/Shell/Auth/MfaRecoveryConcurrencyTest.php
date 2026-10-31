@@ -10,6 +10,7 @@ use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Symfony\Component\Process\Process;
+use Tests\Support\MfaTestDatabase;
 use Tests\TestCase;
 
 final class MfaRecoveryConcurrencyTest extends TestCase
@@ -18,12 +19,7 @@ final class MfaRecoveryConcurrencyTest extends TestCase
 
     protected function beforeRefreshingDatabase(): void
     {
-        $expected = basename(dirname(base_path())) === '.worktrees' ? 'souzpir_test_'.str_replace('-', '_', basename(base_path())) : 'souzpir_test_main';
-        if (! app()->environment('testing') || DB::connection()->getDatabaseName() !== $expected
-            || DB::connection()->getDatabaseName() !== config('runtime.test_database')
-            || DB::connection()->getDatabaseName() === config('runtime.preview_database')) {
-            throw new \LogicException('Isolated test database required.');
-        }
+        MfaTestDatabase::assert();
     }
 
     public function test_two_processes_cannot_consume_the_same_recovery_code(): void

@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test';
 
-const origin = 'http://127.0.0.1:5268';
+const origin = `http://127.0.0.1:${process.env.MFA_VITE_PORT || '5268'}`;
 const codes = Array.from({ length: 10 }, (_, i) => `AAAAAAAA-BBBBBBBB-CCCCCCCC-${i.toString(16).padStart(8, '0').toUpperCase()}`);
-test.use({ launchOptions: { executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe' }, trace: 'off' });
+test.use({ launchOptions: { executablePath: process.env.MFA_BROWSER_EXECUTABLE_PATH || undefined }, trace: 'off' });
 
 test('recovery codes stay out of history and disappear on page hide', async ({ page, context }) => {
   page.on('pageerror', (error) => console.error('fixture page error:', error.message));
