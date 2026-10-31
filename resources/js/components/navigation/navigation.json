@@ -26,6 +26,13 @@
           "permission": "vision.measure.read"
         },
         {
+          "id": "vision_questions",
+          "label": "Вопросы",
+          "icon": "ClipboardList",
+          "path": "/vision/questions",
+          "permission": "vision.report.read"
+        },
+        {
           "id": "vision_site",
           "label": "Сайт",
           "icon": "Building2",

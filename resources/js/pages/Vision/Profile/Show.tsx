@@ -67,6 +67,9 @@ function Details({ profile, previous_profile, history, is_latest, limits, errors
           <p className="mt-2 text-base text-(--color-ink-muted)">
             Ответы анкеты и сведения для следующих замеров · версия {profile.version}
           </p>
+          <Link href="/vision/questions" className="mt-3 inline-block text-sm text-(--color-link) underline underline-offset-2">
+            Перейти к вопросам для замера
+          </Link>
         </header>
         {error && (
           <p role="alert" className="rounded-lg bg-red-50 p-4 text-sm text-red-800">
