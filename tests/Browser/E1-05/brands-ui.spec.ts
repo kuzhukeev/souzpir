@@ -125,7 +125,9 @@ test('aliases, domain instructions, styled select and empty state', async ({ pag
   await page.keyboard.press('Escape');
   await page.getByRole('button', { name: 'Добавить домен', exact: true }).click();
   await page.getByRole('combobox', { name: 'Способ подтверждения', exact: true }).click();
+  await expect(page.getByRole('option', { name: 'Файл на сайте', exact: true })).toBeFocused();
   await page.keyboard.press('ArrowDown');
+  await expect(page.getByRole('option', { name: 'DNS TXT-запись', exact: true })).toBeFocused();
   await page.keyboard.press('Enter');
   await expect(
     page.getByRole('combobox', { name: 'Способ подтверждения', exact: true }),

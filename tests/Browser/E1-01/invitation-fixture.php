@@ -22,12 +22,24 @@ $db = DB::connection();
 $path = str_replace('\\', '/', base_path());
 $dedicatedWorktree = str_ends_with($path, '/.worktrees/sp-invitation-safety') || str_ends_with($path, '/.worktrees/sp-invitation-onetime');
 $testDatabase = getenv('INVITATION_BROWSER_TEST_DATABASE') ?: 'souzpir_test_sp_invitation_safety';
+$ciFixture = getenv('INVITATION_BROWSER_CI_FIXTURE') === '1'
+    && getenv('CI') === 'true' && realpath(base_path()) === realpath(getcwd())
+    && config('database.connections.pgsql.host') === '127.0.0.1'
+    && (int) config('database.connections.pgsql.port') === 5432
+    && config('database.connections.pgsql.username') === 'sp_invitation_ci_app'
+    && $testDatabase === 'souzpir_test_sp_invitation_ci';
+if ($ciFixture) {
+    $actual = DB::selectOne('select current_database() as db, current_user as role, inet_server_addr() as host, inet_server_port() as port, rolsuper, rolcreatedb, rolcreaterole, rolreplication, rolbypassrls from pg_roles where rolname = current_user');
+    $ciFixture = $actual && $actual->db === $testDatabase && $actual->role === 'sp_invitation_ci_app'
+        && $actual->host === '127.0.0.1' && (int) $actual->port === 5432 && ! $actual->rolsuper
+        && ! $actual->rolcreatedb && ! $actual->rolcreaterole && ! $actual->rolreplication && ! $actual->rolbypassrls;
+}
 $explicitMainFixture = getenv('INVITATION_BROWSER_MAIN_FIXTURE') === '1'
     && realpath(base_path()) === realpath(getcwd()) && is_dir(base_path('.git'))
     && config('database.connections.pgsql.host') === '127.0.1.48'
     && config('database.connections.pgsql.username') === 'souzpir_sp_invitation_safety'
     && DB::selectOne('select current_user as role')->role === 'souzpir_sp_invitation_safety';
-if (! app()->environment('testing') || (! $dedicatedWorktree && ! $explicitMainFixture)
+if (! app()->environment('testing') || (! $dedicatedWorktree && ! $explicitMainFixture && ! $ciFixture)
     || ! preg_match('/^souzpir_test_[a-z0-9_]+$/D', $testDatabase)
     || $db->getDatabaseName() !== $testDatabase || $db->getDatabaseName() !== config('runtime.test_database')
     || $db->getDatabaseName() === config('runtime.preview_database')) {

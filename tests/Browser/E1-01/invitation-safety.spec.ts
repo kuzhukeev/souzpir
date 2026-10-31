@@ -1,11 +1,17 @@
 import { expect, test } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 
-test.use({ trace: 'off', launchOptions: { executablePath: process.env.PLAYWRIGHT_CHROME || 'C:/Program Files/Google/Chrome/Application/chrome.exe' } });
-const base = process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:8244';
-const php = process.env.PHP_BINARY || 'C:/OSPanel/modules/PHP-8.4/php.exe';
+const base = process.env.INVITATION_BROWSER_BASE_URL || 'http://127.0.0.1:8244';
+test.use({ trace: 'off', baseURL: base, launchOptions: process.env.PLAYWRIGHT_CHROME ? { executablePath: process.env.PLAYWRIGHT_CHROME } : {} });
+const php = process.env.PHP_BINARY || 'php';
+const invitationEnv = process.env.INVITATION_BROWSER_CI_FIXTURE === '1' ? {
+  DB_HOST: '127.0.0.1', DB_PORT: '5432', DB_DATABASE: 'souzpir_test_sp_invitation_ci',
+  DB_TEST_DATABASE: 'souzpir_test_sp_invitation_ci', DB_USERNAME: 'sp_invitation_ci_app',
+  DB_PASSWORD: process.env.INVATION_DB_PASSWORD, APP_URL: base, CACHE_STORE: 'file', SESSION_DRIVER: 'file',
+  APP_STORAGE_PATH: `${process.cwd()}/.local/runtime/testing/invitation/storage`,
+} : {};
 const fixture = (action: string) => execFileSync(php, ['-d', 'sys_temp_dir=.local/tmp', 'tests/Browser/E1-01/invitation-fixture.php', action], {
-  cwd: process.cwd(), env: { ...process.env, APP_ENV: 'testing' }, encoding: 'utf8', timeout: 60000,
+  cwd: process.cwd(), env: { ...process.env, ...invitationEnv, APP_ENV: 'testing' }, encoding: 'utf8', timeout: 60000,
 }).trim();
 
 test.beforeEach(() => { expect(fixture('setup')).toBe('ready'); });

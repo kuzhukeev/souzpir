@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import axe from 'axe-core';
 const base = 'http://127.0.0.1:5248/tests/Browser/E8-02/ui-fixture.html';
 test.use({
-  launchOptions: { executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe' },
+  launchOptions: { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH },
 });
 for (const theme of ['neutral', 'confectionery', 'pyro'])
   for (const width of [1440, 1024, 390]) {

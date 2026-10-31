@@ -22,11 +22,15 @@ $app->make(Kernel::class)->bootstrap();
 Http::preventStrayRequests();
 $root = str_replace('\\', '/', realpath(__DIR__.'/../../..'));
 $storage = str_replace('\\', '/', storage_path());
-$state = DB::selectOne('select current_database() as db, current_user as role, inet_server_addr() as host, inet_server_port() as port, rolsuper, rolcreatedb, rolcreaterole from pg_roles where rolname = current_user');
-if (! app()->environment('testing') || DB::connection()->getDatabaseName() !== 'souzpir_test_sp_e8_02'
-    || config('runtime.test_database') !== 'souzpir_test_sp_e8_02' || config('runtime.preview_database') === 'souzpir_test_sp_e8_02'
-    || ! $state || $state->db !== 'souzpir_test_sp_e8_02' || $state->role !== 'sp_e8_02_app'
-    || $state->host !== '127.0.0.1' || (int) $state->port !== 55490 || $state->rolsuper || $state->rolcreatedb || $state->rolcreaterole
+$state = DB::selectOne('select current_database() as db, current_user as role, inet_server_addr() as host, inet_server_port() as port, rolsuper, rolcreatedb, rolcreaterole, rolreplication, rolbypassrls from pg_roles where rolname = current_user');
+$ciMode = getenv('CI') === 'true' ? getenv('E802_CI_FIXTURE') : false;
+$expectedDatabase = $ciMode === 'local' ? 'souzpir_test_sp_e8_02_local' : 'souzpir_test_sp_e8_02';
+$expectedRole = $ciMode === 'local' ? 'sp_e8_02_local_app' : 'sp_e8_02_app';
+$expectedPort = in_array($ciMode, ['1', 'local'], true) ? 5432 : 55490;
+if (! app()->environment('testing') || DB::connection()->getDatabaseName() !== $expectedDatabase
+    || config('runtime.test_database') !== $expectedDatabase || config('runtime.preview_database') === $expectedDatabase
+    || ! $state || $state->db !== $expectedDatabase || $state->role !== $expectedRole
+    || $state->host !== '127.0.0.1' || (int) $state->port !== $expectedPort || $state->rolsuper || $state->rolcreatedb || $state->rolcreaterole || $state->rolreplication || $state->rolbypassrls
     || ! str_starts_with($storage.'/', $root.'/.local/runtime/testing/storage/')
     || config('runtime.ai_driver') !== 'fake' || config('runtime.delivery_driver') !== 'fake'
     || ! in_array(config('mail.default'), ['log', 'array'], true)) {

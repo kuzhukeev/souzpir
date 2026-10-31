@@ -2,7 +2,7 @@ import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 const base = process.env.E803_BROWSER_BASE ?? 'http://souzpir.local:8258';
 test.use({
   launchOptions: {
-    executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe',
+    executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,
     args: ['--host-resolver-rules=MAP souzpir.local 127.0.0.1'],
   },
 });
