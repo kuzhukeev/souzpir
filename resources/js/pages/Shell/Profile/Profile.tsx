@@ -1,6 +1,7 @@
-import { useRef, useState, type FormEvent } from 'react';
-import { useForm } from '@inertiajs/react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useForm, usePage } from '@inertiajs/react';
 import { supportsPrivateHistory } from '@/features/Shell/Profile/browser';
+import { profileContextIsStable, subscribeProfileContext } from '@/features/Shell/Profile/contextFence';
 import { Camera, CircleUserRound, Mail, ShieldCheck } from 'lucide-react';
 import { Badge, Button, Combobox, Input, Modal, Select } from '@/components/ui';
 import { Errors, Notice, ProfilePage, panel } from '@/features/Shell/Profile/shared';
@@ -8,17 +9,69 @@ import { useFeedback, useProfileText } from '@/features/Shell/Profile/hooks';
 import type { ProfileData } from '@/types/Shell/Profile';
 import type { profileCopy } from '@/features/Shell/Profile/copy';
 
-export default function Profile({
+type Props = {
+  profile: ProfileData;
+  timezones: string[];
+  profileBrandRevision: string;
+  status?: string | null;
+  emailConfirmationUrl?: string;
+};
+
+// A response may have been generated before a switch but arrive afterward.
+// Verify its revision over a fresh request before rendering private content.
+export default function Profile(props: Props) {
+  const { version } = usePage();
+  const [verified, setVerified] = useState<{ revision: string; profile: ProfileData } | null>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    let sequence = 0;
+    let current: AbortController | undefined;
+    let disposed = false;
+    const check = () => {
+      const attempt = ++sequence;
+      current?.abort();
+      setVerified(null);
+      setFailed(false);
+      const fail = () => { if (!disposed && attempt === sequence) setFailed(true); };
+      if (typeof props.profileBrandRevision !== 'string' || !/^[a-f0-9]{64}$/.test(props.profileBrandRevision) || !profileContextIsStable() || document.visibilityState === 'hidden') { fail(); return; }
+      const controller = new AbortController();
+      current = controller;
+      const timeout = window.setTimeout(() => controller.abort(), 10000);
+      void fetch('/profile', {
+        credentials: 'same-origin', cache: 'no-store', signal: controller.signal,
+        headers: { Accept: 'text/html, application/xhtml+xml', 'X-Requested-With': 'XMLHttpRequest', 'X-Inertia': 'true', 'X-Inertia-Version': version ?? '' },
+      }).then(async (response) => {
+        if (!response.ok || response.headers.get('X-Inertia') !== 'true') { fail(); return; }
+        const page: unknown = await response.json();
+        if (typeof page !== 'object' || page === null || !('props' in page)) { fail(); return; }
+        const pageProps = (page as { props?: { profileBrandRevision?: unknown } }).props;
+        if (!disposed && attempt === sequence && pageProps?.profileBrandRevision === props.profileBrandRevision && profileContextIsStable() && document.visibilityState !== 'hidden') setVerified({ revision: props.profileBrandRevision, profile: props.profile });
+        else fail();
+      }).catch(fail).finally(() => window.clearTimeout(timeout));
+    };
+    const hide = () => document.querySelectorAll<HTMLElement>('[data-private-profile]').forEach((element) => { element.hidden = true; });
+    const visibility = () => { if (document.visibilityState === 'hidden') hide(); check(); };
+    const pageHide = () => { hide(); sequence++; current?.abort(); setVerified(null); };
+    const pageShow = (event: PageTransitionEvent) => { if (event.persisted) check(); };
+    const unsubscribe = subscribeProfileContext(check);
+    document.addEventListener('visibilitychange', visibility);
+    window.addEventListener('pagehide', pageHide);
+    window.addEventListener('pageshow', pageShow);
+    check();
+    return () => { disposed = true; sequence++; current?.abort(); unsubscribe(); document.removeEventListener('visibilitychange', visibility); window.removeEventListener('pagehide', pageHide); window.removeEventListener('pageshow', pageShow); };
+  }, [props.profileBrandRevision, props.profile, version]);
+
+  if (verified?.revision !== props.profileBrandRevision || verified.profile !== props.profile) return <main className="min-h-dvh bg-(--color-bg) p-6 text-(--color-ink)"><div role="status" className={`${panel} mx-auto max-w-[800px] text-sm`}>{failed ? 'Не удалось подтвердить доступ к профилю. Если переключение бренда или выход прервались, обратитесь к администратору.' : 'Проверяем доступ к профилю.'}</div></main>;
+  return <div data-private-profile><ProfileContent {...props} /></div>;
+}
+
+function ProfileContent({
   profile,
   timezones,
   status,
   emailConfirmationUrl,
-}: {
-  profile: ProfileData;
-  timezones: string[];
-  status?: string | null;
-  emailConfirmationUrl?: string;
-}) {
+  profileBrandRevision,
+}: Props) {
   const t = useProfileText();
   const privateHistory = supportsPrivateHistory();
   const form = useForm({
@@ -50,6 +103,7 @@ export default function Profile({
     feedback.clear();
     form.put('/profile', {
       preserveScroll: true,
+      headers: { 'X-Brand-Revision': profileBrandRevision },
       onSuccess: () => feedback.setNotice(t('saved')),
       onNetworkError: feedback.failure,
       onHttpException: feedback.failure,
