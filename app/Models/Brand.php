@@ -4,13 +4,16 @@ namespace App\Models;
 
 use App\Tenancy\BelongsToTenant;
 use App\Tenancy\TenantContext;
+use Illuminate\Auth\Authenticatable;
+use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
+use Laravel\Sanctum\HasApiTokens;
 
-class Brand extends Model
+class Brand extends Model implements AuthenticatableContract
 {
-    use BelongsToTenant, HasUlids;
+    use Authenticatable, BelongsToTenant, HasApiTokens, HasUlids;
 
     protected $fillable = ['name', 'website', 'industry', 'market', 'language', 'timezone', 'theme', 'status', 'settings'];
 
