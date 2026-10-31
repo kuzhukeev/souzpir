@@ -2,6 +2,7 @@ import { Link, router, useForm } from '@inertiajs/react';
 import { Button } from '@/components/ui';
 import { AuthFrame, Field } from '@/features/Shell/Auth/AuthFrame';
 import type { FormEvent } from 'react';
+import { beginProfileContextChange, finishProfileContextChange } from '@/features/Shell/Profile/contextFence';
 
 export default function Ready({ mfaEnabled, canOpenJournal }: { mfaEnabled: boolean; canOpenJournal: boolean }) {
   const setup = useForm({ password: '', code: '' });
@@ -48,7 +49,11 @@ export default function Ready({ mfaEnabled, canOpenJournal }: { mfaEnabled: bool
           {mfaEnabled ? 'Отключить двухфакторную проверку' : 'Настроить двухфакторную проверку'}
         </Button>
       </form>
-      <Button variant="ghost" className="mt-4 w-full" onClick={() => router.post('/logout')}>
+      <Button variant="ghost" className="mt-4 w-full" onClick={() => {
+        const contextChange = beginProfileContextChange();
+        if (!contextChange) return;
+        router.post('/logout', {}, { onSuccess: () => finishProfileContextChange(contextChange) });
+      }}>
         Выйти
       </Button>
     </AuthFrame>

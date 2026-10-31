@@ -39,7 +39,7 @@ final class ProfileController
             ];
         });
 
-        return Inertia::render('Shell/Profile/Profile', ['profile' => $profile, 'timezones' => DateTimeZone::listIdentifiers(), 'status' => session('status')]);
+        return Inertia::render('Shell/Profile/Profile', ['profile' => $profile, 'profileBrandRevision' => $request->attributes->get('profile.brand_revision'), 'timezones' => DateTimeZone::listIdentifiers(), 'status' => session('status')]);
     }
 
     public function update(#[\SensitiveParameter] Request $request): RedirectResponse

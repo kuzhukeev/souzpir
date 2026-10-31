@@ -5,13 +5,15 @@ namespace App\Tenancy;
 use App\Models\Brand;
 use App\Models\Membership;
 use App\Models\Organization;
+use App\Shell\Auth\AuthSessionRegistry;
+use App\Shell\Auth\SessionBrandSelection;
 use App\Shell\Organizations\ModuleEntitlements;
 use Closure;
 use Illuminate\Http\Request;
 
 final class ResolveTenant
 {
-    public function handle(Request $request, Closure $next): mixed
+    public function handle(Request $request, Closure $next, bool $personal = false): mixed
     {
         $user = $request->user();
         abort_unless($user, 401);
@@ -22,21 +24,35 @@ final class ResolveTenant
         abort_unless($membership, 403);
         $brands = Brand::withoutGlobalScopes()->where('organization_id', $organizationId)->where('status', 'active')->orderBy('name')->orderBy('id')->get()
             ->filter(fn (Brand $brand) => $membership->permitsBrand($brand->id))->values();
-        $selected = $request->session()->get('brand_id');
-        $brand = $brands->firstWhere('id', $selected);
-        // A stale tab must never write into a replacement brand after access changes.
-        if ($brand === null && ! $request->isMethodSafe() && ! $request->routeIs('brand.switch')) {
+        $snapshot = $request->session()->get('brand_id');
+        if ($personal && is_string($snapshot) && ! $brands->firstWhere('id', $snapshot)) {
             abort(404);
         }
-        $brand ??= $brands->first();
-        abort_unless($brand, 403);
-        // An optional header never selects an organization or bypasses the session scope.
+        $initial = $brands->firstWhere('id', $snapshot) ?? $brands->first();
+        abort_unless($initial, 403);
+
+        $selection = app(AuthSessionRegistry::class)->withinActive($request, function () use ($request, $organizationId, $initial): object {
+            return app(SessionBrandSelection::class)->initialize($request, $organizationId, $initial->id);
+        });
+        abort_unless($selection->selected_organization_id === $organizationId, 403);
+        $brand = $brands->firstWhere('id', $selection->selected_brand_id);
+        if (! $brand && $request->routeIs('brand.switch')) {
+            $brand = $initial;
+        }
+        abort_unless($brand, 404);
+        if ($personal && is_string($snapshot) && $snapshot !== $brand->id) {
+            $request->session()->put('brand_id', $brand->id);
+            abort(409);
+        }
+        if (! $request->isMethodSafe() && ! $request->routeIs('brand.switch') && is_string($snapshot) && $snapshot !== $brand->id) {
+            abort(409);
+        }
         if ($request->hasHeader('X-Brand-Id')) {
             abort_unless($request->header('X-Brand-Id') === $brand->id, 404);
         }
         $ownSettings = $request->isMethod('PATCH') && $request->routeIs('notifications.settings.update', 'data.consents');
         $ownSupportActions = $request->isMethod('POST') && $request->routeIs('help.support.store', 'help.support.access.revoke');
-        if (! $request->isMethodSafe() && ! $request->routeIs('brand.switch') && ! $ownSettings && ! $ownSupportActions) {
+        if (! $personal && ! $request->isMethodSafe() && ! $request->routeIs('brand.switch') && ! $ownSettings && ! $ownSupportActions) {
             abort_unless($membership->canWrite(), 403);
         }
         $request->session()->put('brand_id', $brand->id);
@@ -44,6 +60,7 @@ final class ResolveTenant
         $request->attributes->set('tenant.brand', $brand);
         $request->attributes->set('tenant.brands', $brands);
         $request->attributes->set('tenant.membership', $membership);
+        $request->attributes->set('tenant.brand_revision', (string) $selection->brand_revision);
         $context = new TenantContext($organizationId, $brand->id, $user->id, $membership->id, 'session');
 
         return app(TenantContextRunner::class)->run($context, function () use ($context, $next, $request) {
