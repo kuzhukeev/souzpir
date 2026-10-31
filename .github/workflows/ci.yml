@@ -74,10 +74,14 @@ jobs:
           php artisan serve --env=testing --no-reload --host=127.0.0.1 --port=8101 > .local/runtime/browser-server.log 2>&1 &
           for attempt in {1..20}; do curl --fail --silent http://127.0.0.1:8101/up && break; sleep 1; done
           curl --fail --silent http://127.0.0.1:8101/up > /dev/null
+          npx vite build --config vite.layout.config.ts
+          php -S 127.0.0.1:5183 -t .local/runtime/layout-fixture > .local/runtime/layout-vite.log 2>&1 &
+          for attempt in {1..20}; do curl --fail --silent http://127.0.0.1:5183/tests/Browser/Layout/fixture.html > /dev/null && break; sleep 1; done
+          curl --fail --silent http://127.0.0.1:5183/tests/Browser/Layout/fixture.html > /dev/null
           npm run test:browser
       - name: Browser failure diagnostics
         if: failure()
         run: |
-          for logfile in .local/runtime/browser-server.log .local/runtime/testing/storage/logs/laravel.log; do
+          for logfile in .local/runtime/browser-server.log .local/runtime/layout-vite.log .local/runtime/testing/storage/logs/laravel.log; do
             if [ -f "$logfile" ]; then tail -n 80 "$logfile"; fi
           done
