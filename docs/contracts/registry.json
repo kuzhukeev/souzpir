@@ -581,6 +581,32 @@
         "brands"
       ]
     },
+    "vision_question_manual_batches": {
+      "owner": "SP-E8-03",
+      "tenant": "brand",
+      "parents": [
+        "brands",
+        "question_generation_batches",
+        "question_sets"
+      ]
+    },
+    "vision_question_copy_entries": {
+      "owner": "SP-E8-03",
+      "tenant": "brand",
+      "parents": [
+        "brands",
+        "question_candidates",
+        "question_sets"
+      ]
+    },
+    "vision_question_approvals": {
+      "owner": "SP-E8-03",
+      "tenant": "brand",
+      "parents": [
+        "brands",
+        "question_sets"
+      ]
+    },
     "measurements": {
       "owner": "SP-E8-01",
       "tenant": "brand",
