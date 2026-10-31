@@ -5,6 +5,7 @@ namespace App\Seller\Settings\Limits;
 use App\Models\Membership;
 use App\Shell\Notifications\Contracts\NotificationRouter;
 use App\Shell\Notifications\DomainEvent;
+use App\Shell\Notifications\NotificationDeferred;
 use App\Shell\Notifications\RecipientPolicy;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -46,7 +47,7 @@ final class SellerNotificationRouter implements NotificationRouter
             throw new LogicException('Unknown seller notification timing.');
         }
         if (! config('features.E6-07.defaults.digest_enabled', false)) {
-            throw new LogicException('Seller digest processing is disabled; the outbox event must be retried.');
+            throw new NotificationDeferred('digest_disabled');
         }
         $timezone = DB::table('brands')->where('organization_id', $e['organization_id'])->where('id', $e['brand_id'])->where('status', 'active')->value('timezone');
         if (! is_string($timezone)) {
