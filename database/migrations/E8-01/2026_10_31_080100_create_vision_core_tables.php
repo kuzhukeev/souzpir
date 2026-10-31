@@ -86,12 +86,12 @@ return new class extends Migration
         DB::statement("ALTER TABLE measurement_answers ADD CONSTRAINT vision_answer_status_check CHECK (status IN ('pending','in_progress','ok','failed','uncertain'))");
         DB::statement('ALTER TABLE monitoring_schedules ADD CONSTRAINT vision_schedule_weekday_check CHECK (weekday IS NULL OR weekday BETWEEN 1 AND 7)');
         DB::unprepared(<<<'SQL'
-CREATE FUNCTION vision_core_immutable() RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE OR REPLACE FUNCTION vision_core_immutable() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN RAISE EXCEPTION 'Vision snapshots and question sets are immutable'; END
 $$;
 SQL);
         DB::unprepared(<<<'SQL'
-CREATE FUNCTION vision_plan_immutable() RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE OR REPLACE FUNCTION vision_plan_immutable() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
     IF NEW.question_set_id IS DISTINCT FROM OLD.question_set_id
        OR NEW.configuration IS DISTINCT FROM OLD.configuration
