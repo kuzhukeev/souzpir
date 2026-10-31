@@ -101,6 +101,71 @@ final class EmailChangeTest extends TenancyTestCase
         $this->assertDatabaseHas('profile_email_changes', ['user_id' => $user->id, 'status' => 'cancelled', 'target_email' => null, 'target_fingerprint' => null, 'encrypted_token' => null]);
     }
 
+    public function test_cancel_is_idempotent_and_does_not_rewrite_a_confirmed_change_or_another_user(): void
+    {
+        $this->enable();
+        [$user, $org, $brand] = $this->cabinet();
+        [$other] = $this->member($org, 'viewer', [$brand->id]);
+        $this->actingAs($user)->withSession(['brand_id' => $brand->id]);
+        $this->post('/profile/email', ['email' => 'new@example.test', 'current_password' => 'test-only-password'])->assertRedirect();
+        $url = $this->link($user->id);
+
+        $this->actingAs($other)->withSession(['brand_id' => $brand->id])->delete('/profile/email')->assertRedirect()->assertSessionHas('status', 'Нет ожидающего запроса на смену адреса.');
+        $this->assertDatabaseHas('profile_email_changes', ['user_id' => $user->id, 'status' => 'pending']);
+        $this->assertSame(0, DB::table('audit_logs')->where('actor_id', $other->id)->where('action', 'profile.email.cancelled')->count());
+        $this->post($url)->assertNotFound();
+
+        $this->actingAs($user)->withSession(['brand_id' => $brand->id])->post($url)->assertRedirect('/profile');
+        $this->post($url)->assertNotFound();
+        $this->delete('/profile/email')->assertRedirect()->assertSessionHas('status', 'Нет ожидающего запроса на смену адреса.');
+        $this->delete('/profile/email')->assertRedirect()->assertSessionHas('status', 'Нет ожидающего запроса на смену адреса.');
+        $this->assertSame('new@example.test', $user->fresh()->email);
+        $this->assertDatabaseHas('profile_email_changes', ['user_id' => $user->id, 'status' => 'confirmed', 'target_email' => null, 'token_hash' => null]);
+        $this->assertSame(0, DB::table('audit_logs')->where('actor_id', $user->id)->where('action', 'profile.email.cancelled')->count());
+        $this->assertSame(1, DB::table('audit_logs')->where('actor_id', $user->id)->where('action', 'profile.email.changed')->count());
+        Http::assertNothingSent();
+    }
+
+    public function test_repeated_cancel_records_one_audit_and_keeps_the_old_email(): void
+    {
+        $this->enable();
+        [$user, , $brand] = $this->cabinet();
+        $old = $user->email;
+        $this->actingAs($user)->withSession(['brand_id' => $brand->id]);
+        $this->post('/profile/email', ['email' => 'new@example.test', 'current_password' => 'test-only-password'])->assertRedirect();
+        $url = $this->link($user->id);
+        $this->delete('/profile/email')->assertRedirect()->assertSessionHas('status', 'Смена адреса отменена.');
+        $this->delete('/profile/email')->assertRedirect()->assertSessionHas('status', 'Нет ожидающего запроса на смену адреса.');
+        $this->post($url)->assertNotFound();
+        $this->assertSame($old, $user->fresh()->email);
+        $this->assertDatabaseHas('profile_email_changes', ['user_id' => $user->id, 'status' => 'cancelled', 'target_email' => null, 'token_hash' => null, 'encrypted_token' => null]);
+        $this->assertSame(1, DB::table('audit_logs')->where('actor_id', $user->id)->where('action', 'profile.email.cancelled')->count());
+        Http::assertNothingSent();
+    }
+
+    public function test_cancel_failure_rolls_back_and_does_not_expose_private_error_details(): void
+    {
+        $this->enable();
+        [$user, , $brand] = $this->cabinet();
+        $marker = 'synthetic-private-error@example.test';
+        $this->actingAs($user)->withSession(['brand_id' => $brand->id]);
+        $this->post('/profile/email', ['email' => 'new@example.test', 'current_password' => 'test-only-password'])->assertRedirect();
+        $audit = $this->createStub(AuditWriter::class);
+        $audit->method('record')->willThrowException(new \RuntimeException($marker));
+        $this->app->instance(AuditWriter::class, $audit);
+        $this->withoutExceptionHandling();
+        try {
+            $this->delete('/profile/email');
+            self::fail('Expected a sanitized exception.');
+        } catch (\RuntimeException $error) {
+            self::assertSame('Email cancellation processing failed.', $error->getMessage());
+            self::assertNull($error->getPrevious());
+            self::assertStringNotContainsString($marker, $error->getTraceAsString());
+        }
+        $this->assertDatabaseHas('profile_email_changes', ['user_id' => $user->id, 'status' => 'pending']);
+        Http::assertNothingSent();
+    }
+
     public function test_pending_address_cannot_be_reserved_by_another_user(): void
     {
         $this->enable();

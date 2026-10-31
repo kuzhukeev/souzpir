@@ -42,9 +42,9 @@ final class EmailController
 
     public function cancel(Request $request): RedirectResponse
     {
-        app(EmailChanges::class)->cancel($request);
+        $cancelled = app(EmailChanges::class)->cancel($request);
         Inertia::clearHistory();
 
-        return redirect()->route('profile.show')->with('status', 'Смена адреса отменена.');
+        return redirect()->route('profile.show')->with('status', $cancelled ? 'Смена адреса отменена.' : 'Нет ожидающего запроса на смену адреса.');
     }
 }
