@@ -357,7 +357,12 @@ final class Gateway implements AiGateway
     private function replay(object $call, string $model): AiResult
     {
         if ($call->status === 'completed' && is_string($call->result_encrypted)) {
-            return AiResult::fromArray(json_decode(Crypt::decryptString($call->result_encrypted), true, 512, JSON_THROW_ON_ERROR));
+            $result = AiResult::fromArray(json_decode(Crypt::decryptString($call->result_encrypted), true, 512, JSON_THROW_ON_ERROR));
+            if (! hash_equals((string) $call->id, $result->aiCallId)) {
+                throw new LogicException('AI stored result does not match call.');
+            }
+
+            return $result;
         }
         if ($call->status === 'failed') {
             throw new Rejected('Previous AI attempt was confirmed unbilled; an explicit new attempt is required.');

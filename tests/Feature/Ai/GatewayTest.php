@@ -36,6 +36,15 @@ final class GatewayTest extends TestCase
 
     private string $fixtures;
 
+    // Gateway calls must not run inside a transaction. Recreate the isolated
+    // database per test instead of rolling back irreversible migrations.
+    public function runDatabaseMigrations(): void
+    {
+        $this->beforeRefreshingDatabase();
+        $this->refreshTestDatabase();
+        $this->afterRefreshingDatabase();
+    }
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -155,6 +164,60 @@ final class GatewayTest extends TestCase
             $this->expectException(LogicException::class);
             app(AiGateway::class)->complete(new AiRequest([['role' => 'user', 'content' => 'different']], $request->model, 0.5), $context);
         });
+    }
+
+    public function test_replay_rejects_an_encrypted_result_from_another_call(): void
+    {
+        Http::preventStrayRequests();
+        Http::fake();
+        $this->fixture($this->request()->toArray(), 7);
+
+        $this->within(function (): void {
+            $gateway = app(AiGateway::class);
+            $first = $gateway->complete($this->request(), $this->context('replay-first'));
+            $second = $gateway->complete($this->request(), $this->context('replay-second'));
+            self::assertNotSame($first->aiCallId, $second->aiCallId);
+            self::assertSame($first->aiCallId, $gateway->complete($this->request(), $this->context('replay-first'))->aiCallId);
+            $foreignCiphertext = DB::table('ai_calls')->where('id', $second->aiCallId)->value('result_encrypted');
+            DB::table('ai_calls')->where('id', $first->aiCallId)->update(['result_encrypted' => $foreignCiphertext]);
+
+            try {
+                $gateway->complete($this->request(), $this->context('replay-first'));
+                self::fail('Replay returned a result belonging to a different call.');
+            } catch (LogicException $error) {
+                self::assertStringNotContainsString($second->aiCallId, (string) $error);
+            }
+            self::assertSame(2, DB::table('ai_calls')->count());
+        });
+        Http::assertNothingSent();
+    }
+
+    public function test_replay_rejects_an_encrypted_result_from_another_tenant(): void
+    {
+        Http::preventStrayRequests();
+        Http::fake();
+        $this->fixture($this->request()->toArray(), 7);
+        $otherOrganization = (string) Str::ulid();
+        $otherBrand = (string) Str::ulid();
+        DB::table('organizations')->insert(['id' => $otherOrganization, 'name' => 'Other', 'status' => 'active', 'settings' => '{}']);
+        DB::table('brands')->insert(['id' => $otherBrand, 'organization_id' => $otherOrganization, 'name' => 'Other', 'status' => 'active', 'theme' => 'neutral', 'settings' => '{}']);
+        $gateway = app(AiGateway::class);
+        $first = $this->within(fn () => $gateway->complete($this->request(), $this->context('tenant-replay')));
+        $otherContext = new AiContext($otherOrganization, $otherBrand, 'responder', 'seller', 'brand', $otherBrand, 'other-tenant', ['knowledge_public']);
+        $foreign = app(TenantContextRunner::class)->run(new TenantContext($otherOrganization, $otherBrand, source: 'job'), fn () => $gateway->complete($this->request(), $otherContext));
+        $foreignCiphertext = DB::table('ai_calls')->where('id', $foreign->aiCallId)->value('result_encrypted');
+        DB::table('ai_calls')->where('id', $first->aiCallId)->update(['result_encrypted' => $foreignCiphertext]);
+
+        $this->within(function () use ($gateway, $foreign): void {
+            try {
+                $gateway->complete($this->request(), $this->context('tenant-replay'));
+                self::fail('Replay returned a different tenant’s result.');
+            } catch (LogicException $error) {
+                self::assertStringNotContainsString($foreign->aiCallId, (string) $error);
+            }
+        });
+        self::assertSame(2, DB::table('ai_calls')->count());
+        Http::assertNothingSent();
     }
 
     public function test_outer_transaction_is_rejected_before_reservation_or_transport(): void
