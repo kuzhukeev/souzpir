@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Auth\EligibleAccount;
 use App\Shell\Auth\InvitationExchangeGrants;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -87,12 +88,24 @@ final class SessionController
 
     public function destroy(Request $request): RedirectResponse
     {
-        app(AuthSessionRegistry::class)->withinActive($request, function (User $fresh) use ($request): void {
-            app(AuthSessionRegistry::class)->revokeCurrent($request);
+        // Version middleware is bypassed here, so restore a remember-only
+        // session through the same verified path before revoking its lease.
+        try {
+            if ($request->session()->get('auth.version') === null && Auth::viaRemember()) {
+                app(AuthSessionRegistry::class)->issueRemembered($request, $request->user());
+            }
+            app(AuthSessionRegistry::class)->withinLogout($request, function (User $fresh) use ($request): void {
+                app(AuthSessionRegistry::class)->revokeCurrent($request);
+                app(InvitationExchangeGrants::class)->revoke($request);
+                Auth::guard()->setUser($fresh);
+                Auth::logout();
+            });
+        } catch (AuthenticationException) {
+            // This does not authorize touching any lease; retire only the
+            // invitation grant bound to the same session and clear its cookie.
             app(InvitationExchangeGrants::class)->revoke($request);
-            Auth::guard()->setUser($fresh);
-            Auth::logout();
-        });
+            Auth::guard()->logoutCurrentDevice();
+        }
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 

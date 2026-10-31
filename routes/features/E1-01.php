@@ -1,5 +1,6 @@
 <?php
 
+use App\Shell\Auth\EnforceAuthVersion;
 use App\Shell\Auth\Http\InvitationController;
 use App\Shell\Auth\Http\MfaChallengeController;
 use App\Shell\Auth\Http\MfaSettingsController;
@@ -35,8 +36,10 @@ return [
         });
     },
     'auth' => static function (): void {
+        // Controller verifies its own lease and permits stale snapshots only for logout.
+        Route::post('/logout', [SessionController::class, 'destroy'])->middleware('auth.nostore')
+            ->withoutMiddleware(EnforceAuthVersion::class)->name('logout');
         Route::middleware(['auth.version', 'auth.nostore'])->group(static function (): void {
-            Route::post('/logout', [SessionController::class, 'destroy'])->name('logout');
             Route::get('/email/verify', [VerificationController::class, 'notice'])->name('verification.notice');
             Route::get('/email/verify/{id}/{hash}', [VerificationController::class, 'confirm'])->middleware(['signed', 'throttle:6,1'])->name('verification.verify');
             Route::post('/email/verify/{id}/{hash}', [VerificationController::class, 'verify'])->middleware(['signed', 'throttle:6,1'])->name('verification.confirm');
