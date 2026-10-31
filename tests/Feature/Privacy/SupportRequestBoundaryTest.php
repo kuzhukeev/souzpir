@@ -168,7 +168,7 @@ final class SupportRequestBoundaryTest extends TestCase
     public function test_known_statuses_are_preserved_without_exception_messages_or_headers(): void
     {
         Route::post('/help/support/{id}/access/revoke', fn (string $id) => throw new HttpException((int) $id, 'SECRET_STATUS_TEXT', null, ['X-Private' => 'SECRET_HEADER']));
-        foreach ([400, 401, 403, 404, 405, 413, 419, 422, 429] as $status) {
+        foreach ([400, 401, 403, 404, 405, 409, 413, 419, 422, 429] as $status) {
             $response = $this->postJson('/help/support/'.$status.'/access/revoke');
             $response->assertStatus($status)->assertHeaderMissing('X-Private');
             self::assertStringNotContainsString('SECRET_', $response->getContent());

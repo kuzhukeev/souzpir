@@ -60,7 +60,7 @@ final class SupportExceptionHandler extends Handler implements ExceptionHandlerC
                 MethodNotAllowedHttpException::class => 405,
                 PostTooLargeException::class => 413,
                 ThrottleRequestsException::class, TooManyRequestsHttpException::class => 429,
-                HttpException::class => in_array($e->getStatusCode(), [400, 401, 403, 404, 405, 413, 419, 422, 429], true) ? $e->getStatusCode() : 500,
+                HttpException::class => in_array($e->getStatusCode(), [400, 401, 403, 404, 405, 409, 413, 419, 422, 429], true) ? $e->getStatusCode() : 500,
                 default => 500,
             };
             $fields = $status === 422 && get_class($e) === ValidationException::class
@@ -74,6 +74,7 @@ final class SupportExceptionHandler extends Handler implements ExceptionHandlerC
             401 => 'Войдите в кабинет, чтобы продолжить.',
             403 => 'Нет доступа к этому действию.',
             404 => 'Обращение не найдено.',
+            409 => 'Данные обращения изменились. Проверьте их и повторите попытку.',
             413 => 'Размер обращения превышает допустимый.',
             419 => 'Сессия истекла. Обновите страницу и повторите.',
             422 => 'Проверьте заполнение обращения.',
