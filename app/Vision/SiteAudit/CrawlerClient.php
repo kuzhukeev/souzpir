@@ -2,6 +2,8 @@
 
 namespace App\Vision\SiteAudit;
 
+use GuzzleHttp\Psr7\Uri;
+use GuzzleHttp\Psr7\UriResolver;
 use Illuminate\Support\Facades\Http;
 use Psr\Http\Message\ResponseInterface;
 use RuntimeException;
@@ -13,7 +15,18 @@ class CrawlerClient
 
     public function __construct(private PublicUrlPolicy $policy) {}
 
-    public function fetch(string $url, float $timeoutSeconds = 48): array
+    public function fetch(#[\SensitiveParameter] string $url, float $timeoutSeconds = 48): array
+    {
+        try {
+            SiteSafety::noQuery($url);
+
+            return $this->fetchInternal($url, $timeoutSeconds);
+        } catch (\Throwable $error) {
+            throw SiteSafety::failure($error);
+        }
+    }
+
+    private function fetchInternal(#[\SensitiveParameter] string $url, float $timeoutSeconds): array
     {
         if (! config('features.E8-01B.defaults.fetch_enabled', false)) {
             throw new RuntimeException('Загрузка сайтов не включена в этом окружении.');
@@ -72,8 +85,14 @@ class CrawlerClient
             throw new RuntimeException('Текст страницы превышает допустимый размер.');
         }
 
+        $location = explode('#', $response->header('Location'), 2)[0];
+        SiteSafety::noQuery($location);
+        if ($location !== '' && UriResolver::resolve(new Uri($target['url']), new Uri($location))->getUserInfo() !== '') {
+            throw new \InvalidArgumentException('Переадресация с учётными данными запрещена.');
+        }
+
         return ['url' => $target['url'], 'body' => $body, 'status' => $response->status(),
-            'content_type' => $contentType, 'location' => $response->header('Location'),
+            'content_type' => $contentType, 'location' => $location,
             'x_robots_tag' => $response->header('X-Robots-Tag'), 'fetched_at' => now()->toIso8601String()];
     }
 }

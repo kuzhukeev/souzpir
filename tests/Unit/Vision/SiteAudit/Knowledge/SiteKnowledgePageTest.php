@@ -56,6 +56,28 @@ HTML;
         self::assertSame(['https://brand.example/visible'], $page['links']);
     }
 
+    public function test_invalid_or_query_urls_do_not_escape_in_messages_or_trace(): void
+    {
+        $old = ini_get('zend.exception_ignore_args');
+        ini_set('zend.exception_ignore_args', '0');
+        try {
+            $pages = new SiteKnowledgePage;
+            foreach (['https://example.com:abc/SYNTHETIC_MALFORMED_PAGE', 'https://brand.example/?key=SYNTHETIC_PAGE_QUERY'] as $url) {
+                try {
+                    $pages->url($url);
+                    self::fail('Unsafe URL was accepted.');
+                } catch (InvalidArgumentException $error) {
+                    self::assertNull($error->getPrevious());
+                    self::assertStringNotContainsString('SYNTHETIC_', (string) $error.json_encode($error->getTrace(), JSON_THROW_ON_ERROR));
+                }
+            }
+            $page = $pages->extract('<html><body><h1>Visible heading</h1><p>Visible public information.</p><a href="https://t.me/name?token=SYNTHETIC_TG_QUERY">Messenger</a></body></html>', 'https://brand.example/');
+            self::assertStringNotContainsString('SYNTHETIC_TG_QUERY', json_encode($page, JSON_THROW_ON_ERROR));
+        } finally {
+            ini_set('zend.exception_ignore_args', (string) $old);
+        }
+    }
+
     public function test_unsafe_url_forms_and_invalid_html_are_rejected(): void
     {
         $pages = new SiteKnowledgePage;

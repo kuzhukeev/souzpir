@@ -252,6 +252,35 @@ HTML;
         });
     }
 
+    public function test_redirect_query_is_not_followed_stored_or_returned(): void
+    {
+        [$tenant] = $this->context();
+        $this->redirect = '/details?token=SYNTHETIC_IMPORT_QUERY';
+        app(TenantContextRunner::class)->run($tenant, function () use ($tenant): void {
+            $result = app(SiteKnowledgeImporter::class)->import($tenant);
+            self::assertSame(0, $result['pages']);
+            self::assertCount(1, $result['errors']);
+            self::assertStringNotContainsString('SYNTHETIC_IMPORT_QUERY', json_encode($result, JSON_THROW_ON_ERROR));
+            self::assertNull(app(SiteDraftStore::class)->read($tenant, 'https://brand.example/'));
+        });
+        Http::assertSentCount(2);
+        Http::assertNotSent(fn ($request): bool => str_contains($request->url(), 'SYNTHETIC_IMPORT_QUERY'));
+    }
+
+    public function test_foreign_transport_error_is_not_returned_in_import_result(): void
+    {
+        [$tenant] = $this->context();
+        Http::fake(fn ($request) => $request->url() === 'https://brand.example/robots.txt'
+            ? Http::response($this->robots, 200, ['Content-Type' => 'text/plain'])
+            : throw new RuntimeException('SYNTHETIC_FOREIGN_MESSAGE', 0, new RuntimeException('SYNTHETIC_FOREIGN_PREVIOUS')));
+        app(TenantContextRunner::class)->run($tenant, function () use ($tenant): void {
+            $result = app(SiteKnowledgeImporter::class)->import($tenant);
+            self::assertSame(0, $result['pages']);
+            self::assertCount(1, $result['errors']);
+            self::assertStringNotContainsString('SYNTHETIC_FOREIGN_', json_encode($result, JSON_THROW_ON_ERROR));
+        });
+    }
+
     public function test_foreign_redirect_is_not_followed(): void
     {
         [$tenant] = $this->context();

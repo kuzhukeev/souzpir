@@ -30,6 +30,51 @@ class SiteInspectorTest extends TestCase
         return new SiteInspector($crawler);
     }
 
+    public function test_query_urls_are_not_crawled_or_returned_and_root_error_is_safe(): void
+    {
+        $old = ini_get('zend.exception_ignore_args');
+        ini_set('zend.exception_ignore_args', '0');
+        try {
+            $seen = [];
+            try {
+                $this->inspector([], $seen)->inspect('https://example.com/?secret=SYNTHETIC_ROOT_QUERY');
+                self::fail('A query-bearing root was accepted.');
+            } catch (\InvalidArgumentException $error) {
+                self::assertNull($error->getPrevious());
+                self::assertStringNotContainsString('SYNTHETIC_ROOT_QUERY', (string) $error.json_encode($error->getTrace(), JSON_THROW_ON_ERROR));
+            }
+            self::assertSame([], $seen);
+            $root = 'https://example.com';
+            $html = '<h1>О компании</h1><p>Условия работы и информация о продукции.</p><a href="/private?token=SYNTHETIC_LINK_QUERY">Ссылка</a><a href="/visible">Контакты</a>';
+            $result = $this->inspector([
+                $root.'/robots.txt' => $this->page($root.'/robots.txt', '', 404),
+                $root => $this->page($root, $html),
+                $root.'/visible' => $this->page($root.'/visible', 'Доступные условия компании.'),
+                $root.'/sitemap.xml' => $this->page($root.'/sitemap.xml', '', 404),
+                $root.'/llms.txt' => $this->page($root.'/llms.txt', '', 404),
+            ], $seen)->inspect($root);
+            self::assertContains($root.'/visible', $seen);
+            self::assertStringNotContainsString('SYNTHETIC_LINK_QUERY', json_encode($result, JSON_THROW_ON_ERROR));
+            self::assertStringNotContainsString('SYNTHETIC_LINK_QUERY', json_encode($seen, JSON_THROW_ON_ERROR));
+        } finally {
+            ini_set('zend.exception_ignore_args', (string) $old);
+        }
+    }
+
+    public function test_query_redirect_does_not_leak_in_inspection_result_or_request(): void
+    {
+        $root = 'https://example.com';
+        $seen = [];
+        $redirect = ['location' => '/private?token=SYNTHETIC_AUDIT_REDIRECT', ...$this->page($root, '', 302)];
+        $result = $this->inspector([
+            $root.'/robots.txt' => $this->page($root.'/robots.txt', '', 404),
+            $root => $redirect,
+        ], $seen)->inspect($root);
+        self::assertSame([$root.'/robots.txt', $root], $seen);
+        self::assertStringNotContainsString('SYNTHETIC_AUDIT_REDIRECT', json_encode($result, JSON_THROW_ON_ERROR));
+        self::assertSame(0, $result['crawled_pages']);
+    }
+
     public function test_explicit_hidden_subtrees_do_not_prove_commercial_facts_or_supply_crawl_links(): void
     {
         $url = 'https://example.com';

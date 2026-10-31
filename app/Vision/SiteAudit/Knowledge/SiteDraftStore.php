@@ -6,6 +6,7 @@ use App\Ai\CanonicalJson;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
 use App\Tenancy\TenantContext;
+use App\Vision\SiteAudit\SiteSafety;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
@@ -21,7 +22,16 @@ final class SiteDraftStore
 
     public function __construct(private SiteImportAccess $access, private SiteKnowledgePage $pages, private AuditWriter $audit) {}
 
-    public function store(TenantContext $tenant, string $root, string $url, array $page, int $maxPages): array
+    public function store(#[\SensitiveParameter] TenantContext $tenant, #[\SensitiveParameter] string $root, #[\SensitiveParameter] string $url, #[\SensitiveParameter] array $page, int $maxPages): array
+    {
+        try {
+            return $this->storeInternal($tenant, $root, $url, $page, $maxPages);
+        } catch (Throwable $error) {
+            throw SiteSafety::failure($error);
+        }
+    }
+
+    private function storeInternal(#[\SensitiveParameter] TenantContext $tenant, #[\SensitiveParameter] string $root, #[\SensitiveParameter] string $url, #[\SensitiveParameter] array $page, int $maxPages): array
     {
         if (DB::transactionLevel() !== 0) {
             throw new LogicException('Хранилище источников должно завершать собственную транзакцию.');
@@ -90,7 +100,16 @@ final class SiteDraftStore
         });
     }
 
-    public function read(TenantContext $tenant, string $url): ?array
+    public function read(#[\SensitiveParameter] TenantContext $tenant, #[\SensitiveParameter] string $url): ?array
+    {
+        try {
+            return $this->readInternal($tenant, $url);
+        } catch (Throwable $error) {
+            throw SiteSafety::failure($error);
+        }
+    }
+
+    private function readInternal(#[\SensitiveParameter] TenantContext $tenant, #[\SensitiveParameter] string $url): ?array
     {
         return $this->locked($tenant, $url, function (string $directory) use ($tenant): ?array {
             return DB::transaction(function () use ($tenant, $directory): ?array {

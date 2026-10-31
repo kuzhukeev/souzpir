@@ -14,7 +14,22 @@ class SiteInspector
 
     public function __construct(private CrawlerClient $crawler) {}
 
-    public function inspect(string $url, ?int $pageLimit = null): array
+    public function inspect(#[\SensitiveParameter] string $url, ?int $pageLimit = null): array
+    {
+        try {
+            SiteSafety::noQuery($url);
+            $uri = new Uri($url);
+            if (! in_array($uri->getScheme(), ['http', 'https'], true) || $uri->getHost() === '' || $uri->getUserInfo() !== '') {
+                throw new \InvalidArgumentException('Некорректный адрес сайта.');
+            }
+
+            return $this->inspectInternal((string) $uri->withFragment(''), $pageLimit);
+        } catch (\Throwable $error) {
+            throw SiteSafety::failure($error);
+        }
+    }
+
+    private function inspectInternal(#[\SensitiveParameter] string $url, ?int $pageLimit): array
     {
         $pageLimit = max(1, min(5, $pageLimit ?? config('features.E8-01B.defaults.crawl_pages', 5)));
         $this->robotsCache = [];
@@ -239,7 +254,10 @@ class SiteInspector
         if ($reference === '') {
             throw new \RuntimeException('Empty redirect target');
         }
+        SiteSafety::noQuery($base);
+        SiteSafety::noQuery($reference);
         $uri = UriResolver::resolve(new Uri($base), new Uri($reference))->withFragment('');
+        SiteSafety::noQuery((string) $uri);
         if (! in_array($uri->getScheme(), ['http', 'https'], true) || $uri->getUserInfo() !== '') {
             throw new \RuntimeException('Unsupported URL');
         }

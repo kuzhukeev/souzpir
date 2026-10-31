@@ -4,6 +4,7 @@ namespace App\Vision\SiteAudit\Knowledge;
 
 use App\Ai\CanonicalJson;
 use App\Vision\SiteAudit\HiddenContent;
+use App\Vision\SiteAudit\SiteSafety;
 use DOMDocument;
 use DOMElement;
 use DOMNode;
@@ -15,9 +16,21 @@ use InvalidArgumentException;
 /** Text and navigation are extracted without executing any page content. */
 final class SiteKnowledgePage
 {
-    public function url(string $base, string $reference = ''): string
+    public function url(#[\SensitiveParameter] string $base, #[\SensitiveParameter] string $reference = ''): string
     {
+        try {
+            return $this->urlInternal($base, $reference);
+        } catch (\Throwable $error) {
+            throw SiteSafety::failure($error);
+        }
+    }
+
+    private function urlInternal(#[\SensitiveParameter] string $base, #[\SensitiveParameter] string $reference): string
+    {
+        SiteSafety::noQuery($base);
+        SiteSafety::noQuery($reference);
         $uri = UriResolver::resolve(new Uri($base), new Uri($reference))->withFragment('');
+        SiteSafety::noQuery((string) $uri);
         $host = strtolower($uri->getHost());
         if (! in_array($uri->getScheme(), ['http', 'https'], true) || $uri->getUserInfo() !== ''
             || $host === '' || ! str_contains($host, '.') || filter_var($host, FILTER_VALIDATE_IP)
@@ -30,14 +43,34 @@ final class SiteKnowledgePage
     }
 
     /** Deduplicate index aliases without changing an authored request path. */
-    public function canonicalUrl(string $url): string
+    public function canonicalUrl(#[\SensitiveParameter] string $url): string
+    {
+        try {
+            return $this->canonicalUrlInternal($url);
+        } catch (\Throwable $error) {
+            throw SiteSafety::failure($error);
+        }
+    }
+
+    private function canonicalUrlInternal(#[\SensitiveParameter] string $url): string
     {
         $uri = new Uri($this->url($url));
 
         return (string) $uri->withPath(preg_replace('~/index\.html?$~i', '/', $uri->getPath()));
     }
 
-    public function origin(string $url): string
+    public function origin(#[\SensitiveParameter] string $url): string
+    {
+        try {
+            SiteSafety::noQuery($url);
+
+            return $this->originInternal($url);
+        } catch (\Throwable $error) {
+            throw SiteSafety::failure($error);
+        }
+    }
+
+    private function originInternal(#[\SensitiveParameter] string $url): string
     {
         $uri = new Uri($url);
 
@@ -66,7 +99,16 @@ final class SiteKnowledgePage
     }
 
     /** @return array{title:string,text:string,links:list<string>,fingerprint:string,price_caveats:list<string>} */
-    public function extract(string $html, string $url): array
+    public function extract(#[\SensitiveParameter] string $html, #[\SensitiveParameter] string $url): array
+    {
+        try {
+            return $this->extractInternal($html, $this->url($url));
+        } catch (\Throwable $error) {
+            throw SiteSafety::failure($error);
+        }
+    }
+
+    private function extractInternal(#[\SensitiveParameter] string $html, #[\SensitiveParameter] string $url): array
     {
         if (strlen($html) > 600000 || ! mb_check_encoding($html, 'UTF-8')) {
             throw new InvalidArgumentException('Страница превышает лимит или содержит некорректный UTF-8.');
@@ -170,8 +212,8 @@ final class SiteKnowledgePage
         }
         if ($tag === 'a') {
             $href = $node->getAttribute('href');
-            if (preg_match('~^(?:mailto:|tel:|https?://(?:t\.me|telegram\.me)/)~i', $href)) {
-                $body .= ' ('.preg_replace('/^(?:mailto:|tel:)/i', '', $href).')';
+            if (preg_match('~^(?:mailto:|tel:|https?://(?:t\.me|telegram\.me)/)~i', $href) && ! str_contains(explode('#', $href, 2)[0], '?')) {
+                $body .= ' ('.preg_replace('/^(?:mailto:|tel:)/i', '', explode('#', $href, 2)[0]).')';
             }
         }
         if (in_array($tag, ['p', 'div', 'section', 'article', 'header', 'footer', 'main', 'ul', 'ol', 'details', 'dl', 'dt', 'dd', 'blockquote'], true)) {

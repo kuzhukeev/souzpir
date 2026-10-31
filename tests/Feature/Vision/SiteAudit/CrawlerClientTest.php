@@ -7,6 +7,7 @@ use App\Vision\SiteAudit\PublicAddressResolver;
 use GuzzleHttp\Handler\CurlFactory;
 use GuzzleHttp\Psr7\Request as PsrRequest;
 use GuzzleHttp\Psr7\Response;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -103,6 +104,52 @@ final class CrawlerClientTest extends TestCase
             ['93.184.216.34', 'example.com:443:93.184.216.34'],
             ['2606:4700:4700::1111', 'example.com:443:[2606:4700:4700::1111]'],
         ];
+    }
+
+    public function test_disabled_query_malformed_and_transport_exceptions_do_not_expose_url_or_previous(): void
+    {
+        $old = ini_get('zend.exception_ignore_args');
+        ini_set('zend.exception_ignore_args', '0');
+        try {
+            config(['features.E8-01B.defaults.fetch_enabled' => false]);
+            $this->assertSafeFailure(fn () => $this->app->make(CrawlerClient::class)->fetch('https://example.com/SYNTHETIC_DISABLED_PATH'), ['SYNTHETIC_DISABLED_PATH']);
+            config(['features.E8-01B.defaults.fetch_enabled' => true]);
+            Http::fake();
+            $this->assertSafeFailure(fn () => $this->app->make(CrawlerClient::class)->fetch('https://example.com/?token=SYNTHETIC_QUERY'), ['SYNTHETIC_QUERY']);
+            $this->assertSafeFailure(fn () => $this->app->make(CrawlerClient::class)->fetch('https://example.com:abc/SYNTHETIC_MALFORMED'), ['SYNTHETIC_MALFORMED']);
+            Http::assertNothingSent();
+        } finally {
+            ini_set('zend.exception_ignore_args', (string) $old);
+        }
+    }
+
+    public function test_transport_and_redirect_errors_hide_foreign_exception_and_reject_query_before_following(): void
+    {
+        $old = ini_get('zend.exception_ignore_args');
+        ini_set('zend.exception_ignore_args', '0');
+        try {
+            Http::fake(fn () => throw new ConnectionException('SYNTHETIC_TRANSPORT_MESSAGE', 0, new RuntimeException('SYNTHETIC_PREVIOUS')));
+            $this->assertSafeFailure(fn () => $this->app->make(CrawlerClient::class)->fetch('https://example.com/SYNTHETIC_TRANSPORT_PATH'), ['SYNTHETIC_TRANSPORT_PATH', 'SYNTHETIC_TRANSPORT_MESSAGE', 'SYNTHETIC_PREVIOUS']);
+            Http::fake(['https://example.com/*' => Http::response('', 302, ['Location' => '/private?token=SYNTHETIC_REDIRECT_QUERY'])]);
+            $this->assertSafeFailure(fn () => $this->app->make(CrawlerClient::class)->fetch('https://example.com/redirect'), ['SYNTHETIC_REDIRECT_QUERY']);
+            Http::assertNotSent(fn (Request $request): bool => str_contains($request->url(), 'SYNTHETIC_REDIRECT_QUERY'));
+        } finally {
+            ini_set('zend.exception_ignore_args', (string) $old);
+        }
+    }
+
+    private function assertSafeFailure(#[\SensitiveParameter] callable $operation, #[\SensitiveParameter] array $markers): void
+    {
+        try {
+            $operation();
+            self::fail('Expected a safe failure.');
+        } catch (\Exception $error) {
+            self::assertNull($error->getPrevious());
+            $full = (string) $error.json_encode($error->getTrace(), JSON_THROW_ON_ERROR);
+            foreach ($markers as $marker) {
+                self::assertStringNotContainsString($marker, $full);
+            }
+        }
     }
 
     public function test_short_timeout_is_bounded_and_byte_limits_apply_during_transfer(): void

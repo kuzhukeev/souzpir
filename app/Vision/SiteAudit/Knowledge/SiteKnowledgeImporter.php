@@ -6,6 +6,7 @@ use App\Ai\CanonicalJson;
 use App\Tenancy\TenantContext;
 use App\Vision\SiteAudit\CrawlerClient;
 use App\Vision\SiteAudit\RobotsPolicy;
+use App\Vision\SiteAudit\SiteSafety;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 use LogicException;
@@ -17,7 +18,20 @@ final class SiteKnowledgeImporter
 {
     public function __construct(private SiteImportAccess $access, private CrawlerClient $crawler, private SiteKnowledgePage $pages, private SiteDraftStore $drafts) {}
 
-    public function import(TenantContext $tenant, ?string $url = null, int $maxPages = 20): array
+    public function import(#[\SensitiveParameter] TenantContext $tenant, #[\SensitiveParameter] ?string $url = null, int $maxPages = 20): array
+    {
+        try {
+            if ($url !== null) {
+                SiteSafety::noQuery($url);
+            }
+
+            return $this->importInternal($tenant, $url, $maxPages);
+        } catch (Throwable $error) {
+            throw SiteSafety::failure($error);
+        }
+    }
+
+    private function importInternal(#[\SensitiveParameter] TenantContext $tenant, #[\SensitiveParameter] ?string $url, int $maxPages): array
     {
         if (DB::transactionLevel() !== 0) {
             throw new LogicException('Импорт сайта нельзя запускать внутри транзакции.');
@@ -79,8 +93,7 @@ final class SiteKnowledgeImporter
                     }
                 }
             } catch (Throwable $error) {
-                $result['errors'][] = ['url' => $target, 'message' => get_class($error) === RuntimeException::class || $error instanceof InvalidArgumentException
-                    ? $error->getMessage() : 'Страница не импортирована; проверьте доступ и ограничения источника.'];
+                $result['errors'][] = ['url' => $target, 'message' => SiteSafety::failure($error)->getMessage()];
             }
         }
         $result['limited'] = $queue !== [];
@@ -89,7 +102,7 @@ final class SiteKnowledgeImporter
     }
 
     /** Every redirect is a separate pinned request and remains inside the authorized origin. */
-    private function fetch(string $url, string $origin, ?array $robots, float $deadline): array
+    private function fetch(#[\SensitiveParameter] string $url, #[\SensitiveParameter] string $origin, ?array $robots, float $deadline): array
     {
         $seen = [];
         for ($redirect = 0; $redirect < 5; $redirect++) {

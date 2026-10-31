@@ -31,6 +31,7 @@ final class PublicUrlPolicyTest extends TestCase
         return array_map(fn (string $url): array => [$url], [
             'file:///etc/passwd', 'ftp://example.com/data', '//example.com/',
             'https://user:password@example.com/', 'https://example.com:8443/',
+            'https://example.com/?key=value', 'https://example.com/?',
             'http://127.0.0.1/', 'http://[::1]/', 'http://2130706433/',
             'http://127.0.0.1./', 'http://localhost/', 'https://site.local/',
             'https://site.localhost/', 'https://site.internal/', 'https://site.test/',
@@ -63,10 +64,10 @@ final class PublicUrlPolicyTest extends TestCase
     public function test_public_ipv4_and_ipv6_keep_the_requested_origin_for_pinning(): void
     {
         $policy = $this->policy(['2606:4700:4700::1111', '93.184.216.34']);
-        $target = $policy->target('https://EXAMPLE.COM/path?key=value#section');
+        $target = $policy->target('https://EXAMPLE.COM/path#section');
 
         self::assertSame([
-            'url' => 'https://example.com/path?key=value',
+            'url' => 'https://example.com/path',
             'host' => 'example.com',
             'address' => '2606:4700:4700::1111',
             'port' => 443,

@@ -11,7 +11,18 @@ final class PublicUrlPolicy
 {
     public function __construct(private PublicAddressResolver $resolver) {}
 
-    public function normalize(string $url): string
+    public function normalize(#[\SensitiveParameter] string $url): string
+    {
+        try {
+            SiteSafety::noQuery($url);
+
+            return $this->normalizeInternal($url);
+        } catch (\Throwable $error) {
+            throw SiteSafety::failure($error);
+        }
+    }
+
+    private function normalizeInternal(#[\SensitiveParameter] string $url): string
     {
         if (strlen($url) > 2048 || preg_match('/[\x00-\x20\x7f\\\\]/', $url)) {
             throw new InvalidArgumentException('Нужен публичный HTTP(S)-адрес без управляющих символов.');
@@ -35,7 +46,16 @@ final class PublicUrlPolicy
     }
 
     /** Validate every DNS answer and return one address to pin for this request. */
-    public function target(string $url): array
+    public function target(#[\SensitiveParameter] string $url): array
+    {
+        try {
+            return $this->targetInternal($url);
+        } catch (\Throwable $error) {
+            throw SiteSafety::failure($error);
+        }
+    }
+
+    private function targetInternal(#[\SensitiveParameter] string $url): array
     {
         $url = $this->normalize($url);
         $host = (string) parse_url($url, PHP_URL_HOST);
