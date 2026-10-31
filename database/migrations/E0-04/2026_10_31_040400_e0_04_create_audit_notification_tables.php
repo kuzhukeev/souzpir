@@ -89,7 +89,7 @@ return new class extends Migration
             $t->index(['organization_id', 'user_id', 'read_at']);
         });
         DB::statement("ALTER TABLE notification_settings ADD CONSTRAINT notification_settings_channel_check CHECK (channel IN ('cabinet','email','telegram'))");
-        DB::statement("ALTER TABLE notification_deliveries ADD CONSTRAINT notification_deliveries_channel_check CHECK (channel IN ('cabinet','email','telegram')), ADD CONSTRAINT notification_deliveries_status_check CHECK (status IN ('pending','sending','sent','failed'))");
+        DB::statement("ALTER TABLE notification_deliveries ADD CONSTRAINT notification_deliveries_channel_check CHECK (channel IN ('cabinet','email','telegram')), ADD CONSTRAINT notification_deliveries_status_check CHECK (status IN ('pending','sending','sent','failed','uncertain'))");
     }
 
     public function down(): void

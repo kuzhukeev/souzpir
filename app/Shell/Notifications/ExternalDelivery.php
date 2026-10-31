@@ -4,6 +4,7 @@ namespace App\Shell\Notifications;
 
 use App\Models\Membership;
 use App\Models\User;
+use Illuminate\Mail\SentMessage;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -23,6 +24,7 @@ final class ExternalDelivery
         if (! $claimed) {
             return;
         }
+        $transmissionStarted = false;
         try {
             $delivery = DB::table('notification_deliveries')->where('id', $id)->first();
             $member = Membership::withoutGlobalScopes()->where('organization_id', $delivery->organization_id)->where('user_id', $delivery->user_id)->where('status', 'active')->first();
@@ -47,19 +49,28 @@ final class ExternalDelivery
                     throw new RuntimeException('Mail transport is not configured.');
                 }
                 $user = User::query()->findOrFail($delivery->user_id);
-                Mail::to($user->email)->send(new NotificationMail($title));
+                $pending = Mail::to($user->email);
+                $transmissionStarted = true;
+                $receipt = $pending->send(new NotificationMail($title));
+                if (! $receipt instanceof SentMessage) {
+                    throw new RuntimeException('Mail delivery not confirmed.');
+                }
             } else {
                 $token = config('features.E0-04.defaults.telegram_bot_token');
                 if (! is_string($token) || $token === '' || ! $settings->destination) {
                     throw new RuntimeException('Telegram is not configured.');
                 }
                 $chatId = Crypt::decryptString($settings->destination);
-                Http::asForm()->timeout(5)->post('https://api.telegram.org/bot'.$token.'/sendMessage', ['chat_id' => $chatId, 'text' => $title])->throw();
+                $transmissionStarted = true;
+                $response = Http::asForm()->timeout(5)->post('https://api.telegram.org/bot'.$token.'/sendMessage', ['chat_id' => $chatId, 'text' => $title])->throw();
+                if ($response->json('ok') !== true) {
+                    throw new RuntimeException('Telegram delivery not confirmed.');
+                }
             }
             DB::table('notification_deliveries')->where('id', $id)->where('status', 'sending')->update(['status' => 'sent', 'sent_at' => now(), 'last_error' => null, 'updated_at' => now()]);
         } catch (Throwable $e) {
             // Do not persist exception messages: URLs and transport errors may contain credentials.
-            DB::table('notification_deliveries')->where('id', $id)->where('status', 'sending')->update(['status' => 'failed', 'last_error' => 'delivery_failed', 'updated_at' => now()]);
+            DB::table('notification_deliveries')->where('id', $id)->where('status', 'sending')->update(['status' => $transmissionStarted ? 'uncertain' : 'failed', 'last_error' => $transmissionStarted ? 'delivery_uncertain' : 'delivery_failed', 'updated_at' => now()]);
         }
     }
 }

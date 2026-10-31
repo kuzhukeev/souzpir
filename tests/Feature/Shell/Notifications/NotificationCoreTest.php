@@ -9,10 +9,14 @@ use App\Shell\Notifications\Contracts\NotificationDispatcher;
 use App\Shell\Notifications\DomainEvent;
 use App\Shell\Notifications\EventCatalog;
 use App\Shell\Notifications\ExternalDelivery;
+use App\Shell\Notifications\NotificationMail;
 use App\Shell\Notifications\NotificationProcessor;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Mail\PendingMail;
+use Illuminate\Mail\SentMessage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
@@ -127,6 +131,9 @@ final class NotificationCoreTest extends TenancyTestCase
         app(ExternalDelivery::class)->send($ids['email']);
         $this->assertSame('failed', DB::table('notification_deliveries')->where('id', $ids['email'])->value('status'));
         config(['mail.default' => 'smtp']);
+        $pending = \Mockery::mock(PendingMail::class);
+        $pending->shouldReceive('send')->once()->with(\Mockery::type(NotificationMail::class))->andReturn(\Mockery::mock(SentMessage::class));
+        Mail::shouldReceive('to')->once()->with($user->email)->andReturn($pending);
         app(ExternalDelivery::class)->send($ids['email']);
         app(ExternalDelivery::class)->send($ids['telegram']);
         app(ExternalDelivery::class)->send($ids['telegram']);
@@ -135,7 +142,6 @@ final class NotificationCoreTest extends TenancyTestCase
         $this->assertSame('sent', DB::table('notification_deliveries')->where('id', $ids['telegram'])->value('status'));
         $this->assertSame(1, DB::table('notification_deliveries')->where('id', $ids['telegram'])->value('attempts'));
         Http::assertSentCount(1);
-        Mail::assertOutgoingCount(1);
     }
 
     public function test_rejected_event_and_rolled_back_outbox_leave_no_notifications(): void
@@ -191,5 +197,80 @@ final class NotificationCoreTest extends TenancyTestCase
         $this->assertSame('[REDACTED]', json_decode($created->after, true)['password']);
         $this->assertSame('Before', json_decode($updated->before, true)['name']);
         $this->assertSame('After', json_decode($updated->after, true)['name']);
+    }
+
+    public function test_ambiguous_external_outcomes_never_retry_even_with_retry_failed(): void
+    {
+        Queue::fake();
+        $calls = 0;
+        Http::fake(function () use (&$calls) {
+            $calls++;
+            throw new ConnectionException('transport timeout with sensitive detail');
+        });
+        config(['features.E0-04.defaults.external_delivery' => true, 'features.E0-04.defaults.telegram_bot_token' => 'test-token', 'mail.default' => 'smtp']);
+        [$user, $org, $brand, , $membership] = $this->cabinet();
+        $context = new TenantContext($org->id, $brand->id, $user->id, $membership->id);
+        app(TenantContextRunner::class)->run($context, function () use ($context): void {
+            app(ConfigureNotification::class)->execute($context, 'seller.conversation.handed_off', 'email', true);
+            app(ConfigureNotification::class)->execute($context, 'seller.conversation.handed_off', 'telegram', true, '123456');
+        });
+        $event = $this->event($org->id, $brand->id);
+        DB::transaction(fn () => app(NotificationDispatcher::class)->enqueue($event));
+        app(NotificationProcessor::class)->process($event->envelope['event_id']);
+        $ids = DB::table('notification_deliveries')->where('event_id', $event->envelope['event_id'])->pluck('id', 'channel');
+        $pending = \Mockery::mock(PendingMail::class);
+        $pending->shouldReceive('send')->once()->andReturn(null);
+        Mail::shouldReceive('to')->once()->with($user->email)->andReturn($pending);
+        app(ExternalDelivery::class)->send($ids['email']);
+        app(ExternalDelivery::class)->send($ids['telegram']);
+        foreach (['email', 'telegram'] as $channel) {
+            $delivery = DB::table('notification_deliveries')->where('id', $ids[$channel])->first();
+            $this->assertSame('uncertain', $delivery->status);
+            $this->assertSame('delivery_uncertain', $delivery->last_error);
+            $this->assertNull($delivery->sent_at);
+            $this->assertSame(1, $delivery->attempts);
+            app(ExternalDelivery::class)->send($ids[$channel]);
+        }
+        $this->artisan('notifications:drain', ['--retry-failed' => true])->assertSuccessful();
+        $this->assertSame(1, $calls);
+        $this->assertSame(1, DB::table('notification_deliveries')->where('id', $ids['telegram'])->value('attempts'));
+        $this->assertSame(1, DB::table('notification_deliveries')->where('id', $ids['email'])->value('attempts'));
+    }
+
+    public function test_telegram_unconfirmed_success_body_is_uncertain(): void
+    {
+        Queue::fake();
+        Http::fake(['api.telegram.org/*' => Http::response(['ok' => false], 200)]);
+        config(['features.E0-04.defaults.external_delivery' => true, 'features.E0-04.defaults.telegram_bot_token' => 'test-token']);
+        [$user, $org, $brand, , $membership] = $this->cabinet();
+        $context = new TenantContext($org->id, $brand->id, $user->id, $membership->id);
+        app(TenantContextRunner::class)->run($context, fn () => app(ConfigureNotification::class)->execute($context, 'seller.conversation.handed_off', 'telegram', true, '123456'));
+        $event = $this->event($org->id, $brand->id);
+        DB::transaction(fn () => app(NotificationDispatcher::class)->enqueue($event));
+        app(NotificationProcessor::class)->process($event->envelope['event_id']);
+        $id = DB::table('notification_deliveries')->where('event_id', $event->envelope['event_id'])->where('channel', 'telegram')->value('id');
+        app(ExternalDelivery::class)->send($id);
+        $this->assertDatabaseHas('notification_deliveries', ['id' => $id, 'status' => 'uncertain', 'last_error' => 'delivery_uncertain']);
+        Http::assertSentCount(1);
+    }
+
+    public function test_mail_transport_exception_is_uncertain_and_does_not_retry(): void
+    {
+        Queue::fake();
+        config(['features.E0-04.defaults.external_delivery' => true, 'mail.default' => 'smtp']);
+        [$user, $org, $brand, , $membership] = $this->cabinet();
+        $context = new TenantContext($org->id, $brand->id, $user->id, $membership->id);
+        app(TenantContextRunner::class)->run($context, fn () => app(ConfigureNotification::class)->execute($context, 'seller.conversation.handed_off', 'email', true));
+        $event = $this->event($org->id, $brand->id);
+        DB::transaction(fn () => app(NotificationDispatcher::class)->enqueue($event));
+        app(NotificationProcessor::class)->process($event->envelope['event_id']);
+        $id = DB::table('notification_deliveries')->where('event_id', $event->envelope['event_id'])->where('channel', 'email')->value('id');
+        $pending = \Mockery::mock(PendingMail::class);
+        $pending->shouldReceive('send')->once()->andThrow(new \RuntimeException('smtp timeout with sensitive detail'));
+        Mail::shouldReceive('to')->once()->with($user->email)->andReturn($pending);
+        app(ExternalDelivery::class)->send($id);
+        app(ExternalDelivery::class)->send($id);
+        $this->artisan('notifications:drain', ['--retry-failed' => true])->assertSuccessful();
+        $this->assertDatabaseHas('notification_deliveries', ['id' => $id, 'status' => 'uncertain', 'last_error' => 'delivery_uncertain', 'attempts' => 1]);
     }
 }
