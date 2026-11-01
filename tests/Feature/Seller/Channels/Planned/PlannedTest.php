@@ -37,7 +37,8 @@ final class PlannedTest extends LimitsTestCase
         $this->assertDatabaseHas('seller_planned_integration_interests', ['organization_id' => $org->id,
             'brand_id' => $brand->id, 'user_id' => $owner->id, 'integration' => 'vk']);
         self::assertSame(1, DB::table('audit_logs')->where('action', 'seller.planned_interest.created')->count());
-        $this->withSession(['brand_id' => $otherBrand->id])->withHeader('X-Brand-Id', $otherBrand->id)->get('/seller/channels/vk')
+        $this->post('/brand/switch', ['brand_id' => $otherBrand->id])->assertRedirect('/auth/ready');
+        $this->withHeader('X-Brand-Id', $otherBrand->id)->get('/seller/channels/vk')
             ->assertInertia(fn (Assert $p) => $p->where('planned.items.0.interested', false));
         $this->postJson('/seller/planned/interests', ['integration' => 'vk'])->assertOk();
         $this->assertDatabaseCount('seller_planned_integration_interests', 2);
