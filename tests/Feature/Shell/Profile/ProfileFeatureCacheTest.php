@@ -3,15 +3,15 @@
 namespace Tests\Feature\Shell\Profile;
 
 use Illuminate\Filesystem\Filesystem;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Str;
 use Symfony\Component\Process\Process;
+use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\Support\MfaTestDatabase;
 use Tests\TestCase;
 
 final class ProfileFeatureCacheTest extends TestCase
 {
-    use DatabaseMigrations;
+    use IsolatedDatabaseMigrations;
 
     protected function beforeRefreshingDatabase(): void
     {
