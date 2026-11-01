@@ -56,6 +56,7 @@ test('реальный вход, главная в трёх темах и изо
   const current = props.brands.find((brand) => brand.name === 'Альфа — Пиротехника')!;
   const other = props.brands.find((brand) => brand.name === 'Бета — Кондитерская')!;
   expect(props.brand.id).toBe(current.id);
+  await expect(page.getByRole('combobox', { name: 'Выбрать бренд' })).toHaveCount(0);
   const themes = [
     { name: 'Альфа — Пиротехника', theme: 'pyro' },
     { name: 'Бета — Кондитерская', theme: 'confectionery' },
@@ -63,9 +64,23 @@ test('реальный вход, главная в трёх темах и изо
   ];
   for (const [index, brand] of themes.entries()) {
     if (index) {
-      await page.getByRole('combobox', { name: 'Выбрать бренд' }).click();
-      await page.getByRole('option', { name: brand.name }).click();
-      await expect(page).toHaveURL(/auth\/ready/);
+      const selected = props.brands.find((item) => item.name === brand.name)!;
+      const status = await page.evaluate(async (brandId) => {
+        const cookie = document.cookie.split('; ').find((part) => part.startsWith('XSRF-TOKEN='));
+        if (!cookie) throw new Error('Missing test CSRF cookie');
+        const response = await fetch('/brand/switch', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            'X-XSRF-TOKEN': decodeURIComponent(cookie.slice('XSRF-TOKEN='.length)),
+          },
+          body: JSON.stringify({ brand_id: brandId }),
+        });
+        return response.status;
+      }, selected.id);
+      expect(status).toBe(200);
       await page.goto(`${origin}/dashboard`);
     }
     await expect(page.locator('html')).toHaveAttribute('data-theme', brand.theme);

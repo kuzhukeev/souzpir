@@ -14,7 +14,7 @@ const icons = { company: Building2, team: Users, journal: ClipboardList, profile
 export default function Index({ homeLinks }: { homeLinks: Destination[] }) {
   const { brand } = usePage<SharedPropsV1 & Record<string, unknown>>().props;
   return (
-    <CabinetLayout brandSwitchReady>
+    <CabinetLayout>
       <Head title="Главная" />
       <div className="mx-auto max-w-[1500px]">
         <header className="mb-6">
