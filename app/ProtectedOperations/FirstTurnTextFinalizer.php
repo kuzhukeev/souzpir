@@ -42,6 +42,12 @@ final class FirstTurnTextFinalizer
 
             return app(AuthSessionRegistry::class)->withinActive($http, function (User $user) use ($http, $claim, $responderId, $modelGuardId, $idempotencyKey): array {
                 [$tenant, $selection] = $this->authorize($http, $user, $claim);
+                // A valid public claim is insufficient. Recheck the sealed
+                // creation-time origin even when replaying a stored receipt.
+                $originStatus = app(FirstTurnProtectedClaim::class)->assertOriginLocked($http, $claim);
+                if (! in_array($originStatus, ['processing', 'completed'], true)) {
+                    throw new LogicException;
+                }
                 $secret = config('app.key');
                 if (! is_string($secret) || $secret === '') {
                     throw new LogicException;
@@ -51,8 +57,12 @@ final class FirstTurnTextFinalizer
                     'actor' => $user->id, 'session' => hash_hmac('sha256', 'c02-finalizer-session:'.$http->session()->getId(), $secret),
                     'selection_revision' => (string) $selection->brand_revision, 'claim' => hash_hmac('sha256', 'c02-finalizer-claim:'.$claim->token(), $secret)]);
 
-                return app(PostgresTransactionalIdempotency::class)->execute($tenant->organizationId, $tenant->brandId, 'seller.first_text_finalize',
+                $result = app(PostgresTransactionalIdempotency::class)->execute($tenant->organizationId, $tenant->brandId, 'seller.first_text_finalize',
                     $idempotencyKey, $requestHash, fn () => $this->write($http, $tenant, $claim, $responderId, $modelGuardId));
+                $this->verifyReceipt($tenant, $claim, $result);
+                unset($result['outcome_seal']);
+
+                return $result;
             });
         } catch (IdempotencyConflict) {
             throw new IdempotencyConflict('Idempotency key was used with different content.');
@@ -167,12 +177,45 @@ final class FirstTurnTextFinalizer
             'state' => json_encode($state->toArray(), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), 'stage' => $state->stage(), 'outcome' => $state->outcome(),
             'client_type' => $state->clientType(), 'version' => $claim->baseVersion + 1, 'updated_at' => now(),
         ]);
-        $encoded = json_encode($outcome->toArray(), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+        $encoded = json_encode($outcome->toArray(), JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
+        $outcomeHash = \App\Seller\Conversations\CanonicalJson::hash($outcome->toArray());
         DB::table('seller_turns')->where('id', $claim->turnId)->where('status', 'processing')->update([
-            'status' => 'completed', 'outcome' => $encoded, 'outcome_hash' => \App\Seller\Conversations\CanonicalJson::hash($outcome->toArray()), 'updated_at' => now(),
+            'status' => 'completed', 'outcome' => $encoded, 'outcome_hash' => $outcomeHash, 'updated_at' => now(),
         ]);
         app(AuditWriter::class)->record($tenant, new AuditEntry('seller.turn.text_finalized', 'seller_turn', $claim->turnId, after: ['version' => $claim->baseVersion + 1]));
 
-        return ['turn_id' => $claim->turnId, 'message_id' => $messageId, 'version' => $claim->baseVersion + 1];
+        return ['turn_id' => $claim->turnId, 'message_id' => $messageId, 'version' => $claim->baseVersion + 1,
+            'outcome_seal' => hash_hmac('sha256', 'c02-first-text-outcome:'.$outcomeHash, (string) config('app.key'))];
+    }
+
+    private function verifyReceipt(#[SensitiveParameter] TenantContext $tenant, #[SensitiveParameter] TurnClaim $claim, #[SensitiveParameter] array $result): void
+    {
+        if (count($result) !== 4 || array_diff(array_keys($result), ['turn_id', 'message_id', 'version', 'outcome_seal']) !== []
+            || ($result['turn_id'] ?? null) !== $claim->turnId || ! is_string($result['message_id'] ?? null)
+            || ! Str::isUlid($result['message_id']) || ($result['version'] ?? null) !== $claim->baseVersion + 1
+            || ! is_string($result['outcome_seal'] ?? null)) {
+            throw new LogicException;
+        }
+        $turn = DB::table('seller_turns')->where('id', $claim->turnId)->where('conversation_id', $claim->conversationId)
+            ->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->lockForUpdate()->first();
+        if (! $turn || $turn->status !== 'completed' || ! is_string($turn->outcome) || ! is_string($turn->outcome_hash)) {
+            throw new LogicException;
+        }
+        $outcome = json_decode($turn->outcome, true, 512, JSON_THROW_ON_ERROR);
+        if (! is_array($outcome) || ! hash_equals($turn->outcome_hash, \App\Seller\Conversations\CanonicalJson::hash($outcome))
+            || ! hash_equals($result['outcome_seal'], hash_hmac('sha256', 'c02-first-text-outcome:'.$turn->outcome_hash, (string) config('app.key')))
+            || ($outcome['turnId'] ?? null) !== $claim->turnId || ($outcome['conversationId'] ?? null) !== $claim->conversationId
+            || ($outcome['status'] ?? null) !== 'completed' || ($outcome['version'] ?? null) !== $result['version']
+            || ($outcome['assistantMessageId'] ?? null) !== $result['message_id']
+            || ! is_array($outcome['messages'] ?? null) || count($outcome['messages']) !== 1
+            || ($outcome['messages'][0]['id'] ?? null) !== $result['message_id'] || ($outcome['messages'][0]['role'] ?? null) !== 'agent'
+            || ! is_string($outcome['messages'][0]['text'] ?? null)) {
+            throw new LogicException;
+        }
+        $message = DB::table('messages')->where('id', $result['message_id'])->where('conversation_id', $claim->conversationId)
+            ->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('role', 'agent')->first();
+        if (! $message || ! hash_equals($outcome['messages'][0]['text'], $message->text)) {
+            throw new LogicException;
+        }
     }
 }
