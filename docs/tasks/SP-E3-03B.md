@@ -12,7 +12,7 @@
 
 Приёмка:
 - TurnTest/open/regeneration/fallback, tenant isolation, double-submit/idempotency и defaults-equivalence проходят.
-- Чужие или подменённые state/history/input и несовпадающая claimed message отвергаются до ИИ и сохранения; проверены гонки и отсутствие передачи контактов.
+- Чужие или подменённые state/history/input и несовпадающая claimed message отвергаются до ИИ и сохранения; проверено отсутствие передачи контактов.
 
 Дополнительно:  Обязательная граница: state/history/clientMessage и claimed input загружать из persistence по tenant + conversation + inputMessage, сверять с захваченным turn; не доверять произвольным значениям caller. Использовать проверенные опубликованные release/prompt, обязательные dataClasses и сохранять исходные контакты локально без отправки наружу. Pending/uncertain не финализировать как fallback и не запускать платный запрос повторно. Методы с сырой историей, TurnCommand и сообщениями должны скрывать их из трасс исключений (SensitiveParameter/generic errors); проверить рекурсивно getTrace и строку исключения при zend.exception_ignore_args=0.
 Не изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.
