@@ -7,6 +7,7 @@ test.use({
 });
 
 test('the local HTTP cabinet can prepare a Telegram link without exposing it in Inertia history', async ({ page, context }) => {
+  test.skip(process.env.CI === 'true', 'Requires the local OSPanel hostname and environment');
   await context.route('**/*', route => new URL(route.request().url()).origin === base ? route.continue() : route.abort('blockedbyclient'));
   await page.goto(base + '/login');
   await page.locator('input[type=email]').fill('profile-e108@example.test');

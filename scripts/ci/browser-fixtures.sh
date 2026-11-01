@@ -70,13 +70,6 @@ env "${mfa[@]}" APP_ENV=local php -d "sys_temp_dir=$tmp" -S 127.0.0.1:8268 -t pu
 children+=("$!")
 wait_http http://127.0.0.1:8268/up
 
-profile_local=("${profile[@]}" APP_ENV=local APP_INSTANCE=ci-profile-local
-  APP_URL=http://souzpir.local:8269 APP_KEY="$app_key" APP_STORAGE_PATH="$root/.local/runtime/testing/storage/profile-local"
-  MFA_LOCAL_FIXTURE=1 MFA_LOCAL_PORT=8269 PROFILE_TELEGRAM_BOT_USERNAME=synthetic_souzpir_bot
-  PROFILE_TELEGRAM_WEBHOOK_SECRET=synthetic-ci-only-secret-at-least-32-bytes)
-env "${profile_local[@]}" php -d "sys_temp_dir=$tmp" -S 127.0.0.1:8269 -t public tests/Browser/E1-08/mfa-local-router.php >.local/runtime/browser-ci-profile-local.log 2>&1 &
-children+=("$!")
-wait_http http://127.0.0.1:8269/up
 invitation=("${common[@]}" DB_DATABASE=souzpir_test_sp_invitation_ci DB_TEST_DATABASE=souzpir_test_sp_invitation_ci
   DB_USERNAME=sp_invitation_ci_app APP_URL=http://127.0.0.1:8244
   APP_STORAGE_PATH="$root/.local/runtime/testing/invitation/storage" INVITATION_BROWSER_CI_FIXTURE=1

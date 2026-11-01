@@ -15,6 +15,7 @@ test "$actual" = '127.0.0.1|5432'
 mkdir -p .local/tmp
 cp .env.example .env.testing
 php -r 'file_put_contents(".env.testing", "\nAPP_KEY=base64:".base64_encode(random_bytes(32))."\n", FILE_APPEND);'
+php -r 'file_put_contents(".env.testing", "INVITATION_ISSUANCE_HMAC_KEY=base64:".base64_encode(random_bytes(32))."\n", FILE_APPEND);'
 
 export PGPASSWORD=ci-only-password
 psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "CREATE ROLE souzpir_ci LOGIN PASSWORD 'ci-only-password' NOSUPERUSER CREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;"
