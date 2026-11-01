@@ -21,9 +21,21 @@ export default function Index({ consents, exports: archives, modules, permission
   const consent = useForm({ marketing_opt_in: consents.marketing_opt_in });
   const [transport, setTransport] = useState('');
   const [notice, setNotice] = useState('');
+  const [rangeError, setRangeError] = useState('');
   const failure = () => { setTransport(tr('network_error')); return false; };
+  const setRangeDate = (field: 'from' | 'to', value: string) => {
+    form.setData(field, value);
+    const from = field === 'from' ? value : form.data.from;
+    const to = field === 'to' ? value : form.data.to;
+    if (!from || !to || from <= to) setRangeError('');
+  };
   const submit = (event: FormEvent) => {
     event.preventDefault(); setTransport(''); setNotice('');
+    if (form.data.from && form.data.to && form.data.from > form.data.to) {
+      setRangeError('Дата «С» не может быть позже даты «По».');
+      return;
+    }
+    setRangeError('');
     form.post('/settings/data/exports', { preserveScroll: true, onSuccess: () => setNotice(tr('archive_ready')), onNetworkError: failure, onHttpException: failure });
   };
   const updateConsent = (value: boolean) => {
@@ -33,7 +45,7 @@ export default function Index({ consents, exports: archives, modules, permission
   };
   return <><Head title={tr('page_title')} /><Page title={tr('page_title')} subtitle={tr('page_subtitle')}>
     <div className="space-y-5">
-      <div><Errors errors={{ ...form.errors, ...consent.errors }} transport={transport} /><p role="status" className="text-sm text-(--color-success)">{notice}</p></div>
+      <div><Errors errors={{ ...form.errors, ...consent.errors, ...(rangeError ? { from: rangeError } : {}) }} transport={transport} /><p role="status" className="text-sm text-(--color-success)">{notice}</p></div>
       <section className={panel} aria-labelledby="consents-title">
         <h2 id="consents-title" className="text-xl font-bold">{tr('consents')}</h2>
         <ul className="mt-2 divide-y divide-(--color-border)">
@@ -50,8 +62,8 @@ export default function Index({ consents, exports: archives, modules, permission
 
         <form onSubmit={submit} className="grid items-end gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
           <Select className="[&_button]:cursor-pointer" label={tr('module')} value={form.data.module} options={modules} onValueChange={(value) => form.setData('module', value)} error={form.errors.module} placeholder={tr('module_placeholder')} />
-          <Input type="date" label={tr('from')} value={form.data.from} onChange={(event) => form.setData('from', event.target.value)} error={form.errors.from} />
-          <Input type="date" label={tr('to')} value={form.data.to} onChange={(event) => form.setData('to', event.target.value)} error={form.errors.to} />
+          <Input type="date" label={tr('from')} value={form.data.from} onChange={(event) => setRangeDate('from', event.target.value)} error={rangeError || form.errors.from} />
+          <Input type="date" label={tr('to')} value={form.data.to} onChange={(event) => setRangeDate('to', event.target.value)} error={form.errors.to} />
           <Button type="submit" className="cursor-pointer" loading={form.processing} disabled={!modules.length}><Download aria-hidden="true" size={18} />{tr('prepare')}</Button>
         </form>
         <div className="mt-6" aria-busy={form.processing}>
