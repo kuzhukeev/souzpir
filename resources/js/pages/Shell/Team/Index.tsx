@@ -1,11 +1,14 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import * as Dialog from '@radix-ui/react-dialog';
 import * as Select from '@radix-ui/react-select';
 import { useRef, useState, type ReactNode } from 'react';
 import { Check, ChevronDown, Users, X } from 'lucide-react';
 import CabinetLayout from '@/layouts/CabinetLayout';
+import { LastLogin } from '@/features/Shell/MemberActivity/LastLogin';
+import { useMemberLastLogins } from '@/features/Shell/MemberActivity/useMemberLastLogins';
 import { invitationExpiry, useInvitationTime } from '@/features/Shell/Team/invitationExpiry';
 import type { TeamInvitations, TeamMember, TeamPage } from '@/types/Shell/Team/members';
+import type { SharedPropsV1 } from '@/types/generated/data';
 
 const panel =
   'rounded-2xl border border-(--color-border) bg-(--color-surface) p-4 shadow-(--shadow-card) sm:p-6';
@@ -147,6 +150,12 @@ export default function Index({
   statusFilter?: string;
   filterBrands?: { id: string; name: string }[];
 }) {
+  const { brand } = usePage<SharedPropsV1 & Record<string, unknown>>().props;
+  const lastLogins = useMemberLastLogins(
+    members.data.map((member) => member.id),
+    brand?.id ?? '',
+    teamBrandRevision,
+  );
   const [loading, setLoading] = useState(false);
   const [failedPage, setFailedPage] = useState<number | null>(null);
   const [invitationLoading, setInvitationLoading] = useState(false);
@@ -482,6 +491,21 @@ export default function Index({
               Загружаем участников…
             </p>
           )}
+          {lastLogins.status === 'unavailable' && members.data.length > 0 && (
+            <div
+              role="status"
+              className="mb-4 rounded-xl bg-(--color-warning-soft) p-4 text-sm text-(--color-warning-ink)"
+            >
+              Не удалось загрузить время последнего входа.{' '}
+              <button
+                type="button"
+                onClick={lastLogins.retry}
+                className={`cursor-pointer font-semibold underline ${focus}`}
+              >
+                Повторить
+              </button>
+            </div>
+          )}
           {members.data.length === 0 ? (
             <div
               role="status"
@@ -534,6 +558,9 @@ export default function Index({
                       <th scope="col" className="px-4 py-3">
                         Статус
                       </th>
+                      <th scope="col" className="px-4 py-3">
+                        Последний вход
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -548,6 +575,12 @@ export default function Index({
                         </td>
                         <td className="px-4 py-4">
                           <Status value={member.status} />
+                        </td>
+                        <td className="px-4 py-4">
+                          <LastLogin
+                            status={lastLogins.status}
+                            value={lastLogins.values[member.id]}
+                          />
                         </td>
                       </tr>
                     ))}
@@ -576,6 +609,15 @@ export default function Index({
                         <dt className="text-(--color-ink-muted)">Статус</dt>
                         <dd className="mt-1">
                           <Status value={member.status} />
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-(--color-ink-muted)">Последний вход</dt>
+                        <dd className="mt-1">
+                          <LastLogin
+                            status={lastLogins.status}
+                            value={lastLogins.values[member.id]}
+                          />
                         </dd>
                       </div>
                     </dl>
