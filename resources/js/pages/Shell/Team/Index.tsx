@@ -135,6 +135,7 @@ function Status({ value }: { value: string }) {
 export default function Index({
   members,
   canViewRoles,
+  canIssueInvitations,
   invitations,
   teamBrandRevision,
   roleFilter = 'all',
@@ -144,6 +145,7 @@ export default function Index({
 }: {
   members: TeamPage;
   canViewRoles: boolean;
+  canIssueInvitations: boolean;
   invitations: TeamInvitations;
   teamBrandRevision: string;
   roleFilter?: string;
@@ -299,14 +301,18 @@ export default function Index({
               Участники компании и доступные вам бренды
             </p>
           </div>
-          {canViewRoles && (
+          {(canViewRoles || canIssueInvitations) && (
             <div className="flex flex-wrap gap-2">
-              <Link href="/team/roles" className={`${button} cursor-pointer`}>
-                Роли и доступ
-              </Link>
-              <button type="button" onClick={() => setInvitationOpen(true)} className={button}>
-                Пригласить участника
-              </button>
+              {canViewRoles && (
+                <Link href="/team/roles" className={`${button} cursor-pointer`}>
+                  Роли и доступ
+                </Link>
+              )}
+              {canIssueInvitations && (
+                <button type="button" onClick={() => setInvitationOpen(true)} className={button}>
+                  Пригласить участника
+                </button>
+              )}
             </div>
           )}
         </header>
@@ -852,7 +858,7 @@ export default function Index({
       <InvitationDialog
         open={invitationOpen}
         onClose={() => setInvitationOpen(false)}
-        canIssue={canViewRoles}
+        canIssue={canIssueInvitations}
         brandId={brand?.id ?? ''}
         revision={teamBrandRevision}
         brands={filterBrands}

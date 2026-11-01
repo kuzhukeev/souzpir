@@ -21,7 +21,7 @@ final class TeamMembersTest extends TenancyTestCase
 
         $response = $this->actingAs($owner)->withSession(['brand_id' => $first->id])->get('/team');
         $response->assertOk()->assertInertia(fn (Assert $page) => $page->component('Shell/Team/Index', false)
-            ->has('members.data', 3)->where('members.total', 3)->where('canViewRoles', true));
+            ->has('members.data', 3)->where('members.total', 3)->where('canViewRoles', true)->where('canIssueInvitations', true));
         $this->assertStringContainsString('no-store', $response->headers->get('Cache-Control'));
         $rows = collect($response->inertiaProps('members.data'))->keyBy('id');
         $this->assertSame('Менеджер', $rows[$managerMembership->id]['role_label']);
@@ -64,7 +64,7 @@ final class TeamMembersTest extends TenancyTestCase
         [$admin, $adminMembership] = $this->member($org, 'admin', [$brand->id]);
         [$foreign, , $foreignBrand] = $this->cabinet(false);
         $this->actingAs($viewer)->withSession(['brand_id' => $brand->id])->get('/team')->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->where('canViewRoles', false));
+            ->assertInertia(fn (Assert $page) => $page->where('canViewRoles', false)->where('canIssueInvitations', false));
         foreach ([$editor, $manager] as $user) {
             $this->actingAs($user)->withSession(['brand_id' => $brand->id])->get('/team')->assertForbidden();
         }

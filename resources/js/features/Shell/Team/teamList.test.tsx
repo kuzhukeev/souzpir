@@ -92,12 +92,32 @@ const emptyInvitations = {
   total: 0,
 };
 
+it('независимо применяет права на матрицу и выпуск приглашений', () => {
+  const props = {
+    teamBrandRevision: revision,
+    members,
+    invitations: emptyInvitations,
+    filterBrands: [{ id: brandId, name: 'Бренд А' }],
+  };
+  const view = render(<Index {...props} canViewRoles canIssueInvitations={false} />);
+  expect(screen.getByRole('link', { name: 'Роли и доступ' })).toBeTruthy();
+  expect(screen.queryByRole('button', { name: 'Пригласить участника' })).toBeNull();
+  view.rerender(<Index {...props} canViewRoles={false} canIssueInvitations />);
+  expect(screen.queryByRole('link', { name: 'Роли и доступ' })).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Пригласить участника' }));
+  expect(screen.getByRole('dialog', { name: 'Пригласить участника' })).toBeTruthy();
+  expect((screen.getByRole('button', { name: 'Продолжить' }) as HTMLButtonElement).disabled).toBe(
+    false,
+  );
+});
+
 it('загружает последние входы показанных участников с текущим брендом и ревизией', async () => {
   render(
     <Index
       teamBrandRevision={revision}
       members={members}
       canViewRoles
+      canIssueInvitations
       invitations={emptyInvitations}
     />,
   );
@@ -127,6 +147,7 @@ it('не предлагает отзыв при недоступном срок�
       teamBrandRevision={revision}
       members={members}
       canViewRoles
+      canIssueInvitations
       invitations={{ ...emptyInvitations, data: [item], total: 1 }}
     />,
   );
@@ -139,6 +160,7 @@ it('не предлагает отзыв при недоступном срок�
       teamBrandRevision={revision}
       members={members}
       canViewRoles
+      canIssueInvitations
       invitations={{
         ...emptyInvitations,
         as_of: 'invalid',
@@ -160,6 +182,7 @@ it('показывает только переданные данные без �
       teamBrandRevision={revision}
       members={members}
       canViewRoles
+      canIssueInvitations
       invitations={emptyInvitations}
     />,
   );
@@ -186,6 +209,7 @@ it('показывает честное пустое состояние и не 
       teamBrandRevision={revision}
       members={{ data: [], current_page: 1, last_page: 1, total: 0 }}
       canViewRoles={false}
+      canIssueInvitations={false}
       invitations={emptyInvitations}
     />,
   );
@@ -201,6 +225,7 @@ it('владелец открывает и закрывает настоящее
       teamBrandRevision={revision}
       members={members}
       canViewRoles
+      canIssueInvitations
       invitations={emptyInvitations}
       filterBrands={[{ id: brandId, name: 'Бренд А' }]}
     />,
@@ -221,6 +246,7 @@ it('наблюдатель с непустым списком не видит в
       teamBrandRevision={revision}
       members={members}
       canViewRoles={false}
+      canIssueInvitations={false}
       invitations={emptyInvitations}
       filterBrands={[{ id: brandId, name: 'Бренд А' }]}
     />,
@@ -246,6 +272,7 @@ it('сохраняет предупреждение при закрытии во
       teamBrandRevision={revision}
       members={members}
       canViewRoles
+      canIssueInvitations
       invitations={emptyInvitations}
       filterBrands={[{ id: brandId, name: 'Бренд А' }]}
     />,
@@ -279,6 +306,7 @@ it('отличает пустую страницу от отсутствия у�
       teamBrandRevision={revision}
       members={{ data: [], current_page: 3, last_page: 2, total: 27 }}
       canViewRoles={false}
+      canIssueInvitations={false}
       invitations={emptyInvitations}
     />,
   );
@@ -292,6 +320,7 @@ it('показывает загрузку, ошибку перехода и по
       teamBrandRevision={revision}
       members={{ ...members, last_page: 2, total: 27 }}
       canViewRoles
+      canIssueInvitations
       invitations={emptyInvitations}
       roleFilter="manager"
       brandFilter="brand-a"
@@ -350,6 +379,7 @@ it('показывает данные приглашения и повторяе
       teamBrandRevision={revision}
       members={{ ...members, current_page: 2, last_page: 2 }}
       canViewRoles
+      canIssueInvitations
       invitations={invitations}
       roleFilter="viewer"
       brandFilter="brand-a"
@@ -404,7 +434,13 @@ it('подтверждает отзыв и при неизвестном рез�
     ],
   };
   render(
-    <Index teamBrandRevision={revision} members={members} canViewRoles invitations={invitations} />,
+    <Index
+      teamBrandRevision={revision}
+      members={members}
+      canViewRoles
+      canIssueInvitations
+      invitations={invitations}
+    />,
   );
   fireEvent.click(screen.getByRole('button', { name: 'Отозвать' }));
   const dialog = screen.getByRole('dialog', { name: 'Отозвать приглашение' });
@@ -449,13 +485,20 @@ it('привязывает подтверждение к ревизии в мо�
     ],
   };
   const view = render(
-    <Index members={members} canViewRoles invitations={invitations} teamBrandRevision={revision} />,
+    <Index
+      members={members}
+      canViewRoles
+      canIssueInvitations
+      invitations={invitations}
+      teamBrandRevision={revision}
+    />,
   );
   fireEvent.click(screen.getByRole('button', { name: 'Отозвать' }));
   view.rerender(
     <Index
       members={members}
       canViewRoles
+      canIssueInvitations
       invitations={invitations}
       teamBrandRevision={nextRevision}
     />,

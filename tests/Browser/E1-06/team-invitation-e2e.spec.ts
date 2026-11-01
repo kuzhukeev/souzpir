@@ -76,13 +76,13 @@ test('владелец открывает реальную форму, выпу�
       version: string;
       props: {
         teamBrandRevision: string;
-        canViewRoles: boolean;
+        canIssueInvitations: boolean;
         brand: { id: string };
         filterBrands: { id: string }[];
       };
     };
     expect(result.version).toBe(version);
-    expect(result.props.canViewRoles).toBe(true);
+    expect(result.props.canIssueInvitations).toBe(true);
     expect(result.props.filterBrands.some((brand) => brand.id === result.props.brand.id)).toBe(
       true,
     );
