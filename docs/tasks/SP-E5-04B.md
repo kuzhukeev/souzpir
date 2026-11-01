@@ -4,7 +4,7 @@
 
 Цель: D-2.3 мобильный сценарий менеджера; D-2.4 очередь подсказок с редактированием/отправкой; D-2.5 пометки по словарю А.6. Использовать единый Dialog view и API первой части.
 
-Зависимости (нужен done после merge): SP-E5-04, SP-F-04.
+Зависимости (нужен done после merge): SP-E5-04.
 Область записи: app/Seller/Dialogs/, config/features/E5-04B.php, database/factories/Seller/Dialogs/, database/migrations/E5-04B/, database/seeders/Seller/Dialogs/, docs/modules/E5-04B.md, lang/ru/Seller/Dialogs/, resources/js/features/Seller/Dialogs/, resources/js/pages/Seller/Dialogs/, resources/js/types/Seller/Dialogs/, routes/features/E5-04B.php, tests/Browser/E5-04B/, tests/Feature/Seller/Dialogs/, tests/Unit/Seller/Dialogs/, docs/results/SP-E5-04B.md.
 Экраны: D-2.3, D-2.4, D-2.5.
 Источники: E5-04.
