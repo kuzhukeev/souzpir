@@ -2,8 +2,8 @@
 # SP-UI-02 — результат
 
 - Неверный порядок дат показывает ошибку у поля «С» и не отправляет запрос; введённые значения сохраняются, ошибка исчезает при исправлении.
-- Проверки: npm run lint, npm run typecheck, Vite build; 2 браузерных теста на отдельной PostgreSQL с fake-данными, включая клавиатуру, 390 px, исправление и ошибку сервера.
-- Скриншот 1440: .local/screenshots/SP-UI-02/usage-invalid-1440.png основного checkout.
+- Проверки: npm run lint, npm run typecheck, Vite build; 2 браузерных теста со статическим Inertia fixture на общем CI Vite 5237, включая клавиатуру, 390 px, исправление и ошибку сервера.
+- Скриншот 1440: .local/screenshots/sp-ui-02/usage-invalid-1440.png в worktree.
 
 ## Техдолг
 - Нет.
