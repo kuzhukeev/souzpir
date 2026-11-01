@@ -25,6 +25,7 @@ use App\ProtectedOperations\FirstTurnProtectedClaim;
 use App\ProtectedOperations\FirstTurnState;
 use App\ProtectedOperations\FirstTurnTextFinalizer;
 use App\ProtectedOperations\PostgresTransactionalIdempotency;
+use App\ProtectedOperations\SellerTurnQuarantine;
 use App\Seller\Conversations\Contracts\ConversationRepository;
 use App\Seller\Conversations\Data\TurnClaim;
 use App\Seller\Conversations\Data\TurnCommand;
@@ -52,6 +53,8 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use LogicException;
+use PHPUnit\Framework\Attributes\DataProvider;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\Process\Process;
 use Tests\TestCase;
 
@@ -2829,6 +2832,241 @@ SQL);
         Http::assertNothingSent();
     }
 
+    public function test_quarantine_is_authorized_idempotent_and_preserves_the_unresolved_turn(): void
+    {
+        [$tenant, $http, $command] = $this->protectedClaimFixture();
+        $claim = $this->within($tenant, fn () => app(FirstTurnProtectedClaim::class)->claim($http, $command));
+        $selection = app(AuthSessionRegistry::class)->withinActive($http, fn () => app(SessionBrandSelection::class)->current($http));
+        $http->attributes->set('tenant.brand_revision', (string) $selection->brand_revision);
+        $service = app(SellerTurnQuarantine::class);
+        self::assertSame(['status' => 'uncertain'], $this->within($tenant, fn () => $service->quarantine($http, $claim->turnId)));
+        self::assertSame(['status' => 'uncertain'], $this->within($tenant, fn () => $service->quarantine($http, $claim->turnId)));
+        self::assertSame('uncertain', DB::table('seller_turns')->where('id', $claim->turnId)->value('status'));
+        self::assertNull(DB::table('seller_turns')->where('id', $claim->turnId)->value('outcome'));
+        self::assertSame(1, DB::table('audit_logs')->where('action', 'seller.turn.quarantined')->where('subject_id', $claim->turnId)->count());
+        self::assertSame('uncertain', $this->within($tenant, fn () => app(FirstTurnProtectedClaim::class)->claim($http, $command))->status);
+        $later = $this->within($tenant, fn () => Message::create(['conversation_id' => $claim->conversationId, 'role' => 'client', 'text' => 'Later input', 'meta' => []]));
+        try {
+            app(ConversationRepository::class)->claimTurn($tenant, new TurnCommand($claim->conversationId, $later->id, $later->text, null, 'after-quarantine', 0));
+            self::fail('An unresolved turn must block another claim.');
+        } catch (HttpExceptionInterface $error) {
+            self::assertSame(409, $error->getStatusCode());
+        }
+        self::assertSame(2, DB::table('messages')->where('conversation_id', $claim->conversationId)->count());
+        self::assertSame(0, DB::table('seller_tasks')->count());
+        self::assertSame(0, DB::table('outbox_events')->count());
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
+    }
+
+    public function test_quarantine_denies_wrong_context_role_disabled_module_and_revoked_session(): void
+    {
+        [$tenant, $http, $command] = $this->protectedClaimFixture();
+        $claim = $this->within($tenant, fn () => app(FirstTurnProtectedClaim::class)->claim($http, $command));
+        $selection = app(AuthSessionRegistry::class)->withinActive($http, fn () => app(SessionBrandSelection::class)->current($http));
+        $http->attributes->set('tenant.brand_revision', (string) $selection->brand_revision);
+        $service = app(SellerTurnQuarantine::class);
+        $otherBrand = $this->within(new TenantContext($tenant->organizationId, actorId: $tenant->actorId), fn () => Brand::create(['name' => 'Other synthetic brand']));
+        $wrong = new TenantContext($tenant->organizationId, $otherBrand->id, $tenant->actorId, $tenant->membershipId);
+        $reject = function (TenantContext $context) use ($service, $http, $claim): void {
+            try {
+                $this->within($context, fn () => $service->quarantine($http, $claim->turnId));
+                self::fail('Unauthorized quarantine was accepted.');
+            } catch (LogicException $error) {
+                self::assertContains($error->getMessage(), ['Membership must match the actor and authorized brand.', 'Seller turn quarantine unavailable.']);
+                self::assertNull($error->getPrevious());
+            }
+            self::assertSame('processing', DB::table('seller_turns')->where('id', $claim->turnId)->value('status'));
+            self::assertSame(0, DB::table('audit_logs')->where('action', 'seller.turn.quarantined')->count());
+        };
+        $reject($wrong);
+        [$foreignConversation, $foreignInput] = $this->within($wrong, function (): array {
+            $conversation = Conversation::create(['state' => []]);
+            $input = Message::create(['conversation_id' => $conversation->id, 'role' => 'client', 'text' => 'Foreign brand input', 'meta' => []]);
+
+            return [$conversation, $input];
+        });
+        $foreignClaim = app(ConversationRepository::class)->claimTurn($wrong, new TurnCommand($foreignConversation->id, $foreignInput->id, $foreignInput->text, null, 'foreign-quarantine', 0));
+        try {
+            $this->within($tenant, fn () => $service->quarantine($http, $foreignClaim->turnId));
+            self::fail('A turn in a different brand was quarantined.');
+        } catch (LogicException $error) {
+            self::assertSame('Seller turn quarantine unavailable.', $error->getMessage());
+        }
+        self::assertSame('processing', DB::table('seller_turns')->where('id', $foreignClaim->turnId)->value('status'));
+        DB::table('memberships')->where('id', $tenant->membershipId)->update(['role' => 'viewer']);
+        $reject($tenant);
+        DB::table('memberships')->where('id', $tenant->membershipId)->update(['role' => 'owner']);
+        DB::table('brand_modules')->where('brand_id', $tenant->brandId)->where('module', 'seller')->update(['enabled' => false]);
+        $reject($tenant);
+        DB::table('brand_modules')->where('brand_id', $tenant->brandId)->where('module', 'seller')->update(['enabled' => true]);
+        DB::table('auth_session_registry')->where('user_id', $tenant->actorId)->update(['revoked_at' => now()]);
+        $reject($tenant);
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
+    }
+
+    public function test_quarantine_audit_failure_rolls_back_the_status(): void
+    {
+        [$tenant, $http, $command] = $this->protectedClaimFixture();
+        $claim = $this->within($tenant, fn () => app(FirstTurnProtectedClaim::class)->claim($http, $command));
+        $selection = app(AuthSessionRegistry::class)->withinActive($http, fn () => app(SessionBrandSelection::class)->current($http));
+        $http->attributes->set('tenant.brand_revision', (string) $selection->brand_revision);
+        DB::unprepared(<<<'SQL'
+CREATE OR REPLACE FUNCTION c02_test_fail_quarantine_audit() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.action = 'seller.turn.quarantined' THEN
+    RAISE EXCEPTION 'synthetic audit failure';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+CREATE TRIGGER c02_test_fail_quarantine_audit BEFORE INSERT ON audit_logs FOR EACH ROW EXECUTE FUNCTION c02_test_fail_quarantine_audit();
+SQL);
+        try {
+            try {
+                $this->within($tenant, fn () => app(SellerTurnQuarantine::class)->quarantine($http, $claim->turnId));
+                self::fail('An audit failure must abort quarantine.');
+            } catch (LogicException $error) {
+                self::assertSame('Seller turn quarantine unavailable.', $error->getMessage());
+                self::assertNull($error->getPrevious());
+            }
+            self::assertSame('processing', DB::table('seller_turns')->where('id', $claim->turnId)->value('status'));
+            self::assertSame(0, DB::table('audit_logs')->where('action', 'seller.turn.quarantined')->count());
+        } finally {
+            DB::unprepared('DROP TRIGGER IF EXISTS c02_test_fail_quarantine_audit ON audit_logs; DROP FUNCTION IF EXISTS c02_test_fail_quarantine_audit();');
+        }
+        self::assertSame(['status' => 'uncertain'], $this->within($tenant, fn () => app(SellerTurnQuarantine::class)->quarantine($http, $claim->turnId)));
+        self::assertSame(1, DB::table('audit_logs')->where('action', 'seller.turn.quarantined')->count());
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
+    }
+
+    public function test_new_input_committing_first_is_preserved_and_quarantine_is_an_idempotent_noop(): void
+    {
+        [$tenant, $http, $command] = $this->protectedClaimFixture();
+        $claim = $this->within($tenant, fn () => app(FirstTurnProtectedClaim::class)->claim($http, $command));
+        $marker = base_path('.local/tmp/c02-quarantine-input-'.Str::random(16));
+        $worker = $this->finalizeWorker($tenant, $http, $claim, (string) Str::ulid(), $marker, true);
+        DB::beginTransaction();
+        try {
+            $next = $this->within($tenant, fn () => Message::create(['conversation_id' => $claim->conversationId, 'role' => 'client', 'text' => 'Input first', 'meta' => []]));
+            $worker->start();
+            $this->waitForFinalizerLock($worker, $marker);
+            DB::commit();
+            $worker->wait();
+            self::assertTrue($worker->isSuccessful(), $worker->getErrorOutput());
+            self::assertSame(['status' => 'uncertain'], json_decode($worker->getOutput(), true, 512, JSON_THROW_ON_ERROR));
+            self::assertSame('Input first', DB::table('messages')->where('id', $next->id)->value('text'));
+            self::assertSame('uncertain', DB::table('seller_turns')->where('id', $claim->turnId)->value('status'));
+            self::assertSame(0, DB::table('audit_logs')->where('action', 'seller.turn.quarantined')->count());
+            self::assertSame(0, DB::table('seller_tasks')->count());
+            self::assertSame(0, DB::table('outbox_events')->count());
+        } finally {
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+            if ($worker->isRunning()) {
+                $worker->stop();
+            }
+            if (is_file($marker)) {
+                unlink($marker);
+            }
+        }
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
+    }
+
+    public static function quarantineFinalizationOrders(): array
+    {
+        return ['quarantine first' => [true], 'finalization first' => [false]];
+    }
+
+    #[DataProvider('quarantineFinalizationOrders')]
+    public function test_quarantine_and_finalization_serialize_in_both_orders(bool $quarantineFirst): void
+    {
+        [$tenant, $http, $claim, $extractor] = $this->fixture('Synthetic question', ['protected_claim' => true]);
+        [$stage, , , $file] = $this->responderFixture($tenant, $http, $claim, $extractor, ['content' => 'Можем обсудить заказ?']);
+        $this->within($tenant, fn () => app(Gateway::class)->completeProtectedResponder($http, $claim, $stage));
+        unlink($file);
+        $delayedAction = $quarantineFirst ? 'seller.turn.quarantined' : 'seller.turn.text_finalized';
+        DB::unprepared(<<<SQL
+CREATE OR REPLACE FUNCTION c02_test_delay_quarantine() RETURNS trigger LANGUAGE plpgsql AS \$\$
+BEGIN
+  IF NEW.action = '{$delayedAction}' THEN
+    PERFORM pg_advisory_xact_lock(8620473);
+  END IF;
+  RETURN NEW;
+END;
+\$\$;
+CREATE TRIGGER c02_test_delay_quarantine BEFORE INSERT ON audit_logs FOR EACH ROW EXECUTE FUNCTION c02_test_delay_quarantine();
+SQL);
+        config(['database.connections.c02_quarantine_blocker' => config('database.connections.pgsql')]);
+        $blocker = DB::connection('c02_quarantine_blocker');
+        $blocker->beginTransaction();
+        $blocker->select('SELECT pg_advisory_xact_lock(8620473)');
+        $firstMarker = base_path('.local/tmp/c02-quarantine-a-'.Str::random(16));
+        $secondMarker = base_path('.local/tmp/c02-quarantine-b-'.Str::random(16));
+        $first = $this->finalizeWorker($tenant, $http, $claim, $stage, $firstMarker, $quarantineFirst);
+        $second = $this->finalizeWorker($tenant, $http, $claim, $stage, $secondMarker, ! $quarantineFirst);
+        try {
+            $first->start();
+            $this->waitForFinalizerLock($first, $firstMarker);
+            $second->start();
+            $this->waitForFinalizerLock($second, $secondMarker);
+            DB::beginTransaction();
+            try {
+                DB::statement("SET LOCAL lock_timeout = '250ms'");
+                DB::table('messages')->insert(['id' => (string) Str::ulid(), 'organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId,
+                    'conversation_id' => $claim->conversationId, 'role' => 'client', 'text' => 'Blocked concurrent input', 'meta' => '{}']);
+                self::fail('Input crossed the active turn lock.');
+            } catch (QueryException $error) {
+                self::assertSame('55P03', $error->errorInfo[0]);
+            } finally {
+                DB::rollBack();
+            }
+            $blocker->rollBack();
+            $first->wait();
+            $second->wait();
+            self::assertTrue($first->isSuccessful(), $first->getErrorOutput());
+            self::assertTrue($second->isSuccessful(), $second->getErrorOutput());
+            self::assertSame($quarantineFirst ? 'uncertain' : 'completed', json_decode($first->getOutput(), true, 512, JSON_THROW_ON_ERROR)['status']);
+            self::assertSame('rejected', json_decode($second->getOutput(), true, 512, JSON_THROW_ON_ERROR)['status']);
+            self::assertSame($quarantineFirst ? 'uncertain' : 'completed', DB::table('seller_turns')->where('id', $claim->turnId)->value('status'));
+            self::assertSame($quarantineFirst ? 0 : 1, DB::table('messages')->where('conversation_id', $claim->conversationId)->where('role', 'agent')->count());
+            self::assertSame($quarantineFirst ? 1 : 0, DB::table('audit_logs')->where('action', 'seller.turn.quarantined')->count());
+            self::assertSame($quarantineFirst ? 0 : 1, DB::table('audit_logs')->where('action', 'seller.turn.text_finalized')->count());
+            $next = $this->within($tenant, fn () => Message::create(['conversation_id' => $claim->conversationId, 'role' => 'client', 'text' => 'Input after resolution', 'meta' => []]));
+            self::assertSame('Input after resolution', DB::table('messages')->where('id', $next->id)->value('text'));
+            self::assertSame($quarantineFirst ? 'uncertain' : 'completed', DB::table('seller_turns')->where('id', $claim->turnId)->value('status'));
+            self::assertSame(0, DB::table('seller_tasks')->count());
+            self::assertSame(0, DB::table('outbox_events')->count());
+        } finally {
+            if ($blocker->transactionLevel() > 0) {
+                $blocker->rollBack();
+            }
+            foreach ([$first, $second] as $worker) {
+                if ($worker->isRunning()) {
+                    $worker->stop();
+                }
+            }
+            foreach ([$firstMarker, $secondMarker] as $marker) {
+                if (is_file($marker)) {
+                    unlink($marker);
+                }
+            }
+            DB::purge('c02_quarantine_blocker');
+            DB::unprepared('DROP TRIGGER IF EXISTS c02_test_delay_quarantine ON audit_logs; DROP FUNCTION IF EXISTS c02_test_delay_quarantine();');
+        }
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
+    }
+
     public function test_first_text_concurrent_different_requests_conflict_without_repeating_the_effect(): void
     {
         [$tenant, $http, $claim, $extractor] = $this->fixture('Synthetic question', ['protected_claim' => true]);
@@ -2976,7 +3214,7 @@ SQL);
         Http::assertNothingSent();
     }
 
-    private function finalizeWorker(TenantContext $tenant, Request $http, TurnClaim $claim, string $stage, string $marker): Process
+    private function finalizeWorker(TenantContext $tenant, Request $http, TurnClaim $claim, string $stage, string $marker, bool $quarantine = false): Process
     {
         $worker = new Process([PHP_BINARY, '-d', 'sys_temp_dir='.base_path('.local/tmp'), '-d', 'allow_url_fopen=0',
             '-d', 'disable_functions=fsockopen,pfsockopen,stream_socket_client,curl_exec,curl_multi_exec',
@@ -2984,7 +3222,7 @@ SQL);
         $worker->setInput(json_encode(['org' => $tenant->organizationId, 'brand' => $tenant->brandId, 'user' => $tenant->actorId,
             'member' => $tenant->membershipId, 'session' => $http->session()->getId(), 'turn' => $claim->turnId,
             'conversation' => $claim->conversationId, 'version' => $claim->baseVersion, 'token' => $claim->token(),
-            'stage' => $stage, 'key' => 'parallel-first-text'], JSON_THROW_ON_ERROR));
+            'stage' => $stage, 'key' => 'parallel-first-text', 'mode' => $quarantine ? 'quarantine' : 'finalize'], JSON_THROW_ON_ERROR));
         $worker->setTimeout(60);
 
         return $worker;
