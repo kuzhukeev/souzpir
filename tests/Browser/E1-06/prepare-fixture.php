@@ -84,6 +84,38 @@ if (in_array(getenv('E106_LAST_LOGIN_ACCESS'), ['disable', 'restore'], true)) {
     fwrite(STDOUT, "Last-login test access changed.\n");
     exit;
 }
+if (getenv('E106_ACCEPT_EMAIL')) {
+    $email = (string) getenv('E106_ACCEPT_EMAIL');
+    $mode = (string) getenv('E106_ACCEPT_MODE');
+    $organization = Organization::whereKey($organizationId)->firstOrFail();
+    if (($organization->settings['test_fixture'] ?? null) !== 'e106-role-ui'
+        || ! preg_match('/^e106-accept-[a-z0-9]+@example\.test$/D', $email)) {
+        throw new LogicException('Unexpected acceptance fixture.');
+    }
+    if ($mode === 'setup') {
+        if (User::where('email', $email)->exists()) {
+            throw new LogicException('Fixture user already exists.');
+        }
+        $user = User::create(['name' => 'Приглашённый участник', 'email' => $email, 'password' => 'test-only-password-123']);
+        $user->forceFill(['email_verified_at' => now()])->save();
+        fwrite(STDOUT, "Synthetic guest ready.\n");
+        exit;
+    }
+    if ($mode !== 'inspect') {
+        throw new LogicException('Unexpected acceptance fixture mode.');
+    }
+    $user = User::where('email', $email)->firstOrFail();
+    $member = Membership::withoutGlobalScopes()->where('organization_id', $organizationId)->where('user_id', $user->id)->firstOrFail();
+    $invitation = DB::table('invitations')->where('organization_id', $organizationId)->where('email', $email)->sole();
+    $first = Brand::withoutGlobalScopes()->where('organization_id', $organizationId)->where('name', 'Пиротехника — Северные огни')->firstOrFail();
+    fwrite(STDOUT, json_encode([
+        'role' => $member->role, 'status' => $member->status, 'brands' => $member->brand_ids,
+        'expected_brand' => $first->id, 'accepted' => $invitation->accepted_at !== null && $invitation->accepted_by === $user->id,
+        'created_audit' => DB::table('audit_logs')->where('organization_id', $organizationId)->where('action', 'team.invitation.created')->where('subject_id', $invitation->id)->count(),
+        'accepted_audit' => DB::table('audit_logs')->where('organization_id', $organizationId)->where('action', 'account.invitation_accepted')->where('subject_id', $member->id)->count(),
+    ], JSON_THROW_ON_ERROR));
+    exit;
+}
 if (getenv('E106_SHARED_MODULES') === '1') {
     $organization = Organization::whereKey($organizationId)->firstOrFail();
     if (($organization->settings['test_fixture'] ?? null) !== 'e106-role-ui') {
