@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Head, Link } from '@inertiajs/react';
 import { ArrowLeft } from 'lucide-react';
 import { Tabs } from '@/components/ui';
@@ -10,6 +10,15 @@ import { Modules } from '@/features/Shell/Brands/Modules';
 import { ArchiveBrand } from '@/features/Shell/Brands/ArchiveBrand';
 import { focus } from '@/features/Shell/Brands/shared';
 import type { BrandSettingsProps } from '@/types/Shell/Brands';
+
+const tabIds = ['general', 'theme', 'domains', 'modules', 'archive'] as const;
+type TabId = (typeof tabIds)[number];
+function tabFromUrl(): TabId {
+  if (typeof window === 'undefined') return 'general';
+  const value = new URLSearchParams(window.location.search).get('tab');
+  return tabIds.find((id) => id === value) ?? 'general';
+}
+
 export default function Settings({
   targetBrand,
   domains,
@@ -17,7 +26,20 @@ export default function Settings({
   permissions,
   networkChecksEnabled,
 }: BrandSettingsProps) {
-  const [tab, setTab] = useState('general');
+  const [tab, setTab] = useState<TabId>(tabFromUrl);
+  useEffect(() => {
+    const syncTab = () => setTab(tabFromUrl());
+    window.addEventListener('popstate', syncTab);
+    return () => window.removeEventListener('popstate', syncTab);
+  }, []);
+  function changeTab(value: string) {
+    const next = tabIds.find((id) => id === value) ?? 'general';
+    const url = new URL(window.location.href);
+    if (next === 'general') url.searchParams.delete('tab');
+    else url.searchParams.set('tab', next);
+    window.history.pushState(window.history.state, '', url);
+    setTab(next);
+  }
   return (
     <>
       <Head title={targetBrand.name + ' — настройки бренда'} />
@@ -44,7 +66,7 @@ export default function Settings({
           <Tabs
             label="Настройки бренда"
             value={tab}
-            onChange={setTab}
+            onChange={changeTab}
             tabs={[
               {
                 id: 'general',
