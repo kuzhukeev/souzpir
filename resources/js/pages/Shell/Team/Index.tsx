@@ -1,15 +1,15 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import * as Dialog from '@radix-ui/react-dialog';
 import * as Select from '@radix-ui/react-select';
-import { useRef, useState, type ReactNode } from 'react';
-import { Check, ChevronDown, Users, X } from 'lucide-react';
+import { useState } from 'react';
+import { Check, ChevronDown, Users } from 'lucide-react';
 import CabinetLayout from '@/layouts/CabinetLayout';
 import InvitationDialog from '@/features/Shell/InvitationIssuance/InvitationDialog';
 import { LastLogin } from '@/features/Shell/MemberActivity/LastLogin';
 import { useMemberLastLogins } from '@/features/Shell/MemberActivity/useMemberLastLogins';
 import { invitationExpiry, useInvitationTime } from '@/features/Shell/Team/invitationExpiry';
 import { SharedBrandModules } from '@/features/Shell/Team/SharedBrandModules';
-import type { TeamInvitations, TeamMember, TeamPage } from '@/types/Shell/Team/members';
+import { Brands, Person, RevokeDialog, Status } from '@/features/Shell/Team/TeamListParts';
+import type { TeamInvitations, TeamPage } from '@/types/Shell/Team/members';
 import type { SharedPropsV1 } from '@/types/generated/data';
 
 const panel =
@@ -17,121 +17,6 @@ const panel =
 const focus =
   'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus)';
 const button = `inline-flex min-h-11 cursor-pointer items-center justify-center rounded-lg border border-(--color-border) px-4 text-sm font-semibold text-(--color-link) disabled:cursor-not-allowed disabled:opacity-50 ${focus}`;
-
-function RevokeDialog({
-  open,
-  onClose,
-  busy,
-  children,
-}: {
-  open: boolean;
-  onClose: () => void;
-  busy: boolean;
-  children: ReactNode;
-}) {
-  const opener = useRef<HTMLElement | null>(null);
-  return (
-    <Dialog.Root
-      open={open}
-      onOpenChange={(next) => {
-        if (!next) onClose();
-      }}
-    >
-      <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-[#10264a]/30" />
-        <Dialog.Content
-          aria-describedby={undefined}
-          onOpenAutoFocus={() => {
-            opener.current =
-              document.activeElement instanceof HTMLElement ? document.activeElement : null;
-          }}
-          onCloseAutoFocus={(event) => {
-            if (opener.current?.isConnected) {
-              event.preventDefault();
-              opener.current.focus();
-            }
-          }}
-          className="fixed top-1/2 left-1/2 z-50 max-h-dvh w-[min(480px,calc(100vw-32px))] max-w-full -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-(--radius-card) bg-(--color-surface) text-(--color-ink) shadow-xl"
-        >
-          <header className="flex items-center justify-between gap-4 border-b border-(--color-border) p-5">
-            <Dialog.Title className="text-lg font-bold">Отозвать приглашение</Dialog.Title>
-            <Dialog.Close
-              aria-label="Закрыть"
-              disabled={busy}
-              className={`cursor-pointer rounded p-2 text-(--color-icon) disabled:cursor-not-allowed disabled:opacity-50 ${focus}`}
-            >
-              <X aria-hidden="true" size={20} />
-            </Dialog.Close>
-          </header>
-          <div className="p-5 text-sm">{children}</div>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
-  );
-}
-
-function Person({ member }: { member: TeamMember }) {
-  const name = member.name?.trim() || 'Имя недоступно';
-  const initials =
-    member.name
-      ?.trim()
-      .split(/\s+/u)
-      .slice(0, 2)
-      .map((part) => part[0])
-      .join('')
-      .toLocaleUpperCase('ru') || '—';
-  return (
-    <Link
-      href={`/team/${encodeURIComponent(member.id)}`}
-      aria-label={`Открыть карточку: ${name}`}
-      className={`flex min-w-0 cursor-pointer items-center gap-3 rounded-lg ${focus}`}
-    >
-      <span
-        aria-hidden="true"
-        className="grid size-10 shrink-0 place-items-center rounded-full bg-(--color-info-soft) text-sm font-bold text-(--color-info-ink)"
-      >
-        {initials}
-      </span>
-      <div className="min-w-0">
-        <p className="break-words font-semibold">{name}</p>
-        <p className="break-all text-sm text-(--color-ink-muted)">
-          {member.email || 'Адрес недоступен'}
-        </p>
-      </div>
-    </Link>
-  );
-}
-
-function Brands({ member }: { member: TeamMember }) {
-  return member.brands.length ? (
-    <ul className="flex flex-wrap gap-2">
-      {member.brands.map((brand) => (
-        <li
-          key={brand.id}
-          className="max-w-full break-words rounded-full bg-(--color-success-soft) px-3 py-1 text-sm text-(--color-success-ink)"
-        >
-          {brand.name}
-        </li>
-      ))}
-    </ul>
-  ) : (
-    <span className="text-sm text-(--color-ink-muted)">Нет общих доступных брендов</span>
-  );
-}
-
-function Status({ value }: { value: string }) {
-  const text =
-    value === 'active' ? 'Активен' : value === 'disabled' ? 'Отключён' : 'Статус недоступен';
-  const color =
-    value === 'active'
-      ? 'bg-(--color-success-soft) text-(--color-success-ink)'
-      : 'bg-(--color-surface-muted) text-(--color-ink-muted)';
-  return (
-    <span className={`inline-flex rounded-full px-3 py-1 text-sm font-medium ${color}`}>
-      {text}
-    </span>
-  );
-}
 
 export default function Index({
   members,
