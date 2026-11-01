@@ -157,6 +157,7 @@ const props = {
   integration_api_key_available: params.has('secret'),
   integration_webhook_secret_available: params.has('secret'),
   permissions: { manage: true },
+  apiBrandReadConfigured: params.has('brand-api-available'),
   apiKeyRuntimeAvailable: false,
   secureSecretTransport: !params.has('insecure'),
   secretStorageReady: !params.has('unsafe-storage'),

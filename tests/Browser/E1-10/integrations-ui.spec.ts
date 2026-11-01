@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-const origin = 'http://127.0.0.1:5237';
+const origin = process.env.E110_FIXTURE_ORIGIN ?? 'http://127.0.0.1:5237';
 const url = origin + '/tests/Browser/E1-10/ui-fixture.html';
 test.use({
   launchOptions: process.env.E110_CHROMIUM_PATH
@@ -12,6 +12,18 @@ test.beforeEach(async ({ page }) => {
       ? route.continue()
       : route.abort('blockedbyclient'),
   );
+});
+test('статус чтения бренда отделён от недоступных диалогов и вебхуков', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.goto(`${url}?screen=api&brand-api-available=1`);
+  await expect(page.getByText(/Маршрут чтения текущего бренда настроен/)).toBeVisible();
+  await expect(page.getByText('Запросы API для работы с диалогами и лидами пока недоступны.')).toBeVisible();
+  await expect(page.getByText(/Настройка и отправка вебхуков временно недоступны/)).toBeVisible();
+  await readable(page);
+  await page.screenshot({ path: '.local/screenshots/e1-10/api-brand-read-configured-390.png', fullPage: true });
+  await page.goto(`${url}?screen=api`);
+  await expect(page.getByText('Чтение бренда через API сейчас не подтверждено или недоступно.')).toBeVisible();
+  await expect(page.getByText(/Маршрут чтения текущего бренда настроен/)).toHaveCount(0);
 });
 async function readable(page: Page) {
   expect(

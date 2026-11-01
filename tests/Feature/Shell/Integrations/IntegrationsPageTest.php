@@ -6,9 +6,15 @@ use App\Seller\Channels\Core\ChannelAccount;
 use Illuminate\Support\Facades\Http;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\Feature\Tenancy\TenancyTestCase;
+use Tests\Support\MfaTestDatabase;
 
 final class IntegrationsPageTest extends TenancyTestCase
 {
+    protected function beforeRefreshingDatabase(): void
+    {
+        MfaTestDatabase::assert();
+    }
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -22,7 +28,8 @@ final class IntegrationsPageTest extends TenancyTestCase
         $this->within($organization, $second, fn () => ChannelAccount::create(['type' => 'telegram', 'name' => 'Second', 'status' => 'error']));
         $this->actingAs($owner)->withSession(['brand_id' => $first->id])->get('/integrations')->assertOk()
             ->assertInertia(fn (Assert $page) => $page->component('Shell/Integrations/Index')->where('connections.0.status', 'active')->where('connections.4.status', 'soon'));
-        $this->withSession(['brand_id' => $second->id])->get('/integrations')->assertOk()
+        $this->post('/brand/switch', ['brand_id' => $second->id])->assertRedirect('/auth/ready');
+        $this->get('/integrations')->assertOk()
             ->assertInertia(fn (Assert $page) => $page->where('connections.0.status', 'error'));
         Http::assertNothingSent();
     }

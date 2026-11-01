@@ -25,6 +25,7 @@ type Props = {
   webhooks: Hook[];
   webhookEvents: { value: string; label: string }[];
   permissions: { manage: boolean };
+  apiBrandReadConfigured: boolean;
   apiKeyRuntimeAvailable: boolean;
   webhookDeliveryAvailable: boolean;
   secureSecretTransport: boolean;
@@ -49,6 +50,7 @@ export default function Api({
   webhooks,
   webhookEvents,
   permissions,
+  apiBrandReadConfigured,
   apiKeyRuntimeAvailable,
   webhookDeliveryAvailable,
   secureSecretTransport,
@@ -188,6 +190,17 @@ export default function Api({
             className="mb-5 rounded-xl bg-(--color-warning-soft) p-4 text-sm text-(--color-warning-ink)"
           >
             Показ секретов временно недоступен: требуется безопасное хранилище сессий и блокировок.
+          </p>
+        )}
+        {apiBrandReadConfigured ? (
+          <p role="status" className="mb-5 rounded-xl bg-(--color-surface-muted) p-4 text-sm">
+            Маршрут чтения текущего бренда настроен: <code>GET /api/v1/brand</code>. Нужен
+            действующий ключ с правом «Чтение» и защищённое соединение. Доступность сервера и
+            права ключа проверяются при каждом запросе.
+          </p>
+        ) : (
+          <p role="status" className="mb-5 rounded-xl bg-(--color-warning-soft) p-4 text-sm text-(--color-warning-ink)">
+            Чтение бренда через API сейчас не подтверждено или недоступно.
           </p>
         )}
         {!apiKeyRuntimeAvailable && (
