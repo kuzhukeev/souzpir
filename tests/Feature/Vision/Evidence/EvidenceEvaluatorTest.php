@@ -19,11 +19,11 @@ use App\Vision\Evidence\Contracts\KnowledgeGate;
 use App\Vision\Evidence\EvidenceEvaluator;
 use App\Vision\Evidence\EvidenceValidator;
 use App\Vision\Evidence\SourceExtractor;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\TestCase;
 
 final class EvidenceTestGate implements KnowledgeGate
@@ -70,7 +70,7 @@ final class EvidenceTestGateway implements AiGateway
 
 final class EvidenceEvaluatorTest extends TestCase
 {
-    use DatabaseMigrations;
+    use IsolatedDatabaseMigrations;
 
     private string $schema;
 
