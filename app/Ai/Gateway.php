@@ -116,6 +116,82 @@ final class Gateway implements AiGateway
         }
     }
 
+    /** Settle only an already saved, signed fake responder result; never run tools or a driver. */
+    public function settleSavedFakeResponder(#[\SensitiveParameter] Request $http, #[\SensitiveParameter] TurnClaim $claim, #[\SensitiveParameter] string $stageId): string
+    {
+        try {
+            if (config('runtime.ai_driver', 'fake') !== 'fake' || DB::connection()->getDriverName() !== 'pgsql'
+                || DB::connection()->transactionLevel() !== 0) {
+                throw new LogicException;
+            }
+
+            return DB::transaction(function () use ($http, $claim, $stageId): string {
+                // The stage load verifies the protected claim and current access,
+                // then requires the HMAC of this late call/request binding.
+                [$request, $context, , $callId, $requestHash] = app(SellerResponderStages::class)->load($http, $claim, $stageId);
+                if (! is_string($callId) || ! is_string($requestHash)) {
+                    throw new LogicException;
+                }
+                $body = app(ContactMasker::class)->request($request->toArray());
+                $expected = app(RequestFingerprint::class)->hash($request, $context, $body, 'fake');
+                $candidate = DB::table('ai_calls')->where('id', $callId)->where('organization_id', $context->organizationId)
+                    ->where('brand_id', $context->brandId)->first(['id', 'budget_id']);
+                if (! $candidate || ! hash_equals($expected, $requestHash)) {
+                    throw new LogicException;
+                }
+                $budget = DB::table('ai_budgets')->where('id', $candidate->budget_id)->lockForUpdate()->first();
+                $call = DB::table('ai_calls')->where('id', $callId)->lockForUpdate()->first();
+                $models = app(ProviderCatalog::class)->models();
+                $model = $models[$request->model] ?? null;
+                if (! $budget || ! $call || $call->budget_id !== $budget->id || $budget->organization_id !== $context->organizationId
+                    || $budget->brand_id !== $context->brandId || $budget->family !== 'seller'
+                    || $call->organization_id !== $context->organizationId || $call->brand_id !== $context->brandId
+                    || $call->family !== 'seller' || $call->purpose !== 'responder' || $call->object_type !== 'conversation'
+                    || $call->object_id !== $claim->conversationId || $call->requested_model !== $request->model
+                    || ! is_array($model) || ($model['status'] ?? null) !== 'active' || ($model['provider'] ?? null) !== $call->provider
+                    || json_decode($call->data_classes, true, 512, JSON_THROW_ON_ERROR) !== $context->dataClasses
+                    || (int) $call->attempt !== $context->attempt || $call->parent_call_id !== $context->parentCallId
+                    || ! hash_equals($expected, $call->request_hash)
+                    || ! hash_equals(hash_hmac('sha256', $context->idempotencyKey, (string) config('app.key')), $call->idempotency_key_hash)
+                    || ! is_string($call->result_encrypted)) {
+                    throw new LogicException;
+                }
+                $stored = json_decode(Crypt::decryptString($call->result_encrypted), true, 512, JSON_THROW_ON_ERROR);
+                if (! is_array($stored)) {
+                    throw new LogicException;
+                }
+                $this->assertResult($stored);
+                $result = AiResult::fromArray($stored);
+                if (! hash_equals($call->id, $result->aiCallId) || $result->costMicros === null) {
+                    throw new LogicException;
+                }
+                if ($call->status === 'completed') {
+                    if ($call->cost_micros === null || (int) $call->cost_micros !== $result->costMicros || $call->model !== $result->model
+                        || $call->prompt_tokens === null || (int) $call->prompt_tokens !== $result->usage['promptTokens']
+                        || $call->completion_tokens === null || (int) $call->completion_tokens !== $result->usage['completionTokens']
+                        || $call->latency_ms === null || (int) $call->latency_ms !== $result->latencyMs || $call->error_code !== null
+                        || (bool) $call->reserve_exceeded !== ((int) $call->reserved_micros > 0 && $result->costMicros > (int) $call->reserved_micros)) {
+                        throw new LogicException;
+                    }
+
+                    return 'completed';
+                }
+                if ($call->status !== 'reserved' || $call->cost_micros !== null || $call->prompt_tokens !== null
+                    || $call->completion_tokens !== null || $call->latency_ms !== null || $call->error_code !== null
+                    || $call->model !== $request->model || $call->reserve_exceeded || (int) $budget->unresolved_count < 1
+                    || (int) $budget->reserved_micros < (int) $call->reserved_micros) {
+                    throw new LogicException;
+                }
+                $this->assertThresholdReady();
+                $this->settle($call, $result);
+
+                return 'completed';
+            });
+        } catch (Throwable) {
+            throw new LogicException('Saved fake responder result cannot be settled.');
+        }
+    }
+
     /** Candidate only, inside the caller's transaction; Guard and delivery are separate. */
     public function readProtectedResponderLocked(#[\SensitiveParameter] Request $http, #[\SensitiveParameter] TurnClaim $claim, #[\SensitiveParameter] string $stageId): array
     {
