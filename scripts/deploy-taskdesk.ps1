@@ -4,7 +4,7 @@ $repoRoot=Split-Path -Parent $PSScriptRoot
 $targetRoot=[IO.Path]::GetFullPath($Target).TrimEnd('\')
 if ($targetRoot -cne 'C:\OSPanel\home\tasks.local') { throw 'Unexpected target; review this deployment script before changing target' }
 $bundle=Join-Path $repoRoot 'tools\taskdesk'
-$files=@('api.php','queue.php','app.js','index.html','style.css')
+$files=@('history.php','api.php','queue.php','app.js','index.html','style.css')
 $hashes=Get-Content -Raw -LiteralPath (Join-Path $bundle 'source-hashes.json') | ConvertFrom-Json
 foreach($entry in $hashes) {
     $path=Join-Path $targetRoot $entry.file
@@ -22,7 +22,7 @@ foreach($name in $files) {
 Copy-Item -LiteralPath (Join-Path $targetRoot 'data\board.json') -Destination (Join-Path $backup 'board.json')
 $before | ConvertTo-Json -Depth 100 | Set-Content -LiteralPath (Join-Path $backup 'api-before.json') -Encoding utf8
 # Copy helper first so the api replacement never refers to an absent include.
-foreach($name in @('queue.php','api.php','app.js','style.css','index.html')) {
+foreach($name in @('history.php','queue.php','api.php','app.js','style.css','index.html')) {
     Copy-Item -LiteralPath (Join-Path $bundle $name) -Destination (Join-Path $targetRoot $name)
 }
 $after=Invoke-RestMethod -Uri 'http://tasks.local/api.php?action=list'

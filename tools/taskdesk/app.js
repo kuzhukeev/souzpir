@@ -3,10 +3,18 @@
   const $ = id => document.getElementById(id);
   const columns = [['queue','Очередь'],['progress','В работе'],['review','На проверке'],['done','Готово']];
   const editor = $('editor');
+  const projectFilter = $('project-filter');
+  let restoringProjectFilter = false;
   let db, tasks = [], currentId = null, images = [], imageUrls = [], toastTimer;
   let lastSnapshot = null, editorSnapshot = null, requestSerial = 0, appliedSerial = 0, polling = false;
+  let doneSort = 'newest';
+  try { if (localStorage.getItem('tasks.done.sort') === 'oldest') doneSort = 'oldest'; } catch (_) {}
+  const dateFormatter = new Intl.DateTimeFormat('ru-RU', { dateStyle:'short', timeStyle:'short' });
+  function validDate(value) { if (typeof value !== 'string' || !value) return null; const date = new Date(value); return Number.isNaN(date.getTime()) ? null : date; }
+  function statusDate(task) { return validDate(task.statusChangedAt) || (task.status === 'done' ? validDate(task.mergedAt) : null); }
+  function appendTaskDate(container, label, date) { const row=element('div','card-date'); row.append(document.createTextNode(label + ': ')); if (date) { const time=element('time','',dateFormatter.format(date)); time.dateTime=date.toISOString(); row.append(time); } else row.append(document.createTextNode('Дата неизвестна')); container.append(row); }
   const element = (tag, className, text) => { const el = document.createElement(tag); if (className) el.className = className; if (text !== undefined) el.textContent = text; return el; };
-  const cardUrl = id => `${location.origin}${location.pathname}#task-${id}`;
+  const cardUrl = id => `${location.origin}${location.pathname}${location.search}#task-${id}`;
   function notify(message) { const toast = $('toast'); toast.textContent = message; toast.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.classList.remove('show'), 3500); }
   function request(req) { return new Promise((resolve,reject) => { req.onsuccess = () => resolve(req.result); req.onerror = () => reject(req.error); }); }
   function openDb() { return new Promise((resolve,reject) => { const req = indexedDB.open('tasks-local-kanban',1); req.onupgradeneeded = () => { req.result.createObjectStore('tasks',{keyPath:'id',autoIncrement:true}); req.result.createObjectStore('meta'); }; req.onsuccess = () => resolve(req.result); req.onerror = () => reject(req.error); }); }
@@ -55,10 +63,27 @@
     for (const [key,name] of columns) {
       const query=($('search')?.value||'').trim().toLocaleLowerCase();
       const project=$('project-filter').value;
-      const selected = tasks.filter(t => t.status === key && (!project || (project==='__legacy__'?!t.project:t.project===project)) && (!query || `${t.id} ${t.taskKey||''} ${t.title} ${t.description}`.toLocaleLowerCase().includes(query))).sort((a,b) => a.id-b.id);
+      const selected = tasks.filter(t => t.status === key && (!project || (project==='__legacy__'?!t.project:t.project===project)) && (!query || `${t.id} ${t.taskKey||''} ${t.title} ${t.description}`.toLocaleLowerCase().includes(query))).sort((a,b) => {
+        if (key !== 'done') return a.id-b.id;
+        const first=statusDate(a), second=statusDate(b);
+        if (!first || !second) return first ? -1 : second ? 1 : a.id-b.id;
+        const byDate=doneSort === 'newest' ? second-first : first-second;
+        if (byDate) return byDate;
+        const aOrder=Number.isSafeInteger(a.statusChangedOrder), bOrder=Number.isSafeInteger(b.statusChangedOrder);
+        if (aOrder !== bOrder) return aOrder ? -1 : 1;
+        if (aOrder && bOrder) { const byOrder=doneSort === 'newest' ? b.statusChangedOrder-a.statusChangedOrder : a.statusChangedOrder-b.statusChangedOrder; if (byOrder) return byOrder; }
+        return a.id-b.id;
+      });
       const column = element('section',`column ${key}`); column.dataset.status=key; column.setAttribute('aria-label',name);
       const head = element('div','column-head'); head.append(element('span','dot'),element('span','',name),element('span','count',String(selected.length)));
       const plus = element('button','column-add','＋'); plus.type='button'; plus.setAttribute('aria-label',`Добавить в «${name}»`); plus.addEventListener('click',()=>openEditor(null,key)); head.append(plus); column.append(head);
+      if (key === 'done') {
+        const sortLabel=element('label','done-sort-label','По дате завершения');
+        const sort=element('select','done-sort-select'); sort.setAttribute('aria-label','Сортировка готовых задач по дате завершения');
+        for (const [value,label] of [['newest','Сначала новые'],['oldest','Сначала старые']]) { const option=element('option','',label); option.value=value; option.selected=value===doneSort; sort.append(option); }
+        sort.addEventListener('change',()=>{ doneSort=sort.value; try { localStorage.setItem('tasks.done.sort',doneSort); } catch (_) {} render(); board.querySelector('.done-sort-select')?.focus(); });
+        sortLabel.append(sort); column.append(sortLabel);
+      }
       const cards = element('div','cards');
       if (!selected.length) { const empty = element('div','empty-column'); empty.append(element('b','','✳'),document.createTextNode('Пока нет задач')); cards.append(empty); }
       for (const task of selected) {
@@ -70,6 +95,10 @@
           meta.title=(task.blockers||[]).join('\n'); card.append(meta);
         }
         if (task.description) card.append(element('p','card-description',task.description));
+        const dates=element('div','card-dates');
+        appendTaskDate(dates,task.status==='done'?'Завершена':'На стадии с',statusDate(task));
+        const created=validDate(task.createdAt); if (created) appendTaskDate(dates,'Создана',created);
+        card.append(dates);
         const bottom = element('div','card-bottom'); const select = statusSelect(task.status,`Статус задачи №${task.id}`); select.addEventListener('change', async () => { const previous = task.status; task.status = select.value; try { await mutate('put',task); await refresh(); } catch (_) { task.status=previous; render(); notify('Не удалось сохранить статус.'); } }); bottom.append(select);
         if(task.project) { select.disabled=true; select.title='Статус управляется через атомарный claim → submit → merge'; }
         if (task.images && task.images.length) bottom.append(element('span','image-badge',`▧ ${task.images.length}`)); card.append(bottom); cards.append(card);
@@ -105,7 +134,25 @@
   function openFromHash(){ const match=location.hash.match(/^#task-(\d+)$/); if(match) openEditor(Number(match[1]),'queue',false); else if(editor.open) closeEditor(); }
   window.addEventListener('hashchange',openFromHash);
   $('search').addEventListener('input',render);
-  $('project-filter').addEventListener('change',render);
+  projectFilter.addEventListener('change',()=>{
+    if (!restoringProjectFilter) {
+      const url = new URL(location.href);
+      if (projectFilter.value) url.searchParams.set('project', projectFilter.value);
+      else url.searchParams.delete('project');
+      if (url.href !== location.href) history.pushState(null, '', url);
+    }
+    render();
+    if (editor.open && currentId !== null) $('task-link').value = cardUrl(currentId);
+  });
+  function restoreProjectFilter() {
+    const project = new URLSearchParams(location.search).get('project') || '';
+    projectFilter.value = Array.from(projectFilter.options).some(option => option.value === project) ? project : '';
+    restoringProjectFilter = true;
+    try { projectFilter.dispatchEvent(new Event('change', { bubbles:true })); }
+    finally { restoringProjectFilter = false; }
+  }
+  window.addEventListener('popstate',restoreProjectFilter);
+  restoreProjectFilter();
   document.addEventListener('visibilitychange',()=>{if(!document.hidden) poll()});
   (async()=>{try{db=await openDb();await migrate();await importOldTasks();await refresh();openFromHash();setInterval(poll,3000)}catch(error){$('board').textContent='Не удалось открыть хранилище задач: '+error.message}})();
 })();
