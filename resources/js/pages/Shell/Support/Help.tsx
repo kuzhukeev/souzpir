@@ -50,7 +50,7 @@ export default function Help({ help }: { help: HelpData }) {
           <Link
             href="/help/support"
             className={[
-              'inline-flex min-h-11 items-center rounded-lg bg-(--color-action) px-4 text-sm font-semibold text-(--color-on-action)',
+              'inline-flex min-h-11 cursor-pointer items-center rounded-lg bg-(--color-action) px-4 text-sm font-semibold text-(--color-on-action)',
               focus,
             ].join(' ')}
           >
@@ -68,7 +68,7 @@ export default function Help({ help }: { help: HelpData }) {
           </div>
         )}
         <section className={[panel, 'mb-5 p-5'].join(' ')}>
-          <div className="flex items-end gap-3">
+          <div className="flex flex-wrap items-end gap-3">
             <div className="min-w-0 flex-1">
               <Input
                 label={c.search}
@@ -124,7 +124,7 @@ export default function Help({ help }: { help: HelpData }) {
                 rel="noopener noreferrer"
                 className={[
                   panel,
-                  'flex min-h-32 items-center gap-4 p-5 hover:bg-(--color-surface-muted)',
+                  'flex min-h-32 cursor-pointer items-center gap-4 p-5 hover:bg-(--color-surface-muted)',
                   focus,
                 ].join(' ')}
               >
@@ -157,7 +157,7 @@ export default function Help({ help }: { help: HelpData }) {
                     target="_blank"
                     rel="noopener noreferrer"
                     className={[
-                      'flex min-h-14 items-center gap-3 rounded-lg py-3 text-sm font-medium text-(--color-link)',
+                      'flex min-h-14 cursor-pointer items-center gap-3 rounded-lg py-3 text-sm font-medium text-(--color-link)',
                       focus,
                     ].join(' ')}
                   >
@@ -182,7 +182,7 @@ export default function Help({ help }: { help: HelpData }) {
               target="_blank"
               rel="noopener noreferrer"
               className={[
-                'mt-4 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-(--color-link)',
+                'mt-4 inline-flex min-h-11 cursor-pointer items-center gap-2 text-sm font-semibold text-(--color-link)',
                 focus,
               ].join(' ')}
             >
