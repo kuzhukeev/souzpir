@@ -159,6 +159,15 @@
         "users"
       ]
     },
+    "invitation_issuance_attempts": {
+      "owner": "SP-E1-06B",
+      "tenant": "organization",
+      "parents": [
+        "organizations",
+        "users",
+        "invitations"
+      ]
+    },
     "mfa_recovery_codes": {
       "owner": "SP-E1-08",
       "tenant": "global",
