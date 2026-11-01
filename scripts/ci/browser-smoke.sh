@@ -1,7 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+if [[ ${CI:-} != true ]]; then
+  echo 'Browser smoke requires a disposable CI runner.' >&2
+  exit 1
+fi
+
 mkdir -p .local/runtime
+# Disposable GitHub runner: Node HTTP clients must resolve the local fixture host.
+printf '127.0.0.1 souzpir.local\n' | sudo tee -a /etc/hosts >/dev/null
 php -S 127.0.0.1:8101 -t public scripts/ci/server.php > .local/runtime/browser-server.log 2>&1 &
 for attempt in {1..20}; do curl --fail --silent http://127.0.0.1:8101/up && break; sleep 1; done
 curl --fail --silent http://127.0.0.1:8101/up > /dev/null
