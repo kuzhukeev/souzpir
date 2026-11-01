@@ -9,6 +9,7 @@ use App\Ai\Drivers\Rejected;
 use App\Ai\Drivers\Uncertain;
 use App\Ai\Protected\RequestFingerprint;
 use App\Ai\Protected\SellerExtractorStages;
+use App\Ai\Protected\SellerGuardStages;
 use App\Ai\Protected\SellerResponderStages;
 use App\Ai\Protected\SellerSummaryStages;
 use App\Contracts\Ai\AiContext;
@@ -18,6 +19,8 @@ use App\Contracts\Ai\AiResult;
 use App\Privacy\ContactBoundary;
 use App\Privacy\Secrets\SecretBoundary;
 use App\Seller\Conversations\Data\TurnClaim;
+use App\Seller\Engine\GuardDecision;
+use App\Seller\Engine\GuardModelResult;
 use App\Seller\Engine\ResponderResult;
 use App\Shell\Notifications\Contracts\NotificationDispatcher;
 use App\Shell\Notifications\DomainEvent;
@@ -33,6 +36,64 @@ use Throwable;
 
 final class Gateway implements AiGateway
 {
+    /** Fake-only model guard; stage references do not authorize an effect. */
+    public function completeProtectedModelGuard(#[\SensitiveParameter] Request $http, #[\SensitiveParameter] TurnClaim $claim, #[\SensitiveParameter] string $stageId): string
+    {
+        try {
+            if (config('runtime.ai_driver', 'fake') !== 'fake') {
+                throw new LogicException;
+            }
+            $stages = app(SellerGuardStages::class);
+            [$request, $context, $digest] = $stages->load($http, $claim, $stageId);
+            $result = $this->completeInternal($request, $context,
+                fn () => $stages->lockForGateway($http, $claim, $stageId, $digest),
+                fn (object $call, string $hash) => $stages->bindCall($http, $claim, $stageId, $call, $hash));
+            if (($result->error['code'] ?? null) === 'in_progress') {
+                return 'in_progress';
+            }
+
+            return $result->costMicros === null ? 'uncertain' : 'completed';
+        } catch (Throwable) {
+            throw new LogicException('Protected model guard stage could not be completed.');
+        }
+    }
+
+    /** Internal decision only, read under the caller's transaction. */
+    public function readProtectedModelGuardLocked(#[\SensitiveParameter] Request $http, #[\SensitiveParameter] TurnClaim $claim, #[\SensitiveParameter] string $stageId): array
+    {
+        try {
+            if (config('runtime.ai_driver', 'fake') !== 'fake' || DB::connection()->transactionLevel() < 1) {
+                throw new LogicException;
+            }
+            [$request, $context, , $callId, $requestHash, $deterministic, $goal] = app(SellerGuardStages::class)->load($http, $claim, $stageId);
+            if (! is_string($callId) || ! is_string($requestHash) || $request->tools !== [] || $request->toolChoice !== null) {
+                throw new LogicException;
+            }
+            $body = app(ContactMasker::class)->request($request->toArray());
+            $expected = app(RequestFingerprint::class)->hash($request, $context, $body, config('runtime.ai_driver', 'fake'));
+            $call = DB::table('ai_calls')->where('id', $callId)->where('organization_id', $context->organizationId)
+                ->where('brand_id', $context->brandId)->lockForUpdate()->first();
+            if (! $call || $call->status !== 'completed' || ! hash_equals($expected, $requestHash)
+                || ! hash_equals($expected, $call->request_hash)
+                || ! hash_equals(hash_hmac('sha256', $context->idempotencyKey, (string) config('app.key')), $call->idempotency_key_hash)) {
+                throw new LogicException;
+            }
+            $result = $this->replay($call, $request->model);
+            $this->assertResult($result->toArray());
+            if ($result->costMicros === null || $call->cost_micros === null || (int) $call->cost_micros !== $result->costMicros
+                || $call->model !== $result->model || $call->prompt_tokens === null || (int) $call->prompt_tokens !== $result->usage['promptTokens']
+                || $call->completion_tokens === null || (int) $call->completion_tokens !== $result->usage['completionTokens']
+                || $call->latency_ms === null || (int) $call->latency_ms !== $result->latencyMs) {
+                throw new LogicException;
+            }
+            $model = app(GuardModelResult::class)->interpret($result);
+
+            return app(GuardDecision::class)->finish($deterministic, $goal, true, $model);
+        } catch (Throwable) {
+            throw new LogicException('Protected model guard result unavailable.');
+        }
+    }
+
     /** Fake-only first-turn responder; its return value cannot authorize an effect. */
     public function completeProtectedResponder(#[\SensitiveParameter] Request $http, #[\SensitiveParameter] TurnClaim $claim, #[\SensitiveParameter] string $stageId): string
     {
@@ -389,6 +450,14 @@ final class Gateway implements AiGateway
                     throw new LogicException('Protected AI call requires protected reading.');
                 }
             }
+            if ($beforeReserve === null && str_starts_with($context->idempotencyKey, 'c02-guard-') && Schema::hasTable('c02_guard_stages')) {
+                $stageId = substr($context->idempotencyKey, strlen('c02-guard-'));
+                if (Str::isUlid($stageId) && DB::table('c02_guard_stages')->where('id', $stageId)
+                    ->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)
+                    ->where('conversation_id', $context->objectId)->lockForUpdate()->exists()) {
+                    throw new LogicException('Protected AI call requires protected reading.');
+                }
+            }
             $keyHash = hash_hmac('sha256', $context->idempotencyKey, (string) config('app.key'));
             DB::select('SELECT pg_advisory_xact_lock(hashtextextended(?, 0))', [$context->organizationId.':'.$context->brandId.':'.$keyHash]);
             $existing = DB::table('ai_calls')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)->where('idempotency_key_hash', $keyHash)->lockForUpdate()->first();
@@ -404,7 +473,9 @@ final class Gateway implements AiGateway
                     || (Schema::hasTable('c02_extractor_stages')
                     && DB::table('c02_extractor_stages')->where('ai_call_id', $existing->id)->exists())
                     || (Schema::hasTable('c02_responder_stages')
-                    && DB::table('c02_responder_stages')->where('ai_call_id', $existing->id)->exists()))) {
+                    && DB::table('c02_responder_stages')->where('ai_call_id', $existing->id)->exists())
+                    || (Schema::hasTable('c02_guard_stages')
+                    && DB::table('c02_guard_stages')->where('ai_call_id', $existing->id)->exists()))) {
                     throw new LogicException('Protected AI call requires protected reading.');
                 }
                 if ($afterReserve !== null) {
