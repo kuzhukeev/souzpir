@@ -9,25 +9,16 @@ use App\Models\User;
 use App\Shell\Integrations\PruneSecretReceipts;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Symfony\Component\Process\Process;
-use Tests\Support\MfaTestDatabase;
+use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\TestCase;
 
 final class SecretSharedSessionRaceTest extends TestCase
 {
-    use DatabaseMigrations;
-
-    public function runDatabaseMigrations(): void
-    {
-        // Workers need committed fixtures. Fresh migrations isolate each test without
-        // attempting irreversible application migration rollbacks during teardown.
-        MfaTestDatabase::assert();
-        $this->refreshTestDatabase();
-    }
+    use IsolatedDatabaseMigrations;
 
     public function test_logout_waits_for_an_already_authorized_secret_reveal(): void
     {
