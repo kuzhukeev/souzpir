@@ -19,8 +19,10 @@ $contents = stream_get_contents($handle);
 $data = json_decode($contents, true);
 if ($contents === '') $data = ['nextId'=>1, 'tasks'=>[]];
 elseif (!is_array($data) || !isset($data['tasks'], $data['nextId'])) { http_response_code(500); exit('Invalid storage data'); }
+$historyPreviousTasks = $data['tasks'];
+require_once __DIR__.'/history.php';
 function reply($body, $code=200) { global $handle; flock($handle, LOCK_UN); fclose($handle); http_response_code($code); header('Content-Type: application/json; charset=utf-8'); echo json_encode($body, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); exit; }
-function saveData() { global $handle, $data, $dbPath; $encoded=json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT); if($encoded===false) reply(['error'=>'Invalid storage encoding'],500); rewind($handle); $previous=stream_get_contents($handle); if($previous!=='' && file_put_contents($dbPath.'.bak',$previous)===false) reply(['error'=>'Storage backup failed'],500); rewind($handle); if (!ftruncate($handle,0) || fwrite($handle,$encoded)!==strlen($encoded) || !fflush($handle)) reply(['error'=>'Storage write failed; previous version is in board.json.bak'],500); }
+function saveData() { global $handle, $data, $dbPath, $historyPreviousTasks; historyCapture($historyPreviousTasks, $data); $historyPreviousTasks=$data['tasks']; $encoded=json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT); if($encoded===false) reply(['error'=>'Invalid storage encoding'],500); rewind($handle); $previous=stream_get_contents($handle); if($previous!=='' && file_put_contents($dbPath.'.bak',$previous)===false) reply(['error'=>'Storage backup failed'],500); rewind($handle); if (!ftruncate($handle,0) || fwrite($handle,$encoded)!==strlen($encoded) || !fflush($handle)) reply(['error'=>'Storage write failed; previous version is in board.json.bak'],500); }
 function taskIndex($id) { global $data; foreach ($data['tasks'] as $i=>$task) if ((int)$task['id'] === $id) return $i; return null; }
 function normalizeTask($input, $old = null) {
     $title = trim((string)($input['title'] ?? '')); $status = $input['status'] ?? 'queue';
@@ -45,6 +47,7 @@ function completeFiles(&$task) {
 require_once __DIR__.'/queue.php';
 $action = $_GET['action'] ?? 'list';
 if ($method === 'GET' && $action === 'list') reply(['tasks'=>array_map('queuePublic',$data['tasks']),'projects'=>$data['projects']??[]]);
+if ($method === 'GET' && $action === 'history') { $stage=$_GET['stage']??null; $task=$_GET['task']??null; if ($stage!==null && !in_array($stage,['queue','progress','review','done'],true)) reply(['error'=>'Invalid stage'],400); if ($task!==null && (!is_string($task) || !ctype_digit($task) || (int)$task<1)) reply(['error'=>'Invalid task'],400); $events=[]; foreach (array_reverse($data['history']??[]) as $event) { if ($stage!==null && ($event['toStatus']??null)!==$stage) continue; if ($task!==null && (int)($event['taskId']??0)!==(int)$task) continue; $events[]=$event; } usort($events, function($a,$b) { $time=strcmp((string)($b['at']??''),(string)($a['at']??'')); return $time!==0 ? $time : ((int)($b['id']??0) <=> (int)($a['id']??0)); }); reply(['events'=>$events,'historyStartedAt'=>$data['historyStartedAt']??null]); }
 if ($method === 'GET' && $action === 'ready') { $project=(string)($_GET['project']??''); $ready=[]; foreach($data['tasks'] as $t) { $t=queuePublic($t); if(($t['project']??null)===$project && !empty($t['ready'])) $ready[]=$t; } reply(['tasks'=>$ready]); }
 if ($method === 'GET' && $action === 'image') {
     $idx=taskIndex((int)($_GET['task'] ?? 0)); $imageId=(string)($_GET['file'] ?? '');
@@ -74,9 +77,9 @@ $input=json_decode(file_get_contents('php://input'),true); if (!is_array($input)
 queueDispatch($action,$input);
 if ($action==='create') {
     if (!empty($input['legacyKey'])) foreach ($data['tasks'] as $task) if (($task['legacyKey']??null)===$input['legacyKey']) reply(['task'=>$task]);
-    $task=normalizeTask($input); $task['id']=$data['nextId']++; if (!empty($input['legacyKey'])) $task['legacyKey']=(string)$input['legacyKey']; completeFiles($task); $data['tasks'][]=$task; saveData(); reply(['task'=>$task]);
+    $task=normalizeTask($input); $task['id']=$data['nextId']++; if (!empty($input['legacyKey'])) $task['legacyKey']=(string)$input['legacyKey']; completeFiles($task); $data['tasks'][]=$task; saveData(); reply(['task'=>queuePublic($data['tasks'][count($data['tasks'])-1])]);
 }
 $id=(int)($input['id'] ?? 0); $idx=taskIndex($id); if ($idx===null) reply(['error'=>'Task not found'],404);
-if ($action==='update') { $old=$data['tasks'][$idx]; if(queueManaged($old)) { queueCheckRevision($old,$input); if(($input['status']??'queue')!==$old['status']) reply(['error'=>'Use claim, submit, release or merge for project task transitions'],409); } elseif(isset($input['expectedRevision'])) queueCheckRevision($old,$input); $task=normalizeTask($input,$old); completeFiles($task); queueTouch($task); $data['tasks'][$idx]=$task; saveData(); reply(['task'=>queuePublic($task)]); }
+if ($action==='update') { $old=$data['tasks'][$idx]; if(queueManaged($old)) { queueCheckRevision($old,$input); if(($input['status']??'queue')!==$old['status']) reply(['error'=>'Use claim, submit, release or merge for project task transitions'],409); } elseif(isset($input['expectedRevision'])) queueCheckRevision($old,$input); $task=normalizeTask($input,$old); completeFiles($task); queueTouch($task); $data['tasks'][$idx]=$task; saveData(); reply(['task'=>queuePublic($data['tasks'][$idx])]); }
 if ($action==='delete') { if(queueManaged($data['tasks'][$idx])) reply(['error'=>'Project plans cannot be deleted through the legacy editor'],409); array_splice($data['tasks'],$idx,1); saveData(); reply(['ok'=>true]); }
 reply(['error'=>'Unknown action'],404);

@@ -2,7 +2,7 @@ param([string]$Php = 'C:\OSPanel\modules\PHP-7.4\php.exe')
 $ErrorActionPreference = 'Stop'
 $fixture = Join-Path $PSScriptRoot ('test-run-' + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path (Join-Path $fixture 'data') -Force | Out-Null
-Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'api.php'),(Join-Path $PSScriptRoot 'queue.php') -Destination $fixture
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'api.php'),(Join-Path $PSScriptRoot 'queue.php'),(Join-Path $PSScriptRoot 'history.php') -Destination $fixture
 $legacy = @{nextId=2;tasks=@(@{id=1;title='Legacy';description='Untouched';status='done';images=@();customField='preserved'})}
 [IO.File]::WriteAllText((Join-Path $fixture 'data\board.json'),($legacy | ConvertTo-Json -Depth 8),(New-Object Text.UTF8Encoding $false))
 function FreePort { $listener=[Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback,0); $listener.Start(); $port=$listener.LocalEndpoint.Port; $listener.Stop(); return $port }
@@ -60,11 +60,11 @@ try {
     $ready=CallQueue 'ready&project=test' $null; Assert (($ready.body.tasks | Where-Object taskKey -eq D).ready) 'only merge unlocks dependency'
     $release=CallQueue 'release' @{id=$b.body.task.id;claimToken=$b.body.claimToken;expectedRevision=$b.body.task.revision;reason='retry later'}; Assert ($release.status -eq 200 -and $release.body.task.status -eq 'queue') 'owner release returns to queue'
     $replanned=@{taskKey='B';title='B updated';scope=@('frontend/Auth/','routes/Auth.php');dependsOn=@();description='Updated after release'}
-    $replan=CallQueue 'replan' @{project='test';taskKey='B';expectedRevision=$release.body.task.revision;plan=$replanned}
+    $replan=CallQueue 'replan' @{project='test';taskKey='B';expectedRevision=$release.body.task.revision;reason='Add route';plan=$replanned}
     Assert ($replan.status -eq 200 -and $replan.body.task.scope -contains 'routes/Auth.php') 'released queue task can gain required route scope'
-    $staleReplan=CallQueue 'replan' @{project='test';taskKey='B';expectedRevision=$release.body.task.revision;plan=$replanned}
+    $staleReplan=CallQueue 'replan' @{project='test';taskKey='B';expectedRevision=$release.body.task.revision;reason='Stale';plan=$replanned}
     Assert ($staleReplan.status -eq 409) 'replan rejects stale revision'
-    $doneReplan=CallQueue 'replan' @{project='test';taskKey='A';expectedRevision=$merge.body.task.revision;plan=@{taskKey='A';title='A';scope=@('other/')}}
+    $doneReplan=CallQueue 'replan' @{project='test';taskKey='A';expectedRevision=$merge.body.task.revision;reason='Already done';plan=@{taskKey='A';title='A';scope=@('other/')}}
     Assert ($doneReplan.status -eq 409) 'replan rejects completed task'
     $update=CallQueue 'update' @{id=1;title='Legacy';description='Untouched';status='done';expectedRevision=0}; Assert ($update.status -eq 200 -and $update.body.task.customField -eq 'preserved') 'legacy metadata survives update'
     $stale=CallQueue 'update' @{id=1;title='Stale';status='done';expectedRevision=0}; Assert ($stale.status -eq 409) 'optimistic revision rejects stale update'
