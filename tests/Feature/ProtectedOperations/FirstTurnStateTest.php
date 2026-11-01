@@ -2829,6 +2829,74 @@ SQL);
         Http::assertNothingSent();
     }
 
+    public function test_first_text_concurrent_different_requests_conflict_without_repeating_the_effect(): void
+    {
+        [$tenant, $http, $claim, $extractor] = $this->fixture('Synthetic question', ['protected_claim' => true]);
+        [$stage, , , $file] = $this->responderFixture($tenant, $http, $claim, $extractor, ['content' => 'Можем обсудить заказ?']);
+        $this->within($tenant, fn () => app(Gateway::class)->completeProtectedResponder($http, $claim, $stage));
+        unlink($file);
+        DB::unprepared(<<<'SQL'
+CREATE OR REPLACE FUNCTION c02_test_delay_text_finalize() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.action = 'seller.turn.text_finalized' THEN
+    PERFORM pg_advisory_xact_lock(8620472);
+  END IF;
+  RETURN NEW;
+END;
+$$;
+CREATE TRIGGER c02_test_delay_text_finalize BEFORE INSERT ON audit_logs FOR EACH ROW EXECUTE FUNCTION c02_test_delay_text_finalize();
+SQL);
+        config(['database.connections.c02_finalizer_blocker' => config('database.connections.pgsql')]);
+        $blocker = DB::connection('c02_finalizer_blocker');
+        $blocker->beginTransaction();
+        $blocker->select('SELECT pg_advisory_xact_lock(8620472)');
+        $firstMarker = base_path('.local/tmp/c02-finalize-conflict-a-'.Str::random(16));
+        $secondMarker = base_path('.local/tmp/c02-finalize-conflict-b-'.Str::random(16));
+        $first = $this->finalizeWorker($tenant, $http, $claim, $stage, $firstMarker);
+        $second = $this->finalizeWorker($tenant, $http, $claim, (string) Str::ulid(), $secondMarker);
+        try {
+            $first->start();
+            $this->waitForFinalizerLock($first, $firstMarker);
+            $second->start();
+            $this->waitForFinalizerLock($second, $secondMarker);
+            $blocker->rollBack();
+            $first->wait();
+            $second->wait();
+            self::assertTrue($first->isSuccessful(), $first->getErrorOutput());
+            self::assertTrue($second->isSuccessful(), $second->getErrorOutput());
+            $one = json_decode($first->getOutput(), true, 512, JSON_THROW_ON_ERROR);
+            self::assertSame('completed', $one['status']);
+            self::assertSame(['status' => 'conflict'], json_decode($second->getOutput(), true, 512, JSON_THROW_ON_ERROR));
+            self::assertSame($one['result'], $this->within($tenant, fn () => app(FirstTurnTextFinalizer::class)->finalize($http, $claim, $stage, null, 'parallel-first-text')));
+            self::assertSame(1, DB::table('messages')->where('conversation_id', $claim->conversationId)->where('role', 'agent')->count());
+            self::assertSame(1, DB::table('conversations')->where('id', $claim->conversationId)->value('version'));
+            self::assertSame('completed', DB::table('seller_turns')->where('id', $claim->turnId)->value('status'));
+            self::assertSame(1, DB::table('protected_operation_receipts')->where('operation', 'seller.first_text_finalize')->count());
+            self::assertSame(1, DB::table('audit_logs')->where('action', 'seller.turn.text_finalized')->count());
+            self::assertSame(0, DB::table('seller_tasks')->count());
+            self::assertSame(0, DB::table('outbox_events')->count());
+        } finally {
+            if ($blocker->transactionLevel() > 0) {
+                $blocker->rollBack();
+            }
+            foreach ([$first, $second] as $worker) {
+                if ($worker->isRunning()) {
+                    $worker->stop();
+                }
+            }
+            foreach ([$firstMarker, $secondMarker] as $marker) {
+                if (is_file($marker)) {
+                    unlink($marker);
+                }
+            }
+            DB::purge('c02_finalizer_blocker');
+            DB::unprepared('DROP TRIGGER IF EXISTS c02_test_delay_text_finalize ON audit_logs; DROP FUNCTION IF EXISTS c02_test_delay_text_finalize();');
+        }
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
+    }
+
     public function test_first_text_finishes_before_concurrent_input_and_replays_across_processes(): void
     {
         [$tenant, $http, $claim, $extractor] = $this->fixture('Synthetic question', ['protected_claim' => true]);
