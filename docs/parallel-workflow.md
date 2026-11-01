@@ -1,6 +1,6 @@
 # Работа с очередью и worktree
 
-Команды выполняются из основного checkout с помощью Python и `scripts/task.py`. Проект должен быть включён, зависимости задачи — в `done`, а их merge-коммиты — в истории чистого `main`. `ready` показывает подсказку, а не резервирует задачу.
+Команды выполняются из основного checkout с помощью Python и `scripts/task.py`. Проект должен быть включён, зависимости задачи — в `done`, а их merge-коммиты — в истории чистого `main`. `ready` показывает задачи, для которых нет локальных claim, worktree и ветки, а в `blockedLocal` перечисляет оставшиеся локальные препятствия; это подсказка, а не резервирование задачи.
 
 ```powershell
 $taskPython = 'C:\Users\eralash\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe'
