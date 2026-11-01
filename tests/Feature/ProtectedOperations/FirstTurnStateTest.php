@@ -5,7 +5,9 @@ namespace Tests\Feature\ProtectedOperations;
 use App\Ai\CanonicalJson;
 use App\Ai\ContactMasker;
 use App\Ai\Gateway;
+use App\Ai\Protected\ResponderProjection;
 use App\Ai\Protected\SellerExtractorStages;
+use App\Ai\Protected\SellerResponderStages;
 use App\Models\Brand;
 use App\Models\Membership;
 use App\Models\Organization;
@@ -17,6 +19,9 @@ use App\Seller\Conversations\Data\TurnClaim;
 use App\Seller\Conversations\Data\TurnCommand;
 use App\Seller\Conversations\Models\Conversation;
 use App\Seller\Conversations\Models\Message;
+use App\Seller\Engine\LeadState;
+use App\Seller\Engine\Policy;
+use App\Seller\Knowledge\Contracts\KnowledgeRepository;
 use App\Seller\Knowledge\Import\YamlKnowledgeImporter;
 use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Auth\SessionBrandSelection;
@@ -35,6 +40,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use LogicException;
+use Symfony\Component\Process\Process;
 use Tests\TestCase;
 
 final class FirstTurnStateTest extends TestCase
@@ -545,6 +551,395 @@ final class FirstTurnStateTest extends TestCase
             self::assertSame(0, DB::table('seller_tasks')->count());
         });
         Http::assertNothingSent();
+    }
+
+    public function test_responder_projection_matches_all_original_prompt_goldens(): void
+    {
+        [$tenant] = $this->fixture();
+        $this->within($tenant, function () use ($tenant): void {
+            $knowledge = app(KnowledgeRepository::class)->published($tenant);
+            $states = json_decode(file_get_contents(base_path('tests/fixtures/prototype/prompts/states.json')), true, 512, JSON_THROW_ON_ERROR);
+            $extraction = ['slot_updates' => [], 'client_intent' => 'answer_only', 'client_questions' => [], 'objections' => [], 'sentiment' => 'neutral', 'wants_only_prices' => false, 'asked_if_bot' => false, 'wants_human' => false, 'do_not_disturb' => false, 'off_topic' => false, 'prompt_injection' => false, 'closed_topic' => null, 'unknown_question' => null, 'client_claims' => [], 'refused_slots' => [], 'confidence' => 0.9];
+            foreach ($states as $name => $data) {
+                $state = new LeadState($data);
+                $goal = (new Policy($knowledge))->decide($state, $extraction, $name === 'opening');
+                $actual = app(ResponderProjection::class)->render($knowledge, $state, $goal, 'Антон');
+                $expected = file_get_contents(base_path('tests/fixtures/prototype/prompts/'.$name.'/responder.txt'));
+                self::assertIsString($expected);
+                self::assertSame(str_replace("\r\n", "\n", $expected), str_replace("\r\n", "\n", $actual), $name);
+            }
+        });
+        Http::assertNothingSent();
+    }
+
+    public function test_responder_stage_binds_server_request_and_candidate_to_the_first_turn(): void
+    {
+        [$tenant, $http, $claim, $extractor] = $this->fixture('Synthetic question from synthetic.user@example.test');
+        [$stage, $request, $context, $file] = $this->responderFixture($tenant, $http, $claim, $extractor);
+        $this->within($tenant, function () use ($tenant, $http, $claim, $extractor, $stage, $request, $context, $file): void {
+            $source = app(SellerResponderStages::class);
+            $state = DB::table('c02_first_turn_states')->where('turn_id', $claim->turnId)->value('id');
+            self::assertSame($stage, $source->prepare($http, $claim, $extractor, $state));
+            self::assertSame('responder', $context->purpose);
+            self::assertSame('user', $request->messages[1]['role']);
+            self::assertSame('Synthetic question from synthetic.user@example.test', $request->messages[1]['content']);
+            self::assertStringContainsString('ЦЕЛЬ ХОДА:', $request->messages[0]['content']);
+            $stored = DB::table('c02_responder_stages')->where('id', $stage)->first();
+            self::assertStringNotContainsString('synthetic.user@example.test', json_encode($stored, JSON_THROW_ON_ERROR));
+            try {
+                app(Gateway::class)->complete($request, $context);
+                self::fail('Public Gateway accepted a protected prepared request.');
+            } catch (LogicException) {
+                self::assertTrue(true);
+            }
+            self::assertSame('completed', app(Gateway::class)->completeProtectedResponder($http, $claim, $stage));
+            self::assertSame('completed', app(Gateway::class)->completeProtectedResponder($http, $claim, $stage));
+            try {
+                app(Gateway::class)->readProtectedResponderLocked($http, $claim, $stage);
+                self::fail('Responder candidate was returned outside a transaction.');
+            } catch (LogicException $error) {
+                self::assertSame('Protected responder result unavailable.', $error->getMessage());
+            }
+            $read = DB::transaction(fn () => app(Gateway::class)->readProtectedResponderLocked($http, $claim, $stage));
+            self::assertSame(['status' => 'candidate', 'text' => 'Тестовый ответ'], $read);
+            try {
+                app(Gateway::class)->complete($request, $context);
+                self::fail('Public Gateway replayed a protected call.');
+            } catch (LogicException) {
+                self::assertTrue(true);
+            }
+            DB::table('brand_modules')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
+                ->where('module', 'seller')->update(['enabled' => false]);
+            try {
+                DB::transaction(fn () => app(Gateway::class)->readProtectedResponderLocked($http, $claim, $stage));
+                self::fail('A candidate was read after access was revoked.');
+            } catch (LogicException) {
+                self::assertTrue(true);
+            }
+            DB::table('brand_modules')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
+                ->where('module', 'seller')->update(['enabled' => true]);
+            app(AuthSessionRegistry::class)->withinActive($http, fn () => app(AuthSessionRegistry::class)->revokeCurrent($http));
+            try {
+                DB::transaction(fn () => app(Gateway::class)->readProtectedResponderLocked($http, $claim, $stage));
+                self::fail('A candidate was read after the session was revoked.');
+            } catch (LogicException) {
+                self::assertTrue(true);
+            }
+            self::assertSame(2, DB::table('ai_calls')->where('organization_id', $tenant->organizationId)->count());
+            self::assertSame(0, DB::table('seller_tasks')->count());
+            self::assertSame(0, DB::table('outbox_events')->count());
+            self::assertSame([], json_decode(DB::table('conversations')->where('id', $claim->conversationId)->value('state'), true, 512, JSON_THROW_ON_ERROR));
+            unlink($file);
+        });
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
+    }
+
+    public function test_responder_unknown_cost_and_tool_calls_never_create_effects(): void
+    {
+        [$tenant, $http, $claim, $extractor] = $this->fixture('Unknown cost');
+        [$stage, , , $file] = $this->responderFixture($tenant, $http, $claim, $extractor, ['costMicros' => null]);
+        $this->within($tenant, function () use ($http, $claim, $stage, $file): void {
+            self::assertSame('uncertain', app(Gateway::class)->completeProtectedResponder($http, $claim, $stage));
+            self::assertSame('uncertain', app(Gateway::class)->completeProtectedResponder($http, $claim, $stage));
+            try {
+                DB::transaction(fn () => app(Gateway::class)->readProtectedResponderLocked($http, $claim, $stage));
+                self::fail('Unknown cost produced a candidate.');
+            } catch (LogicException $error) {
+                self::assertSame('Protected responder result unavailable.', $error->getMessage());
+            }
+            unlink($file);
+        });
+        [$otherTenant, $otherHttp, $otherClaim, $otherExtractor] = $this->fixture('Tool call');
+        [$otherStage, , , $otherFile] = $this->responderFixture($otherTenant, $otherHttp, $otherClaim, $otherExtractor, [
+            'content' => 'Ignored text', 'toolCalls' => [['id' => 'synthetic-call', 'name' => 'send_price', 'arguments' => ['email' => 'synthetic.user@example.test']]],
+        ]);
+        $this->within($otherTenant, function () use ($otherHttp, $otherClaim, $otherStage, $otherFile): void {
+            self::assertSame('completed', app(Gateway::class)->completeProtectedResponder($otherHttp, $otherClaim, $otherStage));
+            $result = DB::transaction(fn () => app(Gateway::class)->readProtectedResponderLocked($otherHttp, $otherClaim, $otherStage));
+            self::assertSame(['status' => 'tool_calls', 'text' => null], $result);
+            unlink($otherFile);
+        });
+        self::assertSame(4, DB::table('ai_calls')->count());
+        self::assertSame(0, DB::table('seller_tasks')->count());
+        self::assertSame(0, DB::table('outbox_events')->count());
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
+    }
+
+    public function test_responder_rejects_forgery_revocation_and_new_input_without_an_effect(): void
+    {
+        [$tenant, $http, $claim, $extractor] = $this->fixture('Synthetic first input');
+        [$stage, , , $file, $stateId] = $this->responderFixture($tenant, $http, $claim, $extractor);
+        [$otherTenant, $otherHttp, $otherClaim, $otherExtractor] = $this->fixture('Other synthetic input');
+        [$otherStage, , , $otherFile, $otherStateId] = $this->responderFixture($otherTenant, $otherHttp, $otherClaim, $otherExtractor);
+        $this->within($tenant, function () use ($tenant, $http, $claim, $extractor, $stage, $otherStage, $otherStateId): void {
+            $forged = new TurnClaim('claimed', $claim->turnId, $claim->conversationId, $claim->organizationId, $claim->brandId, $claim->baseVersion, str_repeat('a', 64));
+            foreach ([fn () => app(SellerResponderStages::class)->load($http, $forged, $stage),
+                fn () => app(SellerResponderStages::class)->load($http, $claim, $otherStage),
+                fn () => app(SellerResponderStages::class)->prepare($http, $claim, $extractor, $otherStateId)] as $operation) {
+                try {
+                    $operation();
+                    self::fail('Forged responder source was accepted.');
+                } catch (LogicException $error) {
+                    self::assertSame('Protected responder stage rejected.', $error->getMessage());
+                    self::assertNull($error->getPrevious());
+                    $trace = json_encode($error->getTrace(), JSON_PARTIAL_OUTPUT_ON_ERROR | JSON_THROW_ON_ERROR);
+                    self::assertStringNotContainsString($http->session()->getId(), $trace);
+                }
+            }
+            config(['runtime.ai_driver' => 'record']);
+            try {
+                app(Gateway::class)->completeProtectedResponder($http, $claim, $stage);
+                self::fail('Non-fake driver was accepted.');
+            } catch (LogicException $error) {
+                self::assertSame('Protected responder stage could not be completed.', $error->getMessage());
+            } finally {
+                config(['runtime.ai_driver' => 'fake']);
+            }
+            $release = DB::table('brands')->where('id', $tenant->brandId)->value('active_knowledge_release_id');
+            DB::table('brands')->where('id', $tenant->brandId)->update(['active_knowledge_release_id' => null]);
+            try {
+                app(Gateway::class)->completeProtectedResponder($http, $claim, $stage);
+                self::fail('Inactive knowledge release was accepted.');
+            } catch (LogicException) {
+                self::assertTrue(true);
+            }
+            DB::table('brands')->where('id', $tenant->brandId)->update(['active_knowledge_release_id' => $release]);
+            Message::create(['conversation_id' => $claim->conversationId, 'role' => 'client', 'text' => 'Later synthetic input', 'meta' => []]);
+            try {
+                app(Gateway::class)->completeProtectedResponder($http, $claim, $stage);
+                self::fail('Stale responder request was sent.');
+            } catch (LogicException) {
+                self::assertTrue(true);
+            }
+            self::assertSame('uncertain', DB::table('seller_turns')->where('id', $claim->turnId)->value('status'));
+            self::assertSame(2, DB::table('messages')->where('conversation_id', $claim->conversationId)->count());
+        });
+        $this->within($otherTenant, function () use ($otherHttp, $otherClaim, $otherStage): void {
+            app(AuthSessionRegistry::class)->withinActive($otherHttp, fn () => app(AuthSessionRegistry::class)->revokeCurrent($otherHttp));
+            try {
+                app(Gateway::class)->completeProtectedResponder($otherHttp, $otherClaim, $otherStage);
+                self::fail('Revoked session started a responder call.');
+            } catch (LogicException) {
+                self::assertTrue(true);
+            }
+        });
+        self::assertSame(2, DB::table('ai_calls')->count());
+        self::assertSame(0, DB::table('seller_tasks')->count());
+        self::assertSame(0, DB::table('outbox_events')->count());
+        unlink($file);
+        unlink($otherFile);
+        Http::assertNothingSent();
+    }
+
+    public function test_responder_history_tampering_and_concurrent_input_are_rejected(): void
+    {
+        [$tenant, $http, $claim, $extractor] = $this->fixture();
+        [$stage, , , $file] = $this->responderFixture($tenant, $http, $claim, $extractor);
+        $this->within($tenant, function () use ($tenant, $http, $claim, $extractor, $stage, $file): void {
+            $oldCall = DB::table('c02_extractor_stages')->where('id', $extractor)->value('ai_call_id');
+            $forged = (array) DB::table('c02_responder_stages')->where('id', $stage)->first();
+            $forged['id'] = (string) Str::ulid();
+            $forged['first_state_id'] = (string) Str::ulid();
+            try {
+                DB::transaction(fn () => DB::table('c02_responder_stages')->insert($forged));
+                self::fail('A responder stage with no matching state was inserted.');
+            } catch (QueryException $error) {
+                self::assertSame('23514', $error->errorInfo[0]);
+            }
+            foreach ([fn () => DB::table('c02_responder_stages')->where('id', $stage)->update(['request_encrypted' => 'forged']),
+                fn () => DB::table('c02_responder_stages')->where('id', $stage)->update(['ai_call_id' => $oldCall, 'gateway_request_hash' => str_repeat('a', 64)]),
+                fn () => DB::table('c02_responder_stages')->where('id', $stage)->delete(),
+                fn () => DB::statement('TRUNCATE TABLE c02_responder_stages')] as $operation) {
+                try {
+                    DB::transaction($operation);
+                    self::fail('Protected responder history changed.');
+                } catch (QueryException $error) {
+                    self::assertSame('23514', $error->errorInfo[0]);
+                }
+            }
+            self::assertSame('completed', app(Gateway::class)->completeProtectedResponder($http, $claim, $stage));
+            $call = DB::table('c02_responder_stages')->where('id', $stage)->value('ai_call_id');
+            $original = DB::table('ai_calls')->where('id', $call)->value('result_encrypted');
+            $wrong = DB::table('ai_calls')->where('id', $oldCall)->value('result_encrypted');
+            DB::table('ai_calls')->where('id', $call)->update(['result_encrypted' => $wrong]);
+            try {
+                DB::transaction(fn () => app(Gateway::class)->readProtectedResponderLocked($http, $claim, $stage));
+                self::fail('A different stored result was accepted.');
+            } catch (LogicException $error) {
+                self::assertSame('Protected responder result unavailable.', $error->getMessage());
+            }
+            DB::table('ai_calls')->where('id', $call)->update(['result_encrypted' => $original]);
+            DB::table('prompt_sets')->whereNull('organization_id')->where('name', 'responder')->update(['status' => 'draft']);
+            try {
+                DB::transaction(fn () => app(Gateway::class)->readProtectedResponderLocked($http, $claim, $stage));
+                self::fail('An unpublished prompt was accepted.');
+            } catch (LogicException) {
+                self::assertTrue(true);
+            }
+            DB::table('prompt_sets')->whereNull('organization_id')->where('name', 'responder')->update(['status' => 'published']);
+            config(['database.connections.c02_responder_competitor' => config('database.connections.pgsql')]);
+            $other = DB::connection('c02_responder_competitor');
+            DB::transaction(function () use ($tenant, $http, $claim, $stage, $other): void {
+                self::assertSame('candidate', app(Gateway::class)->readProtectedResponderLocked($http, $claim, $stage)['status']);
+                $other->beginTransaction();
+                try {
+                    $other->statement("SET LOCAL lock_timeout = '250ms'");
+                    $other->table('messages')->insert(['id' => (string) Str::ulid(), 'organization_id' => $tenant->organizationId,
+                        'brand_id' => $tenant->brandId, 'conversation_id' => $claim->conversationId,
+                        'role' => 'client', 'text' => 'Concurrent synthetic input', 'meta' => '{}']);
+                    self::fail('Input crossed the responder read transaction.');
+                } catch (QueryException $error) {
+                    self::assertSame('55P03', $error->errorInfo[0]);
+                } finally {
+                    $other->rollBack();
+                }
+            });
+            DB::purge('c02_responder_competitor');
+            Message::create(['conversation_id' => $claim->conversationId, 'role' => 'client', 'text' => 'Later synthetic input', 'meta' => []]);
+            try {
+                DB::transaction(fn () => app(Gateway::class)->readProtectedResponderLocked($http, $claim, $stage));
+                self::fail('Stale responder result remained accessible.');
+            } catch (LogicException) {
+                self::assertTrue(true);
+            }
+            self::assertSame('uncertain', DB::table('seller_turns')->where('id', $claim->turnId)->value('status'));
+            self::assertSame(2, DB::table('messages')->where('conversation_id', $claim->conversationId)->count());
+            self::assertSame(2, DB::table('ai_calls')->count());
+            self::assertSame(0, DB::table('seller_tasks')->count());
+            unlink($file);
+        });
+        Http::assertNothingSent();
+    }
+
+    public function test_new_input_during_responder_result_persistence_preserves_accounting_and_hides_candidate(): void
+    {
+        [$tenant, $http, $claim, $extractor] = $this->fixture('Synthetic input');
+        [$stage, , , $file] = $this->responderFixture($tenant, $http, $claim, $extractor, ['costMicros' => 2]);
+        DB::unprepared(<<<'SQL'
+CREATE OR REPLACE FUNCTION c02_test_delay_responder() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.result_encrypted IS NOT NULL AND OLD.result_encrypted IS NULL THEN
+    PERFORM pg_advisory_xact_lock(8620251);
+  END IF;
+  RETURN NEW;
+END;
+$$;
+CREATE TRIGGER c02_test_delay_responder BEFORE UPDATE ON ai_calls FOR EACH ROW EXECUTE FUNCTION c02_test_delay_responder();
+SQL);
+        config(['database.connections.c02_responder_advisory' => config('database.connections.pgsql')]);
+        $blocker = DB::connection('c02_responder_advisory');
+        $blocker->beginTransaction();
+        $blocker->select('SELECT pg_advisory_xact_lock(8620251)');
+        $worker = new Process([PHP_BINARY, '-d', 'opcache.enable_cli=0', '-d', 'allow_url_fopen=0',
+            '-d', 'disable_functions=fsockopen,pfsockopen,stream_socket_client,curl_exec,curl_multi_exec',
+            base_path('tests/Feature/Ai/Fixtures/protected-responder-worker.php')], base_path());
+        $worker->setInput(json_encode(['org' => $tenant->organizationId, 'brand' => $tenant->brandId,
+            'user' => $tenant->actorId, 'member' => $tenant->membershipId, 'session' => $http->session()->getId(),
+            'turn' => $claim->turnId, 'conversation' => $claim->conversationId, 'version' => $claim->baseVersion,
+            'token' => $claim->token(), 'stage' => $stage, 'fixtures' => dirname($file)], JSON_THROW_ON_ERROR));
+        $worker->setTimeout(25);
+        $inputRecorded = false;
+        try {
+            $worker->start();
+            $deadline = microtime(true) + 20;
+            do {
+                if (! $worker->isRunning()) {
+                    self::fail('Protected worker exited before the test lock.');
+                }
+                $waiting = DB::selectOne("select count(*) as n from pg_stat_activity where datname = current_database() and wait_event = 'advisory'")->n;
+                if ((int) $waiting > 0) {
+                    break;
+                }
+                usleep(50000);
+            } while (microtime(true) < $deadline);
+            self::assertGreaterThan(0, (int) $waiting);
+            $this->within($tenant, fn () => Message::create(['conversation_id' => $claim->conversationId, 'role' => 'client', 'text' => 'Later synthetic input', 'meta' => []]));
+            $inputRecorded = true;
+        } finally {
+            $blocker->rollBack();
+            if (! $inputRecorded) {
+                if ($worker->isRunning()) {
+                    $worker->stop();
+                }
+                if (is_file($file)) {
+                    unlink($file);
+                }
+                DB::purge('c02_responder_advisory');
+            }
+        }
+        try {
+            $worker->wait();
+            self::assertTrue($worker->isSuccessful(), $worker->getErrorOutput());
+            self::assertSame(['status' => 'completed'], json_decode($worker->getOutput(), true, 512, JSON_THROW_ON_ERROR));
+            $this->within($tenant, function () use ($http, $claim, $stage): void {
+                try {
+                    DB::transaction(fn () => app(Gateway::class)->readProtectedResponderLocked($http, $claim, $stage));
+                    self::fail('Result of a stale turn was exposed.');
+                } catch (LogicException $error) {
+                    self::assertSame('Protected responder result unavailable.', $error->getMessage());
+                }
+            });
+            $call = DB::table('c02_responder_stages')->where('id', $stage)->value('ai_call_id');
+            self::assertSame('completed', DB::table('ai_calls')->where('id', $call)->value('status'));
+            self::assertSame(2, (int) DB::table('ai_budgets')->where('organization_id', $tenant->organizationId)->value('spent_micros'));
+            self::assertSame('uncertain', DB::table('seller_turns')->where('id', $claim->turnId)->value('status'));
+            self::assertSame(2, DB::table('messages')->where('conversation_id', $claim->conversationId)->count());
+            self::assertSame(0, DB::table('seller_tasks')->count());
+            Http::assertNothingSent();
+        } finally {
+            if ($worker->isRunning()) {
+                $worker->stop();
+            }
+            if (is_file($file)) {
+                unlink($file);
+            }
+            DB::purge('c02_responder_advisory');
+        }
+    }
+
+    public function test_responder_migration_preserves_existing_turn_and_refuses_to_discard_history(): void
+    {
+        $migration = require database_path('migrations/C-02/2026_11_01_070000_c02_create_responder_stages.php');
+        $migration->down();
+        [$tenant, $http, $claim, $extractor] = $this->fixture();
+        self::assertSame(1, DB::table('ai_calls')->count());
+        self::assertSame(1, DB::table('messages')->where('conversation_id', $claim->conversationId)->count());
+        $migration->up();
+        [$stage, , , $file] = $this->responderFixture($tenant, $http, $claim, $extractor);
+        self::assertNotEmpty($stage);
+        self::assertSame(1, DB::table('c02_responder_stages')->count());
+        self::assertSame('processing', DB::table('seller_turns')->where('id', $claim->turnId)->value('status'));
+        try {
+            $migration->down();
+            self::fail('Migration discarded protected responder history.');
+        } catch (\RuntimeException $error) {
+            self::assertSame('Cannot discard protected responder stage history.', $error->getMessage());
+        }
+        self::assertSame(1, DB::table('c02_responder_stages')->count());
+        unlink($file);
+        Http::assertNothingSent();
+    }
+
+    private function responderFixture(TenantContext $tenant, Request $http, TurnClaim $claim, string $extractor, array $result = []): array
+    {
+        return $this->within($tenant, function () use ($http, $claim, $extractor, $result): array {
+            $stateId = app(FirstTurnState::class)->prepare($http, $claim, $extractor);
+            $stage = app(SellerResponderStages::class)->prepare($http, $claim, $extractor, $stateId);
+            [$request, $context] = app(SellerResponderStages::class)->load($http, $claim, $stage);
+            $directory = storage_path('app/responder-fixtures-'.Str::random(12));
+            mkdir($directory, 0700, true);
+            config(['features.E0-05.defaults.fixture_directory' => $directory]);
+            $file = $directory.DIRECTORY_SEPARATOR.CanonicalJson::hash(app(ContactMasker::class)->request($request->toArray())).'.json';
+            $fake = array_replace(['content' => '«Антон: Тестовый ответ»', 'toolCalls' => [], 'usage' => ['promptTokens' => 1, 'completionTokens' => 1],
+                'model' => $request->model, 'latencyMs' => 1, 'costMicros' => 0], $result);
+            file_put_contents($file, json_encode(['result' => $fake], JSON_THROW_ON_ERROR));
+
+            return [$stage, $request, $context, $file, $stateId];
+        });
     }
 
     private function fixture(string $text = 'Synthetic question', array $options = []): array
