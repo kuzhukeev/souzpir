@@ -67,6 +67,15 @@ final class FirstTurnCoordinator
             $stateId = app(FirstTurnState::class)->prepare($http, $claim, $extractor);
             $responder = app(SellerResponderStages::class)->prepare($http, $claim, $extractor, $stateId);
             $status = $gateway->completeProtectedResponder($http, $claim, $responder);
+            if ($status === 'in_progress') {
+                try {
+                    // Only the saved, signed fake result may be settled; tool
+                    // signals remain data for the existing Guard boundary.
+                    $status = $gateway->settleSavedFakeResponder($http, $claim, $responder);
+                } catch (Throwable) {
+                    return ['status' => 'in_progress'];
+                }
+            }
             if ($status !== 'completed') {
                 return $this->pending($status);
             }
