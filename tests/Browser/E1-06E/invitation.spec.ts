@@ -195,7 +195,7 @@ test('наблюдатель не может выпустить приглаше
   const status = await page.evaluate(async () => {
     const token = document.cookie.split('; ').find((part) => part.startsWith('XSRF-TOKEN='));
     const team = await fetch('/team', {
-      headers: { 'X-Inertia': 'true', Accept: 'text/html, application/xhtml+xml' },
+      headers: { 'X-Inertia': 'true', 'X-Inertia-Version': document.querySelector('main')?.dataset.inertiaVersion ?? '', Accept: 'text/html, application/xhtml+xml' },
     });
     const page = (await team.json()) as {
       props: { brand: { id: string }; teamBrandRevision: string };
@@ -252,8 +252,8 @@ test('смена контекста скрывает секрет и игнор�
     );
     button?.click();
   });
-  unblock();
   await expect(page.getByText(/Результат неизвестен/)).toBeVisible();
+  unblock();
   await expect(page.getByLabel('Ссылка приглашения')).toHaveCount(0);
   expect(await count(page, email)).toBe(1);
 });
@@ -264,7 +264,7 @@ test('сервер отклоняет чужой бренд', async ({ page }) =
   const status = await page.evaluate(async (targetEmail) => {
     const cookie = document.cookie.split('; ').find((part) => part.startsWith('XSRF-TOKEN='));
     const team = await fetch('/team', {
-      headers: { 'X-Inertia': 'true', Accept: 'text/html, application/xhtml+xml' },
+      headers: { 'X-Inertia': 'true', 'X-Inertia-Version': document.querySelector('main')?.dataset.inertiaVersion ?? '', Accept: 'text/html, application/xhtml+xml' },
     });
     const result = (await team.json()) as { props: { teamBrandRevision: string } };
     const response = await fetch('/team/invitations', {
@@ -320,7 +320,7 @@ test('настоящая смена бренда в другой вкладке 
   await login(page, 'owner');
   const current = await page.evaluate(async () => {
     const response = await fetch('/team', {
-      headers: { 'X-Inertia': 'true', Accept: 'text/html, application/xhtml+xml' },
+      headers: { 'X-Inertia': 'true', 'X-Inertia-Version': document.querySelector('main')?.dataset.inertiaVersion ?? '', Accept: 'text/html, application/xhtml+xml' },
     });
     const result = (await response.json()) as {
       props: { brand: { id: string }; filterBrands: { id: string; name: string }[] };

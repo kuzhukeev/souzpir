@@ -7,6 +7,7 @@ import InvitationDialog, {
 const state = vi.hoisted(() => ({
   listener: null as null | (() => void),
   stable: true,
+  version: 'fixture-inertia-version',
   navigation: null as null | (() => void),
 }));
 vi.mock('@/features/Shell/Profile/contextFence', () => ({
@@ -19,6 +20,7 @@ vi.mock('@/features/Shell/Profile/contextFence', () => ({
   },
 }));
 vi.mock('@inertiajs/react', () => ({
+  usePage: () => ({ version: state.version }),
   router: {
     on: (_event: string, listener: () => void) => {
       state.navigation = listener;
@@ -44,6 +46,7 @@ const props: InvitationDialogProps = {
 const checked = () =>
   new Response(
     JSON.stringify({
+      version: state.version,
       props: {
         teamBrandRevision: revision,
         canViewRoles: true,
@@ -61,6 +64,7 @@ const issued = () =>
 
 beforeEach(() => {
   state.stable = true;
+  state.version = 'fixture-inertia-version';
   document.cookie = 'XSRF-TOKEN=test%2Bcsrf; path=/';
 });
 afterEach(() => {
@@ -90,6 +94,7 @@ it('issues once with CSRF and revision, never places the bearer in history or st
   expect(path).toBe('/team/invitations');
   expect(request.headers['X-Brand-Revision']).toBe(revision);
   expect(request.headers['X-XSRF-TOKEN']).toBe('test+csrf');
+  expect(fetcher.mock.calls[1][1].headers['X-Inertia-Version']).toBe(state.version);
   expect(JSON.parse(request.body)).toMatchObject({
     email: 'person@example.test',
     role: 'viewer',
@@ -197,6 +202,28 @@ it('does not reveal a link if server-side context revalidation fails', async () 
   prepare();
   expect(await screen.findByText(/Результат неизвестен/)).toBeTruthy();
   expect(screen.queryByLabelText('Ссылка приглашения')).toBeNull();
+});
+
+it.each([
+  () => new Response('', { status: 409 }),
+  () => new Response(JSON.stringify({ version: 'different', props: { teamBrandRevision: revision, canViewRoles: true, brand: { id: brand }, filterBrands: [{ id: brand }] } }), { status: 200 }),
+])('fails closed if Inertia versions do not match', async (mismatch) => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(issued()).mockResolvedValueOnce(mismatch()));
+  render(<InvitationDialog {...props} />);
+  prepare();
+  expect(await screen.findByText(/Результат неизвестен/)).toBeTruthy();
+  expect(screen.queryByLabelText('Ссылка приглашения')).toBeNull();
+});
+
+it('clears an already displayed link when the Inertia version changes', async () => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(issued()).mockResolvedValueOnce(checked()));
+  const { rerender } = render(<InvitationDialog {...props} />);
+  prepare();
+  const field = (await screen.findByLabelText('Ссылка приглашения')) as HTMLTextAreaElement;
+  state.version = 'new-version';
+  rerender(<InvitationDialog {...props} />);
+  expect(screen.queryByLabelText('Ссылка приглашения')).toBeNull();
+  expect(field.value).toBe('');
 });
 
 it('marks a hung issuance unknown even when fetch ignores abort', async () => {
