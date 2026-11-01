@@ -7,6 +7,7 @@ use App\Shell\Auth\PasswordDelivery\PasswordDelivery;
 use App\Shell\Auth\PasswordDelivery\PasswordTransport;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 
 require __DIR__.'/../../../../../../vendor/autoload.php';
@@ -24,9 +25,10 @@ fgets(STDIN);
 $user = User::findOrFail($data['user']);
 switch ($data['mode']) {
     case 'reset':
-        $request = Request::create('/reset-password', 'POST', ['email' => $user->email, 'token' => $data['token'], 'password' => 'new-secure-password', 'password_confirmation' => 'new-secure-password']);
+        $request = Request::create('/reset-password', 'POST', ['password' => 'new-secure-password', 'password_confirmation' => 'new-secure-password'], server: ['REMOTE_ADDR' => '127.0.0.1', 'SERVER_ADDR' => '127.0.0.1']);
         $session = app('session')->driver('array');
         $session->start();
+        $session->put('auth.password_recovery', ['hash' => hash('sha256', $data['token']), 'email' => Crypt::encryptString($user->email)]);
         $request->setLaravelSession($session);
         $response = app(PasswordController::class)->store($request);
         echo str_ends_with($response->getTargetUrl(), '/login') ? 'reset' : 'denied';

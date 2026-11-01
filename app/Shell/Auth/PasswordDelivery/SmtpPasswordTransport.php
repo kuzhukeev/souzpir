@@ -17,7 +17,16 @@ final class SmtpPasswordTransport implements PasswordTransport
             throw new KnownDeliveryFailure('Password delivery is disabled or unconfigured.');
         }
         try {
-            $url = route('password.reset', ['token' => $token, 'email' => $user->email]);
+            $url = route('password.open');
+            $parts = parse_url($url);
+            $scheme = $parts['scheme'] ?? null;
+            $host = $parts['host'] ?? null;
+            if (! is_array($parts) || ! is_string($host) || $host === '' || isset($parts['user']) || isset($parts['pass']) || isset($parts['query']) || isset($parts['fragment'])
+                || ($scheme !== 'https' && ! ($scheme === 'http' && app()->environment('local') && $host === 'souzpir.local'))
+                || ! ResetToken::valid($token)) {
+                throw new KnownDeliveryFailure('Unsafe password recovery URL.');
+            }
+            $url .= '#'.http_build_query(['token' => $token, 'email' => $user->email], '', '&', PHP_QUERY_RFC3986);
             $html = '<p>Для восстановления доступа перейдите по ссылке:</p><p><a href="'.htmlspecialchars($url, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8').'">Восстановить пароль</a></p><p>Ссылка действует ограниченное время.</p>';
         } catch (Throwable) {
             throw new KnownDeliveryFailure('Password message could not be prepared.');

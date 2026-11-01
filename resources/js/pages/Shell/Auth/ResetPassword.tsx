@@ -3,8 +3,9 @@ import { Button } from '@/components/ui';
 import { AuthFrame, Field, linkClass } from '@/features/Shell/Auth/AuthFrame';
 import type { FormEvent } from 'react';
 
-export default function ResetPassword({ token, email }: { token: string; email: string }) {
-  const form = useForm({ token, email, password: '', password_confirmation: '' });
+export default function ResetPassword({ hasLink }: { hasLink: boolean }) {
+  const form = useForm({ password: '', password_confirmation: '' });
+  const emailError = (form.errors as Record<string, string>).email;
   const submit = (event: FormEvent) => {
     event.preventDefault();
     form.post('/reset-password', {
@@ -13,16 +14,9 @@ export default function ResetPassword({ token, email }: { token: string; email: 
   };
   return (
     <AuthFrame title="Новый пароль" subtitle="Придумайте надёжный пароль для входа.">
-      <form onSubmit={submit} className="space-y-5">
-        <Field
-          label="Рабочая почта"
-          type="email"
-          autoComplete="email"
-          required
-          value={form.data.email}
-          onChange={(e) => form.setData('email', e.target.value)}
-          error={form.errors.email}
-        />
+      {!hasLink && <p role="alert">Ссылка недействительна. <Link href="/forgot-password" className={linkClass}>Запросить новую ссылку</Link></p>}
+      {hasLink && <form onSubmit={submit} className="space-y-5">
+        {emailError && <p role="alert">{emailError}</p>}
         <Field
           label="Новый пароль"
           type="password"
@@ -46,7 +40,7 @@ export default function ResetPassword({ token, email }: { token: string; email: 
         <Button type="submit" loading={form.processing} className="min-h-12 w-full">
           Сохранить пароль
         </Button>
-      </form>
+      </form>}
       <p className="mt-6 text-center text-sm">
         <Link href="/login" className={linkClass}>
           Вернуться ко входу

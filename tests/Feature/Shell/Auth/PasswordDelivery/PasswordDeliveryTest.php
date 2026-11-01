@@ -12,20 +12,22 @@ use App\Shell\Auth\PasswordDelivery\SmtpPasswordTransport;
 use App\Shell\Auth\Totp;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Mail\Mailer;
 use Illuminate\Mail\SentMessage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\URL;
+use Illuminate\Testing\TestResponse;
 use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
+use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\TestCase;
 
 final class PasswordDeliveryTest extends TestCase
 {
-    use DatabaseMigrations;
+    use IsolatedDatabaseMigrations;
 
     private User $user;
 
@@ -51,6 +53,7 @@ final class PasswordDeliveryTest extends TestCase
         self::assertSame(config('runtime.test_database'), DB::connection()->getDatabaseName());
         self::assertNotSame(config('runtime.preview_database'), DB::connection()->getDatabaseName());
         $this->withoutVite();
+        $this->withServerVariables(['REMOTE_ADDR' => '127.0.0.1', 'SERVER_ADDR' => '127.0.0.1']);
         Mail::fake();
         Queue::fake();
         config(['features.E1-01F.defaults.enabled' => true, 'queue.default' => 'database']);
@@ -92,6 +95,14 @@ final class PasswordDeliveryTest extends TestCase
         return DB::table('password_delivery_intents')->value('id');
     }
 
+    private function resetThroughExchange(array $data): TestResponse
+    {
+        $this->get('/reset-password/open');
+        $this->postJson('/reset-password/exchange', ['token' => $data['token'], 'email' => $data['email']]);
+
+        return $this->post('/reset-password', ['password' => $data['password'], 'password_confirmation' => $data['password_confirmation']]);
+    }
+
     public function test_equal_response_throttle_queue_and_single_use_reset_revokes_sessions(): void
     {
         $unknown = $this->post('/forgot-password', ['email' => 'missing@example.test']);
@@ -108,17 +119,17 @@ final class PasswordDeliveryTest extends TestCase
         self::assertSame(1, $this->fake->calls);
         self::assertSame('sent', DB::table('password_delivery_intents')->where('id', $id)->value('status'));
         $row = DB::table('password_reset_tokens')->first();
-        self::assertTrue(Hash::check($this->fake->token, $row->token));
+        self::assertTrue(Hash::check('v2:'.hash('sha256', $this->fake->token), $row->token));
         self::assertStringNotContainsString($this->fake->token, json_encode($row));
         self::assertStringNotContainsString($this->user->email, json_encode(DB::table('password_delivery_intents')->first()));
         DB::table('sessions')->insert(['id' => 'synthetic-session', 'user_id' => $this->user->id, 'payload' => '', 'last_activity' => time()]);
         $oldVersion = $this->user->auth_version;
         $data = ['email' => $this->user->email, 'token' => $this->fake->token, 'password' => 'new-secure-password', 'password_confirmation' => 'new-secure-password'];
-        $this->post('/reset-password', $data)->assertRedirect(route('login'));
+        $this->resetThroughExchange($data)->assertRedirect(route('login'));
         self::assertTrue(Hash::check('new-secure-password', $this->user->fresh()->password));
         self::assertSame($oldVersion + 1, $this->user->fresh()->auth_version);
         self::assertFalse(DB::table('sessions')->where('id', 'synthetic-session')->exists());
-        $this->post('/reset-password', $data)->assertSessionHasErrors('email');
+        $this->resetThroughExchange($data)->assertSessionHasErrors('email');
     }
 
     public function test_expired_token_revoked_eligibility_and_stale_pending_fail_closed(): void
@@ -139,7 +150,7 @@ final class PasswordDeliveryTest extends TestCase
         $this->delivery->send($this->delivery->claim($id), $this->fake);
         $token = $this->fake->token;
         $this->travel(61)->minutes();
-        $this->post('/reset-password', ['email' => $this->user->email, 'token' => $token, 'password' => 'new-secure-password', 'password_confirmation' => 'new-secure-password'])->assertSessionHasErrors('email');
+        $this->resetThroughExchange(['email' => $this->user->email, 'token' => $token, 'password' => 'new-secure-password', 'password_confirmation' => 'new-secure-password'])->assertSessionHasErrors('email');
     }
 
     public function test_uncertain_never_retries_and_does_not_log_exception_with_credentials(): void
@@ -164,6 +175,8 @@ final class PasswordDeliveryTest extends TestCase
     public function test_smtp_adapter_is_opt_in_and_uses_only_fake_mailer(): void
     {
         config(['features.E1-01F.defaults.smtp_enabled' => true, 'mail.mailers.smtp.transport' => 'smtp', 'mail.mailers.smtp.host' => 'smtp.example.test', 'mail.from.address' => 'sender@example.test']);
+        URL::forceRootUrl('https://cabinet.example.test');
+        URL::forceScheme('https');
         $mailer = \Mockery::mock(Mailer::class);
         $html = '';
         $mailer->shouldReceive('html')->once()->andReturnUsing(function ($body, $callback) use (&$html) {
@@ -175,8 +188,59 @@ final class PasswordDeliveryTest extends TestCase
         $id = $this->delivery->enqueue($this->user->email);
         $this->delivery->send($this->delivery->claim($id), app(SmtpPasswordTransport::class));
         self::assertSame('sent', DB::table('password_delivery_intents')->where('id', $id)->value('status'));
-        self::assertStringContainsString('/reset-password/', $html);
+        self::assertStringContainsString('/reset-password/open#token=', $html);
         self::assertStringContainsString('email=recovery%40example.test', $html);
+        preg_match('/href="([^"]+)"/', $html, $match);
+        $url = html_entity_decode($match[1], ENT_QUOTES, 'UTF-8');
+        self::assertSame('/reset-password/open', parse_url($url, PHP_URL_PATH));
+        self::assertNull(parse_url($url, PHP_URL_QUERY));
+        parse_str(parse_url($url, PHP_URL_FRAGMENT), $fragment);
+        self::assertSame($this->user->email, $fragment['email']);
+        self::assertTrue(Hash::check('v2:'.hash('sha256', $fragment['token']), DB::table('password_reset_tokens')->value('token')));
+    }
+
+    public function test_previously_issued_token_with_current_version_is_rejected(): void
+    {
+        $legacy = bin2hex(random_bytes(32));
+        DB::table('password_reset_tokens')->insert(['email' => $this->user->email, 'token' => Hash::make($legacy), 'auth_version' => $this->user->auth_version, 'created_at' => now()]);
+        $this->resetThroughExchange(['email' => $this->user->email, 'token' => $legacy, 'password' => 'new-secure-password', 'password_confirmation' => 'new-secure-password'])->assertSessionHasErrors('email');
+        self::assertTrue(Hash::check('old-password-example', $this->user->fresh()->password));
+        self::assertTrue(DB::table('password_reset_tokens')->where('email', $this->user->email)->exists());
+    }
+
+    public function test_smtp_never_sends_an_insecure_nonlocal_link(): void
+    {
+        config(['features.E1-01F.defaults.smtp_enabled' => true, 'mail.mailers.smtp.transport' => 'smtp', 'mail.mailers.smtp.host' => 'smtp.example.test', 'mail.from.address' => 'sender@example.test']);
+        URL::forceRootUrl('http://cabinet.example.test');
+        URL::forceScheme('http');
+        Mail::shouldReceive('mailer')->never();
+        $id = $this->delivery->enqueue($this->user->email);
+        $this->delivery->send($this->delivery->claim($id), app(SmtpPasswordTransport::class));
+        self::assertSame('failed', DB::table('password_delivery_intents')->where('id', $id)->value('status'));
+    }
+
+    public function test_fragment_exchange_and_password_only_post_are_single_use_and_revoke_sessions(): void
+    {
+        $id = $this->sendIntent();
+        $this->delivery->send($this->delivery->claim($id), $this->fake);
+        $token = $this->fake->token;
+        $email = $this->user->email;
+        $this->get('/reset-password/open')->assertOk()->assertHeader('Referrer-Policy', 'no-referrer')->assertHeader('Cache-Control', 'no-store, private');
+        $this->postJson('/reset-password/exchange', compact('token', 'email'))->assertOk()->assertExactJson(['ok' => true])->assertHeader('Cache-Control', 'no-store, private');
+        $grant = session('auth.password_recovery');
+        self::assertIsArray($grant);
+        self::assertSame(hash('sha256', $token), $grant['hash']);
+        self::assertStringNotContainsString($token, json_encode($grant));
+        self::assertStringNotContainsString($email, json_encode($grant));
+        $this->get('/reset-password')->assertOk()->assertDontSee($token)->assertDontSee($email);
+        DB::table('sessions')->insert(['id' => 'recovery-test-session', 'user_id' => $this->user->id, 'payload' => '', 'last_activity' => time()]);
+        $password = ['password' => 'new-secure-password', 'password_confirmation' => 'new-secure-password'];
+        $this->post('/reset-password', $password)->assertRedirect(route('login'));
+        self::assertTrue(Hash::check($password['password'], $this->user->fresh()->password));
+        self::assertFalse(DB::table('sessions')->where('id', 'recovery-test-session')->exists());
+        self::assertNull(session('auth.password_recovery'));
+        $this->postJson('/reset-password/exchange', compact('token', 'email'))->assertOk();
+        $this->post('/reset-password', $password)->assertSessionHasErrors('email');
     }
 
     public function test_concurrent_requests_create_only_one_intent(): void
@@ -274,7 +338,7 @@ final class PasswordDeliveryTest extends TestCase
         $second = $this->delivery->enqueue($this->user->email);
         $this->delivery->send($this->delivery->claim($second), $this->fake);
         self::assertNotSame($old, $this->fake->token);
-        $this->post('/reset-password', ['email' => $this->user->email, 'token' => $old, 'password' => 'new-secure-password', 'password_confirmation' => 'new-secure-password'])->assertSessionHasErrors('email');
+        $this->resetThroughExchange(['email' => $this->user->email, 'token' => $old, 'password' => 'new-secure-password', 'password_confirmation' => 'new-secure-password'])->assertSessionHasErrors('email');
         $this->travel(61)->seconds();
         $third = $this->delivery->enqueue($this->user->email);
         $claim = $this->delivery->claim($third);
@@ -302,14 +366,14 @@ final class PasswordDeliveryTest extends TestCase
         $data = ['email' => $this->user->email, 'token' => $this->fake->token, 'password' => 'new-secure-password', 'password_confirmation' => 'new-secure-password'];
         $org = config('features.E0-02.defaults.organization_id');
         DB::table('organizations')->where('id', $org)->update(['status' => 'disabled']);
-        $this->post('/reset-password', $data)->assertSessionHasErrors('email');
+        $this->resetThroughExchange($data)->assertSessionHasErrors('email');
         self::assertTrue(Hash::check('old-password-example', $this->user->fresh()->password));
         DB::table('organizations')->where('id', $org)->update(['status' => 'active']);
         DB::table('users')->where('id', $this->user->id)->increment('auth_version');
-        $this->post('/reset-password', $data)->assertSessionHasErrors('email');
+        $this->resetThroughExchange($data)->assertSessionHasErrors('email');
         self::assertTrue(Hash::check('old-password-example', $this->user->fresh()->password));
         $legacy = app('auth.password.broker')->createToken($this->user);
-        $this->post('/reset-password', [...$data, 'token' => $legacy])->assertSessionHasErrors('email');
+        $this->resetThroughExchange([...$data, 'token' => $legacy])->assertSessionHasErrors('email');
         self::assertNull(DB::table('password_reset_tokens')->where('email', $this->user->email)->value('auth_version'));
     }
 
@@ -327,7 +391,7 @@ final class PasswordDeliveryTest extends TestCase
         $this->post('/mfa/setup/confirm', ['code' => $code])->assertRedirect(route('auth.ready'));
         self::assertSame(1, $this->user->fresh()->auth_version);
         $this->post('/logout')->assertRedirect(route('login'));
-        $this->post('/reset-password', ['email' => $this->user->email, 'token' => $token, 'password' => 'new-secure-password', 'password_confirmation' => 'new-secure-password'])->assertSessionHasErrors('email');
+        $this->resetThroughExchange(['email' => $this->user->email, 'token' => $token, 'password' => 'new-secure-password', 'password_confirmation' => 'new-secure-password'])->assertSessionHasErrors('email');
         self::assertTrue(Hash::check('old-password-example', $this->user->fresh()->password));
     }
 
@@ -339,7 +403,7 @@ final class PasswordDeliveryTest extends TestCase
         [$worker, $input, $pid] = $this->raceWorker('revoke');
         try {
             DB::beginTransaction();
-            $this->post('/reset-password', ['email' => $this->user->email, 'token' => $token, 'password' => 'new-secure-password', 'password_confirmation' => 'new-secure-password'])->assertRedirect(route('login'));
+            $this->resetThroughExchange(['email' => $this->user->email, 'token' => $token, 'password' => 'new-secure-password', 'password_confirmation' => 'new-secure-password'])->assertRedirect(route('login'));
             $input->write("go\n");
             $this->waitForLock($worker, $pid);
             DB::commit();
