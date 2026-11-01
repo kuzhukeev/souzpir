@@ -52,6 +52,15 @@ final class FirstTurnCoordinator
             $extractor = app(SellerExtractorStages::class)->prepare($http, $claim);
             $gateway = app(Gateway::class);
             $status = $gateway->completeProtectedExtractor($http, $claim, $extractor);
+            if ($status === 'in_progress') {
+                try {
+                    // Only a validated saved fake result can be settled; an
+                    // absent or unverified result must never trigger a retry.
+                    $status = $gateway->settleSavedFakeExtractor($http, $claim, $extractor);
+                } catch (Throwable) {
+                    return ['status' => 'in_progress'];
+                }
+            }
             if ($status !== 'completed') {
                 return $this->pending($status);
             }
