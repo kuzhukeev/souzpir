@@ -51,6 +51,7 @@ app()->instance(PublicAddressResolver::class, new class implements PublicAddress
         if ($host !== 'fixture.example.com') {
             throw new RuntimeException('Unexpected fixture DNS host.');
         }
+
         return ['93.184.216.34'];
     }
 });
@@ -62,6 +63,7 @@ Http::fake(function ($request) {
     if (rtrim($request->url(), '/') === 'https://fixture.example.com') {
         return Http::response('<html><body><h1>Тестовое предложение</h1><p>Данные HTML фикстуры.</p></body></html>', 200, ['Content-Type' => 'text/html']);
     }
+
     return Http::response('', 404, ['Content-Type' => 'text/plain']);
 });
 $result = app(SiteInspector::class)->inspect('https://fixture.example.com');

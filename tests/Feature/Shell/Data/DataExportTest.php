@@ -14,7 +14,10 @@ use ZipArchive;
 
 final class SyntheticSellerExport implements ExportContributor
 {
-    public function module(): string { return 'seller'; }
+    public function module(): string
+    {
+        return 'seller';
+    }
 
     public function stream(TenantContext $tenant, ExportQuery $query): iterable
     {
@@ -60,7 +63,8 @@ final class DataExportTest extends TenancyTestCase
         $this->get($url)->assertOk()->assertHeader('Content-Type', 'application/zip');
         $this->assertDatabaseHas('audit_logs', ['organization_id' => $org->id, 'subject_id' => $row->id, 'action' => 'data.export.download_requested']);
         self::assertSame(1, DB::table('audit_logs')->where('subject_id', $row->id)->where('action', 'data.export.download_requested')->count());
-        $this->withSession(['brand_id' => $sibling->id])->get($url)->assertNotFound();
+        $this->post('/brand/switch', ['brand_id' => $sibling->id])->assertRedirect();
+        $this->get($url)->assertNotFound();
         config(['features.E0-02.defaults.organization_id' => $foreignOrg->id]);
         $this->actingAs($foreignOwner)->withSession(['brand_id' => $foreignBrand->id])->get($url)->assertNotFound();
 

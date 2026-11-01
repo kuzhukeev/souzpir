@@ -2,13 +2,15 @@
 
 namespace App\Shell\Data;
 
+use Illuminate\Support\Str;
+
 /** A stable per-export lock shared by creation, download, and cleanup. */
 final class ExportFileLock
 {
     /** @return resource|false */
     public static function acquireForExport(string $organizationDirectory, string $id, int $mode)
     {
-        if (! \Illuminate\Support\Str::isUlid($id) || is_link($organizationDirectory) || ! is_dir($organizationDirectory)) {
+        if (! Str::isUlid($id) || is_link($organizationDirectory) || ! is_dir($organizationDirectory)) {
             return false;
         }
 
@@ -26,6 +28,7 @@ final class ExportFileLock
         // The fixed buckets are never unlinked: removing an open lock would split
         // holders across inodes. Different exports can conservatively share one.
         $bucket = hexdec(substr(hash('sha256', strtoupper($id)), 0, 2)) % 64;
+
         return self::acquire($directory.DIRECTORY_SEPARATOR.sprintf('%02d.lock', $bucket), $mode);
     }
 
@@ -44,6 +47,7 @@ final class ExportFileLock
         @chmod($absolutePath, 0600);
         if (! flock($lock, $mode)) {
             fclose($lock);
+
             return false;
         }
 

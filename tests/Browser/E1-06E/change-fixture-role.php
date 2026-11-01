@@ -45,9 +45,13 @@ DB::transaction(function () use ($requested): void {
     }
     $query = DB::table('memberships')->where('organization_id', $org)->where('user_id', $owner)->where('status', 'active');
     $current = $query->lockForUpdate()->first();
-    if (! $current || ! in_array($current->role, ['owner', 'viewer'], true)) throw new LogicException('Unexpected synthetic membership.');
+    if (! $current || ! in_array($current->role, ['owner', 'viewer'], true)) {
+        throw new LogicException('Unexpected synthetic membership.');
+    }
     $brandIds = $requested === 'viewer' ? DB::table('brands')->where('organization_id', $org)->pluck('id')->all() : [];
-    if ($requested === 'viewer' && count($brandIds) !== 2) throw new LogicException('Unexpected synthetic brands.');
+    if ($requested === 'viewer' && count($brandIds) !== 2) {
+        throw new LogicException('Unexpected synthetic brands.');
+    }
     $query->update(['role' => $requested, 'brand_ids' => json_encode($brandIds, JSON_THROW_ON_ERROR)]);
 });
 echo "Synthetic fixture role updated.\n";

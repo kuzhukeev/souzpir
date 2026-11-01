@@ -16,7 +16,7 @@ final class PruneLegacyExportLocksCommandTest extends TestCase
         $other = (string) Str::ulid();
         $prefix = 'data-exports/'.$org.'/';
         $legacy = [];
-        for ($i = 0; $i < 7; ++$i) {
+        for ($i = 0; $i < 7; $i++) {
             $legacy[] = $prefix.(string) Str::ulid().'.lock';
             $disk->put(end($legacy), '');
         }
@@ -31,14 +31,20 @@ final class PruneLegacyExportLocksCommandTest extends TestCase
         $disk->put($otherLock, '');
 
         $this->artisan('data:prune-legacy-export-locks', ['organization' => $org])->assertExitCode(1);
-        foreach ($legacy as $path) $disk->assertExists($path);
+        foreach ($legacy as $path) {
+            $disk->assertExists($path);
+        }
         $this->artisan('data:prune-legacy-export-locks', ['organization' => $org, '--confirm-offline' => true, '--limit' => 2])->assertExitCode(0);
         self::assertSame(5, count(array_filter($legacy, fn ($path) => $disk->exists($path))));
-        for ($i = 0; $i < 10; ++$i) {
+        for ($i = 0; $i < 10; $i++) {
             $this->artisan('data:prune-legacy-export-locks', ['organization' => $org, '--confirm-offline' => true, '--limit' => 2])->assertExitCode(0);
         }
-        foreach ($legacy as $path) $disk->assertMissing($path);
-        foreach ([$archive, $nonemptyLegacyName, $prefix.'.locks/00.lock', $prefix.'.cleanup-expired-v2', $prefix.'not-an-ulid.lock', $otherLock] as $path) $disk->assertExists($path);
+        foreach ($legacy as $path) {
+            $disk->assertMissing($path);
+        }
+        foreach ([$archive, $nonemptyLegacyName, $prefix.'.locks/00.lock', $prefix.'.cleanup-expired-v2', $prefix.'not-an-ulid.lock', $otherLock] as $path) {
+            $disk->assertExists($path);
+        }
     }
 
     public function test_invalid_organization_and_limit_are_rejected(): void
@@ -58,7 +64,9 @@ final class PruneLegacyExportLocksCommandTest extends TestCase
         $target = $disk->path('keep.txt');
         file_put_contents($target, 'keep');
         $link = $disk->path($prefix.(string) Str::ulid().'.lock');
-        if (! @symlink($target, $link)) $this->markTestSkipped('Creating symlinks requires operating-system permissions.');
+        if (! @symlink($target, $link)) {
+            $this->markTestSkipped('Creating symlinks requires operating-system permissions.');
+        }
         try {
             $this->artisan('data:prune-legacy-export-locks', ['organization' => $org, '--confirm-offline' => true])->assertExitCode(0);
             self::assertSame('keep', file_get_contents($target));

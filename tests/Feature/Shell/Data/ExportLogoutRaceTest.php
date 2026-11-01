@@ -80,7 +80,9 @@ final class ExportLogoutRaceTest extends TestCase
             self::assertNotNull(DB::table('auth_session_registry')->where('user_id', $user->id)->value('revoked_at'));
             $received = stream_get_contents($pipes[1]);
             $errors = stream_get_contents($pipes[2]);
-            fclose($pipes[1]); fclose($pipes[2]); $pipes = [];
+            fclose($pipes[1]);
+            fclose($pipes[2]);
+            $pipes = [];
             self::assertSame(0, proc_close($download), $errors);
             $download = null;
             self::assertNotSame('', $received);
@@ -88,9 +90,20 @@ final class ExportLogoutRaceTest extends TestCase
             self::assertSame(substr($content, 0, strlen($received)), $received);
             self::assertNotNull(DB::table('auth_session_registry')->where('user_id', $user->id)->value('revoked_at'));
         } finally {
-            if (is_resource($download)) { proc_terminate($download); foreach ($pipes as $pipe) if (is_resource($pipe)) fclose($pipe); proc_close($download); }
-            if ($logout && $logout->isRunning()) $logout->stop();
-            if ($logoutInput) $logoutInput->close();
+            if (is_resource($download)) {
+                proc_terminate($download);
+                foreach ($pipes as $pipe) {
+                    if (is_resource($pipe)) {
+                        fclose($pipe);
+                    }
+                } proc_close($download);
+            }
+            if ($logout && $logout->isRunning()) {
+                $logout->stop();
+            }
+            if ($logoutInput) {
+                $logoutInput->close();
+            }
             @unlink($markerDir.'/stream');
             @unlink($markerDir.'/logout');
             @rmdir($markerDir);
@@ -104,13 +117,16 @@ final class ExportLogoutRaceTest extends TestCase
         $process = new Process([PHP_BINARY, '-d', 'sys_temp_dir='.base_path('.local/tmp'), __DIR__.'/export-stream-worker.php'], base_path(), array_merge(getenv(), ['APP_ENV' => 'testing']), $input, 45);
         $process->start();
         $input->write(json_encode($data, JSON_THROW_ON_ERROR)."\n");
+
         return [$process, $input];
     }
 
     private function waitFile(string $path, ?Process $process = null): void
     {
         $deadline = microtime(true) + 20;
-        while (! is_file($path) && ($process === null || $process->isRunning()) && microtime(true) < $deadline) usleep(10000);
+        while (! is_file($path) && ($process === null || $process->isRunning()) && microtime(true) < $deadline) {
+            usleep(10000);
+        }
         self::assertFileExists($path, 'Worker did not reach barrier: '.($process ? $process->getErrorOutput().$process->getOutput() : ''));
     }
 }

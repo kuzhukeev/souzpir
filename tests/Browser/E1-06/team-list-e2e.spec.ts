@@ -37,7 +37,12 @@ for (const role of ['owner', 'viewer']) {
     await expect(table.getByText('Пиротехника — Северные огни').first()).toBeVisible();
     const invitations = page.getByRole('region', { name: 'Приглашения в ожидании' });
     await expect(invitations.getByText('team-e106-invite@example.test')).toBeVisible();
-    await expect(invitations.getByText('Ссылка не открыта')).toBeVisible();
+    await expect(
+      invitations
+        .getByRole('listitem')
+        .filter({ hasText: 'team-e106-invite@example.test' })
+        .getByText('Ссылка не открыта'),
+    ).toBeVisible();
     if (role === 'viewer')
       await expect(page.getByRole('link', { name: 'Роли и доступ' })).toHaveCount(0);
     else await expect(page.getByRole('link', { name: 'Роли и доступ' }).first()).toBeVisible();
