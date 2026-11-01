@@ -32,6 +32,7 @@ use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Http\Request;
 use Illuminate\Session\ArraySessionHandler;
 use Illuminate\Session\Store;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
@@ -918,6 +919,260 @@ SQL);
             }
         });
         Http::assertNothingSent();
+    }
+
+    public function test_live_fake_extractor_losing_settlement_race_never_marks_completed_uncertain(): void
+    {
+        [$tenant, $http, $claim] = $this->fixture();
+        [$stage, $file] = $this->within($tenant, function () use ($http, $claim): array {
+            $stage = app(SellerExtractorStages::class)->prepare($http, $claim);
+            [$request] = app(SellerExtractorStages::class)->load($http, $claim, $stage);
+
+            return [$stage, $this->fakeFixture($request->toArray(), 9)];
+        });
+        $savedMarker = base_path('.local/tmp/c02-saved-'.Str::random(16));
+        $resumeMarker = base_path('.local/tmp/c02-resume-'.Str::random(16));
+        $worker = new Process([PHP_BINARY, '-d', 'sys_temp_dir='.base_path('.local/tmp'), '-d', 'allow_url_fopen=0',
+            '-d', 'disable_functions=fsockopen,pfsockopen,stream_socket_client,curl_exec,curl_multi_exec',
+            base_path('tests/Feature/Ai/Fixtures/protected-extractor-worker.php')], base_path());
+        $worker->setInput(json_encode(['org' => $tenant->organizationId, 'brand' => $tenant->brandId, 'user' => $tenant->actorId,
+            'member' => $tenant->membershipId, 'session' => $http->session()->getId(), 'turn' => $claim->turnId,
+            'conversation' => $claim->conversationId, 'version' => $claim->baseVersion, 'token' => $claim->token(),
+            'stage' => $stage, 'fixtures' => dirname($file), 'mode' => 'complete-race',
+            'saved_marker' => $savedMarker, 'resume_marker' => $resumeMarker], JSON_THROW_ON_ERROR));
+        $worker->setTimeout(60);
+        try {
+            $worker->start();
+            $deadline = microtime(true) + 30;
+            while (! is_file($savedMarker) && $worker->isRunning() && microtime(true) < $deadline) {
+                usleep(10000);
+            }
+            self::assertFileExists($savedMarker);
+            self::assertTrue($worker->isRunning());
+            $call = DB::table('ai_calls')->where('purpose', 'extractor')->first();
+            self::assertSame('reserved', $call->status);
+            self::assertNotNull($call->result_encrypted);
+            unlink($file);
+            self::assertSame('completed', $this->within($tenant, fn () => app(Gateway::class)->settleSavedFakeExtractor($http, $claim, $stage)));
+            file_put_contents($resumeMarker, 'resume');
+            $worker->wait();
+            // The original Gateway fails closed when it loses settlement; its
+            // catch must not turn the already-completed call into uncertain.
+            self::assertFalse($worker->isSuccessful());
+            self::assertSame('Protected extractor worker failed.', $worker->getErrorOutput());
+            self::assertSame('completed', DB::table('ai_calls')->where('id', $call->id)->value('status'));
+            $before = DB::table('ai_budgets')->where('id', $call->budget_id)->first();
+            self::assertSame(9, (int) $before->spent_micros);
+            self::assertSame(0, (int) $before->unresolved_count);
+            self::assertSame('completed', $this->within($tenant, fn () => app(Gateway::class)->completeProtectedExtractor($http, $claim, $stage)));
+            self::assertSame('completed', $this->within($tenant, fn () => app(Gateway::class)->settleSavedFakeExtractor($http, $claim, $stage)));
+            self::assertEquals($before, DB::table('ai_budgets')->where('id', $call->budget_id)->first());
+            self::assertSame(9, (int) DB::table('object_costs')->where('object_id', $claim->conversationId)->value('cost_micros'));
+            self::assertSame(1, DB::table('ai_calls')->count());
+        } finally {
+            if ($worker->isRunning()) {
+                $worker->stop();
+            }
+            foreach ([$savedMarker, $resumeMarker, $file] as $path) {
+                if (is_file($path)) {
+                    unlink($path);
+                }
+            }
+        }
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
+    }
+
+    public function test_saved_fake_extractor_result_survives_crash_and_two_recoveries_settle_once(): void
+    {
+        [$tenant, $http, $claim] = $this->fixture();
+        [$stage, $file] = $this->within($tenant, function () use ($http, $claim): array {
+            $stage = app(SellerExtractorStages::class)->prepare($http, $claim);
+            [$request] = app(SellerExtractorStages::class)->load($http, $claim, $stage);
+
+            return [$stage, $this->fakeFixture($request->toArray(), 7)];
+        });
+        DB::unprepared(<<<'SQL'
+CREATE OR REPLACE FUNCTION c02_test_delay_fake_settlement() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.unresolved_count < OLD.unresolved_count AND NEW.spent_micros > OLD.spent_micros THEN
+    PERFORM pg_advisory_xact_lock(8620492);
+  END IF;
+  RETURN NEW;
+END;
+$$;
+CREATE TRIGGER c02_test_delay_fake_settlement BEFORE UPDATE ON ai_budgets
+  FOR EACH ROW EXECUTE FUNCTION c02_test_delay_fake_settlement();
+SQL);
+        config(['database.connections.c02_settlement_blocker' => config('database.connections.pgsql')]);
+        $blocker = DB::connection('c02_settlement_blocker');
+        $markers = array_map(fn () => base_path('.local/tmp/c02-settle-'.Str::random(16)), range(1, 3));
+        $workers = [];
+        $makeWorker = function (string $marker, string $mode) use ($tenant, $http, $claim, $stage, $file): Process {
+            $worker = new Process([PHP_BINARY, '-d', 'sys_temp_dir='.base_path('.local/tmp'), '-d', 'allow_url_fopen=0',
+                '-d', 'disable_functions=fsockopen,pfsockopen,stream_socket_client,curl_exec,curl_multi_exec',
+                base_path('tests/Feature/Ai/Fixtures/protected-extractor-worker.php'), $marker], base_path());
+            $worker->setInput(json_encode(['org' => $tenant->organizationId, 'brand' => $tenant->brandId, 'user' => $tenant->actorId,
+                'member' => $tenant->membershipId, 'session' => $http->session()->getId(), 'turn' => $claim->turnId,
+                'conversation' => $claim->conversationId, 'version' => $claim->baseVersion, 'token' => $claim->token(),
+                'stage' => $stage, 'fixtures' => dirname($file), 'mode' => $mode], JSON_THROW_ON_ERROR));
+            $worker->setTimeout(60);
+
+            return $worker;
+        };
+        try {
+            $blocker->beginTransaction();
+            $blocker->select('SELECT pg_advisory_xact_lock(8620492)');
+            $workers[] = $makeWorker($markers[0], 'complete');
+            $workers[0]->start();
+            $this->waitForExtractorLock($workers[0], $markers[0]);
+            $call = DB::table('ai_calls')->where('purpose', 'extractor')->first();
+            self::assertNotNull($call);
+            self::assertSame('reserved', $call->status);
+            self::assertNotNull($call->result_encrypted);
+            self::assertSame(1, (int) DB::table('ai_budgets')->where('id', $call->budget_id)->value('unresolved_count'));
+            // Stop only this test's worker after its result commit and before accounting.
+            $workers[0]->stop(1);
+            self::assertFalse($workers[0]->isRunning());
+            $blocker->rollBack();
+            unlink($file); // A repeat that calls the fake driver would now fail.
+
+            $baselineCall = DB::table('ai_calls')->where('id', $call->id)->first();
+            $baselineBudget = DB::table('ai_budgets')->where('id', $call->budget_id)->first();
+            $expectDenied = function (?TurnClaim $candidate = null, ?string $candidateStage = null) use ($tenant, $http, $claim, $stage): void {
+                try {
+                    $this->within($tenant, fn () => app(Gateway::class)->settleSavedFakeExtractor($http, $candidate ?? $claim, $candidateStage ?? $stage));
+                    self::fail('Unverified fake extractor recovery was accepted.');
+                } catch (LogicException $error) {
+                    self::assertSame('Saved fake extractor result cannot be settled.', $error->getMessage());
+                }
+            };
+            $stored = json_decode(Crypt::decryptString($baselineCall->result_encrypted), true, 512, JSON_THROW_ON_ERROR);
+            foreach ([null, 'invalid-ciphertext', Crypt::encryptString(json_encode([...$stored, 'aiCallId' => (string) Str::ulid()], JSON_THROW_ON_ERROR)),
+                Crypt::encryptString(json_encode([...$stored, 'costMicros' => null], JSON_THROW_ON_ERROR))] as $invalid) {
+                DB::table('ai_calls')->where('id', $call->id)->update(['result_encrypted' => $invalid]);
+                $expectDenied();
+                DB::table('ai_calls')->where('id', $call->id)->update(['result_encrypted' => $baselineCall->result_encrypted]);
+                self::assertEquals($baselineBudget, DB::table('ai_budgets')->where('id', $call->budget_id)->first());
+            }
+            DB::table('ai_calls')->where('id', $call->id)->update(['request_hash' => str_repeat('a', 64)]);
+            $expectDenied();
+            DB::table('ai_calls')->where('id', $call->id)->update(['request_hash' => $baselineCall->request_hash]);
+            $evidence = DB::table('c02_extractor_effect_reservations')->where('extractor_stage_id', $stage)->first();
+            try {
+                DB::statement('ALTER TABLE c02_extractor_effect_reservations DISABLE TRIGGER c02_extractor_effect_reservation_guard');
+                DB::table('c02_extractor_effect_reservations')->where('id', $evidence->id)->update(['seal' => str_repeat('a', 64)]);
+                DB::statement('ALTER TABLE c02_extractor_effect_reservations ENABLE TRIGGER c02_extractor_effect_reservation_guard');
+                $expectDenied();
+                DB::statement('ALTER TABLE c02_extractor_effect_reservations DISABLE TRIGGER c02_extractor_effect_reservation_guard');
+                DB::table('c02_extractor_effect_reservations')->where('id', $evidence->id)->delete();
+                DB::statement('ALTER TABLE c02_extractor_effect_reservations ENABLE TRIGGER c02_extractor_effect_reservation_guard');
+                $expectDenied();
+            } finally {
+                DB::statement('ALTER TABLE c02_extractor_effect_reservations DISABLE TRIGGER c02_extractor_effect_reservation_guard');
+                DB::table('c02_extractor_effect_reservations')->where('id', $evidence->id)->delete();
+                DB::table('c02_extractor_effect_reservations')->insert((array) $evidence);
+                DB::statement('ALTER TABLE c02_extractor_effect_reservations ENABLE TRIGGER c02_extractor_effect_reservation_guard');
+            }
+            $forged = new TurnClaim('claimed', $claim->turnId, $claim->conversationId, $claim->organizationId, $claim->brandId, $claim->baseVersion, str_repeat('a', 64));
+            $expectDenied($forged);
+            $otherBrand = new TurnClaim('claimed', $claim->turnId, $claim->conversationId, $claim->organizationId, (string) Str::ulid(), $claim->baseVersion, $claim->token());
+            $expectDenied($otherBrand);
+            $expectDenied(candidateStage: (string) Str::ulid());
+            DB::table('ai_calls')->where('id', $call->id)->update(['status' => 'uncertain', 'error_code' => 'provider_uncertain']);
+            $expectDenied();
+            DB::table('ai_calls')->where('id', $call->id)->update(['status' => 'reserved', 'error_code' => null]);
+            DB::table('ai_budgets')->where('id', $call->budget_id)->update(['unresolved_count' => 0]);
+            $expectDenied();
+            DB::table('ai_budgets')->where('id', $call->budget_id)->update(['unresolved_count' => $baselineBudget->unresolved_count]);
+            config(['runtime.ai_driver' => 'record']);
+            $expectDenied();
+            config(['runtime.ai_driver' => 'fake']);
+            $this->within($tenant, function () use ($tenant, $http, $claim, $stage): void {
+                DB::table('memberships')->where('id', $tenant->membershipId)->update(['role' => 'viewer']);
+                try {
+                    app(Gateway::class)->settleSavedFakeExtractor($http, $claim, $stage);
+                    self::fail('A revoked dialogue permission was accepted.');
+                } catch (LogicException $error) {
+                    self::assertSame('Saved fake extractor result cannot be settled.', $error->getMessage());
+                } finally {
+                    DB::table('memberships')->where('id', $tenant->membershipId)->update(['role' => 'owner']);
+                }
+            });
+            DB::table('auth_session_registry')->where('user_id', $tenant->actorId)->update(['revoked_at' => now()]);
+            $expectDenied();
+            DB::table('auth_session_registry')->where('user_id', $tenant->actorId)->update(['revoked_at' => null]);
+            DB::unprepared(<<<'SQL'
+CREATE OR REPLACE FUNCTION c02_test_reject_fake_settlement() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF OLD.status = 'reserved' AND NEW.status = 'completed' THEN
+    RAISE EXCEPTION 'synthetic accounting failure';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+CREATE TRIGGER c02_test_reject_fake_settlement BEFORE UPDATE ON ai_calls
+  FOR EACH ROW EXECUTE FUNCTION c02_test_reject_fake_settlement();
+SQL);
+            try {
+                $expectDenied();
+                self::assertEquals($baselineCall, DB::table('ai_calls')->where('id', $call->id)->first());
+                self::assertEquals($baselineBudget, DB::table('ai_budgets')->where('id', $call->budget_id)->first());
+                self::assertSame(0, DB::table('object_costs')->count());
+            } finally {
+                DB::unprepared('DROP TRIGGER IF EXISTS c02_test_reject_fake_settlement ON ai_calls; DROP FUNCTION IF EXISTS c02_test_reject_fake_settlement();');
+            }
+            self::assertEquals($baselineCall, DB::table('ai_calls')->where('id', $call->id)->first());
+            self::assertEquals($baselineBudget, DB::table('ai_budgets')->where('id', $call->budget_id)->first());
+            self::assertSame(0, DB::table('object_costs')->count());
+
+            $blocker->beginTransaction();
+            $blocker->select('SELECT pg_advisory_xact_lock(8620492)');
+            $workers[] = $makeWorker($markers[1], 'recover');
+            $workers[] = $makeWorker($markers[2], 'recover');
+            $workers[1]->start();
+            $this->waitForExtractorLock($workers[1], $markers[1]);
+            $workers[2]->start();
+            $this->waitForExtractorLock($workers[2], $markers[2]);
+            $blocker->rollBack();
+            foreach ([$workers[1], $workers[2]] as $worker) {
+                $worker->wait();
+                self::assertTrue($worker->isSuccessful(), $worker->getErrorOutput());
+                self::assertSame('completed', json_decode($worker->getOutput(), true, 512, JSON_THROW_ON_ERROR)['status']);
+            }
+            $settled = DB::table('ai_calls')->where('id', $call->id)->first();
+            $budget = DB::table('ai_budgets')->where('id', $call->budget_id)->first();
+            self::assertSame('completed', $settled->status);
+            self::assertSame(7, (int) $settled->cost_micros);
+            self::assertSame(7, (int) $budget->spent_micros);
+            self::assertSame(0, (int) $budget->unresolved_count);
+            self::assertSame(0, (int) $budget->reserved_micros);
+            self::assertSame(7, (int) DB::table('object_costs')->where('object_id', $claim->conversationId)->value('cost_micros'));
+            self::assertSame(1, DB::table('ai_calls')->count());
+        } finally {
+            if ($blocker->transactionLevel() > 0) {
+                $blocker->rollBack();
+            }
+            foreach ($workers as $worker) {
+                if ($worker->isRunning()) {
+                    $worker->stop();
+                }
+            }
+            foreach ($markers as $marker) {
+                if (is_file($marker)) {
+                    unlink($marker);
+                }
+            }
+            if (is_file($file)) {
+                unlink($file);
+            }
+            DB::purge('c02_settlement_blocker');
+            DB::unprepared('DROP TRIGGER IF EXISTS c02_test_delay_fake_settlement ON ai_budgets; DROP FUNCTION IF EXISTS c02_test_delay_fake_settlement();');
+        }
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
     }
 
     public function test_extractor_effect_reservation_serializes_two_processes(): void

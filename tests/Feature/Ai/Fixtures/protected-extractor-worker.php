@@ -8,6 +8,7 @@ use App\Seller\Conversations\Data\TurnClaim;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
 use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Http\Request;
 use Illuminate\Session\ArraySessionHandler;
 use Illuminate\Session\Store;
@@ -43,11 +44,31 @@ $http->setLaravelSession($session);
 $http->setUserResolver(fn () => $user);
 $tenant = new TenantContext($input['org'], $input['brand'], $user->id, $input['member']);
 $claim = new TurnClaim('claimed', $input['turn'], $input['conversation'], $input['org'], $input['brand'], $input['version'], $input['token']);
+if (($input['mode'] ?? null) === 'complete-race') {
+    DB::listen(function (QueryExecuted $query) use ($input): void {
+        if (preg_match('/^update\s+"ai_calls"\s+set\s+"result_encrypted"/i', $query->sql) !== 1) {
+            return;
+        }
+        if (DB::connection()->transactionLevel() !== 0) {
+            throw new RuntimeException('Saved result was not committed outside a transaction.');
+        }
+        file_put_contents($input['saved_marker'], 'saved');
+        $deadline = microtime(true) + 30;
+        while (! is_file($input['resume_marker']) && microtime(true) < $deadline) {
+            usleep(10000);
+        }
+        if (! is_file($input['resume_marker'])) {
+            throw new RuntimeException('Timed out waiting for test resume.');
+        }
+    });
+}
 if (isset($argv[1])) {
     file_put_contents($argv[1], (string) DB::selectOne('select pg_backend_pid() as pid')->pid);
 }
 try {
-    $result = app(TenantContextRunner::class)->run($tenant, fn () => app(Gateway::class)->completeProtectedExtractor($http, $claim, $input['stage']));
+    $result = app(TenantContextRunner::class)->run($tenant, fn () => ($input['mode'] ?? 'complete') === 'recover'
+        ? app(Gateway::class)->settleSavedFakeExtractor($http, $claim, $input['stage'])
+        : app(Gateway::class)->completeProtectedExtractor($http, $claim, $input['stage']));
     echo json_encode(['status' => $result], JSON_THROW_ON_ERROR);
 } catch (Throwable) {
     fwrite(STDERR, 'Protected extractor worker failed.');
