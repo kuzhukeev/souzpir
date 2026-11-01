@@ -121,6 +121,7 @@ final class PruneSecretReceiptsTest extends TestCase
         self::assertSame(10, $event->expiresAt);
     }
 
+    #[Group('race')]
     public function test_locked_receipts_are_skipped_and_cleaned_after_unlock(): void
     {
         $keys = $this->insertExpired(4);

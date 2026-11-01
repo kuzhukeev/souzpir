@@ -575,6 +575,7 @@ final class PasswordDeliveryTest extends TestCase
         }
     }
 
+    #[Group('race')]
     public function test_revocation_after_transmission_claim_does_not_retry_or_cancel_inflight_send(): void
     {
         $id = $this->sendIntent();
