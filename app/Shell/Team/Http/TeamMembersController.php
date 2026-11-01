@@ -39,7 +39,8 @@ final class TeamMembersController
         $members = $memberQuery->with('user:id,name,email')->orderBy('id')
             ->paginate(25, ['id', 'user_id', 'role', 'status', 'brand_ids', 'settings'], 'page', $page);
         $items = $members->getCollection()->map(fn (Membership $membership) => $projection->project($membership))->all();
-        $invitationQuery = Invitation::query()->whereNull('accepted_at')->whereNull('revoked_at')->where('expires_at', '>', now());
+        $invitationTime = now()->toImmutable();
+        $invitationQuery = Invitation::query()->whereNull('accepted_at')->whereNull('revoked_at')->where('expires_at', '>', $invitationTime);
         if (in_array($status, ['active', 'disabled'], true)) {
             $invitationQuery->whereRaw('1 = 0');
         }
@@ -85,6 +86,7 @@ final class TeamMembersController
             'teamBrandRevision' => $brandRevision,
             'invitations' => [
                 'data' => $invitationItems,
+                'as_of' => $invitationTime->toISOString(),
                 'current_page' => $invitations->currentPage(),
                 'last_page' => $invitations->lastPage(),
                 'total' => $invitations->total(),

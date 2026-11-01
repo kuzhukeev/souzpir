@@ -47,7 +47,55 @@ const members: TeamPage = {
     },
   ],
 };
-const emptyInvitations = { data: [], current_page: 1, last_page: 1, total: 0 };
+const emptyInvitations = {
+  as_of: '2026-11-01T12:00:00.000Z',
+  data: [],
+  current_page: 1,
+  last_page: 1,
+  total: 0,
+};
+
+it('не предлагает отзыв при недоступном сроке или серверном времени', () => {
+  const item = {
+    id: 'invalid',
+    email: 'invalid@example.test',
+    role_label: 'Наблюдатель',
+    brands: [],
+    expires_at: 'invalid',
+    opened: false,
+    can_revoke: true,
+  };
+  const { rerender } = render(
+    <Index
+      teamBrandRevision="test"
+      members={members}
+      canViewRoles
+      invitations={{ ...emptyInvitations, data: [item], total: 1 }}
+    />,
+  );
+  expect(screen.getByText('Срок недоступен')).toBeTruthy();
+  expect((screen.getByRole('button', { name: 'Отозвать' }) as HTMLButtonElement).disabled).toBe(
+    true,
+  );
+  rerender(
+    <Index
+      teamBrandRevision="test"
+      members={members}
+      canViewRoles
+      invitations={{
+        ...emptyInvitations,
+        as_of: 'invalid',
+        data: [{ ...item, expires_at: '2027-02-02T12:00:00.000Z' }],
+        total: 1,
+      }}
+    />,
+  );
+  expect(screen.getByText('Срок недоступен')).toBeTruthy();
+  expect((screen.getByRole('button', { name: 'Отозвать' }) as HTMLButtonElement).disabled).toBe(
+    true,
+  );
+  expect(calls.post).not.toHaveBeenCalled();
+});
 
 it('показывает только переданные данные без неработающих действий и без вымышленных брендов', () => {
   render(
@@ -143,6 +191,7 @@ it('показывает загрузку, ошибку перехода и по
 
 it('показывает данные приглашения и повторяет страницу после ошибки без изменения страницы участников', () => {
   const invitations = {
+    as_of: '2026-11-01T12:00:00.000Z',
     current_page: 1,
     last_page: 2,
     total: 27,
