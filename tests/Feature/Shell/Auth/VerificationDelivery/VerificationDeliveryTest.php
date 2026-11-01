@@ -440,6 +440,7 @@ final class VerificationDeliveryTest extends TestCase
         self::assertSame('sent', $this->state($intent['id'])->status);
     }
 
+    #[Group('race')]
     public function test_invited_unverified_user_loses_delivery_permission_when_invite_revoked(): void
     {
         $invited = User::create(['name' => 'Invited', 'email' => 'invited@example.test', 'password' => 'test-only-password'])->fresh();

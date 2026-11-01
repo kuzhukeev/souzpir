@@ -3,6 +3,7 @@
 namespace Tests\Feature\Shell\InvitationIssuance;
 
 use LogicException;
+use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Process\Process;
 use Tests\Feature\Shell\InvitationIssuance\Fixtures\IsolatedInvitationDatabase;
 use Tests\TestCase;
@@ -52,6 +53,7 @@ final class InvitationIssuanceDatabaseGuardTest extends TestCase
         }
     }
 
+    #[Group('race')]
     public function test_worker_rejects_a_different_parent_database_before_fixture_access(): void
     {
         $target = IsolatedInvitationDatabase::assert();

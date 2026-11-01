@@ -629,6 +629,7 @@ final class FirstTurnStateTest extends TestCase
         Http::assertNothingSent();
     }
 
+    #[Group('race')]
     public function test_saved_fake_responder_settles_once_after_crash_without_executing_tool(): void
     {
         [$tenant, $http, $claim, $extractor] = $this->fixture();
@@ -4625,6 +4626,7 @@ SQL);
         self::assertSame(0, DB::table('messages')->where('conversation_id', $command->conversationId)->where('role', 'agent')->count());
     }
 
+    #[Group('race')]
     public function test_coordinator_recovers_saved_extractor_after_crash_and_against_a_live_original(): void
     {
         DB::unprepared(<<<'SQL'
@@ -4769,6 +4771,7 @@ SQL);
         self::assertSame(1, DB::table('messages')->where('conversation_id', $command->conversationId)->count());
     }
 
+    #[Group('race')]
     public function test_coordinator_does_not_retry_a_call_after_worker_stops_at_reservation(): void
     {
         [$tenant, $http, $command] = $this->protectedClaimFixture();

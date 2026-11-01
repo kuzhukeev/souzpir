@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use PHPUnit\Framework\Attributes\Group;
 use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\TestCase;
 
@@ -24,6 +25,7 @@ final class TestNotificationDeliveryTest extends TestCase
 {
     use IsolatedDatabaseMigrations;
 
+    #[Group('race')]
     public function test_committed_external_test_is_once_only_uncertain_is_not_retried_and_revoked_access_cancels(): void
     {
         Http::preventStrayRequests();

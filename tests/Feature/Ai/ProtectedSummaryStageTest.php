@@ -375,6 +375,7 @@ final class ProtectedSummaryStageTest extends TestCase
         });
     }
 
+    #[Group('race')]
     public function test_real_restore_with_reused_xid_cannot_bind_a_previous_call(): void
     {
         $restorePort = getenv('C02_RESTORE_PORT');

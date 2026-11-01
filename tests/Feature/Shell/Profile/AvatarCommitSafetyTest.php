@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use PHPUnit\Framework\Attributes\Group;
 use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\TestCase;
 
@@ -26,6 +27,7 @@ final class AvatarCommitSafetyTest extends TestCase
 {
     use IsolatedDatabaseMigrations;
 
+    #[Group('race')]
     public function test_post_commit_exception_keeps_the_committed_private_avatar(): void
     {
         Http::preventStrayRequests();

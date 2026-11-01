@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
+use PHPUnit\Framework\Attributes\Group;
 use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\TestCase;
 
@@ -24,6 +25,7 @@ final class EmailDeliveryTest extends TestCase
 {
     use IsolatedDatabaseMigrations;
 
+    #[Group('race')]
     public function test_committed_delivery_is_once_only_and_cancel_reissue_and_revocation_are_enforced(): void
     {
         Queue::fake();

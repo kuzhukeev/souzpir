@@ -193,6 +193,7 @@ final class ExternalDigestTest extends TestCase
         }
     }
 
+    #[Group('race')]
     public function test_event_committed_before_closing_is_included_in_that_batch(): void
     {
         $id = $this->pending();
