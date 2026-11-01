@@ -5,8 +5,10 @@ namespace Tests\Feature\ProtectedOperations;
 use App\Ai\CanonicalJson;
 use App\Ai\ContactMasker;
 use App\Ai\Gateway;
+use App\Ai\Protected\GuardProjection;
 use App\Ai\Protected\ResponderProjection;
 use App\Ai\Protected\SellerExtractorStages;
+use App\Ai\Protected\SellerGuardStages;
 use App\Ai\Protected\SellerResponderStages;
 use App\Models\Brand;
 use App\Models\Membership;
@@ -345,6 +347,29 @@ final class FirstTurnStateTest extends TestCase
         Http::assertNothingSent();
     }
 
+    public function test_first_client_message_follows_donor_inbound_goal_not_proactive_opening(): void
+    {
+        $golden = json_decode(file_get_contents(base_path('tests/fixtures/prototype/synthetic/open-turn.json')), true, 512, JSON_THROW_ON_ERROR);
+        $inbound = $golden['trace'][1]['meta'];
+        self::assertSame('intro_and_ask', $golden['trace'][0]['meta']['goal']['kind']);
+        self::assertSame('ask_slot', $inbound['goal']['kind']);
+        [$tenant, $http, $claim, $stage] = $this->fixture('Тула, на продажу.', [
+            'content' => json_encode($inbound['extraction'], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
+        ]);
+        $this->within($tenant, function () use ($http, $claim, $stage, $inbound): void {
+            $stateId = app(FirstTurnState::class)->prepare($http, $claim, $stage);
+            $computed = DB::transaction(fn () => app(FirstTurnGoal::class)->evaluateLocked($http, $claim, $stage, $stateId));
+            $actual = $computed['goal']->toArray();
+            self::assertSame($inbound['goal']['kind'], $actual['kind']);
+            self::assertSame($inbound['goal']['slot'], $actual['slot']);
+            self::assertSame($inbound['goal']['instruction'], $actual['instruction']);
+            self::assertSame(CanonicalJson::hash($inbound['goal']), CanonicalJson::hash($actual));
+            self::assertFalse($computed['state']['flags']['introduced']);
+            self::assertSame(1, $computed['state']['counters']['turns']);
+        });
+        Http::assertNothingSent();
+    }
+
     public function test_full_goal_is_recomputed_from_proven_sources_and_mutable_outputs_are_not_trusted(): void
     {
         [$tenant, $http, $claim, $stage] = $this->fixture('Synthetic closed topic', [
@@ -390,12 +415,12 @@ final class FirstTurnStateTest extends TestCase
         $this->within($tenant, function () use ($http, $claim, $stage): void {
             $stateId = app(FirstTurnState::class)->prepare($http, $claim, $stage);
             $result = DB::transaction(fn () => app(FirstTurnGoal::class)->evaluateLocked($http, $claim, $stage, $stateId));
-            self::assertSame('intro_and_ask', $result['goal']->kind);
+            self::assertSame('answer_and_ask', $result['goal']->kind);
             self::assertSame('company_location', $result['goal']->facts[0]['id']);
             self::assertNotEmpty($result['goal']->facts[0]['facts']);
             self::assertSame('company_location', $result['goal']->toArray()['facts'][0]);
-            self::assertTrue($result['state']['flags']['introduced']);
-            self::assertSame('qualify', $result['state']['stage']);
+            self::assertFalse($result['state']['flags']['introduced']);
+            self::assertSame('open', $result['state']['stage']);
             self::assertSame(1, DB::table('ai_calls')->count());
             self::assertSame(0, DB::table('seller_tasks')->count());
         });
@@ -584,7 +609,8 @@ final class FirstTurnStateTest extends TestCase
             self::assertSame('responder', $context->purpose);
             self::assertSame('user', $request->messages[1]['role']);
             self::assertSame('Synthetic question from synthetic.user@example.test', $request->messages[1]['content']);
-            self::assertStringContainsString('ЦЕЛЬ ХОДА:', $request->messages[0]['content']);
+            self::assertStringContainsString('ЦЕЛЬ ХОДА: ask_slot', $request->messages[0]['content']);
+            self::assertStringNotContainsString('ЦЕЛЬ ХОДА: intro_and_ask', $request->messages[0]['content']);
             $stored = DB::table('c02_responder_stages')->where('id', $stage)->first();
             self::assertStringNotContainsString('synthetic.user@example.test', json_encode($stored, JSON_THROW_ON_ERROR));
             try {
@@ -1127,6 +1153,531 @@ SQL);
             self::assertSame('uncertain', DB::table('seller_turns')->where('id', $claim->turnId)->value('status'));
             self::assertSame(2, DB::table('messages')->where('conversation_id', $claim->conversationId)->count());
             self::assertSame(2, DB::table('ai_calls')->count());
+            self::assertSame(0, DB::table('seller_tasks')->count());
+            unlink($file);
+        });
+        Http::assertNothingSent();
+    }
+
+    public function test_model_guard_projection_matches_all_original_prompt_goldens(): void
+    {
+        [$tenant] = $this->fixture();
+        $this->within($tenant, function () use ($tenant): void {
+            $knowledge = app(KnowledgeRepository::class)->published($tenant);
+            $states = json_decode(file_get_contents(base_path('tests/fixtures/prototype/prompts/states.json')), true, 512, JSON_THROW_ON_ERROR);
+            $extraction = ['slot_updates' => [], 'client_intent' => 'answer_only', 'client_questions' => [], 'objections' => [], 'sentiment' => 'neutral', 'wants_only_prices' => false, 'asked_if_bot' => false, 'wants_human' => false, 'do_not_disturb' => false, 'off_topic' => false, 'prompt_injection' => false, 'closed_topic' => null, 'unknown_question' => null, 'client_claims' => [], 'refused_slots' => [], 'confidence' => 0.9];
+            foreach ($states as $name => $data) {
+                $state = new LeadState($data);
+                $goal = (new Policy($knowledge))->decide($state, $extraction, $name === 'opening');
+                $actual = app(GuardProjection::class)->render($state, $goal);
+                $expected = file_get_contents(base_path('tests/fixtures/prototype/prompts/'.$name.'/guard.txt'));
+                self::assertIsString($expected);
+                self::assertSame(str_replace("\r\n", "\n", $expected), str_replace("\r\n", "\n", $actual['body']), $name);
+                self::assertSame(hash_file('sha256', resource_path('views/prompts/guard.blade.php')), $actual['checksum']);
+            }
+        });
+        Http::assertNothingSent();
+    }
+
+    private function modelGuardResponder(string $candidate = 'Давайте обсудим ваш заказ.'): array
+    {
+        [$tenant, $http, $claim, $extractor] = $this->fixture('Synthetic closed topic', [
+            'content' => '{"client_intent":"answer_only","closed_topic":"management_names"}',
+        ]);
+        [$responder, , , $file] = $this->responderFixture($tenant, $http, $claim, $extractor, ['content' => $candidate]);
+        $this->within($tenant, fn () => app(Gateway::class)->completeProtectedResponder($http, $claim, $responder));
+        unlink($file);
+
+        return [$tenant, $http, $claim, $responder];
+    }
+
+    private function modelGuardFixture(TenantContext $tenant, Request $http, TurnClaim $claim, string $responder, array $result = []): array
+    {
+        return $this->within($tenant, function () use ($http, $claim, $responder, $result): array {
+            $stage = app(SellerGuardStages::class)->prepare($http, $claim, $responder);
+            [$request, $context] = app(SellerGuardStages::class)->load($http, $claim, $stage);
+            $directory = storage_path('app/model-guard-fixtures-'.Str::random(12));
+            mkdir($directory, 0700, true);
+            config(['features.E0-05.defaults.fixture_directory' => $directory]);
+            $file = $directory.DIRECTORY_SEPARATOR.CanonicalJson::hash(app(ContactMasker::class)->request($request->toArray())).'.json';
+            $fake = array_replace(['content' => '{"ok":true,"issues":[]}', 'toolCalls' => [], 'usage' => ['promptTokens' => 1, 'completionTokens' => 1],
+                'model' => $request->model, 'latencyMs' => 1, 'costMicros' => 0], $result);
+            file_put_contents($file, json_encode(['result' => $fake], JSON_THROW_ON_ERROR));
+
+            return [$stage, $request, $context, $file];
+        });
+    }
+
+    public function test_model_guard_requires_server_enablement_and_binds_confirmed_sources(): void
+    {
+        [$tenant, $http, $claim, $responder] = $this->modelGuardResponder();
+        $this->within($tenant, function () use ($http, $claim, $responder): void {
+            self::assertFalse((bool) config('agent.guard_llm', false));
+            try {
+                app(SellerGuardStages::class)->prepare($http, $claim, $responder);
+                self::fail('Missing server enablement was accepted.');
+            } catch (LogicException $error) {
+                self::assertSame('Protected model guard stage rejected.', $error->getMessage());
+            }
+            self::assertSame(0, DB::table('c02_guard_stages')->count());
+        });
+        config(['agent.guard_llm' => true]);
+        [$stage, $request, $context, $file] = $this->modelGuardFixture($tenant, $http, $claim, $responder);
+        $this->within($tenant, function () use ($http, $claim, $responder, $stage, $request, $context, $file): void {
+            self::assertSame($stage, app(SellerGuardStages::class)->prepare($http, $claim, $responder));
+            self::assertSame('guard', $context->purpose);
+            self::assertSame('Давайте обсудим ваш заказ.', $request->messages[1]['content']);
+            self::assertStringContainsString('Цель хода: closed_topic', $request->messages[0]['content']);
+            self::assertSame([], $request->tools);
+            self::assertNull($request->toolChoice);
+            self::assertSame(0.0, $request->temperature);
+            try {
+                app(Gateway::class)->complete($request, $context);
+                self::fail('Public Gateway accepted a prepared guard request.');
+            } catch (LogicException) {
+                self::assertTrue(true);
+            }
+            self::assertSame('completed', app(Gateway::class)->completeProtectedModelGuard($http, $claim, $stage));
+            self::assertSame('completed', app(Gateway::class)->completeProtectedModelGuard($http, $claim, $stage));
+            try {
+                app(Gateway::class)->readProtectedModelGuardLocked($http, $claim, $stage);
+                self::fail('Model guard result was read outside a transaction.');
+            } catch (LogicException $error) {
+                self::assertSame('Protected model guard result unavailable.', $error->getMessage());
+            }
+            $decision = DB::transaction(fn () => app(Gateway::class)->readProtectedModelGuardLocked($http, $claim, $stage));
+            self::assertSame('completed', $decision['status']);
+            self::assertSame('ok', $decision['verdict']);
+            self::assertSame([], $decision['issues']);
+            try {
+                app(Gateway::class)->complete($request, $context);
+                self::fail('Public Gateway replayed a protected guard result.');
+            } catch (LogicException) {
+                self::assertTrue(true);
+            }
+            self::assertSame(3, DB::table('ai_calls')->count());
+            self::assertSame(0, DB::table('seller_tasks')->count());
+            self::assertSame(0, DB::table('outbox_events')->count());
+            unlink($file);
+        });
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
+    }
+
+    public function test_model_guard_is_reachable_for_an_inbound_question_with_facts(): void
+    {
+        config(['agent.guard_llm' => true]);
+        [$tenant, $http, $claim, $extractor] = $this->fixture('Где вы находитесь?', [
+            'content' => '{"client_intent":"ask_location"}',
+        ]);
+        [$responder, , , $file, $stateId] = $this->responderFixture($tenant, $http, $claim, $extractor, ['content' => 'Мы в Москве. Откуда вы?']);
+        $this->within($tenant, function () use ($http, $claim, $extractor, $responder, $stateId, $file): void {
+            $computed = DB::transaction(fn () => app(FirstTurnGoal::class)->evaluateLocked($http, $claim, $extractor, $stateId));
+            self::assertSame('answer_and_ask', $computed['goal']->kind);
+            self::assertSame('completed', app(Gateway::class)->completeProtectedResponder($http, $claim, $responder));
+            $det = DB::transaction(fn () => app(FirstTurnDeterministicGuard::class)->evaluateLocked($http, $claim, $responder));
+            self::assertSame('ok', $det['verdict']);
+            unlink($file);
+        });
+        [$stage, , , $guardFile] = $this->modelGuardFixture($tenant, $http, $claim, $responder);
+        $this->within($tenant, function () use ($http, $claim, $stage, $guardFile): void {
+            self::assertSame('completed', app(Gateway::class)->completeProtectedModelGuard($http, $claim, $stage));
+            $decision = DB::transaction(fn () => app(Gateway::class)->readProtectedModelGuardLocked($http, $claim, $stage));
+            self::assertSame('completed', $decision['status']);
+            self::assertSame('ok', $decision['verdict']);
+            self::assertSame(3, DB::table('ai_calls')->count());
+            self::assertSame(0, DB::table('seller_tasks')->count());
+            unlink($guardFile);
+        });
+        Http::assertNothingSent();
+    }
+
+    public function test_model_guard_refuses_unneeded_goal_and_deterministic_issues(): void
+    {
+        config(['agent.guard_llm' => true]);
+        [$tenant, $http, $claim, $extractor] = $this->fixture('Ordinary first input');
+        [$responder, , , $file] = $this->responderFixture($tenant, $http, $claim, $extractor);
+        $this->within($tenant, function () use ($http, $claim, $responder, $file): void {
+            self::assertSame('completed', app(Gateway::class)->completeProtectedResponder($http, $claim, $responder));
+            try {
+                app(SellerGuardStages::class)->prepare($http, $claim, $responder);
+                self::fail('Model guard was created for an ineligible goal.');
+            } catch (LogicException $error) {
+                self::assertSame('Protected model guard stage rejected.', $error->getMessage());
+            }
+            unlink($file);
+        });
+        [$otherTenant, $otherHttp, $otherClaim, $otherResponder] = $this->modelGuardResponder('Прайс в чате, посмотрите.');
+        $this->within($otherTenant, function () use ($otherHttp, $otherClaim, $otherResponder): void {
+            $det = DB::transaction(fn () => app(FirstTurnDeterministicGuard::class)->evaluateLocked($otherHttp, $otherClaim, $otherResponder));
+            self::assertSame('regenerate', $det['verdict']);
+            try {
+                app(SellerGuardStages::class)->prepare($otherHttp, $otherClaim, $otherResponder);
+                self::fail('Model guard bypassed deterministic issues.');
+            } catch (LogicException $error) {
+                self::assertSame('Protected model guard stage rejected.', $error->getMessage());
+            }
+        });
+        self::assertSame(0, DB::table('c02_guard_stages')->count());
+        self::assertSame(4, DB::table('ai_calls')->count());
+        self::assertSame(0, DB::table('seller_tasks')->count());
+        Http::assertNothingSent();
+    }
+
+    public function test_model_guard_unknown_tool_calls_and_malformed_result_are_fail_closed(): void
+    {
+        config(['agent.guard_llm' => true]);
+        foreach ([
+            ['result' => ['costMicros' => null], 'status' => 'uncertain'],
+            ['result' => ['content' => '{"ok":true,"issues":[]}', 'toolCalls' => [['id' => 'synthetic', 'name' => 'send_price', 'arguments' => []]]], 'status' => 'unavailable'],
+            ['result' => ['content' => '{"ok":true,"issues":{}}'], 'status' => 'unavailable'],
+            ['result' => ['content' => '{"ok":false,"issues":["Синтетическая ошибка"]}'], 'status' => 'regenerate'],
+        ] as $case) {
+            [$tenant, $http, $claim, $responder] = $this->modelGuardResponder();
+            [$stage, , , $file] = $this->modelGuardFixture($tenant, $http, $claim, $responder, $case['result']);
+            $this->within($tenant, function () use ($http, $claim, $stage, $file, $case): void {
+                $first = app(Gateway::class)->completeProtectedModelGuard($http, $claim, $stage);
+                self::assertSame($case['status'] === 'uncertain' ? 'uncertain' : 'completed', $first);
+                self::assertSame($first, app(Gateway::class)->completeProtectedModelGuard($http, $claim, $stage));
+                if ($case['status'] === 'uncertain') {
+                    try {
+                        DB::transaction(fn () => app(Gateway::class)->readProtectedModelGuardLocked($http, $claim, $stage));
+                        self::fail('Unknown guard cost produced a decision.');
+                    } catch (LogicException $error) {
+                        self::assertSame('Protected model guard result unavailable.', $error->getMessage());
+                    }
+                } else {
+                    $decision = DB::transaction(fn () => app(Gateway::class)->readProtectedModelGuardLocked($http, $claim, $stage));
+                    if ($case['status'] === 'regenerate') {
+                        self::assertSame('completed', $decision['status']);
+                        self::assertSame('regenerate', $decision['verdict']);
+                        self::assertSame(['Синтетическая ошибка'], $decision['issues']);
+                    } else {
+                        self::assertSame('unavailable', $decision['status']);
+                        self::assertNull($decision['verdict']);
+                        self::assertSame([], $decision['issues']);
+                    }
+                }
+                unlink($file);
+            });
+        }
+        self::assertSame(12, DB::table('ai_calls')->count());
+        self::assertSame(0, DB::table('seller_tasks')->count());
+        self::assertSame(0, DB::table('outbox_events')->count());
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
+    }
+
+    public function test_model_guard_rejects_forgery_tampering_revocation_and_new_input(): void
+    {
+        config(['agent.guard_llm' => true]);
+        [$tenant, $http, $claim, $responder] = $this->modelGuardResponder();
+        [$stage, , , $file] = $this->modelGuardFixture($tenant, $http, $claim, $responder);
+        $this->within($tenant, function () use ($http, $claim, $responder, $stage, $file): void {
+            $oldCall = DB::table('c02_responder_stages')->where('id', $responder)->value('ai_call_id');
+            $forged = (array) DB::table('c02_guard_stages')->where('id', $stage)->first();
+            $forged['id'] = (string) Str::ulid();
+            $forged['responder_stage_id'] = (string) Str::ulid();
+            foreach ([fn () => DB::table('c02_guard_stages')->insert($forged),
+                fn () => DB::table('c02_guard_stages')->where('id', $stage)->update(['request_encrypted' => 'forged']),
+                fn () => DB::table('c02_guard_stages')->where('id', $stage)->update(['ai_call_id' => $oldCall, 'gateway_request_hash' => str_repeat('a', 64)]),
+                fn () => DB::table('c02_guard_stages')->where('id', $stage)->delete(),
+                fn () => DB::statement('TRUNCATE TABLE c02_guard_stages')] as $operation) {
+                try {
+                    DB::transaction($operation);
+                    self::fail('Protected model guard history changed.');
+                } catch (QueryException $error) {
+                    self::assertSame('23514', $error->errorInfo[0]);
+                }
+            }
+            self::assertSame('completed', app(Gateway::class)->completeProtectedModelGuard($http, $claim, $stage));
+            unlink($file);
+        });
+        [$otherTenant, $otherHttp, $otherClaim, $otherResponder] = $this->modelGuardResponder('Помогу с вашим заказом.');
+        [$otherStage, , , $otherFile] = $this->modelGuardFixture($otherTenant, $otherHttp, $otherClaim, $otherResponder);
+        $this->within($otherTenant, fn () => app(Gateway::class)->completeProtectedModelGuard($otherHttp, $otherClaim, $otherStage));
+        unlink($otherFile);
+        $otherCall = DB::table('c02_guard_stages')->where('id', $otherStage)->value('ai_call_id');
+        $otherCipher = DB::table('ai_calls')->where('id', $otherCall)->value('result_encrypted');
+        $this->within($tenant, function () use ($tenant, $http, $claim, $stage, $otherStage, $otherCipher): void {
+            $forged = new TurnClaim('claimed', $claim->turnId, $claim->conversationId, $claim->organizationId, $claim->brandId, $claim->baseVersion, str_repeat('a', 64));
+            foreach ([[$forged, $stage], [$claim, $otherStage], [$claim, (string) Str::ulid()]] as [$turn, $stageId]) {
+                try {
+                    DB::transaction(fn () => app(Gateway::class)->readProtectedModelGuardLocked($http, $turn, $stageId));
+                    self::fail('Forged model guard source was accepted.');
+                } catch (LogicException $error) {
+                    self::assertSame('Protected model guard result unavailable.', $error->getMessage());
+                    self::assertNull($error->getPrevious());
+                    $trace = json_encode($error->getTrace(), JSON_PARTIAL_OUTPUT_ON_ERROR | JSON_THROW_ON_ERROR);
+                    self::assertStringNotContainsString($turn->token(), $trace);
+                    self::assertStringNotContainsString($http->session()->getId(), $trace);
+                }
+            }
+            $call = DB::table('c02_guard_stages')->where('id', $stage)->value('ai_call_id');
+            $original = DB::table('ai_calls')->where('id', $call)->value('result_encrypted');
+            DB::table('ai_calls')->where('id', $call)->update(['result_encrypted' => $otherCipher]);
+            try {
+                DB::transaction(fn () => app(Gateway::class)->readProtectedModelGuardLocked($http, $claim, $stage));
+                self::fail('Another model result was accepted.');
+            } catch (LogicException) {
+                self::assertTrue(true);
+            }
+            DB::table('ai_calls')->where('id', $call)->update(['result_encrypted' => $original]);
+            config(['agent.guard_llm' => false]);
+            try {
+                DB::transaction(fn () => app(Gateway::class)->readProtectedModelGuardLocked($http, $claim, $stage));
+                self::fail('Disabled model guard returned a result.');
+            } catch (LogicException) {
+                self::assertTrue(true);
+            } finally {
+                config(['agent.guard_llm' => true]);
+            }
+            config(['runtime.ai_driver' => 'record']);
+            try {
+                app(Gateway::class)->completeProtectedModelGuard($http, $claim, $stage);
+                self::fail('A non-fake model guard driver was accepted.');
+            } catch (LogicException) {
+                self::assertTrue(true);
+            } finally {
+                config(['runtime.ai_driver' => 'fake']);
+            }
+            DB::table('prompt_sets')->whereNull('organization_id')->where('name', 'guard')->update(['status' => 'draft']);
+            try {
+                DB::transaction(fn () => app(Gateway::class)->readProtectedModelGuardLocked($http, $claim, $stage));
+                self::fail('An unpublished guard prompt was accepted.');
+            } catch (LogicException) {
+                self::assertTrue(true);
+            }
+            DB::table('prompt_sets')->whereNull('organization_id')->where('name', 'guard')->update(['status' => 'published']);
+            $release = DB::table('brands')->where('id', $tenant->brandId)->value('active_knowledge_release_id');
+            DB::table('brands')->where('id', $tenant->brandId)->update(['active_knowledge_release_id' => null]);
+            try {
+                DB::transaction(fn () => app(Gateway::class)->readProtectedModelGuardLocked($http, $claim, $stage));
+                self::fail('An inactive release was accepted.');
+            } catch (LogicException) {
+                self::assertTrue(true);
+            }
+            DB::table('brands')->where('id', $tenant->brandId)->update(['active_knowledge_release_id' => $release]);
+            DB::table('brand_modules')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
+                ->where('module', 'seller')->update(['enabled' => false]);
+            try {
+                DB::transaction(fn () => app(Gateway::class)->readProtectedModelGuardLocked($http, $claim, $stage));
+                self::fail('Revoked rights returned a model result.');
+            } catch (LogicException) {
+                self::assertTrue(true);
+            }
+            DB::table('brand_modules')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
+                ->where('module', 'seller')->update(['enabled' => true]);
+            Message::create(['conversation_id' => $claim->conversationId, 'role' => 'client', 'text' => 'Later synthetic input', 'meta' => []]);
+            try {
+                DB::transaction(fn () => app(Gateway::class)->readProtectedModelGuardLocked($http, $claim, $stage));
+                self::fail('Stale model result was exposed.');
+            } catch (LogicException) {
+                self::assertTrue(true);
+            }
+            self::assertSame('uncertain', DB::table('seller_turns')->where('id', $claim->turnId)->value('status'));
+            self::assertSame(2, DB::table('messages')->where('conversation_id', $claim->conversationId)->count());
+        });
+        $this->within($otherTenant, function () use ($otherHttp, $otherClaim, $otherStage): void {
+            app(AuthSessionRegistry::class)->withinActive($otherHttp, fn () => app(AuthSessionRegistry::class)->revokeCurrent($otherHttp));
+            try {
+                DB::transaction(fn () => app(Gateway::class)->readProtectedModelGuardLocked($otherHttp, $otherClaim, $otherStage));
+                self::fail('Revoked session read model guard.');
+            } catch (LogicException) {
+                self::assertTrue(true);
+            }
+        });
+        self::assertSame(6, DB::table('ai_calls')->count());
+        self::assertSame(0, DB::table('seller_tasks')->count());
+        self::assertSame(0, DB::table('outbox_events')->count());
+        Http::assertNothingSent();
+    }
+
+    public function test_model_guard_serializes_with_new_input_and_hides_stale_decision(): void
+    {
+        config(['agent.guard_llm' => true]);
+        [$tenant, $http, $claim, $responder] = $this->modelGuardResponder();
+        [$stage, , , $file] = $this->modelGuardFixture($tenant, $http, $claim, $responder);
+        $this->within($tenant, function () use ($tenant, $http, $claim, $stage, $file): void {
+            self::assertSame('completed', app(Gateway::class)->completeProtectedModelGuard($http, $claim, $stage));
+            config(['database.connections.c02_model_guard_competitor' => config('database.connections.pgsql')]);
+            $other = DB::connection('c02_model_guard_competitor');
+            DB::transaction(function () use ($tenant, $http, $claim, $stage, $other): void {
+                self::assertSame('ok', app(Gateway::class)->readProtectedModelGuardLocked($http, $claim, $stage)['verdict']);
+                $other->beginTransaction();
+                try {
+                    $other->statement("SET LOCAL lock_timeout = '250ms'");
+                    $other->table('messages')->insert(['id' => (string) Str::ulid(), 'organization_id' => $tenant->organizationId,
+                        'brand_id' => $tenant->brandId, 'conversation_id' => $claim->conversationId,
+                        'role' => 'client', 'text' => 'Concurrent synthetic input', 'meta' => '{}']);
+                    self::fail('Input crossed the model guard transaction.');
+                } catch (QueryException $error) {
+                    self::assertSame('55P03', $error->errorInfo[0]);
+                } finally {
+                    $other->rollBack();
+                }
+            });
+            DB::purge('c02_model_guard_competitor');
+            Message::create(['conversation_id' => $claim->conversationId, 'role' => 'client', 'text' => 'Later synthetic input', 'meta' => []]);
+            try {
+                DB::transaction(fn () => app(Gateway::class)->readProtectedModelGuardLocked($http, $claim, $stage));
+                self::fail('Stale model decision remained accessible.');
+            } catch (LogicException) {
+                self::assertTrue(true);
+            }
+            self::assertSame('uncertain', DB::table('seller_turns')->where('id', $claim->turnId)->value('status'));
+            self::assertSame(2, DB::table('messages')->where('conversation_id', $claim->conversationId)->count());
+            self::assertSame(3, DB::table('ai_calls')->count());
+            self::assertSame(0, DB::table('seller_tasks')->count());
+            unlink($file);
+        });
+        Http::assertNothingSent();
+    }
+
+    public function test_model_guard_migration_preserves_existing_turn_and_refuses_history_loss(): void
+    {
+        $migration = require database_path('migrations/C-02/2026_11_01_080000_c02_create_guard_stages.php');
+        $migration->down();
+        config(['agent.guard_llm' => true]);
+        [$tenant, $http, $claim, $responder] = $this->modelGuardResponder();
+        self::assertSame(2, DB::table('ai_calls')->count());
+        self::assertSame(1, DB::table('messages')->where('conversation_id', $claim->conversationId)->count());
+        $migration->up();
+        [$stage, , , $file] = $this->modelGuardFixture($tenant, $http, $claim, $responder);
+        self::assertNotEmpty($stage);
+        self::assertSame(1, DB::table('c02_guard_stages')->count());
+        self::assertSame('processing', DB::table('seller_turns')->where('id', $claim->turnId)->value('status'));
+        try {
+            $migration->down();
+            self::fail('Migration discarded protected model guard history.');
+        } catch (\RuntimeException $error) {
+            self::assertSame('Cannot discard protected guard stage history.', $error->getMessage());
+        }
+        self::assertSame(1, DB::table('c02_guard_stages')->count());
+        unlink($file);
+        Http::assertNothingSent();
+    }
+
+    public function test_new_input_during_model_guard_persistence_keeps_accounting_and_hides_decision(): void
+    {
+        config(['agent.guard_llm' => true]);
+        [$tenant, $http, $claim, $responder] = $this->modelGuardResponder();
+        [$stage, , , $file] = $this->modelGuardFixture($tenant, $http, $claim, $responder, ['costMicros' => 2]);
+        DB::unprepared(<<<'SQL'
+CREATE OR REPLACE FUNCTION c02_test_delay_model_guard() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.result_encrypted IS NOT NULL AND OLD.result_encrypted IS NULL THEN
+    PERFORM pg_advisory_xact_lock(8620252);
+  END IF;
+  RETURN NEW;
+END;
+$$;
+CREATE TRIGGER c02_test_delay_model_guard BEFORE UPDATE ON ai_calls FOR EACH ROW EXECUTE FUNCTION c02_test_delay_model_guard();
+SQL);
+        config(['database.connections.c02_model_guard_advisory' => config('database.connections.pgsql')]);
+        $blocker = DB::connection('c02_model_guard_advisory');
+        $blocker->beginTransaction();
+        $blocker->select('SELECT pg_advisory_xact_lock(8620252)');
+        $worker = new Process([PHP_BINARY, '-d', 'opcache.enable_cli=0', '-d', 'allow_url_fopen=0',
+            '-d', 'disable_functions=fsockopen,pfsockopen,stream_socket_client,curl_exec,curl_multi_exec',
+            base_path('tests/Feature/Ai/Fixtures/protected-model-guard-worker.php')], base_path());
+        $worker->setInput(json_encode(['org' => $tenant->organizationId, 'brand' => $tenant->brandId,
+            'user' => $tenant->actorId, 'member' => $tenant->membershipId, 'session' => $http->session()->getId(),
+            'turn' => $claim->turnId, 'conversation' => $claim->conversationId, 'version' => $claim->baseVersion,
+            'token' => $claim->token(), 'stage' => $stage, 'fixtures' => dirname($file)], JSON_THROW_ON_ERROR));
+        $worker->setTimeout(45);
+        $inputRecorded = false;
+        try {
+            $worker->start();
+            $deadline = microtime(true) + 35;
+            do {
+                if (! $worker->isRunning()) {
+                    self::fail('Protected worker exited before the test lock.');
+                }
+                $waiting = DB::selectOne("select count(*) as n from pg_stat_activity where datname = current_database() and wait_event = 'advisory'")->n;
+                if ((int) $waiting > 0) {
+                    break;
+                }
+                usleep(50000);
+            } while (microtime(true) < $deadline);
+            self::assertGreaterThan(0, (int) $waiting);
+            $this->within($tenant, fn () => Message::create(['conversation_id' => $claim->conversationId, 'role' => 'client', 'text' => 'Later synthetic input', 'meta' => []]));
+            $inputRecorded = true;
+        } finally {
+            $blocker->rollBack();
+            if (! $inputRecorded) {
+                if ($worker->isRunning()) {
+                    $worker->stop();
+                }
+                if (is_file($file)) {
+                    unlink($file);
+                }
+                DB::purge('c02_model_guard_advisory');
+            }
+        }
+        try {
+            $worker->wait();
+            self::assertTrue($worker->isSuccessful(), $worker->getErrorOutput());
+            self::assertSame(['status' => 'completed'], json_decode($worker->getOutput(), true, 512, JSON_THROW_ON_ERROR));
+            $this->within($tenant, function () use ($http, $claim, $stage): void {
+                try {
+                    DB::transaction(fn () => app(Gateway::class)->readProtectedModelGuardLocked($http, $claim, $stage));
+                    self::fail('A stale model decision was exposed.');
+                } catch (LogicException $error) {
+                    self::assertSame('Protected model guard result unavailable.', $error->getMessage());
+                }
+            });
+            $call = DB::table('c02_guard_stages')->where('id', $stage)->value('ai_call_id');
+            self::assertSame('completed', DB::table('ai_calls')->where('id', $call)->value('status'));
+            self::assertSame(2, (int) DB::table('ai_budgets')->where('organization_id', $tenant->organizationId)->value('spent_micros'));
+            self::assertSame('uncertain', DB::table('seller_turns')->where('id', $claim->turnId)->value('status'));
+            self::assertSame(2, DB::table('messages')->where('conversation_id', $claim->conversationId)->count());
+            self::assertSame(0, DB::table('seller_tasks')->count());
+            Http::assertNothingSent();
+        } finally {
+            if ($worker->isRunning()) {
+                $worker->stop();
+            }
+            if (is_file($file)) {
+                unlink($file);
+            }
+            DB::purge('c02_model_guard_advisory');
+        }
+    }
+
+    public function test_model_guard_confirmed_driver_error_is_not_retried(): void
+    {
+        config(['agent.guard_llm' => true]);
+        [$tenant, $http, $claim, $responder] = $this->modelGuardResponder();
+        [$stage, , , $file] = $this->modelGuardFixture($tenant, $http, $claim, $responder);
+        $contents = file_get_contents($file);
+        self::assertIsString($contents);
+        unlink($file);
+        $this->within($tenant, function () use ($http, $claim, $stage, $file, $contents): void {
+            try {
+                app(Gateway::class)->completeProtectedModelGuard($http, $claim, $stage);
+                self::fail('A missing fake fixture became a successful result.');
+            } catch (LogicException $error) {
+                self::assertSame('Protected model guard stage could not be completed.', $error->getMessage());
+            }
+            file_put_contents($file, $contents);
+            try {
+                app(Gateway::class)->completeProtectedModelGuard($http, $claim, $stage);
+                self::fail('The failed call was automatically retried.');
+            } catch (LogicException $error) {
+                self::assertSame('Protected model guard stage could not be completed.', $error->getMessage());
+            }
+            try {
+                DB::transaction(fn () => app(Gateway::class)->readProtectedModelGuardLocked($http, $claim, $stage));
+                self::fail('A failed model call produced a decision.');
+            } catch (LogicException) {
+                self::assertTrue(true);
+            }
+            $call = DB::table('c02_guard_stages')->where('id', $stage)->value('ai_call_id');
+            self::assertSame('failed', DB::table('ai_calls')->where('id', $call)->value('status'));
+            self::assertSame(3, DB::table('ai_calls')->count());
             self::assertSame(0, DB::table('seller_tasks')->count());
             unlink($file);
         });
