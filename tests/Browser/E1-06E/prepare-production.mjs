@@ -1,5 +1,7 @@
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
+import process from 'node:process';
+import console from 'node:console';
 
 // A disposable integration copy only: the shared Team/Index in the checkout stays untouched.
 if (process.env.E106E_BROWSER_FIXTURE !== '1' || process.env.APP_ENV !== 'testing') throw new Error('Test fixture is disabled.');
@@ -26,6 +28,7 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
   root: ${JSON.stringify(scratch)},
+  base: '/build/',
   plugins: [react(), tailwindcss()],
   resolve: { alias: { '@': ${JSON.stringify(join(scratch, 'resources', 'js'))} } },
   build: { outDir: ${JSON.stringify(join(root, 'public', 'build'))}, emptyOutDir: true, manifest: 'manifest.json',

@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import { createInertiaApp, usePage } from '@inertiajs/react';
+import type { Page } from '@inertiajs/core';
 import InvitationDialog, {
   type InvitationBrand,
 } from '@/features/Shell/InvitationIssuance/InvitationDialog';
@@ -14,25 +16,12 @@ type Context = {
 };
 
 export function Harness() {
-  const [context, setContext] = useState<Context | null>(null);
+  const currentPage = usePage();
+  const initialContext = currentPage.props as unknown as Context;
+  const [context, setContext] = useState<Context>(initialContext);
   const [open, setOpen] = useState(false);
-  const [error, setError] = useState('');
-  useEffect(() => {
-    fetch('/team', {
-      headers: { 'X-Inertia': 'true', Accept: 'text/html, application/xhtml+xml' },
-      credentials: 'same-origin',
-      cache: 'no-store',
-    })
-      .then(async (response) => {
-        if (!response.ok) throw new Error();
-        const page = (await response.json()) as { props: Context };
-        setContext(page.props);
-      })
-      .catch(() => setError('Не удалось получить контекст.'));
-  }, []);
-  if (!context) return <p>{error || 'Загружаем контекст…'}</p>;
   return (
-    <main className="p-6">
+    <main className="p-6" data-inertia-version={currentPage.version ?? ''}>
       <h1>Проверка формы приглашения</h1>
       <button type="button" onClick={() => setOpen(true)}>
         Открыть форму
@@ -59,4 +48,19 @@ export function Harness() {
     </main>
   );
 }
-createRoot(document.getElementById('root')!).render(<Harness />);
+async function boot() {
+  const response = await fetch('/team', { credentials: 'same-origin', cache: 'no-store' });
+  if (!response.ok) throw new Error('Context unavailable');
+  const document = new DOMParser().parseFromString(await response.text(), 'text/html');
+  const content = document.querySelector('script[data-page="app"]')?.textContent;
+  if (!content) throw new Error('Inertia context unavailable');
+  const page = JSON.parse(content) as Page;
+  await createInertiaApp({
+    page,
+    resolve: () => Harness,
+    setup: ({ App, props }) => createRoot(window.document.getElementById('root')!).render(<App {...props} />),
+  });
+}
+void boot().catch(() => {
+  window.document.getElementById('root')!.textContent = 'Не удалось получить контекст.';
+});

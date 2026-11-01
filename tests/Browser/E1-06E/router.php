@@ -43,6 +43,14 @@ if ($path === '/_e106e/count') {
 $public = realpath(getcwd().'/public');
 $file = is_string($path) ? realpath(getcwd().'/public'.$path) : false;
 if ($public && $file && str_starts_with(strtolower($file), strtolower($public.DIRECTORY_SEPARATOR)) && is_file($file)) {
-    return false;
+    $types = ['js' => 'text/javascript', 'css' => 'text/css', 'woff2' => 'font/woff2', 'svg' => 'image/svg+xml'];
+    $type = $types[strtolower(pathinfo($file, PATHINFO_EXTENSION))] ?? null;
+    if ($type === null) {
+        http_response_code(404);
+        exit;
+    }
+    header('Content-Type: '.$type);
+    readfile($file);
+    exit;
 }
 require getcwd().'/public/index.php';

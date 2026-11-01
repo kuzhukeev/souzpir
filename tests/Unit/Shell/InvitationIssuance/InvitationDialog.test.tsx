@@ -215,6 +215,17 @@ it.each([
   expect(screen.queryByLabelText('Ссылка приглашения')).toBeNull();
 });
 
+it('clears an already displayed link when the Inertia version changes', async () => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(issued()).mockResolvedValueOnce(checked()));
+  const { rerender } = render(<InvitationDialog {...props} />);
+  prepare();
+  const field = (await screen.findByLabelText('Ссылка приглашения')) as HTMLTextAreaElement;
+  state.version = 'new-version';
+  rerender(<InvitationDialog {...props} />);
+  expect(screen.queryByLabelText('Ссылка приглашения')).toBeNull();
+  expect(field.value).toBe('');
+});
+
 it('marks a hung issuance unknown even when fetch ignores abort', async () => {
   vi.stubGlobal(
     'fetch',
