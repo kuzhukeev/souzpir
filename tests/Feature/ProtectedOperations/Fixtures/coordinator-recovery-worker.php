@@ -47,18 +47,25 @@ app()->instance(FakeDriver::class, new class($input) implements Driver
             $content = '{"client_intent":"answer_only"}';
         } elseif ($kind === 'responder') {
             file_put_contents($this->input['responder_marker'], "call\n", FILE_APPEND | LOCK_EX);
-            $content = 'Можем обсудить заказ?';
+            $content = ($this->input['tool_signal'] ?? false) ? null : 'Можем обсудить заказ?';
         } else {
             throw new LogicException('Unexpected fake call.');
         }
 
-        return ['content' => $content, 'toolCalls' => [], 'usage' => ['promptTokens' => 1, 'completionTokens' => 1],
+        $tools = $kind === 'responder' && ($this->input['tool_signal'] ?? false)
+            ? [['id' => 'synthetic-tool', 'name' => 'send_price', 'arguments' => ['email' => 'synthetic@example.test']]] : [];
+
+        return ['content' => $content, 'toolCalls' => $tools, 'usage' => ['promptTokens' => 1, 'completionTokens' => 1],
             'model' => $body['model'], 'latencyMs' => 1, 'costMicros' => 7];
     }
 });
 if ($input['mode'] === 'initial') {
     DB::listen(function (QueryExecuted $query) use ($input): void {
         if (preg_match('/^update\s+"ai_calls"\s+set\s+"result_encrypted"/i', $query->sql) !== 1) {
+            return;
+        }
+        $callId = $query->bindings[count($query->bindings) - 2] ?? null;
+        if (DB::table('ai_calls')->where('id', $callId)->value('purpose') !== ($input['pause_purpose'] ?? 'extractor')) {
             return;
         }
         if (DB::connection()->transactionLevel() !== 0) {
