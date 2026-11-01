@@ -41,7 +41,7 @@ final class FirstTurnCoordinator
             $claim = $claims->claim($http, $command);
             $claimIssued = true;
             if ($claim->status === 'uncertain') {
-                return ['status' => 'uncertain'];
+                return $this->requestReview($http, $claim->turnId);
             }
             if ($claim->status === 'finished') {
                 return ['status' => 'completed', 'result' => $claims->readFinishedCoordinatorResult($http, $command)];
@@ -62,7 +62,7 @@ final class FirstTurnCoordinator
                 }
             }
             if ($status !== 'completed') {
-                return $this->pending($status);
+                return $status === 'uncertain' ? $this->requestReview($http, $claim->turnId) : $this->pending($status);
             }
             $stateId = app(FirstTurnState::class)->prepare($http, $claim, $extractor);
             $responder = app(SellerResponderStages::class)->prepare($http, $claim, $extractor, $stateId);
@@ -77,10 +77,13 @@ final class FirstTurnCoordinator
                 }
             }
             if ($status !== 'completed') {
-                return $this->pending($status);
+                return $status === 'uncertain' ? $this->requestReview($http, $claim->turnId) : $this->pending($status);
             }
             $check = DB::transaction(function () use ($http, $claim, $extractor, $stateId, $responder, $gateway): array {
                 $candidate = $gateway->readProtectedResponderLocked($http, $claim, $responder);
+                if (($candidate['status'] ?? null) === 'tool_calls') {
+                    return ['status' => 'stopped_tool'];
+                }
                 if (($candidate['status'] ?? null) !== 'candidate') {
                     return ['status' => 'blocked'];
                 }
@@ -96,6 +99,9 @@ final class FirstTurnCoordinator
 
                 return ['status' => 'ready', 'needs_model' => app(GuardDecision::class)->requiresModel($deterministic, $computed['goal'], $enabled)];
             });
+            if ($check['status'] === 'stopped_tool') {
+                return $this->requestReview($http, $claim->turnId);
+            }
             if ($check['status'] !== 'ready') {
                 return ['status' => 'blocked'];
             }
@@ -104,7 +110,7 @@ final class FirstTurnCoordinator
                 $guard = app(SellerGuardStages::class)->prepare($http, $claim, $responder);
                 $status = $gateway->completeProtectedModelGuard($http, $claim, $guard);
                 if ($status !== 'completed') {
-                    return $this->pending($status);
+                    return $status === 'uncertain' ? $this->requestReview($http, $claim->turnId) : $this->pending($status);
                 }
                 $decision = DB::transaction(fn () => $gateway->readProtectedModelGuardLocked($http, $claim, $guard));
                 if (($decision['status'] ?? null) !== 'completed' || ($decision['verdict'] ?? null) !== 'ok') {
@@ -123,7 +129,7 @@ final class FirstTurnCoordinator
                 try {
                     $current = app(FirstTurnProtectedClaim::class)->claim($http, $command);
                     if ($current->status === 'uncertain') {
-                        return ['status' => 'uncertain'];
+                        return $this->requestReview($http, $current->turnId);
                     }
                     if ($current->status === 'finished') {
                         return ['status' => 'completed', 'result' => app(FirstTurnProtectedClaim::class)->readFinishedCoordinatorResult($http, $command)];
@@ -140,5 +146,12 @@ final class FirstTurnCoordinator
     private function pending(string $status): array
     {
         return ['status' => in_array($status, ['in_progress', 'uncertain'], true) ? $status : 'unavailable'];
+    }
+
+    private function requestReview(#[SensitiveParameter] Request $http, #[SensitiveParameter] string $turnId): array
+    {
+        app(ManualReviewRequests::class)->quarantineForCoordinator($http, $turnId);
+
+        return ['status' => 'uncertain'];
     }
 }

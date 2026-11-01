@@ -39,6 +39,17 @@ final class ManualReviewRequests
     /** An explicit operator request quarantines an unresolved turn and records review atomically. */
     public function quarantineAndRequest(#[SensitiveParameter] Request $request, #[SensitiveParameter] string $turnId): array
     {
+        return $this->quarantineAndRequestInternal($request, $turnId, false);
+    }
+
+    /** Internal coordinator path; the original request can contain its command fields. */
+    public function quarantineForCoordinator(#[SensitiveParameter] Request $request, #[SensitiveParameter] string $turnId): array
+    {
+        return $this->quarantineAndRequestInternal($request, $turnId, true);
+    }
+
+    private function quarantineAndRequestInternal(#[SensitiveParameter] Request $request, #[SensitiveParameter] string $turnId, bool $allowCommandInput): array
+    {
         try {
             if (! Str::isUlid($turnId)) {
                 throw new LogicException;
@@ -62,7 +73,7 @@ final class ManualReviewRequests
                 }
 
                 return $this->readOrRequestLocked($request, $tenant, $turnId, true);
-            });
+            }, allowCommandInput: $allowCommandInput);
         } catch (AuthenticationException|HttpExceptionInterface $error) {
             throw $error;
         } catch (Throwable) {
@@ -91,10 +102,10 @@ final class ManualReviewRequests
         }
     }
 
-    private function authorized(#[SensitiveParameter] Request $request, Closure $action, bool $allowCursor = false): array
+    private function authorized(#[SensitiveParameter] Request $request, Closure $action, bool $allowCursor = false, bool $allowCommandInput = false): array
     {
         $input = $request->all();
-        if ((! $allowCursor && $input !== []) || ($allowCursor && (array_diff(array_keys($input), ['cursor']) !== []
+        if ((! $allowCommandInput && ! $allowCursor && $input !== []) || ($allowCursor && (array_diff(array_keys($input), ['cursor']) !== []
             || (array_key_exists('cursor', $input) && ! is_string($input['cursor']))))) {
             abort(422);
         }
