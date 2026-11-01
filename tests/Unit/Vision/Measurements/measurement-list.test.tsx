@@ -1,4 +1,5 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import Index from '@/pages/Vision/Measurements/Index';
@@ -73,6 +74,68 @@ it('показывает загрузку и скрывает старую ст�
   await screen.findAllByText(secondDate);
   await waitFor(() => expect(section.getAttribute('aria-busy')).toBe('false'));
   expect(screen.queryByText(firstDate)).toBeNull();
+});
+
+it('сохраняет понятное место фокуса при клавиатурном переходе страницы', async () => {
+  const nextPage = pending<ReturnType<typeof response>>();
+  vi.stubGlobal(
+    'fetch',
+    vi.fn((url: string) => {
+      if (url === '/vision/runs/data?page=1')
+        return Promise.resolve(response(listing(firstRevision, 1, '2026-10-10T12:30:00Z')));
+      if (url === '/vision/runs/data?page=2') return nextPage.promise;
+      return Promise.resolve(response({ revision: firstRevision }));
+    }),
+  );
+  render(<Index measurementBrandRevision={firstRevision} />);
+  await screen.findAllByText(firstDate);
+  const button = screen.getByRole('button', { name: 'Вперёд' });
+  button.focus();
+  await userEvent.keyboard('{Enter}');
+  expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'История замеров' }));
+  expect(screen.getByRole('status').textContent).toContain('Загружаем замеры');
+  await act(async () =>
+    nextPage.resolve(response(listing(firstRevision, 2, '2026-10-20T12:30:00Z'))),
+  );
+  await screen.findAllByText(secondDate);
+  expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'История замеров' }));
+  screen.getByRole('button', { name: 'Назад' }).focus();
+  await userEvent.keyboard('{Enter}');
+  await screen.findAllByText(firstDate);
+  expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'История замеров' }));
+});
+
+it('не перехватывает фокус при смене бренда и фоновом ответе', async () => {
+  const nextBrand = pending<ReturnType<typeof response>>();
+  vi.stubGlobal(
+    'fetch',
+    vi.fn((url: string, init?: RequestInit) => {
+      const headers = init?.headers as Record<string, string>;
+      if (url.startsWith('/vision/runs/data'))
+        return headers['X-Brand-Id'] === 'brand-alpha'
+          ? Promise.resolve(response(listing(firstRevision, 1, '2026-10-10T12:30:00Z')))
+          : nextBrand.promise;
+      return Promise.resolve(response({ revision: headers['X-Brand-Revision'] }));
+    }),
+  );
+  const page = (revision: string) => (
+    <>
+      <button type="button">Другое действие</button>
+      <Index measurementBrandRevision={revision} />
+    </>
+  );
+  const view = render(page(firstRevision));
+  await screen.findAllByText(firstDate);
+  const outside = screen.getByRole('button', { name: 'Другое действие' });
+  outside.focus();
+  pageContext.brandId = 'brand-beta';
+  view.rerender(page(secondRevision));
+  expect(document.activeElement).toBe(outside);
+  await act(async () =>
+    nextBrand.resolve(response(listing(secondRevision, 1, '2026-10-20T12:30:00Z'))),
+  );
+  await screen.findAllByText(secondDate);
+  expect(document.activeElement).toBe(outside);
 });
 
 it('при смене бренда сразу показывает загрузку и не раскрывает прежние строки', async () => {

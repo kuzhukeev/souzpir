@@ -94,11 +94,13 @@ test('при переходе страницы показывает загруз
   });
   await page.goto(`${origin}/vision/runs`);
   await expect(page.getByText(alpha).first()).toBeVisible();
-  await page.getByRole('button', { name: 'Вперёд' }).click();
+  await page.getByRole('button', { name: 'Вперёд' }).focus();
+  await page.keyboard.press('Enter');
   await arrived;
   try {
     const section = page.locator('section[aria-labelledby="measurements-title"]');
     await expect(section).toHaveAttribute('aria-busy', 'true');
+    await expect(page.getByRole('heading', { name: 'История замеров' })).toBeFocused();
     await expect(section.getByRole('status')).toHaveText('Загружаем замеры…');
     await expect(page.getByText(alpha)).toHaveCount(0);
     for (const width of [1440, 1024, 390]) {
@@ -140,6 +142,7 @@ test('при переходе страницы показывает загруз
     release();
   }
   await expect(page.getByText('1 окт. 2026 г., 12:30').last()).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'История замеров' })).toBeFocused();
   await expect(page.getByText(alpha)).toHaveCount(0);
 });
 
