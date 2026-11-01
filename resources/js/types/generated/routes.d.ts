@@ -14,6 +14,7 @@ declare module 'ziggy-js' {
     "brand.switch": [],
     "notifications.settings.update": [],
     "ai.recovery.calls.index": [],
+    "billing.ai-recovery": [],
     "login": [],
     "login.store": [],
     "register": [],
