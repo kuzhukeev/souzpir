@@ -10,6 +10,7 @@ use App\Shell\Auth\Http\SessionController;
 use App\Shell\Auth\InvitationExchangeGrants;
 use App\Shell\Auth\InvitationSecretBoundary;
 use App\Shell\Auth\PasswordDelivery\PasswordTransport;
+use App\Shell\Auth\PasswordDelivery\ResetToken;
 use App\Shell\Auth\Totp;
 use App\Shell\Team\Models\Invitation;
 use App\Tenancy\Invitations\InvitationAcceptance;
@@ -26,7 +27,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
-use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Testing\TestResponse;
 use Illuminate\Validation\ValidationException;
@@ -47,6 +47,7 @@ final class AuthFlowTest extends TestCase
     {
         parent::setUp();
         $this->withoutVite();
+        $this->withServerVariables(['REMOTE_ADDR' => '127.0.0.1', 'SERVER_ADDR' => '127.0.0.1']);
         Notification::fake();
     }
 
@@ -251,12 +252,14 @@ final class AuthFlowTest extends TestCase
         $this->assertDatabaseHas('password_delivery_intents', ['user_id' => $user->id, 'status' => 'pending']);
         Notification::assertNotSentTo($user, ResetPassword::class);
         // RefreshDatabase holds a transaction: the actual worker is covered by PasswordDeliveryTest.
-        $token = Password::createToken($user);
-        DB::table('password_reset_tokens')->where('email', $user->email)->update(['auth_version' => $user->auth_version]);
+        $token = ResetToken::generate();
+        DB::table('password_reset_tokens')->insert(['email' => $user->email, 'token' => Hash::make('v2:'.hash('sha256', $token)), 'auth_version' => $user->auth_version, 'created_at' => now()]);
         $data = ['email' => $user->email, 'token' => $token, 'password' => 'a-different-strong-password', 'password_confirmation' => 'a-different-strong-password'];
-        $this->post('/reset-password', $data)->assertRedirect(route('login'));
+        $this->postJson('/reset-password/exchange', ['email' => $user->email, 'token' => $token])->assertOk();
+        $this->post('/reset-password', ['password' => $data['password'], 'password_confirmation' => $data['password_confirmation']])->assertRedirect(route('login'));
         $this->assertTrue(Hash::check($data['password'], $user->fresh()->password));
-        $this->post('/reset-password', $data)->assertSessionHasErrors('email');
+        $this->postJson('/reset-password/exchange', ['email' => $user->email, 'token' => $token])->assertOk();
+        $this->post('/reset-password', ['password' => $data['password'], 'password_confirmation' => $data['password_confirmation']])->assertSessionHasErrors('email');
         $this->assertNull(session()->getOldInput('token'));
         $this->assertSame(1, $user->fresh()->auth_version);
     }
