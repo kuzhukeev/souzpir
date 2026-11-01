@@ -9,21 +9,22 @@ use App\Models\User;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
 use App\Shell\Auth\AuthSessionRegistry;
+use App\Shell\Auth\SessionBrandSelection;
 use App\Shell\Profile\ProfileController;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\TestCase;
 
 final class AvatarCommitSafetyTest extends TestCase
 {
-    use DatabaseMigrations;
+    use IsolatedDatabaseMigrations;
 
     public function test_post_commit_exception_keeps_the_committed_private_avatar(): void
     {
@@ -41,6 +42,8 @@ final class AvatarCommitSafetyTest extends TestCase
         $request->setLaravelSession(app('session.store'));
         $request->setUserResolver(fn () => $user);
         app(AuthSessionRegistry::class)->issue($request, $user, $user->auth_version);
+        $selection = app(AuthSessionRegistry::class)->withinActive($request, fn () => app(SessionBrandSelection::class)->initialize($request, $org->id, $brand->id));
+        $request->attributes->set('tenant.brand_revision', (string) $selection->brand_revision);
         $this->app->instance(AuditWriter::class, new class implements AuditWriter
         {
             public function record(TenantContext $context, AuditEntry $entry): void

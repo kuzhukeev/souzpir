@@ -7,27 +7,28 @@ use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\User;
 use App\Shell\Auth\AuthSessionRegistry;
+use App\Shell\Auth\SessionBrandSelection;
 use App\Shell\Profile\EmailChanges;
 use App\Shell\Profile\EmailChangeSender;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
+use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\TestCase;
 
 final class EmailDeliveryTest extends TestCase
 {
-    use DatabaseMigrations;
+    use IsolatedDatabaseMigrations;
 
     public function test_committed_delivery_is_once_only_and_cancel_reissue_and_revocation_are_enforced(): void
     {
         Queue::fake();
         Http::preventStrayRequests();
-        config(['features.E1-08.defaults.email_change_enabled' => true]);
+        config(['features.E1-08.defaults.email_change_enabled' => true, 'app.url' => 'https://cabinet.example.test']);
         $sender = new class implements EmailChangeSender
         {
             public int $calls = 0;
@@ -61,6 +62,8 @@ final class EmailDeliveryTest extends TestCase
         $request->setLaravelSession(app('session.store'));
         $request->setUserResolver(fn () => $user);
         app(AuthSessionRegistry::class)->issue($request, $user, $user->auth_version);
+        $selection = app(AuthSessionRegistry::class)->withinActive($request, fn () => app(SessionBrandSelection::class)->initialize($request, $org->id, $brand->id));
+        $request->attributes->set('tenant.brand_revision', (string) $selection->brand_revision);
         $context = new TenantContext($org->id, $brand->id, $user->id, $member->id);
         $changes = app(EmailChanges::class);
         $enqueue = function (string $email) use ($context, $changes, $request, $user): string {
