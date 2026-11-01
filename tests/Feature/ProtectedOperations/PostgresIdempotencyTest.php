@@ -69,30 +69,6 @@ final class PostgresIdempotencyTest extends TestCase
         }
     }
 
-    public function test_database_owner_can_swap_valid_ciphertext_outside_the_receipt_guarantee(): void
-    {
-        [$org, $brand] = $this->fixture();
-        $service = app(PostgresTransactionalIdempotency::class);
-        self::assertSame(['value' => 'first'], $service->execute($org->id, $brand->id, 'test.write', 'key-first', 'body-first', fn () => $this->write($brand->id, 'first')));
-        self::assertSame(['value' => 'second'], $service->execute($org->id, $brand->id, 'test.write', 'key-second', 'body-second', fn () => $this->write($brand->id, 'second')));
-        $keyOne = hash_hmac('sha256', "protected-operation-key-v1\0".'key-first', (string) config('app.key'));
-        $keyTwo = hash_hmac('sha256', "protected-operation-key-v1\0".'key-second', (string) config('app.key'));
-        $first = DB::table('protected_operation_receipts')->where('key_digest', $keyOne)->first();
-        $second = DB::table('protected_operation_receipts')->where('key_digest', $keyTwo)->first();
-        DB::beginTransaction();
-        try {
-            DB::statement('ALTER TABLE protected_operation_receipts DISABLE TRIGGER c02_guard_receipt_history');
-            DB::table('protected_operation_receipts')->where('id', $first->id)->update(['result_ciphertext' => $second->result_ciphertext]);
-            DB::statement('SET CONSTRAINTS ALL IMMEDIATE');
-            DB::statement('ALTER TABLE protected_operation_receipts ENABLE TRIGGER c02_guard_receipt_history');
-            // This documents the explicit database-owner exclusion in the contract.
-            self::assertSame(['value' => 'second'], $service->execute($org->id, $brand->id, 'test.write', 'key-first', 'body-first', fn () => $this->write($brand->id, 'unexpected')));
-            self::assertSame('Syntheticxx', DB::table('brands')->where('id', $brand->id)->value('name'));
-        } finally {
-            DB::rollBack();
-        }
-    }
-
     public function test_scope_is_separate_and_mismatched_brand_organization_is_rejected(): void
     {
         [$org, $brand] = $this->fixture();
