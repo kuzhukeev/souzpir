@@ -4,6 +4,8 @@ use App\Models\Brand;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\User;
+use App\Shell\Audit\AuditEntry;
+use App\Shell\Audit\Contracts\AuditWriter;
 use App\Shell\Team\Models\Invitation;
 use App\Tenancy\Cabinet;
 use App\Tenancy\TenantContext;
@@ -61,6 +63,32 @@ if (getenv('E106_EXPIRING_INVITATION') === '1') {
         Invitation::create(['email' => $email, 'role' => 'viewer', 'brand_ids' => [$brand->id], 'token_hash' => hash('sha256', Str::random(64)), 'invited_by' => $organization->owner_user_id, 'expires_at' => now()->addSeconds(12)]);
     });
     fwrite(STDOUT, json_encode(['email' => $email], JSON_THROW_ON_ERROR));
+    exit;
+}
+if (getenv('E106_ACTIVITY_FIXTURE') === '1') {
+    $organization = Organization::whereKey($organizationId)->firstOrFail();
+    if (($organization->settings['test_fixture'] ?? null) !== 'e106-role-ui') {
+        throw new LogicException('Fixture organization collision.');
+    }
+    $viewer = User::where('email', 'team-e106-viewer@example.test')->firstOrFail();
+    $viewerMembership = Membership::withoutGlobalScopes()->where('organization_id', $organizationId)->where('user_id', $viewer->id)->firstOrFail();
+    $ownerMembership = Membership::withoutGlobalScopes()->where('organization_id', $organizationId)->where('user_id', $organization->owner_user_id)->firstOrFail();
+    $brand = Brand::withoutGlobalScopes()->where('organization_id', $organizationId)->where('name', 'Пиротехника — Северные огни')->firstOrFail();
+    $otherBrand = Brand::withoutGlobalScopes()->where('organization_id', $organizationId)->where('name', 'Фейерверки — Второй бренд')->firstOrFail();
+    $tag = Str::lower(Str::random(10));
+    $events = [
+        [new TenantContext($organizationId, $brand->id, $viewer->id, $viewerMembership->id, 'job'), 'activity-target-'.$tag],
+        [new TenantContext($organizationId, null, $viewer->id, $viewerMembership->id, 'job'), 'activity-global-'.$tag],
+        [new TenantContext($organizationId, $otherBrand->id, $viewer->id, $viewerMembership->id, 'job'), 'activity-other-brand-'.$tag],
+        [new TenantContext($organizationId, $brand->id, $organization->owner_user_id, $ownerMembership->id, 'job'), 'activity-other-actor-'.$tag],
+    ];
+    DB::transaction(function () use ($events): void {
+        foreach ($events as [$context, $subject]) {
+            // Historical audit can outlive the actor's access to a brand.
+            app(AuditWriter::class)->record($context, new AuditEntry('team.activity_test', 'user', $subject));
+        }
+    });
+    fwrite(STDOUT, json_encode(['actor' => $viewer->id, 'tag' => $tag], JSON_THROW_ON_ERROR));
     exit;
 }
 Artisan::call('migrate', ['--force' => true]);

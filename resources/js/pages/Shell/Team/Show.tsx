@@ -6,7 +6,13 @@ import type { TeamMemberDetail } from '@/types/Shell/Team/members';
 const panel =
   'rounded-2xl border border-(--color-border) bg-(--color-surface) p-4 shadow-(--shadow-card) sm:p-6';
 
-export default function Show({ member }: { member: TeamMemberDetail }) {
+export default function Show({
+  member,
+  activityUrl,
+}: {
+  member: TeamMemberDetail;
+  activityUrl: string | null;
+}) {
   const name = member.name?.trim() || 'Имя недоступно';
   const status =
     member.status === 'active'
@@ -99,6 +105,22 @@ export default function Show({ member }: { member: TeamMemberDetail }) {
             </dl>
           </section>
         </div>
+        {activityUrl && (
+          <section className={`${panel} mt-4`} aria-labelledby="activity-title">
+            <h2 id="activity-title" className="text-xl font-bold">
+              Активность
+            </h2>
+            <p className="mt-3 text-sm text-(--color-ink-muted)">
+              Журнал показывает действия только текущего бренда и общие действия организации.
+            </p>
+            <Link
+              href={activityUrl}
+              className="mt-4 inline-flex min-h-11 cursor-pointer items-center rounded-lg text-sm font-semibold text-(--color-link) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus)"
+            >
+              Посмотреть активность участника
+            </Link>
+          </section>
+        )}
       </div>
     </CabinetLayout>
   );
