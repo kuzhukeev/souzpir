@@ -6,5 +6,5 @@ import { fileURLToPath } from 'node:url';
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: { alias: { '@': fileURLToPath(new URL('../../../resources/js', import.meta.url)) } },
-  server: { host: '127.0.0.1', port: 5266, strictPort: true },
+  server: { host: '127.0.0.1', port: 5237, strictPort: true },
 });

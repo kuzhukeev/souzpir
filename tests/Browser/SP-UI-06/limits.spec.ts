@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-const base = 'http://127.0.0.1:5266/tests/Browser/SP-UI-06/fixture.html';
+const base = 'http://127.0.0.1:5237/tests/Browser/SP-UI-06/fixture.html';
 test.use({ launchOptions: { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH } });
 
 for (const theme of ['neutral', 'confectionery', 'pyro']) {
