@@ -4,12 +4,46 @@ import CabinetLayout from '@/layouts/CabinetLayout';
 import { panel } from '@/features/Shell/Billing/Shared';
 import { focus } from '@/features/Shell/Organizations/Shared';
 import { useRecovery } from '@/features/Shell/Billing/AiRecovery/useRecovery';
+import type { RecoveryCall } from '@/features/Shell/Billing/AiRecovery/listing';
 
 function date(value: string | null) {
   const parsed = value ? new Date(value) : null;
   return parsed && Number.isFinite(parsed.getTime())
     ? new Intl.DateTimeFormat('ru-RU', { dateStyle: 'medium', timeStyle: 'short' }).format(parsed)
     : 'Дата недоступна';
+}
+
+function CallCard({ call }: { call: RecoveryCall }) {
+  return (
+    <li
+      className="rounded-xl border border-(--color-border) p-4 text-sm"
+    >
+      <div className="flex flex-wrap justify-between gap-3">
+        <span className="font-semibold">
+          {call.family === 'seller'
+            ? 'ИИ-продавец'
+            : call.family === 'vision'
+              ? 'Видение'
+              : 'Другой модуль'}
+        </span>
+        <span>
+          {call.status === 'reserved'
+            ? 'Зарезервирован'
+            : 'Результат не подтверждён'}
+        </span>
+      </div>
+      <dl className="mt-3 grid gap-3 sm:grid-cols-2">
+        <div>
+          <dt className="text-(--color-ink-muted)">Номер вызова</dt>
+          <dd className="mt-1 break-all">{call.id}</dd>
+        </div>
+        <div>
+          <dt className="text-(--color-ink-muted)">Дата</dt>
+          <dd className="mt-1">{date(call.createdAt)}</dd>
+        </div>
+      </dl>
+    </li>
+  );
 }
 
 export default function AiRecovery({ aiRecoveryRevision }: { aiRecoveryRevision: string }) {
@@ -71,35 +105,7 @@ export default function AiRecovery({ aiRecoveryRevision }: { aiRecoveryRevision:
               ) : (
                 <ul className="space-y-3">
                   {view.data.calls.map((call) => (
-                    <li
-                      key={call.id}
-                      className="rounded-xl border border-(--color-border) p-4 text-sm"
-                    >
-                      <div className="flex flex-wrap justify-between gap-3">
-                        <span className="font-semibold">
-                          {call.family === 'seller'
-                            ? 'ИИ-продавец'
-                            : call.family === 'vision'
-                              ? 'Видение'
-                              : 'Другой модуль'}
-                        </span>
-                        <span>
-                          {call.status === 'reserved'
-                            ? 'Зарезервирован'
-                            : 'Результат не подтверждён'}
-                        </span>
-                      </div>
-                      <dl className="mt-3 grid gap-3 sm:grid-cols-2">
-                        <div>
-                          <dt className="text-(--color-ink-muted)">Номер вызова</dt>
-                          <dd className="mt-1 break-all">{call.id}</dd>
-                        </div>
-                        <div>
-                          <dt className="text-(--color-ink-muted)">Дата</dt>
-                          <dd className="mt-1">{date(call.createdAt)}</dd>
-                        </div>
-                      </dl>
-                    </li>
+                    <CallCard key={call.id} call={call} />
                   ))}
                 </ul>
               )}
