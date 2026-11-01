@@ -1,127 +1,112 @@
-name: Foundation checks
+name: CI
 
 on:
   push:
-  pull_request:
+    branches: [main, 'codex/**']
+  schedule:
+    - cron: '0 1 * * *'   # ночной прогон race-тестов (04:00 МСК)
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
 
+env:
+  APP_ENV: testing
+  APP_INSTANCE: ci
+  APP_URL: http://127.0.0.1:8101
+  CABINET_ORGANIZATION_ID: 01J00000000000000000000000
+  APP_PREVIEW_DATABASE: souzpir_ci_preview
+  DB_CONNECTION: pgsql
+  DB_HOST: 127.0.0.1
+  DB_PORT: 5432
+  DB_DATABASE: souzpir_test_ci
+  DB_TEST_DATABASE: souzpir_test_ci
+  DB_USERNAME: souzpir_ci
+  DB_PASSWORD: ci-only-password
+  CACHE_PREFIX: 'ci:'
+  REDIS_PREFIX: 'ci:'
+  SESSION_COOKIE: souzpir_ci_session
+  QUEUE_NAMESPACE: ci
+  QUEUE_CONNECTION: sync
+  AI_DRIVER: fake
+  DELIVERY_DRIVER: fake
+  MAIL_MAILER: log
+  FEATURES_SCHEDULING_ENABLED: 'false'
+
 jobs:
-  application:
+  php-lint:
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
-    env:
-      APP_ENV: testing
-      APP_INSTANCE: ci
-      APP_URL: http://127.0.0.1:8101
-      CABINET_ORGANIZATION_ID: 01J00000000000000000000000
-      APP_PREVIEW_DATABASE: souzpir_ci_preview
-      DB_CONNECTION: pgsql
-      DB_HOST: 127.0.0.1
-      DB_PORT: 5432
-      DB_DATABASE: souzpir_test_ci
-      DB_TEST_DATABASE: souzpir_test_ci
-      DB_USERNAME: souzpir_ci
-      DB_PASSWORD: ci-only-password
-      CACHE_PREFIX: 'ci:'
-      REDIS_PREFIX: 'ci:'
-      SESSION_COOKIE: souzpir_ci_session
-      QUEUE_NAMESPACE: ci
-      QUEUE_CONNECTION: sync
-      AI_DRIVER: fake
-      DELIVERY_DRIVER: fake
-      MAIL_MAILER: log
-      FEATURES_SCHEDULING_ENABLED: 'false'
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.4'
-          extensions: pdo_pgsql, pgsql, mbstring, intl, bcmath, gd
-          coverage: none
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-          cache: npm
-      - name: Start isolated PostgreSQL on loopback
-        run: |
-          docker run --detach --name souzpir-ci-postgres --network host \
-            -e POSTGRES_DB=souzpir_test_ci -e POSTGRES_USER=postgres \
-            -e POSTGRES_PASSWORD=ci-only-password postgres:16 \
-            -c listen_addresses=127.0.0.1
-          for attempt in {1..30}; do
-            if docker exec souzpir-ci-postgres pg_isready -h 127.0.0.1 -U postgres -d souzpir_test_ci; then break; fi
-            sleep 1
-          done
-          docker exec souzpir-ci-postgres pg_isready -h 127.0.0.1 -U postgres -d souzpir_test_ci
-          actual=$(PGPASSWORD=ci-only-password psql -X -A -t -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "SELECT host(inet_server_addr()), inet_server_port();")
-          test "$actual" = '127.0.0.1|5432'
-      - name: Prepare local runtime
-        run: |
-          mkdir -p .local/tmp
-          cp .env.example .env.testing
-          php -r 'file_put_contents(".env.testing", "\nAPP_KEY=base64:".base64_encode(random_bytes(32))."\n", FILE_APPEND);'
-      - name: Create isolated non-superuser database owner
-        env:
-          PGPASSWORD: ci-only-password
-        run: |
-          psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "CREATE ROLE souzpir_ci LOGIN PASSWORD 'ci-only-password' NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;"
-          psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "ALTER DATABASE souzpir_test_ci OWNER TO souzpir_ci;"
-          psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "REVOKE CONNECT ON DATABASE souzpir_test_ci FROM PUBLIC;"
-          for entry in 'sp_invitation_ci_app souzpir_test_sp_invitation_ci' 'sp_e1_05_app souzpir_test_sp_e1_05' 'sp_e8_02_app souzpir_test_sp_e8_02' 'sp_e8_02_local_app souzpir_test_sp_e8_02_local' 'sp_e8_03_app souzpir_test_sp_e8_03'; do
-            read -r role database <<< "$entry"
-            psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "CREATE ROLE $role LOGIN PASSWORD 'ci-only-password' NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;"
-            psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "CREATE DATABASE $database OWNER $role;"
-            psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "REVOKE CONNECT ON DATABASE $database FROM PUBLIC;"
-          done
-          actual=$(psql -X -A -t -v ON_ERROR_STOP=1 -h 127.0.0.1 -U souzpir_ci -d souzpir_test_ci -c "SELECT current_database(), current_user, rolsuper, rolcreatedb, rolcreaterole FROM pg_roles WHERE rolname = current_user;")
-          test "$actual" = 'souzpir_test_ci|souzpir_ci|f|f|f'
-      - run: composer install --no-interaction --prefer-dist --no-progress
+        with: { php-version: '8.4', extensions: 'pdo_pgsql, pgsql, mbstring, intl, bcmath, gd', coverage: none }
+      - uses: ramsey/composer-install@v3
       - run: composer validate --strict
       - run: composer lint
-      - run: composer test
+
+  frontend:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '24', cache: npm }
       - run: npm ci --no-audit --no-fund
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run test
       - run: npm run build
+
+  php-tests:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with: { php-version: '8.4', extensions: 'pdo_pgsql, pgsql, mbstring, intl, bcmath, gd', coverage: none }
+      - run: bash scripts/ci/postgres.sh
+      - uses: ramsey/composer-install@v3
+      - run: php artisan test --parallel --processes=4 --exclude-group=race
+
+  browser:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with: { php-version: '8.4', extensions: 'pdo_pgsql, pgsql, mbstring, intl, bcmath, gd', coverage: none }
+      - uses: actions/setup-node@v4
+        with: { node-version: '24', cache: npm }
+      - run: bash scripts/ci/postgres.sh
+      - uses: ramsey/composer-install@v3
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
       - run: npx playwright install --with-deps chromium
-      - name: Browser smoke
-        run: |
-          php artisan serve --env=testing --no-reload --host=127.0.0.1 --port=8101 > .local/runtime/browser-server.log 2>&1 &
-          for attempt in {1..20}; do curl --fail --silent http://127.0.0.1:8101/up && break; sleep 1; done
-          curl --fail --silent http://127.0.0.1:8101/up > /dev/null
-          npx vite build --config vite.layout.config.ts
-          npx vite build --config tests/Browser/E1-02/vite.config.ts
-          npx vite build --config tests/Browser/E1-04/vite.config.ts
-          npx vite --config tests/Browser/E1-10/vite.config.ts --host 127.0.0.1 > .local/runtime/e110-vite.log 2>&1 &
-          for attempt in {1..20}; do curl --fail --silent http://127.0.0.1:5237/tests/Browser/E1-10/ui-fixture.html > /dev/null && break; sleep 1; done
-          curl --fail --silent http://127.0.0.1:5237/tests/Browser/E1-10/ui-fixture.html > /dev/null
-          php -S 127.0.0.1:5183 -t .local/runtime/layout-fixture > .local/runtime/layout-vite.log 2>&1 &
-          for attempt in {1..20}; do curl --fail --silent http://127.0.0.1:5183/tests/Browser/Layout/fixture.html > /dev/null && break; sleep 1; done
-          curl --fail --silent http://127.0.0.1:5183/tests/Browser/Layout/fixture.html > /dev/null
-          curl --fail --silent http://127.0.0.1:5183/tests/Browser/E1-02/ui-fixture.html > /dev/null
-          E102_FIXTURE_ENABLED=1 E102_FIXTURE_ORG=01J00000000000000000000002 \
-            CABINET_ORGANIZATION_ID=01J00000000000000000000002 php tests/Browser/E1-02/prepare-fixture.php
-          CABINET_ORGANIZATION_ID=01J00000000000000000000002 APP_URL=http://127.0.0.1:8102 \
-            APP_INSTANCE=ci-e102 SESSION_COOKIE=ci_e102_session \
-            php artisan serve --env=testing --no-reload --host=127.0.0.1 --port=8102 > .local/runtime/onboarding-server.log 2>&1 &
-          for attempt in {1..20}; do curl --fail --silent http://127.0.0.1:8102/up && break; sleep 1; done
-          curl --fail --silent http://127.0.0.1:8102/up > /dev/null
-          E104_FIXTURE_ENABLED=1 E104_FIXTURE_ORG=01J00000000000000000000004 \
-            CABINET_ORGANIZATION_ID=01J00000000000000000000004 php tests/Browser/E1-04/prepare-fixture.php
-          CABINET_ORGANIZATION_ID=01J00000000000000000000004 APP_URL=http://127.0.0.1:8104 \
-            APP_INSTANCE=ci-e104 SESSION_COOKIE=ci_e104_session \
-            php artisan serve --env=testing --no-reload --host=127.0.0.1 --port=8104 > .local/runtime/organizations-server.log 2>&1 &
-          for attempt in {1..20}; do curl --fail --silent http://127.0.0.1:8104/up && break; sleep 1; done
-          curl --fail --silent http://127.0.0.1:8104/up > /dev/null
-          bash scripts/ci/browser-fixtures.sh
-          RUN_ONBOARDING_E2E=1 RUN_ORGANIZATIONS_E2E=1 RUN_BRANDS_E2E=1 \
-            INVITATION_BROWSER_CI_FIXTURE=1 INVITATION_BROWSER_TEST_DATABASE=souzpir_test_sp_invitation_ci \
-            INVITATION_DB_PASSWORD=ci-only-password E802_LOCAL_BASE=http://souzpir.local:8249 npm run test:browser
+      - run: bash scripts/ci/browser-smoke.sh
       - name: Browser failure diagnostics
         if: failure()
         run: |
-          for logfile in .local/runtime/browser-server.log .local/runtime/onboarding-server.log .local/runtime/layout-vite.log .local/runtime/e110-vite.log .local/runtime/browser-ci-*.log .local/runtime/testing/storage/logs/laravel.log; do
-            if [ -f "$logfile" ]; then tail -n 80 "$logfile"; fi
+          for logfile in .local/runtime/*.log .local/runtime/testing/storage/logs/laravel.log; do
+            if [ -f "$logfile" ]; then echo "== $logfile"; tail -n 80 "$logfile"; fi
           done
+
+  race:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with: { php-version: '8.4', extensions: 'pdo_pgsql, pgsql, mbstring, intl, bcmath, gd', coverage: none }
+      - run: bash scripts/ci/postgres.sh
+      - uses: ramsey/composer-install@v3
+      - run: php artisan test --group=race
