@@ -31,18 +31,23 @@ test.use({
 });
 test.beforeEach(async ({ page }) => {
   let failed = false;
+  let fixtureParams = new URLSearchParams();
+  page.on('framenavigated', (frame) => {
+    if (frame === page.mainFrame() && frame.url().startsWith(fixture)) {
+      fixtureParams = new URL(frame.url()).searchParams;
+    }
+  });
   await page.route('**/*', async (route) => {
     const target = new URL(route.request().url());
     if (target.origin !== origin) return route.abort('blockedbyclient');
     if (target.pathname === '/team/roles/matrix') {
-      const params = new URL(page.url()).searchParams;
-      if (params.has('error') && !failed) {
+      if (fixtureParams.has('error') && !failed) {
         failed = true;
         return route.fulfill({ status: 503, body: 'unavailable' });
       }
-      if (params.has('empty'))
+      if (fixtureParams.has('empty'))
         return route.fulfill({ status: 200, json: { ...payload, roles: [], abilities: [] } });
-      if (params.has('invalid')) return route.fulfill({ status: 200, json: { invalid: true } });
+      if (fixtureParams.has('invalid')) return route.fulfill({ status: 200, json: { invalid: true } });
       return route.fulfill({ status: 200, json: payload });
     }
     return route.continue();
