@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 const base = process.env.PROFILE_LOCAL_HTTP_URL || 'http://souzpir.local:8248';
 test.use({
   trace: 'off',
-  launchOptions: { executablePath: process.env.PROFILE_CHROMIUM_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe' },
+  launchOptions: { executablePath: process.env.PROFILE_CHROMIUM_PATH || (process.platform === 'win32' ? 'C:/Program Files/Google/Chrome/Application/chrome.exe' : undefined), args: ['--host-resolver-rules=MAP souzpir.local 127.0.0.1', '--no-proxy-server'] },
 });
 
 test('the local HTTP cabinet can prepare a Telegram link without exposing it in Inertia history', async ({ page, context }) => {

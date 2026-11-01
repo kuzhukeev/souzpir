@@ -11,6 +11,8 @@ if [[ ${OS:-} == Windows_NT ]]; then root=$(cygpath -m "$root"); fi
 tmp="$root/.local/tmp"
 mkdir -p "$tmp" "$root/.local/runtime"
 password=${DB_PASSWORD:?CI database password is required}
+app_key=$(sed -n 's/^APP_KEY=//p' .env.testing | tail -n 1)
+test -n "$app_key"
 children=()
 cleanup_on_error() { for pid in "${children[@]}"; do kill "$pid" 2>/dev/null || true; done; }
 trap cleanup_on_error ERR
@@ -31,7 +33,9 @@ start_vite() {
 }
 start_vite e105 tests/Browser/E1-05/vite.config.ts 5215 tests/Browser/E1-05/ui-fixture.html
 start_vite e106 tests/Browser/E1-06/vite.config.ts 5216 tests/Browser/E1-06/ui-fixture.html
+start_vite e106d tests/Browser/E1-06/vite.config.ts 5232 tests/Browser/E1-06D/last-login-fixture.html
 start_vite e108 tests/Browser/E1-08/vite.config.ts 5238 tests/Browser/E1-08/ui-fixture.html
+start_vite mfa tests/Browser/E1-08/vite.config.ts 5268 tests/Browser/E1-08/ui-fixture.html
 start_vite e802 tests/Browser/E8-02/vite.config.ts 5248 tests/Browser/E8-02/ui-fixture.html
 start_vite e803 tests/Browser/E8-03/vite.config.ts 5258 tests/Browser/E8-03/pages-fixture.html
 
@@ -44,7 +48,7 @@ profile=("${common[@]}" DB_DATABASE=souzpir_test_sp_e1_08 DB_TEST_DATABASE=souzp
   E108_FIXTURE_ENABLED=1 PROFILE_SETTINGS_ENABLED=true)
 env "${profile[@]}" php -d "sys_temp_dir=$tmp" scripts/ci/assert-browser-database.php
 env "${profile[@]}" php -d "sys_temp_dir=$tmp" tests/Browser/E1-08/prepare-fixture.php
-env "${profile[@]}" php -d "sys_temp_dir=$tmp" -d "upload_tmp_dir=$tmp" -S 127.0.0.1:8238 -t public tests/Browser/E1-08/server.php >.local/runtime/browser-ci-profile.log 2>&1 &
+env "${profile[@]}" php -d "sys_temp_dir=$tmp" -d "upload_tmp_dir=$tmp" -S 127.0.0.1:8238 -t public scripts/ci/server.php >.local/runtime/browser-ci-profile.log 2>&1 &
 children+=("$!")
 wait_http http://127.0.0.1:8238/up
 
@@ -52,9 +56,27 @@ recovery=("${common[@]}" DB_DATABASE=souzpir_test_sp_e1_01g DB_TEST_DATABASE=sou
   DB_USERNAME=sp_e101g_app APP_URL=http://127.0.0.1:8241
   APP_STORAGE_PATH="$root/.local/runtime/testing/storage/e101g" E101G_CI_FIXTURE=1)
 env "${recovery[@]}" php -d "sys_temp_dir=$tmp" scripts/ci/assert-browser-database.php
-env "${recovery[@]}" php -d "sys_temp_dir=$tmp" artisan serve --env=testing --no-reload --host=127.0.0.1 --port=8241 >.local/runtime/browser-ci-recovery.log 2>&1 &
+env "${recovery[@]}" php -d "sys_temp_dir=$tmp" -S 127.0.0.1:8241 -t public scripts/ci/server.php >.local/runtime/browser-ci-recovery.log 2>&1 &
 children+=("$!")
 wait_http http://127.0.0.1:8241/up
+
+mfa=("${common[@]}" DB_DATABASE=souzpir_test_mfa_ci DB_TEST_DATABASE=souzpir_test_mfa_ci
+  DB_USERNAME=sp_mfa_ci_app CABINET_ORGANIZATION_ID=01J00000000000000000000009
+  APP_STORAGE_PATH="$root/.local/runtime/testing/storage/mfa-ci" APP_URL=http://souzpir.local:8268
+  APP_INSTANCE=ci-mfa APP_KEY="$app_key" MFA_LOCAL_FIXTURE=1 MFA_LOCAL_PORT=8268 PROFILE_SETTINGS_ENABLED=true)
+env "${mfa[@]}" php -d "sys_temp_dir=$tmp" scripts/ci/assert-browser-database.php
+env "${mfa[@]}" APP_ENV=local php -d "sys_temp_dir=$tmp" tests/Browser/E1-08/mfa-local-fixture.php
+env "${mfa[@]}" APP_ENV=local php -d "sys_temp_dir=$tmp" -S 127.0.0.1:8268 -t public tests/Browser/E1-08/mfa-local-router.php >.local/runtime/browser-ci-mfa.log 2>&1 &
+children+=("$!")
+wait_http http://127.0.0.1:8268/up
+
+profile_local=("${profile[@]}" APP_ENV=local APP_INSTANCE=ci-profile-local
+  APP_URL=http://souzpir.local:8269 APP_KEY="$app_key" APP_STORAGE_PATH="$root/.local/runtime/testing/storage/profile-local"
+  MFA_LOCAL_FIXTURE=1 MFA_LOCAL_PORT=8269 PROFILE_TELEGRAM_BOT_USERNAME=synthetic_souzpir_bot
+  PROFILE_TELEGRAM_WEBHOOK_SECRET=synthetic-ci-only-secret)
+env "${profile_local[@]}" php -d "sys_temp_dir=$tmp" -S 127.0.0.1:8269 -t public tests/Browser/E1-08/mfa-local-router.php >.local/runtime/browser-ci-profile-local.log 2>&1 &
+children+=("$!")
+wait_http http://127.0.0.1:8269/up
 invitation=("${common[@]}" DB_DATABASE=souzpir_test_sp_invitation_ci DB_TEST_DATABASE=souzpir_test_sp_invitation_ci
   DB_USERNAME=sp_invitation_ci_app APP_URL=http://127.0.0.1:8244
   APP_STORAGE_PATH="$root/.local/runtime/testing/invitation/storage" INVITATION_BROWSER_CI_FIXTURE=1

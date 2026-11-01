@@ -1,10 +1,20 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
+import { execFileSync } from 'node:child_process';
 
 const base = process.env.PROFILE_APP_URL || 'http://127.0.0.1:8238';
 const initialPassword = process.env.E108_SECURITY_INITIAL_PASSWORD || 'test-only-password-123';
 const replacementPassword = process.env.E108_SECURITY_REPLACEMENT_PASSWORD || 'replacement-test-password-456';
 test.use({ launchOptions: process.env.PROFILE_CHROMIUM_PATH ? { executablePath: process.env.PROFILE_CHROMIUM_PATH } : {} });
 test.describe.configure({ mode: 'serial' });
+
+test.beforeAll(() => {
+  if (process.env.CI !== 'true') return;
+  execFileSync(process.env.PHP_BINARY || 'php', ['-d', 'sys_temp_dir=.local/tmp', 'tests/Browser/E1-08/prepare-fixture.php'], {
+    cwd: process.cwd(),
+    env: { ...process.env, APP_ENV: 'testing', E108_FIXTURE_ENABLED: '1', PROFILE_SETTINGS_ENABLED: 'true', DB_DATABASE: 'souzpir_test_sp_e1_08', DB_TEST_DATABASE: 'souzpir_test_sp_e1_08', DB_USERNAME: 'sp_e1_08_app', CABINET_ORGANIZATION_ID: '01J00000000000000000000008', APP_URL: base, APP_STORAGE_PATH: `${process.cwd()}/.local/runtime/testing/storage/e108` },
+    stdio: 'pipe', timeout: 60000,
+  });
+});
 
 async function localOnly(context: BrowserContext) {
   await context.route('**/*', (route) => new URL(route.request().url()).origin === base ? route.continue() : route.abort('blockedbyclient'));

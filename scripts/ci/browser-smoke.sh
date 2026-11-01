@@ -2,7 +2,7 @@
 set -euo pipefail
 
 mkdir -p .local/runtime
-php artisan serve --env=testing --no-reload --host=127.0.0.1 --port=8101 > .local/runtime/browser-server.log 2>&1 &
+php -S 127.0.0.1:8101 -t public scripts/ci/server.php > .local/runtime/browser-server.log 2>&1 &
 for attempt in {1..20}; do curl --fail --silent http://127.0.0.1:8101/up && break; sleep 1; done
 curl --fail --silent http://127.0.0.1:8101/up > /dev/null
 npx vite build --config vite.layout.config.ts
@@ -32,4 +32,4 @@ curl --fail --silent http://127.0.0.1:8104/up > /dev/null
 bash scripts/ci/browser-fixtures.sh
 RUN_ONBOARDING_E2E=1 RUN_ORGANIZATIONS_E2E=1 RUN_BRANDS_E2E=1 \
   INVITATION_BROWSER_CI_FIXTURE=1 INVITATION_BROWSER_TEST_DATABASE=souzpir_test_sp_invitation_ci \
-  PHP_BINARY=php INVITATION_DB_PASSWORD=ci-only-password E802_LOCAL_BASE=http://souzpir.local:8249 npm run test:browser -- --workers=1
+  PHP_BINARY=php PROFILE_LOCAL_HTTP_URL=http://souzpir.local:8269 INVITATION_DB_PASSWORD=ci-only-password E802_LOCAL_BASE=http://souzpir.local:8249 npm run test:browser -- --workers=1

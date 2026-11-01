@@ -20,7 +20,7 @@ export PGPASSWORD=ci-only-password
 psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "CREATE ROLE souzpir_ci LOGIN PASSWORD 'ci-only-password' NOSUPERUSER CREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;"
 psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "ALTER DATABASE souzpir_test_ci OWNER TO souzpir_ci;"
 psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "REVOKE CONNECT ON DATABASE souzpir_test_ci FROM PUBLIC;"
-for entry in 'sp_invitation_ci_app souzpir_test_sp_invitation_ci' 'sp_e1_05_app souzpir_test_sp_e1_05' 'sp_e1_08_app souzpir_test_sp_e1_08' 'sp_e101g_app souzpir_test_sp_e1_01g' 'sp_e8_02_app souzpir_test_sp_e8_02' 'sp_e8_02_local_app souzpir_test_sp_e8_02_local' 'sp_e8_03_app souzpir_test_sp_e8_03'; do
+for entry in 'sp_invitation_ci_app souzpir_test_sp_invitation_ci' 'sp_e1_05_app souzpir_test_sp_e1_05' 'sp_e1_08_app souzpir_test_sp_e1_08' 'sp_e101g_app souzpir_test_sp_e1_01g' 'sp_mfa_ci_app souzpir_test_mfa_ci' 'sp_e8_02_app souzpir_test_sp_e8_02' 'sp_e8_02_local_app souzpir_test_sp_e8_02_local' 'sp_e8_03_app souzpir_test_sp_e8_03'; do
   read -r role database <<< "$entry"
   psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "CREATE ROLE $role LOGIN PASSWORD 'ci-only-password' NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;"
   psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "CREATE DATABASE $database OWNER $role;"

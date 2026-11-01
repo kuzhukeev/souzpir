@@ -147,7 +147,7 @@ test('one-time secret stays out of history and an expired secret reports an erro
   );
   await page.goto(`${url}?screen=api&secret=1`);
   await page.getByRole('button', { name: 'Показать ключ один раз' }).click();
-  await expect(page.getByRole('alert')).toContainText('Не удалось получить секрет');
+  await expect(page.getByRole('alert')).toContainText('создайте новый');
 });
 
 test('existing channel statuses use Russian labels and planned channels are unavailable', async ({
