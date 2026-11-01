@@ -261,6 +261,8 @@ final class SecretSecurityTest extends TenancyTestCase
         $sealed = session('integration_api_key');
         $request = Request::create('/');
         $request->setLaravelSession(app('session.store'));
+        $payload = json_decode(Crypt::decryptString($sealed), true, flags: JSON_THROW_ON_ERROR);
+        $request->attributes->set('tenant.brand_revision', $payload['brand_revision']);
         $context = new TenantContext($organization->id, $brand->id, $owner->id, $membership->id, 'session');
         self::assertNotNull(app(SecretEnvelope::class)->open($request, $context, 'integration_api_key', $sealed));
         $wrong = new TenantContext($organization->id, $brand->id, (string) Str::ulid(), $membership->id, 'session');

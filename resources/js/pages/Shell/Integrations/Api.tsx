@@ -218,7 +218,7 @@ export default function Api({
         )}
         {integration_api_key_available && !consumedKey && (
           <p className="mb-4 text-sm">
-            Создан новый ключ.{' '}
+            Создан новый ключ. Покажите его или отзовите перед созданием следующего.{' '}
             <Button
               variant="secondary"
               disabled={revealing || !secureSecretTransport || !secretStorageReady}
@@ -246,7 +246,7 @@ export default function Api({
               <KeyRound size={22} aria-hidden="true" /> API-ключи
             </h2>
             <Button
-              disabled={!permissions.manage || !secureSecretTransport || !secretStorageReady}
+              disabled={!permissions.manage || !secureSecretTransport || !secretStorageReady || (integration_api_key_available && !consumedKey)}
               onClick={() => setShowCreate(true)}
             >
               <Plus size={17} aria-hidden="true" /> Создать ключ

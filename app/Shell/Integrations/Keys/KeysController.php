@@ -53,6 +53,12 @@ final class KeysController
         $ctx = app(TenantContext::class);
         abort_unless($ctx->brandId, 404);
         $this->access->read($request, $ctx->brandId, 'integrations.write');
+        $pending = app(SecretEnvelope::class)->open($request, $ctx, 'integration_api_key', $request->session()->get('integration_api_key'));
+        if ($pending !== null && ActiveApiKey::matches($ctx, $pending['value'])
+            && DB::table('integration_secret_receipts')->where('nonce_hash', $pending['nonce_hash'])
+                ->whereNull('consumed_at')->where('expires_at', '>', now())->exists()) {
+            throw ValidationException::withMessages(['name' => 'Сначала покажите ранее созданный ключ или отзовите его.']);
+        }
         $data = Validator::make($request->all(), [
             'name' => ['required', 'string', 'max:60'],
             'abilities' => ['required', 'array', 'min:1', 'max:3'],
@@ -77,7 +83,9 @@ final class KeysController
             return app(SecretEnvelope::class)->seal($request, $context, 'integration_api_key', $id.'|'.$secret);
         });
 
-        return redirect('/integrations/api')->with('integration_api_key', $sealed);
+        $request->session()->put('integration_api_key', $sealed);
+
+        return redirect('/integrations/api');
     }
 
     public function destroy(Request $request, string $id): RedirectResponse

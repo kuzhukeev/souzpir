@@ -27,6 +27,7 @@ final class SecretEnvelope
                 'brand_id' => $context->brandId,
                 'actor_id' => $context->actorId,
                 'session_hash' => $this->sessionHash($request),
+                'brand_revision' => $request->attributes->get('tenant.brand_revision'),
                 'value' => $value,
             ], JSON_THROW_ON_ERROR));
             DB::table('integration_secret_receipts')->insert([
@@ -52,6 +53,8 @@ final class SecretEnvelope
                 || ($data['brand_id'] ?? null) !== $context->brandId
                 || ($data['actor_id'] ?? null) !== $context->actorId
                 || ! is_string($data['nonce'] ?? null) || preg_match('/^[a-f0-9]{64}$/D', $data['nonce']) !== 1
+                || ! is_string($data['brand_revision'] ?? null)
+                || $data['brand_revision'] !== $request->attributes->get('tenant.brand_revision')
                 || ! is_string($data['session_hash'] ?? null)
                 || ! hash_equals($this->sessionHash($request), $data['session_hash'])
                 || ! is_string($data['value'] ?? null) || $data['value'] === '') {

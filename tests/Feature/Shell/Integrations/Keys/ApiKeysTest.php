@@ -83,6 +83,21 @@ final class ApiKeysTest extends TenancyTestCase
         $this->get('/integrations/api')->assertOk()->assertInertia(fn (Assert $page) => $page->where('integration_api_key_available', false));
     }
 
+    public function test_pending_key_survives_navigation_and_blocks_replacement_until_revealed(): void
+    {
+        [$owner, , $brand] = $this->cabinet();
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->post('/integrations/api/keys', [
+            'name' => 'Первый', 'abilities' => ['read'],
+        ])->assertSessionHasNoErrors();
+        $this->get('/integrations')->assertOk();
+        $this->get('/integrations/api')->assertOk()->assertInertia(fn (Assert $page) => $page->where('integration_api_key_available', true));
+        $this->post('/integrations/api/keys', ['name' => 'Второй', 'abilities' => ['read']])->assertSessionHasErrors('name');
+        $this->assertDatabaseCount('personal_access_tokens', 1);
+        $this->postJson('/integrations/api/secrets', ['type' => 'api_key'])->assertOk();
+        $this->post('/integrations/api/keys', ['name' => 'Второй', 'abilities' => ['read']])->assertSessionHasNoErrors();
+        $this->assertDatabaseCount('personal_access_tokens', 2);
+    }
+
     public function test_switching_brand_prevents_retrieving_secret_even_after_switching_back(): void
     {
         [$owner, , $first, $second] = $this->cabinet();
