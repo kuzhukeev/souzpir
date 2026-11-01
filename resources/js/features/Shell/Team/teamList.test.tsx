@@ -12,7 +12,7 @@ vi.mock('@inertiajs/react', () => ({
       {children}
     </a>
   ),
-  router: { get: calls.get, post: calls.post },
+  router: { get: calls.get, post: calls.post, on: () => () => {} },
   usePage: () => ({ props: { brand: { id: '01J00000000000000000000003' } } }),
 }));
 vi.mock('@/layouts/CabinetLayout', () => ({
@@ -175,7 +175,8 @@ it('показывает только переданные данные без �
   expect(screen.getByRole('link', { name: 'Роли и доступ' }).getAttribute('href')).toBe(
     '/team/roles',
   );
-  expect(screen.queryByRole('button', { name: /пригласить|изменить роль|отключить/i })).toBeNull();
+  expect(screen.getByRole('button', { name: 'Пригласить участника' })).toBeTruthy();
+  expect(screen.queryByRole('button', { name: /изменить роль|отключить/i })).toBeNull();
   expect(screen.getByText('Приглашений в ожидании нет')).toBeTruthy();
 });
 
@@ -190,7 +191,86 @@ it('показывает честное пустое состояние и не 
   );
   expect(screen.getByText('Участников пока нет')).toBeTruthy();
   expect(screen.queryByRole('link', { name: 'Роли и доступ' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Пригласить участника' })).toBeNull();
   expect(fetch).not.toHaveBeenCalled();
+});
+
+it('владелец открывает и закрывает настоящее окно приглашения', () => {
+  render(
+    <Index
+      teamBrandRevision={revision}
+      members={members}
+      canViewRoles
+      invitations={emptyInvitations}
+      filterBrands={[{ id: brandId, name: 'Бренд А' }]}
+    />,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Пригласить участника' }));
+  const dialog = screen.getByRole('dialog', { name: 'Пригласить участника' });
+  expect(within(dialog).getByLabelText('Электронная почта')).toBeTruthy();
+  expect(
+    (within(dialog).getByRole('checkbox', { name: 'Бренд А' }) as HTMLInputElement).checked,
+  ).toBe(true);
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Закрыть' }));
+  expect(screen.queryByRole('dialog', { name: 'Пригласить участника' })).toBeNull();
+});
+
+it('наблюдатель с непустым списком не видит выпуска приглашений', () => {
+  render(
+    <Index
+      teamBrandRevision={revision}
+      members={members}
+      canViewRoles={false}
+      invitations={emptyInvitations}
+      filterBrands={[{ id: brandId, name: 'Бренд А' }]}
+    />,
+  );
+  expect(screen.getByRole('region', { name: 'Таблица участников' })).toBeTruthy();
+  expect(screen.queryByRole('button', { name: 'Пригласить участника' })).toBeNull();
+  expect(screen.queryByRole('dialog', { name: 'Пригласить участника' })).toBeNull();
+});
+
+it('сохраняет предупреждение при закрытии во время выпуска и не повторяет POST', async () => {
+  let resolve!: (response: Response) => void;
+  const pending = new Promise<Response>((done) => {
+    resolve = done;
+  });
+  const fallback = vi.mocked(fetch).getMockImplementation()!;
+  const fetcher = vi.fn((input: RequestInfo | URL, init?: RequestInit) =>
+    input === '/team/invitations' ? pending : fallback(input, init),
+  );
+  vi.stubGlobal('fetch', fetcher);
+  document.cookie = 'XSRF-TOKEN=synthetic; path=/';
+  render(
+    <Index
+      teamBrandRevision={revision}
+      members={members}
+      canViewRoles
+      invitations={emptyInvitations}
+      filterBrands={[{ id: brandId, name: 'Бренд А' }]}
+    />,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Пригласить участника' }));
+  fireEvent.change(screen.getByLabelText('Электронная почта'), {
+    target: { value: 'person@example.test' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Продолжить' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Подтвердить выпуск' }));
+  expect(fetcher.mock.calls.filter(([input]) => input === '/team/invitations')).toHaveLength(1);
+  fireEvent.click(screen.getByRole('button', { name: 'Закрыть' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Пригласить участника' }));
+  expect(screen.getByText(/Результат неизвестен/)).toBeTruthy();
+  await act(async () => {
+    resolve(
+      new Response(
+        JSON.stringify({ link: 'http://localhost/invitations/open#' + 'A'.repeat(64) }),
+        { status: 201 },
+      ),
+    );
+    await pending;
+  });
+  expect(screen.queryByLabelText('Ссылка приглашения')).toBeNull();
+  expect(fetcher.mock.calls.filter(([input]) => input === '/team/invitations')).toHaveLength(1);
 });
 
 it('отличает пустую страницу от отсутствия участников', () => {
