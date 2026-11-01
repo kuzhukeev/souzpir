@@ -107,8 +107,45 @@ final class PendingSellerTurnsHttpTest extends TenancyTestCase
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
         $this->getJson('/seller/turns/pending?limit=101')->assertUnprocessable()->assertHeader('Cache-Control', 'no-store, private');
         $this->getJson('/seller/turns/pending?cursor=invalid')->assertUnprocessable()->assertHeader('Cache-Control', 'no-store, private');
+        $this->getJson('/seller/turns/pending?status=completed')->assertUnprocessable()->assertHeader('Cache-Control', 'no-store, private');
+        $this->getJson('/seller/turns/pending?status%5B%5D=uncertain')->assertUnprocessable()->assertHeader('Cache-Control', 'no-store, private');
         DB::table('brand_modules')->where('brand_id', $brand->id)->where('module', 'seller')->update(['enabled' => false]);
         $this->getJson('/seller/turns/pending')->assertNotFound();
+    }
+
+    public function test_each_status_filter_paginates_only_the_selected_brand_without_side_effects(): void
+    {
+        [$owner, $org, $brand, $other] = $this->configuredCabinet();
+        $turns = [];
+        $hidden = [];
+        foreach (['uncertain', 'processing'] as $status) {
+            $turns[$status] = [$this->turn($org, $brand, $status), $this->turn($org, $brand, $status)];
+            $hidden[$status] = $this->turn($org, $other, $status);
+        }
+        $before = DB::table('seller_turns')->orderBy('id')->get()->toArray();
+        $messagesBefore = DB::table('messages')->count();
+        $callsBefore = DB::table('ai_calls')->count();
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+
+        foreach (['uncertain', 'processing'] as $status) {
+            $first = $this->getJson('/seller/turns/pending?limit=1&status='.$status)->assertOk()->assertHeader('Cache-Control', 'no-store, private');
+            $cursor = $first->json('next_cursor');
+            self::assertNotNull($cursor);
+            $second = $this->getJson('/seller/turns/pending?limit=1&status='.$status.'&cursor='.$cursor)->assertOk();
+            self::assertNull($second->json('next_cursor'));
+            $items = [...$first->json('data'), ...$second->json('data')];
+            self::assertCount(2, $items);
+            self::assertEqualsCanonicalizing(array_map(fn ($claim) => $claim->turnId, $turns[$status]), array_column($items, 'turn_id'));
+            self::assertSame([$status, $status], array_column($items, 'status'));
+            $body = $first->getContent().$second->getContent();
+            self::assertStringNotContainsString($hidden[$status]->turnId, $body);
+            self::assertStringNotContainsString($hidden[$status]->conversationId, $body);
+        }
+        self::assertEquals($before, DB::table('seller_turns')->orderBy('id')->get()->toArray());
+        self::assertSame($messagesBefore, DB::table('messages')->count());
+        self::assertSame($callsBefore, DB::table('ai_calls')->count());
+        Queue::assertNothingPushed();
+        Http::assertNothingSent();
     }
 
     private function configuredCabinet(): array

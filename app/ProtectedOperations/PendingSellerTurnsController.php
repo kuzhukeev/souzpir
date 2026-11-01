@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 /** Read-only projection; processing does not imply a stalled or absent effect. */
 final class PendingSellerTurnsController
@@ -37,12 +38,13 @@ final class PendingSellerTurnsController
             $input = $request->validate([
                 'limit' => ['sometimes', 'integer', 'min:1', 'max:100'],
                 'cursor' => ['sometimes', 'string', 'size:26'],
+                'status' => ['sometimes', 'string', Rule::in(['uncertain', 'processing'])],
             ]);
             $cursor = $input['cursor'] ?? null;
             abort_if($cursor !== null && ! Str::isUlid($cursor), 422);
             $limit = (int) ($input['limit'] ?? 25);
             $query = DB::table('seller_turns')->where('organization_id', $tenant->organizationId)
-                ->where('brand_id', $tenant->brandId)->whereIn('status', ['uncertain', 'processing']);
+                ->where('brand_id', $tenant->brandId)->whereIn('status', isset($input['status']) ? [$input['status']] : ['uncertain', 'processing']);
             if ($cursor !== null) {
                 $query->where('id', '<', $cursor);
             }
