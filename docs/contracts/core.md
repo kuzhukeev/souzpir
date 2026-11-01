@@ -55,7 +55,7 @@ DTO constructors carry the described named fields; domain-specific extra fields 
 | KnowledgeSnapshot / E3-01 | `all(string $file): array`, existing prototype accessors, `toArray(): array`, `releaseId(): string`, `checksum(): string`; immutable |
 | KnowledgeRepository / E3-01 | `published(TenantContext): KnowledgeSnapshot`, `forRelease(TenantContext, string $id, bool $allowDraft): KnowledgeSnapshot`; draft allowed only authorized sandbox |
 | AiGateway / E0-05 | `complete(AiRequest $request, AiContext $context): AiResult`; fake and record implement identical shape |
-| ConversationRepository / E3-04 | `find(TenantContext, string $id): ConversationState`, `claimTurn(TenantContext, TurnCommand): TurnClaim`, `commitTurn(TurnClaim, TurnOutcome): void`; version/claim checks atomic |
+| ConversationRepository / E3-04 | `find(TenantContext, string $id): ConversationState`, `claimTurn(TenantContext, TurnCommand): TurnClaim`, `commitTurn(TurnClaim, TurnOutcome): void`; новый произвольный результат запрещён, идентичный терминальный исторический результат допускает replay |
 | SellerRuntime / E3-03B | `turn(TenantContext, TurnCommand): TurnOutcome`, `open(TenantContext, OpenCommand): TurnOutcome`; owns orchestration, not concrete transport |
 | ChannelDelivery / E3-03B contract, channel tasks adapters | `send(DeliveryCommand): DeliveryReceipt`; command references persisted outbound message + channel + idempotency key |
 | PlanLimits / E0-06 | `get(TenantContext, string $key): LimitValue` where `{value: decimal-string|null, unit: string, configured: bool}`; unset does not block |
@@ -99,7 +99,13 @@ SP-C-02 добавляет отдельный внутренний fake-only п�
 сессию, доступ, fence, запрос и сохранённый результат. Идентификатор стадии,
 claim или публичный `AiResult` не являются авторизацией либо самостоятельным
 доказательством. Это не runtime или finalizer: реальный драйвер в этом пути
-закрыт, `commitTurn` не изменён; неопределённый исход не отправляется повторно.
+закрыт; неопределённый исход не отправляется повторно.
+
+Для первого входящего текста добавлена внутренняя fake-only финализация без
+доставки и инструментов; её ограничения описаны в
+`docs/contracts/protected-operations.md`. Это не подключённый SellerRuntime.
+Новую запись произвольного `TurnOutcome` через `commitTurn` нельзя использовать
+для будущего E3-03B: ему потребуется защищённый серверный финализатор.
 
 UsageQuery: `{from,to,metrics:list<string>}`. UsageSnapshot: `{as_of, metrics:{metric_key:{value:number|null,unit,status:ready|unavailable}}}`. Count=0 — измеренное отсутствие, null — нет источника/не настроено. UI не подменяет unavailable нулём. Основные keys: seller.dialogues, seller.handoffs_pending, vision.measurements, vision.latest_visibility, ai.calls, ai.tokens. Суммы/лимиты не смешиваются с display numbers. Домены экспортируют read DTO, Shell не делает cross-domain SQL.
 
