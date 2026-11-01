@@ -7,6 +7,7 @@ use App\Ai\Drivers\FakeDriver;
 use App\Ai\Drivers\OpenRouterDriver;
 use App\Ai\Drivers\Rejected;
 use App\Ai\Drivers\Uncertain;
+use App\Ai\Protected\RawToolArguments;
 use App\Ai\Protected\RequestFingerprint;
 use App\Ai\Protected\SellerExtractorStages;
 use App\Ai\Protected\SellerGuardStages;
@@ -112,6 +113,47 @@ final class Gateway implements AiGateway
             }
 
             return $result->costMicros === null ? 'uncertain' : 'completed';
+        } catch (Throwable) {
+            throw new LogicException('Protected responder stage could not be completed.');
+        }
+    }
+
+    /** Fake-only opt-in: capture raw arguments from the same driver invocation. */
+    public function completeProtectedResponderWithRaw(#[\SensitiveParameter] Request $http, #[\SensitiveParameter] TurnClaim $claim, #[\SensitiveParameter] string $stageId): string
+    {
+        try {
+            if (config('runtime.ai_driver', 'fake') !== 'fake') {
+                throw new LogicException;
+            }
+            $stages = app(SellerResponderStages::class);
+            [$request, $context, $digest] = $stages->load($http, $claim, $stageId);
+            $result = $this->completeInternal($request, $context,
+                fn () => $stages->lockForGateway($http, $claim, $stageId, $digest),
+                fn (object $call, string $hash) => $stages->bindCall($http, $claim, $stageId, $call, $hash),
+                function (object $call, AiResult $result, array $raw) use ($http, $claim, $stageId, $stages): void {
+                    [, $context, , $boundCall, $requestHash] = $stages->load($http, $claim, $stageId);
+                    if ($boundCall !== $call->id || ! is_string($requestHash) || ! hash_equals($requestHash, $call->request_hash)) {
+                        throw new LogicException;
+                    }
+                    $evidence = ['stage_id' => $stageId, 'organization_id' => $context->organizationId,
+                        'brand_id' => $context->brandId, 'conversation_id' => $claim->conversationId,
+                        'turn_id' => $claim->turnId, 'call_id' => $call->id, 'request_hash' => $requestHash,
+                        'result_hash' => CanonicalJson::hash($result->toArray()), 'raw_calls' => $raw];
+                    $seal = hash_hmac('sha256', CanonicalJson::hash($evidence), (string) config('app.key'));
+                    DB::table('c02_responder_raw_evidence')->insert(['stage_id' => $stageId, 'ai_call_id' => $call->id,
+                        'payload_encrypted' => Crypt::encryptString(json_encode(['evidence' => $evidence, 'seal' => $seal], JSON_THROW_ON_ERROR)),
+                        'created_at' => now()]);
+                });
+            if (($result->error['code'] ?? null) === 'in_progress') {
+                return 'in_progress';
+            }
+
+            if ($result->costMicros === null) {
+                return 'uncertain';
+            }
+
+            return DB::table('c02_responder_raw_evidence')->where('stage_id', $stageId)
+                ->where('ai_call_id', $result->aiCallId)->exists() ? 'completed' : 'raw_unavailable';
         } catch (Throwable) {
             throw new LogicException('Protected responder stage could not be completed.');
         }
@@ -270,6 +312,42 @@ final class Gateway implements AiGateway
             return ['id' => $selected['id'], 'name' => $selected['name'], 'arguments' => $selected['arguments']];
         } catch (Throwable) {
             throw new LogicException('Protected tool call unavailable.');
+        }
+    }
+
+    /** Source evidence only; this never authorizes a tool or any external effect. */
+    public function readProtectedRawToolCallLocked(#[\SensitiveParameter] Request $http, #[\SensitiveParameter] TurnClaim $claim, #[\SensitiveParameter] string $stageId, int $index): array
+    {
+        try {
+            $selected = $this->readProtectedToolCallLocked($http, $claim, $stageId, $index);
+            [$request, $context, , $callId, $requestHash] = app(SellerResponderStages::class)->load($http, $claim, $stageId);
+            $call = DB::table('ai_calls')->where('id', $callId)->lockForUpdate()->first();
+            $row = DB::table('c02_responder_raw_evidence')->where('stage_id', $stageId)->where('ai_call_id', $callId)->lockForUpdate()->first();
+            if (! $call || ! $row || ! is_string($requestHash)) {
+                throw new LogicException;
+            }
+            $payload = json_decode(Crypt::decryptString($row->payload_encrypted), true, 512, JSON_THROW_ON_ERROR);
+            $evidence = $payload['evidence'] ?? null;
+            $seal = $payload['seal'] ?? null;
+            if (! is_array($evidence) || ! is_string($seal)
+                || ! hash_equals(hash_hmac('sha256', CanonicalJson::hash($evidence), (string) config('app.key')), $seal)
+                || ($evidence['stage_id'] ?? null) !== $stageId || ($evidence['organization_id'] ?? null) !== $context->organizationId
+                || ($evidence['brand_id'] ?? null) !== $context->brandId || ($evidence['conversation_id'] ?? null) !== $claim->conversationId
+                || ($evidence['turn_id'] ?? null) !== $claim->turnId || ($evidence['call_id'] ?? null) !== $callId
+                || ($evidence['request_hash'] ?? null) !== $requestHash
+                || ($evidence['result_hash'] ?? null) !== CanonicalJson::hash($this->replay($call, $request->model)->toArray())) {
+                throw new LogicException;
+            }
+            $raw = $evidence['raw_calls'][$index] ?? null;
+            if (! is_array($raw) || ($raw['id'] ?? null) !== $selected['id'] || ($raw['name'] ?? null) !== $selected['name']
+                || ! is_string($raw['arguments_json'] ?? null) || ! app(RawToolArguments::class)->accepts($raw['arguments_json'])
+                || json_decode($raw['arguments_json'], true, 22, JSON_THROW_ON_ERROR) !== $selected['arguments']) {
+                throw new LogicException;
+            }
+
+            return $raw;
+        } catch (Throwable) {
+            throw new LogicException('Protected raw tool call unavailable.');
         }
     }
 
@@ -536,7 +614,7 @@ final class Gateway implements AiGateway
         return in_array($message, $allowed, true) ? $message : 'AI request could not be safely completed.';
     }
 
-    private function completeInternal(#[\SensitiveParameter] AiRequest $request, #[\SensitiveParameter] AiContext $context, ?\Closure $beforeReserve = null, ?\Closure $afterReserve = null): AiResult
+    private function completeInternal(#[\SensitiveParameter] AiRequest $request, #[\SensitiveParameter] AiContext $context, ?\Closure $beforeReserve = null, ?\Closure $afterReserve = null, ?\Closure $captureRaw = null): AiResult
     {
         // An outer rollback must never undo accounting for an already sent request.
         if (DB::connection()->transactionLevel() !== 0) {
@@ -590,18 +668,39 @@ final class Gateway implements AiGateway
         }
         $driver = $this->driver($driverName);
         try {
-            $data = $driver->complete($body);
+            $raw = null;
+            if ($captureRaw !== null) {
+                if ($driverName !== 'fake' || ! $driver instanceof FakeDriver) {
+                    throw new LogicException;
+                }
+                $captured = $driver->completeWithRawToolCalls($body);
+                $data = $captured['result'];
+                $raw = $captured['raw_tool_calls'];
+            } else {
+                $data = $driver->complete($body);
+            }
             $this->assertResult($data);
             $empty = ($data['content'] === null || trim($data['content']) === '') && $data['toolCalls'] === [];
             $result = new AiResult($data['content'], $data['toolCalls'], $data['usage'], $data['model'], $data['latencyMs'], $data['costMicros'], $call->id, $empty ? ['code' => 'empty_response', 'retryable' => false] : null);
             // Preserve the normalized provider response before accounting. A crash after
             // this write cannot cause a paid request to be sent again or its cost lost.
-            $saved = DB::table('ai_calls')->where('id', $call->id)->where('status', 'reserved')->update([
-                'result_encrypted' => Crypt::encryptString(json_encode($result->toArray(), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)),
-                'updated_at' => now(),
-            ]);
-            if ($saved !== 1) {
-                throw new LogicException('AI call state changed before response persistence.');
+            $persist = function () use ($call, $result, $captureRaw, $raw): void {
+                // Keep stage/session locks ahead of the ai_calls row, as in protected reads.
+                if ($captureRaw !== null) {
+                    $captureRaw($call, $result, $raw);
+                }
+                $saved = DB::table('ai_calls')->where('id', $call->id)->where('status', 'reserved')->update([
+                    'result_encrypted' => Crypt::encryptString(json_encode($result->toArray(), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)),
+                    'updated_at' => now(),
+                ]);
+                if ($saved !== 1) {
+                    throw new LogicException('AI call state changed before response persistence.');
+                }
+            };
+            if ($captureRaw !== null) {
+                DB::transaction($persist);
+            } else {
+                $persist();
             }
             if ($data['costMicros'] === null) {
                 return $this->uncertain($call, $request->model, 'cost_unknown');
