@@ -44,6 +44,12 @@ GENERATED_CONTRACT_FILES = frozenset(
     for name in ("data.ts", "translations.ts", "permissions.ts", "routes.d.ts")
 )
 
+# Existing browser regression assertions for a shared E1-10 fixture must follow
+# the E1-10C notification screen even though this older file predates the card.
+CI_SCOPE_EXCEPTIONS = {
+    "SP-E1-10C": ("tests/Browser/E1-10/integrations-ui.spec.ts",),
+}
+
 
 def scope_allows(path: str, scope: list[str]) -> bool:
     path = path.replace("\\", "/").casefold()
@@ -335,7 +341,8 @@ class Coordinator:
         commit = git(worktree, "rev-parse", "HEAD^{commit}")
         if commit == record["baseCommit"]:
             raise TaskError("No task commit exists after the saved base")
-        outside = unapproved_changes(worktree, record["baseCommit"], commit, record["scope"])
+        scope = [*record["scope"], *CI_SCOPE_EXCEPTIONS.get(key, ())]
+        outside = unapproved_changes(worktree, record["baseCommit"], commit, scope)
         if outside:
             raise TaskError("Changes outside task ownership: " + ", ".join(outside))
         result = self.owner_action("submit", key, commit=commit, branch=record["branch"], summary=summary, checks=checks)
