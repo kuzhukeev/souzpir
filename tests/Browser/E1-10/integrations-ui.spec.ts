@@ -79,9 +79,9 @@ for (const width of [1440, 1024, 390])
         }
         if (screen === 'notifications') {
           await expect(
-            page.getByText('Настройка и доставка уведомлений компании пока недоступны.'),
+            page.getByText('Внешняя доставка пока выключена. Проверка канала работает без отправки сообщений.'),
           ).toBeVisible();
-          await expect(page.getByRole('button', { name: 'Сохранить' })).toBeDisabled();
+          await expect(page.getByRole('button', { name: 'Сохранить' })).toBeEnabled();
         }
         await readable(page);
         await page.screenshot({

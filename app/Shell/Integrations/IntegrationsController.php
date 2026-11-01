@@ -4,11 +4,13 @@ namespace App\Shell\Integrations;
 
 use App\Models\Brand;
 use App\Shell\Brands\BrandAccess;
+use App\Shell\Integrations\CompanyNotifications\CompanyNotificationSettings;
 use App\Shell\Integrations\Keys\KeysController;
 use App\Shell\Integrations\Webhooks\WebhookDelivery;
 use App\Shell\Integrations\Webhooks\WebhookService;
 use App\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -40,7 +42,10 @@ final class IntegrationsController
                 'status' => $account?->status ?? 'disconnected', 'connected_at' => null,
                 'settings_restricted' => $restricted, 'href' => ! $restricted && Route::has($route) ? route($route) : null];
         }
-        $connections[] = ['id' => 'notifications', 'title' => 'Уведомления компании', 'description' => 'Telegram и почта для сообщений команды.', 'status' => 'disconnected', 'connected_at' => null, 'settings_restricted' => ! $canManage, 'href' => $canManage ? route('integrations.notifications') : null];
+        $brand = Brand::query()->findOrFail($ctx->brandId);
+        $notificationSettings = app(CompanyNotificationSettings::class)->forBrand($brand);
+        $configured = $notificationSettings['telegram_configured'] || $notificationSettings['report_emails'] !== [];
+        $connections[] = ['id' => 'notifications', 'title' => 'Уведомления компании', 'description' => 'Telegram и почта для сообщений команды.', 'status' => $configured ? 'active' : 'disconnected', 'connected_at' => null, 'settings_restricted' => ! $canManage, 'href' => $canManage ? route('integrations.notifications') : null];
         foreach (['WhatsApp', 'VK', 'amoCRM', 'Bitrix24'] as $title) {
             $connections[] = ['id' => strtolower($title), 'title' => $title, 'description' => 'Интеграция появится позже.', 'status' => 'soon', 'connected_at' => null, 'href' => null];
         }
@@ -132,13 +137,47 @@ final class IntegrationsController
             ->exists();
     }
 
-    public function notifications(): Response
+    public function notifications(CompanyNotificationSettings $settings): Response
     {
         Gate::authorize('integrations.write');
+        $context = app(TenantContext::class);
+        abort_unless($context->organizationId && $context->brandId, 404);
+        $brand = Brand::query()->findOrFail($context->brandId);
 
         return Inertia::render('Shell/Integrations/Notifications', [
-            'telegram_configured' => false, 'telegram_mask' => null, 'telegram_available' => false,
-            'report_emails' => [], 'permissions' => ['manage' => false],
+            ...$settings->forBrand($brand),
+            'permissions' => ['manage' => true],
         ]);
+    }
+
+    public function saveNotifications(Request $request, BrandAccess $access, CompanyNotificationSettings $settings): RedirectResponse
+    {
+        Gate::authorize('integrations.write');
+        $context = app(TenantContext::class);
+        abort_unless($context->brandId, 404);
+        $data = $request->validate([
+            'telegram_chat' => ['nullable', 'string', 'regex:/^-?[0-9]{1,20}$/'],
+            'report_emails' => ['present', 'array', 'max:5'],
+            'report_emails.*' => ['required', 'email', 'max:254', 'distinct:ignore_case'],
+        ]);
+        $access->change($request, $context->brandId, function (Brand $brand) use ($settings, $data): void {
+            Gate::authorize('integrations.write');
+            $settings->save($brand, $data['telegram_chat'] ?? null, $data['report_emails']);
+        });
+
+        return redirect()->route('integrations.notifications')->with('success', 'Настройки сохранены. Внешняя доставка пока выключена.');
+    }
+
+    public function testNotifications(Request $request): RedirectResponse
+    {
+        Gate::authorize('integrations.write');
+        $context = app(TenantContext::class);
+        abort_unless($context->organizationId && $context->brandId, 404);
+        $data = $request->validate(['channel' => ['required', Rule::in(['telegram', 'email'])]]);
+        $settings = app(CompanyNotificationSettings::class)->forBrand(Brand::query()->findOrFail($context->brandId));
+        $available = $data['channel'] === 'telegram' ? $settings['telegram_configured'] : count($settings['report_emails']) > 0;
+        abort_unless($available, 422, 'Сначала настройте выбранный канал.');
+
+        return redirect()->route('integrations.notifications')->with('success', 'Проверка пройдена в fake режиме. Сообщения не отправлялись.');
     }
 }
