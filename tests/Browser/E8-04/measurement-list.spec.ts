@@ -36,7 +36,7 @@ test('реальные сохранённые замеры текущего бр
   await expect(page.getByText(beta)).toHaveCount(0);
   await expect(page.getByText('01J00000000000000000000011')).toHaveCount(0);
   await expect(page.getByText('01J00000000000000000000033')).toHaveCount(0);
-  await expect(page.getByText('Запуск замеров — скоро')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Начать замер' })).toBeVisible();
   for (const width of [1440, 1024, 390]) {
     await page.setViewportSize({ width, height: 900 });
     expect(

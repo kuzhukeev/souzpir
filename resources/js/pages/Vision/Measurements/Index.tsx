@@ -1,4 +1,4 @@
-import { Head, usePage } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 import { BarChart3 } from 'lucide-react';
 import CabinetLayout from '@/layouts/CabinetLayout';
@@ -22,8 +22,8 @@ function date(value: string | null): string {
     : new Intl.DateTimeFormat('ru-RU', { dateStyle: 'medium', timeStyle: 'short' }).format(parsed);
 }
 
-export default function Index({ measurementBrandRevision }: { measurementBrandRevision: string }) {
-  const { brand } = usePage<{ brand: { id: string } | null }>().props;
+export default function Index({ measurementBrandRevision, status }: { measurementBrandRevision: string; status?: string | null }) {
+  const { brand, can } = usePage<{ brand: { id: string } | null; can: Record<string, boolean> }>().props;
   const headingRef = useRef<HTMLHeadingElement>(null);
   const brandId = brand?.id ?? '';
   const contextKey = JSON.stringify([brandId, measurementBrandRevision]);
@@ -34,6 +34,20 @@ export default function Index({ measurementBrandRevision }: { measurementBrandRe
   }
   const page = navigation.contextKey === contextKey ? navigation.page : 1;
   const [attempt, setAttempt] = useState(0);
+  const [runs, setRuns] = useState(1);
+  const [starting, setStarting] = useState(false);
+  const [startError, setStartError] = useState('');
+  const start = () => {
+    setStartError('');
+    router.post('/vision/runs', { runs }, {
+      headers: { 'X-Brand-Id': brandId, 'X-Brand-Revision': measurementBrandRevision },
+      onStart: () => setStarting(true),
+      onFinish: () => setStarting(false),
+      onError: (errors) => setStartError(Object.values(errors)[0] ?? 'Не удалось начать замер.'),
+      onNetworkError: () => { setStartError('Не удалось связаться с сервером. Проверьте состояние замера перед повтором.'); return false; },
+      onHttpException: () => { setStartError('Не удалось получить результат. Проверьте состояние замера перед повтором.'); return false; },
+    });
+  };
   const requestKey = JSON.stringify([
     brandId,
     measurementBrandRevision,
@@ -154,10 +168,16 @@ export default function Index({ measurementBrandRevision }: { measurementBrandRe
               История проверок видимости бренда
             </p>
           </div>
-          <span className="rounded-lg bg-(--color-surface-muted) px-4 py-3 text-sm text-(--color-ink-muted)">
-            Запуск замеров — скоро
-          </span>
+          <div className="flex flex-wrap items-end gap-2">
+            <label className="text-sm font-semibold">Повторов
+              <input type="number" min={1} max={3} value={runs} onChange={(event) => setRuns(Number(event.target.value))} className="mt-1 block w-24 rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm" />
+            </label>
+            <button type="button" className={button} disabled={starting || !can?.['vision.measure.run'] || !brandId || !profileContextIsStable()} onClick={start}>Начать замер</button>
+          </div>
         </header>
+        <p className="mb-4 text-sm text-(--color-ink-muted)">Запуск создаёт план по утверждённым вопросам бренда. Выполнение ответов пока недоступно.</p>
+        {status && <p role="status" className="mb-4 rounded-lg bg-(--color-success-soft) p-3 text-sm text-(--color-success-ink)">{status}</p>}
+        {startError && <p role="alert" className="mb-4 rounded-lg bg-(--color-danger-soft) p-3 text-sm text-(--color-danger-ink)">{startError}</p>}
         <section
           aria-labelledby="measurements-title"
           aria-busy={view.loading}
