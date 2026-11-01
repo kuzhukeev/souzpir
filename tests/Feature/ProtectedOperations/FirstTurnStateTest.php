@@ -3275,6 +3275,101 @@ SQL);
         Queue::assertNothingPushed();
     }
 
+    public static function finalizationRevocationOrders(): array
+    {
+        return ['revocation first' => [true], 'finalization first' => [false]];
+    }
+
+    #[DataProvider('finalizationRevocationOrders')]
+    public function test_first_text_serializes_with_actual_session_revocation(bool $revokeFirst): void
+    {
+        [$tenant, $http, $claim, $extractor] = $this->fixture('Synthetic question', ['protected_claim' => true]);
+        [$stage, , , $file] = $this->responderFixture($tenant, $http, $claim, $extractor, ['content' => 'Можем обсудить заказ?']);
+        $this->within($tenant, fn () => app(Gateway::class)->completeProtectedResponder($http, $claim, $stage));
+        unlink($file);
+        $marker = base_path('.local/tmp/c02-finalize-revoke-'.Str::random(16));
+        $worker = $this->finalizeWorker($tenant, $http, $claim, $stage, $marker);
+        $blocker = null;
+        if (! $revokeFirst) {
+            DB::unprepared(<<<'SQL'
+CREATE OR REPLACE FUNCTION c02_test_delay_session_revoke() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.action = 'seller.turn.text_finalized' THEN
+    PERFORM pg_advisory_xact_lock(8620474);
+  END IF;
+  RETURN NEW;
+END;
+$$;
+CREATE TRIGGER c02_test_delay_session_revoke BEFORE INSERT ON audit_logs FOR EACH ROW EXECUTE FUNCTION c02_test_delay_session_revoke();
+SQL);
+            config(['database.connections.c02_revoke_blocker' => config('database.connections.pgsql')]);
+            $blocker = DB::connection('c02_revoke_blocker');
+            $blocker->beginTransaction();
+            $blocker->select('SELECT pg_advisory_xact_lock(8620474)');
+        }
+        try {
+            if ($revokeFirst) {
+                DB::beginTransaction();
+                app(AuthSessionRegistry::class)->withinActive($http, fn () => app(AuthSessionRegistry::class)->revokeCurrent($http));
+                $worker->start();
+                $this->waitForFinalizerLock($worker, $marker);
+                DB::commit();
+            } else {
+                $worker->start();
+                $this->waitForFinalizerLock($worker, $marker);
+                DB::beginTransaction();
+                try {
+                    DB::statement("SET LOCAL lock_timeout = '250ms'");
+                    app(AuthSessionRegistry::class)->withinActive($http, fn () => app(AuthSessionRegistry::class)->revokeCurrent($http));
+                    self::fail('Revocation crossed the finalizer session lock.');
+                } catch (QueryException $error) {
+                    self::assertSame('55P03', $error->errorInfo[0]);
+                } finally {
+                    DB::rollBack();
+                }
+                $blocker->rollBack();
+            }
+            $worker->wait();
+            self::assertTrue($worker->isSuccessful(), $worker->getErrorOutput());
+            $result = json_decode($worker->getOutput(), true, 512, JSON_THROW_ON_ERROR);
+            self::assertSame($revokeFirst ? 'rejected' : 'completed', $result['status']);
+            if (! $revokeFirst) {
+                app(AuthSessionRegistry::class)->withinActive($http, fn () => app(AuthSessionRegistry::class)->revokeCurrent($http));
+            }
+            try {
+                $this->within($tenant, fn () => app(FirstTurnTextFinalizer::class)->finalize($http, $claim, $stage, null, 'parallel-first-text'));
+                self::fail('A revoked session replayed finalization.');
+            } catch (LogicException $error) {
+                self::assertSame('Protected first-turn finalization unavailable.', $error->getMessage());
+                self::assertNull($error->getPrevious());
+            }
+            self::assertSame($revokeFirst ? 'processing' : 'completed', DB::table('seller_turns')->where('id', $claim->turnId)->value('status'));
+            self::assertSame($revokeFirst ? 0 : 1, DB::table('messages')->where('conversation_id', $claim->conversationId)->where('role', 'agent')->count());
+            self::assertSame($revokeFirst ? 0 : 1, DB::table('protected_operation_receipts')->where('operation', 'seller.first_text_finalize')->count());
+            self::assertSame($revokeFirst ? 0 : 1, DB::table('audit_logs')->where('action', 'seller.turn.text_finalized')->count());
+            self::assertSame(0, DB::table('seller_tasks')->count());
+            self::assertSame(0, DB::table('outbox_events')->count());
+        } finally {
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+            if ($blocker && $blocker->transactionLevel() > 0) {
+                $blocker->rollBack();
+            }
+            if ($worker->isRunning()) {
+                $worker->stop();
+            }
+            if (is_file($marker)) {
+                unlink($marker);
+            }
+            DB::purge('c02_revoke_blocker');
+            DB::unprepared('DROP TRIGGER IF EXISTS c02_test_delay_session_revoke ON audit_logs; DROP FUNCTION IF EXISTS c02_test_delay_session_revoke();');
+        }
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
+    }
+
     public function test_first_text_finishes_before_concurrent_input_and_replays_across_processes(): void
     {
         [$tenant, $http, $claim, $extractor] = $this->fixture('Synthetic question', ['protected_claim' => true]);
