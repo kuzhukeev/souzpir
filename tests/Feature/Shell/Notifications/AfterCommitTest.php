@@ -10,14 +10,14 @@ use App\Shell\Notifications\Contracts\NotificationDispatcher;
 use App\Shell\Notifications\DomainEvent;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\TestCase;
 
 final class AfterCommitTest extends TestCase
 {
-    use DatabaseMigrations;
+    use IsolatedDatabaseMigrations;
 
     public function test_delivery_is_after_real_commit_and_rollback_never_dispatches(): void
     {
