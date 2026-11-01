@@ -71,7 +71,7 @@ const members: TeamPage = {
       role: 'owner',
       role_label: 'Владелец',
       status: 'active',
-      brands: [{ id: brandId, name: 'Длинное название разрешённого бренда' }],
+      brands: [{ id: brandId, name: 'Длинное название разрешённого бренда', modules: ['seller', 'vision'] }],
     },
     {
       id: secondId,

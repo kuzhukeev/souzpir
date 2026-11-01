@@ -61,6 +61,7 @@ for (const width of [1440, 1024, 390]) {
       await expect(listing.getByText(/12:34/)).toBeVisible();
       await expect(listing.getByText('Нет данных', { exact: true })).toBeVisible();
       await expect(listing.getByText('Нет общих доступных брендов')).toBeVisible();
+      await expect(listing.getByRole('listitem').filter({ hasText: 'Продавец, Видение' })).toBeVisible();
       const invites = page.getByRole('region', { name: 'Приглашения в ожидании' });
       await expect(invites.getByText('invite@example.test')).toBeVisible();
       await expect(invites.getByText('Ссылка не открыта')).toBeVisible();

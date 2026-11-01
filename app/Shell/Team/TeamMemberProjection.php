@@ -4,6 +4,7 @@ namespace App\Shell\Team;
 
 use App\Models\Brand;
 use App\Models\Membership;
+use App\Shell\Organizations\ModuleEntitlements;
 use App\Tenancy\TenantContext;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -11,6 +12,9 @@ use Illuminate\Support\Collection;
 /** A single disclosure rule for the list and the member detail page. */
 final class TeamMemberProjection
 {
+    /** @var array<string, list<string>> */
+    private array $modulesByBrand = [];
+
     private function __construct(private readonly Collection $brands, private readonly mixed $labels, private readonly bool $allInvitations) {}
 
     public static function forCurrentActor(): self
@@ -36,8 +40,23 @@ final class TeamMemberProjection
             'role' => $grant['role'],
             'role_label' => $grant['role_label'],
             'status' => $membership->status,
-            'brands' => $grant['brands'],
+            'brands' => array_map(fn (array $brand) => [...$brand, 'modules' => $this->enabledModules($brand['id'])], $grant['brands']),
         ];
+    }
+
+    /** @return list<string> */
+    private function enabledModules(string $brandId): array
+    {
+        if (! array_key_exists($brandId, $this->modulesByBrand)) {
+            $current = app(TenantContext::class);
+            $context = new TenantContext($current->organizationId, $brandId, $current->actorId, $current->membershipId, $current->source);
+            $entitlements = app(ModuleEntitlements::class);
+            $this->modulesByBrand[$brandId] = array_values(array_filter(
+                ['seller', 'vision'], fn (string $module) => $entitlements->enabled($context, $module),
+            ));
+        }
+
+        return $this->modulesByBrand[$brandId];
     }
 
     /** Restricted actors see only invitations with at least one common active brand. */

@@ -5,11 +5,51 @@ namespace Tests\Feature\Shell\Team;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\Feature\Tenancy\TenancyTestCase;
 
 final class TeamMembersTest extends TenancyTestCase
 {
+    public function test_modules_are_real_per_shared_brand_without_disclosing_other_brands(): void
+    {
+        Http::preventStrayRequests();
+        Http::fake();
+        [$owner, $org, $first, $second] = $this->cabinet();
+        [$admin] = $this->member($org, 'admin', [$first->id]);
+        [, $target] = $this->member($org, 'member', [$first->id, $second->id]);
+        [, $other] = $this->member($org, 'viewer', [$second->id]);
+        [, $foreignOrg, $foreignBrand] = $this->cabinet(false);
+        foreach ([[$org, $first, 'seller'], [$org, $second, 'vision'], [$foreignOrg, $foreignBrand, 'vision']] as [$organization, $brand, $module]) {
+            DB::table('brand_modules')->insert(['id' => (string) Str::ulid(), 'organization_id' => $organization->id, 'brand_id' => $brand->id, 'module' => $module, 'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
+        }
+        $this->actingAs($owner)->withSession(['brand_id' => $first->id]);
+        $rows = collect($this->get('/team')->assertOk()->inertiaProps('members.data'))->keyBy('id');
+        $this->assertSame(['seller'], $rows[$target->id]['brands'][0]['modules']);
+        $this->assertSame(['vision'], $rows[$target->id]['brands'][1]['modules']);
+        $this->get('/team/'.$target->id)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('member.brands.0.modules', ['seller'])->where('member.brands.1.modules', ['vision']));
+
+        $response = $this->actingAs($admin)->withSession(['brand_id' => $first->id])->get('/team')->assertOk();
+        $rows = collect($response->inertiaProps('members.data'))->keyBy('id');
+        $this->assertSame(['seller'], $rows[$target->id]['brands'][0]['modules']);
+        $this->assertCount(1, $rows[$target->id]['brands']);
+        $this->assertSame([], $rows[$other->id]['brands']);
+        $serialized = json_encode($response->inertiaProps(), JSON_THROW_ON_ERROR);
+        $this->assertStringNotContainsString($second->id, $serialized);
+        $this->assertStringNotContainsString($foreignBrand->id, $serialized);
+        $plan = (string) Str::ulid();
+        DB::table('plans')->insert(['id' => $plan, 'code' => 'team-modules-test', 'name' => 'Fixture', 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('organization_plan')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'plan_id' => $plan, 'starts_at' => now()->subDay(), 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('plan_limits')->insert(['id' => (string) Str::ulid(), 'plan_id' => $plan, 'key' => 'modules.seller', 'value' => '0', 'unit' => '', 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('brand_modules')->where('brand_id', $second->id)->where('module', 'vision')->update(['enabled' => false]);
+        $response = $this->actingAs($owner)->withSession(['brand_id' => $first->id])->get('/team/'.$target->id)->assertOk();
+        $this->assertSame([], $response->inertiaProps('member.brands.0.modules'));
+        $this->assertSame([], $response->inertiaProps('member.brands.1.modules'));
+        Mail::assertNothingSent();
+        Http::assertNothingSent();
+    }
+
     public function test_owner_sees_only_organization_members_with_real_roles_and_statuses(): void
     {
         [$owner, $org, $first, $second] = $this->cabinet();

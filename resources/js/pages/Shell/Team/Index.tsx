@@ -8,6 +8,7 @@ import InvitationDialog from '@/features/Shell/InvitationIssuance/InvitationDial
 import { LastLogin } from '@/features/Shell/MemberActivity/LastLogin';
 import { useMemberLastLogins } from '@/features/Shell/MemberActivity/useMemberLastLogins';
 import { invitationExpiry, useInvitationTime } from '@/features/Shell/Team/invitationExpiry';
+import { SharedBrandModules } from '@/features/Shell/Team/SharedBrandModules';
 import type { TeamInvitations, TeamMember, TeamPage } from '@/types/Shell/Team/members';
 import type { SharedPropsV1 } from '@/types/generated/data';
 
@@ -477,7 +478,8 @@ export default function Index({
                 Участники
               </h2>
               <p className="mt-1 text-sm text-(--color-ink-muted)">
-                Показаны только бренды, доступные вам.
+                Показаны только общие доступные бренды и их включённые модули. Действия участника
+                зависят от его роли и статуса.
               </p>
             </div>
             <span className="text-sm text-(--color-ink-muted)">
@@ -569,6 +571,9 @@ export default function Index({
                         Доступные бренды
                       </th>
                       <th scope="col" className="px-4 py-3">
+                        Модули общих брендов
+                      </th>
+                      <th scope="col" className="px-4 py-3">
                         Статус
                       </th>
                       <th scope="col" className="px-4 py-3">
@@ -586,6 +591,7 @@ export default function Index({
                         <td className="px-4 py-4">
                           <Brands member={member} />
                         </td>
+                        <td className="px-4 py-4"><SharedBrandModules brands={member.brands} /></td>
                         <td className="px-4 py-4">
                           <Status value={member.status} />
                         </td>
@@ -617,6 +623,10 @@ export default function Index({
                         <dd className="mt-1">
                           <Brands member={member} />
                         </dd>
+                      </div>
+                      <div>
+                        <dt className="text-(--color-ink-muted)">Модули общих брендов</dt>
+                        <dd className="mt-1"><SharedBrandModules brands={member.brands} /></dd>
                       </div>
                       <div>
                         <dt className="text-(--color-ink-muted)">Статус</dt>

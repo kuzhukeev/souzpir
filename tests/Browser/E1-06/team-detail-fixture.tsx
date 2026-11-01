@@ -50,7 +50,7 @@ const shared = {
     role: 'manager',
     role_label: 'Менеджер',
     status: 'active',
-    brands: [brand],
+    brands: [{ ...brand, modules: ['seller', 'vision'] }],
   },
   activityUrl: '/journal?actor=01J00000000000000000000005',
 };

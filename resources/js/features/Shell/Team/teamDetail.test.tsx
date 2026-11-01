@@ -26,7 +26,7 @@ it('показывает контакты и фактический доступ
     role: 'manager',
     role_label: 'Менеджер',
     status: 'disabled',
-    brands: [{ id: 'a', name: 'Разрешённый бренд' }],
+    brands: [{ id: 'a', name: 'Разрешённый бренд', modules: ['seller'] }],
   };
   render(<Show member={member} activityUrl="/journal?actor=user-id" />);
   expect(screen.getByRole('heading', { name: 'Анна' })).toBeTruthy();

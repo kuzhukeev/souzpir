@@ -5,7 +5,7 @@ export type TeamMember = {
   role: 'owner' | 'admin' | 'editor' | 'manager' | 'viewer' | null;
   role_label: string | null;
   status: string;
-  brands: { id: string; name: string }[];
+  brands: { id: string; name: string; modules?: ('seller' | 'vision')[] }[];
 };
 
 export type TeamPage = {

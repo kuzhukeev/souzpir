@@ -84,6 +84,21 @@ if (in_array(getenv('E106_LAST_LOGIN_ACCESS'), ['disable', 'restore'], true)) {
     fwrite(STDOUT, "Last-login test access changed.\n");
     exit;
 }
+if (getenv('E106_SHARED_MODULES') === '1') {
+    $organization = Organization::whereKey($organizationId)->firstOrFail();
+    if (($organization->settings['test_fixture'] ?? null) !== 'e106-role-ui') {
+        throw new LogicException('Fixture organization collision.');
+    }
+    foreach (['Пиротехника — Северные огни' => 'seller', 'Фейерверки — Второй бренд' => 'vision'] as $name => $module) {
+        $brand = Brand::withoutGlobalScopes()->where('organization_id', $organizationId)->where('name', $name)->firstOrFail();
+        DB::table('brand_modules')->updateOrInsert(
+            ['organization_id' => $organizationId, 'brand_id' => $brand->id, 'module' => $module],
+            ['id' => (string) Str::ulid(), 'enabled' => true, 'created_at' => now(), 'updated_at' => now()],
+        );
+    }
+    fwrite(STDOUT, "Isolated shared modules configured.\n");
+    exit;
+}
 if (getenv('E106_EXPIRING_INVITATION') === '1') {
     $organization = Organization::whereKey($organizationId)->firstOrFail();
     if (($organization->settings['test_fixture'] ?? null) !== 'e106-role-ui') {

@@ -82,7 +82,7 @@ const shared = {
         role: 'owner',
         role_label: 'Владелец',
         status: 'active',
-        brands: [brand],
+        brands: [{ ...brand, modules: ['seller', 'vision'] }],
       },
       {
         id: '01J00000000000000000000002',

@@ -1,6 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import { ArrowLeft, UserRound } from 'lucide-react';
 import CabinetLayout from '@/layouts/CabinetLayout';
+import { SharedBrandModules } from '@/features/Shell/Team/SharedBrandModules';
 import type { TeamMemberDetail } from '@/types/Shell/Team/members';
 
 const panel =
@@ -84,9 +85,14 @@ export default function Show({
                   )}
                 </dd>
               </div>
+              <div>
+                <dt className="text-(--color-ink-muted)">Модули общих брендов</dt>
+                <dd className="mt-2"><SharedBrandModules brands={member.brands} /></dd>
+              </div>
             </dl>
             <p className="mt-5 text-sm text-(--color-ink-muted)">
-              Показаны только бренды, доступные вам. Изменение роли и доступа пока недоступно.
+              Показаны только общие доступные бренды и их включённые модули. Действия участника
+              зависят от его роли и статуса. Изменение роли и доступа пока недоступно.
             </p>
           </section>
           <section className={panel} aria-labelledby="contacts-title">
