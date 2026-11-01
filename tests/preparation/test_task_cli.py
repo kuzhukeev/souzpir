@@ -96,6 +96,22 @@ class TaskCliTests(unittest.TestCase):
         self.assertEqual(len(self.client.ready()["tasks"]), 1)
         self.assertEqual(self.api.calls, ["ready"])
 
+    def test_ready_excludes_released_task_with_local_claim_or_worktree(self):
+        worktree, _ = self.claim()
+        self.client.release("SP-001", "Stopped")
+        result = self.client.ready()
+        self.assertEqual(result["tasks"], [])
+        self.assertEqual(result["blockedLocal"][0]["taskKey"], "SP-001")
+        self.assertEqual(set(result["blockedLocal"][0]["localBlockers"]),
+                         {"local_claim", "local_worktree", "local_branch"})
+        self.assertTrue(worktree.exists())
+
+    def test_ready_excludes_task_with_leftover_branch_only(self):
+        task_cli.git(self.root, "branch", "codex/sp-001")
+        result = self.client.ready()
+        self.assertEqual(result["tasks"], [])
+        self.assertEqual(result["blockedLocal"][0]["localBlockers"], ["local_branch"])
+
     def test_claim_stores_token_only_in_local_record(self):
         worktree, result = self.claim()
         self.assertEqual(task_cli.git(worktree, "branch", "--show-current"), "codex/sp-001")

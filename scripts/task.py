@@ -197,7 +197,23 @@ class Coordinator:
         return matches[0]
 
     def ready(self) -> dict:
-        return self.api.call("ready", project=self.project)
+        response = self.api.call("ready", project=self.project)
+        available, blocked = [], []
+        for task in response.get("tasks", []):
+            key = task["taskKey"]
+            branch = "codex/" + key.lower()
+            reasons = []
+            if self.local_path(key).exists():
+                reasons.append("local_claim")
+            if (self.root / ".worktrees" / key.lower()).exists():
+                reasons.append("local_worktree")
+            if git(self.root, "rev-parse", "--verify", "refs/heads/" + branch, check=False):
+                reasons.append("local_branch")
+            if reasons:
+                blocked.append({"taskKey": key, "localBlockers": reasons})
+            else:
+                available.append(task)
+        return {"tasks": available, "blockedLocal": blocked}
 
     def validate_plan(self, key: str, plan: dict, task: dict) -> None:
         if task.get("project") != self.project or task.get("taskKey") != key:
