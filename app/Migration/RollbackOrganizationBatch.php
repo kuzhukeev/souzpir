@@ -18,8 +18,14 @@ final class RollbackOrganizationBatch
             $snapshot = json_decode($batch->snapshot, true, 512, JSON_THROW_ON_ERROR);
             $organization = DB::table('organizations')->where('id', $batch->organization_id)->first();
             $brands = DB::table('brands')->where('organization_id', $batch->organization_id)->orderBy('id')->get();
-            if (json_decode(json_encode(['organization' => $organization, 'brands' => $brands], JSON_THROW_ON_ERROR), true, 512, JSON_THROW_ON_ERROR) != $snapshot) {
+            $membership = DB::table('memberships')->where('organization_id', $batch->organization_id)->where('user_id', $batch->owner_user_id)->first();
+            $importedMembership = $snapshot['membership'] ?? null;
+            if (json_decode(json_encode(['organization' => $organization, 'brands' => $brands, 'membership' => $importedMembership ? $membership : null], JSON_THROW_ON_ERROR), true, 512, JSON_THROW_ON_ERROR) != $snapshot) {
                 throw new LogicException('Конфликт: импортированные записи изменены.');
+            }
+            if ($importedMembership && $membership) {
+                $this->assertUnused('memberships', (array) $membership, false);
+                DB::table('memberships')->where('id', $membership->id)->delete();
             }
             $this->assertUnused('organizations', (array) $organization, true);
             foreach ($brands as $brand) {
