@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Process\Process;
 use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\TestCase;
@@ -149,6 +150,7 @@ final class QuestionSetsTest extends TestCase
     }
 
     #[DataProvider('tenantTargets')]
+    #[Group('race')]
     public function test_archive_or_disable_during_lock_wait_prevents_creation(string $target): void
     {
         [$organization, $brand] = $this->cabinet();

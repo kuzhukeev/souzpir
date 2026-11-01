@@ -448,6 +448,7 @@ final class ProtectedExtractorStageTest extends TestCase
         });
     }
 
+    #[Group('race')]
     public function test_new_input_during_fake_result_persistence_preserves_accounting_but_hides_result(): void
     {
         [$tenant, $http, $claim] = $this->fixture();
@@ -986,6 +987,7 @@ SQL);
         Queue::assertNothingPushed();
     }
 
+    #[Group('race')]
     public function test_saved_fake_extractor_result_survives_crash_and_two_recoveries_settle_once(): void
     {
         [$tenant, $http, $claim] = $this->fixture();

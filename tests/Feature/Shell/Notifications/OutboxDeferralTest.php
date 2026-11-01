@@ -24,6 +24,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
+use PHPUnit\Framework\Attributes\Group;
 use RuntimeException;
 use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
@@ -240,6 +241,7 @@ final class OutboxDeferralTest extends TestCase
         self::assertNotNull(DB::table('outbox_events')->where('id', $second->envelope['event_id'])->value('processed_at'));
     }
 
+    #[Group('race')]
     public function test_two_scanners_reserve_distinct_pages_with_real_postgresql_locks(): void
     {
         for ($i = 0; $i < 102; $i++) {

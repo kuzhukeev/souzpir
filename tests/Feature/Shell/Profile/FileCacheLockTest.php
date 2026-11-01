@@ -3,10 +3,12 @@
 namespace Tests\Feature\Shell\Profile;
 
 use Illuminate\Support\Str;
+use PHPUnit\Framework\Attributes\Group;
 use Tests\TestCase;
 
 final class FileCacheLockTest extends TestCase
 {
+    #[Group('race')]
     public function test_separate_processes_serialize_a_file_cache_lock(): void
     {
         $barrier = base_path('.local/tmp/rollout-lock-'.Str::random(16));

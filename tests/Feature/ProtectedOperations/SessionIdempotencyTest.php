@@ -345,6 +345,7 @@ final class SessionIdempotencyTest extends TestCase
         self::assertSame(0, DB::table('c02_session_receipts')->count());
     }
 
+    #[Group('race')]
     public function test_session_revocation_serializes_with_the_receipt_transaction(): void
     {
         [$user, $request] = $this->fixture();

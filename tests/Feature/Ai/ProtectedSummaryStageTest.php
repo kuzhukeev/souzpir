@@ -608,6 +608,7 @@ SQL);
         DB::purge('c02_advisory');
     }
 
+    #[Group('race')]
     public function test_new_input_while_fake_driver_finishes_hides_result_and_only_returns_safe_status(): void
     {
         [$tenant, $http, $claim] = $this->fixture();
@@ -662,6 +663,7 @@ SQL);
         DB::purge('c02_advisory');
     }
 
+    #[Group('race')]
     public function test_interrupted_result_persistence_never_sends_the_stage_again(): void
     {
         [$tenant, $http, $claim] = $this->fixture();

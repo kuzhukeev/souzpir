@@ -1642,6 +1642,7 @@ SQL);
         Http::assertNothingSent();
     }
 
+    #[Group('race')]
     public function test_new_input_during_responder_result_persistence_preserves_accounting_and_hides_candidate(): void
     {
         [$tenant, $http, $claim, $extractor] = $this->fixture('Synthetic input');
@@ -2559,6 +2560,7 @@ SQL);
         Http::assertNothingSent();
     }
 
+    #[Group('race')]
     public function test_new_input_during_model_guard_persistence_keeps_accounting_and_hides_decision(): void
     {
         config(['agent.guard_llm' => true]);
@@ -3065,6 +3067,7 @@ SQL);
         Queue::assertNothingPushed();
     }
 
+    #[Group('race')]
     public function test_first_text_new_input_first_invalidates_worker_without_losing_input(): void
     {
         [$tenant, $http, $claim, $extractor] = $this->fixture('Synthetic question', ['protected_claim' => true]);
@@ -3303,6 +3306,7 @@ SQL);
         Queue::assertNothingPushed();
     }
 
+    #[Group('race')]
     public function test_new_input_committing_first_is_preserved_and_quarantine_is_an_idempotent_noop(): void
     {
         [$tenant, $http, $command, $channel] = $this->protectedClaimFixture(withChannel: true);
@@ -3341,6 +3345,7 @@ SQL);
         Queue::assertNothingPushed();
     }
 
+    #[Group('race')]
     public function test_new_input_waits_for_quarantine_and_is_preserved(): void
     {
         [$tenant, $http, $command, $channel] = $this->protectedClaimFixture(withChannel: true);
@@ -3412,6 +3417,7 @@ SQL);
     }
 
     #[DataProvider('quarantineFinalizationOrders')]
+    #[Group('race')]
     public function test_quarantine_and_finalization_serialize_in_both_orders(bool $quarantineFirst, bool $review): void
     {
         [$tenant, $http, $claim, $extractor] = $this->fixture('Synthetic question', ['protected_claim' => true]);
@@ -3579,6 +3585,7 @@ SQL);
     }
 
     #[DataProvider('finalizationPlanOrders')]
+    #[Group('race')]
     public function test_first_text_and_plan_restriction_serialize_in_both_orders(bool $restrictionFirst, bool $insertLimit): void
     {
         [$tenant, $http, $claim, $extractor] = $this->fixture('Synthetic question', ['protected_claim' => true]);
@@ -3689,6 +3696,7 @@ SQL);
     }
 
     #[DataProvider('finalizationRevocationOrders')]
+    #[Group('race')]
     public function test_first_text_serializes_with_actual_session_revocation(bool $revokeFirst): void
     {
         [$tenant, $http, $claim, $extractor] = $this->fixture('Synthetic question', ['protected_claim' => true]);

@@ -31,6 +31,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use LogicException;
+use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Process\Process;
 use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\TestCase;
@@ -339,6 +340,7 @@ final class QuestionnaireTest extends TestCase
         });
     }
 
+    #[Group('race')]
     public function test_two_connections_cannot_overwrite_the_same_revision(): void
     {
         $f = $this->fixture();

@@ -368,6 +368,7 @@ final class MeasurementRunnerTest extends TestCase
         Http::assertNothingSent();
     }
 
+    #[Group('race')]
     public function test_snapshot_locks_sized_answers_until_its_fixed_set_is_read(): void
     {
         $this->within(function (): void {
@@ -416,6 +417,7 @@ final class MeasurementRunnerTest extends TestCase
         });
     }
 
+    #[Group('race')]
     public function test_snapshot_rechecks_size_after_waiting_for_a_competing_answer_write(): void
     {
         $this->within(function (): void {
@@ -646,6 +648,7 @@ final class MeasurementRunnerTest extends TestCase
         });
     }
 
+    #[Group('race')]
     public function test_two_independent_workers_do_not_duplicate_a_measurement_call(): void
     {
         [$answer, $barrier] = $this->within(function (): array {
