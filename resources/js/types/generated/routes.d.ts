@@ -308,6 +308,7 @@ declare module 'ziggy-js' {
     "seller.settings.notifications.digests": [],
     "seller.settings.notifications.digests.time": [],
     "seller.settings.notifications.test": [],
+    "seller.integrations.crm": [],
     "vision.start": [],
     "vision.private.access": [],
     "vision.private.verify": [],
