@@ -106,13 +106,13 @@ async function confirmContext(
     return false;
   const props = page.props as {
     teamBrandRevision?: unknown;
-    canViewRoles?: unknown;
+    canIssueInvitations?: unknown;
     brand?: { id?: unknown };
     filterBrands?: unknown;
   };
   if (
     props.teamBrandRevision !== revision ||
-    props.canViewRoles !== true ||
+    props.canIssueInvitations !== true ||
     props.brand?.id !== brandId ||
     !Array.isArray(props.filterBrands)
   )
