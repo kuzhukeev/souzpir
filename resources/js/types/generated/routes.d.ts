@@ -345,6 +345,9 @@ declare module 'ziggy-js' {
         }
     ],
     "vision.questions.approve": [],
+    "vision.measurements.index": [],
+    "vision.measurements.data": [],
+    "vision.measurements.revision": [],
     "vision.site.overview": [],
     "vision.site.criteria": [],
     "vision.site.bots": [],
