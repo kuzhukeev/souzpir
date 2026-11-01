@@ -41,7 +41,13 @@ final class OpenRouterDriver implements Driver
             // accepted responses (including 206/202) are also indeterminate.
             throw new Uncertain('Provider outcome is unknown.');
         }
+        $generationId = null;
         try {
+            $envelope = json_decode($response->body(), true);
+            $candidateId = is_array($envelope) ? ($envelope['id'] ?? null) : null;
+            if (is_string($candidateId) && preg_match('/^gen-[A-Za-z0-9_-]{8,150}$/D', $candidateId)) {
+                $generationId = $candidateId;
+            }
             if ($captureRaw) {
                 app(ProtectedRawToolCalls::class)->decodeEnvelope($response->body());
             }
@@ -90,11 +96,11 @@ final class OpenRouterDriver implements Driver
                 throw new \UnexpectedValueException('Invalid AI content.');
             }
 
-            $result = ['content' => $content, 'toolCalls' => $calls, 'usage' => ['promptTokens' => $prompt, 'completionTokens' => $completion], 'model' => (string) ($data['model'] ?? $body['model']), 'latencyMs' => (int) ((hrtime(true) - $start) / 1_000_000), 'costMicros' => isset($usage['cost']) ? Money::micros((string) $usage['cost']) : null];
+            $result = ['content' => $content, 'toolCalls' => $calls, 'usage' => ['promptTokens' => $prompt, 'completionTokens' => $completion], 'model' => (string) ($data['model'] ?? $body['model']), 'latencyMs' => (int) ((hrtime(true) - $start) / 1_000_000), 'costMicros' => isset($usage['cost']) ? Money::micros((string) $usage['cost']) : null, 'providerGenerationId' => $generationId];
 
             return $captureRaw ? ['result' => $result, 'raw_tool_calls' => $rawCalls] : $result;
         } catch (Throwable) {
-            throw new Uncertain('Provider responded but usage or result cannot be confirmed.');
+            throw new Uncertain('Provider responded but usage or result cannot be confirmed.', $generationId);
         }
     }
 

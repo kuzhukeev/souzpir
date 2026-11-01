@@ -557,6 +557,7 @@ final class Gateway implements AiGateway
             // Preserve the retry classification without exposing driver arguments.
             $message = match (true) {
                 $error->getMessage() === 'Previous AI attempt was confirmed unbilled; an explicit new attempt is required.' => $error->getMessage(),
+                $error->getMessage() === 'Previous AI attempt was billed without a usable result; an explicit new attempt is required.' => $error->getMessage(),
                 config('runtime.ai_driver', 'fake') === 'fake' && str_starts_with($error->getMessage(), 'AI fixture missing') => 'AI fixture missing for the normalized request.',
                 default => 'AI provider rejected the request.',
             };
@@ -640,13 +641,14 @@ final class Gateway implements AiGateway
             $result = new AiResult($data['content'], $data['toolCalls'], $data['usage'], $data['model'], $data['latencyMs'], $data['costMicros'], $call->id, $empty ? ['code' => 'empty_response', 'retryable' => false] : null);
             // Preserve the normalized provider response before accounting. A crash after
             // this write cannot cause a paid request to be sent again or its cost lost.
-            $persist = function () use ($call, $result, $captureRaw, $raw): void {
+            $persist = function () use ($call, $result, $captureRaw, $raw, $data): void {
                 // Keep stage/session locks ahead of the ai_calls row, as in protected reads.
                 if ($captureRaw !== null) {
                     $captureRaw($call, $result, $raw);
                 }
                 $saved = DB::table('ai_calls')->where('id', $call->id)->where('status', 'reserved')->update([
                     'result_encrypted' => Crypt::encryptString(json_encode($result->toArray(), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)),
+                    'provider_generation_id' => $data['providerGenerationId'] ?? null,
                     'updated_at' => now(),
                 ]);
                 if ($saved !== 1) {
@@ -672,6 +674,10 @@ final class Gateway implements AiGateway
             // Missing fixtures are test errors, never successful empty output.
             throw $e;
         } catch (Throwable $e) {
+            if ($e instanceof Uncertain && $e->providerGenerationId !== null) {
+                DB::table('ai_calls')->where('id', $call->id)->where('status', 'reserved')->whereNull('provider_generation_id')
+                    ->update(['provider_generation_id' => $e->providerGenerationId, 'updated_at' => now()]);
+            }
             $this->uncertain($call, $request->model, 'provider_uncertain');
             if ($e instanceof Uncertain) {
                 return new AiResult(null, [], ['promptTokens' => null, 'completionTokens' => null], $request->model, 0, null, $call->id, ['code' => 'provider_uncertain', 'retryable' => false]);
@@ -905,7 +911,9 @@ final class Gateway implements AiGateway
             return $result;
         }
         if ($call->status === 'failed') {
-            throw new Rejected('Previous AI attempt was confirmed unbilled; an explicit new attempt is required.');
+            throw new Rejected($call->error_code === 'reconciled_billed_without_result'
+                ? 'Previous AI attempt was billed without a usable result; an explicit new attempt is required.'
+                : 'Previous AI attempt was confirmed unbilled; an explicit new attempt is required.');
         }
         $code = $call->status === 'reserved' ? 'in_progress' : ($call->error_code ?? 'provider_uncertain');
 
