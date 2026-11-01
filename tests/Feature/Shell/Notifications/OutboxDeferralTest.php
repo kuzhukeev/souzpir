@@ -16,7 +16,6 @@ use App\Shell\Notifications\NotificationProcessor;
 use App\Shell\Notifications\NotificationRouting;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
@@ -28,6 +27,7 @@ use Illuminate\Support\Str;
 use RuntimeException;
 use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
+use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\TestCase;
 
 final class DeferralRouter implements NotificationRouter
@@ -67,7 +67,7 @@ final class DeferralRouter implements NotificationRouter
 
 final class OutboxDeferralTest extends TestCase
 {
-    use DatabaseMigrations;
+    use IsolatedDatabaseMigrations;
 
     private User $user;
 

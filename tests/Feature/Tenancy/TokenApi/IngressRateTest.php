@@ -6,16 +6,16 @@ use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Http\Events\RequestHandled;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Tests\Feature\Shell\Support\Fixtures\IsolatedPlanTestDatabase;
+use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\TestCase;
 
 final class IngressRateTest extends TestCase
 {
-    use DatabaseMigrations;
+    use IsolatedDatabaseMigrations;
 
     public function createApplication(): Application
     {

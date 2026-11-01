@@ -6,17 +6,17 @@ use App\Shell\Integrations\PruneSecretReceipts;
 use App\Shell\Integrations\SecretReceiptsCleanupSchedule;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Database\Events\QueryExecuted;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use LogicException;
 use RuntimeException;
 use Symfony\Component\Process\Process;
+use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\TestCase;
 
 final class PruneSecretReceiptsTest extends TestCase
 {
-    use DatabaseMigrations;
+    use IsolatedDatabaseMigrations;
 
     public function createApplication()
     {

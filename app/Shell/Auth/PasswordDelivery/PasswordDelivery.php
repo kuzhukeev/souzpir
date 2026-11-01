@@ -95,7 +95,7 @@ final class PasswordDelivery
     private function sendInternal(#[\SensitiveParameter] DeliveryClaim $claim, #[\SensitiveParameter] PasswordTransport $transport): void
     {
         $this->outsideTransaction();
-        $token = bin2hex(random_bytes(32));
+        $token = ResetToken::generate();
         $user = $this->withLockedState($claim->id, function ($intent, $user, bool $eligible) use ($claim, $token) {
             if ($intent->status !== 'sending' || ! is_string($intent->claim_hash) || ! hash_equals($intent->claim_hash, $claim->tokenHash())) {
                 return null;
@@ -106,7 +106,7 @@ final class PasswordDelivery
                 return null;
             }
             DB::table('password_reset_tokens')->where('email', $user->email)->delete();
-            DB::table('password_reset_tokens')->insert(['email' => $user->email, 'token' => Hash::make($token), 'auth_version' => $user->auth_version, 'created_at' => now()]);
+            DB::table('password_reset_tokens')->insert(['email' => $user->email, 'token' => Hash::make('v2:'.hash('sha256', $token)), 'auth_version' => $user->auth_version, 'created_at' => now()]);
             DB::table('password_delivery_intents')->where('id', $intent->id)->update(['status' => 'transmitting', 'updated_at' => now()]);
 
             return $user;

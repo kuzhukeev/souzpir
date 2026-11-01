@@ -20,7 +20,9 @@ return [
             Route::post('/register', [RegisterController::class, 'store'])->middleware('throttle:5,60')->name('register.store');
             Route::get('/forgot-password', [PasswordController::class, 'request'])->name('password.request');
             Route::post('/forgot-password', [PasswordController::class, 'email'])->middleware('throttle:5,60')->name('password.email');
-            Route::get('/reset-password/{token}', [PasswordController::class, 'reset'])->name('password.reset');
+            Route::get('/reset-password/open', [PasswordController::class, 'open'])->name('password.open');
+            Route::post('/reset-password/exchange', [PasswordController::class, 'exchange'])->middleware('throttle:10,60')->name('password.exchange');
+            Route::get('/reset-password', [PasswordController::class, 'reset'])->name('password.reset');
             Route::post('/reset-password', [PasswordController::class, 'store'])->middleware('throttle:10,60')->name('password.store');
             Route::get('/mfa/challenge', [MfaChallengeController::class, 'create'])->name('mfa.challenge');
             Route::post('/mfa/challenge', [MfaChallengeController::class, 'store'])->middleware('throttle:20,1')->name('mfa.challenge.store');
