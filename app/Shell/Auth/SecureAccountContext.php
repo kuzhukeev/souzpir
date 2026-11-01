@@ -2,6 +2,7 @@
 
 namespace App\Shell\Auth;
 
+use App\Privacy\VerifiedHttps;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\IpUtils;
@@ -15,7 +16,8 @@ final class SecureAccountContext
     public static function allows(Request $request): bool
     {
         $nativeTls = $request->server('HTTPS');
-        if (is_string($nativeTls) && in_array(strtolower(trim($nativeTls)), ['on', '1'], true)) {
+        if (! VerifiedHttps::hasForwardingHeaders($request)
+            && is_string($nativeTls) && in_array(strtolower(trim($nativeTls)), ['on', '1'], true)) {
             return true;
         }
 
@@ -43,10 +45,7 @@ final class SecureAccountContext
             && self::loopback($request->getHost())
             && self::loopback((string) $request->server('REMOTE_ADDR'))
             && self::loopback((string) $request->server('SERVER_ADDR'))
-            && ! $request->headers->has('Forwarded')
-            && ! $request->headers->has('X-Forwarded-For')
-            && ! $request->headers->has('X-Forwarded-Host')
-            && ! $request->headers->has('X-Forwarded-Proto');
+            && ! VerifiedHttps::hasForwardingHeaders($request);
     }
 
     public static function validate(Request $request, string $field): void

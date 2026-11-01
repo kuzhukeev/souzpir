@@ -9,15 +9,11 @@ use Throwable;
 /** Verify transport without trusting a client-controlled Host or stale global proxy state. */
 final class VerifiedHttps
 {
-    private const FORWARDING_HEADERS = [
-        'Forwarded', 'X-Forwarded-For', 'X-Forwarded-Host', 'X-Forwarded-Proto',
-        'X-Forwarded-Port', 'X-Forwarded-Prefix', 'X-Real-IP', 'CF-Connecting-IP',
-    ];
-
     public static function allows(Request $request): bool
     {
         $native = $request->server('HTTPS');
-        if (is_string($native) && in_array(strtolower(trim($native)), ['on', '1'], true)) {
+        if (! self::hasForwardingHeaders($request)
+            && is_string($native) && in_array(strtolower(trim($native)), ['on', '1'], true)) {
             return true;
         }
 
@@ -37,14 +33,23 @@ final class VerifiedHttps
     /** Both ends must be genuinely loopback and no forwarding proxy may be involved. */
     public static function directLoopback(Request $request): bool
     {
-        foreach (self::FORWARDING_HEADERS as $header) {
-            if ($request->headers->has($header)) {
-                return false;
+        return ! self::hasForwardingHeaders($request)
+            && self::loopback($request->server('REMOTE_ADDR'))
+            && self::loopback($request->server('SERVER_ADDR'));
+    }
+
+    /** Forwarded protocol indicators require an explicitly trusted peer, even if HTTPS is set. */
+    public static function hasForwardingHeaders(Request $request): bool
+    {
+        foreach (array_keys($request->headers->all()) as $name) {
+            $name = strtolower($name);
+            if ($name === 'forwarded' || str_starts_with($name, 'x-forwarded-')
+                || $name === 'x-real-ip' || $name === 'cf-connecting-ip') {
+                return true;
             }
         }
 
-        return self::loopback($request->server('REMOTE_ADDR'))
-            && self::loopback($request->server('SERVER_ADDR'));
+        return false;
     }
 
     private static function loopback(mixed $ip): bool
