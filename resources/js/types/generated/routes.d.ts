@@ -183,6 +183,12 @@ declare module 'ziggy-js' {
         }
     ],
     "team.invitations.issue": [],
+    "seller.tasks.transfer": [
+        {
+            "name": "task",
+            "required": true
+        }
+    ],
     "team.member-last-logins": [],
     "billing.overview": [],
     "billing.usage": [],
