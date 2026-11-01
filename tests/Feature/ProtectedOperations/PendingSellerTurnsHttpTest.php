@@ -182,6 +182,37 @@ final class PendingSellerTurnsHttpTest extends TenancyTestCase
         Http::assertNothingSent();
     }
 
+    public function test_missing_stage_storage_returns_safe_503_while_the_list_still_works(): void
+    {
+        [$owner, $org, $brand] = $this->configuredCabinet();
+        $turn = $this->turn($org, $brand, 'uncertain');
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $before = DB::table('seller_turns')->where('id', $turn->turnId)->first();
+        foreach (['extractor', 'responder', 'guard'] as $stage) {
+            // This transaction-scoped rename affects only the separately verified test DB.
+            $table = 'c02_'.$stage.'_stages';
+            $missing = $table.'_unavailable_test';
+            DB::statement('ALTER TABLE '.$table.' RENAME TO '.$missing);
+            try {
+                $this->getJson('/seller/turns/pending/'.$turn->turnId)->assertStatus(503)
+                    ->assertHeader('Cache-Control', 'no-store, private')
+                    ->assertExactJson(['message' => 'Подробности временно недоступны.'])
+                    ->assertDontSee($turn->turnId)->assertDontSee('private synthetic text')->assertDontSee($table);
+                $this->getJson('/seller/turns/pending')->assertOk()->assertHeader('Cache-Control', 'no-store, private')
+                    ->assertJsonPath('data.0.turn_id', $turn->turnId);
+                DB::table('memberships')->where('user_id', $owner->id)->update(['role' => 'viewer']);
+                $this->getJson('/seller/turns/pending/'.$turn->turnId)->assertForbidden()->assertDontSee($turn->turnId);
+                DB::table('memberships')->where('user_id', $owner->id)->update(['role' => 'owner']);
+            } finally {
+                DB::statement('ALTER TABLE '.$missing.' RENAME TO '.$table);
+            }
+        }
+        self::assertEquals($before, DB::table('seller_turns')->where('id', $turn->turnId)->first());
+        self::assertSame(0, DB::table('ai_calls')->count());
+        Queue::assertNothingPushed();
+        Http::assertNothingSent();
+    }
+
     private function configuredCabinet(): array
     {
         $cabinet = $this->cabinet();
