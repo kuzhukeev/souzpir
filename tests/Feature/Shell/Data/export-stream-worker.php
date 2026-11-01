@@ -74,6 +74,7 @@ try {
             $mark();
             app(SessionController::class)->destroy($request);
             fwrite(STDOUT, 'done');
+
             return;
         }
         $response = app(DataController::class)->download($request, $input['export']);

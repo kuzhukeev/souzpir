@@ -16,7 +16,10 @@ use Tests\Feature\Tenancy\TenancyTestCase;
 
 final class SeparatedStorageFixtureContributor implements ExportContributor
 {
-    public function module(): string { return 'seller'; }
+    public function module(): string
+    {
+        return 'seller';
+    }
 
     public function stream(TenantContext $tenant, ExportQuery $query): iterable
     {
@@ -85,7 +88,9 @@ final class SeparatedExportStorageTest extends TenancyTestCase
             app(PruneExports::class)->pruneOrganization($org->id, 1, 5000);
         }
         $disk->assertMissing($orphan);
-        foreach ($paths as $path) $disk->assertMissing($path);
+        foreach ($paths as $path) {
+            $disk->assertMissing($path);
+        }
         self::assertSame(0, DB::table('data_exports')->where('organization_id', $org->id)->count());
     }
 
@@ -103,12 +108,16 @@ final class SeparatedExportStorageTest extends TenancyTestCase
         $held = ExportFileLock::acquireForExport($disk->path($prefix), $id, LOCK_SH);
         self::assertIsResource($held);
         try {
-            for ($i = 0; $i < 4; $i++) app(PruneExports::class)->pruneOrganization($org->id, 1, 5000);
+            for ($i = 0; $i < 4; $i++) {
+                app(PruneExports::class)->pruneOrganization($org->id, 1, 5000);
+            }
             $disk->assertExists($orphan);
         } finally {
             fclose($held);
         }
-        for ($i = 0; $i < 4 && $disk->exists($orphan); $i++) app(PruneExports::class)->pruneOrganization($org->id, 1, 5000);
+        for ($i = 0; $i < 4 && $disk->exists($orphan); $i++) {
+            app(PruneExports::class)->pruneOrganization($org->id, 1, 5000);
+        }
         $disk->assertMissing($orphan);
     }
 

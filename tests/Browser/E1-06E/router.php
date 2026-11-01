@@ -1,5 +1,9 @@
 <?php
 
+use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+
 if (getenv('APP_ENV') !== 'testing' || getenv('E106E_BROWSER_FIXTURE') !== '1' || ($_SERVER['REMOTE_ADDR'] ?? '') !== '127.0.0.1') {
     http_response_code(404);
     exit;
@@ -21,8 +25,8 @@ HTML;
 if ($path === '/_e106e/count') {
     require getcwd().'/vendor/autoload.php';
     $app = require getcwd().'/bootstrap/app.php';
-    $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
-    $db = \Illuminate\Support\Facades\DB::connection('pgsql');
+    $app->make(Kernel::class)->bootstrap();
+    $db = DB::connection('pgsql');
     $expected = getenv('E106E_TEST_DB');
     $role = getenv('E106E_TEST_ROLE');
     $port = getenv('E106E_TEST_PORT');
@@ -76,7 +80,7 @@ if ($productionPublic !== false && $productionPublic !== '') {
     require getcwd().'/vendor/autoload.php';
     $app = require getcwd().'/bootstrap/app.php';
     $app->usePublicPath($public);
-    $app->handleRequest(\Illuminate\Http\Request::capture());
+    $app->handleRequest(Request::capture());
     exit;
 }
 require getcwd().'/public/index.php';

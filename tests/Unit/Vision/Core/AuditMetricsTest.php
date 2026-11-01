@@ -66,7 +66,7 @@ class AuditMetricsTest extends TestCase
         $this->assertSame([1], $r['criterion_ids']);
         $this->assertEquals(5, $r['brand_score']);
         $this->assertSame(1, $r['rank_min']);
-        $this->assertSame(2,$r['rank_max']);
-        $this->assertEquals(50,$r['percentile']);
+        $this->assertSame(2, $r['rank_max']);
+        $this->assertEquals(50, $r['percentile']);
     }
 }

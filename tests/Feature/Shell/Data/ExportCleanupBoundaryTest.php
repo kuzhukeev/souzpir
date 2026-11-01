@@ -4,6 +4,7 @@ namespace Tests\Feature\Shell\Data;
 
 use App\Shell\Data\ExportFileLock;
 use App\Shell\Data\PruneExports;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Tests\Feature\Tenancy\TenancyTestCase;
@@ -69,7 +70,7 @@ final class ExportCleanupBoundaryTest extends TenancyTestCase
         $path = 'data-exports/'.$org->id.'/'.$id.'.zip';
         $disk->put($path, 'live archive');
         touch($disk->path($path), now()->subDays(3)->getTimestamp());
-        \Illuminate\Support\Facades\DB::table('data_exports')->insert([
+        DB::table('data_exports')->insert([
             'id' => $id, 'organization_id' => $org->id, 'brand_id' => $brand->id,
             'user_id' => $owner->id, 'module' => 'seller', 'period_from' => '2026-01-01',
             'period_to' => '2026-01-02', 'path' => $path, 'sha256' => str_repeat('a', 64),

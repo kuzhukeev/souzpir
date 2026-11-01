@@ -19,6 +19,7 @@ final class PruneLegacyExportLocksCommand extends Command
     {
         if (! $this->option('confirm-offline')) {
             $this->error('Stop all old and new web, worker and scheduler processes, then pass --confirm-offline.');
+
             return self::FAILURE;
         }
 
@@ -26,12 +27,14 @@ final class PruneLegacyExportLocksCommand extends Command
         $limit = filter_var($this->option('limit'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 500]]);
         if (! is_string($org) || ! Str::isUlid($org) || $limit === false || config('filesystems.disks.local.driver') !== 'local') {
             $this->error('Invalid organization, limit, or export disk.');
+
             return self::FAILURE;
         }
 
         $root = Storage::disk('local')->path('data-exports');
         if (is_link($root) || ! is_dir($root) || ($realRoot = realpath($root)) === false) {
             $this->error('Private export root is unavailable or unsafe.');
+
             return self::FAILURE;
         }
         $public = realpath(public_path());
@@ -40,6 +43,7 @@ final class PruneLegacyExportLocksCommand extends Command
             $normalizedPublic = rtrim(strtolower(str_replace('\\', '/', $public)), '/');
             if ($normalizedRoot === $normalizedPublic || str_starts_with($normalizedRoot, $normalizedPublic.'/')) {
                 $this->error('Export root must not be public.');
+
                 return self::FAILURE;
             }
         }
@@ -50,6 +54,7 @@ final class PruneLegacyExportLocksCommand extends Command
         if (is_link($directory) || ! is_dir($directory) || $realDirectory === false
             || $normalize($realDirectory) !== $normalize($directory)) {
             $this->error('Organization export directory is unavailable or unsafe.');
+
             return self::FAILURE;
         }
 
@@ -58,6 +63,7 @@ final class PruneLegacyExportLocksCommand extends Command
         $cursor = ExportFileLock::acquire($directory.DIRECTORY_SEPARATOR.'.legacy-offline-cursor', LOCK_EX | LOCK_NB);
         if ($cursor === false) {
             $this->error('Another offline cleanup is running or the cursor is unsafe.');
+
             return self::FAILURE;
         }
         try {
@@ -75,7 +81,7 @@ final class PruneLegacyExportLocksCommand extends Command
             $scanLimit = max(512, $limit * 128);
             while ($files->valid() && $removed < $limit && $scanned < $scanLimit) {
                 $file = $files->current();
-                ++$scanned;
+                $scanned++;
                 $name = $file->getFilename();
                 if (! $file->isLink() && $file->isFile()
                     && preg_match('/^([0-9A-HJKMNP-TV-Z]{26})\.lock$/D', $name, $matches)
@@ -85,9 +91,10 @@ final class PruneLegacyExportLocksCommand extends Command
                     if (! is_link($path) && is_file($path) && filesize($path) === 0) {
                         if (! @unlink($path)) {
                             $this->error('Unable to remove a legacy lock file; retry after correcting permissions.');
+
                             return self::FAILURE;
                         }
-                        ++$removed;
+                        $removed++;
                     }
                 }
                 $files->next();
@@ -97,9 +104,11 @@ final class PruneLegacyExportLocksCommand extends Command
             $value = (string) $next;
             if (! ftruncate($cursor, 0) || fwrite($cursor, $value) !== strlen($value) || ! fflush($cursor)) {
                 $this->error('Unable to save offline cleanup cursor.');
+
                 return self::FAILURE;
             }
             $this->info("Legacy lock files removed: {$removed}. Next cursor: {$next}.");
+
             return self::SUCCESS;
         } finally {
             fclose($cursor);

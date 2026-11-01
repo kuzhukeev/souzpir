@@ -1,15 +1,19 @@
 <?php
 
 declare(strict_types=1);
+use App\Tenancy\Cabinet;
+use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 // This helper reports counts only, and refuses to connect outside the dedicated fixture.
 require __DIR__.'/../../../vendor/autoload.php';
 $app = require __DIR__.'/../../../bootstrap/app.php';
-$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+$app->make(Kernel::class)->bootstrap();
 
 $base = realpath($app->basePath());
 $expectedBase = realpath(__DIR__.'/../../..');
-$connection = Illuminate\Support\Facades\DB::connection();
+$connection = DB::connection();
 if ($base === false || $expectedBase === false || $base !== $expectedBase
     || basename($base) !== 'sp-e1-12' || basename(dirname($base)) !== '.worktrees'
     || ! is_file($base.DIRECTORY_SEPARATOR.'.git')
@@ -22,18 +26,18 @@ if ($base === false || $expectedBase === false || $base !== $expectedBase
     || $connection->getDatabaseName() !== config('runtime.test_database')
     || $connection->getDatabaseName() === config('runtime.preview_database')
     || getenv('E112_FIXTURE_ORG') !== '01J00000000000000000000112'
-    || app(App\Tenancy\Cabinet::class)->organizationId() !== '01J00000000000000000000112') {
+    || app(Cabinet::class)->organizationId() !== '01J00000000000000000000112') {
     fwrite(STDERR, "Refusing to inspect a non-fixture environment.\n");
     exit(1);
 }
 
 [$script, $submissionKey, $ticketId] = $argv + [null, '', ''];
-if (! Illuminate\Support\Str::isUlid($submissionKey) || ! Illuminate\Support\Str::isUlid($ticketId)) {
+if (! Str::isUlid($submissionKey) || ! Str::isUlid($ticketId)) {
     fwrite(STDERR, "Invalid synthetic ticket identity.\n");
     exit(1);
 }
 
-$query = Illuminate\Support\Facades\DB::table('tickets')
+$query = DB::table('tickets')
     ->where('organization_id', '01J00000000000000000000112')
     ->where('submission_key', $submissionKey);
 $records = $query->get(['id', 'delivery_status']);

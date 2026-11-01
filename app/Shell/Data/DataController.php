@@ -13,15 +13,16 @@ use App\Shell\Data\Contracts\ExportRecord;
 use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\AuthenticationException;
+use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use LogicException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use ZipArchive;
 
 final class DataController
@@ -31,13 +32,16 @@ final class DataController
     {
         $items = [];
         foreach (app(FeatureRegistry::class)->extensions() as $key => $class) {
-            if (! in_array($key, ['export.seller', 'export.vision'], true)) continue;
+            if (! in_array($key, ['export.seller', 'export.vision'], true)) {
+                continue;
+            }
             $contributor = app($class);
             if (! $contributor instanceof ExportContributor || $key !== 'export.'.$contributor->module() || isset($items[$contributor->module()])) {
                 throw new LogicException('Invalid export contributor registration.');
             }
             $items[$contributor->module()] = $contributor;
         }
+
         return $items;
     }
 
@@ -58,7 +62,10 @@ final class DataController
         $consentDate = is_array($consentAfter) && array_key_exists('marketing_opt_in', $consentAfter) && $consentAfter['marketing_opt_in'] === (bool) $request->user()->marketing_opt_in ? $lastConsent->created_at : null;
         $rows = DB::table('data_exports')->where('organization_id', $ctx->organizationId)
             ->where('brand_id', $ctx->brandId)->where('user_id', $ctx->actorId)->orderByDesc('created_at')->limit(100)->get();
-        if (! $canExport) $rows = collect();
+        if (! $canExport) {
+            $rows = collect();
+        }
+
         return Inertia::render('Shell/Data/Index', [
             'consents' => [
                 'terms_accepted_at' => $request->user()->terms_accepted_at?->toIso8601String(),
@@ -91,6 +98,7 @@ final class DataController
                 app(AuditWriter::class)->record($ctx, new AuditEntry('data.marketing_consent.changed', 'user', $user->id, ['marketing_opt_in' => $before], ['marketing_opt_in' => $after]));
             }
         });
+
         return redirect()->route('data.index');
     }
 
@@ -106,7 +114,9 @@ final class DataController
         ]);
         $from = CarbonImmutable::createFromFormat('!Y-m-d', $data['from'], 'Europe/Moscow')->utc();
         $until = CarbonImmutable::createFromFormat('!Y-m-d', $data['to'], 'Europe/Moscow')->addDay()->utc();
-        if ($from->diffInDays($until) > 365) throw ValidationException::withMessages(['to' => 'Период не может превышать 365 дней.']);
+        if ($from->diffInDays($until) > 365) {
+            throw ValidationException::withMessages(['to' => 'Период не может превышать 365 дней.']);
+        }
         $disk = $this->privateDisk();
         $id = (string) Str::ulid();
         $dir = 'data-exports/'.$ctx->requireOrganizationId();
@@ -123,7 +133,9 @@ final class DataController
         $final = $dataDir.'/'.$id.'.zip';
         // The per-export sentinel is shared with cleanup, including during publication.
         $fileLock = ExportFileLock::acquireForExport($disk->path($dir), $id, LOCK_SH);
-        if ($fileLock === false) abort(503);
+        if ($fileLock === false) {
+            abort(503);
+        }
         $file = fopen($jsonPath, 'xb');
         if ($file === false) {
             fclose($fileLock);
@@ -132,23 +144,35 @@ final class DataController
         try {
             $this->active($request, $ctx, static fn () => null);
             foreach ($contributors[$data['module']]->stream($ctx, new ExportQuery($from, $until)) as $record) {
-                if (! $record instanceof ExportRecord) throw new LogicException('Invalid export record.');
+                if (! $record instanceof ExportRecord) {
+                    throw new LogicException('Invalid export record.');
+                }
                 $line = json_encode(['type' => $record->type, 'data' => $record->data], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR)."\n";
                 $this->active($request, $ctx, static function () use ($file, $line): void {
-                    if (fwrite($file, $line) !== strlen($line)) throw new \RuntimeException('Export write failed.');
+                    if (fwrite($file, $line) !== strlen($line)) {
+                        throw new \RuntimeException('Export write failed.');
+                    }
                 });
             }
-            if (! fclose($file)) throw new \RuntimeException('Export write failed.');
+            if (! fclose($file)) {
+                throw new \RuntimeException('Export write failed.');
+            }
             $file = null;
-            if (! class_exists(ZipArchive::class)) abort(503, 'Архивация временно недоступна.');
+            if (! class_exists(ZipArchive::class)) {
+                abort(503, 'Архивация временно недоступна.');
+            }
             $zip = new ZipArchive;
             if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::EXCL) !== true || ! $zip->addFile($jsonPath, 'records.jsonl') || ! $zip->close()) {
                 throw new \RuntimeException('Export archive failed.');
             }
             $checksum = hash_file('sha256', $zipPath);
-            if (! is_string($checksum)) throw new \RuntimeException('Export checksum failed.');
+            if (! is_string($checksum)) {
+                throw new \RuntimeException('Export checksum failed.');
+            }
             $this->active($request, $ctx, function () use ($ctx, $data, $disk, $zipPath, $final, $id, $checksum): void {
-                if (! rename($zipPath, $disk->path($final))) throw new \RuntimeException('Export storage failed.');
+                if (! rename($zipPath, $disk->path($final))) {
+                    throw new \RuntimeException('Export storage failed.');
+                }
                 DB::table('data_exports')->insert([
                     'id' => $id, 'organization_id' => $ctx->organizationId, 'brand_id' => $ctx->brandId,
                     'user_id' => $ctx->actorId, 'module' => $data['module'], 'period_from' => $data['from'],
@@ -159,7 +183,9 @@ final class DataController
             });
             @unlink($jsonPath);
         } catch (\Throwable $error) {
-            if (is_resource($file)) fclose($file);
+            if (is_resource($file)) {
+                fclose($file);
+            }
             @unlink($jsonPath);
             @unlink($zipPath);
             // A commit error can be reported after the database has committed.
@@ -172,6 +198,7 @@ final class DataController
             // Release after success or all rollback cleanup; the empty sentinel stays.
             fclose($fileLock);
         }
+
         return redirect()->route('data.index');
     }
 
@@ -183,29 +210,39 @@ final class DataController
         $row = $this->active($request, $ctx, function () use ($ctx, $id, $disk) {
             $row = $this->exportRow($ctx, $id);
             $this->validateArchivePath($disk, $ctx->organizationId, $id, $row->path);
+
             return $row;
         });
         $fileLock = ExportFileLock::acquireForExport($disk->path('data-exports/'.$ctx->organizationId), $id, LOCK_SH);
-        if ($fileLock === false) abort(503);
+        if ($fileLock === false) {
+            abort(503);
+        }
         $file = false;
         try {
             // Keep a single opened descriptor throughout validation and transfer.
             // Cleanup must take the same sentinel exclusively before deleting.
             $this->validateArchivePath($disk, $ctx->organizationId, $id, $row->path);
             $file = @fopen($disk->path($row->path), 'rb');
-            if ($file === false) abort(404);
+            if ($file === false) {
+                abort(404);
+            }
             $hash = hash_init('sha256');
-            if (hash_update_stream($hash, $file) === false || ! rewind($file)) abort(503);
+            if (hash_update_stream($hash, $file) === false || ! rewind($file)) {
+                abort(503);
+            }
             $actual = hash_final($hash);
             $row = $this->active($request, $ctx, function () use ($ctx, $id, $row, $actual) {
                 $fresh = $this->exportRow($ctx, $id);
                 abort_unless($fresh->path === $row->path && hash_equals($fresh->sha256, $actual), 409);
                 // This records authorization of a request, not successful delivery.
                 app(AuditWriter::class)->record($ctx, new AuditEntry('data.export.download_requested', 'data_export', $id));
+
                 return $fresh;
             });
         } catch (\Throwable $error) {
-            if (is_resource($file)) fclose($file);
+            if (is_resource($file)) {
+                fclose($file);
+            }
             fclose($fileLock);
             throw $error;
         }
@@ -217,18 +254,25 @@ final class DataController
                         $chunk = $this->active($request, $ctx, function () use ($ctx, $id, $file): string {
                             $this->exportRow($ctx, $id);
                             $chunk = fread($file, 65536);
-                            if ($chunk === false) throw new \RuntimeException('Export read failed.');
+                            if ($chunk === false) {
+                                throw new \RuntimeException('Export read failed.');
+                            }
+
                             return $chunk;
                         });
-                        if ($chunk === '') break;
+                        if ($chunk === '') {
+                            break;
+                        }
                         // The transaction and its shared tenant/session locks are
                         // already released before potentially blocking network I/O.
                         // One authorized chunk (at most 64 KiB) may be in flight
                         // when logout commits; every following chunk is rechecked.
                         echo $chunk;
-                        if (ob_get_level() > 0) ob_flush();
+                        if (ob_get_level() > 0) {
+                            ob_flush();
+                        }
                         flush();
-                    } catch (AuthenticationException | \Symfony\Component\HttpKernel\Exception\HttpException $error) {
+                    } catch (AuthenticationException|HttpException $error) {
                         break;
                     }
                 }
@@ -239,7 +283,7 @@ final class DataController
         }, 'data-export-'.$id.'.zip', ['Content-Type' => 'application/zip', 'Cache-Control' => 'private, no-store', 'X-Content-Type-Options' => 'nosniff']);
     }
 
-    private function privateDisk(): \Illuminate\Contracts\Filesystem\Filesystem
+    private function privateDisk(): Filesystem
     {
         abort_unless(config('filesystems.disks.local.driver') === 'local', 503);
         $disk = Storage::disk('local');
@@ -253,18 +297,21 @@ final class DataController
             $public = rtrim(strtolower(str_replace('\\', '/', $public)), '/');
             abort_if($root === $public || str_starts_with($root, $public.'/'), 503);
         }
+
         return $disk;
     }
 
     /** Accept only an archive in this tenant's current or pre-migration layout. */
-    private function validateArchivePath(\Illuminate\Contracts\Filesystem\Filesystem $disk, string $organizationId, string $id, string $path): void
+    private function validateArchivePath(Filesystem $disk, string $organizationId, string $id, string $path): void
     {
         $directory = 'data-exports/'.$organizationId;
         $legacy = $directory.'/'.$id.'.zip';
         $current = $directory.'/files/'.$id.'.zip';
         abort_unless(in_array($path, [$legacy, $current], true), 404);
         abort_if(is_link($disk->path($directory)), 404);
-        if ($path === $current) abort_if(is_link($disk->path($directory.'/files')), 404);
+        if ($path === $current) {
+            abort_if(is_link($disk->path($directory.'/files')), 404);
+        }
         abort_if(is_link($disk->path($path)), 404);
         abort_unless($disk->exists($path), 404);
     }
@@ -280,6 +327,7 @@ final class DataController
     {
         return app(AuthSessionRegistry::class)->withinActive($request, function () use ($ctx, $action, $ownerOnly) {
             $this->lockAccess($ctx, $ownerOnly);
+
             return $action();
         });
     }
