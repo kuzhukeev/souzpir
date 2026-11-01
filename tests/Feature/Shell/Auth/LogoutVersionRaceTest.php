@@ -5,7 +5,6 @@ namespace Tests\Feature\Shell\Auth;
 use App\Models\User;
 use App\Shell\Auth\AuthSessionRegistry;
 use Illuminate\Auth\AuthenticationException;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Http\Request;
 use Illuminate\Session\ArraySessionHandler;
 use Illuminate\Session\Store;
@@ -13,11 +12,12 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Support\IsolatedAuthDatabase;
+use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\TestCase;
 
 final class LogoutVersionRaceTest extends TestCase
 {
-    use DatabaseMigrations;
+    use IsolatedDatabaseMigrations;
 
     protected function beforeRefreshingDatabase(): void
     {

@@ -8,17 +8,17 @@ use App\Shell\Auth\InvitationExchangeGrants;
 use App\Shell\Team\Models\Invitation;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Http\Request;
 use Illuminate\Session\ArraySessionHandler;
 use Illuminate\Session\Store;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\Process\Process;
+use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\TestCase;
 
 final class InvitationExchangeConcurrencyTest extends TestCase
 {
-    use DatabaseMigrations;
+    use IsolatedDatabaseMigrations;
 
     public function test_late_request_from_old_document_cannot_replace_new_document_grant(): void
     {

@@ -8,14 +8,14 @@ use App\Models\User;
 use App\Shell\Auth\Totp;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Str;
 use Tests\Support\IsolatedAuthDatabase;
+use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\TestCase;
 
 final class FileSessionRaceTest extends TestCase
 {
-    use DatabaseMigrations;
+    use IsolatedDatabaseMigrations;
 
     protected function beforeRefreshingDatabase(): void
     {
