@@ -93,6 +93,12 @@ jobs:
     if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    env:
+      BROWSER_SHARD: '${{ matrix.shard }}/3'
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
