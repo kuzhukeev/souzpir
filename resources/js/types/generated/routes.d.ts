@@ -294,6 +294,13 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "integrations.webhook-settings.store": [],
+    "integrations.webhook-settings.test": [
+        {
+            "name": "webhook",
+            "required": true
+        }
+    ],
     "data.index": [],
     "data.consents": [],
     "data.exports.create": [],

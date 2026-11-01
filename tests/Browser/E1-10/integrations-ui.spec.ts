@@ -18,7 +18,7 @@ test('статус чтения бренда отделён от недосту�
   await page.goto(`${url}?screen=api&brand-api-available=1`);
   await expect(page.getByText(/Маршрут чтения текущего бренда настроен/)).toBeVisible();
   await expect(page.getByText('Запросы API для работы с диалогами и лидами пока недоступны.')).toBeVisible();
-  await expect(page.getByText(/Настройка и отправка вебхуков временно недоступны/)).toBeVisible();
+  await expect(page.getByText(/Реальная доставка вебхуков выключена/)).toBeVisible();
   await readable(page);
   await page.screenshot({ path: '.local/screenshots/e1-10/api-brand-read-configured-390.png', fullPage: true });
   await page.goto(`${url}?screen=api`);
@@ -69,13 +69,13 @@ for (const width of [1440, 1024, 390])
         if (screen === 'api') {
           await expect(page.getByText('Доставлено (200)')).toBeVisible();
           await expect(page.getByText(/Тестовая отправка/)).toBeVisible();
-          await expect(page.getByRole('button', { name: 'Отправить тест' })).toBeDisabled();
+          await expect(page.getByRole('button', { name: 'Проверить без отправки' })).toBeEnabled();
         }
         if (screen === 'api') {
           await expect(page.getByText('Запросы API для работы с диалогами и лидами пока недоступны.')).toBeVisible();
           await expect(page.getByText('Адрес скрыт', { exact: true })).toBeVisible();
-          await expect(page.getByRole('button', { name: 'Добавить вебхук' })).toHaveCount(0);
-          await expect(page.getByRole('button', { name: 'Отправить тест' })).toBeDisabled();
+          await expect(page.getByRole('button', { name: 'Добавить вебхук' })).toBeEnabled();
+          await expect(page.getByRole('button', { name: 'Проверить без отправки' })).toBeEnabled();
         }
         if (screen === 'notifications') {
           await expect(
