@@ -9,6 +9,7 @@ use App\Contracts\Ai\AiGateway;
 use App\Contracts\Ai\AiRequest;
 use App\Models\Membership;
 use App\Models\User;
+use App\ProtectedOperations\FirstTurnProtectedClaim;
 use App\ProtectedOperations\SellerTurnFence;
 use App\Seller\Conversations\Data\TurnClaim;
 use App\Seller\Engine\Extractor;
@@ -119,6 +120,10 @@ final class SellerExtractorStages
 
     private function authorized(#[SensitiveParameter] Request $http, #[SensitiveParameter] TurnClaim $claim, #[SensitiveParameter] \Closure $action): mixed
     {
+        if (config('runtime.ai_driver', 'fake') !== 'fake') {
+            throw new LogicException('Protected extractor stage rejected.');
+        }
+
         return app(AuthSessionRegistry::class)->withinActive($http, function (User $user) use ($http, $claim, $action): mixed {
             $tenant = app(TenantContext::class);
             $selection = app(SessionBrandSelection::class)->current($http);
@@ -127,6 +132,9 @@ final class SellerExtractorStages
                 || $claim->organizationId !== $tenant->organizationId || $claim->brandId !== $tenant->brandId) {
                 throw new LogicException;
             }
+            // An ordinary public TurnClaim is not a protected first-turn origin.
+            // Recheck it for preparation, reservation, binding and result reads.
+            app(FirstTurnProtectedClaim::class)->assertProtectedLocked($http, $claim);
             app(SellerTurnFence::class)->assertCurrent($tenant, $claim);
             $member = Membership::withoutGlobalScopes()->whereKey($tenant->membershipId)->where('organization_id', $tenant->organizationId)
                 ->where('user_id', $user->id)->where('status', 'active')->lockForUpdate()->first();

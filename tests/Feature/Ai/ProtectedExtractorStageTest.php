@@ -11,6 +11,7 @@ use App\Models\Brand;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\User;
+use App\ProtectedOperations\FirstTurnProtectedClaim;
 use App\Seller\Conversations\Contracts\ConversationRepository;
 use App\Seller\Conversations\Data\TurnClaim;
 use App\Seller\Conversations\Data\TurnCommand;
@@ -174,7 +175,97 @@ final class ProtectedExtractorStageTest extends TestCase
         });
     }
 
-    public function test_request_history_is_loaded_from_the_current_turn_in_prototype_order(): void
+    public function test_public_and_forged_claims_cannot_prepare_or_dispatch_extractor(): void
+    {
+        [$tenant, $http, $ordinary] = $this->fixture('Public first input', [], true);
+        $this->within($tenant, function () use ($http, $ordinary): void {
+            $forged = new TurnClaim('claimed', $ordinary->turnId, $ordinary->conversationId, $ordinary->organizationId, $ordinary->brandId, 0, str_repeat('a', 64));
+            foreach ([$ordinary, $forged] as $claim) {
+                try {
+                    app(SellerExtractorStages::class)->prepare($http, $claim);
+                    self::fail('An unprotected claim prepared the extractor.');
+                } catch (LogicException $error) {
+                    self::assertSame('Protected extractor stage rejected.', $error->getMessage());
+                    self::assertNull($error->getPrevious());
+                    $trace = json_encode($error->getTrace(), JSON_PARTIAL_OUTPUT_ON_ERROR | JSON_THROW_ON_ERROR);
+                    self::assertStringNotContainsString($claim->token(), $trace);
+                    self::assertStringNotContainsString($http->session()->getId(), $trace);
+                }
+                try {
+                    app(Gateway::class)->completeProtectedExtractor($http, $claim, (string) Str::ulid());
+                    self::fail('An unprotected claim dispatched the extractor.');
+                } catch (LogicException) {
+                    self::assertTrue(true);
+                }
+            }
+            self::assertSame(0, DB::table('c02_extractor_stages')->count());
+            self::assertSame(0, DB::table('ai_calls')->count());
+            self::assertSame(0, DB::table('ai_budgets')->count());
+        });
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
+    }
+
+    public function test_non_fake_driver_cannot_prepare_first_extractor_stage(): void
+    {
+        [$tenant, $http, $claim] = $this->fixture();
+        $this->within($tenant, function () use ($http, $claim): void {
+            config(['runtime.ai_driver' => 'openrouter']);
+            try {
+                app(SellerExtractorStages::class)->prepare($http, $claim);
+                self::fail('The protected extractor stage was prepared for a live driver.');
+            } catch (LogicException) {
+                self::assertTrue(true);
+            } finally {
+                config(['runtime.ai_driver' => 'fake']);
+            }
+            self::assertSame(0, DB::table('c02_extractor_stages')->count());
+            self::assertSame(0, DB::table('ai_calls')->count());
+        });
+        Http::assertNothingSent();
+    }
+
+    public function test_revoked_brand_or_session_and_stale_input_cannot_prepare_first_stage(): void
+    {
+        [$tenant, $http, $claim] = $this->fixture();
+        $this->within($tenant, function () use ($tenant, $http, $claim): void {
+            DB::table('brands')->where('id', $tenant->brandId)->update(['status' => 'archived']);
+            try {
+                app(SellerExtractorStages::class)->prepare($http, $claim);
+                self::fail('An archived brand prepared an extractor stage.');
+            } catch (LogicException) {
+                self::assertTrue(true);
+            }
+            DB::table('brands')->where('id', $tenant->brandId)->update(['status' => 'active']);
+            Message::create(['conversation_id' => $claim->conversationId, 'role' => 'client', 'text' => 'Later synthetic input', 'meta' => []]);
+            try {
+                app(SellerExtractorStages::class)->prepare($http, $claim);
+                self::fail('A stale claim prepared an extractor stage.');
+            } catch (LogicException) {
+                self::assertTrue(true);
+            }
+            self::assertSame('uncertain', DB::table('seller_turns')->where('id', $claim->turnId)->value('status'));
+        });
+        [$otherTenant, $otherHttp, $otherClaim] = $this->fixture('Other input');
+        $this->within($otherTenant, function () use ($otherHttp, $otherClaim): void {
+            app(AuthSessionRegistry::class)->withinActive($otherHttp, fn () => app(AuthSessionRegistry::class)->revokeCurrent($otherHttp));
+            try {
+                app(SellerExtractorStages::class)->prepare($otherHttp, $otherClaim);
+                self::fail('A revoked session prepared an extractor stage.');
+            } catch (LogicException) {
+                self::assertTrue(true);
+            }
+        });
+        self::assertSame(0, DB::table('c02_extractor_stages')->count());
+        self::assertSame(0, DB::table('ai_calls')->count());
+        self::assertSame(0, DB::table('ai_budgets')->count());
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
+    }
+
+    public function test_historical_public_turn_cannot_start_the_first_turn_extractor(): void
     {
         $history = [];
         for ($i = 0; $i < 8; $i++) {
@@ -182,14 +273,14 @@ final class ProtectedExtractorStageTest extends TestCase
         }
         [$tenant, $http, $claim] = $this->fixture('Final synthetic input', $history);
         $this->within($tenant, function () use ($http, $claim): void {
-            $stage = app(SellerExtractorStages::class)->prepare($http, $claim);
-            [$request] = app(SellerExtractorStages::class)->load($http, $claim, $stage);
-            self::assertCount(8, $request->messages);
-            self::assertSame('Synthetic history 2', $request->messages[1]['content']);
-            self::assertSame('user', $request->messages[1]['role']);
-            self::assertSame('Synthetic history 7', $request->messages[6]['content']);
-            self::assertSame('assistant', $request->messages[6]['role']);
-            self::assertStringContainsString('Final synthetic input', $request->messages[7]['content']);
+            try {
+                app(SellerExtractorStages::class)->prepare($http, $claim);
+                self::fail('A historical public claim entered the first-turn extractor.');
+            } catch (LogicException) {
+                self::assertTrue(true);
+            }
+            self::assertSame(0, DB::table('c02_extractor_stages')->count());
+            self::assertSame(9, DB::table('messages')->where('conversation_id', $claim->conversationId)->count());
             self::assertSame(0, DB::table('ai_calls')->count());
             Http::assertNothingSent();
         });
@@ -597,7 +688,7 @@ SQL);
         });
     }
 
-    private function fixture(string $text = 'Synthetic question', array $history = []): array
+    private function fixture(string $text = 'Synthetic question', array $history = [], bool $ordinary = false): array
     {
         app(PromptSetsSeeder::class)->run();
         $user = User::create(['name' => 'Synthetic', 'email' => 'c02-'.Str::lower(Str::random(12)).'@example.test', 'password' => 'synthetic-test-password']);
@@ -628,7 +719,10 @@ SQL);
 
             return [$conversation, $input];
         });
-        $claim = app(ConversationRepository::class)->claimTurn($tenant, new TurnCommand($conversation->id, $input->id, $input->text, null, 'extractor-stage-'.Str::random(16), 0));
+        $command = new TurnCommand($conversation->id, $input->id, $input->text, null, 'extractor-stage-'.Str::random(16), 0);
+        $claim = $history === [] && ! $ordinary
+            ? $this->within($tenant, fn () => app(FirstTurnProtectedClaim::class)->claim($http, $command))
+            : app(ConversationRepository::class)->claimTurn($tenant, $command);
 
         return [$tenant, $http, $claim];
     }

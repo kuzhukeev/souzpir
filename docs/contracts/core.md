@@ -85,7 +85,9 @@ AiRequest: OpenAI-shaped `messages`, `model`, `temperature`, `responseFormat?`, 
 поведения; они принимают публичные значения и не доказывают их происхождение, не
 авторизуют Gateway или действие. Для проверенного серверного пути SP-C-02
 использует отдельную fake-only extractor-стадию, описанную в
-`docs/contracts/protected-operations.md`; это ещё не готовый финализатор Seller.
+`docs/contracts/protected-operations.md`: она требует защищённое происхождение
+нового первого claim и не поддерживает исторические или последующие ходы. Это
+ещё не подключённый runtime Seller.
 
 SP-C-02 добавляет отдельный внутренний fake-only путь стадии summary: созданная
 сервером запись закрепляет текущие историю, turn, сессию и фактический запрос;
@@ -113,7 +115,7 @@ UsageQuery: `{from,to,metrics:list<string>}`. UsageSnapshot: `{as_of, metrics:{m
 
 `TurnCommand` содержит `{conversationId,inputMessageId,text,externalEventId,idempotencyKey,expectedVersion?}`; tenant берётся отдельно. Вход сохраняется один раз. Уникальность внешнего события `(channel_account_id, external_id)`; API `(brand_id, endpoint, idempotency_key)` + SHA-256 нормализованного body. Равный key/body возвращает прежний результат или состояние in_progress; другой body → 409. Хранить status/outcome, не только cache lock.
 
-Claim/finalize — короткие DB transactions; LLM/HTTP выполняются вне блокировки SQL. Только один активный turn на conversation. Commit проверяет token/version и atomically сохраняет state/messages/tasks/outbox. Повтор worker не выполняет tool side effect или outgoing delivery заново. При устаревшем claim ничего не доставлять. Нельзя полагаться только на Redis lock с TTL как доказательство exactly-once.
+Целевой runtime должен выполнять claim/finalize в коротких DB transactions, а LLM/HTTP — вне SQL-блокировок. Только один активный turn на conversation. Защищённая финализация должна проверять token/version и атомарно сохранять применимые state/messages/tasks/outbox; текущий `commitTurn` не является таким путём для новых результатов. Повтор worker не выполняет tool side effect или outgoing delivery заново. При устаревшем claim ничего не доставлять. Нельзя полагаться только на Redis lock с TTL как доказательство exactly-once.
 
 TurnOutcome: `{turnId,conversationId,status:completed|suggested|suppressed|failed,version,assistantMessageId?,goal,guard,toolCalls}`. Goal/Guard сохраняют original meta. Suggest пишет предложение без Delivery; manager и paused не вызывают LLM/delivery, но сохраняют вход и применимый attention/task. DeliveryCommand содержит persisted message ID; Receipt `{status:delivered|retryable_failure|permanent_failure,externalId?,errorCode?}`. External provider может не поддерживать идемпотентность: after-send crash помечать uncertain и reconciliation, не обещать математическое exactly-once.
 
