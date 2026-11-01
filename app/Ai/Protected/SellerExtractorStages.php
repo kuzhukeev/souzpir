@@ -9,6 +9,7 @@ use App\Contracts\Ai\AiGateway;
 use App\Contracts\Ai\AiRequest;
 use App\Models\Membership;
 use App\Models\User;
+use App\ProtectedOperations\ExtractorEffectReservations;
 use App\ProtectedOperations\FirstTurnProtectedClaim;
 use App\ProtectedOperations\SellerTurnFence;
 use App\Seller\Conversations\Data\TurnClaim;
@@ -39,6 +40,7 @@ final class SellerExtractorStages
                 $existing = DB::table('c02_extractor_stages')->where('turn_id', $claim->turnId)->lockForUpdate()->first();
                 if ($existing) {
                     $this->verify($existing, $http, $claim, $tenant, $user, $selection);
+                    app(ExtractorEffectReservations::class)->assertBoundIfPresentLocked($existing);
 
                     return $existing->id;
                 }
@@ -72,6 +74,7 @@ final class SellerExtractorStages
                     throw new LogicException;
                 }
                 [$request, $state, $message, $engine] = $this->verify($row, $http, $claim, $tenant, $user, $selection);
+                app(ExtractorEffectReservations::class)->assertBoundIfPresentLocked($row);
                 $context = new AiContext($tenant->organizationId, $tenant->brandId, 'extractor', 'seller', 'conversation',
                     $claim->conversationId, 'c02-extractor-'.$row->id, ['conversation_content', 'client_profile', 'knowledge_internal']);
 
@@ -115,7 +118,11 @@ final class SellerExtractorStages
 
             return;
         }
-        DB::table('c02_extractor_stages')->where('id', $stageId)->whereNull('ai_call_id')->update(['ai_call_id' => $call->id, 'gateway_request_hash' => $requestHash]);
+        $bound = DB::table('c02_extractor_stages')->where('id', $stageId)->whereNull('ai_call_id')->update(['ai_call_id' => $call->id, 'gateway_request_hash' => $requestHash]);
+        if ($bound !== 1) {
+            throw new LogicException('Protected extractor stage rejected.');
+        }
+        app(ExtractorEffectReservations::class)->recordNewLocked($http, $claim, $stageId, $call->id, $requestHash);
     }
 
     private function authorized(#[SensitiveParameter] Request $http, #[SensitiveParameter] TurnClaim $claim, #[SensitiveParameter] \Closure $action): mixed
