@@ -203,6 +203,9 @@ test('ошибка чтения не показывает старые данн�
   await expect(page.getByRole('alert')).toContainText('Не удалось загрузить замеры');
   await expect(page.getByText(alpha)).toHaveCount(0);
   await page.unroute(path);
-  await page.getByRole('button', { name: 'Повторить' }).click();
+  await page.getByRole('button', { name: 'Повторить' }).focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('heading', { name: 'История замеров' })).toBeFocused();
   await expect(page.getByText(alpha).first()).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'История замеров' })).toBeFocused();
 });

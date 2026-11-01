@@ -142,6 +142,30 @@ it('не перехватывает фокус при смене бренда и
   expect(document.activeElement).toBe(outside);
 });
 
+it('сохраняет фокус в истории при клавиатурном повторе после ошибки', async () => {
+  const retry = pending<ReturnType<typeof response>>();
+  let requests = 0;
+  vi.stubGlobal(
+    'fetch',
+    vi.fn((url: string) => {
+      if (url.startsWith('/vision/runs/data')) {
+        requests++;
+        return requests === 1 ? Promise.reject(new Error('synthetic failure')) : retry.promise;
+      }
+      return Promise.resolve(response({ revision: firstRevision }));
+    }),
+  );
+  render(<Index measurementBrandRevision={firstRevision} />);
+  await screen.findByRole('alert');
+  screen.getByRole('button', { name: 'Повторить' }).focus();
+  await userEvent.keyboard('{Enter}');
+  expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'История замеров' }));
+  expect(screen.getByRole('status').textContent).toContain('Загружаем замеры');
+  await act(async () => retry.resolve(response(listing(firstRevision, 1, '2026-10-10T12:30:00Z'))));
+  await screen.findAllByText(firstDate);
+  expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'История замеров' }));
+});
+
 it('при смене бренда сразу показывает загрузку и не раскрывает прежние строки', async () => {
   const nextBrand = pending<ReturnType<typeof response>>();
   const fetchMock = vi.fn((url: string, init?: RequestInit) => {

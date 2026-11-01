@@ -200,6 +200,7 @@ export default function Index({ measurementBrandRevision }: { measurementBrandRe
                 type="button"
                 className={`${button} mt-3`}
                 onClick={() => {
+                  headingRef.current?.focus();
                   setState({ key: requestKey, data: null, error: '', loading: true });
                   setAttempt((value) => value + 1);
                 }}
