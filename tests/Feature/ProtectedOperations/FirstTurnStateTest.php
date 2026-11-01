@@ -3283,6 +3283,126 @@ SQL);
         return ['revocation first' => [true], 'finalization first' => [false]];
     }
 
+    public static function finalizationPlanOrders(): array
+    {
+        return [
+            'existing limit revoked first' => [true, false],
+            'existing limit finalized first' => [false, false],
+            'new limit inserted first' => [true, true],
+            'new limit after finalization' => [false, true],
+        ];
+    }
+
+    #[DataProvider('finalizationPlanOrders')]
+    public function test_first_text_and_plan_restriction_serialize_in_both_orders(bool $restrictionFirst, bool $insertLimit): void
+    {
+        [$tenant, $http, $claim, $extractor] = $this->fixture('Synthetic question', ['protected_claim' => true]);
+        [$stage, , , $file] = $this->responderFixture($tenant, $http, $claim, $extractor, ['content' => 'Можем обсудить заказ?']);
+        $this->within($tenant, fn () => app(Gateway::class)->completeProtectedResponder($http, $claim, $stage));
+        unlink($file);
+        $plan = (string) Str::ulid();
+        DB::table('plans')->insert(['id' => $plan, 'code' => 'c02-finalize-'.Str::lower(Str::random(12)), 'name' => 'Synthetic']);
+        DB::table('organization_plan')->insert(['id' => (string) Str::ulid(), 'organization_id' => $tenant->organizationId,
+            'plan_id' => $plan, 'starts_at' => now()->subHour(), 'ends_at' => now()->addHour()]);
+        if (! $insertLimit) {
+            DB::table('plan_limits')->insert(['id' => (string) Str::ulid(), 'plan_id' => $plan, 'key' => 'modules.seller', 'value' => 1]);
+        }
+        config(['database.connections.c02_plan_finalizer_competitor' => config('database.connections.pgsql')]);
+        $other = DB::connection('c02_plan_finalizer_competitor');
+        $restrict = static function () use ($other, $insertLimit, $plan): void {
+            if ($insertLimit) {
+                $other->table('plan_limits')->insert(['id' => (string) Str::ulid(), 'plan_id' => $plan, 'key' => 'modules.seller', 'value' => 0]);
+            } else {
+                $other->table('plan_limits')->where('plan_id', $plan)->where('key', 'modules.seller')->update(['value' => 0]);
+            }
+        };
+        $marker = base_path('.local/tmp/c02-finalize-plan-'.Str::random(16));
+        $worker = $this->finalizeWorker($tenant, $http, $claim, $stage, $marker);
+        $blocker = null;
+        if (! $restrictionFirst) {
+            DB::unprepared(<<<'SQL'
+CREATE OR REPLACE FUNCTION c02_test_delay_plan_finalize() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.action = 'seller.turn.text_finalized' THEN
+    PERFORM pg_advisory_xact_lock(8620481);
+  END IF;
+  RETURN NEW;
+END;
+$$;
+CREATE TRIGGER c02_test_delay_plan_finalize BEFORE INSERT ON audit_logs FOR EACH ROW EXECUTE FUNCTION c02_test_delay_plan_finalize();
+SQL);
+            config(['database.connections.c02_plan_finalizer_blocker' => config('database.connections.pgsql')]);
+            $blocker = DB::connection('c02_plan_finalizer_blocker');
+            $blocker->beginTransaction();
+            $blocker->select('SELECT pg_advisory_xact_lock(8620481)');
+        }
+        try {
+            if ($restrictionFirst) {
+                $other->beginTransaction();
+                $restrict();
+                $worker->start();
+                $this->waitForFinalizerLock($worker, $marker);
+                $other->commit();
+            } else {
+                $worker->start();
+                $this->waitForFinalizerLock($worker, $marker);
+                $other->beginTransaction();
+                try {
+                    $other->statement("SET LOCAL lock_timeout = '250ms'");
+                    $restrict();
+                    self::fail('A plan restriction crossed the protected finalization.');
+                } catch (QueryException $error) {
+                    self::assertSame('55P03', $error->errorInfo[0]);
+                } finally {
+                    $other->rollBack();
+                }
+                $blocker->rollBack();
+            }
+            $worker->wait();
+            self::assertTrue($worker->isSuccessful(), $worker->getErrorOutput());
+            self::assertSame($restrictionFirst ? 'rejected' : 'completed', json_decode($worker->getOutput(), true, 512, JSON_THROW_ON_ERROR)['status']);
+            self::assertSame($restrictionFirst ? 'processing' : 'completed', DB::table('seller_turns')->where('id', $claim->turnId)->value('status'));
+            self::assertSame($restrictionFirst ? 0 : 1, DB::table('messages')->where('conversation_id', $claim->conversationId)->where('role', 'agent')->count());
+            self::assertSame($restrictionFirst ? 0 : 1, DB::table('protected_operation_receipts')->where('operation', 'seller.first_text_finalize')->count());
+            self::assertSame($restrictionFirst ? 0 : 1, DB::table('audit_logs')->where('action', 'seller.turn.text_finalized')->count());
+            if (! $restrictionFirst) {
+                $restrict();
+                try {
+                    $this->within($tenant, fn () => app(FirstTurnTextFinalizer::class)->finalize($http, $claim, $stage, null, 'parallel-first-text'));
+                    self::fail('A revoked plan could replay the protected result.');
+                } catch (LogicException) {
+                    self::assertTrue(true);
+                }
+            }
+            self::assertSame($restrictionFirst ? 0 : 1, DB::table('messages')->where('conversation_id', $claim->conversationId)->where('role', 'agent')->count());
+            self::assertSame($restrictionFirst ? 0 : 1, DB::table('protected_operation_receipts')->where('operation', 'seller.first_text_finalize')->count());
+            self::assertSame($restrictionFirst ? 0 : 1, DB::table('audit_logs')->where('action', 'seller.turn.text_finalized')->count());
+            self::assertSame(0, DB::table('seller_tasks')->count());
+            self::assertSame(0, DB::table('outbox_events')->count());
+        } finally {
+            if ($other->transactionLevel() > 0) {
+                $other->rollBack();
+            }
+            if ($blocker && $blocker->transactionLevel() > 0) {
+                $blocker->rollBack();
+            }
+            if ($worker->isRunning()) {
+                $worker->stop();
+            }
+            if (is_file($marker)) {
+                unlink($marker);
+            }
+            DB::purge('c02_plan_finalizer_competitor');
+            if ($blocker) {
+                DB::purge('c02_plan_finalizer_blocker');
+                DB::unprepared('DROP TRIGGER IF EXISTS c02_test_delay_plan_finalize ON audit_logs; DROP FUNCTION IF EXISTS c02_test_delay_plan_finalize();');
+            }
+        }
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
+    }
+
     #[DataProvider('finalizationRevocationOrders')]
     public function test_first_text_serializes_with_actual_session_revocation(bool $revokeFirst): void
     {
