@@ -1,5 +1,6 @@
 <?php
 
+use App\Logging\SanitizeRuntimeLog;
 use Monolog\Handler\NullHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\SyslogUdpHandler;
@@ -51,6 +52,13 @@ return [
     */
 
     'channels' => [
+
+        'runtime' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/runtime.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'tap' => [SanitizeRuntimeLog::class],
+        ],
 
         'stack' => [
             'driver' => 'stack',

@@ -16,10 +16,12 @@ use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Contracts\Http\Kernel as HttpKernel;
 use Illuminate\Foundation\Application;
+use Illuminate\Foundation\Bootstrap\LoadConfiguration;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\AuthenticateSession;
+use Symfony\Component\Console\Input\ArgvInput;
 
 $basePath = dirname(__DIR__);
 require_once __DIR__.'/runtime.php';
@@ -43,6 +45,13 @@ $app = Application::configure(basePath: $basePath)
     ->withExceptions(function (Exceptions $exceptions): void {
         //
     })->create();
+
+$app->afterBootstrapping(LoadConfiguration::class, function (Application $app): void {
+    if (PHP_SAPI === 'cli' && basename($_SERVER['argv'][0] ?? '') === 'artisan'
+        && in_array((new ArgvInput)->getFirstArgument(), ['queue:work', 'queue:listen', 'schedule:work', 'schedule:run'], true)) {
+        $app['config']->set('logging.default', 'runtime');
+    }
+});
 
 $app->singleton(ExceptionHandler::class, SupportExceptionHandler::class);
 
