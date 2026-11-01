@@ -74,11 +74,15 @@ final class IngressRateTest extends TestCase
         $this->withServerVariables(['REMOTE_ADDR' => '192.0.2.23', 'HTTP_HOST' => 'spoof.on-forge.com']);
         $this->withHeader('Host', 'spoof.on-forge.com');
         $this->withHeader('Authorization', 'Bearer 123|'.str_repeat('Y', 64));
+        $this->withHeader('X-Forwarded-For', '203.0.113.1')->getJson('https://spoof.on-forge.com/api/v1/brand')->assertForbidden();
+        self::assertSame(['192.0.2.23', '192.0.2.23'], $observed, 'An untrusted forwarded address must not replace the physical peer.');
+        config(['trustedproxy.proxies' => ['192.0.2.23']]);
+        $this->withHeader('X-Forwarded-Proto', 'https');
+        $this->withServerVariables(['REMOTE_ADDR' => '192.0.2.23', 'HTTP_HOST' => 'localhost'])->withHeader('Host', 'localhost');
         for ($i = 1; $i <= 60; $i++) {
-            $this->withHeader('X-Forwarded-For', '203.0.113.'.$i)->getJson('https://spoof.on-forge.com/api/v1/brand')->assertUnauthorized();
+            $this->withHeader('X-Forwarded-For', '203.0.113.'.$i)->getJson('https://localhost/api/v1/brand')->assertUnauthorized();
         }
-        self::assertSame(['203.0.113.1', '192.0.2.23'], $observed, 'Exercise the real proxy-trust spoof, not just a header.');
-        $this->withHeader('X-Forwarded-For', '203.0.113.200')->getJson('https://spoof.on-forge.com/api/v1/brand')->assertStatus(429);
+        $this->withHeader('X-Forwarded-For', '203.0.113.200')->getJson('https://localhost/api/v1/brand')->assertStatus(429);
     }
 
     public function test_ipv6_forms_and_ipv4_mapped_address_use_stable_peer_buckets(): void
