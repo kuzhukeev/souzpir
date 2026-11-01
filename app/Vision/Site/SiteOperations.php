@@ -63,7 +63,11 @@ final class SiteOperations
             SiteAction::query()->whereKey($id)->firstOrFail();
             $this->access->lock($tenant, true, 'vision.actions.write');
             $action = SiteAction::query()->whereKey($id)->lockForUpdate()->firstOrFail();
+            $previousResponsible = $action->responsible;
             if (array_key_exists('responsible', $data)) {
+                if ($data['responsible'] !== $previousResponsible && $action->status !== 'open') {
+                    throw ValidationException::withMessages(['responsible' => 'Передать можно только действие в работе.']);
+                }
                 $this->responsible($tenant, $data['responsible']);
             }
             $before = $action->status;
@@ -83,7 +87,7 @@ final class SiteOperations
             $changed = array_keys($action->getDirty());
             $action->save();
             $this->audit->record($tenant, new AuditEntry('vision.action.updated', 'vision_action', $action->id,
-                ['status' => $before], ['status' => $action->status, 'changed_fields' => $changed]));
+                ['status' => $before, 'responsible' => $previousResponsible], ['status' => $action->status, 'responsible' => $action->responsible, 'changed_fields' => $changed]));
         });
     }
 

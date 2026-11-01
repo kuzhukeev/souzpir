@@ -192,11 +192,13 @@ function ActionCard({
               onChange={(e) => form.setData('comment', e.target.value)}
             />
           </label>
-          <Responsible
-            members={members}
-            value={form.data.responsible}
-            change={(v) => form.setData('responsible', v)}
-          />
+          {action.status === 'open' && (
+            <Responsible
+              members={members}
+              value={form.data.responsible}
+              change={(v) => form.setData('responsible', v)}
+            />
+          )}
           <label className="block text-sm font-semibold">
             Срок
             <input
@@ -247,7 +249,7 @@ function ActionCard({
           {canManage && (
             <div className="mt-auto flex flex-wrap gap-2">
               <button type="button" className={secondary} onClick={() => setEditing(true)}>
-                Изменить
+                {action.status === 'open' ? 'Изменить или передать' : 'Изменить'}
               </button>
               <button type="button" className={secondary} onClick={remove} disabled={deleting}>
                 Удалить
