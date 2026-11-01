@@ -280,6 +280,8 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "integrations.notifications.save": [],
+    "integrations.notifications.test": [],
     "api.v1.seller.conversations.index": [],
     "api.v1.seller.conversations.show": [
         {
