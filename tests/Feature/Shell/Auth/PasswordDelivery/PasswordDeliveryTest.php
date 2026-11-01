@@ -6,12 +6,14 @@ use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\User;
 use App\Shell\Auth\PasswordDelivery\Jobs\DeliverPassword;
+use App\Shell\Auth\PasswordDelivery\KnownDeliveryFailure;
 use App\Shell\Auth\PasswordDelivery\PasswordDelivery;
 use App\Shell\Auth\PasswordDelivery\PasswordTransport;
 use App\Shell\Auth\PasswordDelivery\SmtpPasswordTransport;
 use App\Shell\Auth\Totp;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
+use Illuminate\Http\Request;
 use Illuminate\Mail\Mailer;
 use Illuminate\Mail\SentMessage;
 use Illuminate\Support\Facades\DB;
@@ -174,9 +176,7 @@ final class PasswordDeliveryTest extends TestCase
 
     public function test_smtp_adapter_is_opt_in_and_uses_only_fake_mailer(): void
     {
-        config(['features.E1-01F.defaults.smtp_enabled' => true, 'mail.mailers.smtp.transport' => 'smtp', 'mail.mailers.smtp.host' => 'smtp.example.test', 'mail.from.address' => 'sender@example.test']);
-        URL::forceRootUrl('https://cabinet.example.test');
-        URL::forceScheme('https');
+        config(['features.E1-01F.defaults.smtp_enabled' => true, 'mail.mailers.smtp.transport' => 'smtp', 'mail.mailers.smtp.host' => 'smtp.example.test', 'mail.from.address' => 'sender@example.test', 'app.url' => 'https://cabinet.example.test:8443']);
         $mailer = \Mockery::mock(Mailer::class);
         $html = '';
         $mailer->shouldReceive('html')->once()->andReturnUsing(function ($body, $callback) use (&$html) {
@@ -185,13 +185,18 @@ final class PasswordDeliveryTest extends TestCase
             return \Mockery::mock(SentMessage::class);
         });
         Mail::shouldReceive('mailer')->once()->with('smtp')->andReturn($mailer);
-        $id = $this->delivery->enqueue($this->user->email);
-        $this->delivery->send($this->delivery->claim($id), app(SmtpPasswordTransport::class));
+        $id = $this->sendIntent();
+        URL::setRequest(Request::create('https://attacker.example.test:9443/forgot-password'));
+        self::assertSame('https://attacker.example.test:9443/reset-password/open', route('password.open'));
+        Queue::pushed(DeliverPassword::class)->first()->handle($this->delivery, app(SmtpPasswordTransport::class));
         self::assertSame('sent', DB::table('password_delivery_intents')->where('id', $id)->value('status'));
         self::assertStringContainsString('/reset-password/open#token=', $html);
         self::assertStringContainsString('email=recovery%40example.test', $html);
         preg_match('/href="([^"]+)"/', $html, $match);
         $url = html_entity_decode($match[1], ENT_QUOTES, 'UTF-8');
+        self::assertSame('https', parse_url($url, PHP_URL_SCHEME));
+        self::assertSame('cabinet.example.test', parse_url($url, PHP_URL_HOST));
+        self::assertSame(8443, parse_url($url, PHP_URL_PORT));
         self::assertSame('/reset-password/open', parse_url($url, PHP_URL_PATH));
         self::assertNull(parse_url($url, PHP_URL_QUERY));
         parse_str(parse_url($url, PHP_URL_FRAGMENT), $fragment);
@@ -210,13 +215,48 @@ final class PasswordDeliveryTest extends TestCase
 
     public function test_smtp_never_sends_an_insecure_nonlocal_link(): void
     {
-        config(['features.E1-01F.defaults.smtp_enabled' => true, 'mail.mailers.smtp.transport' => 'smtp', 'mail.mailers.smtp.host' => 'smtp.example.test', 'mail.from.address' => 'sender@example.test']);
-        URL::forceRootUrl('http://cabinet.example.test');
-        URL::forceScheme('http');
+        config(['features.E1-01F.defaults.smtp_enabled' => true, 'mail.mailers.smtp.transport' => 'smtp', 'mail.mailers.smtp.host' => 'smtp.example.test', 'mail.from.address' => 'sender@example.test', 'app.url' => 'http://cabinet.example.test']);
         Mail::shouldReceive('mailer')->never();
         $id = $this->delivery->enqueue($this->user->email);
         $this->delivery->send($this->delivery->claim($id), app(SmtpPasswordTransport::class));
         self::assertSame('failed', DB::table('password_delivery_intents')->where('id', $id)->value('status'));
+    }
+
+    public function test_smtp_rejects_ambiguous_canonical_urls_without_contacting_mailer(): void
+    {
+        config(['features.E1-01F.defaults.smtp_enabled' => true, 'mail.mailers.smtp.transport' => 'smtp', 'mail.mailers.smtp.host' => 'smtp.example.test', 'mail.from.address' => 'sender@example.test']);
+        Mail::shouldReceive('mailer')->never();
+        foreach (['', '//cabinet.example.test', 'https://user@cabinet.example.test', 'https://cabinet.example.test?redirect=other', 'https://cabinet.example.test#fragment', 'http://cabinet.example.test', 'https://cabinet.example.test:99999'] as $base) {
+            config(['app.url' => $base]);
+            try {
+                app(SmtpPasswordTransport::class)->send($this->user, str_repeat('a', 64));
+                self::fail('Unsafe canonical URL was accepted.');
+            } catch (KnownDeliveryFailure $exception) {
+                self::assertSame('Password message could not be prepared.', $exception->getMessage());
+            }
+        }
+    }
+
+    public function test_smtp_uses_approved_local_http_base_and_port_even_with_https_request(): void
+    {
+        config(['features.E1-01F.defaults.smtp_enabled' => true, 'mail.mailers.smtp.transport' => 'smtp', 'mail.mailers.smtp.host' => 'smtp.example.test', 'mail.from.address' => 'sender@example.test', 'app.url' => 'http://souzpir.local:8181']);
+        $mailer = \Mockery::mock(Mailer::class);
+        $html = '';
+        $mailer->shouldReceive('html')->once()->andReturnUsing(function ($body) use (&$html) {
+            $html = $body;
+
+            return \Mockery::mock(SentMessage::class);
+        });
+        Mail::shouldReceive('mailer')->once()->with('smtp')->andReturn($mailer);
+        URL::setRequest(Request::create('https://attacker.example.test:9443/forgot-password'));
+        app()->instance('env', 'local');
+        try {
+            self::assertTrue(app(SmtpPasswordTransport::class)->send($this->user, str_repeat('b', 64)));
+        } finally {
+            app()->instance('env', 'testing');
+        }
+        self::assertStringContainsString('href="http://souzpir.local:8181/reset-password/open#token=', $html);
+        self::assertStringNotContainsString('attacker.example.test', $html);
     }
 
     public function test_fragment_exchange_and_password_only_post_are_single_use_and_revoke_sessions(): void
