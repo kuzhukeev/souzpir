@@ -58,22 +58,35 @@ DB::transaction(function () use ($organizationId): void {
             throw new LogicException('Fixture organization collision.');
         }
 
+        $disabled = User::where('email', 'team-e106-disabled@example.test')->first();
+        $membership = $disabled ? Membership::withoutGlobalScopes()->where('organization_id', $existing->id)->where('user_id', $disabled->id)->first() : null;
+        if ($disabled && (! $membership || $membership->role !== 'viewer' || $membership->status !== 'disabled')) {
+            throw new LogicException('Fixture disabled user collision.');
+        }
+        if (! $disabled) {
+            $brand = Brand::withoutGlobalScopes()->where('organization_id', $existing->id)->where('name', 'Пиротехника — Северные огни')->firstOrFail();
+            $disabled = User::create(['name' => 'Тестовый отключённый', 'email' => 'team-e106-disabled@example.test', 'password' => 'test-only-password-123']);
+            app(TenantContextRunner::class)->run(new TenantContext($existing->id, actorId: $existing->owner_user_id, source: 'job'), fn () => Membership::create(['user_id' => $disabled->id, 'role' => 'viewer', 'status' => 'disabled', 'brand_ids' => [$brand->id]]));
+        }
+
         return;
     }
-    if (User::whereIn('email', ['team-e106-owner@example.test', 'team-e106-viewer@example.test'])->exists()) {
+    if (User::whereIn('email', ['team-e106-owner@example.test', 'team-e106-viewer@example.test', 'team-e106-disabled@example.test'])->exists()) {
         throw new LogicException('Fixture user collision.');
     }
     $owner = User::create(['name' => 'Тестовый владелец', 'email' => 'team-e106-owner@example.test', 'password' => 'test-only-password-123']);
     $viewer = User::create(['name' => 'Тестовый наблюдатель', 'email' => 'team-e106-viewer@example.test', 'password' => 'test-only-password-123']);
+    $disabled = User::create(['name' => 'Тестовый отключённый', 'email' => 'team-e106-disabled@example.test', 'password' => 'test-only-password-123']);
     $owner->forceFill(['email_verified_at' => now()])->save();
     $viewer->forceFill(['email_verified_at' => now()])->save();
     $organization = new Organization;
     $organization->forceFill(['id' => $organizationId, 'name' => 'Тестовая компания', 'settings' => ['test_fixture' => 'e106-role-ui']])->save();
-    app(TenantContextRunner::class)->run(new TenantContext($organizationId, actorId: $owner->id, source: 'job'), function () use ($owner, $viewer): void {
+    app(TenantContextRunner::class)->run(new TenantContext($organizationId, actorId: $owner->id, source: 'job'), function () use ($owner, $viewer, $disabled): void {
         $brand = Brand::create(['name' => 'Пиротехника — Северные огни', 'theme' => 'pyro']);
         Brand::create(['name' => 'Фейерверки — Второй бренд', 'theme' => 'neutral']);
         Membership::create(['user_id' => $owner->id, 'role' => 'owner']);
         Membership::create(['user_id' => $viewer->id, 'role' => 'viewer', 'brand_ids' => [$brand->id]]);
+        Membership::create(['user_id' => $disabled->id, 'role' => 'viewer', 'status' => 'disabled', 'brand_ids' => [$brand->id]]);
         Invitation::create(['email' => 'team-e106-invite@example.test', 'role' => 'viewer', 'brand_ids' => [$brand->id], 'token_hash' => hash('sha256', str_repeat('A', 64)), 'invited_by' => $owner->id, 'expires_at' => now()->addDay()]);
     });
     $organization->forceFill(['owner_user_id' => $owner->id])->save();
