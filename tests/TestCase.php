@@ -24,6 +24,12 @@ abstract class TestCase extends BaseTestCase
         // Artisan may bootstrap the local environment before spawning PHPUnit.
         // Do not inherit its storage/cache paths into the isolated test runtime.
         $runtime = str_replace('\\', '/', $expected).'/.local/runtime/testing';
+        $parallelToken = $_SERVER['TEST_TOKEN'] ?? null;
+        $parallelWorker = ! empty($_SERVER['LARAVEL_PARALLEL_TESTING'])
+            && is_string($parallelToken) && ctype_digit($parallelToken);
+        if ($parallelWorker) {
+            $runtime .= '/workers/'.$parallelToken;
+        }
         foreach ([
             'APP_STORAGE_PATH' => $runtime.'/storage',
             'APP_CONFIG_CACHE' => $runtime.'/cache/config.php',
@@ -34,6 +40,9 @@ abstract class TestCase extends BaseTestCase
             'VIEW_COMPILED_PATH' => $runtime.'/storage/framework/views',
         ] as $key => $value) {
             $_ENV[$key] = $_SERVER[$key] = $value;
+            if ($parallelWorker) {
+                putenv($key.'='.$value);
+            }
         }
 
         // CI provisions a dedicated database for each parallel process. Boot

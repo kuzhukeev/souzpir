@@ -9,18 +9,18 @@ use App\Models\User;
 use App\Shell\Auth\AuthSessionRegistry;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\TestCase;
 
 abstract class SupportTestCase extends TestCase
 {
-    use DatabaseMigrations;
+    use IsolatedDatabaseMigrations;
 
     protected function setUp(): void
     {
