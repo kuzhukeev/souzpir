@@ -59,6 +59,21 @@ test('открытое приглашение истекает, отзыв от�
       fullPage: true,
     });
   }
-  await page.reload();
+  const section = page.getByRole('region', { name: 'Приглашения в ожидании' });
+  const totalBefore = Number((await section.getByText(/^Всего:/).innerText()).replace(/\D/gu, ''));
+  const refreshResponse = page.waitForResponse((response) => {
+    const url = new URL(response.url());
+    return url.pathname === '/team' && url.searchParams.get('invitation_page') === '1'
+      && url.searchParams.get('role') === 'viewer' && url.searchParams.get('status') === 'invited';
+  });
+  const refresh = section.getByRole('button', { name: 'Обновить приглашения' });
+  await refresh.focus();
+  await expect(refresh).toBeFocused();
+  await page.keyboard.press('Enter');
+  expect((await refreshResponse).status()).toBe(200);
   await expect(page.getByText(email)).toHaveCount(0);
+  await expect.poll(async () => Number((await section.getByText(/^Всего:/).innerText()).replace(/\D/gu, '')))
+    .toBeLessThan(totalBefore);
+  await expect(page).toHaveURL(/role=viewer/);
+  await expect(page).toHaveURL(/status=invited/);
 });

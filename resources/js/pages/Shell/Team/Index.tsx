@@ -682,13 +682,23 @@ export default function Index({
               </h2>
               <p className="mt-1 text-sm text-(--color-ink-muted)">
                 При загрузке показаны не принятые, не отозванные и не истёкшие приглашения. После
-                истечения обновите страницу. Открытую ссылку нельзя открыть повторно; статус
+                истечения обновите список. Открытую ссылку нельзя открыть повторно; статус
                 открытия не подтверждает доставку письма.
               </p>
             </div>
-            <span className="text-sm text-(--color-ink-muted)">
-              Всего: {new Intl.NumberFormat('ru-RU').format(invitations.total)}
-            </span>
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-sm text-(--color-ink-muted)">
+                Всего: {new Intl.NumberFormat('ru-RU').format(invitations.total)}
+              </span>
+              <button
+                type="button"
+                className={button}
+                disabled={loading || invitationLoading || revoking}
+                onClick={() => goInvitations(1)}
+              >
+                Обновить приглашения
+              </button>
+            </div>
           </div>
           {failedInvitationPage !== null && (
             <div
