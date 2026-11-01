@@ -29,7 +29,13 @@ final class TeamMembersController
 
         $projection = TeamMemberProjection::forCurrentActor();
         abort_unless($projection->permitsBrandFilter($brand), 404);
+        $context = app(TenantContext::class);
         $canWrite = Gate::allows('team.write');
+        $actor = $request->attributes->get('tenant.membership');
+        $canIssue = $canWrite && $actor instanceof Membership && $actor->status === 'active'
+            && $actor->id === $context->membershipId && $actor->user_id === $context->actorId
+            && $actor->organization_id === $context->organizationId && in_array($actor->role, ['owner', 'admin'], true)
+            && $context->brandId !== null && $actor->permitsBrand($context->brandId);
         $memberQuery = $projection->scopeBrand($projection->scopeRole(Membership::query(), $role), $brand);
         if ($status === 'invited') {
             $memberQuery->whereRaw('1 = 0');
@@ -59,7 +65,6 @@ final class TeamMembersController
                 'can_revoke' => $projection->canRevokeInvitation($invitation->brand_ids, $canWrite),
             ];
         })->all();
-        $context = app(TenantContext::class);
         $brandRevision = app(AuthSessionRegistry::class)->withinActive($request, function () use ($request, $context): string {
             $expected = $request->attributes->get('tenant.brand_revision');
             $selections = app(SessionBrandSelection::class);
@@ -79,6 +84,7 @@ final class TeamMembersController
                 'total' => $members->total(),
             ],
             'canViewRoles' => Gate::allows('team.manage'),
+            'canIssueInvitations' => $canIssue,
             'roleFilter' => $role,
             'brandFilter' => $brand,
             'statusFilter' => $status,
