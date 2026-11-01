@@ -109,6 +109,7 @@ it('показывает загрузку, ошибку перехода и по
       invitations={emptyInvitations}
       roleFilter="manager"
       brandFilter="brand-a"
+      statusFilter="disabled"
       filterBrands={[{ id: 'brand-a', name: 'Бренд А' }]}
     />,
   );
@@ -122,6 +123,7 @@ it('показывает загрузку, ошибку перехода и по
     invitation_page: 1,
     role: 'manager',
     brand: 'brand-a',
+    status: 'disabled',
   });
   const options = calls.get.mock.calls[0][2];
   act(() => {
@@ -135,6 +137,7 @@ it('показывает загрузку, ошибку перехода и по
     invitation_page: 1,
     role: 'manager',
     brand: 'brand-a',
+    status: 'disabled',
   });
 });
 
@@ -163,6 +166,7 @@ it('показывает данные приглашения и повторяе
       invitations={invitations}
       roleFilter="viewer"
       brandFilter="brand-a"
+      statusFilter="invited"
       filterBrands={[{ id: 'brand-a', name: 'Бренд А' }]}
     />,
   );
@@ -178,6 +182,7 @@ it('показывает данные приглашения и повторяе
     invitation_page: 2,
     role: 'viewer',
     brand: 'brand-a',
+    status: 'invited',
   });
   const options = calls.get.mock.calls[0][2];
   act(() => {
@@ -191,6 +196,7 @@ it('показывает данные приглашения и повторяе
     invitation_page: 2,
     role: 'viewer',
     brand: 'brand-a',
+    status: 'invited',
   });
 });
 

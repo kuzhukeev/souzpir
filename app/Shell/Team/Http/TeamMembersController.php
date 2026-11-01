@@ -22,16 +22,27 @@ final class TeamMembersController
         $invitationPage = filter_var($request->query('invitation_page', 1), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 100000]]);
         $role = $request->query('role', 'all');
         $brand = $request->query('brand', 'all');
+        $status = $request->query('status', 'all');
         abort_if($page === false || $invitationPage === false || ! is_string($role)
-            || ! in_array($role, ['all', 'owner', 'admin', 'editor', 'manager', 'viewer'], true) || ! is_string($brand), 404);
+            || ! in_array($role, ['all', 'owner', 'admin', 'editor', 'manager', 'viewer'], true) || ! is_string($brand)
+            || ! is_string($status) || ! in_array($status, ['all', 'active', 'disabled', 'invited'], true), 404);
 
         $projection = TeamMemberProjection::forCurrentActor();
         abort_unless($projection->permitsBrandFilter($brand), 404);
         $canWrite = Gate::allows('team.write');
-        $members = $projection->scopeBrand($projection->scopeRole(Membership::query(), $role), $brand)->with('user:id,name,email')->orderBy('id')
+        $memberQuery = $projection->scopeBrand($projection->scopeRole(Membership::query(), $role), $brand);
+        if ($status === 'invited') {
+            $memberQuery->whereRaw('1 = 0');
+        } elseif ($status !== 'all') {
+            $memberQuery->where('status', $status);
+        }
+        $members = $memberQuery->with('user:id,name,email')->orderBy('id')
             ->paginate(25, ['id', 'user_id', 'role', 'status', 'brand_ids', 'settings'], 'page', $page);
         $items = $members->getCollection()->map(fn (Membership $membership) => $projection->project($membership))->all();
         $invitationQuery = Invitation::query()->whereNull('accepted_at')->whereNull('revoked_at')->where('expires_at', '>', now());
+        if (in_array($status, ['active', 'disabled'], true)) {
+            $invitationQuery->whereRaw('1 = 0');
+        }
         $invitations = $projection->scopeBrand($projection->scopeRole($projection->scopeInvitations($invitationQuery), $role), $brand)->orderByDesc('created_at')->orderByDesc('id')
             ->paginate(25, ['id', 'email', 'role', 'settings', 'brand_ids', 'expires_at', 'exchanged_at'], 'invitation_page', $invitationPage);
         $invitationItems = $invitations->getCollection()->map(function (Invitation $invitation) use ($projection, $canWrite): array {
@@ -69,6 +80,7 @@ final class TeamMembersController
             'canViewRoles' => Gate::allows('team.manage'),
             'roleFilter' => $role,
             'brandFilter' => $brand,
+            'statusFilter' => $status,
             'filterBrands' => $projection->availableBrands(),
             'teamBrandRevision' => $brandRevision,
             'invitations' => [

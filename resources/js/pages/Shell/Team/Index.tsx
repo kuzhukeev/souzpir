@@ -134,6 +134,7 @@ export default function Index({
   teamBrandRevision,
   roleFilter = 'all',
   brandFilter = 'all',
+  statusFilter = 'all',
   filterBrands = [],
 }: {
   members: TeamPage;
@@ -142,13 +143,18 @@ export default function Index({
   teamBrandRevision: string;
   roleFilter?: string;
   brandFilter?: string;
+  statusFilter?: string;
   filterBrands?: { id: string; name: string }[];
 }) {
   const [loading, setLoading] = useState(false);
   const [failedPage, setFailedPage] = useState<number | null>(null);
   const [invitationLoading, setInvitationLoading] = useState(false);
   const [failedInvitationPage, setFailedInvitationPage] = useState<number | null>(null);
-  const [failedFilters, setFailedFilters] = useState<{ role: string; brand: string } | null>(null);
+  const [failedFilters, setFailedFilters] = useState<{
+    role: string;
+    brand: string;
+    status: string;
+  } | null>(null);
   const [selected, setSelected] = useState<{
     invitation: TeamInvitations['data'][number];
     revision: string;
@@ -165,7 +171,13 @@ export default function Index({
     };
     router.get(
       '/team',
-      { page, invitation_page: invitations.current_page, role: roleFilter, brand: brandFilter },
+      {
+        page,
+        invitation_page: invitations.current_page,
+        role: roleFilter,
+        brand: brandFilter,
+        status: statusFilter,
+      },
       {
         preserveState: true,
         preserveScroll: true,
@@ -185,7 +197,13 @@ export default function Index({
     };
     router.get(
       '/team',
-      { page: members.current_page, invitation_page: page, role: roleFilter, brand: brandFilter },
+      {
+        page: members.current_page,
+        invitation_page: page,
+        role: roleFilter,
+        brand: brandFilter,
+        status: statusFilter,
+      },
       {
         preserveState: true,
         preserveScroll: true,
@@ -196,19 +214,19 @@ export default function Index({
       },
     );
   };
-  const changeFilters = (role: string, brand: string) => {
+  const changeFilters = (role: string, brand: string, status: string) => {
     setLoading(true);
     setInvitationLoading(true);
     setFailedFilters(null);
     setFailedPage(null);
     setFailedInvitationPage(null);
     const failed = () => {
-      setFailedFilters({ role, brand });
+      setFailedFilters({ role, brand, status });
       return false;
     };
     router.get(
       '/team',
-      { role, brand, page: 1, invitation_page: 1 },
+      { role, brand, status, page: 1, invitation_page: 1 },
       {
         preserveState: true,
         preserveScroll: true,
@@ -275,7 +293,7 @@ export default function Index({
             </span>
             <Select.Root
               value={roleFilter}
-              onValueChange={(role) => changeFilters(role, brandFilter)}
+              onValueChange={(role) => changeFilters(role, brandFilter, statusFilter)}
               disabled={loading || invitationLoading}
             >
               <Select.Trigger
@@ -324,7 +342,7 @@ export default function Index({
             </span>
             <Select.Root
               value={brandFilter}
-              onValueChange={(brand) => changeFilters(roleFilter, brand)}
+              onValueChange={(brand) => changeFilters(roleFilter, brand, statusFilter)}
               disabled={loading || invitationLoading}
             >
               <Select.Trigger
@@ -360,12 +378,61 @@ export default function Index({
               </Select.Portal>
             </Select.Root>
           </div>
+          <div className="flex max-w-full items-center gap-3">
+            <span id="team-status-label" className="text-sm font-semibold">
+              Статус
+            </span>
+            <Select.Root
+              value={statusFilter}
+              onValueChange={(status) => changeFilters(roleFilter, brandFilter, status)}
+              disabled={loading || invitationLoading}
+            >
+              <Select.Trigger
+                aria-labelledby="team-status-label"
+                className={`flex min-h-11 min-w-44 max-w-full cursor-pointer items-center justify-between gap-3 rounded-lg border border-(--color-border) bg-(--color-surface) px-3 text-sm disabled:cursor-wait ${focus}`}
+              >
+                <Select.Value />
+                <Select.Icon>
+                  <ChevronDown size={16} />
+                </Select.Icon>
+              </Select.Trigger>
+              <Select.Portal>
+                <Select.Content
+                  position="popper"
+                  sideOffset={6}
+                  className="z-50 min-w-[var(--radix-select-trigger-width)] max-w-[calc(100vw-32px)] rounded-xl border border-(--color-border) bg-(--color-surface) p-1.5 shadow-xl"
+                >
+                  <Select.Viewport>
+                    {[
+                      ['all', 'Все статусы'],
+                      ['active', 'Активные'],
+                      ['disabled', 'Отключённые'],
+                      ['invited', 'Приглашённые'],
+                    ].map(([value, label]) => (
+                      <Select.Item
+                        key={value}
+                        value={value}
+                        className="relative flex min-h-11 cursor-pointer items-center rounded-lg px-3 pr-9 text-sm outline-none data-[highlighted]:bg-(--color-surface-muted)"
+                      >
+                        <Select.ItemText>{label}</Select.ItemText>
+                        <Select.ItemIndicator className="absolute right-3">
+                          <Check size={16} />
+                        </Select.ItemIndicator>
+                      </Select.Item>
+                    ))}
+                  </Select.Viewport>
+                </Select.Content>
+              </Select.Portal>
+            </Select.Root>
+          </div>
           {failedFilters !== null && (
             <p role="alert" className="text-sm text-(--color-danger-ink)">
               Не удалось применить фильтр.{' '}
               <button
                 type="button"
-                onClick={() => changeFilters(failedFilters.role, failedFilters.brand)}
+                onClick={() =>
+                  changeFilters(failedFilters.role, failedFilters.brand, failedFilters.status)
+                }
                 className={`cursor-pointer font-semibold underline ${focus}`}
               >
                 Повторить
@@ -419,7 +486,7 @@ export default function Index({
               />
               <p className="font-semibold">
                 {members.total === 0
-                  ? brandFilter !== 'all'
+                  ? brandFilter !== 'all' || statusFilter !== 'all'
                     ? 'Участников по выбранным фильтрам нет'
                     : roleFilter === 'all'
                       ? 'Участников пока нет'
@@ -428,8 +495,8 @@ export default function Index({
               </p>
               <p className="mt-2 text-sm text-(--color-ink-muted)">
                 {members.total === 0
-                  ? brandFilter !== 'all'
-                    ? 'Измените роль или бренд, чтобы увидеть другие результаты.'
+                  ? brandFilter !== 'all' || statusFilter !== 'all'
+                    ? 'Измените роль, бренд или статус, чтобы увидеть другие результаты.'
                     : roleFilter === 'all'
                       ? 'Данные появятся после добавления участников компании.'
                       : 'Выберите другую роль или покажите все роли.'
@@ -601,7 +668,7 @@ export default function Index({
               className="rounded-xl bg-(--color-surface-muted) px-4 py-8 text-center text-sm"
             >
               {invitations.total === 0
-                ? brandFilter !== 'all'
+                ? brandFilter !== 'all' || statusFilter !== 'all'
                   ? 'Приглашений по выбранным фильтрам нет'
                   : roleFilter === 'all'
                     ? 'Приглашений в ожидании нет'

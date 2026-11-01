@@ -35,6 +35,13 @@ for (const width of [1440, 1024, 390]) {
       ).toBeVisible();
       await page.keyboard.press('Escape');
       await expect(brandFilter).toBeFocused();
+      const status = page.getByRole('combobox', { name: 'Статус', exact: true });
+      await expect(status).toContainText('Все статусы');
+      await status.focus();
+      await page.keyboard.press('ArrowDown');
+      await expect(page.getByRole('option', { name: 'Приглашённые' })).toBeVisible();
+      await page.keyboard.press('Escape');
+      await expect(status).toBeFocused();
       const listing =
         width < 768
           ? page.locator('article')
