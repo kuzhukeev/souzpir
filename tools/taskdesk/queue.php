@@ -104,10 +104,20 @@ function queueDispatch($action,$input) {
         if(!isset($data['projects'][$project]) || !isset($input['enabled']) || !is_bool($input['enabled'])) reply(['error'=>'Invalid project mode'],400);
         $data['projects'][$project]['enabled']=$input['enabled']; saveData(); reply(['project'=>$project,'enabled'=>$input['enabled']]);
     }
-    if(!in_array($action,['claim','release','complete','submit','merge','requeue','recover','resume'],true)) return;
+    if(!in_array($action,['claim','release','complete','submit','merge','requeue','recover','resume','replan'],true)) return;
     $idx=isset($input['id'])?taskIndex((int)$input['id']):queueFind((string)($input['project']??''),(string)($input['taskKey']??''));
     if($idx===null || !queueManaged($data['tasks'][$idx])) reply(['error'=>'Project task not found'],404);
     $task=&$data['tasks'][$idx];
+    if($action==='replan') {
+        queueCheckRevision($task,$input);
+        if($task['status']!=='queue') reply(['error'=>'Only queued tasks can be replanned'],409);
+        $plan=queuePlan($input['plan']??null,$task['project']);
+        if($plan['taskKey']!==$task['taskKey']) reply(['error'=>'Task identity cannot change'],409);
+        $candidate=array_replace($task,$plan);
+        $candidate['planHash']=hash('sha256',json_encode($plan,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
+        $graph=$data['tasks']; $graph[$idx]=$candidate; queueValidateGraph($graph);
+        $task=$candidate; queueTouch($task); saveData(); reply(['task'=>queuePublic($task)]);
+    }
     if($action==='requeue' || $action==='recover') {
         queueCheckRevision($task,$input); $reason=trim((string)($input['reason']??''));
         $valid=$action==='requeue'?$task['status']==='review':($task['status']==='progress' && ($input['confirmAbandoned']??false)===true);
