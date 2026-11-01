@@ -25,7 +25,6 @@ use App\Vision\KnowledgeBridge\PublishedKnowledgeBridge;
 use App\Vision\KnowledgeBridge\SelfDeclaredProfile;
 use App\Vision\KnowledgeGrants\GrantRegistry;
 use Illuminate\Database\QueryException;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -33,11 +32,12 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use LogicException;
 use Symfony\Component\Process\Process;
+use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\TestCase;
 
 final class QuestionnaireTest extends TestCase
 {
-    use DatabaseMigrations;
+    use IsolatedDatabaseMigrations;
 
     protected function beforeRefreshingDatabase(): void
     {
