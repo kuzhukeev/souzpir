@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\Process\Process;
+use Tests\Feature\Vision\Measurements\Fixtures\IsolatedDatabaseGuard;
 use Tests\TestCase;
 
 final class MeasurementAccessRaceTest extends TestCase
@@ -27,14 +28,7 @@ final class MeasurementAccessRaceTest extends TestCase
         if (getenv('RUN_E804_ACCESS_RACE') !== '1') {
             $this->markTestSkipped('Requires the dedicated E8-04 test database.');
         }
-        $db = DB::connection();
-        $actual = DB::selectOne('select current_database() as name, current_user as role, host(inet_server_addr()) as host, inet_server_port() as port');
-        if (! app()->environment('testing') || realpath(app()->basePath()) !== realpath(getcwd())
-            || $db->getDatabaseName() !== 'souzpir_test_e804_list' || config('runtime.test_database') !== 'souzpir_test_e804_list'
-            || config('runtime.preview_database') === $db->getDatabaseName() || $actual->name !== 'souzpir_test_e804_list'
-            || $actual->role !== 'e804_list_owner' || $actual->host !== '127.0.0.1' || (int) $actual->port !== 55810) {
-            throw new \LogicException('Refusing a race test outside the isolated E8-04 database.');
-        }
+        IsolatedDatabaseGuard::check();
         Artisan::call('migrate', ['--force' => true]);
     }
 
@@ -76,10 +70,16 @@ final class MeasurementAccessRaceTest extends TestCase
     private function worker(array $fixture, string $kind, string $name): Process
     {
         [$user, $org, $brand, $member, $plan] = $fixture;
+        $db = DB::connection();
 
         return new Process([PHP_BINARY, '-d', 'sys_temp_dir='.sys_get_temp_dir(), base_path('tests/Feature/Vision/Measurements/Fixtures/access-race-worker.php')], base_path(), [
             'APP_ENV' => 'testing', 'E804_ACCESS_RACE' => '1', 'E804_ORG' => $org->id, 'E804_BRAND' => $brand->id,
             'E804_USER' => $user->id, 'E804_MEMBER' => $member->id, 'E804_PLAN' => $plan, 'E804_KIND' => $kind, 'PGAPPNAME' => $name,
+            'E804_RACE_TEST_DB' => getenv('E804_RACE_TEST_DB'), 'E804_RACE_TEST_ROLE' => getenv('E804_RACE_TEST_ROLE'),
+            'E804_RACE_TEST_HOST' => getenv('E804_RACE_TEST_HOST'), 'E804_RACE_TEST_PORT' => getenv('E804_RACE_TEST_PORT'),
+            'DB_CONNECTION' => 'pgsql', 'DB_URL' => '', 'DB_HOST' => $db->getConfig('host'), 'DB_PORT' => (string) $db->getConfig('port'),
+            'DB_DATABASE' => $db->getDatabaseName(), 'DB_USERNAME' => $db->getConfig('username'), 'DB_PASSWORD' => $db->getConfig('password') ?? '',
+            'DB_TEST_DATABASE' => config('runtime.test_database'), 'APP_PREVIEW_DATABASE' => config('runtime.preview_database'),
         ], timeout: 20);
     }
 

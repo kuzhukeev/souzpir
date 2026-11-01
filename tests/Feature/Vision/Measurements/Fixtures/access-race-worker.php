@@ -11,18 +11,16 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpKernel\Exception\HttpException;
+use Tests\Feature\Vision\Measurements\Fixtures\IsolatedDatabaseGuard;
 
 $root = realpath(__DIR__.'/../../../../..');
 require $root.'/vendor/autoload.php';
 $app = require $root.'/bootstrap/app.php';
 $app->make(Kernel::class)->bootstrap();
-$db = DB::connection();
-if (getenv('E804_ACCESS_RACE') !== '1' || ! $app->environment('testing') || realpath(getcwd()) !== $root || realpath($app->basePath()) !== $root
-    || $db->getDatabaseName() !== 'souzpir_test_e804_list' || config('runtime.test_database') !== 'souzpir_test_e804_list'
-    || $db->getConfig('host') !== '127.0.0.1' || (string) $db->getConfig('port') !== '55810' || $db->getConfig('username') !== 'e804_list_owner'
-    || config('runtime.preview_database') === $db->getDatabaseName()) {
+if (getenv('E804_ACCESS_RACE') !== '1' || realpath(getcwd()) !== $root || realpath($app->basePath()) !== $root) {
     throw new LogicException('Refusing a race worker outside the isolated E8-04 database.');
 }
+IsolatedDatabaseGuard::check();
 $org = (string) getenv('E804_ORG');
 $brand = (string) getenv('E804_BRAND');
 $plan = (string) getenv('E804_PLAN');

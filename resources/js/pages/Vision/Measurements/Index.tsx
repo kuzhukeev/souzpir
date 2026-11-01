@@ -8,7 +8,6 @@ import {
 } from '@/features/Shell/Profile/contextFence';
 
 type Row = {
-  id: string;
   created_at: string;
 };
 type Listing = { revision: string; data: Row[]; page: number; last_page: number; total: number };
@@ -172,7 +171,7 @@ export default function Index({ measurementBrandRevision }: { measurementBrandRe
             state.data.page === page && (
               <div data-private-profile className="mt-5">
                 <p className="mb-4 text-sm text-(--color-ink-muted)">
-                  Статусы и результаты не показаны: доступ к источнику не проверен.
+                  Детали и результаты будут доступны позже.
                 </p>
                 {state.data.total === 0 ? (
                   <div
@@ -204,7 +203,7 @@ export default function Index({ measurementBrandRevision }: { measurementBrandRe
                         <thead className="bg-(--color-surface-muted)">
                           <tr>
                             <th scope="col" className="px-4 py-3">
-                              Идентификатор
+                              Замер
                             </th>
                             <th scope="col" className="px-4 py-3">
                               Создан
@@ -212,10 +211,13 @@ export default function Index({ measurementBrandRevision }: { measurementBrandRe
                           </tr>
                         </thead>
                         <tbody>
-                          {state.data.data.map((row) => (
-                            <tr key={row.id} className="border-b border-(--color-border)">
-                              <th scope="row" className="break-all px-4 py-4 font-medium">
-                                {row.id}
+                          {state.data.data.map((row, index) => (
+                            <tr
+                              key={`${row.created_at}-${index}`}
+                              className="border-b border-(--color-border)"
+                            >
+                              <th scope="row" className="px-4 py-4 font-medium">
+                                Замер
                               </th>
                               <td className="px-4 py-4">{date(row.created_at)}</td>
                             </tr>
@@ -224,16 +226,13 @@ export default function Index({ measurementBrandRevision }: { measurementBrandRe
                       </table>
                     </div>
                     <ul className="grid gap-3 md:hidden" aria-label="История замеров">
-                      {state.data.data.map((row) => (
+                      {state.data.data.map((row, index) => (
                         <li
-                          key={row.id}
+                          key={`${row.created_at}-${index}`}
                           className="rounded-xl border border-(--color-border) p-4 text-sm"
                         >
+                          <p className="mb-3 font-semibold">Замер</p>
                           <dl className="space-y-3">
-                            <div>
-                              <dt className="text-(--color-ink-muted)">Идентификатор</dt>
-                              <dd className="mt-1 break-all font-semibold">{row.id}</dd>
-                            </div>
                             <div>
                               <dt className="text-(--color-ink-muted)">Создан</dt>
                               <dd className="mt-1">{date(row.created_at)}</dd>

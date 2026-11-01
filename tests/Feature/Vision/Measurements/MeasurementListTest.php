@@ -29,7 +29,7 @@ final class MeasurementListTest extends TenancyTestCase
         DB::table('brand_modules')->insert(['id' => (string) Str::ulid(), 'organization_id' => $organization->id, 'brand_id' => $brand->id, 'module' => 'vision', 'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
     }
 
-    private function stored(Organization $organization, Brand $brand, string $status, ?array $profile = null): string
+    private function stored(Organization $organization, Brand $brand, string $status, ?array $profile = null, ?string $created = null): string
     {
         $set = (string) Str::ulid();
         DB::table('question_sets')->insert(['id' => $set, 'organization_id' => $organization->id, 'brand_id' => $brand->id,
@@ -39,7 +39,7 @@ final class MeasurementListTest extends TenancyTestCase
         DB::table('measurements')->insert(['id' => $id, 'organization_id' => $organization->id, 'brand_id' => $brand->id,
             'question_set_id' => $set, 'status' => $status, 'configuration' => json_encode(['private' => 'never disclose']),
             'profile_snapshot' => $profile === null ? null : json_encode($profile, JSON_THROW_ON_ERROR),
-            'profile_checksum' => $profile === null ? null : CanonicalJson::hash($profile), 'created_at' => now(), 'updated_at' => now()]);
+            'profile_checksum' => $profile === null ? null : CanonicalJson::hash($profile), 'created_at' => $created ?? now(), 'updated_at' => now()]);
 
         return $id;
     }
@@ -73,9 +73,9 @@ final class MeasurementListTest extends TenancyTestCase
         for ($i = 0; $i < 22; $i++) {
             $this->stored($org, $brand, 'pending');
         }
-        $otherId = $this->stored($org, $other, 'completed');
+        $otherId = $this->stored($org, $other, 'completed', null, '2021-02-03 12:00:00+00');
         [$foreign, $foreignOrg, $foreignBrand] = $this->cabinet(false);
-        $foreignId = $this->stored($foreignOrg, $foreignBrand, 'completed');
+        $foreignId = $this->stored($foreignOrg, $foreignBrand, 'completed', null, '2022-04-05 12:00:00+00');
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
         $page = $this->get('/vision/runs')->assertOk();
         $revision = $page->inertiaProps('measurementBrandRevision');
@@ -87,9 +87,9 @@ final class MeasurementListTest extends TenancyTestCase
         $first = $this->withHeaders($headers)->getJson('/vision/runs/data')->assertOk()->assertJsonPath('total', 27)->assertJsonCount(25, 'data')->assertJsonPath('last_page', 2);
         $second = $this->withHeaders($headers)->getJson('/vision/runs/data?page=2')->assertOk()->assertJsonCount(2, 'data');
         $all = collect([...$first->json('data'), ...$second->json('data')]);
-        $this->assertSame(['id', 'created_at'], array_keys($all[0]));
+        $this->assertSame(['created_at'], array_keys($all[0]));
         $payload = $first->getContent().$second->getContent();
-        foreach ([$otherId, $foreignId, 'never disclose', 'configuration', 'profile_snapshot', $other->id, $foreign->email] as $secret) {
+        foreach ([$ids[0], $otherId, $foreignId, '2021-02-03', '2022-04-05', 'never disclose', 'configuration', 'profile_snapshot', $other->id, $foreign->email] as $secret) {
             $this->assertStringNotContainsString($secret, $payload);
         }
         $this->assertStringContainsString('no-store', $first->headers->get('Cache-Control'));
@@ -132,7 +132,7 @@ final class MeasurementListTest extends TenancyTestCase
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
         $revision = $this->get('/vision/runs')->assertOk()->inertiaProps('measurementBrandRevision');
         $response = $this->withHeaders($this->headers($brand->id, $revision))->getJson('/vision/runs/data')->assertOk();
-        $this->assertSame(['id', 'created_at'], array_keys($response->json('data.0')));
+        $this->assertSame(['created_at'], array_keys($response->json('data.0')));
         foreach (['completed', 'finished_at', 'size', 'status', 'profile_snapshot', 'checksum'] as $secret) {
             $this->assertStringNotContainsString($secret, $response->getContent());
         }
@@ -143,31 +143,33 @@ final class MeasurementListTest extends TenancyTestCase
         [$owner, $org, $first, $second] = $this->cabinet();
         $this->enable($org, $first);
         $this->enable($org, $second);
-        $firstId = $this->stored($org, $first, 'pending');
-        $secondId = $this->stored($org, $second, 'running');
+        $this->stored($org, $first, 'pending', null, '2023-01-02 12:00:00+00');
+        $this->stored($org, $second, 'running', null, '2024-03-04 12:00:00+00');
+        $firstDate = '2023-01-02';
+        $secondDate = '2024-03-04';
         [$viewer, $viewerMembership] = $this->member($org, 'viewer', [$first->id]);
         [$manager] = $this->member($org, 'member', [$first->id], ['sales_manager' => true]);
         $this->actingAs($owner)->withSession(['brand_id' => $first->id]);
         $revA = $this->get('/vision/runs')->assertOk()->inertiaProps('measurementBrandRevision');
-        $this->withHeaders($this->headers($first->id, $revA))->getJson('/vision/runs/data')->assertOk()->assertSee($firstId)->assertDontSee($secondId);
+        $this->withHeaders($this->headers($first->id, $revA))->getJson('/vision/runs/data')->assertOk()->assertSee($firstDate)->assertDontSee($secondDate);
         $this->post('/brand/switch', ['brand_id' => $second->id])->assertRedirect();
-        $this->withHeaders($this->headers($first->id, $revA))->getJson('/vision/runs/data')->assertStatus(404)->assertDontSee($firstId);
+        $this->withHeaders($this->headers($first->id, $revA))->getJson('/vision/runs/data')->assertStatus(404)->assertDontSee($firstDate);
         $this->flushHeaders();
         $revB = $this->get('/vision/runs')->assertOk()->inertiaProps('measurementBrandRevision');
-        $this->withHeaders($this->headers($second->id, $revB))->getJson('/vision/runs/data')->assertOk()->assertSee($secondId)->assertDontSee($firstId);
+        $this->withHeaders($this->headers($second->id, $revB))->getJson('/vision/runs/data')->assertOk()->assertSee($secondDate)->assertDontSee($firstDate);
         $this->post('/brand/switch', ['brand_id' => $first->id])->assertRedirect();
-        $this->withHeaders($this->headers($first->id, $revA))->getJson('/vision/runs/data')->assertStatus(409)->assertDontSee($firstId);
+        $this->withHeaders($this->headers($first->id, $revA))->getJson('/vision/runs/data')->assertStatus(409)->assertDontSee($firstDate);
         $this->actingAs($viewer)->withSession(['brand_id' => $first->id]);
         $revViewer = $this->get('/vision/runs')->assertOk()->inertiaProps('measurementBrandRevision');
-        $this->withHeaders($this->headers($first->id, $revViewer))->getJson('/vision/runs/data')->assertOk()->assertSee($firstId);
+        $this->withHeaders($this->headers($first->id, $revViewer))->getJson('/vision/runs/data')->assertOk()->assertSee($firstDate);
         DB::table('memberships')->where('id', $viewerMembership->id)->update(['status' => 'disabled']);
-        $this->withHeaders($this->headers($first->id, $revViewer))->getJson('/vision/runs/data')->assertForbidden()->assertDontSee($firstId);
+        $this->withHeaders($this->headers($first->id, $revViewer))->getJson('/vision/runs/data')->assertForbidden()->assertDontSee($firstDate);
         DB::table('memberships')->where('id', $viewerMembership->id)->update(['status' => 'active']);
         $this->actingAs($manager)->withSession(['brand_id' => $first->id])->get('/vision/runs')->assertForbidden();
         $this->actingAs($viewer)->withSession(['brand_id' => $first->id]);
         $revViewer = $this->get('/vision/runs')->inertiaProps('measurementBrandRevision');
         DB::table('auth_session_registry')->where('user_id', $viewer->id)->update(['revoked_at' => now()]);
-        $this->withHeaders($this->headers($first->id, $revViewer))->getJson('/vision/runs/data')->assertUnauthorized()->assertDontSee($firstId);
+        $this->withHeaders($this->headers($first->id, $revViewer))->getJson('/vision/runs/data')->assertUnauthorized()->assertDontSee($firstDate);
     }
 
     public function test_switch_between_tenant_resolution_and_data_read_rejects_the_stale_request(): void
@@ -175,7 +177,8 @@ final class MeasurementListTest extends TenancyTestCase
         [$owner, $org, $first, $second] = $this->cabinet();
         $this->enable($org, $first);
         $this->enable($org, $second);
-        $secret = $this->stored($org, $first, 'running');
+        $this->stored($org, $first, 'running', null, '2020-05-06 12:00:00+00');
+        $secret = '2020-05-06';
         $this->actingAs($owner)->withSession(['brand_id' => $first->id]);
         $revision = $this->get('/vision/runs')->inertiaProps('measurementBrandRevision');
         Route::middleware(['web', 'auth', 'verified', 'tenant', 'auth.version'])->get('/vision/test-delayed-list', function (Request $request) use ($org, $second) {

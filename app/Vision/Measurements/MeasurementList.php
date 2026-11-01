@@ -47,7 +47,7 @@ final class MeasurementList
             ->where('measurement.organization_id', $context->organizationId)->where('measurement.brand_id', $context->brandId);
         $count = (clone $query)->count();
         $rows = $query->orderByDesc('measurement.created_at')->orderByDesc('measurement.id')->forPage($page, 25)
-            ->get(['measurement.id', 'measurement.created_at']);
+            ->get(['measurement.created_at']);
 
         return ['data' => $rows->all(), 'page' => $page, 'last_page' => max(1, (int) ceil($count / 25)), 'total' => $count];
     }

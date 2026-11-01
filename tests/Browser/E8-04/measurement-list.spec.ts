@@ -2,13 +2,14 @@ import { expect, test } from '@playwright/test';
 
 test.skip(process.env.RUN_E804_LIST_E2E !== '1', 'Requires the isolated E8-04 server and fixture');
 test.use({
+  timezoneId: 'UTC',
   launchOptions: process.env.E804_CHROMIUM_PATH
     ? { executablePath: process.env.E804_CHROMIUM_PATH }
     : {},
 });
 const origin = 'http://127.0.0.1:8220';
-const alpha = '01J00000000000000000000011';
-const beta = '01J00000000000000000000022';
+const alpha = '10 окт. 2026 г., 12:30';
+const beta = '20 окт. 2026 г., 12:30';
 
 test.beforeEach(async ({ context, page }) => {
   await context.route('**/*', (route) =>
@@ -31,10 +32,10 @@ test('реальные сохранённые замеры текущего бр
     '/vision/runs',
   );
   await expect(page.getByText(alpha).first()).toBeVisible();
-  await expect(
-    page.getByText('Статусы и результаты не показаны: доступ к источнику не проверен.'),
-  ).toBeVisible();
+  await expect(page.getByText('Детали и результаты будут доступны позже.')).toBeVisible();
   await expect(page.getByText(beta)).toHaveCount(0);
+  await expect(page.getByText('01J00000000000000000000011')).toHaveCount(0);
+  await expect(page.getByText('01J00000000000000000000033')).toHaveCount(0);
   await expect(page.getByText('Запуск замеров — скоро')).toBeVisible();
   for (const width of [1440, 1024, 390]) {
     await page.setViewportSize({ width, height: 900 });
@@ -111,9 +112,7 @@ test('задержанный ответ скрывается после пере
   await expect(page.getByText(alpha)).toHaveCount(0);
   await other.goto(`${origin}/vision/runs`);
   await expect(other.getByText(beta).first()).toBeVisible();
-  await expect(
-    other.getByText('Статусы и результаты не показаны: доступ к источнику не проверен.'),
-  ).toBeVisible();
+  await expect(other.getByText('Детали и результаты будут доступны позже.')).toBeVisible();
   await expect(other.getByText(alpha)).toHaveCount(0);
 });
 
