@@ -11,6 +11,7 @@ use App\Shell\Profile\ProfileAccess;
 use App\Tenancy\TenantContext;
 use Closure;
 use Illuminate\Auth\AuthenticationException;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -44,11 +45,11 @@ final class ManualReviewRequests
         return $this->authorized($request, fn (TenantContext $tenant): array => $this->readOrRequestLocked($request, $tenant, $turnId, $create));
     }
 
-    /** Returns at most 100 verified requests; no client-supplied IDs or filters. */
+    /** Returns at most 100 verified requests per page; cursors do not confer access. */
     public function listRequested(#[SensitiveParameter] Request $request): array
     {
         try {
-            return $this->authorized($request, fn (TenantContext $tenant): array => $this->listRequestedLocked($tenant));
+            return $this->authorized($request, fn (TenantContext $tenant): array => $this->listRequestedLocked($tenant, $request->input('cursor')), allowCursor: true);
         } catch (AuthenticationException|HttpExceptionInterface $error) {
             throw $error;
         } catch (Throwable) {
@@ -56,9 +57,11 @@ final class ManualReviewRequests
         }
     }
 
-    private function authorized(#[SensitiveParameter] Request $request, Closure $action): array
+    private function authorized(#[SensitiveParameter] Request $request, Closure $action, bool $allowCursor = false): array
     {
-        if ($request->all() !== []) {
+        $input = $request->all();
+        if ((! $allowCursor && $input !== []) || ($allowCursor && (array_diff(array_keys($input), ['cursor']) !== []
+            || (array_key_exists('cursor', $input) && ! is_string($input['cursor']))))) {
             abort(422);
         }
         if (DB::connection()->getDriverName() !== 'pgsql' || DB::connection()->transactionLevel() !== 0) {
@@ -86,31 +89,73 @@ final class ManualReviewRequests
         });
     }
 
-    private function listRequestedLocked(#[SensitiveParameter] TenantContext $tenant): array
+    private function listRequestedLocked(#[SensitiveParameter] TenantContext $tenant, #[SensitiveParameter] ?string $cursor): array
     {
         $secret = config('app.key');
         if (! is_string($secret) || $secret === '') {
             throw new LogicException;
         }
-        $rows = DB::table('c02_manual_review_requests as r')
-            ->leftJoin('seller_turns as t', 't.id', '=', 'r.turn_id')
-            ->where('r.organization_id', $tenant->organizationId)->where('r.brand_id', $tenant->brandId)
-            ->orderByDesc('r.id')->limit(101)->get(['r.*', 't.organization_id as turn_organization_id',
-                't.brand_id as turn_brand_id', 't.conversation_id as turn_conversation_id']);
+        $boundary = null;
+        if ($cursor !== null) {
+            if (strlen($cursor) !== 91) {
+                abort(422);
+            }
+            $parts = explode('.', $cursor);
+            if (count($parts) !== 2 || ! Str::isUlid($parts[0]) || ! preg_match('/^[0-9a-f]{64}$/D', $parts[1])
+                || ! hash_equals($this->cursorSignature($tenant, $parts[0], $secret), $parts[1])) {
+                abort(422);
+            }
+            $boundary = $parts[0];
+            $boundaryRow = $this->reviewRows($tenant)->where('r.id', $boundary)->first();
+            if (! $boundaryRow) {
+                abort(422);
+            }
+            $this->verifyListRecord($boundaryRow, $tenant, $secret);
+        }
+        $query = $this->reviewRows($tenant);
+        if ($boundary !== null) {
+            $query->where('r.id', '<', $boundary);
+        }
+        $rows = $query->orderByDesc('r.id')->limit(101)->get();
         $items = [];
         foreach ($rows as $row) {
-            if ($row->turn_organization_id !== $tenant->organizationId || $row->turn_brand_id !== $tenant->brandId
-                || $row->turn_conversation_id !== $row->conversation_id) {
-                throw new LogicException;
-            }
-            $this->verifyRecord($row, $tenant, $row->conversation_id, $row->turn_id, $secret);
+            $this->verifyListRecord($row, $tenant, $secret);
             if (count($items) < 100) {
                 $items[] = ['conversation_id' => $row->conversation_id, 'turn_id' => $row->turn_id,
                     'reason' => $row->reason, 'other_effects_may_exist' => true];
             }
         }
 
-        return ['data' => $items, 'limit' => 100, 'has_more' => $rows->count() > 100];
+        $result = ['data' => $items, 'limit' => 100, 'has_more' => $rows->count() > 100];
+        if ($result['has_more']) {
+            $id = $rows[99]->id;
+            $result['next_cursor'] = $id.'.'.$this->cursorSignature($tenant, $id, $secret);
+        }
+
+        return $result;
+    }
+
+    private function reviewRows(#[SensitiveParameter] TenantContext $tenant): Builder
+    {
+        return DB::table('c02_manual_review_requests as r')
+            ->leftJoin('seller_turns as t', 't.id', '=', 'r.turn_id')
+            ->where('r.organization_id', $tenant->organizationId)->where('r.brand_id', $tenant->brandId)
+            ->select(['r.*', 't.organization_id as turn_organization_id',
+                't.brand_id as turn_brand_id', 't.conversation_id as turn_conversation_id']);
+    }
+
+    private function verifyListRecord(#[SensitiveParameter] object $row, #[SensitiveParameter] TenantContext $tenant, string $secret): void
+    {
+        if ($row->turn_organization_id !== $tenant->organizationId || $row->turn_brand_id !== $tenant->brandId
+            || $row->turn_conversation_id !== $row->conversation_id) {
+            throw new LogicException;
+        }
+        $this->verifyRecord($row, $tenant, $row->conversation_id, $row->turn_id, $secret);
+    }
+
+    private function cursorSignature(#[SensitiveParameter] TenantContext $tenant, string $id, string $secret): string
+    {
+        return hash_hmac('sha256', 'c02-review-page:'.$tenant->organizationId.':'.$tenant->brandId.':'.$id, $secret);
     }
 
     private function readOrRequestLocked(#[SensitiveParameter] Request $request, #[SensitiveParameter] TenantContext $tenant, #[SensitiveParameter] string $turnId, bool $create): array
