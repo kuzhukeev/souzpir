@@ -47,7 +47,9 @@ final class FirstTurnGoal
 
             $lead = new LeadState($state);
             $extraction['_text'] = mb_strtolower($message);
-            $goal = (new Policy($knowledge))->decide($lead, $extraction, true);
+            // In the donor, the proactive opening has no client message. This
+            // path always starts from a saved client message, even on turn one.
+            $goal = (new Policy($knowledge))->decide($lead, $extraction, false);
 
             // Return the full Goal, including facts and closed-topic data that
             // Goal::toArray() intentionally omits, and Policy's state changes.

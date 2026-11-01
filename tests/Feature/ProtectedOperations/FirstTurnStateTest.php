@@ -347,6 +347,29 @@ final class FirstTurnStateTest extends TestCase
         Http::assertNothingSent();
     }
 
+    public function test_first_client_message_follows_donor_inbound_goal_not_proactive_opening(): void
+    {
+        $golden = json_decode(file_get_contents(base_path('tests/fixtures/prototype/synthetic/open-turn.json')), true, 512, JSON_THROW_ON_ERROR);
+        $inbound = $golden['trace'][1]['meta'];
+        self::assertSame('intro_and_ask', $golden['trace'][0]['meta']['goal']['kind']);
+        self::assertSame('ask_slot', $inbound['goal']['kind']);
+        [$tenant, $http, $claim, $stage] = $this->fixture('Тула, на продажу.', [
+            'content' => json_encode($inbound['extraction'], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
+        ]);
+        $this->within($tenant, function () use ($http, $claim, $stage, $inbound): void {
+            $stateId = app(FirstTurnState::class)->prepare($http, $claim, $stage);
+            $computed = DB::transaction(fn () => app(FirstTurnGoal::class)->evaluateLocked($http, $claim, $stage, $stateId));
+            $actual = $computed['goal']->toArray();
+            self::assertSame($inbound['goal']['kind'], $actual['kind']);
+            self::assertSame($inbound['goal']['slot'], $actual['slot']);
+            self::assertSame($inbound['goal']['instruction'], $actual['instruction']);
+            self::assertSame(CanonicalJson::hash($inbound['goal']), CanonicalJson::hash($actual));
+            self::assertFalse($computed['state']['flags']['introduced']);
+            self::assertSame(1, $computed['state']['counters']['turns']);
+        });
+        Http::assertNothingSent();
+    }
+
     public function test_full_goal_is_recomputed_from_proven_sources_and_mutable_outputs_are_not_trusted(): void
     {
         [$tenant, $http, $claim, $stage] = $this->fixture('Synthetic closed topic', [
@@ -392,12 +415,12 @@ final class FirstTurnStateTest extends TestCase
         $this->within($tenant, function () use ($http, $claim, $stage): void {
             $stateId = app(FirstTurnState::class)->prepare($http, $claim, $stage);
             $result = DB::transaction(fn () => app(FirstTurnGoal::class)->evaluateLocked($http, $claim, $stage, $stateId));
-            self::assertSame('intro_and_ask', $result['goal']->kind);
+            self::assertSame('answer_and_ask', $result['goal']->kind);
             self::assertSame('company_location', $result['goal']->facts[0]['id']);
             self::assertNotEmpty($result['goal']->facts[0]['facts']);
             self::assertSame('company_location', $result['goal']->toArray()['facts'][0]);
-            self::assertTrue($result['state']['flags']['introduced']);
-            self::assertSame('qualify', $result['state']['stage']);
+            self::assertFalse($result['state']['flags']['introduced']);
+            self::assertSame('open', $result['state']['stage']);
             self::assertSame(1, DB::table('ai_calls')->count());
             self::assertSame(0, DB::table('seller_tasks')->count());
         });
@@ -586,7 +609,8 @@ final class FirstTurnStateTest extends TestCase
             self::assertSame('responder', $context->purpose);
             self::assertSame('user', $request->messages[1]['role']);
             self::assertSame('Synthetic question from synthetic.user@example.test', $request->messages[1]['content']);
-            self::assertStringContainsString('ЦЕЛЬ ХОДА:', $request->messages[0]['content']);
+            self::assertStringContainsString('ЦЕЛЬ ХОДА: ask_slot', $request->messages[0]['content']);
+            self::assertStringNotContainsString('ЦЕЛЬ ХОДА: intro_and_ask', $request->messages[0]['content']);
             $stored = DB::table('c02_responder_stages')->where('id', $stage)->first();
             self::assertStringNotContainsString('synthetic.user@example.test', json_encode($stored, JSON_THROW_ON_ERROR));
             try {
@@ -1239,6 +1263,34 @@ SQL);
         Http::assertNothingSent();
         Mail::assertNothingOutgoing();
         Queue::assertNothingPushed();
+    }
+
+    public function test_model_guard_is_reachable_for_an_inbound_question_with_facts(): void
+    {
+        config(['agent.guard_llm' => true]);
+        [$tenant, $http, $claim, $extractor] = $this->fixture('Где вы находитесь?', [
+            'content' => '{"client_intent":"ask_location"}',
+        ]);
+        [$responder, , , $file, $stateId] = $this->responderFixture($tenant, $http, $claim, $extractor, ['content' => 'Мы в Москве. Откуда вы?']);
+        $this->within($tenant, function () use ($http, $claim, $extractor, $responder, $stateId, $file): void {
+            $computed = DB::transaction(fn () => app(FirstTurnGoal::class)->evaluateLocked($http, $claim, $extractor, $stateId));
+            self::assertSame('answer_and_ask', $computed['goal']->kind);
+            self::assertSame('completed', app(Gateway::class)->completeProtectedResponder($http, $claim, $responder));
+            $det = DB::transaction(fn () => app(FirstTurnDeterministicGuard::class)->evaluateLocked($http, $claim, $responder));
+            self::assertSame('ok', $det['verdict']);
+            unlink($file);
+        });
+        [$stage, , , $guardFile] = $this->modelGuardFixture($tenant, $http, $claim, $responder);
+        $this->within($tenant, function () use ($http, $claim, $stage, $guardFile): void {
+            self::assertSame('completed', app(Gateway::class)->completeProtectedModelGuard($http, $claim, $stage));
+            $decision = DB::transaction(fn () => app(Gateway::class)->readProtectedModelGuardLocked($http, $claim, $stage));
+            self::assertSame('completed', $decision['status']);
+            self::assertSame('ok', $decision['verdict']);
+            self::assertSame(3, DB::table('ai_calls')->count());
+            self::assertSame(0, DB::table('seller_tasks')->count());
+            unlink($guardFile);
+        });
+        Http::assertNothingSent();
     }
 
     public function test_model_guard_refuses_unneeded_goal_and_deterministic_issues(): void
