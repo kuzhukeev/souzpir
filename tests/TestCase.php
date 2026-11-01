@@ -36,21 +36,31 @@ abstract class TestCase extends BaseTestCase
             $_ENV[$key] = $_SERVER[$key] = $value;
         }
 
-        // Laravel creates one database per ParaTest worker. Keep the explicit
-        // safety guard aligned with that worker's database, never the preview.
+        // Laravel selects each worker database after the application boots.
+        // Boot against the explicit base first, then align test-only guards
+        // with the exact database Laravel will select for this worker.
         $token = $_SERVER['TEST_TOKEN'] ?? null;
         $baseDatabase = getenv('DB_DATABASE');
         $testDatabase = getenv('DB_TEST_DATABASE');
+        $workerDatabase = null;
         if (! empty($_SERVER['LARAVEL_PARALLEL_TESTING']) && is_string($token)
             && ctype_digit($token) && is_string($baseDatabase)
             && preg_match('/\Asouzpir_test_[a-z0-9_]+\z/D', $baseDatabase)) {
-            $workerDatabase = $baseDatabase.'_test_'.$token;
-            if ($testDatabase === $baseDatabase || $testDatabase === $workerDatabase) {
-                putenv('DB_TEST_DATABASE='.$workerDatabase);
-                $_ENV['DB_TEST_DATABASE'] = $_SERVER['DB_TEST_DATABASE'] = $workerDatabase;
+            $candidate = $baseDatabase.'_test_'.$token;
+            if ($testDatabase === $baseDatabase || $testDatabase === $candidate) {
+                $workerDatabase = $candidate;
+                putenv('DB_TEST_DATABASE='.$baseDatabase);
+                $_ENV['DB_TEST_DATABASE'] = $_SERVER['DB_TEST_DATABASE'] = $baseDatabase;
             }
         }
 
-        return parent::createApplication();
+        $app = parent::createApplication();
+        if ($workerDatabase !== null) {
+            putenv('DB_TEST_DATABASE='.$workerDatabase);
+            $_ENV['DB_TEST_DATABASE'] = $_SERVER['DB_TEST_DATABASE'] = $workerDatabase;
+            $app['config']->set('runtime.test_database', $workerDatabase);
+        }
+
+        return $app;
     }
 }
