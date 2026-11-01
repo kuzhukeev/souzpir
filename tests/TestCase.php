@@ -36,6 +36,21 @@ abstract class TestCase extends BaseTestCase
             $_ENV[$key] = $_SERVER[$key] = $value;
         }
 
+        // Laravel creates one database per ParaTest worker. Keep the explicit
+        // safety guard aligned with that worker's database, never the preview.
+        $token = $_SERVER['TEST_TOKEN'] ?? null;
+        $baseDatabase = getenv('DB_DATABASE');
+        $testDatabase = getenv('DB_TEST_DATABASE');
+        if (! empty($_SERVER['LARAVEL_PARALLEL_TESTING']) && is_string($token)
+            && ctype_digit($token) && is_string($baseDatabase)
+            && preg_match('/\Asouzpir_test_[a-z0-9_]+\z/D', $baseDatabase)) {
+            $workerDatabase = $baseDatabase.'_test_'.$token;
+            if ($testDatabase === $baseDatabase || $testDatabase === $workerDatabase) {
+                putenv('DB_TEST_DATABASE='.$workerDatabase);
+                $_ENV['DB_TEST_DATABASE'] = $_SERVER['DB_TEST_DATABASE'] = $workerDatabase;
+            }
+        }
+
         return parent::createApplication();
     }
 }

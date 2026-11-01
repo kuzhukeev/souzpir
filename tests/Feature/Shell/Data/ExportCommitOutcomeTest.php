@@ -18,7 +18,6 @@ use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
 use Illuminate\Database\Events\TransactionCommitted;
 use Illuminate\Database\QueryException;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
@@ -26,6 +25,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Mockery;
 use RuntimeException;
+use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\TestCase;
 
 final class CommitOutcomeFixtureContributor implements ExportContributor
@@ -43,7 +43,7 @@ final class CommitOutcomeFixtureContributor implements ExportContributor
 
 final class ExportCommitOutcomeTest extends TestCase
 {
-    use DatabaseMigrations;
+    use IsolatedDatabaseMigrations;
 
     protected function beforeRefreshingDatabase(): void
     {

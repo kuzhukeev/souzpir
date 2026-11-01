@@ -4,13 +4,13 @@ namespace Tests\Feature\Shell\Auth\Retention;
 
 use App\Models\User;
 use App\Shell\Auth\Retention\SessionRetention;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
+use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\TestCase;
 
 final class SessionRetentionTest extends TestCase
 {
-    use DatabaseMigrations;
+    use IsolatedDatabaseMigrations;
 
     protected function beforeRefreshingDatabase(): void
     {

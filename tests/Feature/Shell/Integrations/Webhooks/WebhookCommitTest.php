@@ -10,7 +10,6 @@ use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Brands\Contracts\DomainDnsResolver;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Http\Client\Request as ClientRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
@@ -18,12 +17,13 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\TestCase;
 
 /** Commits are real: unlike RefreshDatabase, DatabaseMigrations does not wrap the test in a transaction. */
 final class WebhookCommitTest extends TestCase
 {
-    use DatabaseMigrations;
+    use IsolatedDatabaseMigrations;
 
     protected function setUp(): void
     {

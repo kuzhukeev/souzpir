@@ -15,14 +15,14 @@ use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\TestCase;
 
 final class ExternalDigestTest extends TestCase
 {
-    use DatabaseMigrations;
+    use IsolatedDatabaseMigrations;
 
     protected function beforeRefreshingDatabase(): void
     {
