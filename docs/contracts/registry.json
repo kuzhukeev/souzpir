@@ -65,6 +65,11 @@
       "tenant": "parent:c02_session_lease_ids",
       "parents": ["c02_session_lease_ids"]
     },
+    "c02_manual_review_requests": {
+      "owner": "SP-C-02",
+      "tenant": "brand",
+      "parents": ["organizations", "brands", "conversations", "seller_turns", "users"]
+    },
     "c02_ai_stages": {
       "owner": "SP-C-02",
       "tenant": "brand",
