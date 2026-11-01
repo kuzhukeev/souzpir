@@ -122,19 +122,30 @@ final class FirstTurnStateTest extends TestCase
         });
     }
 
-    public function test_old_or_nonempty_state_is_rejected_even_when_extractor_stage_is_valid(): void
+    public function test_old_or_nonempty_state_is_rejected_before_a_protected_extractor_stage(): void
     {
         foreach ([['state' => ['slots' => ['city' => 'Forged']]], ['history' => true], ['changed' => true], ['mode' => 'manager']] as $case) {
-            [$tenant, $http, $claim, $stage] = $this->fixture('Synthetic input', $case);
-            $this->within($tenant, function () use ($http, $claim, $stage): void {
+            [$tenant, $http, $command] = $this->protectedClaimFixture();
+            $this->within($tenant, function () use ($http, $command, $case): void {
+                if (isset($case['state'])) {
+                    DB::table('conversations')->where('id', $command->conversationId)->update(['state' => json_encode($case['state'], JSON_THROW_ON_ERROR)]);
+                } elseif (isset($case['mode'])) {
+                    DB::table('conversations')->where('id', $command->conversationId)->update(['mode' => $case['mode']]);
+                } elseif (isset($case['history'])) {
+                    Message::create(['conversation_id' => $command->conversationId, 'role' => 'agent', 'text' => 'Earlier synthetic output', 'meta' => []]);
+                } else {
+                    DB::table('conversations')->where('id', $command->conversationId)->update(['state' => '{"temporary":true}']);
+                    DB::table('conversations')->where('id', $command->conversationId)->update(['state' => '[]']);
+                }
                 try {
-                    app(FirstTurnState::class)->prepare($http, $claim, $stage);
+                    app(FirstTurnProtectedClaim::class)->claim($http, $command);
                     self::fail('Unproven initial state was accepted.');
                 } catch (LogicException $error) {
-                    self::assertSame('Protected first-turn state unavailable.', $error->getMessage());
+                    self::assertSame('Protected first-turn claim unavailable.', $error->getMessage());
                     self::assertNull($error->getPrevious());
                 }
-                self::assertSame(0, DB::table('c02_first_turn_states')->where('turn_id', $claim->turnId)->count());
+                self::assertSame(0, DB::table('c02_extractor_stages')->where('conversation_id', $command->conversationId)->count());
+                self::assertSame(0, DB::table('ai_calls')->count());
             });
         }
         Http::assertNothingSent();
@@ -1183,7 +1194,7 @@ SQL);
         Http::assertNothingSent();
     }
 
-    private function modelGuardResponder(string $candidate = 'Давайте обсудим ваш заказ.', bool $protectedClaim = false): array
+    private function modelGuardResponder(string $candidate = 'Давайте обсудим ваш заказ.', bool $protectedClaim = true): array
     {
         [$tenant, $http, $claim, $extractor] = $this->fixture('Synthetic closed topic', [
             'content' => '{"client_intent":"answer_only","closed_topic":"management_names"}',
@@ -1721,10 +1732,10 @@ SQL);
 
     public function test_first_text_rejects_public_claim_even_when_a_prior_receipt_exists(): void
     {
-        [$tenant, $http, $claim, $extractor] = $this->fixture('Public claim input');
-        [$responder, , , $file] = $this->responderFixture($tenant, $http, $claim, $extractor, ['content' => 'Можем обсудить заказ?']);
-        $this->within($tenant, function () use ($tenant, $http, $claim, $responder, $file): void {
-            app(Gateway::class)->completeProtectedResponder($http, $claim, $responder);
+        [$tenant, $http, $command] = $this->protectedClaimFixture();
+        $claim = app(ConversationRepository::class)->claimTurn($tenant, $command);
+        $responder = (string) Str::ulid();
+        $this->within($tenant, function () use ($tenant, $http, $claim, $responder, $command): void {
             $service = app(FirstTurnTextFinalizer::class);
             try {
                 $service->finalize($http, $claim, $responder, null, 'legacy-claim');
@@ -1735,7 +1746,7 @@ SQL);
                 $trace = json_encode($error->getTrace(), JSON_PARTIAL_OUTPUT_ON_ERROR | JSON_THROW_ON_ERROR);
                 self::assertStringNotContainsString($claim->token(), $trace);
                 self::assertStringNotContainsString($http->session()->getId(), $trace);
-                self::assertStringNotContainsString('Public claim input', $trace);
+                self::assertStringNotContainsString($command->text, $trace);
             }
             self::assertSame(0, DB::table('protected_operation_receipts')->where('operation', 'seller.first_text_finalize')->count());
             $selection = app(AuthSessionRegistry::class)->withinActive($http, fn () => app(SessionBrandSelection::class)->current($http));
@@ -1759,7 +1770,6 @@ SQL);
             self::assertSame(0, DB::table('audit_logs')->where('action', 'seller.turn.text_finalized')->count());
             self::assertSame(0, DB::table('seller_tasks')->count());
             self::assertSame(0, DB::table('outbox_events')->count());
-            unlink($file);
         });
         Http::assertNothingSent();
         Mail::assertNothingOutgoing();
@@ -2775,7 +2785,7 @@ SQL);
             return [$conversation, $input];
         });
         $command = new TurnCommand($conversation->id, $input->id, $input->text, null, 'state-stage-'.Str::random(16), 0);
-        $claim = ($options['protected_claim'] ?? false)
+        $claim = ($options['protected_claim'] ?? true)
             ? $this->within($tenant, fn () => app(FirstTurnProtectedClaim::class)->claim($http, $command))
             : app(ConversationRepository::class)->claimTurn($tenant, $command);
         $stage = $this->within($tenant, fn () => app(SellerExtractorStages::class)->prepare($http, $claim));
