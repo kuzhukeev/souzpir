@@ -2,6 +2,7 @@
 
 namespace App\Shell\Integrations\Webhooks;
 
+use App\Shell\Integrations\SecretTransport;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\InputBag;
@@ -13,6 +14,27 @@ final class WebhookConfigurationBoundary
     public function handle(#[\SensitiveParameter] Request $request, Closure $next): Response
     {
         $path = trim($request->decodedPath(), '/');
+        if ($path === 'integrations/api/webhook-settings' && $request->getRealMethod() === 'POST') {
+            $payload = ['url' => $request->input('url'), 'events' => $request->input('events'), 'secret' => $request->input('secret')];
+            $secure = SecretTransport::allows($request);
+            $cookies = $request->cookies->all();
+            $server = $request->server->all();
+            $server['REQUEST_URI'] = '/integrations/api/webhook-settings';
+            $server['QUERY_STRING'] = '';
+            unset($server['HTTP_REFERER'], $server['HTTP_X_ORIGINAL_URL'], $server['HTTP_X_REWRITE_URL']);
+            $request->initialize([], [], ['webhook_configuration' => $payload, 'webhook_transport_secure' => $secure], $cookies, [], $server, '');
+            $request->setJson(new InputBag);
+            if (! isset($_SERVER['LARAVEL_OCTANE']) && getenv('LARAVEL_OCTANE') === false
+                && ! isset($_SERVER['OCTANE_SERVER']) && getenv('OCTANE_SERVER') === false
+                && ! isset($_SERVER['RR_MODE']) && getenv('RR_MODE') === false && ! class_exists('Swoole\\Coroutine', false)) {
+                $_GET = $_POST = $_REQUEST = $_FILES = [];
+                $_SERVER['QUERY_STRING'] = '';
+                $_SERVER['REQUEST_URI'] = '/integrations/api/webhook-settings';
+                unset($_SERVER['HTTP_REFERER'], $_SERVER['HTTP_X_ORIGINAL_URL'], $_SERVER['HTTP_X_REWRITE_URL']);
+            }
+
+            return $next($request);
+        }
         if (($path !== 'integrations/api/webhooks' && ! str_starts_with($path, 'integrations/api/webhooks/'))
             || (in_array($request->getMethod(), ['GET', 'HEAD', 'OPTIONS'], true)
                 && in_array($request->getRealMethod(), ['GET', 'HEAD', 'OPTIONS'], true))) {

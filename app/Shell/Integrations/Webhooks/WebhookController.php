@@ -25,4 +25,19 @@ final class WebhookController
 
         return redirect('/integrations/api');
     }
+
+    public function configure(Request $request, WebhookService $service): RedirectResponse
+    {
+        abort_unless($request->attributes->get('webhook_transport_secure') === true, 403, SecretTransport::MESSAGE);
+        $service->configure($request);
+
+        return redirect('/integrations/api');
+    }
+
+    public function fakeTest(Request $request, string $webhook, WebhookService $service): RedirectResponse
+    {
+        $service->fakeTest($request, $webhook);
+
+        return redirect('/integrations/api');
+    }
 }

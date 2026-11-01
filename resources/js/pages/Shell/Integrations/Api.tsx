@@ -44,6 +44,7 @@ const deliveryLabels: Record<string, string> = {
   sending: 'Отправляется',
   sent: 'Доставлено',
   failed: 'Ошибка',
+  simulated: 'Проверено без отправки',
 };
 export default function Api({
   keys,
@@ -68,6 +69,12 @@ export default function Api({
   const [pending, setPending] = useState<string | null>(null);
   const [notice, setNotice] = useState('');
   const [copyMessage, setCopyMessage] = useState('');
+  const [showWebhookCreate, setShowWebhookCreate] = useState(false);
+  const [webhookUrl, setWebhookUrl] = useState('');
+  const [webhookEventsSelected, setWebhookEventsSelected] = useState<string[]>([]);
+  const [webhookSecret, setWebhookSecret] = useState('');
+  const [webhookSaving, setWebhookSaving] = useState(false);
+  const [webhookCreated, setWebhookCreated] = useState(false);
   const copySecret = async (value: string) => {
     try {
       await navigator.clipboard.writeText(value);
@@ -147,19 +154,40 @@ export default function Api({
     setError('');
     setNotice('');
     router.post(
-      '/integrations/api/webhooks/' + encodeURIComponent(id) + '/test',
+      '/integrations/api/webhook-settings/' + encodeURIComponent(id) + '/test',
       {},
       {
         preserveScroll: true,
         onStart: () => setPending(id),
         onFinish: () => setPending(null),
-        onSuccess: () =>
-          setNotice('Тестовая доставка поставлена в очередь. Проверьте её статус в истории.'),
+        onSuccess: () => setNotice('Fake проверка записана в историю. Внешний запрос не выполнялся.'),
         onError: (errors) => setError(Object.values(errors).join(' ')),
         onNetworkError: fail,
         onHttpException: fail,
       },
     );
+  };
+  const openWebhookCreate = () => {
+    setWebhookUrl('');
+    setWebhookEventsSelected([]);
+    setWebhookSecret(Array.from(crypto.getRandomValues(new Uint8Array(32)), (value) => value.toString(16).padStart(2, '0')).join(''));
+    setWebhookCreated(false);
+    setShowWebhookCreate(true);
+  };
+  const createWebhook = (event: FormEvent) => {
+    event.preventDefault();
+    setError('');
+    router.post('/integrations/api/webhook-settings', {
+      url: webhookUrl, events: webhookEventsSelected, secret: webhookSecret,
+    }, {
+      preserveScroll: true,
+      onStart: () => setWebhookSaving(true),
+      onFinish: () => setWebhookSaving(false),
+      onSuccess: () => { setWebhookCreated(true); setNotice('Вебхук сохранён. Скопируйте секрет: повторно он не показывается.'); },
+      onError: (errors) => setError(Object.values(errors)[0] ?? 'Не удалось сохранить вебхук.'),
+      onNetworkError: fail,
+      onHttpException: fail,
+    });
   };
   return (
     <>
@@ -302,9 +330,12 @@ export default function Api({
             <Webhook size={22} aria-hidden="true" /> Вебхуки
           </h2>
           <p className="mt-1 text-sm text-(--color-ink-muted)">Получайте события в вашей системе</p>
+          <Button className="mt-4" disabled={!permissions.manage || !secureSecretTransport || !secretStorageReady} onClick={openWebhookCreate}>
+            <Plus size={17} aria-hidden="true" /> Добавить вебхук
+          </Button>
           {!webhookDeliveryAvailable && (
             <p className="mt-4 text-sm text-(--color-warning-ink)">
-              Настройка и отправка вебхуков временно недоступны. Адреса ранее созданных вебхуков скрыты.
+              Реальная доставка вебхуков выключена. Тест выполняется без внешнего запроса. Адреса вебхуков скрыты.
             </p>
           )}{' '}
           {webhooks.length === 0 && (
@@ -327,10 +358,10 @@ export default function Api({
                 </div>
                 <Button
                   variant="secondary"
-                  disabled={!permissions.manage || !webhookDeliveryAvailable || pending !== null}
+                  disabled={!permissions.manage || pending !== null}
                   onClick={() => testHook(hook.id)}
                 >
-                  Отправить тест
+                  Проверить без отправки
                 </Button>
               </div>
               <p className="mt-4 text-sm">
@@ -436,6 +467,29 @@ export default function Api({
             Готово
           </Button>
         </div>
+      </Modal>
+      <Modal open={showWebhookCreate} title="Добавить вебхук" onClose={() => { setShowWebhookCreate(false); setWebhookSecret(''); }}>
+        <form onSubmit={createWebhook} className="space-y-4">
+          <Input label="HTTPS адрес" type="url" value={webhookUrl} onChange={(event) => setWebhookUrl(event.target.value)} disabled={webhookCreated} required />
+          <fieldset disabled={webhookCreated}>
+            <legend className="mb-2 text-sm font-semibold">События</legend>
+            <div className="space-y-2">
+              {webhookEvents.map((item) => (
+                <label key={item.value} className="flex cursor-pointer items-center gap-2 text-sm">
+                  <input type="checkbox" checked={webhookEventsSelected.includes(item.value)} onChange={(event) => setWebhookEventsSelected(event.target.checked ? [...webhookEventsSelected, item.value] : webhookEventsSelected.filter((value) => value !== item.value))} />
+                  {item.label}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          <p className="text-sm">Секрет подписи показывается один раз. Скопируйте его до закрытия окна.</p>
+          <p className="break-all rounded-lg bg-(--color-surface-muted) p-3 font-mono text-sm" aria-label="Секрет нового вебхука">{webhookSecret}</p>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button type="button" variant="secondary" onClick={() => void copySecret(webhookSecret)}>Копировать секрет</Button>
+            {!webhookCreated && <Button type="submit" loading={webhookSaving}>Сохранить вебхук</Button>}
+            {webhookCreated && <Button type="button" onClick={() => { setShowWebhookCreate(false); setWebhookSecret(''); }}>Готово</Button>}
+          </div>
+        </form>
       </Modal>
       <Modal open={token !== null} title="Сохраните ключ" onClose={() => setToken(null)}>
         <p>Ключ показывается только один раз. Сохраните его в безопасном месте.</p>
