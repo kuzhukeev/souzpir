@@ -4,7 +4,7 @@
 
 Цель: Интегрировать перенесённые части движка с persistence и AiGateway, runtime per brand, meta, tool-calls, retry/fallback. bot доставляет через Delivery contract; suggest сохраняет подсказку без отправки; manager молчит. Доставка каналов остается отдельным владельцам.
 
-Зависимости (нужен done после merge): SP-E0-04, SP-E3-03, SP-E3-04.
+Зависимости (нужен done после merge): SP-E0-04, SP-E3-03D, SP-E3-03E, SP-E3-04. SP-E3-03C входит через D/E; исходная SP-E3-03 закрывается после интеграции, не блокируя её начало.
 Область записи: app/Seller/Engine/, app/Seller/Runtime/, tests/Feature/SellerRuntime/, docs/results/SP-E3-03B.md.
 Экраны: инфраструктура/контракты.
 Источники: E3-03.
