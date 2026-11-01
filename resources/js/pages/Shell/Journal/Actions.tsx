@@ -49,6 +49,10 @@ export default function Actions({ rows, filters, actors, actions, canNotificatio
   const [selected, setSelected] = useState<Row | null>(null);
   const { loading, failed, retry: retryLoad } = useJournalNavigation();
   const query = new URLSearchParams(compact(filters)).toString();
+  const actorOptions = actors.map((actor) => ({ value: actor.id, label: actor.name }));
+  if (filters.actor && !actorOptions.some((actor) => actor.value === filters.actor)) {
+    actorOptions.push({ value: filters.actor, label: 'Выбранный участник' });
+  }
   return (
     <CabinetLayout breadcrumbs={[{ label: 'Главная' }, { label: 'Журнал' }]}>
       <Head title="Действия в кабинете" />
@@ -74,7 +78,7 @@ export default function Actions({ rows, filters, actors, actions, canNotificatio
           {
             key: 'actor',
             label: 'Участник',
-            items: actors.map((actor) => ({ value: actor.id, label: actor.name })),
+            items: actorOptions,
           },
           {
             key: 'module',
