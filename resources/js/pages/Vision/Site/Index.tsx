@@ -196,7 +196,7 @@ export default function Index({
         )}
         {section === 'history' && (
           <Actions
-            actions={history.length ? history : actions}
+            actions={history}
             canManage={canManage}
             history
             members={members}
