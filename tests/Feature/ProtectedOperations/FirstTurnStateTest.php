@@ -10,6 +10,7 @@ use App\Models\Brand;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\User;
+use App\ProtectedOperations\FirstTurnGoal;
 use App\ProtectedOperations\FirstTurnState;
 use App\Seller\Conversations\Contracts\ConversationRepository;
 use App\Seller\Conversations\Data\TurnClaim;
@@ -337,6 +338,215 @@ final class FirstTurnStateTest extends TestCase
         Http::assertNothingSent();
     }
 
+    public function test_full_goal_is_recomputed_from_proven_sources_and_mutable_outputs_are_not_trusted(): void
+    {
+        [$tenant, $http, $claim, $stage] = $this->fixture('Synthetic closed topic', [
+            'content' => '{"client_intent":"answer_only","closed_topic":"management_names"}',
+        ]);
+        $this->within($tenant, function () use ($http, $claim, $stage): void {
+            $stateId = app(FirstTurnState::class)->prepare($http, $claim, $stage);
+            $source = app(FirstTurnGoal::class);
+            try {
+                $source->evaluateLocked($http, $claim, $stage, $stateId);
+                self::fail('Goal was read outside a transaction.');
+            } catch (LogicException $error) {
+                self::assertSame('Protected first-turn goal unavailable.', $error->getMessage());
+            }
+            DB::transaction(function () use ($http, $claim, $stage, $stateId, $source): void {
+                $first = $source->evaluateLocked($http, $claim, $stage, $stateId);
+                self::assertSame('closed_topic', $first['goal']->kind);
+                self::assertSame('management_names', $first['goal']->extras['closed_topic']['id']);
+                self::assertArrayNotHasKey('closed_topic', $first['goal']->toArray()['extras']);
+                self::assertSame(1, $first['state']['counters']['turns']);
+                $first['goal']->extras['closed_topic']['id'] = 'forged';
+                $first['goal']->allowedTools = ['forged_tool'];
+                $first['state']['stage'] = 'done';
+                $second = $source->evaluateLocked($http, $claim, $stage, $stateId);
+                self::assertSame('management_names', $second['goal']->extras['closed_topic']['id']);
+                self::assertSame([], $second['goal']->allowedTools);
+                self::assertNotSame('done', $second['state']['stage']);
+            });
+            self::assertSame(1, DB::table('ai_calls')->count());
+            self::assertSame(0, DB::table('seller_tasks')->count());
+            self::assertSame(0, DB::table('outbox_events')->count());
+        });
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
+    }
+
+    public function test_goal_contains_complete_verified_facts_for_the_first_turn(): void
+    {
+        [$tenant, $http, $claim, $stage] = $this->fixture('Where are you?', [
+            'content' => '{"client_intent":"ask_location"}',
+        ]);
+        $this->within($tenant, function () use ($http, $claim, $stage): void {
+            $stateId = app(FirstTurnState::class)->prepare($http, $claim, $stage);
+            $result = DB::transaction(fn () => app(FirstTurnGoal::class)->evaluateLocked($http, $claim, $stage, $stateId));
+            self::assertSame('intro_and_ask', $result['goal']->kind);
+            self::assertSame('company_location', $result['goal']->facts[0]['id']);
+            self::assertNotEmpty($result['goal']->facts[0]['facts']);
+            self::assertSame('company_location', $result['goal']->toArray()['facts'][0]);
+            self::assertTrue($result['state']['flags']['introduced']);
+            self::assertSame('qualify', $result['state']['stage']);
+            self::assertSame(1, DB::table('ai_calls')->count());
+            self::assertSame(0, DB::table('seller_tasks')->count());
+        });
+        Http::assertNothingSent();
+    }
+
+    public function test_policy_state_mutation_is_returned_but_neither_persisted_nor_executed(): void
+    {
+        [$tenant, $http, $claim, $stage] = $this->fixture('Do not contact', [
+            'content' => '{"client_intent":"answer_only","do_not_disturb":true}',
+        ]);
+        $this->within($tenant, function () use ($http, $claim, $stage): void {
+            $stateId = app(FirstTurnState::class)->prepare($http, $claim, $stage);
+            DB::transaction(function () use ($http, $claim, $stage, $stateId): void {
+                $source = app(FirstTurnGoal::class);
+                $first = $source->evaluateLocked($http, $claim, $stage, $stateId);
+                $second = $source->evaluateLocked($http, $claim, $stage, $stateId);
+                self::assertSame('opt_out', $first['goal']->kind);
+                self::assertSame(['mark_do_not_disturb'], $first['goal']->allowedTools);
+                self::assertSame('lost', $first['state']['stage']);
+                self::assertSame($first['state'], $second['state']);
+                self::assertEquals($first['goal'], $second['goal']);
+                $beforePolicy = app(FirstTurnState::class)->readLocked($http, $claim, $stage, $stateId);
+                self::assertSame('open', $beforePolicy['stage']);
+            });
+            $conversation = DB::table('conversations')->where('id', $claim->conversationId)->first();
+            self::assertFalse($conversation->do_not_disturb);
+            self::assertSame([], json_decode($conversation->state, true, 512, JSON_THROW_ON_ERROR));
+            self::assertSame(1, DB::table('ai_calls')->count());
+            self::assertSame(0, DB::table('seller_tasks')->count());
+            self::assertSame(0, DB::table('outbox_events')->count());
+        });
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
+    }
+
+    public function test_goal_rejects_forged_context_tampered_result_and_revoked_session(): void
+    {
+        [$tenant, $http, $claim, $stage] = $this->fixture();
+        [$otherTenant, $otherHttp, $otherClaim, $otherStage] = $this->fixture('Other synthetic input');
+        $otherCall = DB::table('c02_extractor_stages')->where('id', $otherStage)->value('ai_call_id');
+        $otherCipher = DB::table('ai_calls')->where('id', $otherCall)->value('result_encrypted');
+        $otherStateId = $this->within($otherTenant, fn () => app(FirstTurnState::class)->prepare($otherHttp, $otherClaim, $otherStage));
+        $this->within($tenant, function () use ($http, $claim, $stage, $otherStage, $otherCipher, $otherStateId): void {
+            $stateId = app(FirstTurnState::class)->prepare($http, $claim, $stage);
+            $forged = new TurnClaim('claimed', $claim->turnId, $claim->conversationId, $claim->organizationId, $claim->brandId, $claim->baseVersion, str_repeat('a', 64));
+            foreach ([[$forged, $stage, $stateId], [$claim, $otherStage, $stateId], [$claim, $stage, $otherStateId], [$claim, $stage, (string) Str::ulid()]] as [$turn, $stageId, $id]) {
+                try {
+                    DB::transaction(fn () => app(FirstTurnGoal::class)->evaluateLocked($http, $turn, $stageId, $id));
+                    self::fail('Forged goal source was accepted.');
+                } catch (LogicException $error) {
+                    self::assertSame('Protected first-turn goal unavailable.', $error->getMessage());
+                    self::assertNull($error->getPrevious());
+                    $trace = json_encode($error->getTrace(), JSON_PARTIAL_OUTPUT_ON_ERROR | JSON_THROW_ON_ERROR);
+                    self::assertStringNotContainsString($turn->token(), $trace);
+                    self::assertStringNotContainsString($http->session()->getId(), $trace);
+                }
+            }
+            $call = DB::table('c02_extractor_stages')->where('id', $stage)->value('ai_call_id');
+            $originalCipher = DB::table('ai_calls')->where('id', $call)->value('result_encrypted');
+            DB::table('ai_calls')->where('id', $call)->update(['result_encrypted' => $otherCipher]);
+            try {
+                DB::transaction(fn () => app(FirstTurnGoal::class)->evaluateLocked($http, $claim, $stage, $stateId));
+                self::fail('A different extractor result was accepted.');
+            } catch (LogicException $error) {
+                self::assertSame('Protected first-turn goal unavailable.', $error->getMessage());
+            }
+            DB::table('ai_calls')->where('id', $call)->update(['result_encrypted' => $originalCipher]);
+            DB::table('ai_calls')->where('id', $call)->update(['cost_micros' => 999]);
+            try {
+                DB::transaction(fn () => app(FirstTurnGoal::class)->evaluateLocked($http, $claim, $stage, $stateId));
+                self::fail('Tampered extractor accounting was accepted.');
+            } catch (LogicException) {
+                self::assertTrue(true);
+            }
+        });
+        $this->within($otherTenant, function () use ($otherTenant, $otherHttp, $otherClaim, $otherStage): void {
+            $stateId = app(FirstTurnState::class)->prepare($otherHttp, $otherClaim, $otherStage);
+            DB::table('memberships')->where('id', $otherTenant->membershipId)->update(['status' => 'disabled']);
+            try {
+                DB::transaction(fn () => app(FirstTurnGoal::class)->evaluateLocked($otherHttp, $otherClaim, $otherStage, $stateId));
+                self::fail('Revoked membership computed a goal.');
+            } catch (LogicException $error) {
+                self::assertSame('Protected first-turn goal unavailable.', $error->getMessage());
+            }
+            DB::table('memberships')->where('id', $otherTenant->membershipId)->update(['status' => 'active']);
+            app(AuthSessionRegistry::class)->withinActive($otherHttp, fn () => app(AuthSessionRegistry::class)->revokeCurrent($otherHttp));
+            try {
+                DB::transaction(fn () => app(FirstTurnGoal::class)->evaluateLocked($otherHttp, $otherClaim, $otherStage, $stateId));
+                self::fail('Revoked session computed a goal.');
+            } catch (LogicException) {
+                self::assertTrue(true);
+            }
+        });
+        self::assertSame(2, DB::table('ai_calls')->count());
+        self::assertSame(0, DB::table('seller_tasks')->count());
+        Http::assertNothingSent();
+    }
+
+    public function test_goal_locks_new_input_and_becomes_stale_when_the_input_is_saved(): void
+    {
+        [$tenant, $http, $claim, $stage] = $this->fixture();
+        $this->within($tenant, function () use ($tenant, $http, $claim, $stage): void {
+            $stateId = app(FirstTurnState::class)->prepare($http, $claim, $stage);
+            config(['database.connections.c02_goal_competitor' => config('database.connections.pgsql')]);
+            $other = DB::connection('c02_goal_competitor');
+            DB::transaction(function () use ($tenant, $http, $claim, $stage, $stateId, $other): void {
+                self::assertNotEmpty(app(FirstTurnGoal::class)->evaluateLocked($http, $claim, $stage, $stateId)['goal']->kind);
+                $other->beginTransaction();
+                try {
+                    $other->statement("SET LOCAL lock_timeout = '250ms'");
+                    $other->table('messages')->insert(['id' => (string) Str::ulid(), 'organization_id' => $tenant->organizationId,
+                        'brand_id' => $tenant->brandId, 'conversation_id' => $claim->conversationId,
+                        'role' => 'client', 'text' => 'Concurrent synthetic input', 'meta' => '{}']);
+                    self::fail('Input crossed goal evaluation.');
+                } catch (QueryException $error) {
+                    self::assertSame('55P03', $error->errorInfo[0]);
+                } finally {
+                    $other->rollBack();
+                }
+            });
+            DB::purge('c02_goal_competitor');
+            Message::create(['conversation_id' => $claim->conversationId, 'role' => 'client', 'text' => 'Later synthetic input', 'meta' => []]);
+            try {
+                DB::transaction(fn () => app(FirstTurnGoal::class)->evaluateLocked($http, $claim, $stage, $stateId));
+                self::fail('Goal remained available after new input.');
+            } catch (LogicException) {
+                self::assertTrue(true);
+            }
+            self::assertSame(2, DB::table('messages')->where('conversation_id', $claim->conversationId)->count());
+            self::assertSame('uncertain', DB::table('seller_turns')->where('id', $claim->turnId)->value('status'));
+            self::assertSame(1, DB::table('ai_calls')->count());
+            self::assertSame(0, DB::table('seller_tasks')->count());
+        });
+        Http::assertNothingSent();
+    }
+
+    public function test_goal_is_unavailable_when_the_published_release_changes(): void
+    {
+        [$tenant, $http, $claim, $stage] = $this->fixture();
+        $this->within($tenant, function () use ($tenant, $http, $claim, $stage): void {
+            $stateId = app(FirstTurnState::class)->prepare($http, $claim, $stage);
+            $goal = DB::transaction(fn () => app(FirstTurnGoal::class)->evaluateLocked($http, $claim, $stage, $stateId));
+            self::assertNotEmpty($goal['goal']->kind);
+            DB::table('brands')->where('id', $tenant->brandId)->update(['active_knowledge_release_id' => null]);
+            try {
+                DB::transaction(fn () => app(FirstTurnGoal::class)->evaluateLocked($http, $claim, $stage, $stateId));
+                self::fail('A goal from an inactive release was accepted.');
+            } catch (LogicException $error) {
+                self::assertSame('Protected first-turn goal unavailable.', $error->getMessage());
+            }
+            self::assertSame(1, DB::table('ai_calls')->count());
+            self::assertSame(0, DB::table('seller_tasks')->count());
+        });
+        Http::assertNothingSent();
+    }
+
     private function fixture(string $text = 'Synthetic question', array $options = []): array
     {
         app(PromptSetsSeeder::class)->run();
@@ -379,7 +589,7 @@ final class FirstTurnStateTest extends TestCase
         mkdir($directory, 0700, true);
         config(['features.E0-05.defaults.fixture_directory' => $directory]);
         $file = $directory.DIRECTORY_SEPARATOR.CanonicalJson::hash(app(ContactMasker::class)->request($request->toArray())).'.json';
-        $content = ($options['invalid'] ?? false) ? 'not-json' : '{"client_intent":"answer_only","slot_updates":{"city":"Москва","email":"[EMAIL]"}}';
+        $content = ($options['invalid'] ?? false) ? 'not-json' : ($options['content'] ?? '{"client_intent":"answer_only","slot_updates":{"city":"Москва","email":"[EMAIL]"}}');
         file_put_contents($file, json_encode(['result' => ['content' => $content, 'toolCalls' => [], 'usage' => ['promptTokens' => 1, 'completionTokens' => 1],
             'model' => $request->model, 'latencyMs' => 1, 'costMicros' => array_key_exists('cost', $options) ? $options['cost'] : 0]], JSON_THROW_ON_ERROR));
         $status = $this->within($tenant, fn () => app(Gateway::class)->completeProtectedExtractor($http, $claim, $stage));
