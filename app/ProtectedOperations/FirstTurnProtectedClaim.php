@@ -86,6 +86,24 @@ final class FirstTurnProtectedClaim
         }
     }
 
+    /** Verify origin and current access for replay; return the locked current turn status. */
+    public function assertOriginLocked(#[SensitiveParameter] Request $http, #[SensitiveParameter] TurnClaim $claim): string
+    {
+        try {
+            if (DB::connection()->getDriverName() !== 'pgsql' || DB::connection()->transactionLevel() < 1) {
+                throw new LogicException;
+            }
+
+            return app(AuthSessionRegistry::class)->withinActive($http, function (User $user) use ($http, $claim): string {
+                [$tenant, $selection, $sessionHash] = $this->authorize($http, $user);
+
+                return $this->verify($tenant, $user, $selection, $sessionHash, $claim, null)->status;
+            });
+        } catch (Throwable) {
+            throw new LogicException('Protected first-turn claim unavailable.');
+        }
+    }
+
     private function authorize(#[SensitiveParameter] Request $http, User $user): array
     {
         $tenant = app(TenantContext::class);

@@ -20,6 +20,7 @@ use App\ProtectedOperations\FirstTurnGoal;
 use App\ProtectedOperations\FirstTurnProtectedClaim;
 use App\ProtectedOperations\FirstTurnState;
 use App\ProtectedOperations\FirstTurnTextFinalizer;
+use App\ProtectedOperations\PostgresTransactionalIdempotency;
 use App\Seller\Conversations\Contracts\ConversationRepository;
 use App\Seller\Conversations\Data\TurnClaim;
 use App\Seller\Conversations\Data\TurnCommand;
@@ -1182,10 +1183,11 @@ SQL);
         Http::assertNothingSent();
     }
 
-    private function modelGuardResponder(string $candidate = 'Давайте обсудим ваш заказ.'): array
+    private function modelGuardResponder(string $candidate = 'Давайте обсудим ваш заказ.', bool $protectedClaim = false): array
     {
         [$tenant, $http, $claim, $extractor] = $this->fixture('Synthetic closed topic', [
             'content' => '{"client_intent":"answer_only","closed_topic":"management_names"}',
+            'protected_claim' => $protectedClaim,
         ]);
         [$responder, , , $file] = $this->responderFixture($tenant, $http, $claim, $extractor, ['content' => $candidate]);
         $this->within($tenant, fn () => app(Gateway::class)->completeProtectedResponder($http, $claim, $responder));
@@ -1689,7 +1691,7 @@ SQL);
 
     public function test_first_text_is_finalized_from_verified_sources_once_and_replays(): void
     {
-        [$tenant, $http, $claim, $extractor] = $this->fixture('Synthetic input');
+        [$tenant, $http, $claim, $extractor] = $this->fixture('Synthetic input', ['protected_claim' => true]);
         [$stage, , , $file] = $this->responderFixture($tenant, $http, $claim, $extractor, ['content' => 'Можем обсудить заказ?']);
         $this->within($tenant, function () use ($http, $claim, $stage, $file): void {
             self::assertSame('completed', app(Gateway::class)->completeProtectedResponder($http, $claim, $stage));
@@ -1717,13 +1719,125 @@ SQL);
         Queue::assertNothingPushed();
     }
 
+    public function test_first_text_rejects_public_claim_even_when_a_prior_receipt_exists(): void
+    {
+        [$tenant, $http, $claim, $extractor] = $this->fixture('Public claim input');
+        [$responder, , , $file] = $this->responderFixture($tenant, $http, $claim, $extractor, ['content' => 'Можем обсудить заказ?']);
+        $this->within($tenant, function () use ($tenant, $http, $claim, $responder, $file): void {
+            app(Gateway::class)->completeProtectedResponder($http, $claim, $responder);
+            $service = app(FirstTurnTextFinalizer::class);
+            try {
+                $service->finalize($http, $claim, $responder, null, 'legacy-claim');
+                self::fail('An ordinary public claim authorized finalization.');
+            } catch (LogicException $error) {
+                self::assertSame('Protected first-turn finalization unavailable.', $error->getMessage());
+                self::assertNull($error->getPrevious());
+                $trace = json_encode($error->getTrace(), JSON_PARTIAL_OUTPUT_ON_ERROR | JSON_THROW_ON_ERROR);
+                self::assertStringNotContainsString($claim->token(), $trace);
+                self::assertStringNotContainsString($http->session()->getId(), $trace);
+                self::assertStringNotContainsString('Public claim input', $trace);
+            }
+            self::assertSame(0, DB::table('protected_operation_receipts')->where('operation', 'seller.first_text_finalize')->count());
+            $selection = app(AuthSessionRegistry::class)->withinActive($http, fn () => app(SessionBrandSelection::class)->current($http));
+            $secret = (string) config('app.key');
+            $requestHash = CanonicalJson::hash(['turn' => $claim->turnId, 'conversation' => $claim->conversationId,
+                'base_version' => $claim->baseVersion, 'responder' => $responder, 'model_guard' => null,
+                'actor' => $tenant->actorId, 'session' => hash_hmac('sha256', 'c02-finalizer-session:'.$http->session()->getId(), $secret),
+                'selection_revision' => (string) $selection->brand_revision, 'claim' => hash_hmac('sha256', 'c02-finalizer-claim:'.$claim->token(), $secret)]);
+            app(PostgresTransactionalIdempotency::class)->execute($tenant->organizationId, $tenant->brandId, 'seller.first_text_finalize',
+                'legacy-claim', $requestHash, fn () => ['turn_id' => $claim->turnId, 'message_id' => (string) Str::ulid(), 'version' => 1]);
+            try {
+                $service->finalize($http, $claim, $responder, null, 'legacy-claim');
+                self::fail('An old receipt bypassed protected claim origin.');
+            } catch (LogicException) {
+                self::assertTrue(true);
+            }
+            self::assertSame(1, DB::table('messages')->where('conversation_id', $claim->conversationId)->count());
+            self::assertSame('processing', DB::table('seller_turns')->where('id', $claim->turnId)->value('status'));
+            self::assertSame([], json_decode(DB::table('conversations')->where('id', $claim->conversationId)->value('state'), true, 512, JSON_THROW_ON_ERROR));
+            self::assertSame(0, DB::table('conversations')->where('id', $claim->conversationId)->value('version'));
+            self::assertSame(0, DB::table('audit_logs')->where('action', 'seller.turn.text_finalized')->count());
+            self::assertSame(0, DB::table('seller_tasks')->count());
+            self::assertSame(0, DB::table('outbox_events')->count());
+            unlink($file);
+        });
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
+    }
+
+    public function test_first_text_rejects_receipt_without_matching_completed_turn(): void
+    {
+        [$tenant, $http, $claim, $extractor] = $this->fixture('Protected input', ['protected_claim' => true]);
+        [$responder, , , $file] = $this->responderFixture($tenant, $http, $claim, $extractor, ['content' => 'Можем обсудить заказ?']);
+        $this->within($tenant, function () use ($tenant, $http, $claim, $responder, $file): void {
+            app(Gateway::class)->completeProtectedResponder($http, $claim, $responder);
+            $selection = app(AuthSessionRegistry::class)->withinActive($http, fn () => app(SessionBrandSelection::class)->current($http));
+            $secret = (string) config('app.key');
+            $requestHash = CanonicalJson::hash(['turn' => $claim->turnId, 'conversation' => $claim->conversationId,
+                'base_version' => $claim->baseVersion, 'responder' => $responder, 'model_guard' => null,
+                'actor' => $tenant->actorId, 'session' => hash_hmac('sha256', 'c02-finalizer-session:'.$http->session()->getId(), $secret),
+                'selection_revision' => (string) $selection->brand_revision, 'claim' => hash_hmac('sha256', 'c02-finalizer-claim:'.$claim->token(), $secret)]);
+            app(PostgresTransactionalIdempotency::class)->execute($tenant->organizationId, $tenant->brandId, 'seller.first_text_finalize',
+                'incomplete-receipt', $requestHash, fn () => ['turn_id' => $claim->turnId, 'message_id' => (string) Str::ulid(), 'version' => 1]);
+            foreach (['processing', 'uncertain'] as $status) {
+                if ($status === 'uncertain') {
+                    Message::create(['conversation_id' => $claim->conversationId, 'role' => 'client', 'text' => 'Later input', 'meta' => []]);
+                }
+                self::assertSame($status, DB::table('seller_turns')->where('id', $claim->turnId)->value('status'));
+                try {
+                    app(FirstTurnTextFinalizer::class)->finalize($http, $claim, $responder, null, 'incomplete-receipt');
+                    self::fail('A receipt without a completed turn was trusted.');
+                } catch (LogicException) {
+                    self::assertTrue(true);
+                }
+            }
+            self::assertSame(0, DB::table('messages')->where('conversation_id', $claim->conversationId)->where('role', 'agent')->count());
+            self::assertSame(0, DB::table('conversations')->where('id', $claim->conversationId)->value('version'));
+            self::assertSame(0, DB::table('audit_logs')->where('action', 'seller.turn.text_finalized')->count());
+            unlink($file);
+        });
+        Http::assertNothingSent();
+    }
+
+    public function test_first_text_replay_rejects_changed_message_and_outcome_even_with_recomputed_hash(): void
+    {
+        [$tenant, $http, $claim, $extractor] = $this->fixture('Protected input', ['protected_claim' => true]);
+        [$responder, , , $file] = $this->responderFixture($tenant, $http, $claim, $extractor, ['content' => 'Можем обсудить заказ?']);
+        $this->within($tenant, function () use ($http, $claim, $responder, $file): void {
+            app(Gateway::class)->completeProtectedResponder($http, $claim, $responder);
+            $service = app(FirstTurnTextFinalizer::class);
+            $result = $service->finalize($http, $claim, $responder, null, 'altered-outcome');
+            self::assertArrayNotHasKey('outcome_seal', $result);
+            $stored = DB::table('seller_turns')->where('id', $claim->turnId)->first();
+            $outcome = json_decode($stored->outcome, true, 512, JSON_THROW_ON_ERROR);
+            $outcome['messages'][0]['text'] = 'Altered synthetic output';
+            DB::table('messages')->where('id', $result['message_id'])->update(['text' => 'Altered synthetic output']);
+            DB::table('seller_turns')->where('id', $claim->turnId)->update([
+                'outcome' => json_encode($outcome, JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR),
+                'outcome_hash' => \App\Seller\Conversations\CanonicalJson::hash($outcome),
+            ]);
+            try {
+                $service->finalize($http, $claim, $responder, null, 'altered-outcome');
+                self::fail('A recomputed public hash bypassed the sealed receipt.');
+            } catch (LogicException $error) {
+                self::assertSame('Protected first-turn finalization unavailable.', $error->getMessage());
+                self::assertNull($error->getPrevious());
+            }
+            self::assertSame(2, DB::table('messages')->where('conversation_id', $claim->conversationId)->count());
+            self::assertSame(1, DB::table('audit_logs')->where('action', 'seller.turn.text_finalized')->count());
+            unlink($file);
+        });
+        Http::assertNothingSent();
+    }
+
     public function test_first_text_finalizer_rejects_forgery_revocation_and_stale_input(): void
     {
-        [$tenant, $http, $claim, $extractor] = $this->fixture('First input');
+        [$tenant, $http, $claim, $extractor] = $this->fixture('First input', ['protected_claim' => true]);
         [$stage, , , $file] = $this->responderFixture($tenant, $http, $claim, $extractor, ['content' => 'Можем обсудить заказ?']);
         $this->within($tenant, fn () => app(Gateway::class)->completeProtectedResponder($http, $claim, $stage));
         unlink($file);
-        [$otherTenant, $otherHttp, $otherClaim, $otherExtractor] = $this->fixture('Other input');
+        [$otherTenant, $otherHttp, $otherClaim, $otherExtractor] = $this->fixture('Other input', ['protected_claim' => true]);
         [$otherStage, , , $otherFile] = $this->responderFixture($otherTenant, $otherHttp, $otherClaim, $otherExtractor, ['content' => 'Можем обсудить заказ?']);
         $this->within($otherTenant, fn () => app(Gateway::class)->completeProtectedResponder($otherHttp, $otherClaim, $otherStage));
         unlink($otherFile);
@@ -1750,6 +1864,15 @@ SQL);
                 self::assertTrue(true);
             }
             DB::table('brand_modules')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('module', 'seller')->update(['enabled' => true]);
+            DB::table('brands')->where('id', $tenant->brandId)->update(['status' => 'archived']);
+            try {
+                $service->finalize($http, $claim, $stage, null, 'archived-brand');
+                self::fail('An archived brand finalized a response.');
+            } catch (LogicException) {
+                self::assertTrue(true);
+            }
+            DB::table('brands')->where('id', $tenant->brandId)->update(['status' => 'active']);
+            self::assertSame(1, DB::table('messages')->where('conversation_id', $claim->conversationId)->count());
             $call = DB::table('c02_responder_stages')->where('id', $stage)->value('ai_call_id');
             $original = DB::table('ai_calls')->where('id', $call)->value('result_encrypted');
             $otherCall = DB::table('c02_responder_stages')->where('id', $otherStage)->value('ai_call_id');
@@ -1788,7 +1911,7 @@ SQL);
 
     public function test_finalized_receipt_requires_current_authorization_even_after_completion(): void
     {
-        [$tenant, $http, $claim, $extractor] = $this->fixture();
+        [$tenant, $http, $claim, $extractor] = $this->fixture('Synthetic question', ['protected_claim' => true]);
         [$stage, , , $file] = $this->responderFixture($tenant, $http, $claim, $extractor, ['content' => 'Можем обсудить заказ?']);
         $this->within($tenant, function () use ($tenant, $http, $claim, $stage, $file): void {
             app(Gateway::class)->completeProtectedResponder($http, $claim, $stage);
@@ -1803,6 +1926,14 @@ SQL);
             }
             DB::table('brand_modules')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('module', 'seller')->update(['enabled' => true]);
             self::assertSame($result, $service->finalize($http, $claim, $stage, null, 'replay-authorization'));
+            DB::table('brands')->where('id', $tenant->brandId)->update(['status' => 'archived']);
+            try {
+                $service->finalize($http, $claim, $stage, null, 'replay-authorization');
+                self::fail('An archived brand replayed a receipt.');
+            } catch (LogicException) {
+                self::assertTrue(true);
+            }
+            DB::table('brands')->where('id', $tenant->brandId)->update(['status' => 'active']);
             $otherBrand = Brand::create(['name' => 'Other synthetic brand', 'timezone' => 'Europe/Moscow']);
             app(AuthSessionRegistry::class)->withinActive($http, function () use ($http, $tenant, $otherBrand): void {
                 $selection = app(SessionBrandSelection::class);
@@ -1831,7 +1962,7 @@ SQL);
     public function test_first_text_waits_for_required_model_guard_and_rejects_effects(): void
     {
         config(['agent.guard_llm' => true]);
-        [$tenant, $http, $claim, $responder] = $this->modelGuardResponder();
+        [$tenant, $http, $claim, $responder] = $this->modelGuardResponder(protectedClaim: true);
         $this->within($tenant, function () use ($http, $claim, $responder): void {
             try {
                 app(FirstTurnTextFinalizer::class)->finalize($http, $claim, $responder, null, 'guard-required');
@@ -1850,7 +1981,7 @@ SQL);
             unlink($file);
         });
         config(['agent.guard_llm' => false]);
-        [$otherTenant, $otherHttp, $otherClaim, $extractor] = $this->fixture('Пришлите реквизиты', ['content' => '{"client_intent":"ask_requisites"}']);
+        [$otherTenant, $otherHttp, $otherClaim, $extractor] = $this->fixture('Пришлите реквизиты', ['protected_claim' => true, 'content' => '{"client_intent":"ask_requisites"}']);
         [$otherStage, , , $otherFile] = $this->responderFixture($otherTenant, $otherHttp, $otherClaim, $extractor, ['content' => 'Пришлю реквизиты. Какой у вас город?']);
         $this->within($otherTenant, function () use ($otherHttp, $otherClaim, $otherStage, $otherFile): void {
             app(Gateway::class)->completeProtectedResponder($otherHttp, $otherClaim, $otherStage);
@@ -1875,6 +2006,7 @@ SQL);
     {
         $golden = json_decode(file_get_contents(base_path('tests/fixtures/prototype/synthetic/open-turn.json')), true, 512, JSON_THROW_ON_ERROR)['trace'][1];
         [$tenant, $http, $claim, $extractor] = $this->fixture('Тула, на продажу.', [
+            'protected_claim' => true,
             'content' => json_encode($golden['meta']['extraction'], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
         ]);
         [$stage, , , $file] = $this->responderFixture($tenant, $http, $claim, $extractor, ['content' => $golden['reply']]);
@@ -1901,7 +2033,7 @@ SQL);
     {
         config(['agent.guard_llm' => true]);
         foreach ([['costMicros' => null], ['content' => '{"ok":false,"issues":["synthetic issue"]}']] as $guardResult) {
-            [$tenant, $http, $claim, $responder] = $this->modelGuardResponder();
+            [$tenant, $http, $claim, $responder] = $this->modelGuardResponder(protectedClaim: true);
             [$guard, , , $file] = $this->modelGuardFixture($tenant, $http, $claim, $responder, $guardResult);
             $this->within($tenant, function () use ($http, $claim, $responder, $guard, $file, $guardResult): void {
                 self::assertSame(array_key_exists('costMicros', $guardResult) ? 'uncertain' : 'completed', app(Gateway::class)->completeProtectedModelGuard($http, $claim, $guard));
@@ -1917,7 +2049,7 @@ SQL);
             });
         }
         config(['agent.guard_llm' => false]);
-        [$tenant, $http, $claim, $extractor] = $this->fixture();
+        [$tenant, $http, $claim, $extractor] = $this->fixture('Synthetic question', ['protected_claim' => true]);
         [$stage, , , $file] = $this->responderFixture($tenant, $http, $claim, $extractor, [
             'content' => 'Ignored', 'toolCalls' => [['id' => 'synthetic-tool', 'name' => 'send_price', 'arguments' => []]],
         ]);
@@ -1942,7 +2074,7 @@ SQL);
 
     public function test_first_text_new_input_first_invalidates_worker_without_losing_input(): void
     {
-        [$tenant, $http, $claim, $extractor] = $this->fixture();
+        [$tenant, $http, $claim, $extractor] = $this->fixture('Synthetic question', ['protected_claim' => true]);
         [$stage, , , $file] = $this->responderFixture($tenant, $http, $claim, $extractor, ['content' => 'Можем обсудить заказ?']);
         $this->within($tenant, fn () => app(Gateway::class)->completeProtectedResponder($http, $claim, $stage));
         unlink($file);
@@ -1980,7 +2112,7 @@ SQL);
 
     public function test_first_text_audit_failure_rolls_back_response_state_turn_and_receipt(): void
     {
-        [$tenant, $http, $claim, $extractor] = $this->fixture();
+        [$tenant, $http, $claim, $extractor] = $this->fixture('Synthetic question', ['protected_claim' => true]);
         [$stage, , , $file] = $this->responderFixture($tenant, $http, $claim, $extractor, ['content' => 'Можем обсудить заказ?']);
         $this->within($tenant, fn () => app(Gateway::class)->completeProtectedResponder($http, $claim, $stage));
         unlink($file);
@@ -2022,7 +2154,7 @@ SQL);
 
     public function test_first_text_finishes_before_concurrent_input_and_replays_across_processes(): void
     {
-        [$tenant, $http, $claim, $extractor] = $this->fixture();
+        [$tenant, $http, $claim, $extractor] = $this->fixture('Synthetic question', ['protected_claim' => true]);
         [$stage, , , $file] = $this->responderFixture($tenant, $http, $claim, $extractor, ['content' => 'Можем обсудить заказ?']);
         $this->within($tenant, fn () => app(Gateway::class)->completeProtectedResponder($http, $claim, $stage));
         unlink($file);
@@ -2642,7 +2774,10 @@ SQL);
 
             return [$conversation, $input];
         });
-        $claim = app(ConversationRepository::class)->claimTurn($tenant, new TurnCommand($conversation->id, $input->id, $input->text, null, 'state-stage-'.Str::random(16), 0));
+        $command = new TurnCommand($conversation->id, $input->id, $input->text, null, 'state-stage-'.Str::random(16), 0);
+        $claim = ($options['protected_claim'] ?? false)
+            ? $this->within($tenant, fn () => app(FirstTurnProtectedClaim::class)->claim($http, $command))
+            : app(ConversationRepository::class)->claimTurn($tenant, $command);
         $stage = $this->within($tenant, fn () => app(SellerExtractorStages::class)->prepare($http, $claim));
         [$request] = $this->within($tenant, fn () => app(SellerExtractorStages::class)->load($http, $claim, $stage));
         $directory = storage_path('app/state-fixtures-'.Str::random(12));
