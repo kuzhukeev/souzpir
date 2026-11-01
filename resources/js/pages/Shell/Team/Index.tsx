@@ -4,6 +4,7 @@ import * as Select from '@radix-ui/react-select';
 import { useRef, useState, type ReactNode } from 'react';
 import { Check, ChevronDown, Users, X } from 'lucide-react';
 import CabinetLayout from '@/layouts/CabinetLayout';
+import { invitationExpiry, useInvitationTime } from '@/features/Shell/Team/invitationExpiry';
 import type { TeamInvitations, TeamMember, TeamPage } from '@/types/Shell/Team/members';
 
 const panel =
@@ -162,6 +163,13 @@ export default function Index({
   const [revoking, setRevoking] = useState(false);
   const [revokeUncertain, setRevokeUncertain] = useState(false);
   const [revokeMessage, setRevokeMessage] = useState('');
+  const invitationTime = useInvitationTime(
+    invitations.as_of,
+    invitations.data.length > 0 || selected !== null,
+  );
+  const selectedExpiry = selected
+    ? invitationExpiry(selected.invitation.expires_at, invitationTime)
+    : null;
   const go = (page: number) => {
     setLoading(true);
     setFailedPage(null);
@@ -241,7 +249,7 @@ export default function Index({
     );
   };
   const revoke = () => {
-    if (!selected || revoking || revokeUncertain) return;
+    if (!selected || selectedExpiry?.state !== 'active' || revoking || revokeUncertain) return;
     setRevoking(true);
     setRevokeMessage('');
     const uncertain = () => {
@@ -618,8 +626,9 @@ export default function Index({
                 Приглашения в ожидании
               </h2>
               <p className="mt-1 text-sm text-(--color-ink-muted)">
-                Показаны не принятые, не отозванные и не истёкшие по сроку приглашения. Открытую
-                ссылку нельзя открыть повторно; статус открытия не подтверждает доставку письма.
+                При загрузке показаны не принятые, не отозванные и не истёкшие приглашения. После
+                истечения обновите страницу. Открытую ссылку нельзя открыть повторно; статус
+                открытия не подтверждает доставку письма.
               </p>
             </div>
             <span className="text-sm text-(--color-ink-muted)">
@@ -677,70 +686,84 @@ export default function Index({
             </div>
           ) : (
             <ul className="space-y-3">
-              {invitations.data.map((invitation) => (
-                <li
-                  key={invitation.id}
-                  className="rounded-xl border border-(--color-border) p-4 text-sm"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <p className="min-w-0 break-all font-semibold">{invitation.email}</p>
-                    <div className="flex flex-wrap items-center gap-3">
-                      <span className="rounded-full bg-(--color-surface-muted) px-3 py-1 text-(--color-ink-muted)">
-                        {invitation.opened ? 'Ссылка открыта' : 'Ссылка не открыта'}
-                      </span>
-                      {invitation.can_revoke && (
-                        <button
-                          type="button"
-                          disabled={revoking || revokeUncertain || loading || invitationLoading}
-                          onClick={() => {
-                            setSelected({ invitation, revision: teamBrandRevision });
-                            setRevokeMessage('');
-                          }}
-                          className={button}
-                        >
-                          Отозвать
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  <dl className="mt-3 grid gap-3 sm:grid-cols-3">
-                    <div>
-                      <dt className="text-(--color-ink-muted)">Роль</dt>
-                      <dd className="mt-1">{invitation.role_label || 'Роль не определена'}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-(--color-ink-muted)">Доступные бренды</dt>
-                      <dd className="mt-1">
-                        {invitation.brands.length ? (
-                          <ul className="flex flex-wrap gap-2">
-                            {invitation.brands.map((brand) => (
-                              <li
-                                key={brand.id}
-                                className="max-w-full break-words rounded-full bg-(--color-success-soft) px-3 py-1 text-(--color-success-ink)"
-                              >
-                                {brand.name}
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          'Нет общих доступных брендов'
+              {invitations.data.map((invitation) => {
+                const expiry = invitationExpiry(invitation.expires_at, invitationTime);
+                return (
+                  <li
+                    key={invitation.id}
+                    className="rounded-xl border border-(--color-border) p-4 text-sm"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <p className="min-w-0 break-all font-semibold">{invitation.email}</p>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <span className="rounded-full bg-(--color-surface-muted) px-3 py-1 text-(--color-ink-muted)">
+                          {invitation.opened ? 'Ссылка открыта' : 'Ссылка не открыта'}
+                        </span>
+                        {invitation.can_revoke && (
+                          <button
+                            type="button"
+                            disabled={
+                              expiry.state !== 'active' ||
+                              revoking ||
+                              revokeUncertain ||
+                              loading ||
+                              invitationLoading
+                            }
+                            onClick={() => {
+                              setSelected({ invitation, revision: teamBrandRevision });
+                              setRevokeMessage('');
+                            }}
+                            className={button}
+                          >
+                            Отозвать
+                          </button>
                         )}
-                      </dd>
+                      </div>
                     </div>
-                    <div>
-                      <dt className="text-(--color-ink-muted)">Срок истечения</dt>
-                      <dd className="mt-1">
-                        <time dateTime={invitation.expires_at}>
-                          {new Intl.DateTimeFormat('ru-RU', {
-                            dateStyle: 'medium',
-                            timeStyle: 'short',
-                          }).format(new Date(invitation.expires_at))}
-                        </time>
-                      </dd>
-                    </div>
-                  </dl>
-                </li>
-              ))}
+                    <dl className="mt-3 grid gap-3 sm:grid-cols-3">
+                      <div>
+                        <dt className="text-(--color-ink-muted)">Роль</dt>
+                        <dd className="mt-1">{invitation.role_label || 'Роль не определена'}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-(--color-ink-muted)">Доступные бренды</dt>
+                        <dd className="mt-1">
+                          {invitation.brands.length ? (
+                            <ul className="flex flex-wrap gap-2">
+                              {invitation.brands.map((brand) => (
+                                <li
+                                  key={brand.id}
+                                  className="max-w-full break-words rounded-full bg-(--color-success-soft) px-3 py-1 text-(--color-success-ink)"
+                                >
+                                  {brand.name}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            'Нет общих доступных брендов'
+                          )}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-(--color-ink-muted)">Срок истечения</dt>
+                        <dd className="mt-1">
+                          {Number.isFinite(Date.parse(invitation.expires_at)) && (
+                            <time dateTime={invitation.expires_at}>
+                              {new Intl.DateTimeFormat('ru-RU', {
+                                dateStyle: 'medium',
+                                timeStyle: 'short',
+                              }).format(new Date(invitation.expires_at))}
+                            </time>
+                          )}
+                          <p className="mt-1 text-(--color-ink-muted)" aria-live="polite">
+                            {expiry.label}
+                          </p>
+                        </dd>
+                      </div>
+                    </dl>
+                  </li>
+                );
+              })}
             </ul>
           )}
           {invitations.last_page > 1 && (
@@ -794,6 +817,13 @@ export default function Index({
             {revokeMessage}
           </p>
         )}
+        {selected && selectedExpiry?.state !== 'active' && (
+          <p role="alert" className="mt-4 text-sm text-(--color-danger-ink)">
+            {selectedExpiry?.state === 'expired'
+              ? 'Срок действия приглашения истёк. Обновите страницу.'
+              : 'Не удалось проверить срок приглашения. Обновите страницу.'}
+          </p>
+        )}
         <div className="mt-5 flex flex-wrap justify-end gap-2">
           <button
             type="button"
@@ -805,7 +835,7 @@ export default function Index({
           </button>
           <button
             type="button"
-            disabled={revoking || revokeUncertain}
+            disabled={selectedExpiry?.state !== 'active' || revoking || revokeUncertain}
             onClick={revoke}
             className={button}
           >

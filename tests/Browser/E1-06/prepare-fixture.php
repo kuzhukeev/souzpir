@@ -50,6 +50,19 @@ if ($identity->db !== $database || $identity->role !== $role || $identity->addre
     || $identity->rolsuper || $identity->rolcreatedb || $identity->rolcreaterole || $identity->rolreplication || $identity->rolbypassrls) {
     throw new LogicException('Unexpected test database identity or role privileges.');
 }
+if (getenv('E106_EXPIRING_INVITATION') === '1') {
+    $organization = Organization::whereKey($organizationId)->firstOrFail();
+    if (($organization->settings['test_fixture'] ?? null) !== 'e106-role-ui') {
+        throw new LogicException('Fixture organization collision.');
+    }
+    $email = 'team-e106-expiring-'.Str::lower(Str::random(12)).'@example.test';
+    app(TenantContextRunner::class)->run(new TenantContext($organizationId, actorId: $organization->owner_user_id, source: 'job'), function () use ($organization, $email): void {
+        $brand = Brand::withoutGlobalScopes()->where('organization_id', $organization->id)->where('name', 'Пиротехника — Северные огни')->firstOrFail();
+        Invitation::create(['email' => $email, 'role' => 'viewer', 'brand_ids' => [$brand->id], 'token_hash' => hash('sha256', Str::random(64)), 'invited_by' => $organization->owner_user_id, 'expires_at' => now()->addSeconds(12)]);
+    });
+    fwrite(STDOUT, json_encode(['email' => $email], JSON_THROW_ON_ERROR));
+    exit;
+}
 Artisan::call('migrate', ['--force' => true]);
 DB::transaction(function () use ($organizationId): void {
     $existing = Organization::whereKey($organizationId)->first();

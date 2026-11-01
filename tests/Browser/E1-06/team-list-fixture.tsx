@@ -53,6 +53,7 @@ const shared = {
   ],
   teamBrandRevision: 'synthetic-revision',
   invitations: {
+    as_of: '2027-03-10T12:00:00.000Z',
     data: [
       {
         id: 'invite1',
