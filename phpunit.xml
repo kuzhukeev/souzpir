@@ -1,7 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd" bootstrap="tests/bootstrap.php" colors="true" cacheDirectory=".local/runtime/testing/phpunit-cache">
     <testsuites>
-        <testsuite name="Application"><directory suffix="Test.php">tests</directory></testsuite>
+        <testsuite name="Core">
+            <directory suffix="Test.php">tests/Unit</directory>
+            <directory suffix="Test.php">tests/Feature/Ai</directory>
+            <directory suffix="Test.php">tests/Feature/AiRawBoundary</directory>
+            <directory suffix="Test.php">tests/Feature/Database</directory>
+            <directory suffix="Test.php">tests/Feature/KnowledgeEquivalence</directory>
+            <directory suffix="Test.php">tests/Feature/Preview</directory>
+            <directory suffix="Test.php">tests/Feature/Privacy</directory>
+            <directory suffix="Test.php">tests/Feature/ProtectedOperations</directory>
+            <directory suffix="Test.php">tests/Feature/Runtime</directory>
+            <directory suffix="Test.php">tests/Feature/SharedProps</directory>
+            <directory suffix="Test.php">tests/Feature/Smoke</directory>
+            <directory suffix="Test.php">tests/Feature/Support</directory>
+        </testsuite>
+        <testsuite name="Shell"><directory suffix="Test.php">tests/Feature/Shell</directory></testsuite>
+        <testsuite name="Product">
+            <directory suffix="Test.php">tests/Feature/Seller</directory>
+            <directory suffix="Test.php">tests/Feature/Tenancy</directory>
+            <directory suffix="Test.php">tests/Feature/Vision</directory>
+        </testsuite>
     </testsuites>
     <source><include><directory>app</directory></include></source>
     <php>
