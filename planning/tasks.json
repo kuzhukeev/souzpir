@@ -5771,6 +5771,7 @@
         "app/Seller/Tasks/",
         "resources/js/features/Seller/Tasks/",
         "resources/js/pages/Seller/Tasks/",
+        "routes/features/E1-06F.php",
         "tests/Browser/E1-06F/",
         "tests/Feature/Seller/Tasks/",
         "docs/results/SP-E1-06F.md"
@@ -5790,7 +5791,7 @@
       ],
       "promptPath": "docs/tasks/SP-E1-06F.md",
       "wave": 9,
-      "description": "# SP-E1-06F · Интерфейс передачи задачи Seller\n\nДобавить в Seller выбор активной задачи и подходящего сотрудника, вызов существующего маршрута передачи SP-E1-06C и отображение ошибок и результата. Проверить права, организацию, бренд и запрет передачи исторических задач. Использовать fake-данные и отдельную тестовую БД; 1–3 часа, claim, worktree, отчёт и submit по AGENTS.md.\n"
+      "description": "# SP-E1-06F · Интерфейс передачи задачи Seller\n\nДобавить в Seller выбор активной задачи и подходящего сотрудника, вызов существующего маршрута передачи SP-E1-06C и отображение ошибок и результата. Проверить права, организацию, бренд и запрет передачи исторических задач. Использовать fake-данные и отдельную тестовую БД; 1–3 часа, claim, worktree, отчёт и submit по AGENTS.md.\n\nМаршрут GET для страницы добавить в `routes/features/E1-06F.php` в scope этой карточки. Существующий POST в `routes/features/E1-06C.php` только вызывать, не изменять. Новая страница должна быть реально доступна по GET.\n"
     },
     {
       "taskKey": "SP-E9-02C",

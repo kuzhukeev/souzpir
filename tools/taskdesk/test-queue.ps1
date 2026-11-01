@@ -59,6 +59,13 @@ try {
     Assert ($merge.status -eq 200 -and $merge.body.task.status -eq 'done') 'merge records integrated commit'
     $ready=CallQueue 'ready&project=test' $null; Assert (($ready.body.tasks | Where-Object taskKey -eq D).ready) 'only merge unlocks dependency'
     $release=CallQueue 'release' @{id=$b.body.task.id;claimToken=$b.body.claimToken;expectedRevision=$b.body.task.revision;reason='retry later'}; Assert ($release.status -eq 200 -and $release.body.task.status -eq 'queue') 'owner release returns to queue'
+    $replanned=@{taskKey='B';title='B updated';scope=@('frontend/Auth/','routes/Auth.php');dependsOn=@();description='Updated after release'}
+    $replan=CallQueue 'replan' @{project='test';taskKey='B';expectedRevision=$release.body.task.revision;plan=$replanned}
+    Assert ($replan.status -eq 200 -and $replan.body.task.scope -contains 'routes/Auth.php') 'released queue task can gain required route scope'
+    $staleReplan=CallQueue 'replan' @{project='test';taskKey='B';expectedRevision=$release.body.task.revision;plan=$replanned}
+    Assert ($staleReplan.status -eq 409) 'replan rejects stale revision'
+    $doneReplan=CallQueue 'replan' @{project='test';taskKey='A';expectedRevision=$merge.body.task.revision;plan=@{taskKey='A';title='A';scope=@('other/')}}
+    Assert ($doneReplan.status -eq 409) 'replan rejects completed task'
     $update=CallQueue 'update' @{id=1;title='Legacy';description='Untouched';status='done';expectedRevision=0}; Assert ($update.status -eq 200 -and $update.body.task.customField -eq 'preserved') 'legacy metadata survives update'
     $stale=CallQueue 'update' @{id=1;title='Stale';status='done';expectedRevision=0}; Assert ($stale.status -eq 409) 'optimistic revision rejects stale update'
     $cycle=CallQueue 'import' @{project='cycle';tasks=@(@{taskKey='X';title='X';scope=@('x/');dependsOn=@('Y')},@{taskKey='Y';title='Y';scope=@('y/');dependsOn=@('X')})}; Assert ($cycle.status -eq 400) 'dependency cycle rejected'
