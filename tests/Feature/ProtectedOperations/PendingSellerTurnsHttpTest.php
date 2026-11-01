@@ -148,6 +148,71 @@ final class PendingSellerTurnsHttpTest extends TenancyTestCase
         Http::assertNothingSent();
     }
 
+    public function test_detail_requires_a_pending_turn_in_the_selected_brand_and_current_authority(): void
+    {
+        [$owner, $org, $brand, $other] = $this->configuredCabinet();
+        $visible = $this->turn($org, $brand, 'uncertain');
+        $hidden = $this->turn($org, $other, 'processing');
+        $finished = $this->turn($org, $brand, 'completed');
+        $before = DB::table('seller_turns')->orderBy('id')->get()->toArray();
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $path = '/seller/turns/pending/'.$visible->turnId;
+        $response = $this->getJson($path)->assertOk()->assertHeader('Cache-Control', 'no-store, private')
+            ->assertJsonPath('data.turn_id', $visible->turnId)->assertJsonPath('data.conversation_id', $visible->conversationId)
+            ->assertJsonPath('data.status', 'uncertain')->assertJsonPath('data.other_effects_may_exist', true);
+        self::assertSame([], $response->json('data.stages'));
+        self::assertEqualsCanonicalizing(['turn_id', 'conversation_id', 'status', 'created_at', 'updated_at', 'stages', 'other_effects_may_exist'], array_keys($response->json('data')));
+        self::assertStringNotContainsString('private synthetic text', $response->getContent());
+        self::assertStringNotContainsString($visible->token(), $response->getContent());
+        $this->getJson('/seller/turns/pending/'.$hidden->turnId)->assertNotFound()->assertHeader('Cache-Control', 'no-store, private')->assertDontSee($hidden->conversationId);
+        $this->getJson('/seller/turns/pending/'.$finished->turnId)->assertNotFound();
+        $this->getJson('/seller/turns/pending/'.Str::ulid())->assertNotFound();
+        $this->getJson('/seller/turns/pending/invalid-id')->assertNotFound();
+        $this->postJson($path)->assertStatus(405);
+        self::assertEquals($before, DB::table('seller_turns')->orderBy('id')->get()->toArray());
+
+        [$viewer] = $this->member($org, 'viewer', [$brand->id]);
+        $this->actingAs($viewer)->withSession(['brand_id' => $brand->id]);
+        $this->getJson($path)->assertForbidden()->assertHeader('Cache-Control', 'no-store, private')->assertDontSee($visible->conversationId);
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $this->getJson($path)->assertOk();
+        DB::table('auth_session_registry')->where('user_id', $owner->id)->update(['revoked_at' => now()]);
+        $this->getJson($path)->assertUnauthorized()->assertDontSee($visible->turnId)->assertDontSee($visible->conversationId);
+        Queue::assertNothingPushed();
+        Http::assertNothingSent();
+    }
+
+    public function test_missing_stage_storage_returns_safe_503_while_the_list_still_works(): void
+    {
+        [$owner, $org, $brand] = $this->configuredCabinet();
+        $turn = $this->turn($org, $brand, 'uncertain');
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $before = DB::table('seller_turns')->where('id', $turn->turnId)->first();
+        foreach (['extractor', 'responder', 'guard'] as $stage) {
+            // This transaction-scoped rename affects only the separately verified test DB.
+            $table = 'c02_'.$stage.'_stages';
+            $missing = $table.'_unavailable_test';
+            DB::statement('ALTER TABLE '.$table.' RENAME TO '.$missing);
+            try {
+                $this->getJson('/seller/turns/pending/'.$turn->turnId)->assertStatus(503)
+                    ->assertHeader('Cache-Control', 'no-store, private')
+                    ->assertExactJson(['message' => 'Подробности временно недоступны.'])
+                    ->assertDontSee($turn->turnId)->assertDontSee('private synthetic text')->assertDontSee($table);
+                $this->getJson('/seller/turns/pending')->assertOk()->assertHeader('Cache-Control', 'no-store, private')
+                    ->assertJsonPath('data.0.turn_id', $turn->turnId);
+                DB::table('memberships')->where('user_id', $owner->id)->update(['role' => 'viewer']);
+                $this->getJson('/seller/turns/pending/'.$turn->turnId)->assertForbidden()->assertDontSee($turn->turnId);
+                DB::table('memberships')->where('user_id', $owner->id)->update(['role' => 'owner']);
+            } finally {
+                DB::statement('ALTER TABLE '.$missing.' RENAME TO '.$table);
+            }
+        }
+        self::assertEquals($before, DB::table('seller_turns')->where('id', $turn->turnId)->first());
+        self::assertSame(0, DB::table('ai_calls')->count());
+        Queue::assertNothingPushed();
+        Http::assertNothingSent();
+    }
+
     private function configuredCabinet(): array
     {
         $cabinet = $this->cabinet();
