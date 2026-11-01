@@ -3123,11 +3123,12 @@ SQL);
 
     public static function quarantineFinalizationOrders(): array
     {
-        return ['quarantine first' => [true], 'finalization first' => [false]];
+        return ['quarantine first' => [true, false], 'finalization first' => [false, false],
+            'quarantine and review first' => [true, true], 'finalization before review' => [false, true]];
     }
 
     #[DataProvider('quarantineFinalizationOrders')]
-    public function test_quarantine_and_finalization_serialize_in_both_orders(bool $quarantineFirst): void
+    public function test_quarantine_and_finalization_serialize_in_both_orders(bool $quarantineFirst, bool $review): void
     {
         [$tenant, $http, $claim, $extractor] = $this->fixture('Synthetic question', ['protected_claim' => true]);
         [$stage, , , $file] = $this->responderFixture($tenant, $http, $claim, $extractor, ['content' => 'Можем обсудить заказ?']);
@@ -3151,8 +3152,8 @@ SQL);
         $blocker->select('SELECT pg_advisory_xact_lock(8620473)');
         $firstMarker = base_path('.local/tmp/c02-quarantine-a-'.Str::random(16));
         $secondMarker = base_path('.local/tmp/c02-quarantine-b-'.Str::random(16));
-        $first = $this->finalizeWorker($tenant, $http, $claim, $stage, $firstMarker, $quarantineFirst);
-        $second = $this->finalizeWorker($tenant, $http, $claim, $stage, $secondMarker, ! $quarantineFirst);
+        $first = $this->finalizeWorker($tenant, $http, $claim, $stage, $firstMarker, $quarantineFirst, $review);
+        $second = $this->finalizeWorker($tenant, $http, $claim, $stage, $secondMarker, ! $quarantineFirst, $review);
         try {
             $first->start();
             $this->waitForFinalizerLock($first, $firstMarker);
@@ -3179,6 +3180,8 @@ SQL);
             self::assertSame($quarantineFirst ? 'uncertain' : 'completed', DB::table('seller_turns')->where('id', $claim->turnId)->value('status'));
             self::assertSame($quarantineFirst ? 0 : 1, DB::table('messages')->where('conversation_id', $claim->conversationId)->where('role', 'agent')->count());
             self::assertSame($quarantineFirst ? 1 : 0, DB::table('audit_logs')->where('action', 'seller.turn.quarantined')->count());
+            self::assertSame($quarantineFirst && $review ? 1 : 0, DB::table('c02_manual_review_requests')->where('turn_id', $claim->turnId)->count());
+            self::assertSame($quarantineFirst && $review ? 1 : 0, DB::table('audit_logs')->where('action', 'seller.turn.review_requested')->count());
             self::assertSame($quarantineFirst ? 0 : 1, DB::table('audit_logs')->where('action', 'seller.turn.text_finalized')->count());
             $next = $this->within($tenant, fn () => Message::create(['conversation_id' => $claim->conversationId, 'role' => 'client', 'text' => 'Input after resolution', 'meta' => []]));
             self::assertSame('Input after resolution', DB::table('messages')->where('id', $next->id)->value('text'));
@@ -3449,7 +3452,7 @@ SQL);
         Http::assertNothingSent();
     }
 
-    private function finalizeWorker(TenantContext $tenant, Request $http, TurnClaim $claim, string $stage, string $marker, bool $quarantine = false): Process
+    private function finalizeWorker(TenantContext $tenant, Request $http, TurnClaim $claim, string $stage, string $marker, bool $quarantine = false, bool $review = false): Process
     {
         $worker = new Process([PHP_BINARY, '-d', 'sys_temp_dir='.base_path('.local/tmp'), '-d', 'allow_url_fopen=0',
             '-d', 'disable_functions=fsockopen,pfsockopen,stream_socket_client,curl_exec,curl_multi_exec',
@@ -3457,7 +3460,7 @@ SQL);
         $worker->setInput(json_encode(['org' => $tenant->organizationId, 'brand' => $tenant->brandId, 'user' => $tenant->actorId,
             'member' => $tenant->membershipId, 'session' => $http->session()->getId(), 'turn' => $claim->turnId,
             'conversation' => $claim->conversationId, 'version' => $claim->baseVersion, 'token' => $claim->token(),
-            'stage' => $stage, 'key' => 'parallel-first-text', 'mode' => $quarantine ? 'quarantine' : 'finalize'], JSON_THROW_ON_ERROR));
+            'stage' => $stage, 'key' => 'parallel-first-text', 'mode' => $quarantine ? ($review ? 'quarantine-review' : 'quarantine') : 'finalize'], JSON_THROW_ON_ERROR));
         $worker->setTimeout(60);
 
         return $worker;

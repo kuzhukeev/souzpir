@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Contracts\ProtectedOperations\IdempotencyConflict;
 use App\Models\User;
 use App\ProtectedOperations\FirstTurnTextFinalizer;
+use App\ProtectedOperations\ManualReviewRequests;
 use App\ProtectedOperations\SellerTurnQuarantine;
 use App\Seller\Conversations\Data\TurnClaim;
 use App\Shell\Auth\AuthSessionRegistry;
@@ -19,6 +20,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 require dirname(__DIR__, 4).'/vendor/autoload.php';
 $app = require dirname(__DIR__, 4).'/bootstrap/app.php';
@@ -49,10 +51,12 @@ $tenant = new TenantContext($input['org'], $input['brand'], $user->id, $input['m
 $claim = new TurnClaim('claimed', $input['turn'], $input['conversation'], $input['org'], $input['brand'], $input['version'], $input['token']);
 file_put_contents($argv[1], (string) DB::selectOne('select pg_backend_pid() as pid')->pid);
 try {
-    if (($input['mode'] ?? null) === 'quarantine') {
+    if (in_array($input['mode'] ?? null, ['quarantine', 'quarantine-review'], true)) {
         $selection = app(AuthSessionRegistry::class)->withinActive($http, fn () => app(SessionBrandSelection::class)->current($http));
         $http->attributes->set('tenant.brand_revision', (string) $selection->brand_revision);
-        $result = app(TenantContextRunner::class)->run($tenant, fn () => app(SellerTurnQuarantine::class)->quarantine($http, $claim->turnId));
+        $result = app(TenantContextRunner::class)->run($tenant, fn () => $input['mode'] === 'quarantine-review'
+            ? ['status' => 'uncertain', ...app(ManualReviewRequests::class)->quarantineAndRequest($http, $claim->turnId)]
+            : app(SellerTurnQuarantine::class)->quarantine($http, $claim->turnId));
         echo json_encode($result, JSON_THROW_ON_ERROR);
 
         return;
@@ -61,6 +65,6 @@ try {
     echo json_encode(['status' => 'completed', 'result' => $result], JSON_THROW_ON_ERROR);
 } catch (IdempotencyConflict) {
     echo json_encode(['status' => 'conflict'], JSON_THROW_ON_ERROR);
-} catch (LogicException) {
+} catch (LogicException|HttpExceptionInterface) {
     echo json_encode(['status' => 'rejected'], JSON_THROW_ON_ERROR);
 }
