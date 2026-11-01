@@ -11,11 +11,11 @@ const page = {
     help: {
       configured: true,
       sections: [
-        { id: 'start', title: 'Начало работы', description: 'Как начать работу', url: 'http://127.0.0.1:5262/#guide' },
+        { id: 'start', title: 'Начало работы', description: 'Как начать работу', url: 'http://127.0.0.1:5237/#guide' },
         { id: 'later', title: 'Скоро', description: 'Материалы готовятся', url: null },
       ],
-      articles: [{ id: 'article', title: 'Первое руководство', url: 'http://127.0.0.1:5262/#article', section_id: 'start' }],
-      knowledge_base_url: 'http://127.0.0.1:5262/#knowledge',
+      articles: [{ id: 'article', title: 'Первое руководство', url: 'http://127.0.0.1:5237/#article', section_id: 'start' }],
+      knowledge_base_url: 'http://127.0.0.1:5237/#knowledge',
     },
     theme,
     brand: { id: 'b', name: 'Пример бренда', theme },
