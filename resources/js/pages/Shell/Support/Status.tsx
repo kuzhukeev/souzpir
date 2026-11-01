@@ -29,6 +29,36 @@ const icons: Record<string, LucideIcon> = {
   telegram: Send,
   vision: ChartNoAxesCombined,
 };
+function StatusBadge({ state }: { state: string }) {
+  const c = useSupportCopy();
+  const good = state === 'operational';
+  const warning = state === 'cooldown' || state === 'degraded';
+  const label = good
+    ? c.available
+    : state === 'degraded'
+      ? c.degraded
+      : state === 'cooldown'
+        ? c.cooldown
+        : state === 'planned'
+          ? c.planned
+          : c.unknown;
+  return (
+    <span
+      className={[
+        'inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm',
+        good
+          ? 'bg-(--color-success-soft) text-(--color-success-ink)'
+          : warning
+            ? 'bg-(--color-warning-soft) text-(--color-warning-ink)'
+            : 'bg-(--color-surface-muted) text-(--color-ink-muted)',
+      ].join(' ')}
+    >
+      <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-current" />
+      {label}
+    </span>
+  );
+}
+
 export default function Status({ status }: { status: StatusData }) {
   const c = useSupportCopy();
   const [loading, setLoading] = useState(false);
@@ -49,34 +79,6 @@ export default function Status({ status }: { status: StatusData }) {
         return false;
       },
     });
-  };
-  const badge = (state: string) => {
-    const good = state === 'operational';
-    const warning = state === 'cooldown' || state === 'degraded';
-    const label = good
-      ? c.available
-      : state === 'degraded'
-        ? c.degraded
-        : state === 'cooldown'
-          ? c.cooldown
-          : state === 'planned'
-            ? c.planned
-            : c.unknown;
-    return (
-      <span
-        className={[
-          'inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm',
-          good
-            ? 'bg-(--color-success-soft) text-(--color-success-ink)'
-            : warning
-              ? 'bg-(--color-warning-soft) text-(--color-warning-ink)'
-              : 'bg-(--color-surface-muted) text-(--color-ink-muted)',
-        ].join(' ')}
-      >
-        <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-current" />
-        {label}
-      </span>
-    );
   };
   return (
     <>
@@ -124,7 +126,7 @@ export default function Status({ status }: { status: StatusData }) {
                         </span>
                         <div className="min-w-0">
                           <h2 className="mb-3 break-words text-lg font-bold">{component.name}</h2>
-                          {badge(component.status)}
+                          <StatusBadge state={component.status} />
                         </div>
                       </div>
                       <p className="mt-4 text-sm leading-6 text-(--color-ink-muted)">
@@ -169,7 +171,7 @@ export default function Status({ status }: { status: StatusData }) {
                             </p>
                           )}
                         </div>
-                        {badge(provider.status)}
+                        <StatusBadge state={provider.status} />
                       </li>
                     ))}
                   </ul>
