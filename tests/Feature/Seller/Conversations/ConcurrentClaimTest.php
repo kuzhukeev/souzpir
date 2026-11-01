@@ -14,15 +14,15 @@ use App\Seller\Conversations\Models\Conversation;
 use App\Seller\Conversations\Models\Message;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Symfony\Component\Process\Process;
+use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\TestCase;
 
 final class ConcurrentClaimTest extends TestCase
 {
-    use DatabaseMigrations;
+    use IsolatedDatabaseMigrations;
 
     public function test_two_processes_claim_same_turn_once(): void
     {
@@ -186,7 +186,8 @@ final class ConcurrentClaimTest extends TestCase
         });
         foreach ([['change', $first], ['insert', $second]] as [$operation, $conversation]) {
             $barrier = sys_get_temp_dir().DIRECTORY_SEPARATOR.'channel-'.Str::random(24);
-            $process = new Process([PHP_BINARY, base_path('tests/Feature/Seller/Conversations/Fixtures/channel-race.php'), $barrier, $operation, $organization->id, $brand->id, $conversation->id, $channel->id], base_path(), ['APP_ENV' => 'testing']);
+            $args = [PHP_BINARY, base_path('tests/Feature/Seller/Conversations/Fixtures/channel-race.php'), $barrier, $operation, $organization->id, $brand->id, $conversation->id, $channel->id];
+            $process = new Process($args, base_path(), ['APP_ENV' => 'testing']);
             DB::beginTransaction();
             try {
                 if ($operation === 'change') {
@@ -205,8 +206,19 @@ final class ConcurrentClaimTest extends TestCase
                     }
                     usleep(20000);
                 } while (microtime(true) < $deadline && $process->isRunning());
-                $this->assertTrue($waiting, 'Worker did not reach the conversation lock');
-                DB::commit();
+                if (! $waiting) {
+                    // Unordered message writes fail immediately with 55P03
+                    // rather than waiting while holding a child row lock.
+                    $this->assertFalse($process->isRunning(), 'Worker neither waited nor failed');
+                    $process->wait();
+                    $this->assertFalse($process->isSuccessful(), 'Conflicting operation succeeded');
+                    $this->assertStringContainsString('SQLSTATE[55P03]', $process->getErrorOutput());
+                    DB::commit();
+                    $process = new Process($args, base_path(), ['APP_ENV' => 'testing']);
+                    $process->start();
+                } else {
+                    DB::commit();
+                }
                 $process->wait();
                 $this->assertFalse($process->isSuccessful(), 'Conflicting operation succeeded');
                 $this->assertStringContainsString('23514', $process->getErrorOutput());
@@ -275,8 +287,17 @@ final class ConcurrentClaimTest extends TestCase
                     }
                     usleep(20000);
                 } while (microtime(true) < $deadline && $process->isRunning());
-                $this->assertTrue($waiting, 'Worker did not reach input or conversation lock');
-                DB::commit();
+                if (! $waiting) {
+                    $this->assertFalse($process->isRunning(), 'Worker neither waited nor failed');
+                    $process->wait();
+                    $this->assertFalse($process->isSuccessful(), 'Conflicting operation succeeded');
+                    $this->assertStringContainsString('SQLSTATE[55P03]', $process->getErrorOutput());
+                    DB::commit();
+                    $process = new Process($args, base_path(), ['APP_ENV' => 'testing']);
+                    $process->start();
+                } else {
+                    DB::commit();
+                }
                 $process->wait();
                 if ($operation === 'claim') {
                     $this->assertTrue($process->isSuccessful(), $process->getErrorOutput());
