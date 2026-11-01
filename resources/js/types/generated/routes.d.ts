@@ -3,6 +3,7 @@ declare module 'ziggy-js' {
   interface RouteList {
     "home": [],
     "preview.foundation": [],
+    "seller.turns.first": [],
     "seller.turns.pending": [],
     "seller.turns.pending.show": [
         {
