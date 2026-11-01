@@ -428,7 +428,7 @@ def main(argv: list[str] | None = None) -> int:
             output = getattr(coordinator, args.command)(args.task_key, args.reason)
         else:
             output = coordinator.mark_merged(args.task_key)
-        print(json.dumps(output, ensure_ascii=False, indent=2))
+        print(json.dumps(output, ensure_ascii=True, indent=2))
         return 0
     except (TaskError, OSError, ValueError) as error:
         print("ERROR: " + str(error), file=sys.stderr)
