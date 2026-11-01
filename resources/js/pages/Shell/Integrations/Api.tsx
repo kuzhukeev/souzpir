@@ -351,8 +351,10 @@ export default function Api({
                     >
                       <span>
                         {date(delivery.created_at)} ·{' '}
-                        {webhookEvents.find((e) => e.value === delivery.event)?.label ??
-                          'Недоступное событие'}
+                        {delivery.event === 'webhook.test'
+                          ? 'Тестовая отправка'
+                          : (webhookEvents.find((e) => e.value === delivery.event)?.label ??
+                            'Недоступное событие')}
                       </span>
                       <span>
                         {deliveryLabels[delivery.status] ?? 'Недоступен'}
