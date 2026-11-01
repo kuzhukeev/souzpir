@@ -18,6 +18,7 @@
         <testsuite name="Shell"><directory suffix="Test.php">tests/Feature/Shell</directory></testsuite>
         <testsuite name="Product">
             <directory suffix="Test.php">tests/Feature/Seller</directory>
+            <directory suffix="Test.php">tests/Feature/SP-UI-04</directory>
             <directory suffix="Test.php">tests/Feature/Tenancy</directory>
             <directory suffix="Test.php">tests/Feature/Vision</directory>
         </testsuite>
