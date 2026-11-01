@@ -6,13 +6,12 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Tests\TestCase;
 
 require __DIR__.'/../../../../../../vendor/autoload.php';
 $app = require __DIR__.'/../../../../../../bootstrap/app.php';
 $app->make(Kernel::class)->bootstrap();
-if (! app()->environment('testing') || DB::connection()->getDatabaseName() !== config('runtime.test_database') || DB::connection()->getDatabaseName() === config('runtime.preview_database')) {
-    throw new LogicException('Isolated test database required.');
-}
+TestCase::assertIsolatedTestDatabase();
 $data = json_decode(stream_get_contents(STDIN), true, 512, JSON_THROW_ON_ERROR);
 config(['features.E0-02.defaults.organization_id' => $data['org'], 'features.E1-01D.defaults.enabled' => true]);
 $user = User::findOrFail($data['user']);
