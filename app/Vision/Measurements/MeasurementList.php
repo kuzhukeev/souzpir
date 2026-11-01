@@ -51,4 +51,28 @@ final class MeasurementList
 
         return ['data' => $rows->all(), 'page' => $page, 'last_page' => max(1, (int) ceil($count / 25)), 'total' => $count];
     }
+
+    public function readDetailed(TenantContext $context, int $page): array
+    {
+        $query = DB::table('measurements')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId);
+        $count = (clone $query)->count();
+        $rows = $query->orderByDesc('created_at')->orderByDesc('id')->forPage($page, 25)
+            ->get(['id', 'status', 'created_at', 'started_at', 'finished_at']);
+        $answers = DB::table('measurement_answers')->where('organization_id', $context->organizationId)
+            ->where('brand_id', $context->brandId)->whereIn('measurement_id', $rows->pluck('id'))
+            ->orderBy('question_n')->orderBy('provider')->orderBy('run_no')
+            ->get(['measurement_id', 'question_n', 'provider', 'requested_model', 'run_no', 'status', 'answer_text', 'error_code'])
+            ->groupBy('measurement_id');
+
+        return ['data' => $rows->map(fn ($row) => [
+            'id' => $row->id, 'status' => $row->status, 'created_at' => $row->created_at,
+            'started_at' => $row->started_at, 'finished_at' => $row->finished_at,
+            'answers' => ($answers[$row->id] ?? collect())->map(fn ($answer) => [
+                'question_n' => $answer->question_n, 'provider' => $answer->provider,
+                'requested_model' => $answer->requested_model, 'run_no' => $answer->run_no,
+                'status' => $answer->status, 'answer_text' => $answer->answer_text,
+                'error_code' => $answer->error_code,
+            ])->values()->all(),
+        ])->all(), 'page' => $page, 'last_page' => max(1, (int) ceil($count / 25)), 'total' => $count];
+    }
 }

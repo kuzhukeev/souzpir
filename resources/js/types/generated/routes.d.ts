@@ -401,6 +401,18 @@ declare module 'ziggy-js' {
     "vision.measurements.data": [],
     "vision.measurements.revision": [],
     "vision.measurements.start": [],
+    "vision.measurements.next": [
+        {
+            "name": "measurement",
+            "required": true
+        }
+    ],
+    "vision.measurements.repeat": [
+        {
+            "name": "measurement",
+            "required": true
+        }
+    ],
     "vision.site.overview": [],
     "vision.site.criteria": [],
     "vision.site.bots": [],
