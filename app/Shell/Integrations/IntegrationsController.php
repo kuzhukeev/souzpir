@@ -111,7 +111,6 @@ final class IntegrationsController
 
             return false;
         }
-        $request->session()->keep($key);
 
         return true;
     }
