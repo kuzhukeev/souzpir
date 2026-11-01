@@ -34,7 +34,7 @@ final class IntegrationsController
         foreach ($items as [$type, $title, $description, $route]) {
             $account = $accounts->firstWhere('type', $type);
             $connections[] = ['id' => $type, 'title' => $title, 'description' => $description,
-                'status' => $account?->status ?? 'disconnected', 'connected_at' => $account?->status === 'active' ? $account->created_at : null,
+                'status' => $account?->status ?? 'disconnected', 'connected_at' => null,
                 'href' => Route::has($route) ? route($route) : null];
         }
         $connections[] = ['id' => 'notifications', 'title' => 'Уведомления компании', 'description' => 'Telegram и почта для сообщений команды.', 'status' => 'disconnected', 'connected_at' => null, 'href' => route('integrations.notifications')];
