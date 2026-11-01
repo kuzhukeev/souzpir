@@ -5345,6 +5345,9 @@
         "tests/Feature/SP-E1-10B/",
         "tests/Unit/SP-E1-10B/",
         "tests/Browser/SP-E1-10B/",
+        "resources/js/pages/Shell/Integrations/Api.tsx",
+        "tests/Browser/E1-10/integrations-ui.spec.ts",
+        "tests/Browser/E1-10/ui-fixture.tsx",
         "docs/results/SP-E1-10B.md"
       ],
       "exclusiveResources": [],
