@@ -29,6 +29,7 @@ Auth::guard()->setUser($user);
 $request = Request::create('https://souzpir.local/'.($data['operation'] === 'issue' ? 'profile/security/mfa/recovery' : 'logout'), 'POST');
 $request->setLaravelSession($session);
 $request->setUserResolver(fn () => $user);
+$request->attributes->set('tenant.brand_revision', $data['brand_revision']);
 if ($data['operation'] === 'issue') {
     $code = app(Totp::class)->at('GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ', intdiv(now()->timestamp, 30));
     $request->attributes->set('mfa.safe_code', MfaCode::parse($code));

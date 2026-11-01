@@ -6,16 +6,16 @@ use App\Models\Organization;
 use App\Models\User;
 use App\Shell\Auth\MfaCode;
 use App\Tenancy\Cabinet;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Symfony\Component\Process\Process;
+use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\Support\MfaTestDatabase;
 use Tests\TestCase;
 
 final class MfaRecoveryConcurrencyTest extends TestCase
 {
-    use DatabaseMigrations;
+    use IsolatedDatabaseMigrations;
 
     protected function beforeRefreshingDatabase(): void
     {

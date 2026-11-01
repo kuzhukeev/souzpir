@@ -7,22 +7,23 @@ use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\User;
 use App\Shell\Auth\AuthSessionRegistry;
+use App\Shell\Auth\SessionBrandSelection;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
 use Illuminate\Auth\AuthenticationException;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Http\Request;
 use Illuminate\Session\ArraySessionHandler;
 use Illuminate\Session\Store;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\Support\MfaTestDatabase;
 use Tests\TestCase;
 
 final class MfaRecoveryLogoutRaceTest extends TestCase
 {
-    use DatabaseMigrations;
+    use IsolatedDatabaseMigrations;
 
     protected function beforeRefreshingDatabase(): void
     {
@@ -48,8 +49,15 @@ final class MfaRecoveryLogoutRaceTest extends TestCase
         $sessionHash = hash_hmac('sha256', 'auth-session:'.$sessionId, (string) config('app.key'));
         DB::table('auth_session_registry')->insert(['session_hash' => $sessionHash, 'user_id' => $user->id, 'auth_version' => $user->auth_version,
             'expires_at' => now()->addHour(), 'created_at' => now(), 'updated_at' => now()]);
+        $fixtureRequest = Request::create('https://souzpir.local/profile/security/mfa/recovery', 'POST');
+        $fixtureSession = new Store('test', new ArraySessionHandler(120), $sessionId);
+        $fixtureSession->put('auth.version', $user->auth_version);
+        $fixtureRequest->setLaravelSession($fixtureSession);
+        $fixtureRequest->setUserResolver(fn () => $user);
+        $selection = app(AuthSessionRegistry::class)->withinActive($fixtureRequest,
+            fn () => app(SessionBrandSelection::class)->initialize($fixtureRequest, $org->id, $brand->id));
         $payload = ['organization' => $org->id, 'brand' => $brand->id, 'membership' => $membership->id, 'user' => $user->id,
-            'session' => $sessionId, 'version' => $user->auth_version];
+            'session' => $sessionId, 'version' => $user->auth_version, 'brand_revision' => (string) $selection->brand_revision];
         $first = $second = null;
         try {
             $first = $this->start([...$payload, 'operation' => $firstOperation, 'hold' => true]);
