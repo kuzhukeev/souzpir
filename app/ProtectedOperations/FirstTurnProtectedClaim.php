@@ -86,6 +86,47 @@ final class FirstTurnProtectedClaim
         }
     }
 
+    /** Recover only the coordinator's completed sealed result, without returning the claim token. */
+    public function readFinishedCoordinatorResult(#[SensitiveParameter] Request $http, #[SensitiveParameter] TurnCommand $command): array
+    {
+        try {
+            if (DB::connection()->getDriverName() !== 'pgsql' || DB::connection()->transactionLevel() !== 0
+                || config('runtime.ai_driver', 'fake') !== 'fake' || ! Str::isUlid($command->conversationId)
+                || ! Str::isUlid($command->inputMessageId) || ($command->externalEventId !== null && ! Str::isUlid($command->externalEventId))
+                || $command->expectedVersion !== 0 || $command->idempotencyKey === '' || strlen($command->idempotencyKey) > 512) {
+                throw new LogicException;
+            }
+
+            return app(AuthSessionRegistry::class)->withinActive($http, function (User $user) use ($http, $command): array {
+                [$tenant, $selection, $sessionHash] = $this->authorize($http, $user);
+                $requestDigest = $this->requestDigest($tenant, $user, $selection, $sessionHash, $command);
+                $receipt = app(PostgresTransactionalIdempotency::class)->execute($tenant->organizationId, $tenant->brandId,
+                    'seller.first_turn_claim', $command->idempotencyKey, $requestDigest, function (): array {
+                        throw new LogicException;
+                    });
+                if (! is_string($receipt['turn_id'] ?? null) || ! Str::isUlid($receipt['turn_id'])
+                    || ! is_string($receipt['token'] ?? null) || preg_match('/\A[a-f0-9]{64}\z/D', $receipt['token']) !== 1) {
+                    throw new LogicException;
+                }
+                $claim = new TurnClaim('claimed', $receipt['turn_id'], $command->conversationId, $tenant->organizationId, $tenant->brandId, 0, $receipt['token']);
+                if ($this->verify($tenant, $user, $selection, $sessionHash, $claim, $requestDigest)->status !== 'completed') {
+                    throw new LogicException;
+                }
+                $responder = DB::table('c02_responder_stages')->where('turn_id', $claim->turnId)->lockForUpdate()->first();
+                if (! $responder || ! Str::isUlid($responder->id)) {
+                    throw new LogicException;
+                }
+                $guard = DB::table('c02_guard_stages')->where('turn_id', $claim->turnId)
+                    ->where('responder_stage_id', $responder->id)->lockForUpdate()->first();
+
+                return app(FirstTurnTextFinalizer::class)->replayLocked($http, $claim, $responder->id, $guard?->id,
+                    FirstTurnCoordinator::finalizationKey($claim->turnId));
+            });
+        } catch (Throwable) {
+            throw new LogicException('Protected first-turn recovery unavailable.');
+        }
+    }
+
     /** Verify origin and current access for replay; return the locked current turn status. */
     public function assertOriginLocked(#[SensitiveParameter] Request $http, #[SensitiveParameter] TurnClaim $claim): string
     {
