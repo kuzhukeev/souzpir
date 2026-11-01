@@ -75,6 +75,16 @@
       "tenant": "brand",
       "parents": ["organizations", "brands", "conversations", "seller_turns", "users", "ai_calls"]
     },
+    "c02_responder_stages": {
+      "owner": "SP-C-02",
+      "tenant": "brand",
+      "parents": ["organizations", "brands", "conversations", "seller_turns", "ai_calls"]
+    },
+    "c02_responder_raw_evidence": {
+      "owner": "SP-C-02",
+      "tenant": "parent:c02_responder_stages",
+      "parents": ["c02_responder_stages", "ai_calls"]
+    },
     "protected_operation_key_guard": {
       "owner": "SP-C-02",
       "tenant": "global",

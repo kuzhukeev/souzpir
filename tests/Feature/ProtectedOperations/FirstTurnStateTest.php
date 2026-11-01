@@ -1183,6 +1183,95 @@ SQL);
         Queue::assertNothingPushed();
     }
 
+    public function test_raw_tool_evidence_is_bound_to_its_driver_result_and_stage(): void
+    {
+        [$tenant, $http, $claim, $extractor] = $this->fixture('Raw source', ['protected_claim' => true]);
+        $raw = '{ "text" : "synthetic" }';
+        [$stage, , , $file] = $this->responderFixture($tenant, $http, $claim, $extractor, [
+            'content' => null, 'toolCalls' => [['id' => 'raw-call', 'name' => 'create_promise', 'arguments' => $raw]],
+        ]);
+        $this->within($tenant, function () use ($http, $claim, $stage, $file, $raw): void {
+            $gateway = app(Gateway::class);
+            self::assertSame('completed', $gateway->completeProtectedResponderWithRaw($http, $claim, $stage));
+            unlink($file);
+            self::assertSame('completed', $gateway->completeProtectedResponderWithRaw($http, $claim, $stage));
+            self::assertSame(['id' => 'raw-call', 'name' => 'create_promise', 'arguments_json' => $raw],
+                DB::transaction(fn () => $gateway->readProtectedRawToolCallLocked($http, $claim, $stage, 0)));
+            $row = DB::table('c02_responder_raw_evidence')->where('stage_id', $stage)->first();
+            $payload = json_decode(Crypt::decryptString($row->payload_encrypted), true, 512, JSON_THROW_ON_ERROR);
+            foreach (['argument', 'stage', 'result'] as $tamper) {
+                DB::beginTransaction();
+                try {
+                    $changed = $payload;
+                    if ($tamper === 'argument') {
+                        $changed['evidence']['raw_calls'][0]['arguments_json'] = '{"text":"changed"}';
+                    } elseif ($tamper === 'stage') {
+                        $changed['evidence']['stage_id'] = (string) Str::ulid();
+                    } else {
+                        $call = DB::table('ai_calls')->where('id', $row->ai_call_id)->first();
+                        $result = json_decode(Crypt::decryptString($call->result_encrypted), true, 512, JSON_THROW_ON_ERROR);
+                        $result['toolCalls'][0]['arguments']['text'] = 'changed';
+                        DB::table('ai_calls')->where('id', $row->ai_call_id)->update([
+                            'result_encrypted' => Crypt::encryptString(json_encode($result, JSON_THROW_ON_ERROR)),
+                        ]);
+                    }
+                    // Even a valid seal cannot bind different stage or arguments to this result.
+                    $changed['seal'] = hash_hmac('sha256', CanonicalJson::hash($changed['evidence']), (string) config('app.key'));
+                    DB::table('c02_responder_raw_evidence')->where('stage_id', $stage)->update([
+                        'payload_encrypted' => Crypt::encryptString(json_encode($changed, JSON_THROW_ON_ERROR)),
+                    ]);
+                    try {
+                        $gateway->readProtectedRawToolCallLocked($http, $claim, $stage, 0);
+                        self::fail('Substituted source evidence was accepted.');
+                    } catch (LogicException $error) {
+                        self::assertSame('Protected raw tool call unavailable.', $error->getMessage());
+                    }
+                } finally {
+                    DB::rollBack();
+                }
+            }
+            DB::beginTransaction();
+            try {
+                DB::table('c02_responder_raw_evidence')->where('stage_id', $stage)->update(['ai_call_id' => (string) Str::ulid()]);
+                self::fail('Evidence was attached to an unrelated call.');
+            } catch (QueryException) {
+                self::assertTrue(true);
+            } finally {
+                DB::rollBack();
+            }
+            self::assertSame(1, DB::table('c02_responder_raw_evidence')->count());
+            self::assertSame(0, DB::table('seller_tasks')->count());
+            self::assertSame(0, DB::table('outbox_events')->count());
+        });
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
+    }
+
+    public function test_historical_decoded_result_cannot_gain_raw_evidence_on_replay(): void
+    {
+        [$tenant, $http, $claim, $extractor] = $this->fixture('Historical source', ['protected_claim' => true]);
+        [$stage, , , $file] = $this->responderFixture($tenant, $http, $claim, $extractor, [
+            'content' => null, 'toolCalls' => [['id' => 'old-call', 'name' => 'create_promise', 'arguments' => ['text' => 'synthetic']]],
+        ]);
+        $this->within($tenant, function () use ($http, $claim, $stage, $file): void {
+            $gateway = app(Gateway::class);
+            self::assertSame('completed', $gateway->completeProtectedResponder($http, $claim, $stage));
+            self::assertSame('raw_unavailable', $gateway->completeProtectedResponderWithRaw($http, $claim, $stage));
+            try {
+                DB::transaction(fn () => $gateway->readProtectedRawToolCallLocked($http, $claim, $stage, 0));
+                self::fail('Historical decoded arguments became raw evidence.');
+            } catch (LogicException $error) {
+                self::assertSame('Protected raw tool call unavailable.', $error->getMessage());
+            }
+            self::assertSame(0, DB::table('c02_responder_raw_evidence')->count());
+            unlink($file);
+        });
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
+    }
+
     public function test_protected_tool_call_is_read_from_its_bound_source_and_does_not_authorize_an_effect(): void
     {
         [$tenant, $http, $claim, $extractor] = $this->fixture('Synthetic question', ['protected_claim' => true]);
