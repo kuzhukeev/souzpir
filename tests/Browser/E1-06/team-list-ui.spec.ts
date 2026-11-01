@@ -64,6 +64,7 @@ for (const width of [1440, 1024, 390]) {
       const invites = page.getByRole('region', { name: 'Приглашения в ожидании' });
       await expect(invites.getByText('invite@example.test')).toBeVisible();
       await expect(invites.getByText('Ссылка не открыта')).toBeVisible();
+      await expect(invites.getByRole('button', { name: 'Обновить приглашения' })).toHaveCSS('cursor', 'pointer');
       expect(
         await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
       ).toBeTruthy();

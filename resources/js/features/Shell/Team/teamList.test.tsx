@@ -417,6 +417,37 @@ it('показывает данные приглашения и повторяе
   });
 });
 
+it('обновляет приглашения с первой страницы, сохраняя страницу участников и фильтры, и позволяет повторить при ошибке', () => {
+  render(
+    <Index
+      teamBrandRevision={revision}
+      members={{ ...members, current_page: 2, last_page: 2 }}
+      canViewRoles
+      canIssueInvitations
+      invitations={{ ...emptyInvitations, current_page: 3, last_page: 1 }}
+      roleFilter="viewer"
+      brandFilter="brand-a"
+      statusFilter="invited"
+      filterBrands={[{ id: 'brand-a', name: 'Бренд А' }]}
+    />,
+  );
+  const section = screen.getByRole('region', { name: 'Приглашения в ожидании' });
+  const refresh = within(section).getByRole('button', { name: 'Обновить приглашения' });
+  fireEvent.click(refresh);
+  const expected = { page: 2, invitation_page: 1, role: 'viewer', brand: 'brand-a', status: 'invited' };
+  expect(calls.get.mock.calls[0][1]).toEqual(expected);
+  expect((refresh as HTMLButtonElement).disabled).toBe(true);
+  expect(within(section).getByText('Загружаем приглашения…').getAttribute('role')).toBe('status');
+  act(() => {
+    calls.get.mock.calls[0][2].onNetworkError();
+    calls.get.mock.calls[0][2].onFinish();
+  });
+  expect(within(section).getByRole('alert').textContent).toContain('Не удалось загрузить');
+  fireEvent.click(within(section).getByRole('button', { name: 'Повторить' }));
+  expect(calls.get.mock.calls[1][1]).toEqual(expected);
+  expect(calls.post).not.toHaveBeenCalled();
+});
+
 it('подтверждает отзыв и при неизвестном результате требует обновить страницу', () => {
   const invitations = {
     ...emptyInvitations,
