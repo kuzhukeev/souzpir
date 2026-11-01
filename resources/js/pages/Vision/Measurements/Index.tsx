@@ -9,19 +9,9 @@ import {
 
 type Row = {
   id: string;
-  status: string;
   created_at: string;
-  finished_at: string | null;
-  size: number;
 };
 type Listing = { revision: string; data: Row[]; page: number; last_page: number; total: number };
-const statuses: Record<string, string> = {
-  pending: 'Ожидает',
-  running: 'Выполняется',
-  completed: 'Успешность не подтверждена',
-  partial: 'Завершён частично',
-  failed: 'Ошибка',
-};
 const button =
   'min-h-11 cursor-pointer rounded-lg border border-(--color-border) px-4 text-sm font-semibold text-(--color-link) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus) disabled:cursor-not-allowed disabled:opacity-50';
 const isPageVisible = () => document.visibilityState !== 'hidden';
@@ -181,6 +171,9 @@ export default function Index({ measurementBrandRevision }: { measurementBrandRe
             state.data.revision === measurementBrandRevision &&
             state.data.page === page && (
               <div data-private-profile className="mt-5">
+                <p className="mb-4 text-sm text-(--color-ink-muted)">
+                  Статусы и результаты не показаны: доступ к источнику не проверен.
+                </p>
                 {state.data.total === 0 ? (
                   <div
                     role="status"
@@ -207,7 +200,7 @@ export default function Index({ measurementBrandRevision }: { measurementBrandRe
                       aria-label="История замеров"
                       tabIndex={0}
                     >
-                      <table className="w-full min-w-[620px] border-collapse text-left text-sm">
+                      <table className="w-full border-collapse text-left text-sm">
                         <thead className="bg-(--color-surface-muted)">
                           <tr>
                             <th scope="col" className="px-4 py-3">
@@ -215,15 +208,6 @@ export default function Index({ measurementBrandRevision }: { measurementBrandRe
                             </th>
                             <th scope="col" className="px-4 py-3">
                               Создан
-                            </th>
-                            <th scope="col" className="px-4 py-3">
-                              Статус
-                            </th>
-                            <th scope="col" className="px-4 py-3">
-                              Вопросы
-                            </th>
-                            <th scope="col" className="px-4 py-3">
-                              Завершён
                             </th>
                           </tr>
                         </thead>
@@ -234,11 +218,6 @@ export default function Index({ measurementBrandRevision }: { measurementBrandRe
                                 {row.id}
                               </th>
                               <td className="px-4 py-4">{date(row.created_at)}</td>
-                              <td className="px-4 py-4">
-                                {statuses[row.status] ?? 'Статус недоступен'}
-                              </td>
-                              <td className="px-4 py-4">{row.size}</td>
-                              <td className="px-4 py-4">{date(row.finished_at)}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -258,20 +237,6 @@ export default function Index({ measurementBrandRevision }: { measurementBrandRe
                             <div>
                               <dt className="text-(--color-ink-muted)">Создан</dt>
                               <dd className="mt-1">{date(row.created_at)}</dd>
-                            </div>
-                            <div>
-                              <dt className="text-(--color-ink-muted)">Статус</dt>
-                              <dd className="mt-1">
-                                {statuses[row.status] ?? 'Статус недоступен'}
-                              </dd>
-                            </div>
-                            <div>
-                              <dt className="text-(--color-ink-muted)">Вопросы</dt>
-                              <dd className="mt-1">{row.size}</dd>
-                            </div>
-                            <div>
-                              <dt className="text-(--color-ink-muted)">Завершён</dt>
-                              <dd className="mt-1">{date(row.finished_at)}</dd>
                             </div>
                           </dl>
                         </li>

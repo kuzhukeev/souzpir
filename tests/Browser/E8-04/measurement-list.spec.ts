@@ -31,8 +31,9 @@ test('реальные сохранённые замеры текущего бр
     '/vision/runs',
   );
   await expect(page.getByText(alpha).first()).toBeVisible();
-  await expect(page.getByText('Выполняется', { exact: true }).first()).toBeVisible();
-  await expect(page.getByText('Успешность не подтверждена', { exact: true }).first()).toBeVisible();
+  await expect(
+    page.getByText('Статусы и результаты не показаны: доступ к источнику не проверен.'),
+  ).toBeVisible();
   await expect(page.getByText(beta)).toHaveCount(0);
   await expect(page.getByText('Запуск замеров — скоро')).toBeVisible();
   for (const width of [1440, 1024, 390]) {
@@ -110,7 +111,9 @@ test('задержанный ответ скрывается после пере
   await expect(page.getByText(alpha)).toHaveCount(0);
   await other.goto(`${origin}/vision/runs`);
   await expect(other.getByText(beta).first()).toBeVisible();
-  await expect(other.getByText('Завершён частично', { exact: true }).first()).toBeVisible();
+  await expect(
+    other.getByText('Статусы и результаты не показаны: доступ к источнику не проверен.'),
+  ).toBeVisible();
   await expect(other.getByText(alpha)).toHaveCount(0);
 });
 
