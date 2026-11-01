@@ -12,6 +12,7 @@ use App\Ai\Protected\ResponderProjection;
 use App\Ai\Protected\SellerExtractorStages;
 use App\Ai\Protected\SellerGuardStages;
 use App\Ai\Protected\SellerResponderStages;
+use App\Contracts\Ai\AiContext;
 use App\Contracts\ProtectedOperations\IdempotencyConflict;
 use App\Models\Brand;
 use App\Models\Membership;
@@ -621,6 +622,198 @@ final class FirstTurnStateTest extends TestCase
         Http::assertNothingSent();
     }
 
+    public function test_responder_binding_seal_rejects_privileged_replacement_with_another_valid_result(): void
+    {
+        [$tenant, $http, $claim, $extractor] = $this->fixture();
+        [$stage, $request, $context, $file] = $this->responderFixture($tenant, $http, $claim, $extractor, ['content' => 'Original synthetic answer']);
+        $this->within($tenant, function () use ($http, $claim, $stage, $request, $context, $file): void {
+            self::assertSame('completed', app(Gateway::class)->completeProtectedResponder($http, $claim, $stage));
+            $originalCall = DB::table('c02_responder_stages')->where('id', $stage)->value('ai_call_id');
+            $originalKey = DB::table('ai_calls')->where('id', $originalCall)->value('idempotency_key_hash');
+            self::assertNotNull(DB::table('c02_responder_stages')->where('id', $stage)->value('binding_seal'));
+            file_put_contents($file, json_encode(['result' => ['content' => 'Substituted synthetic answer', 'toolCalls' => [],
+                'usage' => ['promptTokens' => 1, 'completionTokens' => 1], 'model' => $request->model, 'latencyMs' => 1, 'costMicros' => 0]], JSON_THROW_ON_ERROR));
+            $other = new AiContext($context->organizationId, $context->brandId, $context->purpose, $context->family,
+                $context->objectType, $context->objectId, 'synthetic-other-'.Str::random(20), $context->dataClasses);
+            $otherResult = app(Gateway::class)->complete($request, $other);
+            self::assertNotSame($originalCall, $otherResult->aiCallId);
+            self::assertSame(DB::table('ai_calls')->where('id', $originalCall)->value('request_hash'), DB::table('ai_calls')->where('id', $otherResult->aiCallId)->value('request_hash'));
+            DB::beginTransaction();
+            try {
+                DB::statement('ALTER TABLE c02_responder_stages DISABLE TRIGGER c02_responder_stage_guard');
+                DB::table('ai_calls')->where('id', $originalCall)->update(['idempotency_key_hash' => str_repeat('b', 64)]);
+                DB::table('ai_calls')->where('id', $otherResult->aiCallId)->update(['idempotency_key_hash' => $originalKey]);
+                DB::table('c02_responder_stages')->where('id', $stage)->update(['ai_call_id' => $otherResult->aiCallId]);
+                DB::statement('ALTER TABLE c02_responder_stages ENABLE TRIGGER c02_responder_stage_guard');
+                try {
+                    app(Gateway::class)->readProtectedResponderLocked($http, $claim, $stage);
+                    self::fail('An authenticated result of a different call replaced the bound responder.');
+                } catch (LogicException $error) {
+                    self::assertSame('Protected responder result unavailable.', $error->getMessage());
+                }
+                foreach ([null, str_repeat('a', 64)] as $forgedSeal) {
+                    DB::statement('ALTER TABLE c02_responder_stages DISABLE TRIGGER c02_responder_stage_guard');
+                    DB::statement('ALTER TABLE c02_responder_stages DISABLE TRIGGER c02_responder_binding_seal_guard');
+                    DB::table('c02_responder_stages')->where('id', $stage)->update(['binding_seal' => $forgedSeal]);
+                    DB::statement('ALTER TABLE c02_responder_stages ENABLE TRIGGER c02_responder_binding_seal_guard');
+                    DB::statement('ALTER TABLE c02_responder_stages ENABLE TRIGGER c02_responder_stage_guard');
+                    try {
+                        app(Gateway::class)->readProtectedResponderLocked($http, $claim, $stage);
+                        self::fail('A missing or forged responder binding seal was accepted.');
+                    } catch (LogicException $error) {
+                        self::assertSame('Protected responder result unavailable.', $error->getMessage());
+                    }
+                }
+            } finally {
+                DB::rollBack();
+                unlink($file);
+            }
+        });
+    }
+
+    public function test_responder_binding_migration_preserves_unsigned_legacy_history_without_trusting_it(): void
+    {
+        [$tenant, $http, $claim, $extractor] = $this->fixture();
+        [$stage, , , $file] = $this->responderFixture($tenant, $http, $claim, $extractor);
+        $this->within($tenant, fn () => app(Gateway::class)->completeProtectedResponder($http, $claim, $stage));
+        unlink($file);
+        $migration = require database_path('migrations/C-02/2026_11_01_110000_c02_seal_responder_binding.php');
+        try {
+            $migration->down();
+            self::fail('A signed responder binding was silently discarded.');
+        } catch (\RuntimeException $error) {
+            self::assertSame('Cannot discard responder binding seals.', $error->getMessage());
+        }
+        // Recreate the pre-migration representation only in this isolated DB.
+        DB::transaction(function () use ($stage): void {
+            DB::statement('ALTER TABLE c02_responder_stages DISABLE TRIGGER c02_responder_stage_guard');
+            DB::statement('ALTER TABLE c02_responder_stages DISABLE TRIGGER c02_responder_binding_seal_guard');
+            DB::table('c02_responder_stages')->where('id', $stage)->update(['binding_seal' => null]);
+            DB::statement('ALTER TABLE c02_responder_stages ENABLE TRIGGER c02_responder_binding_seal_guard');
+            DB::statement('ALTER TABLE c02_responder_stages ENABLE TRIGGER c02_responder_stage_guard');
+        });
+        $migration->down();
+        $old = (array) DB::table('c02_responder_stages')->where('id', $stage)->first();
+        $oldCall = DB::table('ai_calls')->where('id', $old['ai_call_id'])->first();
+        [$otherTenant, $otherHttp, $otherClaim, $otherExtractor] = $this->fixture('Legacy unbound synthetic input');
+        $otherStage = $this->within($otherTenant, function () use ($otherHttp, $otherClaim, $otherExtractor): string {
+            $state = app(FirstTurnState::class)->prepare($otherHttp, $otherClaim, $otherExtractor);
+
+            return app(SellerResponderStages::class)->prepare($otherHttp, $otherClaim, $otherExtractor, $state);
+        });
+        self::assertNull(DB::table('c02_responder_stages')->where('id', $otherStage)->value('ai_call_id'));
+        $migration->up();
+        $migrated = (array) DB::table('c02_responder_stages')->where('id', $stage)->first();
+        self::assertArrayHasKey('binding_seal', $migrated);
+        self::assertNull($migrated['binding_seal']);
+        unset($migrated['binding_seal']);
+        self::assertEquals($old, $migrated);
+        self::assertEquals($oldCall, DB::table('ai_calls')->where('id', $old['ai_call_id'])->first());
+        $this->within($tenant, function () use ($http, $claim, $stage): void {
+            try {
+                app(SellerResponderStages::class)->load($http, $claim, $stage);
+                self::fail('An unsigned legacy binding was treated as verified.');
+            } catch (LogicException $error) {
+                self::assertSame('Protected responder stage rejected.', $error->getMessage());
+            }
+            try {
+                app(Gateway::class)->completeProtectedResponder($http, $claim, $stage);
+                self::fail('An unsigned legacy responder was replayed as verified.');
+            } catch (LogicException $error) {
+                self::assertSame('Protected responder stage could not be completed.', $error->getMessage());
+            }
+        });
+        [$reused, , , $otherFile] = $this->responderFixture($otherTenant, $otherHttp, $otherClaim, $otherExtractor);
+        self::assertSame($otherStage, $reused);
+        self::assertSame('completed', $this->within($otherTenant, fn () => app(Gateway::class)->completeProtectedResponder($otherHttp, $otherClaim, $otherStage)));
+        self::assertNotNull(DB::table('c02_responder_stages')->where('id', $otherStage)->value('binding_seal'));
+        unlink($otherFile);
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
+    }
+
+    public function test_cleared_responder_binding_cannot_reseal_an_old_call(): void
+    {
+        [$tenant, $http, $claim, $extractor] = $this->fixture();
+        [$stage, $request, $context, $file] = $this->responderFixture($tenant, $http, $claim, $extractor);
+        $this->within($tenant, function () use ($http, $claim, $stage, $request, $context, $file): void {
+            self::assertSame('completed', app(Gateway::class)->completeProtectedResponder($http, $claim, $stage));
+            $original = DB::table('c02_responder_stages')->where('id', $stage)->first();
+            $originalKey = DB::table('ai_calls')->where('id', $original->ai_call_id)->value('idempotency_key_hash');
+            $other = new AiContext($context->organizationId, $context->brandId, $context->purpose, $context->family,
+                $context->objectType, $context->objectId, 'synthetic-rebind-'.Str::random(20), $context->dataClasses);
+            $otherResult = app(Gateway::class)->complete($request, $other);
+            $otherKey = DB::table('ai_calls')->where('id', $otherResult->aiCallId)->value('idempotency_key_hash');
+            DB::transaction(function () use ($stage, $original, $originalKey, $otherResult): void {
+                DB::statement('ALTER TABLE c02_responder_stages DISABLE TRIGGER c02_responder_stage_guard');
+                DB::statement('ALTER TABLE c02_responder_stages DISABLE TRIGGER c02_responder_binding_seal_guard');
+                DB::table('c02_responder_stages')->where('id', $stage)->update(['ai_call_id' => null, 'gateway_request_hash' => null, 'binding_seal' => null]);
+                DB::table('ai_calls')->where('id', $original->ai_call_id)->update(['idempotency_key_hash' => str_repeat('b', 64)]);
+                DB::table('ai_calls')->where('id', $otherResult->aiCallId)->update(['idempotency_key_hash' => $originalKey]);
+                DB::statement('ALTER TABLE c02_responder_stages ENABLE TRIGGER c02_responder_binding_seal_guard');
+                // The original stage trigger stays disabled to exercise the PHP
+                // XID/nonce check independently of that trigger.
+            });
+            try {
+                try {
+                    app(Gateway::class)->completeProtectedResponder($http, $claim, $stage);
+                    self::fail('An old AI call was sealed as a new binding.');
+                } catch (LogicException $error) {
+                    self::assertSame('Protected responder stage could not be completed.', $error->getMessage());
+                }
+                self::assertNull(DB::table('c02_responder_stages')->where('id', $stage)->value('binding_seal'));
+                self::assertSame(2, DB::table('ai_calls')->where('purpose', 'responder')->count());
+            } finally {
+                DB::transaction(function () use ($stage, $original, $originalKey, $otherResult, $otherKey): void {
+                    DB::statement('ALTER TABLE c02_responder_stages DISABLE TRIGGER c02_responder_binding_seal_guard');
+                    DB::table('ai_calls')->where('id', $otherResult->aiCallId)->update(['idempotency_key_hash' => $otherKey]);
+                    DB::table('ai_calls')->where('id', $original->ai_call_id)->update(['idempotency_key_hash' => $originalKey]);
+                    DB::table('c02_responder_stages')->where('id', $stage)->update(['ai_call_id' => $original->ai_call_id,
+                        'gateway_request_hash' => $original->gateway_request_hash, 'binding_seal' => $original->binding_seal]);
+                    DB::statement('ALTER TABLE c02_responder_stages ENABLE TRIGGER c02_responder_binding_seal_guard');
+                    DB::statement('ALTER TABLE c02_responder_stages ENABLE TRIGGER c02_responder_stage_guard');
+                });
+                unlink($file);
+            }
+            self::assertSame('completed', app(Gateway::class)->completeProtectedResponder($http, $claim, $stage));
+        });
+        Http::assertNothingSent();
+    }
+
+    public function test_new_responder_binding_cannot_commit_without_its_seal(): void
+    {
+        [$tenant, $http, $claim, $extractor] = $this->fixture();
+        [$stage, , , $file] = $this->responderFixture($tenant, $http, $claim, $extractor);
+        $fake = new CoordinatorScriptedFakeDriver([]);
+        app()->instance(FakeDriver::class, $fake);
+        DB::unprepared(<<<'SQL'
+CREATE OR REPLACE FUNCTION c02_test_drop_responder_binding_seal() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN NEW.binding_seal := NULL; RETURN NEW; END;
+$$;
+CREATE TRIGGER a_c02_test_drop_responder_binding_seal BEFORE UPDATE ON c02_responder_stages
+  FOR EACH ROW EXECUTE FUNCTION c02_test_drop_responder_binding_seal();
+SQL);
+        try {
+            $this->within($tenant, function () use ($http, $claim, $stage): void {
+                try {
+                    app(Gateway::class)->completeProtectedResponder($http, $claim, $stage);
+                    self::fail('A responder call was bound without its seal.');
+                } catch (LogicException $error) {
+                    self::assertSame('Protected responder stage could not be completed.', $error->getMessage());
+                }
+            });
+            self::assertSame(0, $fake->calls);
+            self::assertSame(0, DB::table('ai_calls')->where('purpose', 'responder')->count());
+            self::assertNull(DB::table('c02_responder_stages')->where('id', $stage)->value('ai_call_id'));
+            self::assertNull(DB::table('c02_responder_stages')->where('id', $stage)->value('binding_seal'));
+        } finally {
+            DB::unprepared('DROP TRIGGER IF EXISTS a_c02_test_drop_responder_binding_seal ON c02_responder_stages; DROP FUNCTION IF EXISTS c02_test_drop_responder_binding_seal();');
+            unlink($file);
+        }
+        Http::assertNothingSent();
+    }
+
     public function test_responder_projection_matches_all_original_prompt_goldens(): void
     {
         [$tenant] = $this->fixture();
@@ -973,11 +1166,14 @@ SQL);
     public function test_responder_migration_preserves_existing_turn_and_refuses_to_discard_history(): void
     {
         $migration = require database_path('migrations/C-02/2026_11_01_070000_c02_create_responder_stages.php');
+        $bindingMigration = require database_path('migrations/C-02/2026_11_01_110000_c02_seal_responder_binding.php');
+        $bindingMigration->down();
         $migration->down();
         [$tenant, $http, $claim, $extractor] = $this->fixture();
         self::assertSame(1, DB::table('ai_calls')->count());
         self::assertSame(1, DB::table('messages')->where('conversation_id', $claim->conversationId)->count());
         $migration->up();
+        $bindingMigration->up();
         [$stage, , , $file] = $this->responderFixture($tenant, $http, $claim, $extractor);
         self::assertNotEmpty($stage);
         self::assertSame(1, DB::table('c02_responder_stages')->count());

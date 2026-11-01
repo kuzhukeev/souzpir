@@ -110,7 +110,22 @@ final class SellerResponderStages
 
             return;
         }
-        DB::table('c02_responder_stages')->where('id', $stageId)->whereNull('ai_call_id')->update(['ai_call_id' => $call->id, 'gateway_request_hash' => $requestHash]);
+        // Never let a cleared/old binding cause the server to sign a previous
+        // call. This proof is checked here as well as by the database trigger.
+        $proof = DB::selectOne("select pg_current_xact_id()::text as xid, current_setting('c02.reservation_nonce', true) as nonce");
+        if (! is_string($proof->nonce) || preg_match('/\\A[a-f0-9]{64}\\z/D', $proof->nonce) !== 1
+            || ! is_string($call->c02_creation_xid) || ! hash_equals($call->c02_creation_xid, $proof->xid)
+            || ! is_string($call->c02_reservation_digest)
+            || ! hash_equals($call->c02_reservation_digest, hash('sha256', 'c02-reservation:'.$proof->nonce))) {
+            throw new LogicException('Protected responder stage rejected.');
+        }
+        $bound = DB::table('c02_responder_stages')->where('id', $stageId)->whereNull('ai_call_id')->update([
+            'ai_call_id' => $call->id, 'gateway_request_hash' => $requestHash,
+            'binding_seal' => $this->bindingSeal($row, $call->id, $requestHash),
+        ]);
+        if ($bound !== 1) {
+            throw new LogicException('Protected responder stage rejected.');
+        }
     }
 
     private function build(#[SensitiveParameter] Request $http, #[SensitiveParameter] TurnClaim $claim, #[SensitiveParameter] string $extractorId, #[SensitiveParameter] string $stateId): array
@@ -165,6 +180,15 @@ final class SellerResponderStages
             || ! hash_equals($row->seal, $this->seal($row))) {
             throw new LogicException;
         }
+        if ($row->ai_call_id === null) {
+            if ($row->gateway_request_hash !== null || $row->binding_seal !== null) {
+                throw new LogicException;
+            }
+        } elseif (! is_string($row->gateway_request_hash) || ! is_string($row->binding_seal)
+            || ! hash_equals($row->binding_seal, $this->bindingSeal($row, $row->ai_call_id, $row->gateway_request_hash))) {
+            // Pre-migration bindings have no authenticated call identity.
+            throw new LogicException;
+        }
         $saved = Crypt::decryptString($row->request_encrypted);
         if (! hash_equals($row->request_digest, $this->digest($saved)) || ! hash_equals($row->request_digest, $this->digest($this->requestJson($request)))) {
             throw new LogicException;
@@ -189,5 +213,12 @@ final class SellerResponderStages
         }
 
         return hash_hmac('sha256', 'c02-responder-stage:'.CanonicalJson::hash($identity), (string) config('app.key'));
+    }
+
+    private function bindingSeal(#[SensitiveParameter] object $row, string $callId, string $requestHash): string
+    {
+        return hash_hmac('sha256', 'c02-responder-binding:'.CanonicalJson::hash([
+            'stage_id' => $row->id, 'stage_seal' => $row->seal, 'call_id' => $callId, 'request_hash' => $requestHash,
+        ]), (string) config('app.key'));
     }
 }
