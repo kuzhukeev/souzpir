@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Shell\Organizations;
 
+use App\Models\Brand;
 use App\Models\Membership;
 use App\Shell\Audit\Contracts\AuditWriter;
 use App\Shell\Organizations\Http\OrganizationController;
@@ -11,6 +12,7 @@ use App\Tenancy\TenantContextRunner;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -163,14 +165,62 @@ final class OrganizationTest extends TenancyTestCase
 
     public function test_automatic_web_and_explicit_api_guard_are_fail_closed_and_jobs_can_recheck(): void
     {
-        [$owner, $org, $brand] = $this->cabinet();
-        Route::middleware(['web', 'auth', 'verified', 'tenant', 'module.enabled:seller'])->get('/api/v1/seller/test', fn () => 'ok');
-        $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->getJson('/api/v1/seller/test')->assertNotFound();
+        Http::preventStrayRequests();
+        Http::fake();
+        [$owner, $org, $brand, $otherBrand] = $this->cabinet();
+        [, $foreignOrg, $foreignBrand] = $this->cabinet(false);
+        Route::middleware(['web', 'auth', 'verified', 'tenant'])->get('/seller/e104b-test', fn () => 'web-ok');
+        Route::middleware(['api', 'api.ingress', 'auth:sanctum', 'tenant.token', 'throttle:api', 'token.ability:read', 'module.enabled:seller'])
+            ->get('/api/v1/seller/e104b-test', function () {
+                $context = app(TenantContext::class);
+
+                return response()->json(['organization_id' => $context->organizationId, 'brand_id' => $context->brandId]);
+            });
+        $this->withServerVariables(['REMOTE_ADDR' => '127.0.0.1', 'SERVER_ADDR' => '127.0.0.1']);
+        $token = static function ($organization, Brand $tokenBrand, array $abilities): string {
+            $secret = Str::random(64);
+            $id = DB::table('personal_access_tokens')->insertGetId([
+                'tokenable_type' => Brand::class, 'tokenable_id' => $tokenBrand->id,
+                'organization_id' => $organization->id, 'brand_id' => $tokenBrand->id,
+                'name' => 'synthetic', 'token' => hash('sha256', $secret), 'token_last_four' => substr($secret, -4),
+                'abilities' => json_encode($abilities, JSON_THROW_ON_ERROR), 'created_at' => now(), 'updated_at' => now(),
+            ]);
+
+            return $id.'|'.$secret;
+        };
+        $read = $token($org, $brand, ['read']);
+        $other = $token($org, $otherBrand, ['read']);
+        $foreign = $token($foreignOrg, $foreignBrand, ['read']);
+        $wrongAbility = $token($org, $brand, ['leads']);
+        $this->getJson('/api/v1/seller/e104b-test')->assertUnauthorized();
+        $this->get('/seller/e104b-test')->assertRedirect('/login');
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        // A web session is not a bearer token and may not reach the module guard.
+        $this->getJson('/api/v1/seller/e104b-test')->assertUnauthorized();
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->get('/seller/e104b-test')->assertNotFound();
+        $this->withHeader('Authorization', 'Bearer '.$read)->getJson('/api/v1/seller/e104b-test')->assertNotFound();
         $context = new TenantContext($org->id, $brand->id, source: 'job');
         self::assertFalse(app(ModuleEntitlements::class)->enabled($context, 'seller'));
-        $this->put('/brands/'.$brand->id.'/modules/seller', ['enabled' => true])->assertSessionHasNoErrors();
+        $this->flushHeaders();
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->put('/brands/'.$brand->id.'/modules/seller', ['enabled' => true])->assertSessionHasNoErrors();
         self::assertTrue(app(ModuleEntitlements::class)->enabled($context, 'seller'));
-        $this->getJson('/api/v1/seller/test')->assertOk();
+        $this->get('/seller/e104b-test')->assertOk()->assertSee('web-ok');
+        $this->withHeader('Authorization', 'Bearer '.$read)->getJson('/api/v1/seller/e104b-test')
+            ->assertOk()->assertExactJson(['organization_id' => $org->id, 'brand_id' => $brand->id]);
+        $this->withHeader('X-Brand-Id', $otherBrand->id)->getJson('/api/v1/seller/e104b-test')->assertNotFound();
+        $this->flushHeaders()->withHeader('Authorization', 'Bearer '.$other)->getJson('/api/v1/seller/e104b-test')->assertNotFound();
+        $this->flushHeaders()->withHeader('Authorization', 'Bearer '.$foreign)->getJson('/api/v1/seller/e104b-test')->assertNotFound();
+        DB::table('brand_modules')->insert(['id' => (string) Str::ulid(), 'organization_id' => $foreignOrg->id, 'brand_id' => $foreignBrand->id, 'module' => 'seller', 'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
+        $this->getJson('/api/v1/seller/e104b-test')->assertOk()
+            ->assertExactJson(['organization_id' => $foreignOrg->id, 'brand_id' => $foreignBrand->id]);
+        $this->flushHeaders()->withHeader('Authorization', 'Bearer '.$wrongAbility)->getJson('/api/v1/seller/e104b-test')->assertForbidden();
+        $this->flushHeaders()->withHeader('Authorization', 'Bearer 999|'.str_repeat('X', 64))->getJson('/api/v1/seller/e104b-test')->assertUnauthorized();
+        $this->flushHeaders();
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->put('/brands/'.$brand->id.'/modules/seller', ['enabled' => false])->assertSessionHasNoErrors();
+        self::assertFalse(app(ModuleEntitlements::class)->enabled($context, 'seller'));
+        $this->get('/seller/e104b-test')->assertNotFound();
+        $this->withHeader('Authorization', 'Bearer '.$read)->getJson('/api/v1/seller/e104b-test')->assertNotFound();
+        Http::assertNothingSent();
     }
 
     public function test_validation_errors_never_redirect_to_previous_logo_asset(): void
