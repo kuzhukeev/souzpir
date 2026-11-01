@@ -43,13 +43,14 @@ const props: InvitationDialogProps = {
   revision,
   brands: [{ id: brand, name: 'Тестовый бренд' }],
 };
-const checked = () =>
+const checked = (permission: unknown = true, manage: boolean = true) =>
   new Response(
     JSON.stringify({
       version: state.version,
       props: {
         teamBrandRevision: revision,
-        canViewRoles: true,
+        canViewRoles: manage,
+        ...(permission === null ? {} : { canIssueInvitations: permission }),
         brand: { id: brand },
         filterBrands: [{ id: brand }],
       },
@@ -204,9 +205,44 @@ it('does not reveal a link if server-side context revalidation fails', async () 
   expect(screen.queryByLabelText('Ссылка приглашения')).toBeNull();
 });
 
+it('shows a link with issuance permission even without role-management permission', async () => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(issued()).mockResolvedValueOnce(checked(true, false)));
+  render(<InvitationDialog {...props} />);
+  prepare();
+  expect((await screen.findByLabelText('Ссылка приглашения') as HTMLTextAreaElement).value).toBe(link);
+});
+
+it.each([
+  ['revoked even when role-management permission remains', false],
+  ['missing from the server response', null],
+  ['not a boolean', 'true'],
+])('does not show a link when issuance permission is %s', async (_label, permission) => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(issued()).mockResolvedValueOnce(checked(permission, true)));
+  render(<InvitationDialog {...props} />);
+  prepare();
+  expect(await screen.findByText(/Результат неизвестен/)).toBeTruthy();
+  expect(screen.queryByLabelText('Ссылка приглашения')).toBeNull();
+});
+
+it('erases a visible link when issuance permission is revoked during revalidation', async () => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(issued()).mockResolvedValueOnce(checked(true, true)).mockResolvedValueOnce(checked(false, true)));
+  render(<InvitationDialog {...props} />);
+  vi.useFakeTimers();
+  try {
+    prepare();
+    await act(async () => { await Promise.resolve(); await Promise.resolve(); await Promise.resolve(); });
+    const field = screen.getByLabelText('Ссылка приглашения') as HTMLTextAreaElement;
+    await act(async () => { await vi.advanceTimersByTimeAsync(5_001); });
+    expect(screen.queryByLabelText('Ссылка приглашения')).toBeNull();
+    expect(field.value).toBe('');
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
 it.each([
   () => new Response('', { status: 409 }),
-  () => new Response(JSON.stringify({ version: 'different', props: { teamBrandRevision: revision, canViewRoles: true, brand: { id: brand }, filterBrands: [{ id: brand }] } }), { status: 200 }),
+  () => new Response(JSON.stringify({ version: 'different', props: { teamBrandRevision: revision, canIssueInvitations: true, brand: { id: brand }, filterBrands: [{ id: brand }] } }), { status: 200 }),
 ])('fails closed if Inertia versions do not match', async (mismatch) => {
   vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(issued()).mockResolvedValueOnce(mismatch()));
   render(<InvitationDialog {...props} />);
