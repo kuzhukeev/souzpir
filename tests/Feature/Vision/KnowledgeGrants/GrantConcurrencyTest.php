@@ -16,7 +16,6 @@ use App\Vision\KnowledgeBridge\PublishedKnowledgeBridge;
 use App\Vision\KnowledgeGrants\DatabaseGrantAuthority;
 use App\Vision\KnowledgeGrants\GrantRegistry;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -24,6 +23,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
 use Tests\Feature\Seller\Knowledge\Fixtures\PrototypeKnowledge;
+use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\TestCase;
 
 if (! interface_exists(GrantAuthority::class)) {
@@ -32,7 +32,7 @@ if (! interface_exists(GrantAuthority::class)) {
 
 final class GrantConcurrencyTest extends TestCase
 {
-    use DatabaseMigrations;
+    use IsolatedDatabaseMigrations;
 
     private function fixture(): array
     {
