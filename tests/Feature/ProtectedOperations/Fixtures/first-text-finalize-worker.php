@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Contracts\ProtectedOperations\IdempotencyConflict;
 use App\Models\User;
 use App\ProtectedOperations\FirstTurnTextFinalizer;
 use App\Seller\Conversations\Data\TurnClaim;
@@ -47,6 +48,8 @@ file_put_contents($argv[1], (string) DB::selectOne('select pg_backend_pid() as p
 try {
     $result = app(TenantContextRunner::class)->run($tenant, fn () => app(FirstTurnTextFinalizer::class)->finalize($http, $claim, $input['stage'], null, $input['key']));
     echo json_encode(['status' => 'completed', 'result' => $result], JSON_THROW_ON_ERROR);
+} catch (IdempotencyConflict) {
+    echo json_encode(['status' => 'conflict'], JSON_THROW_ON_ERROR);
 } catch (LogicException) {
     echo json_encode(['status' => 'rejected'], JSON_THROW_ON_ERROR);
 }
