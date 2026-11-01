@@ -169,6 +169,7 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "team.invitations.issue": [],
     "billing.overview": [],
     "billing.usage": [],
     "billing.plans": [],
