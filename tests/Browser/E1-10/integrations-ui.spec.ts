@@ -173,7 +173,7 @@ test('insecure transport explains why secret actions are unavailable', async ({ 
     ),
   ).toBeVisible();
   await expect(page.getByRole('button', { name: 'Создать ключ' })).toBeDisabled();
-  await expect(page.getByRole('button', { name: 'Добавить вебхук' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Добавить вебхук' })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Показать ключ один раз' })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Показать секрет один раз' })).toBeDisabled();
   await readable(page);
@@ -190,6 +190,6 @@ test('unsafe session storage prevents secret creation and gives clear feedback',
     ),
   ).toBeVisible();
   await expect(page.getByRole('button', { name: 'Создать ключ' })).toBeDisabled();
-  await expect(page.getByRole('button', { name: 'Добавить вебхук' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Добавить вебхук' })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Показать ключ один раз' })).toBeDisabled();
 });

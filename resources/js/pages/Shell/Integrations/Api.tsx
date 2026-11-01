@@ -330,7 +330,7 @@ export default function Api({
             <Webhook size={22} aria-hidden="true" /> Вебхуки
           </h2>
           <p className="mt-1 text-sm text-(--color-ink-muted)">Получайте события в вашей системе</p>
-          <Button className="mt-4" disabled={!permissions.manage || !secureSecretTransport} onClick={openWebhookCreate}>
+          <Button className="mt-4" disabled={!permissions.manage || !secureSecretTransport || !secretStorageReady} onClick={openWebhookCreate}>
             <Plus size={17} aria-hidden="true" /> Добавить вебхук
           </Button>
           {!webhookDeliveryAvailable && (
