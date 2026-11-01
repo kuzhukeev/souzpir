@@ -22,6 +22,7 @@ use Illuminate\Session\Store;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Process\Process;
 use Tests\TestCase;
 
@@ -391,6 +392,7 @@ final class SessionIdempotencyTest extends TestCase
     }
 
     #[DataProvider('concurrentCommitOrRollback')]
+    #[Group('race')]
     public function test_two_processes_serialize_the_same_session_operation(bool $rollback, string $body, array $expected): void
     {
         [$user, $request] = $this->fixture();

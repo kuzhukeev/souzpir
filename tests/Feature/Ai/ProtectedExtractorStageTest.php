@@ -39,6 +39,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use LogicException;
+use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Process\Process;
 use Tests\TestCase;
 
@@ -921,6 +922,7 @@ SQL);
         Http::assertNothingSent();
     }
 
+    #[Group('race')]
     public function test_live_fake_extractor_losing_settlement_race_never_marks_completed_uncertain(): void
     {
         [$tenant, $http, $claim] = $this->fixture();
@@ -1175,6 +1177,7 @@ SQL);
         Queue::assertNothingPushed();
     }
 
+    #[Group('race')]
     public function test_extractor_effect_reservation_serializes_two_processes(): void
     {
         [$tenant, $http, $claim] = $this->fixture();

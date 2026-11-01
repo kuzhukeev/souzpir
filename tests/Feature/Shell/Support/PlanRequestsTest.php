@@ -27,6 +27,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
+use PHPUnit\Framework\Attributes\Group;
 use RuntimeException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\Process\Process;
@@ -297,6 +298,7 @@ final class PlanRequestsTest extends SupportTestCase
         }
     }
 
+    #[Group('race')]
     public function test_two_processes_with_distinct_sessions_create_one_request_and_one_fake_delivery(): void
     {
         [$owner, $org, $brand, , $member] = $this->cabinet();

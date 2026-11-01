@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use RuntimeException;
 use Symfony\Component\Process\Process;
 use Tests\TestCase;
@@ -304,6 +305,7 @@ final class PostgresIdempotencyTest extends TestCase
     }
 
     #[DataProvider('concurrentBodies')]
+    #[Group('race')]
     public function test_concurrent_requests_serialize_on_the_receipt(string $body, bool $rollback, string $expected): void
     {
         [$org, $brand] = $this->fixture();

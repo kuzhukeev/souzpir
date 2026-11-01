@@ -27,6 +27,7 @@ use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Process\Process;
 use Tests\TestCase;
 
@@ -184,6 +185,7 @@ final class ExtractorGatewayIntegrationTest extends TestCase
         }
     }
 
+    #[Group('race')]
     public function test_concurrent_real_gateway_call_returns_pending_without_second_driver_or_fallback(): void
     {
         Http::fake();

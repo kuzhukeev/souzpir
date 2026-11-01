@@ -57,6 +57,7 @@ use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use LogicException;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\Process\Process;
 use Tests\TestCase;
@@ -732,6 +733,7 @@ SQL);
         Queue::assertNothingPushed();
     }
 
+    #[Group('race')]
     public function test_live_fake_responder_losing_settlement_race_keeps_the_completed_result(): void
     {
         [$tenant, $http, $claim, $extractor] = $this->fixture();
@@ -1251,6 +1253,7 @@ SQL);
         Queue::assertNothingPushed();
     }
 
+    #[Group('race')]
     public function test_concurrent_raw_captures_share_one_reservation_and_evidence(): void
     {
         [$tenant, $http, $claim, $extractor] = $this->fixture('Concurrent raw source', ['protected_claim' => true]);
@@ -1558,6 +1561,7 @@ SQL);
         Http::assertNothingSent();
     }
 
+    #[Group('race')]
     public function test_responder_history_tampering_and_concurrent_input_are_rejected(): void
     {
         [$tenant, $http, $claim, $extractor] = $this->fixture();
@@ -3490,6 +3494,7 @@ SQL);
         Queue::assertNothingPushed();
     }
 
+    #[Group('race')]
     public function test_first_text_concurrent_different_requests_conflict_without_repeating_the_effect(): void
     {
         [$tenant, $http, $claim, $extractor] = $this->fixture('Synthetic question', ['protected_claim' => true]);
@@ -3773,6 +3778,7 @@ SQL);
         Queue::assertNothingPushed();
     }
 
+    #[Group('race')]
     public function test_first_text_finishes_before_concurrent_input_and_replays_across_processes(): void
     {
         [$tenant, $http, $claim, $extractor] = $this->fixture('Synthetic question', ['protected_claim' => true]);
@@ -4168,6 +4174,7 @@ SQL);
         Http::assertNothingSent();
     }
 
+    #[Group('race')]
     public function test_protected_claim_serializes_two_processes_and_returns_one_origin(): void
     {
         [$tenant, $http, $command] = $this->protectedClaimFixture();
@@ -4226,6 +4233,7 @@ SQL);
         Queue::assertNothingPushed();
     }
 
+    #[Group('race')]
     public function test_protected_claim_concurrent_different_content_conflicts(): void
     {
         [$tenant, $http, $command] = $this->protectedClaimFixture();
@@ -4445,6 +4453,7 @@ SQL);
         Http::assertNothingSent();
     }
 
+    #[Group('race')]
     public function test_coordinator_recovers_saved_responder_after_crash_live_race_and_tool_signal(): void
     {
         DB::unprepared(<<<'SQL'

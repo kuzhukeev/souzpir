@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Testing\TestResponse;
+use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
 use Tests\Support\IsolatedDatabaseMigrations;
@@ -283,6 +284,7 @@ final class PasswordDeliveryTest extends TestCase
         $this->post('/reset-password', $password)->assertSessionHasErrors('email');
     }
 
+    #[Group('race')]
     public function test_concurrent_requests_create_only_one_intent(): void
     {
         $streams = [new InputStream, new InputStream];

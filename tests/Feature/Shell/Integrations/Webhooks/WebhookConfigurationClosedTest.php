@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
+use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Tests\Feature\Tenancy\TenancyTestCase;
 
@@ -109,6 +110,7 @@ final class WebhookConfigurationClosedTest extends TenancyTestCase
         $this->assertDatabaseCount('webhook_deliveries', 0);
     }
 
+    #[Group('race')]
     public function test_concurrent_runtime_keeps_process_globals_while_scrubbing_request(): void
     {
         $savedServer = $_SERVER;

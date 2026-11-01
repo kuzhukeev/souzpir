@@ -24,6 +24,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
+use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
 use Tests\Support\IsolatedDatabaseMigrations;
@@ -226,6 +227,7 @@ final class VerificationDeliveryTest extends TestCase
         self::assertNull($this->delivery->claim($one['id']));
     }
 
+    #[Group('race')]
     public function test_concurrent_requests_share_one_intent_and_only_one_worker_claims(): void
     {
         $sessionId = $this->request->session()->getId();
@@ -456,6 +458,7 @@ final class VerificationDeliveryTest extends TestCase
         self::assertSame('cancelled', $this->state($intent['id'])->status);
     }
 
+    #[Group('race')]
     public function test_concurrent_revocation_wins_before_both_claim_and_send(): void
     {
         foreach (['claim', 'send'] as $phase) {
@@ -519,6 +522,7 @@ final class VerificationDeliveryTest extends TestCase
         }
     }
 
+    #[Group('race')]
     public function test_concurrent_access_revocation_prevents_new_intent(): void
     {
         $input = json_encode(['org' => $this->org->id, 'user' => $this->user->id, 'session' => $this->request->session()->getId(), 'key' => 'concurrent-revocation-key'], JSON_THROW_ON_ERROR);

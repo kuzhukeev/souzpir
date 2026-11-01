@@ -9,6 +9,7 @@ use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use LogicException;
+use PHPUnit\Framework\Attributes\Group;
 use RuntimeException;
 use Symfony\Component\Process\Process;
 use Tests\Support\IsolatedDatabaseMigrations;
@@ -133,6 +134,7 @@ final class PruneSecretReceiptsTest extends TestCase
         $this->assertDatabaseHas('integration_secret_receipts', ['nonce_hash' => $live]);
     }
 
+    #[Group('race')]
     public function test_concurrent_pruners_do_not_delete_the_same_batch(): void
     {
         $this->insertExpired(4);

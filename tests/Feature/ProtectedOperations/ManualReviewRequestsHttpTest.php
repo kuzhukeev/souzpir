@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Process\Process;
 use Tests\Feature\Tenancy\TenancyTestCase;
 
@@ -434,6 +435,7 @@ SQL);
     }
 
     #[DataProvider('reviewModes')]
+    #[Group('race')]
     public function test_two_processes_request_the_same_review_once(string $mode, string $status): void
     {
         [$owner, $org, $brand, , $membership] = $this->configuredCabinet();

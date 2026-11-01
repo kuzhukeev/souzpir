@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use Tests\Feature\Tenancy\TenancyTestCase;
 
 final class BrandSettingsTest extends TenancyTestCase
@@ -498,6 +499,7 @@ final class BrandSettingsTest extends TenancyTestCase
         Http::assertNothingSent();
     }
 
+    #[Group('race')]
     public function test_concurrent_website_check_cannot_replace_first_completed_result(): void
     {
         [$owner, $organization, $brand] = $this->cabinet();

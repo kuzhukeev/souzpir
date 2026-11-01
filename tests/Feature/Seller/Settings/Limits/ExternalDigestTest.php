@@ -17,6 +17,7 @@ use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use PHPUnit\Framework\Attributes\Group;
 use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\TestCase;
 
@@ -98,6 +99,7 @@ final class ExternalDigestTest extends TestCase
         $this->assertDatabaseHas('seller_digest_batches', ['id' => $id, 'status' => 'sent']);
     }
 
+    #[Group('race')]
     public function test_parallel_workers_claim_a_batch_only_once(): void
     {
         $id = $this->pending();
@@ -143,6 +145,7 @@ final class ExternalDigestTest extends TestCase
         }
     }
 
+    #[Group('race')]
     public function test_late_event_cannot_disappear_when_another_process_closes_slot(): void
     {
         $id = $this->pending();

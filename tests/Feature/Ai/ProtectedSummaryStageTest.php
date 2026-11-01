@@ -30,6 +30,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use LogicException;
+use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Process\Process;
 use Tests\TestCase;
 
@@ -548,6 +549,7 @@ SQL);
         }
     }
 
+    #[Group('race')]
     public function test_two_processes_racing_the_same_stage_reserve_only_one_call(): void
     {
         [$tenant, $http, $claim] = $this->fixture();

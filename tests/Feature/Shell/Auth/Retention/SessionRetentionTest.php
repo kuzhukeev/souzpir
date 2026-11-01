@@ -5,6 +5,7 @@ namespace Tests\Feature\Shell\Auth\Retention;
 use App\Models\User;
 use App\Shell\Auth\Retention\SessionRetention;
 use Illuminate\Support\Facades\DB;
+use PHPUnit\Framework\Attributes\Group;
 use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\TestCase;
 
@@ -65,6 +66,7 @@ final class SessionRetentionTest extends TestCase
         self::assertSame(1, app(SessionRetention::class)->prune(90, 10));
     }
 
+    #[Group('race')]
     public function test_another_process_cannot_have_its_locked_session_deleted(): void
     {
         $user = User::create(['name' => 'Test', 'email' => 'process@example.test', 'password' => 'temporary-password']);

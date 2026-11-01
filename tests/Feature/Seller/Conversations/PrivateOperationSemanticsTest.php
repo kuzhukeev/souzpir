@@ -7,6 +7,7 @@ use Illuminate\Database\QueryException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use PDOException;
+use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\TestCase;
@@ -80,6 +81,7 @@ final class PrivateOperationSemanticsTest extends TestCase
         $this->assertSame(1, DB::table('seller_retry_fixture')->count());
     }
 
+    #[Group('race')]
     public function test_nested_deadlock_keeps_retry_signal_without_original_error(): void
     {
         DB::statement('CREATE TEMPORARY TABLE seller_deadlock_fixture (value TEXT NOT NULL)');

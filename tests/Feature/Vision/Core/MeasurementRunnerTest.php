@@ -25,6 +25,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use LogicException;
+use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Process\Process;
 use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\TestCase;
@@ -836,6 +837,7 @@ final class MeasurementRunnerTest extends TestCase
         });
     }
 
+    #[Group('race')]
     public function test_revocation_in_another_process_before_report_gate_prevents_reading(): void
     {
         $this->within(function (): void {
@@ -911,6 +913,7 @@ final class MeasurementRunnerTest extends TestCase
         });
     }
 
+    #[Group('race')]
     public function test_concurrent_revocation_before_evidence_persist_leaves_fact_unknown(): void
     {
         $this->within(function (): void {
@@ -966,6 +969,7 @@ final class MeasurementRunnerTest extends TestCase
         });
     }
 
+    #[Group('race')]
     public function test_concurrent_revocation_during_generation_discards_the_result(): void
     {
         $this->within(function (): void {
@@ -1000,6 +1004,7 @@ final class MeasurementRunnerTest extends TestCase
         });
     }
 
+    #[Group('race')]
     public function test_concurrent_answer_change_before_fact_save_is_rejected(): void
     {
         $this->within(function (): void {
