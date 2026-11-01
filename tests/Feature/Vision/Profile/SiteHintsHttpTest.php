@@ -11,7 +11,6 @@ use App\Shell\Auth\AuthSessionRegistry;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
 use App\Vision\SiteAudit\Knowledge\SiteDraftStore;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -19,11 +18,12 @@ use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia as Assert;
+use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\TestCase;
 
 final class SiteHintsHttpTest extends TestCase
 {
-    use DatabaseMigrations;
+    use IsolatedDatabaseMigrations;
 
     protected function beforeRefreshingDatabase(): void
     {
