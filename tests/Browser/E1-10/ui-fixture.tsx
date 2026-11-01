@@ -142,7 +142,7 @@ const props = {
       deliveries: [
         {
           id: 'd1',
-          event: 'seller.lead.created',
+          event: 'webhook.test',
           status: 'sent',
           status_code: 200,
           created_at: '2026-10-28T12:04:00Z',

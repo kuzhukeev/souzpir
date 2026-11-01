@@ -68,6 +68,7 @@ for (const width of [1440, 1024, 390])
         ).toBeVisible();
         if (screen === 'api') {
           await expect(page.getByText('Доставлено (200)')).toBeVisible();
+          await expect(page.getByText(/Тестовая отправка/)).toBeVisible();
           await expect(page.getByRole('button', { name: 'Отправить тест' })).toBeDisabled();
         }
         if (screen === 'api') {
