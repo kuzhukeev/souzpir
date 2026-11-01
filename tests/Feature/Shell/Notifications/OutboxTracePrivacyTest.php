@@ -12,17 +12,17 @@ use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Database\QueryException;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use PDOException;
+use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\TestCase;
 use Throwable;
 
 final class OutboxTracePrivacyTest extends TestCase
 {
-    use DatabaseMigrations;
+    use IsolatedDatabaseMigrations;
 
     private string|false $oldIgnoreArgs;
 

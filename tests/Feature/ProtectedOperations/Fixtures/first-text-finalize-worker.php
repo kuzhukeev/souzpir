@@ -2,9 +2,13 @@
 
 declare(strict_types=1);
 
+use App\Contracts\ProtectedOperations\IdempotencyConflict;
 use App\Models\User;
 use App\ProtectedOperations\FirstTurnTextFinalizer;
+use App\ProtectedOperations\SellerTurnQuarantine;
 use App\Seller\Conversations\Data\TurnClaim;
+use App\Shell\Auth\AuthSessionRegistry;
+use App\Shell\Auth\SessionBrandSelection;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
 use Illuminate\Contracts\Console\Kernel;
@@ -45,8 +49,18 @@ $tenant = new TenantContext($input['org'], $input['brand'], $user->id, $input['m
 $claim = new TurnClaim('claimed', $input['turn'], $input['conversation'], $input['org'], $input['brand'], $input['version'], $input['token']);
 file_put_contents($argv[1], (string) DB::selectOne('select pg_backend_pid() as pid')->pid);
 try {
+    if (($input['mode'] ?? null) === 'quarantine') {
+        $selection = app(AuthSessionRegistry::class)->withinActive($http, fn () => app(SessionBrandSelection::class)->current($http));
+        $http->attributes->set('tenant.brand_revision', (string) $selection->brand_revision);
+        $result = app(TenantContextRunner::class)->run($tenant, fn () => app(SellerTurnQuarantine::class)->quarantine($http, $claim->turnId));
+        echo json_encode($result, JSON_THROW_ON_ERROR);
+
+        return;
+    }
     $result = app(TenantContextRunner::class)->run($tenant, fn () => app(FirstTurnTextFinalizer::class)->finalize($http, $claim, $input['stage'], null, $input['key']));
     echo json_encode(['status' => 'completed', 'result' => $result], JSON_THROW_ON_ERROR);
+} catch (IdempotencyConflict) {
+    echo json_encode(['status' => 'conflict'], JSON_THROW_ON_ERROR);
 } catch (LogicException) {
     echo json_encode(['status' => 'rejected'], JSON_THROW_ON_ERROR);
 }
