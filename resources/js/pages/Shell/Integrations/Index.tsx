@@ -9,6 +9,7 @@ type Connection = {
   status: string;
   href: string | null;
   connected_at: string | null;
+  settings_restricted?: boolean;
 };
 type Props = { connections: Connection[] };
 const statusLabels: Record<string, string> = {
@@ -62,6 +63,10 @@ export default function Index({ connections }: Props) {
                   ) : item.status === 'soon' || item.status === 'planned' ? (
                     <span className="rounded-lg bg-(--color-surface-muted) px-4 py-2 text-sm text-(--color-ink-muted)">
                       Скоро
+                    </span>
+                  ) : item.settings_restricted ? (
+                    <span className="w-full rounded-lg bg-(--color-surface-muted) px-4 py-2 text-center text-sm text-(--color-ink-muted) sm:w-auto">
+                      Нет прав на настройку
                     </span>
                   ) : null}
                 </div>

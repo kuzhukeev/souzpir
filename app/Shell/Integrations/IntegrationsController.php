@@ -25,6 +25,7 @@ final class IntegrationsController
         Gate::authorize('integrations.read');
         $ctx = app(TenantContext::class);
         abort_unless($ctx->brandId && $ctx->organizationId, 404);
+        $canManage = Gate::allows('integrations.write');
         $accounts = DB::table('channel_accounts')->where('organization_id', $ctx->organizationId)->where('brand_id', $ctx->brandId)->orderByDesc('updated_at')->get();
         $items = [
             ['telegram', 'Telegram', 'Переписка с клиентами в Telegram.', 'seller.channels.telegram'],
@@ -34,11 +35,12 @@ final class IntegrationsController
         $connections = [];
         foreach ($items as [$type, $title, $description, $route]) {
             $account = $accounts->firstWhere('type', $type);
+            $restricted = $type === 'api' && ! $canManage;
             $connections[] = ['id' => $type, 'title' => $title, 'description' => $description,
                 'status' => $account?->status ?? 'disconnected', 'connected_at' => null,
-                'href' => Route::has($route) ? route($route) : null];
+                'settings_restricted' => $restricted, 'href' => ! $restricted && Route::has($route) ? route($route) : null];
         }
-        $connections[] = ['id' => 'notifications', 'title' => 'Уведомления компании', 'description' => 'Telegram и почта для сообщений команды.', 'status' => 'disconnected', 'connected_at' => null, 'href' => route('integrations.notifications')];
+        $connections[] = ['id' => 'notifications', 'title' => 'Уведомления компании', 'description' => 'Telegram и почта для сообщений команды.', 'status' => 'disconnected', 'connected_at' => null, 'settings_restricted' => ! $canManage, 'href' => $canManage ? route('integrations.notifications') : null];
         foreach (['WhatsApp', 'VK', 'amoCRM', 'Bitrix24'] as $title) {
             $connections[] = ['id' => strtolower($title), 'title' => $title, 'description' => 'Интеграция появится позже.', 'status' => 'soon', 'connected_at' => null, 'href' => null];
         }
