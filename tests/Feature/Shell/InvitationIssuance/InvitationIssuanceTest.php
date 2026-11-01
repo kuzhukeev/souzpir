@@ -5,6 +5,7 @@ namespace Tests\Feature\Shell\InvitationIssuance;
 use App\Models\Brand;
 use App\Models\User;
 use App\Shell\Audit\Contracts\AuditWriter;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
@@ -26,7 +27,6 @@ final class InvitationIssuanceTest extends TenancyTestCase
         return [
             'attempt_key' => $attempt ?: bin2hex(random_bytes(32)), 'email' => 'invited@example.test',
             'role' => 'viewer', 'brand_ids' => [$brand], 'sales_manager' => false,
-            'expires_at' => now()->addDay()->format('Y-m-d\TH:i:sP'),
         ];
     }
 
@@ -138,7 +138,7 @@ final class InvitationIssuanceTest extends TenancyTestCase
         [$owner, , $brand] = $this->cabinet();
         $revision = $this->authorizeUser($owner, $brand->id);
         $first = $this->payload($brand->id);
-        $second = [...$this->payload($brand->id), 'expires_at' => now()->addMinute()->format('Y-m-d\TH:i:sP')];
+        $second = $this->payload($brand->id);
         $revokedLink = $this->withHeader('X-Brand-Revision', $revision)->postJson('/team/invitations', $first)->assertCreated()->json('link');
         $expiredLink = $this->withHeader('X-Brand-Revision', $revision)->postJson('/team/invitations', $second)->assertCreated()->json('link');
         $revokedToken = substr($revokedLink, strrpos($revokedLink, '#') + 1);
@@ -153,8 +153,11 @@ final class InvitationIssuanceTest extends TenancyTestCase
         $page = $this->get('/invitations/open')->assertOk();
         self::assertSame(1, preg_match('/epoch:"([a-f0-9]{64})"/', $page->getContent(), $match));
         $this->postJson('/invitations/exchange', ['token' => $revokedToken, 'epoch' => $match[1], 'sequence' => 1])->assertNotFound();
-        $this->travel(2)->minutes();
-        $this->postJson('/invitations/exchange', ['token' => $expiredToken, 'epoch' => $match[1], 'sequence' => 2])->assertNotFound();
+        $this->travel(7)->days();
+        $this->actingAs($invitee);
+        $page = $this->get('/invitations/open')->assertOk();
+        self::assertSame(1, preg_match('/epoch:"([a-f0-9]{64})"/', $page->getContent(), $match));
+        $this->postJson('/invitations/exchange', ['token' => $expiredToken, 'epoch' => $match[1], 'sequence' => 1])->assertNotFound();
         Mail::assertNothingSent();
         Http::assertNothingSent();
     }
@@ -163,12 +166,47 @@ final class InvitationIssuanceTest extends TenancyTestCase
     {
         [$owner, , $brand] = $this->cabinet();
         $revision = $this->authorizeUser($owner, $brand->id);
-        $payload = [...$this->payload($brand->id), 'expires_at' => now()->addMinute()->format('Y-m-d\TH:i:sP')];
+        $payload = $this->payload($brand->id);
         $this->withHeader('X-Brand-Revision', $revision)->postJson('/team/invitations', $payload)->assertCreated();
-        $this->travel(2)->minutes();
+        $this->travel(7)->days();
+        $revision = $this->authorizeUser($owner, $brand->id);
         $this->withHeader('X-Brand-Revision', $revision)->postJson('/team/invitations', $payload)->assertStatus(409);
-        $this->withHeader('X-Brand-Revision', $revision)->postJson('/team/invitations', [...$payload, 'attempt_key' => bin2hex(random_bytes(32))])->assertStatus(422);
-        self::assertSame(1, DB::table('invitations')->count());
+        $this->withHeader('X-Brand-Revision', $revision)->postJson('/team/invitations', [...$payload, 'attempt_key' => bin2hex(random_bytes(32))])->assertCreated();
+        self::assertSame(2, DB::table('invitations')->count());
+    }
+
+    public function test_server_sets_exactly_seven_days_and_auth_rejects_at_expiry(): void
+    {
+        $issuedAt = CarbonImmutable::parse('2026-03-27 12:34:56', 'Europe/Berlin');
+        $this->travelTo($issuedAt);
+        [$owner, , $brand] = $this->cabinet();
+        $revision = $this->authorizeUser($owner, $brand->id);
+        $payload = $this->payload($brand->id);
+        foreach (['2035-01-01T00:00:00+00:00', null, ''] as $untrustedExpiry) {
+            $this->withHeader('X-Brand-Revision', $revision)->postJson('/team/invitations', [...$payload, 'expires_at' => $untrustedExpiry])->assertStatus(422);
+        }
+        self::assertSame(0, DB::table('invitations')->count());
+        $first = $this->withHeader('X-Brand-Revision', $revision)->postJson('/team/invitations', $payload)->assertCreated()->json('link');
+        $second = $this->withHeader('X-Brand-Revision', $revision)->postJson('/team/invitations', $this->payload($brand->id))->assertCreated()->json('link');
+        $firstToken = substr($first, strrpos($first, '#') + 1);
+        $secondToken = substr($second, strrpos($second, '#') + 1);
+        $invitation = DB::table('invitations')->where('token_hash', hash('sha256', $firstToken))->first();
+        self::assertSame($issuedAt->timestamp, CarbonImmutable::parse($invitation->created_at)->timestamp);
+        self::assertSame($issuedAt->timestamp + 604800, CarbonImmutable::parse($invitation->expires_at)->timestamp);
+
+        $invitee = User::create(['name' => 'Invited', 'email' => $payload['email'], 'password' => 'test-only-password']);
+        $invitee->forceFill(['email_verified_at' => now()])->save();
+        $this->travelTo($issuedAt->addSeconds(604799));
+        $this->actingAs($invitee);
+        $page = $this->get('/invitations/open')->assertOk();
+        self::assertSame(1, preg_match('/epoch:"([a-f0-9]{64})"/', $page->getContent(), $match));
+        $this->postJson('/invitations/exchange', ['token' => $firstToken, 'epoch' => $match[1], 'sequence' => 1])->assertOk();
+        $this->travelTo($issuedAt->addSeconds(604800));
+        $page = $this->get('/invitations/open')->assertOk();
+        self::assertSame(1, preg_match('/epoch:"([a-f0-9]{64})"/', $page->getContent(), $match));
+        $this->postJson('/invitations/exchange', ['token' => $secondToken, 'epoch' => $match[1], 'sequence' => 1])->assertNotFound();
+        Mail::assertNothingSent();
+        Http::assertNothingSent();
     }
 
     public function test_failed_commit_neither_persists_nor_discloses_the_generated_secret(): void

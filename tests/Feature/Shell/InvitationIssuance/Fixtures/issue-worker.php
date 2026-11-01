@@ -31,7 +31,7 @@ $request->headers->set('X-Brand-Revision', getenv('E106B_HEADER'));
 Auth::setUser($user);
 $context = new TenantContext(getenv('E106B_ORG'), getenv('E106B_BRAND'), $user->id, getenv('E106B_MEMBERSHIP'));
 $data = ['attempt_key' => getenv('E106B_ATTEMPT'), 'email' => 'race-invitee@example.test', 'role' => 'viewer',
-    'brand_ids' => [getenv('E106B_BRAND')], 'sales_manager' => false, 'expires_at' => getenv('E106B_EXPIRES')];
+    'brand_ids' => [getenv('E106B_BRAND')], 'sales_manager' => false];
 echo "ready\n";
 flush();
 try {

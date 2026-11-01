@@ -22,9 +22,8 @@ final class InvitationIssuanceController
             'brand_ids' => ['required', 'array', 'min:1'],
             'brand_ids.*' => ['required', 'string', 'ulid', 'distinct'],
             'sales_manager' => ['required', 'boolean'],
-            'expires_at' => ['required', 'date_format:Y-m-d\TH:i:sP'],
         ]);
-        abort_if($validator->fails() || array_diff(array_keys($request->all()), ['attempt_key', 'email', 'role', 'brand_ids', 'sales_manager', 'expires_at']), 422);
+        abort_if($validator->fails() || array_diff(array_keys($request->all()), ['attempt_key', 'email', 'role', 'brand_ids', 'sales_manager']), 422);
         $data = $validator->validated();
         abort_if($data['sales_manager'] && $data['role'] !== 'member', 422);
 

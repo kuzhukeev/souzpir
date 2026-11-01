@@ -40,14 +40,14 @@ final class InvitationIssuanceRaceTest extends TestCase
         $first = $this->sessionRequest($owner, $organization->id, $brand->id);
         $second = $this->sessionRequest($owner, $organization->id, $brand->id);
         $data = ['attempt_key' => bin2hex(random_bytes(32)), 'email' => 'race-invitee@example.test', 'role' => 'viewer',
-            'brand_ids' => [$brand->id], 'sales_manager' => false, 'expires_at' => now()->addDay()->format('Y-m-d\TH:i:sP')];
+            'brand_ids' => [$brand->id], 'sales_manager' => false];
         $name = 'e106b-race-'.Str::lower(Str::random(8));
         $worker = new Process([PHP_BINARY, base_path('tests/Feature/Shell/InvitationIssuance/Fixtures/issue-worker.php')], base_path(), [
             'APP_ENV' => 'testing', 'E106B_DB' => DB::connection()->getDatabaseName(), 'E106B_USER' => $owner->id,
             'E106B_ORG' => $organization->id, 'E106B_BRAND' => $brand->id, 'E106B_MEMBERSHIP' => $membership->id,
             'E106B_SESSION' => $second->session()->getId(), 'E106B_REVISION' => $second->attributes->get('tenant.brand_revision'),
             'E106B_HEADER' => $second->header('X-Brand-Revision'), 'E106B_ATTEMPT' => $data['attempt_key'],
-            'E106B_EXPIRES' => $data['expires_at'], 'PGAPPNAME' => $name,
+            'PGAPPNAME' => $name,
         ], timeout: 25);
         DB::beginTransaction();
         try {

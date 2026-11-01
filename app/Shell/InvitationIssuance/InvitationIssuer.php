@@ -13,7 +13,6 @@ use App\Shell\Auth\SessionBrandSelection;
 use App\Shell\Team\Models\Invitation;
 use App\Tenancy\TenantContext;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
@@ -22,6 +21,8 @@ use Throwable;
 
 final class InvitationIssuer
 {
+    private const LIFETIME_SECONDS = 7 * 24 * 60 * 60;
+
     public function issue(#[\SensitiveParameter] Request $request, #[\SensitiveParameter] array $data): string
     {
         Gate::authorize('team.write');
@@ -63,16 +64,19 @@ final class InvitationIssuer
                 $attempt = DB::table('invitation_issuance_attempts')->where('organization_id', $context->organizationId)
                     ->where('actor_user_id', $user->id)->where('attempt_hash', $attemptHash)->exists();
                 abort_if($attempt, 409);
-                abort_unless(Carbon::parse($data['expires_at'])->isFuture(), 422);
                 // The organization lock serializes same-organization issuance; the unique key is a second fence.
                 $generating = true;
                 try {
                     $secret = Str::random(64);
-                    $invitation = Invitation::create([
+                    $issuedAt = now()->utc()->startOfSecond()->toImmutable();
+                    $invitation = new Invitation([
                         'email' => $data['email'], 'role' => $data['role'], 'brand_ids' => $ids,
                         'settings' => ['sales_manager' => (bool) $data['sales_manager']],
-                        'token_hash' => hash('sha256', $secret), 'invited_by' => $user->id, 'expires_at' => $data['expires_at'],
+                        'token_hash' => hash('sha256', $secret), 'invited_by' => $user->id, 'expires_at' => $issuedAt->addSeconds(self::LIFETIME_SECONDS),
                     ]);
+                    $invitation->created_at = $issuedAt;
+                    $invitation->updated_at = $issuedAt;
+                    $invitation->save();
                     abort_unless($invitation->organization_id === $context->organizationId, 500);
                     DB::table('invitation_issuance_attempts')->insert([
                         'organization_id' => $context->organizationId, 'actor_user_id' => $user->id,
