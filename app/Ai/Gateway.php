@@ -22,6 +22,7 @@ use App\Seller\Conversations\Data\TurnClaim;
 use App\Seller\Engine\GuardDecision;
 use App\Seller\Engine\GuardModelResult;
 use App\Seller\Engine\ResponderResult;
+use App\Seller\Engine\ToolArguments;
 use App\Shell\Notifications\Contracts\NotificationDispatcher;
 use App\Shell\Notifications\DomainEvent;
 use App\Tenancy\TenantContext;
@@ -225,6 +226,50 @@ final class Gateway implements AiGateway
             return app(ResponderResult::class)->interpret($result);
         } catch (Throwable) {
             throw new LogicException('Protected responder result unavailable.');
+        }
+    }
+
+    /** Read source data only under the caller's transaction; the returned array never authorizes an action. */
+    public function readProtectedToolCallLocked(#[\SensitiveParameter] Request $http, #[\SensitiveParameter] TurnClaim $claim, #[\SensitiveParameter] string $stageId, int $index): array
+    {
+        try {
+            // This existing read validates the session, source, current turn,
+            // stage binding, saved result and accounting while holding locks.
+            $signal = $this->readProtectedResponderLocked($http, $claim, $stageId);
+            if (($signal['status'] ?? null) !== 'tool_calls' || $index < 0) {
+                throw new LogicException;
+            }
+            [$request, $context, , $callId] = app(SellerResponderStages::class)->load($http, $claim, $stageId);
+            if (! is_string($callId)) {
+                throw new LogicException;
+            }
+            $call = DB::table('ai_calls')->where('id', $callId)->where('organization_id', $context->organizationId)
+                ->where('brand_id', $context->brandId)->lockForUpdate()->first();
+            if (! $call) {
+                throw new LogicException;
+            }
+            $result = $this->replay($call, $request->model);
+            $this->assertResult($result->toArray());
+            if ($result->error !== null || ! isset($result->toolCalls[$index])) {
+                throw new LogicException;
+            }
+            $selected = $result->toolCalls[$index];
+            $ids = [];
+            foreach ($result->toolCalls as $tool) {
+                if ($tool['id'] === '' || isset($ids[$tool['id']])) {
+                    throw new LogicException;
+                }
+                $ids[$tool['id']] = true;
+            }
+            $offered = array_column(array_column($request->tools, 'function'), 'name');
+            if (! in_array($selected['name'], $offered, true)
+                || ! app(ToolArguments::class)->check($selected['name'], $selected['arguments'])['valid']) {
+                throw new LogicException;
+            }
+
+            return ['id' => $selected['id'], 'name' => $selected['name'], 'arguments' => $selected['arguments']];
+        } catch (Throwable) {
+            throw new LogicException('Protected tool call unavailable.');
         }
     }
 
