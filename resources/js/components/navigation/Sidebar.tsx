@@ -24,12 +24,11 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import type { SharedPropsV1 } from '@/types/generated/data';
+import { focus } from '../ui/styles';
 import menu from './navigation.json';
 
 type Item = { id: string; label: string; icon: string; path: string; permission?: string };
 type Props = SharedPropsV1 & Record<string, unknown>;
-const focus =
-  'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus)';
 const icons: Record<string, LucideIcon> = {
   Home,
   Eye,

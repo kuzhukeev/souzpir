@@ -13,9 +13,8 @@ import { cva } from 'class-variance-authority';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { Check, ChevronDown, LoaderCircle } from 'lucide-react';
+import { focus } from './styles';
 
-const focus =
-  'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus)';
 const field = `w-full min-w-0 rounded-(--radius-control) border border-(--color-control-border) bg-(--color-surface) px-3 py-2 text-sm text-(--color-ink) placeholder:text-(--color-ink-muted) ${focus} disabled:cursor-not-allowed disabled:bg-(--color-disabled)`;
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
