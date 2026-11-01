@@ -1248,6 +1248,83 @@ SQL);
         Queue::assertNothingPushed();
     }
 
+    public function test_concurrent_raw_captures_share_one_reservation_and_evidence(): void
+    {
+        [$tenant, $http, $claim, $extractor] = $this->fixture('Concurrent raw source', ['protected_claim' => true]);
+        $raw = '{"text":"synthetic"}';
+        [$stage, , , $file] = $this->responderFixture($tenant, $http, $claim, $extractor, [
+            'content' => null, 'toolCalls' => [['id' => 'raw-race', 'name' => 'create_promise', 'arguments' => $raw]],
+        ]);
+        DB::unprepared(<<<'SQL'
+CREATE OR REPLACE FUNCTION c02_test_delay_raw() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN PERFORM pg_advisory_xact_lock(8620494); RETURN NEW; END;
+$$;
+CREATE TRIGGER c02_test_delay_raw BEFORE INSERT ON c02_responder_raw_evidence FOR EACH ROW EXECUTE FUNCTION c02_test_delay_raw();
+SQL);
+        config(['database.connections.c02_raw_blocker' => config('database.connections.pgsql')]);
+        $blocker = DB::connection('c02_raw_blocker');
+        $blocker->beginTransaction();
+        $blocker->select('SELECT pg_advisory_xact_lock(8620494)');
+        $markers = [base_path('.local/tmp/c02-raw-a-'.Str::random(16)), base_path('.local/tmp/c02-raw-b-'.Str::random(16))];
+        $workers = [];
+        foreach ($markers as $marker) {
+            $worker = new Process([PHP_BINARY, '-d', 'sys_temp_dir='.base_path('.local/tmp'), '-d', 'allow_url_fopen=0',
+                '-d', 'disable_functions=fsockopen,pfsockopen,stream_socket_client,curl_exec,curl_multi_exec',
+                base_path('tests/Feature/ProtectedOperations/Fixtures/responder-raw-worker.php'), $marker], base_path());
+            $worker->setInput(json_encode(['org' => $tenant->organizationId, 'brand' => $tenant->brandId, 'user' => $tenant->actorId,
+                'member' => $tenant->membershipId, 'session' => $http->session()->getId(), 'turn' => $claim->turnId,
+                'conversation' => $claim->conversationId, 'version' => $claim->baseVersion, 'token' => $claim->token(),
+                'stage' => $stage, 'directory' => dirname($file)], JSON_THROW_ON_ERROR));
+            $worker->setTimeout(90);
+            $workers[] = $worker;
+        }
+        try {
+            foreach ($workers as $index => $worker) {
+                $worker->start();
+                $this->waitForFinalizerLock($worker, $markers[$index]);
+            }
+            // The first worker already read the fixture; any second driver call must fail.
+            unlink($file);
+            $blocker->rollBack();
+            foreach ($workers as $worker) {
+                $worker->wait();
+                self::assertTrue($worker->isSuccessful(), $worker->getErrorOutput());
+                self::assertContains(json_decode($worker->getOutput(), true, 512, JSON_THROW_ON_ERROR)['status'], ['completed', 'in_progress']);
+            }
+            $this->within($tenant, function () use ($http, $claim, $stage, $raw): void {
+                self::assertSame('completed', app(Gateway::class)->completeProtectedResponderWithRaw($http, $claim, $stage));
+                self::assertSame(['id' => 'raw-race', 'name' => 'create_promise', 'arguments_json' => $raw],
+                    DB::transaction(fn () => app(Gateway::class)->readProtectedRawToolCallLocked($http, $claim, $stage, 0)));
+                self::assertSame(1, DB::table('c02_responder_raw_evidence')->where('stage_id', $stage)->count());
+                self::assertSame(1, DB::table('ai_calls')->where('purpose', 'responder')->count());
+                self::assertSame(0, DB::table('seller_tasks')->count());
+                self::assertSame(0, DB::table('outbox_events')->count());
+            });
+        } finally {
+            if ($blocker->transactionLevel() > 0) {
+                $blocker->rollBack();
+            }
+            foreach ($workers as $worker) {
+                if ($worker->isRunning()) {
+                    $worker->stop();
+                }
+            }
+            foreach ($markers as $marker) {
+                if (is_file($marker)) {
+                    unlink($marker);
+                }
+            }
+            DB::purge('c02_raw_blocker');
+            DB::unprepared('DROP TRIGGER IF EXISTS c02_test_delay_raw ON c02_responder_raw_evidence; DROP FUNCTION IF EXISTS c02_test_delay_raw();');
+            if (is_file($file)) {
+                unlink($file);
+            }
+        }
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
+    }
+
     public function test_historical_decoded_result_cannot_gain_raw_evidence_on_replay(): void
     {
         [$tenant, $http, $claim, $extractor] = $this->fixture('Historical source', ['protected_claim' => true]);
