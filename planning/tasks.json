@@ -2256,7 +2256,7 @@
     {
       "taskKey": "SP-E6-09",
       "title": "SP-E6-09 · CRM-вебхук (B)",
-      "goal": "D-10.2: исходящий вебхук при событиях (контакт получен, передача) с маппингом полей, HMAC, очередь, повторы, журнал — общий слой с S-5.2 (E1-10); коннекторы amoCRM/Bitrix24 — D",
+      "goal": "Страница доступности CRM-вебхука с проверкой прав; доставка выделена в SP-E6-09B.",
       "dependsOn": [
         "SP-E0-03",
         "SP-E0-04",
@@ -2284,7 +2284,8 @@
       ],
       "exclusiveResources": [],
       "acceptance": [
-        "фейк HTTP; 5 попыток"
+        "Страница честно показывает недоступную доставку и проверяет доступ к бренду.",
+        "Остаток реализации выделен в SP-E6-09B."
       ],
       "sourceIds": [
         "E6-09"
@@ -5612,6 +5613,53 @@
       "promptPath": "docs/tasks/SP-E9-02B.md",
       "wave": 9,
       "description": "# SP-E9-02B · Изолированный импорт и откат\n\nПродолжение SP-E9-02: реализовать импорт одной организации и брендов в отдельную тестовую базу из подготовленной копии с понятными ошибками, идемпотентностью и фиксацией batch. Откат ограничить записями своего batch и возвращать конфликт при изменениях или зависимостях. Не использовать рабочую БД и реальные отправки. При необходимости дробить на законченные срезы по 1–3 часа, не отмечая полную готовность до проверенного импорта и отката. Claim, worktree, проверки и отчёт по AGENTS.md.\n"
+    },
+    {
+      "taskKey": "SP-E6-09B",
+      "title": "SP-E6-09B · Настройка и доставка CRM-вебхука",
+      "goal": "Реализовать настройку и безопасную fake-доставку CRM-вебхука после E1-10B.",
+      "dependsOn": [
+        "SP-E6-09",
+        "SP-E1-10B"
+      ],
+      "scope": [
+        "app/Seller/Channels/Crm/",
+        "config/features/E6-09.php",
+        "database/factories/Seller/Channels/Crm/",
+        "database/migrations/E6-09/",
+        "database/seeders/Seller/Channels/Crm/",
+        "docs/modules/E6-09.md",
+        "lang/ru/Seller/Channels/Crm/",
+        "resources/js/features/Seller/Channels/Crm/",
+        "resources/js/pages/Seller/Channels/Crm/",
+        "resources/js/types/Seller/Channels/Crm/",
+        "routes/features/E6-09.php",
+        "tests/Browser/E6-09/",
+        "tests/Feature/Seller/Channels/Crm/",
+        "tests/Unit/Seller/Channels/Crm/",
+        "resources/js/pages/Shell/Integrations/Index.tsx",
+        "app/Shell/Integrations/IntegrationsController.php",
+        "docs/results/SP-E6-09B.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "CRM webhook настроен и доставка проверена fake HTTP, включая предусмотренные исходной карточкой попытки.",
+        "Ссылка каталога подключена в рамках согласованного общего scope; реальные отправки выключены."
+      ],
+      "sourceIds": [
+        "E6-09"
+      ],
+      "screenIds": [
+        "D-10.2"
+      ],
+      "notes": "Остаток SP-E6-09 после общего слоя; 1–3 часа на законченный срез.",
+      "sourceRefs": [
+        "docs/tasks/SP-E6-09.md",
+        "docs/tasks/SP-E1-10B.md"
+      ],
+      "promptPath": "docs/tasks/SP-E6-09B.md",
+      "wave": 9,
+      "description": "# SP-E6-09B · Настройка и доставка CRM-вебхука\n\nПродолжение SP-E6-09 после общего слоя E1-10B: реализовать законченный срез формы и доставки CRM-вебхука с маппингом событий, секретом, HMAC, очередью, журналом и fake HTTP; проверить пять попыток согласно исходной карточке. Не включать реальные отправки. После готовности общей доставки добавить ссылку на `/seller/integrations/crm` в каталог интеграций; общий файл каталога изменять только в рамках указанного scope и после освобождения владельца. Если весь путь не помещается в 1–3 часа, сдать законченный безопасный срез, а остаток описать в отчёте. Отдельный worktree, claim, тесты и submit по AGENTS.md.\n"
     }
   ],
   "excludedSourceTasks": {
