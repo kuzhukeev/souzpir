@@ -7,6 +7,7 @@ use App\Models\User;
 use App\ProtectedOperations\FirstTurnTextFinalizer;
 use App\ProtectedOperations\ManualReviewRequests;
 use App\ProtectedOperations\SellerTurnQuarantine;
+use App\Seller\Channels\Core\InboundRecorder;
 use App\Seller\Conversations\Data\TurnClaim;
 use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Auth\SessionBrandSelection;
@@ -51,6 +52,12 @@ $tenant = new TenantContext($input['org'], $input['brand'], $user->id, $input['m
 $claim = new TurnClaim('claimed', $input['turn'], $input['conversation'], $input['org'], $input['brand'], $input['version'], $input['token']);
 file_put_contents($argv[1], (string) DB::selectOne('select pg_backend_pid() as pid')->pid);
 try {
+    if (($input['mode'] ?? null) === 'input') {
+        $message = app(InboundRecorder::class)->ingest($tenant, $input['channel'], 'c02-concurrent-input', [], $claim->conversationId, 'Concurrent input');
+        echo json_encode(['status' => 'recorded', 'id' => $message->id], JSON_THROW_ON_ERROR);
+
+        return;
+    }
     if (in_array($input['mode'] ?? null, ['quarantine', 'quarantine-review'], true)) {
         $selection = app(AuthSessionRegistry::class)->withinActive($http, fn () => app(SessionBrandSelection::class)->current($http));
         $http->attributes->set('tenant.brand_revision', (string) $selection->brand_revision);

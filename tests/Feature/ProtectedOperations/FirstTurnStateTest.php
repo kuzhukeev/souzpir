@@ -26,6 +26,8 @@ use App\ProtectedOperations\FirstTurnState;
 use App\ProtectedOperations\FirstTurnTextFinalizer;
 use App\ProtectedOperations\PostgresTransactionalIdempotency;
 use App\ProtectedOperations\SellerTurnQuarantine;
+use App\Seller\Channels\Core\ChannelAccount;
+use App\Seller\Channels\Core\InboundRecorder;
 use App\Seller\Conversations\Contracts\ConversationRepository;
 use App\Seller\Conversations\Data\TurnClaim;
 use App\Seller\Conversations\Data\TurnCommand;
@@ -3253,22 +3255,24 @@ SQL);
 
     public function test_new_input_committing_first_is_preserved_and_quarantine_is_an_idempotent_noop(): void
     {
-        [$tenant, $http, $command] = $this->protectedClaimFixture();
+        [$tenant, $http, $command, $channel] = $this->protectedClaimFixture(withChannel: true);
         $claim = $this->within($tenant, fn () => app(FirstTurnProtectedClaim::class)->claim($http, $command));
         $marker = base_path('.local/tmp/c02-quarantine-input-'.Str::random(16));
-        $worker = $this->finalizeWorker($tenant, $http, $claim, (string) Str::ulid(), $marker, true);
+        $worker = $this->finalizeWorker($tenant, $http, $claim, (string) Str::ulid(), $marker, true, true);
         DB::beginTransaction();
         try {
-            $next = $this->within($tenant, fn () => Message::create(['conversation_id' => $claim->conversationId, 'role' => 'client', 'text' => 'Input first', 'meta' => []]));
+            $next = app(InboundRecorder::class)->ingest($tenant, $channel->id, 'c02-input-first', [], $claim->conversationId, 'Input first');
             $worker->start();
             $this->waitForFinalizerLock($worker, $marker);
             DB::commit();
             $worker->wait();
             self::assertTrue($worker->isSuccessful(), $worker->getErrorOutput());
-            self::assertSame(['status' => 'uncertain'], json_decode($worker->getOutput(), true, 512, JSON_THROW_ON_ERROR));
+            self::assertSame('uncertain', json_decode($worker->getOutput(), true, 512, JSON_THROW_ON_ERROR)['status']);
             self::assertSame('Input first', DB::table('messages')->where('id', $next->id)->value('text'));
+            self::assertSame(1, DB::table('channel_inbound_events')->where('id', $next->external_event_id)->count());
             self::assertSame('uncertain', DB::table('seller_turns')->where('id', $claim->turnId)->value('status'));
             self::assertSame(0, DB::table('audit_logs')->where('action', 'seller.turn.quarantined')->count());
+            self::assertSame(1, DB::table('c02_manual_review_requests')->where('turn_id', $claim->turnId)->count());
             self::assertSame(0, DB::table('seller_tasks')->count());
             self::assertSame(0, DB::table('outbox_events')->count());
         } finally {
@@ -3281,6 +3285,70 @@ SQL);
             if (is_file($marker)) {
                 unlink($marker);
             }
+        }
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
+    }
+
+    public function test_new_input_waits_for_quarantine_and_is_preserved(): void
+    {
+        [$tenant, $http, $command, $channel] = $this->protectedClaimFixture(withChannel: true);
+        $claim = $this->within($tenant, fn () => app(FirstTurnProtectedClaim::class)->claim($http, $command));
+        DB::unprepared(<<<'SQL'
+CREATE OR REPLACE FUNCTION c02_test_delay_review_input() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN PERFORM pg_advisory_xact_lock(8620498); RETURN NEW; END;
+$$;
+CREATE TRIGGER c02_test_delay_review_input BEFORE INSERT ON c02_manual_review_requests FOR EACH ROW EXECUTE FUNCTION c02_test_delay_review_input();
+SQL);
+        config(['database.connections.c02_review_input' => config('database.connections.pgsql')]);
+        $blocker = DB::connection('c02_review_input');
+        $blocker->beginTransaction();
+        $blocker->select('SELECT pg_advisory_xact_lock(8620498)');
+        $markers = [base_path('.local/tmp/c02-review-input-a-'.Str::random(16)), base_path('.local/tmp/c02-review-input-b-'.Str::random(16))];
+        $review = $this->finalizeWorker($tenant, $http, $claim, (string) Str::ulid(), $markers[0], true, true);
+        $input = $this->finalizeWorker($tenant, $http, $claim, (string) Str::ulid(), $markers[1], false, false, true, $channel->id);
+        try {
+            $review->start();
+            $this->waitForFinalizerLock($review, $markers[0]);
+            $input->start();
+            $this->waitForFinalizerLock($input, $markers[1]);
+            $blocker->rollBack();
+            $review->wait();
+            $input->wait();
+            self::assertTrue($review->isSuccessful(), $review->getErrorOutput());
+            self::assertTrue($input->isSuccessful(), $input->getErrorOutput());
+            self::assertSame('uncertain', json_decode($review->getOutput(), true, 512, JSON_THROW_ON_ERROR)['status']);
+            $recorded = json_decode($input->getOutput(), true, 512, JSON_THROW_ON_ERROR);
+            self::assertSame('recorded', $recorded['status']);
+            self::assertSame('Concurrent input', DB::table('messages')->where('id', $recorded['id'])->value('text'));
+            $eventId = DB::table('messages')->where('id', $recorded['id'])->value('external_event_id');
+            self::assertNotNull($eventId);
+            self::assertSame(1, DB::table('channel_inbound_events')->where('id', $eventId)->count());
+            self::assertSame($recorded['id'], app(InboundRecorder::class)
+                ->ingest($tenant, $channel->id, 'c02-concurrent-input', [], $claim->conversationId, 'Concurrent input')->id);
+            self::assertSame('uncertain', DB::table('seller_turns')->where('id', $claim->turnId)->value('status'));
+            self::assertSame(1, DB::table('c02_manual_review_requests')->where('turn_id', $claim->turnId)->count());
+            self::assertSame(1, DB::table('audit_logs')->where('action', 'seller.turn.quarantined')->where('subject_id', $claim->turnId)->count());
+            self::assertSame(1, DB::table('audit_logs')->where('action', 'seller.turn.review_requested')->where('subject_id', $claim->turnId)->count());
+            self::assertSame(0, DB::table('seller_tasks')->count());
+            self::assertSame(0, DB::table('outbox_events')->count());
+        } finally {
+            if ($blocker->transactionLevel() > 0) {
+                $blocker->rollBack();
+            }
+            foreach ([$review, $input] as $worker) {
+                if ($worker->isRunning()) {
+                    $worker->stop();
+                }
+            }
+            foreach ($markers as $marker) {
+                if (is_file($marker)) {
+                    unlink($marker);
+                }
+            }
+            DB::purge('c02_review_input');
+            DB::unprepared('DROP TRIGGER IF EXISTS c02_test_delay_review_input ON c02_manual_review_requests; DROP FUNCTION IF EXISTS c02_test_delay_review_input();');
         }
         Http::assertNothingSent();
         Mail::assertNothingOutgoing();
@@ -3738,7 +3806,7 @@ SQL);
         Http::assertNothingSent();
     }
 
-    private function finalizeWorker(TenantContext $tenant, Request $http, TurnClaim $claim, string $stage, string $marker, bool $quarantine = false, bool $review = false): Process
+    private function finalizeWorker(TenantContext $tenant, Request $http, TurnClaim $claim, string $stage, string $marker, bool $quarantine = false, bool $review = false, bool $input = false, ?string $channel = null): Process
     {
         $worker = new Process([PHP_BINARY, '-d', 'sys_temp_dir='.base_path('.local/tmp'), '-d', 'allow_url_fopen=0',
             '-d', 'disable_functions=fsockopen,pfsockopen,stream_socket_client,curl_exec,curl_multi_exec',
@@ -3746,7 +3814,7 @@ SQL);
         $worker->setInput(json_encode(['org' => $tenant->organizationId, 'brand' => $tenant->brandId, 'user' => $tenant->actorId,
             'member' => $tenant->membershipId, 'session' => $http->session()->getId(), 'turn' => $claim->turnId,
             'conversation' => $claim->conversationId, 'version' => $claim->baseVersion, 'token' => $claim->token(),
-            'stage' => $stage, 'key' => 'parallel-first-text', 'mode' => $quarantine ? ($review ? 'quarantine-review' : 'quarantine') : 'finalize'], JSON_THROW_ON_ERROR));
+            'stage' => $stage, 'channel' => $channel, 'key' => 'parallel-first-text', 'mode' => $input ? 'input' : ($quarantine ? ($review ? 'quarantine-review' : 'quarantine') : 'finalize')], JSON_THROW_ON_ERROR));
         $worker->setTimeout(60);
 
         return $worker;
@@ -3767,7 +3835,7 @@ SQL);
                 usleep(10000);
             }
         } while (! $waiting && $worker->isRunning() && microtime(true) < $deadline);
-        self::assertTrue($waiting, 'Worker must wait for its competing transaction.');
+        self::assertTrue($waiting, 'Worker must wait for its competing transaction. '.$worker->getOutput().' '.$worker->getErrorOutput());
     }
 
     public function test_protected_claim_is_atomic_idempotent_bound_and_private(): void
@@ -4205,6 +4273,8 @@ SQL);
             self::assertSame(2, DB::table('messages')->where('conversation_id', $command->conversationId)->count());
             self::assertSame(1, DB::table('audit_logs')->where('action', 'seller.turn.text_finalized')->count());
             self::assertSame('completed', DB::table('seller_turns')->where('id', $first['result']['turn_id'])->value('status'));
+            self::assertSame(0, DB::table('c02_manual_review_requests')->where('turn_id', $first['result']['turn_id'])->count());
+            self::assertSame(0, DB::table('audit_logs')->where('action', 'seller.turn.quarantined')->where('subject_id', $first['result']['turn_id'])->count());
             self::assertSame('Можем обсудить заказ?', DB::table('messages')->where('id', $first['result']['message_id'])->value('text'));
             $state = json_decode(DB::table('conversations')->where('id', $command->conversationId)->value('state'), true, 512, JSON_THROW_ON_ERROR);
             self::assertSame(1, $state['counters']['turns']);
@@ -4350,6 +4420,8 @@ SQL);
         try {
             foreach (['crash', 'live', 'tool'] as $scenario) {
                 [$tenant, $http, $command] = $this->protectedClaimFixture();
+                $selection = app(AuthSessionRegistry::class)->withinActive($http, fn () => app(SessionBrandSelection::class)->current($http));
+                $http->attributes->set('tenant.brand_revision', (string) $selection->brand_revision);
                 $prefix = base_path('.local/tmp/c02-responder-coordinator-'.Str::random(16));
                 $saved = $prefix.'-saved';
                 $resume = $prefix.'-resume';
@@ -4395,7 +4467,7 @@ SQL);
                 }
                 $statuses = array_map(fn (Process $worker) => json_decode($worker->getOutput(), true, 512, JSON_THROW_ON_ERROR)['status'], [$first, $second]);
                 if ($toolSignal) {
-                    self::assertSame(['blocked', 'blocked'], $statuses);
+                    self::assertSame(['uncertain', 'uncertain'], $statuses);
                 } else {
                     self::assertContains('completed', $statuses);
                 }
@@ -4408,7 +4480,7 @@ SQL);
                 self::assertSame(14, (int) DB::table('ai_budgets')->where('id', $call->budget_id)->value('spent_micros'));
                 self::assertSame(0, (int) DB::table('ai_budgets')->where('id', $call->budget_id)->value('unresolved_count'));
                 $replayed = $this->within($tenant, fn () => app(FirstTurnCoordinator::class)->run($http, $command));
-                self::assertSame($toolSignal ? 'blocked' : 'completed', $replayed['status']);
+                self::assertSame($toolSignal ? 'uncertain' : 'completed', $replayed['status']);
                 if (! $toolSignal) {
                     self::assertSame(DB::table('messages')->where('conversation_id', $command->conversationId)->where('role', 'agent')->value('id'), $replayed['result']['message_id']);
                 }
@@ -4691,20 +4763,30 @@ SQL);
     public function test_coordinator_blocks_tools_and_does_not_retry_unknown_ai(): void
     {
         [$tenant, $http, $command] = $this->protectedClaimFixture();
+        $selection = app(AuthSessionRegistry::class)->withinActive($http, fn () => app(SessionBrandSelection::class)->current($http));
+        $http->attributes->set('tenant.brand_revision', (string) $selection->brand_revision);
         $fake = new CoordinatorScriptedFakeDriver([
             ['content' => '{"client_intent":"answer_only"}'],
             ['content' => 'Ignored', 'toolCalls' => [['id' => 'synthetic-tool', 'name' => 'send_price', 'arguments' => []]]],
         ]);
         app()->instance(FakeDriver::class, $fake);
         $this->within($tenant, function () use ($http, $command, $fake): void {
-            self::assertSame(['status' => 'blocked'], app(FirstTurnCoordinator::class)->run($http, $command));
-            self::assertSame(['status' => 'blocked'], app(FirstTurnCoordinator::class)->run($http, $command));
+            $http->request->set('text', $command->text);
+            self::assertSame(['status' => 'uncertain'], app(FirstTurnCoordinator::class)->run($http, $command));
+            self::assertSame(['status' => 'uncertain'], app(FirstTurnCoordinator::class)->run($http, $command));
             self::assertSame(2, $fake->calls);
+            $turn = DB::table('seller_turns')->where('conversation_id', $command->conversationId)->first();
+            self::assertSame('uncertain', $turn->status);
+            self::assertSame(1, DB::table('c02_manual_review_requests')->where('turn_id', $turn->id)->count());
+            self::assertSame(1, DB::table('audit_logs')->where('action', 'seller.turn.quarantined')->where('subject_id', $turn->id)->count());
+            self::assertSame(1, DB::table('audit_logs')->where('action', 'seller.turn.review_requested')->where('subject_id', $turn->id)->count());
             self::assertSame(1, DB::table('messages')->where('conversation_id', $command->conversationId)->count());
             self::assertSame(0, DB::table('seller_tasks')->count());
             self::assertSame(0, DB::table('outbox_events')->count());
         });
         [$otherTenant, $otherHttp, $otherCommand] = $this->protectedClaimFixture();
+        $selection = app(AuthSessionRegistry::class)->withinActive($otherHttp, fn () => app(SessionBrandSelection::class)->current($otherHttp));
+        $otherHttp->attributes->set('tenant.brand_revision', (string) $selection->brand_revision);
         $unknown = new CoordinatorScriptedFakeDriver([['content' => '{"client_intent":"answer_only"}', 'costMicros' => null]]);
         app()->instance(FakeDriver::class, $unknown);
         $this->within($otherTenant, function () use ($otherHttp, $otherCommand, $unknown): void {
@@ -4712,6 +4794,125 @@ SQL);
             self::assertSame(['status' => 'uncertain'], app(FirstTurnCoordinator::class)->run($otherHttp, $otherCommand));
             self::assertSame(1, $unknown->calls);
             self::assertSame(1, DB::table('messages')->where('conversation_id', $otherCommand->conversationId)->count());
+            $turn = DB::table('seller_turns')->where('conversation_id', $otherCommand->conversationId)->first();
+            self::assertSame('uncertain', $turn->status);
+            self::assertSame(1, DB::table('c02_manual_review_requests')->where('turn_id', $turn->id)->count());
+        });
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
+    }
+
+    public static function stoppedToolInputOrders(): array
+    {
+        return ['input during responder' => [true], 'input after quarantine' => [false]];
+    }
+
+    public function test_stopped_tool_review_audit_failure_rolls_back_and_retry_does_not_call_ai(): void
+    {
+        [$tenant, $http, $command] = $this->protectedClaimFixture();
+        $selection = app(AuthSessionRegistry::class)->withinActive($http, fn () => app(SessionBrandSelection::class)->current($http));
+        $http->attributes->set('tenant.brand_revision', (string) $selection->brand_revision);
+        $fake = new CoordinatorScriptedFakeDriver([
+            ['content' => '{"client_intent":"answer_only"}'],
+            ['content' => null, 'toolCalls' => [['id' => 'synthetic', 'name' => 'send_price', 'arguments' => []]]],
+        ]);
+        app()->instance(FakeDriver::class, $fake);
+        DB::unprepared(<<<'SQL'
+CREATE OR REPLACE FUNCTION c02_test_fail_stopped_review() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.action = 'seller.turn.review_requested' THEN RAISE EXCEPTION 'synthetic audit failure'; END IF;
+  RETURN NEW;
+END;
+$$;
+CREATE TRIGGER c02_test_fail_stopped_review BEFORE INSERT ON audit_logs FOR EACH ROW EXECUTE FUNCTION c02_test_fail_stopped_review();
+SQL);
+        try {
+            $this->within($tenant, function () use ($http, $command, $fake): void {
+                self::assertSame(['status' => 'unavailable'], app(FirstTurnCoordinator::class)->run($http, $command));
+                self::assertSame(2, $fake->calls);
+                $turn = DB::table('seller_turns')->where('conversation_id', $command->conversationId)->first();
+                self::assertSame('processing', $turn->status);
+                self::assertSame(0, DB::table('c02_manual_review_requests')->where('turn_id', $turn->id)->count());
+                self::assertSame(0, DB::table('audit_logs')->where('action', 'seller.turn.quarantined')->where('subject_id', $turn->id)->count());
+            });
+        } finally {
+            DB::unprepared('DROP TRIGGER IF EXISTS c02_test_fail_stopped_review ON audit_logs; DROP FUNCTION IF EXISTS c02_test_fail_stopped_review();');
+        }
+        $this->within($tenant, function () use ($http, $command, $fake): void {
+            self::assertSame(['status' => 'uncertain'], app(FirstTurnCoordinator::class)->run($http, $command));
+            self::assertSame(2, $fake->calls);
+            $turn = DB::table('seller_turns')->where('conversation_id', $command->conversationId)->first();
+            self::assertSame('uncertain', $turn->status);
+            self::assertSame(1, DB::table('c02_manual_review_requests')->where('turn_id', $turn->id)->count());
+        });
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
+    }
+
+    public function test_stopped_tool_review_requires_current_brand_revision(): void
+    {
+        [$tenant, $http, $command] = $this->protectedClaimFixture();
+        $fake = new CoordinatorScriptedFakeDriver([
+            ['content' => '{"client_intent":"answer_only"}'],
+            ['content' => null, 'toolCalls' => [['id' => 'synthetic', 'name' => 'send_price', 'arguments' => []]]],
+        ]);
+        app()->instance(FakeDriver::class, $fake);
+        $this->within($tenant, function () use ($http, $command, $fake): void {
+            self::assertSame(['status' => 'unavailable'], app(FirstTurnCoordinator::class)->run($http, $command));
+            self::assertSame(2, $fake->calls);
+            $turn = DB::table('seller_turns')->where('conversation_id', $command->conversationId)->first();
+            self::assertSame('processing', $turn->status);
+            self::assertSame(0, DB::table('c02_manual_review_requests')->where('turn_id', $turn->id)->count());
+            $selection = app(AuthSessionRegistry::class)->withinActive($http, fn () => app(SessionBrandSelection::class)->current($http));
+            $http->attributes->set('tenant.brand_revision', (string) $selection->brand_revision);
+            self::assertSame(['status' => 'uncertain'], app(FirstTurnCoordinator::class)->run($http, $command));
+            self::assertSame(2, $fake->calls);
+            self::assertSame(1, DB::table('c02_manual_review_requests')->where('turn_id', $turn->id)->count());
+        });
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
+    }
+
+    #[DataProvider('stoppedToolInputOrders')]
+    public function test_stopped_tool_and_new_input_preserve_message_and_request_review(bool $inputFirst): void
+    {
+        [$tenant, $http, $command] = $this->protectedClaimFixture();
+        $selection = app(AuthSessionRegistry::class)->withinActive($http, fn () => app(SessionBrandSelection::class)->current($http));
+        $http->attributes->set('tenant.brand_revision', (string) $selection->brand_revision);
+        $fake = new CoordinatorScriptedFakeDriver([
+            ['content' => '{"client_intent":"answer_only"}'],
+            ['content' => null, 'toolCalls' => [['id' => 'synthetic', 'name' => 'send_price', 'arguments' => []]]],
+        ]);
+        $next = null;
+        if ($inputFirst) {
+            $fake->onCall = function (int $index) use ($command, &$next): void {
+                if ($index === 1) {
+                    $next = Message::create(['conversation_id' => $command->conversationId, 'role' => 'client', 'text' => 'New input', 'meta' => []]);
+                }
+            };
+        }
+        app()->instance(FakeDriver::class, $fake);
+        $this->within($tenant, function () use ($http, $command, $fake, $inputFirst, &$next): void {
+            $coordinator = app(FirstTurnCoordinator::class);
+            self::assertSame(['status' => 'uncertain'], $coordinator->run($http, $command));
+            if (! $inputFirst) {
+                $next = Message::create(['conversation_id' => $command->conversationId, 'role' => 'client', 'text' => 'New input', 'meta' => []]);
+            }
+            self::assertNotNull($next);
+            self::assertSame('New input', DB::table('messages')->where('id', $next->id)->value('text'));
+            self::assertSame(['status' => 'uncertain'], $coordinator->run($http, $command));
+            self::assertSame(2, $fake->calls);
+            $turn = DB::table('seller_turns')->where('conversation_id', $command->conversationId)->first();
+            self::assertSame('uncertain', $turn->status);
+            self::assertSame(1, DB::table('c02_manual_review_requests')->where('turn_id', $turn->id)->count());
+            self::assertSame(1, DB::table('audit_logs')->where('action', 'seller.turn.review_requested')->where('subject_id', $turn->id)->count());
+            self::assertSame($inputFirst ? 0 : 1, DB::table('audit_logs')->where('action', 'seller.turn.quarantined')->where('subject_id', $turn->id)->count());
+            self::assertSame(2, DB::table('messages')->where('conversation_id', $command->conversationId)->count());
+            self::assertSame(0, DB::table('seller_tasks')->count());
+            self::assertSame(0, DB::table('outbox_events')->count());
         });
         Http::assertNothingSent();
         Mail::assertNothingOutgoing();
@@ -4760,6 +4961,8 @@ SQL);
     public function test_coordinator_does_not_save_after_new_input_or_revoked_session(): void
     {
         [$tenant, $http, $command] = $this->protectedClaimFixture();
+        $selection = app(AuthSessionRegistry::class)->withinActive($http, fn () => app(SessionBrandSelection::class)->current($http));
+        $http->attributes->set('tenant.brand_revision', (string) $selection->brand_revision);
         $fake = new CoordinatorScriptedFakeDriver([['content' => '{"client_intent":"answer_only"}']]);
         $fake->onCall = function () use ($command): void {
             Message::create(['conversation_id' => $command->conversationId, 'role' => 'client', 'text' => 'Newer input', 'meta' => []]);
@@ -4853,7 +5056,7 @@ SQL);
             DB::table('ai_calls')->where('object_id', $claim->conversationId)->orderBy('id')->get()->toArray()];
     }
 
-    private function protectedClaimFixture(): array
+    private function protectedClaimFixture(bool $withChannel = false): array
     {
         app(PromptSetsSeeder::class)->run();
         $user = User::create(['name' => 'Synthetic', 'email' => 'first-claim-'.Str::lower(Str::random(12)).'@example.test', 'password' => 'synthetic-test-password']);
@@ -4875,14 +5078,17 @@ SQL);
         $http->setUserResolver(fn () => $user);
         app(AuthSessionRegistry::class)->issue($http, $user, $user->auth_version);
         app(AuthSessionRegistry::class)->withinActive($http, fn () => app(SessionBrandSelection::class)->initialize($http, $org->id, $brand->id));
-        [$conversation, $input] = $this->within($tenant, function (): array {
-            $conversation = Conversation::create(['state' => [], 'mode' => 'bot']);
-            $input = Message::create(['conversation_id' => $conversation->id, 'role' => 'client', 'text' => 'Private synthetic first input', 'meta' => []]);
+        [$conversation, $input, $channel] = $this->within($tenant, function () use ($tenant, $withChannel): array {
+            $channel = $withChannel ? ChannelAccount::create(['type' => 'api']) : null;
+            $conversation = Conversation::create(['state' => [], 'mode' => 'bot', 'channel_account_id' => $channel?->id]);
+            $input = $channel
+                ? app(InboundRecorder::class)->ingest($tenant, $channel->id, 'c02-initial-input', [], $conversation->id, 'Private synthetic first input')
+                : Message::create(['conversation_id' => $conversation->id, 'role' => 'client', 'text' => 'Private synthetic first input', 'meta' => []]);
 
-            return [$conversation, $input];
+            return [$conversation, $input, $channel];
         });
 
-        return [$tenant, $http, new TurnCommand($conversation->id, $input->id, $input->text, null, 'protected-claim-'.Str::random(16), 0)];
+        return [$tenant, $http, new TurnCommand($conversation->id, $input->id, $input->text, $input->external_event_id, 'protected-claim-'.Str::random(16), 0), $channel];
     }
 
     private function completeExtractorForProtectedClaim(TenantContext $tenant, Request $http, TurnClaim $claim): string
