@@ -5,12 +5,12 @@ use App\Seller\Settings\Limits\DigestTransport;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Console\Kernel;
-use Illuminate\Support\Facades\DB;
+use Tests\TestCase;
 
 require __DIR__.'/../../../../../../vendor/autoload.php';
 $app = require __DIR__.'/../../../../../../bootstrap/app.php';
 $app->make(Kernel::class)->bootstrap();
-\Tests\TestCase::assertIsolatedTestDatabase();
+TestCase::assertIsolatedTestDatabase();
 [$script, $id, $barrier, $worker] = $argv;
 config(['features.E0-04.defaults.external_delivery' => true, 'mail.default' => 'smtp']);
 if (getenv('DIGEST_TEST_NOW')) {

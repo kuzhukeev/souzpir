@@ -9,11 +9,12 @@ use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
+use Tests\TestCase;
 
 require __DIR__.'/../../../../../../vendor/autoload.php';
 $app = require __DIR__.'/../../../../../../bootstrap/app.php';
 $app->make(Kernel::class)->bootstrap();
-\Tests\TestCase::assertIsolatedTestDatabase();
+TestCase::assertIsolatedTestDatabase();
 $data = json_decode((string) fgets(STDIN), true, 512, JSON_THROW_ON_ERROR);
 config(['features.E0-02.defaults.organization_id' => $data['org'], 'features.E1-01F.defaults.enabled' => true]);
 echo 'ready:'.DB::selectOne('select pg_backend_pid() as pid')->pid."\n";

@@ -6,11 +6,12 @@ use App\Shell\Notifications\DomainEvent;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\DB;
+use Tests\TestCase;
 
 require __DIR__.'/../../../../../../vendor/autoload.php';
 $app = require __DIR__.'/../../../../../../bootstrap/app.php';
 $app->make(Kernel::class)->bootstrap();
-\Tests\TestCase::assertIsolatedTestDatabase();
+TestCase::assertIsolatedTestDatabase();
 [$script, $eventId, $userId, $barrier] = $argv;
 $row = DB::table('outbox_events')->where('id', $eventId)->first();
 $event = new DomainEvent(json_decode($row->envelope, true, 512, JSON_THROW_ON_ERROR));

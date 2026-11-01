@@ -14,12 +14,13 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
+use Tests\TestCase;
 
 require __DIR__.'/../../../../../../vendor/autoload.php';
 $app = require __DIR__.'/../../../../../../bootstrap/app.php';
 $app->loadEnvironmentFrom('.env.testing');
 $app->make(Kernel::class)->bootstrap();
-\Tests\TestCase::assertIsolatedTestDatabase();
+TestCase::assertIsolatedTestDatabase();
 $data = json_decode(fgets(STDIN), true, 32, JSON_THROW_ON_ERROR);
 $user = User::findOrFail($data['user']);
 $session = app('session')->driver('array');
