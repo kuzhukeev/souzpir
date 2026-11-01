@@ -1,6 +1,6 @@
 import * as Dialog from '@radix-ui/react-dialog';
 import * as Select from '@radix-ui/react-select';
-import { router } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 import { Check, ChevronDown, Copy, X } from 'lucide-react';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react';
 import {
@@ -76,6 +76,7 @@ function issuedLink(data: unknown): string | null {
 async function confirmContext(
   brandId: string,
   revision: string,
+  version: string,
   selected: string[],
   signal: AbortSignal,
 ): Promise<boolean> {
@@ -86,6 +87,7 @@ async function confirmContext(
     signal,
     headers: {
       'X-Inertia': 'true',
+      'X-Inertia-Version': version,
       Accept: 'text/html, application/xhtml+xml',
       'X-Requested-With': 'XMLHttpRequest',
     },
@@ -95,6 +97,8 @@ async function confirmContext(
   if (
     !page ||
     typeof page !== 'object' ||
+    !('version' in page) ||
+    (page.version ?? '') !== version ||
     !('props' in page) ||
     !page.props ||
     typeof page.props !== 'object'
@@ -129,9 +133,11 @@ export default function InvitationDialog({
   revision,
   brands,
 }: InvitationDialogProps) {
+  const inertiaVersion = usePage().version ?? '';
   const context = JSON.stringify([
     brandId,
     revision,
+    inertiaVersion,
     canIssue,
     brands.map((brand) => brand.id).sort(),
   ]);
@@ -249,7 +255,7 @@ export default function InvitationDialog({
       try {
         if (
           !profileContextIsStable() ||
-          !(await confirmContext(brandId, revision, selected, controller.signal))
+          !(await confirmContext(brandId, revision, inertiaVersion, selected, controller.signal))
         )
           throw new Error();
       } catch {
@@ -385,7 +391,7 @@ export default function InvitationDialog({
         candidate = null;
       }
       if (!pendingLink.current) throw new Error();
-      if (!(await confirmContext(brandId, revision, selected, controller.signal)))
+      if (!(await confirmContext(brandId, revision, inertiaVersion, selected, controller.signal)))
         throw new Error();
       if (!current()) return;
       if (!stable()) {
