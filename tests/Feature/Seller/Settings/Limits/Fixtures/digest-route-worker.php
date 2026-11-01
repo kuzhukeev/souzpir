@@ -10,10 +10,7 @@ use Illuminate\Support\Facades\DB;
 require __DIR__.'/../../../../../../vendor/autoload.php';
 $app = require __DIR__.'/../../../../../../bootstrap/app.php';
 $app->make(Kernel::class)->bootstrap();
-$expected = basename(dirname(base_path())) === '.worktrees' ? 'souzpir_test_'.str_replace('-', '_', basename(base_path())) : 'souzpir_test_main';
-if (! app()->environment('testing') || DB::connection()->getDatabaseName() !== $expected || DB::connection()->getDatabaseName() !== config('runtime.test_database') || DB::connection()->getDatabaseName() === config('runtime.preview_database')) {
-    throw new RuntimeException('Unexpected database.');
-}
+\Tests\TestCase::assertIsolatedTestDatabase();
 [$script, $eventId, $userId, $barrier] = $argv;
 $row = DB::table('outbox_events')->where('id', $eventId)->first();
 $event = new DomainEvent(json_decode($row->envelope, true, 512, JSON_THROW_ON_ERROR));

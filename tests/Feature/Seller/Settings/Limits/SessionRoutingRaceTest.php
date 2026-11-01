@@ -31,10 +31,7 @@ final class SessionRoutingRaceTest extends TestCase
 
     protected function beforeRefreshingDatabase(): void
     {
-        $expected = basename(dirname(base_path())) === '.worktrees' ? 'souzpir_test_'.str_replace('-', '_', basename(base_path())) : 'souzpir_test_main';
-        if (! app()->environment('testing') || DB::connection()->getDatabaseName() !== $expected || $expected !== config('runtime.test_database') || $expected === config('runtime.preview_database')) {
-            throw new \LogicException('Isolated test database required.');
-        }
+        self::assertIsolatedTestDatabase();
     }
 
     private function fixture(): array

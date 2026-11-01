@@ -14,12 +14,7 @@ use Illuminate\Support\Facades\DB;
 require __DIR__.'/../../../../../vendor/autoload.php';
 $app = require __DIR__.'/../../../../../bootstrap/app.php';
 $app->make(Kernel::class)->bootstrap();
-$expected = basename(dirname(base_path())) === '.worktrees' ? 'souzpir_test_'.str_replace('-', '_', basename(base_path())) : 'souzpir_test_main';
-if (! app()->environment('testing') || DB::connection()->getDatabaseName() !== $expected
-    || DB::connection()->getDatabaseName() !== config('runtime.test_database')
-    || DB::connection()->getDatabaseName() === config('runtime.preview_database')) {
-    throw new LogicException('Isolated test database required.');
-}
+\Tests\TestCase::assertIsolatedTestDatabase();
 $payload = json_decode((string) fgets(STDIN), true, 512, JSON_THROW_ON_ERROR);
 $user = User::findOrFail($payload['user']);
 $session = new Store('concurrency-security', new ArraySessionHandler(120), $payload['session']);

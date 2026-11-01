@@ -95,7 +95,11 @@ abstract class TestCase extends BaseTestCase
         $expected = config('runtime.test_database');
         $preview = config('runtime.preview_database');
         $username = $connection->getConfig('username');
-        if (! app()->environment('testing') || config('database.default') !== 'pgsql'
+        $base = realpath(app()->basePath());
+        $cwd = realpath(getcwd());
+        $sameRoot = is_string($base) && is_string($cwd)
+            && (DIRECTORY_SEPARATOR === '\\' ? strcasecmp($base, $cwd) === 0 : $base === $cwd);
+        if (! $sameRoot || ! app()->environment('testing') || config('database.default') !== 'pgsql'
             || ! is_string($database) || ! preg_match('/\Asouzpir_test_[a-z0-9_]+\z/D', $database)
             || ! is_string($expected) || $database !== $expected || ! is_string($preview) || $preview === '' || $database === $preview
             || ! is_string($username) || $username === '') {
