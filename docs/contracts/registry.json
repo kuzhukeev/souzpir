@@ -88,6 +88,11 @@
       "tenant": "global",
       "parents": []
     },
+    "member_last_logins": {
+      "owner": "SP-E1-06D",
+      "tenant": "global",
+      "parents": ["users"]
+    },
     "password_reset_tokens": {
       "owner": "SP-E0-01",
       "tenant": "global",
