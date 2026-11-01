@@ -5025,6 +5025,32 @@ SQL);
         Queue::assertNothingPushed();
     }
 
+    public function test_rejected_model_guard_requests_review_without_repeating_calls(): void
+    {
+        config(['agent.guard_llm' => true]);
+        [$tenant, $http, $command] = $this->protectedClaimFixture();
+        $selection = app(AuthSessionRegistry::class)->withinActive($http, fn () => app(SessionBrandSelection::class)->current($http));
+        $http->attributes->set('tenant.brand_revision', (string) $selection->brand_revision);
+        $fake = new CoordinatorScriptedFakeDriver([
+            ['content' => '{"client_intent":"answer_only","closed_topic":"management_names"}'],
+            ['content' => 'Давайте обсудим ваш заказ.'],
+            ['content' => '{"ok":false,"issues":["Ошибка"]}'],
+        ]);
+        app()->instance(FakeDriver::class, $fake);
+        $this->within($tenant, function () use ($http, $command, $fake): void {
+            self::assertSame(['status' => 'uncertain'], app(FirstTurnCoordinator::class)->run($http, $command));
+            self::assertSame(['status' => 'uncertain'], app(FirstTurnCoordinator::class)->run($http, $command));
+            self::assertSame(3, $fake->calls);
+            $turn = DB::table('seller_turns')->where('conversation_id', $command->conversationId)->first();
+            self::assertSame('uncertain', $turn->status);
+            self::assertSame(1, DB::table('c02_manual_review_requests')->where('turn_id', $turn->id)->count());
+            self::assertSame(0, DB::table('messages')->where('conversation_id', $command->conversationId)->where('role', 'agent')->count());
+        });
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
+    }
+
     public function test_coordinator_does_not_save_after_new_input_or_revoked_session(): void
     {
         [$tenant, $http, $command] = $this->protectedClaimFixture();

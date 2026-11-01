@@ -103,7 +103,7 @@ final class FirstTurnCoordinator
                 return $this->requestReview($http, $claim->turnId);
             }
             if ($check['status'] !== 'ready') {
-                return ['status' => 'blocked'];
+                return $this->requestReview($http, $claim->turnId);
             }
             $guard = null;
             if ($check['needs_model']) {
@@ -114,7 +114,7 @@ final class FirstTurnCoordinator
                 }
                 $decision = DB::transaction(fn () => $gateway->readProtectedModelGuardLocked($http, $claim, $guard));
                 if (($decision['status'] ?? null) !== 'completed' || ($decision['verdict'] ?? null) !== 'ok') {
-                    return ['status' => 'blocked'];
+                    return $this->requestReview($http, $claim->turnId);
                 }
             }
             $result = app(FirstTurnTextFinalizer::class)->finalize($http, $claim, $responder, $guard, self::finalizationKey($claim->turnId));
