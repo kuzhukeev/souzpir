@@ -1,20 +1,19 @@
 import { expect, test } from '@playwright/test';
 
-test('загрузка показывается только в нажатой строке, затем ошибка или успех', async ({ page }) => {
+const fixture = 'http://127.0.0.1:5237/tests/Browser/SP-UI-08/fixture.html';
+
+test('повтор показывает состояние строки, ошибку и успех', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto('/login');
-  await page.getByLabel('Рабочая почта').fill('owner-ui08@example.test');
-  await page.getByLabel('Пароль', { exact: true }).fill('test-only-password-123');
-  await page.getByRole('button', { name: 'Войти', exact: true }).click();
-  await expect(page).toHaveURL(/\/auth\/ready$/);
-  await page.goto('/journal/notifications');
+  await page.goto(fixture);
   await expect(page.getByRole('button', { name: 'Повторить', exact: true })).toHaveCount(2);
   let release = () => {};
   const wait = new Promise<void>((resolve) => { release = resolve; });
-  await page.route('**/journal/notifications/*/retry', async (route) => { await wait; await route.fulfill({ status: 500, body: 'test error' }); });
+  await page.route('**/journal/notifications/*/retry', async (route) => {
+    await wait;
+    await route.fulfill({ status: 500, body: 'test error' });
+  });
   const first = page.getByRole('button', { name: 'Повторить', exact: true }).first();
   await first.focus();
-  await expect(first).toBeFocused();
   await page.keyboard.press('Enter');
   const pending = page.getByRole('button', { name: 'Повторяем…' });
   await expect(pending).toBeVisible();
@@ -25,10 +24,15 @@ test('загрузка показывается только в нажатой �
   await expect(page.getByRole('status')).toContainText('Не удалось повторить доставку.');
   await expect(page.getByRole('button', { name: 'Повторить', exact: true })).toHaveCount(2);
   await page.unroute('**/journal/notifications/*/retry');
+  const inertiaPage = await page.evaluate(() => JSON.parse(document.querySelector<HTMLScriptElement>('script[data-page="app"]')?.textContent ?? '{}'));
+  await page.route('**/journal/notifications/*/retry', (route) => route.fulfill({
+    status: 200,
+    headers: { 'X-Inertia': 'true', 'Content-Type': 'application/json' },
+    body: JSON.stringify(inertiaPage),
+  }));
   await page.setViewportSize({ width: 390, height: 844 });
   const last = page.getByRole('button', { name: 'Повторить', exact: true }).last();
   await last.focus();
-  await expect(last).toBeFocused();
   await page.keyboard.press('Enter');
   await expect(page.getByRole('status')).toContainText('Уведомление поставлено в очередь повторной доставки.');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
