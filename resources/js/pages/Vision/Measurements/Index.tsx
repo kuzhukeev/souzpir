@@ -172,9 +172,23 @@ export default function Index({ measurementBrandRevision }: { measurementBrandRe
             История замеров
           </h2>
           {view.loading && (
-            <p role="status" className="mt-5 text-sm text-(--color-ink-muted)">
-              Загружаем замеры…
-            </p>
+            <div role="status" className="mt-5 text-sm text-(--color-ink-muted)">
+              <p>Загружаем замеры…</p>
+              <div
+                aria-hidden="true"
+                className="mt-4 animate-pulse space-y-3 motion-reduce:animate-none"
+              >
+                {[0, 1, 2].map((row) => (
+                  <div
+                    key={row}
+                    className="flex h-12 items-center justify-between gap-4 rounded-lg bg-(--color-surface-muted) px-4"
+                  >
+                    <span className="h-3 w-20 rounded bg-(--color-border)" />
+                    <span className="h-3 w-28 rounded bg-(--color-border)" />
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
           {view.error && (
             <div

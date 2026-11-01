@@ -102,6 +102,17 @@ test('при переходе страницы показывает загруз
     await expect(section).toHaveAttribute('aria-busy', 'true');
     await expect(page.getByRole('heading', { name: 'История замеров' })).toBeFocused();
     await expect(section.getByRole('status')).toHaveText('Загружаем замеры…');
+    const skeleton = section.getByRole('status').locator('[aria-hidden="true"]');
+    await expect(skeleton).toHaveCount(1);
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    expect(await skeleton.evaluate((element) => getComputedStyle(element).animationName)).not.toBe(
+      'none',
+    );
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    expect(await skeleton.evaluate((element) => getComputedStyle(element).animationName)).toBe(
+      'none',
+    );
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
     await expect(page.getByText(alpha)).toHaveCount(0);
     for (const width of [1440, 1024, 390]) {
       await page.setViewportSize({ width, height: 900 });

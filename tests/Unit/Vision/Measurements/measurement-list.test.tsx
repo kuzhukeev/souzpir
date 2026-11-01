@@ -67,6 +67,10 @@ it('показывает загрузку и скрывает старую ст�
   fireEvent.click(screen.getByRole('button', { name: 'Вперёд' }));
   expect(section.getAttribute('aria-busy')).toBe('true');
   expect(screen.getByRole('status').textContent).toContain('Загружаем замеры');
+  const skeleton = screen.getByRole('status').querySelector('[aria-hidden="true"]');
+  expect(skeleton?.children.length).toBe(3);
+  expect(skeleton?.classList.contains('animate-pulse')).toBe(true);
+  expect(skeleton?.classList.contains('motion-reduce:animate-none')).toBe(true);
   expect(screen.queryByText(firstDate)).toBeNull();
   await act(async () =>
     nextPage.resolve(response(listing(firstRevision, 2, '2026-10-20T12:30:00Z'))),
