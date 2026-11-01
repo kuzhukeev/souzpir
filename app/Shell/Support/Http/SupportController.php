@@ -2,6 +2,7 @@
 
 namespace App\Shell\Support\Http;
 
+use App\Privacy\VerifiedHttps;
 use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Support\HelpQuery;
 use App\Shell\Support\Models\Ticket;
@@ -65,10 +66,8 @@ final class SupportController
 
     private function localHttp(Request $request): bool
     {
-        foreach (array_keys($request->headers->all()) as $header) {
-            if (in_array($header, ['forwarded', 'x-real-ip', 'cf-connecting-ip'], true) || str_starts_with($header, 'x-forwarded-')) {
-                return false;
-            }
+        if (VerifiedHttps::hasForwardingHeaders($request)) {
+            return false;
         }
 
         return app()->environment('local') && ! $request->isSecure() && strtolower($request->getHost()) === 'souzpir.local' && $this->loopback($request);
@@ -77,7 +76,8 @@ final class SupportController
     private function secureContext(Request $request): bool
     {
         $native = $request->server('HTTPS');
-        if (is_string($native) && in_array(strtolower(trim($native)), ['on', '1'], true)) {
+        if (! VerifiedHttps::hasForwardingHeaders($request)
+            && is_string($native) && in_array(strtolower(trim($native)), ['on', '1'], true)) {
             return true;
         }
 

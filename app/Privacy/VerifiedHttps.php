@@ -49,6 +49,19 @@ final class VerifiedHttps
             }
         }
 
+        // Framework middleware can remove a header while the original server
+        // variables still show that a proxy-style value arrived.
+        foreach (array_keys($request->server->all()) as $name) {
+            $name = strtoupper($name);
+            if (str_starts_with($name, 'REDIRECT_')) {
+                $name = substr($name, 9);
+            }
+            if ($name === 'HTTP_FORWARDED' || str_starts_with($name, 'HTTP_X_FORWARDED_')
+                || $name === 'HTTP_X_REAL_IP' || $name === 'HTTP_CF_CONNECTING_IP') {
+                return true;
+            }
+        }
+
         return false;
     }
 

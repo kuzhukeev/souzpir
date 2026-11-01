@@ -2,6 +2,7 @@
 
 namespace App\Tenancy\TokenApi;
 
+use App\Privacy\VerifiedHttps;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\IpUtils;
@@ -55,7 +56,8 @@ final class BearerBoundary
         // Native TLS is server-provided; forwarded HTTPS is verified against
         // the current connection's peer and explicit proxy config, before TrustProxies runs.
         $nativeTls = $request->server('HTTPS');
-        if (is_string($nativeTls) && in_array(strtolower(trim($nativeTls)), ['on', '1'], true)) {
+        if (! VerifiedHttps::hasForwardingHeaders($request)
+            && is_string($nativeTls) && in_array(strtolower(trim($nativeTls)), ['on', '1'], true)) {
             return true;
         }
         $configured = config('trustedproxy.proxies');
@@ -74,10 +76,8 @@ final class BearerBoundary
         if (! app()->environment(['local', 'testing'])) {
             return false;
         }
-        foreach (['Forwarded', 'X-Forwarded-For', 'X-Forwarded-Host', 'X-Forwarded-Proto', 'X-Real-IP', 'CF-Connecting-IP'] as $header) {
-            if ($request->headers->has($header)) {
-                return false;
-            }
+        if (VerifiedHttps::hasForwardingHeaders($request)) {
+            return false;
         }
 
         return $this->loopback($request->server->get('REMOTE_ADDR'))
