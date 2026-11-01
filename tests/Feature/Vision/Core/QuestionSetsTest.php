@@ -7,17 +7,17 @@ use App\Models\User;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
 use App\Vision\Core\QuestionSets;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\Process\Process;
+use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\TestCase;
 
 final class QuestionSetsTest extends TestCase
 {
-    use DatabaseMigrations;
+    use IsolatedDatabaseMigrations;
 
     #[DataProvider('historicalSizes')]
     public function test_real_question_set_size_and_content_are_saved(int $size): void
