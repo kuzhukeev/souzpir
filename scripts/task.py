@@ -37,12 +37,22 @@ def key_name(value: str) -> str:
     return value
 
 
+# The default outputs of scripts/generate-types/generate.php follow routes and DTOs
+# owned by individual tasks and therefore do not require a separate claim.
+GENERATED_CONTRACT_FILES = frozenset(
+    "resources/js/types/generated/" + name
+    for name in ("data.ts", "translations.ts", "permissions.ts", "routes.d.ts")
+)
+
+
 def scope_allows(path: str, scope: list[str]) -> bool:
     path = path.replace("\\", "/").casefold()
     if path.startswith("/") or path.split("/", 1)[0].casefold() in (".local", ".worktrees", ".git"):
         return False
     if any(part in (".", "..") for part in path.split("/")):
         return False
+    if path in GENERATED_CONTRACT_FILES:
+        return True
     prefixes = [prefix.replace("\\", "/").casefold().rstrip("/") or "/" for prefix in scope]
     return any(prefix == "/" or path == prefix or path.startswith(prefix + "/") for prefix in prefixes)
 

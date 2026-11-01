@@ -227,6 +227,14 @@ class TaskCliTests(unittest.TestCase):
         self.assertFalse(task_cli.scope_allows(".LOCAL/claims/task.json", ["/"]))
         self.assertFalse(task_cli.scope_allows("app/../outside.php", ["/"]))
 
+    def test_submit_allows_default_generated_contracts_only(self):
+        worktree, _ = self.claim()
+        for name in ("data.ts", "translations.ts", "permissions.ts", "routes.d.ts"):
+            self.commit(worktree, "resources/js/types/generated/" + name)
+        self.assertEqual(self.client.submit("SP-001", "Generated contracts", ["Tests passed"])["status"], "review")
+        self.assertFalse(task_cli.scope_allows("resources/js/types/generated/other.ts", ["app/Feature/"]))
+        self.assertFalse(task_cli.scope_allows("resources/js/types/generated/../secret.ts", ["/"]))
+
     def test_api_refuses_remote_host_before_network(self):
         with self.assertRaisesRegex(task_cli.TaskError, "local task queue"):
             task_cli.Api("https://example.com/api.php")
