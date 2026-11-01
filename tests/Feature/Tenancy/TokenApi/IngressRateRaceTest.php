@@ -4,16 +4,16 @@ namespace Tests\Feature\Tenancy\TokenApi;
 
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Foundation\Application;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Symfony\Component\Process\Process;
 use Tests\Feature\Shell\Support\Fixtures\IsolatedPlanTestDatabase;
+use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\TestCase;
 
 final class IngressRateRaceTest extends TestCase
 {
-    use DatabaseMigrations;
+    use IsolatedDatabaseMigrations;
 
     public function createApplication(): Application
     {
