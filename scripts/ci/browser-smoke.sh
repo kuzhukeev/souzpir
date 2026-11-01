@@ -18,6 +18,9 @@ npx vite build --config tests/Browser/E1-04/vite.config.ts
 npx vite --config tests/Browser/E1-10/vite.config.ts --host 127.0.0.1 > .local/runtime/e110-vite.log 2>&1 &
 for attempt in {1..20}; do curl --fail --silent http://127.0.0.1:5237/tests/Browser/E1-10/ui-fixture.html > /dev/null && break; sleep 1; done
 curl --fail --silent http://127.0.0.1:5237/tests/Browser/E1-10/ui-fixture.html > /dev/null
+npx vite --config tests/Browser/E6-09/vite.config.ts --host 127.0.0.1 > .local/runtime/e609-vite.log 2>&1 &
+for attempt in {1..20}; do curl --fail --silent http://127.0.0.1:5269/tests/Browser/E6-09/ui-fixture.html > /dev/null && break; sleep 1; done
+curl --fail --silent http://127.0.0.1:5269/tests/Browser/E6-09/ui-fixture.html > /dev/null
 php -S 127.0.0.1:5183 -t .local/runtime/layout-fixture > .local/runtime/layout-vite.log 2>&1 &
 for attempt in {1..20}; do curl --fail --silent http://127.0.0.1:5183/tests/Browser/Layout/fixture.html > /dev/null && break; sleep 1; done
 curl --fail --silent http://127.0.0.1:5183/tests/Browser/Layout/fixture.html > /dev/null

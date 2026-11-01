@@ -6,7 +6,6 @@ import Crm from '../../../resources/js/pages/Seller/Channels/Crm/Index';
 const params = new URLSearchParams(location.search);
 const theme =
   ['neutral', 'pyro', 'confectionery'].find((value) => value === params.get('theme')) ?? 'neutral';
-const screen = params.get('screen') ?? 'index';
 const component = Crm;
 const props = {
   auth: { user: { id: '1', name: 'Иван Петров', email: 'ivan@example.test' } },
