@@ -5172,15 +5172,13 @@
     },
     {
       "taskKey": "SP-R-03B",
-      "title": "SP-R-03B · Удаление копий проверки тестовой БД",
-      "goal": "Перевести feature-тесты, race workers и browser fixtures на общий helper из SP-R-03.",
+      "title": "SP-R-03B · Auth: единая проверка тестовой БД",
+      "goal": "Убрать копии проверки изолированной БД в Auth-тестах и workers, сохранив поведение и число тестов.",
       "dependsOn": [
         "SP-R-03"
       ],
       "scope": [
-        "tests/Feature/",
-        "tests/Browser/",
-        "scripts/ci/",
+        "tests/Feature/Shell/Auth/",
         "docs/results/SP-R-03B.md"
       ],
       "exclusiveResources": [],
@@ -5190,14 +5188,43 @@
       ],
       "sourceIds": [],
       "screenIds": [],
-      "notes": "Эпик R; перенос по подмодулям законченными срезами по 1–3 часа после SP-R-03.",
+      "notes": "Эпик R; один модуль Auth; 1–3 часа; остальные тестовые модули в SP-R-03C.",
       "sourceRefs": [
         "AGENTS.md",
         "docs/tasks/SP-R-03.md"
       ],
       "promptPath": "docs/tasks/SP-R-03B.md",
       "wave": 9,
-      "description": "# SP-R-03B · Удаление копий проверки тестовой БД\n\nПродолжение SP-R-03. Перевести дублирующие проверки в `tests/Feature/` на опорный helper из TestCase. Для race worker-скриптов и browser fixtures использовать один общий helper вместо отдельных копий; сохранить все прежние ограничения конкретных запусков. Выполнять по подмодулям законченными срезами по 1–3 часа, сохраняя число существующих тестов до и после каждого среза. Golden fixtures не менять.\n\nТесты только в изолированных БД; race-группа по правилам проекта отдельно. Перед началом и в отчёте указать число тестов своего затронутого набора, результат до и после, а найденное попутно — в «Техдолг». Claim, worktree, отчёт, submit и CI по AGENTS.md.\n"
+      "description": "# SP-R-03B · Auth: единая проверка тестовой БД\n\nПродолжение SP-R-03, один модуль Auth. Убрать собственные проверки изолированной БД из `tests/Feature/Shell/Auth/`, включая worker fixtures, и делегировать опорной проверке TestCase. Сохранить дополнительные ограничения каждого запуска. Другие feature-модули и browser fixtures — SP-R-03C. Golden fixtures не менять.\n\nПеред началом и в отчёте указать число тестов Auth и результат до и после; число должно совпасть, все тесты зелёные. Поведение не менять. Тесты только в изолированной БД; race-группа отдельно. Работа 1–3 часа, claim, worktree, отчёт, submit и CI по AGENTS.md.\n"
+    },
+    {
+      "taskKey": "SP-R-03C",
+      "title": "SP-R-03C · Проверки БД остальных тестовых модулей",
+      "goal": "Поштучно перенести оставшиеся feature, race worker и browser проверки на общий helper TestCase.",
+      "dependsOn": [
+        "SP-R-03B"
+      ],
+      "scope": [
+        "tests/Feature/",
+        "tests/Browser/",
+        "scripts/ci/",
+        "docs/results/SP-R-03C.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Для каждого затронутого модуля число существующих тестов и их зелёный результат сохранены.",
+        "Специфичные ограничения worker/browser запусков и golden fixtures сохранены."
+      ],
+      "sourceIds": [],
+      "screenIds": [],
+      "notes": "Эпик R; перед claim сузить до одного модуля и 1–3 часов.",
+      "sourceRefs": [
+        "AGENTS.md",
+        "docs/tasks/SP-R-03B.md"
+      ],
+      "promptPath": "docs/tasks/SP-R-03C.md",
+      "wave": 9,
+      "description": "# SP-R-03C · Проверки БД остальных тестовых модулей\n\nПосле SP-R-03B переносить оставшиеся копии проверки из `tests/Feature/`, race worker-скриптов и browser fixtures на общий helper TestCase. Каждый законченный срез ограничить одним тестовым модулем на 1–3 часа; следующий модуль выносить в отдельную карточку до отметки done. Сохранять специфичные ограничения запуска и поведение, golden fixtures не менять.\n\nПеред началом и в отчёте указать число существующих тестов затронутого модуля и результат до и после; число совпадает, все зелёные. Использовать только изолированные БД. Claim, worktree, отчёт, submit и CI по AGENTS.md.\n"
     },
     {
       "taskKey": "SP-R-04",
