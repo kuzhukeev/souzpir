@@ -7,16 +7,21 @@ use App\Tenancy\TenantContextRunner;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\HttpException;
-use Tests\Support\IsolatedAuthDatabase;
+use Tests\Feature\Shell\InvitationIssuance\Fixtures\IsolatedInvitationDatabase;
 
 require getcwd().'/vendor/autoload.php';
 $app = require getcwd().'/bootstrap/app.php';
 $app->make(Kernel::class)->bootstrap();
-IsolatedAuthDatabase::assert();
-if (DB::connection()->getDatabaseName() !== 'souzpir_test_sp_e1_06b' || getenv('E106B_DB') !== 'souzpir_test_sp_e1_06b') {
-    throw new LogicException('Dedicated E1-06B test database required.');
+try {
+    $target = json_decode((string) getenv('E106B_TARGET'), true, flags: JSON_THROW_ON_ERROR);
+    if (! is_array($target)) {
+        throw new LogicException('Expected parent test database identity is required.');
+    }
+    IsolatedInvitationDatabase::assert($target);
+} catch (Throwable) {
+    fwrite(STDERR, 'Test database guard rejected the child connection.');
+    exit(2);
 }
 $user = User::findOrFail(getenv('E106B_USER'));
 $session = clone app('session')->driver();

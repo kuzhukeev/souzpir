@@ -42,7 +42,7 @@ final class InvitationIssuanceConfigCacheTest extends TestCase
 
     private function runProcess(array $arguments, array $environment): string
     {
-        $process = new Process([PHP_BINARY, '-d', 'sys_temp_dir='.base_path('.local/tmp'), ...$arguments], base_path(), [...getenv(), ...$environment], timeout: 30);
+        $process = new Process([PHP_BINARY, '-d', 'sys_temp_dir='.base_path('.local/runtime'), ...$arguments], base_path(), [...getenv(), ...$environment], timeout: 30);
         $process->run();
         self::assertSame(0, $process->getExitCode(), $process->getErrorOutput());
 

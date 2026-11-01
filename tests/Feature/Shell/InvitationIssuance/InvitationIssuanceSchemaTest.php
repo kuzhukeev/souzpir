@@ -6,15 +6,19 @@ use App\Shell\Team\Models\Invitation;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Tests\Feature\Shell\InvitationIssuance\Fixtures\IsolatedInvitationDatabase;
 use Tests\Feature\Tenancy\TenancyTestCase;
-use Tests\Support\IsolatedAuthDatabase;
 
 final class InvitationIssuanceSchemaTest extends TenancyTestCase
 {
+    protected function beforeRefreshingDatabase(): void
+    {
+        IsolatedInvitationDatabase::assert();
+    }
+
     public function test_migration_preserves_existing_invitations_and_rejects_foreign_organization_links(): void
     {
-        IsolatedAuthDatabase::assert();
-        self::assertSame('souzpir_test_sp_e1_06b', DB::connection()->getDatabaseName());
+        IsolatedInvitationDatabase::assert();
         [$owner, $org, $brand] = $this->cabinet();
         [$foreignOwner, $foreignOrg] = $this->cabinet(false);
         $invitation = $this->within($org, null, fn () => Invitation::create([

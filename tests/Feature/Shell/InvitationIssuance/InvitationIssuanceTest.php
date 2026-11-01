@@ -11,10 +11,16 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia;
+use Tests\Feature\Shell\InvitationIssuance\Fixtures\IsolatedInvitationDatabase;
 use Tests\Feature\Tenancy\TenancyTestCase;
 
 final class InvitationIssuanceTest extends TenancyTestCase
 {
+    protected function beforeRefreshingDatabase(): void
+    {
+        IsolatedInvitationDatabase::assert();
+    }
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -96,11 +102,12 @@ final class InvitationIssuanceTest extends TenancyTestCase
     {
         [$owner, $org, $brand] = $this->cabinet();
         $revision = $this->authorizeUser($owner, $brand->id);
+        config(['app.url' => 'https://invitation.example.test']);
         $payload = $this->payload($brand->id);
         $response = $this->withHeader('X-Brand-Revision', $revision)->postJson('/team/invitations', $payload)->assertCreated()
             ->assertHeader('Cache-Control', 'no-store, private')->assertHeader('Referrer-Policy', 'no-referrer');
         $link = $response->json('link');
-        self::assertMatchesRegularExpression('~^http://souzpir\.local/invitations/open#[A-Za-z0-9]{64}$~D', $link);
+        self::assertMatchesRegularExpression('~^https://invitation\.example\.test/invitations/open#[A-Za-z0-9]{64}$~D', $link);
         $secret = substr($link, strrpos($link, '#') + 1);
         $row = DB::table('invitations')->where('organization_id', $org->id)->first();
         self::assertSame(hash('sha256', $secret), $row->token_hash);
@@ -282,7 +289,7 @@ final class InvitationIssuanceTest extends TenancyTestCase
         $this->withHeader('X-Brand-Revision', $revision)->postJson('/team/invitations', [...$payload, 'expires_at' => now()->subSecond()->format('Y-m-d\TH:i:sP')])->assertStatus(422);
         $this->withHeader('X-Brand-Revision', $revision)->postJson('/team/invitations', [...$payload, 'role' => 'owner'])->assertStatus(422);
         $this->withServerVariables(['REMOTE_ADDR' => '192.0.2.1', 'SERVER_ADDR' => '192.0.2.2'])
-            ->withHeader('X-Brand-Revision', $revision)->postJson('/team/invitations', $payload)->assertForbidden();
+            ->withHeader('X-Brand-Revision', $revision)->postJson('http://request.example.test/team/invitations', $payload)->assertForbidden();
         $this->withServerVariables(['REMOTE_ADDR' => '127.0.0.1', 'SERVER_ADDR' => '127.0.0.1']);
         DB::table('auth_session_registry')->where('user_id', $owner->id)->update(['revoked_at' => now()]);
         $this->withHeader('X-Brand-Revision', $revision)->postJson('/team/invitations', $payload)->assertUnauthorized();
