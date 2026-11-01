@@ -17,6 +17,7 @@ use App\Models\Organization;
 use App\Models\User;
 use App\ProtectedOperations\FirstTurnDeterministicGuard;
 use App\ProtectedOperations\FirstTurnGoal;
+use App\ProtectedOperations\FirstTurnProtectedClaim;
 use App\ProtectedOperations\FirstTurnState;
 use App\ProtectedOperations\FirstTurnTextFinalizer;
 use App\Seller\Conversations\Contracts\ConversationRepository;
@@ -2128,6 +2129,464 @@ SQL);
             }
         } while (! $waiting && $worker->isRunning() && microtime(true) < $deadline);
         self::assertTrue($waiting, 'Worker must wait for its competing transaction.');
+    }
+
+    public function test_protected_claim_is_atomic_idempotent_bound_and_private(): void
+    {
+        [$tenant, $http, $command] = $this->protectedClaimFixture();
+        $this->within($tenant, function () use ($tenant, $http, $command): void {
+            $service = app(FirstTurnProtectedClaim::class);
+            try {
+                DB::transaction(fn () => $service->claim($http, $command));
+                self::fail('A claim escaped an enclosing uncommitted transaction.');
+            } catch (LogicException) {
+                self::assertTrue(true);
+            }
+            $first = $service->claim($http, $command);
+            $repeat = $service->claim($http, $command);
+            self::assertSame('claimed', $first->status);
+            self::assertSame($first->turnId, $repeat->turnId);
+            self::assertSame($first->token(), $repeat->token());
+            self::assertSame(1, DB::table('seller_turns')->where('conversation_id', $command->conversationId)->count());
+            self::assertSame(1, DB::table('c02_protected_turn_claims')->where('turn_id', $first->turnId)->count());
+            self::assertSame(1, DB::table('protected_operation_receipts')->where('operation', 'seller.first_turn_claim')->count());
+            self::assertSame(1, DB::table('audit_logs')->where('action', 'seller.turn.protected_claimed')->count());
+            DB::transaction(fn () => $service->assertProtectedLocked($http, $first));
+            try {
+                $service->assertProtectedLocked($http, $first);
+                self::fail('Origin was checked without a locked transaction.');
+            } catch (LogicException) {
+                self::assertTrue(true);
+            }
+            $different = new TurnCommand($command->conversationId, $command->inputMessageId, 'Different synthetic content', null, $command->idempotencyKey, 0);
+            try {
+                $service->claim($http, $different);
+                self::fail('Changed content reused the key.');
+            } catch (IdempotencyConflict) {
+                self::assertTrue(true);
+            }
+            $forged = new TurnClaim('claimed', $first->turnId, $first->conversationId, $first->organizationId, $first->brandId, 0, str_repeat('a', 64));
+            try {
+                DB::transaction(fn () => $service->assertProtectedLocked($http, $forged));
+                self::fail('A forged token passed origin checks.');
+            } catch (LogicException $error) {
+                self::assertSame('Protected first-turn claim unavailable.', $error->getMessage());
+                self::assertNull($error->getPrevious());
+                $trace = json_encode($error->getTrace(), JSON_PARTIAL_OUTPUT_ON_ERROR | JSON_THROW_ON_ERROR);
+                self::assertStringNotContainsString($first->token(), $trace);
+                self::assertStringNotContainsString($http->session()->getId(), $trace);
+                self::assertStringNotContainsString($command->text, $trace);
+            }
+            $stored = json_encode(['claim' => DB::table('c02_protected_turn_claims')->where('turn_id', $first->turnId)->first(),
+                'receipt' => DB::table('protected_operation_receipts')->where('operation', 'seller.first_turn_claim')->first()], JSON_THROW_ON_ERROR);
+            self::assertStringNotContainsString($first->token(), $stored);
+            self::assertStringNotContainsString($http->session()->getId(), $stored);
+            self::assertStringNotContainsString($command->text, $stored);
+            DB::table('brand_modules')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('module', 'seller')->update(['enabled' => false]);
+            try {
+                $service->claim($http, $command);
+                self::fail('A revoked permission replayed the claim.');
+            } catch (LogicException) {
+                self::assertTrue(true);
+            }
+            DB::table('brand_modules')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('module', 'seller')->update(['enabled' => true]);
+            $otherBrand = Brand::create(['name' => 'Other claim brand', 'timezone' => 'Europe/Moscow']);
+            app(AuthSessionRegistry::class)->withinActive($http, function () use ($http, $tenant, $otherBrand): void {
+                $selection = app(SessionBrandSelection::class);
+                $row = $selection->current($http);
+                $selection->select($http, $tenant->organizationId, $otherBrand->id, (string) $row->brand_revision);
+            });
+            try {
+                $service->claim($http, $command);
+                self::fail('A different selected brand replayed the claim.');
+            } catch (LogicException) {
+                self::assertTrue(true);
+            }
+            app(AuthSessionRegistry::class)->withinActive($http, fn () => app(AuthSessionRegistry::class)->revokeCurrent($http));
+            try {
+                $service->claim($http, $command);
+                self::fail('A revoked session replayed the claim.');
+            } catch (LogicException) {
+                self::assertTrue(true);
+            }
+        });
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
+    }
+
+    public function test_protected_claim_never_upgrades_an_old_or_foreign_turn(): void
+    {
+        [$tenant, $http, $command] = $this->protectedClaimFixture();
+        $old = app(ConversationRepository::class)->claimTurn($tenant, $command);
+        [$otherTenant, $otherHttp, $otherCommand] = $this->protectedClaimFixture();
+        $other = $this->within($otherTenant, fn () => app(FirstTurnProtectedClaim::class)->claim($otherHttp, $otherCommand));
+        $this->within($tenant, function () use ($tenant, $http, $command, $old, $other): void {
+            $service = app(FirstTurnProtectedClaim::class);
+            foreach ([$old, $other] as $candidate) {
+                try {
+                    DB::transaction(fn () => $service->assertProtectedLocked($http, $candidate));
+                    self::fail('Old or foreign turn gained protected origin.');
+                } catch (LogicException) {
+                    self::assertTrue(true);
+                }
+            }
+            try {
+                $service->claim($http, $command);
+                self::fail('An existing public claim was upgraded.');
+            } catch (LogicException) {
+                self::assertTrue(true);
+            }
+            try {
+                DB::transaction(fn () => DB::table('c02_protected_turn_claims')->insert([
+                    'id' => (string) Str::ulid(), 'organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId,
+                    'conversation_id' => $old->conversationId, 'turn_id' => $old->turnId, 'actor_id' => $tenant->actorId,
+                    'session_hash' => str_repeat('a', 64), 'selection_revision' => 0, 'request_digest' => str_repeat('b', 64),
+                    'claim_hash' => hash('sha256', $old->token()), 'seal' => str_repeat('c', 64),
+                ]));
+                self::fail('A later database transaction attached a fake provenance.');
+            } catch (QueryException $error) {
+                self::assertSame('23514', $error->errorInfo[0]);
+            }
+            self::assertSame(0, DB::table('c02_protected_turn_claims')->where('turn_id', $old->turnId)->count());
+            self::assertSame('processing', DB::table('seller_turns')->where('id', $old->turnId)->value('status'));
+        });
+        Http::assertNothingSent();
+    }
+
+    public function test_protected_claim_replay_reports_current_uncertain_or_finished_without_token(): void
+    {
+        [$tenant, $http, $command] = $this->protectedClaimFixture();
+        $this->within($tenant, function () use ($http, $command): void {
+            $service = app(FirstTurnProtectedClaim::class);
+            $claim = $service->claim($http, $command);
+            Message::create(['conversation_id' => $command->conversationId, 'role' => 'client', 'text' => 'Newer input', 'meta' => []]);
+            $uncertain = $service->claim($http, $command);
+            self::assertSame('uncertain', $uncertain->status);
+            self::assertSame($claim->turnId, $uncertain->turnId);
+            self::assertNull($uncertain->token());
+            self::assertNull($uncertain->outcome);
+            try {
+                DB::transaction(fn () => $service->assertProtectedLocked($http, $claim));
+                self::fail('Uncertain protected claim was treated as current.');
+            } catch (LogicException) {
+                self::assertTrue(true);
+            }
+        });
+        [$otherTenant, $otherHttp, $otherCommand] = $this->protectedClaimFixture();
+        $otherClaim = $this->within($otherTenant, fn () => app(FirstTurnProtectedClaim::class)->claim($otherHttp, $otherCommand));
+        $stage = $this->completeExtractorForProtectedClaim($otherTenant, $otherHttp, $otherClaim);
+        [$responder, , , $file] = $this->responderFixture($otherTenant, $otherHttp, $otherClaim, $stage, ['content' => 'Можем обсудить заказ?']);
+        $this->within($otherTenant, function () use ($otherHttp, $otherCommand, $otherClaim, $responder, $file): void {
+            app(Gateway::class)->completeProtectedResponder($otherHttp, $otherClaim, $responder);
+            app(FirstTurnTextFinalizer::class)->finalize($otherHttp, $otherClaim, $responder, null, 'claim-lifecycle-finalize');
+            $finished = app(FirstTurnProtectedClaim::class)->claim($otherHttp, $otherCommand);
+            self::assertSame('finished', $finished->status);
+            self::assertSame($otherClaim->turnId, $finished->turnId);
+            self::assertNull($finished->token());
+            self::assertNull($finished->outcome);
+            app(AuthSessionRegistry::class)->withinActive($otherHttp, fn () => app(AuthSessionRegistry::class)->revokeCurrent($otherHttp));
+            try {
+                app(FirstTurnProtectedClaim::class)->claim($otherHttp, $otherCommand);
+                self::fail('A revoked session received a finished outcome.');
+            } catch (LogicException) {
+                self::assertTrue(true);
+            }
+            unlink($file);
+        });
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
+    }
+
+    public function test_protected_claim_rolls_back_all_records_if_audit_fails(): void
+    {
+        [$tenant, $http, $command] = $this->protectedClaimFixture();
+        DB::unprepared(<<<'SQL'
+CREATE OR REPLACE FUNCTION c02_test_fail_claim_audit() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.action = 'seller.turn.protected_claimed' THEN RAISE EXCEPTION 'synthetic audit failure'; END IF;
+  RETURN NEW;
+END;
+$$;
+CREATE TRIGGER c02_test_fail_claim_audit BEFORE INSERT ON audit_logs FOR EACH ROW EXECUTE FUNCTION c02_test_fail_claim_audit();
+SQL);
+        try {
+            $this->within($tenant, function () use ($http, $command): void {
+                try {
+                    app(FirstTurnProtectedClaim::class)->claim($http, $command);
+                    self::fail('Failed audit committed a claim.');
+                } catch (LogicException $error) {
+                    self::assertSame('Protected first-turn claim unavailable.', $error->getMessage());
+                    self::assertNull($error->getPrevious());
+                }
+                self::assertSame(0, DB::table('seller_turns')->where('conversation_id', $command->conversationId)->count());
+                self::assertSame(0, DB::table('c02_protected_turn_claims')->count());
+                self::assertSame(0, DB::table('protected_operation_receipts')->where('operation', 'seller.first_turn_claim')->count());
+                self::assertSame(1, DB::table('messages')->where('id', $command->inputMessageId)->count());
+            });
+        } finally {
+            DB::unprepared('DROP TRIGGER IF EXISTS c02_test_fail_claim_audit ON audit_logs; DROP FUNCTION IF EXISTS c02_test_fail_claim_audit();');
+        }
+        $claim = $this->within($tenant, fn () => app(FirstTurnProtectedClaim::class)->claim($http, $command));
+        self::assertSame('claimed', $claim->status);
+        self::assertSame(1, DB::table('c02_protected_turn_claims')->where('turn_id', $claim->turnId)->count());
+        Http::assertNothingSent();
+    }
+
+    public function test_protected_claim_does_not_trust_a_forged_marker_even_in_the_creation_transaction(): void
+    {
+        [$tenant, $http, $command] = $this->protectedClaimFixture();
+        $this->within($tenant, function () use ($tenant, $http, $command): void {
+            DB::beginTransaction();
+            try {
+                $old = app(ConversationRepository::class)->claimTurn($tenant, $command);
+                DB::table('c02_protected_turn_claims')->insert([
+                    'id' => (string) Str::ulid(), 'organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId,
+                    'conversation_id' => $old->conversationId, 'turn_id' => $old->turnId, 'actor_id' => $tenant->actorId,
+                    'session_hash' => hash_hmac('sha256', 'c02-protected-claim-session:'.$http->session()->getId(), (string) config('app.key')),
+                    'selection_revision' => 0, 'request_digest' => str_repeat('b', 64), 'claim_hash' => hash('sha256', $old->token()),
+                    'seal' => str_repeat('c', 64),
+                ]);
+                try {
+                    app(FirstTurnProtectedClaim::class)->assertProtectedLocked($http, $old);
+                    self::fail('A fabricated origin seal was trusted.');
+                } catch (LogicException) {
+                    self::assertTrue(true);
+                }
+            } finally {
+                DB::rollBack();
+            }
+            self::assertSame(0, DB::table('seller_turns')->where('conversation_id', $command->conversationId)->count());
+            self::assertSame(0, DB::table('c02_protected_turn_claims')->where('conversation_id', $command->conversationId)->count());
+        });
+        Http::assertNothingSent();
+    }
+
+    public function test_protected_claim_migration_preserves_old_turns_and_refuses_history_deletion(): void
+    {
+        $migration = require database_path('migrations/C-02/2026_11_01_090000_c02_create_protected_turn_claims.php');
+        $migration->down();
+        [$tenant, $http, $command] = $this->protectedClaimFixture();
+        $old = app(ConversationRepository::class)->claimTurn($tenant, $command);
+        $migration->up();
+        $stored = DB::table('seller_turns')->where('id', $old->turnId)->first();
+        self::assertNull($stored->c02_claim_creation_xid);
+        self::assertNull($stored->c02_claim_reservation_digest);
+        $this->within($tenant, function () use ($http, $command, $old): void {
+            try {
+                app(FirstTurnProtectedClaim::class)->claim($http, $command);
+                self::fail('An old turn was silently upgraded.');
+            } catch (LogicException) {
+                self::assertTrue(true);
+            }
+            try {
+                DB::transaction(fn () => app(FirstTurnProtectedClaim::class)->assertProtectedLocked($http, $old));
+                self::fail('A migrated turn acquired protected origin.');
+            } catch (LogicException) {
+                self::assertTrue(true);
+            }
+        });
+        [$newTenant, $newHttp, $newCommand] = $this->protectedClaimFixture();
+        $new = $this->within($newTenant, fn () => app(FirstTurnProtectedClaim::class)->claim($newHttp, $newCommand));
+        foreach (['update', 'delete', 'truncate', 'turn-origin'] as $operation) {
+            try {
+                DB::transaction(function () use ($operation, $new): void {
+                    match ($operation) {
+                        'update' => DB::table('c02_protected_turn_claims')->where('turn_id', $new->turnId)->update(['seal' => str_repeat('a', 64)]),
+                        'delete' => DB::table('c02_protected_turn_claims')->where('turn_id', $new->turnId)->delete(),
+                        'truncate' => DB::statement('TRUNCATE c02_protected_turn_claims'),
+                        'turn-origin' => DB::table('seller_turns')->where('id', $new->turnId)->update(['c02_claim_reservation_digest' => null]),
+                    };
+                });
+                self::fail('Protected provenance history was changed.');
+            } catch (QueryException $error) {
+                self::assertSame('23514', $error->errorInfo[0]);
+            }
+        }
+        try {
+            $migration->down();
+            self::fail('Migration discarded protected history.');
+        } catch (\RuntimeException) {
+            self::assertTrue(true);
+        }
+        self::assertSame('processing', DB::table('seller_turns')->where('id', $old->turnId)->value('status'));
+        self::assertSame(1, DB::table('c02_protected_turn_claims')->where('turn_id', $new->turnId)->count());
+        Http::assertNothingSent();
+    }
+
+    public function test_protected_claim_serializes_two_processes_and_returns_one_origin(): void
+    {
+        [$tenant, $http, $command] = $this->protectedClaimFixture();
+        DB::unprepared(<<<'SQL'
+CREATE OR REPLACE FUNCTION c02_test_delay_claim() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN PERFORM pg_advisory_xact_lock(8620473); RETURN NEW; END;
+$$;
+CREATE TRIGGER c02_test_delay_claim BEFORE INSERT ON c02_protected_turn_claims FOR EACH ROW EXECUTE FUNCTION c02_test_delay_claim();
+SQL);
+        config(['database.connections.c02_claim_blocker' => config('database.connections.pgsql')]);
+        $blocker = DB::connection('c02_claim_blocker');
+        $blocker->beginTransaction();
+        $blocker->select('SELECT pg_advisory_xact_lock(8620473)');
+        $firstMarker = base_path('.local/tmp/c02-claim-a-'.Str::random(16));
+        $secondMarker = base_path('.local/tmp/c02-claim-b-'.Str::random(16));
+        $first = $this->protectedClaimWorker($tenant, $http, $command, $firstMarker);
+        $second = $this->protectedClaimWorker($tenant, $http, $command, $secondMarker);
+        try {
+            $first->start();
+            $this->waitForFinalizerLock($first, $firstMarker);
+            $second->start();
+            $this->waitForFinalizerLock($second, $secondMarker);
+            $blocker->rollBack();
+            $first->wait();
+            $second->wait();
+            self::assertTrue($first->isSuccessful(), $first->getErrorOutput());
+            self::assertTrue($second->isSuccessful(), $second->getErrorOutput());
+            $one = json_decode($first->getOutput(), true, 512, JSON_THROW_ON_ERROR);
+            self::assertSame('claimed', $one['status']);
+            self::assertSame($one, json_decode($second->getOutput(), true, 512, JSON_THROW_ON_ERROR));
+            $claim = $this->within($tenant, fn () => app(FirstTurnProtectedClaim::class)->claim($http, $command));
+            self::assertSame($one['turn_id'], $claim->turnId);
+            self::assertSame(1, DB::table('seller_turns')->where('conversation_id', $command->conversationId)->count());
+            self::assertSame(1, DB::table('c02_protected_turn_claims')->where('turn_id', $claim->turnId)->count());
+            self::assertSame(1, DB::table('protected_operation_receipts')->where('operation', 'seller.first_turn_claim')->count());
+            self::assertSame(1, DB::table('audit_logs')->where('action', 'seller.turn.protected_claimed')->count());
+        } finally {
+            if ($blocker->transactionLevel() > 0) {
+                $blocker->rollBack();
+            }
+            foreach ([$first, $second] as $worker) {
+                if ($worker->isRunning()) {
+                    $worker->stop();
+                }
+            }
+            foreach ([$firstMarker, $secondMarker] as $marker) {
+                if (is_file($marker)) {
+                    unlink($marker);
+                }
+            }
+            DB::purge('c02_claim_blocker');
+            DB::unprepared('DROP TRIGGER IF EXISTS c02_test_delay_claim ON c02_protected_turn_claims; DROP FUNCTION IF EXISTS c02_test_delay_claim();');
+        }
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
+    }
+
+    public function test_protected_claim_concurrent_different_content_conflicts(): void
+    {
+        [$tenant, $http, $command] = $this->protectedClaimFixture();
+        $different = new TurnCommand($command->conversationId, $command->inputMessageId, 'Different concurrent content', null, $command->idempotencyKey, 0);
+        DB::unprepared(<<<'SQL'
+CREATE OR REPLACE FUNCTION c02_test_delay_claim_conflict() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN PERFORM pg_advisory_xact_lock(8620474); RETURN NEW; END;
+$$;
+CREATE TRIGGER c02_test_delay_claim_conflict BEFORE INSERT ON c02_protected_turn_claims FOR EACH ROW EXECUTE FUNCTION c02_test_delay_claim_conflict();
+SQL);
+        config(['database.connections.c02_claim_conflict' => config('database.connections.pgsql')]);
+        $blocker = DB::connection('c02_claim_conflict');
+        $blocker->beginTransaction();
+        $blocker->select('SELECT pg_advisory_xact_lock(8620474)');
+        $firstMarker = base_path('.local/tmp/c02-claim-c-'.Str::random(16));
+        $secondMarker = base_path('.local/tmp/c02-claim-d-'.Str::random(16));
+        $first = $this->protectedClaimWorker($tenant, $http, $command, $firstMarker);
+        $second = $this->protectedClaimWorker($tenant, $http, $different, $secondMarker);
+        try {
+            $first->start();
+            $this->waitForFinalizerLock($first, $firstMarker);
+            $second->start();
+            $this->waitForFinalizerLock($second, $secondMarker);
+            $blocker->rollBack();
+            $first->wait();
+            $second->wait();
+            self::assertTrue($first->isSuccessful(), $first->getErrorOutput());
+            self::assertTrue($second->isSuccessful(), $second->getErrorOutput());
+            self::assertSame('claimed', json_decode($first->getOutput(), true, 512, JSON_THROW_ON_ERROR)['status']);
+            self::assertSame(['status' => 'conflict'], json_decode($second->getOutput(), true, 512, JSON_THROW_ON_ERROR));
+            self::assertSame(1, DB::table('seller_turns')->where('conversation_id', $command->conversationId)->count());
+            self::assertSame(1, DB::table('c02_protected_turn_claims')->count());
+            self::assertSame(1, DB::table('protected_operation_receipts')->where('operation', 'seller.first_turn_claim')->count());
+        } finally {
+            if ($blocker->transactionLevel() > 0) {
+                $blocker->rollBack();
+            }
+            foreach ([$first, $second] as $worker) {
+                if ($worker->isRunning()) {
+                    $worker->stop();
+                }
+            }
+            foreach ([$firstMarker, $secondMarker] as $marker) {
+                if (is_file($marker)) {
+                    unlink($marker);
+                }
+            }
+            DB::purge('c02_claim_conflict');
+            DB::unprepared('DROP TRIGGER IF EXISTS c02_test_delay_claim_conflict ON c02_protected_turn_claims; DROP FUNCTION IF EXISTS c02_test_delay_claim_conflict();');
+        }
+        Http::assertNothingSent();
+    }
+
+    private function protectedClaimWorker(TenantContext $tenant, Request $http, TurnCommand $command, string $marker): Process
+    {
+        $worker = new Process([PHP_BINARY, '-d', 'sys_temp_dir='.base_path('.local/tmp'), '-d', 'allow_url_fopen=0',
+            '-d', 'disable_functions=fsockopen,pfsockopen,stream_socket_client,curl_exec,curl_multi_exec',
+            base_path('tests/Feature/ProtectedOperations/Fixtures/protected-turn-claim-worker.php'), $marker], base_path());
+        $worker->setInput(json_encode(['org' => $tenant->organizationId, 'brand' => $tenant->brandId, 'user' => $tenant->actorId,
+            'member' => $tenant->membershipId, 'session' => $http->session()->getId(), 'conversation' => $command->conversationId,
+            'message' => $command->inputMessageId, 'text' => $command->text, 'key' => $command->idempotencyKey], JSON_THROW_ON_ERROR));
+        $worker->setTimeout(60);
+
+        return $worker;
+    }
+
+    private function protectedClaimFixture(): array
+    {
+        app(PromptSetsSeeder::class)->run();
+        $user = User::create(['name' => 'Synthetic', 'email' => 'first-claim-'.Str::lower(Str::random(12)).'@example.test', 'password' => 'synthetic-test-password']);
+        $user->forceFill(['email_verified_at' => now()])->save();
+        $user->refresh();
+        $org = Organization::create(['name' => 'Synthetic', 'owner_user_id' => $user->id]);
+        [$member, $brand] = $this->within(new TenantContext($org->id, actorId: $user->id), fn () => [
+            Membership::create(['user_id' => $user->id, 'role' => 'owner']), Brand::create(['name' => 'Synthetic brand', 'timezone' => 'Europe/Moscow']),
+        ]);
+        DB::table('brand_modules')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $brand->id, 'module' => 'seller', 'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
+        $tenant = new TenantContext($org->id, $brand->id, $user->id, $member->id);
+        $this->within($tenant, fn () => app(YamlKnowledgeImporter::class)->importAndPublish($tenant, base_path('tests/Feature/Seller/Knowledge/Fixtures/data')));
+        $session = new Store('c02-claim-session', new ArraySessionHandler(120));
+        $session->setId(Str::random(40));
+        $session->start();
+        $session->put('auth.version', $user->auth_version);
+        $http = Request::create('/', 'POST');
+        $http->setLaravelSession($session);
+        $http->setUserResolver(fn () => $user);
+        app(AuthSessionRegistry::class)->issue($http, $user, $user->auth_version);
+        app(AuthSessionRegistry::class)->withinActive($http, fn () => app(SessionBrandSelection::class)->initialize($http, $org->id, $brand->id));
+        [$conversation, $input] = $this->within($tenant, function (): array {
+            $conversation = Conversation::create(['state' => [], 'mode' => 'bot']);
+            $input = Message::create(['conversation_id' => $conversation->id, 'role' => 'client', 'text' => 'Private synthetic first input', 'meta' => []]);
+
+            return [$conversation, $input];
+        });
+
+        return [$tenant, $http, new TurnCommand($conversation->id, $input->id, $input->text, null, 'protected-claim-'.Str::random(16), 0)];
+    }
+
+    private function completeExtractorForProtectedClaim(TenantContext $tenant, Request $http, TurnClaim $claim): string
+    {
+        return $this->within($tenant, function () use ($http, $claim): string {
+            $stage = app(SellerExtractorStages::class)->prepare($http, $claim);
+            [$request] = app(SellerExtractorStages::class)->load($http, $claim, $stage);
+            $directory = storage_path('app/claim-extractor-fixtures-'.Str::random(12));
+            mkdir($directory, 0700, true);
+            config(['features.E0-05.defaults.fixture_directory' => $directory]);
+            $file = $directory.DIRECTORY_SEPARATOR.CanonicalJson::hash(app(ContactMasker::class)->request($request->toArray())).'.json';
+            file_put_contents($file, json_encode(['result' => ['content' => '{"client_intent":"answer_only"}', 'toolCalls' => [],
+                'usage' => ['promptTokens' => 1, 'completionTokens' => 1], 'model' => $request->model, 'latencyMs' => 1, 'costMicros' => 0]], JSON_THROW_ON_ERROR));
+            self::assertSame('completed', app(Gateway::class)->completeProtectedExtractor($http, $claim, $stage));
+            unlink($file);
+
+            return $stage;
+        });
     }
 
     private function responderFixture(TenantContext $tenant, Request $http, TurnClaim $claim, string $extractor, array $result = []): array
