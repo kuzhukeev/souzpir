@@ -55,7 +55,7 @@ final class TeamMemberUpdateController
             $seller = fn (string $table) => DB::table($table)->where('organization_id', $ctx->organizationId)->where('assigned_user_id', $member->user_id);
             if ($seller('conversations')->whereNotIn('stage', ['lost', 'spam', 'closed'])->exists() ||
                 $seller('seller_tasks')->where('status', 'new')->exists() ||
-                DB::table('actions')->where('organization_id', $ctx->organizationId)->where('responsible', $member->id)->whereIn('status', ['open', 'awaiting_measurement'])->exists()) {
+                DB::table('actions')->where('organization_id', $ctx->organizationId)->where('responsible', $member->id)->where('status', 'open')->exists()) {
                 throw ValidationException::withMessages(['member' => 'Сначала передайте задачи']);
             }
             $before = ['role' => $member->role, 'brand_ids' => $member->brand_ids, 'status' => $member->status];

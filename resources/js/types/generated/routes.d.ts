@@ -176,6 +176,12 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "team.update": [
+        {
+            "name": "membership",
+            "required": true
+        }
+    ],
     "team.invitations.issue": [],
     "team.member-last-logins": [],
     "billing.overview": [],

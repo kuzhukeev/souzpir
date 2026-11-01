@@ -55,7 +55,7 @@ final class TeamMemberUpdateTest extends TenancyTestCase
         $this->withHeader('X-Brand-Revision', $this->get('/team/'.$member->id)->inertiaProps('editAccess.revision'));
         $payload = ['role' => 'viewer', 'brand_ids' => [$brand->id], 'status' => 'active'];
         $this->patch('/team/'.$member->id, $payload)->assertSessionHasErrors(['member' => 'Сначала передайте задачи']);
-        DB::table('actions')->where('id', $id)->update(['status' => 'done']);
+        DB::table('actions')->where('id', $id)->update(['status' => 'awaiting_measurement', 'completed_at' => now()->toDateString()]);
         $this->patch('/team/'.$member->id, $payload)->assertSessionHasNoErrors();
     }
 
