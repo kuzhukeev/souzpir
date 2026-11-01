@@ -2,6 +2,7 @@ import { Head, Link } from '@inertiajs/react';
 import { ArrowLeft, UserRound } from 'lucide-react';
 import CabinetLayout from '@/layouts/CabinetLayout';
 import { SharedBrandModules } from '@/features/Shell/Team/SharedBrandModules';
+import { EditMember } from '@/features/Shell/Team/EditMember';
 import type { TeamMemberDetail } from '@/types/Shell/Team/members';
 
 const panel =
@@ -10,9 +11,16 @@ const panel =
 export default function Show({
   member,
   activityUrl,
+  editAccess,
 }: {
   member: TeamMemberDetail;
   activityUrl: string | null;
+  editAccess?: {
+    brands: { id: string; name: string }[];
+    allBrands: boolean;
+    memberAllBrands: boolean;
+    revision: string;
+  } | null;
 }) {
   const name = member.name?.trim() || 'Имя недоступно';
   const status =
@@ -87,13 +95,16 @@ export default function Show({
               </div>
               <div>
                 <dt className="text-(--color-ink-muted)">Модули общих брендов</dt>
-                <dd className="mt-2"><SharedBrandModules brands={member.brands} /></dd>
+                <dd className="mt-2">
+                  <SharedBrandModules brands={member.brands} />
+                </dd>
               </div>
             </dl>
             <p className="mt-5 text-sm text-(--color-ink-muted)">
               Показаны только общие доступные бренды и их включённые модули. Действия участника
-              зависят от его роли и статуса. Изменение роли и доступа пока недоступно.
+              зависят от его роли и статуса.
             </p>
+            {editAccess && <EditMember member={member} access={editAccess} />}
           </section>
           <section className={panel} aria-labelledby="contacts-title">
             <h2 id="contacts-title" className="text-xl font-bold">

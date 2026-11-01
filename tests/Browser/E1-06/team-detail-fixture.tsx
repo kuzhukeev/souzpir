@@ -53,6 +53,7 @@ const shared = {
     brands: [{ ...brand, modules: ['seller', 'vision'] }],
   },
   activityUrl: '/journal?actor=01J00000000000000000000005',
+  editAccess: { brands: [brand], allBrands: true, memberAllBrands: false, revision: 'fixture' },
 };
 const script = document.createElement('script');
 script.type = 'application/json';
