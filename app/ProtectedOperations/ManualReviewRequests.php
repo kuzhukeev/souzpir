@@ -9,6 +9,7 @@ use App\Shell\Audit\Contracts\AuditWriter;
 use App\Shell\Organizations\ModuleEntitlements;
 use App\Shell\Profile\ProfileAccess;
 use App\Tenancy\TenantContext;
+use Closure;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -36,14 +37,35 @@ final class ManualReviewRequests
 
     private function readOrRequestInternal(#[SensitiveParameter] Request $request, #[SensitiveParameter] string $turnId, bool $create): array
     {
-        if ($request->all() !== []) {
-            abort(422);
-        }
-        if (DB::connection()->getDriverName() !== 'pgsql' || DB::connection()->transactionLevel() !== 0 || ! Str::isUlid($turnId)) {
+        if (! Str::isUlid($turnId)) {
             throw new LogicException;
         }
 
-        return app(ProfileAccess::class)->run($request, function (User $user, TenantContext $tenant) use ($request, $turnId, $create): array {
+        return $this->authorized($request, fn (TenantContext $tenant): array => $this->readOrRequestLocked($request, $tenant, $turnId, $create));
+    }
+
+    /** Returns at most 100 verified requests; no client-supplied IDs or filters. */
+    public function listRequested(#[SensitiveParameter] Request $request): array
+    {
+        try {
+            return $this->authorized($request, fn (TenantContext $tenant): array => $this->listRequestedLocked($tenant));
+        } catch (AuthenticationException|HttpExceptionInterface $error) {
+            throw $error;
+        } catch (Throwable) {
+            throw new LogicException('Manual review unavailable.');
+        }
+    }
+
+    private function authorized(#[SensitiveParameter] Request $request, Closure $action): array
+    {
+        if ($request->all() !== []) {
+            abort(422);
+        }
+        if (DB::connection()->getDriverName() !== 'pgsql' || DB::connection()->transactionLevel() !== 0) {
+            throw new LogicException;
+        }
+
+        return app(ProfileAccess::class)->run($request, function (User $user, TenantContext $tenant) use ($action): array {
             if ($tenant->source !== 'session' || $tenant->actorId !== $user->id || ! $user->hasVerifiedEmail()) {
                 abort(403);
             }
@@ -60,8 +82,35 @@ final class ManualReviewRequests
                 abort(403);
             }
 
-            return $this->readOrRequestLocked($request, $tenant, $turnId, $create);
+            return $action($tenant);
         });
+    }
+
+    private function listRequestedLocked(#[SensitiveParameter] TenantContext $tenant): array
+    {
+        $secret = config('app.key');
+        if (! is_string($secret) || $secret === '') {
+            throw new LogicException;
+        }
+        $rows = DB::table('c02_manual_review_requests as r')
+            ->leftJoin('seller_turns as t', 't.id', '=', 'r.turn_id')
+            ->where('r.organization_id', $tenant->organizationId)->where('r.brand_id', $tenant->brandId)
+            ->orderByDesc('r.id')->limit(101)->get(['r.*', 't.organization_id as turn_organization_id',
+                't.brand_id as turn_brand_id', 't.conversation_id as turn_conversation_id']);
+        $items = [];
+        foreach ($rows as $row) {
+            if ($row->turn_organization_id !== $tenant->organizationId || $row->turn_brand_id !== $tenant->brandId
+                || $row->turn_conversation_id !== $row->conversation_id) {
+                throw new LogicException;
+            }
+            $this->verifyRecord($row, $tenant, $row->conversation_id, $row->turn_id, $secret);
+            if (count($items) < 100) {
+                $items[] = ['conversation_id' => $row->conversation_id, 'turn_id' => $row->turn_id,
+                    'reason' => $row->reason, 'other_effects_may_exist' => true];
+            }
+        }
+
+        return ['data' => $items, 'limit' => 100, 'has_more' => $rows->count() > 100];
     }
 
     private function readOrRequestLocked(#[SensitiveParameter] Request $request, #[SensitiveParameter] TenantContext $tenant, #[SensitiveParameter] string $turnId, bool $create): array
@@ -97,14 +146,19 @@ final class ManualReviewRequests
         if (! $record) {
             return ['review' => 'not_requested', 'other_effects_may_exist' => true];
         }
+        $this->verifyRecord($record, $tenant, $turn->conversation_id, $turnId, $secret);
+
+        return ['review' => 'requested', 'reason' => 'outcome_unconfirmed', 'other_effects_may_exist' => true];
+    }
+
+    private function verifyRecord(#[SensitiveParameter] object $record, #[SensitiveParameter] TenantContext $tenant, string $conversationId, string $turnId, string $secret): void
+    {
         if ($record->organization_id !== $tenant->organizationId || $record->brand_id !== $tenant->brandId
-            || $record->conversation_id !== $turn->conversation_id || $record->turn_id !== $turnId
+            || $record->conversation_id !== $conversationId || $record->turn_id !== $turnId
             || $record->reason !== 'outcome_unconfirmed' || ! is_string($record->seal)
             || ! hash_equals($this->seal($record, $secret), $record->seal)) {
             throw new LogicException;
         }
-
-        return ['review' => 'requested', 'reason' => 'outcome_unconfirmed', 'other_effects_may_exist' => true];
     }
 
     private function seal(#[SensitiveParameter] object $record, #[SensitiveParameter] string $secret): string
