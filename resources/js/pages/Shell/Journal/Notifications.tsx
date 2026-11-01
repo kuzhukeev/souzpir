@@ -83,7 +83,7 @@ export default function Notifications({ rows, filters }: Props) {
       />
       <section
         aria-label="Список уведомлений"
-        aria-busy={loading}
+        aria-busy={loading && retrying === null}
         className="rounded-2xl bg-(--color-surface) p-5 shadow-(--shadow-card)"
       >
         {notice && (
@@ -99,7 +99,7 @@ export default function Notifications({ rows, filters }: Props) {
             </Button>
           </div>
         )}
-        {loading ? (
+        {loading && retrying === null ? (
           <div className="space-y-3">
             <Skeleton label="Загружается история уведомлений" />
             <Skeleton label="Загрузка" />
@@ -148,9 +148,10 @@ export default function Notifications({ rows, filters }: Props) {
                         variant="ghost"
                         size="sm"
                         disabled={retrying !== null}
+                        loading={retrying === row.id}
                         onClick={() => retry(row.id)}
                       >
-                        Повторить
+                        {retrying === row.id ? 'Повторяем…' : 'Повторить'}
                       </Button>
                     ) : row.status === 'uncertain' ? (
                       'Нужна проверка'
