@@ -19,7 +19,7 @@ final class InvitationIssuanceController
             'attempt_key' => ['required', 'string', 'regex:/^[a-f0-9]{64}$/D'],
             'email' => ['required', 'string', 'email', 'max:254'],
             'role' => ['required', Rule::in(['admin', 'member', 'viewer'])],
-            'brand_ids' => ['required', 'array', 'min:1', 'max:100'],
+            'brand_ids' => ['required', 'array', 'min:1'],
             'brand_ids.*' => ['required', 'string', 'ulid', 'distinct'],
             'sales_manager' => ['required', 'boolean'],
             'expires_at' => ['required', 'date_format:Y-m-d\TH:i:sP'],

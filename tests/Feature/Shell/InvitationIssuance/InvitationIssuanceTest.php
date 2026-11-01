@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Shell\InvitationIssuance;
 
+use App\Models\Brand;
 use App\Models\User;
 use App\Shell\Audit\Contracts\AuditWriter;
 use Illuminate\Support\Facades\DB;
@@ -216,6 +217,22 @@ final class InvitationIssuanceTest extends TenancyTestCase
         $viewerRevision = $this->authorizeUser($viewer, $first->id);
         $this->withHeader('X-Brand-Revision', $viewerRevision)->postJson('/team/invitations', $this->payload($first->id))->assertForbidden();
         self::assertSame(1, DB::table('invitations')->count());
+    }
+
+    public function test_no_unconfigured_brand_count_limit_is_imposed(): void
+    {
+        [$owner, $org, $brand] = $this->cabinet();
+        $ids = $this->within($org, null, function () use ($brand): array {
+            $ids = [$brand->id];
+            for ($index = 0; $index < 100; $index++) {
+                $ids[] = Brand::create(['name' => 'Synthetic '.$index, 'theme' => 'neutral'])->id;
+            }
+
+            return $ids;
+        });
+        $revision = $this->authorizeUser($owner, $brand->id);
+        $this->withHeader('X-Brand-Revision', $revision)->postJson('/team/invitations', [...$this->payload($brand->id), 'brand_ids' => $ids])->assertCreated();
+        self::assertCount(101, json_decode(DB::table('invitations')->value('brand_ids'), true, flags: JSON_THROW_ON_ERROR));
     }
 
     public function test_stale_brand_revision_revoked_session_bad_input_and_unsafe_transport_do_not_issue(): void
