@@ -21,17 +21,17 @@ use App\Vision\Core\WorkloadLimits;
 use App\Vision\Evidence\Contracts\KnowledgeGate;
 use App\Vision\KnowledgeGrants\GrantRegistry;
 use Illuminate\Database\QueryException;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use LogicException;
 use Symfony\Component\Process\Process;
+use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\TestCase;
 
 final class MeasurementRunnerTest extends TestCase
 {
-    use DatabaseMigrations;
+    use IsolatedDatabaseMigrations;
 
     private string $organization;
 
