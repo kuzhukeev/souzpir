@@ -170,6 +170,7 @@ declare module 'ziggy-js' {
         }
     ],
     "team.invitations.issue": [],
+    "team.member-last-logins": [],
     "billing.overview": [],
     "billing.usage": [],
     "billing.plans": [],
