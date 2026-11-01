@@ -14,6 +14,7 @@ use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 require __DIR__.'/../../../vendor/autoload.php';
@@ -51,6 +52,37 @@ $identity = $db->selectOne('select current_database() as db, current_user as rol
 if ($identity->db !== $database || $identity->role !== $role || $identity->address !== $testHost || (string) $identity->port !== $port
     || $identity->rolsuper || $identity->rolcreatedb || $identity->rolcreaterole || $identity->rolreplication || $identity->rolbypassrls) {
     throw new LogicException('Unexpected test database identity or role privileges.');
+}
+if (in_array(getenv('E106_LAST_LOGIN_SCHEMA'), ['hide', 'restore'], true)) {
+    $organization = Organization::whereKey($organizationId)->firstOrFail();
+    if (($organization->settings['test_fixture'] ?? null) !== 'e106-role-ui') {
+        throw new LogicException('Fixture organization collision.');
+    }
+    $hide = getenv('E106_LAST_LOGIN_SCHEMA') === 'hide';
+    $source = $hide ? 'member_last_logins' : 'member_last_logins_e106_test_hidden';
+    $target = $hide ? 'member_last_logins_e106_test_hidden' : 'member_last_logins';
+    if (! Schema::hasTable($source) || Schema::hasTable($target)) {
+        throw new LogicException('Unexpected last-login test schema state.');
+    }
+    DB::statement('ALTER TABLE '.$source.' RENAME TO '.$target);
+    fwrite(STDOUT, "Last-login test schema changed.\n");
+    exit;
+}
+if (in_array(getenv('E106_LAST_LOGIN_ACCESS'), ['disable', 'restore'], true)) {
+    $organization = Organization::whereKey($organizationId)->firstOrFail();
+    if (($organization->settings['test_fixture'] ?? null) !== 'e106-role-ui') {
+        throw new LogicException('Fixture organization collision.');
+    }
+    $viewer = User::where('email', 'team-e106-viewer@example.test')->firstOrFail();
+    $member = Membership::withoutGlobalScopes()->where('organization_id', $organizationId)
+        ->where('user_id', $viewer->id)->where('role', 'viewer')->firstOrFail();
+    $disabled = getenv('E106_LAST_LOGIN_ACCESS') === 'disable';
+    if ($member->status !== ($disabled ? 'active' : 'disabled')) {
+        throw new LogicException('Unexpected last-login viewer access state.');
+    }
+    DB::table('memberships')->where('id', $member->id)->update(['status' => $disabled ? 'disabled' : 'active']);
+    fwrite(STDOUT, "Last-login test access changed.\n");
+    exit;
 }
 if (getenv('E106_EXPIRING_INVITATION') === '1') {
     $organization = Organization::whereKey($organizationId)->firstOrFail();
