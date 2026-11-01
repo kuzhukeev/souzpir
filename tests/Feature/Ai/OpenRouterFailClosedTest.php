@@ -10,18 +10,18 @@ use App\Contracts\Ai\AiGateway;
 use App\Contracts\Ai\AiRequest;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Factory;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use LogicException;
+use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\TestCase;
 
 final class OpenRouterFailClosedTest extends TestCase
 {
-    use DatabaseMigrations;
+    use IsolatedDatabaseMigrations;
 
     private function scope(): array
     {

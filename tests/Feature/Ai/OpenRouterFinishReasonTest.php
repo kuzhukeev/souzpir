@@ -9,7 +9,6 @@ use App\Contracts\Ai\AiRequest;
 use App\Contracts\Ai\AiResult;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Http\Client\Factory;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
@@ -17,12 +16,13 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use LogicException;
+use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\TestCase;
 
 /** HTTP is always faked; completed accounting here does not prove provider finality. */
 final class OpenRouterFinishReasonTest extends TestCase
 {
-    use DatabaseMigrations;
+    use IsolatedDatabaseMigrations;
 
     private function scope(): array
     {
