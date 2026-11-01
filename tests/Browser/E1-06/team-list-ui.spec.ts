@@ -90,6 +90,18 @@ for (const width of [1440, 1024, 390]) {
         path: `.local/screenshots/e1-06/team-list-${theme}-${width}.png`,
         fullPage: true,
       });
+      await page.getByRole('button', { name: 'Пригласить участника' }).click();
+      const invitation = page.getByRole('dialog', { name: 'Пригласить участника' });
+      await expect(invitation.getByLabel('Электронная почта')).toBeVisible();
+      await expect(
+        invitation.getByRole('checkbox', { name: 'Пиротехника — Северные огни' }),
+      ).toBeChecked();
+      await page.screenshot({
+        path: `.local/screenshots/e1-06/team-invitation-${theme}-${width}.png`,
+        fullPage: true,
+      });
+      await page.keyboard.press('Escape');
+      await expect(invitation).toHaveCount(0);
     });
   }
 }
@@ -129,6 +141,27 @@ test('клавиатура и доступность', async ({ page }) => {
   expect(modalViolations).toEqual([]);
   await page.keyboard.press('Escape');
   await expect(dialog).toHaveCount(0);
+  const opener = page.getByRole('button', { name: 'Пригласить участника' });
+  await opener.focus();
+  await page.keyboard.press('Enter');
+  const invitation = page.getByRole('dialog', { name: 'Пригласить участника' });
+  await expect(invitation).toBeVisible();
+  const invitationViolations = await page.evaluate(
+    async () =>
+      (
+        await (
+          window as unknown as {
+            axe: {
+              run: (root: Document, options: object) => Promise<{ violations: { id: string }[] }>;
+            };
+          }
+        ).axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa'] } })
+      ).violations,
+  );
+  expect(invitationViolations).toEqual([]);
+  await page.keyboard.press('Escape');
+  await expect(invitation).toHaveCount(0);
+  await expect(opener).toBeFocused();
   const next = page.getByRole('button', { name: 'Вперёд' });
   await next.focus();
   await expect(next).toBeFocused();

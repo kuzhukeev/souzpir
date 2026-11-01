@@ -12,7 +12,7 @@ vi.mock('@inertiajs/react', () => ({
       {children}
     </a>
   ),
-  router: { get: calls.get, post: calls.post },
+  router: { get: calls.get, post: calls.post, on: () => () => {} },
   usePage: () => ({ props: { brand: { id: '01J00000000000000000000003' } } }),
 }));
 vi.mock('@/layouts/CabinetLayout', () => ({
@@ -92,12 +92,32 @@ const emptyInvitations = {
   total: 0,
 };
 
+it('независимо применяет права на матрицу и выпуск приглашений', () => {
+  const props = {
+    teamBrandRevision: revision,
+    members,
+    invitations: emptyInvitations,
+    filterBrands: [{ id: brandId, name: 'Бренд А' }],
+  };
+  const view = render(<Index {...props} canViewRoles canIssueInvitations={false} />);
+  expect(screen.getByRole('link', { name: 'Роли и доступ' })).toBeTruthy();
+  expect(screen.queryByRole('button', { name: 'Пригласить участника' })).toBeNull();
+  view.rerender(<Index {...props} canViewRoles={false} canIssueInvitations />);
+  expect(screen.queryByRole('link', { name: 'Роли и доступ' })).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Пригласить участника' }));
+  expect(screen.getByRole('dialog', { name: 'Пригласить участника' })).toBeTruthy();
+  expect((screen.getByRole('button', { name: 'Продолжить' }) as HTMLButtonElement).disabled).toBe(
+    false,
+  );
+});
+
 it('загружает последние входы показанных участников с текущим брендом и ревизией', async () => {
   render(
     <Index
       teamBrandRevision={revision}
       members={members}
       canViewRoles
+      canIssueInvitations
       invitations={emptyInvitations}
     />,
   );
@@ -127,6 +147,7 @@ it('не предлагает отзыв при недоступном срок�
       teamBrandRevision={revision}
       members={members}
       canViewRoles
+      canIssueInvitations
       invitations={{ ...emptyInvitations, data: [item], total: 1 }}
     />,
   );
@@ -139,6 +160,7 @@ it('не предлагает отзыв при недоступном срок�
       teamBrandRevision={revision}
       members={members}
       canViewRoles
+      canIssueInvitations
       invitations={{
         ...emptyInvitations,
         as_of: 'invalid',
@@ -160,6 +182,7 @@ it('показывает только переданные данные без �
       teamBrandRevision={revision}
       members={members}
       canViewRoles
+      canIssueInvitations
       invitations={emptyInvitations}
     />,
   );
@@ -175,7 +198,8 @@ it('показывает только переданные данные без �
   expect(screen.getByRole('link', { name: 'Роли и доступ' }).getAttribute('href')).toBe(
     '/team/roles',
   );
-  expect(screen.queryByRole('button', { name: /пригласить|изменить роль|отключить/i })).toBeNull();
+  expect(screen.getByRole('button', { name: 'Пригласить участника' })).toBeTruthy();
+  expect(screen.queryByRole('button', { name: /изменить роль|отключить/i })).toBeNull();
   expect(screen.getByText('Приглашений в ожидании нет')).toBeTruthy();
 });
 
@@ -185,12 +209,95 @@ it('показывает честное пустое состояние и не 
       teamBrandRevision={revision}
       members={{ data: [], current_page: 1, last_page: 1, total: 0 }}
       canViewRoles={false}
+      canIssueInvitations={false}
       invitations={emptyInvitations}
     />,
   );
   expect(screen.getByText('Участников пока нет')).toBeTruthy();
   expect(screen.queryByRole('link', { name: 'Роли и доступ' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Пригласить участника' })).toBeNull();
   expect(fetch).not.toHaveBeenCalled();
+});
+
+it('владелец открывает и закрывает настоящее окно приглашения', () => {
+  render(
+    <Index
+      teamBrandRevision={revision}
+      members={members}
+      canViewRoles
+      canIssueInvitations
+      invitations={emptyInvitations}
+      filterBrands={[{ id: brandId, name: 'Бренд А' }]}
+    />,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Пригласить участника' }));
+  const dialog = screen.getByRole('dialog', { name: 'Пригласить участника' });
+  expect(within(dialog).getByLabelText('Электронная почта')).toBeTruthy();
+  expect(
+    (within(dialog).getByRole('checkbox', { name: 'Бренд А' }) as HTMLInputElement).checked,
+  ).toBe(true);
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Закрыть' }));
+  expect(screen.queryByRole('dialog', { name: 'Пригласить участника' })).toBeNull();
+});
+
+it('наблюдатель с непустым списком не видит выпуска приглашений', () => {
+  render(
+    <Index
+      teamBrandRevision={revision}
+      members={members}
+      canViewRoles={false}
+      canIssueInvitations={false}
+      invitations={emptyInvitations}
+      filterBrands={[{ id: brandId, name: 'Бренд А' }]}
+    />,
+  );
+  expect(screen.getByRole('region', { name: 'Таблица участников' })).toBeTruthy();
+  expect(screen.queryByRole('button', { name: 'Пригласить участника' })).toBeNull();
+  expect(screen.queryByRole('dialog', { name: 'Пригласить участника' })).toBeNull();
+});
+
+it('сохраняет предупреждение при закрытии во время выпуска и не повторяет POST', async () => {
+  let resolve!: (response: Response) => void;
+  const pending = new Promise<Response>((done) => {
+    resolve = done;
+  });
+  const fallback = vi.mocked(fetch).getMockImplementation()!;
+  const fetcher = vi.fn((input: RequestInfo | URL, init?: RequestInit) =>
+    input === '/team/invitations' ? pending : fallback(input, init),
+  );
+  vi.stubGlobal('fetch', fetcher);
+  document.cookie = 'XSRF-TOKEN=synthetic; path=/';
+  render(
+    <Index
+      teamBrandRevision={revision}
+      members={members}
+      canViewRoles
+      canIssueInvitations
+      invitations={emptyInvitations}
+      filterBrands={[{ id: brandId, name: 'Бренд А' }]}
+    />,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Пригласить участника' }));
+  fireEvent.change(screen.getByLabelText('Электронная почта'), {
+    target: { value: 'person@example.test' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Продолжить' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Подтвердить выпуск' }));
+  expect(fetcher.mock.calls.filter(([input]) => input === '/team/invitations')).toHaveLength(1);
+  fireEvent.click(screen.getByRole('button', { name: 'Закрыть' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Пригласить участника' }));
+  expect(screen.getByText(/Результат неизвестен/)).toBeTruthy();
+  await act(async () => {
+    resolve(
+      new Response(
+        JSON.stringify({ link: 'http://localhost/invitations/open#' + 'A'.repeat(64) }),
+        { status: 201 },
+      ),
+    );
+    await pending;
+  });
+  expect(screen.queryByLabelText('Ссылка приглашения')).toBeNull();
+  expect(fetcher.mock.calls.filter(([input]) => input === '/team/invitations')).toHaveLength(1);
 });
 
 it('отличает пустую страницу от отсутствия участников', () => {
@@ -199,6 +306,7 @@ it('отличает пустую страницу от отсутствия у�
       teamBrandRevision={revision}
       members={{ data: [], current_page: 3, last_page: 2, total: 27 }}
       canViewRoles={false}
+      canIssueInvitations={false}
       invitations={emptyInvitations}
     />,
   );
@@ -212,6 +320,7 @@ it('показывает загрузку, ошибку перехода и по
       teamBrandRevision={revision}
       members={{ ...members, last_page: 2, total: 27 }}
       canViewRoles
+      canIssueInvitations
       invitations={emptyInvitations}
       roleFilter="manager"
       brandFilter="brand-a"
@@ -270,6 +379,7 @@ it('показывает данные приглашения и повторяе
       teamBrandRevision={revision}
       members={{ ...members, current_page: 2, last_page: 2 }}
       canViewRoles
+      canIssueInvitations
       invitations={invitations}
       roleFilter="viewer"
       brandFilter="brand-a"
@@ -324,7 +434,13 @@ it('подтверждает отзыв и при неизвестном рез�
     ],
   };
   render(
-    <Index teamBrandRevision={revision} members={members} canViewRoles invitations={invitations} />,
+    <Index
+      teamBrandRevision={revision}
+      members={members}
+      canViewRoles
+      canIssueInvitations
+      invitations={invitations}
+    />,
   );
   fireEvent.click(screen.getByRole('button', { name: 'Отозвать' }));
   const dialog = screen.getByRole('dialog', { name: 'Отозвать приглашение' });
@@ -369,13 +485,20 @@ it('привязывает подтверждение к ревизии в мо�
     ],
   };
   const view = render(
-    <Index members={members} canViewRoles invitations={invitations} teamBrandRevision={revision} />,
+    <Index
+      members={members}
+      canViewRoles
+      canIssueInvitations
+      invitations={invitations}
+      teamBrandRevision={revision}
+    />,
   );
   fireEvent.click(screen.getByRole('button', { name: 'Отозвать' }));
   view.rerender(
     <Index
       members={members}
       canViewRoles
+      canIssueInvitations
       invitations={invitations}
       teamBrandRevision={nextRevision}
     />,

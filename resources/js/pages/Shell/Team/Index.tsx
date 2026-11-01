@@ -4,6 +4,7 @@ import * as Select from '@radix-ui/react-select';
 import { useRef, useState, type ReactNode } from 'react';
 import { Check, ChevronDown, Users, X } from 'lucide-react';
 import CabinetLayout from '@/layouts/CabinetLayout';
+import InvitationDialog from '@/features/Shell/InvitationIssuance/InvitationDialog';
 import { LastLogin } from '@/features/Shell/MemberActivity/LastLogin';
 import { useMemberLastLogins } from '@/features/Shell/MemberActivity/useMemberLastLogins';
 import { invitationExpiry, useInvitationTime } from '@/features/Shell/Team/invitationExpiry';
@@ -134,6 +135,7 @@ function Status({ value }: { value: string }) {
 export default function Index({
   members,
   canViewRoles,
+  canIssueInvitations,
   invitations,
   teamBrandRevision,
   roleFilter = 'all',
@@ -143,6 +145,7 @@ export default function Index({
 }: {
   members: TeamPage;
   canViewRoles: boolean;
+  canIssueInvitations: boolean;
   invitations: TeamInvitations;
   teamBrandRevision: string;
   roleFilter?: string;
@@ -157,6 +160,7 @@ export default function Index({
     teamBrandRevision,
   );
   const [loading, setLoading] = useState(false);
+  const [invitationOpen, setInvitationOpen] = useState(false);
   const [failedPage, setFailedPage] = useState<number | null>(null);
   const [invitationLoading, setInvitationLoading] = useState(false);
   const [failedInvitationPage, setFailedInvitationPage] = useState<number | null>(null);
@@ -297,10 +301,19 @@ export default function Index({
               Участники компании и доступные вам бренды
             </p>
           </div>
-          {canViewRoles && (
-            <Link href="/team/roles" className={`${button} cursor-pointer`}>
-              Роли и доступ
-            </Link>
+          {(canViewRoles || canIssueInvitations) && (
+            <div className="flex flex-wrap gap-2">
+              {canViewRoles && (
+                <Link href="/team/roles" className={`${button} cursor-pointer`}>
+                  Роли и доступ
+                </Link>
+              )}
+              {canIssueInvitations && (
+                <button type="button" onClick={() => setInvitationOpen(true)} className={button}>
+                  Пригласить участника
+                </button>
+              )}
+            </div>
           )}
         </header>
         <div className="mb-4 flex flex-wrap items-center gap-3">
@@ -842,6 +855,14 @@ export default function Index({
           )}
         </section>
       </div>
+      <InvitationDialog
+        open={invitationOpen}
+        onClose={() => setInvitationOpen(false)}
+        canIssue={canIssueInvitations}
+        brandId={brand?.id ?? ''}
+        revision={teamBrandRevision}
+        brands={filterBrands}
+      />
       <RevokeDialog
         open={selected !== null}
         busy={revoking}
