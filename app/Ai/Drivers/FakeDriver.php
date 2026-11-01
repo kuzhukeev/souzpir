@@ -4,6 +4,7 @@ namespace App\Ai\Drivers;
 
 use App\Ai\CanonicalJson;
 use App\Ai\SchemaObjects;
+use Throwable;
 
 final class FakeDriver implements Driver
 {
@@ -22,5 +23,35 @@ final class FakeDriver implements Driver
         }
 
         return $data['result'];
+    }
+
+    /** Dedicated fixture format carries the original arguments as JSON strings. */
+    public function completeWithRawToolCalls(#[\SensitiveParameter] array $body): array
+    {
+        try {
+            SchemaObjects::forInspection($body);
+            $hash = CanonicalJson::hash($body);
+            $directory = config('features.E0-05.defaults.fixture_directory', base_path('tests/fixtures/llm'));
+            $file = rtrim($directory, '/\\').DIRECTORY_SEPARATOR.$hash.'.json';
+            if (! is_file($file)) {
+                throw new Rejected('Missing fixture.');
+            }
+            $json = file_get_contents($file);
+            if (! is_string($json)) {
+                throw new Rejected('Unreadable fixture.');
+            }
+            $parser = app(ProtectedRawToolCalls::class);
+            $data = $parser->decodeEnvelope($json);
+            if (! is_array($data['result'] ?? null) || ! is_array($data['result']['toolCalls'] ?? null)) {
+                throw new Rejected('Invalid fixture.');
+            }
+            $calls = $parser->parse($data['result']['toolCalls'], false);
+            $result = $data['result'];
+            $result['toolCalls'] = $calls['normalized'];
+
+            return ['result' => $result, 'raw_tool_calls' => $calls['raw']];
+        } catch (Throwable) {
+            throw new Rejected('Protected AI fixture unavailable.');
+        }
     }
 }

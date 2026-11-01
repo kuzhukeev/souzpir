@@ -11,6 +11,17 @@ final class OpenRouterDriver implements Driver
 {
     public function complete(#[\SensitiveParameter] array $body): array
     {
+        return $this->completeInternal($body, false);
+    }
+
+    /** One provider request; raw arguments are data, not action authority. */
+    public function completeWithRawToolCalls(#[\SensitiveParameter] array $body): array
+    {
+        return $this->completeInternal($body, true);
+    }
+
+    private function completeInternal(#[\SensitiveParameter] array $body, bool $captureRaw): array
+    {
         $key = config('features.E0-05.defaults.openrouter_key');
         if (! is_string($key) || $key === '') {
             throw new Rejected('AI provider is not configured.');
@@ -31,6 +42,9 @@ final class OpenRouterDriver implements Driver
             throw new Uncertain('Provider outcome is unknown.');
         }
         try {
+            if ($captureRaw) {
+                app(ProtectedRawToolCalls::class)->decodeEnvelope($response->body());
+            }
             $data = Money::decode($response->body());
             $message = $data['choices'][0]['message'] ?? null;
             if (! is_array($message) || isset($data['error'])) {
@@ -55,11 +69,18 @@ final class OpenRouterDriver implements Driver
                 throw new \UnexpectedValueException('AI response completion does not match its message.');
             }
             $calls = [];
-            foreach ($toolCalls as $call) {
-                if (! is_string($call['id'] ?? null) || ! is_string($call['function']['name'] ?? null) || ! is_string($call['function']['arguments'] ?? null)) {
-                    throw new \UnexpectedValueException('Invalid AI tool call.');
+            $rawCalls = [];
+            if ($captureRaw) {
+                $protected = app(ProtectedRawToolCalls::class)->parse($toolCalls, true);
+                $calls = $protected['normalized'];
+                $rawCalls = $protected['raw'];
+            } else {
+                foreach ($toolCalls as $call) {
+                    if (! is_string($call['id'] ?? null) || ! is_string($call['function']['name'] ?? null) || ! is_string($call['function']['arguments'] ?? null)) {
+                        throw new \UnexpectedValueException('Invalid AI tool call.');
+                    }
+                    $calls[] = ['id' => $call['id'], 'name' => $call['function']['name'], 'arguments' => json_decode($call['function']['arguments'], true, 512, JSON_THROW_ON_ERROR)];
                 }
-                $calls[] = ['id' => $call['id'], 'name' => $call['function']['name'], 'arguments' => json_decode($call['function']['arguments'], true, 512, JSON_THROW_ON_ERROR)];
             }
             $usage = $data['usage'] ?? [];
             $prompt = $this->tokens($usage['prompt_tokens'] ?? null);
@@ -69,7 +90,9 @@ final class OpenRouterDriver implements Driver
                 throw new \UnexpectedValueException('Invalid AI content.');
             }
 
-            return ['content' => $content, 'toolCalls' => $calls, 'usage' => ['promptTokens' => $prompt, 'completionTokens' => $completion], 'model' => (string) ($data['model'] ?? $body['model']), 'latencyMs' => (int) ((hrtime(true) - $start) / 1_000_000), 'costMicros' => isset($usage['cost']) ? Money::micros((string) $usage['cost']) : null];
+            $result = ['content' => $content, 'toolCalls' => $calls, 'usage' => ['promptTokens' => $prompt, 'completionTokens' => $completion], 'model' => (string) ($data['model'] ?? $body['model']), 'latencyMs' => (int) ((hrtime(true) - $start) / 1_000_000), 'costMicros' => isset($usage['cost']) ? Money::micros((string) $usage['cost']) : null];
+
+            return $captureRaw ? ['result' => $result, 'raw_tool_calls' => $rawCalls] : $result;
         } catch (Throwable) {
             throw new Uncertain('Provider responded but usage or result cannot be confirmed.');
         }
