@@ -12,7 +12,7 @@ type Context = {
   brand: { id: string };
   filterBrands: InvitationBrand[];
   teamBrandRevision: string;
-  canViewRoles: boolean;
+  canIssueInvitations: boolean;
 };
 
 export function Harness() {
@@ -34,13 +34,13 @@ export function Harness() {
       >
         Сменить контекст
       </button>
-      <button type="button" onClick={() => setContext({ ...context, canViewRoles: false })}>
+      <button type="button" onClick={() => setContext({ ...context, canIssueInvitations: false })}>
         Отозвать доступ
       </button>
       <InvitationDialog
         open={open}
         onClose={() => setOpen(false)}
-        canIssue={context.canViewRoles}
+        canIssue={context.canIssueInvitations === true}
         brandId={context.brand.id}
         revision={context.teamBrandRevision}
         brands={context.filterBrands}

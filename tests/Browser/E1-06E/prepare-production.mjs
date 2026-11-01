@@ -16,10 +16,10 @@ const needle = '  const { brand } = usePage<SharedPropsV1 & Record<string, unkno
 const head = '      <Head title="Команда" />';
 if (!source.includes(needle) || !source.includes(head) || source.includes('InvitationDialog')) throw new Error('Unexpected Team page; integration copy was not generated.');
 source = "import InvitationDialog from '@/features/Shell/InvitationIssuance/InvitationDialog';\n" + source;
-source = source.replace(needle, needle + '\n  const [issueOpen, setIssueOpen] = useState(false);');
+source = source.replace(needle, needle + '\n  const canIssueInvitations = usePage().props.canIssueInvitations === true;\n  const [issueOpen, setIssueOpen] = useState(false);');
 source = source.replace(head, head + `
-      {canViewRoles && <button type="button" onClick={() => setIssueOpen(true)}>Пригласить участника</button>}
-      <InvitationDialog open={issueOpen} onClose={() => setIssueOpen(false)} canIssue={canViewRoles} brandId={brand?.id ?? ''} revision={teamBrandRevision} brands={filterBrands} />`);
+      {canIssueInvitations && <button type="button" onClick={() => setIssueOpen(true)}>Пригласить участника</button>}
+      <InvitationDialog open={issueOpen} onClose={() => setIssueOpen(false)} canIssue={canIssueInvitations} brandId={brand?.id ?? ''} revision={teamBrandRevision} brands={filterBrands} />`);
 writeFileSync(team, source);
 const config = `
 import { defineConfig } from 'vite';
