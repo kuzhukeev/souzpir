@@ -190,6 +190,7 @@ declare module 'ziggy-js' {
         }
     ],
     "team.member-last-logins": [],
+    "seller.tasks.transfer.page": [],
     "billing.overview": [],
     "billing.usage": [],
     "billing.plans": [],
