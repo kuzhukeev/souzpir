@@ -199,11 +199,8 @@ class Coordinator:
     def ready(self) -> dict:
         response = self.api.call("ready", project=self.project)
         available, blocked = [], []
-        deferred = self.deferred_keys()
         for task in response.get("tasks", []):
             key = task["taskKey"]
-            if key in deferred:
-                continue
             branch = "codex/" + key.lower()
             reasons = []
             if self.local_path(key).exists():
@@ -217,14 +214,6 @@ class Coordinator:
             else:
                 available.append(task)
         return {"tasks": available, "blockedLocal": blocked}
-
-    def deferred_keys(self) -> set[str]:
-        path = self.root / "planning" / "deferred-tasks.json"
-        try:
-            data = json.loads(path.read_text(encoding="utf-8"))
-            return set(data["taskKeys"])
-        except (OSError, ValueError, KeyError, TypeError) as error:
-            raise TaskError("Cannot read planning/deferred-tasks.json") from error
 
     def validate_plan(self, key: str, plan: dict, task: dict) -> None:
         if task.get("project") != self.project or task.get("taskKey") != key:
@@ -261,8 +250,6 @@ class Coordinator:
 
     def claim(self, key: str, worker: str) -> dict:
         key_name(key)
-        if key in self.deferred_keys():
-            raise TaskError("Task is deferred until functional work is complete: " + key)
         if not worker.strip():
             raise TaskError("A nonempty worker/chat identifier is required")
         plan = self.plan(key)
