@@ -5,15 +5,15 @@ namespace Tests\Feature\Seller\Conversations;
 use App\Seller\Conversations\PrivateOperation;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\UniqueConstraintViolationException;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
 use PDOException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
+use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\TestCase;
 
 final class PrivateOperationSemanticsTest extends TestCase
 {
-    use DatabaseMigrations;
+    use IsolatedDatabaseMigrations;
 
     public function test_http_status_and_selected_safe_headers_survive_without_private_content(): void
     {

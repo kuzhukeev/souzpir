@@ -2,15 +2,15 @@
 
 namespace Tests\Feature\Seller\Knowledge;
 
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Symfony\Component\Process\Process;
+use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\TestCase;
 
 final class KnowledgeConcurrencyTest extends TestCase
 {
-    use DatabaseMigrations;
+    use IsolatedDatabaseMigrations;
 
     public function test_edit_waiting_for_publication_cannot_modify_published_content(): void
     {
