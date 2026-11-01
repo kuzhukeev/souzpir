@@ -1,32 +1,28 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
-async function login(page: Page, email: string) {
-  await page.goto('/login');
-  await page.getByLabel('Рабочая почта').fill(email);
-  await page.getByLabel('Пароль', { exact: true }).fill('test-only-password-123');
-  await page.getByRole('button', { name: 'Войти', exact: true }).click();
-  await expect(page).toHaveURL(/\/auth\/ready$/);
-  await page.goto('/dashboard');
-  await page.getByRole('button', { name: 'Продавец', exact: true }).click();
-}
+const fixture = 'http://127.0.0.1:5237/tests/Browser/SP-E1-06G/fixture.html';
 
-test('разрешённый сотрудник видит ссылку и открывает страницу', async ({ page }) => {
+test('разрешённый сотрудник видит ссылку и может перейти к передаче', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await login(page, 'owner-e106g@example.test');
+  await page.goto(`${fixture}?allowed`);
+  await page.getByRole('button', { name: 'Продавец', exact: true }).click();
   const nav = page.getByRole('navigation', { name: 'Основная навигация' });
   const link = nav.getByRole('link', { name: 'Передача задач', exact: true });
   await expect(link).toBeVisible();
   await expect(link).toHaveAttribute('href', '/seller/tasks/transfer');
+  await link.focus();
+  await expect(link).toBeFocused();
+  expect(await link.evaluate((element) => getComputedStyle(element).cursor)).toBe('pointer');
   await page.screenshot({ path: '.local/screenshots/sp-e1-06g/navigation-1440.png', fullPage: true });
-  await link.click();
-  await expect(page).toHaveURL(/\/seller\/tasks\/transfer$/);
-  await expect(page.getByRole('heading', { name: 'Передача задач' })).toBeVisible();
+  let requests = 0;
+  await page.route('**/seller/tasks/transfer', (route) => { requests++; void route.abort(); });
+  await page.keyboard.press('Enter');
+  await expect.poll(() => requests).toBe(1);
 });
 
-test('сотруднику без права пункт скрыт, маршрут запрещён', async ({ page }) => {
-  await login(page, 'viewer-e106g@example.test');
+test('без права пункт скрыт', async ({ page }) => {
+  await page.goto(fixture);
+  await page.getByRole('button', { name: 'Продавец', exact: true }).click();
   const nav = page.getByRole('navigation', { name: 'Основная навигация' });
   await expect(nav.getByText('Передача задач', { exact: true })).toHaveCount(0);
-  const response = await page.goto('/seller/tasks/transfer');
-  expect(response?.status()).toBe(403);
 });

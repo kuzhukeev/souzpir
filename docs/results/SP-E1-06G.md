@@ -2,8 +2,8 @@
 # SP-E1-06G — результат
 
 - В Seller добавлена ссылка «Передача задач», видимая при праве seller.dialogues.operate.
-- Проверки: 2 браузерных теста на отдельной БД — пункт и маршрут у владельца, отсутствие пункта и 403 у наблюдателя; npm run lint, целевой eslint, Vite build, Pint.
-- Скриншот 1440: .local/screenshots/SP-E1-06G/navigation-1440.png основного checkout.
+- Проверки: 2 браузерных теста на статическом Inertia fixture CI Vite 5237 — ссылка и скрытие без права; серверное 403 покрыто тестом SP-E1-06F. npm run lint, целевой eslint, Vite build, Pint.
+- Скриншот 1440: .local/screenshots/sp-e1-06g/navigation-1440.png в worktree.
 
 ## Техдолг
 - Нет.
