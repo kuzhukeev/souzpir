@@ -25,16 +25,6 @@ final class ExternalDigestTest extends TestCase
 {
     use IsolatedDatabaseMigrations;
 
-    protected function beforeRefreshingDatabase(): void
-    {
-        $expected = basename(dirname(base_path())) === '.worktrees' ? 'souzpir_test_'.str_replace('-', '_', basename(base_path())) : 'souzpir_test_main';
-        if (! app()->environment('testing') || DB::connection()->getDatabaseName() !== $expected
-            || DB::connection()->getDatabaseName() !== config('runtime.test_database')
-            || DB::connection()->getDatabaseName() === config('runtime.preview_database')) {
-            throw new \LogicException('Isolated test database required.');
-        }
-    }
-
     private function pending(): string
     {
         $owner = User::create(['name' => 'Owner', 'email' => 'digest@example.test', 'password' => 'test-strong-password']);

@@ -36,29 +36,39 @@ abstract class TestCase extends BaseTestCase
             $_ENV[$key] = $_SERVER[$key] = $value;
         }
 
-        // Laravel selects each worker database after the application boots.
-        // Boot against the explicit base first, then align test-only guards
-        // with the exact database Laravel will select for this worker.
+        // CI provisions a dedicated database for each parallel process. Boot
+        // against the validated base, then select the worker before any test
+        // fixture or subclass guard can connect to it.
+        static $parallelBaseDatabase = null;
         $token = $_SERVER['TEST_TOKEN'] ?? null;
-        $baseDatabase = getenv('DB_DATABASE');
-        $testDatabase = getenv('DB_TEST_DATABASE');
         $workerDatabase = null;
-        if (! empty($_SERVER['LARAVEL_PARALLEL_TESTING']) && is_string($token)
-            && ctype_digit($token) && is_string($baseDatabase)
-            && preg_match('/\Asouzpir_test_[a-z0-9_]+\z/D', $baseDatabase)) {
-            $candidate = $baseDatabase.'_test_'.$token;
-            if ($testDatabase === $baseDatabase || $testDatabase === $candidate) {
-                $workerDatabase = $candidate;
-                putenv('DB_TEST_DATABASE='.$baseDatabase);
-                $_ENV['DB_TEST_DATABASE'] = $_SERVER['DB_TEST_DATABASE'] = $baseDatabase;
+        if (! empty($_SERVER['LARAVEL_PARALLEL_TESTING'])
+            && ! empty($_SERVER['LARAVEL_PARALLEL_TESTING_WITHOUT_DATABASES'])
+            && is_string($token) && ctype_digit($token)) {
+            $parallelBaseDatabase ??= getenv('DB_DATABASE');
+            if (is_string($parallelBaseDatabase)
+                && preg_match('/\Asouzpir_test_[a-z0-9_]+\z/D', $parallelBaseDatabase)) {
+                $candidate = $parallelBaseDatabase.'_test_'.$token;
+                $configured = getenv('DB_TEST_DATABASE');
+                if ($configured === $parallelBaseDatabase || $configured === $candidate) {
+                    $workerDatabase = $candidate;
+                    foreach (['DB_DATABASE', 'DB_TEST_DATABASE'] as $key) {
+                        putenv($key.'='.$parallelBaseDatabase);
+                        $_ENV[$key] = $_SERVER[$key] = $parallelBaseDatabase;
+                    }
+                }
             }
         }
 
         $app = parent::createApplication();
         if ($workerDatabase !== null) {
-            putenv('DB_TEST_DATABASE='.$workerDatabase);
-            $_ENV['DB_TEST_DATABASE'] = $_SERVER['DB_TEST_DATABASE'] = $workerDatabase;
+            foreach (['DB_DATABASE', 'DB_TEST_DATABASE'] as $key) {
+                putenv($key.'='.$workerDatabase);
+                $_ENV[$key] = $_SERVER[$key] = $workerDatabase;
+            }
             $app['config']->set('runtime.test_database', $workerDatabase);
+            $app['config']->set('database.connections.pgsql.database', $workerDatabase);
+            $app['db']->purge('pgsql');
         }
 
         return $app;

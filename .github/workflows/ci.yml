@@ -87,7 +87,7 @@ jobs:
             psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "REVOKE CONNECT ON DATABASE souzpir_test_ci_test_$worker FROM PUBLIC;"
           done
       - uses: ramsey/composer-install@v3
-      - run: php artisan test --parallel --processes=4 --exclude-group=race
+      - run: php artisan test --parallel --without-databases --processes=4 --exclude-group=race
 
   browser:
     if: github.event_name != 'schedule'
