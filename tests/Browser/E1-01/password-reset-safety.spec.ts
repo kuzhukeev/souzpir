@@ -9,7 +9,7 @@ test.use({ baseURL: base, trace: 'off', launchOptions: process.env.PLAYWRIGHT_CH
 
 test('recovery keeps credentials out of URLs, history and browser storage', async ({ page }) => {
   const token = execFileSync(php, ['-d', 'sys_temp_dir=.local/tmp', 'tests/Browser/E1-01/password-reset-fixture.php', 'setup'], {
-    cwd: process.cwd(), env: { ...process.env, APP_ENV: 'testing', E101G_BROWSER_FIXTURE: '1' }, encoding: 'utf8', timeout: 60000,
+    cwd: process.cwd(), env: { ...process.env, APP_ENV: 'testing', E101G_BROWSER_FIXTURE: '1', ...(process.env.CI === 'true' ? { E101G_CI_FIXTURE: '1', DB_DATABASE: 'souzpir_test_sp_e1_01g', DB_TEST_DATABASE: 'souzpir_test_sp_e1_01g', DB_USERNAME: 'sp_e101g_app', APP_URL: base, APP_STORAGE_PATH: `${process.cwd()}/.local/runtime/testing/storage/e101g` } : {}) }, encoding: 'utf8', timeout: 60000,
   }).trim();
   expect(token).toMatch(/^[a-f0-9]{64}$/);
   const urls: string[] = [];
@@ -72,7 +72,7 @@ test('recovery keeps credentials out of URLs, history and browser storage', asyn
 
 test('a newer fragment wins while an exchange is in flight', async ({ page }) => {
   const token = execFileSync(php, ['-d', 'sys_temp_dir=.local/tmp', 'tests/Browser/E1-01/password-reset-fixture.php', 'setup'], {
-    cwd: process.cwd(), env: { ...process.env, APP_ENV: 'testing', E101G_BROWSER_FIXTURE: '1' }, encoding: 'utf8', timeout: 60000,
+    cwd: process.cwd(), env: { ...process.env, APP_ENV: 'testing', E101G_BROWSER_FIXTURE: '1', ...(process.env.CI === 'true' ? { E101G_CI_FIXTURE: '1', DB_DATABASE: 'souzpir_test_sp_e1_01g', DB_TEST_DATABASE: 'souzpir_test_sp_e1_01g', DB_USERNAME: 'sp_e101g_app', APP_URL: base, APP_STORAGE_PATH: `${process.cwd()}/.local/runtime/testing/storage/e101g` } : {}) }, encoding: 'utf8', timeout: 60000,
   }).trim();
   const previous = 'b'.repeat(64);
   let releaseFirst = () => {};

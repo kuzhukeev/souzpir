@@ -30,11 +30,31 @@ start_vite() {
   wait_http "http://127.0.0.1:$port/$fixture"
 }
 start_vite e105 tests/Browser/E1-05/vite.config.ts 5215 tests/Browser/E1-05/ui-fixture.html
+start_vite e106 tests/Browser/E1-06/vite.config.ts 5216 tests/Browser/E1-06/ui-fixture.html
+start_vite e108 tests/Browser/E1-08/vite.config.ts 5238 tests/Browser/E1-08/ui-fixture.html
 start_vite e802 tests/Browser/E8-02/vite.config.ts 5248 tests/Browser/E8-02/ui-fixture.html
 start_vite e803 tests/Browser/E8-03/vite.config.ts 5258 tests/Browser/E8-03/pages-fixture.html
 
 common=(APP_ENV=testing DB_CONNECTION=pgsql DB_HOST=127.0.0.1 DB_PORT=5432 DB_PASSWORD="$password"
   CACHE_STORE=file SESSION_DRIVER=file MAIL_MAILER=log AI_DRIVER=fake DELIVERY_DRIVER=fake QUEUE_CONNECTION=sync)
+
+profile=("${common[@]}" DB_DATABASE=souzpir_test_sp_e1_08 DB_TEST_DATABASE=souzpir_test_sp_e1_08
+  DB_USERNAME=sp_e1_08_app CABINET_ORGANIZATION_ID=01J00000000000000000000008
+  APP_URL=http://127.0.0.1:8238 APP_STORAGE_PATH="$root/.local/runtime/testing/storage/e108"
+  E108_FIXTURE_ENABLED=1 PROFILE_SETTINGS_ENABLED=true)
+env "${profile[@]}" php -d "sys_temp_dir=$tmp" scripts/ci/assert-browser-database.php
+env "${profile[@]}" php -d "sys_temp_dir=$tmp" tests/Browser/E1-08/prepare-fixture.php
+env "${profile[@]}" php -d "sys_temp_dir=$tmp" -d "upload_tmp_dir=$tmp" -S 127.0.0.1:8238 -t public tests/Browser/E1-08/server.php >.local/runtime/browser-ci-profile.log 2>&1 &
+children+=("$!")
+wait_http http://127.0.0.1:8238/up
+
+recovery=("${common[@]}" DB_DATABASE=souzpir_test_sp_e1_01g DB_TEST_DATABASE=souzpir_test_sp_e1_01g
+  DB_USERNAME=sp_e101g_app APP_URL=http://127.0.0.1:8241
+  APP_STORAGE_PATH="$root/.local/runtime/testing/storage/e101g" E101G_CI_FIXTURE=1)
+env "${recovery[@]}" php -d "sys_temp_dir=$tmp" scripts/ci/assert-browser-database.php
+env "${recovery[@]}" php -d "sys_temp_dir=$tmp" artisan serve --env=testing --no-reload --host=127.0.0.1 --port=8241 >.local/runtime/browser-ci-recovery.log 2>&1 &
+children+=("$!")
+wait_http http://127.0.0.1:8241/up
 invitation=("${common[@]}" DB_DATABASE=souzpir_test_sp_invitation_ci DB_TEST_DATABASE=souzpir_test_sp_invitation_ci
   DB_USERNAME=sp_invitation_ci_app APP_URL=http://127.0.0.1:8244
   APP_STORAGE_PATH="$root/.local/runtime/testing/invitation/storage" INVITATION_BROWSER_CI_FIXTURE=1

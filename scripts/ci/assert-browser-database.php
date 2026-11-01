@@ -11,6 +11,8 @@ if (PHP_SAPI !== 'cli' || getenv('CI') !== 'true' || getenv('APP_ENV') !== 'test
 $pairs = [
     'souzpir_test_sp_invitation_ci' => 'sp_invitation_ci_app',
     'souzpir_test_sp_e1_05' => 'sp_e1_05_app',
+    'souzpir_test_sp_e1_08' => 'sp_e1_08_app',
+    'souzpir_test_sp_e1_01g' => 'sp_e101g_app',
     'souzpir_test_sp_e8_02' => 'sp_e8_02_app',
     'souzpir_test_sp_e8_02_local' => 'sp_e8_02_local_app',
     'souzpir_test_sp_e8_03' => 'sp_e8_03_app',

@@ -32,4 +32,4 @@ curl --fail --silent http://127.0.0.1:8104/up > /dev/null
 bash scripts/ci/browser-fixtures.sh
 RUN_ONBOARDING_E2E=1 RUN_ORGANIZATIONS_E2E=1 RUN_BRANDS_E2E=1 \
   INVITATION_BROWSER_CI_FIXTURE=1 INVITATION_BROWSER_TEST_DATABASE=souzpir_test_sp_invitation_ci \
-  INVITATION_DB_PASSWORD=ci-only-password E802_LOCAL_BASE=http://souzpir.local:8249 npm run test:browser
+  PHP_BINARY=php INVITATION_DB_PASSWORD=ci-only-password E802_LOCAL_BASE=http://souzpir.local:8249 npm run test:browser -- --workers=1
