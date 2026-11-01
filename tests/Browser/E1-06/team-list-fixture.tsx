@@ -51,8 +51,9 @@ const shared = {
       name: 'Очень длинное название бренда с несколькими словами для проверки отображения',
     },
   ],
-  teamBrandRevision: 'synthetic-revision',
+  teamBrandRevision: 'a'.repeat(64),
   invitations: {
+    as_of: '2027-03-10T12:00:00.000Z',
     data: [
       {
         id: 'invite1',
@@ -74,7 +75,7 @@ const shared = {
     total: 27,
     data: [
       {
-        id: '1',
+        id: '01J00000000000000000000001',
         name: 'Иван Петров',
         email: 'ivan@example.test',
         role: 'owner',
@@ -83,7 +84,7 @@ const shared = {
         brands: [brand],
       },
       {
-        id: '2',
+        id: '01J00000000000000000000002',
         name: 'Анна Иванова',
         email: 'anna@example.test',
         role: 'manager',

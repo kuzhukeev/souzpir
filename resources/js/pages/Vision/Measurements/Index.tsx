@@ -1,5 +1,5 @@
 import { Head, usePage } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { BarChart3 } from 'lucide-react';
 import CabinetLayout from '@/layouts/CabinetLayout';
 import {
@@ -24,14 +24,35 @@ function date(value: string | null): string {
 
 export default function Index({ measurementBrandRevision }: { measurementBrandRevision: string }) {
   const { brand } = usePage<{ brand: { id: string } | null }>().props;
-  const [page, setPage] = useState(1);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const brandId = brand?.id ?? '';
+  const contextKey = JSON.stringify([brandId, measurementBrandRevision]);
+  const [navigation, setNavigation] = useState({ contextKey, page: 1, epoch: 0 });
+  // A returning context must not reuse data from an earlier visit.
+  if (navigation.contextKey !== contextKey) {
+    setNavigation({ contextKey, page: 1, epoch: navigation.epoch + 1 });
+  }
+  const page = navigation.contextKey === contextKey ? navigation.page : 1;
   const [attempt, setAttempt] = useState(0);
-  const [state, setState] = useState<{ data: Listing | null; error: string; loading: boolean }>({
+  const requestKey = JSON.stringify([
+    brandId,
+    measurementBrandRevision,
+    page,
+    attempt,
+    navigation.epoch,
+  ]);
+  const [state, setState] = useState<{
+    key: string;
+    data: Listing | null;
+    error: string;
+    loading: boolean;
+  }>({
+    key: requestKey,
     data: null,
     error: '',
     loading: true,
   });
-  const brandId = brand?.id ?? '';
+  const view = state.key === requestKey ? state : { data: null, error: '', loading: true };
 
   useEffect(() => {
     let active = true;
@@ -46,6 +67,7 @@ export default function Index({ measurementBrandRevision }: { measurementBrandRe
       active = false;
       controller.abort();
       setState({
+        key: requestKey,
         data: null,
         loading: false,
         error: 'Контекст бренда изменился. Обновите страницу.',
@@ -97,12 +119,13 @@ export default function Index({ measurementBrandRevision }: { measurementBrandRe
         !isPageVisible()
       )
         throw new Error();
-      if (active) setState({ data, error: '', loading: false });
+      if (active) setState({ key: requestKey, data, error: '', loading: false });
     };
     void request()
       .catch(() => {
         if (active)
           setState({
+            key: requestKey,
             data: null,
             loading: false,
             error: 'Не удалось загрузить замеры. Проверьте доступ и обновите страницу.',
@@ -118,7 +141,7 @@ export default function Index({ measurementBrandRevision }: { measurementBrandRe
       window.removeEventListener('pagehide', invalidate);
       window.removeEventListener('pageshow', pageShow);
     };
-  }, [brandId, measurementBrandRevision, page, attempt]);
+  }, [brandId, measurementBrandRevision, page, attempt, requestKey]);
 
   return (
     <CabinetLayout breadcrumbs={[{ label: 'Видение', href: '/vision' }, { label: 'Замеры' }]}>
@@ -137,28 +160,48 @@ export default function Index({ measurementBrandRevision }: { measurementBrandRe
         </header>
         <section
           aria-labelledby="measurements-title"
-          aria-busy={state.loading}
+          aria-busy={view.loading}
           className="rounded-2xl border border-(--color-border) bg-(--color-surface) p-4 shadow-(--shadow-card) sm:p-6"
         >
-          <h2 id="measurements-title" className="text-xl font-bold">
+          <h2
+            id="measurements-title"
+            ref={headingRef}
+            tabIndex={-1}
+            className="text-xl font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus)"
+          >
             История замеров
           </h2>
-          {state.loading && (
-            <p role="status" className="mt-5 text-sm text-(--color-ink-muted)">
-              Загружаем замеры…
-            </p>
+          {view.loading && (
+            <div role="status" className="mt-5 text-sm text-(--color-ink-muted)">
+              <p>Загружаем замеры…</p>
+              <div
+                aria-hidden="true"
+                className="mt-4 animate-pulse space-y-3 motion-reduce:animate-none"
+              >
+                {[0, 1, 2].map((row) => (
+                  <div
+                    key={row}
+                    className="flex h-12 items-center justify-between gap-4 rounded-lg bg-(--color-surface-muted) px-4"
+                  >
+                    <span className="h-3 w-20 rounded bg-(--color-border)" />
+                    <span className="h-3 w-28 rounded bg-(--color-border)" />
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
-          {state.error && (
+          {view.error && (
             <div
               role="alert"
               className="mt-5 rounded-lg bg-(--color-danger-soft) p-4 text-sm text-(--color-danger-ink)"
             >
-              <p>{state.error}</p>
+              <p>{view.error}</p>
               <button
                 type="button"
                 className={`${button} mt-3`}
                 onClick={() => {
-                  setState({ data: null, error: '', loading: true });
+                  headingRef.current?.focus();
+                  setState({ key: requestKey, data: null, error: '', loading: true });
                   setAttempt((value) => value + 1);
                 }}
               >
@@ -166,14 +209,14 @@ export default function Index({ measurementBrandRevision }: { measurementBrandRe
               </button>
             </div>
           )}
-          {state.data &&
-            state.data.revision === measurementBrandRevision &&
-            state.data.page === page && (
+          {view.data &&
+            view.data.revision === measurementBrandRevision &&
+            view.data.page === page && (
               <div data-private-profile className="mt-5">
                 <p className="mb-4 text-sm text-(--color-ink-muted)">
                   Детали и результаты будут доступны позже.
                 </p>
-                {state.data.total === 0 ? (
+                {view.data.total === 0 ? (
                   <div
                     role="status"
                     className="rounded-xl bg-(--color-surface-muted) p-8 text-center"
@@ -187,7 +230,7 @@ export default function Index({ measurementBrandRevision }: { measurementBrandRe
                       Здесь появится история сохранённых замеров этого бренда.
                     </p>
                   </div>
-                ) : state.data.data.length === 0 ? (
+                ) : view.data.data.length === 0 ? (
                   <p role="status" className="text-sm">
                     На этой странице замеров нет.
                   </p>
@@ -211,7 +254,7 @@ export default function Index({ measurementBrandRevision }: { measurementBrandRe
                           </tr>
                         </thead>
                         <tbody>
-                          {state.data.data.map((row, index) => (
+                          {view.data.data.map((row, index) => (
                             <tr
                               key={`${row.created_at}-${index}`}
                               className="border-b border-(--color-border)"
@@ -226,7 +269,7 @@ export default function Index({ measurementBrandRevision }: { measurementBrandRe
                       </table>
                     </div>
                     <ul className="grid gap-3 md:hidden" aria-label="История замеров">
-                      {state.data.data.map((row, index) => (
+                      {view.data.data.map((row, index) => (
                         <li
                           key={`${row.created_at}-${index}`}
                           className="rounded-xl border border-(--color-border) p-4 text-sm"
@@ -243,13 +286,13 @@ export default function Index({ measurementBrandRevision }: { measurementBrandRe
                     </ul>
                   </>
                 )}
-                {state.data.last_page > 1 && (
+                {view.data.last_page > 1 && (
                   <nav
                     aria-label="Страницы замеров"
                     className="mt-5 flex flex-wrap items-center justify-between gap-3"
                   >
                     <p className="text-sm">
-                      Страница {state.data.page} из {state.data.last_page}
+                      Страница {view.data.page} из {view.data.last_page}
                     </p>
                     <div className="flex gap-2">
                       <button
@@ -257,8 +300,9 @@ export default function Index({ measurementBrandRevision }: { measurementBrandRe
                         className={button}
                         disabled={page <= 1}
                         onClick={() => {
-                          setState({ data: null, error: '', loading: true });
-                          setPage((value) => value - 1);
+                          headingRef.current?.focus();
+                          setState({ key: requestKey, data: null, error: '', loading: true });
+                          setNavigation({ ...navigation, page: page - 1 });
                         }}
                       >
                         Назад
@@ -266,10 +310,11 @@ export default function Index({ measurementBrandRevision }: { measurementBrandRe
                       <button
                         type="button"
                         className={button}
-                        disabled={page >= state.data.last_page}
+                        disabled={page >= view.data.last_page}
                         onClick={() => {
-                          setState({ data: null, error: '', loading: true });
-                          setPage((value) => value + 1);
+                          headingRef.current?.focus();
+                          setState({ key: requestKey, data: null, error: '', loading: true });
+                          setNavigation({ ...navigation, page: page + 1 });
                         }}
                       >
                         Вперёд

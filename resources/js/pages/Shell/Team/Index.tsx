@@ -1,10 +1,14 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import * as Dialog from '@radix-ui/react-dialog';
 import * as Select from '@radix-ui/react-select';
 import { useRef, useState, type ReactNode } from 'react';
 import { Check, ChevronDown, Users, X } from 'lucide-react';
 import CabinetLayout from '@/layouts/CabinetLayout';
+import { LastLogin } from '@/features/Shell/MemberActivity/LastLogin';
+import { useMemberLastLogins } from '@/features/Shell/MemberActivity/useMemberLastLogins';
+import { invitationExpiry, useInvitationTime } from '@/features/Shell/Team/invitationExpiry';
 import type { TeamInvitations, TeamMember, TeamPage } from '@/types/Shell/Team/members';
+import type { SharedPropsV1 } from '@/types/generated/data';
 
 const panel =
   'rounded-2xl border border-(--color-border) bg-(--color-surface) p-4 shadow-(--shadow-card) sm:p-6';
@@ -134,6 +138,7 @@ export default function Index({
   teamBrandRevision,
   roleFilter = 'all',
   brandFilter = 'all',
+  statusFilter = 'all',
   filterBrands = [],
 }: {
   members: TeamPage;
@@ -142,13 +147,24 @@ export default function Index({
   teamBrandRevision: string;
   roleFilter?: string;
   brandFilter?: string;
+  statusFilter?: string;
   filterBrands?: { id: string; name: string }[];
 }) {
+  const { brand } = usePage<SharedPropsV1 & Record<string, unknown>>().props;
+  const lastLogins = useMemberLastLogins(
+    members.data.map((member) => member.id),
+    brand?.id ?? '',
+    teamBrandRevision,
+  );
   const [loading, setLoading] = useState(false);
   const [failedPage, setFailedPage] = useState<number | null>(null);
   const [invitationLoading, setInvitationLoading] = useState(false);
   const [failedInvitationPage, setFailedInvitationPage] = useState<number | null>(null);
-  const [failedFilters, setFailedFilters] = useState<{ role: string; brand: string } | null>(null);
+  const [failedFilters, setFailedFilters] = useState<{
+    role: string;
+    brand: string;
+    status: string;
+  } | null>(null);
   const [selected, setSelected] = useState<{
     invitation: TeamInvitations['data'][number];
     revision: string;
@@ -156,6 +172,13 @@ export default function Index({
   const [revoking, setRevoking] = useState(false);
   const [revokeUncertain, setRevokeUncertain] = useState(false);
   const [revokeMessage, setRevokeMessage] = useState('');
+  const invitationTime = useInvitationTime(
+    invitations.as_of,
+    invitations.data.length > 0 || selected !== null,
+  );
+  const selectedExpiry = selected
+    ? invitationExpiry(selected.invitation.expires_at, invitationTime)
+    : null;
   const go = (page: number) => {
     setLoading(true);
     setFailedPage(null);
@@ -165,7 +188,13 @@ export default function Index({
     };
     router.get(
       '/team',
-      { page, invitation_page: invitations.current_page, role: roleFilter, brand: brandFilter },
+      {
+        page,
+        invitation_page: invitations.current_page,
+        role: roleFilter,
+        brand: brandFilter,
+        status: statusFilter,
+      },
       {
         preserveState: true,
         preserveScroll: true,
@@ -185,7 +214,13 @@ export default function Index({
     };
     router.get(
       '/team',
-      { page: members.current_page, invitation_page: page, role: roleFilter, brand: brandFilter },
+      {
+        page: members.current_page,
+        invitation_page: page,
+        role: roleFilter,
+        brand: brandFilter,
+        status: statusFilter,
+      },
       {
         preserveState: true,
         preserveScroll: true,
@@ -196,19 +231,19 @@ export default function Index({
       },
     );
   };
-  const changeFilters = (role: string, brand: string) => {
+  const changeFilters = (role: string, brand: string, status: string) => {
     setLoading(true);
     setInvitationLoading(true);
     setFailedFilters(null);
     setFailedPage(null);
     setFailedInvitationPage(null);
     const failed = () => {
-      setFailedFilters({ role, brand });
+      setFailedFilters({ role, brand, status });
       return false;
     };
     router.get(
       '/team',
-      { role, brand, page: 1, invitation_page: 1 },
+      { role, brand, status, page: 1, invitation_page: 1 },
       {
         preserveState: true,
         preserveScroll: true,
@@ -223,7 +258,7 @@ export default function Index({
     );
   };
   const revoke = () => {
-    if (!selected || revoking || revokeUncertain) return;
+    if (!selected || selectedExpiry?.state !== 'active' || revoking || revokeUncertain) return;
     setRevoking(true);
     setRevokeMessage('');
     const uncertain = () => {
@@ -275,7 +310,7 @@ export default function Index({
             </span>
             <Select.Root
               value={roleFilter}
-              onValueChange={(role) => changeFilters(role, brandFilter)}
+              onValueChange={(role) => changeFilters(role, brandFilter, statusFilter)}
               disabled={loading || invitationLoading}
             >
               <Select.Trigger
@@ -324,7 +359,7 @@ export default function Index({
             </span>
             <Select.Root
               value={brandFilter}
-              onValueChange={(brand) => changeFilters(roleFilter, brand)}
+              onValueChange={(brand) => changeFilters(roleFilter, brand, statusFilter)}
               disabled={loading || invitationLoading}
             >
               <Select.Trigger
@@ -360,12 +395,61 @@ export default function Index({
               </Select.Portal>
             </Select.Root>
           </div>
+          <div className="flex max-w-full items-center gap-3">
+            <span id="team-status-label" className="text-sm font-semibold">
+              Статус
+            </span>
+            <Select.Root
+              value={statusFilter}
+              onValueChange={(status) => changeFilters(roleFilter, brandFilter, status)}
+              disabled={loading || invitationLoading}
+            >
+              <Select.Trigger
+                aria-labelledby="team-status-label"
+                className={`flex min-h-11 min-w-44 max-w-full cursor-pointer items-center justify-between gap-3 rounded-lg border border-(--color-border) bg-(--color-surface) px-3 text-sm disabled:cursor-wait ${focus}`}
+              >
+                <Select.Value />
+                <Select.Icon>
+                  <ChevronDown size={16} />
+                </Select.Icon>
+              </Select.Trigger>
+              <Select.Portal>
+                <Select.Content
+                  position="popper"
+                  sideOffset={6}
+                  className="z-50 min-w-[var(--radix-select-trigger-width)] max-w-[calc(100vw-32px)] rounded-xl border border-(--color-border) bg-(--color-surface) p-1.5 shadow-xl"
+                >
+                  <Select.Viewport>
+                    {[
+                      ['all', 'Все статусы'],
+                      ['active', 'Активные'],
+                      ['disabled', 'Отключённые'],
+                      ['invited', 'Приглашённые'],
+                    ].map(([value, label]) => (
+                      <Select.Item
+                        key={value}
+                        value={value}
+                        className="relative flex min-h-11 cursor-pointer items-center rounded-lg px-3 pr-9 text-sm outline-none data-[highlighted]:bg-(--color-surface-muted)"
+                      >
+                        <Select.ItemText>{label}</Select.ItemText>
+                        <Select.ItemIndicator className="absolute right-3">
+                          <Check size={16} />
+                        </Select.ItemIndicator>
+                      </Select.Item>
+                    ))}
+                  </Select.Viewport>
+                </Select.Content>
+              </Select.Portal>
+            </Select.Root>
+          </div>
           {failedFilters !== null && (
             <p role="alert" className="text-sm text-(--color-danger-ink)">
               Не удалось применить фильтр.{' '}
               <button
                 type="button"
-                onClick={() => changeFilters(failedFilters.role, failedFilters.brand)}
+                onClick={() =>
+                  changeFilters(failedFilters.role, failedFilters.brand, failedFilters.status)
+                }
                 className={`cursor-pointer font-semibold underline ${focus}`}
               >
                 Повторить
@@ -407,6 +491,21 @@ export default function Index({
               Загружаем участников…
             </p>
           )}
+          {lastLogins.status === 'unavailable' && members.data.length > 0 && (
+            <div
+              role="status"
+              className="mb-4 rounded-xl bg-(--color-warning-soft) p-4 text-sm text-(--color-warning-ink)"
+            >
+              Не удалось загрузить время последнего входа.{' '}
+              <button
+                type="button"
+                onClick={lastLogins.retry}
+                className={`cursor-pointer font-semibold underline ${focus}`}
+              >
+                Повторить
+              </button>
+            </div>
+          )}
           {members.data.length === 0 ? (
             <div
               role="status"
@@ -419,7 +518,7 @@ export default function Index({
               />
               <p className="font-semibold">
                 {members.total === 0
-                  ? brandFilter !== 'all'
+                  ? brandFilter !== 'all' || statusFilter !== 'all'
                     ? 'Участников по выбранным фильтрам нет'
                     : roleFilter === 'all'
                       ? 'Участников пока нет'
@@ -428,8 +527,8 @@ export default function Index({
               </p>
               <p className="mt-2 text-sm text-(--color-ink-muted)">
                 {members.total === 0
-                  ? brandFilter !== 'all'
-                    ? 'Измените роль или бренд, чтобы увидеть другие результаты.'
+                  ? brandFilter !== 'all' || statusFilter !== 'all'
+                    ? 'Измените роль, бренд или статус, чтобы увидеть другие результаты.'
                     : roleFilter === 'all'
                       ? 'Данные появятся после добавления участников компании.'
                       : 'Выберите другую роль или покажите все роли.'
@@ -459,6 +558,9 @@ export default function Index({
                       <th scope="col" className="px-4 py-3">
                         Статус
                       </th>
+                      <th scope="col" className="px-4 py-3">
+                        Последний вход
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -473,6 +575,12 @@ export default function Index({
                         </td>
                         <td className="px-4 py-4">
                           <Status value={member.status} />
+                        </td>
+                        <td className="px-4 py-4">
+                          <LastLogin
+                            status={lastLogins.status}
+                            value={lastLogins.values[member.id]}
+                          />
                         </td>
                       </tr>
                     ))}
@@ -501,6 +609,15 @@ export default function Index({
                         <dt className="text-(--color-ink-muted)">Статус</dt>
                         <dd className="mt-1">
                           <Status value={member.status} />
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-(--color-ink-muted)">Последний вход</dt>
+                        <dd className="mt-1">
+                          <LastLogin
+                            status={lastLogins.status}
+                            value={lastLogins.values[member.id]}
+                          />
                         </dd>
                       </div>
                     </dl>
@@ -551,8 +668,9 @@ export default function Index({
                 Приглашения в ожидании
               </h2>
               <p className="mt-1 text-sm text-(--color-ink-muted)">
-                Показаны не принятые, не отозванные и не истёкшие по сроку приглашения. Открытую
-                ссылку нельзя открыть повторно; статус открытия не подтверждает доставку письма.
+                При загрузке показаны не принятые, не отозванные и не истёкшие приглашения. После
+                истечения обновите страницу. Открытую ссылку нельзя открыть повторно; статус
+                открытия не подтверждает доставку письма.
               </p>
             </div>
             <span className="text-sm text-(--color-ink-muted)">
@@ -601,7 +719,7 @@ export default function Index({
               className="rounded-xl bg-(--color-surface-muted) px-4 py-8 text-center text-sm"
             >
               {invitations.total === 0
-                ? brandFilter !== 'all'
+                ? brandFilter !== 'all' || statusFilter !== 'all'
                   ? 'Приглашений по выбранным фильтрам нет'
                   : roleFilter === 'all'
                     ? 'Приглашений в ожидании нет'
@@ -610,70 +728,84 @@ export default function Index({
             </div>
           ) : (
             <ul className="space-y-3">
-              {invitations.data.map((invitation) => (
-                <li
-                  key={invitation.id}
-                  className="rounded-xl border border-(--color-border) p-4 text-sm"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <p className="min-w-0 break-all font-semibold">{invitation.email}</p>
-                    <div className="flex flex-wrap items-center gap-3">
-                      <span className="rounded-full bg-(--color-surface-muted) px-3 py-1 text-(--color-ink-muted)">
-                        {invitation.opened ? 'Ссылка открыта' : 'Ссылка не открыта'}
-                      </span>
-                      {invitation.can_revoke && (
-                        <button
-                          type="button"
-                          disabled={revoking || revokeUncertain || loading || invitationLoading}
-                          onClick={() => {
-                            setSelected({ invitation, revision: teamBrandRevision });
-                            setRevokeMessage('');
-                          }}
-                          className={button}
-                        >
-                          Отозвать
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  <dl className="mt-3 grid gap-3 sm:grid-cols-3">
-                    <div>
-                      <dt className="text-(--color-ink-muted)">Роль</dt>
-                      <dd className="mt-1">{invitation.role_label || 'Роль не определена'}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-(--color-ink-muted)">Доступные бренды</dt>
-                      <dd className="mt-1">
-                        {invitation.brands.length ? (
-                          <ul className="flex flex-wrap gap-2">
-                            {invitation.brands.map((brand) => (
-                              <li
-                                key={brand.id}
-                                className="max-w-full break-words rounded-full bg-(--color-success-soft) px-3 py-1 text-(--color-success-ink)"
-                              >
-                                {brand.name}
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          'Нет общих доступных брендов'
+              {invitations.data.map((invitation) => {
+                const expiry = invitationExpiry(invitation.expires_at, invitationTime);
+                return (
+                  <li
+                    key={invitation.id}
+                    className="rounded-xl border border-(--color-border) p-4 text-sm"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <p className="min-w-0 break-all font-semibold">{invitation.email}</p>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <span className="rounded-full bg-(--color-surface-muted) px-3 py-1 text-(--color-ink-muted)">
+                          {invitation.opened ? 'Ссылка открыта' : 'Ссылка не открыта'}
+                        </span>
+                        {invitation.can_revoke && (
+                          <button
+                            type="button"
+                            disabled={
+                              expiry.state !== 'active' ||
+                              revoking ||
+                              revokeUncertain ||
+                              loading ||
+                              invitationLoading
+                            }
+                            onClick={() => {
+                              setSelected({ invitation, revision: teamBrandRevision });
+                              setRevokeMessage('');
+                            }}
+                            className={button}
+                          >
+                            Отозвать
+                          </button>
                         )}
-                      </dd>
+                      </div>
                     </div>
-                    <div>
-                      <dt className="text-(--color-ink-muted)">Срок истечения</dt>
-                      <dd className="mt-1">
-                        <time dateTime={invitation.expires_at}>
-                          {new Intl.DateTimeFormat('ru-RU', {
-                            dateStyle: 'medium',
-                            timeStyle: 'short',
-                          }).format(new Date(invitation.expires_at))}
-                        </time>
-                      </dd>
-                    </div>
-                  </dl>
-                </li>
-              ))}
+                    <dl className="mt-3 grid gap-3 sm:grid-cols-3">
+                      <div>
+                        <dt className="text-(--color-ink-muted)">Роль</dt>
+                        <dd className="mt-1">{invitation.role_label || 'Роль не определена'}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-(--color-ink-muted)">Доступные бренды</dt>
+                        <dd className="mt-1">
+                          {invitation.brands.length ? (
+                            <ul className="flex flex-wrap gap-2">
+                              {invitation.brands.map((brand) => (
+                                <li
+                                  key={brand.id}
+                                  className="max-w-full break-words rounded-full bg-(--color-success-soft) px-3 py-1 text-(--color-success-ink)"
+                                >
+                                  {brand.name}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            'Нет общих доступных брендов'
+                          )}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-(--color-ink-muted)">Срок истечения</dt>
+                        <dd className="mt-1">
+                          {Number.isFinite(Date.parse(invitation.expires_at)) && (
+                            <time dateTime={invitation.expires_at}>
+                              {new Intl.DateTimeFormat('ru-RU', {
+                                dateStyle: 'medium',
+                                timeStyle: 'short',
+                              }).format(new Date(invitation.expires_at))}
+                            </time>
+                          )}
+                          <p className="mt-1 text-(--color-ink-muted)" aria-live="polite">
+                            {expiry.label}
+                          </p>
+                        </dd>
+                      </div>
+                    </dl>
+                  </li>
+                );
+              })}
             </ul>
           )}
           {invitations.last_page > 1 && (
@@ -727,6 +859,13 @@ export default function Index({
             {revokeMessage}
           </p>
         )}
+        {selected && selectedExpiry?.state !== 'active' && (
+          <p role="alert" className="mt-4 text-sm text-(--color-danger-ink)">
+            {selectedExpiry?.state === 'expired'
+              ? 'Срок действия приглашения истёк. Обновите страницу.'
+              : 'Не удалось проверить срок приглашения. Обновите страницу.'}
+          </p>
+        )}
         <div className="mt-5 flex flex-wrap justify-end gap-2">
           <button
             type="button"
@@ -738,7 +877,7 @@ export default function Index({
           </button>
           <button
             type="button"
-            disabled={revoking || revokeUncertain}
+            disabled={selectedExpiry?.state !== 'active' || revoking || revokeUncertain}
             onClick={revoke}
             className={button}
           >

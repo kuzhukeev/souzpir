@@ -28,7 +28,7 @@ it('показывает контакты и фактический доступ
     status: 'disabled',
     brands: [{ id: 'a', name: 'Разрешённый бренд' }],
   };
-  render(<Show member={member} />);
+  render(<Show member={member} activityUrl="/journal?actor=user-id" />);
   expect(screen.getByRole('heading', { name: 'Анна' })).toBeTruthy();
   expect(screen.getByText('Отключён')).toBeTruthy();
   expect(
@@ -36,11 +36,21 @@ it('показывает контакты и фактический доступ
   ).toBeTruthy();
   expect(screen.getByText('+7 999 123-45-67')).toBeTruthy();
   expect(screen.queryByRole('button', { name: /сохранить|отключить|пригласить/i })).toBeNull();
+  const activity = screen.getByRole('region', { name: 'Активность' });
+  expect(
+    within(activity)
+      .getByRole('link', { name: 'Посмотреть активность участника' })
+      .getAttribute('href'),
+  ).toBe('/journal?actor=user-id');
+  expect(
+    within(activity).getByText(/только текущего бренда и общие действия организации/),
+  ).toBeTruthy();
 });
 
 it('не выдумывает отсутствующие контакт, роль и бренды', () => {
   render(
     <Show
+      activityUrl={null}
       member={{
         id: 'id',
         name: null,
@@ -58,4 +68,5 @@ it('не выдумывает отсутствующие контакт, рол�
   expect(screen.getByText('Роль не определена')).toBeTruthy();
   expect(screen.getByText('Нет общих доступных брендов')).toBeTruthy();
   expect(screen.getByText('Не указан')).toBeTruthy();
+  expect(screen.queryByRole('link', { name: 'Посмотреть активность участника' })).toBeNull();
 });

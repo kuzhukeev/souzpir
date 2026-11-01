@@ -42,7 +42,8 @@ final class TeamInvitationsTest extends TenancyTestCase
         $this->invite($foreignOrganization, $foreignOwner, 'foreign@example.test', [$foreignBrand->id]);
 
         $response = $this->actingAs($viewer)->withSession(['brand_id' => $first->id])->get('/team');
-        $response->assertOk()->assertInertia(fn (Assert $page) => $page->has('invitations.data', 2)->where('invitations.total', 2));
+        $response->assertOk()->assertInertia(fn (Assert $page) => $page->has('invitations.data', 2)->where('invitations.total', 2)
+            ->where('invitations.as_of', now()->toISOString()));
         $rows = collect($response->inertiaProps('invitations.data'))->keyBy('email');
         $this->assertTrue($rows['both@example.test']['opened']);
         $this->assertFalse($rows['admin@example.test']['opened']);
@@ -78,5 +79,34 @@ final class TeamInvitationsTest extends TenancyTestCase
             ->has('invitations.data', 0)->where('invitations.total', 27));
         $this->get('/team?invitation_page=0')->assertNotFound();
         $this->get('/team?invitation_page=bad')->assertNotFound();
+    }
+
+    public function test_server_snapshot_and_filters_exclude_the_exact_expiry_boundary(): void
+    {
+        $this->freezeSecond();
+        [$owner, $organization, $first, $second] = $this->cabinet();
+        $boundary = $this->invite($organization, $owner, 'boundary@example.test', [$first->id], 'viewer');
+        $future = $this->invite($organization, $owner, 'future@example.test', [$first->id], 'viewer');
+        $this->invite($organization, $owner, 'other-brand@example.test', [$second->id], 'viewer');
+        $this->invite($organization, $owner, 'other-role@example.test', [$first->id], 'member');
+        [$foreignOwner, $foreignOrganization, $foreignBrand] = $this->cabinet(false);
+        $this->invite($foreignOrganization, $foreignOwner, 'foreign@example.test', [$foreignBrand->id], 'viewer');
+        DB::table('invitations')->where('id', $boundary->id)->update(['expires_at' => now()]);
+        DB::table('invitations')->where('id', $future->id)->update(['expires_at' => now()->addSecond()]);
+
+        $this->actingAs($owner)->withSession(['brand_id' => $first->id]);
+        $url = '/team?role=viewer&brand='.$first->id.'&status=invited';
+        $response = $this->get($url)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('invitations.as_of', now()->toISOString())
+            ->where('invitations.total', 1)->where('invitations.data.0.email', 'future@example.test'));
+        foreach (['boundary@example.test', 'other-brand@example.test', 'other-role@example.test', 'foreign@example.test'] as $hidden) {
+            $this->assertStringNotContainsString($hidden, json_encode($response->inertiaProps(), JSON_THROW_ON_ERROR));
+        }
+
+        $this->travel(1)->seconds();
+        $this->get($url)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('invitations.as_of', now()->toISOString())->where('invitations.total', 0));
+        Mail::assertNothingSent();
+        Http::assertNothingSent();
     }
 }

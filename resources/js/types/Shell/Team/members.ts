@@ -18,6 +18,7 @@ export type TeamPage = {
 export type TeamMemberDetail = TeamMember & { phone: string | null };
 
 export type TeamInvitations = {
+  as_of: string;
   data: {
     id: string;
     email: string;

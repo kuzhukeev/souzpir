@@ -2,6 +2,7 @@
 
 namespace App\Shell\Integrations;
 
+use App\Privacy\VerifiedHttps;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\IpUtils;
 use Throwable;
@@ -15,7 +16,8 @@ final class SecretTransport
     {
         // Do not use isSecure(): Laravel can infer proxy trust from an attacker-controlled Host.
         $nativeTls = $request->server('HTTPS');
-        if (is_string($nativeTls) && in_array(strtolower(trim($nativeTls)), ['on', '1'], true)) {
+        if (! VerifiedHttps::hasForwardingHeaders($request)
+            && is_string($nativeTls) && in_array(strtolower(trim($nativeTls)), ['on', '1'], true)) {
             return true;
         }
 
@@ -36,12 +38,8 @@ final class SecretTransport
         if (! app()->environment('local', 'testing')) {
             return false;
         }
-        foreach (['Forwarded', 'X-Forwarded-For', 'X-Forwarded-Host', 'X-Forwarded-Proto', 'X-Real-IP', 'CF-Connecting-IP'] as $header) {
-            // TrustProxies can remove X-Forwarded-Host; preserve evidence from server variables.
-            $serverKey = 'HTTP_'.strtoupper(str_replace('-', '_', $header));
-            if ($request->headers->has($header) || $request->server->has($serverKey)) {
-                return false;
-            }
+        if (VerifiedHttps::hasForwardingHeaders($request)) {
+            return false;
         }
 
         return self::loopback($request->server->get('REMOTE_ADDR'))

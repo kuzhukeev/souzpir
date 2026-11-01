@@ -13,7 +13,6 @@ use App\Tenancy\TenantContextRunner;
 use App\Vision\SiteAudit\Knowledge\SiteDraftStore;
 use App\Vision\SiteAudit\Knowledge\SiteKnowledgeImporter;
 use App\Vision\SiteAudit\PublicAddressResolver;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
@@ -21,11 +20,12 @@ use Illuminate\Support\Str;
 use InvalidArgumentException;
 use LogicException;
 use RuntimeException;
+use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\TestCase;
 
 final class SiteKnowledgeImporterTest extends TestCase
 {
-    use DatabaseMigrations;
+    use IsolatedDatabaseMigrations;
 
     private string $home;
 

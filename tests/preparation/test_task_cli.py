@@ -146,6 +146,31 @@ class TaskCliTests(unittest.TestCase):
         task_cli.git(worktree, 'merge', '--no-ff', 'main', '-m', 'Bring approved dependency')
         self.assertEqual(self.client.submit('SP-001', 'Changes', ['Tests passed'])['status'], 'review')
 
+    def test_submit_allows_fast_forwarded_main_before_task_commit(self):
+        worktree, _ = self.claim()
+        self.commit(self.root, 'app/Common/dependency.php')
+        task_cli.git(worktree, 'merge', '--ff-only', 'main')
+        self.commit(worktree)
+        self.assertEqual(self.client.submit('SP-001', 'Changes', ['Tests passed'])['status'], 'review')
+
+    def test_submit_rejects_modified_outside_scope_after_fast_forward(self):
+        worktree, _ = self.claim()
+        self.commit(self.root, 'app/Common/dependency.php')
+        task_cli.git(worktree, 'merge', '--ff-only', 'main')
+        (worktree / 'app/Common/dependency.php').write_text('unauthorized\n', encoding='utf-8')
+        task_cli.git(worktree, 'add', 'app/Common/dependency.php')
+        task_cli.git(worktree, 'commit', '-m', 'Unauthorized modification')
+        with self.assertRaisesRegex(task_cli.TaskError, 'outside task ownership'):
+            self.client.submit('SP-001', 'Changes', ['Tests passed'])
+
+    def test_submit_rejects_copy_of_main_file_without_its_ancestry(self):
+        worktree, _ = self.claim()
+        self.commit(self.root, 'app/Common/dependency.php')
+        task_cli.git(worktree, 'checkout', 'main', '--', 'app/Common/dependency.php')
+        task_cli.git(worktree, 'commit', '-m', 'Copy unmerged file')
+        with self.assertRaisesRegex(task_cli.TaskError, 'outside task ownership'):
+            self.client.submit('SP-001', 'Changes', ['Tests passed'])
+
     def test_submit_rejects_outside_scope_modified_after_main_merge(self):
         worktree, _ = self.claim()
         self.commit(worktree)

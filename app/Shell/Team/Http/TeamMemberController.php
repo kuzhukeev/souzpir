@@ -5,6 +5,7 @@ namespace App\Shell\Team\Http;
 use App\Models\Membership;
 use App\Shell\Team\TeamMemberProjection;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -19,6 +20,10 @@ final class TeamMemberController
         $data = TeamMemberProjection::forCurrentActor()->project($member);
         $data['phone'] = $member->user?->phone;
 
-        return Inertia::render('Shell/Team/Show', ['member' => $data]);
+        $activityUrl = Gate::allows('journal.read') && Route::has('journal.index')
+            ? route('journal.index', ['actor' => $member->user_id], false)
+            : null;
+
+        return Inertia::render('Shell/Team/Show', ['member' => $data, 'activityUrl' => $activityUrl]);
     }
 }

@@ -162,3 +162,59 @@ test('наблюдатель видит только доступный брен
   await expect(page.getByRole('option', { name: 'Пиротехника — Северные огни' })).toBeVisible();
   await expect(page.getByRole('option', { name: 'Фейерверки — Второй бренд' })).toHaveCount(0);
 });
+
+test('статус фильтрует участников и приглашения вместе с ролью и брендом', async ({ page }) => {
+  await page.goto(`${origin}/login`);
+  await page.getByLabel('Рабочая почта').fill('team-e106-owner@example.test');
+  await page.getByLabel('Пароль', { exact: true }).fill('test-only-password-123');
+  await page.getByRole('button', { name: 'Войти', exact: true }).click();
+  await expect(page).toHaveURL(/auth\/ready/);
+  await page.goto(`${origin}/team?page=2&invitation_page=2`);
+  const roles = page.getByRole('combobox', { name: 'Роль', exact: true });
+  const brands = page.getByRole('combobox', { name: 'Бренд', exact: true });
+  const status = page.getByRole('combobox', { name: 'Статус', exact: true });
+  await roles.click();
+  await page.getByRole('option', { name: 'Наблюдатель' }).click();
+  await brands.click();
+  await page.getByRole('option', { name: 'Пиротехника — Северные огни' }).click();
+  await expect(brands).toContainText('Пиротехника — Северные огни');
+  await expect(status).toBeEnabled();
+  await page.route(
+    (url) => url.pathname === '/team' && url.searchParams.get('status') === 'disabled',
+    (route) => route.abort('failed'),
+    { times: 1 },
+  );
+  await status.focus();
+  await page.keyboard.press('ArrowDown');
+  await page.getByRole('option', { name: 'Отключённые' }).click();
+  await expect(page.getByRole('alert')).toContainText('Не удалось применить фильтр');
+  await page.getByRole('button', { name: 'Повторить' }).click();
+  await expect(status).toContainText('Отключённые');
+  await expect(page.getByText('Тестовый отключённый').first()).toBeVisible();
+  await expect(page.getByText('Тестовый наблюдатель')).toHaveCount(0);
+  await expect(page.getByText('team-e106-invite@example.test')).toHaveCount(0);
+  expect(new URL(page.url()).searchParams.get('page')).toBe('1');
+  expect(new URL(page.url()).searchParams.get('invitation_page')).toBe('1');
+  expect(new URL(page.url()).searchParams.get('status')).toBe('disabled');
+  await expect(roles).toContainText('Наблюдатель');
+  await expect(brands).toContainText('Пиротехника — Северные огни');
+  await status.click();
+  await page.getByRole('option', { name: 'Приглашённые' }).click();
+  await expect(page.getByText('Участников по выбранным фильтрам нет')).toBeVisible();
+  await expect(page.getByText('team-e106-invite@example.test')).toBeVisible();
+  for (const width of [1440, 1024, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+    ).toBeTruthy();
+    await page.screenshot({
+      path: `.local/screenshots/e1-06/status-filter-real-${width}.png`,
+      fullPage: true,
+    });
+  }
+  await status.click();
+  await page.getByRole('option', { name: 'Активные' }).click();
+  await expect(page.locator('article').getByText('Тестовый наблюдатель')).toBeVisible();
+  await expect(page.getByText('Тестовый отключённый')).toHaveCount(0);
+  await expect(page.getByText('team-e106-invite@example.test')).toHaveCount(0);
+});

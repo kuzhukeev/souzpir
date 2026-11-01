@@ -77,6 +77,86 @@ test('реальные сохранённые замеры текущего бр
   expect(violations).toEqual([]);
 });
 
+test('при переходе страницы показывает загрузку и скрывает прежние строки', async ({ page }) => {
+  let captured!: () => void;
+  let release!: () => void;
+  const arrived = new Promise<void>((resolve) => {
+    captured = resolve;
+  });
+  const delayed = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route('**/vision/runs/data?page=2', async (route) => {
+    const result = await route.fetch();
+    captured();
+    await delayed;
+    await route.fulfill({ response: result }).catch(() => undefined);
+  });
+  await page.goto(`${origin}/vision/runs`);
+  await expect(page.getByText(alpha).first()).toBeVisible();
+  await page.getByRole('button', { name: 'Вперёд' }).focus();
+  await page.keyboard.press('Enter');
+  await arrived;
+  try {
+    const section = page.locator('section[aria-labelledby="measurements-title"]');
+    await expect(section).toHaveAttribute('aria-busy', 'true');
+    await expect(page.getByRole('heading', { name: 'История замеров' })).toBeFocused();
+    await expect(section.getByRole('status')).toHaveText('Загружаем замеры…');
+    const skeleton = section.getByRole('status').locator('[aria-hidden="true"]');
+    await expect(skeleton).toHaveCount(1);
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    expect(await skeleton.evaluate((element) => getComputedStyle(element).animationName)).not.toBe(
+      'none',
+    );
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    expect(await skeleton.evaluate((element) => getComputedStyle(element).animationName)).toBe(
+      'none',
+    );
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await expect(page.getByText(alpha)).toHaveCount(0);
+    for (const width of [1440, 1024, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      for (const theme of ['neutral', 'confectionery', 'pyro']) {
+        await page.evaluate((value) => {
+          document.documentElement.dataset.theme = value;
+        }, theme);
+        await expect(section.getByRole('status')).toBeVisible();
+        expect(
+          await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+        ).toBeTruthy();
+        await page.screenshot({
+          path: `.local/screenshots/e8-04/loading-${theme}-${width}.png`,
+          fullPage: true,
+        });
+      }
+    }
+    await page.addScriptTag({ path: 'node_modules/axe-core/axe.min.js' });
+    const violations = await page.evaluate(
+      async () =>
+        (
+          await (
+            window as unknown as {
+              axe: {
+                run: (
+                  selector: string,
+                  options: object,
+                ) => Promise<{ violations: { id: string }[] }>;
+              };
+            }
+          ).axe.run('section[aria-labelledby="measurements-title"]', {
+            runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] },
+          })
+        ).violations,
+    );
+    expect(violations).toEqual([]);
+  } finally {
+    release();
+  }
+  await expect(page.getByText('1 окт. 2026 г., 12:30').last()).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'История замеров' })).toBeFocused();
+  await expect(page.getByText(alpha)).toHaveCount(0);
+});
+
 test('задержанный ответ скрывается после переключения бренда в другой вкладке', async ({
   page,
   context,
@@ -123,6 +203,9 @@ test('ошибка чтения не показывает старые данн�
   await expect(page.getByRole('alert')).toContainText('Не удалось загрузить замеры');
   await expect(page.getByText(alpha)).toHaveCount(0);
   await page.unroute(path);
-  await page.getByRole('button', { name: 'Повторить' }).click();
+  await page.getByRole('button', { name: 'Повторить' }).focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('heading', { name: 'История замеров' })).toBeFocused();
   await expect(page.getByText(alpha).first()).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'История замеров' })).toBeFocused();
 });

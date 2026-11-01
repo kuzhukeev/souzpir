@@ -3,22 +3,27 @@ declare module 'ziggy-js' {
   interface RouteList {
     "home": [],
     "preview.foundation": [],
+    "seller.turns.pending": [],
+    "seller.turns.pending.show": [
+        {
+            "name": "turn",
+            "required": true
+        }
+    ],
     "api.v1.brand.show": [],
     "brand.switch": [],
     "notifications.settings.update": [],
     "ai.recovery.calls.index": [],
+    "billing.ai-recovery": [],
     "login": [],
     "login.store": [],
     "register": [],
     "register.store": [],
     "password.request": [],
     "password.email": [],
-    "password.reset": [
-        {
-            "name": "token",
-            "required": true
-        }
-    ],
+    "password.open": [],
+    "password.exchange": [],
+    "password.reset": [],
     "password.store": [],
     "mfa.challenge": [],
     "mfa.challenge.store": [],
@@ -164,6 +169,8 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "team.invitations.issue": [],
+    "team.member-last-logins": [],
     "billing.overview": [],
     "billing.usage": [],
     "billing.plans": [],

@@ -48,15 +48,24 @@ def scope_allows(path: str, scope: list[str]) -> bool:
 
 
 def unapproved_changes(worktree: Path, base: str, head: str, scope: list[str]) -> list[str]:
-    """Permit upstream merge content only if it is already an ancestor of main."""
+    """Permit unchanged upstream content only with verified main ancestry."""
     changed = git(worktree, "diff", "--name-only", "-z", "--no-renames", base, head).split("\0")
     outside = [path for path in changed if path and not scope_allows(path, scope)]
     if not outside:
         return []
+    # A clean task may fast-forward to main before its first commit; in that
+    # case there is no merge commit to inspect. Its common ancestor must still
+    # descend from the claimed base and its final file contents must match.
     # An explicitly merged parent is reviewed upstream only when it is in main.
     # Matching tree entries are compared at final HEAD, so later unauthorized
     # edits to those same files are rejected. Non-merged branches never qualify.
     approved = []
+    try:
+        common = git(worktree, "merge-base", head, "refs/heads/main")
+        git(worktree, "merge-base", "--is-ancestor", base, common)
+        approved.append(common)
+    except TaskError:
+        pass
     merges = git(worktree, "rev-list", "--first-parent", "--merges", base + ".." + head).splitlines()
     for merge in merges:
         parents = git(worktree, "rev-list", "--parents", "-n", "1", merge).split()[2:]

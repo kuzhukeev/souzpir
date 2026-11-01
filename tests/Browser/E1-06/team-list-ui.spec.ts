@@ -8,11 +8,22 @@ test.use({
     : {},
 });
 test.beforeEach(async ({ page }) => {
-  await page.route('**/*', (route) =>
-    new URL(route.request().url()).origin === origin
-      ? route.continue()
-      : route.abort('blockedbyclient'),
-  );
+  await page.route('**/*', (route) => {
+    const url = new URL(route.request().url());
+    if (url.origin !== origin) return route.abort('blockedbyclient');
+    if (url.pathname === '/team/member-last-logins')
+      return route.fulfill({
+        json: {
+          revision: 'a'.repeat(64),
+          available: true,
+          members: [
+            { id: '01J00000000000000000000001', lastLoginAt: '2026-11-01T09:34:00.000000Z' },
+            { id: '01J00000000000000000000002', lastLoginAt: null },
+          ],
+        },
+      });
+    return route.continue();
+  });
 });
 
 for (const width of [1440, 1024, 390]) {
@@ -35,11 +46,20 @@ for (const width of [1440, 1024, 390]) {
       ).toBeVisible();
       await page.keyboard.press('Escape');
       await expect(brandFilter).toBeFocused();
+      const status = page.getByRole('combobox', { name: 'Статус', exact: true });
+      await expect(status).toContainText('Все статусы');
+      await status.focus();
+      await page.keyboard.press('ArrowDown');
+      await expect(page.getByRole('option', { name: 'Приглашённые' })).toBeVisible();
+      await page.keyboard.press('Escape');
+      await expect(status).toBeFocused();
       const listing =
         width < 768
           ? page.locator('article')
           : page.getByRole('region', { name: 'Таблица участников' });
       await expect(listing.getByText('Иван Петров', { exact: true })).toBeVisible();
+      await expect(listing.getByText(/12:34/)).toBeVisible();
+      await expect(listing.getByText('Нет данных', { exact: true })).toBeVisible();
       await expect(listing.getByText('Нет общих доступных брендов')).toBeVisible();
       const invites = page.getByRole('region', { name: 'Приглашения в ожидании' });
       await expect(invites.getByText('invite@example.test')).toBeVisible();

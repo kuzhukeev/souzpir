@@ -1,6 +1,6 @@
-import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { afterEach, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import Index from '@/pages/Shell/Team/Index';
 import type { TeamPage } from '@/types/Shell/Team/members';
 
@@ -13,13 +13,50 @@ vi.mock('@inertiajs/react', () => ({
     </a>
   ),
   router: { get: calls.get, post: calls.post },
+  usePage: () => ({ props: { brand: { id: '01J00000000000000000000003' } } }),
 }));
 vi.mock('@/layouts/CabinetLayout', () => ({
   default: ({ children }: { children: ReactNode }) => <main>{children}</main>,
 }));
+const brandId = '01J00000000000000000000003';
+const firstId = '01J00000000000000000000001';
+const secondId = '01J00000000000000000000002';
+const revision = 'a'.repeat(64);
+const nextRevision = 'b'.repeat(64);
+
+beforeEach(() => {
+  localStorage.clear();
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (input: string, init: RequestInit) => {
+      const url = new URL(input, 'http://localhost');
+      const headers = init.headers as Record<string, string>;
+      if (
+        url.pathname !== '/team/member-last-logins' ||
+        headers['X-Brand-Id'] !== brandId ||
+        !/^[a-f0-9]{64}$/.test(headers['X-Brand-Revision'])
+      )
+        throw new Error('Unexpected request');
+      return {
+        ok: true,
+        redirected: false,
+        json: async () => ({
+          revision: headers['X-Brand-Revision'],
+          available: true,
+          members: url.searchParams.getAll('ids[]').map((id) => ({
+            id,
+            lastLoginAt: id === firstId ? '2026-11-01T09:34:00.000000Z' : null,
+          })),
+        }),
+      };
+    }),
+  );
+});
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  vi.unstubAllGlobals();
+  localStorage.clear();
 });
 
 const members: TeamPage = {
@@ -28,16 +65,16 @@ const members: TeamPage = {
   total: 2,
   data: [
     {
-      id: 'one',
+      id: firstId,
       name: 'Иван Петров',
       email: 'ivan@example.test',
       role: 'owner',
       role_label: 'Владелец',
       status: 'active',
-      brands: [{ id: 'a', name: 'Длинное название разрешённого бренда' }],
+      brands: [{ id: brandId, name: 'Длинное название разрешённого бренда' }],
     },
     {
-      id: 'two',
+      id: secondId,
       name: 'Анна Иванова',
       email: 'anna@example.test',
       role: 'manager',
@@ -47,12 +84,80 @@ const members: TeamPage = {
     },
   ],
 };
-const emptyInvitations = { data: [], current_page: 1, last_page: 1, total: 0 };
+const emptyInvitations = {
+  as_of: '2026-11-01T12:00:00.000Z',
+  data: [],
+  current_page: 1,
+  last_page: 1,
+  total: 0,
+};
+
+it('загружает последние входы показанных участников с текущим брендом и ревизией', async () => {
+  render(
+    <Index
+      teamBrandRevision={revision}
+      members={members}
+      canViewRoles
+      invitations={emptyInvitations}
+    />,
+  );
+  const table = screen.getByRole('region', { name: 'Таблица участников' });
+  await waitFor(() => expect(within(table).getByText(/12:34/)).toBeTruthy());
+  expect(within(table).getByText('Нет данных')).toBeTruthy();
+  expect(fetch).toHaveBeenCalledTimes(2);
+  const [url, options] = vi.mocked(fetch).mock.calls[0];
+  const query = new URL(String(url), 'http://localhost');
+  expect(query.pathname).toBe('/team/member-last-logins');
+  expect(query.searchParams.getAll('ids[]')).toEqual([firstId, secondId]);
+  expect(options?.headers).toMatchObject({ 'X-Brand-Id': brandId, 'X-Brand-Revision': revision });
+});
+
+it('не предлагает отзыв при недоступном сроке или серверном времени', () => {
+  const item = {
+    id: 'invalid',
+    email: 'invalid@example.test',
+    role_label: 'Наблюдатель',
+    brands: [],
+    expires_at: 'invalid',
+    opened: false,
+    can_revoke: true,
+  };
+  const { rerender } = render(
+    <Index
+      teamBrandRevision={revision}
+      members={members}
+      canViewRoles
+      invitations={{ ...emptyInvitations, data: [item], total: 1 }}
+    />,
+  );
+  expect(screen.getByText('Срок недоступен')).toBeTruthy();
+  expect((screen.getByRole('button', { name: 'Отозвать' }) as HTMLButtonElement).disabled).toBe(
+    true,
+  );
+  rerender(
+    <Index
+      teamBrandRevision={revision}
+      members={members}
+      canViewRoles
+      invitations={{
+        ...emptyInvitations,
+        as_of: 'invalid',
+        data: [{ ...item, expires_at: '2027-02-02T12:00:00.000Z' }],
+        total: 1,
+      }}
+    />,
+  );
+  expect(screen.getByText('Срок недоступен')).toBeTruthy();
+  expect((screen.getByRole('button', { name: 'Отозвать' }) as HTMLButtonElement).disabled).toBe(
+    true,
+  );
+  expect(calls.post).not.toHaveBeenCalled();
+});
 
 it('показывает только переданные данные без неработающих действий и без вымышленных брендов', () => {
   render(
     <Index
-      teamBrandRevision="test-revision"
+      teamBrandRevision={revision}
       members={members}
       canViewRoles
       invitations={emptyInvitations}
@@ -62,7 +167,7 @@ it('показывает только переданные данные без �
   expect(within(table).getByText('Иван Петров')).toBeTruthy();
   expect(
     within(table).getByRole('link', { name: 'Открыть карточку: Иван Петров' }).getAttribute('href'),
-  ).toBe('/team/one');
+  ).toBe('/team/' + firstId);
   expect(within(table).getByText('ivan@example.test')).toBeTruthy();
   expect(within(table).getByText('Длинное название разрешённого бренда')).toBeTruthy();
   expect(within(table).getByText('Нет общих доступных брендов')).toBeTruthy();
@@ -77,7 +182,7 @@ it('показывает только переданные данные без �
 it('показывает честное пустое состояние и не предлагает матрицу неуполномоченному участнику', () => {
   render(
     <Index
-      teamBrandRevision="test-revision"
+      teamBrandRevision={revision}
       members={{ data: [], current_page: 1, last_page: 1, total: 0 }}
       canViewRoles={false}
       invitations={emptyInvitations}
@@ -85,12 +190,13 @@ it('показывает честное пустое состояние и не 
   );
   expect(screen.getByText('Участников пока нет')).toBeTruthy();
   expect(screen.queryByRole('link', { name: 'Роли и доступ' })).toBeNull();
+  expect(fetch).not.toHaveBeenCalled();
 });
 
 it('отличает пустую страницу от отсутствия участников', () => {
   render(
     <Index
-      teamBrandRevision="test-revision"
+      teamBrandRevision={revision}
       members={{ data: [], current_page: 3, last_page: 2, total: 27 }}
       canViewRoles={false}
       invitations={emptyInvitations}
@@ -103,12 +209,13 @@ it('отличает пустую страницу от отсутствия у�
 it('показывает загрузку, ошибку перехода и повторяет нужную страницу', () => {
   render(
     <Index
-      teamBrandRevision="test-revision"
+      teamBrandRevision={revision}
       members={{ ...members, last_page: 2, total: 27 }}
       canViewRoles
       invitations={emptyInvitations}
       roleFilter="manager"
       brandFilter="brand-a"
+      statusFilter="disabled"
       filterBrands={[{ id: 'brand-a', name: 'Бренд А' }]}
     />,
   );
@@ -122,6 +229,7 @@ it('показывает загрузку, ошибку перехода и по
     invitation_page: 1,
     role: 'manager',
     brand: 'brand-a',
+    status: 'disabled',
   });
   const options = calls.get.mock.calls[0][2];
   act(() => {
@@ -135,11 +243,13 @@ it('показывает загрузку, ошибку перехода и по
     invitation_page: 1,
     role: 'manager',
     brand: 'brand-a',
+    status: 'disabled',
   });
 });
 
 it('показывает данные приглашения и повторяет страницу после ошибки без изменения страницы участников', () => {
   const invitations = {
+    as_of: '2026-11-01T12:00:00.000Z',
     current_page: 1,
     last_page: 2,
     total: 27,
@@ -157,12 +267,13 @@ it('показывает данные приглашения и повторяе
   };
   render(
     <Index
-      teamBrandRevision="test-revision"
+      teamBrandRevision={revision}
       members={{ ...members, current_page: 2, last_page: 2 }}
       canViewRoles
       invitations={invitations}
       roleFilter="viewer"
       brandFilter="brand-a"
+      statusFilter="invited"
       filterBrands={[{ id: 'brand-a', name: 'Бренд А' }]}
     />,
   );
@@ -178,6 +289,7 @@ it('показывает данные приглашения и повторяе
     invitation_page: 2,
     role: 'viewer',
     brand: 'brand-a',
+    status: 'invited',
   });
   const options = calls.get.mock.calls[0][2];
   act(() => {
@@ -191,6 +303,7 @@ it('показывает данные приглашения и повторяе
     invitation_page: 2,
     role: 'viewer',
     brand: 'brand-a',
+    status: 'invited',
   });
 });
 
@@ -211,12 +324,7 @@ it('подтверждает отзыв и при неизвестном рез�
     ],
   };
   render(
-    <Index
-      teamBrandRevision="test-revision"
-      members={members}
-      canViewRoles
-      invitations={invitations}
-    />,
+    <Index teamBrandRevision={revision} members={members} canViewRoles invitations={invitations} />,
   );
   fireEvent.click(screen.getByRole('button', { name: 'Отозвать' }));
   const dialog = screen.getByRole('dialog', { name: 'Отозвать приглашение' });
@@ -228,7 +336,7 @@ it('подтверждает отзыв и при неизвестном рез�
     within(screen.getByRole('dialog')).getByRole('button', { name: 'Отозвать приглашение' }),
   );
   expect(calls.post.mock.calls[0][0]).toBe('/team/invitations/invite/revoke');
-  expect(calls.post.mock.calls[0][2].headers).toEqual({ 'X-Brand-Revision': 'test-revision' });
+  expect(calls.post.mock.calls[0][2].headers).toEqual({ 'X-Brand-Revision': revision });
   const options = calls.post.mock.calls[0][2];
   act(() => {
     options.onNetworkError();
@@ -261,12 +369,7 @@ it('привязывает подтверждение к ревизии в мо�
     ],
   };
   const view = render(
-    <Index
-      members={members}
-      canViewRoles
-      invitations={invitations}
-      teamBrandRevision="old-revision"
-    />,
+    <Index members={members} canViewRoles invitations={invitations} teamBrandRevision={revision} />,
   );
   fireEvent.click(screen.getByRole('button', { name: 'Отозвать' }));
   view.rerender(
@@ -274,11 +377,11 @@ it('привязывает подтверждение к ревизии в мо�
       members={members}
       canViewRoles
       invitations={invitations}
-      teamBrandRevision="new-revision"
+      teamBrandRevision={nextRevision}
     />,
   );
   fireEvent.click(
     within(screen.getByRole('dialog')).getByRole('button', { name: 'Отозвать приглашение' }),
   );
-  expect(calls.post.mock.calls[0][2].headers).toEqual({ 'X-Brand-Revision': 'old-revision' });
+  expect(calls.post.mock.calls[0][2].headers).toEqual({ 'X-Brand-Revision': revision });
 });

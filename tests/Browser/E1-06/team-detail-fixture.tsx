@@ -52,6 +52,7 @@ const shared = {
     status: 'active',
     brands: [brand],
   },
+  activityUrl: '/journal?actor=01J00000000000000000000005',
 };
 const script = document.createElement('script');
 script.type = 'application/json';
