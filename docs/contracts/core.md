@@ -81,6 +81,12 @@ AiContext: `{organizationId, brandId, purpose, family:seller|vision, objectType,
 
 AiRequest: OpenAI-shaped `messages`, `model`, `temperature`, `responseFormat?`, `tools[]?`, `toolChoice?`, `maxTokens?`, prompt version/checksum. AiResult: `{content:?string, toolCalls:list, usage:{promptTokens,completionTokens}, model, latencyMs, costMicros:?int, aiCallId, error:?{code,retryable}}`. `content=null` при tool-calls допустим. Полный raw response только в разрешённом внутреннем record storage. Fake fixture missing — ошибка теста, не пустой успешный ответ. Responder adapter сохраняет полный tool call ID/name/arguments и семантику LlmResult::json; accounting не использует float.
 
+`Extractor::buildRequest` и `interpretResult` — выделенные чистые части прежнего
+поведения; они принимают публичные значения и не доказывают их происхождение, не
+авторизуют Gateway или действие. Для проверенного серверного пути SP-C-02
+использует отдельную fake-only extractor-стадию, описанную в
+`docs/contracts/protected-operations.md`; это ещё не готовый финализатор Seller.
+
 SP-C-02 добавляет отдельный внутренний fake-only путь стадии summary: созданная
 сервером запись закрепляет текущие историю, turn, сессию и фактический запрос;
 связь с `ai_calls` фиксируется в той же транзакции, в которой создаётся вызов,
