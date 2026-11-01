@@ -117,7 +117,10 @@ final class SiteWorkflowTest extends TenancyTestCase
         $audit = DB::table('audit_logs')->where('organization_id', $org->id)->where('action', 'vision.site.audit.created')->sole();
         self::assertStringNotContainsString('fixture.example.com', json_encode($audit, JSON_THROW_ON_ERROR));
         $this->get('/vision/site')->assertOk()->assertHeader('Cache-Control', 'no-store, private')->assertInertia(fn (Assert $page) => $page->where('audit.url', 'https://fixture.example.com'));
-        $this->withSession(['brand_id' => $other->id])->get('/vision/site')->assertOk()->assertInertia(fn (Assert $page) => $page->where('audit', null));
+        $this->post('/brand/switch', ['brand_id' => $other->id])->assertRedirect();
+        $this->get('/vision/site')->assertOk()->assertInertia(fn (Assert $page) => $page->where('audit', null));
+        $this->post('/brand/switch', ['brand_id' => $brand->id])->assertRedirect();
+        $this->get('/vision/site')->assertOk()->assertInertia(fn (Assert $page) => $page->where('audit.url', 'https://fixture.example.com'));
     }
 
     public function test_membership_revocation_during_fake_crawl_prevents_persistence(): void
