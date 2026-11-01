@@ -1658,10 +1658,9 @@
     {
       "taskKey": "SP-E3-03",
       "title": "SP-E3-03 · Движок: Responder, Tools, Guard, Summarizer, Orchestrator",
-      "goal": "Перенести Responder, Guard (22 правила + llmCheck), ToolRunner и Summarizer без потери поведения. Использовать опубликованные контракты и snapshot; определить фолбэки и handoffOnError. Orchestrator интегрируется отдельной SP-E3-03B.",
+      "goal": "Финальная приёмка интерфейсов движка после интеграции, без реализации runtime.",
       "dependsOn": [
-        "SP-E0-05C",
-        "SP-E3-02"
+        "SP-E3-03B"
       ],
       "scope": [
         "app/Seller/Engine/",
@@ -1682,8 +1681,8 @@
       ],
       "exclusiveResources": [],
       "acceptance": [
-        "GuardTest и tool unit tests зелёные; snapshots prompt defaults совпадают; неполученные LLM-fixtures не выдаются за эталон.",
-        "Тесты чужих релизов/prompt, неверных data classes, pending/uncertain и локального сохранения контактов без утечки во внешний ИИ."
+        "Компоненты сохраняют опубликованные контракты, tenant-bound snapshot/prompt и golden-проверки.",
+        "Оставшиеся интеграционные расхождения устранены без изменения golden fixtures."
       ],
       "sourceIds": [
         "E3-03"
@@ -1699,8 +1698,8 @@
         "docs/sources/04c_settings_paths.md"
       ],
       "promptPath": "docs/tasks/SP-E3-03.md",
-      "wave": 6,
-      "description": "Прочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: Перенести Responder, Guard (22 правила + llmCheck), ToolRunner и Summarizer без потери поведения. Использовать опубликованные контракты и snapshot; определить фолбэки и handoffOnError. Orchestrator интегрируется отдельной SP-E3-03B.\n\nЗависимости (нужен done после merge): SP-E0-05C, SP-E3-02.\nОбласть записи: app/Seller/Engine/, config/features/E3-03.php, database/factories/Seller/Engine/, database/migrations/E3-03/, database/seeders/Seller/Engine/, docs/modules/E3-03.md, lang/ru/Seller/Engine/, resources/js/features/Seller/Engine/, resources/js/pages/Seller/Engine/, resources/js/types/Seller/Engine/, routes/features/E3-03.php, tests/Browser/E3-03/, tests/Feature/Seller/Engine/, tests/Unit/Seller/Engine/, docs/results/SP-E3-03.md.\nЭкраны: инфраструктура/контракты.\nИсточники: E3-03.\n- E3-03: 03 §1.2–1.3, proto `Responder`, `Guard`, `ToolRunner`, `Orchestrator`\n\nПриёмка:\n- GuardTest и tool unit tests зелёные; snapshots prompt defaults совпадают; неполученные LLM-fixtures не выдаются за эталон.\n- Тесты чужих релизов/prompt, неверных data classes, pending/uncertain и локального сохранения контактов без утечки во внешний ИИ.\n\nДополнительно:  Responder/Guard/Summarizer обязаны использовать опубликованные tenant-bound snapshot и prompt, маркировать все реально передаваемые классы данных и не превращать in_progress/uncertain в завершённый ответ. Доверять только данным из проверенного runtime, не произвольным DTO.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E3-03.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n",
+      "wave": 9,
+      "description": "# SP-E3-03 · Движок: Responder, Tools, Guard, Summarizer, Orchestrator\n\nПерепланировано 02.11.2026: незавершённые Responder, `llmCheck` и Summarizer вынесены в SP-E3-03C/D/E. Исходную карточку **не закрывать** до их интеграции в SP-E3-03B. Её остаток — финальная приёмка ToolRunner, интерфейсов компонентов, tenant-bound snapshot/prompt и существующих golden-проверок без изменения fixtures. Она ждёт `done` SP-E3-03B; зависимые функциональные задачи могут начинаться после SP-E3-03B, не дожидаясь этой приёмки.\n\nЧасть `create_promise` выделена в SP-E3-03P и начинается только после `done` общей границы SP-C-02. Другие независимые части SP-E3-03 продолжаются; готовность всей карточки не означает готовность зависимой части до её приёмки.\n\nПрочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель остатка: проверить после слияния SP-E3-03B, что Responder, Guard, Summarizer и ToolRunner сохраняют опубликованные контракты, фолбэки и handoffOnError; исправить только выявленные интеграционные расхождения своего модуля. Orchestrator и runtime принадлежат SP-E3-03B.\n\nЗависимости (нужен done после merge): SP-E3-03B.\nОбласть записи: app/Seller/Engine/, config/features/E3-03.php, database/factories/Seller/Engine/, database/migrations/E3-03/, database/seeders/Seller/Engine/, docs/modules/E3-03.md, lang/ru/Seller/Engine/, resources/js/features/Seller/Engine/, resources/js/pages/Seller/Engine/, resources/js/types/Seller/Engine/, routes/features/E3-03.php, tests/Browser/E3-03/, tests/Feature/Seller/Engine/, tests/Unit/Seller/Engine/, docs/results/SP-E3-03.md.\nЭкраны: инфраструктура/контракты.\nИсточники: E3-03.\n- E3-03: 03 §1.2–1.3, proto `Responder`, `Guard`, `ToolRunner`, `Orchestrator`\n\nПриёмка:\n- GuardTest и tool unit tests зелёные; snapshots prompt defaults совпадают; неполученные LLM-fixtures не выдаются за эталон.\n- Тесты чужих релизов/prompt, неверных data classes, pending/uncertain и локального сохранения контактов без утечки во внешний ИИ.\n\nДополнительно:  Responder/Guard/Summarizer обязаны использовать опубликованные tenant-bound snapshot и prompt, маркировать все реально передаваемые классы данных и не превращать in_progress/uncertain в завершённый ответ. Доверять только данным из проверенного runtime, не произвольным DTO.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E3-03.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n\n## Материалы\n\nИсходники только для чтения: C:/OSPanel/home/souzpir.local/.local/references/{eyon-pilot,laravel-prototype}.\nПолный индекс изображений: planning/materials-manifest.json; точный состав по docs/sources/02b_mockup_journal.md.\n",
       "partDependencies": {
         "create_promise": [
           "SP-E3-03P"
@@ -2170,7 +2169,8 @@
       "goal": "Интегрировать перенесённые части движка с persistence и AiGateway, runtime per brand, meta, tool-calls, retry/fallback. bot доставляет через Delivery contract; suggest сохраняет подсказку без отправки; manager молчит. Доставка каналов остается отдельным владельцам.",
       "dependsOn": [
         "SP-E0-04",
-        "SP-E3-03",
+        "SP-E3-03D",
+        "SP-E3-03E",
         "SP-E3-04"
       ],
       "scope": [
@@ -2198,8 +2198,8 @@
         "docs/sources/04c_settings_paths.md"
       ],
       "promptPath": "docs/tasks/SP-E3-03B.md",
-      "wave": 7,
-      "description": "Прочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: Интегрировать перенесённые части движка с persistence и AiGateway, runtime per brand, meta, tool-calls, retry/fallback. bot доставляет через Delivery contract; suggest сохраняет подсказку без отправки; manager молчит. Доставка каналов остается отдельным владельцам.\n\nЗависимости (нужен done после merge): SP-E0-04, SP-E3-03, SP-E3-04.\nОбласть записи: app/Seller/Engine/, app/Seller/Runtime/, tests/Feature/SellerRuntime/, docs/results/SP-E3-03B.md.\nЭкраны: инфраструктура/контракты.\nИсточники: E3-03.\n- E3-03: 03 §1.2–1.3, proto `Responder`, `Guard`, `ToolRunner`, `Orchestrator`\n\nПриёмка:\n- TurnTest/open/regeneration/fallback, tenant isolation, double-submit/idempotency и defaults-equivalence проходят.\n- Чужие или подменённые state/history/input и несовпадающая claimed message отвергаются до ИИ и сохранения; проверено отсутствие передачи контактов.\n\nДополнительно:  Обязательная граница: state/history/clientMessage и claimed input загружать из persistence по tenant + conversation + inputMessage, сверять с захваченным turn; не доверять произвольным значениям caller. Использовать проверенные опубликованные release/prompt, обязательные dataClasses и сохранять исходные контакты локально без отправки наружу. Pending/uncertain не финализировать как fallback и не запускать платный запрос повторно. Методы с сырой историей, TurnCommand и сообщениями должны скрывать их из трасс исключений (SensitiveParameter/generic errors); проверить рекурсивно getTrace и строку исключения при zend.exception_ignore_args=0.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E3-03B.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n"
+      "wave": 8,
+      "description": "# SP-E3-03B · Orchestrator, turn/open и режимы доставки\n\nПрочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: Интегрировать перенесённые части движка с persistence и AiGateway, runtime per brand, meta, tool-calls, retry/fallback. bot доставляет через Delivery contract; suggest сохраняет подсказку без отправки; manager молчит. Доставка каналов остается отдельным владельцам.\n\nЗависимости (нужен done после merge): SP-E0-04, SP-E3-03D, SP-E3-03E, SP-E3-04. SP-E3-03C входит через D/E; исходная SP-E3-03 закрывается после интеграции, не блокируя её начало.\nОбласть записи: app/Seller/Engine/, app/Seller/Runtime/, tests/Feature/SellerRuntime/, docs/results/SP-E3-03B.md.\nЭкраны: инфраструктура/контракты.\nИсточники: E3-03.\n- E3-03: 03 §1.2–1.3, proto `Responder`, `Guard`, `ToolRunner`, `Orchestrator`\n\nПриёмка:\n- TurnTest/open/regeneration/fallback, tenant isolation, double-submit/idempotency и defaults-equivalence проходят.\n- Чужие или подменённые state/history/input и несовпадающая claimed message отвергаются до ИИ и сохранения; проверено отсутствие передачи контактов.\n\nДополнительно:  Обязательная граница: state/history/clientMessage и claimed input загружать из persistence по tenant + conversation + inputMessage, сверять с захваченным turn; не доверять произвольным значениям caller. Использовать проверенные опубликованные release/prompt, обязательные dataClasses и сохранять исходные контакты локально без отправки наружу. Pending/uncertain не финализировать как fallback и не запускать платный запрос повторно. Методы с сырой историей, TurnCommand и сообщениями должны скрывать их из трасс исключений (SensitiveParameter/generic errors); проверить рекурсивно getTrace и строку исключения при zend.exception_ignore_args=0.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E3-03B.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n\n## Материалы\n\nИсходники только для чтения: C:/OSPanel/home/souzpir.local/.local/references/{eyon-pilot,laravel-prototype}.\nПолный индекс изображений: planning/materials-manifest.json; точный состав по docs/sources/02b_mockup_journal.md.\n"
     },
     {
       "taskKey": "SP-E5-06",
@@ -4542,7 +4542,10 @@
         "SP-UI-09",
         "SP-UI-10",
         "SP-UI-11",
-        "SP-UI-12"
+        "SP-UI-12",
+        "SP-E3-03C",
+        "SP-E3-03D",
+        "SP-E3-03E"
       ],
       "scope": [
         "README.md",
@@ -6264,6 +6267,108 @@
       "promptPath": "docs/tasks/SP-R-09.md",
       "wave": 10,
       "description": "# SP-R-09 · Карточка вызова ИИ в биллинге\n\nНа странице неподтверждённых вызовов биллинга выделить локальный компонент карточки вызова из списка, сохранив статус, дату, порядок и доступность. Оставить API и пагинацию прежними. Перед началом и в отчёте указать число существующих тестов модуля до и после: оно должно совпасть, и все тесты должны быть зелёными. Существующие тесты не менять, кроме импортов и имён классов; golden fixtures не трогать. Попутное записать строкой в «Техдолг». Поведение и внешний вид не менять.\n\nРабота 1–3 часа. Локально запустить lint и целевые проверки, приложить скриншот 1440 при видимом изменении; отчёт и submit по AGENTS.md.\n"
+    },
+    {
+      "taskKey": "SP-E3-03C",
+      "title": "SP-E3-03C · Responder: проверенный запрос и сообщение",
+      "goal": "Responder: проверенный запрос и сообщение",
+      "dependsOn": [
+        "SP-E0-05C",
+        "SP-E3-02"
+      ],
+      "scope": [
+        "app/Seller/Engine/Responder/",
+        "app/Seller/Engine/ResponderRequest.php",
+        "app/Seller/Engine/ResponderResult.php",
+        "app/Seller/Engine/ResponderMessages.php",
+        "tests/Unit/Seller/Engine/Responder/",
+        "docs/results/SP-E3-03C.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Ответ строится только из опубликованного snapshot/prompt.",
+        "Чужой бренд, неверные data classes и pending/uncertain не дают завершённого ответа."
+      ],
+      "sourceIds": [
+        "E3-03"
+      ],
+      "screenIds": [],
+      "notes": "Узкий срез 1–3 часа; без live-вызовов и изменения golden fixtures.",
+      "sourceRefs": [
+        "docs/tasks/SP-E3-03C.md",
+        "docs/sources/03_source_analysis_and_transfer_map.md"
+      ],
+      "promptPath": "docs/tasks/SP-E3-03C.md",
+      "wave": 6,
+      "description": "# SP-E3-03C · Responder: проверенный запрос и сообщение\n\n**Зачем:** закрыть часть E3-03 (03 §1.2–1.3, прототип Responder), без которой Orchestrator SP-E3-03B не может собрать ответ из опубликованного prompt и snapshot.\n\n**Часть чего:** первый из трёх узких остатков SP-E3-03. После него остаются `llmCheck` Guard (SP-E3-03D), Summarizer (SP-E3-03E), Orchestrator (SP-E3-03B) и финальная приёмка SP-E3-03.\n\nЗа 1–3 часа собрать внутренний Responder из существующих `ResponderRequest`, `ResponderMessages` и `ResponderResult`: принимать только опубликованный tenant-bound snapshot/prompt, передавать явные data classes и корректно сохранять различие completed / in_progress / uncertain. Вызов ИИ — через fake-интерфейс; persistence, tools и доставка здесь не подключаются. Существующие golden fixtures не менять.\n\nScope: `app/Seller/Engine/Responder/`, три названных файла `Responder*.php`, `tests/Unit/Seller/Engine/Responder/`, `docs/results/SP-E3-03C.md`. Приёмка: верный prompt/snapshot, чужой brand или неопубликованный релиз, pending/uncertain и неверный ответ; unit-тесты без сети и БД. Отчёт и submit по AGENTS.md.\n"
+    },
+    {
+      "taskKey": "SP-E3-03D",
+      "title": "SP-E3-03D · Guard: llmCheck после правил",
+      "goal": "Guard: llmCheck после правил",
+      "dependsOn": [
+        "SP-E3-03C"
+      ],
+      "scope": [
+        "app/Seller/Engine/Guard/",
+        "app/Seller/Engine/DeterministicGuard.php",
+        "app/Seller/Engine/GuardRequest.php",
+        "app/Seller/Engine/GuardDecision.php",
+        "app/Seller/Engine/GuardModelResult.php",
+        "tests/Unit/Seller/Engine/Guard/",
+        "docs/results/SP-E3-03D.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "llmCheck проверяет только доверенный запрос через fake-модель.",
+        "Malformed/pending/uncertain ведут к handoff без разрешения и внешних эффектов."
+      ],
+      "sourceIds": [
+        "E3-03"
+      ],
+      "screenIds": [],
+      "notes": "Узкий срез 1–3 часа; без live-вызовов и изменения golden fixtures.",
+      "sourceRefs": [
+        "docs/tasks/SP-E3-03D.md",
+        "docs/sources/03_source_analysis_and_transfer_map.md"
+      ],
+      "promptPath": "docs/tasks/SP-E3-03D.md",
+      "wave": 7,
+      "description": "# SP-E3-03D · Guard: llmCheck после правил\n\n**Зачем:** закрыть `llmCheck` из E3-03 (03 §1.2–1.3, прототип Guard), необходимый защищённому Orchestrator SP-E3-03B.\n\n**Часть чего:** второй узкий остаток SP-E3-03. SP-E3-03C даёт проверенный контекст запроса; SP-E3-03E остаётся для сводки, SP-E3-03B — для runtime.\n\nЗа 1–3 часа добавить внутренний `llmCheck` поверх существующего `DeterministicGuard`: использовать только проверенный запрос Responder и fake-модель, строго проверить ответ модели, при ошибке направить на handoff/uncertain без выдачи разрешения. Существующие 22 детерминированных правила и golden fixtures не менять. Production Gateway, persistence и доставка остаются SP-E3-03B.\n\nScope: `app/Seller/Engine/Guard/`, `app/Seller/Engine/DeterministicGuard.php`, `app/Seller/Engine/GuardRequest.php`, `app/Seller/Engine/GuardDecision.php`, `app/Seller/Engine/GuardModelResult.php`, `tests/Unit/Seller/Engine/Guard/`, `docs/results/SP-E3-03D.md`. Приёмка: разрешение, отказ, malformed/pending/uncertain fake-ответ и отсутствие внешних вызовов. Отчёт и submit по AGENTS.md.\n"
+    },
+    {
+      "taskKey": "SP-E3-03E",
+      "title": "SP-E3-03E · Summarizer: безопасная проекция",
+      "goal": "Summarizer: безопасная проекция",
+      "dependsOn": [
+        "SP-E3-03C"
+      ],
+      "scope": [
+        "app/Seller/Engine/Summarizer/",
+        "app/Seller/Engine/SummaryProjection.php",
+        "app/Seller/Engine/SummaryPending.php",
+        "app/Seller/Engine/SummaryUncertain.php",
+        "app/Seller/Engine/SummaryUnavailable.php",
+        "tests/Unit/Seller/Engine/Summarizer/",
+        "docs/results/SP-E3-03E.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Сводка ограничена проверенными сообщениями и опубликованным snapshot.",
+        "Чужой бренд, исходные контакты и pending/uncertain не переходят в готовую сводку."
+      ],
+      "sourceIds": [
+        "E3-03"
+      ],
+      "screenIds": [],
+      "notes": "Узкий срез 1–3 часа; без live-вызовов и изменения golden fixtures.",
+      "sourceRefs": [
+        "docs/tasks/SP-E3-03E.md",
+        "docs/sources/03_source_analysis_and_transfer_map.md"
+      ],
+      "promptPath": "docs/tasks/SP-E3-03E.md",
+      "wave": 7,
+      "description": "# SP-E3-03E · Summarizer: безопасная проекция\n\n**Зачем:** закрыть Summarizer из E3-03 (03 §1.2–1.3), чтобы Orchestrator SP-E3-03B работал с ограниченной сводкой вместо произвольной истории.\n\n**Часть чего:** третий узкий остаток SP-E3-03. После него SP-E3-03B подключает компоненты к runtime, затем исходная SP-E3-03 проходит финальную приёмку; `create_promise` остаётся SP-E3-03P.\n\nЗа 1–3 часа получить внутреннюю сводку из проверенных сообщений и опубликованного snapshot с помощью fake-модели. Проекция не должна переносить чужой бренд, необъявленные data classes или исходные контакты во внешний запрос; pending/uncertain не превращать в готовую сводку. Существующие golden fixtures не менять. Persistence и доставка остаются SP-E3-03B.\n\nScope: `app/Seller/Engine/Summarizer/`, `app/Seller/Engine/SummaryProjection.php`, `app/Seller/Engine/SummaryPending.php`, `app/Seller/Engine/SummaryUncertain.php`, `app/Seller/Engine/SummaryUnavailable.php`, `tests/Unit/Seller/Engine/Summarizer/`, `docs/results/SP-E3-03E.md`. Приёмка: корректная сводка, чужой бренд, скрытые контакты, malformed/pending/uncertain fake-ответ. Отчёт и submit по AGENTS.md.\n"
     }
   ],
   "excludedSourceTasks": {
