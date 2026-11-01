@@ -341,6 +341,16 @@ export default function Index({
               </Select.Portal>
             </Select.Root>
           </div>
+          {(roleFilter !== 'all' || brandFilter !== 'all' || statusFilter !== 'all') && (
+            <button
+              type="button"
+              className={button}
+              disabled={loading || invitationLoading}
+              onClick={() => changeFilters('all', 'all', 'all')}
+            >
+              Сбросить фильтры
+            </button>
+          )}
           {failedFilters !== null && (
             <p role="alert" className="text-sm text-(--color-danger-ink)">
               Не удалось применить фильтр.{' '}
