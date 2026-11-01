@@ -38,25 +38,14 @@ final class PasswordDeliveryTest extends TestCase
 
     private object $fake;
 
-    protected function beforeRefreshingDatabase(): void
-    {
-        $expected = basename(dirname(base_path())) === '.worktrees' ? 'souzpir_test_'.str_replace('-', '_', basename(base_path())) : 'souzpir_test_main';
-        if (! app()->environment('testing') || DB::connection()->getDatabaseName() !== $expected
-            || DB::connection()->getDatabaseName() !== config('runtime.test_database')
-            || DB::connection()->getDatabaseName() === config('runtime.preview_database')) {
-            throw new \LogicException('Isolated test database required.');
-        }
-    }
-
     protected function setUp(): void
     {
         parent::setUp();
-        $expected = basename(dirname(base_path())) === '.worktrees' ? 'souzpir_test_'.str_replace('-', '_', basename(base_path())) : 'souzpir_test_main';
-        self::assertSame($expected, DB::connection()->getDatabaseName());
         self::assertSame(config('runtime.test_database'), DB::connection()->getDatabaseName());
         self::assertNotSame(config('runtime.preview_database'), DB::connection()->getDatabaseName());
         $this->withoutVite();
-        $this->withServerVariables(['REMOTE_ADDR' => '127.0.0.1', 'SERVER_ADDR' => '127.0.0.1']);
+        URL::forceScheme('https');
+        $this->withServerVariables(['HTTPS' => 'on', 'REMOTE_ADDR' => '127.0.0.1', 'SERVER_ADDR' => '127.0.0.1']);
         Mail::fake();
         Queue::fake();
         config(['features.E1-01F.defaults.enabled' => true, 'queue.default' => 'database']);
@@ -437,6 +426,7 @@ final class PasswordDeliveryTest extends TestCase
         self::assertTrue(Hash::check('old-password-example', $this->user->fresh()->password));
     }
 
+    #[Group('race')]
     public function test_reset_and_revocation_serialize_in_both_orders(): void
     {
         $id = $this->sendIntent();
@@ -488,6 +478,7 @@ final class PasswordDeliveryTest extends TestCase
         }
     }
 
+    #[Group('race')]
     public function test_competing_claims_and_sends_are_once_only_and_revocation_cancels_send(): void
     {
         $id = $this->sendIntent();

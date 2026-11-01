@@ -251,8 +251,9 @@ final class QuestionsHttpTest extends TenancyTestCase
         DB::table('organization_plan')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'plan_id' => $plan, 'starts_at' => now()->subDay(), 'created_at' => now(), 'updated_at' => now()]);
         DB::table('plan_limits')->insert(['id' => (string) Str::ulid(), 'plan_id' => $plan, 'key' => 'vision.questions', 'value' => '0', 'unit' => '', 'created_at' => now(), 'updated_at' => now()]);
         $this->postJson('/vision/questions/approve', ['candidate_ids' => [$created], 'models' => ['chatgpt' => 'openai/gpt-6.1-sol'], 'frequency' => null])->assertStatus(422);
-        $this->withSession(['brand_id' => $other->id])->deleteJson('/vision/questions/candidates/'.$created)->assertStatus(403);
-        $this->withSession(['brand_id' => $brand->id]);
+        $this->post('/brand/switch', ['brand_id' => $other->id])->assertRedirect();
+        $this->deleteJson('/vision/questions/candidates/'.$created)->assertStatus(403);
+        $this->post('/brand/switch', ['brand_id' => $brand->id])->assertRedirect();
         [$viewer] = $this->member($org, 'viewer', [$brand->id]);
         $this->actingAs($viewer)->withSession(['brand_id' => $brand->id])->getJson('/vision/questions/data')->assertOk()->assertJsonPath('can_edit', false)->assertJsonCount(0, 'candidates');
         $this->postJson('/vision/questions/candidates', ['text' => 'Где найти качественные услуги рядом?', 'intent' => 'choose'])->assertForbidden();

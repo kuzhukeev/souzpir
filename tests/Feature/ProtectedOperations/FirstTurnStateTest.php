@@ -1730,6 +1730,7 @@ SQL);
         }
     }
 
+    #[Group('race')]
     public function test_responder_migration_preserves_existing_turn_and_refuses_to_discard_history(): void
     {
         $migration = require database_path('migrations/C-02/2026_11_01_070000_c02_create_responder_stages.php');

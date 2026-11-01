@@ -34,7 +34,8 @@ final class TestNotificationsTest extends TenancyTestCase
         $this->assertDatabaseHas('profile_test_notifications', ['user_id' => $viewer->id, 'brand_id' => $brand->id, 'status' => 'sent']);
         $this->assertSame(1, DB::table('audit_logs')->where('action', 'profile.notification_test.requested')->count());
         $this->get('/profile/notifications')->assertViewHas('page', fn ($page) => count($page['props']['notificationSettings']['testNotifications']) === 1);
-        $this->withSession(['brand_id' => $otherBrand->id])->get('/profile/notifications')->assertViewHas('page', fn ($page) => $page['props']['notificationSettings']['testNotifications'] === []);
+        $this->post('/brand/switch', ['brand_id' => $otherBrand->id])->assertRedirect();
+        $this->get('/profile/notifications')->assertViewHas('page', fn ($page) => $page['props']['notificationSettings']['testNotifications'] === []);
         $this->actingAs($other)->withSession(['brand_id' => $brand->id])->get('/profile/notifications')->assertViewHas('page', fn ($page) => $page['props']['notificationSettings']['testNotifications'] === []);
         Queue::assertNothingPushed();
         Http::assertNothingSent();

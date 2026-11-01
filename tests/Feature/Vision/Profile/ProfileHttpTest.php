@@ -19,6 +19,8 @@ final class ProfileHttpTest extends TenancyTestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // PHP-only CI has no built asset manifest; supply a stable Inertia version.
+        config(['app.asset_url' => 'http://127.0.0.1']);
         URL::useOrigin('http://127.0.0.1');
         $this->withServerVariables(['REMOTE_ADDR' => '127.0.0.1', 'SERVER_ADDR' => '127.0.0.1']);
     }
@@ -103,7 +105,8 @@ final class ProfileHttpTest extends TenancyTestCase
         $this->patchJson('/vision/quiz/step/4', ['quiz_id' => $id, 'revision' => 1, 'values' => ['competitors' => array_fill(0, 11, ['name' => 'x'])]])->assertStatus(422);
         $this->patchJson('/vision/quiz/step/5', ['quiz_id' => $id, 'revision' => 1, 'values' => ['facts' => []]])->assertOk()->assertJson(['ok' => true, 'redirect' => '/vision/quiz/6']);
         $this->patchJson('/vision/quiz/step/5', ['quiz_id' => $id, 'revision' => 1, 'values' => ['facts' => ['x']]])->assertStatus(409);
-        $this->withSession(['brand_id' => $other->id])->patchJson('/vision/quiz/step/5', ['quiz_id' => $id, 'revision' => 2, 'values' => ['facts' => ['x']]])->assertStatus(403);
+        $this->post('/brand/switch', ['brand_id' => $other->id])->assertRedirect();
+        $this->patchJson('/vision/quiz/step/5', ['quiz_id' => $id, 'revision' => 2, 'values' => ['facts' => ['x']]])->assertStatus(403);
         self::assertSame(2, DB::table('visibility_quizzes')->where('id', $id)->value('revision'));
     }
 

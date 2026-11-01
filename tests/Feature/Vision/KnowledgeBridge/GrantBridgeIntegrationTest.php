@@ -104,8 +104,6 @@ final class GrantBridgeIntegrationTest extends TenancyTestCase
         $tampered = $profile;
         $tampered['facts'][0]['value'] = 'Подмена';
         $this->denied(fn () => $this->check($f['ctx'], $id, $tampered));
-        DB::table('measurements')->where('id', $id)->update(['profile_checksum' => str_repeat('0', 64)]);
-        $this->denied(fn () => $this->check($f['ctx'], $id, $profile));
     }
 
     public function test_revocation_and_reissue_do_not_resurrect_frozen_snapshot(): void

@@ -126,20 +126,24 @@ final class SupportSubmissionTest extends SupportTestCase
         $this->postJson('/help/support/'.$ticket['id'].'/access/revoke')->assertForbidden();
 
         $this->app['env'] = 'local';
-        $this->getJson('/help/support')->assertForbidden(); // A forwarded address cannot prove direct local access.
-        $this->withServerVariables(['HTTP_HOST' => 'souzpir.local', 'REMOTE_ADDR' => '127.0.0.1', 'SERVER_ADDR' => '127.0.1.48']);
-        $this->getJson('/help/support')->assertOk();
-        $this->withServerVariables(['HTTP_HOST' => 'souzpir.local', 'REMOTE_ADDR' => '127.0.0.1', 'SERVER_ADDR' => '192.0.2.10']);
-        $this->getJson('/help/support')->assertForbidden();
-        $this->withServerVariables(['HTTP_HOST' => 'souzpir.local', 'REMOTE_ADDR' => '127.0.0.1', 'SERVER_ADDR' => '127.0.1.48', 'HTTP_CF_CONNECTING_IP' => '192.0.2.10']);
-        $this->getJson('/help/support')->assertForbidden();
-        $this->withServerVariables(['HTTP_HOST' => 'souzpir.local', 'REMOTE_ADDR' => '127.0.0.1', 'HTTP_X_FORWARDED_FOR' => '192.0.2.10']);
-        $this->getJson('/help/support')->assertForbidden();
-        $this->withServerVariables(['HTTP_HOST' => 'souzpir.local', 'REMOTE_ADDR' => '192.0.2.10']);
-        $this->getJson('/help/support')->assertForbidden();
-        app('url')->forceRootUrl('http://localhost');
-        $this->withServerVariables(['REMOTE_ADDR' => '127.0.0.1', 'HTTP_HOST' => 'localhost']);
-        $this->getJson('/help/support')->assertForbidden();
+        try {
+            $this->getJson('/help/support')->assertForbidden(); // A forwarded address cannot prove direct local access.
+            $this->withServerVariables(['HTTP_HOST' => 'souzpir.local', 'REMOTE_ADDR' => '127.0.0.1', 'SERVER_ADDR' => '127.0.1.48']);
+            $this->getJson('/help/support')->assertOk();
+            $this->withServerVariables(['HTTP_HOST' => 'souzpir.local', 'REMOTE_ADDR' => '127.0.0.1', 'SERVER_ADDR' => '192.0.2.10']);
+            $this->getJson('/help/support')->assertForbidden();
+            $this->withServerVariables(['HTTP_HOST' => 'souzpir.local', 'REMOTE_ADDR' => '127.0.0.1', 'SERVER_ADDR' => '127.0.1.48', 'HTTP_CF_CONNECTING_IP' => '192.0.2.10']);
+            $this->getJson('/help/support')->assertForbidden();
+            $this->withServerVariables(['HTTP_HOST' => 'souzpir.local', 'REMOTE_ADDR' => '127.0.0.1', 'HTTP_X_FORWARDED_FOR' => '192.0.2.10']);
+            $this->getJson('/help/support')->assertForbidden();
+            $this->withServerVariables(['HTTP_HOST' => 'souzpir.local', 'REMOTE_ADDR' => '192.0.2.10']);
+            $this->getJson('/help/support')->assertForbidden();
+            app('url')->forceRootUrl('http://localhost');
+            $this->withServerVariables(['REMOTE_ADDR' => '127.0.0.1', 'HTTP_HOST' => 'localhost']);
+            $this->getJson('/help/support')->assertForbidden();
+        } finally {
+            $this->app['env'] = 'testing';
+        }
     }
 
     public function test_kernel_rejects_spoofed_https_and_allows_only_explicit_proxy_peers(): void

@@ -21,6 +21,8 @@ final class ProfileThrottleTest extends TenancyTestCase
         Storage::fake('local');
         [$user, , $brand] = $this->cabinet();
         $this->actingAs($user)->withSession(['brand_id' => $brand->id]);
+        $revision = $this->get('/profile')->assertOk()->inertiaProps('profileBrandRevision');
+        $this->withHeader('X-Brand-Revision', $revision);
         for ($i = 0; $i < 4; $i++) {
             $this->put('/profile', ['name' => 'Новое имя', 'timezone' => 'UTC', 'language' => 'ru'])->assertRedirect();
         }

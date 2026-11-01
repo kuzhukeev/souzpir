@@ -82,7 +82,8 @@ final class JournalTest extends TenancyTestCase
         $this->postJson('/journal/notifications/'.$id.'/retry')->assertStatus(409);
         DB::table('notification_deliveries')->where('id', $id)->update(['status' => 'uncertain']);
         $this->postJson('/journal/notifications/'.$id.'/retry')->assertStatus(409);
-        $this->withSession(['brand_id' => $other->id])->postJson('/journal/notifications/'.$id.'/retry')->assertNotFound();
+        $this->post('/brand/switch', ['brand_id' => $other->id])->assertRedirect();
+        $this->postJson('/journal/notifications/'.$id.'/retry')->assertNotFound();
         [$editor] = $this->member($org, 'member', [$brand->id]);
         $this->flushSession()->actingAs($editor)->withSession(['brand_id' => $brand->id])->postJson('/journal/notifications/'.$id.'/retry')->assertForbidden();
     }

@@ -5,6 +5,7 @@ namespace Tests\Feature\Shell\Profile;
 use App\Privacy\SupportRequestBoundary;
 use App\Shell\Auth\InvitationSecretBoundary;
 use App\Shell\Auth\MfaCodeBoundary;
+use App\Shell\Auth\PasswordResetExchangeBoundary;
 use App\Shell\Integrations\Webhooks\WebhookConfigurationBoundary;
 use App\Tenancy\TokenApi\BearerBoundary;
 use Illuminate\Contracts\Http\Kernel;
@@ -20,7 +21,7 @@ final class ProfileBoundaryOrderTest extends TestCase
         $this->app->boot();
         $actual = $this->app->make(Kernel::class)->getGlobalMiddleware();
         $expected = [SupportRequestBoundary::class, EnsureDeferredCallbacksRun::class, WebhookConfigurationBoundary::class, BearerBoundary::class,
-            MfaCodeBoundary::class, InvitationSecretBoundary::class];
+            MfaCodeBoundary::class, PasswordResetExchangeBoundary::class, InvitationSecretBoundary::class];
         self::assertSame($expected, array_slice($actual, 0, count($expected)));
         self::assertContains(TrustProxies::class, $actual);
         self::assertContains(ValidatePostSize::class, $actual);
