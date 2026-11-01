@@ -3015,6 +3015,68 @@ SQL);
         Queue::assertNothingPushed();
     }
 
+    public function test_pending_detail_reads_only_real_stage_and_ai_call_statuses_over_http(): void
+    {
+        [$tenant, $http, $claim, $responder] = $this->modelGuardResponder();
+        config(['agent.guard_llm' => true, 'features.E0-02.defaults.organization_id' => $tenant->organizationId]);
+        [$guard, , , $file] = $this->modelGuardFixture($tenant, $http, $claim, $responder, ['costMicros' => null]);
+        $user = $http->user();
+        $this->actingAs($user);
+        $this->startSession();
+        session()->invalidate();
+        $this->withSession(['auth.version' => $user->auth_version, 'brand_id' => $tenant->brandId]);
+        $webRequest = Request::create('/', 'GET');
+        $webRequest->setLaravelSession(app('session.store'));
+        $webRequest->setUserResolver(fn () => $user);
+        app(AuthSessionRegistry::class)->issue($webRequest, $user, $user->auth_version);
+        $this->withCredentials()->withCookie(config('session.cookie'), session()->getId());
+        $path = '/seller/turns/pending/'.$claim->turnId;
+
+        $before = $this->pendingDetailSnapshot($claim);
+        $response = $this->getJson($path)->assertOk()->assertHeader('Cache-Control', 'no-store, private')
+            ->assertJsonPath('data.status', 'processing')->assertJsonPath('data.other_effects_may_exist', true)
+            ->assertJsonPath('data.stages.extractor.ai_call_status', 'completed')
+            ->assertJsonPath('data.stages.responder.ai_call_status', 'completed')
+            ->assertJsonPath('data.stages.guard.ai_call_status', null);
+        self::assertEqualsCanonicalizing(['extractor', 'responder', 'guard'], array_keys($response->json('data.stages')));
+        foreach ($response->json('data.stages') as $stage) {
+            self::assertSame(['ai_call_status'], array_keys($stage));
+        }
+        self::assertStringNotContainsString($claim->token(), $response->getContent());
+        self::assertStringNotContainsString($guard, $response->getContent());
+        self::assertStringNotContainsString('Synthetic closed topic', $response->getContent());
+        self::assertStringNotContainsString('Давайте обсудим ваш заказ', $response->getContent());
+        self::assertEquals($before, $this->pendingDetailSnapshot($claim));
+
+        $driver = new CoordinatorScriptedFakeDriver([['content' => '{"ok":true,"issues":[]}', 'costMicros' => null]]);
+        $driver->onCall = function () use ($claim, $path): void {
+            $before = $this->pendingDetailSnapshot($claim);
+            $this->getJson($path)->assertOk()->assertJsonPath('data.stages.guard.ai_call_status', 'reserved');
+            self::assertEquals($before, $this->pendingDetailSnapshot($claim));
+        };
+        app()->instance(FakeDriver::class, $driver);
+        self::assertSame('uncertain', $this->within($tenant, fn () => app(Gateway::class)->completeProtectedModelGuard($http, $claim, $guard)));
+        self::assertSame(1, $driver->calls);
+        unlink($file);
+        $before = $this->pendingDetailSnapshot($claim);
+        $this->getJson($path)->assertOk()->assertJsonPath('data.stages.guard.ai_call_status', 'uncertain');
+        self::assertEquals($before, $this->pendingDetailSnapshot($claim));
+        self::assertSame(0, DB::table('seller_tasks')->count());
+        self::assertSame(0, DB::table('outbox_events')->count());
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
+    }
+
+    private function pendingDetailSnapshot(TurnClaim $claim): array
+    {
+        return [DB::table('seller_turns')->where('id', $claim->turnId)->first(),
+            DB::table('c02_extractor_stages')->where('turn_id', $claim->turnId)->get()->toArray(),
+            DB::table('c02_responder_stages')->where('turn_id', $claim->turnId)->get()->toArray(),
+            DB::table('c02_guard_stages')->where('turn_id', $claim->turnId)->get()->toArray(),
+            DB::table('ai_calls')->where('object_id', $claim->conversationId)->orderBy('id')->get()->toArray()];
+    }
+
     private function protectedClaimFixture(): array
     {
         app(PromptSetsSeeder::class)->run();
