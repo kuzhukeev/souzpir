@@ -95,6 +95,20 @@ final class ApiKeysTest extends TenancyTestCase
         $this->postJson('/integrations/api/secrets', ['type' => 'api_key'])->assertNotFound();
     }
 
+    public function test_expired_key_is_not_offered_or_revealed(): void
+    {
+        [$owner, , $brand] = $this->cabinet();
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->post('/integrations/api/keys', [
+            'name' => 'Expired', 'abilities' => ['read'],
+        ])->assertSessionHasNoErrors();
+        DB::table('personal_access_tokens')->update(['expires_at' => now()->subSecond()]);
+        $sealed = session('integration_api_key');
+
+        $this->get('/integrations/api')->assertOk()->assertInertia(fn (Assert $page) => $page->where('integration_api_key_available', false));
+        $this->withSession(['integration_api_key' => $sealed])->postJson('/integrations/api/secrets', ['type' => 'api_key'])->assertNotFound();
+        Http::assertNothingSent();
+    }
+
     public function test_secret_endpoint_checks_permission_and_type(): void
     {
         [$owner, , $brand] = $this->cabinet();

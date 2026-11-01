@@ -208,6 +208,33 @@ final class SecretSecurityTest extends TenancyTestCase
         Http::assertNothingSent();
     }
 
+    public function test_key_verification_exception_trace_does_not_expose_the_secret(): void
+    {
+        [$owner, , $brand] = $this->cabinet();
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->post('/integrations/api/keys', [
+            'name' => 'Key', 'abilities' => ['read'],
+        ])->assertSessionHasNoErrors();
+        DB::listen(static function (QueryExecuted $query): void {
+            if (str_starts_with(strtolower(ltrim($query->sql)), 'select') && str_contains($query->sql, 'personal_access_tokens')) {
+                throw new RuntimeException('Simulated verification failure.');
+            }
+        });
+        $previous = ini_get('zend.exception_ignore_args');
+        ini_set('zend.exception_ignore_args', '0');
+        try {
+            $this->withoutExceptionHandling()->postJson('/integrations/api/secrets', ['type' => 'api_key']);
+            self::fail('The verification should have failed.');
+        } catch (RuntimeException $exception) {
+            self::assertSame('Simulated verification failure.', $exception->getMessage());
+            $frame = collect($exception->getTrace())->first(fn (array $frame) => ($frame['function'] ?? null) === 'activeApiKey');
+            self::assertIsArray($frame);
+            self::assertInstanceOf(\SensitiveParameterValue::class, $frame['args'][1] ?? null);
+        } finally {
+            ini_set('zend.exception_ignore_args', (string) $previous);
+        }
+        Http::assertNothingSent();
+    }
+
     public function test_key_issuance_does_not_delete_expired_receipts(): void
     {
         [$owner, , $brand] = $this->cabinet();

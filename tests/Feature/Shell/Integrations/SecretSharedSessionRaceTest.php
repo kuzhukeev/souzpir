@@ -14,11 +14,20 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Symfony\Component\Process\Process;
+use Tests\Support\MfaTestDatabase;
 use Tests\TestCase;
 
 final class SecretSharedSessionRaceTest extends TestCase
 {
     use DatabaseMigrations;
+
+    public function runDatabaseMigrations(): void
+    {
+        // Workers need committed fixtures. Fresh migrations isolate each test without
+        // attempting irreversible application migration rollbacks during teardown.
+        MfaTestDatabase::assert();
+        $this->refreshTestDatabase();
+    }
 
     public function test_logout_waits_for_an_already_authorized_secret_reveal(): void
     {
@@ -28,6 +37,67 @@ final class SecretSharedSessionRaceTest extends TestCase
     public function test_secret_reveal_is_denied_when_logout_wins(): void
     {
         $this->assertLogoutRevealRace(true);
+    }
+
+    public function test_reveal_waiting_for_another_sessions_revoke_never_returns_the_revoked_key(): void
+    {
+        Http::preventStrayRequests();
+        $owner = User::create(['name' => 'Race owner', 'email' => 'e110-race@example.test', 'password' => 'race-password-strong']);
+        $owner->forceFill(['email_verified_at' => now()])->save();
+        $organization = Organization::create(['name' => 'Race fixture', 'owner_user_id' => $owner->id]);
+        app(TenantContextRunner::class)->run(new TenantContext($organization->id, actorId: $owner->id), function () use ($owner): void {
+            Membership::create(['user_id' => $owner->id, 'role' => 'owner']);
+            Brand::create(['name' => 'Race brand', 'theme' => 'neutral']);
+        });
+
+        $barrier = base_path('.local/tmp/e110-revoked-'.Str::random(16));
+        $revoke = $reveal = null;
+        try {
+            $sessions = [];
+            foreach (range(1, 2) as $_) {
+                $login = $this->worker('login', null, $barrier, $organization->id);
+                $login->mustRun();
+                $loggedIn = json_decode($login->getOutput(), true, flags: JSON_THROW_ON_ERROR);
+                self::assertSame(302, $loggedIn['status']);
+                $select = $this->worker('select', $loggedIn['cookie'], $barrier, $organization->id);
+                $select->mustRun();
+                $selected = json_decode($select->getOutput(), true, flags: JSON_THROW_ON_ERROR);
+                self::assertSame(204, $selected['status']);
+                $sessions[] = $selected['cookie'];
+            }
+
+            $create = $this->worker('create', $sessions[0], $barrier, $organization->id);
+            $create->mustRun();
+            $created = json_decode($create->getOutput(), true, flags: JSON_THROW_ON_ERROR);
+            self::assertSame(302, $created['status']);
+            $revoke = $this->worker('revoke-first', $sessions[1], $barrier, $organization->id);
+            $revoke->start();
+            $this->waitFor($barrier.'.locked');
+            $reveal = $this->worker('second', $created['cookie'], $barrier, $organization->id);
+            $reveal->start();
+            $this->waitFor($barrier.'.second-started');
+            $this->waitForDatabaseLock('e110_secret_second');
+            file_put_contents($barrier.'.release', '1');
+            self::assertSame(0, $revoke->wait(), $revoke->getErrorOutput());
+            self::assertSame(0, $reveal->wait(), $reveal->getErrorOutput());
+            self::assertSame(302, json_decode($revoke->getOutput(), true, flags: JSON_THROW_ON_ERROR)['status']);
+            self::assertSame(0, DB::table('personal_access_tokens')->count());
+            $revealed = json_decode($reveal->getOutput(), true, flags: JSON_THROW_ON_ERROR);
+            self::assertSame(404, $revealed['status']);
+            self::assertFalse($revealed['has_value']);
+        } finally {
+            file_put_contents($barrier.'.release', '1');
+            foreach ([$revoke, $reveal] as $worker) {
+                if ($worker && $worker->isRunning()) {
+                    $worker->wait();
+                }
+            }
+            foreach (['.locked', '.second-started', '.release'] as $suffix) {
+                if (is_file($barrier.$suffix)) {
+                    unlink($barrier.$suffix);
+                }
+            }
+        }
     }
 
     public function test_pruning_expired_consumed_receipt_cannot_revive_a_restored_session(): void

@@ -93,7 +93,10 @@ export default function Api({
         },
         body: JSON.stringify({ type }),
       });
-      if (!response.ok) throw new Error('secret unavailable');
+      if (!response.ok) {
+        if (response.status === 404 && type === 'api_key') setConsumedKey(true);
+        throw new Error('secret unavailable');
+      }
       const result = (await response.json()) as { value?: unknown };
       if (typeof result.value !== 'string' || !result.value) throw new Error('secret unavailable');
       if (type === 'api_key') {
@@ -104,7 +107,9 @@ export default function Api({
         setHookSecret(result.value);
       }
     } catch {
-      setError('Не удалось получить секрет. Возможно, время показа истекло; создайте новый.');
+      setError(type === 'api_key'
+        ? 'Не удалось получить ключ. Возможно, он отозван или время показа истекло; создайте новый.'
+        : 'Не удалось получить секрет. Возможно, время показа истекло; создайте новый.');
     } finally {
       setRevealing(false);
     }

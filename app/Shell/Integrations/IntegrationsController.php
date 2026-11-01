@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
+use SensitiveParameter;
 
 final class IntegrationsController
 {
@@ -86,6 +87,7 @@ final class IntegrationsController
             $stored = $request->session()->pull($key);
             $payload = $envelope->open($request, $locked, $key, $stored);
             abort_unless($payload !== null, 404);
+            abort_unless($this->activeApiKey($locked, $payload['value']), 404);
             $claimed = DB::table('integration_secret_receipts')->where('nonce_hash', $payload['nonce_hash'])
                 ->whereNull('consumed_at')->where('expires_at', '>', now())->update(['consumed_at' => now()]);
             abort_unless($claimed === 1, 404);
@@ -100,8 +102,9 @@ final class IntegrationsController
     {
         $stored = $request->session()->get($key);
         $payload = app(SecretEnvelope::class)->open($request, $context, $key, $stored);
-        if ($payload === null || ! DB::table('integration_secret_receipts')->where('nonce_hash', $payload['nonce_hash'])
-            ->whereNull('consumed_at')->where('expires_at', '>', now())->exists()) {
+        if ($payload === null || ! $this->activeApiKey($context, $payload['value'])
+            || ! DB::table('integration_secret_receipts')->where('nonce_hash', $payload['nonce_hash'])
+                ->whereNull('consumed_at')->where('expires_at', '>', now())->exists()) {
             $request->session()->forget($key);
 
             return false;
@@ -109,6 +112,23 @@ final class IntegrationsController
         $request->session()->keep($key);
 
         return true;
+    }
+
+    private function activeApiKey(TenantContext $context, #[SensitiveParameter] string $value): bool
+    {
+        [$id, $token] = array_pad(explode('|', $value, 2), 2, null);
+        if (! is_string($id) || preg_match('/^[1-9][0-9]{0,18}$/D', $id) !== 1
+            || (strlen($id) === 19 && strcmp($id, (string) PHP_INT_MAX) > 0)
+            || ! is_string($token) || preg_match('/^[a-zA-Z0-9]{64}$/D', $token) !== 1) {
+            return false;
+        }
+
+        return DB::table('personal_access_tokens')->where('id', $id)
+            ->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)
+            ->where('tokenable_type', Brand::class)->where('tokenable_id', $context->brandId)
+            ->where('token', hash('sha256', $token))
+            ->where(fn ($query) => $query->whereNull('expires_at')->orWhere('expires_at', '>', now()))
+            ->exists();
     }
 
     public function notifications(): Response

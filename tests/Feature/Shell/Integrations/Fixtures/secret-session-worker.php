@@ -25,12 +25,17 @@ if (! $app->environment('testing') || ! $base || strcasecmp($base, (string) real
     exit(1);
 }
 Route::middleware(['web', 'auth', 'verified', 'tenant'])->get('/_e110-select-brand', fn () => response('', 204));
-if (in_array($input['mode'], ['first', 'logout-first'], true)) {
+if (in_array($input['mode'], ['first', 'logout-first', 'revoke-first'], true)) {
     DB::listen(function (QueryExecuted $query) use ($input): void {
         static $paused = false;
         $sql = strtolower($query->sql);
-        $target = $input['mode'] === 'first' ? 'integration_secret_receipts' : 'auth_session_registry';
-        if ($paused || ! str_starts_with(ltrim($sql), 'update') || ! str_contains($sql, $target)) {
+        $target = match ($input['mode']) {
+            'first' => 'integration_secret_receipts',
+            'logout-first' => 'auth_session_registry',
+            'revoke-first' => 'personal_access_tokens',
+        };
+        $verb = $input['mode'] === 'revoke-first' ? 'delete' : 'update';
+        if ($paused || ! str_starts_with(ltrim($sql), $verb) || ! str_contains($sql, $target)) {
             return;
         }
         $paused = true;
@@ -48,6 +53,7 @@ if (in_array($input['mode'], ['first', 'logout-first'], true)) {
     'login' => ['POST', '/login', ['email' => 'e110-race@example.test', 'password' => 'race-password-strong']],
     'select' => ['GET', '/_e110-select-brand', []],
     'create', 'outer' => ['POST', '/integrations/api/keys', ['name' => 'Race fixture', 'abilities' => ['read']]],
+    'revoke-first' => ['DELETE', '/integrations/api/keys/'.(string) DB::table('personal_access_tokens')->value('id'), []],
     'first', 'second' => ['POST', '/integrations/api/secrets', ['type' => 'api_key']],
     'logout', 'logout-first' => ['POST', '/logout', []],
 };

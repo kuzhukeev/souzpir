@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { mkdir } from 'node:fs/promises';
 
 // Never attach a browser snapshot, trace, video, or failure prompt containing a live test key.
 process.env.PLAYWRIGHT_NO_COPY_PROMPT = '1';
@@ -78,4 +79,48 @@ test('реальный UI создаёт, раскрывает и отзывае
   await page.getByRole('dialog', { name: 'Сохраните ключ' }).getByRole('button', { name: 'Готово' }).click();
   await page.getByRole('row').filter({ hasText: leadsName }).getByRole('button', { name: 'Отозвать' }).click();
   await expect(page.getByRole('row').filter({ hasText: leadsName })).toHaveCount(0);
+});
+
+test('отозванный в другой сессии ключ нельзя показать', async ({ page, browser }) => {
+  const otherContext = await browser.newContext();
+  try {
+    const other = await otherContext.newPage();
+    for (const current of [page, other]) {
+      await current.route('**/*', (route) => [origin, assets].includes(new URL(route.request().url()).origin) ? route.continue() : route.abort('blockedbyclient'));
+      await current.goto(`${origin}/login`);
+      await current.getByLabel('Рабочая почта').fill('owner-e110@example.test');
+      await current.getByLabel('Пароль', { exact: true }).fill('test-only-password-123');
+      await current.getByRole('button', { name: 'Войти', exact: true }).click();
+      await expect(current).toHaveURL(/auth\/ready/);
+      await current.goto(`${origin}/integrations/api`);
+    }
+
+    const name = `Revoke before reveal ${Date.now()}`;
+    await page.getByRole('button', { name: 'Создать ключ' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Создать API-ключ' });
+    await dialog.getByLabel('Название ключа').fill(name);
+    await dialog.getByLabel('Чтение').check();
+    await dialog.getByRole('button', { name: 'Создать', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Показать ключ один раз' })).toBeVisible();
+
+    await other.reload();
+    const row = other.getByRole('row').filter({ hasText: name });
+    await expect(row).toBeVisible();
+    await row.getByRole('button', { name: 'Отозвать' }).click();
+    await expect(row).toHaveCount(0);
+
+    const response = page.waitForResponse((result) => result.url().endsWith('/integrations/api/secrets') && result.request().method() === 'POST');
+    await page.getByRole('button', { name: 'Показать ключ один раз' }).click();
+    expect((await response).status()).toBe(404);
+    await expect(page.getByText('Не удалось получить ключ. Возможно, он отозван или время показа истекло; создайте новый.')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Показать ключ один раз' })).toHaveCount(0);
+    await expect(page.getByLabel('Созданный API-ключ')).toHaveCount(0);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await mkdir('.local/screenshots/e1-10', { recursive: true });
+    await page.screenshot({ path: '.local/screenshots/e1-10/key-revoked-before-reveal-390.png' });
+    await page.reload();
+    await expect(page.getByRole('button', { name: 'Показать ключ один раз' })).toHaveCount(0);
+  } finally {
+    await otherContext.close();
+  }
 });
