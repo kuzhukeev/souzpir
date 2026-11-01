@@ -10,17 +10,6 @@ permissions:
 jobs:
   application:
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_DB: souzpir_test_ci
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: ci-only-password
-        ports: ['5432:5432']
-        options: >-
-          --health-cmd "pg_isready -U postgres -d souzpir_test_ci"
-          --health-interval 5s --health-timeout 5s --health-retries 10
     env:
       APP_ENV: testing
       APP_INSTANCE: ci
@@ -54,6 +43,19 @@ jobs:
         with:
           node-version: '24'
           cache: npm
+      - name: Start isolated PostgreSQL on loopback
+        run: |
+          docker run --detach --name souzpir-ci-postgres --network host \
+            -e POSTGRES_DB=souzpir_test_ci -e POSTGRES_USER=postgres \
+            -e POSTGRES_PASSWORD=ci-only-password postgres:16 \
+            -c listen_addresses=127.0.0.1
+          for attempt in {1..30}; do
+            if docker exec souzpir-ci-postgres pg_isready -h 127.0.0.1 -U postgres -d souzpir_test_ci; then break; fi
+            sleep 1
+          done
+          docker exec souzpir-ci-postgres pg_isready -h 127.0.0.1 -U postgres -d souzpir_test_ci
+          actual=$(PGPASSWORD=ci-only-password psql -X -A -t -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "SELECT host(inet_server_addr()), inet_server_port();")
+          test "$actual" = '127.0.0.1|5432'
       - name: Prepare local runtime
         run: |
           mkdir -p .local/tmp
