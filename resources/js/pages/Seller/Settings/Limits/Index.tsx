@@ -81,7 +81,7 @@ export default function Index({ rows, budget, period }: Props) {
         {exists('seller/settings/notifications') ? (
           <Link
             href="/seller/settings/notifications"
-            className="rounded-lg bg-(--color-surface) px-4 py-3 text-sm text-(--color-link)"
+            className="cursor-pointer rounded-lg bg-(--color-surface) px-4 py-3 text-sm text-(--color-link) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus)"
           >
             Уведомления
           </Link>
