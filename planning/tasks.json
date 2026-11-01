@@ -4659,6 +4659,7 @@
         "SP-E3-04"
       ],
       "scope": [
+        "routes/features/C-02.php",
         "app/Ai/Gateway.php",
         "app/Ai/Protected/",
         "app/Contracts/Ai/",
