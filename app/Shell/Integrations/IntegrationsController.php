@@ -45,7 +45,7 @@ final class IntegrationsController
         return Inertia::render('Shell/Integrations/Index', compact('connections'));
     }
 
-    public function api(Request $request, WebhookService $webhooks): Response
+    public function api(Request $request, WebhookService $webhooks, BrandReadApiAvailability $brandReadApi): Response
     {
         Gate::authorize('integrations.write');
         $context = app(TenantContext::class);
@@ -56,6 +56,7 @@ final class IntegrationsController
             'webhooks' => $webhooks->forBrand($context),
             'webhookEvents' => WebhookService::eventOptions(),
             'permissions' => ['manage' => true],
+            'apiBrandReadConfigured' => $brandReadApi->configured($request),
             'apiKeyRuntimeAvailable' => false,
             'secureSecretTransport' => SecretTransport::allows($request),
             'secretStorageReady' => SecretSessionStore::ready(),
