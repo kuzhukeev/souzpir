@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { CalendarDays, Link2, Mail, MessageCircle, Store } from 'lucide-react';
 import { Badge, Button, Switch } from '@/components/ui';
 import CabinetLayout from '@/layouts/CabinetLayout';
+import { focus } from '@/components/ui/styles';
 import { Interest } from '@/features/Seller/Channels/Planned/Interest';
 import { plannedRequest } from '@/features/Seller/Channels/Planned/request';
 import type { PlannedItem, PlannedProps } from '@/types/Seller/Channels/Planned';
@@ -73,12 +74,12 @@ export default function Index({ section, planned }: PlannedProps) {
       {(section === 'vk' || section === 'whatsapp') && (item ? <Channel item={item} section={section} canManage={planned.canManage} available={planned.interestAvailable} brandId={planned.brandId} /> : <p role="alert" className={panel}>Не удалось загрузить данные канала.</p>)}
       {section === 'calendar' && <Calendar planned={planned} />}
       {section === 'planned' && <nav aria-label="Будущие каналы и напоминания" className="flex flex-wrap gap-3">
-        <Link href="/seller/channels/vk" className="inline-flex min-h-10 items-center rounded-lg bg-(--color-surface) px-4 text-sm font-semibold text-(--color-link)">ВКонтакте · Скоро</Link>
-        <Link href="/seller/channels/whatsapp" className="inline-flex min-h-10 items-center rounded-lg bg-(--color-surface) px-4 text-sm font-semibold text-(--color-link)">WhatsApp · Скоро</Link>
-        <Link href="/seller/integrations/calendar" className="inline-flex min-h-10 items-center rounded-lg bg-(--color-surface) px-4 text-sm font-semibold text-(--color-link)">Почта и календарь · Скоро</Link>
+        <Link href="/seller/channels/vk" className={`inline-flex min-h-10 cursor-pointer items-center rounded-lg bg-(--color-surface) px-4 text-sm font-semibold text-(--color-link) ${focus}`}>ВКонтакте · Скоро</Link>
+        <Link href="/seller/channels/whatsapp" className={`inline-flex min-h-10 cursor-pointer items-center rounded-lg bg-(--color-surface) px-4 text-sm font-semibold text-(--color-link) ${focus}`}>WhatsApp · Скоро</Link>
+        <Link href="/seller/integrations/calendar" className={`inline-flex min-h-10 cursor-pointer items-center rounded-lg bg-(--color-surface) px-4 text-sm font-semibold text-(--color-link) ${focus}`}>Почта и календарь · Скоро</Link>
       </nav>}
       {section === 'planned' && <Integrations planned={planned} />}
-      {section !== 'planned' && <Link href="/seller/integrations/planned" className="inline-flex min-h-10 items-center text-sm font-semibold text-(--color-link)">Другие будущие интеграции</Link>}
+      {section !== 'planned' && <Link href="/seller/integrations/planned" className={`inline-flex min-h-10 cursor-pointer items-center text-sm font-semibold text-(--color-link) ${focus}`}>Другие будущие интеграции</Link>}
     </div>
   </CabinetLayout>;
 }
