@@ -40,35 +40,60 @@ final class FirstTurnTextFinalizer
                 throw new LogicException;
             }
 
-            return app(AuthSessionRegistry::class)->withinActive($http, function (User $user) use ($http, $claim, $responderId, $modelGuardId, $idempotencyKey): array {
-                [$tenant, $selection] = $this->authorize($http, $user, $claim);
-                // A valid public claim is insufficient. Recheck the sealed
-                // creation-time origin even when replaying a stored receipt.
-                $originStatus = app(FirstTurnProtectedClaim::class)->assertOriginLocked($http, $claim);
-                if (! in_array($originStatus, ['processing', 'completed'], true)) {
-                    throw new LogicException;
-                }
-                $secret = config('app.key');
-                if (! is_string($secret) || $secret === '') {
-                    throw new LogicException;
-                }
-                $requestHash = CanonicalJson::hash(['turn' => $claim->turnId, 'conversation' => $claim->conversationId,
-                    'base_version' => $claim->baseVersion, 'responder' => $responderId, 'model_guard' => $modelGuardId,
-                    'actor' => $user->id, 'session' => hash_hmac('sha256', 'c02-finalizer-session:'.$http->session()->getId(), $secret),
-                    'selection_revision' => (string) $selection->brand_revision, 'claim' => hash_hmac('sha256', 'c02-finalizer-claim:'.$claim->token(), $secret)]);
-
-                $result = app(PostgresTransactionalIdempotency::class)->execute($tenant->organizationId, $tenant->brandId, 'seller.first_text_finalize',
-                    $idempotencyKey, $requestHash, fn () => $this->write($http, $tenant, $claim, $responderId, $modelGuardId));
-                $this->verifyReceipt($tenant, $claim, $result);
-                unset($result['outcome_seal']);
-
-                return $result;
-            });
+            return app(AuthSessionRegistry::class)->withinActive($http,
+                fn (User $user): array => $this->executeLocked($http, $user, $claim, $responderId, $modelGuardId, $idempotencyKey, true));
         } catch (IdempotencyConflict) {
             throw new IdempotencyConflict('Idempotency key was used with different content.');
         } catch (Throwable) {
             throw new LogicException('Protected first-turn finalization unavailable.');
         }
+    }
+
+    /** Read an existing sealed result inside the caller's transaction; never perform a new write. */
+    public function replayLocked(#[SensitiveParameter] Request $http, #[SensitiveParameter] TurnClaim $claim, #[SensitiveParameter] string $responderId, #[SensitiveParameter] ?string $modelGuardId, #[SensitiveParameter] string $idempotencyKey): array
+    {
+        try {
+            if (DB::connection()->getDriverName() !== 'pgsql' || DB::connection()->transactionLevel() < 1
+                || ! Str::isUlid($responderId) || ($modelGuardId !== null && ! Str::isUlid($modelGuardId))
+                || $idempotencyKey === '' || strlen($idempotencyKey) > 512) {
+                throw new LogicException;
+            }
+
+            return app(AuthSessionRegistry::class)->withinActive($http,
+                fn (User $user): array => $this->executeLocked($http, $user, $claim, $responderId, $modelGuardId, $idempotencyKey, false));
+        } catch (Throwable) {
+            throw new LogicException('Protected first-turn finalization unavailable.');
+        }
+    }
+
+    private function executeLocked(#[SensitiveParameter] Request $http, User $user, #[SensitiveParameter] TurnClaim $claim, #[SensitiveParameter] string $responderId, #[SensitiveParameter] ?string $modelGuardId, #[SensitiveParameter] string $idempotencyKey, bool $allowWrite): array
+    {
+        [$tenant, $selection] = $this->authorize($http, $user, $claim);
+        $originStatus = app(FirstTurnProtectedClaim::class)->assertOriginLocked($http, $claim);
+        if (! in_array($originStatus, $allowWrite ? ['processing', 'completed'] : ['completed'], true)) {
+            throw new LogicException;
+        }
+        $secret = config('app.key');
+        if (! is_string($secret) || $secret === '') {
+            throw new LogicException;
+        }
+        $requestHash = CanonicalJson::hash(['turn' => $claim->turnId, 'conversation' => $claim->conversationId,
+            'base_version' => $claim->baseVersion, 'responder' => $responderId, 'model_guard' => $modelGuardId,
+            'actor' => $user->id, 'session' => hash_hmac('sha256', 'c02-finalizer-session:'.$http->session()->getId(), $secret),
+            'selection_revision' => (string) $selection->brand_revision, 'claim' => hash_hmac('sha256', 'c02-finalizer-claim:'.$claim->token(), $secret)]);
+
+        $result = app(PostgresTransactionalIdempotency::class)->execute($tenant->organizationId, $tenant->brandId, 'seller.first_text_finalize',
+            $idempotencyKey, $requestHash, function () use ($allowWrite, $http, $tenant, $claim, $responderId, $modelGuardId): array {
+                if (! $allowWrite) {
+                    throw new LogicException;
+                }
+
+                return $this->write($http, $tenant, $claim, $responderId, $modelGuardId);
+            });
+        $this->verifyReceipt($tenant, $claim, $result);
+        unset($result['outcome_seal']);
+
+        return $result;
     }
 
     private function authorize(#[SensitiveParameter] Request $http, User $user, #[SensitiveParameter] TurnClaim $claim): array

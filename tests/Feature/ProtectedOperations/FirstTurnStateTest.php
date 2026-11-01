@@ -4,6 +4,8 @@ namespace Tests\Feature\ProtectedOperations;
 
 use App\Ai\CanonicalJson;
 use App\Ai\ContactMasker;
+use App\Ai\Drivers\Driver;
+use App\Ai\Drivers\FakeDriver;
 use App\Ai\Gateway;
 use App\Ai\Protected\GuardProjection;
 use App\Ai\Protected\ResponderProjection;
@@ -15,6 +17,7 @@ use App\Models\Brand;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\User;
+use App\ProtectedOperations\FirstTurnCoordinator;
 use App\ProtectedOperations\FirstTurnDeterministicGuard;
 use App\ProtectedOperations\FirstTurnGoal;
 use App\ProtectedOperations\FirstTurnProtectedClaim;
@@ -49,6 +52,29 @@ use Illuminate\Support\Str;
 use LogicException;
 use Symfony\Component\Process\Process;
 use Tests\TestCase;
+
+final class CoordinatorScriptedFakeDriver implements Driver
+{
+    public int $calls = 0;
+
+    public ?\Closure $onCall = null;
+
+    public function __construct(public array $responses) {}
+
+    public function complete(#[\SensitiveParameter] array $body): array
+    {
+        $index = $this->calls++;
+        if ($this->onCall !== null) {
+            ($this->onCall)($index);
+        }
+        if (! isset($this->responses[$index])) {
+            throw new LogicException('Unexpected synthetic fake call.');
+        }
+
+        return array_replace(['content' => null, 'toolCalls' => [], 'usage' => ['promptTokens' => 1, 'completionTokens' => 1],
+            'model' => $body['model'], 'latencyMs' => 1, 'costMicros' => 0], $this->responses[$index]);
+    }
+}
 
 final class FirstTurnStateTest extends TestCase
 {
@@ -2679,6 +2705,312 @@ SQL);
         $worker->setTimeout(60);
 
         return $worker;
+    }
+
+    public function test_coordinator_completes_one_command_and_replays_without_new_calls(): void
+    {
+        [$tenant, $http, $command] = $this->protectedClaimFixture();
+        $fake = new CoordinatorScriptedFakeDriver([
+            ['content' => '{"client_intent":"answer_only"}'],
+            ['content' => 'Можем обсудить заказ?'],
+        ]);
+        app()->instance(FakeDriver::class, $fake);
+        $this->within($tenant, function () use ($http, $command, $fake): void {
+            $service = app(FirstTurnCoordinator::class);
+            $first = $service->run($http, $command);
+            self::assertSame('completed', $first['status']);
+            self::assertSame($first, $service->run($http, $command));
+            $different = new TurnCommand($command->conversationId, $command->inputMessageId, 'Different input', null, $command->idempotencyKey, 0);
+            try {
+                $service->run($http, $different);
+                self::fail('Different content reused the coordinator key.');
+            } catch (IdempotencyConflict) {
+                self::assertTrue(true);
+            }
+            self::assertSame(2, $fake->calls);
+            self::assertSame(2, DB::table('ai_calls')->count());
+            self::assertSame(2, DB::table('messages')->where('conversation_id', $command->conversationId)->count());
+            self::assertSame(1, DB::table('audit_logs')->where('action', 'seller.turn.text_finalized')->count());
+            self::assertSame('completed', DB::table('seller_turns')->where('id', $first['result']['turn_id'])->value('status'));
+            self::assertSame('Можем обсудить заказ?', DB::table('messages')->where('id', $first['result']['message_id'])->value('text'));
+            $state = json_decode(DB::table('conversations')->where('id', $command->conversationId)->value('state'), true, 512, JSON_THROW_ON_ERROR);
+            self::assertSame(1, $state['counters']['turns']);
+            self::assertSame('city', $state['signals']['last_asked_slot']);
+            self::assertFalse($state['flags']['introduced']);
+            self::assertArrayNotHasKey('outcome_seal', $first['result']);
+            self::assertArrayNotHasKey('token', $first['result']);
+            self::assertSame(0, DB::table('seller_tasks')->count());
+            self::assertSame(0, DB::table('outbox_events')->count());
+            $stored = DB::table('seller_turns')->where('id', $first['result']['turn_id'])->first();
+            $outcome = json_decode($stored->outcome, true, 512, JSON_THROW_ON_ERROR);
+            $outcome['messages'][0]['text'] = 'Altered synthetic output';
+            DB::table('messages')->where('id', $first['result']['message_id'])->update(['text' => 'Altered synthetic output']);
+            DB::table('seller_turns')->where('id', $first['result']['turn_id'])->update([
+                'outcome' => json_encode($outcome, JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR),
+                'outcome_hash' => \App\Seller\Conversations\CanonicalJson::hash($outcome),
+            ]);
+            self::assertSame(['status' => 'unavailable'], $service->run($http, $command));
+            app(AuthSessionRegistry::class)->withinActive($http, fn () => app(AuthSessionRegistry::class)->revokeCurrent($http));
+            self::assertSame(['status' => 'unavailable'], $service->run($http, $command));
+            self::assertSame(2, $fake->calls);
+        });
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
+    }
+
+    public function test_coordinator_recovers_after_finalizer_commit_without_repeating_ai(): void
+    {
+        [$tenant, $http, $command] = $this->protectedClaimFixture();
+        $claim = $this->within($tenant, fn () => app(FirstTurnProtectedClaim::class)->claim($http, $command));
+        $extractor = $this->completeExtractorForProtectedClaim($tenant, $http, $claim);
+        [$responder, , , $file] = $this->responderFixture($tenant, $http, $claim, $extractor, ['content' => 'Можем обсудить заказ?']);
+        $this->within($tenant, function () use ($http, $command, $claim, $responder, $file): void {
+            app(Gateway::class)->completeProtectedResponder($http, $claim, $responder);
+            $result = app(FirstTurnTextFinalizer::class)->finalize($http, $claim, $responder, null, FirstTurnCoordinator::finalizationKey($claim->turnId));
+            // A crash here loses the caller's result, while the committed receipt survives.
+            self::assertSame(['status' => 'completed', 'result' => $result], app(FirstTurnCoordinator::class)->run($http, $command));
+            self::assertSame(2, DB::table('ai_calls')->count());
+            self::assertSame(2, DB::table('messages')->where('conversation_id', $claim->conversationId)->count());
+            self::assertSame(1, DB::table('audit_logs')->where('action', 'seller.turn.text_finalized')->count());
+            unlink($file);
+        });
+        Http::assertNothingSent();
+    }
+
+    public function test_coordinator_resumes_after_extractor_without_repeating_it(): void
+    {
+        [$tenant, $http, $command] = $this->protectedClaimFixture();
+        $claim = $this->within($tenant, fn () => app(FirstTurnProtectedClaim::class)->claim($http, $command));
+        $extractor = $this->completeExtractorForProtectedClaim($tenant, $http, $claim);
+        $this->within($tenant, function () use ($http, $claim, $extractor): void {
+            $state = app(FirstTurnState::class)->prepare($http, $claim, $extractor);
+            app(SellerResponderStages::class)->prepare($http, $claim, $extractor, $state);
+        });
+        $fake = new CoordinatorScriptedFakeDriver([['content' => 'Можем обсудить заказ?']]);
+        app()->instance(FakeDriver::class, $fake);
+        $this->within($tenant, function () use ($http, $command, $fake): void {
+            $result = app(FirstTurnCoordinator::class)->run($http, $command);
+            self::assertSame('completed', $result['status']);
+            self::assertSame($result, app(FirstTurnCoordinator::class)->run($http, $command));
+            self::assertSame(1, $fake->calls);
+            self::assertSame(1, DB::table('ai_calls')->where('purpose', 'extractor')->count());
+            self::assertSame(1, DB::table('ai_calls')->where('purpose', 'responder')->count());
+            self::assertSame(1, DB::table('messages')->where('conversation_id', $command->conversationId)->where('role', 'agent')->count());
+        });
+        Http::assertNothingSent();
+    }
+
+    public function test_coordinator_recovers_after_finalization_rollback_without_repeating_ai(): void
+    {
+        [$tenant, $http, $command] = $this->protectedClaimFixture();
+        $fake = new CoordinatorScriptedFakeDriver([
+            ['content' => '{"client_intent":"answer_only"}'],
+            ['content' => 'Можем обсудить заказ?'],
+        ]);
+        app()->instance(FakeDriver::class, $fake);
+        DB::unprepared(<<<'SQL'
+CREATE OR REPLACE FUNCTION c02_test_fail_coordinator_audit() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.action = 'seller.turn.text_finalized' THEN RAISE EXCEPTION 'synthetic audit failure'; END IF;
+  RETURN NEW;
+END;
+$$;
+CREATE TRIGGER c02_test_fail_coordinator_audit BEFORE INSERT ON audit_logs FOR EACH ROW EXECUTE FUNCTION c02_test_fail_coordinator_audit();
+SQL);
+        try {
+            $this->within($tenant, function () use ($http, $command, $fake): void {
+                self::assertSame(['status' => 'unavailable'], app(FirstTurnCoordinator::class)->run($http, $command));
+                self::assertSame(2, $fake->calls);
+                self::assertSame(2, DB::table('ai_calls')->count());
+                self::assertSame(1, DB::table('messages')->where('conversation_id', $command->conversationId)->count());
+                self::assertSame(0, DB::table('protected_operation_receipts')->where('operation', 'seller.first_text_finalize')->count());
+            });
+        } finally {
+            DB::unprepared('DROP TRIGGER IF EXISTS c02_test_fail_coordinator_audit ON audit_logs; DROP FUNCTION IF EXISTS c02_test_fail_coordinator_audit();');
+        }
+        $this->within($tenant, function () use ($http, $command, $fake): void {
+            $result = app(FirstTurnCoordinator::class)->run($http, $command);
+            self::assertSame('completed', $result['status']);
+            self::assertSame(2, $fake->calls);
+            self::assertSame(2, DB::table('messages')->where('conversation_id', $command->conversationId)->count());
+            self::assertSame(1, DB::table('audit_logs')->where('action', 'seller.turn.text_finalized')->count());
+        });
+        Http::assertNothingSent();
+    }
+
+    public function test_coordinator_rejects_live_driver_and_outer_transaction_before_claim(): void
+    {
+        [$tenant, $http, $command] = $this->protectedClaimFixture();
+        $this->within($tenant, function () use ($http, $command): void {
+            config(['runtime.ai_driver' => 'openrouter']);
+            try {
+                self::assertSame(['status' => 'unavailable'], app(FirstTurnCoordinator::class)->run($http, $command));
+            } finally {
+                config(['runtime.ai_driver' => 'fake']);
+            }
+            DB::transaction(fn () => self::assertSame(['status' => 'unavailable'], app(FirstTurnCoordinator::class)->run($http, $command)));
+            self::assertSame(0, DB::table('seller_turns')->where('conversation_id', $command->conversationId)->count());
+            self::assertSame(0, DB::table('ai_calls')->count());
+        });
+        Http::assertNothingSent();
+    }
+
+    public function test_coordinator_does_not_retry_a_call_after_worker_stops_at_reservation(): void
+    {
+        [$tenant, $http, $command] = $this->protectedClaimFixture();
+        config(['database.connections.c02_coordinator_blocker' => config('database.connections.pgsql')]);
+        $blocker = DB::connection('c02_coordinator_blocker');
+        $blocker->beginTransaction();
+        $blocker->select('SELECT pg_advisory_xact_lock(8620480)');
+        $marker = base_path('.local/tmp/c02-coordinator-reserved-'.Str::random(16));
+        $worker = new Process([PHP_BINARY, '-d', 'sys_temp_dir='.base_path('.local/tmp'), '-d', 'allow_url_fopen=0',
+            '-d', 'disable_functions=fsockopen,pfsockopen,stream_socket_client,curl_exec,curl_multi_exec',
+            base_path('tests/Feature/ProtectedOperations/Fixtures/coordinator-reservation-worker.php'), $marker], base_path());
+        $worker->setInput(json_encode(['org' => $tenant->organizationId, 'brand' => $tenant->brandId, 'user' => $tenant->actorId,
+            'member' => $tenant->membershipId, 'session' => $http->session()->getId(), 'conversation' => $command->conversationId,
+            'message' => $command->inputMessageId, 'text' => $command->text, 'key' => $command->idempotencyKey], JSON_THROW_ON_ERROR));
+        $worker->setTimeout(60);
+        try {
+            $worker->start();
+            $this->waitForFinalizerLock($worker, $marker);
+            self::assertSame(1, DB::table('ai_calls')->where('purpose', 'extractor')->where('status', 'reserved')->count());
+            $fake = new CoordinatorScriptedFakeDriver([['content' => '{"client_intent":"answer_only"}']]);
+            app()->instance(FakeDriver::class, $fake);
+            $this->within($tenant, function () use ($http, $command, $fake): void {
+                self::assertSame(['status' => 'in_progress'], app(FirstTurnCoordinator::class)->run($http, $command));
+                self::assertSame(0, $fake->calls);
+            });
+            $worker->stop();
+            self::assertFalse($worker->isRunning());
+            $blocker->rollBack();
+            $this->within($tenant, function () use ($http, $command, $fake): void {
+                self::assertSame(['status' => 'in_progress'], app(FirstTurnCoordinator::class)->run($http, $command));
+                self::assertSame(['status' => 'in_progress'], app(FirstTurnCoordinator::class)->run($http, $command));
+                self::assertSame(0, $fake->calls);
+                self::assertSame(1, DB::table('ai_calls')->where('purpose', 'extractor')->where('status', 'reserved')->count());
+                self::assertSame(1, DB::table('messages')->where('conversation_id', $command->conversationId)->count());
+                self::assertSame(0, DB::table('seller_tasks')->count());
+                self::assertSame(0, DB::table('outbox_events')->count());
+            });
+        } finally {
+            if ($blocker->transactionLevel() > 0) {
+                $blocker->rollBack();
+            }
+            if ($worker->isRunning()) {
+                $worker->stop();
+            }
+            if (is_file($marker)) {
+                unlink($marker);
+            }
+            DB::purge('c02_coordinator_blocker');
+        }
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
+    }
+
+    public function test_coordinator_blocks_tools_and_does_not_retry_unknown_ai(): void
+    {
+        [$tenant, $http, $command] = $this->protectedClaimFixture();
+        $fake = new CoordinatorScriptedFakeDriver([
+            ['content' => '{"client_intent":"answer_only"}'],
+            ['content' => 'Ignored', 'toolCalls' => [['id' => 'synthetic-tool', 'name' => 'send_price', 'arguments' => []]]],
+        ]);
+        app()->instance(FakeDriver::class, $fake);
+        $this->within($tenant, function () use ($http, $command, $fake): void {
+            self::assertSame(['status' => 'blocked'], app(FirstTurnCoordinator::class)->run($http, $command));
+            self::assertSame(['status' => 'blocked'], app(FirstTurnCoordinator::class)->run($http, $command));
+            self::assertSame(2, $fake->calls);
+            self::assertSame(1, DB::table('messages')->where('conversation_id', $command->conversationId)->count());
+            self::assertSame(0, DB::table('seller_tasks')->count());
+            self::assertSame(0, DB::table('outbox_events')->count());
+        });
+        [$otherTenant, $otherHttp, $otherCommand] = $this->protectedClaimFixture();
+        $unknown = new CoordinatorScriptedFakeDriver([['content' => '{"client_intent":"answer_only"}', 'costMicros' => null]]);
+        app()->instance(FakeDriver::class, $unknown);
+        $this->within($otherTenant, function () use ($otherHttp, $otherCommand, $unknown): void {
+            self::assertSame(['status' => 'uncertain'], app(FirstTurnCoordinator::class)->run($otherHttp, $otherCommand));
+            self::assertSame(['status' => 'uncertain'], app(FirstTurnCoordinator::class)->run($otherHttp, $otherCommand));
+            self::assertSame(1, $unknown->calls);
+            self::assertSame(1, DB::table('messages')->where('conversation_id', $otherCommand->conversationId)->count());
+        });
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
+    }
+
+    public function test_coordinator_runs_required_model_guard_and_blocks_required_effect(): void
+    {
+        config(['agent.guard_llm' => true]);
+        [$tenant, $http, $command] = $this->protectedClaimFixture();
+        $fake = new CoordinatorScriptedFakeDriver([
+            ['content' => '{"client_intent":"answer_only","closed_topic":"management_names"}'],
+            ['content' => 'Давайте обсудим ваш заказ.'],
+            ['content' => '{"ok":true,"issues":[]}'],
+        ]);
+        app()->instance(FakeDriver::class, $fake);
+        $this->within($tenant, function () use ($http, $command, $fake): void {
+            $result = app(FirstTurnCoordinator::class)->run($http, $command);
+            self::assertSame('completed', $result['status']);
+            self::assertSame($result, app(FirstTurnCoordinator::class)->run($http, $command));
+            self::assertSame(3, $fake->calls);
+            self::assertSame(1, DB::table('ai_calls')->where('purpose', 'guard')->count());
+            self::assertSame(1, DB::table('messages')->where('conversation_id', $command->conversationId)->where('role', 'agent')->count());
+        });
+        config(['agent.guard_llm' => false]);
+        [$otherTenant, $otherHttp, $otherCommand] = $this->protectedClaimFixture();
+        $effect = new CoordinatorScriptedFakeDriver([
+            ['content' => '{"client_intent":"ask_requisites"}'],
+            ['content' => 'Пришлю реквизиты. Какой у вас город?'],
+        ]);
+        app()->instance(FakeDriver::class, $effect);
+        $this->within($otherTenant, function () use ($otherHttp, $otherCommand, $effect): void {
+            $result = app(FirstTurnCoordinator::class)->run($otherHttp, $otherCommand);
+            self::assertContains($result['status'], ['blocked', 'unavailable']);
+            self::assertNotSame('completed', app(FirstTurnCoordinator::class)->run($otherHttp, $otherCommand)['status']);
+            self::assertSame(2, $effect->calls);
+            self::assertSame(0, DB::table('messages')->where('conversation_id', $otherCommand->conversationId)->where('role', 'agent')->count());
+        });
+        self::assertSame(0, DB::table('seller_tasks')->count());
+        self::assertSame(0, DB::table('outbox_events')->count());
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
+    }
+
+    public function test_coordinator_does_not_save_after_new_input_or_revoked_session(): void
+    {
+        [$tenant, $http, $command] = $this->protectedClaimFixture();
+        $fake = new CoordinatorScriptedFakeDriver([['content' => '{"client_intent":"answer_only"}']]);
+        $fake->onCall = function () use ($command): void {
+            Message::create(['conversation_id' => $command->conversationId, 'role' => 'client', 'text' => 'Newer input', 'meta' => []]);
+        };
+        app()->instance(FakeDriver::class, $fake);
+        $this->within($tenant, function () use ($http, $command, $fake): void {
+            self::assertSame(['status' => 'uncertain'], app(FirstTurnCoordinator::class)->run($http, $command));
+            self::assertSame(['status' => 'uncertain'], app(FirstTurnCoordinator::class)->run($http, $command));
+            self::assertSame(1, $fake->calls);
+            self::assertSame(2, DB::table('messages')->where('conversation_id', $command->conversationId)->count());
+            self::assertSame(0, DB::table('messages')->where('conversation_id', $command->conversationId)->where('role', 'agent')->count());
+            self::assertSame(1, DB::table('ai_calls')->where('object_id', $command->conversationId)->where('status', 'completed')->count());
+        });
+        [$otherTenant, $otherHttp, $otherCommand] = $this->protectedClaimFixture();
+        $revoked = new CoordinatorScriptedFakeDriver([['content' => '{"client_intent":"answer_only"}']]);
+        $revoked->onCall = fn () => app(AuthSessionRegistry::class)->withinActive($otherHttp, fn () => app(AuthSessionRegistry::class)->revokeCurrent($otherHttp));
+        app()->instance(FakeDriver::class, $revoked);
+        $this->within($otherTenant, function () use ($otherHttp, $otherCommand, $revoked): void {
+            self::assertSame(['status' => 'unavailable'], app(FirstTurnCoordinator::class)->run($otherHttp, $otherCommand));
+            self::assertSame(['status' => 'unavailable'], app(FirstTurnCoordinator::class)->run($otherHttp, $otherCommand));
+            self::assertSame(1, $revoked->calls);
+            self::assertSame(1, DB::table('messages')->where('conversation_id', $otherCommand->conversationId)->count());
+            self::assertSame(1, DB::table('ai_calls')->where('object_id', $otherCommand->conversationId)->where('status', 'completed')->count());
+        });
+        self::assertSame(0, DB::table('seller_tasks')->count());
+        self::assertSame(0, DB::table('outbox_events')->count());
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
     }
 
     private function protectedClaimFixture(): array
