@@ -57,44 +57,51 @@
 | [SP-E1-05 · Карточка бренда](../docs/tasks/SP-E1-05.md) | 8 | SP-E0-03, SP-E0-04, SP-E1-04, SP-F-03 | S-2.3 |
 | [SP-E3-05 · Напоминания](../docs/tasks/SP-E3-05.md) | 8 | SP-E3-03B | — |
 | [SP-E3-06 · Супервизор, симулятор, судья](../docs/tasks/SP-E3-06.md) | 8 | SP-E3-03B | — |
-| [SP-E5-01 · Список каналов и Telegram](../docs/tasks/SP-E5-01.md) | 8 | SP-E0-04, SP-E3-03B, SP-F-03 | D-9.1, D-9.5 |
-| [SP-E5-03 · Входящие формы и API-канал](../docs/tasks/SP-E5-03.md) | 8 | SP-E0-03, SP-E0-04, SP-E1-10, SP-E3-03B, SP-E3-04, SP-F-03 | D-9.9 |
-| [SP-E5-04 · Экран диалогов](../docs/tasks/SP-E5-04.md) | 8 | SP-E0-03, SP-E0-04, SP-E3-03B, SP-E3-04, SP-F-03, SP-F-04 | D-2.1, D-2.2 |
-| [SP-E5-05 · Клиенты, задачи и обещания](../docs/tasks/SP-E5-05.md) | 8 | SP-E0-03, SP-E0-04, SP-E3-03B, SP-E3-04, SP-F-03 | D-3.1, D-3.2, D-3.3 |
-| [SP-E6-04 · Передача и действия бота](../docs/tasks/SP-E6-04.md) | 8 | SP-E0-03, SP-E0-04, SP-E3-03, SP-E3-03B, SP-F-03 | D-5.3, D-5.7 |
-| [SP-E6-05 · Приёмы](../docs/tasks/SP-E6-05.md) | 8 | SP-E0-04, SP-E3-03B, SP-F-03 | D-5.4 |
-| [SP-E6-06 · Расписание бота и распределение (B)](../docs/tasks/SP-E6-06.md) | 8 | SP-E0-04, SP-E1-06, SP-E3-03B, SP-F-03 | D-11.1, D-11.2 |
-| [SP-E6-08 · Каталог, прайс и остатки](../docs/tasks/SP-E6-08.md) | 8 | SP-E0-03, SP-E0-04, SP-E3-03, SP-E3-03B, SP-F-03 | D-10.1, D-10.4 |
+| [SP-E5-01 · Список каналов и Telegram](../docs/tasks/SP-E5-01.md) | 8 | SP-E3-03B, SP-F-03 | D-9.1, D-9.5 |
+| [SP-E5-03 · Входящие формы и API-канал](../docs/tasks/SP-E5-03.md) | 8 | SP-E1-10, SP-E3-03B | D-9.9 |
+| [SP-E5-04 · Экран диалогов](../docs/tasks/SP-E5-04.md) | 8 | SP-E3-03B, SP-F-03, SP-F-04 | D-2.1, D-2.2 |
+| [SP-E5-05 · Клиенты, задачи и обещания](../docs/tasks/SP-E5-05.md) | 8 | SP-E3-03B, SP-F-03 | D-3.1, D-3.2, D-3.3 |
+| [SP-E6-04 · Передача и действия бота](../docs/tasks/SP-E6-04.md) | 8 | SP-E3-03B, SP-F-03 | D-5.3, D-5.7 |
+| [SP-E6-05 · Приёмы](../docs/tasks/SP-E6-05.md) | 8 | SP-E3-03B, SP-F-03 | D-5.4 |
+| [SP-E6-06 · Расписание бота и распределение (B)](../docs/tasks/SP-E6-06.md) | 8 | SP-E1-06, SP-E3-03B | D-11.1, D-11.2 |
+| [SP-E6-08 · Каталог, прайс и остатки](../docs/tasks/SP-E6-08.md) | 8 | SP-E3-03B, SP-F-03 | D-10.1, D-10.4 |
 | [SP-E8-04 · Замеры и подтверждение](../docs/tasks/SP-E8-04.md) | 8 | SP-E0-03, SP-E0-04, SP-E8-03, SP-F-03 | V-3.1, V-3.2, V-3.3, V-3.4, V-3.5, V-3.6, V-4.1, V-4.2, V-4.3, V-4.4 |
 | [SP-E3-07 · Эквивалентность — финальный прогон](../docs/tasks/SP-E3-07.md) | 9 | SP-E3-05, SP-E3-06, SP-T-03 | — |
-| [SP-E4-01 · Обзор знаний, входящие и релизы](../docs/tasks/SP-E4-01.md) | 9 | SP-E0-04, SP-E3-04, SP-E3-06, SP-F-03, SP-T-02 | D-4.1, D-4.2, D-4.12 |
-| [SP-E5-02 · Виджет сайта](../docs/tasks/SP-E5-02.md) | 9 | SP-E0-03, SP-E0-04, SP-E1-05, SP-E3-03B, SP-E3-04, SP-F-03 | D-9.2, D-9.3, D-9.4 |
-| [SP-E5-04B · Мои диалоги, суфлёр и пометки](../docs/tasks/SP-E5-04B.md) | 9 | SP-E5-04, SP-F-04 | D-2.3, D-2.4, D-2.5 |
-| [SP-E5-07 · Почта для прайса (B)](../docs/tasks/SP-E5-07.md) | 9 | SP-E0-03, SP-E0-04, SP-E3-03, SP-E3-03B, SP-E6-04, SP-E6-08, SP-F-03 | D-9.8 |
-| [SP-E5-08 · Дубли и импорт/экспорт клиентов](../docs/tasks/SP-E5-08.md) | 9 | SP-E0-03, SP-E0-04, SP-E1-11, SP-E5-05, SP-F-03 | D-3.4, D-3.5 |
-| [SP-E6-03 · Поля, воронка, напоминания, вне темы](../docs/tasks/SP-E6-03.md) | 9 | SP-E0-03, SP-E0-04, SP-E3-05, SP-F-03 | D-5.1, D-5.2, D-5.5, D-5.6 |
-| [SP-E7-01 · Доклады и оценки](../docs/tasks/SP-E7-01.md) | 9 | SP-E0-03, SP-E0-04, SP-E3-06, SP-F-03 | D-7.1, D-7.2, D-7.3 |
-| [SP-E7-04 · Аналитика](../docs/tasks/SP-E7-04.md) | 9 | SP-E0-03, SP-E0-04, SP-E1-11, SP-E3-04, SP-E6-06, SP-F-03 | D-8.1, D-8.2, D-8.3, D-8.4, D-8.5, D-8.6 |
+| [SP-E4-01 · Обзор знаний, входящие и релизы](../docs/tasks/SP-E4-01.md) | 9 | SP-E3-06, SP-F-03 | D-4.1, D-4.2, D-4.12 |
+| [SP-E5-02 · Виджет сайта](../docs/tasks/SP-E5-02.md) | 9 | SP-E1-05, SP-E3-03B | D-9.2, D-9.3, D-9.4 |
+| [SP-E5-04B · Мои диалоги, суфлёр и пометки](../docs/tasks/SP-E5-04B.md) | 9 | SP-E5-04 | D-2.3, D-2.4, D-2.5 |
+| [SP-E5-07 · Почта для прайса (B)](../docs/tasks/SP-E5-07.md) | 9 | SP-E6-04, SP-E6-08 | D-9.8 |
+| [SP-E5-08 · Дубли и импорт/экспорт клиентов](../docs/tasks/SP-E5-08.md) | 9 | SP-E1-11, SP-E5-05 | D-3.4, D-3.5 |
+| [SP-E6-03 · Поля, воронка, напоминания, вне темы](../docs/tasks/SP-E6-03.md) | 9 | SP-E3-05, SP-F-03 | D-5.1, D-5.2, D-5.5, D-5.6 |
+| [SP-E7-01 · Доклады и оценки](../docs/tasks/SP-E7-01.md) | 9 | SP-E3-06, SP-F-03 | D-7.1, D-7.2, D-7.3 |
+| [SP-E7-04 · Аналитика](../docs/tasks/SP-E7-04.md) | 9 | SP-E1-11, SP-E6-06 | D-8.1, D-8.2, D-8.3, D-8.4, D-8.5, D-8.6 |
 | [SP-E8-05 · Внутренний отчёт Видения](../docs/tasks/SP-E8-05.md) | 9 | SP-E0-03, SP-E0-04, SP-E8-04, SP-F-03 | V-5.1, V-5.2, V-5.3, V-5.4, V-5.5, V-5.6, V-5.7, V-5.8, V-5.9 |
-| [SP-E4-02 · Факты и группы](../docs/tasks/SP-E4-02.md) | 10 | SP-E0-03, SP-E0-04, SP-E4-01, SP-F-03 | D-4.3, D-4.4 |
-| [SP-E4-03 · Условия](../docs/tasks/SP-E4-03.md) | 10 | SP-E0-03, SP-E0-04, SP-E4-01, SP-F-03 | D-4.5 |
-| [SP-E4-04 · Темы/интенты](../docs/tasks/SP-E4-04.md) | 10 | SP-E0-03, SP-E0-04, SP-E4-01, SP-F-03 | D-4.6, D-4.7 |
-| [SP-E4-05 · Запреты: закрытые темы и правила Guard](../docs/tasks/SP-E4-05.md) | 10 | SP-E0-03, SP-E0-04, SP-E3-03, SP-E3-03B, SP-E4-01, SP-F-03 | D-4.9 |
-| [SP-E4-07 · Песочница](../docs/tasks/SP-E4-07.md) | 10 | SP-E0-03, SP-E0-04, SP-E3-03, SP-E3-03B, SP-E4-01, SP-F-03 | D-4.11 |
-| [SP-E4-08 · Образцы речи](../docs/tasks/SP-E4-08.md) | 10 | SP-E0-04, SP-E4-01, SP-E5-04B, SP-F-03 | D-4.8 |
-| [SP-E6-01 · Персонаж и фразы](../docs/tasks/SP-E6-01.md) | 10 | SP-E0-03, SP-E0-04, SP-E4-01, SP-F-03 | D-6.1, D-6.3 |
-| [SP-E7-02 · Сценарии и прогоны](../docs/tasks/SP-E7-02.md) | 10 | SP-E0-03, SP-E0-04, SP-E3-06, SP-E4-01, SP-F-03 | D-7.4, D-7.5, D-7.6 |
-| [SP-E7-05 · Главная продавца](../docs/tasks/SP-E7-05.md) | 10 | SP-E0-04, SP-E5-01, SP-E5-04B, SP-E7-04, SP-F-03 | D-1.1, D-1.2 |
+| [SP-E4-02 · Факты и группы](../docs/tasks/SP-E4-02.md) | 10 | SP-E4-01 | D-4.3, D-4.4 |
+| [SP-E4-03 · Условия](../docs/tasks/SP-E4-03.md) | 10 | SP-E4-01 | D-4.5 |
+| [SP-E4-04 · Темы/интенты](../docs/tasks/SP-E4-04.md) | 10 | SP-E4-01 | D-4.6, D-4.7 |
+| [SP-E4-05 · Запреты: закрытые темы и правила Guard](../docs/tasks/SP-E4-05.md) | 10 | SP-E4-01 | D-4.9 |
+| [SP-E4-07 · Песочница](../docs/tasks/SP-E4-07.md) | 10 | SP-E4-01 | D-4.11 |
+| [SP-E4-08 · Образцы речи](../docs/tasks/SP-E4-08.md) | 10 | SP-E4-01, SP-E5-04B | D-4.8 |
+| [SP-E6-01 · Персонаж и фразы](../docs/tasks/SP-E6-01.md) | 10 | SP-E4-01 | D-6.1, D-6.3 |
+| [SP-E7-02 · Сценарии и прогоны](../docs/tasks/SP-E7-02.md) | 10 | SP-E4-01 | D-7.4, D-7.5, D-7.6 |
+| [SP-E7-05 · Главная продавца](../docs/tasks/SP-E7-05.md) | 10 | SP-E5-01, SP-E5-04B, SP-E7-04 | D-1.1, D-1.2 |
 | [SP-E8-05B · Конкуренты и площадки](../docs/tasks/SP-E8-05B.md) | 10 | SP-E8-05, SP-F-03 | V-6.1, V-6.2, V-6.3, V-6.4, V-7.1, V-7.2, V-7.3 |
 | [SP-E8-05C · Публичный отчёт, TTL и отзыв ссылки v1](../docs/tasks/SP-E8-05C.md) | 10 | SP-E8-05, SP-F-01 | V-5.10 |
-| [SP-E4-06 · Документы и импорт знаний](../docs/tasks/SP-E4-06.md) | 11 | SP-E0-03, SP-E0-04, SP-E4-02, SP-F-03 | D-4.10 |
-| [SP-E6-02 · Приветствия по каналам (B)](../docs/tasks/SP-E6-02.md) | 11 | SP-E0-03, SP-E0-04, SP-E5-01, SP-E6-01, SP-F-03 | D-6.2 |
-| [SP-E7-03 · Сравнение и калибровка](../docs/tasks/SP-E7-03.md) | 11 | SP-E0-03, SP-E0-04, SP-E7-02, SP-F-03 | D-7.7, D-7.8 |
+| [SP-E4-06 · Документы и импорт знаний](../docs/tasks/SP-E4-06.md) | 11 | SP-E4-02, SP-E8-01B | D-4.10 |
+| [SP-E6-02 · Приветствия по каналам (B)](../docs/tasks/SP-E6-02.md) | 11 | SP-E5-01, SP-E6-01 | D-6.2 |
+| [SP-E7-03 · Сравнение и калибровка](../docs/tasks/SP-E7-03.md) | 11 | SP-E7-02 | D-7.7, D-7.8 |
 | [SP-E8-07 · Динамика и настройки](../docs/tasks/SP-E8-07.md) | 11 | SP-E0-03, SP-E0-04, SP-E1-11, SP-E8-05, SP-E8-05B, SP-E8-05C, SP-F-03 | V-10.1, V-10.2, V-10.3, V-10.4, V-11.1, V-11.2, V-11.3, V-11.4, V-11.5 |
 | [SP-E1-03 · Главная кабинета и уведомления](../docs/tasks/SP-E1-03.md) | 12 | SP-E0-03, SP-E0-04, SP-E6-07, SP-E7-05, SP-E8-07, SP-F-03, SP-F-04 | S-1.1, S-1.2, S-1.3 |
 | [SP-E9-01 · E2E-набор](../docs/tasks/SP-E9-01.md) | 13 | SP-E1-01, SP-E1-01B, SP-E1-01C, SP-E1-01D, SP-E1-01F, SP-E1-02, SP-E1-03, SP-E1-04, SP-E1-05, SP-E1-06, SP-E1-07, SP-E1-08, SP-E1-09, SP-E1-10, SP-E1-11, SP-E1-12, SP-E3-07, SP-E4-01, SP-E4-02, SP-E4-03, SP-E4-04, SP-E4-05, SP-E4-06, SP-E4-07, SP-E4-08, SP-E5-01, SP-E5-02, SP-E5-03, SP-E5-04, SP-E5-04B, SP-E5-05, SP-E5-06, SP-E5-07, SP-E5-08, SP-E6-01, SP-E6-02, SP-E6-03, SP-E6-04, SP-E6-05, SP-E6-06, SP-E6-07, SP-E6-08, SP-E6-09, SP-E7-01, SP-E7-02, SP-E7-03, SP-E7-04, SP-E7-05, SP-E8-01, SP-E8-01B, SP-E8-01C, SP-E8-01D, SP-E8-01E, SP-E8-02, SP-E8-03, SP-E8-04, SP-E8-05, SP-E8-05B, SP-E8-05C, SP-E8-06, SP-E8-07 | — |
 | [SP-E9-03 · Теневой запуск](../docs/tasks/SP-E9-03.md) | 14 | SP-E0-05B, SP-E0-05C, SP-E1-01B, SP-E3-07, SP-E5-01, SP-E9-01 | — |
 | [SP-E9-04 · Документация и hand-off](../docs/tasks/SP-E9-04.md) | 15 | SP-C-01, SP-E0-01, SP-E0-02, SP-E0-03, SP-E0-04, SP-E0-05, SP-E0-05B, SP-E0-05C, SP-E0-06, SP-E0-07, SP-E0-08, SP-E1-01, SP-E1-01B, SP-E1-01C, SP-E1-01D, SP-E1-01F, SP-E1-02, SP-E1-03, SP-E1-04, SP-E1-05, SP-E1-06, SP-E1-07, SP-E1-08, SP-E1-09, SP-E1-10, SP-E1-11, SP-E1-12, SP-E3-01, SP-E3-02, SP-E3-03, SP-E3-03B, SP-E3-04, SP-E3-05, SP-E3-06, SP-E3-07, SP-E4-01, SP-E4-02, SP-E4-03, SP-E4-04, SP-E4-05, SP-E4-06, SP-E4-07, SP-E4-08, SP-E5-01, SP-E5-02, SP-E5-03, SP-E5-04, SP-E5-04B, SP-E5-05, SP-E5-06, SP-E5-07, SP-E5-08, SP-E6-01, SP-E6-02, SP-E6-03, SP-E6-04, SP-E6-05, SP-E6-06, SP-E6-07, SP-E6-08, SP-E6-09, SP-E7-01, SP-E7-02, SP-E7-03, SP-E7-04, SP-E7-05, SP-E8-01, SP-E8-01B, SP-E8-01C, SP-E8-01D, SP-E8-01E, SP-E8-02, SP-E8-03, SP-E8-04, SP-E8-05, SP-E8-05B, SP-E8-05C, SP-E8-06, SP-E8-07, SP-E9-01, SP-E9-02, SP-E9-03, SP-F-01, SP-F-02, SP-F-03, SP-F-04, SP-T-01, SP-T-02, SP-T-03, SP-E0-05D, SP-E1-01G, SP-E9-02B, SP-E9-02D, SP-P-01, SP-E8-01F, SP-C-02, SP-E3-03P, SP-E1-08B, SP-E1-09B, SP-E0-05E, SP-E1-06B, SP-E1-06C, SP-E1-06D, SP-E1-06E, SP-E1-03A, SP-E1-04B, SP-C-03, SP-E8-06B, SP-E1-10B, SP-E1-10F, SP-E1-10C, SP-E1-10D, SP-E1-10E, SP-E0-07B, SP-E0-07C, SP-C-02B, SP-E6-09B, SP-E1-06F, SP-E9-02C, SP-UI-01, SP-UI-02, SP-UI-03, SP-UI-04, SP-UI-05, SP-UI-06, SP-UI-07, SP-UI-08, SP-E1-06G, SP-UI-09, SP-UI-10, SP-UI-11, SP-UI-12 | — |
+
+## Узкие функциональные продолжения
+
+- [SP-C-02B](../docs/tasks/SP-C-02B.md) — один HTTP-вход первого защищённого хода; зависит от SP-C-02. Production runtime остаётся SP-E3-03B, действие `create_promise` — SP-E3-03P.
+- [SP-E1-10C](../docs/tasks/SP-E1-10C.md) — уведомления компании; собственные файлы `CompanyNotifications/` и страница Notifications.
+- [SP-E1-10F](../docs/tasks/SP-E1-10F.md) — конфигурация webhook; собственные файлы `Webhooks/` и транспорт секрета. Scope не пересекается с SP-E1-10C.
+- SP-E3-03 остаётся обязательным для SP-E3-03B: в main есть детерминированный Guard и ToolRunner, но нет полного Responder, `llmCheck` и Summarizer. Закрывать её как `done` пока нельзя.
 
 ## Эпик R — рефакторинг
 
