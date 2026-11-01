@@ -6,6 +6,7 @@ use App\Models\Brand;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\User;
+use App\ProtectedOperations\SellerTurnFence;
 use App\Seller\Channels\Core\ChannelAccount;
 use App\Seller\Channels\Core\InboundRecorder;
 use App\Seller\Conversations\Contracts\ConversationRepository;
@@ -151,8 +152,8 @@ final class InboundFinalizationConcurrencyTest extends TestCase
         self::assertSame('processing', DB::table('seller_turns')->where('id', $claim->turnId)->value('status'));
         self::assertSame(1, DB::table('messages')->where('conversation_id', $conversation->id)->count());
         self::assertSame(0, DB::table('channel_inbound_events')->where('external_id', 'rolled-back-event')->count());
-        app(ConversationRepository::class)->commitTurn($claim, new TurnOutcome($claim->turnId, $conversation->id, 'suppressed', 1, null, null, null, [], []));
-        self::assertSame('suppressed', DB::table('seller_turns')->where('id', $claim->turnId)->value('status'));
+        DB::transaction(fn () => app(SellerTurnFence::class)->assertCurrent($context, $claim));
+        self::assertSame('processing', DB::table('seller_turns')->where('id', $claim->turnId)->value('status'));
         Http::assertNothingSent();
         Mail::assertNothingOutgoing();
         Queue::assertNothingPushed();
@@ -219,41 +220,27 @@ final class InboundFinalizationConcurrencyTest extends TestCase
         Http::assertNothingSent();
     }
 
-    public function test_finalization_first_commits_once_and_later_input_remains_available(): void
+    public function test_unverified_outcome_is_rejected_before_later_input(): void
     {
         [$org, $brand, $conversation, $channel, $context, $input, $command, $claim] = $this->fixture();
         $agent = (string) Str::ulid();
         $outcome = new TurnOutcome($claim->turnId, $conversation->id, 'completed', 1, $agent, null, null, [],
             ['synthetic' => true], [['id' => $agent, 'role' => 'agent', 'text' => 'Synthetic response']]);
-        $marker = base_path('.local/tmp/c02-incoming-'.Str::random(16));
-        $worker = $this->worker('inbound', $marker, $org, $brand, $conversation, $channel, $claim, $agent);
-        DB::beginTransaction();
         try {
             app(ConversationRepository::class)->commitTurn($claim, $outcome);
-            $worker->start();
-            $this->assertWorkerWaiting($worker, $marker);
-            DB::commit();
-            $worker->wait();
-            self::assertTrue($worker->isSuccessful(), $worker->getErrorOutput());
-            self::assertSame('inserted', trim($worker->getOutput()));
-            self::assertSame('completed', DB::table('seller_turns')->where('id', $claim->turnId)->value('status'));
-            self::assertSame(3, DB::table('messages')->where('conversation_id', $conversation->id)->count());
-            self::assertSame(1, DB::table('messages')->where('id', $agent)->count());
-            self::assertSame(1, DB::table('conversations')->where('id', $conversation->id)->value('version'));
-            app(ConversationRepository::class)->commitTurn($claim, $outcome);
-            self::assertSame(1, DB::table('messages')->where('id', $agent)->count());
-            $new = DB::table('messages')->where('conversation_id', $conversation->id)->where('text', 'Second synthetic input')->first();
-            self::assertNotNull($new);
-            $next = app(ConversationRepository::class)->claimTurn($context, new TurnCommand($conversation->id, $new->id, $new->text, $new->external_event_id, 'next-synthetic', 1));
-            self::assertSame('claimed', $next->status);
-            app(ConversationRepository::class)->commitTurn($next, new TurnOutcome($next->turnId, $conversation->id, 'suppressed', 2, null, null, null, [], []));
-            self::assertSame(0, DB::table('seller_turns')->where('conversation_id', $conversation->id)->where('status', 'processing')->count());
-            Http::assertNothingSent();
-            Mail::assertNothingOutgoing();
-            Queue::assertNothingPushed();
-        } finally {
-            $this->cleanup($worker, $marker);
+            self::fail('Unverified finalization was accepted.');
+        } catch (\LogicException) {
+            self::assertTrue(true);
         }
+        $new = app(InboundRecorder::class)->ingest($context, $channel->id, 'second-synthetic-event', [], $conversation->id, 'Second synthetic input');
+        self::assertSame('uncertain', DB::table('seller_turns')->where('id', $claim->turnId)->value('status'));
+        self::assertSame(2, DB::table('messages')->where('conversation_id', $conversation->id)->count());
+        self::assertSame(0, DB::table('messages')->where('id', $agent)->count());
+        self::assertSame('Second synthetic input', DB::table('messages')->where('id', $new->id)->value('text'));
+        self::assertSame(0, DB::table('conversations')->where('id', $conversation->id)->value('version'));
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
     }
 
     private function fixture(): array

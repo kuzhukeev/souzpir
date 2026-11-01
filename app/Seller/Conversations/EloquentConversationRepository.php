@@ -146,28 +146,10 @@ final class EloquentConversationRepository implements ConversationRepository
 
                 return true;
             }
-            $createdMessages = [];
-            foreach ($outcome->messages as $message) {
-                if (! is_array($message) || ! Str::isUlid($message['id'] ?? '') || ! in_array($message['role'] ?? null, ['agent', 'system', 'tool'], true) || ! is_string($message['text'] ?? null) || ! is_array($message['meta'] ?? [])) {
-                    throw new LogicException('Invalid output message.');
-                }
-                $row = new Message(['conversation_id' => $conversation->id, 'role' => $message['role'], 'text' => $message['text'], 'meta' => $message['meta'] ?? []]);
-                $row->id = $message['id'];
-                $row->save();
-                $createdMessages[$row->id] = $row->role;
-            }
-            if ($outcome->assistantMessageId !== null && ($createdMessages[$outcome->assistantMessageId] ?? null) !== 'agent') {
-                throw new LogicException('Assistant message is not part of this outcome.');
-            }
-            $conversation->state = $outcome->state;
-            $conversation->version = $outcome->version;
-            $conversation->save();
-            $turn->status = $outcome->status;
-            $turn->outcome = $outcome->toArray();
-            $turn->outcome_hash = $hash;
-            $turn->save();
-
-            return false;
+            // A public DTO cannot prove the source of any new state or text.
+            // Identical terminal outcomes above remain replayable for legacy
+            // data; new writes require a server-owned protected finalizer.
+            throw new LogicException('Unverified turn outcomes are unavailable.');
         }));
         if ($stale) {
             abort(409, 'Обработка требует ручной проверки.');

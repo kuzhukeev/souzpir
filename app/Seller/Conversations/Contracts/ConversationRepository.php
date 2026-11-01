@@ -14,5 +14,6 @@ interface ConversationRepository
 
     public function claimTurn(TenantContext $context, TurnCommand $command): TurnClaim;
 
+    /** Replay only an identical already-terminal outcome; new writes require protected server-owned provenance. */
     public function commitTurn(TurnClaim $claim, TurnOutcome $outcome): void;
 }

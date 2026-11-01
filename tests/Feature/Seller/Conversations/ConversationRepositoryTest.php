@@ -117,7 +117,7 @@ final class ConversationRepositoryTest extends TenancyTestCase
         $this->assertDatabaseCount('channel_inbound_events', 2);
     }
 
-    public function test_claim_commit_idempotence_preserves_message_and_state_without_unverified_actions(): void
+    public function test_claim_does_not_authorize_new_unverified_message_or_state(): void
     {
         Queue::fake();
         [, $org, $brand] = $this->cabinet();
@@ -130,19 +130,21 @@ final class ConversationRepositoryTest extends TenancyTestCase
         $this->assertSame('in_progress', $repo->claimTurn($context, $command)->status);
         $outputId = (string) Str::ulid();
         $outcome = new TurnOutcome($claim->turnId, $conversation->id, 'completed', 1, $outputId, ['kind' => 'answer'], ['result' => 'ok'], [], ['stage' => 'open'], [['id' => $outputId, 'role' => 'agent', 'text' => 'Ответ', 'meta' => []]]);
-        $repo->commitTurn($claim, $outcome);
-        $repo->commitTurn($claim, $outcome);
-        $this->assertSame('finished', $repo->claimTurn($context, $command)->status);
-        $this->assertSame(1, $repo->find($context, $conversation->id)->version);
+        try {
+            $repo->commitTurn($claim, $outcome);
+            $this->fail('An arbitrary outcome was accepted.');
+        } catch (\LogicException) {
+            $this->assertTrue(true);
+        }
+        $this->assertSame('in_progress', $repo->claimTurn($context, $command)->status);
+        $this->assertSame(0, $repo->find($context, $conversation->id)->version);
         $this->assertDatabaseCount('seller_turns', 1);
-        $this->assertDatabaseCount('messages', 2);
+        $this->assertDatabaseCount('messages', 1);
         $this->assertDatabaseCount('seller_tasks', 0);
         $this->assertDatabaseCount('outbox_events', 0);
-        $this->assertSame(['stage' => 'open'], $repo->find($context, $conversation->id)->state);
-        $this->assertDatabaseHas('messages', ['id' => $outputId, 'role' => 'agent', 'delivered_at' => null]);
-        $saved = json_decode(DB::table('seller_turns')->where('id', $claim->turnId)->value('outcome'), true, 512, JSON_THROW_ON_ERROR);
-        $this->assertSame(['kind' => 'answer'], $saved['goal']);
-        $this->assertSame(['result' => 'ok'], $saved['guard']);
+        $this->assertSame([], $repo->find($context, $conversation->id)->state);
+        $this->assertDatabaseMissing('messages', ['id' => $outputId]);
+        $this->assertNull(DB::table('seller_turns')->where('id', $claim->turnId)->value('outcome'));
     }
 
     public function test_unverified_tasks_and_events_abort_the_entire_enclosing_transaction(): void
@@ -254,7 +256,10 @@ final class ConversationRepositoryTest extends TenancyTestCase
         $context = $this->context($org, $brand);
         $repo = app(ConversationRepository::class);
         $claim = $repo->claimTurn($context, new TurnCommand($conversation->id, $input->id, $input->text, null, 'first', 0));
-        $repo->commitTurn($claim, new TurnOutcome($claim->turnId, $conversation->id, 'completed', 1, null, null, null, [], []));
+        // Fixture represents a turn that was completed before the protected boundary.
+        $historical = new TurnOutcome($claim->turnId, $conversation->id, 'completed', 1, null, null, null, [], []);
+        DB::table('conversations')->where('id', $conversation->id)->update(['version' => 1]);
+        DB::table('seller_turns')->where('id', $claim->turnId)->update(['status' => 'completed', 'outcome' => json_encode($historical->toArray(), JSON_THROW_ON_ERROR), 'outcome_hash' => CanonicalJson::hash($historical->toArray())]);
         try {
             $repo->claimTurn($context, new TurnCommand($conversation->id, $input->id, $input->text, null, 'different-key', 1));
             $this->fail('Input processed twice');
