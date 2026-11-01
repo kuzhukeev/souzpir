@@ -36,6 +36,40 @@ final class ManualReviewRequests
         }
     }
 
+    /** An explicit operator request quarantines an unresolved turn and records review atomically. */
+    public function quarantineAndRequest(#[SensitiveParameter] Request $request, #[SensitiveParameter] string $turnId): array
+    {
+        try {
+            if (! Str::isUlid($turnId)) {
+                throw new LogicException;
+            }
+
+            return $this->authorized($request, function (TenantContext $tenant) use ($request, $turnId): array {
+                $query = DB::table('seller_turns')->where('id', $turnId)->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId);
+                $candidate = (clone $query)->first(['conversation_id']);
+                if (! $candidate || ! DB::table('conversations')->where('id', $candidate->conversation_id)
+                    ->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->lockForUpdate()->first(['id'])) {
+                    abort(404);
+                }
+                $turn = $query->where('conversation_id', $candidate->conversation_id)->lockForUpdate()->first(['status']);
+                if (! $turn || ! in_array($turn->status, ['processing', 'uncertain'], true)) {
+                    abort(404);
+                }
+                if ($turn->status === 'processing') {
+                    $query->update(['status' => 'uncertain', 'updated_at' => now()]);
+                    app(AuditWriter::class)->record($tenant, new AuditEntry('seller.turn.quarantined', 'seller_turn', $turnId,
+                        before: ['status' => 'processing'], after: ['status' => 'uncertain']));
+                }
+
+                return $this->readOrRequestLocked($request, $tenant, $turnId, true);
+            });
+        } catch (AuthenticationException|HttpExceptionInterface $error) {
+            throw $error;
+        } catch (Throwable) {
+            throw new LogicException('Manual review unavailable.');
+        }
+    }
+
     private function readOrRequestInternal(#[SensitiveParameter] Request $request, #[SensitiveParameter] string $turnId, bool $create): array
     {
         if (! Str::isUlid($turnId)) {

@@ -45,5 +45,7 @@ file_put_contents($argv[1], (string) DB::selectOne('select pg_backend_pid() as p
 $selection = app(AuthSessionRegistry::class)->withinActive($request, fn () => app(SessionBrandSelection::class)->current($request));
 $request->attributes->set('tenant.brand_revision', (string) $selection->brand_revision);
 $tenant = new TenantContext($input['org'], $input['brand'], $user->id, $input['member']);
-$result = app(TenantContextRunner::class)->run($tenant, fn () => app(ManualReviewRequests::class)->readOrRequest($request, $input['turn'], true));
+$result = app(TenantContextRunner::class)->run($tenant, fn () => ($input['mode'] ?? 'review') === 'quarantine'
+    ? app(ManualReviewRequests::class)->quarantineAndRequest($request, $input['turn'])
+    : app(ManualReviewRequests::class)->readOrRequest($request, $input['turn'], true));
 echo json_encode($result, JSON_THROW_ON_ERROR);

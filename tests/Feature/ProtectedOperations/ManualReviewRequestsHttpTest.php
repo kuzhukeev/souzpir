@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\Process\Process;
 use Tests\Feature\Tenancy\TenancyTestCase;
 
@@ -44,6 +45,16 @@ final class ManualReviewRequestsHttpTest extends TenancyTestCase
         Http::preventStrayRequests();
         Queue::fake();
         Route::middleware(['web', 'auth', 'verified', 'tenant', 'auth.version', 'auth.nostore'])
+            ->post('/test-c02/quarantine-review/{turn}', function (Request $request, string $turn) {
+                try {
+                    $data = app(ManualReviewRequests::class)->quarantineAndRequest($request, $turn);
+                } catch (\LogicException) {
+                    return response()->json(['message' => 'Ручная проверка временно недоступна.'], 503)->header('Cache-Control', 'private, no-store');
+                }
+
+                return response()->json(['data' => $data])->header('Cache-Control', 'private, no-store');
+            })->whereUlid('turn');
+        Route::middleware(['web', 'auth', 'verified', 'tenant', 'auth.version', 'auth.nostore'])
             ->get('/test-c02/reviews', function (Request $request) {
                 try {
                     $data = app(ManualReviewRequests::class)->listRequested($request);
@@ -65,6 +76,57 @@ final class ManualReviewRequestsHttpTest extends TenancyTestCase
 
                 return response()->json(['data' => $data])->header('Cache-Control', 'private, no-store');
             })->whereUlid('turn');
+    }
+
+    public function test_quarantine_and_review_are_atomic_idempotent_and_authorized(): void
+    {
+        [$owner, $org, $brand, $other] = $this->configuredCabinet();
+        $turn = $this->turn($org, $brand, 'processing');
+        $foreign = $this->turn($org, $other, 'processing');
+        $completed = $this->turn($org, $brand, 'completed');
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $path = '/test-c02/quarantine-review/'.$turn->turnId;
+        $before = DB::table('seller_turns')->where('id', $turn->turnId)->first();
+        $this->postJson($path, ['reason' => 'safe_to_retry'])->assertStatus(422);
+        $this->postJson('/test-c02/quarantine-review/'.$foreign->turnId)->assertNotFound()->assertDontSee($foreign->turnId);
+        $this->postJson('/test-c02/quarantine-review/'.$completed->turnId)->assertNotFound();
+        [$viewer] = $this->member($org, 'viewer', [$brand->id]);
+        $this->actingAs($viewer)->withSession(['brand_id' => $brand->id]);
+        $this->postJson($path)->assertForbidden()->assertDontSee($turn->turnId);
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $this->getJson('/test-c02/review/'.$turn->turnId)->assertNotFound();
+
+        foreach (['seller.turn.quarantined', 'seller.turn.review_requested'] as $action) {
+            DB::unprepared("CREATE OR REPLACE FUNCTION c02_test_fail_combined_audit() RETURNS trigger LANGUAGE plpgsql AS \$\$ BEGIN IF NEW.action = '".$action."' THEN RAISE EXCEPTION 'synthetic audit failure'; END IF; RETURN NEW; END; \$\$;");
+            DB::unprepared('CREATE TRIGGER c02_test_fail_combined_audit BEFORE INSERT ON audit_logs FOR EACH ROW EXECUTE FUNCTION c02_test_fail_combined_audit()');
+            try {
+                $this->postJson($path)->assertStatus(503)->assertDontSee($turn->turnId);
+                self::assertEquals($before, DB::table('seller_turns')->where('id', $turn->turnId)->first());
+                self::assertSame(0, DB::table('c02_manual_review_requests')->count());
+                self::assertSame(0, DB::table('audit_logs')->whereIn('action', ['seller.turn.quarantined', 'seller.turn.review_requested'])->count());
+            } finally {
+                DB::unprepared('DROP TRIGGER IF EXISTS c02_test_fail_combined_audit ON audit_logs; DROP FUNCTION IF EXISTS c02_test_fail_combined_audit();');
+            }
+        }
+        $expected = ['data' => ['review' => 'requested', 'reason' => 'outcome_unconfirmed', 'other_effects_may_exist' => true]];
+        $this->postJson($path)->assertOk()->assertHeader('Cache-Control', 'no-store, private')->assertExactJson($expected);
+        $this->postJson($path)->assertOk()->assertExactJson($expected);
+        self::assertSame('uncertain', DB::table('seller_turns')->where('id', $turn->turnId)->value('status'));
+        self::assertSame(1, DB::table('c02_manual_review_requests')->where('turn_id', $turn->turnId)->count());
+        foreach (['seller.turn.quarantined', 'seller.turn.review_requested'] as $action) {
+            self::assertSame(1, DB::table('audit_logs')->where('subject_id', $turn->turnId)->where('action', $action)->count());
+        }
+        $alreadyUncertain = $this->turn($org, $brand, 'uncertain');
+        $this->postJson('/test-c02/quarantine-review/'.$alreadyUncertain->turnId)->assertOk()->assertExactJson($expected);
+        self::assertSame(0, DB::table('audit_logs')->where('subject_id', $alreadyUncertain->turnId)->where('action', 'seller.turn.quarantined')->count());
+        self::assertSame(1, DB::table('audit_logs')->where('subject_id', $alreadyUncertain->turnId)->where('action', 'seller.turn.review_requested')->count());
+        DB::table('auth_session_registry')->where('user_id', $owner->id)->update(['revoked_at' => now()]);
+        $this->postJson($path)->assertUnauthorized()->assertDontSee($turn->turnId);
+        self::assertSame(0, DB::table('ai_calls')->count());
+        self::assertSame(0, DB::table('seller_tasks')->count());
+        self::assertSame(0, DB::table('outbox_events')->count());
+        Http::assertNothingSent();
+        Queue::assertNothingPushed();
     }
 
     public function test_review_list_is_scoped_authorized_and_does_not_change_turns(): void
@@ -281,6 +343,7 @@ final class ManualReviewRequestsHttpTest extends TenancyTestCase
         $path = '/test-c02/review/'.$turn->turnId;
         $this->getJson($path)->assertStatus(503)->assertExactJson(['message' => 'Ручная проверка временно недоступна.']);
         $this->postJson($path)->assertStatus(503)->assertDontSee($turn->turnId);
+        $this->postJson('/test-c02/quarantine-review/'.$turn->turnId)->assertStatus(503)->assertDontSee($turn->turnId);
         self::assertSame(1, DB::table('c02_manual_review_requests')->count());
         self::assertSame(0, DB::table('audit_logs')->where('action', 'seller.turn.review_requested')->count());
         self::assertSame('uncertain', DB::table('seller_turns')->where('id', $turn->turnId)->value('status'));
@@ -370,12 +433,17 @@ SQL);
         self::assertEquals($before, DB::table('seller_turns')->where('id', $turn->turnId)->first());
     }
 
-    public function test_two_processes_request_the_same_review_once(): void
+    #[DataProvider('reviewModes')]
+    public function test_two_processes_request_the_same_review_once(string $mode, string $status): void
     {
         [$owner, $org, $brand, , $membership] = $this->configuredCabinet();
-        $turn = $this->turn($org, $brand, 'uncertain');
+        $turn = $this->turn($org, $brand, $status);
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
-        $this->getJson('/test-c02/review/'.$turn->turnId)->assertOk();
+        if ($status === 'uncertain') {
+            $this->getJson('/test-c02/review/'.$turn->turnId)->assertOk();
+        } else {
+            $this->getJson('/test-c02/reviews')->assertOk();
+        }
         $workers = [];
         $markers = [];
         DB::beginTransaction();
@@ -387,7 +455,7 @@ SQL);
                     '-d', 'disable_functions=fsockopen,pfsockopen,stream_socket_client,curl_exec,curl_multi_exec',
                     base_path('tests/Feature/ProtectedOperations/Fixtures/manual-review-worker.php'), $marker], base_path());
                 $process->setInput(json_encode(['org' => $org->id, 'brand' => $brand->id, 'user' => $owner->id,
-                    'member' => $membership->id, 'session' => session()->getId(), 'turn' => $turn->turnId], JSON_THROW_ON_ERROR));
+                    'member' => $membership->id, 'session' => session()->getId(), 'turn' => $turn->turnId, 'mode' => $mode], JSON_THROW_ON_ERROR));
                 $process->setTimeout(45);
                 $workers[] = $process;
                 $markers[] = $marker;
@@ -416,6 +484,7 @@ SQL);
             }
             self::assertSame(1, DB::table('c02_manual_review_requests')->where('turn_id', $turn->turnId)->count());
             self::assertSame(1, DB::table('audit_logs')->where('action', 'seller.turn.review_requested')->where('subject_id', $turn->turnId)->count());
+            self::assertSame($mode === 'quarantine' ? 1 : 0, DB::table('audit_logs')->where('action', 'seller.turn.quarantined')->where('subject_id', $turn->turnId)->count());
             self::assertSame('uncertain', DB::table('seller_turns')->where('id', $turn->turnId)->value('status'));
         } finally {
             if (DB::transactionLevel() > 0) {
@@ -434,6 +503,11 @@ SQL);
         }
         Http::assertNothingSent();
         Queue::assertNothingPushed();
+    }
+
+    public static function reviewModes(): array
+    {
+        return ['existing uncertain' => ['review', 'uncertain'], 'quarantine and request' => ['quarantine', 'processing']];
     }
 
     private function configuredCabinet(): array
