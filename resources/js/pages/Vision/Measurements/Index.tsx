@@ -1,5 +1,5 @@
 import { Head, usePage } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { BarChart3 } from 'lucide-react';
 import CabinetLayout from '@/layouts/CabinetLayout';
 import {
@@ -24,6 +24,7 @@ function date(value: string | null): string {
 
 export default function Index({ measurementBrandRevision }: { measurementBrandRevision: string }) {
   const { brand } = usePage<{ brand: { id: string } | null }>().props;
+  const headingRef = useRef<HTMLHeadingElement>(null);
   const brandId = brand?.id ?? '';
   const contextKey = JSON.stringify([brandId, measurementBrandRevision]);
   const [navigation, setNavigation] = useState({ contextKey, page: 1, epoch: 0 });
@@ -162,13 +163,32 @@ export default function Index({ measurementBrandRevision }: { measurementBrandRe
           aria-busy={view.loading}
           className="rounded-2xl border border-(--color-border) bg-(--color-surface) p-4 shadow-(--shadow-card) sm:p-6"
         >
-          <h2 id="measurements-title" className="text-xl font-bold">
+          <h2
+            id="measurements-title"
+            ref={headingRef}
+            tabIndex={-1}
+            className="text-xl font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus)"
+          >
             История замеров
           </h2>
           {view.loading && (
-            <p role="status" className="mt-5 text-sm text-(--color-ink-muted)">
-              Загружаем замеры…
-            </p>
+            <div role="status" className="mt-5 text-sm text-(--color-ink-muted)">
+              <p>Загружаем замеры…</p>
+              <div
+                aria-hidden="true"
+                className="mt-4 animate-pulse space-y-3 motion-reduce:animate-none"
+              >
+                {[0, 1, 2].map((row) => (
+                  <div
+                    key={row}
+                    className="flex h-12 items-center justify-between gap-4 rounded-lg bg-(--color-surface-muted) px-4"
+                  >
+                    <span className="h-3 w-20 rounded bg-(--color-border)" />
+                    <span className="h-3 w-28 rounded bg-(--color-border)" />
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
           {view.error && (
             <div
@@ -180,6 +200,7 @@ export default function Index({ measurementBrandRevision }: { measurementBrandRe
                 type="button"
                 className={`${button} mt-3`}
                 onClick={() => {
+                  headingRef.current?.focus();
                   setState({ key: requestKey, data: null, error: '', loading: true });
                   setAttempt((value) => value + 1);
                 }}
@@ -279,6 +300,7 @@ export default function Index({ measurementBrandRevision }: { measurementBrandRe
                         className={button}
                         disabled={page <= 1}
                         onClick={() => {
+                          headingRef.current?.focus();
                           setState({ key: requestKey, data: null, error: '', loading: true });
                           setNavigation({ ...navigation, page: page - 1 });
                         }}
@@ -290,6 +312,7 @@ export default function Index({ measurementBrandRevision }: { measurementBrandRe
                         className={button}
                         disabled={page >= view.data.last_page}
                         onClick={() => {
+                          headingRef.current?.focus();
                           setState({ key: requestKey, data: null, error: '', loading: true });
                           setNavigation({ ...navigation, page: page + 1 });
                         }}
