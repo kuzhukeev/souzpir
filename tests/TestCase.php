@@ -88,7 +88,7 @@ abstract class TestCase extends BaseTestCase
     }
 
     /** Fail before fixtures or migrations can use a non-test connection. */
-    public static function assertIsolatedTestDatabase(): void
+    public static function assertIsolatedTestDatabase(bool $localFixture = false): void
     {
         $connection = DB::connection('pgsql');
         $database = $connection->getDatabaseName();
@@ -99,7 +99,10 @@ abstract class TestCase extends BaseTestCase
         $cwd = realpath(getcwd());
         $sameRoot = is_string($base) && is_string($cwd)
             && (DIRECTORY_SEPARATOR === '\\' ? strcasecmp($base, $cwd) === 0 : $base === $cwd);
-        if (! $sameRoot || ! app()->environment('testing') || config('database.default') !== 'pgsql'
+        $allowedEnvironment = $localFixture
+            ? app()->environment('local') && getenv('MFA_LOCAL_FIXTURE') === '1'
+            : app()->environment('testing') && $sameRoot;
+        if (! $allowedEnvironment || config('database.default') !== 'pgsql'
             || ! is_string($database) || ! preg_match('/\Asouzpir_test_[a-z0-9_]+\z/D', $database)
             || ! is_string($expected) || $database !== $expected || ! is_string($preview) || $preview === '' || $database === $preview
             || ! is_string($username) || $username === '') {
