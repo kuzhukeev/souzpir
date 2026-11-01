@@ -4,6 +4,8 @@ namespace Tests\Feature\Ai;
 
 use App\Ai\CanonicalJson;
 use App\Ai\ContactMasker;
+use App\Ai\Drivers\Driver;
+use App\Ai\Drivers\FakeDriver;
 use App\Ai\Gateway;
 use App\Ai\Protected\SellerExtractorStages;
 use App\Contracts\Ai\AiContext;
@@ -11,6 +13,7 @@ use App\Models\Brand;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\User;
+use App\ProtectedOperations\ExtractorEffectReservations;
 use App\ProtectedOperations\FirstTurnProtectedClaim;
 use App\Seller\Conversations\Contracts\ConversationRepository;
 use App\Seller\Conversations\Data\TurnClaim;
@@ -98,6 +101,16 @@ final class ProtectedExtractorStageTest extends TestCase
             unlink($file);
             self::assertSame('completed', $gateway->completeProtectedExtractor($http, $claim, $stage));
             self::assertSame(1, DB::table('ai_calls')->where('purpose', 'extractor')->count());
+            $reservation = DB::table('c02_extractor_effect_reservations')->where('extractor_stage_id', $stage)->first();
+            self::assertNotNull($reservation);
+            self::assertSame($claim->organizationId, $reservation->organization_id);
+            self::assertSame($claim->brandId, $reservation->brand_id);
+            self::assertSame($claim->conversationId, $reservation->conversation_id);
+            self::assertSame($claim->turnId, $reservation->turn_id);
+            self::assertSame(DB::table('ai_calls')->value('id'), $reservation->ai_call_id);
+            self::assertSame(DB::table('ai_calls')->value('request_hash'), $reservation->request_hash);
+            self::assertSame(1, DB::table('c02_extractor_effect_reservations')->count());
+            self::assertStringNotContainsString($claim->token(), json_encode($reservation, JSON_THROW_ON_ERROR));
             self::assertSame(0, DB::table('ai_calls')->value('cost_micros'));
             self::assertSame(0, DB::table('ai_budgets')->value('unresolved_count'));
             try {
@@ -361,6 +374,7 @@ final class ProtectedExtractorStageTest extends TestCase
             }
         });
         self::assertSame(0, DB::table('ai_calls')->count());
+        self::assertSame(0, DB::table('c02_extractor_effect_reservations')->count());
         Http::assertNothingSent();
     }
 
@@ -657,6 +671,7 @@ SQL);
             app(Gateway::class)->complete($request, $publicContext);
             unlink($file);
             $oldCall = DB::table('ai_calls')->first();
+            self::assertSame(0, DB::table('c02_extractor_effect_reservations')->count());
             try {
                 DB::transaction(fn () => DB::table('c02_extractor_stages')->where('id', $stage)->update([
                     'ai_call_id' => $oldCall->id, 'gateway_request_hash' => $oldCall->request_hash,
@@ -686,6 +701,314 @@ SQL);
             self::assertSame(1, DB::table('ai_calls')->count());
             Http::assertNothingSent();
         });
+    }
+
+    public function test_extractor_effect_reservation_failure_rolls_back_call_stage_binding_and_budget(): void
+    {
+        [$tenant, $http, $claim] = $this->fixture();
+        $this->within($tenant, function () use ($http, $claim): void {
+            $stages = app(SellerExtractorStages::class);
+            $stage = $stages->prepare($http, $claim);
+            [$request] = $stages->load($http, $claim, $stage);
+            $file = $this->fakeFixture($request->toArray(), 0);
+            $fake = new class implements Driver
+            {
+                public int $calls = 0;
+
+                public function complete(#[\SensitiveParameter] array $body): array
+                {
+                    $this->calls++;
+
+                    return ['content' => '{"client_intent":"answer_only"}', 'toolCalls' => [],
+                        'usage' => ['promptTokens' => 1, 'completionTokens' => 1], 'model' => $body['model'], 'latencyMs' => 1, 'costMicros' => 0];
+                }
+            };
+            app()->instance(FakeDriver::class, $fake);
+            DB::unprepared(<<<'SQL'
+CREATE OR REPLACE FUNCTION c02_test_fail_extractor_effect() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN RAISE EXCEPTION 'synthetic effect reservation failure'; END;
+$$;
+CREATE TRIGGER c02_test_fail_extractor_effect BEFORE INSERT ON c02_extractor_effect_reservations
+  FOR EACH ROW EXECUTE FUNCTION c02_test_fail_extractor_effect();
+SQL);
+            try {
+                try {
+                    app(Gateway::class)->completeProtectedExtractor($http, $claim, $stage);
+                    self::fail('AI reservation committed without its evidence.');
+                } catch (LogicException $error) {
+                    self::assertSame('Protected extractor stage could not be completed.', $error->getMessage());
+                    self::assertNull($error->getPrevious());
+                }
+                self::assertSame(0, DB::table('ai_calls')->count());
+                self::assertSame(0, DB::table('ai_budgets')->count());
+                self::assertSame(0, DB::table('c02_extractor_effect_reservations')->count());
+                self::assertNull(DB::table('c02_extractor_stages')->where('id', $stage)->value('ai_call_id'));
+                self::assertSame(0, $fake->calls);
+            } finally {
+                DB::unprepared('DROP TRIGGER IF EXISTS c02_test_fail_extractor_effect ON c02_extractor_effect_reservations; DROP FUNCTION IF EXISTS c02_test_fail_extractor_effect();');
+            }
+            self::assertSame('completed', app(Gateway::class)->completeProtectedExtractor($http, $claim, $stage));
+            self::assertSame(1, DB::table('ai_calls')->count());
+            self::assertSame(1, DB::table('c02_extractor_effect_reservations')->count());
+            self::assertSame(1, $fake->calls);
+            app()->forgetInstance(FakeDriver::class);
+            unlink($file);
+        });
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
+    }
+
+    public function test_extractor_effect_evidence_rejects_forgery_and_cannot_be_rewritten(): void
+    {
+        [$tenant, $http, $claim] = $this->fixture();
+        $this->within($tenant, function () use ($http, $claim): void {
+            $stage = app(SellerExtractorStages::class)->prepare($http, $claim);
+            [$request] = app(SellerExtractorStages::class)->load($http, $claim, $stage);
+            $file = $this->fakeFixture($request->toArray(), 0);
+            self::assertSame('completed', app(Gateway::class)->completeProtectedExtractor($http, $claim, $stage));
+            $call = DB::table('ai_calls')->first();
+            $forged = new TurnClaim('claimed', $claim->turnId, $claim->conversationId, $claim->organizationId, $claim->brandId, 0, str_repeat('a', 64));
+            foreach ([$forged, new TurnClaim('claimed', (string) Str::ulid(), $claim->conversationId, $claim->organizationId, $claim->brandId, 0, $claim->token())] as $candidate) {
+                try {
+                    DB::transaction(fn () => app(ExtractorEffectReservations::class)->recordNewLocked($http, $candidate, $stage, $call->id, $call->request_hash));
+                    self::fail('A forged claim recorded effect evidence.');
+                } catch (LogicException $error) {
+                    self::assertSame('Protected extractor reservation evidence unavailable.', $error->getMessage());
+                    self::assertNull($error->getPrevious());
+                    $trace = json_encode($error->getTrace(), JSON_PARTIAL_OUTPUT_ON_ERROR | JSON_THROW_ON_ERROR);
+                    self::assertStringNotContainsString($claim->token(), $trace);
+                    self::assertStringNotContainsString($candidate->token(), $trace);
+                    self::assertStringNotContainsString($http->session()->getId(), $trace);
+                }
+            }
+            foreach ([[(string) Str::ulid(), $call->id, $call->request_hash], [$stage, (string) Str::ulid(), $call->request_hash],
+                [$stage, $call->id, str_repeat('0', 64)]] as [$stageId, $callId, $requestHash]) {
+                try {
+                    DB::transaction(fn () => app(ExtractorEffectReservations::class)->recordNewLocked($http, $claim, $stageId, $callId, $requestHash));
+                    self::fail('A mismatched stage, call or request was accepted.');
+                } catch (LogicException) {
+                    self::assertTrue(true);
+                }
+            }
+            $row = DB::table('c02_extractor_effect_reservations')->first();
+            foreach ([fn () => DB::table('c02_extractor_effect_reservations')->where('id', $row->id)->update(['seal' => str_repeat('a', 64)]),
+                fn () => DB::table('c02_extractor_effect_reservations')->where('id', $row->id)->delete(),
+                fn () => DB::statement('TRUNCATE c02_extractor_effect_reservations')] as $operation) {
+                try {
+                    DB::transaction($operation);
+                    self::fail('Immutable reservation evidence changed.');
+                } catch (QueryException $error) {
+                    self::assertSame('23514', $error->errorInfo[0]);
+                }
+            }
+            try {
+                DB::transaction(fn () => DB::table('c02_extractor_effect_reservations')->insert([
+                    'id' => (string) Str::ulid(), 'organization_id' => $claim->organizationId, 'brand_id' => $claim->brandId,
+                    'conversation_id' => $claim->conversationId, 'turn_id' => $claim->turnId, 'extractor_stage_id' => $stage,
+                    'ai_call_id' => $call->id, 'request_hash' => $call->request_hash, 'seal' => str_repeat('b', 64),
+                ]));
+                self::fail('A prior AI call was attached as a new reservation.');
+            } catch (QueryException $error) {
+                self::assertSame('23514', $error->errorInfo[0]);
+            }
+            self::assertSame(1, DB::table('c02_extractor_effect_reservations')->count());
+            self::assertSame(1, DB::table('ai_calls')->count());
+            $migration = require database_path('migrations/C-02/2026_11_01_100000_c02_create_extractor_effect_reservations.php');
+            try {
+                $migration->down();
+                self::fail('Migration discarded reservation evidence.');
+            } catch (\RuntimeException $error) {
+                self::assertSame('Cannot discard extractor effect reservation history.', $error->getMessage());
+            }
+            DB::beginTransaction();
+            try {
+                // Simulate privileged storage tampering only in this isolated test transaction.
+                DB::statement('ALTER TABLE c02_extractor_effect_reservations DISABLE TRIGGER c02_extractor_effect_reservation_guard');
+                DB::table('c02_extractor_effect_reservations')->where('id', $row->id)->update(['seal' => str_repeat('a', 64)]);
+                DB::statement('ALTER TABLE c02_extractor_effect_reservations ENABLE TRIGGER c02_extractor_effect_reservation_guard');
+                try {
+                    app(SellerExtractorStages::class)->load($http, $claim, $stage);
+                    self::fail('A tampered reservation seal was trusted.');
+                } catch (LogicException) {
+                    self::assertTrue(true);
+                }
+            } finally {
+                DB::rollBack();
+            }
+            unlink($file);
+        });
+        Http::assertNothingSent();
+    }
+
+    public function test_database_rejects_new_stage_binding_without_reservation_evidence(): void
+    {
+        [$tenant, $http, $claim] = $this->fixture();
+        $this->within($tenant, function () use ($http, $claim): void {
+            $stage = app(SellerExtractorStages::class)->prepare($http, $claim);
+            [$request] = app(SellerExtractorStages::class)->load($http, $claim, $stage);
+            $file = $this->fakeFixture($request->toArray(), 0);
+            // Simulate faulty old code that binds the call but omits its evidence.
+            app()->instance(ExtractorEffectReservations::class, new class
+            {
+                public function assertBoundIfPresentLocked(object $stage): void {}
+
+                public function recordNewLocked(...$args): void {}
+            });
+            try {
+                try {
+                    app(Gateway::class)->completeProtectedExtractor($http, $claim, $stage);
+                    self::fail('The database allowed a new untracked binding.');
+                } catch (LogicException) {
+                    self::assertTrue(true);
+                }
+                self::assertNull(DB::table('c02_extractor_stages')->where('id', $stage)->value('ai_call_id'));
+                self::assertSame(0, DB::table('ai_calls')->count());
+                self::assertSame(0, DB::table('c02_extractor_effect_reservations')->count());
+            } finally {
+                app()->forgetInstance(ExtractorEffectReservations::class);
+                unlink($file);
+            }
+        });
+        Http::assertNothingSent();
+    }
+
+    public function test_extractor_effect_migration_preserves_legacy_bound_call_without_backfill(): void
+    {
+        $migration = require database_path('migrations/C-02/2026_11_01_100000_c02_create_extractor_effect_reservations.php');
+        $migration->down();
+        [$tenant, $http, $claim] = $this->fixture();
+        $this->within($tenant, function () use ($http, $claim, $migration): void {
+            $stage = app(SellerExtractorStages::class)->prepare($http, $claim);
+            // Reproduce a genuine pre-migration protected reservation, whose
+            // old code did not write the new evidence table.
+            app()->instance(ExtractorEffectReservations::class, new class
+            {
+                public function assertBoundIfPresentLocked(object $stage): void {}
+
+                public function recordNewLocked(...$args): void {}
+            });
+            try {
+                [$request] = app(SellerExtractorStages::class)->load($http, $claim, $stage);
+                $file = $this->fakeFixture($request->toArray(), 0);
+                self::assertSame('completed', app(Gateway::class)->completeProtectedExtractor($http, $claim, $stage));
+                unlink($file);
+            } finally {
+                app()->forgetInstance(ExtractorEffectReservations::class);
+            }
+            $old = DB::table('ai_calls')->first();
+            $bound = DB::table('c02_extractor_stages')->where('id', $stage)->first();
+            $migration->up();
+            self::assertSame(0, DB::table('c02_extractor_effect_reservations')->count());
+            self::assertSame($old->id, DB::table('ai_calls')->value('id'));
+            self::assertSame($old->status, DB::table('ai_calls')->value('status'));
+            self::assertSame($old->id, $bound->ai_call_id);
+            self::assertSame('completed', app(Gateway::class)->completeProtectedExtractor($http, $claim, $stage));
+            self::assertSame(1, DB::table('ai_calls')->count());
+            self::assertSame(0, DB::table('c02_extractor_effect_reservations')->count());
+            try {
+                DB::transaction(fn () => DB::table('c02_extractor_effect_reservations')->insert([
+                    'id' => (string) Str::ulid(), 'organization_id' => $claim->organizationId, 'brand_id' => $claim->brandId,
+                    'conversation_id' => $claim->conversationId, 'turn_id' => $claim->turnId, 'extractor_stage_id' => $stage,
+                    'ai_call_id' => $old->id, 'request_hash' => $old->request_hash, 'seal' => str_repeat('a', 64),
+                ]));
+                self::fail('Legacy AI call was retroactively marked as a new reservation.');
+            } catch (QueryException $error) {
+                self::assertSame('23514', $error->errorInfo[0]);
+            }
+        });
+        Http::assertNothingSent();
+    }
+
+    public function test_extractor_effect_reservation_serializes_two_processes(): void
+    {
+        [$tenant, $http, $claim] = $this->fixture();
+        [$stage, $file] = $this->within($tenant, function () use ($http, $claim): array {
+            $stage = app(SellerExtractorStages::class)->prepare($http, $claim);
+            [$request] = app(SellerExtractorStages::class)->load($http, $claim, $stage);
+
+            return [$stage, $this->fakeFixture($request->toArray(), 0)];
+        });
+        DB::unprepared(<<<'SQL'
+CREATE OR REPLACE FUNCTION c02_test_delay_extractor_effect() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN PERFORM pg_advisory_xact_lock(8620491); RETURN NEW; END;
+$$;
+CREATE TRIGGER c02_test_delay_extractor_effect BEFORE INSERT ON c02_extractor_effect_reservations
+  FOR EACH ROW EXECUTE FUNCTION c02_test_delay_extractor_effect();
+SQL);
+        config(['database.connections.c02_effect_blocker' => config('database.connections.pgsql')]);
+        $blocker = DB::connection('c02_effect_blocker');
+        $blocker->beginTransaction();
+        $blocker->select('SELECT pg_advisory_xact_lock(8620491)');
+        $markers = [base_path('.local/tmp/c02-effect-a-'.Str::random(16)), base_path('.local/tmp/c02-effect-b-'.Str::random(16))];
+        $workers = [];
+        foreach ($markers as $marker) {
+            $worker = new Process([PHP_BINARY, '-d', 'sys_temp_dir='.base_path('.local/tmp'), '-d', 'allow_url_fopen=0',
+                '-d', 'disable_functions=fsockopen,pfsockopen,stream_socket_client,curl_exec,curl_multi_exec',
+                base_path('tests/Feature/Ai/Fixtures/protected-extractor-worker.php'), $marker], base_path());
+            $worker->setInput(json_encode(['org' => $tenant->organizationId, 'brand' => $tenant->brandId, 'user' => $tenant->actorId,
+                'member' => $tenant->membershipId, 'session' => $http->session()->getId(), 'turn' => $claim->turnId,
+                'conversation' => $claim->conversationId, 'version' => $claim->baseVersion, 'token' => $claim->token(),
+                'stage' => $stage, 'fixtures' => dirname($file)], JSON_THROW_ON_ERROR));
+            $worker->setTimeout(60);
+            $workers[] = $worker;
+        }
+        try {
+            $workers[0]->start();
+            $this->waitForExtractorLock($workers[0], $markers[0]);
+            $workers[1]->start();
+            $this->waitForExtractorLock($workers[1], $markers[1]);
+            $blocker->rollBack();
+            foreach ($workers as $worker) {
+                $worker->wait();
+                self::assertTrue($worker->isSuccessful(), $worker->getErrorOutput());
+                self::assertContains(json_decode($worker->getOutput(), true, 512, JSON_THROW_ON_ERROR)['status'], ['completed', 'in_progress']);
+            }
+            self::assertSame('completed', $this->within($tenant, fn () => app(Gateway::class)->completeProtectedExtractor($http, $claim, $stage)));
+            self::assertSame(1, DB::table('ai_calls')->where('purpose', 'extractor')->count());
+            self::assertSame(1, DB::table('c02_extractor_effect_reservations')->where('extractor_stage_id', $stage)->count());
+            self::assertSame(DB::table('ai_calls')->value('id'), DB::table('c02_extractor_effect_reservations')->value('ai_call_id'));
+        } finally {
+            if ($blocker->transactionLevel() > 0) {
+                $blocker->rollBack();
+            }
+            foreach ($workers as $worker) {
+                if ($worker->isRunning()) {
+                    $worker->stop();
+                }
+            }
+            foreach ($markers as $marker) {
+                if (is_file($marker)) {
+                    unlink($marker);
+                }
+            }
+            if (is_file($file)) {
+                unlink($file);
+            }
+            DB::purge('c02_effect_blocker');
+            DB::unprepared('DROP TRIGGER IF EXISTS c02_test_delay_extractor_effect ON c02_extractor_effect_reservations; DROP FUNCTION IF EXISTS c02_test_delay_extractor_effect();');
+        }
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
+    }
+
+    private function waitForExtractorLock(Process $worker, string $marker): void
+    {
+        $deadline = microtime(true) + 30;
+        while (! is_file($marker) && $worker->isRunning() && microtime(true) < $deadline) {
+            usleep(10000);
+        }
+        self::assertFileExists($marker);
+        $pid = (int) file_get_contents($marker);
+        do {
+            DB::select('select pg_stat_clear_snapshot()');
+            $waiting = DB::table('pg_stat_activity')->where('pid', $pid)->where('wait_event_type', 'Lock')->exists();
+            if (! $waiting) {
+                usleep(10000);
+            }
+        } while (! $waiting && $worker->isRunning() && microtime(true) < $deadline);
+        self::assertTrue($waiting, 'Extractor worker must wait for the opposing transaction.');
     }
 
     private function fixture(string $text = 'Synthetic question', array $history = [], bool $ordinary = false): array

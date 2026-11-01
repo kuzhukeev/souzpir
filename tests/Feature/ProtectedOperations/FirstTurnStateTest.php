@@ -2729,6 +2729,8 @@ SQL);
             }
             self::assertSame(2, $fake->calls);
             self::assertSame(2, DB::table('ai_calls')->count());
+            self::assertSame(1, DB::table('c02_extractor_effect_reservations')->count());
+            self::assertSame(DB::table('ai_calls')->where('purpose', 'extractor')->value('id'), DB::table('c02_extractor_effect_reservations')->value('ai_call_id'));
             self::assertSame(2, DB::table('messages')->where('conversation_id', $command->conversationId)->count());
             self::assertSame(1, DB::table('audit_logs')->where('action', 'seller.turn.text_finalized')->count());
             self::assertSame('completed', DB::table('seller_turns')->where('id', $first['result']['turn_id'])->value('status'));
