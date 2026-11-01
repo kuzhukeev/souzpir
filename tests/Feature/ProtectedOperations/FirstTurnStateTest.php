@@ -44,6 +44,7 @@ use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Http\Request;
 use Illuminate\Session\ArraySessionHandler;
 use Illuminate\Session\Store;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
@@ -2856,6 +2857,149 @@ SQL);
             self::assertSame(0, DB::table('ai_calls')->count());
         });
         Http::assertNothingSent();
+    }
+
+    public function test_coordinator_recovers_saved_extractor_after_crash_and_against_a_live_original(): void
+    {
+        DB::unprepared(<<<'SQL'
+CREATE OR REPLACE FUNCTION c02_test_delay_coordinator_recovery_state() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN PERFORM pg_advisory_xact_lock(8620493); RETURN NEW; END;
+$$;
+CREATE TRIGGER c02_test_delay_coordinator_recovery_state BEFORE INSERT ON c02_first_turn_states
+  FOR EACH ROW EXECUTE FUNCTION c02_test_delay_coordinator_recovery_state();
+SQL);
+        config(['database.connections.c02_recovery_blocker' => config('database.connections.pgsql')]);
+        $blocker = DB::connection('c02_recovery_blocker');
+        $workers = [];
+        $paths = [];
+        try {
+            foreach (['crash', 'live'] as $scenario) {
+                [$tenant, $http, $command] = $this->protectedClaimFixture();
+                $prefix = base_path('.local/tmp/c02-coordinator-recovery-'.Str::random(16));
+                $saved = $prefix.'-saved';
+                $resume = $prefix.'-resume';
+                $responderMarker = $prefix.'-responder';
+                $pidMarkers = [$prefix.'-pid1', $prefix.'-pid2', $prefix.'-pid3'];
+                array_push($paths, $saved, $resume, $responderMarker, ...$pidMarkers);
+                $initial = $this->coordinatorRecoveryWorker($tenant, $http, $command, 'initial', $saved, $resume, $responderMarker, $pidMarkers[0]);
+                $workers[] = $initial;
+                $initial->start();
+                $deadline = microtime(true) + 30;
+                while (! is_file($saved) && $initial->isRunning() && microtime(true) < $deadline) {
+                    usleep(10000);
+                }
+                self::assertFileExists($saved);
+                self::assertTrue($initial->isRunning());
+                $call = DB::table('ai_calls')->where('object_id', $command->conversationId)->where('purpose', 'extractor')->first();
+                self::assertNotNull($call);
+                self::assertSame('reserved', $call->status);
+                self::assertNotNull($call->result_encrypted);
+                if ($scenario === 'crash') {
+                    $initial->stop(1);
+                    self::assertFalse($initial->isRunning());
+                    $this->assertCoordinatorSavedExtractorDenials($tenant, $http, $command, $call);
+                }
+
+                $blocker->beginTransaction();
+                $blocker->select('SELECT pg_advisory_xact_lock(8620493)');
+                $first = $this->coordinatorRecoveryWorker($tenant, $http, $command, 'resume', $saved, $resume, $responderMarker, $pidMarkers[1]);
+                $second = $this->coordinatorRecoveryWorker($tenant, $http, $command, 'resume', $saved, $resume, $responderMarker, $pidMarkers[2]);
+                array_push($workers, $first, $second);
+                $first->start();
+                $this->waitForFinalizerLock($first, $pidMarkers[1]);
+                $second->start();
+                $this->waitForFinalizerLock($second, $pidMarkers[2]);
+                $blocker->rollBack();
+                foreach ([$first, $second] as $worker) {
+                    $worker->wait();
+                    self::assertTrue($worker->isSuccessful(), $worker->getErrorOutput());
+                }
+                $statuses = array_map(fn (Process $worker) => json_decode($worker->getOutput(), true, 512, JSON_THROW_ON_ERROR)['status'], [$first, $second]);
+                self::assertContains('completed', $statuses);
+                self::assertSame(1, DB::table('ai_calls')->where('object_id', $command->conversationId)->where('purpose', 'extractor')->count());
+                self::assertSame(1, DB::table('ai_calls')->where('object_id', $command->conversationId)->where('purpose', 'responder')->count());
+                self::assertSame('completed', DB::table('ai_calls')->where('id', $call->id)->value('status'));
+                self::assertSame(1, DB::table('messages')->where('conversation_id', $command->conversationId)->where('role', 'agent')->count());
+                self::assertSame(1, DB::table('audit_logs')->where('action', 'seller.turn.text_finalized')->where('brand_id', $tenant->brandId)->count());
+                self::assertSame(1, count(file($responderMarker, FILE_IGNORE_NEW_LINES)));
+                self::assertSame(14, (int) DB::table('ai_budgets')->where('id', $call->budget_id)->value('spent_micros'));
+                self::assertSame(0, (int) DB::table('ai_budgets')->where('id', $call->budget_id)->value('unresolved_count'));
+                $replayed = $this->within($tenant, fn () => app(FirstTurnCoordinator::class)->run($http, $command));
+                self::assertSame('completed', $replayed['status']);
+                self::assertSame(DB::table('messages')->where('conversation_id', $command->conversationId)->where('role', 'agent')->value('id'), $replayed['result']['message_id']);
+                if ($scenario === 'live') {
+                    self::assertTrue($initial->isRunning());
+                    file_put_contents($resume, 'resume');
+                    $initial->wait();
+                    self::assertTrue($initial->isSuccessful(), $initial->getErrorOutput());
+                    self::assertSame('completed', json_decode($initial->getOutput(), true, 512, JSON_THROW_ON_ERROR)['status']);
+                    self::assertSame('completed', DB::table('ai_calls')->where('id', $call->id)->value('status'));
+                    self::assertSame(1, DB::table('messages')->where('conversation_id', $command->conversationId)->where('role', 'agent')->count());
+                    self::assertSame(1, count(file($responderMarker, FILE_IGNORE_NEW_LINES)));
+                }
+            }
+        } finally {
+            if ($blocker->transactionLevel() > 0) {
+                $blocker->rollBack();
+            }
+            foreach ($workers as $worker) {
+                if ($worker->isRunning()) {
+                    $worker->stop();
+                }
+            }
+            foreach ($paths as $path) {
+                if (is_file($path)) {
+                    unlink($path);
+                }
+            }
+            DB::purge('c02_recovery_blocker');
+            DB::unprepared('DROP TRIGGER IF EXISTS c02_test_delay_coordinator_recovery_state ON c02_first_turn_states; DROP FUNCTION IF EXISTS c02_test_delay_coordinator_recovery_state();');
+        }
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
+    }
+
+    private function coordinatorRecoveryWorker(TenantContext $tenant, Request $http, TurnCommand $command, string $mode, string $saved, string $resume, string $responder, string $pid): Process
+    {
+        $worker = new Process([PHP_BINARY, '-d', 'sys_temp_dir='.base_path('.local/tmp'), '-d', 'allow_url_fopen=0',
+            '-d', 'disable_functions=fsockopen,pfsockopen,stream_socket_client,curl_exec,curl_multi_exec',
+            base_path('tests/Feature/ProtectedOperations/Fixtures/coordinator-recovery-worker.php')], base_path());
+        $worker->setInput(json_encode(['org' => $tenant->organizationId, 'brand' => $tenant->brandId, 'user' => $tenant->actorId,
+            'member' => $tenant->membershipId, 'session' => $http->session()->getId(), 'conversation' => $command->conversationId,
+            'message' => $command->inputMessageId, 'text' => $command->text, 'key' => $command->idempotencyKey,
+            'mode' => $mode, 'saved_marker' => $saved, 'resume_marker' => $resume, 'responder_marker' => $responder, 'pid_marker' => $pid], JSON_THROW_ON_ERROR));
+        $worker->setTimeout(90);
+
+        return $worker;
+    }
+
+    private function assertCoordinatorSavedExtractorDenials(TenantContext $tenant, Request $http, TurnCommand $command, object $call): void
+    {
+        $fake = new CoordinatorScriptedFakeDriver([]);
+        app()->instance(FakeDriver::class, $fake);
+        $stored = json_decode(Crypt::decryptString($call->result_encrypted), true, 512, JSON_THROW_ON_ERROR);
+        foreach ([null, 'invalid-ciphertext', Crypt::encryptString(json_encode([...$stored, 'costMicros' => null], JSON_THROW_ON_ERROR)),
+            Crypt::encryptString(json_encode([...$stored, 'aiCallId' => (string) Str::ulid()], JSON_THROW_ON_ERROR))] as $invalid) {
+            DB::table('ai_calls')->where('id', $call->id)->update(['result_encrypted' => $invalid]);
+            self::assertSame(['status' => 'in_progress'], $this->within($tenant, fn () => app(FirstTurnCoordinator::class)->run($http, $command)));
+            DB::table('ai_calls')->where('id', $call->id)->update(['result_encrypted' => $call->result_encrypted]);
+        }
+        DB::table('ai_calls')->where('id', $call->id)->update(['request_hash' => str_repeat('a', 64)]);
+        self::assertNotSame('completed', $this->within($tenant, fn () => app(FirstTurnCoordinator::class)->run($http, $command))['status']);
+        DB::table('ai_calls')->where('id', $call->id)->update(['request_hash' => $call->request_hash]);
+        $otherBrand = $this->within(new TenantContext($tenant->organizationId, actorId: $tenant->actorId), fn () => Brand::create(['name' => 'Other synthetic brand']));
+        $otherTenant = new TenantContext($tenant->organizationId, $otherBrand->id, $tenant->actorId, $tenant->membershipId);
+        self::assertSame(['status' => 'unavailable'], $this->within($otherTenant, fn () => app(FirstTurnCoordinator::class)->run($http, $command)));
+        config(['runtime.ai_driver' => 'record']);
+        self::assertSame(['status' => 'unavailable'], $this->within($tenant, fn () => app(FirstTurnCoordinator::class)->run($http, $command)));
+        config(['runtime.ai_driver' => 'fake']);
+        DB::table('auth_session_registry')->where('user_id', $tenant->actorId)->update(['revoked_at' => now()]);
+        self::assertSame(['status' => 'unavailable'], $this->within($tenant, fn () => app(FirstTurnCoordinator::class)->run($http, $command)));
+        DB::table('auth_session_registry')->where('user_id', $tenant->actorId)->update(['revoked_at' => null]);
+        self::assertSame(0, $fake->calls);
+        self::assertSame('reserved', DB::table('ai_calls')->where('id', $call->id)->value('status'));
+        self::assertSame(1, DB::table('messages')->where('conversation_id', $command->conversationId)->count());
     }
 
     public function test_coordinator_does_not_retry_a_call_after_worker_stops_at_reservation(): void
