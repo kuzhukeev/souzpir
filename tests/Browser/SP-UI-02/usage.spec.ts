@@ -37,4 +37,3 @@ test('ошибка сервера остаётся видимой', async ({ pag
   await page.getByRole('button', { name: 'Показать' }).click();
   await expect(page.getByRole('alert')).toContainText('Не удалось связаться с сервером.');
 });
-
