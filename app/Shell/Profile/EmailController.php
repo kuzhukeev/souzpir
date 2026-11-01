@@ -21,19 +21,21 @@ final class EmailController
         return redirect()->route('profile.show')->with('status', 'Запрос на подтверждение нового адреса принят. Старый адрес действует до подтверждения.');
     }
 
-    public function show(Request $request, string $change, #[\SensitiveParameter] string $token): Response
+    public function show(Request $request, string $change): Response
     {
         SecureAccountContext::assertRead($request);
-        app(ProfileAccess::class)->run($request, fn (User $user, TenantContext $context) => app(EmailChanges::class)->validate($user, $context, $change, $token));
+        app(ProfileAccess::class)->run($request, fn (User $user, TenantContext $context) => app(EmailChanges::class)->preview($user, $context, $change));
 
         Inertia::encryptHistory();
 
         return app(ProfileController::class)->show($request)->with('emailConfirmationUrl', $request->getRequestUri());
     }
 
-    public function confirm(Request $request, string $change, #[\SensitiveParameter] string $token): RedirectResponse
+    public function confirm(Request $request, string $change): RedirectResponse
     {
         SecureAccountContext::assertRead($request);
+        $token = $request->attributes->get('profile.email.token');
+        abort_unless(is_string($token) && preg_match('/^[a-f0-9]{64}$/D', $token) === 1, 404);
         app(EmailChanges::class)->confirm($request, $change, $token);
         Inertia::clearHistory();
 
