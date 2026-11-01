@@ -8,6 +8,7 @@ const theme =
   ['neutral', 'pyro', 'confectionery'].find((value) => value === params.get('theme')) ?? 'neutral';
 const component = Crm;
 const props = {
+  canManage: true,
   auth: { user: { id: '1', name: 'Иван Петров', email: 'ivan@example.test' } },
   organization: { id: '1', name: 'Союз Пир' },
   brand: { id: '2', name: 'Пиротехника — Северные огни', theme },
@@ -134,12 +135,12 @@ const props = {
   webhooks: [
     {
       id: 'w1',
-      events: ['seller.lead.created'],
+      events: ['seller.contact.captured'],
       secret: '••••••••',
       deliveries: [
         {
           id: 'd1',
-          event: 'seller.lead.created',
+          event: 'seller.contact.captured',
           status: 'sent',
           status_code: 200,
           created_at: '2026-10-28T12:04:00Z',
