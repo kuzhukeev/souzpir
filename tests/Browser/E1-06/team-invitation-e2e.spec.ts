@@ -48,6 +48,12 @@ test('владелец открывает реальную форму, выпу�
   await dialog.getByRole('button', { name: 'Закрыть' }).click();
   await expect(dialog).toHaveCount(0);
   await prepare(page, email);
+  const version = await page.evaluate(
+    () =>
+      JSON.parse(document.querySelector('script[data-page="app"]')?.textContent || '{}')
+        .version as string,
+  );
+  expect(typeof version === 'string' && version.length > 0).toBe(true);
   const checked = page.waitForResponse(
     (response) =>
       response.request().method() === 'GET' &&
@@ -59,20 +65,27 @@ test('владелец открывает реальную форму, выпу�
     (response) =>
       response.request().method() === 'POST' && response.url() === `${origin}/team/invitations`,
   );
-  await dialog.getByRole('button', { name: 'Подтвердить выпуск' }).click();
-  const issuance = await posted;
-  expect(issuance.status()).toBe(201);
-  const rechecked = await checked;
-  expect(rechecked.status()).toBe(200);
-  const context = (await rechecked.json()).props as {
-    teamBrandRevision: string;
-    canViewRoles: boolean;
-    brand: { id: string };
-    filterBrands: { id: string }[];
-  };
-  expect(context.canViewRoles).toBe(true);
-  expect(context.filterBrands.some((brand) => brand.id === context.brand.id)).toBe(true);
   try {
+    await dialog.getByRole('button', { name: 'Подтвердить выпуск' }).click();
+    const issuance = await posted;
+    expect(issuance.status()).toBe(201);
+    const rechecked = await checked;
+    expect(rechecked.request().headers()['x-inertia-version']).toBe(version);
+    expect(rechecked.status()).toBe(200);
+    const result = (await rechecked.json()) as {
+      version: string;
+      props: {
+        teamBrandRevision: string;
+        canViewRoles: boolean;
+        brand: { id: string };
+        filterBrands: { id: string }[];
+      };
+    };
+    expect(result.version).toBe(version);
+    expect(result.props.canViewRoles).toBe(true);
+    expect(result.props.filterBrands.some((brand) => brand.id === result.props.brand.id)).toBe(
+      true,
+    );
     await expect(dialog.getByLabel('Ссылка приглашения')).toBeVisible();
   } finally {
     // Erase the one-time bearer before Playwright can record a failure snapshot.
@@ -87,6 +100,53 @@ test('владелец открывает реальную форму, выпу�
   await expect(
     page.getByRole('region', { name: 'Приглашения в ожидании' }).getByText(email),
   ).toBeVisible();
+});
+
+test('устаревшая версия Inertia отклоняется после выпуска и ссылка не показывается', async ({
+  page,
+}) => {
+  const email = `e106-stale-${Date.now()}@example.test`;
+  await login(page, 'owner');
+  const version = await page.evaluate(
+    () =>
+      JSON.parse(document.querySelector('script[data-page="app"]')?.textContent || '{}')
+        .version as string,
+  );
+  expect(typeof version === 'string' && version.length > 0).toBe(true);
+  await page.route(`${origin}/team`, async (route) => {
+    const headers = route.request().headers();
+    if (route.request().method() === 'GET' && headers['x-inertia'] === 'true') {
+      expect(headers['x-inertia-version']).toBe(version);
+      await route.continue({
+        headers: { ...headers, 'x-inertia-version': 'deliberately-stale-test-version' },
+      });
+    } else await route.continue();
+  });
+  await prepare(page, email);
+  const dialog = page.getByRole('dialog', { name: 'Пригласить участника' });
+  const created = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'POST' && response.url() === `${origin}/team/invitations`,
+  );
+  const checked = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'GET' &&
+      response.url() === `${origin}/team` &&
+      response.request().headers()['x-inertia'] === 'true',
+  );
+  try {
+    await dialog.getByRole('button', { name: 'Подтвердить выпуск' }).click();
+    expect((await created).status()).toBe(201);
+    expect((await checked).status()).toBe(409);
+    await expect(dialog.getByText(/Результат неизвестен/)).toBeVisible();
+    await expect(dialog.getByLabel('Ссылка приглашения')).toHaveCount(0);
+  } finally {
+    try {
+      await dialog.getByRole('button', { name: 'Закрыть' }).click({ timeout: 1500 });
+    } catch {
+      await page.goto('about:blank');
+    }
+  }
 });
 
 test('наблюдатель не видит кнопку, прямой запрос запрещён сервером', async ({ page }) => {
