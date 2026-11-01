@@ -1183,6 +1183,146 @@ SQL);
         Queue::assertNothingPushed();
     }
 
+    public function test_protected_tool_call_is_read_from_its_bound_source_and_does_not_authorize_an_effect(): void
+    {
+        [$tenant, $http, $claim, $extractor] = $this->fixture('Synthetic question', ['protected_claim' => true]);
+        $expected = ['id' => 'synthetic-call', 'name' => 'create_promise', 'arguments' => ['text' => 'Уточню детали']];
+        [$stage, , , $file] = $this->responderFixture($tenant, $http, $claim, $extractor, ['content' => null, 'toolCalls' => [$expected]]);
+        $this->within($tenant, function () use ($http, $claim, $stage, $file, $expected): void {
+            $gateway = app(Gateway::class);
+            self::assertSame('completed', $gateway->completeProtectedResponder($http, $claim, $stage));
+            try {
+                $gateway->readProtectedToolCallLocked($http, $claim, $stage, 0);
+                self::fail('A tool call was read outside a transaction.');
+            } catch (LogicException $error) {
+                self::assertSame('Protected tool call unavailable.', $error->getMessage());
+                self::assertNull($error->getPrevious());
+            }
+            DB::transaction(function () use ($gateway, $http, $claim, $stage, $expected): void {
+                self::assertSame(['status' => 'tool_calls', 'text' => null], $gateway->readProtectedResponderLocked($http, $claim, $stage));
+                $source = $gateway->readProtectedToolCallLocked($http, $claim, $stage, 0);
+                self::assertSame($expected, $source);
+                $source['arguments']['text'] = 'Подменённый текст';
+                self::assertSame($expected, $gateway->readProtectedToolCallLocked($http, $claim, $stage, 0));
+                foreach ([-1, 1] as $index) {
+                    try {
+                        $gateway->readProtectedToolCallLocked($http, $claim, $stage, $index);
+                        self::fail('Invalid tool index was accepted.');
+                    } catch (LogicException) {
+                        self::assertTrue(true);
+                    }
+                }
+            });
+            self::assertSame(0, DB::table('seller_tasks')->count());
+            self::assertSame(0, DB::table('outbox_events')->count());
+            self::assertSame('processing', DB::table('seller_turns')->where('id', $claim->turnId)->value('status'));
+            unlink($file);
+        });
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
+    }
+
+    public function test_protected_tool_call_rejects_cross_call_ciphertext_stale_input_and_other_brand(): void
+    {
+        [$tenant, $http, $claim, $extractor] = $this->fixture('Synthetic question', ['protected_claim' => true]);
+        $expected = ['id' => 'synthetic-call', 'name' => 'create_promise', 'arguments' => ['text' => 'Уточню детали']];
+        [$stage, , , $file] = $this->responderFixture($tenant, $http, $claim, $extractor, ['content' => null, 'toolCalls' => [$expected]]);
+        $this->within($tenant, function () use ($tenant, $http, $claim, $stage, $file): void {
+            $gateway = app(Gateway::class);
+            self::assertSame('completed', $gateway->completeProtectedResponder($http, $claim, $stage));
+            $callId = DB::table('c02_responder_stages')->where('id', $stage)->value('ai_call_id');
+            $original = DB::table('ai_calls')->where('id', $callId)->value('result_encrypted');
+            $copied = json_decode(Crypt::decryptString($original), true, 512, JSON_THROW_ON_ERROR);
+            $copied['aiCallId'] = (string) Str::ulid();
+            $copied['toolCalls'][0]['arguments']['text'] = 'Подменённый текст';
+            DB::beginTransaction();
+            try {
+                DB::table('ai_calls')->where('id', $callId)->update(['result_encrypted' => Crypt::encryptString(json_encode($copied, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE))]);
+                try {
+                    $gateway->readProtectedToolCallLocked($http, $claim, $stage, 0);
+                    self::fail('Another call result supplied substituted arguments.');
+                } catch (LogicException $error) {
+                    self::assertSame('Protected tool call unavailable.', $error->getMessage());
+                }
+            } finally {
+                DB::rollBack();
+            }
+            DB::beginTransaction();
+            try {
+                DB::table('auth_session_registry')->where('user_id', $tenant->actorId)->update(['revoked_at' => now()]);
+                try {
+                    $gateway->readProtectedToolCallLocked($http, $claim, $stage, 0);
+                    self::fail('A revoked session read a tool call.');
+                } catch (LogicException $error) {
+                    self::assertSame('Protected tool call unavailable.', $error->getMessage());
+                }
+            } finally {
+                DB::rollBack();
+            }
+            $other = $this->within(new TenantContext($tenant->organizationId, actorId: $tenant->actorId), fn () => Brand::create(['name' => 'Other synthetic brand']));
+            $foreign = new TenantContext($tenant->organizationId, $other->id, $tenant->actorId, $tenant->membershipId);
+            try {
+                $this->within($foreign, fn () => DB::transaction(fn () => $gateway->readProtectedToolCallLocked($http, $claim, $stage, 0)));
+                self::fail('Another brand read the tool call.');
+            } catch (LogicException) {
+                self::assertTrue(true);
+            }
+            Message::create(['conversation_id' => $claim->conversationId, 'role' => 'client', 'text' => 'Later input', 'meta' => []]);
+            try {
+                DB::transaction(fn () => $gateway->readProtectedToolCallLocked($http, $claim, $stage, 0));
+                self::fail('A stale turn exposed a tool call.');
+            } catch (LogicException $error) {
+                self::assertSame('Protected tool call unavailable.', $error->getMessage());
+            }
+            self::assertSame('uncertain', DB::table('seller_turns')->where('id', $claim->turnId)->value('status'));
+            self::assertSame(0, DB::table('seller_tasks')->count());
+            self::assertSame(0, DB::table('outbox_events')->count());
+            unlink($file);
+        });
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
+    }
+
+    public static function invalidProtectedToolCalls(): array
+    {
+        return [
+            'tool not offered' => [[['id' => 'call', 'name' => 'escalate', 'arguments' => ['reason' => 'synthetic']]]],
+            'required argument missing' => [[['id' => 'call', 'name' => 'create_promise', 'arguments' => []]]],
+            'unexpected argument' => [[['id' => 'call', 'name' => 'create_promise', 'arguments' => ['text' => 'synthetic', 'extra' => 'synthetic']]]],
+            'duplicate call identity' => [[['id' => 'same', 'name' => 'create_promise', 'arguments' => ['text' => 'first']], ['id' => 'same', 'name' => 'create_promise', 'arguments' => ['text' => 'second']]]],
+            'empty call identity' => [[['id' => '', 'name' => 'create_promise', 'arguments' => ['text' => 'synthetic']]]],
+        ];
+    }
+
+    #[DataProvider('invalidProtectedToolCalls')]
+    public function test_protected_tool_call_rejects_unoffered_invalid_and_ambiguous_calls(array $calls): void
+    {
+        [$tenant, $http, $claim, $extractor] = $this->fixture('Synthetic question', ['protected_claim' => true]);
+        [$stage, , , $file] = $this->responderFixture($tenant, $http, $claim, $extractor, ['content' => null, 'toolCalls' => $calls]);
+        $this->within($tenant, function () use ($http, $claim, $stage, $file): void {
+            $gateway = app(Gateway::class);
+            self::assertSame('completed', $gateway->completeProtectedResponder($http, $claim, $stage));
+            DB::transaction(function () use ($gateway, $http, $claim, $stage): void {
+                self::assertSame(['status' => 'tool_calls', 'text' => null], $gateway->readProtectedResponderLocked($http, $claim, $stage));
+                try {
+                    $gateway->readProtectedToolCallLocked($http, $claim, $stage, 0);
+                    self::fail('An invalid protected tool call was exposed.');
+                } catch (LogicException $error) {
+                    self::assertSame('Protected tool call unavailable.', $error->getMessage());
+                    self::assertNull($error->getPrevious());
+                }
+            });
+            self::assertSame(0, DB::table('seller_tasks')->count());
+            self::assertSame(0, DB::table('outbox_events')->count());
+            unlink($file);
+        });
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
+    }
+
     public function test_responder_rejects_forgery_revocation_and_new_input_without_an_effect(): void
     {
         [$tenant, $http, $claim, $extractor] = $this->fixture('Synthetic first input');
