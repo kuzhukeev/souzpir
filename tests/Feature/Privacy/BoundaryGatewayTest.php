@@ -9,17 +9,17 @@ use App\Contracts\Ai\AiRequest;
 use App\Privacy\ContactBoundary;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Http\Client\Request as HttpRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
+use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\TestCase;
 
 final class BoundaryGatewayTest extends TestCase
 {
-    use DatabaseMigrations;
+    use IsolatedDatabaseMigrations;
 
     public function test_obfuscated_input_is_rejected_before_gateway_reservation_or_fake_http(): void
     {
