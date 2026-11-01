@@ -41,7 +41,25 @@ if ($path === '/_e106e/count') {
     exit;
 }
 $public = realpath(getcwd().'/public');
-$file = is_string($path) ? realpath(getcwd().'/public'.$path) : false;
+$productionPublic = getenv('E106E_PRODUCTION_PUBLIC');
+if ($productionPublic !== false && $productionPublic !== '') {
+    $root = realpath(getcwd());
+    $runtime = $root ? realpath($root.'/.local/runtime') : false;
+    $candidate = realpath($productionPublic);
+    $normal = static fn ($value) => strtolower(str_replace('\\', '/', $value));
+    $scratch = $candidate ? dirname($candidate) : false;
+    if (! $root || ! is_file($root.'/.git') || ! $runtime || ! $candidate || ! $scratch
+        || $normal($runtime) !== $normal($root.'/.local/runtime')
+        || $normal($candidate) !== $normal($productionPublic)
+        || basename($candidate) !== 'public' || ! str_starts_with(basename($scratch), 'e106e-production-')
+        || $normal(dirname($scratch)) !== $normal($runtime)
+        || ! realpath($candidate.'/build') || $normal(realpath($candidate.'/build')) !== $normal($candidate.'/build')) {
+        http_response_code(403);
+        exit;
+    }
+    $public = $candidate;
+}
+$file = is_string($path) && $public ? realpath($public.$path) : false;
 if ($public && $file && str_starts_with(strtolower($file), strtolower($public.DIRECTORY_SEPARATOR)) && is_file($file)) {
     $types = ['js' => 'text/javascript', 'css' => 'text/css', 'woff2' => 'font/woff2', 'svg' => 'image/svg+xml'];
     $type = $types[strtolower(pathinfo($file, PATHINFO_EXTENSION))] ?? null;
@@ -51,6 +69,14 @@ if ($public && $file && str_starts_with(strtolower($file), strtolower($public.DI
     }
     header('Content-Type: '.$type);
     readfile($file);
+    exit;
+}
+if ($productionPublic !== false && $productionPublic !== '') {
+    define('LARAVEL_START', microtime(true));
+    require getcwd().'/vendor/autoload.php';
+    $app = require getcwd().'/bootstrap/app.php';
+    $app->usePublicPath($public);
+    $app->handleRequest(\Illuminate\Http\Request::capture());
     exit;
 }
 require getcwd().'/public/index.php';
