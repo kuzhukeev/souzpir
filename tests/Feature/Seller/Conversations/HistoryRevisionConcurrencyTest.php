@@ -17,9 +17,11 @@ use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Process\Process;
 use Tests\TestCase;
 
+#[Group('race')]
 final class HistoryRevisionConcurrencyTest extends TestCase
 {
     use DatabaseMigrations;

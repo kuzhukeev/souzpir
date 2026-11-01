@@ -14,9 +14,11 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use Tests\Support\IsolatedAuthDatabase;
 use Tests\TestCase;
 
+#[Group('race')]
 final class ProfileHttpRaceTest extends TestCase
 {
     use DatabaseMigrations;

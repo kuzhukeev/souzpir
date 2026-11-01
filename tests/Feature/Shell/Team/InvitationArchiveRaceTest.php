@@ -21,10 +21,12 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Process\Process;
 use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\TestCase;
 
+#[Group('race')]
 final class InvitationArchiveRaceTest extends TestCase
 {
     use IsolatedDatabaseMigrations;

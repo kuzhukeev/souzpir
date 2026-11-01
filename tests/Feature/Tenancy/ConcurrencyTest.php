@@ -12,9 +12,11 @@ use App\Tenancy\TenantContextRunner;
 use Database\Seeders\Tenancy\CabinetFixtureSeeder;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
+use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Process\Process;
 use Tests\TestCase;
 
+#[Group('race')]
 final class ConcurrencyTest extends TestCase
 {
     use DatabaseMigrations;

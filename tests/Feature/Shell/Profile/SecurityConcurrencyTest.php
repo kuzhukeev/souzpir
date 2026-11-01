@@ -13,8 +13,10 @@ use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use Tests\TestCase;
 
+#[Group('race')]
 final class SecurityConcurrencyTest extends TestCase
 {
     use DatabaseMigrations;

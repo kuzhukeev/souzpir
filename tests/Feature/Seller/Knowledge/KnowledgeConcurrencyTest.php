@@ -4,10 +4,12 @@ namespace Tests\Feature\Seller\Knowledge;
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Process\Process;
 use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\TestCase;
 
+#[Group('race')]
 final class KnowledgeConcurrencyTest extends TestCase
 {
     use IsolatedDatabaseMigrations;

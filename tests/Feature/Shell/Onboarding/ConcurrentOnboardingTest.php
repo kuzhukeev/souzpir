@@ -10,9 +10,11 @@ use App\Tenancy\TenantContextRunner;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Process\Process;
 use Tests\TestCase;
 
+#[Group('race')]
 final class ConcurrentOnboardingTest extends TestCase
 {
     public function test_same_payload_is_one_create_and_one_idempotent_replay(): void

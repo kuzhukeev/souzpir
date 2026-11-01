@@ -16,10 +16,12 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Process\Process;
 use Tests\Feature\Shell\InvitationIssuance\Fixtures\IsolatedInvitationDatabase;
 use Tests\TestCase;
 
+#[Group('race')]
 final class InvitationIssuanceRaceTest extends TestCase
 {
     public function test_competing_attempt_returns_conflict_after_first_transaction_commits(): void

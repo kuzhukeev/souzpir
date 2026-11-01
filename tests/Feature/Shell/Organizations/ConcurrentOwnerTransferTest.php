@@ -11,9 +11,11 @@ use App\Tenancy\TenantContextRunner;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Process\Process;
 use Tests\TestCase;
 
+#[Group('race')]
 final class ConcurrentOwnerTransferTest extends TestCase
 {
     public function test_competing_transfers_have_one_owner_and_one_audit_event(): void

@@ -14,10 +14,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
 use Tests\TestCase;
 
+#[Group('race')]
 final class ExportLogoutRaceTest extends TestCase
 {
     use DatabaseMigrations;

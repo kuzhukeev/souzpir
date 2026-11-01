@@ -7,8 +7,10 @@ use App\Contracts\Ai\AiRequest;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use PHPUnit\Framework\Attributes\Group;
 use Tests\TestCase;
 
+#[Group('race')]
 final class BudgetConcurrencyTest extends TestCase
 {
     public function test_two_processes_cannot_exceed_the_same_budget(): void

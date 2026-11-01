@@ -9,10 +9,12 @@ use App\Shell\Auth\Totp;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
 use Illuminate\Support\Str;
+use PHPUnit\Framework\Attributes\Group;
 use Tests\Support\IsolatedAuthDatabase;
 use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\TestCase;
 
+#[Group('race')]
 final class FileSessionRaceTest extends TestCase
 {
     use IsolatedDatabaseMigrations;

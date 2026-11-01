@@ -6,11 +6,13 @@ use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Process\Process;
 use Tests\Feature\Shell\Support\Fixtures\IsolatedPlanTestDatabase;
 use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\TestCase;
 
+#[Group('race')]
 final class IngressRateRaceTest extends TestCase
 {
     use IsolatedDatabaseMigrations;

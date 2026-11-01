@@ -12,10 +12,12 @@ use Illuminate\Http\Request;
 use Illuminate\Session\ArraySessionHandler;
 use Illuminate\Session\Store;
 use Illuminate\Support\Facades\DB;
+use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Process\Process;
 use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\TestCase;
 
+#[Group('race')]
 final class InvitationExchangeConcurrencyTest extends TestCase
 {
     use IsolatedDatabaseMigrations;

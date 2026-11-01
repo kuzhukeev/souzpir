@@ -11,9 +11,11 @@ use App\Tenancy\TenantContextRunner;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Process\Process;
 use Tests\TestCase;
 
+#[Group('race')]
 final class ConcurrentBrandCreationTest extends TestCase
 {
     public function test_concurrent_creations_obey_the_same_organization_limit(): void

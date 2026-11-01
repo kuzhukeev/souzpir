@@ -15,11 +15,13 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\Process\Process;
 use Tests\Feature\Vision\Measurements\Fixtures\IsolatedDatabaseGuard;
 use Tests\TestCase;
 
+#[Group('race')]
 final class MeasurementAccessRaceTest extends TestCase
 {
     protected function setUp(): void

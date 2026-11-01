@@ -16,8 +16,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use PHPUnit\Framework\Attributes\Group;
 use Tests\TestCase;
 
+#[Group('race')]
 final class MfaRaceTest extends TestCase
 {
     use RefreshDatabase;

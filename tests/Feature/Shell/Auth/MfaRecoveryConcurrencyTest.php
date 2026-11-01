@@ -8,11 +8,13 @@ use App\Shell\Auth\MfaCode;
 use App\Tenancy\Cabinet;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Process\Process;
 use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\Support\MfaTestDatabase;
 use Tests\TestCase;
 
+#[Group('race')]
 final class MfaRecoveryConcurrencyTest extends TestCase
 {
     use IsolatedDatabaseMigrations;

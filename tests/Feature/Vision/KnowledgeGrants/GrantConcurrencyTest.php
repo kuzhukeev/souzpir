@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
 use Tests\Feature\Seller\Knowledge\Fixtures\PrototypeKnowledge;
@@ -30,6 +31,7 @@ if (! interface_exists(GrantAuthority::class)) {
     require_once __DIR__.'/Fixtures/GrantAuthority.php';
 }
 
+#[Group('race')]
 final class GrantConcurrencyTest extends TestCase
 {
     use IsolatedDatabaseMigrations;

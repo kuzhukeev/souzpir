@@ -17,10 +17,12 @@ use Illuminate\Session\Store;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\Support\MfaTestDatabase;
 use Tests\TestCase;
 
+#[Group('race')]
 final class MfaRecoveryLogoutRaceTest extends TestCase
 {
     use IsolatedDatabaseMigrations;
