@@ -279,6 +279,13 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "api.v1.seller.conversations.index": [],
+    "api.v1.seller.conversations.show": [
+        {
+            "name": "conversation",
+            "required": true
+        }
+    ],
     "data.index": [],
     "data.consents": [],
     "data.exports.create": [],
