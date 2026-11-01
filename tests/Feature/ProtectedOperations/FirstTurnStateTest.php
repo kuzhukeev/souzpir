@@ -25,6 +25,7 @@ use App\ProtectedOperations\FirstTurnProtectedClaim;
 use App\ProtectedOperations\FirstTurnState;
 use App\ProtectedOperations\FirstTurnTextFinalizer;
 use App\ProtectedOperations\PostgresTransactionalIdempotency;
+use App\ProtectedOperations\RequestSellerTurnReviewController;
 use App\ProtectedOperations\SellerTurnQuarantine;
 use App\Seller\Channels\Core\ChannelAccount;
 use App\Seller\Channels\Core\InboundRecorder;
@@ -3168,6 +3169,51 @@ SQL);
         Queue::assertNothingPushed();
     }
 
+    public function test_operator_review_controller_is_authorized_idempotent_and_private(): void
+    {
+        [$tenant, $http, $command] = $this->protectedClaimFixture();
+        $claim = $this->within($tenant, fn () => app(FirstTurnProtectedClaim::class)->claim($http, $command));
+        $selection = app(AuthSessionRegistry::class)->withinActive($http, fn () => app(SessionBrandSelection::class)->current($http));
+        $http->attributes->set('tenant.brand_revision', (string) $selection->brand_revision);
+        $controller = app(RequestSellerTurnReviewController::class);
+        $wrongMethod = $controller(Request::create('/', 'GET'), $claim->turnId);
+        self::assertSame(405, $wrongMethod->getStatusCode());
+        self::assertSame('POST', $wrongMethod->headers->get('Allow'));
+        self::assertSame('no-store, private', $wrongMethod->headers->get('Cache-Control'));
+        self::assertSame(404, $controller($http, 'not-a-turn')->getStatusCode());
+        $this->within($tenant, function () use ($http, $claim, $controller): void {
+            $http->request->set('reason', 'forged');
+            $invalid = $controller($http, $claim->turnId);
+            self::assertSame(422, $invalid->getStatusCode());
+            self::assertSame('no-store, private', $invalid->headers->get('Cache-Control'));
+            self::assertSame('processing', DB::table('seller_turns')->where('id', $claim->turnId)->value('status'));
+            $http->request->remove('reason');
+            $first = $controller($http, $claim->turnId);
+            self::assertSame(200, $first->getStatusCode());
+            self::assertSame('no-store, private', $first->headers->get('Cache-Control'));
+            self::assertSame(['data' => ['status' => 'uncertain', 'review' => 'requested', 'reason' => 'outcome_unconfirmed', 'other_effects_may_exist' => true]], $first->getData(true));
+            self::assertSame($first->getData(true), $controller($http, $claim->turnId)->getData(true));
+            self::assertSame(1, DB::table('c02_manual_review_requests')->where('turn_id', $claim->turnId)->count());
+            self::assertSame(1, DB::table('audit_logs')->where('action', 'seller.turn.quarantined')->where('subject_id', $claim->turnId)->count());
+            self::assertSame(1, DB::table('audit_logs')->where('action', 'seller.turn.review_requested')->where('subject_id', $claim->turnId)->count());
+        });
+        $otherBrand = $this->within(new TenantContext($tenant->organizationId, actorId: $tenant->actorId), fn () => Brand::create(['name' => 'Foreign synthetic brand']));
+        $foreign = new TenantContext($tenant->organizationId, $otherBrand->id, $tenant->actorId, $tenant->membershipId);
+        $denied = $this->within($foreign, fn () => $controller($http, $claim->turnId));
+        self::assertSame(409, $denied->getStatusCode());
+        self::assertSame('no-store, private', $denied->headers->get('Cache-Control'));
+        DB::table('auth_session_registry')->where('user_id', $tenant->actorId)->update(['revoked_at' => now()]);
+        $revoked = $this->within($tenant, fn () => $controller($http, $claim->turnId));
+        self::assertSame(401, $revoked->getStatusCode());
+        self::assertSame('no-store, private', $revoked->headers->get('Cache-Control'));
+        self::assertSame(1, DB::table('c02_manual_review_requests')->where('turn_id', $claim->turnId)->count());
+        self::assertSame(0, DB::table('seller_tasks')->count());
+        self::assertSame(0, DB::table('outbox_events')->count());
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
+    }
+
     public function test_quarantine_denies_wrong_context_role_disabled_module_and_revoked_session(): void
     {
         [$tenant, $http, $command] = $this->protectedClaimFixture();
@@ -4987,6 +5033,80 @@ SQL);
             self::assertSame(1, DB::table('messages')->where('conversation_id', $otherCommand->conversationId)->count());
             self::assertSame(1, DB::table('ai_calls')->where('object_id', $otherCommand->conversationId)->where('status', 'completed')->count());
         });
+        self::assertSame(0, DB::table('seller_tasks')->count());
+        self::assertSame(0, DB::table('outbox_events')->count());
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
+    }
+
+    public function test_operator_review_route_enforces_csrf_authority_isolation_and_idempotency(): void
+    {
+        [$tenant, $http, $command] = $this->protectedClaimFixture();
+        $claim = $this->within($tenant, fn () => app(FirstTurnProtectedClaim::class)->claim($http, $command));
+        config(['features.E0-02.defaults.organization_id' => $tenant->organizationId]);
+        $user = $http->user();
+        $this->actingAs($user);
+        $this->startSession();
+        session()->invalidate();
+        $this->withSession(['auth.version' => $user->auth_version, 'brand_id' => $tenant->brandId]);
+        $webRequest = Request::create('/', 'POST');
+        $webRequest->setLaravelSession(app('session.store'));
+        $webRequest->setUserResolver(fn () => $user);
+        app(AuthSessionRegistry::class)->issue($webRequest, $user, $user->auth_version);
+        app(AuthSessionRegistry::class)->withinActive($webRequest, fn () => app(SessionBrandSelection::class)->initialize($webRequest, $tenant->organizationId, $tenant->brandId));
+        $this->withCredentials()->withCookie(config('session.cookie'), session()->getId());
+        $path = '/seller/turns/pending/'.$claim->turnId.'/review';
+        $this->app->instance('env', 'local'); // Exercise the real CSRF middleware, not Laravel's testing bypass.
+        $this->postJson($path)->assertStatus(419);
+        self::assertSame('processing', DB::table('seller_turns')->where('id', $claim->turnId)->value('status'));
+        $this->withHeader('X-CSRF-TOKEN', session()->token());
+        $this->postJson($path, ['reason' => 'untrusted'])->assertStatus(422)->assertHeader('Cache-Control', 'no-store, private');
+        self::assertSame(0, DB::table('c02_manual_review_requests')->where('turn_id', $claim->turnId)->count());
+        DB::table('memberships')->where('id', $tenant->membershipId)->update(['role' => 'viewer']);
+        $this->postJson($path)->assertNotFound();
+        DB::table('memberships')->where('id', $tenant->membershipId)->update(['role' => 'owner']);
+        self::assertSame('processing', DB::table('seller_turns')->where('id', $claim->turnId)->value('status'));
+        DB::unprepared(<<<'SQL'
+CREATE OR REPLACE FUNCTION c02_test_fail_http_review() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.action = 'seller.turn.review_requested' THEN RAISE EXCEPTION 'private audit detail'; END IF;
+  RETURN NEW;
+END;
+$$;
+CREATE TRIGGER c02_test_fail_http_review BEFORE INSERT ON audit_logs FOR EACH ROW EXECUTE FUNCTION c02_test_fail_http_review();
+SQL);
+        try {
+            $failed = $this->postJson($path)->assertStatus(503)->assertHeader('Cache-Control', 'no-store, private');
+            self::assertStringNotContainsString('private audit detail', $failed->getContent());
+            self::assertSame('processing', DB::table('seller_turns')->where('id', $claim->turnId)->value('status'));
+            self::assertSame(0, DB::table('c02_manual_review_requests')->where('turn_id', $claim->turnId)->count());
+        } finally {
+            DB::unprepared('DROP TRIGGER IF EXISTS c02_test_fail_http_review ON audit_logs; DROP FUNCTION IF EXISTS c02_test_fail_http_review();');
+        }
+        $first = $this->postJson($path)->assertOk()->assertHeader('Cache-Control', 'no-store, private')
+            ->assertJsonPath('data.status', 'uncertain')->assertJsonPath('data.review', 'requested')
+            ->assertJsonPath('data.other_effects_may_exist', true);
+        $repeat = $this->postJson($path)->assertOk();
+        self::assertSame($first->json(), $repeat->json());
+        self::assertSame(1, DB::table('c02_manual_review_requests')->where('turn_id', $claim->turnId)->count());
+        self::assertSame(1, DB::table('audit_logs')->where('action', 'seller.turn.quarantined')->where('subject_id', $claim->turnId)->count());
+        self::assertSame(1, DB::table('audit_logs')->where('action', 'seller.turn.review_requested')->where('subject_id', $claim->turnId)->count());
+        [$foreignTenant, $foreignHttp, $foreignCommand] = $this->protectedClaimFixture();
+        $foreignClaim = $this->within($foreignTenant, fn () => app(FirstTurnProtectedClaim::class)->claim($foreignHttp, $foreignCommand));
+        $this->postJson('/seller/turns/pending/'.$foreignClaim->turnId.'/review')->assertNotFound();
+        self::assertSame('processing', DB::table('seller_turns')->where('id', $foreignClaim->turnId)->value('status'));
+        $other = $this->within(new TenantContext($tenant->organizationId, actorId: $tenant->actorId), fn () => Brand::create(['name' => 'Another synthetic brand']));
+        DB::table('brand_modules')->insert(['id' => (string) Str::ulid(), 'organization_id' => $tenant->organizationId,
+            'brand_id' => $other->id, 'module' => 'seller', 'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
+        app(AuthSessionRegistry::class)->withinActive($webRequest, function () use ($webRequest, $tenant, $other): void {
+            $selection = app(SessionBrandSelection::class)->current($webRequest);
+            app(SessionBrandSelection::class)->select($webRequest, $tenant->organizationId, $other->id, (string) $selection->brand_revision);
+        });
+        $this->postJson($path)->assertStatus(409);
+        self::assertSame(1, DB::table('c02_manual_review_requests')->where('turn_id', $claim->turnId)->count());
+        app(AuthSessionRegistry::class)->withinActive($webRequest, fn () => app(AuthSessionRegistry::class)->revokeCurrent($webRequest));
+        $this->postJson($path)->assertUnauthorized();
         self::assertSame(0, DB::table('seller_tasks')->count());
         self::assertSame(0, DB::table('outbox_events')->count());
         Http::assertNothingSent();
