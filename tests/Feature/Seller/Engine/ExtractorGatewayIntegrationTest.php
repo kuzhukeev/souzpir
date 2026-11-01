@@ -23,6 +23,7 @@ use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
 use Database\Seeders\Ai\PromptSetsSeeder;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
+use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -53,6 +54,31 @@ final class FixtureBackedGateway implements AiGateway
 final class ExtractorGatewayIntegrationTest extends TestCase
 {
     use DatabaseMigrations;
+
+    public function createApplication()
+    {
+        $app = parent::createApplication();
+        $expected = env('DB_TEST_DATABASE');
+        $db = DB::selectOne('select current_database() as name, host(inet_server_addr()) as host, rolsuper, rolcreatedb, rolcreaterole from pg_roles where rolname = current_user');
+        if (! $app->environment('testing') || ! is_string($expected) || ! str_contains($expected, '_test_')
+            || config('database.connections.pgsql.database') !== $expected || $db->name !== $expected || env('APP_PREVIEW_DATABASE') === $expected
+            || (! str_starts_with((string) $db->host, '127.') && $db->host !== '::1') || $db->rolsuper || $db->rolcreatedb || $db->rolcreaterole) {
+            throw new \RuntimeException('An isolated test database is required.');
+        }
+
+        return $app;
+    }
+
+    public function runDatabaseMigrations(): void
+    {
+        // Existing migrations explicitly forbid rollback of durable history.
+        $this->beforeRefreshingDatabase();
+        $this->refreshTestDatabase();
+        $this->afterRefreshingDatabase();
+        $this->beforeApplicationDestroyed(static function (): void {
+            RefreshDatabaseState::$migrated = false;
+        });
+    }
 
     public function test_extractor_reaches_real_gateway_fake_driver_and_persists_usage_without_network(): void
     {

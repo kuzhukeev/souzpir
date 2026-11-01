@@ -5,6 +5,7 @@ namespace App\Seller\Engine;
 use App\Contracts\Ai\AiContext;
 use App\Contracts\Ai\AiGateway;
 use App\Contracts\Ai\AiRequest;
+use App\Contracts\Ai\AiResult;
 use App\Seller\Knowledge\Contracts\KnowledgeRepository;
 use App\Seller\Knowledge\KnowledgeSnapshot as Knowledge;
 use App\Tenancy\TenantContext;
@@ -81,13 +82,21 @@ class Extractor
         $knowledge = app(KnowledgeRepository::class)->forRelease($tenant, $this->kb->releaseId(), false);
         $prompt = app(ExtractorPromptLoader::class)->load($tenant, $this->prompt->version);
         $verified = new self($this->llm, $knowledge, $prompt, $this->model, $this->temperature, $this->agentName);
-        $verified->assertIntents();
 
         return $verified->extractVerified($state, $history, $clientMessage, $ctx);
     }
 
     private function extractVerified(#[\SensitiveParameter] LeadState $state, #[\SensitiveParameter] array $history, #[\SensitiveParameter] string $clientMessage, #[\SensitiveParameter] AiContext $ctx): array
     {
+        $result = $this->llm->complete($this->buildRequest($state, $history, $clientMessage), $ctx);
+
+        return $this->interpretResult($state, $clientMessage, $result);
+    }
+
+    /** Pure request construction; this does not authenticate inputs or authorize Gateway. */
+    public function buildRequest(#[\SensitiveParameter] LeadState $state, #[\SensitiveParameter] array $history, #[\SensitiveParameter] string $clientMessage): AiRequest
+    {
+        $this->assertIntents();
         $system = Blade::render($this->prompt->body, [
             'card' => $state->cardText(),
             'intents' => $this->kb->intents(),
@@ -102,7 +111,7 @@ class Extractor
         }
         $messages[] = ['role' => 'user', 'content' => "СООБЩЕНИЕ КЛИЕНТА ДЛЯ РАЗБОРА:\n".$clientMessage];
 
-        $res = $this->llm->complete(new AiRequest(
+        return new AiRequest(
             messages: $messages,
             model: $this->model,
             temperature: $this->temperature,
@@ -110,8 +119,12 @@ class Extractor
             maxTokens: 900,
             promptVersion: $this->prompt->version,
             promptChecksum: $this->prompt->checksum,
-        ), $ctx);
+        );
+    }
 
+    /** Pure interpretation; the caller must authenticate the origin of the result. */
+    public function interpretResult(#[\SensitiveParameter] LeadState $state, #[\SensitiveParameter] string $clientMessage, #[\SensitiveParameter] AiResult $res): array
+    {
         if ($res->error !== null) {
             $code = $res->error['code'] ?? 'unknown';
             if ($code === 'in_progress') {
