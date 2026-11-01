@@ -118,4 +118,37 @@ final class ImportOrganizationTest extends TestCase
             $this->app['env'] = 'testing';
         }
     }
+
+    public function test_imports_available_fields_and_owner_membership_then_rolls_them_back(): void
+    {
+        $db = new SQLite3($this->source);
+        $db->exec("ALTER TABLE organizations ADD COLUMN status TEXT; UPDATE organizations SET status = 'disabled'");
+        $db->exec("ALTER TABLE brands ADD COLUMN timezone TEXT; UPDATE brands SET timezone = 'UTC' WHERE id = '".self::BRAND."'");
+        $db->exec('CREATE TABLE memberships (id TEXT, organization_id TEXT, user_id TEXT, role TEXT, brand_ids TEXT)');
+        $db->exec("INSERT INTO memberships VALUES ('01J00000000000000000000006', '".self::ORG."', '".$this->owner."', 'owner', '[\"".self::BRAND."\"]')");
+        $db->close();
+
+        $batch = (new ImportPreparedOrganization)->import($this->source, self::ORG, $this->owner)['batch'];
+        self::assertSame('disabled', DB::table('organizations')->value('status'));
+        self::assertSame('UTC', DB::table('brands')->value('timezone'));
+        self::assertSame('owner', DB::table('memberships')->value('role'));
+        (new RollbackOrganizationBatch)->rollback($batch);
+        self::assertSame(0, DB::table('memberships')->count());
+    }
+
+    public function test_rejects_owner_membership_for_another_user_without_mutation(): void
+    {
+        $db = new SQLite3($this->source);
+        $db->exec('CREATE TABLE memberships (id TEXT, organization_id TEXT, user_id TEXT, role TEXT, brand_ids TEXT)');
+        $db->exec("INSERT INTO memberships VALUES ('01J00000000000000000000006', '".self::ORG."', '01J00000000000000000000007', 'owner', '[]')");
+        $db->close();
+
+        try {
+            (new ImportPreparedOrganization)->import($this->source, self::ORG, $this->owner);
+            self::fail('Foreign owner must be rejected.');
+        } catch (\InvalidArgumentException $error) {
+            self::assertStringContainsString('владельца', $error->getMessage());
+        }
+        self::assertSame(0, DB::table('organizations')->count());
+    }
 }

@@ -16,6 +16,7 @@ final class ImportPreparedOrganization
             throw new InvalidArgumentException('Идентификатор владельца должен быть ULID.');
         }
         $data = (new PreparedOrganization)->read($path, $organizationId);
+        $this->validateData($data, $ownerId);
         $hash = hash('sha256', json_encode([$data, $ownerId], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
 
         return DB::transaction(function () use ($data, $organizationId, $ownerId, $hash): array {
@@ -38,15 +39,45 @@ final class ImportPreparedOrganization
                 throw new LogicException('Идентификаторы брендов повторяются или уже заняты.');
             }
             $now = now();
-            DB::table('organizations')->insert(['id' => $organizationId, 'name' => $data['organization']['name'], 'owner_user_id' => $ownerId, 'created_at' => $now, 'updated_at' => $now]);
+            DB::table('organizations')->insert(array_merge($this->fields($data['organization'], ['name', 'status', 'settings']), ['id' => $organizationId, 'owner_user_id' => $ownerId, 'created_at' => $now, 'updated_at' => $now]));
             foreach ($data['brands'] as $brand) {
-                DB::table('brands')->insert(['id' => $brand['id'], 'organization_id' => $organizationId, 'name' => $brand['name'], 'created_at' => $now, 'updated_at' => $now]);
+                DB::table('brands')->insert(array_merge($this->fields($brand, ['name', 'website', 'industry', 'market', 'language', 'timezone', 'theme', 'status', 'settings']), ['id' => $brand['id'], 'organization_id' => $organizationId, 'created_at' => $now, 'updated_at' => $now]));
+            }
+            if (isset($data['membership'])) {
+                DB::table('memberships')->insert(array_merge($this->fields($data['membership'], ['role', 'status', 'brand_ids', 'settings']), ['id' => $data['membership']['id'], 'organization_id' => $organizationId, 'user_id' => $ownerId, 'created_at' => $now, 'updated_at' => $now]));
             }
             $id = (string) Str::ulid();
-            DB::table('migration_organization_batches')->insert(['id' => $id, 'organization_id' => $organizationId, 'owner_user_id' => $ownerId, 'source_hash' => $hash, 'brand_count' => count($ids), 'snapshot' => json_encode(['organization' => DB::table('organizations')->where('id', $organizationId)->first(), 'brands' => DB::table('brands')->where('organization_id', $organizationId)->orderBy('id')->get()], JSON_THROW_ON_ERROR), 'created_at' => $now, 'updated_at' => $now]);
+            DB::table('migration_organization_batches')->insert(['id' => $id, 'organization_id' => $organizationId, 'owner_user_id' => $ownerId, 'source_hash' => $hash, 'brand_count' => count($ids), 'snapshot' => json_encode(['organization' => DB::table('organizations')->where('id', $organizationId)->first(), 'brands' => DB::table('brands')->where('organization_id', $organizationId)->orderBy('id')->get(), 'membership' => DB::table('memberships')->where('organization_id', $organizationId)->where('user_id', $ownerId)->first()], JSON_THROW_ON_ERROR), 'created_at' => $now, 'updated_at' => $now]);
 
             return ['batch' => $id, 'created' => true, 'brands' => count($ids)];
         });
+    }
+
+    private function fields(array $row, array $allowed): array
+    {
+        return array_intersect_key($row, array_flip($allowed));
+    }
+
+    private function validateData(array $data, string $ownerId): void
+    {
+        foreach (array_merge([$data['organization']], $data['brands']) as $row) {
+            foreach (['settings'] as $key) {
+                if (isset($row[$key]) && (! is_array(json_decode($row[$key], true)) || ! str_starts_with(trim($row[$key]), '{'))) {
+                    throw new InvalidArgumentException('Некорректные настройки в подготовленной копии.');
+                }
+            }
+        }
+        $membership = $data['membership'] ?? null;
+        if ($membership === null) {
+            return;
+        }
+        if (! isset($membership['id'], $membership['user_id']) || ! preg_match('/^[0-9A-HJKMNP-TV-Z]{26}$/D', $membership['id']) || $membership['user_id'] !== $ownerId || ($membership['role'] ?? null) !== 'owner') {
+            throw new InvalidArgumentException('Членство владельца не совпадает с выбранным пользователем.');
+        }
+        $brandIds = json_decode($membership['brand_ids'] ?? '[]', true);
+        if (! is_array($brandIds) || array_diff($brandIds, array_column($data['brands'], 'id'))) {
+            throw new InvalidArgumentException('Членство содержит чужие бренды.');
+        }
     }
 
     public function assertTestDatabase(): void

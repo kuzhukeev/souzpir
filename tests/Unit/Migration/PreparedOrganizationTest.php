@@ -52,4 +52,20 @@ final class PreparedOrganizationTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         (new PreparedOrganization)->read($this->path, '01J00000000000000000000003');
     }
+
+    public function test_reads_available_fields_and_owner_membership_without_other_brands(): void
+    {
+        $db = new SQLite3($this->path);
+        $db->exec("ALTER TABLE organizations ADD COLUMN status TEXT; UPDATE organizations SET status = 'active'");
+        $db->exec("ALTER TABLE brands ADD COLUMN timezone TEXT; UPDATE brands SET timezone = 'Europe/Moscow'");
+        $db->exec('CREATE TABLE memberships (id TEXT, organization_id TEXT, user_id TEXT, role TEXT, brand_ids TEXT)');
+        $db->exec("INSERT INTO memberships VALUES ('01J00000000000000000000004', '".self::ORG."', '01J00000000000000000000005', 'owner', '[\"".self::BRAND."\"]')");
+        $db->close();
+
+        $data = (new PreparedOrganization)->read($this->path, self::ORG);
+        self::assertSame('active', $data['organization']['status']);
+        self::assertSame('Europe/Moscow', $data['brands'][0]['timezone']);
+        self::assertSame('01J00000000000000000000005', $data['membership']['user_id']);
+        self::assertCount(1, $data['brands']);
+    }
 }
