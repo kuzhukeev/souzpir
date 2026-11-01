@@ -286,6 +286,13 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "api.v1.seller.leads.index": [],
+    "api.v1.seller.leads.show": [
+        {
+            "name": "lead",
+            "required": true
+        }
+    ],
     "data.index": [],
     "data.consents": [],
     "data.exports.create": [],
