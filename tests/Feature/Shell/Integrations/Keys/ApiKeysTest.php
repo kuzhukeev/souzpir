@@ -13,9 +13,15 @@ use Illuminate\Support\Facades\Http;
 use Inertia\Testing\AssertableInertia as Assert;
 use RuntimeException;
 use Tests\Feature\Tenancy\TenancyTestCase;
+use Tests\Support\MfaTestDatabase;
 
 final class ApiKeysTest extends TenancyTestCase
 {
+    protected function beforeRefreshingDatabase(): void
+    {
+        MfaTestDatabase::assert();
+    }
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -83,8 +89,10 @@ final class ApiKeysTest extends TenancyTestCase
         $this->actingAs($owner)->withSession(['brand_id' => $first->id])->post('/integrations/api/keys', [
             'name' => 'First brand', 'abilities' => ['read'],
         ])->assertSessionHasNoErrors();
-        $this->withSession(['brand_id' => $second->id])->postJson('/integrations/api/secrets', ['type' => 'api_key'])->assertNotFound();
-        $this->withSession(['brand_id' => $first->id])->postJson('/integrations/api/secrets', ['type' => 'api_key'])->assertNotFound();
+        $this->post('/brand/switch', ['brand_id' => $second->id])->assertRedirect('/auth/ready');
+        $this->postJson('/integrations/api/secrets', ['type' => 'api_key'])->assertNotFound();
+        $this->post('/brand/switch', ['brand_id' => $first->id])->assertRedirect('/auth/ready');
+        $this->postJson('/integrations/api/secrets', ['type' => 'api_key'])->assertNotFound();
     }
 
     public function test_secret_endpoint_checks_permission_and_type(): void
@@ -134,7 +142,8 @@ final class ApiKeysTest extends TenancyTestCase
         $id = DB::table('personal_access_tokens')->value('id');
         $ctx = new TenantContext($organization->id, $second->id, source: 'job');
         self::assertSame([], app(TenantContextRunner::class)->run($ctx, fn () => KeysController::listing($ctx)));
-        $this->withSession(['brand_id' => $second->id])->delete('/integrations/api/keys/'.$id)->assertNotFound();
+        $this->post('/brand/switch', ['brand_id' => $second->id])->assertRedirect('/auth/ready');
+        $this->delete('/integrations/api/keys/'.$id)->assertNotFound();
         $this->delete('/integrations/api/keys/999999999999999999999')->assertNotFound();
         $this->assertDatabaseHas('personal_access_tokens', ['id' => $id, 'brand_id' => $first->id]);
     }
