@@ -57,6 +57,9 @@ DB::transaction(function (): void {
             DB::table('measurements')->insert(['id' => $brand === $first ? '01J00000000000000000000011' : '01J00000000000000000000022', 'organization_id' => $id, 'brand_id' => $brand->id, 'question_set_id' => $set, 'status' => $brand === $first ? 'running' : 'partial', 'configuration' => '{}', 'created_at' => $brand === $first ? '2026-10-10 12:30:00+00' : '2026-10-20 12:30:00+00', 'updated_at' => now()]);
             if ($brand === $first) {
                 DB::table('measurements')->insert(['id' => '01J00000000000000000000033', 'organization_id' => $id, 'brand_id' => $brand->id, 'question_set_id' => $set, 'status' => 'completed', 'configuration' => '{}', 'created_at' => '2026-10-11 12:30:00+00', 'updated_at' => now()]);
+                for ($index = 0; $index < 24; $index++) {
+                    DB::table('measurements')->insert(['id' => (string) Str::ulid(), 'organization_id' => $id, 'brand_id' => $brand->id, 'question_set_id' => $set, 'status' => 'partial', 'configuration' => '{}', 'created_at' => '2026-10-01 12:30:00+00', 'updated_at' => now()]);
+                }
             }
         }
     });
