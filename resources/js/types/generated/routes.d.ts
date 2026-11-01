@@ -10,6 +10,12 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "seller.turns.pending.review": [
+        {
+            "name": "turn",
+            "required": true
+        }
+    ],
     "api.v1.brand.show": [],
     "brand.switch": [],
     "notifications.settings.update": [],
@@ -65,6 +71,7 @@ declare module 'ziggy-js' {
     "onboarding.logo.store": [],
     "onboarding.logo.show": [],
     "onboarding.finish": [],
+    "dashboard": [],
     "organization.show": [],
     "organization.update": [],
     "organization.transfer": [],
