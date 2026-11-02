@@ -17,6 +17,7 @@
         </testsuite>
         <testsuite name="Shell">
             <directory suffix="Test.php">tests/Feature/Shell</directory>
+            <directory suffix="Test.php">tests/Feature/Equivalence</directory>
             <directory suffix="Test.php">tests/Feature/SP-E1-10C</directory>
             <directory suffix="Test.php">tests/Feature/SP-E1-10D</directory>
             <directory suffix="Test.php">tests/Feature/SP-E1-10E</directory>
