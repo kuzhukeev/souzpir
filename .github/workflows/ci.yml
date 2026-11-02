@@ -75,7 +75,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        suite: [Core, CoreTurnsA, CoreTurnsB, Shell, Product]
+        suite: [ShellCore, CoreTurnsA, CoreTurnsB, CoreTurnsC, Product]
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
@@ -95,12 +95,12 @@ jobs:
       - name: Run PHP tests
         run: |
           suite="${{ matrix.suite }}"
-          if [[ "$suite" == CoreTurnsA || "$suite" == CoreTurnsB ]]; then
+          if [[ "$suite" == CoreTurnsA || "$suite" == CoreTurnsB || "$suite" == CoreTurnsC ]]; then
             filter="$(php -r '
               $source = file_get_contents("tests/Feature/ProtectedOperations/FirstTurnStateTest.php");
               preg_match_all("/public function (test_[A-Za-z0-9_]+)\\s*\\(/", $source, $matches);
-              $target = $argv[1] === "CoreTurnsA" ? 0 : 1;
-              $selected = array_values(array_filter($matches[1], static fn (string $name): bool => crc32("199:".$name) % 2 === $target));
+              $target = match ($argv[1]) { "CoreTurnsA" => 0, "CoreTurnsB" => 1, "CoreTurnsC" => 2 };
+              $selected = array_values(array_filter($matches[1], static fn (string $name): bool => crc32("460:".$name) % 3 === $target));
               if ($selected === []) { fwrite(STDERR, "Empty CoreTurns shard\n"); exit(1); }
               echo "/(?:".implode("|", $selected).")(?:$|\\s)/";
             ' "$suite")"
