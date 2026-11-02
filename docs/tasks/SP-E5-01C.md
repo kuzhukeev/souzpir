@@ -8,9 +8,9 @@
 
 Зависимости: SP-E5-01B, SP-E3-09.
 
-Scope: `app/Seller/Channels/Telegram/`, `routes/features/E5-01.php`, `tests/Feature/Seller/Channels/Telegram/`, `tests/Unit/Seller/Channels/Telegram/`, `docs/results/SP-E5-01C.md`. Сгенерированные типы разрешены общим правилом.
+Scope: `app/Seller/Channels/Telegram/`, `resources/js/pages/Seller/Channels/Telegram/`, `routes/features/E5-01.php`, `tests/Feature/Seller/Channels/Telegram/`, `tests/Unit/Seller/Channels/Telegram/`, `docs/results/SP-E5-01C.md`. Сгенерированные типы разрешены общим правилом.
 
-Подключить входящие Telegram-сообщения к защищённому seller runtime, а ответы и менеджерские события — к транспорту B.
+Подключить входящие Telegram-сообщения к защищённому seller runtime, а ответы и менеджерские события — к транспорту B. Добавить кнопку регистрации вебхука к существующим настройкам, используя endpoint B.
 
 Приёмка: Fake/HTTP: входящий ход, повтор update_id, исходящий ответ, чужой бренд и выключенный бот. Живые внешние вызовы в тестах запрещены.
 

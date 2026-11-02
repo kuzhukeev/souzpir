@@ -8,9 +8,9 @@
 
 Зависимости: SP-E5-03B, SP-E3-08.
 
-Scope: `app/Seller/Channels/Api/`, `routes/features/E5-03.php`, `tests/Feature/Seller/Channels/Api/`, `tests/Unit/Seller/Channels/Api/`, `docs/results/SP-E5-03C.md`. Сгенерированные типы разрешены общим правилом.
+Scope: `app/Seller/Channels/Api/`, `resources/js/pages/Seller/Channels/Api/`, `routes/features/E5-03.php`, `tests/Feature/Seller/Channels/Api/`, `tests/Unit/Seller/Channels/Api/`, `docs/results/SP-E5-03C.md`. Сгенерированные типы разрешены общим правилом.
 
-Заменить 503 для open и POST /api/v1/turn на token-scoped вызовы защищённого seller runtime.
+Заменить 503 для open и POST /api/v1/turn на token-scoped вызовы защищённого seller runtime. Добавить ссылку на журнал ошибок B к существующим настройкам API.
 
 Приёмка: Fake/HTTP: open, turn, повтор, чужой бренд, отзыв токена и отказ runtime; журнал без секретов. Живые внешние вызовы в тестах запрещены.
 
