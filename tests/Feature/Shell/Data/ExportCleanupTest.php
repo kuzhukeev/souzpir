@@ -37,11 +37,12 @@ final class ExportCleanupTest extends TenancyTestCase
         $held = ExportFileLock::acquireForExport($disk->path($prefix), $active, LOCK_SH);
         self::assertIsResource($held);
         try {
-            // Each pass has a soft time budget and a persisted cursor. Under CI
-            // contention, the expired row and orphan file may need two passes.
+            // The global scan and its cursor are covered by ExportFairPruningTest.
+            // Target this fixture's organization so unrelated directories and
+            // a soft global deadline cannot decide whether both files are visited.
             $removed = 0;
-            for ($pass = 0; $pass < 5 && $removed < 2; $pass++) {
-                $removed += app(PruneExports::class)->prune(100, 60);
+            for ($pass = 0; $pass < 20 && $removed < 2; $pass++) {
+                $removed += app(PruneExports::class)->pruneOrganization($org->id, 100, 5000);
             }
             self::assertSame(2, $removed);
             $disk->assertMissing($prefix.$expired.'.zip');
@@ -54,7 +55,11 @@ final class ExportCleanupTest extends TenancyTestCase
         } finally {
             fclose($held);
         }
-        self::assertSame(1, app(PruneExports::class)->prune(100, 60));
+        $removed = 0;
+        for ($pass = 0; $pass < 20 && $removed < 1; $pass++) {
+            $removed += app(PruneExports::class)->pruneOrganization($org->id, 100, 5000);
+        }
+        self::assertSame(1, $removed);
         $disk->assertMissing($prefix.$active.'.zip');
         $this->assertDatabaseMissing('data_exports', ['id' => $active]);
     }
