@@ -374,6 +374,11 @@ declare module 'ziggy-js' {
     "seller.settings.notifications.digests": [],
     "seller.settings.notifications.digests.time": [],
     "seller.settings.notifications.test": [],
+    "seller.catalog.index": [],
+    "seller.catalog.import": [],
+    "seller.catalog.price-file": [],
+    "seller.catalog.stock": [],
+    "seller.catalog.stock.update": [],
     "seller.integrations.crm": [],
     "seller.integrations.crm.test": [
         {
