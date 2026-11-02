@@ -378,6 +378,8 @@ declare module 'ziggy-js' {
     "seller.knowledge.imports.index": [],
     "seller.knowledge.imports.preview": [],
     "seller.knowledge.imports.save": [],
+    "seller.knowledge.imports.site.preview": [],
+    "seller.knowledge.imports.site.save": [],
     "seller.sandbox.index": [],
     "seller.sandbox.check": [],
     "seller.channels.index": [],
