@@ -34,7 +34,7 @@ final class ImportsController
             return $id ? app(KnowledgeRepository::class)->draftEditor($tenant, $id) : null;
         });
 
-        return Inertia::render('Seller/Knowledge/Imports/Index', ['editor' => $editor]);
+        return Inertia::render('Seller/Knowledge/Imports/Index', ['editor' => $editor, 'status' => session('status')]);
     }
 
     public function preview(Request $request): mixed

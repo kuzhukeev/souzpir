@@ -15,15 +15,49 @@ final class YamlKnowledgeImporter
 
     public function __construct(private readonly KnowledgeRepository $knowledge) {}
 
-    /** All input is parsed and validated before any database write. Does not overwrite a draft. */
-    public function importAndPublish(TenantContext $context, string $directory): KnowledgeSnapshot
+    /** Parse before writing; explicit widget import replaces the current draft in one transaction. */
+    public function importAndPublish(TenantContext $context, string $directory, bool $widgetGreeting = false): KnowledgeSnapshot
     {
-        $data = $this->read($directory);
+        return $this->publishData($context, $this->read($directory), $widgetGreeting);
+    }
+
+    public function publishData(TenantContext $context, array $data, bool $widgetGreeting = false): KnowledgeSnapshot
+    {
+        if ($widgetGreeting && ! collect($data['fewshot']['examples'] ?? [])->contains(fn ($example) => ($example['tag'] ?? null) === 'open_greeting_widget')) {
+            $data['fewshot']['examples'][] = ['tag' => 'open_greeting_widget', 'client_type' => 'all', 'text' => 'Здравствуйте! Чем я могу вам помочь?', 'source' => 'widget', 'confidence' => 0.9];
+        }
 
         // Repository validates structure and authorization; nested DB transactions are intentional:
         // a failed import never leaves a partially imported draft or a changed active pointer.
-        return DB::transaction(function () use ($context, $data): KnowledgeSnapshot {
-            $draft = $this->knowledge->createDraft($context, $data);
+        return DB::transaction(function () use ($context, $data, $widgetGreeting): KnowledgeSnapshot {
+            $existing = DB::table('knowledge_releases')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)->where('status', 'draft')->first(['id', 'version']);
+            if ($existing && ! $widgetGreeting) {
+                abort(409, 'Черновик уже существует.');
+            }
+            if ($existing) {
+                $version = (int) $existing->version;
+                $editor = $this->knowledge->draftEditor($context, $existing->id);
+                foreach ($editor['groups'] as $group) {
+                    foreach ($group['facts'] as $fact) {
+                        $version = $this->knowledge->deleteFact($context, $existing->id, $fact['id'], $version);
+                    }
+                }
+                $withoutFacts = $data;
+                foreach ($withoutFacts['facts'] as &$group) {
+                    $group['facts'] = [];
+                }
+                unset($group);
+                $draft = $this->knowledge->saveDraft($context, $existing->id, $version, $withoutFacts);
+                $version = $draft['version'];
+                foreach ($data['facts'] as $group) {
+                    foreach ($group['facts'] as $fact) {
+                        $version = $this->knowledge->addFact($context, $draft['id'], $version, $group['id'], $fact, 'import', 'active')['version'];
+                    }
+                }
+                $draft['version'] = $version;
+            } else {
+                $draft = $this->knowledge->createDraft($context, $data);
+            }
             $version = $draft['version'];
             $editor = $this->knowledge->draftEditor($context, $draft['id']);
             foreach ($editor['groups'] as $group) {

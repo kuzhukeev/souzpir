@@ -1,0 +1,10 @@
+import { createInertiaApp } from '@inertiajs/react';
+import { createRoot } from 'react-dom/client';
+import '../../../resources/css/app.css';
+import '../../../resources/css/themes/tokens.css';
+import Escalation from '../../../resources/js/pages/Seller/Knowledge/Escalation/Index';
+import Imports from '../../../resources/js/pages/Seller/Knowledge/Imports/Index';
+const imports=location.search.includes('imports');
+const props={...(imports?{editor:null}:{draft:{version:1},escalation:{defaults:{response_time_text:'Сегодня',assignee:'manager_on_duty'},reasons:[{id:'delivery',title:'Вопрос о доставке',detect:'ask_delivery',priority:'normal',message_idea:'Передам менеджеру'}]},status:null}),auth:{user:{id:'u',name:'Иван Петров',email:'ivan@example.test'}},organization:{id:'o',name:'Компания'},brand:{id:'b',name:'Пример бренда'},brands:[],modules:{seller:true,vision:false},can:{},unread:null,request_id:'fixture',theme:'neutral',translations:{},ziggy:{routes:{}},errors:{}};
+const script=document.createElement('script');script.type='application/json';script.dataset.page='app';script.textContent=JSON.stringify({component:'Fixture',props,url:location.pathname+location.search,version:'fixture',clearHistory:false,encryptHistory:false});document.body.append(script);
+void createInertiaApp({resolve:()=>imports?Imports:Escalation,setup:({el,App,props})=>createRoot(el).render(<App {...props}/>)});
