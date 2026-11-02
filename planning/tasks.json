@@ -3815,6 +3815,76 @@
       "description": "# SP-E4-08 · Образцы речи\n\nПрочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: D-4.8: `kn_fewshot` — фильтр по тегам, карточка (ситуация, ответ, тег, confidence 0–1, источник, включён, bad example), «Добавить из диалога» (реплика менеджера из ленты D-2.2), предпросмотр влияния\n\nЗависимости (нужен done после merge): SP-E4-01, SP-E5-04B.\nОбласть записи: app/Seller/Knowledge/Fewshot/, config/features/E4-08.php, database/factories/Seller/Knowledge/Fewshot/, database/migrations/E4-08/, database/seeders/Seller/Knowledge/Fewshot/, docs/modules/E4-08.md, lang/ru/Seller/Knowledge/Fewshot/, resources/js/features/Seller/Knowledge/Fewshot/, resources/js/pages/Seller/Knowledge/Fewshot/, resources/js/types/Seller/Knowledge/Fewshot/, routes/features/E4-08.php, tests/Browser/E4-08/, tests/Feature/Seller/Knowledge/Fewshot/, tests/Unit/Seller/Knowledge/Fewshot/, docs/results/SP-E4-08.md.\nЭкраны: D-4.8.\nИсточники: E4-08.\n- E4-08: ТЗ D-4.8; макет 56\n\nПриёмка:\n- `Knowledge::fewshot(tags, clientType, 6, 0.7)` возвращает то же на эталоне; добавленный образец попадает в промпт в песочнице\n\nДополнительно: Сохранять поведение донора; изменения только по принятым решениям.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E4-08.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n\n## Материалы\n\nИсходники только для чтения: C:/OSPanel/home/souzpir.local/.local/references/{eyon-pilot,laravel-prototype}.\nПолный индекс изображений: planning/materials-manifest.json; точный состав по docs/sources/02b_mockup_journal.md.\n\n- `C:\\OSPanel\\home\\tasks.local\\completed\\56\\3d21cd7e-D-4.8-states.png`\n- `C:\\OSPanel\\home\\tasks.local\\completed\\56\\7a25f694-D-4.8-main.png`\n- `C:\\OSPanel\\home\\tasks.local\\completed\\56\\85328501-D-4.8-dialog.png`\n- `C:\\OSPanel\\home\\tasks.local\\completed\\56\\f9ff175c-D-4.8-empty.png`\n"
     },
     {
+      "taskKey": "SP-E4-08B",
+      "title": "SP-E4-08B · Плохие образцы и добавление из диалога",
+      "goal": "D-4.8: bad examples и добавление реплики менеджера из своего диалога",
+      "dependsOn": [
+        "SP-E4-08",
+        "SP-E5-04B"
+      ],
+      "scope": [
+        "app/Seller/Knowledge/Fewshot/",
+        "resources/js/pages/Seller/Knowledge/Fewshot/",
+        "routes/features/E4-08.php",
+        "tests/Feature/Seller/Knowledge/Fewshot/",
+        "tests/Browser/E4-08/",
+        "docs/results/SP-E4-08B.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Bad examples and manager-dialogue import work in own brand with permissions and error cases."
+      ],
+      "sourceIds": [
+        "E4-08"
+      ],
+      "screenIds": [
+        "D-4.8"
+      ],
+      "notes": "Continuation B, 1–3 hours; C retains prompt sandbox.",
+      "sourceRefs": [
+        "docs/sources/10_backlog.md",
+        "docs/sources/02_screens_matrix.md"
+      ],
+      "promptPath": "docs/tasks/SP-E4-08B.md",
+      "wave": 11,
+      "description": "# SP-E4-08B · Плохие образцы и добавление из диалога\n\n**Зачем:** D-4.8, макет 56: пользователь должен отмечать неподходящие ответы и добавлять реплику менеджера в образцы речи из своего диалога.\n\n**Часть чего:** SP-E4-08 дала редактор положительных образцов и предпросмотр. Здесь остаются bad examples и «Добавить из диалога»; после B остаётся только проверка попадания образца в промпт песочницы (SP-E4-08C).\n\nРазмер 1–3 часа. Зависимости: SP-E4-08, SP-E5-04B. Scope: `app/Seller/Knowledge/Fewshot/`, `resources/js/pages/Seller/Knowledge/Fewshot/`, `routes/features/E4-08.php`, `tests/Feature/Seller/Knowledge/Fewshot/`, `tests/Browser/E4-08/`, `docs/results/SP-E4-08B.md`. Только свои организация/бренд и доступные диалоги; чужой модуль диалогов читать через существующий API, не менять. Проверить фильтр, отрицательный образец, права, ошибку и два размера экрана. Без живого LLM.\n"
+    },
+    {
+      "taskKey": "SP-E4-08C",
+      "title": "SP-E4-08C · Образец речи в промпте песочницы",
+      "goal": "D-4.8: добавленный образец попадает в промпт песочницы без изменения эталона",
+      "dependsOn": [
+        "SP-E4-08B",
+        "SP-E3-07B"
+      ],
+      "scope": [
+        "app/Seller/Knowledge/Fewshot/",
+        "app/Seller/Runtime/",
+        "resources/js/pages/Seller/Knowledge/Fewshot/",
+        "tests/Feature/Seller/Knowledge/Fewshot/",
+        "tests/Feature/SellerRuntime/",
+        "docs/results/SP-E4-08C.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Fake sandbox prompt uses selected samples with threshold 0.7, limit 6, brand isolation and no golden fixture changes."
+      ],
+      "sourceIds": [
+        "E4-08"
+      ],
+      "screenIds": [
+        "D-4.8"
+      ],
+      "notes": "Final continuation C, 1–3 hours; no further E4-08 slicing.",
+      "sourceRefs": [
+        "docs/sources/10_backlog.md",
+        "docs/sources/02_screens_matrix.md"
+      ],
+      "promptPath": "docs/tasks/SP-E4-08C.md",
+      "wave": 11,
+      "description": "# SP-E4-08C · Образец речи в промпте песочницы\n\n**Зачем:** D-4.8 и приёмка E4-08: добавленный образец должен попадать в промпт песочницы при `Knowledge::fewshot(tags, clientType, 6, 0.7)` без изменения эталона донора.\n\n**Часть чего:** SP-E4-08 дала редактор, SP-E4-08B добавляет плохие образцы и реплики из диалога. Здесь остаётся интеграция с готовым runtime и доказательство выбора образца; после C остатка E4-08 нет.\n\nРазмер 1–3 часа. Зависимости: SP-E4-08B, SP-E3-07B. Scope: `app/Seller/Knowledge/Fewshot/`, `app/Seller/Runtime/`, `resources/js/pages/Seller/Knowledge/Fewshot/`, `tests/Feature/Seller/Knowledge/Fewshot/`, `tests/Feature/SellerRuntime/`, `docs/results/SP-E4-08C.md`. Использовать только fake LLM, не менять golden fixtures. Проверить положительный/отрицательный образец, порог 0,7, лимит 6, изоляцию бренда и видимый результат песочницы.\n"
+    },
+    {
       "taskKey": "SP-E6-01",
       "title": "SP-E6-01 · Персонаж и фразы",
       "goal": "D-6.1 (tone, intro, form_bans, лимиты), D-6.3 служебные фразы с дефолтами из кода",
@@ -4368,6 +4438,7 @@
         "SP-E4-06",
         "SP-E4-07",
         "SP-E4-08",
+        "SP-E4-08C",
         "SP-E5-01",
         "SP-E5-02",
         "SP-E5-03",
@@ -4792,6 +4863,7 @@
         "SP-E4-06",
         "SP-E4-07",
         "SP-E4-08",
+        "SP-E4-08C",
         "SP-E5-01",
         "SP-E5-02",
         "SP-E5-03",
@@ -7468,7 +7540,7 @@
       ],
       "promptPath": "docs/tasks/SP-E4-01C.md",
       "wave": 11,
-      "description": "# SP-E4-01C · Действия со входящими предложениями знаний\n\n**Размер:** 1–3 часа; функциональный остаток, не сверх ТЗ.\n\n**Зачем:** Backlog E4-01, экран D-4.2: неизвестный вопрос, неверный факт и предложение из доклада можно применить к черновику.\n\n**Часть чего:** SP-E4-01. После B сравнения релизов эта C закрывает остаток D-4.2; новых продолжений E4-01 не будет.\n\nЗависимости: SP-E4-01B, SP-E4-02, SP-E4-03, SP-E4-08.\n\nScope: `app/Seller/Knowledge/Releases/`, `resources/js/pages/Seller/Knowledge/Releases/`, `routes/features/E4-01.php`, `tests/Feature/Seller/Knowledge/Releases/`, `tests/Browser/E4-01/`, `docs/results/SP-E4-01C.md`. Сгенерированные типы разрешены общим правилом.\n\nИспользовать существующие API черновика фактов, условий и образцов; не менять чужие модули. Проверить версию черновика, права и изоляцию бренда, пометить обработанное предложение.\n\nПриёмка: HTTP/feature принятие и отказ, 409 при устаревшей версии, экран D-4.2. Итоговый отчёт до 30 строк.\n"
+      "description": "# SP-E4-01C · Действия со входящими предложениями знаний\n\n**Размер:** 1–3 часа; функциональный остаток, не сверх ТЗ.\n\n**Зачем:** Backlog E4-01, экран D-4.2: неизвестный вопрос, неверный факт и предложение из доклада можно применить к черновику.\n\n**Часть чего:** SP-E4-01. После B сравнения релизов эта C закрывает остаток D-4.2; новых продолжений E4-01 не будет.\n\nЗависимости: SP-E4-01B, SP-E4-02, SP-E4-03, SP-E4-08.\n\nScope: `app/Seller/Knowledge/Releases/`, `resources/js/pages/Seller/Knowledge/Releases/`, `routes/features/E4-01.php`, `tests/Feature/Seller/Knowledge/Releases/`, `tests/Browser/E4-01/`, `docs/results/SP-E4-01C.md`. Сгенерированные типы разрешены общим правилом.\n\nИспользовать существующие API черновика фактов, условий и образцов; не менять чужие модули. Проверить версию черновика, права и изоляцию бренда, пометить обработанное предложение.\n\nПриёмка: HTTP/feature принятие и отказ, 409 при устаревшей версии, экран D-4.2. Общий экран релизов даёт ссылку на редактор образцов речи D-4.8. Итоговый отчёт до 30 строк.\n"
     },
     {
       "taskKey": "SP-E5-07B",
