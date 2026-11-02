@@ -1,3 +1,5 @@
+**Принятая граница сдачи 2026-11-02:** защищённый первый входящий bot fake-ход и manager без AI/доставки. Открытие, suggest и следующие ходы вынесены в SP-E3-08; regeneration/fallback, tools и Delivery — в SP-E3-09. SP-E3-03 остаётся открытой для финальной приёмки после обеих карточек.
+
 # SP-E3-03B · Orchestrator, turn/open и режимы доставки
 
 Прочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.
