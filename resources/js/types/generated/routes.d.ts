@@ -444,6 +444,12 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "seller.customers.manager": [
+        {
+            "name": "contact",
+            "required": true
+        }
+    ],
     "seller.customers.notes.store": [
         {
             "name": "contact",
