@@ -3,6 +3,7 @@
 namespace App\Tenancy;
 
 use App\Contracts\ProtectedOperations\IdempotencyConflict;
+use App\Contracts\ProtectedOperations\IdempotencyFailure;
 use App\Models\Membership;
 use App\ProtectedOperations\PostgresSessionIdempotency;
 use App\Shell\Auth\AuthSessionRegistry;
@@ -36,6 +37,14 @@ final class BrandSwitchController
                 app(PostgresSessionIdempotency::class)->execute($request, 'profile.brand_switch', $key, $data['brand_id'], $write);
             } catch (IdempotencyConflict) {
                 abort(409);
+            } catch (IdempotencyFailure) {
+                try {
+                    app(PostgresSessionIdempotency::class)->recoverRevoked($request, 'profile.brand_switch', $key, $data['brand_id']);
+                } catch (IdempotencyFailure) {
+                    abort(401);
+                }
+
+                return redirect()->route('login');
             }
         } else {
             app(AuthSessionRegistry::class)->withinActive($request, $write);

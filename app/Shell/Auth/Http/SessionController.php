@@ -2,7 +2,9 @@
 
 namespace App\Shell\Auth\Http;
 
+use App\Contracts\ProtectedOperations\IdempotencyFailure;
 use App\Models\User;
+use App\ProtectedOperations\PostgresSessionIdempotency;
 use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Auth\EligibleAccount;
 use App\Shell\Auth\InvitationExchangeGrants;
@@ -88,18 +90,45 @@ final class SessionController
 
     public function destroy(Request $request): RedirectResponse
     {
+        $key = $request->header('X-Context-Change-Key');
+        abort_unless($key === null || (is_string($key) && strlen($key) >= 16 && strlen($key) <= 128), 422);
         // Version middleware is bypassed here, so restore a remember-only
         // session through the same verified path before revoking its lease.
         try {
             if ($request->session()->get('auth.version') === null && Auth::viaRemember()) {
                 app(AuthSessionRegistry::class)->issueRemembered($request, $request->user());
             }
-            app(AuthSessionRegistry::class)->withinLogout($request, function (User $fresh) use ($request): void {
+            $revoke = function (User $fresh) use ($request): array {
                 app(AuthSessionRegistry::class)->revokeCurrent($request);
                 app(InvitationExchangeGrants::class)->revoke($request);
                 Auth::guard()->setUser($fresh);
                 Auth::logout();
-            });
+
+                return ['logged_out' => true];
+            };
+            if ($key !== null) {
+                app(PostgresSessionIdempotency::class)->executeLogout($request, $key, function () use ($request, $revoke): array {
+                    $fresh = User::whereKey($request->user()->getAuthIdentifier())->firstOrFail();
+
+                    return $revoke($fresh);
+                });
+            } else {
+                app(AuthSessionRegistry::class)->withinLogout($request, $revoke);
+            }
+        } catch (IdempotencyFailure) {
+            try {
+                app(PostgresSessionIdempotency::class)->recoverRevoked($request, 'profile.logout', $key, 'logout-v1');
+            } catch (IdempotencyFailure) {
+                // A failed receipt cannot authorize a replay; retire this
+                // browser's own still-active lease if one remains.
+                try {
+                    app(AuthSessionRegistry::class)->withinLogout($request,
+                        fn () => app(AuthSessionRegistry::class)->revokeCurrent($request));
+                } catch (AuthenticationException) {
+                    // The old lease was already revoked or is unavailable.
+                }
+            }
+            Auth::guard()->logoutCurrentDevice();
         } catch (AuthenticationException) {
             // This does not authorize touching any lease; retire only the
             // invitation grant bound to the same session and clear its cookie.

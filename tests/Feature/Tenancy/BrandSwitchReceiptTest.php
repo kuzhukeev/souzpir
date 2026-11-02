@@ -6,6 +6,17 @@ use Illuminate\Support\Facades\DB;
 
 final class BrandSwitchReceiptTest extends TenancyTestCase
 {
+    public function test_keyed_logout_revokes_session_and_blocks_late_brand_switch(): void
+    {
+        [$owner, $org, $a, $b] = $this->cabinet();
+        $this->actingAs($owner)->withSession(['brand_id' => $a->id]);
+        $this->post('/logout', [], ['X-Context-Change-Key' => 'synthetic-logout-key-123456'])->assertRedirect('/login');
+        $this->assertSame(1, DB::table('c02_session_receipts')->where('operation', 'profile.logout')->count());
+        $this->assertNotNull(DB::table('auth_session_registry')->where('user_id', $owner->id)->value('revoked_at'));
+        $this->postJson('/brand/switch', ['brand_id' => $b->id], ['X-Context-Change-Key' => 'synthetic-switch-key-123456'])->assertUnauthorized();
+        $this->assertNotSame($b->id, DB::table('auth_session_registry')->where('user_id', $owner->id)->value('selected_brand_id'));
+    }
+
     public function test_repeated_switch_key_returns_same_receipt_without_switching_twice(): void
     {
         [$owner,$org,$a,$b] = $this->cabinet();
