@@ -37,21 +37,29 @@ final class QualityController
                 'day' => CarbonImmutable::parse($row->created_at)->setTimezone($timezone)->format('Y-m-d')]);
     }
 
+    private function reports(TenantContext $tenant): Collection
+    {
+        return DB::table('seller_supervisor_reports')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
+            ->orderByDesc('report_date')->orderByDesc('created_at')->limit(500)->get(['id', 'report_date', 'scores', 'issues', 'average', 'comment', 'created_at'])
+            ->map(fn ($row) => ['id' => $row->id, 'source' => 'supervisor', 'conversation_id' => null, 'scores' => json_decode($row->scores, true) ?: [],
+                'issues' => json_decode($row->issues, true) ?: [], 'average' => (float) $row->average, 'comment' => $row->comment,
+                'created_at' => $row->created_at, 'day' => $row->report_date]);
+    }
+
     public function index(Request $request): mixed
     {
-        $rows = $this->access($request, fn (TenantContext $tenant) => $this->rows($tenant));
-        $days = $rows->groupBy('day')->map(fn ($group, $day) => ['day' => $day, 'count' => $group->count(),
-            'average' => round($group->avg('average'), 2), 'issues' => $group->sum(fn ($row) => count($row['issues']))])->values();
+        [$rows, $reports] = $this->access($request, fn (TenantContext $tenant) => [$this->rows($tenant), $this->reports($tenant)]);
+        $group = fn ($data) => $data->groupBy('day')->map(fn ($items, $day) => ['day' => $day, 'count' => $items->count(), 'average' => round($items->avg('average'), 2), 'issues' => $items->sum(fn ($row) => count($row['issues']))])->values();
 
-        return Inertia::render('Seller/Quality/Index', ['days' => $days]);
+        return Inertia::render('Seller/Quality/Index', ['days' => $group($rows), 'reportDays' => $group($reports)]);
     }
 
     public function day(Request $request, string $day): mixed
     {
         [$year, $month, $date] = array_map('intval', explode('-', $day));
         abort_unless(checkdate($month, $date, $year), 404);
-        $rows = $this->access($request, fn (TenantContext $tenant) => $this->rows($tenant)->where('day', $day)->values());
+        [$rows, $reports] = $this->access($request, fn (TenantContext $tenant) => [$this->rows($tenant)->where('day', $day)->values(), $this->reports($tenant)->where('day', $day)->values()]);
 
-        return Inertia::render('Seller/Quality/Day', ['day' => $day, 'evaluations' => $rows]);
+        return Inertia::render('Seller/Quality/Day', ['day' => $day, 'evaluations' => $rows, 'reports' => $reports]);
     }
 }

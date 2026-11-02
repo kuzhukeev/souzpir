@@ -141,11 +141,27 @@ jobs:
   race:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    env:
+      DB_USERNAME: souzpir_parallel
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
         with: { php-version: '8.4', extensions: 'pdo_pgsql, pgsql, mbstring, intl, bcmath, gd', coverage: none }
       - run: bash scripts/ci/postgres.sh
+      - name: Prepare nonprivileged parallel test databases
+        env:
+          PGPASSWORD: ci-only-password
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "CREATE ROLE souzpir_parallel LOGIN PASSWORD 'ci-only-password' NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;"
+          psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "GRANT CONNECT ON DATABASE souzpir_test_ci TO souzpir_parallel;"
+          for worker in 1 2 3 4; do
+            psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "CREATE DATABASE souzpir_test_ci_test_$worker OWNER souzpir_parallel;"
+            psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "REVOKE CONNECT ON DATABASE souzpir_test_ci_test_$worker FROM PUBLIC;"
+          done
       - uses: ramsey/composer-install@v3
-      - run: php artisan test --group=race
+      - name: Run race tests in dedicated database
+        env:
+          DB_DATABASE: souzpir_test_ci_test_1
+          DB_TEST_DATABASE: souzpir_test_ci_test_1
+        run: php artisan test --group=race

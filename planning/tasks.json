@@ -7797,6 +7797,40 @@
       "promptPath": "docs/tasks/SP-CI-07.md",
       "wave": 0,
       "description": "# SP-CI-07 · Изолированная БД для ночного race job\n\n**Сверх ТЗ: прямое поручение владельца от 2026-11-02. Размер:** 1–3 часа; код приложения не менять.\n\n**Зачем:** ночной `race` job падает до проверки конкурентных сценариев, поскольку у него нет роли `souzpir_parallel` и worker БД `souzpir_test_ci_test_*`.\n\n**Часть чего:** исправление инфраструктуры CI после SP-CI-06; эта карточка закрывает подготовку race job, продолжений не планируется.\n\nЗависимости: SP-CI-06.\n\nScope: `.github/workflows/ci.yml`, `docs/results/SP-CI-07.md`. Concurrency main, тесты и код приложения вне scope.\n\nДобавить в race job `DB_USERNAME: souzpir_parallel` и те же шаги создания непривилегированной роли и четырёх изолированных worker БД, что используются в `php-tests`.\n\nПриёмка: выполнить `workflow_dispatch` на ветке, дождаться зелёного `race` job; зелёный CI ветки до merge, затем повторная проверка main.\n"
+    },
+    {
+      "taskKey": "SP-CI-08",
+      "title": "SP-CI-08 · Починить 11 оставшихся race-тестов",
+      "goal": "ночной `race` после подготовки изолированной БД в SP-CI-07 запускает 172 теста, но 11 падают; нужен достоверный зелёный прогон до live shadow.",
+      "dependsOn": [
+        "SP-CI-07"
+      ],
+      "scope": [
+        ".github/workflows/ci.yml",
+        "tests/Feature/Seller/Settings/Limits/SessionRoutingRaceTest.php",
+        "tests/Feature/Seller/Settings/Limits/Fixtures/session-routing-worker.php",
+        "tests/Feature/Shell/Profile/SecurityConcurrencyTest.php",
+        "tests/Feature/Shell/Profile/Fixtures/security-worker.php",
+        "tests/Feature/Shell/Data/ExportLogoutRaceTest.php",
+        "tests/Feature/Tenancy/ConcurrencyTest.php",
+        "tests/Feature/ProtectedOperations/FirstTurnStateTest.php",
+        "tests/Support/IsolatedDatabaseMigrations.php",
+        "docs/results/SP-CI-08.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Каждое из 11 падений классифицировано и исправлено без пропусков и ослабления проверок; workflow_dispatch на main: race зелёный."
+      ],
+      "sourceIds": [],
+      "screenIds": [],
+      "notes": "Owner 2026-11-02: investigate 11 race failures after CI07 DB setup; no app code changes except separate high-priority product bug task if needed.",
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        ".github/workflows/ci.yml"
+      ],
+      "promptPath": "docs/tasks/SP-CI-08.md",
+      "wave": 0,
+      "description": "# SP-CI-08 · Починить 11 оставшихся race-тестов\n\n**Сверх ТЗ: прямое поручение владельца от 2026-11-02. Размер:** 1–3 часа на диагностику и тестовые исправления; реальные баги продукта выносить отдельно с высоким приоритетом.\n\n**Зачем:** ночной `race` после подготовки изолированной БД в SP-CI-07 запускает 172 теста, но 11 падают; нужен достоверный зелёный прогон до live shadow.\n\n**Часть чего:** продолжение SP-CI-07 после успешной подготовки роли и БД; эта карточка закрывает тестовую часть ночного job, дальше CI-07 не дробить.\n\nЗависимости: SP-CI-07. Взять после текущей пачки задач по экранам ТЗ.\n\nScope: `.github/workflows/ci.yml`, `tests/Feature/Seller/Settings/Limits/SessionRoutingRaceTest.php`, `tests/Feature/Seller/Settings/Limits/Fixtures/session-routing-worker.php`, `tests/Feature/Shell/Profile/SecurityConcurrencyTest.php`, `tests/Feature/Shell/Profile/Fixtures/security-worker.php`, `tests/Feature/Shell/Data/ExportLogoutRaceTest.php`, `tests/Feature/Tenancy/ConcurrencyTest.php`, `tests/Feature/ProtectedOperations/FirstTurnStateTest.php`, `tests/Support/IsolatedDatabaseMigrations.php`, `docs/results/SP-CI-08.md`. Код приложения и golden fixtures вне scope.\n\nИсточник: [workflow_dispatch run 41412123385](https://github.com/kuzhukeev/souzpir/actions/runs/41412123385), job `race`, 11 failed / 3 skipped / 158 passed. Разобрать каждое падение:\n\n- `Seller/Settings/Limits/SessionRoutingRaceTest` (несколько): `DatabaseMigrations` вызывает запрещённый `down()` E1-08; один сценарий сообщает `Expected lock wait not observed` и worker `Password reset failed`.\n- `Shell/Profile/SecurityConcurrencyTest` (2): worker возвращает `failed`; получить точную ошибку worker, проверить наследование `DB_USERNAME`, `DB_DATABASE`, `DB_TEST_DATABASE`.\n- `Shell/Data/ExportLogoutRaceTest` и `Tenancy/ConcurrencyTest`: запрещённый откат миграции E1-08.\n- `ProtectedOperations/FirstTurnStateTest` (2): ожидает SQLSTATE `23514`, получает `0A000` при `TRUNCATE` под FK; явный `down()` `c02_responder_stages` блокируется зависимой `c02_responder_raw_evidence`.\n\nДля каждого из 11 в отчёте дать таблицу «полное имя теста, причина а/б/в, что сделано»: **а** реальная гонка продукта — отдельная приоритетная карточка; **б** ожидание по времени / 1 vCPU — ждать проверяемое условие; **в** окружение и изоляция БД — исправить тестовую инфраструктуру или fixture. Не пропускать тесты и не ослаблять смысл проверок. После слияния SP-CI-07 и SP-CI-08 вручную выполнить `workflow_dispatch` на `main`, зафиксировать зелёный `race`.\n"
     }
   ],
   "excludedSourceTasks": {

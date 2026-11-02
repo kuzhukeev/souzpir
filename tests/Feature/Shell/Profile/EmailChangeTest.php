@@ -8,6 +8,7 @@ use App\Shell\Profile\EmailChangeSender;
 use App\Shell\Profile\MailEmailChangeSender;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
+use Illuminate\Foundation\Http\Events\RequestHandled;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -36,7 +37,34 @@ final class EmailChangeTest extends TenancyTestCase
     {
         $row = DB::table('profile_email_changes')->where('user_id', $userId)->first();
 
-        return rtrim((string) config('app.url'), '/').URL::temporarySignedRoute('profile.email.confirm', CarbonImmutable::parse($row->expires_at), ['change' => $row->id, 'token' => Crypt::decryptString($row->encrypted_token)], absolute: false);
+        return rtrim((string) config('app.url'), '/').URL::temporarySignedRoute('profile.email.confirm', CarbonImmutable::parse($row->expires_at), ['change' => $row->id], absolute: false);
+    }
+
+    private function token(string $userId): string
+    {
+        return Crypt::decryptString(DB::table('profile_email_changes')->where('user_id', $userId)->value('encrypted_token'));
+    }
+
+    public function test_confirmation_token_stays_out_of_url_response_and_request_observers(): void
+    {
+        $this->enable();
+        [$user, , $first, $second] = $this->cabinet();
+        $this->actingAs($user)->withSession(['brand_id' => $first->id])
+            ->post('/profile/email', ['email' => 'new@example.test', 'current_password' => 'test-only-password'])->assertRedirect();
+        $url = $this->link($user->id);
+        $token = $this->token($user->id);
+        self::assertStringNotContainsString($token, $url);
+        $seen = [];
+        $this->app['events']->listen(RequestHandled::class, static function (RequestHandled $event) use (&$seen): void {
+            $seen[] = [$event->request->fullUrl(), $event->request->all(), $event->request->getContent(), $event->response->getContent()];
+        });
+        $this->post('/brand/switch', ['brand_id' => $second->id])->assertRedirect();
+        $this->get($url)->assertNotFound();
+        $this->post($url, ['token' => $token])->assertNotFound();
+        $this->post('/brand/switch', ['brand_id' => $first->id])->assertRedirect();
+        $this->get($url)->assertOk()->assertDontSee($token, false);
+        $this->post($url, ['token' => $token])->assertRedirect('/profile');
+        self::assertStringNotContainsString($token, json_encode($seen));
     }
 
     public function test_old_verified_email_stays_until_signed_post_and_confirm_is_single_use(): void
@@ -48,13 +76,14 @@ final class EmailChangeTest extends TenancyTestCase
         $this->assertSame($old, $user->fresh()->email);
         $this->assertNotNull($user->fresh()->email_verified_at);
         $url = $this->link($user->id);
+        $token = $this->token($user->id);
         $this->get($url)->assertOk()->assertViewHas('page', fn ($p) => $p['props']['emailConfirmationUrl'] === parse_url($url, PHP_URL_PATH).'?'.parse_url($url, PHP_URL_QUERY) && $p['encryptHistory'] === true);
         $this->assertSame($old, $user->fresh()->email);
-        $this->post($url)->assertRedirect('/profile');
+        $this->post($url, ['token' => $token])->assertRedirect('/profile');
         $this->assertSame('new@example.test', $user->fresh()->email);
         $this->assertSame(1, $user->fresh()->auth_version);
         $this->assertDatabaseHas('profile_email_changes', ['user_id' => $user->id, 'status' => 'confirmed', 'target_email' => null, 'token_hash' => null]);
-        $this->post($url)->assertNotFound();
+        $this->post($url, ['token' => $token])->assertNotFound();
         $this->get('/profile')->assertOk()->assertViewHas('page', fn ($p) => $p['clearHistory'] === true);
         $this->assertDatabaseHas('audit_logs', ['actor_id' => $user->id, 'action' => 'profile.email.changed']);
     }
@@ -113,10 +142,11 @@ final class EmailChangeTest extends TenancyTestCase
         $this->actingAs($other)->withSession(['brand_id' => $brand->id])->delete('/profile/email')->assertRedirect()->assertSessionHas('status', 'Нет ожидающего запроса на смену адреса.');
         $this->assertDatabaseHas('profile_email_changes', ['user_id' => $user->id, 'status' => 'pending']);
         $this->assertSame(0, DB::table('audit_logs')->where('actor_id', $other->id)->where('action', 'profile.email.cancelled')->count());
-        $this->post($url)->assertNotFound();
+        $token = $this->token($user->id);
+        $this->post($url, ['token' => $token])->assertNotFound();
 
-        $this->actingAs($user)->withSession(['brand_id' => $brand->id])->post($url)->assertRedirect('/profile');
-        $this->post($url)->assertNotFound();
+        $this->actingAs($user)->withSession(['brand_id' => $brand->id])->post($url, ['token' => $token])->assertRedirect('/profile');
+        $this->post($url, ['token' => $token])->assertNotFound();
         $this->delete('/profile/email')->assertRedirect()->assertSessionHas('status', 'Нет ожидающего запроса на смену адреса.');
         $this->delete('/profile/email')->assertRedirect()->assertSessionHas('status', 'Нет ожидающего запроса на смену адреса.');
         $this->assertSame('new@example.test', $user->fresh()->email);
@@ -134,9 +164,10 @@ final class EmailChangeTest extends TenancyTestCase
         $this->actingAs($user)->withSession(['brand_id' => $brand->id]);
         $this->post('/profile/email', ['email' => 'new@example.test', 'current_password' => 'test-only-password'])->assertRedirect();
         $url = $this->link($user->id);
+        $token = $this->token($user->id);
         $this->delete('/profile/email')->assertRedirect()->assertSessionHas('status', 'Смена адреса отменена.');
         $this->delete('/profile/email')->assertRedirect()->assertSessionHas('status', 'Нет ожидающего запроса на смену адреса.');
-        $this->post($url)->assertNotFound();
+        $this->post($url, ['token' => $token])->assertNotFound();
         $this->assertSame($old, $user->fresh()->email);
         $this->assertDatabaseHas('profile_email_changes', ['user_id' => $user->id, 'status' => 'cancelled', 'target_email' => null, 'token_hash' => null, 'encrypted_token' => null]);
         $this->assertSame(1, DB::table('audit_logs')->where('actor_id', $user->id)->where('action', 'profile.email.cancelled')->count());
@@ -235,7 +266,7 @@ final class EmailChangeTest extends TenancyTestCase
         $this->app->instance(AuditWriter::class, $audit);
         $this->withoutExceptionHandling();
         try {
-            $this->post($url);
+            $this->post($url, ['token' => $token]);
             self::fail('Expected a sanitized exception.');
         } catch (\RuntimeException $e) {
             self::assertSame('Email confirmation processing failed.', $e->getMessage());

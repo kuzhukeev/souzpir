@@ -117,6 +117,7 @@ const pageData =
       ? { security }
       : {
           profile,
+          emailConfirmationUrl: params.has('confirm') ? '/profile/email/confirm/01J00000000000000000000009?expires=1&signature=fixture' : undefined,
           profileBrandRevision: 'a'.repeat(64),
           timezones: [
             'Europe/Moscow',
