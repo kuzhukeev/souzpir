@@ -8,7 +8,7 @@
 
 Зависимости: SP-CI-07. Взять после текущей пачки задач по экранам ТЗ.
 
-Scope: `.github/workflows/ci.yml`, `tests/Feature/`, `tests/Support/`, `scripts/ci/`, `docs/results/SP-CI-08.md`. Код приложения и golden fixtures вне scope.
+Scope: `.github/workflows/ci.yml`, `tests/Feature/Seller/Settings/Limits/SessionRoutingRaceTest.php`, `tests/Feature/Seller/Settings/Limits/Fixtures/session-routing-worker.php`, `tests/Feature/Shell/Profile/SecurityConcurrencyTest.php`, `tests/Feature/Shell/Profile/Fixtures/security-worker.php`, `tests/Feature/Shell/Data/ExportLogoutRaceTest.php`, `tests/Feature/Tenancy/ConcurrencyTest.php`, `tests/Feature/ProtectedOperations/FirstTurnStateTest.php`, `tests/Support/IsolatedDatabaseMigrations.php`, `docs/results/SP-CI-08.md`. Код приложения и golden fixtures вне scope.
 
 Источник: [workflow_dispatch run 41412123385](https://github.com/kuzhukeev/souzpir/actions/runs/41412123385), job `race`, 11 failed / 3 skipped / 158 passed. Разобрать каждое падение:
 
