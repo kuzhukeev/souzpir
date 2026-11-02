@@ -450,6 +450,8 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "seller.analytics.index": [],
+    "seller.analytics.csv": [],
     "vision.start": [],
     "vision.private.access": [],
     "vision.private.verify": [],
