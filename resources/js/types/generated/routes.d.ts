@@ -462,6 +462,20 @@ declare module 'ziggy-js' {
     "vision.reports.index": [],
     "vision.reports.data": [],
     "vision.reports.create": [],
+    "vision.publications.index": [],
+    "vision.publications.create": [],
+    "vision.publications.revoke": [
+        {
+            "name": "publication",
+            "required": true
+        }
+    ],
+    "vision.publications.public": [
+        {
+            "name": "token",
+            "required": true
+        }
+    ],
     "vision.site.overview": [],
     "vision.site.criteria": [],
     "vision.site.bots": [],
