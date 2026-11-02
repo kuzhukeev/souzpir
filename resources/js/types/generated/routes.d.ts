@@ -333,6 +333,12 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "seller.evaluations.show": [
+        {
+            "name": "evaluation",
+            "required": true
+        }
+    ],
     "seller.customers.index": [],
     "seller.customers.show": [
         {
