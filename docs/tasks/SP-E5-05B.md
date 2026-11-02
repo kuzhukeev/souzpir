@@ -10,6 +10,6 @@
 
 Доделать смену менеджера клиента с проверкой прав и бренда; связать карточку с существующим экраном диалога. Проверить отсутствие перехода к чужому бренду.
 
-Scope: `app/Seller/Customers/`, `resources/js/pages/Seller/Customers/`, `routes/features/E5-05.php`, `tests/Feature/Seller/Customers/`, `docs/results/SP-E5-05B.md`. Чужие модули и golden fixtures не менять.
+Scope: `app/Seller/Customers/CustomersController.php`, `resources/js/pages/Seller/Customers/Show.tsx`, `resources/js/pages/Seller/Customers/Index.tsx`, `routes/features/E5-05.php`, `tests/Feature/Seller/Customers/CustomersTest.php`, `tests/Feature/Seller/Customers/AssignmentTest.php`, `docs/results/SP-E5-05B.md`. Подкаталог `ImportExport/` принадлежит SP-E5-08; чужие модули и golden fixtures не менять.
 
 Приёмка: сценарий, права и изоляция бренда, 1–2 ошибки ввода; только fake/HTTP fixtures. Отчёт `docs/results/SP-E5-05B.md`, submit и зелёный CI до merge.
