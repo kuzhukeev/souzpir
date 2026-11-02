@@ -12,10 +12,17 @@
       "icon": "Eye",
       "children": [
         {
-          "id": "vision_overview",
-          "label": "Обзор видимости",
-          "icon": "ChartNoAxesCombined",
+          "id": "vision_quiz",
+          "label": "Анкета",
+          "icon": "ClipboardList",
           "path": "/vision",
+          "permission": "vision.report.read"
+        },
+        {
+          "id": "vision_questions",
+          "label": "Вопросы",
+          "icon": "ClipboardList",
+          "path": "/vision/questions",
           "permission": "vision.report.read"
         },
         {
@@ -26,10 +33,31 @@
           "permission": "vision.measure.read"
         },
         {
-          "id": "vision_questions",
-          "label": "Вопросы",
+          "id": "vision_clarifications",
+          "label": "Уточнения",
           "icon": "ClipboardList",
-          "path": "/vision/questions",
+          "path": "/vision/clarifications",
+          "permission": "vision.report.read"
+        },
+        {
+          "id": "vision_report",
+          "label": "Отчёт",
+          "icon": "ChartNoAxesCombined",
+          "path": "/vision/report",
+          "permission": "vision.measure.read"
+        },
+        {
+          "id": "vision_competitors",
+          "label": "Конкуренты",
+          "icon": "Users",
+          "path": "/vision/competitors",
+          "permission": "vision.report.read"
+        },
+        {
+          "id": "vision_sources",
+          "label": "Источники",
+          "icon": "Link2",
+          "path": "/vision/sources",
           "permission": "vision.report.read"
         },
         {
@@ -45,6 +73,20 @@
           "icon": "ClipboardList",
           "path": "/vision/actions",
           "permission": "vision.report.read"
+        },
+        {
+          "id": "vision_trends",
+          "label": "Динамика",
+          "icon": "ChartNoAxesCombined",
+          "path": "/vision/trends",
+          "permission": "vision.measure.read"
+        },
+        {
+          "id": "vision_settings",
+          "label": "Настройки",
+          "icon": "Settings",
+          "path": "/vision/settings",
+          "permission": "vision.settings.read"
         }
       ]
     },
