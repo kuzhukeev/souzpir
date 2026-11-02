@@ -403,6 +403,8 @@ declare module 'ziggy-js' {
     "seller.planned.index": [],
     "seller.planned.interest": [],
     "seller.planned.reminders": [],
+    "seller.channels.email.index": [],
+    "seller.channels.email.update": [],
     "seller.settings.policy.index": [],
     "seller.settings.followups.update": [],
     "seller.tools.settings": [],
