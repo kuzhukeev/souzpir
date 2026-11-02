@@ -12,6 +12,7 @@ use App\Shell\Audit\Contracts\AuditWriter;
 use App\Shell\Profile\ProfileAccess;
 use App\Tenancy\TenantContext;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -39,7 +40,15 @@ final class PolicySettingsController
                 $policy = null;
             }
 
-            return ['followup' => $followup, 'policy' => $policy, 'canWrite' => Gate::allows('seller.settings.write')];
+            $draftPolicy = null;
+            if (Gate::allows('seller.settings.write')) {
+                $draft = DB::table('knowledge_releases')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('status', 'draft')->first(['id', 'version']);
+                if ($draft) {
+                    $draftPolicy = ['version' => $draft->version, 'policy' => app(KnowledgeRepository::class)->forRelease($tenant, $draft->id, true)->policy()];
+                }
+            }
+
+            return ['followup' => $followup, 'policy' => $policy, 'canWrite' => Gate::allows('seller.settings.write'), 'draftPolicy' => $draftPolicy];
         });
 
         return Inertia::render('Seller/Settings/Policy/Index', [...$data, 'status' => session('status')]);

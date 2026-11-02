@@ -410,6 +410,7 @@ declare module 'ziggy-js' {
     "seller.channels.email.index": [],
     "seller.channels.email.update": [],
     "seller.settings.policy.index": [],
+    "seller.settings.off-topic.save": [],
     "seller.settings.followups.update": [],
     "seller.tools.settings": [],
     "seller.tools.settings.update": [],
