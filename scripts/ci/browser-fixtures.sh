@@ -19,10 +19,11 @@ trap cleanup_on_error ERR
 wait_http() {
   local url=$1
   for _ in {1..60}; do
-    if curl --fail --silent "$url" >/dev/null; then return; fi
+    if curl --connect-timeout 2 --max-time 5 --fail --silent "$url" >/dev/null; then return; fi
     sleep 1
   done
-  echo "Fixture did not start: $url" >&2
+  echo "Fixture did not start within 60 attempts: $url" >&2
+  for log in .local/runtime/browser-ci-*.log; do [[ -f $log ]] && { echo "== $log" >&2; tail -n 80 "$log" >&2; }; done
   return 1
 }
 start_vite() {
