@@ -7209,10 +7209,12 @@
         "SP-E5-04"
       ],
       "scope": [
-        "app/Seller/Customers/",
-        "resources/js/pages/Seller/Customers/",
+        "app/Seller/Customers/CustomersController.php",
+        "resources/js/pages/Seller/Customers/Show.tsx",
+        "resources/js/pages/Seller/Customers/Index.tsx",
         "routes/features/E5-05.php",
-        "tests/Feature/Seller/Customers/",
+        "tests/Feature/Seller/Customers/CustomersTest.php",
+        "tests/Feature/Seller/Customers/AssignmentTest.php",
         "docs/results/SP-E5-05B.md"
       ],
       "exclusiveResources": [],
@@ -7230,7 +7232,7 @@
       ],
       "promptPath": "docs/tasks/SP-E5-05B.md",
       "wave": 9,
-      "description": "# SP-E5-05B · Назначение менеджера и переход к диалогу клиента\n\nРазмер: 1–3 часа. Функциональный остаток; новой возможности сверх ТЗ нет.\n\n**Зачем:** закрыть D-3.2, макет 45 после частичной сдачи SP-E5-05 и дать исполнителям независимую работу по экрану или сценарию ТЗ.\n\n**Часть чего:** SP-E5-05. После карточки создание напоминаний остаётся в SP-E5-05C; списки, задачи и заметки уже в SP-E5-05.\n\nЗависимости: SP-E5-05, SP-E5-04.\n\nДоделать смену менеджера клиента с проверкой прав и бренда; связать карточку с существующим экраном диалога. Проверить отсутствие перехода к чужому бренду.\n\nScope: `app/Seller/Customers/`, `resources/js/pages/Seller/Customers/`, `routes/features/E5-05.php`, `tests/Feature/Seller/Customers/`, `docs/results/SP-E5-05B.md`. Чужие модули и golden fixtures не менять.\n\nПриёмка: сценарий, права и изоляция бренда, 1–2 ошибки ввода; только fake/HTTP fixtures. Отчёт `docs/results/SP-E5-05B.md`, submit и зелёный CI до merge.\n"
+      "description": "# SP-E5-05B · Назначение менеджера и переход к диалогу клиента\n\nРазмер: 1–3 часа. Функциональный остаток; новой возможности сверх ТЗ нет.\n\n**Зачем:** закрыть D-3.2, макет 45 после частичной сдачи SP-E5-05 и дать исполнителям независимую работу по экрану или сценарию ТЗ.\n\n**Часть чего:** SP-E5-05. После карточки создание напоминаний остаётся в SP-E5-05C; списки, задачи и заметки уже в SP-E5-05.\n\nЗависимости: SP-E5-05, SP-E5-04.\n\nДоделать смену менеджера клиента с проверкой прав и бренда; связать карточку с существующим экраном диалога. Проверить отсутствие перехода к чужому бренду.\n\nScope: `app/Seller/Customers/CustomersController.php`, `resources/js/pages/Seller/Customers/Show.tsx`, `resources/js/pages/Seller/Customers/Index.tsx`, `routes/features/E5-05.php`, `tests/Feature/Seller/Customers/CustomersTest.php`, `tests/Feature/Seller/Customers/AssignmentTest.php`, `docs/results/SP-E5-05B.md`. Подкаталог `ImportExport/` принадлежит SP-E5-08; чужие модули и golden fixtures не менять.\n\nПриёмка: сценарий, права и изоляция бренда, 1–2 ошибки ввода; только fake/HTTP fixtures. Отчёт `docs/results/SP-E5-05B.md`, submit и зелёный CI до merge.\n"
     },
     {
       "taskKey": "SP-E5-05C",
