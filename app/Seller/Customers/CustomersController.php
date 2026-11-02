@@ -149,6 +149,38 @@ final class CustomersController
         return back()->with('status', 'Менеджер назначен.');
     }
 
+    public function remind(Request $request, string $contact): mixed
+    {
+        $input = $request->validate([
+            'text' => ['required', 'string', 'max:1000'],
+            'due_at' => ['required', 'date', 'after:now'],
+            'manager_id' => ['required', 'ulid'],
+        ]);
+        $this->access($request, 'seller.dialogues.operate', function (User $user, TenantContext $tenant) use ($contact, $input): void {
+            $this->scope('contacts', $tenant)->where('id', $contact)->whereNull('merged_into_id')->first() ?? abort(404);
+            $conversation = $this->scope('conversations', $tenant)->where('contact_id', $contact)->orderByDesc('updated_at')->orderByDesc('id')->first();
+            if (! $conversation) {
+                throw ValidationException::withMessages(['text' => 'Для напоминания нужен диалог с клиентом.']);
+            }
+            $actor = Membership::withoutGlobalScopes()->where('organization_id', $tenant->organizationId)->where('user_id', $user->id)->where('status', 'active')->first() ?? abort(403);
+            if ($actor->role === 'member' && ($actor->settings['sales_manager'] ?? false)) {
+                abort_if($conversation->assigned_user_id && $conversation->assigned_user_id !== $user->id, 404);
+                abort_unless($input['manager_id'] === $user->id, 403);
+            }
+            $manager = Membership::withoutGlobalScopes()->where('organization_id', $tenant->organizationId)->where('user_id', $input['manager_id'])->where('status', 'active')->first();
+            if (! $manager || ! $manager->permitsBrand($tenant->brandId) || ! (in_array($manager->role, ['owner', 'admin'], true) || ($manager->role === 'member' && ($manager->settings['sales_manager'] ?? false)))) {
+                throw ValidationException::withMessages(['manager_id' => 'Сотрудник недоступен для этого бренда.']);
+            }
+            $id = (string) Str::ulid();
+            DB::table('seller_tasks')->insert(['id' => $id, 'organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId,
+                'conversation_id' => $conversation->id, 'type' => 'reminder', 'payload' => json_encode(['text' => $input['text']], JSON_UNESCAPED_UNICODE),
+                'due_at' => Carbon::parse($input['due_at'])->utc(), 'status' => 'new', 'priority' => 'normal', 'assigned_user_id' => $input['manager_id'], 'created_at' => now(), 'updated_at' => now()]);
+            app(AuditWriter::class)->record($tenant, new AuditEntry('seller.customer.reminder.created', 'seller_task', $id));
+        });
+
+        return back()->with('status', 'Напоминание создано.');
+    }
+
     public function note(Request $request, string $contact): mixed
     {
         $input = $request->validate(['body' => ['required', 'string', 'max:3000']]);
