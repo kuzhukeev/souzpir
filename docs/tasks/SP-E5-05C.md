@@ -10,6 +10,6 @@
 
 Добавить создание напоминания с привязкой к клиенту и менеджеру, валидировать срок и права, показать в задачах и карточке; использовать существующий outbox fake для срока.
 
-Scope: `app/Seller/Customers/`, `resources/js/pages/Seller/Customers/`, `routes/features/E5-05.php`, `tests/Feature/Seller/Customers/`, `docs/results/SP-E5-05C.md`. Чужие модули и golden fixtures не менять.
+Scope: `app/Seller/Customers/CustomersController.php`, `app/Seller/Customers/NotifyDuePromises.php`, `app/Seller/Customers/PromiseSchedule.php`, `app/Seller/Customers/Reminders/`, `resources/js/pages/Seller/Customers/Show.tsx`, `resources/js/pages/Seller/Customers/Tasks.tsx`, `routes/features/E5-05.php`, `tests/Feature/Seller/Customers/CustomersTest.php`, `tests/Feature/Seller/Customers/Reminders/`, `docs/results/SP-E5-05C.md`. Импорт/экспорт SP-E5-08 в отдельной папке; чужие модули и golden fixtures не менять.
 
 Приёмка: сценарий, права и изоляция бренда, 1–2 ошибки ввода; только fake/HTTP fixtures. Отчёт `docs/results/SP-E5-05C.md`, submit и зелёный CI до merge.
