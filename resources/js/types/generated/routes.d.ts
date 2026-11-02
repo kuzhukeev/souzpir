@@ -443,6 +443,13 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "seller.quality.index": [],
+    "seller.quality.day": [
+        {
+            "name": "day",
+            "required": true
+        }
+    ],
     "vision.start": [],
     "vision.private.access": [],
     "vision.private.verify": [],
