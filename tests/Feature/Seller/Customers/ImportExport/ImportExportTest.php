@@ -58,7 +58,11 @@ final class ImportExportTest extends TenancyTestCase
         $id = DB::table('seller_contact_imports')->value('id');
         $this->get('/seller/customer-io')->assertOk()->assertInertia(fn ($page) => $page->where('preview.count', 1));
         $this->post('/seller/customer-io/import', ['id' => $id, 'mapping' => ['name' => 0, 'email' => 1, 'city' => 2]])->assertRedirect();
-        $this->assertDatabaseHas('contacts', ['brand_id' => $brand->id, 'name' => 'Анна', 'email' => 'anna@example.test']);
+        $this->assertDatabaseHas('contacts', ['brand_id' => $brand->id, 'name' => 'Анна', 'email' => 'anna@example.test', 'city' => 'Тверь']);
+        $imported = DB::table('contacts')->where('brand_id', $brand->id)->where('email', 'anna@example.test')->value('id');
+        $this->assertDatabaseMissing('conversations', ['contact_id' => $imported]);
+        DB::table('contacts')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $brand->id, 'name' => 'Анна', 'city' => 'Тверь', 'created_at' => now(), 'updated_at' => now()]);
+        $this->get('/seller/customer-duplicates')->assertOk()->assertInertia(fn ($page) => $page->has('pairs', 1)->where('pairs.0.reason', 'Имя и город'));
         $this->post('/seller/customer-io/import', ['id' => $id, 'mapping' => ['name' => 0]])->assertNotFound();
         $this->post('/seller/customer-duplicates', ['source' => $foreign, 'target' => $foreign])->assertSessionHasErrors('source');
         $local = DB::table('contacts')->where('brand_id', $brand->id)->value('id');

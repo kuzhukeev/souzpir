@@ -8,6 +8,9 @@ return new class extends Migration
 {
     public function up(): void
     {
+        Schema::table('contacts', function (Blueprint $t): void {
+            $t->string('city', 120)->nullable();
+        });
         Schema::create('seller_contact_imports', function (Blueprint $t): void {
             $t->ulid('id')->primary();
             $t->ulid('organization_id');
@@ -25,5 +28,8 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('seller_contact_imports');
+        Schema::table('contacts', function (Blueprint $t): void {
+            $t->dropColumn('city');
+        });
     }
 };

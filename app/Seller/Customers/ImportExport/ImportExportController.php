@@ -38,12 +38,12 @@ final class ImportExportController
     public function duplicates(Request $request): mixed
     {
         $data = $this->access($request, 'seller.customers.write', function (User $user, TenantContext $tenant): array {
-            $contacts = $this->scope('contacts', $tenant)->whereNull('merged_into_id')->orderBy('name')->get(['id', 'name', 'phone', 'email']);
+            $contacts = $this->scope('contacts', $tenant)->whereNull('merged_into_id')->orderBy('name')->get(['id', 'name', 'phone', 'email', 'city']);
             $rows = $contacts->map(function ($contact) use ($tenant): array {
                 $state = $this->scope('conversations', $tenant)->where('contact_id', $contact->id)->orderByDesc('updated_at')->value('state');
                 $state = $state ? json_decode($state, true) : [];
 
-                return ['id' => $contact->id, 'name' => $contact->name, 'phone' => $contact->phone, 'email' => $contact->email, 'city' => data_get($state, 'slots.city')];
+                return ['id' => $contact->id, 'name' => $contact->name, 'phone' => $contact->phone, 'email' => $contact->email, 'city' => $contact->city ?: data_get($state, 'slots.city')];
             })->all();
             $pairs = [];
             for ($i = 0; $i < count($rows) && count($pairs) < 100; $i++) {
@@ -76,7 +76,7 @@ final class ImportExportController
                 $target = $this->scope('contacts', $tenant)->where('id', $input['target'])->whereNull('merged_into_id')->first() ?? abort(404);
                 $this->scope('conversations', $tenant)->where('contact_id', $source->id)->update(['contact_id' => $target->id, 'updated_at' => now()]);
                 $this->scope('seller_customer_notes', $tenant)->where('contact_id', $source->id)->update(['contact_id' => $target->id, 'updated_at' => now()]);
-                $this->scope('contacts', $tenant)->where('id', $target->id)->update(['name' => $target->name ?: $source->name, 'phone' => $target->phone ?: $source->phone, 'email' => $target->email ?: $source->email, 'updated_at' => now()]);
+                $this->scope('contacts', $tenant)->where('id', $target->id)->update(['name' => $target->name ?: $source->name, 'phone' => $target->phone ?: $source->phone, 'email' => $target->email ?: $source->email, 'city' => $target->city ?: $source->city, 'updated_at' => now()]);
                 $this->scope('contacts', $tenant)->where('id', $source->id)->update(['merged_into_id' => $target->id, 'updated_at' => now()]);
                 app(AuditWriter::class)->record($tenant, new AuditEntry('seller.customer.merged', 'contact', $target->id, after: ['source_id' => $source->id]));
             });
@@ -140,7 +140,7 @@ final class ImportExportController
                 if (empty($values['name']) && empty($values['phone']) && empty($values['email'])) {
                     throw ValidationException::withMessages(['mapping' => 'Нет контакта в строке '.($index + 2).'.']);
                 }
-                $validation = Validator::make($values, ['name' => ['nullable', 'string', 'max:255'], 'phone' => ['nullable', 'string', 'max:40'], 'email' => ['nullable', 'email', 'max:254'], 'city' => ['nullable', 'string', 'max:255']]);
+                $validation = Validator::make($values, ['name' => ['nullable', 'string', 'max:255'], 'phone' => ['nullable', 'string', 'max:40'], 'email' => ['nullable', 'email', 'max:254'], 'city' => ['nullable', 'string', 'max:120']]);
                 if ($validation->fails()) {
                     throw ValidationException::withMessages(['mapping' => 'Проверьте данные в строке '.($index + 2).'.']);
                 }
@@ -150,11 +150,7 @@ final class ImportExportController
                 foreach ($contacts as $values) {
                     $id = (string) Str::ulid();
                     DB::table('contacts')->insert(['id' => $id, 'organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId,
-                        'name' => $values['name'] ?? null, 'phone' => $values['phone'] ?? null, 'email' => $values['email'] ?? null, 'created_at' => now(), 'updated_at' => now()]);
-                    if (! empty($values['city'])) {
-                        DB::table('conversations')->insert(['id' => (string) Str::ulid(), 'organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId,
-                            'contact_id' => $id, 'state' => json_encode(['slots' => ['city' => $values['city']]], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), 'created_at' => now(), 'updated_at' => now()]);
-                    }
+                        'name' => $values['name'] ?? null, 'phone' => $values['phone'] ?? null, 'email' => $values['email'] ?? null, 'city' => $values['city'] ?? null, 'created_at' => now(), 'updated_at' => now()]);
                 }
                 $this->scope('seller_contact_imports', $tenant)->where('id', $record->id)->update(['status' => 'imported', 'updated_at' => now()]);
                 app(AuditWriter::class)->record($tenant, new AuditEntry('seller.customer.imported', 'seller_contact_import', $record->id, after: ['count' => count($contacts)]));
