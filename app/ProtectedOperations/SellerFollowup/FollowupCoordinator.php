@@ -55,9 +55,13 @@ final class FollowupCoordinator
                         throw new LogicException('Invalid finished turn.');
                     }
 
-                    return ['status' => $outcome['status'], 'result' => ['turn_id' => $claim->turnId,
-                        'message_id' => $outcome['assistantMessageId'] ?? null, 'version' => $outcome['version'] ?? null,
-                        'suggestion' => $outcome['status'] === 'suggested' ? ($outcome['messages'][0]['text'] ?? null) : null]];
+                    $result = ['turn_id' => $claim->turnId, 'message_id' => $outcome['assistantMessageId'] ?? null,
+                        'version' => $outcome['version'] ?? null];
+                    if ($outcome['status'] === 'suggested') {
+                        $result['suggestion'] = $outcome['messages'][0]['text'] ?? null;
+                    }
+
+                    return ['status' => $outcome['status'], 'result' => $result];
                 }
                 if (in_array($claim->status, ['in_progress', 'uncertain'], true)) {
                     return ['status' => $claim->status];

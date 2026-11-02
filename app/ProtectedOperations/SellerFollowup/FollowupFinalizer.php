@@ -50,7 +50,11 @@ final class FollowupFinalizer
         ]);
         app(AuditWriter::class)->record($tenant, new AuditEntry('seller.turn.'.$status, 'seller_turn', $claim->turnId));
 
-        return ['status' => $status, 'result' => ['turn_id' => $claim->turnId, 'message_id' => $messageId,
-            'version' => $claim->baseVersion + 1, 'suggestion' => $mode === 'suggest' ? $text : null]];
+        $result = ['turn_id' => $claim->turnId, 'message_id' => $messageId, 'version' => $claim->baseVersion + 1];
+        if ($mode === 'suggest') {
+            $result['suggestion'] = $text;
+        }
+
+        return ['status' => $status, 'result' => $result];
     }
 }

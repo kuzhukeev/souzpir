@@ -5,7 +5,9 @@
 - Добавлены защищённые coordinator и finalizer для open/suggest и последующих bot-ходов.
 - Bot сохраняет ответ без доставки; suggest сохраняет подсказку в результате хода без сообщения агенту. Повтор ключа возвращает тот же результат.
 - Права, активная сессия, организация, бренд, ревизия и fake-драйвер проверяются до записи; внешний AI не вызывается.
-- Тесты: `FollowupHttpTest.php`, `TurnHttpTest.php`, `FirstSellerTurnHttpTest.php` — 6 passed, 56 assertions; повторный `FollowupHttpTest.php` — 2 passed, 26 assertions.
+- Повтор первого bot-хода теперь возвращает тот же набор полей, что и исходный результат.
+- Тесты: `FollowupHttpTest.php`, `TurnHttpTest.php`, `FirstInboundRuntimeTest::test_bot_first_turn...` — 4 passed, 141 assertions; Pint прошёл.
+- CI `41481537868`: красный только Product. Полный `FirstInboundRuntimeTest.php` выявил устаревшее ожидание `suggest => unavailable` (503), противоречащее карточке. Локальный `artisan test` дополнительно упирается в недоступный `sys_temp_dir` OSPanel; прямой Pest с изолированным temp проходит.
 - Скриншоты: нет, задача меняет только HTTP runtime без экранов.
 
 ## Техдолг
@@ -18,4 +20,4 @@
 
 ## Нужно от интегратора
 
-- Нет.
+- Обновить вне scope `tests/Feature/SellerRuntime/FirstInboundRuntimeTest.php:214`: для suggest ожидать сохранённую подсказку вместо `unavailable`, затем повторить Product CI.
