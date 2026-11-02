@@ -42,6 +42,6 @@ final class TurnHttpTest extends TenancyTestCase
         $this->postJson('/seller/turns/runtime', $input)->assertStatus(503);
         [$viewer] = $this->member($org, 'viewer', [$brand->id]);
         $this->actingAs($viewer)->withSession(['brand_id' => $brand->id]);
-        $this->postJson('/seller/turns/runtime',$input)->assertForbidden();
+        $this->postJson('/seller/turns/runtime', $input)->assertForbidden();
     }
 }
