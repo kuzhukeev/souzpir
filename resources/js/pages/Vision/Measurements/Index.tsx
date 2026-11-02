@@ -16,7 +16,7 @@ type Row = {
   answers?: { question_n: number; provider: string; requested_model: string; run_no: number; status: string; answer_text: string | null; error_code: string | null }[];
 };
 type Schedule = { enabled: boolean; frequency: string | null; weekday: number | null; local_time: string | null; timezone: string; next_run_at: string | null; models: string[]; available_models: string[] };
-type Listing = { revision: string; data: Row[]; page: number; last_page: number; total: number; schedule: Schedule };
+type Listing = { revision: string; data: Row[]; page: number; last_page: number; total: number; schedule?: Schedule };
 const button =
   'min-h-11 cursor-pointer rounded-lg border border-(--color-border) px-4 text-sm font-semibold text-(--color-link) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus) disabled:cursor-not-allowed disabled:opacity-50';
 const isPageVisible = () => document.visibilityState !== 'hidden';
@@ -231,7 +231,7 @@ export default function Index({ measurementBrandRevision, status }: { measuremen
         <p className="mb-4 text-sm text-(--color-ink-muted)">Запуск создаёт план по утверждённым вопросам бренда. При включённой очереди слоты обрабатываются автоматически.</p>
         {status && <p role="status" className="mb-4 rounded-lg bg-(--color-success-soft) p-3 text-sm text-(--color-success-ink)">{status}</p>}
         {startError && <p role="alert" className="mb-4 rounded-lg bg-(--color-danger-soft) p-3 text-sm text-(--color-danger-ink)">{startError}</p>}
-        {view.data && view.data.revision === measurementBrandRevision && <ScheduleEditor key={JSON.stringify([contextKey, view.data.schedule])} schedule={view.data.schedule} brandId={brandId} revision={measurementBrandRevision} canEdit={!!can?.['vision.measure.run'] && profileContextIsStable()} refreshed={() => setAttempt((value) => value + 1)} />}
+        {view.data?.schedule && view.data.revision === measurementBrandRevision && <ScheduleEditor key={JSON.stringify([contextKey, view.data.schedule])} schedule={view.data.schedule} brandId={brandId} revision={measurementBrandRevision} canEdit={!!can?.['vision.measure.run'] && profileContextIsStable()} refreshed={() => setAttempt((value) => value + 1)} />}
         <section
           aria-labelledby="measurements-title"
           aria-busy={view.loading}
