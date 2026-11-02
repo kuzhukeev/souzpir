@@ -332,6 +332,7 @@ declare module 'ziggy-js' {
         }
     ],
     "seller.knowledge.index": [],
+    "seller.knowledge.compare": [],
     "seller.knowledge.draft": [],
     "seller.knowledge.publish": [
         {

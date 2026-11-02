@@ -72,6 +72,22 @@ final class ReleasesController
         return back()->with('status', 'Черновик создан.');
     }
 
+    public function compare(Request $request): mixed
+    {
+        $input = $request->validate(['from' => ['required', 'ulid'], 'to' => ['required', 'ulid', 'different:from']]);
+        $data = $this->access($request, 'seller.knowledge.read', function (User $user, TenantContext $tenant) use ($input): array {
+            $repository = app(KnowledgeRepository::class);
+            $before = $repository->forRelease($tenant, $input['from'], true);
+            $after = $repository->forRelease($tenant, $input['to'], true);
+            $releases = $this->query('knowledge_releases', $tenant)->whereIn('id', [$input['from'], $input['to']])->get(['id', 'status', 'version', 'published_at']);
+
+            return ['from' => $releases->firstWhere('id', $input['from']), 'to' => $releases->firstWhere('id', $input['to']),
+                'sections' => app(ReleaseComparison::class)->compare($before, $after)];
+        });
+
+        return Inertia::render('Seller/Knowledge/Releases/Compare', $data);
+    }
+
     public function publish(Request $request, string $release): mixed
     {
         $input = $request->validate(['version' => ['required', 'integer', 'min:1']]);
