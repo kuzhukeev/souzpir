@@ -4847,7 +4847,9 @@
         "SP-E5-02B",
         "SP-E3-08",
         "SP-E3-08B",
-        "SP-E5-03C"
+        "SP-E3-09",
+        "SP-E5-03C",
+        "SP-E4-09"
       ],
       "scope": [
         "app/Seller/Channels/Widget/",
@@ -4888,7 +4890,7 @@
       ],
       "promptPath": "docs/tasks/SP-E5-02C.md",
       "wave": 10,
-      "description": "# SP-E5-02C · Виджет: сессия посетителя и сообщения\n\n**Размер:** 1–3 часа; функциональный остаток, не сверх ТЗ.\n\n**Зачем:** Backlog E5-02 и экраны D-9.2, D-9.3, D-9.4; обязательный остаток после частичной сдачи SP-E5-02.\n\n**Часть чего:** SP-E5-02. После C функционального остатка SP-E5-02 нет.\n\nЗависимости: SP-E5-02B, SP-E3-08, SP-E3-08B, SP-E5-03C. После API-канала использовать ту же защищённую точку входа для публичной сессии посетителя.\n\nScope: `app/Seller/Channels/Widget/`, `app/ProtectedOperations/SellerFollowup/`, `app/Seller/Runtime/`, `resources/widget/`, `resources/js/pages/Seller/Channels/Widget/`, `routes/features/E5-02.php`, `tests/Browser/E5-02/`, `tests/Feature/Seller/Channels/Widget/`, `tests/Feature/SellerRuntime/Turns/`, `tests/Unit/Seller/Channels/Widget/`, `config/features/E5-02.php`, `database/migrations/E5-02C/`, `resources/js/types/Seller/Channels/Widget/`, `docs/results/SP-E5-02C.md`. Сгенерированные типы разрешены общим правилом.\n\nСвязать защищённую сессию посетителя и сообщения виджета с seller runtime и сохранённым согласием/контактом. Если runtime требует сессию сотрудника, расширить защищённую точку входа на проверенную публичную сессию посетителя; не обходить runtime прямой записью сообщений.\n\nПриёмка: Fake/HTTP/browser e2e №7: начало сессии, ход, повтор, чужой origin и бренд, недоступный runtime. Живые внешние вызовы в тестах запрещены.\n\nЧужие модули не менять; итоговый отчёт до 30 строк с тестами, долгом и решениями.\n"
+      "description": "# SP-E5-02C · Виджет: сессия посетителя и сообщения\n\n**Размер:** 1–3 часа; функциональный остаток, не сверх ТЗ.\n\n**Зачем:** Backlog E5-02 и экраны D-9.2, D-9.3, D-9.4; обязательный остаток после частичной сдачи SP-E5-02.\n\n**Часть чего:** SP-E5-02. После C функционального остатка SP-E5-02 нет.\n\nЗависимости: SP-E5-02B, SP-E3-08, SP-E3-08B, SP-E3-09, SP-E5-03C, SP-E4-09. После API-канала использовать ту же защищённую точку входа для публичной сессии посетителя.\n\nScope: `app/Seller/Channels/Widget/`, `app/ProtectedOperations/SellerFollowup/`, `app/Seller/Runtime/`, `resources/widget/`, `resources/js/pages/Seller/Channels/Widget/`, `routes/features/E5-02.php`, `tests/Browser/E5-02/`, `tests/Feature/Seller/Channels/Widget/`, `tests/Feature/SellerRuntime/Turns/`, `tests/Unit/Seller/Channels/Widget/`, `config/features/E5-02.php`, `database/migrations/E5-02C/`, `resources/js/types/Seller/Channels/Widget/`, `docs/results/SP-E5-02C.md`. Сгенерированные типы разрешены общим правилом.\n\nСвязать защищённую сессию посетителя и сообщения виджета с seller runtime и сохранённым согласием/контактом. Если runtime требует сессию сотрудника, расширить защищённую точку входа на проверенную публичную сессию посетителя; не обходить runtime прямой записью сообщений.\n\nПриёмка: Fake/HTTP/browser e2e №7: начало сессии, ход, повтор, чужой origin и бренд, недоступный runtime. Живые внешние вызовы в тестах запрещены.\n\nЧужие модули не менять; итоговый отчёт до 30 строк с тестами, долгом и решениями.\n\nСквозная приёмка владельца: после импорта знаний прототипа и включения виджета на разрешённом сайте молчание посетителя запускает автооткрытие через behavior.delay_seconds (по умолчанию 8–10 с); первый ход intro_and_ask выполняет runtime, а не статичный текст. Приветствие канала «Сайт» с {страница} и сведения о странице передаются Responder; использовать open_greeting_widget без упоминания заявки. Fake-LLM browser e2e проверяет имя из persona, первый вопрос по слоту, отсутствие слова «заявка», второй ход через runtime Песочницы, последовательность city → purpose → experience → outlet_type, техники, запреты и передачу менеджеру.\n"
     },
     {
       "taskKey": "SP-E5-03B",
@@ -7314,7 +7316,7 @@
       ],
       "promptPath": "docs/tasks/SP-E3-09.md",
       "wave": 9,
-      "description": "# SP-E3-09 · Fallback, инструменты и Delivery runtime\n\nРазмер: 1–3 часа. Функциональный остаток; новой возможности сверх ТЗ нет.\n\n**Зачем:** закрыть E3-03, 03 §1.2–1.3 после частичной сдачи SP-E3-03B и дать исполнителям независимую работу по экрану или сценарию ТЗ.\n\n**Часть чего:** SP-E3-03B. После карточки остаётся только финальная приёмка компонентов SP-E3-03 и адаптеры конкретных каналов их владельцам.\n\nЗависимости: SP-E3-08B, SP-E6-08.\n\nДовести regeneration/fallback и tool-calls до защищённого результата; ввести ChannelDelivery contract и fake delivery для bot, без отправки у suggest/manager. Подключить `check_stock` и `send_price` к сохранённому каталогу SP-E6-08, не открывая реальные цены до разрешённой настройки. Проверить pending/uncertain без повторного платного вызова, tenant и idempotency.\n\nScope: `app/Seller/Runtime/`, `app/Seller/Engine/ToolRunner.php`, `tests/Feature/SellerRuntime/Delivery/`, `docs/results/SP-E3-09.md`. Чужие модули и golden fixtures не менять.\n\nПриёмка: сценарий, права и изоляция бренда, 1–2 ошибки ввода; только fake/HTTP fixtures. Отчёт `docs/results/SP-E3-09.md`, submit и зелёный CI до merge.\n"
+      "description": "# SP-E3-09 · Fallback, инструменты и Delivery runtime\n\nРазмер: 1–3 часа. Функциональный остаток; новой возможности сверх ТЗ нет.\n\n**Зачем:** закрыть E3-03, 03 §1.2–1.3 после частичной сдачи SP-E3-03B и дать исполнителям независимую работу по экрану или сценарию ТЗ.\n\n**Часть чего:** SP-E3-03B. После карточки остаётся только финальная приёмка компонентов SP-E3-03 и адаптеры конкретных каналов их владельцам.\n\nЗависимости: SP-E3-08B, SP-E6-08.\n\nДовести regeneration/fallback и tool-calls до защищённого результата; ввести ChannelDelivery contract и fake delivery для bot, без отправки у suggest/manager. Подключить `check_stock` и `send_price` к сохранённому каталогу SP-E6-08, не открывая реальные цены до разрешённой настройки. Проверить pending/uncertain без повторного платного вызова, tenant и idempotency.\n\nScope: `app/Seller/Runtime/`, `app/Seller/Engine/ToolRunner.php`, `tests/Feature/SellerRuntime/Delivery/`, `docs/results/SP-E3-09.md`. Чужие модули и golden fixtures не менять.\n\nПриёмка: сценарий, права и изоляция бренда, 1–2 ошибки ввода; только fake/HTTP fixtures. Отчёт `docs/results/SP-E3-09.md`, submit и зелёный CI до merge.\n\nДля канала сайта сохранить в защищённом runtime возможность передать приветствие из настроек и контекст страницы в Responder для первого хода intro_and_ask; не подменять его статичным текстом. Сквозная проверка таймера и виджета принадлежит SP-E5-02C.\n"
     },
     {
       "taskKey": "SP-E5-05B",
@@ -8437,6 +8439,67 @@
       ],
       "wave": 1,
       "promptPath": "docs/tasks/SP-E1-03B.md"
+    },
+    {
+      "taskKey": "SP-E4-09",
+      "title": "SP-E4-09 · Импорт знаний из YAML и редактор эскалаций",
+      "description": "# SP-E4-09 · Импорт знаний из YAML и редактор эскалаций\n\n**Зачем:** решение владельца от 02.11.2026: оператор загружает в бренд десять YAML прототипа, клиент дорабатывает знания в кабинете.\n**Часть чего:** импорт и управление знаниями продавца E4; после карточки остаётся SP-E3-10 по отвязке движка от отрасли.\n**Зависимости:** SP-E4-01, SP-E4-08.\n\nДобавить artisan-команду seller:knowledge-import {brand} {dir} через YamlKnowledgeImporter::importAndPublish с отчётом числа записей по каждому разделу. Повторный импорт создаёт новый релиз с черновиком, прошлый релиз сохраняется для отката. На /seller/knowledge/imports дать загрузку ZIP или нескольких YAML, предпросмотр разделов и публикацию. Добавить редактор «Причины передачи менеджеру»: defaults response_time_text и assignee; reasons: id, title, detect, priority, message_idea; использовать существующий draft/publish. При импорте прототипа добавить образец open_greeting_widget без упоминания заявки, отдельно от исходящего open_greeting.\n\nПриёмка: десять YAML из tests/Feature/Seller/Knowledge/Fixtures/data в чистый бренд, Песочница отвечает фактами и примерами прототипа; эскалации видны и редактируются; экспорт и повторный импорт равны по всем десяти разделам, старый релиз доступен для отката. Проверить tenant/brand, доступ, ошибки загрузки; только fake/HTTP, живые вызовы запрещены.\n\nScope: `app/Seller/Knowledge/`, `app/Console/Commands/`, `routes/console.php`, `routes/features/E4-08.php`, `resources/js/pages/Seller/Knowledge/`, `resources/js/components/Seller/Knowledge/`, `tests/Feature/Seller/Knowledge/`, `tests/Unit/Seller/Knowledge/`, `tests/Browser/E4-08/`, `docs/results/SP-E4-09.md`.\n",
+      "goal": "решение владельца от 02.11.2026: оператор загружает в бренд десять YAML прототипа, клиент дорабатывает знания в кабинете.",
+      "dependsOn": [
+        "SP-E4-01",
+        "SP-E4-08"
+      ],
+      "scope": [
+        "app/Seller/Knowledge/",
+        "app/Console/Commands/",
+        "routes/console.php",
+        "routes/features/E4-08.php",
+        "resources/js/pages/Seller/Knowledge/",
+        "resources/js/components/Seller/Knowledge/",
+        "tests/Feature/Seller/Knowledge/",
+        "tests/Unit/Seller/Knowledge/",
+        "tests/Browser/E4-08/",
+        "docs/results/SP-E4-09.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "десять YAML из tests/Feature/Seller/Knowledge/Fixtures/data в чистый бренд, Песочница отвечает фактами и примерами прототипа; эскалации видны и редактируются; экспорт и повторный импорт равны по всем десяти разделам, старый релиз доступен для отката. Проверить tenant/brand, доступ, ошибки загрузки; только fake/HTTP, живые вызовы запрещены."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md"
+      ],
+      "screenIds": [],
+      "wave": 4,
+      "promptPath": "docs/tasks/SP-E4-09.md"
+    },
+    {
+      "taskKey": "SP-E3-10",
+      "title": "SP-E3-10 · Знания бренда вместо отраслевых и московских констант",
+      "description": "# SP-E3-10 · Знания бренда вместо отраслевых и московских констант\n\n**Зачем:** решение владельца от 02.11.2026: второй бренд другой отрасли и города не должен получать сведения о пиротехнике и Москве.\n**Часть чего:** настройка продавца по знаниям бренда; выполняется после SP-E4-09 независимо от реализации виджета.\n**Зависимости:** SP-E4-09, SP-E3-03B.\n\nВынести отраслевые формулировки Policy и подсказки ResponderProjection в знания бренда persona/policy; в шесть resources/views/prompts/*.blade.php подставлять отрасль, город и компанию из бренда либо использовать предусмотренные per-brand prompt_sets. ВДНХ и московский самовывоз брать из facts/conditions. Проверить PrototypeDeliveryEstimate и использование ConfiguredDeliveryEstimate брендом, устранить протекание московской регулярки.\n\nПриёмка: golden-фикстуры прототипа не менять; бренд «Союз Пир» с импортированными знаниями даёт прежние ответы. Бренд другой отрасли без слова «пиротехника» в знаниях не получает его в ответах. Проверить изоляцию брендов, fake-LLM и ошибки отсутствующих знаний; живые вызовы запрещены.\n\nScope: `app/Seller/Engine/`, `app/Ai/Protected/ResponderProjection.php`, `resources/views/prompts/`, `tests/Feature/Seller/Engine/`, `tests/Unit/Seller/Engine/`, `tests/Feature/Ai/`, `docs/results/SP-E3-10.md`.\n",
+      "goal": "решение владельца от 02.11.2026: второй бренд другой отрасли и города не должен получать сведения о пиротехнике и Москве.",
+      "dependsOn": [
+        "SP-E4-09",
+        "SP-E3-03B"
+      ],
+      "scope": [
+        "app/Seller/Engine/",
+        "app/Ai/Protected/ResponderProjection.php",
+        "resources/views/prompts/",
+        "tests/Feature/Seller/Engine/",
+        "tests/Unit/Seller/Engine/",
+        "tests/Feature/Ai/",
+        "docs/results/SP-E3-10.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "golden-фикстуры прототипа не менять; бренд «Союз Пир» с импортированными знаниями даёт прежние ответы. Бренд другой отрасли без слова «пиротехника» в знаниях не получает его в ответах. Проверить изоляцию брендов, fake-LLM и ошибки отсутствующих знаний; живые вызовы запрещены."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md"
+      ],
+      "screenIds": [],
+      "wave": 3,
+      "promptPath": "docs/tasks/SP-E3-10.md"
     }
   ],
   "excludedSourceTasks": {
