@@ -425,6 +425,9 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "vision.reports.index": [],
+    "vision.reports.data": [],
+    "vision.reports.create": [],
     "vision.site.overview": [],
     "vision.site.criteria": [],
     "vision.site.bots": [],
