@@ -10,6 +10,20 @@ use Tests\Feature\Tenancy\TenancyTestCase;
 
 final class ImportExportTest extends TenancyTestCase
 {
+    protected function setUp(): void
+    {
+        putenv('E5_08_EXPORT_ENABLED=true');
+        $_ENV['E5_08_EXPORT_ENABLED'] = $_SERVER['E5_08_EXPORT_ENABLED'] = 'true';
+        parent::setUp();
+    }
+
+    protected function tearDown(): void
+    {
+        parent::tearDown();
+        putenv('E5_08_EXPORT_ENABLED');
+        unset($_ENV['E5_08_EXPORT_ENABLED'], $_SERVER['E5_08_EXPORT_ENABLED']);
+    }
+
     private function enable(string $org, string $brand): void
     {
         DB::table('brand_modules')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org, 'brand_id' => $brand, 'module' => 'seller', 'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
