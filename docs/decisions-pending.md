@@ -424,4 +424,5 @@ SP-E1-08B ожидает SP-E1-08: оба меняют профиль, а исх
 - 2026-11-02: ExportCleanupTest verifies the bounded cleanup result across up to five cursor passes; this matches the persisted-cursor contract and addresses the ShellCore main flake observed on 056b5a94.
 - SP-E6-02: Пустой текст хранится пустым и предназначен для стандартной генерации после подключения runtime; лимит поля 1000 символов.
 - SP-E7-03: Счётчики сравнивают только критерии с числовыми оценками в обоих прогонах; отсутствующие отображаются без дельты.
+- 2026-11-02: Partial feature submissions E3-07, E4-04, E4-06, E5-04B, E6-02 and E7-03 get bounded B/C continuations; final E9 gates depend on E3-07B replay.
 - SP-E4-01B: Сравниваются четыре раздела D-4.12; неизменённые разделы показываются краткой строкой, без полного повторения содержимого.

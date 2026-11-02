@@ -4412,7 +4412,8 @@
         "SP-E7-01B",
         "SP-E7-01C",
         "SP-E7-04B",
-        "SP-E7-04C"
+        "SP-E7-04C",
+        "SP-E3-07B"
       ],
       "scope": [
         "docs/validation/acceptance.md",
@@ -4453,7 +4454,8 @@
         "SP-E5-01",
         "SP-E9-01",
         "SP-E0-05D",
-        "SP-E0-05F"
+        "SP-E0-05F",
+        "SP-E3-07B"
       ],
       "scope": [
         "app/Shadow/",
@@ -4912,7 +4914,8 @@
         "SP-E7-01B",
         "SP-E7-01C",
         "SP-E7-04B",
-        "SP-E7-04C"
+        "SP-E7-04C",
+        "SP-E3-07B"
       ],
       "scope": [
         "README.md",
@@ -7831,6 +7834,205 @@
       "promptPath": "docs/tasks/SP-CI-08.md",
       "wave": 0,
       "description": "# SP-CI-08 · Починить 11 оставшихся race-тестов\n\n**Сверх ТЗ: прямое поручение владельца от 2026-11-02. Размер:** 1–3 часа на диагностику и тестовые исправления; реальные баги продукта выносить отдельно с высоким приоритетом.\n\n**Зачем:** ночной `race` после подготовки изолированной БД в SP-CI-07 запускает 172 теста, но 11 падают; нужен достоверный зелёный прогон до live shadow.\n\n**Часть чего:** продолжение SP-CI-07 после успешной подготовки роли и БД; эта карточка закрывает тестовую часть ночного job, дальше CI-07 не дробить.\n\nЗависимости: SP-CI-07. Взять после текущей пачки задач по экранам ТЗ.\n\nScope: `.github/workflows/ci.yml`, `tests/Feature/Seller/Settings/Limits/SessionRoutingRaceTest.php`, `tests/Feature/Seller/Settings/Limits/Fixtures/session-routing-worker.php`, `tests/Feature/Shell/Profile/SecurityConcurrencyTest.php`, `tests/Feature/Shell/Profile/Fixtures/security-worker.php`, `tests/Feature/Shell/Data/ExportLogoutRaceTest.php`, `tests/Feature/Tenancy/ConcurrencyTest.php`, `tests/Feature/ProtectedOperations/FirstTurnStateTest.php`, `tests/Support/IsolatedDatabaseMigrations.php`, `docs/results/SP-CI-08.md`. Код приложения и golden fixtures вне scope.\n\nИсточник: [workflow_dispatch run 41412123385](https://github.com/kuzhukeev/souzpir/actions/runs/41412123385), job `race`, 11 failed / 3 skipped / 158 passed. Разобрать каждое падение:\n\n- `Seller/Settings/Limits/SessionRoutingRaceTest` (несколько): `DatabaseMigrations` вызывает запрещённый `down()` E1-08; один сценарий сообщает `Expected lock wait not observed` и worker `Password reset failed`.\n- `Shell/Profile/SecurityConcurrencyTest` (2): worker возвращает `failed`; получить точную ошибку worker, проверить наследование `DB_USERNAME`, `DB_DATABASE`, `DB_TEST_DATABASE`.\n- `Shell/Data/ExportLogoutRaceTest` и `Tenancy/ConcurrencyTest`: запрещённый откат миграции E1-08.\n- `ProtectedOperations/FirstTurnStateTest` (2): ожидает SQLSTATE `23514`, получает `0A000` при `TRUNCATE` под FK; явный `down()` `c02_responder_stages` блокируется зависимой `c02_responder_raw_evidence`.\n\nДля каждого из 11 в отчёте дать таблицу «полное имя теста, причина а/б/в, что сделано»: **а** реальная гонка продукта — отдельная приоритетная карточка; **б** ожидание по времени / 1 vCPU — ждать проверяемое условие; **в** окружение и изоляция БД — исправить тестовую инфраструктуру или fixture. Не пропускать тесты и не ослаблять смысл проверок. После слияния SP-CI-07 и SP-CI-08 вручную выполнить `workflow_dispatch` на `main`, зафиксировать зелёный `race`.\n"
+    },
+    {
+      "taskKey": "SP-E3-07B",
+      "title": "SP-E3-07B · Финальная эквивалентность нового runtime",
+      "goal": "E3-07, 08 §2.2, T-01: перед теневым запуском доказать эквивалентность всех 41 записанных случаев, а не только инвентаризацию донора.",
+      "dependsOn": [
+        "SP-E3-07",
+        "SP-E3-08",
+        "SP-E3-09",
+        "SP-CI-08"
+      ],
+      "scope": [
+        "docs/validation/equivalence.md",
+        "tests/Feature/Equivalence/",
+        "phpunit.xml",
+        ".github/workflows/ci.yml",
+        "docs/results/SP-E3-07B.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "All 41 recorded T-01 cases replay on the new runtime; equivalence CI job is green; differences are documented."
+      ],
+      "sourceIds": [],
+      "screenIds": [],
+      "notes": "Continuation of a submitted partial feature; 1-3 hours.",
+      "sourceRefs": [
+        "docs/sources/10_backlog.md",
+        "docs/sources/02_screens_matrix.md"
+      ],
+      "promptPath": "docs/tasks/SP-E3-07B.md",
+      "wave": 9,
+      "description": "# SP-E3-07B · Финальная эквивалентность нового runtime\n\n**Зачем:** E3-07, 08 §2.2, T-01: перед теневым запуском доказать эквивалентность всех 41 записанных случаев, а не только инвентаризацию донора.\n\n**Часть чего:** SP-E3-07 вносит инвентаризацию и 27 ручных шагов Policy; здесь остаются полный replay через новый runtime, список расхождений и CI job `equivalence`. После этой карточки остатка E3-07 нет.\n\nРазмер 1–3 часа. Зависимости: SP-E3-07, SP-E3-08, SP-E3-09, SP-CI-08. Scope: `docs/validation/equivalence.md`, `tests/Feature/Equivalence/`, `phpunit.xml`, `.github/workflows/ci.yml`, `docs/results/SP-E3-07B.md`. Golden fixtures не менять. Подключить тестовый каталог к suite, проверить полноту 41 случая и отдельный CI job, запустить без живых LLM. Подтверждённые расхождения оформить в источнике 09 через согласованный scope интегратора. Отчёт до 30 строк.\n"
+    },
+    {
+      "taskKey": "SP-E4-04B",
+      "title": "SP-E4-04B · Применить ответы и действия темы в движке",
+      "goal": "экраны D-4.6–D-4.7, макеты 54–55: сохранённые `default_answer` и `after_action` должны менять следующий ход диалога.",
+      "dependsOn": [
+        "SP-E4-04",
+        "SP-E3-08"
+      ],
+      "scope": [
+        "app/Seller/Engine/Policy.php",
+        "app/Seller/Engine/Responder/Responder.php",
+        "tests/Feature/Seller/Engine/",
+        "tests/Unit/Seller/Engine/",
+        "docs/results/SP-E4-04B.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Saved default answer and follow-up action affect the next turn; empty defaults preserve golden behavior."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "D-4.6",
+        "D-4.7"
+      ],
+      "notes": "Continuation of a submitted partial feature; 1-3 hours.",
+      "sourceRefs": [
+        "docs/sources/10_backlog.md",
+        "docs/sources/02_screens_matrix.md"
+      ],
+      "promptPath": "docs/tasks/SP-E4-04B.md",
+      "wave": 10,
+      "description": "# SP-E4-04B · Применить ответы и действия темы в движке\n\n**Зачем:** экраны D-4.6–D-4.7, макеты 54–55: сохранённые `default_answer` и `after_action` должны менять следующий ход диалога.\n\n**Часть чего:** SP-E4-04 дала редактор и хранение полей; здесь остаётся их применение в Policy/Responder и проверка неизменности golden-промпта при пустых полях. После этой карточки остатка E4-04 нет.\n\nРазмер 1–3 часа. Зависимости: SP-E4-04, SP-E3-08. Scope: `app/Seller/Engine/Policy.php`, `app/Seller/Engine/Responder/Responder.php`, `tests/Feature/Seller/Engine/`, `tests/Unit/Seller/Engine/`, `docs/results/SP-E4-04B.md`. Не менять golden fixtures. Только fake LLM; проверить права бренда, обычное и пустое значение, аудит существующего пути.\n"
+    },
+    {
+      "taskKey": "SP-E4-06B",
+      "title": "SP-E4-06B · Импорт сайта в черновик знаний",
+      "goal": "D-4.10, макет 58 и решение E8-01B: приватный черновик сайта должен давать выбираемые предложения фактов без публикации.",
+      "dependsOn": [
+        "SP-E4-06",
+        "SP-E8-01B"
+      ],
+      "scope": [
+        "app/Seller/Knowledge/Imports/",
+        "resources/js/pages/Seller/Knowledge/Imports/",
+        "routes/features/E4-06.php",
+        "tests/Feature/Seller/Knowledge/Imports/",
+        "tests/Browser/E4-06/",
+        "docs/results/SP-E4-06B.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Private site draft creates selectable fact proposals with access revocation and brand isolation; XLSX fixture passes."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "D-4.10"
+      ],
+      "notes": "Continuation of a submitted partial feature; 1-3 hours.",
+      "sourceRefs": [
+        "docs/sources/10_backlog.md",
+        "docs/sources/02_screens_matrix.md"
+      ],
+      "promptPath": "docs/tasks/SP-E4-06B.md",
+      "wave": 11,
+      "description": "# SP-E4-06B · Импорт сайта в черновик знаний\n\n**Зачем:** D-4.10, макет 58 и решение E8-01B: приватный черновик сайта должен давать выбираемые предложения фактов без публикации.\n\n**Часть чего:** SP-E4-06 вносит TXT/CSV/XLSX и сохранение выбранных строк; здесь остаются SiteKnowledgeImporter, проверка отзыва доступа и XLSX fixture. PDF/DOCX показать как «Скоро» согласно исходной карточке; новых парсеров в этом продолжении нет.\n\nРазмер 1–3 часа. Зависимости: SP-E4-06, SP-E8-01B. Scope: `app/Seller/Knowledge/Imports/`, `resources/js/pages/Seller/Knowledge/Imports/`, `routes/features/E4-06.php`, `tests/Feature/Seller/Knowledge/Imports/`, `tests/Browser/E4-06/`, `docs/results/SP-E4-06B.md`. Не выполнять сеть в тестах. Проверить авторизацию, организацию/бренд, источник и явный выбор до записи в draft.\n"
+    },
+    {
+      "taskKey": "SP-E5-04C",
+      "title": "SP-E5-04C · Суфлёр, пометки и обновление диалога",
+      "goal": "D-2.3–D-2.5, макеты 39–43: менеджер должен редактировать/отправлять подсказку и ставить пометки в своём диалоге.",
+      "dependsOn": [
+        "SP-E5-04B",
+        "SP-E3-08",
+        "SP-E3-09"
+      ],
+      "scope": [
+        "app/Seller/Dialogs/",
+        "resources/js/pages/Seller/Dialogs/",
+        "routes/features/E5-04B.php",
+        "tests/Feature/Seller/Dialogs/",
+        "tests/Browser/E5-04B/",
+        "docs/results/SP-E5-04C.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Manager can edit and send suggestions and annotate dialogs; mobile, polling, cache and race checks pass."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "D-2.3",
+        "D-2.4",
+        "D-2.5"
+      ],
+      "notes": "Continuation of a submitted partial feature; 1-3 hours.",
+      "sourceRefs": [
+        "docs/sources/10_backlog.md",
+        "docs/sources/02_screens_matrix.md"
+      ],
+      "promptPath": "docs/tasks/SP-E5-04C.md",
+      "wave": 9,
+      "description": "# SP-E5-04C · Суфлёр, пометки и обновление диалога\n\n**Зачем:** D-2.3–D-2.5, макеты 39–43: менеджер должен редактировать/отправлять подсказку и ставить пометки в своём диалоге.\n\n**Часть чего:** SP-E5-04B добавила фильтр «Мои диалоги»; здесь остаются очередь подсказок, отправка, словарь пометок A.6, polling и очистка brand cache. Это последнее продолжение E5-04.\n\nРазмер 1–3 часа. Зависимости: SP-E5-04B, SP-E3-08, SP-E3-09. Scope: `app/Seller/Dialogs/`, `resources/js/pages/Seller/Dialogs/`, `routes/features/E5-04B.php`, `tests/Feature/Seller/Dialogs/`, `tests/Browser/E5-04B/`, `docs/results/SP-E5-04C.md`. Проверить manager/suggest, mobile 390, присвоение и отправку; race-проверки только в отдельной группе `race`. AI и доставка — fake.\n"
+    },
+    {
+      "taskKey": "SP-E6-02B",
+      "title": "SP-E6-02B · Подключить приветствия к первому ходу",
+      "goal": "D-6.2, макет 62: настройки приветствий должны влиять на открытие диалога, а пустое значение — давать стандартную генерацию.",
+      "dependsOn": [
+        "SP-E6-02",
+        "SP-E3-08"
+      ],
+      "scope": [
+        "app/Seller/Runtime/",
+        "app/Seller/Settings/Greetings/",
+        "tests/Feature/SellerRuntime/Turns/",
+        "tests/Feature/Seller/Settings/Greetings/",
+        "docs/results/SP-E6-02B.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "TurnTest open uses saved channel greeting; blank greeting follows default generation."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "D-6.2"
+      ],
+      "notes": "Continuation of a submitted partial feature; 1-3 hours.",
+      "sourceRefs": [
+        "docs/sources/10_backlog.md",
+        "docs/sources/02_screens_matrix.md"
+      ],
+      "promptPath": "docs/tasks/SP-E6-02B.md",
+      "wave": 11,
+      "description": "# SP-E6-02B · Подключить приветствия к первому ходу\n\n**Зачем:** D-6.2, макет 62: настройки приветствий должны влиять на открытие диалога, а пустое значение — давать стандартную генерацию.\n\n**Часть чего:** SP-E6-02 внесла экран и сохранение; здесь остаются GreetingResolver, подключение к `open` и TurnTest. После этой карточки остатка E6-02 нет.\n\nРазмер 1–3 часа. Зависимости: SP-E6-02, SP-E3-08. Scope: `app/Seller/Runtime/`, `app/Seller/Settings/Greetings/`, `tests/Feature/SellerRuntime/Turns/`, `tests/Feature/Seller/Settings/Greetings/`, `docs/results/SP-E6-02B.md`. Не менять golden fixtures. Проверить пять каналов, бренд, пустой текст и fake-генерацию.\n"
+    },
+    {
+      "taskKey": "SP-E7-03B",
+      "title": "SP-E7-03B · Калибровка оценок прогонов",
+      "goal": "D-7.8, макет 143: пользователь должен сопоставить оценки человека и судьи и сохранить калибровку.",
+      "dependsOn": [
+        "SP-E7-03"
+      ],
+      "scope": [
+        "app/Seller/Calibration/",
+        "database/migrations/E7-03B/",
+        "resources/js/pages/Seller/Calibration/",
+        "routes/features/E7-03.php",
+        "tests/Feature/Seller/Calibration/",
+        "tests/Browser/E7-03B/",
+        "docs/results/SP-E7-03B.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Judge calibration persists human and judge scores, enforces brand access, and passes fixture comparisons."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "D-7.8"
+      ],
+      "notes": "Continuation of a submitted partial feature; 1-3 hours.",
+      "sourceRefs": [
+        "docs/sources/10_backlog.md",
+        "docs/sources/02_screens_matrix.md"
+      ],
+      "promptPath": "docs/tasks/SP-E7-03B.md",
+      "wave": 11,
+      "description": "# SP-E7-03B · Калибровка оценок прогонов\n\n**Зачем:** D-7.8, макет 143: пользователь должен сопоставить оценки человека и судьи и сохранить калибровку.\n\n**Часть чего:** SP-E7-03 вносит сравнение пары оценённых прогонов D-7.7; здесь остаются `judge_calibrations` и экран/HTTP калибровки. После этой карточки остатка E7-03 нет.\n\nРазмер 1–3 часа. Зависимости: SP-E7-03. Scope: `app/Seller/Calibration/`, `database/migrations/E7-03B/`, `resources/js/pages/Seller/Calibration/`, `routes/features/E7-03.php`, `tests/Feature/Seller/Calibration/`, `tests/Browser/E7-03B/`, `docs/results/SP-E7-03B.md`. Проверить сохранение, права, бренд, ошибку ввода и сравнение на fixture; без живых вызовов ИИ.\n"
     }
   ],
   "excludedSourceTasks": {
