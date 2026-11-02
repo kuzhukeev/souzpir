@@ -8446,7 +8446,7 @@
     {
       "taskKey": "SP-E4-09",
       "title": "SP-E4-09 · Импорт знаний из YAML и редактор эскалаций",
-      "description": "# SP-E4-09 · Импорт знаний из YAML и редактор эскалаций\n\n**Зачем:** решение владельца от 02.11.2026: оператор загружает в бренд десять YAML прототипа, клиент дорабатывает знания в кабинете.\n**Часть чего:** импорт и управление знаниями продавца E4; после карточки остаётся SP-E3-10 по отвязке движка от отрасли.\n**Зависимости:** SP-E4-01, SP-E4-08.\n\nДобавить artisan-команду seller:knowledge-import {brand} {dir} через YamlKnowledgeImporter::importAndPublish с отчётом числа записей по каждому разделу. Повторный импорт создаёт новый релиз с черновиком, прошлый релиз сохраняется для отката. На /seller/knowledge/imports дать загрузку ZIP или нескольких YAML, предпросмотр разделов и публикацию. Добавить редактор «Причины передачи менеджеру»: defaults response_time_text и assignee; reasons: id, title, detect, priority, message_idea; использовать существующий draft/publish. При импорте прототипа добавить образец open_greeting_widget без упоминания заявки, отдельно от исходящего open_greeting.\n\nПриёмка: десять YAML из tests/Feature/Seller/Knowledge/Fixtures/data в чистый бренд, Песочница отвечает фактами и примерами прототипа; эскалации видны и редактируются; экспорт и повторный импорт равны по всем десяти разделам, старый релиз доступен для отката. Проверить tenant/brand, доступ, ошибки загрузки; только fake/HTTP, живые вызовы запрещены.\n\nScope: `app/Seller/Knowledge/`, `app/Console/Commands/`, `routes/console.php`, `routes/features/E4-08.php`, `resources/js/pages/Seller/Knowledge/`, `resources/js/components/Seller/Knowledge/`, `tests/Feature/Seller/Knowledge/`, `tests/Unit/Seller/Knowledge/`, `tests/Browser/E4-08/`, `docs/results/SP-E4-09.md`.\n",
+      "description": "# SP-E4-09 · Импорт знаний из YAML и редактор эскалаций\n\n**Зачем:** решение владельца от 02.11.2026: оператор загружает в бренд десять YAML прототипа, клиент дорабатывает знания в кабинете.\n**Часть чего:** импорт и управление знаниями продавца E4; после карточки остаётся SP-E3-10 по отвязке движка от отрасли.\n**Зависимости:** SP-E4-01, SP-E4-08.\n\nДобавить artisan-команду seller:knowledge-import {brand} {dir} через YamlKnowledgeImporter::importAndPublish с отчётом числа записей по каждому разделу. Повторный импорт создаёт новый релиз с черновиком, прошлый релиз сохраняется для отката. На /seller/knowledge/imports дать загрузку ZIP или нескольких YAML, предпросмотр разделов и публикацию. Добавить редактор «Причины передачи менеджеру»: defaults response_time_text и assignee; reasons: id, title, detect, priority, message_idea; использовать существующий draft/publish. При импорте прототипа добавить образец open_greeting_widget без упоминания заявки, отдельно от исходящего open_greeting.\n\nПриёмка: десять YAML из tests/Feature/Seller/Knowledge/Fixtures/data в чистый бренд, сквозной ответ Песочницы фактами и примерами прототипа вынесен в SP-E4-09B после готовности runtime; эскалации видны и редактируются; экспорт и повторный импорт равны по всем десяти разделам, старый релиз доступен для отката. Проверить tenant/brand, доступ, ошибки загрузки; только fake/HTTP, живые вызовы запрещены.\n\nScope: `app/Seller/Knowledge/`, `app/Console/Commands/`, `routes/console.php`, `routes/features/E4-08.php`, `resources/js/pages/Seller/Knowledge/`, `resources/js/components/Seller/Knowledge/`, `tests/Feature/Seller/Knowledge/`, `tests/Unit/Seller/Knowledge/`, `tests/Browser/E4-08/`, `docs/results/SP-E4-09.md`.\n\nПосле среза импорта и редактора SP-E4-09B завершает сквозную приёмку Песочницы без изменения golden-фикстур.\n",
       "goal": "решение владельца от 02.11.2026: оператор загружает в бренд десять YAML прототипа, клиент дорабатывает знания в кабинете.",
       "dependsOn": [
         "SP-E4-01",
@@ -8557,14 +8557,18 @@
     {
       "taskKey": "SP-E8-09",
       "title": "SP-E8-09 · Меню Видения и подключение экранов",
-      "description": "# SP-E8-09 · Меню Видения и подключение экранов\n\n**Зачем:** решение владельца от 02.11.2026; экраны V-0.1, V-0.2.\n**Часть чего:** второй проход по частично сданным SP-E8-04/04B/04C/05/05B/06/07; остаток — другие карточки SP-E8-08–12.\n**Зависимости:** нет.\n\nСделать 11 пунктов Vision по V-0.1/V-0.2 docs/sources/02_screens_matrix.md с замками до прохождения анкеты. Подключить существующие /vision/profile, /vision/report, /vision/competitors, /vision/sources, /vision/publications, /vision/trends и пункт «Анкета» из SP-E8-02. Изменять только блок Vision навигации. Приёмка: замки снимаются после анкеты; Playwright на 390/1024/1440, клавиатура и права.\n\nScope: `resources/js/components/navigation/navigation.json`, `resources/js/components/navigation/Sidebar.tsx`, `tests/Browser/E8-09/`, `docs/results/SP-E8-09.md`.\n\nОтчёт: docs/results/SP-E8-09.md; локальные тесты задачи, submit и зелёный CI.\n",
+      "description": "# SP-E8-09 · Меню Видения и подключение экранов\n\n**Зачем:** решение владельца от 02.11.2026; экраны V-0.1, V-0.2.\n**Часть чего:** второй проход по частично сданным SP-E8-04/04B/04C/05/05B/06/07; остаток — другие карточки SP-E8-08–12.\n**Зависимости:** SP-E1-03 — освобождение shared props.\n\nСделать 11 пунктов Vision по V-0.1/V-0.2 docs/sources/02_screens_matrix.md с замками до прохождения анкеты. Подключить существующие /vision/profile, /vision/report, /vision/competitors, /vision/sources, /vision/publications, /vision/trends и пункт «Анкета» из SP-E8-02. Изменять только блок Vision навигации. Приёмка: замки снимаются после анкеты; Playwright на 390/1024/1440, клавиатура и права.\n\nScope: `resources/js/components/navigation/navigation.json`, `resources/js/components/navigation/Sidebar.tsx`, `tests/Browser/E8-09/`, `docs/results/SP-E8-09.md`.\n\nОтчёт: docs/results/SP-E8-09.md; локальные тесты задачи, submit и зелёный CI.\n\nУточнение интегратора: разрешены app/Http/Middleware/HandleInertiaRequests.php и tests/Feature/SharedProps/. Добавить для текущего бренда безопасный boolean visionProfileReady и проверку замков у ролей без vision.quiz.write; чужие бренды не раскрывать. Файлы использовать после SP-E1-03.\n",
       "goal": "Меню Видения и подключение экранов",
-      "dependsOn": [],
+      "dependsOn": [
+        "SP-E1-03"
+      ],
       "scope": [
         "resources/js/components/navigation/navigation.json",
         "resources/js/components/navigation/Sidebar.tsx",
         "tests/Browser/E8-09/",
-        "docs/results/SP-E8-09.md"
+        "docs/results/SP-E8-09.md",
+        "app/Http/Middleware/HandleInertiaRequests.php",
+        "tests/Feature/SharedProps/"
       ],
       "exclusiveResources": [
         "resources/js/components/navigation/navigation.json",
@@ -8729,6 +8733,35 @@
       ],
       "wave": 8,
       "promptPath": "docs/tasks/SP-E8-12.md"
+    },
+    {
+      "taskKey": "SP-E4-09B",
+      "title": "SP-E4-09B · Песочница отвечает импортированными знаниями",
+      "description": "# SP-E4-09B · Песочница отвечает импортированными знаниями\n\n**Зачем:** решение владельца от 02.11.2026: после импорта десяти YAML продавец в Песочнице отвечает фактами и примерами прототипа.\n**Часть чего:** оставшаяся сквозная приёмка SP-E4-09; импорт, публикация и редактор эскалаций сделаны в SP-E4-09.\n**Зависимости:** SP-E4-09, SP-E3-09.\n\nПодключить Песочницу к защищённому fake runtime вместо проверки готового текста через Guard. Импортировать fixture data в чистый бренд и проверить, что сгенерированные ответы используют факты и примеры прототипа. Проверить ошибки и изоляцию брендов; golden-фикстуры не менять, живые/платные вызовы запрещены.\n\nScope: `app/Seller/Sandbox/`, `app/Seller/Runtime/`, `routes/features/E4-07.php`, `resources/js/pages/Seller/Sandbox/`, `tests/Feature/Seller/Sandbox/`, `tests/Browser/E4-07/`, `docs/results/SP-E4-09B.md`.\n",
+      "goal": "Проверить ответы Песочницы после импорта знаний прототипа",
+      "dependsOn": [
+        "SP-E4-09",
+        "SP-E3-09"
+      ],
+      "scope": [
+        "app/Seller/Sandbox/",
+        "app/Seller/Runtime/",
+        "routes/features/E4-07.php",
+        "resources/js/pages/Seller/Sandbox/",
+        "tests/Feature/Seller/Sandbox/",
+        "tests/Browser/E4-07/",
+        "docs/results/SP-E4-09B.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Fake runtime генерирует ответы фактами и примерами импортированного прототипа"
+      ],
+      "sourceRefs": [
+        "docs/tasks/SP-E4-09.md"
+      ],
+      "screenIds": [],
+      "wave": 4,
+      "promptPath": "docs/tasks/SP-E4-09B.md"
     }
   ],
   "excludedSourceTasks": {
