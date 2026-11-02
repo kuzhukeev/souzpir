@@ -46,7 +46,7 @@
 | [SP-E1-09 · Журнал](../docs/tasks/SP-E1-09.md) | 6 | SP-E0-03, SP-E0-04, SP-F-03 | S-6.1, S-6.2 |
 | [SP-E1-10 · Интеграции компании](../docs/tasks/SP-E1-10.md) | 6 | SP-E0-03, SP-E0-04, SP-E0-05, SP-E3-04, SP-F-03 | S-5.1, S-5.2, S-5.3 |
 | [SP-E1-12 · Помощь](../docs/tasks/SP-E1-12.md) | 6 | SP-E0-03, SP-E0-04, SP-F-03 | S-8.1, S-8.2, S-8.3 |
-| [SP-E3-03 · Движок: Responder, Tools, Guard, Summarizer, Orchestrator](../docs/tasks/SP-E3-03.md) | 9 | SP-E3-03B | — |
+| [SP-E3-03 · Движок: Responder, Tools, Guard, Summarizer, Orchestrator](../docs/tasks/SP-E3-03.md) | 9 | SP-E3-03B, SP-E3-08, SP-E3-09 | — |
 | [SP-E6-07 · Лимиты модуля и уведомления](../docs/tasks/SP-E6-07.md) | 6 | SP-E0-03, SP-E0-04, SP-E0-05, SP-F-03 | D-11.3, D-11.4 |
 | [SP-E8-02 · Старт, анкета 8 шагов и профиль](../docs/tasks/SP-E8-02.md) | 6 | SP-E0-03, SP-E0-04, SP-E8-01, SP-E8-01B, SP-F-02, SP-F-03 | V-0.1, V-0.2, V-1.1, V-1.2, V-1.3, V-1.4, V-1.5, V-1.6, V-1.7, V-1.8, V-1.9 |
 | [SP-E8-06 · Сайт и действия](../docs/tasks/SP-E8-06.md) | 6 | SP-E0-03, SP-E0-04, SP-E8-01, SP-E8-01B, SP-F-03 | V-8.1, V-8.2, V-8.3, V-8.4, V-8.5, V-9.1, V-9.2, V-9.3 |
@@ -59,8 +59,8 @@
 | [SP-E3-03D · Guard: llmCheck после правил](../docs/tasks/SP-E3-03D.md) | 7 | SP-E3-03C | — |
 | [SP-E3-03E · Summarizer: безопасная проекция](../docs/tasks/SP-E3-03E.md) | 7 | SP-E3-03C | — |
 | [SP-E3-03B · Orchestrator, turn/open и режимы доставки](../docs/tasks/SP-E3-03B.md) | 8 | SP-E0-04, SP-E3-03D, SP-E3-03E, SP-E3-04 | — |
-| [SP-E3-09 · Fallback, инструменты и Delivery runtime](../docs/tasks/SP-E3-09.md) | 9 | SP-E3-08 | E3-03, 03 §1.2–1.3 |
-| [SP-E3-08 · Открытие, подсказка и следующие fake-ходы](../docs/tasks/SP-E3-08.md) | 9 | SP-E3-03B, SP-E3-08, SP-E3-09 | E3-03, 03 §1.2–1.3 |
+| [SP-E3-08 · Открытие, подсказка и следующие fake-ходы](../docs/tasks/SP-E3-08.md) | 9 | SP-E3-03B | E3-03, 03 §1.2–1.3 |
+| [SP-E3-09 · Fallback, инструменты и Delivery runtime](../docs/tasks/SP-E3-09.md) | 9 | SP-E3-08, SP-E6-08 | E3-03, 03 §1.2–1.3 |
 | [SP-E5-06 · Заглушки каналов и интеграций (D)](../docs/tasks/SP-E5-06.md) | 7 | SP-E0-04, SP-E1-12, SP-E3-04, SP-F-03 | D-9.6, D-9.7, D-10.3 |
 | [SP-E6-09 · CRM-вебхук (B)](../docs/tasks/SP-E6-09.md) | 7 | SP-E0-03, SP-E0-04, SP-E1-10, SP-F-03 | D-10.2 |
 | [SP-E8-03 · Наборы вопросов](../docs/tasks/SP-E8-03.md) | 7 | SP-E0-03, SP-E0-04, SP-E8-02, SP-F-03 | V-2.1, V-2.2, V-2.3, V-2.4, V-2.5 |
@@ -71,15 +71,15 @@
 | [SP-E5-03 · Входящие формы и API-канал](../docs/tasks/SP-E5-03.md) | 8 | SP-E1-10, SP-E3-03B | D-9.9 |
 | [SP-E5-04 · Экран диалогов](../docs/tasks/SP-E5-04.md) | 8 | SP-F-03, SP-F-04 | D-2.1, D-2.2 |
 | [SP-E5-05 · Клиенты, задачи и обещания](../docs/tasks/SP-E5-05.md) | 8 | SP-F-03 | D-3.1, D-3.2, D-3.3 |
-| [SP-E5-05C · Создание напоминаний из карточки клиента](../docs/tasks/SP-E5-05C.md) | 10 | SP-E5-05B | D-3.2–D-3.3, макеты 45–46 |
 | [SP-E5-05B · Назначение менеджера и переход к диалогу клиента](../docs/tasks/SP-E5-05B.md) | 9 | SP-E5-05, SP-E5-04 | D-3.2, макет 45 |
+| [SP-E5-05C · Создание напоминаний из карточки клиента](../docs/tasks/SP-E5-05C.md) | 10 | SP-E5-05B | D-3.2–D-3.3, макеты 45–46 |
 | [SP-E6-04 · Передача и действия бота](../docs/tasks/SP-E6-04.md) | 8 | SP-E3-03B, SP-F-03 | D-5.3, D-5.7 |
 | [SP-E6-05 · Приёмы](../docs/tasks/SP-E6-05.md) | 8 | SP-F-03 | D-5.4 |
 | [SP-E6-05B · Переход к приёмам продаж из меню](../docs/tasks/SP-E6-05B.md) | 9 | SP-E6-05 | D-5.4, экран 135 |
 | [SP-E6-06 · Расписание бота и распределение (B)](../docs/tasks/SP-E6-06.md) | 8 | SP-E1-06, SP-E3-03B | D-11.1, D-11.2 |
 | [SP-E6-08 · Каталог, прайс и остатки](../docs/tasks/SP-E6-08.md) | 8 | SP-F-03 | D-10.1, D-10.4 |
-| [SP-E6-08C · Выбор столбцов и листа прайса](../docs/tasks/SP-E6-08C.md) | 10 | SP-E6-08B | D-10.1, макет 150 |
 | [SP-E6-08B · YML по ссылке и расписание импорта](../docs/tasks/SP-E6-08B.md) | 9 | SP-E6-08 | D-10.1 (B), макет 150 |
+| [SP-E6-08C · Выбор столбцов и листа прайса](../docs/tasks/SP-E6-08C.md) | 10 | SP-E6-08B | D-10.1, макет 150 |
 | [SP-E8-04 · Замеры и подтверждение](../docs/tasks/SP-E8-04.md) | 8 | SP-E0-03, SP-E0-04, SP-E8-03, SP-F-03 | V-3.1, V-3.2, V-3.3, V-3.4, V-3.5, V-3.6, V-4.1, V-4.2, V-4.3, V-4.4 |
 | [SP-E8-04B · Ход и ответы замера](../docs/tasks/SP-E8-04B.md) | 8 | SP-E8-04 | V-3.3, V-3.4, V-3.5 |
 | [SP-E3-07 · Эквивалентность — финальный прогон](../docs/tasks/SP-E3-07.md) | 9 | SP-E3-05, SP-E3-06, SP-T-03 | — |
