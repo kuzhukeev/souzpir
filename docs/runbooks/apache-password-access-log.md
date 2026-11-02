@@ -28,3 +28,25 @@ CustomLog "<isolated-log-directory>/access.log" souzpir_password_safe_access
 ## Граница проверки
 
 Проверен только access log отдельно запущенного Apache и именно приведённый формат. **Защита error log, других логгеров, reverse proxy, сети наблюдения, старых копий журналов и полной цепочки ingress не подтверждена.** Во время отдельной неудачной пробы `core:alert` Apache записал синтетический Referer со старым URL в error log. Поэтому до отдельного решения и проверки всех точек реальную доставку восстановления включать нельзя; неизвестные proxy остаются неподтверждёнными. Системные настройки и OSPanel для этой проверки не менялись.
+
+## Проверка новой fragment + POST ссылки
+
+`infra/osp/apache-password-proxy-fixture.conf` запускает отдельный Apache OSPanel на `127.0.0.1:8242`, который проксирует на отдельный PHP fixture на `127.0.0.1:8241`. Это тестовая конфигурация, не инструкция менять действующий vhost. Подготовьте отдельный PostgreSQL на `127.0.0.1:55841`: база `souzpir_test_sp_e1_01g`, её непривилегированный владелец `sp_e101g_app`. Fixture выполняет `migrate:fresh`: никогда не указывайте рабочую базу. Установите зависимости в этом worktree и выполните `npm run build`.
+
+В PowerShell из корня worktree задайте отдельные тестовые значения `APP_ENV=testing`, `APP_KEY`, `APP_URL=http://127.0.0.1:8242`, `APP_PREVIEW_DATABASE` (имя, отличное от тестовой базы), `CABINET_ORGANIZATION_ID=01J00000000000000000000000`, `DB_CONNECTION=pgsql`, `DB_HOST=127.0.0.1`, `DB_PORT=55841`, `DB_DATABASE` и `DB_TEST_DATABASE` (оба — имя тестовой базы выше), `DB_USERNAME=sp_e101g_app`, `CACHE_STORE=file`, `SESSION_DRIVER=file`, `LOG_CHANNEL=single`, `MAIL_MAILER=array`, `E101G_BROWSER_FIXTURE=1`, `E101G_BROWSER_ROUTER=1`. `APP_STORAGE_PATH` должен указывать на `.local/runtime/testing/storage` этого worktree; создайте в нём `framework/cache/data`, `framework/sessions`, `framework/views` и `logs`.
+
+```powershell
+$env:E101G_APACHE_DIR = ((Get-Location).Path.Replace('\','/') + '/.local/runtime/testing/apache')
+New-Item -ItemType Directory -Force $env:E101G_APACHE_DIR | Out-Null
+$php = Start-Process 'C:/OSPanel/modules/PHP-8.4/php.exe' -ArgumentList '-d','sys_temp_dir=.local/tmp','-S','127.0.0.1:8241','-t','public','tests/Browser/E1-01/password-reset-router.php' -WindowStyle Hidden -PassThru
+$apache = Start-Process 'C:/OSPanel/modules/Apache/bin/httpd.exe' -ArgumentList '-X','-f',((Get-Location).Path + '/infra/osp/apache-password-proxy-fixture.conf') -WindowStyle Hidden -PassThru
+$env:E101G_BROWSER_BASE = 'http://127.0.0.1:8242'
+$env:E101G_APACHE_LOG_DIR = '.local/runtime/testing/apache'
+$env:PLAYWRIGHT_CHROME = 'C:/Program Files/Google/Chrome/Application/chrome.exe'
+npx playwright test tests/Browser/E1-01/password-reset-safety.spec.ts --workers=1
+Stop-Process -Id $php.Id,$apache.Id
+```
+
+Тест использует синтетический адрес, проверяет очистку fragment до POST, URL запросов, заголовки, историю и три журнала; отдельный запрос вызывает контролируемую ошибку Apache. Проверьте, что выбранные порты свободны до запуска и остановлены только свои процессы. Тестовая конфигурация не устанавливается в OSPanel и не проверяет неизвестные серверы.
+
+**Условие включения реальной доставки:** отдельно проверить HTTPS и access/error/application logs на каждом фактическом production-прокси, веб-сервере и сборщике журналов, включая их конфигурацию и копии. Старые URL могут попасть в журналы до Laravel; без проверки соответствующего входа безопасность не подтверждена. SMTP остаётся выключенным до операторской приёмки.
