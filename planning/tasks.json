@@ -7242,10 +7242,15 @@
         "SP-E5-05B"
       ],
       "scope": [
-        "app/Seller/Customers/",
-        "resources/js/pages/Seller/Customers/",
+        "app/Seller/Customers/CustomersController.php",
+        "app/Seller/Customers/NotifyDuePromises.php",
+        "app/Seller/Customers/PromiseSchedule.php",
+        "app/Seller/Customers/Reminders/",
+        "resources/js/pages/Seller/Customers/Show.tsx",
+        "resources/js/pages/Seller/Customers/Tasks.tsx",
         "routes/features/E5-05.php",
-        "tests/Feature/Seller/Customers/",
+        "tests/Feature/Seller/Customers/CustomersTest.php",
+        "tests/Feature/Seller/Customers/Reminders/",
         "docs/results/SP-E5-05C.md"
       ],
       "exclusiveResources": [],

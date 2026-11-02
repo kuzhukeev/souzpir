@@ -446,6 +446,12 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "seller.customers.manager": [
+        {
+            "name": "contact",
+            "required": true
+        }
+    ],
     "seller.customers.notes.store": [
         {
             "name": "contact",
@@ -602,6 +608,11 @@ declare module 'ziggy-js' {
     "vision.reports.index": [],
     "vision.reports.data": [],
     "vision.reports.create": [],
+    "vision.competitors.index": [],
+    "vision.competitors.merge": [],
+    "vision.competitors.track": [],
+    "vision.sources.index": [],
+    "vision.sources.presence": [],
     "vision.publications.index": [],
     "vision.publications.create": [],
     "vision.publications.revoke": [

@@ -2,6 +2,7 @@
 
 namespace App\Seller\Customers;
 
+use App\Models\Membership;
 use App\Models\User;
 use App\Seller\Engine\LeadState;
 use App\Seller\Engine\Policy;
@@ -17,6 +18,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 final class CustomersController
@@ -98,12 +100,53 @@ final class CustomersController
             $tasks = $this->scope('seller_tasks', $tenant)->whereIn('conversation_id', $conversations->pluck('id'))->orderBy('due_at')->get(['id', 'type', 'payload', 'status', 'due_at']);
             $notes = $this->scope('seller_customer_notes', $tenant)->where('contact_id', $contact)->orderByDesc('created_at')->get(['id', 'body', 'author_id', 'created_at']);
 
-            return ['manager' => $latest?->assigned_user_id ? DB::table('users')->where('id', $latest->assigned_user_id)->value('name') : null, 'customer' => $customer, 'clientType' => $this->clientType($latest?->state), 'slots' => data_get($state, 'slots', []),
+            $eligible = Membership::withoutGlobalScopes()->with('user')->where('organization_id', $tenant->organizationId)->where('status', 'active')->get()
+                ->filter(fn ($member) => $member->user && $member->permitsBrand($tenant->brandId) && (in_array($member->role, ['owner', 'admin'], true) || ($member->role === 'member' && ($member->settings['sales_manager'] ?? false))))
+                ->map(fn ($member) => ['id' => $member->user_id, 'name' => $member->user->name])->values();
+
+            $canAssign = Gate::forUser($user)->allows('seller.dialogues.operate');
+            $actor = Membership::withoutGlobalScopes()->where('organization_id', $tenant->organizationId)->where('user_id', $user->id)->where('status', 'active')->first();
+            if ($actor?->role === 'member' && ($actor->settings['sales_manager'] ?? false)) {
+                $eligible = $eligible->where('id', $user->id)->values();
+                $canAssign = $canAssign && (! $latest?->assigned_user_id || $latest->assigned_user_id === $user->id);
+            }
+            if (! $canAssign) {
+                $eligible = collect();
+            }
+
+            return ['canReadDialogs' => Gate::forUser($user)->allows('seller.dialogs.read'), 'managers' => $eligible, 'assignedUserId' => $latest?->assigned_user_id, 'canAssign' => $canAssign, 'manager' => $latest?->assigned_user_id ? DB::table('users')->where('id', $latest->assigned_user_id)->value('name') : null, 'customer' => $customer, 'clientType' => $this->clientType($latest?->state), 'slots' => data_get($state, 'slots', []),
                 'conversations' => $conversations->map(fn ($row) => ['id' => $row->id, 'stage' => $row->stage, 'outcome' => $row->outcome, 'mode' => $row->mode, 'updated_at' => $row->updated_at]),
                 'history' => $history, 'tasks' => $tasks, 'notes' => $notes, 'canWrite' => Gate::forUser($user)->allows('seller.customers.write')];
         });
 
         return Inertia::render('Seller/Customers/Show', $data);
+    }
+
+    public function assign(Request $request, string $contact): mixed
+    {
+        $input = $request->validate(['manager_id' => ['nullable', 'ulid']]);
+        $this->access($request, 'seller.dialogues.operate', function (User $user, TenantContext $tenant) use ($input, $contact): void {
+            $this->scope('contacts', $tenant)->where('id', $contact)->whereNull('merged_into_id')->first() ?? abort(404);
+            $conversation = $this->scope('conversations', $tenant)->where('contact_id', $contact)->orderByDesc('updated_at')->orderByDesc('id')->first() ?? abort(404);
+            $actor = Membership::withoutGlobalScopes()->where('organization_id', $tenant->organizationId)->where('user_id', $user->id)->where('status', 'active')->first() ?? abort(403);
+            $manager = $actor->role === 'member' && ($actor->settings['sales_manager'] ?? false);
+            if ($manager && $conversation->assigned_user_id && $conversation->assigned_user_id !== $user->id) {
+                abort(404);
+            }
+            if ($manager && ($input['manager_id'] ?? null) !== $user->id && ! (($input['manager_id'] ?? null) === null && $conversation->assigned_user_id === $user->id)) {
+                abort(403);
+            }
+            if (! empty($input['manager_id'])) {
+                $member = Membership::withoutGlobalScopes()->where('organization_id', $tenant->organizationId)->where('user_id', $input['manager_id'])->where('status', 'active')->first();
+                if (! $member || ! $member->permitsBrand($tenant->brandId) || ! (in_array($member->role, ['owner', 'admin'], true) || ($member->role === 'member' && ($member->settings['sales_manager'] ?? false)))) {
+                    throw ValidationException::withMessages(['manager_id' => 'Сотрудник недоступен для этого бренда.']);
+                }
+            }
+            $this->scope('conversations', $tenant)->where('id', $conversation->id)->update(['assigned_user_id' => $input['manager_id'] ?? null, 'version' => $conversation->version + 1, 'updated_at' => now()]);
+            app(AuditWriter::class)->record($tenant, new AuditEntry('seller.customer.manager_assigned', 'conversation', $conversation->id, before: ['assigned_user_id' => $conversation->assigned_user_id], after: ['assigned_user_id' => $input['manager_id'] ?? null]));
+        });
+
+        return back()->with('status', 'Менеджер назначен.');
     }
 
     public function note(Request $request, string $contact): mixed
