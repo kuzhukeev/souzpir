@@ -438,6 +438,8 @@ declare module 'ziggy-js' {
     "seller.channels.email.update": [],
     "seller.persona.index": [],
     "seller.persona.save": [],
+    "seller.settings.greetings.index": [],
+    "seller.settings.greetings.update": [],
     "seller.settings.policy.index": [],
     "seller.settings.off-topic.save": [],
     "seller.settings.followups.update": [],
