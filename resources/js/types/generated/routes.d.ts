@@ -334,6 +334,7 @@ declare module 'ziggy-js' {
     "seller.knowledge.index": [],
     "seller.knowledge.compare": [],
     "seller.knowledge.draft": [],
+    "seller.knowledge.incoming": [],
     "seller.knowledge.publish": [
         {
             "name": "release",
@@ -385,6 +386,16 @@ declare module 'ziggy-js' {
     "seller.knowledge.fewshot.index": [],
     "seller.knowledge.fewshot.save": [],
     "seller.knowledge.fewshot.preview": [],
+    "seller.knowledge.fewshot.bad.save": [],
+    "seller.knowledge.fewshot.bad.delete": [],
+    "seller.knowledge.fewshot.dialogs": [],
+    "seller.knowledge.fewshot.messages": [
+        {
+            "name": "dialog",
+            "required": true
+        }
+    ],
+    "seller.knowledge.fewshot.from-dialog": [],
     "seller.channels.index": [],
     "seller.channels.telegram": [],
     "seller.channels.telegram.register": [],

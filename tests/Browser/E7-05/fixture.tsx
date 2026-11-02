@@ -11,7 +11,7 @@ const empty = params.has('empty');
 const attention = params.has('attention');
 const brandId = '01J00000000000000000000004';
 const daily = Object.fromEntries(Array.from({ length: 30 }, (_, day) => [`2026-10-${String(day + 1).padStart(2, '0')}`, empty ? 0 : day % 4 + 2]));
-const dashboard: Dashboard = { days: 30, total: empty ? 0 : 248, contact: empty ? 0 : 84, handoff: empty ? 0 : 31, done: empty ? 0 : 19, need: empty ? 0 : 164, daily,
+const dashboard: Dashboard = { delta:{total:2,contact:1,handoff:0,done:-1},quality:empty?null:4.2,issues:empty?{}:{wrong_fact:2},topics:empty?{}:{delivery:3},managers:empty?[]:[{id:'1',name:'Иван Петров',total:3}], days: 30, total: empty ? 0 : 248, contact: empty ? 0 : 84, handoff: empty ? 0 : 31, done: empty ? 0 : 19, need: empty ? 0 : 164, daily,
   channels: empty ? [] : [{ type: 'telegram', name: 'Telegram', mode: 'bot', status: 'active' }, { type: 'widget', name: 'Виджет сайта', mode: 'suggest', status: 'disabled' }],
   attention: empty ? [] : [{ kind: 'manager', title: 'Диалоги ждут менеджера', count: 5, severity: 'high', href: '/seller/dialogs?mode=manager' }, { kind: 'tasks', title: 'Обещания просрочены', count: 3, severity: 'high', href: '/seller/tasks' }, { kind: 'channels', title: 'Каналы выключены', count: 1, severity: 'normal', href: '/seller/channels' }] };
 const props = { dashboard, auth: { user: { id: '1', name: 'Иван Петров', email: 'ivan@example.test' } }, organization: { id: '1', name: 'Союз Пир' },
