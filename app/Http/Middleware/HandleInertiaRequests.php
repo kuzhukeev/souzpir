@@ -8,6 +8,7 @@ use App\Providers\Features\FeatureRegistry;
 use App\Shell\Dashboard\DashboardController;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Middleware;
@@ -48,6 +49,19 @@ class HandleInertiaRequests extends Middleware
             // Null means that a real source has not been registered yet, not zero usage.
             'modules' => ['seller' => null, 'vision' => null],
             'unread' => fn () => $preview ? null : app(DashboardController::class)->unread($request),
+            'visionProfileReady' => function () use ($request, $preview): bool {
+                if ($preview || ! $request->user()) {
+                    return false;
+                }
+                $org = $request->attributes->get('tenant.organization');
+                $brand = $request->attributes->get('tenant.brand');
+                $member = $request->attributes->get('tenant.membership');
+                if (! $org || ! $brand || ! $member || $member->user_id !== $request->user()->id || $member->status !== 'active' || ! $member->permitsBrand($brand->id)) {
+                    return false;
+                }
+
+                return DB::table('brand_profiles')->where('organization_id', $org->id)->where('brand_id', $brand->id)->exists();
+            },
             'request_id' => (string) Str::uuid(),
             ...$contributions,
             // PHP's empty array would otherwise serialize as [] instead of a permission map.
