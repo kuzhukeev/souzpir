@@ -22,7 +22,7 @@
 
 ## Проверки
 
-PHP lint и `git diff --check` — зелёные. Итоговый `workflow_dispatch` на ветке, run 41428683907: 169 passed, 0 failed, 3 ранее пропускавшихся, 2205 assertions; обычный CI тоже зелёный. Повторный запуск на main — после слияния.
+PHP lint и `git diff --check` — зелёные. `workflow_dispatch` на ветке, run 41428683907: 169 passed, 0 failed, 3 ранее пропускавшихся, 2205 assertions. На main: push run 41434828535 и ручной run 41434853225, включая `race`, зелёные.
 
 ## Техдолг
 
