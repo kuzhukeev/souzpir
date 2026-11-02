@@ -11,6 +11,7 @@ import {
 type Row = {
   id: string;
   status: string;
+  confirmed?: boolean;
   created_at: string;
   answers?: { question_n: number; provider: string; requested_model: string; run_no: number; status: string; answer_text: string | null; error_code: string | null }[];
 };
@@ -44,7 +45,7 @@ export default function Index({ measurementBrandRevision, status }: { measuremen
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState('');
   const [acting, setActing] = useState('');
-  const act = (id: string, action: 'next' | 'repeat') => {
+  const act = (id: string, action: 'next' | 'repeat' | 'confirm') => {
     setStartError('');
     setActing(`${id}-${action}`);
     router.post(`/vision/runs/${id}/${action}`, {}, {
@@ -281,7 +282,7 @@ export default function Index({ measurementBrandRevision, status }: { measuremen
                               <button type="button" className={button} disabled={!!acting || !can?.['vision.measure.run']} onClick={() => act(row.id, 'repeat')}>Повторить замер</button>
                             </div>
                           </div>
-                          <ConfirmationProgress status={row.status} answers={row.answers ?? []} />
+                          <ConfirmationProgress status={row.status} answers={row.answers ?? []} confirmed={row.confirmed} canConfirm={Boolean(can?.['vision.measure.run'])} loading={Boolean(acting)} onConfirm={() => act(row.id, 'confirm')} />
                           <details className="mt-4" open={(row.answers?.length ?? 0) > 0}>
                             <summary className="cursor-pointer font-semibold">Ответы и слоты ({row.answers?.length ?? 0})</summary>
                             <ul className="mt-3 grid gap-2">

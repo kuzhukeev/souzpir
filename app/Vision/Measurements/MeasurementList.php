@@ -63,10 +63,14 @@ final class MeasurementList
             ->orderBy('question_n')->orderBy('provider')->orderBy('run_no')
             ->get(['measurement_id', 'question_n', 'provider', 'requested_model', 'run_no', 'status', 'answer_text', 'error_code'])
             ->groupBy('measurement_id');
+        $confirmed = DB::table('snapshot_confirmations')->where('organization_id', $context->organizationId)
+            ->where('brand_id', $context->brandId)->whereIn('measurement_id', $rows->pluck('id'))
+            ->pluck('measurement_id')->all();
 
         return ['data' => $rows->map(fn ($row) => [
             'id' => $row->id, 'status' => $row->status, 'created_at' => $row->created_at,
             'started_at' => $row->started_at, 'finished_at' => $row->finished_at,
+            'confirmed' => in_array($row->id, $confirmed, true),
             'answers' => ($answers[$row->id] ?? collect())->map(fn ($answer) => [
                 'question_n' => $answer->question_n, 'provider' => $answer->provider,
                 'requested_model' => $answer->requested_model, 'run_no' => $answer->run_no,

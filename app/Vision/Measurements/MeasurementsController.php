@@ -116,4 +116,11 @@ final class MeasurementsController
             return redirect()->route('vision.measurements.index')->with('status', 'Создан новый план замера.');
         });
     }
+
+    public function confirm(Request $request, string $measurement): mixed
+    {
+        $created = app(ConfirmSnapshot::class)->run($request, $measurement);
+
+        return redirect()->route('vision.measurements.index')->with('status', $created ? 'Снимок подтверждён.' : 'Снимок уже подтверждён.');
+    }
 }

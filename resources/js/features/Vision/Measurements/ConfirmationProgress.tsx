@@ -3,9 +3,17 @@ type Answer = { status: string };
 export default function ConfirmationProgress({
   status,
   answers,
+  confirmed = false,
+  canConfirm = false,
+  loading = false,
+  onConfirm,
 }: {
   status: string;
   answers: Answer[];
+  confirmed?: boolean;
+  canConfirm?: boolean;
+  loading?: boolean;
+  onConfirm?: () => void;
 }) {
   const count = answers.filter((answer) => answer.status === 'ok').length;
   const finished = status === 'completed';
@@ -26,12 +34,22 @@ export default function ConfirmationProgress({
         </li>
         <li>
           <span className="font-medium">3. Подтверждение</span>
-          <p>Пока недоступно</p>
+          <p>{confirmed ? 'Подтверждён' : 'Не подтверждён'}</p>
         </li>
       </ol>
       <p className="mt-3 text-(--color-ink-muted)">
-        Снимок не подтверждён. Сохранение подтверждения появится после подключения.
+        {confirmed ? 'Снимок подтверждён.' : 'Снимок не подтверждён.'}
       </p>
+      {!confirmed && onConfirm && (
+        <button
+          type="button"
+          disabled={!finished || !canConfirm || loading}
+          onClick={onConfirm}
+          className="mt-3 min-h-11 cursor-pointer rounded-lg border border-(--color-border) px-4 text-sm font-semibold text-(--color-link) disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {loading ? 'Сохраняем…' : 'Подтвердить снимок'}
+        </button>
+      )}
     </section>
   );
 }
