@@ -421,3 +421,4 @@ SP-E1-08B ожидает SP-E1-08: оба меняют профиль, а исх
 - SP-E4-04: Код новой темы создаётся сервером и остаётся неизменным; пустые `default_answer` и `after_action` сохраняют прежний промпт и поведение.
 - SP-E5-04B: «Мои» означает assigned_user_id текущего пользователя; неназначенные видны в общем списке.
 - SP-E4-06: Первая страница XLSX; до 100 строк по 500 символов; для сохранения нужна созданная группа фактов.
+- 2026-11-02: ExportCleanupTest verifies the bounded cleanup result across up to five cursor passes; this matches the persisted-cursor contract and addresses the ShellCore main flake observed on 056b5a94.

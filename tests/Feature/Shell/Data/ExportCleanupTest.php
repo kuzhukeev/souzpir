@@ -37,7 +37,13 @@ final class ExportCleanupTest extends TenancyTestCase
         $held = ExportFileLock::acquireForExport($disk->path($prefix), $active, LOCK_SH);
         self::assertIsResource($held);
         try {
-            self::assertSame(2, app(PruneExports::class)->prune(100, 60));
+            // Each pass has a soft time budget and a persisted cursor. Under CI
+            // contention, the expired row and orphan file may need two passes.
+            $removed = 0;
+            for ($pass = 0; $pass < 5 && $removed < 2; $pass++) {
+                $removed += app(PruneExports::class)->prune(100, 60);
+            }
+            self::assertSame(2, $removed);
             $disk->assertMissing($prefix.$expired.'.zip');
             $disk->assertMissing($prefix.$orphan.'.jsonl.tmp');
             $disk->assertExists($prefix.$active.'.zip');
