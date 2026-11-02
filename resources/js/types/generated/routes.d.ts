@@ -333,6 +333,19 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "seller.dialogs.index": [],
+    "seller.dialogs.show": [
+        {
+            "name": "dialog",
+            "required": true
+        }
+    ],
+    "seller.dialogs.mode": [
+        {
+            "name": "dialog",
+            "required": true
+        }
+    ],
     "seller.planned.vk": [],
     "seller.planned.whatsapp": [],
     "seller.planned.calendar": [],
