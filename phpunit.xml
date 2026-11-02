@@ -9,11 +9,20 @@
             <directory suffix="Test.php">tests/Feature/KnowledgeEquivalence</directory>
             <directory suffix="Test.php">tests/Feature/Preview</directory>
             <directory suffix="Test.php">tests/Feature/Privacy</directory>
-            <directory suffix="Test.php">tests/Feature/ProtectedOperations</directory>
+            <file>tests/Feature/ProtectedOperations/FirstSellerTurnHttpTest.php</file>
+            <file>tests/Feature/ProtectedOperations/LegacyTurnReplayTest.php</file>
+            <file>tests/Feature/ProtectedOperations/ManualReviewRequestsHttpTest.php</file>
+            <file>tests/Feature/ProtectedOperations/PendingSellerTurnsHttpTest.php</file>
+            <file>tests/Feature/ProtectedOperations/PostgresIdempotencyTest.php</file>
+            <file>tests/Feature/ProtectedOperations/SellerTurnFenceTest.php</file>
+            <file>tests/Feature/ProtectedOperations/SessionIdempotencyTest.php</file>
             <directory suffix="Test.php">tests/Feature/Runtime</directory>
             <directory suffix="Test.php">tests/Feature/SharedProps</directory>
             <directory suffix="Test.php">tests/Feature/Smoke</directory>
             <directory suffix="Test.php">tests/Feature/Support</directory>
+        </testsuite>
+        <testsuite name="CoreTurns">
+            <file>tests/Feature/ProtectedOperations/FirstTurnStateTest.php</file>
         </testsuite>
         <testsuite name="Shell">
             <directory suffix="Test.php">tests/Feature/Shell</directory>
