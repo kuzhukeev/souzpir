@@ -40,6 +40,39 @@ CABINET_ORGANIZATION_ID=01J00000000000000000000004 APP_URL=http://127.0.0.1:8104
 for attempt in {1..20}; do curl --fail --silent http://127.0.0.1:8104/up && break; sleep 1; done
 curl --fail --silent http://127.0.0.1:8104/up > /dev/null
 bash scripts/ci/browser-fixtures.sh
-RUN_ONBOARDING_E2E=1 RUN_ORGANIZATIONS_E2E=1 RUN_BRANDS_E2E=1 \
-  INVITATION_BROWSER_CI_FIXTURE=1 INVITATION_BROWSER_TEST_DATABASE=souzpir_test_sp_invitation_ci \
-  PHP_BINARY=php INVITATION_DB_PASSWORD=ci-only-password E802_LOCAL_BASE=http://souzpir.local:8249 npm run test:browser -- --workers=1 --shard="${BROWSER_SHARD:-1/1}"
+export RUN_ONBOARDING_E2E=1 RUN_ORGANIZATIONS_E2E=1 RUN_BRANDS_E2E=1
+export INVITATION_BROWSER_CI_FIXTURE=1 INVITATION_BROWSER_TEST_DATABASE=souzpir_test_sp_invitation_ci
+export PHP_BINARY=php INVITATION_DB_PASSWORD=ci-only-password E802_LOCAL_BASE=http://souzpir.local:8249
+browser_options=(--workers=1)
+if [[ "${BROWSER_SHARD:-1/1}" =~ ^[123]/3$ ]]; then
+  for part in 1 2 3; do
+    FORCE_COLOR=0 npx playwright test --list --shard="$part/3" > ".local/runtime/browser-list-$part.txt"
+  done
+  python3 - <<'PY'
+from pathlib import Path
+
+shards = []
+for part in (1, 2, 3):
+    lines = Path(f'.local/runtime/browser-list-{part}.txt').read_text(encoding='utf-8').splitlines()
+    tests = [line.strip() for line in lines if line.lstrip().startswith('[chromium] › ')]
+    if not tests:
+        raise SystemExit(f'No browser tests discovered in shard {part}')
+    shards.append(tests)
+
+before = [test for shard in shards for test in shard]
+pages = [test for test in shards[1] if 'E8-02/pages.spec.ts:' in test.replace('\\', '/')]
+if pages:
+    shards[1] = [test for test in shards[1] if test not in pages]
+    shards[2].extend(pages)
+after = [test for shard in shards for test in shard]
+if len(after) != len(before) or len(set(after)) != len(after):
+    raise SystemExit('Browser shard selection lost or duplicated tests')
+for part, tests in enumerate(shards, 1):
+    Path(f'.local/runtime/browser-selected-{part}.txt').write_text('\n'.join(tests) + '\n', encoding='utf-8')
+print(f'Browser shard tests: {[len(tests) for tests in shards]}; moved E8-02/pages.spec.ts: {len(pages)}')
+PY
+  browser_options+=("--test-list=.local/runtime/browser-selected-${BROWSER_SHARD%%/*}.txt")
+else
+  browser_options+=("--shard=${BROWSER_SHARD:-1/1}")
+fi
+npm run test:browser -- "${browser_options[@]}"
