@@ -369,6 +369,8 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "seller.knowledge.conditions.index": [],
+    "seller.knowledge.conditions.save": [],
     "seller.channels.index": [],
     "seller.channels.telegram": [],
     "seller.channels.telegram.register": [],
