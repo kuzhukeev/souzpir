@@ -511,6 +511,8 @@ declare module 'ziggy-js' {
     "seller.quality.calibration.save": [],
     "seller.analytics.index": [],
     "seller.analytics.csv": [],
+    "seller.dashboard.index": [],
+    "seller.dashboard.attention": [],
     "vision.start": [],
     "vision.private.access": [],
     "vision.private.verify": [],
