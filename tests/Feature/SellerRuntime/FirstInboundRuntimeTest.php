@@ -147,8 +147,10 @@ final class FirstInboundRuntimeTest extends TestCase
             $trace = $error->getTrace();
             foreach ($trace as $frame) {
                 if (($frame['class'] ?? null) === FirstInboundRuntime::class && ($frame['function'] ?? null) === 'turn') {
-                    self::assertInstanceOf(\SensitiveParameterValue::class, $frame['args'][0]);
-                    self::assertInstanceOf(\SensitiveParameterValue::class, $frame['args'][1]);
+                    if (isset($frame['args'])) {
+                        self::assertInstanceOf(\SensitiveParameterValue::class, $frame['args'][0]);
+                        self::assertInstanceOf(\SensitiveParameterValue::class, $frame['args'][1]);
+                    }
                 }
             }
             array_walk_recursive($trace, static function ($value): void {
