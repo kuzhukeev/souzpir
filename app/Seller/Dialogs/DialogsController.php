@@ -23,7 +23,7 @@ final class DialogsController
     public function index(Request $request, DialogReader $reader, ?string $dialog = null): Response
     {
         $input = $request->validate([
-            'mode' => ['sometimes', 'string', Rule::in(['all', 'bot', 'suggest', 'manager', 'paused'])],
+            'mode' => ['sometimes', 'string', Rule::in(['all', 'mine', 'bot', 'suggest', 'manager', 'paused'])],
             'search' => ['sometimes', 'string', 'max:100'],
         ]);
         $data = app(ProfileAccess::class)->run($request, function (User $actor, TenantContext $context, $brand, Membership $member) use ($reader, $dialog, $input): array {

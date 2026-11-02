@@ -29,7 +29,9 @@ final class DialogReader
             $base->where(fn ($query) => $query->where('c.assigned_user_id', $actorId)
                 ->orWhere(fn ($waiting) => $waiting->where('c.mode', 'manager')->whereNull('c.assigned_user_id')));
         }
-        if ($mode !== 'all') {
+        if ($mode === 'mine') {
+            $base->where('c.assigned_user_id', $actorId);
+        } elseif ($mode !== 'all') {
             $base->where('c.mode', $mode);
         }
         if ($search !== '') {
