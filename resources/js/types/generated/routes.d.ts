@@ -600,6 +600,11 @@ declare module 'ziggy-js' {
     "vision.reports.index": [],
     "vision.reports.data": [],
     "vision.reports.create": [],
+    "vision.competitors.index": [],
+    "vision.competitors.merge": [],
+    "vision.competitors.track": [],
+    "vision.sources.index": [],
+    "vision.sources.presence": [],
     "vision.publications.index": [],
     "vision.publications.create": [],
     "vision.publications.revoke": [
