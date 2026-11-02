@@ -10,6 +10,6 @@
 
 Работа: добавить защищённый coordinator/finalizer для open, suggest и последующих bot-ходов на fake-драйвере. Не расширять FirstTurnProtectedClaim и FirstTurnTextFinalizer за version=0 и mode=bot. Использовать существующий HTTP-вход и idempotency; suggest сохраняет подсказку без доставки. Неподдержанный реальный AI остаётся закрыт.
 
-Scope: `app/ProtectedOperations/SellerFollowup/`, `app/Seller/Runtime/`, `routes/features/E3-08.php`, `tests/Feature/ProtectedOperations/SellerFollowup/`, `tests/Feature/SellerRuntime/Turns/`, `docs/results/SP-E3-08B.md`. Сгенерированные типы разрешены общим правилом AGENTS.md. Чужие модули и golden fixtures не менять.
+Scope: `app/ProtectedOperations/SellerFollowup/`, `app/Seller/Runtime/`, `routes/features/E3-08.php`, `tests/Feature/SellerRuntime/Turns/`, `docs/results/SP-E3-08B.md`. Сгенерированные типы разрешены общим правилом AGENTS.md. Чужие модули и golden fixtures не менять.
 
 Приёмка: fake-сценарии open, suggest и последующего bot возвращают результат вместо 503; права, tenant/brand/session, ожидаемая ревизия и повтор ключа проверены; контакты не уходят во внешний AI. Локально прогнать затронутые тесты и Product. Отчёт, submit и зелёный CI до merge.
