@@ -54,7 +54,7 @@ final class CustomersController
             $rows = $contacts->map(function ($contact) use ($tenant): array {
                 $conversation = $this->scope('conversations', $tenant)->where('contact_id', $contact->id)->orderByDesc('updated_at')->first();
                 $state = $conversation ? json_decode($conversation->state, true) : [];
-                $tasks = $this->scope('seller_tasks', $tenant)->whereIn('conversation_id', $this->scope('conversations', $tenant)->where('contact_id', $contact->id)->select('id'))->where('status', 'new')->count();
+                $tasks = $this->scope('seller_tasks', $tenant)->where(fn ($query) => $query->where('contact_id', $contact->id)->orWhereIn('conversation_id', $this->scope('conversations', $tenant)->where('contact_id', $contact->id)->select('id')))->where('status', 'new')->count();
                 $manager = $conversation?->assigned_user_id ? DB::table('users')->where('id', $conversation->assigned_user_id)->value('name') : null;
                 $channel = $conversation?->channel_account_id ? $this->scope('channel_accounts', $tenant)->where('id', $conversation->channel_account_id)->value('type') : null;
 
@@ -97,7 +97,7 @@ final class CustomersController
                     $history[] = ['slot' => $slot, 'value' => $value, 'role' => $message->role, 'at' => $message->created_at];
                 }
             }
-            $tasks = $this->scope('seller_tasks', $tenant)->whereIn('conversation_id', $conversations->pluck('id'))->orderBy('due_at')->get(['id', 'type', 'payload', 'status', 'due_at']);
+            $tasks = $this->scope('seller_tasks', $tenant)->where(fn ($query) => $query->where('contact_id', $contact)->orWhereIn('conversation_id', $conversations->pluck('id')))->orderBy('due_at')->get(['id', 'type', 'payload', 'status', 'due_at']);
             $notes = $this->scope('seller_customer_notes', $tenant)->where('contact_id', $contact)->orderByDesc('created_at')->get(['id', 'body', 'author_id', 'created_at']);
 
             $eligible = Membership::withoutGlobalScopes()->with('user')->where('organization_id', $tenant->organizationId)->where('status', 'active')->get()
@@ -130,7 +130,7 @@ final class CustomersController
             $conversation = $this->scope('conversations', $tenant)->where('contact_id', $contact)->orderByDesc('updated_at')->orderByDesc('id')->first() ?? abort(404);
             $actor = Membership::withoutGlobalScopes()->where('organization_id', $tenant->organizationId)->where('user_id', $user->id)->where('status', 'active')->first() ?? abort(403);
             $manager = $actor->role === 'member' && ($actor->settings['sales_manager'] ?? false);
-            if ($manager && $conversation->assigned_user_id && $conversation->assigned_user_id !== $user->id) {
+            if ($manager && $conversation?->assigned_user_id && $conversation->assigned_user_id !== $user->id) {
                 abort(404);
             }
             if ($manager && ($input['manager_id'] ?? null) !== $user->id && ! (($input['manager_id'] ?? null) === null && $conversation->assigned_user_id === $user->id)) {
@@ -147,6 +147,35 @@ final class CustomersController
         });
 
         return back()->with('status', 'Менеджер назначен.');
+    }
+
+    public function remind(Request $request, string $contact): mixed
+    {
+        $input = $request->validate([
+            'text' => ['required', 'string', 'max:1000'],
+            'due_at' => ['required', 'date', 'after:now'],
+            'manager_id' => ['required', 'ulid'],
+        ]);
+        $this->access($request, 'seller.dialogues.operate', function (User $user, TenantContext $tenant) use ($contact, $input): void {
+            $this->scope('contacts', $tenant)->where('id', $contact)->whereNull('merged_into_id')->first() ?? abort(404);
+            $conversation = $this->scope('conversations', $tenant)->where('contact_id', $contact)->orderByDesc('updated_at')->orderByDesc('id')->first();
+            $actor = Membership::withoutGlobalScopes()->where('organization_id', $tenant->organizationId)->where('user_id', $user->id)->where('status', 'active')->first() ?? abort(403);
+            if ($actor->role === 'member' && ($actor->settings['sales_manager'] ?? false)) {
+                abort_if($conversation?->assigned_user_id && $conversation->assigned_user_id !== $user->id, 404);
+                abort_unless($input['manager_id'] === $user->id, 403);
+            }
+            $manager = Membership::withoutGlobalScopes()->where('organization_id', $tenant->organizationId)->where('user_id', $input['manager_id'])->where('status', 'active')->first();
+            if (! $manager || ! $manager->permitsBrand($tenant->brandId) || ! (in_array($manager->role, ['owner', 'admin'], true) || ($manager->role === 'member' && ($manager->settings['sales_manager'] ?? false)))) {
+                throw ValidationException::withMessages(['manager_id' => 'Сотрудник недоступен для этого бренда.']);
+            }
+            $id = (string) Str::ulid();
+            DB::table('seller_tasks')->insert(['id' => $id, 'organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId,
+                'conversation_id' => $conversation?->id, 'contact_id' => $contact, 'type' => 'reminder', 'payload' => json_encode(['text' => $input['text']], JSON_UNESCAPED_UNICODE),
+                'due_at' => Carbon::parse($input['due_at'])->utc(), 'status' => 'new', 'priority' => 'normal', 'assigned_user_id' => $input['manager_id'], 'created_at' => now(), 'updated_at' => now()]);
+            app(AuditWriter::class)->record($tenant, new AuditEntry('seller.customer.reminder.created', 'seller_task', $id));
+        });
+
+        return back()->with('status', 'Напоминание создано.');
     }
 
     public function note(Request $request, string $contact): mixed

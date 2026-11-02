@@ -9,6 +9,7 @@ return ['web' => static function (): void {
         Route::get('/seller/customers/{contact}', [CustomersController::class, 'show'])->name('seller.customers.show');
         Route::post('/seller/customers/{contact}/manager', [CustomersController::class, 'assign'])->name('seller.customers.manager');
         Route::post('/seller/customers/{contact}/notes', [CustomersController::class, 'note'])->name('seller.customers.notes.store');
+        Route::post('/seller/customers/{contact}/reminders', [CustomersController::class, 'remind'])->name('seller.customers.reminders.store');
         Route::get('/seller/tasks', [CustomersController::class, 'tasks'])->name('seller.customers.tasks');
         Route::patch('/seller/customer-tasks/{task}', [CustomersController::class, 'updateTask'])->name('seller.customers.tasks.update');
     });
