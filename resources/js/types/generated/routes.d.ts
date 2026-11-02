@@ -377,6 +377,8 @@ declare module 'ziggy-js' {
     "seller.catalog.index": [],
     "seller.catalog.import": [],
     "seller.catalog.price-file": [],
+    "seller.catalog.yml.save": [],
+    "seller.catalog.yml.refresh": [],
     "seller.catalog.stock": [],
     "seller.catalog.stock.update": [],
     "seller.integrations.crm": [],
