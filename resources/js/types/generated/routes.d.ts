@@ -355,6 +355,7 @@ declare module 'ziggy-js' {
     ],
     "seller.channels.index": [],
     "seller.channels.telegram": [],
+    "seller.channels.telegram.register": [],
     "seller.channels.telegram.save": [],
     "seller.channels.mode": [
         {
