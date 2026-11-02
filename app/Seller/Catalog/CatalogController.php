@@ -59,15 +59,22 @@ final class CatalogController
 
     public function upload(Request $request): mixed
     {
-        $input = $request->validate(['file' => ['required', 'file', 'max:10240', 'extensions:csv,xlsx']]);
+        $input = $request->validate(['file' => ['required', 'file', 'max:10240', 'extensions:csv,xlsx'], 'preview' => ['sometimes', 'boolean'], 'sheet' => ['sometimes', 'integer', 'min:0'], 'columns' => ['sometimes', 'array']]);
+        if ($input['preview'] ?? false) {
+            return $this->access($request, function () use ($input) {
+                $data = app(CatalogReader::class)->read($input['file']->getRealPath(), $input['file']->getClientOriginalExtension(), (int) ($input['sheet'] ?? 0));
+
+                return response()->json(['sheets' => $data['sheets'], 'header' => $data['rows'][0] ?? [], 'suggested' => app(CatalogReader::class)->suggest($data['rows'][0] ?? []), 'sample' => array_slice($data['rows'], 1, 3)]);
+            });
+        }
         $error = $this->access($request, function (User $user, TenantContext $tenant) use ($input): ?string {
             $file = $input['file'];
             $id = (string) Str::ulid();
             $filename = mb_substr(basename($file->getClientOriginalName()), 0, 200);
             try {
-                $items = app(CatalogImporter::class)->parse($file->getRealPath(), $file->getClientOriginalExtension());
+                $items = app(CatalogImporter::class)->parse($file->getRealPath(), $file->getClientOriginalExtension(), (int) ($input['sheet'] ?? 0), $input['columns'] ?? null);
             } catch (ValidationException $e) {
-                $error = $e->errors()['file'][0] ?? 'Не удалось прочитать файл.';
+                $error = collect($e->errors())->flatten()->first() ?? 'Не удалось прочитать файл.';
                 DB::table('catalog_imports')->insert(['id' => $id, 'organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId,
                     'filename' => $filename, 'status' => 'failed', 'item_count' => 0, 'error' => $error, 'created_by' => $user->id, 'created_at' => now(), 'updated_at' => now()]);
 
