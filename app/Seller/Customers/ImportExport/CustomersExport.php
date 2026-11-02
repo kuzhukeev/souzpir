@@ -25,7 +25,7 @@ final class CustomersExport implements ExportContributor
             ->orderBy('id')->cursor();
         foreach ($contacts as $contact) {
             yield new ExportRecord('contact', ['id' => $contact->id, 'name' => $contact->name, 'phone' => $contact->phone,
-                'email' => $contact->email, 'created_at' => $contact->created_at]);
+                'email' => $contact->email, 'city' => $contact->city, 'created_at' => $contact->created_at]);
         }
     }
 }
