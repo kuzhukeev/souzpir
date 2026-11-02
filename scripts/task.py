@@ -44,9 +44,21 @@ GENERATED_CONTRACT_FILES = frozenset(
     for name in ("data.ts", "translations.ts", "permissions.ts", "routes.d.ts")
 )
 
-# Scope corrections needed for CI regressions in pre-existing tests. These do
-# not broaden the task's ownership to neighboring production modules.
+# Narrow integrator-approved scope corrections for shared routes, UI and CI
+# regressions. They do not broaden ownership to neighboring modules.
 CI_SCOPE_EXCEPTIONS = {
+    "SP-E3-08": (
+        "app/ProtectedOperations/SellerFollowup/",
+        "routes/features/E3-08.php",
+        "tests/Feature/ProtectedOperations/SellerFollowup/",
+    ),
+    "SP-E1-08C": (
+        "resources/js/pages/Shell/Auth/Ready.tsx",
+        "routes/features/E0-02.php",
+        "routes/features/E1-01.php",
+        "tests/Feature/Shell/Auth/LogoutReceiptTest.php",
+        "tests/Browser/E1-08/",
+    ),
     "SP-E1-10C": ("tests/Browser/E1-10/integrations-ui.spec.ts",),
     "SP-E8-04B": ("tests/Unit/Vision/Measurements/measurement-list.test.tsx",),
 }
