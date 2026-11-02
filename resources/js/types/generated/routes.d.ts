@@ -333,6 +333,10 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "seller.widget.index": [],
+    "seller.widget.update": [],
+    "widget.loader": [],
+    "widget.config": [],
     "seller.customers.index": [],
     "seller.customers.show": [
         {
