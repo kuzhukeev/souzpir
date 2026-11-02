@@ -13,6 +13,20 @@ use Tests\Feature\Tenancy\TenancyTestCase;
 
 final class MeasurementUsageTest extends TenancyTestCase
 {
+    protected function setUp(): void
+    {
+        putenv('VISION_USAGE_ENABLED=true');
+        $_ENV['VISION_USAGE_ENABLED'] = $_SERVER['VISION_USAGE_ENABLED'] = 'true';
+        parent::setUp();
+    }
+
+    protected function tearDown(): void
+    {
+        parent::tearDown();
+        putenv('VISION_USAGE_ENABLED');
+        unset($_ENV['VISION_USAGE_ENABLED'], $_SERVER['VISION_USAGE_ENABLED']);
+    }
+
     public function test_only_completed_measurements_are_counted_for_the_selected_brand(): void
     {
         [, $org, $brand, $other] = $this->cabinet();
