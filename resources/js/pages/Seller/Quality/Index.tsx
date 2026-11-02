@@ -1,0 +1,6 @@
+import { Head, Link } from '@inertiajs/react';
+import CabinetLayout from '@/layouts/CabinetLayout';
+type Day = {day:string;count:number;average:number;issues:number};
+export default function Index({days}:{days:Day[]}) {
+ return <CabinetLayout breadcrumbs={[{label:'Продавец',href:'/seller'},{label:'Качество'}]}><Head title="Качество диалогов"/><main className="mx-auto max-w-[1200px]" data-private-profile><h1 className="text-3xl font-bold">Качество диалогов</h1><p className="mt-2 text-sm text-(--color-ink-muted)">Оценки по дням для текущего бренда, включая симуляции.</p><section className="mt-6 rounded-xl border border-(--color-border) bg-(--color-surface) p-5"><h2 className="text-xl font-bold">Доклады</h2>{days.length===0?<p className="mt-4 text-sm">Оценок пока нет. Доклады появятся после проверки диалогов.</p>:<ul className="mt-4 space-y-3">{days.map(day=><li key={day.day}><Link href={`/seller/quality/${day.day}`} className="flex min-h-14 cursor-pointer flex-wrap items-center justify-between gap-2 rounded-lg border border-(--color-border) p-4 text-sm hover:bg-(--color-surface-muted)"><strong>{day.day.split('-').reverse().join('.')}</strong><span>Оценок: {day.count} · Средняя: {day.average.toFixed(1)} · Замечаний: {day.issues} →</span></Link></li>)}</ul>}</section></main></CabinetLayout>;
+}
