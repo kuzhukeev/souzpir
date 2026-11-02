@@ -333,6 +333,7 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "seller.turns.runtime": [],
     "seller.knowledge.index": [],
     "seller.knowledge.compare": [],
     "seller.knowledge.draft": [],
@@ -479,6 +480,11 @@ declare module 'ziggy-js' {
     "seller.planned.reminders": [],
     "seller.channels.email.index": [],
     "seller.channels.email.update": [],
+    "seller.customers.merge.index": [],
+    "seller.customers.merge.store": [],
+    "seller.customers.io": [],
+    "seller.customers.io.preview": [],
+    "seller.customers.io.import": [],
     "seller.persona.index": [],
     "seller.persona.save": [],
     "seller.settings.greetings.index": [],

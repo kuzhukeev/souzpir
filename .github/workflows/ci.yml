@@ -131,6 +131,14 @@ jobs:
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: bash scripts/ci/browser-smoke.sh
+      - name: Preserve browser diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-diagnostics-${{ matrix.shard }}
+          path: .local/runtime/*.log
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Browser failure diagnostics
         if: failure()
         run: |

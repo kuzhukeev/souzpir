@@ -7170,11 +7170,41 @@
       "description": "# SP-E3-08 · Открытие, подсказка и следующие fake-ходы\n\nРазмер: 1–3 часа. Функциональный остаток; новой возможности сверх ТЗ нет.\n\n**Зачем:** закрыть E3-03, 03 §1.2–1.3 после частичной сдачи SP-E3-03B и дать исполнителям независимую работу по экрану или сценарию ТЗ.\n\n**Часть чего:** SP-E3-03B. После карточки остаются regeneration/fallback, инструменты и Delivery в SP-E3-09; итоговая проверка компонентов — SP-E3-03.\n\nЗависимости: SP-E3-03B.\n\nРасширить защищённый runtime после первого входящего: open, suggest и последующие bot-ходы на fake-драйвере; suggest сохраняет подсказку без отправки, manager остаётся без AI. Проверить tenant, session, ревизию, повтор ключа и отсутствие контактов во внешнем AI.\n\nScope: `app/Seller/Runtime/`, `tests/Feature/SellerRuntime/Turns/`, `docs/results/SP-E3-08.md`. Чужие модули и golden fixtures не менять.\n\nПриёмка: сценарий, права и изоляция бренда, 1–2 ошибки ввода; только fake/HTTP fixtures. Отчёт `docs/results/SP-E3-08.md`, submit и зелёный CI до merge.\n"
     },
     {
+      "taskKey": "SP-E3-08B",
+      "title": "SP-E3-08B · Завершить fake runtime следующих ходов",
+      "goal": "Finish protected fake runtime for open, suggest, and subsequent bot turns.",
+      "dependsOn": [
+        "SP-E3-08"
+      ],
+      "scope": [
+        "app/ProtectedOperations/SellerFollowup/",
+        "app/Seller/Runtime/",
+        "routes/features/E3-08.php",
+        "tests/Feature/SellerRuntime/Turns/",
+        "docs/results/SP-E3-08B.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Fake open, suggest, and subsequent bot turns succeed; tenant, brand, session, version, idempotency, and AI privacy are checked; Product and branch CI pass."
+      ],
+      "sourceIds": [
+        "SP-E3-03B"
+      ],
+      "screenIds": [],
+      "notes": "Continuation of partially delivered SP-E3-08; no additional continuation planned.",
+      "sourceRefs": [
+        "docs/tasks/SP-E3-08.md"
+      ],
+      "promptPath": "docs/tasks/SP-E3-08B.md",
+      "wave": 9,
+      "description": "# SP-E3-08B · Завершить fake runtime следующих ходов\n\nРазмер: 1–3 часа. Функциональное продолжение, без новой возможности сверх ТЗ.\n\n**Зачем:** закрыть E3-03, 03 §1.2–1.3: режимы open, suggest и последующие bot-ходы нужны перед fallback, инструментами и Delivery в SP-E3-09.\n\n**Часть чего:** SP-E3-08. После частичной сдачи там работает HTTP-вход для первого bot-хода и подавление manager без AI; open/suggest/последующие bot-ходы отвечают 503. После этой карточки остаётся отдельная SP-E3-09.\n\nЗависимости: SP-E3-08. Приоритет — сразу после зелёного CI и слияния SP-E3-08.\n\nРабота: добавить защищённый coordinator/finalizer для open, suggest и последующих bot-ходов на fake-драйвере. Не расширять FirstTurnProtectedClaim и FirstTurnTextFinalizer за version=0 и mode=bot. Использовать существующий HTTP-вход и idempotency; suggest сохраняет подсказку без доставки. Неподдержанный реальный AI остаётся закрыт.\n\nScope: `app/ProtectedOperations/SellerFollowup/`, `app/Seller/Runtime/`, `routes/features/E3-08.php`, `tests/Feature/SellerRuntime/Turns/`, `docs/results/SP-E3-08B.md`. Сгенерированные типы разрешены общим правилом AGENTS.md. Чужие модули и golden fixtures не менять.\n\nПриёмка: fake-сценарии open, suggest и последующего bot возвращают результат вместо 503; права, tenant/brand/session, ожидаемая ревизия и повтор ключа проверены; контакты не уходят во внешний AI. Локально прогнать затронутые тесты и Product. Отчёт, submit и зелёный CI до merge."
+    },
+    {
       "taskKey": "SP-E3-09",
       "title": "SP-E3-09 · Fallback, инструменты и Delivery runtime",
       "goal": "Довести regeneration/fallback и tool-calls до защищённого результата; ввести ChannelDelivery contract и fake delivery для bot, без отправки у suggest/manager. Подключить `check_stock` и `send_price` к сохранённому каталогу SP-E6-08, не открывая реальные цены до разрешённой настройки. Проверить pending/uncertain без повторного платного вызова, tenant и idempotency.",
       "dependsOn": [
-        "SP-E3-08",
+        "SP-E3-08B",
         "SP-E6-08"
       ],
       "scope": [
@@ -7198,7 +7228,7 @@
       ],
       "promptPath": "docs/tasks/SP-E3-09.md",
       "wave": 9,
-      "description": "# SP-E3-09 · Fallback, инструменты и Delivery runtime\n\nРазмер: 1–3 часа. Функциональный остаток; новой возможности сверх ТЗ нет.\n\n**Зачем:** закрыть E3-03, 03 §1.2–1.3 после частичной сдачи SP-E3-03B и дать исполнителям независимую работу по экрану или сценарию ТЗ.\n\n**Часть чего:** SP-E3-03B. После карточки остаётся только финальная приёмка компонентов SP-E3-03 и адаптеры конкретных каналов их владельцам.\n\nЗависимости: SP-E3-08, SP-E6-08.\n\nДовести regeneration/fallback и tool-calls до защищённого результата; ввести ChannelDelivery contract и fake delivery для bot, без отправки у suggest/manager. Подключить `check_stock` и `send_price` к сохранённому каталогу SP-E6-08, не открывая реальные цены до разрешённой настройки. Проверить pending/uncertain без повторного платного вызова, tenant и idempotency.\n\nScope: `app/Seller/Runtime/`, `app/Seller/Engine/ToolRunner.php`, `tests/Feature/SellerRuntime/Delivery/`, `docs/results/SP-E3-09.md`. Чужие модули и golden fixtures не менять.\n\nПриёмка: сценарий, права и изоляция бренда, 1–2 ошибки ввода; только fake/HTTP fixtures. Отчёт `docs/results/SP-E3-09.md`, submit и зелёный CI до merge.\n"
+      "description": "# SP-E3-09 · Fallback, инструменты и Delivery runtime\n\nРазмер: 1–3 часа. Функциональный остаток; новой возможности сверх ТЗ нет.\n\n**Зачем:** закрыть E3-03, 03 §1.2–1.3 после частичной сдачи SP-E3-03B и дать исполнителям независимую работу по экрану или сценарию ТЗ.\n\n**Часть чего:** SP-E3-03B. После карточки остаётся только финальная приёмка компонентов SP-E3-03 и адаптеры конкретных каналов их владельцам.\n\nЗависимости: SP-E3-08B, SP-E6-08.\n\nДовести regeneration/fallback и tool-calls до защищённого результата; ввести ChannelDelivery contract и fake delivery для bot, без отправки у suggest/manager. Подключить `check_stock` и `send_price` к сохранённому каталогу SP-E6-08, не открывая реальные цены до разрешённой настройки. Проверить pending/uncertain без повторного платного вызова, tenant и idempotency.\n\nScope: `app/Seller/Runtime/`, `app/Seller/Engine/ToolRunner.php`, `tests/Feature/SellerRuntime/Delivery/`, `docs/results/SP-E3-09.md`. Чужие модули и golden fixtures не менять.\n\nПриёмка: сценарий, права и изоляция бренда, 1–2 ошибки ввода; только fake/HTTP fixtures. Отчёт `docs/results/SP-E3-09.md`, submit и зелёный CI до merge.\n"
     },
     {
       "taskKey": "SP-E5-05B",
