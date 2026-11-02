@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { Link, usePage } from '@inertiajs/react';
 import {
   Home,
@@ -21,6 +21,7 @@ import {
   CircleHelp,
   Bell,
   ChevronDown,
+  LockKeyhole,
   type LucideIcon,
 } from 'lucide-react';
 import type { SharedPropsV1 } from '@/types/generated/data';
@@ -60,10 +61,27 @@ export function Sidebar({
 }) {
   const { props, url } = usePage<Props>();
   const pathname = url.split('?')[0];
+  const brandId = props.brand?.id ?? null;
+  const canReadQuiz = props.can?.['vision.quiz.write'] === true;
+  const explicitReady = typeof props.visionProfileReady === 'boolean' ? props.visionProfileReady
+    : pathname === '/vision' && canReadQuiz && 'profile_id' in props ? typeof props.profile_id === 'string' : null;
+  const [visionState, setVisionState] = useState<{brand:string;ready:boolean}|null>(null);
+  const visionReady = explicitReady ?? (visionState?.brand === brandId ? visionState.ready : null);
+  useEffect(() => {
+    if (!brandId || !canReadQuiz || props.modules?.vision === false || explicitReady !== null) return;
+    const controller = new AbortController();
+    fetch('/vision', {headers:{'X-Inertia':'true','X-Requested-With':'XMLHttpRequest',Accept:'text/html, application/xhtml+xml'},signal:controller.signal})
+      .then(response => { if (!response.ok) throw new Error('unavailable'); return response.json(); })
+      .then(page => { if (page.component === 'Vision/Profile/Start' && typeof page.props?.can_edit === 'boolean' && page.props.can_edit) setVisionState({brand:brandId,ready:typeof page.props.profile_id === 'string'}); })
+      .catch(() => { if (!controller.signal.aborted) setVisionState({brand:brandId,ready:false}); });
+    return () => controller.abort();
+  }, [brandId, canReadQuiz, explicitReady, props.modules?.vision]);
   const instance = useId();
   const candidates = [
     menu.home,
     ...menu.modules.flatMap((group) => group.children),
+    { id:'vision_profile', label:'Профиль бренда', icon:'UserRound', path:'/vision/profile' },
+    { id:'vision_publications', label:'Публикации', icon:'Share2', path:'/vision/publications' },
     ...menu.account,
   ];
   const current = candidates
@@ -88,21 +106,23 @@ export function Sidebar({
         route.uri.replace(/^\//, '') === item.path.replace(/^\//, '') &&
         route.methods.includes('GET'),
     );
+    const locked = item.id.startsWith('vision_') && item.id !== 'vision_quiz' && (canReadQuiz || typeof props.visionProfileReady === 'boolean') && visionReady !== true;
     const active = current === item.id;
     const label = title(item.id, item.label);
     const content = (
       <>
         <Icon size={child ? 18 : 20} strokeWidth={1.8} aria-hidden="true" />
         <span className={compact ? 'sr-only' : 'min-w-0 flex-1'}>{label}</span>
-        {!exists && !compact && (
+        {locked && <><LockKeyhole size={16} aria-hidden="true"/><span className="sr-only">{visionReady === null ? 'Проверяем анкету' : 'Сначала заполните анкету'}</span></>}
+        {!exists && !locked && !compact && (
           <span className="ml-auto text-[13px] text-(--color-ink-muted)">
             {title('soon', 'Скоро')}
           </span>
         )}
       </>
     );
-    const cls = `flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm ${compact ? 'justify-center' : ''} ${active && exists ? 'bg-(--color-nav-active) font-semibold text-(--color-on-nav-active)' : exists ? 'text-(--color-link) hover:bg-(--color-surface-muted)' : 'text-(--color-ink-muted)'}`;
-    return exists ? (
+    const cls = `flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm ${compact ? 'justify-center' : ''} ${active && exists && !locked ? 'bg-(--color-nav-active) font-semibold text-(--color-on-nav-active)' : exists && !locked ? 'text-(--color-link) hover:bg-(--color-surface-muted)' : 'text-(--color-ink-muted)'}`;
+    return exists && !locked ? (
       <Link
         key={item.id}
         href={item.path}
@@ -117,7 +137,7 @@ export function Sidebar({
       <span
         key={item.id}
         aria-disabled="true"
-        title={`${label} — ${title('soon', 'Скоро')}`}
+        title={`${label} — ${locked ? (visionReady === null ? 'Проверяем анкету' : 'Сначала заполните анкету') : title('soon', 'Скоро')}`}
         className={cls}
       >
         {content}
@@ -206,7 +226,13 @@ export function Sidebar({
                       {compact ? '' : 'Не подключён'}
                     </span>
                   ) : (
-                    group.children.map((item) => renderItem(item, true))
+                    group.children.map((item) => group.id === 'vision' ? (
+                      <div key={item.id}>
+                        {renderItem(item, true)}
+                        {item.id === 'vision_quiz' && visionReady === true && <div className={compact ? '' : 'ml-4'}>{renderItem({id:'vision_profile',label:'Профиль бренда',icon:'UserRound',path:'/vision/profile',permission:'vision.quiz.write'}, true)}</div>}
+                        {item.id === 'vision_report' && <div className={compact ? '' : 'ml-4'}>{renderItem({id:'vision_publications',label:'Публикации',icon:'Share2',path:'/vision/publications',permission:'vision.measure.read'}, true)}</div>}
+                      </div>
+                    ) : renderItem(item, true))
                   )}
                 </div>
               )}
@@ -229,3 +255,9 @@ export function Sidebar({
     </div>
   );
 }
+
+
+
+
+
+
