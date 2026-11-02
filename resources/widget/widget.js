@@ -55,9 +55,10 @@
     root.append(panel, button); document.body.append(host);
     const mask = data.behavior.page_mask; const matches = !mask || new RegExp('^' + mask.split('*').map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('.*') + '$').test(location.pathname);
     let invited = false; const storageKey = 'souzpir-widget-invitation-' + key;
-    const invite = () => { if (!matches || invited || !panel.hidden) return; let previous = 0; try { previous = Number(localStorage.getItem(storageKey)) || 0; } catch {} const hours = Number(data.behavior.repeat_hours) || 24; if (Date.now() - previous < hours * 3600000) return; invited = true; try { localStorage.setItem(storageKey, String(Date.now())); } catch {} message.textContent = data.behavior.invitation; open(); };
+    const invite = () => { if (!matches || invited || !panel.hidden) return; let previous = 0; try { previous = Number(localStorage.getItem(storageKey)) || 0; } catch { /* Хранилище может быть недоступно. */ } const hours = Number(data.behavior.repeat_hours) || 24; if (Date.now() - previous < hours * 3600000) return; invited = true; try { localStorage.setItem(storageKey, String(Date.now())); } catch { /* Хранилище может быть недоступно. */ } message.textContent = data.behavior.invitation; open(); };
     if (Number.isInteger(data.behavior.delay_seconds) && data.behavior.delay_seconds > 0) setTimeout(invite, data.behavior.delay_seconds * 1000);
     if (Number.isInteger(data.behavior.scroll_percent) && data.behavior.scroll_percent > 0) { const onScroll = () => { const total = document.documentElement.scrollHeight - innerHeight; if (total > 0 && 100 * scrollY / total >= data.behavior.scroll_percent) { removeEventListener('scroll', onScroll); invite(); } }; addEventListener('scroll', onScroll, { passive: true }); }
     if (data.behavior.exit_intent) { const onExit = event => { if (event.clientY <= 0) { removeEventListener('mouseout', onExit); invite(); } }; addEventListener('mouseout', onExit); }
   }).catch(() => {});
 })();
+
