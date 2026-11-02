@@ -4410,7 +4410,9 @@
         "SP-E6-03B",
         "SP-E6-03C",
         "SP-E7-01B",
-        "SP-E7-01C"
+        "SP-E7-01C",
+        "SP-E7-04B",
+        "SP-E7-04C"
       ],
       "scope": [
         "docs/validation/acceptance.md",
@@ -4541,6 +4543,7 @@
       ],
       "scope": [
         "app/Seller/Channels/Telegram/",
+        "resources/js/pages/Seller/Channels/Telegram/",
         "routes/features/E5-01.php",
         "tests/Feature/Seller/Channels/Telegram/",
         "tests/Unit/Seller/Channels/Telegram/",
@@ -4568,7 +4571,7 @@
       ],
       "promptPath": "docs/tasks/SP-E5-01C.md",
       "wave": 10,
-      "description": "# SP-E5-01C · Telegram: подключение seller runtime\n\n**Размер:** 1–3 часа; функциональный остаток, не сверх ТЗ.\n\n**Зачем:** Backlog E5-01 и экраны D-9.1, D-9.5; обязательный остаток после частичной сдачи SP-E5-01.\n\n**Часть чего:** SP-E5-01. После C функционального остатка SP-E5-01 нет; живой адрес вебхука — настройка выкладки.\n\nЗависимости: SP-E5-01B, SP-E3-09.\n\nScope: `app/Seller/Channels/Telegram/`, `routes/features/E5-01.php`, `tests/Feature/Seller/Channels/Telegram/`, `tests/Unit/Seller/Channels/Telegram/`, `docs/results/SP-E5-01C.md`. Сгенерированные типы разрешены общим правилом.\n\nПодключить входящие Telegram-сообщения к защищённому seller runtime, а ответы и менеджерские события — к транспорту B.\n\nПриёмка: Fake/HTTP: входящий ход, повтор update_id, исходящий ответ, чужой бренд и выключенный бот. Живые внешние вызовы в тестах запрещены.\n\nЧужие модули не менять; итоговый отчёт до 30 строк с тестами, долгом и решениями.\n"
+      "description": "# SP-E5-01C · Telegram: подключение seller runtime\n\n**Размер:** 1–3 часа; функциональный остаток, не сверх ТЗ.\n\n**Зачем:** Backlog E5-01 и экраны D-9.1, D-9.5; обязательный остаток после частичной сдачи SP-E5-01.\n\n**Часть чего:** SP-E5-01. После C функционального остатка SP-E5-01 нет; живой адрес вебхука — настройка выкладки.\n\nЗависимости: SP-E5-01B, SP-E3-09.\n\nScope: `app/Seller/Channels/Telegram/`, `resources/js/pages/Seller/Channels/Telegram/`, `routes/features/E5-01.php`, `tests/Feature/Seller/Channels/Telegram/`, `tests/Unit/Seller/Channels/Telegram/`, `docs/results/SP-E5-01C.md`. Сгенерированные типы разрешены общим правилом.\n\nПодключить входящие Telegram-сообщения к защищённому seller runtime, а ответы и менеджерские события — к транспорту B. Добавить кнопку регистрации вебхука к существующим настройкам, используя endpoint B.\n\nПриёмка: Fake/HTTP: входящий ход, повтор update_id, исходящий ответ, чужой бренд и выключенный бот. Живые внешние вызовы в тестах запрещены.\n\nЧужие модули не менять; итоговый отчёт до 30 строк с тестами, долгом и решениями.\n"
     },
     {
       "taskKey": "SP-E5-02B",
@@ -4710,6 +4713,7 @@
       ],
       "scope": [
         "app/Seller/Channels/Api/",
+        "resources/js/pages/Seller/Channels/Api/",
         "routes/features/E5-03.php",
         "tests/Feature/Seller/Channels/Api/",
         "tests/Unit/Seller/Channels/Api/",
@@ -4736,7 +4740,7 @@
       ],
       "promptPath": "docs/tasks/SP-E5-03C.md",
       "wave": 10,
-      "description": "# SP-E5-03C · API-канал: защищённые open и turn\n\n**Размер:** 1–3 часа; функциональный остаток, не сверх ТЗ.\n\n**Зачем:** Backlog E5-03 и экраны D-9.9; обязательный остаток после частичной сдачи SP-E5-03.\n\n**Часть чего:** SP-E5-03. После C функционального остатка SP-E5-03 нет.\n\nЗависимости: SP-E5-03B, SP-E3-08.\n\nScope: `app/Seller/Channels/Api/`, `routes/features/E5-03.php`, `tests/Feature/Seller/Channels/Api/`, `tests/Unit/Seller/Channels/Api/`, `docs/results/SP-E5-03C.md`. Сгенерированные типы разрешены общим правилом.\n\nЗаменить 503 для open и POST /api/v1/turn на token-scoped вызовы защищённого seller runtime.\n\nПриёмка: Fake/HTTP: open, turn, повтор, чужой бренд, отзыв токена и отказ runtime; журнал без секретов. Живые внешние вызовы в тестах запрещены.\n\nЧужие модули не менять; итоговый отчёт до 30 строк с тестами, долгом и решениями.\n"
+      "description": "# SP-E5-03C · API-канал: защищённые open и turn\n\n**Размер:** 1–3 часа; функциональный остаток, не сверх ТЗ.\n\n**Зачем:** Backlog E5-03 и экраны D-9.9; обязательный остаток после частичной сдачи SP-E5-03.\n\n**Часть чего:** SP-E5-03. После C функционального остатка SP-E5-03 нет.\n\nЗависимости: SP-E5-03B, SP-E3-08.\n\nScope: `app/Seller/Channels/Api/`, `resources/js/pages/Seller/Channels/Api/`, `routes/features/E5-03.php`, `tests/Feature/Seller/Channels/Api/`, `tests/Unit/Seller/Channels/Api/`, `docs/results/SP-E5-03C.md`. Сгенерированные типы разрешены общим правилом.\n\nЗаменить 503 для open и POST /api/v1/turn на token-scoped вызовы защищённого seller runtime. Добавить ссылку на журнал ошибок B к существующим настройкам API.\n\nПриёмка: Fake/HTTP: open, turn, повтор, чужой бренд, отзыв токена и отказ runtime; журнал без секретов. Живые внешние вызовы в тестах запрещены.\n\nЧужие модули не менять; итоговый отчёт до 30 строк с тестами, долгом и решениями.\n"
     },
     {
       "taskKey": "SP-E9-04",
@@ -4906,7 +4910,9 @@
         "SP-E6-03B",
         "SP-E6-03C",
         "SP-E7-01B",
-        "SP-E7-01C"
+        "SP-E7-01C",
+        "SP-E7-04B",
+        "SP-E7-04C"
       ],
       "scope": [
         "README.md",
@@ -7656,6 +7662,88 @@
       "promptPath": "docs/tasks/SP-E7-01C.md",
       "wave": 11,
       "description": "# SP-E7-01C · Переходы от доклада к оценке и знаниям\n\n**Размер:** 1–3 часа; функциональный остаток, не сверх ТЗ.\n\n**Зачем:** Backlog E7-01, экраны D-7.2/D-7.3 и D-4.2: из доклада можно открыть оценку и предложение для знаний.\n\n**Часть чего:** SP-E7-01. После B эта C закрывает видимые переходы; новых продолжений E7-01 не будет.\n\nЗависимости: SP-E7-01B, SP-E4-01C.\n\nScope: `app/Seller/Quality/`, `resources/js/pages/Seller/Quality/`, `tests/Feature/Seller/Quality/`, `tests/Browser/E7-01/`, `docs/results/SP-E7-01C.md`. Сгенерированные типы разрешены общим правилом.\n\nДобавить открытие оценки в панели D-7.3 и переход к предложению D-4.2 через существующие маршруты. Чужой экран D-2.2 и модуль знаний не менять; при необходимости передать владельцу точный навигационный hook.\n\nПриёмка: HTTP/browser переходы, права, чужой бренд, пустая оценка. Итоговый отчёт до 30 строк.\n"
+    },
+    {
+      "taskKey": "SP-E7-04B",
+      "title": "SP-E7-04B · Историческая воронка и источники",
+      "goal": "Backlog E7-04, экраны D-8.1 и D-8.4: конверсии должны считаться по реальным переходам воронки и источникам обращений.",
+      "dependsOn": [
+        "SP-E7-04",
+        "SP-E3-09"
+      ],
+      "scope": [
+        "app/Seller/Analytics/",
+        "app/Seller/Runtime/",
+        "database/migrations/E7-04B/",
+        "resources/js/pages/Seller/Analytics/",
+        "routes/features/E7-04.php",
+        "tests/Feature/Seller/Analytics/",
+        "tests/Browser/E7-04/",
+        "docs/results/SP-E7-04B.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "fake/feature переходы и конверсии, фильтры, границы периода и изоляция бренда; экран D-8.1/D-8.4. Итоговый отчёт до 30 строк."
+      ],
+      "sourceIds": [
+        "E7-04"
+      ],
+      "screenIds": [
+        "D-8.1",
+        "D-8.4"
+      ],
+      "notes": "Continuation of SP-E7-04; 1–3 hours; no further than C.",
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/contracts/",
+        "docs/sources/10_backlog.md",
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02c_discrepancies.md",
+        "docs/sources/04c_settings_paths.md"
+      ],
+      "promptPath": "docs/tasks/SP-E7-04B.md",
+      "wave": 11,
+      "description": "# SP-E7-04B · Историческая воронка и источники\n\n**Размер:** 1–3 часа; функциональный остаток, не сверх ТЗ.\n\n**Зачем:** Backlog E7-04, экраны D-8.1 и D-8.4: конверсии должны считаться по реальным переходам воронки и источникам обращений.\n\n**Часть чего:** SP-E7-04. После B остаётся SP-E7-04C — детали и PDF отчёты D-8.2/D-8.3/D-8.6.\n\nЗависимости: SP-E7-04, SP-E3-09.\n\nScope: `app/Seller/Analytics/`, `app/Seller/Runtime/`, `database/migrations/E7-04B/`, `resources/js/pages/Seller/Analytics/`, `routes/features/E7-04.php`, `tests/Feature/Seller/Analytics/`, `tests/Browser/E7-04/`, `docs/results/SP-E7-04B.md`. Сгенерированные типы разрешены общим правилом.\n\nСохранить события перехода стадии в runtime и считать историческую воронку/конверсии по ним. Показать фильтры каналов и доступных источников/UTM; неизвестный источник выделить явно, не выдумывать значения. Не менять чужие модули.\n\nПриёмка: fake/feature переходы и конверсии, фильтры, границы периода и изоляция бренда; экран D-8.1/D-8.4. Итоговый отчёт до 30 строк.\n"
+    },
+    {
+      "taskKey": "SP-E7-04C",
+      "title": "SP-E7-04C · Детальные отчёты и PDF аналитики",
+      "goal": "Backlog E7-04, экраны D-8.2, D-8.3 и D-8.6: из сводки открываются детали диалогов и тем, отчёт доступен в PDF.",
+      "dependsOn": [
+        "SP-E7-04B"
+      ],
+      "scope": [
+        "app/Seller/Analytics/",
+        "resources/js/pages/Seller/Analytics/",
+        "routes/features/E7-04.php",
+        "tests/Feature/Seller/Analytics/",
+        "tests/Browser/E7-04/",
+        "docs/results/SP-E7-04C.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "HTTP/browser детализация и PDF, пустой период, неверный фильтр, чужой бренд; экраны D-8.2/D-8.3/D-8.6. Итоговый отчёт до 30 строк."
+      ],
+      "sourceIds": [
+        "E7-04"
+      ],
+      "screenIds": [
+        "D-8.2",
+        "D-8.3",
+        "D-8.6"
+      ],
+      "notes": "Continuation of SP-E7-04; 1–3 hours; no further than C.",
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/contracts/",
+        "docs/sources/10_backlog.md",
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02c_discrepancies.md",
+        "docs/sources/04c_settings_paths.md"
+      ],
+      "promptPath": "docs/tasks/SP-E7-04C.md",
+      "wave": 12,
+      "description": "# SP-E7-04C · Детальные отчёты и PDF аналитики\n\n**Размер:** 1–3 часа; функциональный остаток, не сверх ТЗ.\n\n**Зачем:** Backlog E7-04, экраны D-8.2, D-8.3 и D-8.6: из сводки открываются детали диалогов и тем, отчёт доступен в PDF.\n\n**Часть чего:** SP-E7-04. После B эта C закрывает оставшиеся экраны аналитики; новых продолжений E7-04 не будет.\n\nЗависимости: SP-E7-04B.\n\nScope: `app/Seller/Analytics/`, `resources/js/pages/Seller/Analytics/`, `routes/features/E7-04.php`, `tests/Feature/Seller/Analytics/`, `tests/Browser/E7-04/`, `docs/results/SP-E7-04C.md`. Сгенерированные типы разрешены общим правилом.\n\nДетализировать реальные диалоги, темы и вопросы за выбранный период; дать переходы из сводки. Экспортировать тот же набор и фильтры в PDF без живых сервисов; права и изоляция бренда обязательны.\n\nПриёмка: HTTP/browser детализация и PDF, пустой период, неверный фильтр, чужой бренд; экраны D-8.2/D-8.3/D-8.6. Итоговый отчёт до 30 строк.\n"
     }
   ],
   "excludedSourceTasks": {
