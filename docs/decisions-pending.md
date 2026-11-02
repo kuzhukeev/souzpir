@@ -423,3 +423,4 @@ SP-E1-08B ожидает SP-E1-08: оба меняют профиль, а исх
 - SP-E4-06: Первая страница XLSX; до 100 строк по 500 символов; для сохранения нужна созданная группа фактов.
 - 2026-11-02: ExportCleanupTest verifies the bounded cleanup result across up to five cursor passes; this matches the persisted-cursor contract and addresses the ShellCore main flake observed on 056b5a94.
 - SP-E6-02: Пустой текст хранится пустым и предназначен для стандартной генерации после подключения runtime; лимит поля 1000 символов.
+- SP-E7-03: Счётчики сравнивают только критерии с числовыми оценками в обоих прогонах; отсутствующие отображаются без дельты.
