@@ -13,7 +13,7 @@ window.fetch = (input, init) => {
   if (typeof input === 'string' && input.startsWith('/vision/report/data')) return Promise.resolve(new Response(JSON.stringify({
     revision, confirmed: empty ? [] : [{ measurement_id: '01J00000000000000000000005', confirmed_at: '2026-10-20T12:30:00Z' }],
     reports: empty ? [] : [{ id: '01J00000000000000000000006', measurement_id: '01J00000000000000000000005', revision: 1, created_at: '2026-10-20T12:30:00Z' }],
-    report: empty ? null : { id: '01J00000000000000000000006', measurement_id: '01J00000000000000000000005', visibility: 34, visibility_kind: 'available', coverage: 50, share_of_voice: null, position: 2.4, verified_errors: null, questions: 8, evidence_status: 'available', providers: [{ name: 'gemini', mention_rate: 34, coverage: 100 }, { name: 'chatgpt', mention_rate: null, coverage: 0 }] },
+    report: empty ? null : { id: '01J00000000000000000000006', measurement_id: '01J00000000000000000000005', visibility: 34, visibility_kind: 'available', coverage: 50, share_of_voice: null, position: 2.4, verified_errors: null, questions: 8, evidence_status: 'available', providers: [{ name: 'gemini', mention_rate: 34, coverage: 100 }, { name: 'chatgpt', mention_rate: null, coverage: 0 }], sections: { competitors: [{ name: 'Северные огни', answers: 4, is_brand: true }, { name: 'Искра', answers: 2, is_brand: false }], gaps: [{ text: 'Где купить фейерверк?', intent: 'buy' }], facts: [], sources: [{ domain: 'example.test', answers: 2 }], actions: [{ title: 'Уточнить условия доставки', why: 'В ответах не хватает подтверждённых сведений.' }], changes: null } },
   }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
   return originalFetch(input, init);
 };

@@ -11,7 +11,7 @@ const percent = (value: number | null) => value === null ? 'Недостаточ
 const number = (value: number | null) => value === null ? 'Недостаточно данных' : value.toLocaleString('ru-RU');
 
 export default function Index({ reportBrandRevision, status }: { reportBrandRevision: string; status?: string | null }) {
-  const { brand, can, url } = usePage<{ brand: { id: string } | null; can: Record<string, boolean>; url: string }>().props;
+  const { brand, can } = usePage<{ brand: { id: string } | null; can: Record<string, boolean> }>().props;
   const brandId = brand?.id ?? '';
   const [selected, setSelected] = useState(() => new URLSearchParams(window.location.search).get('report'));
   const [epoch, setEpoch] = useState(0);
