@@ -4403,7 +4403,14 @@
         "SP-E8-05B",
         "SP-E8-05C",
         "SP-E8-06",
-        "SP-E8-07"
+        "SP-E8-07",
+        "SP-E4-01B",
+        "SP-E4-01C",
+        "SP-E5-07B",
+        "SP-E6-03B",
+        "SP-E6-03C",
+        "SP-E7-01B",
+        "SP-E7-01C"
       ],
       "scope": [
         "docs/validation/acceptance.md",
@@ -4892,7 +4899,14 @@
         "SP-E5-02B",
         "SP-E5-02C",
         "SP-E5-03B",
-        "SP-E5-03C"
+        "SP-E5-03C",
+        "SP-E4-01B",
+        "SP-E4-01C",
+        "SP-E5-07B",
+        "SP-E6-03B",
+        "SP-E6-03C",
+        "SP-E7-01B",
+        "SP-E7-01C"
       ],
       "scope": [
         "README.md",
@@ -7367,6 +7381,281 @@
       "promptPath": "docs/tasks/SP-E6-06C.md",
       "wave": 9,
       "description": "# SP-E6-06C · Устойчивое распределение менеджеров\n\n**Размер:** 1–3 часа. **Зачем:** закрыть оставшиеся правила распределения D-11.2 из SP-E6-06.\n\n**Часть чего:** финальный остаток SP-E6-06 после SP-E6-06B; дальнейших продолжений E6-06 не создавать.\n\n**Зависимости:** SP-E6-06B в done.\n\n**Scope:** `app/Seller/Settings/Schedule/`, `database/migrations/E6-06/`, `tests/Feature/Seller/Settings/Schedule/`, `tests/Unit/Seller/Settings/Schedule/`, `docs/results/SP-E6-06C.md`.\n\nСохранять позицию кругового распределения по бренду и завершить режимы первого взявшего/фиксированного менеджера с проверкой активного назначения и лимита. Тесты — последовательный выбор, смена бренда, недоступный менеджер и повтор.\n"
+    },
+    {
+      "taskKey": "SP-E4-01B",
+      "title": "SP-E4-01B · Сравнение релизов знаний",
+      "goal": "Backlog E4-01, экран D-4.12: сравнение двух релизов перед публикацией и после отката.",
+      "dependsOn": [
+        "SP-E4-01"
+      ],
+      "scope": [
+        "app/Seller/Knowledge/Releases/",
+        "resources/js/pages/Seller/Knowledge/Releases/",
+        "routes/features/E4-01.php",
+        "tests/Feature/Seller/Knowledge/Releases/",
+        "tests/Browser/E4-01/",
+        "docs/results/SP-E4-01B.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "HTTP/feature сравнение, пустые и отличающиеся релизы, недоступный чужой бренд; экран D-4.12. Итоговый отчёт до 30 строк."
+      ],
+      "sourceIds": [
+        "E4-01"
+      ],
+      "screenIds": [
+        "D-4.12"
+      ],
+      "notes": "Continuation of SP-E4-01; 1–3 hours; no further than C.",
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/contracts/",
+        "docs/sources/10_backlog.md",
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02c_discrepancies.md",
+        "docs/sources/04c_settings_paths.md"
+      ],
+      "promptPath": "docs/tasks/SP-E4-01B.md",
+      "wave": 10,
+      "description": "# SP-E4-01B · Сравнение релизов знаний\n\n**Размер:** 1–3 часа; функциональный остаток, не сверх ТЗ.\n\n**Зачем:** Backlog E4-01, экран D-4.12: сравнение двух релизов перед публикацией и после отката.\n\n**Часть чего:** SP-E4-01. После B остаётся SP-E4-01C — применение входящих предложений D-4.2.\n\nЗависимости: SP-E4-01.\n\nScope: `app/Seller/Knowledge/Releases/`, `resources/js/pages/Seller/Knowledge/Releases/`, `routes/features/E4-01.php`, `tests/Feature/Seller/Knowledge/Releases/`, `tests/Browser/E4-01/`, `docs/results/SP-E4-01B.md`. Сгенерированные типы разрешены общим правилом.\n\nПоказать сравнение реальных снимков релизов по фактам, условиям, темам и образцам с правами и изоляцией бренда. Не менять содержимое релизов при просмотре.\n\nПриёмка: HTTP/feature сравнение, пустые и отличающиеся релизы, недоступный чужой бренд; экран D-4.12. Итоговый отчёт до 30 строк.\n"
+    },
+    {
+      "taskKey": "SP-E4-01C",
+      "title": "SP-E4-01C · Действия со входящими предложениями знаний",
+      "goal": "Backlog E4-01, экран D-4.2: неизвестный вопрос, неверный факт и предложение из доклада можно применить к черновику.",
+      "dependsOn": [
+        "SP-E4-01B",
+        "SP-E4-02",
+        "SP-E4-03",
+        "SP-E4-08"
+      ],
+      "scope": [
+        "app/Seller/Knowledge/Releases/",
+        "resources/js/pages/Seller/Knowledge/Releases/",
+        "routes/features/E4-01.php",
+        "tests/Feature/Seller/Knowledge/Releases/",
+        "tests/Browser/E4-01/",
+        "docs/results/SP-E4-01C.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "HTTP/feature принятие и отказ, 409 при устаревшей версии, экран D-4.2. Итоговый отчёт до 30 строк."
+      ],
+      "sourceIds": [
+        "E4-01"
+      ],
+      "screenIds": [
+        "D-4.2"
+      ],
+      "notes": "Continuation of SP-E4-01; 1–3 hours; no further than C.",
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/contracts/",
+        "docs/sources/10_backlog.md",
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02c_discrepancies.md",
+        "docs/sources/04c_settings_paths.md"
+      ],
+      "promptPath": "docs/tasks/SP-E4-01C.md",
+      "wave": 11,
+      "description": "# SP-E4-01C · Действия со входящими предложениями знаний\n\n**Размер:** 1–3 часа; функциональный остаток, не сверх ТЗ.\n\n**Зачем:** Backlog E4-01, экран D-4.2: неизвестный вопрос, неверный факт и предложение из доклада можно применить к черновику.\n\n**Часть чего:** SP-E4-01. После B сравнения релизов эта C закрывает остаток D-4.2; новых продолжений E4-01 не будет.\n\nЗависимости: SP-E4-01B, SP-E4-02, SP-E4-03, SP-E4-08.\n\nScope: `app/Seller/Knowledge/Releases/`, `resources/js/pages/Seller/Knowledge/Releases/`, `routes/features/E4-01.php`, `tests/Feature/Seller/Knowledge/Releases/`, `tests/Browser/E4-01/`, `docs/results/SP-E4-01C.md`. Сгенерированные типы разрешены общим правилом.\n\nИспользовать существующие API черновика фактов, условий и образцов; не менять чужие модули. Проверить версию черновика, права и изоляцию бренда, пометить обработанное предложение.\n\nПриёмка: HTTP/feature принятие и отказ, 409 при устаревшей версии, экран D-4.2. Итоговый отчёт до 30 строк.\n"
+    },
+    {
+      "taskKey": "SP-E5-07B",
+      "title": "SP-E5-07B · Доставка прайса из защищённого send_price",
+      "goal": "Backlog E5-07, экран D-9.8: настроенный отправитель должен доставлять реальный прайс-файл через защищённый инструмент, а при отказе создавать задачу менеджеру.",
+      "dependsOn": [
+        "SP-E5-07",
+        "SP-E3-09"
+      ],
+      "scope": [
+        "app/Seller/Channels/Email/",
+        "app/Seller/Runtime/",
+        "tests/Feature/Seller/Channels/Email/",
+        "tests/Feature/Seller/Runtime/",
+        "resources/js/pages/Seller/Channels/Email/",
+        "docs/results/SP-E5-07B.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Mail::fake и HTTP/feature на успех, выключение и отказ; никаких живых отправок. Итоговый отчёт до 30 строк."
+      ],
+      "sourceIds": [
+        "E5-07"
+      ],
+      "screenIds": [
+        "D-9.8"
+      ],
+      "notes": "Continuation of SP-E5-07; 1–3 hours; no further than C.",
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/contracts/",
+        "docs/sources/10_backlog.md",
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02c_discrepancies.md",
+        "docs/sources/04c_settings_paths.md"
+      ],
+      "promptPath": "docs/tasks/SP-E5-07B.md",
+      "wave": 11,
+      "description": "# SP-E5-07B · Доставка прайса из защищённого send_price\n\n**Размер:** 1–3 часа; функциональный остаток, не сверх ТЗ.\n\n**Зачем:** Backlog E5-07, экран D-9.8: настроенный отправитель должен доставлять реальный прайс-файл через защищённый инструмент, а при отказе создавать задачу менеджеру.\n\n**Часть чего:** SP-E5-07. Эта B закрывает интеграцию после настроек и PriceMailSender; других продолжений E5-07 не планируется.\n\nЗависимости: SP-E5-07, SP-E3-09.\n\nScope: `app/Seller/Channels/Email/`, `app/Seller/Runtime/`, `tests/Feature/Seller/Channels/Email/`, `tests/Feature/Seller/Runtime/`, `resources/js/pages/Seller/Channels/Email/`, `docs/results/SP-E5-07B.md`. Сгенерированные типы разрешены общим правилом.\n\nПодключить PriceMailSender к защищённому send_price, включить отправку только при валидных настройках и прайс-файле. Без отправителя, файла или при отказе оставить существующую задачу менеджеру. Добавить переход к настройкам из доступной навигации только через владельца навигации.\n\nПриёмка: Mail::fake и HTTP/feature на успех, выключение и отказ; никаких живых отправок. Итоговый отчёт до 30 строк.\n"
+    },
+    {
+      "taskKey": "SP-E6-03B",
+      "title": "SP-E6-03B · Редактор правил вне темы и негатива",
+      "goal": "Backlog E6-03, экран D-5.6: владелец бренда должен видеть и редактировать правила вне темы и негатива.",
+      "dependsOn": [
+        "SP-E6-03"
+      ],
+      "scope": [
+        "app/Seller/Settings/Policy/",
+        "resources/js/pages/Seller/Settings/Policy/",
+        "routes/features/E6-03.php",
+        "tests/Feature/Seller/Settings/Policy/",
+        "tests/Browser/E6-03/",
+        "docs/results/SP-E6-03B.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "HTTP/feature и экран D-5.6, сохранение/ошибка ввода/чужой бренд. Итоговый отчёт до 30 строк."
+      ],
+      "sourceIds": [
+        "E6-03"
+      ],
+      "screenIds": [
+        "D-5.6"
+      ],
+      "notes": "Continuation of SP-E6-03; 1–3 hours; no further than C.",
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/contracts/",
+        "docs/sources/10_backlog.md",
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02c_discrepancies.md",
+        "docs/sources/04c_settings_paths.md"
+      ],
+      "promptPath": "docs/tasks/SP-E6-03B.md",
+      "wave": 10,
+      "description": "# SP-E6-03B · Редактор правил вне темы и негатива\n\n**Размер:** 1–3 часа; функциональный остаток, не сверх ТЗ.\n\n**Зачем:** Backlog E6-03, экран D-5.6: владелец бренда должен видеть и редактировать правила вне темы и негатива.\n\n**Часть чего:** SP-E6-03. После B остаётся SP-E6-03C — подключение сохранённых правил к защищённому runtime.\n\nЗависимости: SP-E6-03.\n\nScope: `app/Seller/Settings/Policy/`, `resources/js/pages/Seller/Settings/Policy/`, `routes/features/E6-03.php`, `tests/Feature/Seller/Settings/Policy/`, `tests/Browser/E6-03/`, `docs/results/SP-E6-03B.md`. Сгенерированные типы разрешены общим правилом.\n\nРедактор работает с черновиком knowledge policy через существующий репозиторий; валидация, права и изоляция бренда. Runtime/Engine не менять в этой карточке.\n\nПриёмка: HTTP/feature и экран D-5.6, сохранение/ошибка ввода/чужой бренд. Итоговый отчёт до 30 строк.\n"
+    },
+    {
+      "taskKey": "SP-E6-03C",
+      "title": "SP-E6-03C · Правила вне темы и негатива в runtime",
+      "goal": "Backlog E6-03, экран D-5.6: сохранённые правила должны влиять на ответы продавца.",
+      "dependsOn": [
+        "SP-E6-03B",
+        "SP-E3-09"
+      ],
+      "scope": [
+        "app/Seller/Engine/Policy.php",
+        "app/Seller/Runtime/",
+        "tests/Feature/Seller/Runtime/",
+        "tests/Unit/Seller/Engine/",
+        "docs/results/SP-E6-03C.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "fake/feature на оба правила, отсутствие правила, изоляция брендов. Итоговый отчёт до 30 строк."
+      ],
+      "sourceIds": [
+        "E6-03"
+      ],
+      "screenIds": [
+        "D-5.6"
+      ],
+      "notes": "Continuation of SP-E6-03; 1–3 hours; no further than C.",
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/contracts/",
+        "docs/sources/10_backlog.md",
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02c_discrepancies.md",
+        "docs/sources/04c_settings_paths.md"
+      ],
+      "promptPath": "docs/tasks/SP-E6-03C.md",
+      "wave": 11,
+      "description": "# SP-E6-03C · Правила вне темы и негатива в runtime\n\n**Размер:** 1–3 часа; функциональный остаток, не сверх ТЗ.\n\n**Зачем:** Backlog E6-03, экран D-5.6: сохранённые правила должны влиять на ответы продавца.\n\n**Часть чего:** SP-E6-03. После редактора B эта C закрывает путь от настройки до поведения; новых продолжений E6-03 не будет.\n\nЗависимости: SP-E6-03B, SP-E3-09.\n\nScope: `app/Seller/Engine/Policy.php`, `app/Seller/Runtime/`, `tests/Feature/Seller/Runtime/`, `tests/Unit/Seller/Engine/`, `docs/results/SP-E6-03C.md`. Сгенерированные типы разрешены общим правилом.\n\nПередать опубликованные off_topic/negative правила в защищённый runtime и проверить, что выключенная/пустая настройка сохраняет прежнее поведение. Golden fixtures не менять ради тестов.\n\nПриёмка: fake/feature на оба правила, отсутствие правила, изоляция брендов. Итоговый отчёт до 30 строк.\n"
+    },
+    {
+      "taskKey": "SP-E7-01B",
+      "title": "SP-E7-01B · Отдельный источник supervisor-доклада",
+      "goal": "Backlog E7-01, экраны D-7.1 и D-7.2: доклад supervisor должен отличаться от оценок диалогов и симуляций.",
+      "dependsOn": [
+        "SP-E7-01",
+        "SP-E7-04"
+      ],
+      "scope": [
+        "app/Seller/Quality/",
+        "app/Seller/Evaluation/",
+        "database/migrations/E7-01B/",
+        "resources/js/pages/Seller/Quality/",
+        "tests/Feature/Seller/Quality/",
+        "tests/Unit/Seller/Quality/",
+        "docs/results/SP-E7-01B.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "fake/feature на запись, чтение и разделение источников, экран D-7.1/D-7.2. Итоговый отчёт до 30 строк."
+      ],
+      "sourceIds": [
+        "E7-01"
+      ],
+      "screenIds": [
+        "D-7.1",
+        "D-7.2"
+      ],
+      "notes": "Continuation of SP-E7-01; 1–3 hours; no further than C.",
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/contracts/",
+        "docs/sources/10_backlog.md",
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02c_discrepancies.md",
+        "docs/sources/04c_settings_paths.md"
+      ],
+      "promptPath": "docs/tasks/SP-E7-01B.md",
+      "wave": 10,
+      "description": "# SP-E7-01B · Отдельный источник supervisor-доклада\n\n**Размер:** 1–3 часа; функциональный остаток, не сверх ТЗ.\n\n**Зачем:** Backlog E7-01, экраны D-7.1 и D-7.2: доклад supervisor должен отличаться от оценок диалогов и симуляций.\n\n**Часть чего:** SP-E7-01. После B остаётся SP-E7-01C — переходы к оценке D-7.3 и предложениям D-4.2.\n\nЗависимости: SP-E7-01, SP-E7-04.\n\nScope: `app/Seller/Quality/`, `app/Seller/Evaluation/`, `database/migrations/E7-01B/`, `resources/js/pages/Seller/Quality/`, `tests/Feature/Seller/Quality/`, `tests/Unit/Seller/Quality/`, `docs/results/SP-E7-01B.md`. Сгенерированные типы разрешены общим правилом.\n\nЗаписать/прочитать supervisor-доклад отдельным типом или источником, показать его пять слоёв и группы проблем, не выдавая симуляции за доклады. Изоляция бренда и существующие оценки сохраняются.\n\nПриёмка: fake/feature на запись, чтение и разделение источников, экран D-7.1/D-7.2. Итоговый отчёт до 30 строк.\n"
+    },
+    {
+      "taskKey": "SP-E7-01C",
+      "title": "SP-E7-01C · Переходы от доклада к оценке и знаниям",
+      "goal": "Backlog E7-01, экраны D-7.2/D-7.3 и D-4.2: из доклада можно открыть оценку и предложение для знаний.",
+      "dependsOn": [
+        "SP-E7-01B",
+        "SP-E4-01C"
+      ],
+      "scope": [
+        "app/Seller/Quality/",
+        "resources/js/pages/Seller/Quality/",
+        "tests/Feature/Seller/Quality/",
+        "tests/Browser/E7-01/",
+        "docs/results/SP-E7-01C.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "HTTP/browser переходы, права, чужой бренд, пустая оценка. Итоговый отчёт до 30 строк."
+      ],
+      "sourceIds": [
+        "E7-01"
+      ],
+      "screenIds": [
+        "D-7.2",
+        "D-7.3",
+        "D-4.2"
+      ],
+      "notes": "Continuation of SP-E7-01; 1–3 hours; no further than C.",
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/contracts/",
+        "docs/sources/10_backlog.md",
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02c_discrepancies.md",
+        "docs/sources/04c_settings_paths.md"
+      ],
+      "promptPath": "docs/tasks/SP-E7-01C.md",
+      "wave": 11,
+      "description": "# SP-E7-01C · Переходы от доклада к оценке и знаниям\n\n**Размер:** 1–3 часа; функциональный остаток, не сверх ТЗ.\n\n**Зачем:** Backlog E7-01, экраны D-7.2/D-7.3 и D-4.2: из доклада можно открыть оценку и предложение для знаний.\n\n**Часть чего:** SP-E7-01. После B эта C закрывает видимые переходы; новых продолжений E7-01 не будет.\n\nЗависимости: SP-E7-01B, SP-E4-01C.\n\nScope: `app/Seller/Quality/`, `resources/js/pages/Seller/Quality/`, `tests/Feature/Seller/Quality/`, `tests/Browser/E7-01/`, `docs/results/SP-E7-01C.md`. Сгенерированные типы разрешены общим правилом.\n\nДобавить открытие оценки в панели D-7.3 и переход к предложению D-4.2 через существующие маршруты. Чужой экран D-2.2 и модуль знаний не менять; при необходимости передать владельцу точный навигационный hook.\n\nПриёмка: HTTP/browser переходы, права, чужой бренд, пустая оценка. Итоговый отчёт до 30 строк.\n"
     }
   ],
   "excludedSourceTasks": {
