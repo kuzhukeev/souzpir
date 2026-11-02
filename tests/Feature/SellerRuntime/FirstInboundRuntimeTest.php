@@ -179,8 +179,19 @@ final class FirstInboundRuntimeTest extends TestCase
         [$context, $request, $command] = $this->fixture('manager');
         $fake = new RuntimeFakeDriver;
         app()->instance(FakeDriver::class, $fake);
-        self::assertSame(['status' => 'suppressed'], $this->turn($context, $request, $command));
-        self::assertSame(['status' => 'suppressed'], $this->turn($context, $request, $command));
+        $first = $this->turn($context, $request, $command);
+        self::assertSame('suppressed', $first['status']);
+        self::assertSame(1, $first['version']);
+        self::assertSame($first, $this->turn($context, $request, $command));
+        $next = app(TenantContextRunner::class)->run($context, function () use ($command): TurnCommand {
+            $message = Message::create(['conversation_id' => $command->conversationId, 'role' => 'client', 'text' => 'Ещё вопрос', 'meta' => []]);
+
+            return new TurnCommand($command->conversationId, $message->id, $message->text, null, 'manager-next', 1);
+        });
+        $second = $this->turn($context, $request, $next);
+        self::assertSame('suppressed', $second['status']);
+        self::assertSame(2, $second['version']);
+        self::assertSame($first, $this->turn($context, $request, $command));
         $changed = new TurnCommand($command->conversationId, $command->inputMessageId, 'Подмена', null, $command->idempotencyKey, 0);
         self::assertSame(['status' => 'unavailable'], $this->turn($context, $request, $changed));
         $other = app(TenantContextRunner::class)->run($context, fn () => Brand::create(['name' => 'Other', 'timezone' => 'Europe/Moscow']));
@@ -202,7 +213,7 @@ final class FirstInboundRuntimeTest extends TestCase
         $request->attributes->set('tenant.brand_revision', 'stale');
         self::assertSame(['status' => 'unavailable'], $this->turn($context, $request, $command));
         self::assertSame(0, $fake->calls);
-        self::assertSame(0, DB::table('seller_turns')->count());
+        self::assertSame(2, DB::table('seller_turns')->where('status', 'suppressed')->count());
     }
 
     public function test_viewer_and_wrong_brand_do_not_start_ai(): void

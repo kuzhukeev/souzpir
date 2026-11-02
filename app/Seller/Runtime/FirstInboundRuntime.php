@@ -6,7 +6,12 @@ use App\Contracts\ProtectedOperations\IdempotencyConflict;
 use App\Models\Membership;
 use App\Models\User;
 use App\ProtectedOperations\FirstTurnCoordinator;
+use App\Seller\Conversations\CanonicalJson;
+use App\Seller\Conversations\Contracts\ConversationRepository;
 use App\Seller\Conversations\Data\TurnCommand;
+use App\Seller\Conversations\Data\TurnOutcome;
+use App\Shell\Audit\AuditEntry;
+use App\Shell\Audit\Contracts\AuditWriter;
 use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Auth\SessionBrandSelection;
 use App\Shell\Organizations\ModuleEntitlements;
@@ -28,7 +33,7 @@ final class FirstInboundRuntime
                 || ! Str::isUlid($command->inputMessageId) || $command->idempotencyKey === '' || strlen($command->idempotencyKey) > 512) {
                 return ['status' => 'unavailable'];
             }
-            $mode = app(AuthSessionRegistry::class)->withinActive($http, function (User $user) use ($http, $command): string {
+            $dispatch = app(AuthSessionRegistry::class)->withinActive($http, function (User $user) use ($http, $command): array {
                 $tenant = app(TenantContext::class);
                 $selection = app(SessionBrandSelection::class)->current($http);
                 $revision = $http->attributes->get('tenant.brand_revision');
@@ -53,16 +58,16 @@ final class FirstInboundRuntime
                     || $message->external_event_id !== $command->externalEventId) {
                     throw new \LogicException;
                 }
-                if ($conversation->mode === 'manager' && $command->expectedVersion !== (int) $conversation->version) {
-                    throw new \LogicException;
+                if ($conversation->mode === 'manager') {
+                    return ['mode' => 'manager', 'result' => $this->suppressManagerTurn($tenant, $command)];
                 }
 
-                return $conversation->mode;
+                return ['mode' => $conversation->mode];
             });
-            if ($mode === 'manager') {
-                return ['status' => 'suppressed'];
+            if ($dispatch['mode'] === 'manager') {
+                return $dispatch['result'];
             }
-            if ($mode !== 'bot') {
+            if ($dispatch['mode'] !== 'bot') {
                 return ['status' => 'unavailable'];
             }
 
@@ -72,5 +77,50 @@ final class FirstInboundRuntime
         } catch (Throwable) {
             return ['status' => 'unavailable'];
         }
+    }
+
+    private function suppressManagerTurn(#[SensitiveParameter] TenantContext $tenant, #[SensitiveParameter] TurnCommand $command): array
+    {
+        if (DB::connection()->transactionLevel() < 1 || ! $tenant->organizationId || ! $tenant->brandId) {
+            throw new \LogicException;
+        }
+        $claim = app(ConversationRepository::class)->claimTurn($tenant, $command);
+        if ($claim->status === 'finished') {
+            if (($claim->outcome['status'] ?? null) !== 'suppressed') {
+                throw new \LogicException;
+            }
+
+            return ['status' => 'suppressed', 'turn_id' => $claim->turnId, 'version' => $claim->baseVersion + 1];
+        }
+        if (in_array($claim->status, ['in_progress', 'uncertain'], true)) {
+            return ['status' => $claim->status];
+        }
+        if ($claim->status !== 'claimed' || ! is_string($claim->token())) {
+            throw new \LogicException;
+        }
+        $conversation = DB::table('conversations')->where('id', $claim->conversationId)->where('organization_id', $tenant->organizationId)
+            ->where('brand_id', $tenant->brandId)->lockForUpdate()->first();
+        $turn = DB::table('seller_turns')->where('id', $claim->turnId)->where('organization_id', $tenant->organizationId)
+            ->where('brand_id', $tenant->brandId)->where('conversation_id', $claim->conversationId)->lockForUpdate()->first();
+        if (! $conversation || ! $turn || $conversation->mode !== 'manager' || $turn->status !== 'processing'
+            || (int) $conversation->version !== $claim->baseVersion || ! hash_equals($turn->claim_hash, hash('sha256', $claim->token()))
+            || ! $conversation->history_ready || (string) $turn->base_history_revision !== (string) $conversation->history_revision
+            || (string) $turn->cutoff_sequence !== (string) $conversation->history_sequence || $turn->input_message_id !== $command->inputMessageId) {
+            throw new \LogicException;
+        }
+        $state = json_decode($conversation->state, true, 512, JSON_THROW_ON_ERROR);
+        if (! is_array($state)) {
+            throw new \LogicException;
+        }
+        $outcome = new TurnOutcome($claim->turnId, $claim->conversationId, 'suppressed', $claim->baseVersion + 1, null, null, null, [], $state);
+        $data = $outcome->toArray();
+        DB::table('seller_turns')->where('id', $claim->turnId)->update(['status' => 'suppressed',
+            'outcome' => json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR),
+            'outcome_hash' => CanonicalJson::hash($data), 'updated_at' => now()]);
+        DB::table('conversations')->where('id', $claim->conversationId)->where('organization_id', $tenant->organizationId)
+            ->where('brand_id', $tenant->brandId)->update(['version' => $claim->baseVersion + 1, 'updated_at' => now()]);
+        app(AuditWriter::class)->record($tenant, new AuditEntry('seller.turn.suppressed', 'seller_turn', $claim->turnId));
+
+        return ['status' => 'suppressed', 'turn_id' => $claim->turnId, 'version' => $claim->baseVersion + 1];
     }
 }
