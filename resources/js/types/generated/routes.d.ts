@@ -645,6 +645,7 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "vision.trends.index": [],
     "dev.design-system": [],
     "preview.login": [],
     "preview.attention": []
