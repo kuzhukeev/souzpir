@@ -32,7 +32,7 @@ test('реальные сохранённые замеры текущего бр
     '/vision/runs',
   );
   await expect(page.getByText(alpha).first()).toBeVisible();
-  await expect(page.getByText('Детали и результаты будут доступны позже.')).toBeVisible();
+  await expect(page.getByText('Ответы и слоты').first()).toBeVisible();
   await expect(page.getByText(beta)).toHaveCount(0);
   await expect(page.getByText('01J00000000000000000000011')).toHaveCount(0);
   await expect(page.getByText('01J00000000000000000000033')).toHaveCount(0);

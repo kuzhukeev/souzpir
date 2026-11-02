@@ -8,12 +8,17 @@ import {
 } from '@/features/Shell/Profile/contextFence';
 
 type Row = {
+  id: string;
+  status: string;
   created_at: string;
+  answers?: { question_n: number; provider: string; requested_model: string; run_no: number; status: string; answer_text: string | null; error_code: string | null }[];
 };
 type Listing = { revision: string; data: Row[]; page: number; last_page: number; total: number };
 const button =
   'min-h-11 cursor-pointer rounded-lg border border-(--color-border) px-4 text-sm font-semibold text-(--color-link) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus) disabled:cursor-not-allowed disabled:opacity-50';
 const isPageVisible = () => document.visibilityState !== 'hidden';
+const stateLabel: Record<string, string> = { pending: 'Ожидает', in_progress: 'Выполняется', running: 'Выполняется', ok: 'Готов', completed: 'Завершён', partial: 'Частично готов', failed: 'Ошибка', uncertain: 'Неизвестный исход' };
+const errorLabel: Record<string, string> = { provider_rejected: 'Провайдер отклонил запрос', provider_uncertain: 'Исход запроса неизвестен', knowledge_unavailable: 'Данные бренда недоступны', empty_response: 'Пустой ответ' };
 function date(value: string | null): string {
   if (!value) return '—';
   const parsed = new Date(value);
@@ -37,6 +42,18 @@ export default function Index({ measurementBrandRevision, status }: { measuremen
   const [runs, setRuns] = useState(1);
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState('');
+  const [acting, setActing] = useState('');
+  const act = (id: string, action: 'next' | 'repeat') => {
+    setStartError('');
+    setActing(`${id}-${action}`);
+    router.post(`/vision/runs/${id}/${action}`, {}, {
+      headers: { 'X-Brand-Id': brandId, 'X-Brand-Revision': measurementBrandRevision },
+      onSuccess: () => setAttempt((value) => value + 1),
+      onError: (errors) => setStartError(Object.values(errors)[0] ?? 'Не удалось выполнить действие.'),
+      onFinish: () => setActing(''),
+      onNetworkError: () => { setStartError('Связь прервалась. Обновите замеры перед повтором.'); return false; },
+    });
+  };
   const start = () => {
     setStartError('');
     router.post('/vision/runs', { runs }, {
@@ -110,7 +127,7 @@ export default function Index({ measurementBrandRevision, status }: { measuremen
         !isPageVisible()
       )
         throw new Error();
-      const response = await fetch(`/vision/runs/data?page=${page}`, {
+      const response = await fetch(`/vision/runs/data?page=${page}&view=details`, {
         credentials: 'same-origin',
         cache: 'no-store',
         headers,
@@ -175,7 +192,7 @@ export default function Index({ measurementBrandRevision, status }: { measuremen
             <button type="button" className={button} disabled={starting || !can?.['vision.measure.run'] || !brandId || !profileContextIsStable()} onClick={start}>Начать замер</button>
           </div>
         </header>
-        <p className="mb-4 text-sm text-(--color-ink-muted)">Запуск создаёт план по утверждённым вопросам бренда. Выполнение ответов пока недоступно.</p>
+        <p className="mb-4 text-sm text-(--color-ink-muted)">Запуск создаёт план по утверждённым вопросам бренда. В тестовом режиме слоты выполняются по одному.</p>
         {status && <p role="status" className="mb-4 rounded-lg bg-(--color-success-soft) p-3 text-sm text-(--color-success-ink)">{status}</p>}
         {startError && <p role="alert" className="mb-4 rounded-lg bg-(--color-danger-soft) p-3 text-sm text-(--color-danger-ink)">{startError}</p>}
         <section
@@ -233,9 +250,6 @@ export default function Index({ measurementBrandRevision, status }: { measuremen
             view.data.revision === measurementBrandRevision &&
             view.data.page === page && (
               <div data-private-profile className="mt-5">
-                <p className="mb-4 text-sm text-(--color-ink-muted)">
-                  Детали и результаты будут доступны позже.
-                </p>
                 {view.data.total === 0 ? (
                   <div
                     role="status"
@@ -256,51 +270,27 @@ export default function Index({ measurementBrandRevision, status }: { measuremen
                   </p>
                 ) : (
                   <>
-                    <div
-                      className="hidden overflow-x-auto md:block"
-                      role="region"
-                      aria-label="История замеров"
-                      tabIndex={0}
-                    >
-                      <table className="w-full border-collapse text-left text-sm">
-                        <thead className="bg-(--color-surface-muted)">
-                          <tr>
-                            <th scope="col" className="px-4 py-3">
-                              Замер
-                            </th>
-                            <th scope="col" className="px-4 py-3">
-                              Создан
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {view.data.data.map((row, index) => (
-                            <tr
-                              key={`${row.created_at}-${index}`}
-                              className="border-b border-(--color-border)"
-                            >
-                              <th scope="row" className="px-4 py-4 font-medium">
-                                Замер
-                              </th>
-                              <td className="px-4 py-4">{date(row.created_at)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                    <ul className="grid gap-3 md:hidden" aria-label="История замеров">
-                      {view.data.data.map((row, index) => (
-                        <li
-                          key={`${row.created_at}-${index}`}
-                          className="rounded-xl border border-(--color-border) p-4 text-sm"
-                        >
-                          <p className="mb-3 font-semibold">Замер</p>
-                          <dl className="space-y-3">
-                            <div>
-                              <dt className="text-(--color-ink-muted)">Создан</dt>
-                              <dd className="mt-1">{date(row.created_at)}</dd>
+                    <ul className="grid gap-4" aria-label="История замеров">
+                      {view.data.data.map((row) => (
+                        <li key={row.id} className="rounded-xl border border-(--color-border) p-4 text-sm">
+                          <div className="flex flex-wrap items-center justify-between gap-3">
+                            <div><p className="font-semibold">Замер · {stateLabel[row.status] ?? row.status}</p><p className="mt-1 text-(--color-ink-muted)">{date(row.created_at)}</p></div>
+                            <div className="flex flex-wrap gap-2">
+                              {row.answers?.some((answer) => answer.status === 'pending') && <button type="button" className={button} disabled={!!acting || !can?.['vision.measure.run']} onClick={() => act(row.id, 'next')}>Выполнить следующий слот</button>}
+                              <button type="button" className={button} disabled={!!acting || !can?.['vision.measure.run']} onClick={() => act(row.id, 'repeat')}>Повторить замер</button>
                             </div>
-                          </dl>
+                          </div>
+                          <details className="mt-4" open={(row.answers?.length ?? 0) > 0}>
+                            <summary className="cursor-pointer font-semibold">Ответы и слоты ({row.answers?.length ?? 0})</summary>
+                            <ul className="mt-3 grid gap-2">
+                              {row.answers?.map((answer) => <li key={`${answer.question_n}-${answer.provider}-${answer.run_no}`} className="rounded-lg bg-(--color-surface-muted) p-3">
+                                <p className="font-medium">Вопрос {answer.question_n} · {answer.provider} · повтор {answer.run_no}</p>
+                                <p className="mt-1 text-(--color-ink-muted)">{stateLabel[answer.status] ?? answer.status} · {answer.requested_model}</p>
+                                {answer.answer_text && <p className="mt-2 whitespace-pre-wrap">{answer.answer_text}</p>}
+                                {answer.error_code && <p className="mt-2 text-(--color-danger-ink)">Ошибка: {errorLabel[answer.error_code] ?? answer.error_code}</p>}
+                              </li>)}
+                            </ul>
+                          </details>
                         </li>
                       ))}
                     </ul>

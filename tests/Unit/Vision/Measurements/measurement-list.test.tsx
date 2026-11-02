@@ -39,7 +39,7 @@ function response(value: unknown) {
 }
 
 function listing(revision: string, page: number, timestamp: string) {
-  return { revision, data: [{ created_at: timestamp }], page, last_page: 2, total: 26 };
+  return { revision, data: [{ id: `measurement-${page}`, status: 'completed', created_at: timestamp, answers: [] }], page, last_page: 2, total: 26 };
 }
 
 beforeEach(() => {
@@ -55,9 +55,9 @@ afterEach(() => {
 it('показывает загрузку и скрывает старую страницу до подтверждения новой', async () => {
   const nextPage = pending<ReturnType<typeof response>>();
   const fetchMock = vi.fn((url: string) => {
-    if (url === '/vision/runs/data?page=1')
+    if (url === '/vision/runs/data?page=1&view=details')
       return Promise.resolve(response(listing(firstRevision, 1, '2026-10-10T12:30:00Z')));
-    if (url === '/vision/runs/data?page=2') return nextPage.promise;
+    if (url === '/vision/runs/data?page=2&view=details') return nextPage.promise;
     return Promise.resolve(response({ revision: firstRevision }));
   });
   vi.stubGlobal('fetch', fetchMock);
@@ -85,9 +85,9 @@ it('сохраняет понятное место фокуса при клав�
   vi.stubGlobal(
     'fetch',
     vi.fn((url: string) => {
-      if (url === '/vision/runs/data?page=1')
+      if (url === '/vision/runs/data?page=1&view=details')
         return Promise.resolve(response(listing(firstRevision, 1, '2026-10-10T12:30:00Z')));
-      if (url === '/vision/runs/data?page=2') return nextPage.promise;
+      if (url === '/vision/runs/data?page=2&view=details') return nextPage.promise;
       return Promise.resolve(response({ revision: firstRevision }));
     }),
   );
@@ -266,9 +266,9 @@ it('игнорирует поздний ответ старого бренда �
   const nextBrand = pending<ReturnType<typeof response>>();
   const fetchMock = vi.fn((url: string, init?: RequestInit) => {
     const headers = init?.headers as Record<string, string>;
-    if (url === '/vision/runs/data?page=1' && headers['X-Brand-Id'] === 'brand-alpha')
+    if (url === '/vision/runs/data?page=1&view=details' && headers['X-Brand-Id'] === 'brand-alpha')
       return Promise.resolve(response(listing(firstRevision, 1, '2026-10-10T12:30:00Z')));
-    if (url === '/vision/runs/data?page=2' && headers['X-Brand-Id'] === 'brand-alpha')
+    if (url === '/vision/runs/data?page=2&view=details' && headers['X-Brand-Id'] === 'brand-alpha')
       return oldPage.promise;
     if (url.startsWith('/vision/runs/data')) return nextBrand.promise;
     return Promise.resolve(response({ revision: firstRevision }));
@@ -281,7 +281,7 @@ it('игнорирует поздний ответ старого бренда �
   view.rerender(<Index measurementBrandRevision={firstRevision} />);
   await waitFor(() =>
     expect(fetchMock).toHaveBeenCalledWith(
-      '/vision/runs/data?page=1',
+      '/vision/runs/data?page=1&view=details',
       expect.objectContaining({
         headers: expect.objectContaining({ 'X-Brand-Id': 'brand-beta' }),
       }),

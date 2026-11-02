@@ -10,6 +10,8 @@ return [
             Route::get('/vision/runs/data', [MeasurementsController::class, 'data'])->name('vision.measurements.data');
             Route::get('/vision/runs/revision', [MeasurementsController::class, 'revision'])->name('vision.measurements.revision');
             Route::post('/vision/runs', [MeasurementsController::class, 'start'])->name('vision.measurements.start');
+            Route::post('/vision/runs/{measurement}/next', [MeasurementsController::class, 'next'])->name('vision.measurements.next');
+            Route::post('/vision/runs/{measurement}/repeat', [MeasurementsController::class, 'repeat'])->name('vision.measurements.repeat');
         });
     },
 ];

@@ -13,5 +13,10 @@ test('запуск замера виден на странице истории'
   await expect(page.getByRole('heading', { name: 'Замеры', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Начать замер' })).toBeEnabled();
   await expect(page.getByText('20 окт. 2026 г.').first()).toBeVisible();
-  await page.screenshot({ path: '.local/screenshots/sp-e8-04/launch-1440.png' });
+  await expect(page.getByText('Сохранённый ответ бренда')).toBeVisible();
+  await expect(page.getByText('Ошибка: Провайдер отклонил запрос')).toBeVisible();
+  await page.screenshot({ path: '.local/screenshots/sp-e8-04b/progress-1440.png' });
+  await page.goto(origin + '/tests/Browser/E8-04/launch-fixture.html?pending');
+  await expect(page.getByRole('button', { name: 'Выполнить следующий слот' })).toBeVisible();
+  await page.screenshot({ path: '.local/screenshots/sp-e8-04b/pending-1440.png' });
 });

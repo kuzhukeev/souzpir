@@ -6,6 +6,7 @@ import Index from '../../../resources/js/pages/Vision/Measurements/Index';
 
 const brandId = '01J00000000000000000000004';
 const revision = 'a'.repeat(64);
+const pending = window.location.search.includes('pending');
 const originalFetch = window.fetch.bind(window);
 window.fetch = (input, init) => {
   if (input === '/vision/runs/revision') {
@@ -13,7 +14,12 @@ window.fetch = (input, init) => {
   }
   if (typeof input === 'string' && input.startsWith('/vision/runs/data')) {
     return Promise.resolve(new Response(JSON.stringify({
-      revision, data: [{ created_at: '2026-10-20T12:30:00Z' }], page: 1, last_page: 1, total: 1,
+      revision, data: [{ id: '01J00000000000000000000005', status: pending ? 'pending' : 'partial', created_at: '2026-10-20T12:30:00Z', answers: pending ? [
+        { question_n: 1, provider: 'gemini', requested_model: 'google/gemini-2.5-flash', run_no: 1, status: 'pending', answer_text: null, error_code: null },
+      ] : [
+        { question_n: 1, provider: 'gemini', requested_model: 'google/gemini-2.5-flash', run_no: 1, status: 'ok', answer_text: 'Сохранённый ответ бренда', error_code: null },
+        { question_n: 2, provider: 'gemini', requested_model: 'google/gemini-2.5-flash', run_no: 1, status: 'failed', answer_text: null, error_code: 'provider_rejected' },
+      ] }], page: 1, last_page: 1, total: 1,
     }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
   }
   return originalFetch(input, init);
