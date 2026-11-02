@@ -3315,6 +3315,78 @@
       "description": "# SP-E5-08 · Дубли и импорт/экспорт клиентов\n\nПрочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: D-3.4 поиск пар (телефон/почта/имя+город), объединение контактов с переносом диалогов (B), D-3.5 экспорт CSV/XLSX → архив в S-7.4, импорт CSV с превью сопоставления колонок (B)\n\nЗависимости (нужен done после merge): SP-E1-11, SP-E5-05.\nОбласть записи: app/Seller/Customers/ImportExport/, config/features/E5-08.php, database/factories/Seller/Customers/ImportExport/, database/migrations/E5-08/, database/seeders/Seller/Customers/ImportExport/, docs/modules/E5-08.md, lang/ru/Seller/Customers/ImportExport/, resources/js/features/Seller/Customers/ImportExport/, resources/js/pages/Seller/Customers/ImportExport/, resources/js/types/Seller/Customers/ImportExport/, routes/features/E5-08.php, tests/Browser/E5-08/, tests/Feature/Seller/Customers/ImportExport/, tests/Unit/Seller/Customers/ImportExport/, docs/results/SP-E5-08.md.\nЭкраны: D-3.4, D-3.5.\nИсточники: E5-08.\n- E5-08: ТЗ D-3.4–D-3.5; макеты 47–48\n\nПриёмка:\n- unit объединения (диалоги/задачи переназначены, аудит); импорт на фикстуре CSV\n\nДополнительно: Сохранять поведение донора; изменения только по принятым решениям.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E5-08.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n\n## Материалы\n\nИсходники только для чтения: C:/OSPanel/home/souzpir.local/.local/references/{eyon-pilot,laravel-prototype}.\nПолный индекс изображений: planning/materials-manifest.json; точный состав по docs/sources/02b_mockup_journal.md.\n\n- `C:\\OSPanel\\home\\tasks.local\\completed\\47\\05da310d-D-3.4-duplicates.png`\n- `C:\\OSPanel\\home\\tasks.local\\completed\\47\\4718f347-D-3.4-empty.png`\n- `C:\\OSPanel\\home\\tasks.local\\completed\\47\\59ff6dd3-D-3.4-manual.png`\n- `C:\\OSPanel\\home\\tasks.local\\completed\\48\\f20b4272-D-3.5-import-export.png`\n"
     },
     {
+      "taskKey": "SP-E5-08B",
+      "title": "SP-E5-08B · Завершить обработку дублей клиентов",
+      "goal": "Complete the remaining customer duplicate flow.",
+      "dependsOn": [
+        "SP-E5-08"
+      ],
+      "scope": [
+        "app/Seller/Customers/ImportExport/ImportExportController.php",
+        "database/migrations/E5-08B/",
+        "resources/js/pages/Seller/Customers/ImportExport/Duplicates.tsx",
+        "resources/js/pages/Seller/Customers/Show.tsx",
+        "routes/features/E5-08.php",
+        "tests/Browser/E5-08/",
+        "tests/Feature/Seller/Customers/ImportExport/",
+        "docs/results/SP-E5-08B.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Scope-specific UI, access, brand isolation, Product and branch CI pass."
+      ],
+      "sourceIds": [
+        "E5-08"
+      ],
+      "screenIds": [
+        "D-3.4"
+      ],
+      "notes": "Owner rule: no more than B and C continuations for E5-08.",
+      "sourceRefs": [
+        "docs/tasks/SP-E5-08.md"
+      ],
+      "promptPath": "docs/tasks/SP-E5-08B.md",
+      "wave": 9,
+      "description": "# SP-E5-08B · Завершить обработку дублей клиентов\n\nРазмер: 1–3 часа. Функциональное продолжение D-3.4.\n\n**Зачем:** D-3.4 требует различать совпадение и ошибочную пару; экран дублей должен позволять отметить «Разные» и не предлагать отклонённую пару снова.\n\n**Часть чего:** SP-E5-08. Сданы поиск и объединение; отсутствуют «Разные», сохранение отклонённых пар и вход в экраны из карточки клиента. После этой карточки остаётся только экспорт D-3.5 в SP-E5-08C.\n\nЗависимости: SP-E5-08.\n\nРабота: добавить действие «Разные» с хранением отклонённой пары в текущем бренде, скрыть её в поиске дублей и дать путь к дублям/импорту из карточки клиента. Не изменять алгоритм совпадения и уже существующий merge. Проверить права и изоляцию брендов.\n\nScope: `app/Seller/Customers/ImportExport/ImportExportController.php`, `database/migrations/E5-08B/`, `resources/js/pages/Seller/Customers/ImportExport/Duplicates.tsx`, `resources/js/pages/Seller/Customers/Show.tsx`, `routes/features/E5-08.php`, `tests/Browser/E5-08/`, `tests/Feature/Seller/Customers/ImportExport/`, `docs/results/SP-E5-08B.md`. Сгенерированные типы разрешены общим правилом AGENTS.md.\n\nПриёмка: отклонённая пара не появляется повторно в своём бренде; в другом бренде она не влияет на поиск; UI показывает действие и состояния loading/empty/error; локальные затронутые тесты и Product проходят, CI ветки зелёный."
+    },
+    {
+      "taskKey": "SP-E5-08C",
+      "title": "SP-E5-08C · Экспорт клиентов CSV/XLSX в общий архив",
+      "goal": "Export customer CSV/XLSX through the shared archive.",
+      "dependsOn": [
+        "SP-E5-08B",
+        "SP-E1-11"
+      ],
+      "scope": [
+        "app/Seller/Customers/ImportExport/CustomersExport.php",
+        "app/Seller/Customers/ImportExport/ImportExportController.php",
+        "config/features/E5-08.php",
+        "resources/js/pages/Seller/Customers/ImportExport/Index.tsx",
+        "routes/features/E5-08.php",
+        "tests/Browser/E1-11/data.spec.ts",
+        "tests/Browser/E5-08/",
+        "tests/Feature/Seller/Customers/ImportExport/",
+        "docs/results/SP-E5-08C.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Scope-specific UI, access, brand isolation, Product and branch CI pass."
+      ],
+      "sourceIds": [
+        "E5-08"
+      ],
+      "screenIds": [
+        "D-3.5"
+      ],
+      "notes": "Owner rule: no more than B and C continuations for E5-08.",
+      "sourceRefs": [
+        "docs/tasks/SP-E5-08.md"
+      ],
+      "promptPath": "docs/tasks/SP-E5-08C.md",
+      "wave": 9,
+      "description": "# SP-E5-08C · Экспорт клиентов CSV/XLSX в общий архив\n\nРазмер: 1–3 часа. Последнее функциональное продолжение D-3.5; дальше E5-08 не дробить.\n\n**Зачем:** D-3.5 и S-7.4 требуют доступный экспорт клиентов в CSV/XLSX через общий архив. Сейчас экспортёр отключён feature flag и общий browser-тест ожидает его отсутствия.\n\n**Часть чего:** SP-E5-08 после SP-E5-08B. Импорт и экран дублей уже выполнены; эта карточка закрывает оставшийся экспорт и не оставляет продолжений E5-08.\n\nЗависимости: SP-E5-08B и SP-E1-11.\n\nРабота: завершить CSV/XLSX-форматы экспорта контактов текущего бренда в общий архив S-7.4; включить регистрацию экспортёра после готовности и обновить `tests/Browser/E1-11/data.spec.ts`, чтобы он проверял доступный экспорт. Дать ссылку на экспорт из экрана импорта/экспорта клиентов. Живые внешние сервисы не вызывать.\n\nScope: `app/Seller/Customers/ImportExport/CustomersExport.php`, `app/Seller/Customers/ImportExport/ImportExportController.php`, `config/features/E5-08.php`, `resources/js/pages/Seller/Customers/ImportExport/Index.tsx`, `routes/features/E5-08.php`, `tests/Browser/E1-11/data.spec.ts`, `tests/Browser/E5-08/`, `tests/Feature/Seller/Customers/ImportExport/`, `docs/results/SP-E5-08C.md`. Сгенерированные типы разрешены общим правилом AGENTS.md.\n\nПриёмка: CSV и XLSX скачиваются из архива для разрешённого бренда и не содержат чужих контактов; доступ и пустой экспорт проверены; E1-11 browser-тест обновлён; локальные затронутые тесты и Product проходят, CI ветки зелёный."
+    },
+    {
       "taskKey": "SP-E6-03",
       "title": "SP-E6-03 · Поля, воронка, напоминания, вне темы",
       "goal": "D-5.1 (чтение реальных значений), D-5.2 (чтение, названия А.1, 5 типов), D-5.5, D-5.6",
@@ -4555,7 +4627,8 @@
         "SP-E7-01C",
         "SP-E7-04B",
         "SP-E7-04C",
-        "SP-E3-07B"
+        "SP-E3-07B",
+        "SP-E5-08C"
       ],
       "scope": [
         "docs/validation/acceptance.md",
@@ -4582,7 +4655,7 @@
       ],
       "promptPath": "docs/tasks/SP-E9-01.md",
       "wave": 13,
-      "description": "Прочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: 8 сценариев 08 §4 в Playwright + визуальные снапшоты 20 экранов × 3 ширины + axe\n\nЗависимости (нужен done после merge): SP-E1-01, SP-E1-01B, SP-E1-01C, SP-E1-01D, SP-E1-01F, SP-E1-02, SP-E1-03, SP-E1-04, SP-E1-05, SP-E1-06, SP-E1-07, SP-E1-08, SP-E1-09, SP-E1-10, SP-E1-11, SP-E1-12, SP-E3-07, SP-E4-01, SP-E4-02, SP-E4-03, SP-E4-04, SP-E4-05, SP-E4-06, SP-E4-07, SP-E4-08, SP-E5-01, SP-E5-02, SP-E5-03, SP-E5-04, SP-E5-04B, SP-E5-05, SP-E5-06, SP-E5-07, SP-E5-08, SP-E6-01, SP-E6-02, SP-E6-03, SP-E6-04, SP-E6-05, SP-E6-06, SP-E6-07, SP-E6-08, SP-E6-09, SP-E7-01, SP-E7-02, SP-E7-03, SP-E7-04, SP-E7-05, SP-E8-01, SP-E8-01B, SP-E8-01C, SP-E8-01D, SP-E8-01E, SP-E8-02, SP-E8-03, SP-E8-04, SP-E8-05, SP-E8-05B, SP-E8-05C, SP-E8-06, SP-E8-07.\nОбласть записи: docs/validation/acceptance.md, tests/Browser/Acceptance/, tests/visual/, docs/results/SP-E9-01.md.\nЭкраны: инфраструктура/контракты.\nИсточники: E9-01.\n- E9-01: 08\n\nПриёмка:\n- зелёные в CI\n\nДополнительно: Сохранять поведение донора; изменения только по принятым решениям.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E9-01.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n"
+      "description": "# SP-E9-01 · E2E-набор\n\nПрочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: 8 сценариев 08 §4 в Playwright + визуальные снапшоты 20 экранов × 3 ширины + axe\n\nЗависимости (нужен done после merge): SP-E1-01, SP-E1-01B, SP-E1-01C, SP-E1-01D, SP-E1-01F, SP-E1-02, SP-E1-03, SP-E1-04, SP-E1-05, SP-E1-06, SP-E1-07, SP-E1-08, SP-E1-09, SP-E1-10, SP-E1-11, SP-E1-12, SP-E3-07, SP-E4-01, SP-E4-02, SP-E4-03, SP-E4-04, SP-E4-05, SP-E4-06, SP-E4-07, SP-E4-08, SP-E5-01, SP-E5-02, SP-E5-03, SP-E5-04, SP-E5-04B, SP-E5-05, SP-E5-06, SP-E5-07, SP-E5-08, SP-E6-01, SP-E6-02, SP-E6-03, SP-E6-04, SP-E6-05, SP-E6-06, SP-E6-07, SP-E6-08, SP-E6-09, SP-E7-01, SP-E7-02, SP-E7-03, SP-E7-04, SP-E7-05, SP-E8-01, SP-E8-01B, SP-E8-01C, SP-E8-01D, SP-E8-01E, SP-E8-02, SP-E8-03, SP-E8-04, SP-E8-05, SP-E8-05B, SP-E8-05C, SP-E8-06, SP-E8-07.\nОбласть записи: docs/validation/acceptance.md, tests/Browser/Acceptance/, tests/visual/, docs/results/SP-E9-01.md.\nЭкраны: инфраструктура/контракты.\nИсточники: E9-01.\n- E9-01: 08\n\nПриёмка:\n- Дополнительные зависимости для финального E2E: SP-E4-01B/C, SP-E5-07B, SP-E6-03B/C, SP-E7-01B/C (см. `planning/tasks.json`).\n- Также SP-E7-04B/C по аналитике D-8.1–8.6 (см. `planning/tasks.json`).\n- зелёные в CI\n\nДополнительно: Сохранять поведение донора; изменения только по принятым решениям.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E9-01.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n\n## Материалы\n\nИсходники только для чтения: C:/OSPanel/home/souzpir.local/.local/references/{eyon-pilot,laravel-prototype}.\nПолный индекс изображений: planning/materials-manifest.json; точный состав по docs/sources/02b_mockup_journal.md.\n\nДополнительная зависимость: SP-E5-08C закрывает CSV/XLSX-экспорт клиентов D-3.5 перед сквозной приёмкой E9-01.\n"
     },
     {
       "taskKey": "SP-E9-03",
