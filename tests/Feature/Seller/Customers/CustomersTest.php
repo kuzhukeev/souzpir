@@ -94,4 +94,20 @@ final class CustomersTest extends TenancyTestCase
         $this->assertDatabaseHas('seller_promise_notifications', ['task_id' => $task->id]);
         self::assertTrue(DB::table('outbox_events')->get()->contains(fn ($row) => (json_decode($row->envelope, true)['data']['task_id'] ?? null) === $task->id));
     }
+
+    public function test_reminder_for_customer_without_conversation(): void
+    {
+        [$owner, $org, $brand, $otherBrand] = $this->cabinet();
+        $this->fixture($org->id, $brand->id, $owner->id);
+        $contact = (string) Str::ulid();
+        DB::table('contacts')->insert(['id' => $contact, 'organization_id' => $org->id, 'brand_id' => $brand->id, 'name' => 'Без диалога', 'created_at' => now(), 'updated_at' => now()]);
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $this->post('/seller/customers/'.$contact.'/reminders', ['text' => 'Перезвонить', 'due_at' => now()->addDay()->toIso8601String(), 'manager_id' => $owner->id])->assertRedirect()->assertSessionHasNoErrors();
+        $task = DB::table('seller_tasks')->where('contact_id', $contact)->first();
+        self::assertNotNull($task);
+        self::assertNull($task->conversation_id);
+        $this->get('/seller/customers/'.$contact)->assertOk()->assertInertia(fn ($page) => $page->where('tasks.0.id', $task->id));
+        $this->get('/seller/customers')->assertOk()->assertInertia(fn ($page) => $page->where('customers.0.tasks', 1));
+        $this->get('/seller/tasks?mine=1')->assertOk()->assertInertia(fn ($page) => $page->has('tasks', 2));
+    }
 }
