@@ -25,6 +25,21 @@
     const close = document.createElement('button'); close.className = 'close'; close.type = 'button'; close.textContent = '×'; close.setAttribute('aria-label', 'Закрыть'); top.append(title, close);
     const message = document.createElement('p'); message.className = 'message'; message.textContent = 'Чат пока недоступен.';
     panel.append(top, message);
+    let sessionToken = null; let starting = null;
+    const api = (path, body) => { const url = new URL(path, source.origin); url.searchParams.set('key', key); return fetch(url.href, {method:'POST', credentials:'omit', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)}); };
+    const startSession = () => {
+      if (sessionToken) return Promise.resolve(sessionToken);
+      if (!starting) starting = api('/widget/session', {}).then(response => { if (!response.ok) throw new Error('unavailable'); return response.json(); }).then(result => { sessionToken = result.token; return sessionToken; }).finally(() => { starting = null; });
+      return starting;
+    };
+    const chat = document.createElement('form');
+    const text = document.createElement('input'); text.type = 'text'; text.maxLength = 4000; text.placeholder = 'Ваше сообщение'; text.setAttribute('aria-label', 'Ваше сообщение'); text.required = true;
+    const chatSend = document.createElement('button'); chatSend.className = 'submit'; chatSend.type = 'submit'; chatSend.textContent = 'Отправить';
+    const chatStatus = document.createElement('p'); chatStatus.setAttribute('role', 'status'); chat.append(text, chatSend, chatStatus); panel.append(chat);
+    chat.addEventListener('submit', event => {
+      event.preventDefault(); chatSend.disabled = true; chatStatus.textContent = 'Отправляем…';
+      startSession().then(token => api('/widget/message', {token, text:text.value, idempotency_key:globalThis.crypto.randomUUID()})).then(response => { if (!response.ok) throw new Error('unavailable'); text.value = ''; chatStatus.textContent = 'Сообщение отправлено.'; }).catch(() => { chatStatus.textContent = 'Чат временно недоступен. Попробуйте позже.'; }).finally(() => { chatSend.disabled = false; });
+    });
     if (data.behavior.collect_contact && data.behavior.consent_url) {
       const form = document.createElement('form'); const consentLabel = document.createElement('label'); const consent = document.createElement('input');
       consent.type = 'checkbox'; consent.required = true; consentLabel.append(consent, document.createTextNode(' Согласен на обработку данных по '));
@@ -44,7 +59,7 @@
         if (phone.value && !/^[+0-9 ()-]{6,32}$/.test(phone.value)) { result.textContent = 'Проверьте номер телефона.'; return; }
         send.disabled = true; result.textContent = 'Отправляем…';
         const target = new URL('/widget/contact', source.origin); target.searchParams.set('key', key);
-        fetch(target.href, {method:'POST', credentials:'omit', headers:{'Content-Type':'application/json'}, body:JSON.stringify({consent:true,name:name.value,email:email.value,phone:phone.value})})
+        startSession().then(token => fetch(target.href, {method:'POST', credentials:'omit', headers:{'Content-Type':'application/json'}, body:JSON.stringify({session_token:token,consent:true,name:name.value,email:email.value,phone:phone.value})}))
           .then(response => { if (!response.ok) throw new Error('unavailable'); fields.replaceChildren(); message.textContent = 'Спасибо! Контакт сохранён.'; consentLabel.remove(); })
           .catch(() => { result.textContent = 'Не удалось отправить контакт. Проверьте данные и попробуйте ещё раз.'; send.disabled = false; });
       });
