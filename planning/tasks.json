@@ -6521,6 +6521,146 @@
       "promptPath": "docs/tasks/SP-E3-03E.md",
       "wave": 7,
       "description": "# SP-E3-03E · Summarizer: безопасная проекция\n\n**Зачем:** закрыть Summarizer из E3-03 (03 §1.2–1.3), чтобы Orchestrator SP-E3-03B работал с ограниченной сводкой вместо произвольной истории.\n\n**Часть чего:** третий узкий остаток SP-E3-03. После него SP-E3-03B подключает компоненты к runtime, затем исходная SP-E3-03 проходит финальную приёмку; `create_promise` остаётся SP-E3-03P.\n\nЗа 1–3 часа получить внутреннюю сводку из проверенных сообщений и опубликованного snapshot с помощью fake-модели. Проекция не должна переносить чужой бренд, необъявленные data classes или исходные контакты во внешний запрос; pending/uncertain не превращать в готовую сводку. Существующие golden fixtures не менять. Persistence и доставка остаются SP-E3-03B.\n\nScope: `app/Seller/Engine/Summarizer/`, `app/Seller/Engine/SummaryProjection.php`, `app/Seller/Engine/SummaryPending.php`, `app/Seller/Engine/SummaryUncertain.php`, `app/Seller/Engine/SummaryUnavailable.php`, `tests/Unit/Seller/Engine/Summarizer/`, `docs/results/SP-E3-03E.md`. Приёмка: корректная сводка, чужой бренд, скрытые контакты, malformed/pending/uncertain fake-ответ. Отчёт и submit по AGENTS.md.\n"
+    },
+    {
+      "taskKey": "SP-CI-01",
+      "title": "SP-CI-01 · Покрытие всех PHP-тестов в CI",
+      "goal": "Включить четыре пропущенных каталога Feature в PHP suite. Проверить Feature/Unit целиком и добавить CI guard, который падает, если *Test.php не покрыт ни одним suite. Исправлять только тестовый код, если новые тесты красные.",
+      "dependsOn": [],
+      "scope": [
+        "phpunit.xml",
+        ".github/workflows/ci.yml",
+        "scripts/ci/check-test-suite-coverage.py",
+        "tests/Feature/SP-E1-10C/",
+        "tests/Feature/SP-E1-10D/",
+        "tests/Feature/SP-E1-10E/",
+        "tests/Feature/SP-E1-10F/",
+        "docs/results/SP-CI-01.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Все PHP-тесты Feature/Unit перечислены ровно в одном suite и запускаются CI; проверка обнаруживает новый непокрытый каталог."
+      ],
+      "sourceIds": [],
+      "screenIds": [],
+      "notes": "сверх ТЗ: решение владельца 2026-11-02; CI без правок кода приложения",
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        ".github/workflows/ci.yml"
+      ],
+      "promptPath": "docs/tasks/SP-CI-01.md",
+      "wave": 0,
+      "description": "# SP-CI-01 · Покрытие всех PHP-тестов в CI\n\n**Сверх ТЗ: прямое поручение владельца от 2026-11-02.** Размер: 1–3 часа. Код приложения не менять.\n\n**Зачем:** пункт A4 поручения владельца о скорости и надёжности CI; непрерывная разработка функциональных экранов зависит от достоверного и зелёного CI.\n\n**Часть чего:** поручение владельца 2026-11-02, пункт A4. После этой карточки остаются другие пункты A и текущие функциональные задачи; цепочка CI заканчивается SP-CI-04 и SP-CI-05.\n\nЗависимости: нет.\n\nВключить четыре пропущенных каталога Feature в PHP suite. Проверить Feature/Unit целиком и добавить CI guard, который падает, если *Test.php не покрыт ни одним suite. Исправлять только тестовый код, если новые тесты красные.\n\nScope: `phpunit.xml`, `.github/workflows/ci.yml`, `scripts/ci/check-test-suite-coverage.py`, `tests/Feature/SP-E1-10C/`, `tests/Feature/SP-E1-10D/`, `tests/Feature/SP-E1-10E/`, `tests/Feature/SP-E1-10F/`, `docs/results/SP-CI-01.md`. Файлы приложения, golden fixtures и политика concurrency main вне scope.\n\nПриёмка: Все PHP-тесты Feature/Unit перечислены ровно в одном suite и запускаются CI; проверка обнаруживает новый непокрытый каталог. Отчёт `docs/results/SP-CI-01.md`, submit и зелёный CI ветки до merge.\n"
+    },
+    {
+      "taskKey": "SP-CI-02",
+      "title": "SP-CI-02 · Стабильность browser CI",
+      "goal": "Исследовать browser (2) c2f2e69/3faaac8 и frontend/browser (3) 0e1d30e по логам и истории. Исправить порядок, ожидания, порты или фикстуры в CI/тестах. Если причина не воспроизводится, изолировать спек и записать отдельную карточку диагностики.",
+      "dependsOn": [
+        "SP-CI-01"
+      ],
+      "scope": [
+        "scripts/ci/browser-smoke.sh",
+        "playwright.config.ts",
+        "tests/Browser/E1-06/",
+        "tests/Browser/E1-10/",
+        "tests/Browser/SP-E1-10C/",
+        "tests/Browser/E8-05/",
+        "docs/results/SP-CI-02.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Проблемные браузерные проверки идут стабильно; главный CI зелёный без изменения concurrency main."
+      ],
+      "sourceIds": [],
+      "screenIds": [],
+      "notes": "сверх ТЗ: решение владельца 2026-11-02; CI без правок кода приложения",
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        ".github/workflows/ci.yml"
+      ],
+      "promptPath": "docs/tasks/SP-CI-02.md",
+      "wave": 0,
+      "description": "# SP-CI-02 · Стабильность browser CI\n\n**Сверх ТЗ: прямое поручение владельца от 2026-11-02.** Размер: 1–3 часа. Код приложения не менять.\n\n**Зачем:** пункт A5 поручения владельца о скорости и надёжности CI; непрерывная разработка функциональных экранов зависит от достоверного и зелёного CI.\n\n**Часть чего:** поручение владельца 2026-11-02, пункт A5. После этой карточки остаются другие пункты A и текущие функциональные задачи; цепочка CI заканчивается SP-CI-04 и SP-CI-05.\n\nЗависимости: SP-CI-01.\n\nИсследовать browser (2) c2f2e69/3faaac8 и frontend/browser (3) 0e1d30e по логам и истории. Исправить порядок, ожидания, порты или фикстуры в CI/тестах. Если причина не воспроизводится, изолировать спек и записать отдельную карточку диагностики.\n\nScope: `scripts/ci/browser-smoke.sh`, `playwright.config.ts`, `tests/Browser/E1-06/`, `tests/Browser/E1-10/`, `tests/Browser/SP-E1-10C/`, `tests/Browser/E8-05/`, `docs/results/SP-CI-02.md`. Файлы приложения, golden fixtures и политика concurrency main вне scope.\n\nПриёмка: Проблемные браузерные проверки идут стабильно; главный CI зелёный без изменения concurrency main. Отчёт `docs/results/SP-CI-02.md`, submit и зелёный CI ветки до merge.\n"
+    },
+    {
+      "taskKey": "SP-CI-03",
+      "title": "SP-CI-03 · Профиль Core",
+      "goal": "Прогнать Core с --profile на изолированных тестовых БД. Записать топ-10 по времени, медленные миграции и решение по каждому: ускорить, вынести или оставить. Зафиксировать исходные длительности job и всего CI.",
+      "dependsOn": [
+        "SP-CI-02"
+      ],
+      "scope": [
+        "docs/results/SP-CI-03.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Отчёт содержит измерения, команды, топ-10 и решение по каждому узкому месту."
+      ],
+      "sourceIds": [],
+      "screenIds": [],
+      "notes": "сверх ТЗ: решение владельца 2026-11-02; CI без правок кода приложения",
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        ".github/workflows/ci.yml"
+      ],
+      "promptPath": "docs/tasks/SP-CI-03.md",
+      "wave": 0,
+      "description": "# SP-CI-03 · Профиль Core\n\n**Сверх ТЗ: прямое поручение владельца от 2026-11-02.** Размер: 1–3 часа. Код приложения не менять.\n\n**Зачем:** пункт A1 поручения владельца о скорости и надёжности CI; непрерывная разработка функциональных экранов зависит от достоверного и зелёного CI.\n\n**Часть чего:** поручение владельца 2026-11-02, пункт A1. После этой карточки остаются другие пункты A и текущие функциональные задачи; цепочка CI заканчивается SP-CI-04 и SP-CI-05.\n\nЗависимости: SP-CI-02.\n\nПрогнать Core с --profile на изолированных тестовых БД. Записать топ-10 по времени, медленные миграции и решение по каждому: ускорить, вынести или оставить. Зафиксировать исходные длительности job и всего CI.\n\nScope: `docs/results/SP-CI-03.md`. Файлы приложения, golden fixtures и политика concurrency main вне scope.\n\nПриёмка: Отчёт содержит измерения, команды, топ-10 и решение по каждому узкому месту. Отчёт `docs/results/SP-CI-03.md`, submit и зелёный CI ветки до merge.\n"
+    },
+    {
+      "taskKey": "SP-CI-04",
+      "title": "SP-CI-04 · Балансировка PHP suite",
+      "goal": "Разделить Core на 2–3 группы примерно равного времени; при необходимости присоединить Shell/Product к лёгкой группе. Сохранить охват всех тестов и concurrency main. Цель: максимальный php-tests job около 6 минут.",
+      "dependsOn": [
+        "SP-CI-03"
+      ],
+      "scope": [
+        "phpunit.xml",
+        ".github/workflows/ci.yml",
+        "docs/results/SP-CI-04.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Новые matrix/suites исполняют все тесты; измерены максимальный job и длительность полного прогона до/после."
+      ],
+      "sourceIds": [],
+      "screenIds": [],
+      "notes": "сверх ТЗ: решение владельца 2026-11-02; CI без правок кода приложения",
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        ".github/workflows/ci.yml"
+      ],
+      "promptPath": "docs/tasks/SP-CI-04.md",
+      "wave": 0,
+      "description": "# SP-CI-04 · Балансировка PHP suite\n\n**Сверх ТЗ: прямое поручение владельца от 2026-11-02.** Размер: 1–3 часа. Код приложения не менять.\n\n**Зачем:** пункт A2 поручения владельца о скорости и надёжности CI; непрерывная разработка функциональных экранов зависит от достоверного и зелёного CI.\n\n**Часть чего:** поручение владельца 2026-11-02, пункт A2. После этой карточки остаются другие пункты A и текущие функциональные задачи; цепочка CI заканчивается SP-CI-04 и SP-CI-05.\n\nЗависимости: SP-CI-03.\n\nРазделить Core на 2–3 группы примерно равного времени; при необходимости присоединить Shell/Product к лёгкой группе. Сохранить охват всех тестов и concurrency main. Цель: максимальный php-tests job около 6 минут.\n\nScope: `phpunit.xml`, `.github/workflows/ci.yml`, `docs/results/SP-CI-04.md`. Файлы приложения, golden fixtures и политика concurrency main вне scope.\n\nПриёмка: Новые matrix/suites исполняют все тесты; измерены максимальный job и длительность полного прогона до/после. Отчёт `docs/results/SP-CI-04.md`, submit и зелёный CI ветки до merge.\n"
+    },
+    {
+      "taskKey": "SP-CI-05",
+      "title": "SP-CI-05 · Балансировка browser shards",
+      "goal": "Перераспределить спеки между тремя browser shards с исходных 244/306/198 секунд к близким длительностям. Не менять тестируемое поведение и concurrency main.",
+      "dependsOn": [
+        "SP-CI-02"
+      ],
+      "scope": [
+        "scripts/ci/browser-smoke.sh",
+        "playwright.config.ts",
+        "docs/results/SP-CI-05.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Все спеки исполняются один раз; времена трёх shards и полный CI до/после приведены в отчёте."
+      ],
+      "sourceIds": [],
+      "screenIds": [],
+      "notes": "сверх ТЗ: решение владельца 2026-11-02; CI без правок кода приложения",
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        ".github/workflows/ci.yml"
+      ],
+      "promptPath": "docs/tasks/SP-CI-05.md",
+      "wave": 0,
+      "description": "# SP-CI-05 · Балансировка browser shards\n\n**Сверх ТЗ: прямое поручение владельца от 2026-11-02.** Размер: 1–3 часа. Код приложения не менять.\n\n**Зачем:** пункт A3 поручения владельца о скорости и надёжности CI; непрерывная разработка функциональных экранов зависит от достоверного и зелёного CI.\n\n**Часть чего:** поручение владельца 2026-11-02, пункт A3. После этой карточки остаются другие пункты A и текущие функциональные задачи; цепочка CI заканчивается SP-CI-04 и SP-CI-05.\n\nЗависимости: SP-CI-02.\n\nПерераспределить спеки между тремя browser shards с исходных 244/306/198 секунд к близким длительностям. Не менять тестируемое поведение и concurrency main.\n\nScope: `scripts/ci/browser-smoke.sh`, `playwright.config.ts`, `docs/results/SP-CI-05.md`. Файлы приложения, golden fixtures и политика concurrency main вне scope.\n\nПриёмка: Все спеки исполняются один раз; времена трёх shards и полный CI до/после приведены в отчёте. Отчёт `docs/results/SP-CI-05.md`, submit и зелёный CI ветки до merge.\n"
     }
   ],
   "excludedSourceTasks": {
