@@ -374,6 +374,7 @@ declare module 'ziggy-js' {
     "seller.widget.update": [],
     "widget.loader": [],
     "widget.config": [],
+    "seller.api.failures": [],
     "seller.api.settings": [],
     "seller.api.settings.update": [],
     "api.v1.leads.create": [],
