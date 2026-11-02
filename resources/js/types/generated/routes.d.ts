@@ -373,6 +373,8 @@ declare module 'ziggy-js' {
     "seller.knowledge.conditions.save": [],
     "seller.knowledge.prohibitions.index": [],
     "seller.knowledge.prohibitions.save": [],
+    "seller.sandbox.index": [],
+    "seller.sandbox.check": [],
     "seller.channels.index": [],
     "seller.channels.telegram": [],
     "seller.channels.telegram.register": [],
