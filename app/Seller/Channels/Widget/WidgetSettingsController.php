@@ -50,7 +50,8 @@ final class WidgetSettingsController
             return ['settings' => ['enabled' => $row->enabled, 'origins' => json_decode($row->origins, true),
                 'appearance' => json_decode($row->appearance, true), 'behavior' => json_decode($row->behavior, true),
                 'last_seen_at' => $row->last_seen_at, 'key' => $row->public_key],
-                'scriptUrl' => $request->getSchemeAndHttpHost().'/widget.js'];
+                'scriptUrl' => $request->getSchemeAndHttpHost().'/widget.js',
+                'contactRequests' => DB::table('widget_contact_requests')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->orderByDesc('created_at')->limit(100)->get(['id', 'name', 'email', 'phone', 'origin', 'created_at'])];
         });
 
         return Inertia::render('Seller/Channels/Widget/Index', [...$data, 'status' => $request->session()->get('status')]);
@@ -61,7 +62,9 @@ final class WidgetSettingsController
         $input = $request->validate(['enabled' => ['required', 'boolean'], 'origins' => ['present', 'array', 'max:30'], 'origins.*' => ['required', 'string', 'max:255'],
             'appearance.title' => ['required', 'string', 'max:80'], 'appearance.color' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'appearance.position' => ['required', 'in:left,right'], 'behavior.delay_seconds' => ['nullable', 'integer', 'min:1', 'max:86400'],
-            'behavior.scroll_percent' => ['nullable', 'integer', 'min:1', 'max:100'], 'behavior.invitation' => ['required', 'string', 'max:300']]);
+            'behavior.scroll_percent' => ['nullable', 'integer', 'min:1', 'max:100'], 'behavior.invitation' => ['required', 'string', 'max:300'],
+            'behavior.collect_contact' => ['sometimes', 'boolean'], 'behavior.consent_url' => ['nullable', 'url:https', 'max:2048', 'required_if:behavior.collect_contact,true'],
+            'behavior.exit_intent' => ['sometimes', 'boolean'], 'behavior.page_mask' => ['nullable', 'string', 'max:255', 'starts_with:/'], 'behavior.repeat_hours' => ['nullable', 'integer', 'min:1', 'max:720']]);
         $origins = [];
         foreach ($input['origins'] as $origin) {
             $value = strtolower(rtrim(trim($origin), '/'));

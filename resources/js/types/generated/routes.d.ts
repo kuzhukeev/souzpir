@@ -345,6 +345,28 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "seller.knowledge.facts.index": [],
+    "seller.knowledge.facts.group": [],
+    "seller.knowledge.facts.group.delete": [],
+    "seller.knowledge.facts.add": [],
+    "seller.knowledge.facts.update": [
+        {
+            "name": "fact",
+            "required": true
+        }
+    ],
+    "seller.knowledge.facts.delete": [
+        {
+            "name": "fact",
+            "required": true
+        }
+    ],
+    "seller.knowledge.conditions.index": [],
+    "seller.knowledge.conditions.save": [],
+    "seller.knowledge.prohibitions.index": [],
+    "seller.knowledge.prohibitions.save": [],
+    "seller.sandbox.index": [],
+    "seller.sandbox.check": [],
     "seller.channels.index": [],
     "seller.channels.telegram": [],
     "seller.channels.telegram.register": [],
@@ -365,12 +387,27 @@ declare module 'ziggy-js' {
     "seller.widget.index": [],
     "seller.widget.update": [],
     "widget.loader": [],
+    "widget.contact.preflight": [],
+    "widget.contact.store": [],
     "widget.config": [],
     "seller.api.failures": [],
     "seller.api.settings": [],
     "seller.api.settings.update": [],
     "api.v1.leads.create": [],
     "api.v1.turn.create": [],
+    "seller.dialogs.index": [],
+    "seller.dialogs.show": [
+        {
+            "name": "dialog",
+            "required": true
+        }
+    ],
+    "seller.dialogs.mode": [
+        {
+            "name": "dialog",
+            "required": true
+        }
+    ],
     "seller.customers.index": [],
     "seller.customers.show": [
         {
@@ -399,7 +436,10 @@ declare module 'ziggy-js' {
     "seller.planned.reminders": [],
     "seller.channels.email.index": [],
     "seller.channels.email.update": [],
+    "seller.persona.index": [],
+    "seller.persona.save": [],
     "seller.settings.policy.index": [],
+    "seller.settings.off-topic.save": [],
     "seller.settings.followups.update": [],
     "seller.tools.settings": [],
     "seller.tools.settings.update": [],
@@ -444,6 +484,8 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "seller.scenarios.index": [],
+    "seller.scenarios.save": [],
     "seller.analytics.index": [],
     "seller.analytics.csv": [],
     "vision.start": [],
