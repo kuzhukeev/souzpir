@@ -419,6 +419,12 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "vision.measurements.confirm": [
+        {
+            "name": "measurement",
+            "required": true
+        }
+    ],
     "vision.site.overview": [],
     "vision.site.criteria": [],
     "vision.site.bots": [],

@@ -12,6 +12,7 @@ return [
             Route::post('/vision/runs', [MeasurementsController::class, 'start'])->name('vision.measurements.start');
             Route::post('/vision/runs/{measurement}/next', [MeasurementsController::class, 'next'])->name('vision.measurements.next');
             Route::post('/vision/runs/{measurement}/repeat', [MeasurementsController::class, 'repeat'])->name('vision.measurements.repeat');
+            Route::post('/vision/runs/{measurement}/confirm', [MeasurementsController::class, 'confirm'])->whereUlid('measurement')->name('vision.measurements.confirm');
         });
     },
 ];
