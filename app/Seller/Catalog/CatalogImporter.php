@@ -6,14 +6,27 @@ use Illuminate\Validation\ValidationException;
 
 final class CatalogImporter
 {
-    public function parse(string $path, string $extension): array
+    public function parse(string $path, string $extension, int $sheet = 0, ?array $columns = null): array
     {
         $reader = app(CatalogReader::class);
-        $data = $reader->read($path, $extension);
+        $data = $reader->read($path, $extension, $sheet);
         $rows = $data['rows'];
-        $mapping = $reader->suggest($rows[0] ?? []);
+        $mapping = $columns ?? $reader->suggest($rows[0] ?? []);
+        if ($columns !== null) {
+            $valid = ['name', 'sku', 'category_path', 'price', 'wholesale_price', 'stock'];
+            $indices = [];
+            foreach ($mapping as $key => $index) {
+                if (! in_array($key, $valid, true) || ! (is_int($index) || (is_string($index) && ctype_digit($index))) || (int) $index >= count($rows[0] ?? [])) {
+                    throw ValidationException::withMessages(['columns' => 'Выберите столбцы из выбранного листа.']);
+                }
+                $mapping[$key] = $indices[] = (int) $index;
+            }
+            if (count($indices) !== count(array_unique($indices))) {
+                throw ValidationException::withMessages(['columns' => 'Один столбец нельзя назначить дважды.']);
+            }
+        }
         if (! isset($mapping['name'])) {
-            throw ValidationException::withMessages(['file' => 'Не найден столбец «Название».']);
+            throw ValidationException::withMessages(['columns' => 'Выберите столбец «Название».']);
         }
         $items = [];
         foreach (array_slice($rows, 1) as $index => $row) {

@@ -17,7 +17,7 @@ final class CatalogReader
         }
 
         return match (strtolower($extension)) {
-            'csv' => $this->csv($path),
+            'csv' => $sheet === 0 ? $this->csv($path) : $this->invalid('Выберите существующий лист.'),
             'xlsx' => $this->xlsx($path, $sheet),
             default => $this->invalid('Поддерживаются CSV и XLSX.'),
         };
