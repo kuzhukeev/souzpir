@@ -358,6 +358,8 @@ declare module 'ziggy-js' {
     "seller.widget.index": [],
     "seller.widget.update": [],
     "widget.loader": [],
+    "widget.contact.preflight": [],
+    "widget.contact.store": [],
     "widget.config": [],
     "seller.api.settings": [],
     "seller.api.settings.update": [],
