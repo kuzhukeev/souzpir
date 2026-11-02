@@ -353,6 +353,22 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "seller.knowledge.facts.index": [],
+    "seller.knowledge.facts.group": [],
+    "seller.knowledge.facts.group.delete": [],
+    "seller.knowledge.facts.add": [],
+    "seller.knowledge.facts.update": [
+        {
+            "name": "fact",
+            "required": true
+        }
+    ],
+    "seller.knowledge.facts.delete": [
+        {
+            "name": "fact",
+            "required": true
+        }
+    ],
     "seller.channels.index": [],
     "seller.channels.telegram": [],
     "seller.channels.telegram.register": [],
