@@ -504,6 +504,8 @@ declare module 'ziggy-js' {
     "seller.quality.compare": [],
     "seller.analytics.index": [],
     "seller.analytics.csv": [],
+    "seller.dashboard.index": [],
+    "seller.dashboard.attention": [],
     "vision.start": [],
     "vision.private.access": [],
     "vision.private.verify": [],
