@@ -1660,7 +1660,9 @@
       "title": "SP-E3-03 · Движок: Responder, Tools, Guard, Summarizer, Orchestrator",
       "goal": "Финальная приёмка интерфейсов движка после интеграции, без реализации runtime.",
       "dependsOn": [
-        "SP-E3-03B"
+        "SP-E3-03B",
+        "SP-E3-08",
+        "SP-E3-09"
       ],
       "scope": [
         "app/Seller/Engine/",
@@ -1699,7 +1701,7 @@
       ],
       "promptPath": "docs/tasks/SP-E3-03.md",
       "wave": 9,
-      "description": "# SP-E3-03 · Движок: Responder, Tools, Guard, Summarizer, Orchestrator\n\nПерепланировано 02.11.2026: незавершённые Responder, `llmCheck` и Summarizer вынесены в SP-E3-03C/D/E. Исходную карточку **не закрывать** до их интеграции в SP-E3-03B. Её остаток — финальная приёмка ToolRunner, интерфейсов компонентов, tenant-bound snapshot/prompt и существующих golden-проверок без изменения fixtures. Она ждёт `done` SP-E3-03B; зависимые функциональные задачи могут начинаться после SP-E3-03B, не дожидаясь этой приёмки.\n\nЧасть `create_promise` выделена в SP-E3-03P и начинается только после `done` общей границы SP-C-02. Другие независимые части SP-E3-03 продолжаются; готовность всей карточки не означает готовность зависимой части до её приёмки.\n\nПрочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель остатка: проверить после слияния SP-E3-03B, что Responder, Guard, Summarizer и ToolRunner сохраняют опубликованные контракты, фолбэки и handoffOnError; исправить только выявленные интеграционные расхождения своего модуля. Orchestrator и runtime принадлежат SP-E3-03B.\n\nЗависимости (нужен done после merge): SP-E3-03B.\nОбласть записи: app/Seller/Engine/, config/features/E3-03.php, database/factories/Seller/Engine/, database/migrations/E3-03/, database/seeders/Seller/Engine/, docs/modules/E3-03.md, lang/ru/Seller/Engine/, resources/js/features/Seller/Engine/, resources/js/pages/Seller/Engine/, resources/js/types/Seller/Engine/, routes/features/E3-03.php, tests/Browser/E3-03/, tests/Feature/Seller/Engine/, tests/Unit/Seller/Engine/, docs/results/SP-E3-03.md.\nЭкраны: инфраструктура/контракты.\nИсточники: E3-03.\n- E3-03: 03 §1.2–1.3, proto `Responder`, `Guard`, `ToolRunner`, `Orchestrator`\n\nПриёмка:\n- GuardTest и tool unit tests зелёные; snapshots prompt defaults совпадают; неполученные LLM-fixtures не выдаются за эталон.\n- Тесты чужих релизов/prompt, неверных data classes, pending/uncertain и локального сохранения контактов без утечки во внешний ИИ.\n\nДополнительно:  Responder/Guard/Summarizer обязаны использовать опубликованные tenant-bound snapshot и prompt, маркировать все реально передаваемые классы данных и не превращать in_progress/uncertain в завершённый ответ. Доверять только данным из проверенного runtime, не произвольным DTO.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E3-03.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n\n## Материалы\n\nИсходники только для чтения: C:/OSPanel/home/souzpir.local/.local/references/{eyon-pilot,laravel-prototype}.\nПолный индекс изображений: planning/materials-manifest.json; точный состав по docs/sources/02b_mockup_journal.md.\n",
+      "description": "# SP-E3-03 · Движок: Responder, Tools, Guard, Summarizer, Orchestrator\n\nПерепланировано 02.11.2026: незавершённые Responder, `llmCheck` и Summarizer вынесены в SP-E3-03C/D/E. Исходную карточку **не закрывать** до их интеграции в SP-E3-03B. Её остаток — финальная приёмка ToolRunner, интерфейсов компонентов, tenant-bound snapshot/prompt и существующих golden-проверок без изменения fixtures. Она ждёт `done` SP-E3-03B; зависимые функциональные задачи могут начинаться после SP-E3-03B, не дожидаясь этой приёмки.\n\nЧасть `create_promise` выделена в SP-E3-03P и начинается только после `done` общей границы SP-C-02. Другие независимые части SP-E3-03 продолжаются; готовность всей карточки не означает готовность зависимой части до её приёмки.\n\nПрочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель остатка: проверить после слияния SP-E3-03B, что Responder, Guard, Summarizer и ToolRunner сохраняют опубликованные контракты, фолбэки и handoffOnError; исправить только выявленные интеграционные расхождения своего модуля. Orchestrator и runtime принадлежат SP-E3-03B.\n\nЗависимости (нужен done после merge): SP-E3-03B, SP-E3-08, SP-E3-09.\nОбласть записи: app/Seller/Engine/, config/features/E3-03.php, database/factories/Seller/Engine/, database/migrations/E3-03/, database/seeders/Seller/Engine/, docs/modules/E3-03.md, lang/ru/Seller/Engine/, resources/js/features/Seller/Engine/, resources/js/pages/Seller/Engine/, resources/js/types/Seller/Engine/, routes/features/E3-03.php, tests/Browser/E3-03/, tests/Feature/Seller/Engine/, tests/Unit/Seller/Engine/, docs/results/SP-E3-03.md.\nЭкраны: инфраструктура/контракты.\nИсточники: E3-03.\n- E3-03: 03 §1.2–1.3, proto `Responder`, `Guard`, `ToolRunner`, `Orchestrator`\n\nПриёмка:\n- GuardTest и tool unit tests зелёные; snapshots prompt defaults совпадают; неполученные LLM-fixtures не выдаются за эталон.\n- Тесты чужих релизов/prompt, неверных data classes, pending/uncertain и локального сохранения контактов без утечки во внешний ИИ.\n\nДополнительно:  Responder/Guard/Summarizer обязаны использовать опубликованные tenant-bound snapshot и prompt, маркировать все реально передаваемые классы данных и не превращать in_progress/uncertain в завершённый ответ. Доверять только данным из проверенного runtime, не произвольным DTO.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E3-03.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n\n## Материалы\n\nИсходники только для чтения: C:/OSPanel/home/souzpir.local/.local/references/{eyon-pilot,laravel-prototype}.\nПолный индекс изображений: planning/materials-manifest.json; точный состав по docs/sources/02b_mockup_journal.md.\n",
       "partDependencies": {
         "create_promise": [
           "SP-E3-03P"
@@ -2199,7 +2201,7 @@
       ],
       "promptPath": "docs/tasks/SP-E3-03B.md",
       "wave": 8,
-      "description": "# SP-E3-03B · Orchestrator, turn/open и режимы доставки\n\nПрочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: Интегрировать перенесённые части движка с persistence и AiGateway, runtime per brand, meta, tool-calls, retry/fallback. bot доставляет через Delivery contract; suggest сохраняет подсказку без отправки; manager молчит. Доставка каналов остается отдельным владельцам.\n\nЗависимости (нужен done после merge): SP-E0-04, SP-E3-03D, SP-E3-03E, SP-E3-04. SP-E3-03C входит через D/E; исходная SP-E3-03 закрывается после интеграции, не блокируя её начало.\nОбласть записи: app/Seller/Engine/, app/Seller/Runtime/, tests/Feature/SellerRuntime/, docs/results/SP-E3-03B.md.\nЭкраны: инфраструктура/контракты.\nИсточники: E3-03.\n- E3-03: 03 §1.2–1.3, proto `Responder`, `Guard`, `ToolRunner`, `Orchestrator`\n\nПриёмка:\n- TurnTest/open/regeneration/fallback, tenant isolation, double-submit/idempotency и defaults-equivalence проходят.\n- Чужие или подменённые state/history/input и несовпадающая claimed message отвергаются до ИИ и сохранения; проверено отсутствие передачи контактов.\n\nДополнительно:  Обязательная граница: state/history/clientMessage и claimed input загружать из persistence по tenant + conversation + inputMessage, сверять с захваченным turn; не доверять произвольным значениям caller. Использовать проверенные опубликованные release/prompt, обязательные dataClasses и сохранять исходные контакты локально без отправки наружу. Pending/uncertain не финализировать как fallback и не запускать платный запрос повторно. Методы с сырой историей, TurnCommand и сообщениями должны скрывать их из трасс исключений (SensitiveParameter/generic errors); проверить рекурсивно getTrace и строку исключения при zend.exception_ignore_args=0.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E3-03B.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n\n## Материалы\n\nИсходники только для чтения: C:/OSPanel/home/souzpir.local/.local/references/{eyon-pilot,laravel-prototype}.\nПолный индекс изображений: planning/materials-manifest.json; точный состав по docs/sources/02b_mockup_journal.md.\n"
+      "description": "**Принятая граница сдачи 2026-11-02:** защищённый первый входящий bot fake-ход и manager без AI/доставки. Открытие, suggest и следующие ходы вынесены в SP-E3-08; regeneration/fallback, tools и Delivery — в SP-E3-09. SP-E3-03 остаётся открытой для финальной приёмки после обеих карточек.\n\n# SP-E3-03B · Orchestrator, turn/open и режимы доставки\n\nПрочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: Интегрировать перенесённые части движка с persistence и AiGateway, runtime per brand, meta, tool-calls, retry/fallback. bot доставляет через Delivery contract; suggest сохраняет подсказку без отправки; manager молчит. Доставка каналов остается отдельным владельцам.\n\nЗависимости (нужен done после merge): SP-E0-04, SP-E3-03D, SP-E3-03E, SP-E3-04. SP-E3-03C входит через D/E; исходная SP-E3-03 закрывается после интеграции, не блокируя её начало.\nОбласть записи: app/Seller/Engine/, app/Seller/Runtime/, tests/Feature/SellerRuntime/, docs/results/SP-E3-03B.md.\nЭкраны: инфраструктура/контракты.\nИсточники: E3-03.\n- E3-03: 03 §1.2–1.3, proto `Responder`, `Guard`, `ToolRunner`, `Orchestrator`\n\nПриёмка:\n- TurnTest/open/regeneration/fallback, tenant isolation, double-submit/idempotency и defaults-equivalence проходят.\n- Чужие или подменённые state/history/input и несовпадающая claimed message отвергаются до ИИ и сохранения; проверено отсутствие передачи контактов.\n\nДополнительно:  Обязательная граница: state/history/clientMessage и claimed input загружать из persistence по tenant + conversation + inputMessage, сверять с захваченным turn; не доверять произвольным значениям caller. Использовать проверенные опубликованные release/prompt, обязательные dataClasses и сохранять исходные контакты локально без отправки наружу. Pending/uncertain не финализировать как fallback и не запускать платный запрос повторно. Методы с сырой историей, TurnCommand и сообщениями должны скрывать их из трасс исключений (SensitiveParameter/generic errors); проверить рекурсивно getTrace и строку исключения при zend.exception_ignore_args=0.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E3-03B.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n\n## Материалы\n\nИсходники только для чтения: C:/OSPanel/home/souzpir.local/.local/references/{eyon-pilot,laravel-prototype}.\nПолный индекс изображений: planning/materials-manifest.json; точный состав по docs/sources/02b_mockup_journal.md.\n"
     },
     {
       "taskKey": "SP-E5-06",
@@ -2695,7 +2697,7 @@
       ],
       "promptPath": "docs/tasks/SP-E5-05.md",
       "wave": 8,
-      "description": "# SP-E5-05 · Клиенты, задачи и обещания\n\nПрочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: D-3.1 список клиентов (тип по `Policy::clientType`, фильтры, KPI-карточки), D-3.2 карточка клиента (вкладки: поля LeadState с историей заполнения, диалоги, задачи, «что обещали отправить», заметки; менеджер), D-3.3 задачи и обещания (канбан/таблица, типы из А.5, «мои», просроченные)\n\nЗависимости (нужен done после merge): SP-F-03. Списки, задачи и обещания используют сохранённые записи; генерация новых bot-ходов остаётся в SP-E3-03B.\nОбласть записи: app/Seller/Customers/, config/features/E5-05.php, database/factories/Seller/Customers/, database/migrations/E5-05/, database/seeders/Seller/Customers/, docs/modules/E5-05.md, lang/ru/Seller/Customers/, resources/js/features/Seller/Customers/, resources/js/pages/Seller/Customers/, resources/js/types/Seller/Customers/, routes/features/E5-05.php, tests/Browser/E5-05/, tests/Feature/Seller/Customers/, tests/Unit/Seller/Customers/, docs/results/SP-E5-05.md.\nЭкраны: D-3.1, D-3.2, D-3.3.\nИсточники: E5-05.\n- E5-05: ТЗ D-3.1–D-3.3; макеты 44–46\n\nПриёмка:\n- feature; уведомление при `PromiseDue`; история заполнения слота пишется из `messages.meta.extraction`\n\nДополнительно: Сохранять поведение донора; изменения только по принятым решениям.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E5-05.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n\n## Материалы\n\nИсходники только для чтения: C:/OSPanel/home/souzpir.local/.local/references/{eyon-pilot,laravel-prototype}.\nПолный индекс изображений: planning/materials-manifest.json; точный состав по docs/sources/02b_mockup_journal.md.\n\n- `C:\\OSPanel\\home\\tasks.local\\completed\\44\\19-D-3.1-customers.png`\n- `C:\\OSPanel\\home\\tasks.local\\completed\\45\\3b0c3cf4-D-3.2-customer-main.png`\n- `C:\\OSPanel\\home\\tasks.local\\completed\\45\\3e5e8fd7-D-3.2-customer-notes.png`\n- `C:\\OSPanel\\home\\tasks.local\\completed\\45\\5cc4b776-D-3.2-customer-fields.png`\n- `C:\\OSPanel\\home\\tasks.local\\completed\\45\\b3040e6f-D-3.2-customer-tasks.png`\n- `C:\\OSPanel\\home\\tasks.local\\completed\\45\\e9aa9170-D-3.2-customer-dialogs.png`\n- `C:\\OSPanel\\home\\tasks.local\\completed\\45\\f425c8d6-D-3.2-customer-promises.png`\n- `C:\\OSPanel\\home\\tasks.local\\completed\\46\\4da1767f-D-3.3-drawer.png`\n- `C:\\OSPanel\\home\\tasks.local\\completed\\46\\55d0b66c-D-3.3-empty.png`\n- `C:\\OSPanel\\home\\tasks.local\\completed\\46\\8ceaf99c-D-3.3-kanban.png`\n- `C:\\OSPanel\\home\\tasks.local\\completed\\46\\d9c1e574-D-3.3-table.png`\n"
+      "description": "**Принятая граница сдачи 2026-11-02:** Остаток: назначение менеджера/переход к диалогу — SP-E5-05B; создание напоминаний — SP-E5-05C.\n\n# SP-E5-05 · Клиенты, задачи и обещания\n\nПрочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: D-3.1 список клиентов (тип по `Policy::clientType`, фильтры, KPI-карточки), D-3.2 карточка клиента (вкладки: поля LeadState с историей заполнения, диалоги, задачи, «что обещали отправить», заметки; менеджер), D-3.3 задачи и обещания (канбан/таблица, типы из А.5, «мои», просроченные)\n\nЗависимости (нужен done после merge): SP-F-03. Списки, задачи и обещания используют сохранённые записи; генерация новых bot-ходов остаётся в SP-E3-03B.\nОбласть записи: app/Seller/Customers/, config/features/E5-05.php, database/factories/Seller/Customers/, database/migrations/E5-05/, database/seeders/Seller/Customers/, docs/modules/E5-05.md, lang/ru/Seller/Customers/, resources/js/features/Seller/Customers/, resources/js/pages/Seller/Customers/, resources/js/types/Seller/Customers/, routes/features/E5-05.php, tests/Browser/E5-05/, tests/Feature/Seller/Customers/, tests/Unit/Seller/Customers/, docs/results/SP-E5-05.md.\nЭкраны: D-3.1, D-3.2, D-3.3.\nИсточники: E5-05.\n- E5-05: ТЗ D-3.1–D-3.3; макеты 44–46\n\nПриёмка:\n- feature; уведомление при `PromiseDue`; история заполнения слота пишется из `messages.meta.extraction`\n\nДополнительно: Сохранять поведение донора; изменения только по принятым решениям.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E5-05.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n\n## Материалы\n\nИсходники только для чтения: C:/OSPanel/home/souzpir.local/.local/references/{eyon-pilot,laravel-prototype}.\nПолный индекс изображений: planning/materials-manifest.json; точный состав по docs/sources/02b_mockup_journal.md.\n\n- `C:\\OSPanel\\home\\tasks.local\\completed\\44\\19-D-3.1-customers.png`\n- `C:\\OSPanel\\home\\tasks.local\\completed\\45\\3b0c3cf4-D-3.2-customer-main.png`\n- `C:\\OSPanel\\home\\tasks.local\\completed\\45\\3e5e8fd7-D-3.2-customer-notes.png`\n- `C:\\OSPanel\\home\\tasks.local\\completed\\45\\5cc4b776-D-3.2-customer-fields.png`\n- `C:\\OSPanel\\home\\tasks.local\\completed\\45\\b3040e6f-D-3.2-customer-tasks.png`\n- `C:\\OSPanel\\home\\tasks.local\\completed\\45\\e9aa9170-D-3.2-customer-dialogs.png`\n- `C:\\OSPanel\\home\\tasks.local\\completed\\45\\f425c8d6-D-3.2-customer-promises.png`\n- `C:\\OSPanel\\home\\tasks.local\\completed\\46\\4da1767f-D-3.3-drawer.png`\n- `C:\\OSPanel\\home\\tasks.local\\completed\\46\\55d0b66c-D-3.3-empty.png`\n- `C:\\OSPanel\\home\\tasks.local\\completed\\46\\8ceaf99c-D-3.3-kanban.png`\n- `C:\\OSPanel\\home\\tasks.local\\completed\\46\\d9c1e574-D-3.3-table.png`\n"
     },
     {
       "taskKey": "SP-E6-04",
@@ -2792,7 +2794,7 @@
       ],
       "promptPath": "docs/tasks/SP-E6-05.md",
       "wave": 8,
-      "description": "# SP-E6-05 · Приёмы\n\nПрочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: D-5.4: список, enabled/is_base, структурированный редактор when/not_when + расширенный JSON только чтение, статистика из `messages.meta.goal.trigger.id`\n\nЗависимости (нужен done после merge): SP-F-03. Редактор и статистика читают уже сохранённые метаданные и не меняют runtime SP-E3-03B.\nОбласть записи: app/Seller/Settings/Techniques/, config/features/E6-05.php, database/factories/Seller/Settings/Techniques/, database/migrations/E6-05/, database/seeders/Seller/Settings/Techniques/, docs/modules/E6-05.md, lang/ru/Seller/Settings/Techniques/, resources/js/features/Seller/Settings/Techniques/, resources/js/pages/Seller/Settings/Techniques/, resources/js/types/Seller/Settings/Techniques/, routes/features/E6-05.php, tests/Browser/E6-05/, tests/Feature/Seller/Settings/Techniques/, tests/Unit/Seller/Settings/Techniques/, docs/results/SP-E6-05.md.\nЭкраны: D-5.4.\nИсточники: E6-05.\n- E6-05: ТЗ D-5.4; макет 135; R-D-16, R-D-17\n\nПриёмка:\n- PolicyTest триггеров; статистика на фикстурных диалогах\n\nДополнительно: Сохранять поведение донора; изменения только по принятым решениям.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E6-05.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n\n## Материалы\n\nИсходники только для чтения: C:/OSPanel/home/souzpir.local/.local/references/{eyon-pilot,laravel-prototype}.\nПолный индекс изображений: planning/materials-manifest.json; точный состав по docs/sources/02b_mockup_journal.md.\n\n- `C:\\OSPanel\\home\\tasks.local\\completed\\135\\97218f18-D-5.4-comparison.png`\n- `C:\\OSPanel\\home\\tasks.local\\completed\\135\\9c54ce75-D-5.4-techniques.png`\n"
+      "description": "**Принятая граница сдачи 2026-11-02:** Остаток: ссылка на экран из общего меню — SP-E6-05B.\n\n# SP-E6-05 · Приёмы\n\nПрочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: D-5.4: список, enabled/is_base, структурированный редактор when/not_when + расширенный JSON только чтение, статистика из `messages.meta.goal.trigger.id`\n\nЗависимости (нужен done после merge): SP-F-03. Редактор и статистика читают уже сохранённые метаданные и не меняют runtime SP-E3-03B.\nОбласть записи: app/Seller/Settings/Techniques/, config/features/E6-05.php, database/factories/Seller/Settings/Techniques/, database/migrations/E6-05/, database/seeders/Seller/Settings/Techniques/, docs/modules/E6-05.md, lang/ru/Seller/Settings/Techniques/, resources/js/features/Seller/Settings/Techniques/, resources/js/pages/Seller/Settings/Techniques/, resources/js/types/Seller/Settings/Techniques/, routes/features/E6-05.php, tests/Browser/E6-05/, tests/Feature/Seller/Settings/Techniques/, tests/Unit/Seller/Settings/Techniques/, docs/results/SP-E6-05.md.\nЭкраны: D-5.4.\nИсточники: E6-05.\n- E6-05: ТЗ D-5.4; макет 135; R-D-16, R-D-17\n\nПриёмка:\n- PolicyTest триггеров; статистика на фикстурных диалогах\n\nДополнительно: Сохранять поведение донора; изменения только по принятым решениям.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E6-05.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n\n## Материалы\n\nИсходники только для чтения: C:/OSPanel/home/souzpir.local/.local/references/{eyon-pilot,laravel-prototype}.\nПолный индекс изображений: planning/materials-manifest.json; точный состав по docs/sources/02b_mockup_journal.md.\n\n- `C:\\OSPanel\\home\\tasks.local\\completed\\135\\97218f18-D-5.4-comparison.png`\n- `C:\\OSPanel\\home\\tasks.local\\completed\\135\\9c54ce75-D-5.4-techniques.png`\n"
     },
     {
       "taskKey": "SP-E6-06",
@@ -2890,7 +2892,7 @@
       ],
       "promptPath": "docs/tasks/SP-E6-08.md",
       "wave": 8,
-      "description": "# SP-E6-08 · Каталог, прайс и остатки\n\nПрочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: D-10.1 импорт CSV/XLSX (eyon), YML по ссылке (B), периодичность, «прайс-файл для отправки», «бот может называть цены» (B, выкл по умолчанию); D-10.4 источник остатков для `check_stock` из `catalog_items` (B), порог «мало»\n\nЗависимости (нужен done после merge): SP-F-03. Каталог и остатки работают через собственные данные и существующие Guard/ToolRunner; новые bot-ходы остаются в SP-E3-03B.\nОбласть записи: app/Seller/Catalog/, config/features/E6-08.php, database/factories/Seller/Catalog/, database/migrations/E6-08/, database/seeders/Seller/Catalog/, docs/modules/E6-08.md, lang/ru/Seller/Catalog/, resources/js/features/Seller/Catalog/, resources/js/pages/Seller/Catalog/, resources/js/types/Seller/Catalog/, routes/features/E6-08.php, tests/Browser/E6-08/, tests/Feature/Seller/Catalog/, tests/Unit/Seller/Catalog/, docs/results/SP-E6-08.md.\nЭкраны: D-10.1, D-10.4.\nИсточники: E6-08.\n- E6-08: ТЗ D-10.1, D-10.4; макеты 150, 152; R-D-35, R-D-36\n\nПриёмка:\n- парсер на фикстурах; Guard-тесты с ценой; выкл = старое\n\nДополнительно: Сохранять поведение донора; изменения только по принятым решениям.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E6-08.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n\n## Материалы\n\nИсходники только для чтения: C:/OSPanel/home/souzpir.local/.local/references/{eyon-pilot,laravel-prototype}.\nПолный индекс изображений: planning/materials-manifest.json; точный состав по docs/sources/02b_mockup_journal.md.\n\n- `C:\\OSPanel\\home\\tasks.local\\completed\\150\\0866ef79-D-10.1-main.png`\n- `C:\\OSPanel\\home\\tasks.local\\completed\\150\\3dcae91c-D-10.1-settings.png`\n- `C:\\OSPanel\\home\\tasks.local\\completed\\150\\46b75885-D-10.1-empty.png`\n- `C:\\OSPanel\\home\\tasks.local\\completed\\150\\5381306c-D-10.1-states.png`\n- `C:\\OSPanel\\home\\tasks.local\\completed\\152\\381527a2-D-10.4-stock.png`\n"
+      "description": "**Принятая граница сдачи 2026-11-02:** Остаток: YML и расписание — SP-E6-08B; выбор листа/столбцов — SP-E6-08C.\n\n# SP-E6-08 · Каталог, прайс и остатки\n\nПрочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: D-10.1 импорт CSV/XLSX (eyon), YML по ссылке (B), периодичность, «прайс-файл для отправки», «бот может называть цены» (B, выкл по умолчанию); D-10.4 источник остатков для `check_stock` из `catalog_items` (B), порог «мало»\n\nЗависимости (нужен done после merge): SP-F-03. Каталог и остатки работают через собственные данные и существующие Guard/ToolRunner; новые bot-ходы остаются в SP-E3-03B.\nОбласть записи: app/Seller/Catalog/, config/features/E6-08.php, database/factories/Seller/Catalog/, database/migrations/E6-08/, database/seeders/Seller/Catalog/, docs/modules/E6-08.md, lang/ru/Seller/Catalog/, resources/js/features/Seller/Catalog/, resources/js/pages/Seller/Catalog/, resources/js/types/Seller/Catalog/, routes/features/E6-08.php, tests/Browser/E6-08/, tests/Feature/Seller/Catalog/, tests/Unit/Seller/Catalog/, docs/results/SP-E6-08.md.\nЭкраны: D-10.1, D-10.4.\nИсточники: E6-08.\n- E6-08: ТЗ D-10.1, D-10.4; макеты 150, 152; R-D-35, R-D-36\n\nПриёмка:\n- парсер на фикстурах; Guard-тесты с ценой; выкл = старое\n\nДополнительно: Сохранять поведение донора; изменения только по принятым решениям.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E6-08.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n\n## Материалы\n\nИсходники только для чтения: C:/OSPanel/home/souzpir.local/.local/references/{eyon-pilot,laravel-prototype}.\nПолный индекс изображений: planning/materials-manifest.json; точный состав по docs/sources/02b_mockup_journal.md.\n\n- `C:\\OSPanel\\home\\tasks.local\\completed\\150\\0866ef79-D-10.1-main.png`\n- `C:\\OSPanel\\home\\tasks.local\\completed\\150\\3dcae91c-D-10.1-settings.png`\n- `C:\\OSPanel\\home\\tasks.local\\completed\\150\\46b75885-D-10.1-empty.png`\n- `C:\\OSPanel\\home\\tasks.local\\completed\\150\\5381306c-D-10.1-states.png`\n- `C:\\OSPanel\\home\\tasks.local\\completed\\152\\381527a2-D-10.4-stock.png`\n"
     },
     {
       "taskKey": "SP-E8-04",
@@ -6661,6 +6663,219 @@
       "promptPath": "docs/tasks/SP-CI-05.md",
       "wave": 0,
       "description": "# SP-CI-05 · Балансировка browser shards\n\n**Сверх ТЗ: прямое поручение владельца от 2026-11-02.** Размер: 1–3 часа. Код приложения не менять.\n\n**Зачем:** пункт A3 поручения владельца о скорости и надёжности CI; непрерывная разработка функциональных экранов зависит от достоверного и зелёного CI.\n\n**Часть чего:** поручение владельца 2026-11-02, пункт A3. После этой карточки остаются другие пункты A и текущие функциональные задачи; цепочка CI заканчивается SP-CI-04 и SP-CI-05.\n\nЗависимости: SP-CI-02.\n\nПерераспределить спеки между тремя browser shards с исходных 244/306/198 секунд к близким длительностям. Не менять тестируемое поведение и concurrency main.\n\nScope: `scripts/ci/browser-smoke.sh`, `playwright.config.ts`, `docs/results/SP-CI-05.md`. Файлы приложения, golden fixtures и политика concurrency main вне scope.\n\nПриёмка: Все спеки исполняются один раз; времена трёх shards и полный CI до/после приведены в отчёте. Отчёт `docs/results/SP-CI-05.md`, submit и зелёный CI ветки до merge.\n"
+    },
+    {
+      "taskKey": "SP-E3-08",
+      "title": "SP-E3-08 · Открытие, подсказка и следующие fake-ходы",
+      "goal": "Расширить защищённый runtime после первого входящего: open, suggest и последующие bot-ходы на fake-драйвере; suggest сохраняет подсказку без отправки, manager остаётся без AI. Проверить tenant, session, ревизию, повтор ключа и отсутствие контактов во внешнем AI.",
+      "dependsOn": [
+        "SP-E3-03B"
+      ],
+      "scope": [
+        "app/Seller/Runtime/",
+        "tests/Feature/SellerRuntime/Turns/",
+        "docs/results/SP-E3-08.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "После карточки остаются regeneration/fallback, инструменты и Delivery в SP-E3-09; итоговая проверка компонентов — SP-E3-03."
+      ],
+      "sourceIds": [
+        "SP-E3-03B"
+      ],
+      "screenIds": [],
+      "notes": "Функциональный остаток SP-E3-03B; решение владельца 2026-11-02",
+      "sourceRefs": [
+        "docs/tasks/SP-E3-03B.md",
+        "docs/preparation/decisions.md"
+      ],
+      "promptPath": "docs/tasks/SP-E3-08.md",
+      "wave": 9,
+      "description": "# SP-E3-08 · Открытие, подсказка и следующие fake-ходы\n\nРазмер: 1–3 часа. Функциональный остаток; новой возможности сверх ТЗ нет.\n\n**Зачем:** закрыть E3-03, 03 §1.2–1.3 после частичной сдачи SP-E3-03B и дать исполнителям независимую работу по экрану или сценарию ТЗ.\n\n**Часть чего:** SP-E3-03B. После карточки остаются regeneration/fallback, инструменты и Delivery в SP-E3-09; итоговая проверка компонентов — SP-E3-03.\n\nЗависимости: SP-E3-03B.\n\nРасширить защищённый runtime после первого входящего: open, suggest и последующие bot-ходы на fake-драйвере; suggest сохраняет подсказку без отправки, manager остаётся без AI. Проверить tenant, session, ревизию, повтор ключа и отсутствие контактов во внешнем AI.\n\nScope: `app/Seller/Runtime/`, `tests/Feature/SellerRuntime/Turns/`, `docs/results/SP-E3-08.md`. Чужие модули и golden fixtures не менять.\n\nПриёмка: сценарий, права и изоляция бренда, 1–2 ошибки ввода; только fake/HTTP fixtures. Отчёт `docs/results/SP-E3-08.md`, submit и зелёный CI до merge.\n"
+    },
+    {
+      "taskKey": "SP-E3-09",
+      "title": "SP-E3-09 · Fallback, инструменты и Delivery runtime",
+      "goal": "Довести regeneration/fallback и tool-calls до защищённого результата; ввести ChannelDelivery contract и fake delivery для bot, без отправки у suggest/manager. Проверить pending/uncertain без повторного платного вызова, tenant и idempotency.",
+      "dependsOn": [
+        "SP-E3-08"
+      ],
+      "scope": [
+        "app/Seller/Runtime/",
+        "app/Seller/Engine/ToolRunner.php",
+        "tests/Feature/SellerRuntime/Delivery/",
+        "docs/results/SP-E3-09.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "После карточки остаётся только финальная приёмка компонентов SP-E3-03 и адаптеры конкретных каналов их владельцам."
+      ],
+      "sourceIds": [
+        "SP-E3-03B"
+      ],
+      "screenIds": [],
+      "notes": "Функциональный остаток SP-E3-03B; решение владельца 2026-11-02",
+      "sourceRefs": [
+        "docs/tasks/SP-E3-03B.md",
+        "docs/preparation/decisions.md"
+      ],
+      "promptPath": "docs/tasks/SP-E3-09.md",
+      "wave": 9,
+      "description": "# SP-E3-09 · Fallback, инструменты и Delivery runtime\n\nРазмер: 1–3 часа. Функциональный остаток; новой возможности сверх ТЗ нет.\n\n**Зачем:** закрыть E3-03, 03 §1.2–1.3 после частичной сдачи SP-E3-03B и дать исполнителям независимую работу по экрану или сценарию ТЗ.\n\n**Часть чего:** SP-E3-03B. После карточки остаётся только финальная приёмка компонентов SP-E3-03 и адаптеры конкретных каналов их владельцам.\n\nЗависимости: SP-E3-08.\n\nДовести regeneration/fallback и tool-calls до защищённого результата; ввести ChannelDelivery contract и fake delivery для bot, без отправки у suggest/manager. Проверить pending/uncertain без повторного платного вызова, tenant и idempotency.\n\nScope: `app/Seller/Runtime/`, `app/Seller/Engine/ToolRunner.php`, `tests/Feature/SellerRuntime/Delivery/`, `docs/results/SP-E3-09.md`. Чужие модули и golden fixtures не менять.\n\nПриёмка: сценарий, права и изоляция бренда, 1–2 ошибки ввода; только fake/HTTP fixtures. Отчёт `docs/results/SP-E3-09.md`, submit и зелёный CI до merge.\n"
+    },
+    {
+      "taskKey": "SP-E5-05B",
+      "title": "SP-E5-05B · Назначение менеджера и переход к диалогу клиента",
+      "goal": "Доделать смену менеджера клиента с проверкой прав и бренда; связать карточку с существующим экраном диалога. Проверить отсутствие перехода к чужому бренду.",
+      "dependsOn": [
+        "SP-E5-05",
+        "SP-E5-04"
+      ],
+      "scope": [
+        "app/Seller/Customers/",
+        "resources/js/pages/Seller/Customers/",
+        "routes/features/E5-05.php",
+        "tests/Feature/Seller/Customers/",
+        "docs/results/SP-E5-05B.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "После карточки создание напоминаний остаётся в SP-E5-05C; списки, задачи и заметки уже в SP-E5-05."
+      ],
+      "sourceIds": [
+        "SP-E5-05"
+      ],
+      "screenIds": [],
+      "notes": "Функциональный остаток SP-E5-05; решение владельца 2026-11-02",
+      "sourceRefs": [
+        "docs/tasks/SP-E5-05.md",
+        "docs/preparation/decisions.md"
+      ],
+      "promptPath": "docs/tasks/SP-E5-05B.md",
+      "wave": 9,
+      "description": "# SP-E5-05B · Назначение менеджера и переход к диалогу клиента\n\nРазмер: 1–3 часа. Функциональный остаток; новой возможности сверх ТЗ нет.\n\n**Зачем:** закрыть D-3.2, макет 45 после частичной сдачи SP-E5-05 и дать исполнителям независимую работу по экрану или сценарию ТЗ.\n\n**Часть чего:** SP-E5-05. После карточки создание напоминаний остаётся в SP-E5-05C; списки, задачи и заметки уже в SP-E5-05.\n\nЗависимости: SP-E5-05, SP-E5-04.\n\nДоделать смену менеджера клиента с проверкой прав и бренда; связать карточку с существующим экраном диалога. Проверить отсутствие перехода к чужому бренду.\n\nScope: `app/Seller/Customers/`, `resources/js/pages/Seller/Customers/`, `routes/features/E5-05.php`, `tests/Feature/Seller/Customers/`, `docs/results/SP-E5-05B.md`. Чужие модули и golden fixtures не менять.\n\nПриёмка: сценарий, права и изоляция бренда, 1–2 ошибки ввода; только fake/HTTP fixtures. Отчёт `docs/results/SP-E5-05B.md`, submit и зелёный CI до merge.\n"
+    },
+    {
+      "taskKey": "SP-E5-05C",
+      "title": "SP-E5-05C · Создание напоминаний из карточки клиента",
+      "goal": "Добавить создание напоминания с привязкой к клиенту и менеджеру, валидировать срок и права, показать в задачах и карточке; использовать существующий outbox fake для срока.",
+      "dependsOn": [
+        "SP-E5-05B"
+      ],
+      "scope": [
+        "app/Seller/Customers/",
+        "resources/js/pages/Seller/Customers/",
+        "routes/features/E5-05.php",
+        "tests/Feature/Seller/Customers/",
+        "docs/results/SP-E5-05C.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "После карточки остатка SP-E5-05 для D-3.2/D-3.3 нет."
+      ],
+      "sourceIds": [
+        "SP-E5-05"
+      ],
+      "screenIds": [],
+      "notes": "Функциональный остаток SP-E5-05; решение владельца 2026-11-02",
+      "sourceRefs": [
+        "docs/tasks/SP-E5-05.md",
+        "docs/preparation/decisions.md"
+      ],
+      "promptPath": "docs/tasks/SP-E5-05C.md",
+      "wave": 10,
+      "description": "# SP-E5-05C · Создание напоминаний из карточки клиента\n\nРазмер: 1–3 часа. Функциональный остаток; новой возможности сверх ТЗ нет.\n\n**Зачем:** закрыть D-3.2–D-3.3, макеты 45–46 после частичной сдачи SP-E5-05 и дать исполнителям независимую работу по экрану или сценарию ТЗ.\n\n**Часть чего:** SP-E5-05. После карточки остатка SP-E5-05 для D-3.2/D-3.3 нет.\n\nЗависимости: SP-E5-05B.\n\nДобавить создание напоминания с привязкой к клиенту и менеджеру, валидировать срок и права, показать в задачах и карточке; использовать существующий outbox fake для срока.\n\nScope: `app/Seller/Customers/`, `resources/js/pages/Seller/Customers/`, `routes/features/E5-05.php`, `tests/Feature/Seller/Customers/`, `docs/results/SP-E5-05C.md`. Чужие модули и golden fixtures не менять.\n\nПриёмка: сценарий, права и изоляция бренда, 1–2 ошибки ввода; только fake/HTTP fixtures. Отчёт `docs/results/SP-E5-05C.md`, submit и зелёный CI до merge.\n"
+    },
+    {
+      "taskKey": "SP-E6-05B",
+      "title": "SP-E6-05B · Переход к приёмам продаж из меню",
+      "goal": "Добавить пункт «Приёмы продаж» в существующую навигацию продавца с корректным правом и активным состоянием; проверить доступность клавиатурой и отсутствие ссылки у запрещённой роли.",
+      "dependsOn": [
+        "SP-E6-05"
+      ],
+      "scope": [
+        "resources/js/components/navigation/navigation.json",
+        "tests/Browser/E6-05/",
+        "docs/results/SP-E6-05B.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "После карточки экран SP-E6-05 доступен из кабинета; иных остатков D-5.4 нет."
+      ],
+      "sourceIds": [
+        "SP-E6-05"
+      ],
+      "screenIds": [],
+      "notes": "Функциональный остаток SP-E6-05; решение владельца 2026-11-02",
+      "sourceRefs": [
+        "docs/tasks/SP-E6-05.md",
+        "docs/preparation/decisions.md"
+      ],
+      "promptPath": "docs/tasks/SP-E6-05B.md",
+      "wave": 9,
+      "description": "# SP-E6-05B · Переход к приёмам продаж из меню\n\nРазмер: 1–3 часа. Функциональный остаток; новой возможности сверх ТЗ нет.\n\n**Зачем:** закрыть D-5.4, экран 135 после частичной сдачи SP-E6-05 и дать исполнителям независимую работу по экрану или сценарию ТЗ.\n\n**Часть чего:** SP-E6-05. После карточки экран SP-E6-05 доступен из кабинета; иных остатков D-5.4 нет.\n\nЗависимости: SP-E6-05.\n\nДобавить пункт «Приёмы продаж» в существующую навигацию продавца с корректным правом и активным состоянием; проверить доступность клавиатурой и отсутствие ссылки у запрещённой роли.\n\nScope: `resources/js/components/navigation/navigation.json`, `tests/Browser/E6-05/`, `docs/results/SP-E6-05B.md`. Чужие модули и golden fixtures не менять.\n\nПриёмка: сценарий, права и изоляция бренда, 1–2 ошибки ввода; только fake/HTTP fixtures. Отчёт `docs/results/SP-E6-05B.md`, submit и зелёный CI до merge.\n"
+    },
+    {
+      "taskKey": "SP-E6-08B",
+      "title": "SP-E6-08B · YML по ссылке и расписание импорта",
+      "goal": "Добавить YML-импорт по HTTPS URL и выбор периодичности для существующего каталога. В тестах только fake HTTP; не выполнять живые запросы. Ошибка обновления не заменяет последний успешный каталог.",
+      "dependsOn": [
+        "SP-E6-08"
+      ],
+      "scope": [
+        "app/Seller/Catalog/",
+        "config/features/E6-08.php",
+        "resources/js/pages/Seller/Catalog/",
+        "routes/features/E6-08.php",
+        "tests/Feature/Seller/Catalog/",
+        "docs/results/SP-E6-08B.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "После карточки выбор столбцов и листа для сложных файлов остаётся в SP-E6-08C; runtime цены бота — владельцу SP-E3-09."
+      ],
+      "sourceIds": [
+        "SP-E6-08"
+      ],
+      "screenIds": [],
+      "notes": "Функциональный остаток SP-E6-08; решение владельца 2026-11-02",
+      "sourceRefs": [
+        "docs/tasks/SP-E6-08.md",
+        "docs/preparation/decisions.md"
+      ],
+      "promptPath": "docs/tasks/SP-E6-08B.md",
+      "wave": 9,
+      "description": "# SP-E6-08B · YML по ссылке и расписание импорта\n\nРазмер: 1–3 часа. Функциональный остаток; новой возможности сверх ТЗ нет.\n\n**Зачем:** закрыть D-10.1 (B), макет 150 после частичной сдачи SP-E6-08 и дать исполнителям независимую работу по экрану или сценарию ТЗ.\n\n**Часть чего:** SP-E6-08. После карточки выбор столбцов и листа для сложных файлов остаётся в SP-E6-08C; runtime цены бота — владельцу SP-E3-09.\n\nЗависимости: SP-E6-08.\n\nДобавить YML-импорт по HTTPS URL и выбор периодичности для существующего каталога. В тестах только fake HTTP; не выполнять живые запросы. Ошибка обновления не заменяет последний успешный каталог.\n\nScope: `app/Seller/Catalog/`, `config/features/E6-08.php`, `resources/js/pages/Seller/Catalog/`, `routes/features/E6-08.php`, `tests/Feature/Seller/Catalog/`, `docs/results/SP-E6-08B.md`. Чужие модули и golden fixtures не менять.\n\nПриёмка: сценарий, права и изоляция бренда, 1–2 ошибки ввода; только fake/HTTP fixtures. Отчёт `docs/results/SP-E6-08B.md`, submit и зелёный CI до merge.\n"
+    },
+    {
+      "taskKey": "SP-E6-08C",
+      "title": "SP-E6-08C · Выбор столбцов и листа прайса",
+      "goal": "Для CSV/XLSX дать выбор соответствия столбцов и листа перед сохранением; неверная конфигурация не заменяет текущий каталог. Проверить fake fixtures нескольких листов и брендов.",
+      "dependsOn": [
+        "SP-E6-08B"
+      ],
+      "scope": [
+        "app/Seller/Catalog/",
+        "resources/js/pages/Seller/Catalog/",
+        "tests/Feature/Seller/Catalog/",
+        "docs/results/SP-E6-08C.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "После карточки остатка SP-E6-08 для D-10.1 нет; интеграция цен и check_stock идёт через runtime SP-E3-09."
+      ],
+      "sourceIds": [
+        "SP-E6-08"
+      ],
+      "screenIds": [],
+      "notes": "Функциональный остаток SP-E6-08; решение владельца 2026-11-02",
+      "sourceRefs": [
+        "docs/tasks/SP-E6-08.md",
+        "docs/preparation/decisions.md"
+      ],
+      "promptPath": "docs/tasks/SP-E6-08C.md",
+      "wave": 10,
+      "description": "# SP-E6-08C · Выбор столбцов и листа прайса\n\nРазмер: 1–3 часа. Функциональный остаток; новой возможности сверх ТЗ нет.\n\n**Зачем:** закрыть D-10.1, макет 150 после частичной сдачи SP-E6-08 и дать исполнителям независимую работу по экрану или сценарию ТЗ.\n\n**Часть чего:** SP-E6-08. После карточки остатка SP-E6-08 для D-10.1 нет; интеграция цен и check_stock идёт через runtime SP-E3-09.\n\nЗависимости: SP-E6-08B.\n\nДля CSV/XLSX дать выбор соответствия столбцов и листа перед сохранением; неверная конфигурация не заменяет текущий каталог. Проверить fake fixtures нескольких листов и брендов.\n\nScope: `app/Seller/Catalog/`, `resources/js/pages/Seller/Catalog/`, `tests/Feature/Seller/Catalog/`, `docs/results/SP-E6-08C.md`. Чужие модули и golden fixtures не менять.\n\nПриёмка: сценарий, права и изоляция бренда, 1–2 ошибки ввода; только fake/HTTP fixtures. Отчёт `docs/results/SP-E6-08C.md`, submit и зелёный CI до merge.\n"
     }
   ],
   "excludedSourceTasks": {
