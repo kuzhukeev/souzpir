@@ -16,5 +16,3 @@ export default function Index({items,imports,settings,status,yml}:{items:Item[];
  <section className="mt-6 rounded-xl border border-(--color-border) bg-(--color-surface) p-5"><h2 className="text-xl font-bold">История загрузок</h2>{imports.length===0?<p className="mt-3 text-sm">Загрузок пока нет.</p>:<ul className="mt-3 space-y-3">{imports.map(i=><li key={i.id} className="rounded-lg bg-(--color-surface-muted) p-3 text-sm"><strong>{i.filename}</strong> · {i.status==='completed'?`Загружено: ${i.item_count}`:'Ошибка'} · {new Date(i.created_at).toLocaleString('ru-RU')}{i.error&&<p className="mt-1 text-(--color-danger-ink)">{i.error}</p>}</li>)}</ul>}</section>
  </main></CabinetLayout>;
 }
-
-
