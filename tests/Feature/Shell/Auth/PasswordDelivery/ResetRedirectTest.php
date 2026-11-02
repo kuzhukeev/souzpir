@@ -62,4 +62,10 @@ final class ResetRedirectTest extends TestCase
         $response->assertStatus(302)->assertHeader('Location', '/reset-password')->assertSessionHasErrors('email');
         self::assertNull(session()->getOldInput('email'));
     }
+
+    public function test_legacy_url_does_not_establish_a_recovery_grant(): void
+    {
+        $this->get('/reset-password/'.str_repeat('a', 64).'?email=synthetic%40example.test')->assertNotFound();
+        self::assertNull(session('auth.password_recovery'));
+    }
 }

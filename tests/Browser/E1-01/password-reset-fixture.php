@@ -12,6 +12,7 @@ use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Tests\Support\IsolatedAuthDatabase;
 
 putenv('APP_ENV=testing');
@@ -63,4 +64,5 @@ $transport = new class implements PasswordTransport
 $delivery = app(PasswordDelivery::class);
 $id = $delivery->enqueue($user->email);
 $delivery->send($delivery->claim($id), $transport);
+Log::info('Synthetic recovery fixture started.');
 echo $transport->token;

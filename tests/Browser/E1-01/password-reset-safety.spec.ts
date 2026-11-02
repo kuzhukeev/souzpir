@@ -15,6 +15,11 @@ test('recovery keeps credentials out of URLs, history and browser storage', asyn
   const urls: string[] = [];
   let resetBody = '';
   let exchangeBody = '';
+  let fragmentBeforeExchange: string | null = null;
+  const headers: Record<string, string>[] = [];
+  page.on('response', response => {
+    if (['/reset-password/open', '/reset-password/exchange'].includes(new URL(response.url()).pathname)) headers.push(response.headers());
+  });
   await page.route('**/*', async route => {
     const request = route.request();
     urls.push(request.url());
@@ -23,7 +28,10 @@ test('recovery keeps credentials out of URLs, history and browser storage', asyn
     expect(request.url()).not.toContain(encodeURIComponent(email));
     expect(request.url()).not.toContain(email);
     if (request.method() === 'POST' && new URL(request.url()).pathname === '/reset-password') resetBody = request.postData() || '';
-    if (request.method() === 'POST' && new URL(request.url()).pathname === '/reset-password/exchange') exchangeBody = request.postData() || '';
+    if (request.method() === 'POST' && new URL(request.url()).pathname === '/reset-password/exchange') {
+      fragmentBeforeExchange = await page.evaluate(() => location.hash);
+      exchangeBody = request.postData() || '';
+    }
     await route.continue();
   });
   await page.goto(`/reset-password/open#token=${token}&email=${encodeURIComponent(email)}`);
@@ -36,12 +44,11 @@ test('recovery keeps credentials out of URLs, history and browser storage', asyn
   for (const [width, height] of [[1440, 900], [1024, 768], [390, 844]]) {
     await page.setViewportSize({ width, height });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
-    await page.screenshot({ path: `.local/screenshots/e1-01g-reset-${width}.png` });
+    if (width === 1440) await page.screenshot({ path: '.local/screenshots/e1-01g-reset-1440.png' });
   }
   for (const theme of ['neutral', 'confectionery', 'pyro']) {
     await page.evaluate(value => { document.documentElement.dataset.theme = value; }, theme);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
-    await page.screenshot({ path: `.local/screenshots/e1-01g-reset-390-${theme}.png` });
   }
   await page.getByLabel('Новый пароль').fill('new-synthetic-password');
   await page.getByLabel('Повторите пароль').fill('new-synthetic-password');
@@ -49,6 +56,12 @@ test('recovery keeps credentials out of URLs, history and browser storage', asyn
   await expect(page).toHaveURL(/\/login$/);
   expect(exchangeBody).toContain(token);
   expect(exchangeBody).toContain(email);
+  expect(fragmentBeforeExchange).toBe('');
+  expect(headers).toHaveLength(2);
+  for (const responseHeaders of headers) {
+    expect(responseHeaders['referrer-policy']).toBe('no-referrer');
+    expect(responseHeaders['cache-control']).toContain('no-store');
+  }
   expect(resetBody).not.toContain(token);
   expect(resetBody).not.toContain(email);
   await page.goBack();
@@ -56,13 +69,16 @@ test('recovery keeps credentials out of URLs, history and browser storage', asyn
   expect(page.url()).not.toContain(email);
   expect(urls.every(url => !url.includes(token) && !url.includes(email))).toBeTruthy();
   if (process.env.E101G_APACHE_LOG_DIR) {
+    expect((await page.request.get('/__proxy_error')).status()).toBe(503);
     const access = readFileSync(`${process.env.E101G_APACHE_LOG_DIR}/access.log`, 'utf8');
     const errors = readFileSync(`${process.env.E101G_APACHE_LOG_DIR}/error.log`, 'utf8');
+    const application = readFileSync('.local/runtime/testing/storage/logs/laravel.log', 'utf8');
     expect(access).toContain('GET /reset-password/open ');
     expect(access).toContain('POST /reset-password/exchange ');
     expect(access).toContain('GET /__proxy_error ');
     expect(errors).toContain('AH01114');
-    for (const log of [access, errors, readFileSync('.local/runtime/testing/storage/logs/laravel.log', 'utf8')]) {
+    expect(application).toContain('Synthetic recovery fixture started.');
+    for (const log of [access, errors, application]) {
       expect(log).not.toContain(token);
       expect(log).not.toContain(email);
       expect(log).not.toContain(encodeURIComponent(email));
