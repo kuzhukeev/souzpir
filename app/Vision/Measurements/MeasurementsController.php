@@ -40,6 +40,28 @@ final class MeasurementsController
             fn (TenantContext $context, string $revision) => response()->json(['revision' => $revision]));
     }
 
+    public function schedule(Request $request): mixed
+    {
+        return app(MeasurementList::class)->withinCurrent($request, function (TenantContext $context) use ($request): mixed {
+            Gate::authorize('vision.measure.run');
+            $data = $request->validate([
+                'enabled' => ['required', 'boolean'],
+                'frequency' => ['nullable', 'in:weekly,biweekly,monthly'],
+                'weekday' => ['nullable', 'integer', 'between:1,7'],
+                'local_time' => ['nullable', 'date_format:H:i'],
+                'models' => ['nullable', 'array', 'min:1'],
+                'models.*' => ['string', 'max:120'],
+            ]);
+            try {
+                app(MeasurementSchedule::class)->save($context, $data);
+            } catch (\InvalidArgumentException) {
+                throw ValidationException::withMessages(['schedule' => 'Проверьте частоту, день, время и модели расписания.']);
+            }
+
+            return redirect()->route('vision.measurements.index')->with('status', 'Расписание сохранено.');
+        });
+    }
+
     public function start(Request $request): mixed
     {
         return app(MeasurementList::class)->withinCurrent($request, function (TenantContext $context) use ($request): mixed {
@@ -129,7 +151,11 @@ final class MeasurementsController
     private function enqueue(TenantContext $context, string $measurement): void
     {
         if (config('eyon.measurement_queue_enabled', false)) {
-            RunMeasurement::dispatch($context->organizationId, $context->brandId, $measurement)->afterCommit();
+            $answers = DB::table('measurement_answers')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)
+                ->where('measurement_id', $measurement)->pluck('id');
+            foreach ($answers as $answer) {
+                RunMeasurement::dispatch($context->organizationId, $context->brandId, $measurement, $answer)->afterCommit();
+            }
         }
     }
 }

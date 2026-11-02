@@ -18,13 +18,15 @@ final class RunMeasurement implements ShouldQueue
 
     public int $tries = 1;
 
-    public function __construct(public string $organizationId, public string $brandId, public string $measurementId) {}
+    public function __construct(public string $organizationId, public string $brandId, public string $measurementId, public ?string $answerId = null) {}
 
     public function handle(TenantContextRunner $runner): void
     {
         $runner->run(new TenantContext($this->organizationId, $this->brandId, source: 'job'), function (): void {
             $answers = DB::table('measurement_answers')->where('organization_id', $this->organizationId)->where('brand_id', $this->brandId)
-                ->where('measurement_id', $this->measurementId)->where('status', 'pending')->orderBy('question_n')->orderBy('provider')->orderBy('run_no')->pluck('id');
+                ->where('measurement_id', $this->measurementId)->where('status', 'pending')
+                ->when($this->answerId, fn ($query) => $query->where('id', $this->answerId))
+                ->orderBy('question_n')->orderBy('provider')->orderBy('run_no')->pluck('id');
             foreach ($answers as $id) {
                 try {
                     app(MeasurementRunner::class)->measure($id);
