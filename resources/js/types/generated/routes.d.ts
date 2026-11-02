@@ -368,6 +368,9 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "seller.schedule.index": [],
+    "seller.schedule.update": [],
+    "seller.assignment.update": [],
     "seller.settings.limits": [],
     "seller.settings.notifications": [],
     "seller.settings.notifications.update": [],
