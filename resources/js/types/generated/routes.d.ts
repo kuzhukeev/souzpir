@@ -331,6 +331,7 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "seller.turns.runtime": [],
     "seller.knowledge.index": [],
     "seller.knowledge.compare": [],
     "seller.knowledge.draft": [],
