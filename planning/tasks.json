@@ -8226,6 +8226,36 @@
       "promptPath": "docs/tasks/SP-E7-03B.md",
       "wave": 11,
       "description": "# SP-E7-03B · Калибровка оценок прогонов\n\n**Зачем:** D-7.8, макет 143: пользователь должен сопоставить оценки человека и судьи и сохранить калибровку.\n\n**Часть чего:** SP-E7-03 вносит сравнение пары оценённых прогонов D-7.7; здесь остаются `judge_calibrations` и экран/HTTP калибровки. После этой карточки остатка E7-03 нет.\n\nРазмер 1–3 часа. Зависимости: SP-E7-03. Scope: `app/Seller/Calibration/`, `database/migrations/E7-03B/`, `resources/js/pages/Seller/Calibration/`, `routes/features/E7-03.php`, `tests/Feature/Seller/Calibration/`, `tests/Browser/E7-03B/`, `docs/results/SP-E7-03B.md`. Проверить сохранение, права, бренд, ошибку ввода и сравнение на fixture; без живых вызовов ИИ.\n"
+    },
+    {
+      "taskKey": "SP-CI-09",
+      "title": "SP-CI-09 · Стабилизировать browser-smoke",
+      "goal": "Устранить подтверждённую общую причину падения browser-smoke в трёх CI-шардах и сделать диагностику ошибки конкретного спека.",
+      "dependsOn": [
+        "SP-CI-08"
+      ],
+      "scope": [
+        "scripts/ci/browser-smoke.sh",
+        "scripts/ci/browser-fixtures.sh",
+        "playwright.config.ts",
+        ".github/workflows/ci.yml",
+        "tests/Browser/CI/",
+        "docs/results/SP-CI-09.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Названы тест и причина каждого из трёх CI запусков; упавший browser-шард повторяется не более одного раза с ограничением времени и сохранением диагностики первого сбоя; затронутые browser-наборы и Product проходят; CI ветки зелёный."
+      ],
+      "sourceIds": [],
+      "screenIds": [],
+      "notes": "Сверх ТЗ; прямое поручение владельца 2026-11-02. Main concurrency не менять, код приложения вне scope.",
+      "sourceRefs": [
+        "scripts/ci/browser-smoke.sh",
+        ".github/workflows/ci.yml"
+      ],
+      "promptPath": "docs/tasks/SP-CI-09.md",
+      "wave": 0,
+      "description": "# SP-CI-09 · Стабилизировать browser-smoke\n\n**Сверх ТЗ: прямое поручение владельца от 2026-11-02. Размер:** 1–3 часа; код приложения и golden fixtures не менять.\n\n**Зачем:** `browser-smoke.sh` упал на shards 1/2/3 у SP-E5-08, SP-E6-05B и SP-E1-08C. Из-за нестабильного browser CI готовые экранные ветки нельзя уверенно проверить и влить.\n\n**Часть чего:** исправление надёжности CI по решению владельца; эта карточка закрывает общую причину browser-smoke, продолжений не планируется. Ошибки конкретной feature-ветки остаются у её владельца.\n\nЗависимости: SP-CI-08. Приоритет выше новых функциональных claim после восстановления зелёного main.\n\nScope: `scripts/ci/browser-smoke.sh`, `scripts/ci/browser-fixtures.sh`, `playwright.config.ts`, `.github/workflows/ci.yml`, `tests/Browser/CI/`, `docs/results/SP-CI-09.md`. Если понадобится править конкретный спек, сообщить интегратору точный путь для узкого расширения scope. Concurrency main не менять.\n\nРазобрать три запуска: [browser (1)](https://github.com/kuzhukeev/souzpir/actions/runs/41458938070/job/125322700861), [browser (2)](https://github.com/kuzhukeev/souzpir/actions/runs/41460321057/job/125327379969), [browser (3)](https://github.com/kuzhukeev/souzpir/actions/runs/41461452567/job/125331245141). Зафиксировать имя теста и реальную ошибку каждого. Проверить ожидание готовности серверов, занятие портов, разделение fixture-БД и состояние между спеками. Исправить подтверждённую причину; добавить диагностику, которая на следующем падении указывает спек и серверный лог. После первого сбоя автоматически повторять только упавший browser-шард один раз; ограничить время готовности серверов и прогона явными таймаутами, сохранив имя спека и логи первого сбоя. Не пропускать тесты и не ослаблять assertions.\n\nПриёмка: локальный затронутый набор и Product проходят; CI ветки зелёный, затем merge после зелёного main. В отчёте таблица «запуск → тест/причина → исправление».\n"
     }
   ],
   "excludedSourceTasks": {

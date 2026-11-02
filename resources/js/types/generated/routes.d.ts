@@ -458,6 +458,12 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "seller.customers.reminders.store": [
+        {
+            "name": "contact",
+            "required": true
+        }
+    ],
     "seller.customers.tasks": [],
     "seller.customers.tasks.update": [
         {
@@ -647,6 +653,7 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "vision.trends.index": [],
     "dev.design-system": [],
     "preview.login": [],
     "preview.attention": []
