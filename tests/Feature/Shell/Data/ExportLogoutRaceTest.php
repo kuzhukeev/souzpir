@@ -9,7 +9,6 @@ use App\Models\User;
 use App\Shell\Auth\AuthSessionRegistry;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -17,12 +16,13 @@ use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
+use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\TestCase;
 
 #[Group('race')]
 final class ExportLogoutRaceTest extends TestCase
 {
-    use DatabaseMigrations;
+    use IsolatedDatabaseMigrations;
 
     protected function beforeRefreshingDatabase(): void
     {

@@ -24,6 +24,7 @@ $session->put('auth.version', $user->auth_version);
 $request = Request::create('/profile/security/sessions', 'DELETE');
 $request->setLaravelSession($session);
 $request->setUserResolver(fn () => $user);
+$request->attributes->set('tenant.brand_revision', '0');
 DB::statement("SET lock_timeout = '8s'");
 try {
     if ($payload['hold']) {
@@ -36,7 +37,7 @@ try {
             throw new RuntimeException('Barrier timeout.');
         }
     } else {
-        echo "started\n";
+        echo 'started:'.DB::selectOne('select pg_backend_pid() as pid')->pid."\n";
         flush();
     }
     app(TenantContextRunner::class)->run(
@@ -58,7 +59,7 @@ try {
     while (DB::transactionLevel() > 0) {
         DB::rollBack();
     }
-    fwrite(STDERR, get_class($error)."\n");
+    fwrite(STDERR, get_class($error).': '.$error->getMessage()."\n");
     echo "failed\n";
     exit(1);
 }
