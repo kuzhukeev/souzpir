@@ -8,6 +8,8 @@ use App\Ai\ProviderCatalog;
 use App\Contracts\Ai\AiContext;
 use App\Contracts\Ai\AiGateway;
 use App\Contracts\Ai\AiRequest;
+use App\Shell\Notifications\Contracts\NotificationDispatcher;
+use App\Shell\Notifications\DomainEvent;
 use App\Tenancy\TenantContext;
 use App\Vision\Evidence\Contracts\KnowledgeGate;
 use App\Vision\Evidence\EvidenceEvaluator;
@@ -108,8 +110,8 @@ final class MeasurementRunner
     public function measure(string $answerId): string
     {
         $tenant = $this->tenant->current();
-        if (config('runtime.ai_driver', 'fake') !== 'fake') {
-            throw new LogicException('Vision measurement is restricted to fake AI until an authorized live stage.');
+        if (config('runtime.ai_driver', 'fake') !== 'fake' && ! config('eyon.live_measurements_enabled', false)) {
+            throw new LogicException('Live Vision measurement is disabled.');
         }
         try {
             $claimed = DB::transaction(function () use ($answerId, $tenant): ?array {
@@ -219,9 +221,15 @@ final class MeasurementRunner
                 if (! $pending) {
                     $partial = DB::table('measurement_answers')->where($tenant)->where('measurement_id', $measurementId)
                         ->whereIn('status', ['failed', 'uncertain'])->exists();
+                    $successful = DB::table('measurement_answers')->where($tenant)->where('measurement_id', $measurementId)->where('status', 'ok')->exists();
                     DB::table('measurements')->where($tenant)->where('id', $measurementId)->update([
-                        'status' => $partial ? 'partial' : 'completed', 'finished_at' => now(), 'updated_at' => now(),
+                        'status' => $partial ? ($successful ? 'partial' : 'failed') : 'completed', 'finished_at' => now(), 'updated_at' => now(),
                     ]);
+                    if (! $partial) {
+                        app(NotificationDispatcher::class)->enqueue(new DomainEvent(['event_id' => (string) Str::ulid(), 'schema_version' => 1, 'type' => 'vision.measurement.completed',
+                            'occurred_at' => now()->toIso8601String(), 'organization_id' => $tenant['organization_id'], 'brand_id' => $tenant['brand_id'], 'actor_id' => null,
+                            'aggregate' => ['type' => 'measurement', 'id' => $measurementId, 'version' => 1], 'data' => ['measurement_id' => $measurementId]]));
+                    }
                 }
 
                 return $changes['status'];

@@ -7,8 +7,10 @@ use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
 use App\Vision\Core\QuestionSets;
 use App\Vision\KnowledgeGrants\GrantRegistry;
+use App\Vision\Measurements\RunMeasurement;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use Tests\Feature\Tenancy\TenancyTestCase;
 
@@ -70,5 +72,19 @@ final class MeasurementStartTest extends TenancyTestCase
         $this->withHeaders(['X-Brand-Id' => $brand->id, 'X-Brand-Revision' => $revision])
             ->post('/vision/runs', ['runs' => 0])->assertSessionHasErrors('runs');
         $this->assertDatabaseCount('measurements', 0);
+    }
+
+    public function test_queue_option_dispatches_brand_scoped_measurement(): void
+    {
+        Queue::fake();
+        Http::preventStrayRequests();
+        [$owner, $organization, $brand, , $membership] = $this->cabinet();
+        $this->prepare($owner, $organization, $brand, $membership);
+        config(['eyon.measurement_queue_enabled' => true, 'runtime.ai_driver' => 'fake', 'features.E8-01.defaults.parser' => ['model' => 'google/gemini-2.5-flash', 'temperature' => 0.0, 'max_tokens' => 1200]]);
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $revision = $this->get('/vision/runs')->assertOk()->inertiaProps('measurementBrandRevision');
+        $this->withHeaders(['X-Brand-Id' => $brand->id, 'X-Brand-Revision' => $revision])->post('/vision/runs', ['runs' => 1])->assertRedirect()->assertSessionHasNoErrors();
+        Queue::assertPushed(RunMeasurement::class, fn ($job) => $job->organizationId === $organization->id && $job->brandId === $brand->id);
+        Http::assertNothingSent();
     }
 }
