@@ -353,6 +353,8 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "seller.sandbox.index": [],
+    "seller.sandbox.check": [],
     "seller.channels.index": [],
     "seller.channels.telegram": [],
     "seller.channels.telegram.register": [],
