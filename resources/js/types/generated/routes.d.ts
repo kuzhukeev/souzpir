@@ -397,6 +397,19 @@ declare module 'ziggy-js' {
     "seller.api.settings.update": [],
     "api.v1.leads.create": [],
     "api.v1.turn.create": [],
+    "seller.dialogs.index": [],
+    "seller.dialogs.show": [
+        {
+            "name": "dialog",
+            "required": true
+        }
+    ],
+    "seller.dialogs.mode": [
+        {
+            "name": "dialog",
+            "required": true
+        }
+    ],
     "seller.customers.index": [],
     "seller.customers.show": [
         {
