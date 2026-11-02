@@ -214,19 +214,11 @@ declare module 'ziggy-js' {
         {
             "name": "change",
             "required": true
-        },
-        {
-            "name": "token",
-            "required": true
         }
     ],
     "profile.email.commit": [
         {
             "name": "change",
-            "required": true
-        },
-        {
-            "name": "token",
             "required": true
         }
     ],

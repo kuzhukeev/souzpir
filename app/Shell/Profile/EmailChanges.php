@@ -32,8 +32,7 @@ final class EmailChanges
             return false;
         }
 
-        // The current confirmation route contains a bearer in its URL. Never
-        // enable the real sender until a capability-safe flow replaces it.
+        // Keep live mail disabled until an operator explicitly enables delivery.
         return app()->environment('testing') && ! (app(EmailChangeSender::class) instanceof MailEmailChangeSender);
     }
 
@@ -130,7 +129,7 @@ final class EmailChanges
             if (! is_array($parts) || ! in_array($parts['scheme'] ?? null, ['http', 'https'], true) || empty($parts['host']) || isset($parts['user']) || isset($parts['pass']) || isset($parts['query']) || isset($parts['fragment'])) {
                 throw new LogicException('Invalid canonical application URL.');
             }
-            $url = $base.URL::temporarySignedRoute('profile.email.confirm', CarbonImmutable::parse($claimed->expires_at), ['change' => $claimed->id, 'token' => Crypt::decryptString($claimed->encrypted_token)], absolute: false);
+            $url = $base.URL::temporarySignedRoute('profile.email.confirm', CarbonImmutable::parse($claimed->expires_at), ['change' => $claimed->id], absolute: false).'#token='.Crypt::decryptString($claimed->encrypted_token);
             $sent = app(EmailChangeSender::class)->send(Crypt::decryptString($claimed->target_email), $url);
             $status = $sent ? 'sent' : 'uncertain';
         } catch (Throwable) {
@@ -142,10 +141,22 @@ final class EmailChanges
     public function validate(User $user, TenantContext $context, string $id, #[\SensitiveParameter] string $token): object
     {
         abort_unless($this->available(), 404);
-        $row = DB::table('profile_email_changes')->where('id', $id)->where('user_id', $user->id)->where('organization_id', $context->organizationId)->lockForUpdate()->first();
+        $row = DB::table('profile_email_changes')->where('id', $id)->where('user_id', $user->id)
+            ->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)->lockForUpdate()->first();
         abort_unless($row && in_array($row->status, ['pending', 'sending', 'sent', 'uncertain'], true) && $row->token_hash && hash_equals($row->token_hash, hash('sha256', $token)) && $row->target_email && $row->auth_version === $user->auth_version && hash_equals($row->source_fingerprint, $this->fingerprint($user->email)) && now()->lessThan($row->expires_at), 404);
 
         return $row;
+    }
+
+    public function preview(User $user, TenantContext $context, string $id): void
+    {
+        abort_unless($this->available(), 404);
+        $row = DB::table('profile_email_changes')->where('id', $id)->where('user_id', $user->id)
+            ->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)->first();
+        abort_unless($row && in_array($row->status, ['pending', 'sending', 'sent', 'uncertain'], true)
+            && $row->token_hash && $row->target_email && $row->auth_version === $user->auth_version
+            && hash_equals($row->source_fingerprint, $this->fingerprint($user->email))
+            && now()->lessThan($row->expires_at), 404);
     }
 
     public function confirm(#[\SensitiveParameter] Request $request, string $id, #[\SensitiveParameter] string $token): void

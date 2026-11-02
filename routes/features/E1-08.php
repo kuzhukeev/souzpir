@@ -1,5 +1,6 @@
 <?php
 
+use App\Shell\Auth\EmailConfirmationBoundary;
 use App\Shell\Auth\Http\MfaSettingsController;
 use App\Shell\Profile\EmailController;
 use App\Shell\Profile\NotificationController;
@@ -23,8 +24,8 @@ return [
             Route::delete('/profile/avatar', [ProfileController::class, 'deleteAvatar'])->middleware('throttle:10,1,profile-avatar:')->name('profile.avatar.delete');
             Route::post('/profile/email', [EmailController::class, 'request'])->middleware('throttle:5,60,profile-email-request:')->name('profile.email.request');
             Route::delete('/profile/email', [EmailController::class, 'cancel'])->middleware('throttle:10,1,profile-email-cancel:')->name('profile.email.cancel');
-            Route::get('/profile/email/confirm/{change}/{token}', [EmailController::class, 'show'])->middleware(['signed:relative', 'throttle:10,1,profile-email-confirm:'])->whereUlid('change')->where('token', '[a-f0-9]{64}')->name('profile.email.confirm');
-            Route::post('/profile/email/confirm/{change}/{token}', [EmailController::class, 'confirm'])->middleware(['signed:relative', 'throttle:10,1,profile-email-confirm:'])->whereUlid('change')->where('token', '[a-f0-9]{64}')->name('profile.email.commit');
+            Route::get('/profile/email/confirm/{change}', [EmailController::class, 'show'])->middleware(['signed:relative', 'throttle:10,1,profile-email-confirm:'])->whereUlid('change')->name('profile.email.confirm');
+            Route::post('/profile/email/confirm/{change}', [EmailController::class, 'confirm'])->middleware(['signed:relative', EmailConfirmationBoundary::class, 'throttle:10,1,profile-email-confirm:'])->whereUlid('change')->name('profile.email.commit');
             Route::get('/profile/notifications', [NotificationController::class, 'show'])->name('profile.notifications');
             Route::put('/profile/notifications', [NotificationController::class, 'update'])->middleware('throttle:30,1,profile-notification-settings:')->name('profile.notifications.update');
             Route::put('/profile/notifications/timing', [NotificationController::class, 'updateTimingDraft'])->middleware('throttle:20,1,profile-notification-timing:')->name('profile.notifications.timing.update');

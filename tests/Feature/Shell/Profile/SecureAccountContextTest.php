@@ -60,7 +60,7 @@ final class SecureAccountContextTest extends TenancyTestCase
         $row = DB::table('profile_email_changes')->where('user_id', $user->id)->first();
         self::assertNotNull($row);
         $token = Crypt::decryptString($row->encrypted_token);
-        $path = URL::temporarySignedRoute('profile.email.confirm', now()->addMinutes(30), ['change' => $row->id, 'token' => $token], absolute: false);
+        $path = URL::temporarySignedRoute('profile.email.confirm', now()->addMinutes(30), ['change' => $row->id], absolute: false);
         $page = $this->get($origin.$path)->assertOk()->viewData('page');
         self::assertTrue($page['encryptHistory']);
         self::assertSame($path, $page['props']['emailConfirmationUrl']);
@@ -108,9 +108,9 @@ final class SecureAccountContextTest extends TenancyTestCase
         $this->post('https://souzpir.local/profile/email', ['email' => 'replacement@example.test', 'current_password' => 'test-only-password'])->assertRedirect();
         $row = DB::table('profile_email_changes')->where('user_id', $user->id)->first();
         $token = Crypt::decryptString($row->encrypted_token);
-        $path = URL::temporarySignedRoute('profile.email.confirm', now()->addMinutes(30), ['change' => $row->id, 'token' => $token], absolute: false);
+        $path = URL::temporarySignedRoute('profile.email.confirm', now()->addMinutes(30), ['change' => $row->id], absolute: false);
         $this->get('http://souzpir.local'.$path)->assertForbidden()->assertDontSee('emailConfirmationUrl', false)->assertDontSee($token, false);
-        $this->post('http://souzpir.local'.$path)->assertForbidden();
+        $this->post('http://souzpir.local'.$path, ['token' => $token])->assertForbidden();
         self::assertSame($oldEmail, $user->fresh()->email);
         $this->delete('http://souzpir.local/profile/email')->assertRedirect();
         $this->assertDatabaseHas('profile_email_changes', ['id' => $row->id, 'status' => 'cancelled']);

@@ -21,6 +21,17 @@ type Props = {
 // Verify its revision over a fresh request before rendering private content.
 export default function Profile(props: Props) {
   const { version } = usePage();
+  const [emailToken] = useState(() => {
+    if (typeof window === 'undefined' || !window.location.hash.startsWith('#token=')) return '';
+    const token = /^#token=([a-f0-9]{64})$/.exec(window.location.hash)?.[1] ?? '';
+    window.history.replaceState(window.history.state, '', window.location.pathname + window.location.search);
+    return token;
+  });
+  useEffect(() => {
+    if (window.location.hash.startsWith('#token=')) {
+      window.history.replaceState(window.history.state, '', window.location.pathname + window.location.search);
+    }
+  }, []);
   const [verified, setVerified] = useState<{ revision: string; profile: ProfileData } | null>(null);
   const [failed, setFailed] = useState(false);
   useEffect(() => {
@@ -62,7 +73,7 @@ export default function Profile(props: Props) {
   }, [props.profileBrandRevision, props.profile, version]);
 
   if (verified?.revision !== props.profileBrandRevision || verified.profile !== props.profile) return <main className="min-h-dvh bg-(--color-bg) p-6 text-(--color-ink)"><div role="status" className={`${panel} mx-auto max-w-[800px] text-sm`}>{failed ? 'Не удалось подтвердить доступ к профилю. Если переключение бренда или выход прервались, обратитесь к администратору.' : 'Проверяем доступ к профилю.'}</div></main>;
-  return <div data-private-profile><ProfileContent {...props} /></div>;
+  return <div data-private-profile><ProfileContent {...props} emailToken={emailToken} /></div>;
 }
 
 function ProfileContent({
@@ -71,7 +82,8 @@ function ProfileContent({
   status,
   emailConfirmationUrl,
   profileBrandRevision,
-}: Props) {
+  emailToken,
+}: Props & { emailToken: string }) {
   const t = useProfileText();
   const privateHistory = supportsPrivateHistory();
   const form = useForm({
@@ -82,7 +94,7 @@ function ProfileContent({
   });
   const avatar = useForm<{ avatar: File | null }>({ avatar: null });
   const email = useForm({ email: '', current_password: '' });
-  const confirmation = useForm({});
+  const confirmation = useForm({ token: emailToken });
   const [emailOpen, setEmailOpen] = useState(false);
   const feedback = useFeedback();
   const fileInput = useRef<HTMLInputElement>(null);
@@ -158,7 +170,7 @@ function ProfileContent({
     });
   };
   const confirmEmail = () => {
-    if (!emailConfirmationUrl || !privateHistory || !profile.email_confirmation_secure) return;
+    if (!emailConfirmationUrl || !emailToken || !privateHistory || !profile.email_confirmation_secure) return;
     feedback.clear();
     confirmation.post(emailConfirmationUrl, {
       preserveScroll: true,
@@ -178,10 +190,11 @@ function ProfileContent({
           <h2 className="text-xl font-bold">{t('confirm_email_title')}</h2>
           <p className="mt-2 text-sm leading-6">{t('confirm_email_description')}</p>
           <p className="mt-2 break-all text-base font-semibold">{profile.pending_email}</p>
+          {!emailToken && <p role="alert" className="mt-2 text-sm text-(--color-danger-ink)">В ссылке нет кода подтверждения. Запросите смену адреса заново.</p>}
           <Button
             className="mt-4 cursor-pointer"
             loading={confirmation.processing}
-            disabled={!privateHistory || !profile.email_confirmation_secure}
+            disabled={!emailToken || !privateHistory || !profile.email_confirmation_secure}
             onClick={confirmEmail}
           >
             {t('confirm_email')}
