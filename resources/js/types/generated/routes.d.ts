@@ -428,6 +428,7 @@ declare module 'ziggy-js' {
     "seller.persona.index": [],
     "seller.persona.save": [],
     "seller.settings.policy.index": [],
+    "seller.settings.off-topic.save": [],
     "seller.settings.followups.update": [],
     "seller.tools.settings": [],
     "seller.tools.settings.update": [],
