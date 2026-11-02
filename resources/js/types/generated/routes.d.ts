@@ -359,6 +359,10 @@ declare module 'ziggy-js' {
     "seller.widget.update": [],
     "widget.loader": [],
     "widget.config": [],
+    "seller.api.settings": [],
+    "seller.api.settings.update": [],
+    "api.v1.leads.create": [],
+    "api.v1.turn.create": [],
     "seller.customers.index": [],
     "seller.customers.show": [
         {
