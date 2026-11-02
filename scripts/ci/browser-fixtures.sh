@@ -37,6 +37,7 @@ start_vite e106d tests/Browser/E1-06/vite.config.ts 5232 tests/Browser/E1-06D/la
 start_vite e108 tests/Browser/E1-08/vite.config.ts 5238 tests/Browser/E1-08/ui-fixture.html
 start_vite mfa tests/Browser/E1-08/vite.config.ts 5268 tests/Browser/E1-08/ui-fixture.html
 start_vite e802 tests/Browser/E8-02/vite.config.ts 5248 tests/Browser/E8-02/ui-fixture.html
+start_vite e804 tests/Browser/E8-02/vite.config.ts 5239 tests/Browser/E8-04/launch-fixture.html
 start_vite e803 tests/Browser/E8-03/vite.config.ts 5258 tests/Browser/E8-03/pages-fixture.html
 
 common=(APP_ENV=testing DB_CONNECTION=pgsql DB_HOST=127.0.0.1 DB_PORT=5432 DB_PASSWORD="$password"
