@@ -334,6 +334,7 @@ declare module 'ziggy-js' {
     "seller.knowledge.index": [],
     "seller.knowledge.compare": [],
     "seller.knowledge.draft": [],
+    "seller.knowledge.incoming": [],
     "seller.knowledge.publish": [
         {
             "name": "release",
