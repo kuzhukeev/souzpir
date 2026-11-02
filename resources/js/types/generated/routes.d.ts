@@ -479,6 +479,7 @@ declare module 'ziggy-js' {
     "seller.channels.email.index": [],
     "seller.channels.email.update": [],
     "seller.customers.merge.index": [],
+    "seller.customers.merge.distinct": [],
     "seller.customers.merge.store": [],
     "seller.customers.io": [],
     "seller.customers.io.preview": [],
