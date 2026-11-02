@@ -9,6 +9,7 @@ use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Auth\EligibleAccount;
 use App\Shell\Auth\InvitationExchangeGrants;
 use Illuminate\Auth\AuthenticationException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -86,6 +87,19 @@ final class SessionController
             }
             throw $error;
         }
+    }
+
+    public function recoverLogout(Request $request): JsonResponse
+    {
+        $key = $request->header('X-Context-Change-Key');
+        abort_unless(is_string($key) && strlen($key) >= 16 && strlen($key) <= 128, 422);
+        try {
+            $receipt = app(PostgresSessionIdempotency::class)->recoverRevoked($request, 'profile.logout', $key, 'logout-v1');
+        } catch (IdempotencyFailure) {
+            abort(401);
+        }
+
+        return response()->json($receipt);
     }
 
     public function destroy(Request $request): RedirectResponse
