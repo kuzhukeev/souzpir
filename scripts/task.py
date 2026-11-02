@@ -44,10 +44,11 @@ GENERATED_CONTRACT_FILES = frozenset(
     for name in ("data.ts", "translations.ts", "permissions.ts", "routes.d.ts")
 )
 
-# Existing browser regression assertions for a shared E1-10 fixture must follow
-# the E1-10C notification screen even though this older file predates the card.
+# Scope corrections needed for CI regressions in pre-existing tests. These do
+# not broaden the task's ownership to neighboring production modules.
 CI_SCOPE_EXCEPTIONS = {
     "SP-E1-10C": ("tests/Browser/E1-10/integrations-ui.spec.ts",),
+    "SP-E8-04B": ("tests/Unit/Vision/Measurements/measurement-list.test.tsx",),
 }
 
 
