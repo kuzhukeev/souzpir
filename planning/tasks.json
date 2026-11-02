@@ -4032,6 +4032,76 @@
       "description": "# SP-E7-05 · Главная продавца\n\nПрочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: D-1.1 сводка модуля (KPI, состояния онбординга), D-1.2 «Требует внимания»\n\nЗависимости (нужен done после merge): SP-E5-01, SP-E5-04B, SP-E7-04.\nОбласть записи: app/Seller/Dashboard/, config/features/E7-05.php, database/factories/Seller/Dashboard/, database/migrations/E7-05/, database/seeders/Seller/Dashboard/, docs/modules/E7-05.md, lang/ru/Seller/Dashboard/, resources/js/features/Seller/Dashboard/, resources/js/pages/Seller/Dashboard/, resources/js/types/Seller/Dashboard/, routes/features/E7-05.php, tests/Browser/E7-05/, tests/Feature/Seller/Dashboard/, tests/Unit/Seller/Dashboard/, docs/results/SP-E7-05.md.\nЭкраны: D-1.1, D-1.2.\nИсточники: E7-05.\n- E7-05: ТЗ D-1.1–D-1.2; макеты 37–38; R-S-04\n\nПриёмка:\n- props-тесты состояний\n\nДополнительно: Сохранять поведение донора; изменения только по принятым решениям.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E7-05.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n\n## Материалы\n\nИсходники только для чтения: C:/OSPanel/home/souzpir.local/.local/references/{eyon-pilot,laravel-prototype}.\nПолный индекс изображений: planning/materials-manifest.json; точный состав по docs/sources/02b_mockup_journal.md.\n\n- `C:\\OSPanel\\home\\tasks.local\\completed\\37\\084d095f-D-1.1-no-dialogs.png`\n- `C:\\OSPanel\\home\\tasks.local\\completed\\37\\56ea18d9-D-1.1-summary.png`\n- `C:\\OSPanel\\home\\tasks.local\\completed\\37\\65cf5bf4-D-1.1-detail.png`\n- `C:\\OSPanel\\home\\tasks.local\\completed\\37\\7a0a1ecb-D-1.1-no-channels.png`\n- `C:\\OSPanel\\home\\tasks.local\\completed\\37\\ef10fda7-D-1.1-loading.png`\n- `C:\\OSPanel\\home\\tasks.local\\completed\\37\\f26e02ed-D-1.1-error.png`\n- `C:\\OSPanel\\home\\tasks.local\\completed\\38\\64e7682c-D-1.2-attention-empty.png`\n- `C:\\OSPanel\\home\\tasks.local\\completed\\38\\97ff2dde-D-1.2-attention.png`\n"
     },
     {
+      "taskKey": "SP-E7-05B",
+      "title": "SP-E7-05B · Полная сводка продавца",
+      "goal": "D-1.1: quality KPI, deltas, problems, topics, manager workload and loading/error states",
+      "dependsOn": [
+        "SP-E7-05"
+      ],
+      "scope": [
+        "app/Seller/Dashboard/",
+        "resources/js/pages/Seller/Dashboard/",
+        "tests/Feature/Seller/Dashboard/",
+        "tests/Browser/E7-05/",
+        "docs/results/SP-E7-05B.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Summary blocks use own-brand data and show loading, empty and error states without fake values."
+      ],
+      "sourceIds": [
+        "E7-05"
+      ],
+      "screenIds": [
+        "D-1.1"
+      ],
+      "notes": "Bounded functional continuation, 1–3 hours; no more E7-05 slicing after C.",
+      "sourceRefs": [
+        "docs/sources/10_backlog.md",
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E7-05B.md",
+      "wave": 12,
+      "description": "# SP-E7-05B · Полная сводка продавца D-1.1\n\n**Зачем:** D-1.1, макет 37: сводка должна показывать качество и дельты KPI, главные проблемы, топ тем и загрузку менеджеров на данных выбранного бренда.\n\n**Часть чего:** SP-E7-05 вносит рабочие KPI, график, воронку, каналы и три вида событий. Здесь остаются названные блоки сводки и состояния загрузки/ошибки; после B остаются шесть событий D-1.2 (SP-E7-05C).\n\nРазмер 1–3 часа. Зависимость: SP-E7-05. Scope: `app/Seller/Dashboard/`, `resources/js/pages/Seller/Dashboard/`, `tests/Feature/Seller/Dashboard/`, `tests/Browser/E7-05/`, `docs/results/SP-E7-05B.md`. Только чтение существующих данных качества, тем и назначений; права, бренд, пустое состояние, 1440/390, skeleton и LOAD_ERROR с повтором. Без живого ИИ.\n"
+    },
+    {
+      "taskKey": "SP-E7-05C",
+      "title": "SP-E7-05C · Остальные события внимания",
+      "goal": "D-1.2: six remaining attention event kinds with real sources",
+      "dependsOn": [
+        "SP-E7-05B",
+        "SP-E4-01C",
+        "SP-E7-04C"
+      ],
+      "scope": [
+        "app/Seller/Dashboard/",
+        "resources/js/pages/Seller/Dashboard/",
+        "tests/Feature/Seller/Dashboard/",
+        "tests/Browser/E7-05/",
+        "docs/results/SP-E7-05C.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "All nine attention event types use real sources, severity/search work and brand isolation holds."
+      ],
+      "sourceIds": [
+        "E7-05"
+      ],
+      "screenIds": [
+        "D-1.2"
+      ],
+      "notes": "Bounded functional continuation, 1–3 hours; no more E7-05 slicing after C.",
+      "sourceRefs": [
+        "docs/sources/10_backlog.md",
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E7-05C.md",
+      "wave": 12,
+      "description": "# SP-E7-05C · Остальные события «Требует внимания»\n\n**Зачем:** D-1.2, макет 38: список должен отражать неизвестные вопросы, неутверждённые условия, падение конверсии, блокирующие проблемы доклада, лимит диалогов и устаревшую публикацию знаний.\n\n**Часть чего:** SP-E7-05 внесла ожидание менеджера, просроченные обещания и выключенный канал; SP-E7-05B завершает сводку D-1.1. Здесь остаются шесть событий D-1.2; после C остатка E7-05 нет.\n\nРазмер 1–3 часа. Зависимости: SP-E7-05B, SP-E4-01C, SP-E7-04C. Scope: `app/Seller/Dashboard/`, `resources/js/pages/Seller/Dashboard/`, `tests/Feature/Seller/Dashboard/`, `tests/Browser/E7-05/`, `docs/results/SP-E7-05C.md`. Читать существующие источники без записи в чужие модули; указать пороги событий в тестах, проверить фильтр важности/поиск, бренд, пустое состояние и ошибку загрузки. Не показывать вымышленные события.\n"
+    },
+    {
       "taskKey": "SP-E8-05B",
       "title": "SP-E8-05B · Конкуренты и площадки",
       "goal": "V-6.1–6.4: сравнение и дедупликация конкурентов; V-7.1–7.3: SOURCE_TYPES, источники и рекомендации площадок. Сохранить определения метрик.",
@@ -4462,6 +4532,7 @@
         "SP-E7-03",
         "SP-E7-04",
         "SP-E7-05",
+        "SP-E7-05C",
         "SP-E8-01",
         "SP-E8-01B",
         "SP-E8-01C",
@@ -4887,6 +4958,7 @@
         "SP-E7-03",
         "SP-E7-04",
         "SP-E7-05",
+        "SP-E7-05C",
         "SP-E8-01",
         "SP-E8-01B",
         "SP-E8-01C",
