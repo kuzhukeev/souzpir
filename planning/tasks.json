@@ -4991,6 +4991,7 @@
         "SP-C-02",
         "SP-E3-03P",
         "SP-E1-08B",
+        "SP-E1-08C",
         "SP-E1-09B",
         "SP-E0-05E",
         "SP-E1-06B",
@@ -5249,6 +5250,44 @@
       "promptPath": "docs/tasks/SP-E1-08B.md",
       "wave": 4,
       "description": "# SP-E1-08B · Восстановление профиля после обрыва\n\n**Зачем:** остаток SP-E1-08 по решению владельца: после потери ответа при переключении бренда или выходе повтор не должен заново открыть отозванную сессию или изменить данные.\n\n**Часть чего:** SP-E1-08 закрыла основной профиль и защиту сессии; здесь остаётся восстановление неизвестного исхода. После этой карточки остатка E1-08 нет.\n\nРазмер 1–3 часа. Зависимости: SP-C-02B и SP-E1-08 в done. Scope включает `app/Tenancy/BrandSwitchController.php`, `app/Shell/Auth/Http/SessionController.php` и `app/ProtectedOperations/PostgresSessionIdempotency.php` вместе с профильными адаптерами, UI и тестами из `planning/tasks.json`. Эти три файла явно разрешены в данной задаче; других владельцев на них сейчас нет. Смену email и доставку сводки не менять.\n\nПод серверной блокировкой конкретной сессии вернуть сохранённый receipt и после revoke, чтобы повтор потерянного ответа дал прежний результат, а поздний старый запрос не открыл данные. Использовать существующий ledger и реальный адаптер, без отдельной заглушки. Проверить отзыв сессии, обрыв ответа, повтор и изоляцию бренда локальными fake/HTTP тестами; отчёт `docs/results/SP-E1-08B.md` до 30 строк.\n"
+    },
+    {
+      "taskKey": "SP-E1-08C",
+      "title": "SP-E1-08C · Завершить восстановление сессии после обрыва",
+      "goal": "Повтор после revoke возвращает receipt и не восстанавливает доступ; выход и поздние запросы fenced.",
+      "dependsOn": [
+        "SP-E1-08B",
+        "SP-C-02B"
+      ],
+      "scope": [
+        "app/Shell/Auth/",
+        "app/Shell/Profile/",
+        "app/Tenancy/BrandSwitchController.php",
+        "app/ProtectedOperations/PostgresSessionIdempotency.php",
+        "resources/js/components/navigation/BrandSwitch.tsx",
+        "resources/js/pages/Shell/Profile/",
+        "tests/Feature/Shell/Profile/",
+        "tests/Feature/Tenancy/",
+        "tests/Feature/ProtectedOperations/",
+        "docs/results/SP-E1-08C.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Receipt after revoke, logout, reload and late old requests are covered with isolated fake/HTTP tests without reopening revoked session."
+      ],
+      "sourceIds": [
+        "E1-08"
+      ],
+      "screenIds": [],
+      "notes": "Final bounded continuation of owner-approved SP-E1-08B; 1–3 hours; no further E1-08 slicing.",
+      "sourceRefs": [
+        "docs/tasks/SP-E1-08B.md",
+        "docs/preparation/decisions.md",
+        "docs/decisions-pending.md"
+      ],
+      "promptPath": "docs/tasks/SP-E1-08C.md",
+      "wave": 11,
+      "description": "# SP-E1-08C · Завершить восстановление сессии после обрыва\n\n**Зачем:** остаток SP-E1-08B по решению владельца: повтор потерянного ответа при переключении бренда или выходе должен вернуть прежний receipt и не оживить отозванную сессию.\n\n**Часть чего:** SP-E1-08B добавила ключ и повтор переключения в текущей вкладке. Здесь остаются receipt после revoke, fencing поздних старых запросов, восстановление после reload и выход; после C остатка E1-08 нет, дальнейшей нарезки не делать.\n\nРазмер 1–3 часа. Зависимости: SP-E1-08B и SP-C-02B. Scope: `app/Shell/Auth/`, `app/Shell/Profile/`, `app/Tenancy/BrandSwitchController.php`, `app/ProtectedOperations/PostgresSessionIdempotency.php`, `resources/js/components/navigation/BrandSwitch.tsx`, `resources/js/pages/Shell/Profile/`, `tests/Feature/Shell/Profile/`, `tests/Feature/Tenancy/`, `tests/Feature/ProtectedOperations/`, `docs/results/SP-E1-08C.md`. Эти смежные файлы разрешены только для завершения пути receipt/revoke. Смену email и доставку сводки не менять.\n\nПроверить потерю ответа, повтор после revoke, перезагрузку вкладки, выход и поздний старый запрос; результат не должен открывать или изменять данные после отзыва. Тесты с изолированной БД и fake/HTTP, без живых отправок. Не ослаблять существующие проверки; отчёт до 30 строк.\n"
     },
     {
       "taskKey": "SP-E1-09B",
