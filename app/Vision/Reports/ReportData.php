@@ -22,18 +22,38 @@ final class ReportData
         if ($selected !== null) {
             abort_unless($reports->contains('id', $selected), 404);
             $payload = app(VisionReportReader::class)->read($selected);
+            $changes = null;
+            $seen = false;
+            foreach ($reports as $candidate) {
+                if ($candidate->id === $selected) {
+                    $seen = true;
+
+                    continue;
+                }
+                if (! $seen || $candidate->measurement_id === $payload['measurement_id']) {
+                    continue;
+                }
+                try {
+                    $previous = app(VisionReportReader::class)->read($candidate->id);
+                    $changes = app(ReportSections::class)->compare($previous, $payload);
+                } catch (\LogicException) {
+                    // An inaccessible previous snapshot must not hide the selected report.
+                }
+                break;
+            }
             $metrics = $payload['metrics'] ?? [];
             $panel = $metrics['panel'] ?? [];
             $visibility = $metrics['visibility'] ?? [];
             $report = [
                 'id' => $selected, 'measurement_id' => $payload['measurement_id'],
+                'sections' => [...app(ReportSections::class)->make($payload), 'changes' => $changes],
                 'visibility' => $visibility['macro_percent'] ?? null,
                 'visibility_kind' => $visibility['macro_kind'] ?? 'available',
                 'coverage' => $visibility['coverage'] ?? null,
                 'share_of_voice' => $panel['share_of_voice'] ?? null,
                 'position' => $panel['position_average'] ?? null,
                 'verified_errors' => is_array($payload['reviewed_facts'] ?? null)
-                    ? count($payload['reviewed_facts']) : null,
+                    ? count(array_filter($payload['reviewed_facts'], fn ($item) => ($item['confirmed'] ?? false) === true)) : null,
                 'providers' => collect($metrics['providers'] ?? [])->map(fn ($row, $name) => [
                     'name' => $name, 'mention_rate' => $row['mention_rate'] ?? null,
                     'coverage' => $row['coverage'] ?? null,

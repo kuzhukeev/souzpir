@@ -1,9 +1,10 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import CabinetLayout from '@/layouts/CabinetLayout';
+import { ReportSections } from '@/features/Vision/Reports/ReportSections';
 import { profileContextIsStable, subscribeProfileContext } from '@/features/Shell/Profile/contextFence';
 
-type Report = { id: string; measurement_id: string; visibility: number | null; visibility_kind: string; coverage: number | null; share_of_voice: number | null; position: number | null; verified_errors: number | null; providers: { name: string; mention_rate: number | null; coverage: number | null }[]; questions: number; evidence_status: string };
+type Report = { sections: Parameters<typeof ReportSections>[0]['data']; id: string; measurement_id: string; visibility: number | null; visibility_kind: string; coverage: number | null; share_of_voice: number | null; position: number | null; verified_errors: number | null; providers: { name: string; mention_rate: number | null; coverage: number | null }[]; questions: number; evidence_status: string };
 type Data = { revision: string; confirmed: { measurement_id: string; confirmed_at: string }[]; reports: { id: string; measurement_id: string; revision: number; created_at: string }[]; report: Report | null };
 const button = 'min-h-11 cursor-pointer rounded-lg border border-(--color-border) bg-(--color-surface) px-4 py-2 text-sm font-semibold text-(--color-link) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus) disabled:cursor-not-allowed disabled:opacity-50';
 const percent = (value: number | null) => value === null ? 'Недостаточно данных' : `${value.toLocaleString('ru-RU')} %`;
@@ -67,7 +68,7 @@ export default function Index({ reportBrandRevision, status }: { reportBrandRevi
           {view.data.reports.length > 0 && <label className="mt-5 block text-sm font-semibold">Сохранённый отчёт<select className="mt-2 block min-h-11 w-full max-w-md cursor-pointer rounded-lg border border-(--color-border) bg-(--color-surface) px-3 text-sm" value={selected ?? view.data.report?.id ?? ''} onChange={(event) => setSelected(event.target.value)}>{view.data.reports.map((item) => <option key={item.id} value={item.id}>Замер · версия {item.revision} · {new Date(item.created_at).toLocaleDateString('ru-RU')}</option>)}</select></label>}
         </section>
         {activeReport && <div data-private-profile>
-          <nav aria-label="Разделы отчёта" className="mb-6 flex flex-wrap gap-2 text-sm"><a className={button} href="#overview">Главное</a><a className={button} href="#models">По моделям</a><a className={button} href="#method">Методика</a></nav>
+          <nav aria-label="Разделы отчёта" className="mb-6 flex flex-wrap gap-2 text-sm"><a className={button} href="#overview">Главное</a><a className={button} href="#models">По моделям</a><a className={button} href="#competitors">Компании</a><a className={button} href="#gaps">Вопросы</a><a className={button} href="#facts">Факты</a><a className={button} href="#sources">Источники</a><a className={button} href="#site">Сайт</a><a className={button} href="#actions">Действия</a><a className={button} href="#changes">Изменения</a><a className={button} href="#method">Методика</a></nav>
           <section id="overview" className="rounded-2xl border border-(--color-border) bg-(--color-surface) p-5 shadow-(--shadow-card)"><h2 className="text-xl font-bold">Главное</h2><p className="mt-2 text-sm text-(--color-ink-muted)">Вопросов в снимке: {activeReport.questions}. Покрытие: {percent(activeReport.coverage)}.</p>
             <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{[
               ['Видимость', percent(activeReport.visibility)], ['Доля голоса', percent(activeReport.share_of_voice)], ['Средняя позиция', number(activeReport.position)], ['Проверенные ошибки', number(activeReport.verified_errors)],
@@ -75,9 +76,11 @@ export default function Index({ reportBrandRevision, status }: { reportBrandRevi
             {activeReport.visibility_kind !== 'full' && <p className="mt-4 text-sm text-(--color-ink-muted)">Видимость рассчитана по доступным моделям; неизвестные ответы не засчитаны как отсутствие бренда.</p>}
           </section>
           <section id="models" className="mt-6 rounded-2xl border border-(--color-border) bg-(--color-surface) p-5 shadow-(--shadow-card)"><h2 className="text-xl font-bold">Видимость по моделям</h2>{activeReport.providers.length === 0 ? <p className="mt-3 text-sm">Данных пока нет.</p> : <ul className="mt-4 grid gap-3">{activeReport.providers.map((provider) => <li key={provider.name} className="flex flex-wrap justify-between gap-2 rounded-lg bg-(--color-surface-muted) p-3 text-sm"><span>{provider.name}</span><strong>{percent(provider.mention_rate)}</strong><span>Покрытие {percent(provider.coverage)}</span></li>)}</ul>}</section>
-          <section id="method" className="mt-6 rounded-2xl border border-(--color-border) bg-(--color-surface) p-5 shadow-(--shadow-card)"><h2 className="text-xl font-bold">Методика</h2><p className="mt-3 text-sm">Метрики сохранены в неизменяемом снимке отчёта. Пропущенные и непроверенные ответы не считаются отрицательными. Доля голоса показывается только при полной проверке упоминаний.</p><p className="mt-2 text-sm text-(--color-ink-muted)">Разделы конкурентов, источников и действий появятся после проверки соответствующих данных.</p></section>
+          <ReportSections data={activeReport.sections} />
+          <section id="method" className="mt-6 rounded-2xl border border-(--color-border) bg-(--color-surface) p-5 shadow-(--shadow-card)"><h2 className="text-xl font-bold">Методика</h2><p className="mt-3 text-sm">Метрики сохранены в неизменяемом снимке отчёта. Пропущенные и непроверенные ответы не считаются отрицательными. Доля голоса показывается только при полной проверке упоминаний.</p></section>
         </div>}
       </>}
     </div>
   </CabinetLayout>;
 }
+

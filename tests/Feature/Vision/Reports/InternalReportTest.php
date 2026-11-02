@@ -79,7 +79,8 @@ final class InternalReportTest extends TenancyTestCase
         $report = DB::table('vision_reports')->value('id');
         $this->withHeaders($headers)->getJson('/vision/report/data?report='.$report)->assertOk()
             ->assertJsonPath('report.measurement_id', $measurement)->assertJsonPath('report.questions', 1)
-            ->assertJsonPath('report.providers.0.name', 'gemini')->assertJsonCount(1, 'confirmed');
+            ->assertJsonPath('report.providers.0.name', 'gemini')->assertJsonCount(1, 'confirmed')
+            ->assertJsonCount(0, 'report.sections.gaps')->assertJsonCount(0, 'report.sections.sources');
         $this->assertDatabaseHas('audit_logs', ['action' => 'vision.report.created', 'subject_id' => $report]);
         $this->post('/brand/switch', ['brand_id' => $other->id])->assertRedirect();
         $this->withHeaders($headers)->getJson('/vision/report/data?report='.$report)->assertNotFound()->assertDontSee($report);
