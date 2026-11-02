@@ -5228,7 +5228,10 @@
         "resources/js/pages/Shell/Organizations/Brands.tsx",
         "tests/Feature/Shell/Profile/",
         "tests/Unit/Shell/Profile/",
-        "docs/results/SP-E1-08B.md"
+        "docs/results/SP-E1-08B.md",
+        "app/ProtectedOperations/PostgresSessionIdempotency.php",
+        "tests/Feature/ProtectedOperations/",
+        "tests/Feature/Tenancy/"
       ],
       "exclusiveResources": [],
       "acceptance": [
@@ -5237,7 +5240,7 @@
       ],
       "sourceIds": [],
       "screenIds": [],
-      "notes": "",
+      "notes": "Integrator expanded ownership on 2026-11-02 after repeated releases: BrandSwitchController, SessionController and PostgresSessionIdempotency form one receipt/revoke path.",
       "sourceRefs": [
         "docs/preparation/decisions.md",
         "docs/contracts/seller-trusted-turn-proposal.md",
@@ -5245,7 +5248,7 @@
       ],
       "promptPath": "docs/tasks/SP-E1-08B.md",
       "wave": 4,
-      "description": "# SP-E1-08B · Восстановление профиля после обрыва\n\n**Актуальная зависимость: SP-C-02B в done и проверенный merge в main. До этого зависимое поведение закрыто.**\n\nЗависимость: **SP-C-02 в статусе done и её проверенный merge в main**. До этого автоматическое восстановление после неопределённого обрыва остаётся закрытым. Остальные независимые части SP-E1-08 могут продолжаться.\n\nИспользовать ту же защищённую границу и подход к подтверждению происхождения/повтора для восстановления после неизвестного исхода переключения бренда или выхода. Предметный адаптер обязан под серверной блокировкой конкретной сессии гарантировать, что поздний старый запрос больше не откроет и не изменит данные; универсальный ledger без этой проверки недостаточен. Проверить отзыв сессии, потерянный ответ, повтор и восстановление без утечки. Один владелец через claim; итог — коммит, `docs/results/SP-E1-08B.md` и submit на review. Не менять смену email или доставку сводки в этой карточке.\n"
+      "description": "# SP-E1-08B · Восстановление профиля после обрыва\n\n**Зачем:** остаток SP-E1-08 по решению владельца: после потери ответа при переключении бренда или выходе повтор не должен заново открыть отозванную сессию или изменить данные.\n\n**Часть чего:** SP-E1-08 закрыла основной профиль и защиту сессии; здесь остаётся восстановление неизвестного исхода. После этой карточки остатка E1-08 нет.\n\nРазмер 1–3 часа. Зависимости: SP-C-02B и SP-E1-08 в done. Scope включает `app/Tenancy/BrandSwitchController.php`, `app/Shell/Auth/Http/SessionController.php` и `app/ProtectedOperations/PostgresSessionIdempotency.php` вместе с профильными адаптерами, UI и тестами из `planning/tasks.json`. Эти три файла явно разрешены в данной задаче; других владельцев на них сейчас нет. Смену email и доставку сводки не менять.\n\nПод серверной блокировкой конкретной сессии вернуть сохранённый receipt и после revoke, чтобы повтор потерянного ответа дал прежний результат, а поздний старый запрос не открыл данные. Использовать существующий ledger и реальный адаптер, без отдельной заглушки. Проверить отзыв сессии, обрыв ответа, повтор и изоляцию бренда локальными fake/HTTP тестами; отчёт `docs/results/SP-E1-08B.md` до 30 строк.\n"
     },
     {
       "taskKey": "SP-E1-09B",
