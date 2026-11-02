@@ -2,6 +2,7 @@ import { Head, router, usePage } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 import { BarChart3 } from 'lucide-react';
 import CabinetLayout from '@/layouts/CabinetLayout';
+import ConfirmationProgress from '@/features/Vision/Measurements/ConfirmationProgress';
 import {
   profileContextIsStable,
   subscribeProfileContext,
@@ -280,6 +281,7 @@ export default function Index({ measurementBrandRevision, status }: { measuremen
                               <button type="button" className={button} disabled={!!acting || !can?.['vision.measure.run']} onClick={() => act(row.id, 'repeat')}>Повторить замер</button>
                             </div>
                           </div>
+                          <ConfirmationProgress status={row.status} answers={row.answers ?? []} />
                           <details className="mt-4" open={(row.answers?.length ?? 0) > 0}>
                             <summary className="cursor-pointer font-semibold">Ответы и слоты ({row.answers?.length ?? 0})</summary>
                             <ul className="mt-3 grid gap-2">
