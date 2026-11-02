@@ -7744,6 +7744,33 @@
       "promptPath": "docs/tasks/SP-E7-04C.md",
       "wave": 12,
       "description": "# SP-E7-04C · Детальные отчёты и PDF аналитики\n\n**Размер:** 1–3 часа; функциональный остаток, не сверх ТЗ.\n\n**Зачем:** Backlog E7-04, экраны D-8.2, D-8.3 и D-8.6: из сводки открываются детали диалогов и тем, отчёт доступен в PDF.\n\n**Часть чего:** SP-E7-04. После B эта C закрывает оставшиеся экраны аналитики; новых продолжений E7-04 не будет.\n\nЗависимости: SP-E7-04B.\n\nScope: `app/Seller/Analytics/`, `resources/js/pages/Seller/Analytics/`, `routes/features/E7-04.php`, `tests/Feature/Seller/Analytics/`, `tests/Browser/E7-04/`, `docs/results/SP-E7-04C.md`. Сгенерированные типы разрешены общим правилом.\n\nДетализировать реальные диалоги, темы и вопросы за выбранный период; дать переходы из сводки. Экспортировать тот же набор и фильтры в PDF без живых сервисов; права и изоляция бренда обязательны.\n\nПриёмка: HTTP/browser детализация и PDF, пустой период, неверный фильтр, чужой бренд; экраны D-8.2/D-8.3/D-8.6. Итоговый отчёт до 30 строк.\n"
+    },
+    {
+      "taskKey": "SP-CI-06",
+      "title": "SP-CI-06 · Довести PHP CI до шести минут",
+      "goal": "* Цель A2 — самый долгий php-tests job около 6 минут. SP-CI-04 дала 6:27 в ветке, но зелёный main #471 занял 8:21 на CoreTurnsA.",
+      "dependsOn": [
+        "SP-CI-04"
+      ],
+      "scope": [
+        "phpunit.xml",
+        ".github/workflows/ci.yml",
+        "docs/results/SP-CI-06.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "overage guard зелёный, полная branch CI зелёная; замерить самый долгий php-tests job и весь прогон в branch и main. Не менять число проверок."
+      ],
+      "sourceIds": [],
+      "screenIds": [],
+      "notes": "Owner A2 follow-up after measured main #471; no app code or concurrency change.",
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        ".github/workflows/ci.yml"
+      ],
+      "promptPath": "docs/tasks/SP-CI-06.md",
+      "wave": 0,
+      "description": "# SP-CI-06 · Довести PHP CI до шести минут\n\n**Сверх ТЗ: прямое поручение владельца от 2026-11-02, пункт A2. Размер:** 1–3 часа; код приложения не менять.\n\n**Зачем:** Цель A2 — самый долгий php-tests job около 6 минут. SP-CI-04 дала 6:27 в ветке, но зелёный main #471 занял 8:21 на CoreTurnsA.\n\n**Часть чего:** SP-CI-04, повторная балансировка по измеренному main. После этой карточки продолжений CI-балансировки не планируется.\n\nЗависимости: SP-CI-04.\n\nScope: `phpunit.xml`, `.github/workflows/ci.yml`, `docs/results/SP-CI-06.md`. Файлы приложения, golden fixtures и политика concurrency main вне scope.\n\nОбъединить лёгкий Core с Shell и распределить FirstTurnStateTest на три стабильные части по локальному JUnit-профилю. Каждый тестовый файл остаётся в одном suite, каждый метод тяжёлого класса запускается в одном job; новые методы распределяются автоматически.\n\nПриёмка: coverage guard зелёный, полная branch CI зелёная; замерить самый долгий php-tests job и весь прогон в branch и main. Не менять число проверок.\n"
     }
   ],
   "excludedSourceTasks": {
