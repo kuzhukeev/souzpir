@@ -3360,12 +3360,15 @@
       "scope": [
         "app/Seller/Customers/ImportExport/CustomersExport.php",
         "app/Seller/Customers/ImportExport/ImportExportController.php",
+        "app/Shell/Data/",
         "config/features/E5-08.php",
         "resources/js/pages/Seller/Customers/ImportExport/Index.tsx",
+        "resources/js/pages/Shell/Data/",
         "routes/features/E5-08.php",
         "tests/Browser/E1-11/data.spec.ts",
         "tests/Browser/E5-08/",
         "tests/Feature/Seller/Customers/ImportExport/",
+        "tests/Feature/Shell/Data/",
         "docs/results/SP-E5-08C.md"
       ],
       "exclusiveResources": [],
@@ -3384,7 +3387,7 @@
       ],
       "promptPath": "docs/tasks/SP-E5-08C.md",
       "wave": 9,
-      "description": "# SP-E5-08C · Экспорт клиентов CSV/XLSX в общий архив\n\nРазмер: 1–3 часа. Последнее функциональное продолжение D-3.5; дальше E5-08 не дробить.\n\n**Зачем:** D-3.5 и S-7.4 требуют доступный экспорт клиентов в CSV/XLSX через общий архив. Сейчас экспортёр отключён feature flag и общий browser-тест ожидает его отсутствия.\n\n**Часть чего:** SP-E5-08 после SP-E5-08B. Импорт и экран дублей уже выполнены; эта карточка закрывает оставшийся экспорт и не оставляет продолжений E5-08.\n\nЗависимости: SP-E5-08B и SP-E1-11.\n\nРабота: завершить CSV/XLSX-форматы экспорта контактов текущего бренда в общий архив S-7.4; включить регистрацию экспортёра после готовности и обновить `tests/Browser/E1-11/data.spec.ts`, чтобы он проверял доступный экспорт. Дать ссылку на экспорт из экрана импорта/экспорта клиентов. Живые внешние сервисы не вызывать.\n\nScope: `app/Seller/Customers/ImportExport/CustomersExport.php`, `app/Seller/Customers/ImportExport/ImportExportController.php`, `config/features/E5-08.php`, `resources/js/pages/Seller/Customers/ImportExport/Index.tsx`, `routes/features/E5-08.php`, `tests/Browser/E1-11/data.spec.ts`, `tests/Browser/E5-08/`, `tests/Feature/Seller/Customers/ImportExport/`, `docs/results/SP-E5-08C.md`. Сгенерированные типы разрешены общим правилом AGENTS.md.\n\nПриёмка: CSV и XLSX скачиваются из архива для разрешённого бренда и не содержат чужих контактов; доступ и пустой экспорт проверены; E1-11 browser-тест обновлён; локальные затронутые тесты и Product проходят, CI ветки зелёный."
+      "description": "# SP-E5-08C · Экспорт клиентов CSV/XLSX в общий архив\n\nРазмер: 1–3 часа. Последнее функциональное продолжение D-3.5; дальше E5-08 не дробить.\n\n**Зачем:** D-3.5 и S-7.4 требуют доступный экспорт клиентов в CSV/XLSX через общий архив. Сейчас экспортёр отключён feature flag и общий browser-тест ожидает его отсутствия.\n\n**Часть чего:** SP-E5-08 после SP-E5-08B. Импорт и экран дублей уже выполнены; эта карточка закрывает оставшийся экспорт и не оставляет продолжений E5-08.\n\nЗависимости: SP-E5-08B и SP-E1-11.\n\nРабота: завершить CSV/XLSX-форматы экспорта контактов текущего бренда в общий архив S-7.4; ZIP экспорта продавца должен содержать CSV и XLSX, а существующий JSONL остаётся доступным для остальных модулей. Включить регистрацию экспортёра после готовности и обновить `tests/Browser/E1-11/data.spec.ts`, чтобы он проверял доступный экспорт. Дать ссылку на экспорт из экрана импорта/экспорта клиентов. Живые внешние сервисы не вызывать.\n\nScope: `app/Seller/Customers/ImportExport/CustomersExport.php`, `app/Seller/Customers/ImportExport/ImportExportController.php`, `app/Shell/Data/`, `config/features/E5-08.php`, `resources/js/pages/Seller/Customers/ImportExport/Index.tsx`, `resources/js/pages/Shell/Data/`, `routes/features/E5-08.php`, `tests/Browser/E1-11/data.spec.ts`, `tests/Browser/E5-08/`, `tests/Feature/Seller/Customers/ImportExport/`, `tests/Feature/Shell/Data/`, `docs/results/SP-E5-08C.md`. Сгенерированные типы разрешены общим правилом AGENTS.md.\n\nПриёмка: CSV и XLSX скачиваются из архива для разрешённого бренда и не содержат чужих контактов; доступ и пустой экспорт проверены; E1-11 browser-тест обновлён; локальные затронутые тесты и Product проходят, CI ветки зелёный.\n"
     },
     {
       "taskKey": "SP-E6-03",
@@ -4842,15 +4845,20 @@
       "goal": "Связать защищённую сессию посетителя и сообщения виджета с seller runtime и сохранённым согласием/контактом.",
       "dependsOn": [
         "SP-E5-02B",
-        "SP-E3-08"
+        "SP-E3-08",
+        "SP-E3-08B",
+        "SP-E5-03C"
       ],
       "scope": [
         "app/Seller/Channels/Widget/",
+        "app/ProtectedOperations/SellerFollowup/",
+        "app/Seller/Runtime/",
         "resources/widget/",
         "resources/js/pages/Seller/Channels/Widget/",
         "routes/features/E5-02.php",
         "tests/Browser/E5-02/",
         "tests/Feature/Seller/Channels/Widget/",
+        "tests/Feature/SellerRuntime/Turns/",
         "tests/Unit/Seller/Channels/Widget/",
         "config/features/E5-02.php",
         "database/migrations/E5-02C/",
@@ -4880,7 +4888,7 @@
       ],
       "promptPath": "docs/tasks/SP-E5-02C.md",
       "wave": 10,
-      "description": "# SP-E5-02C · Виджет: сессия посетителя и сообщения\n\n**Размер:** 1–3 часа; функциональный остаток, не сверх ТЗ.\n\n**Зачем:** Backlog E5-02 и экраны D-9.2, D-9.3, D-9.4; обязательный остаток после частичной сдачи SP-E5-02.\n\n**Часть чего:** SP-E5-02. После C функционального остатка SP-E5-02 нет.\n\nЗависимости: SP-E5-02B, SP-E3-08.\n\nScope: `app/Seller/Channels/Widget/`, `resources/widget/`, `resources/js/pages/Seller/Channels/Widget/`, `routes/features/E5-02.php`, `tests/Browser/E5-02/`, `tests/Feature/Seller/Channels/Widget/`, `tests/Unit/Seller/Channels/Widget/`, `config/features/E5-02.php`, `database/migrations/E5-02C/`, `resources/js/types/Seller/Channels/Widget/`, `docs/results/SP-E5-02C.md`. Сгенерированные типы разрешены общим правилом.\n\nСвязать защищённую сессию посетителя и сообщения виджета с seller runtime и сохранённым согласием/контактом.\n\nПриёмка: Fake/HTTP/browser e2e №7: начало сессии, ход, повтор, чужой origin и бренд, недоступный runtime. Живые внешние вызовы в тестах запрещены.\n\nЧужие модули не менять; итоговый отчёт до 30 строк с тестами, долгом и решениями.\n"
+      "description": "# SP-E5-02C · Виджет: сессия посетителя и сообщения\n\n**Размер:** 1–3 часа; функциональный остаток, не сверх ТЗ.\n\n**Зачем:** Backlog E5-02 и экраны D-9.2, D-9.3, D-9.4; обязательный остаток после частичной сдачи SP-E5-02.\n\n**Часть чего:** SP-E5-02. После C функционального остатка SP-E5-02 нет.\n\nЗависимости: SP-E5-02B, SP-E3-08, SP-E3-08B, SP-E5-03C. После API-канала использовать ту же защищённую точку входа для публичной сессии посетителя.\n\nScope: `app/Seller/Channels/Widget/`, `app/ProtectedOperations/SellerFollowup/`, `app/Seller/Runtime/`, `resources/widget/`, `resources/js/pages/Seller/Channels/Widget/`, `routes/features/E5-02.php`, `tests/Browser/E5-02/`, `tests/Feature/Seller/Channels/Widget/`, `tests/Feature/SellerRuntime/Turns/`, `tests/Unit/Seller/Channels/Widget/`, `config/features/E5-02.php`, `database/migrations/E5-02C/`, `resources/js/types/Seller/Channels/Widget/`, `docs/results/SP-E5-02C.md`. Сгенерированные типы разрешены общим правилом.\n\nСвязать защищённую сессию посетителя и сообщения виджета с seller runtime и сохранённым согласием/контактом. Если runtime требует сессию сотрудника, расширить защищённую точку входа на проверенную публичную сессию посетителя; не обходить runtime прямой записью сообщений.\n\nПриёмка: Fake/HTTP/browser e2e №7: начало сессии, ход, повтор, чужой origin и бренд, недоступный runtime. Живые внешние вызовы в тестах запрещены.\n\nЧужие модули не менять; итоговый отчёт до 30 строк с тестами, долгом и решениями.\n"
     },
     {
       "taskKey": "SP-E5-03B",
@@ -4927,13 +4935,17 @@
       "goal": "Заменить 503 для open и POST /api/v1/turn на token-scoped вызовы защищённого seller runtime.",
       "dependsOn": [
         "SP-E5-03B",
-        "SP-E3-08"
+        "SP-E3-08",
+        "SP-E3-08B"
       ],
       "scope": [
         "app/Seller/Channels/Api/",
+        "app/ProtectedOperations/SellerFollowup/",
+        "app/Seller/Runtime/",
         "resources/js/pages/Seller/Channels/Api/",
         "routes/features/E5-03.php",
         "tests/Feature/Seller/Channels/Api/",
+        "tests/Feature/SellerRuntime/Turns/",
         "tests/Unit/Seller/Channels/Api/",
         "docs/results/SP-E5-03C.md"
       ],
@@ -4958,7 +4970,7 @@
       ],
       "promptPath": "docs/tasks/SP-E5-03C.md",
       "wave": 10,
-      "description": "# SP-E5-03C · API-канал: защищённые open и turn\n\n**Размер:** 1–3 часа; функциональный остаток, не сверх ТЗ.\n\n**Зачем:** Backlog E5-03 и экраны D-9.9; обязательный остаток после частичной сдачи SP-E5-03.\n\n**Часть чего:** SP-E5-03. После C функционального остатка SP-E5-03 нет.\n\nЗависимости: SP-E5-03B, SP-E3-08.\n\nScope: `app/Seller/Channels/Api/`, `resources/js/pages/Seller/Channels/Api/`, `routes/features/E5-03.php`, `tests/Feature/Seller/Channels/Api/`, `tests/Unit/Seller/Channels/Api/`, `docs/results/SP-E5-03C.md`. Сгенерированные типы разрешены общим правилом.\n\nЗаменить 503 для open и POST /api/v1/turn на token-scoped вызовы защищённого seller runtime. Добавить ссылку на журнал ошибок B к существующим настройкам API.\n\nПриёмка: Fake/HTTP: open, turn, повтор, чужой бренд, отзыв токена и отказ runtime; журнал без секретов. Живые внешние вызовы в тестах запрещены.\n\nЧужие модули не менять; итоговый отчёт до 30 строк с тестами, долгом и решениями.\n"
+      "description": "# SP-E5-03C · API-канал: защищённые open и turn\n\n**Размер:** 1–3 часа; функциональный остаток, не сверх ТЗ.\n\n**Зачем:** Backlog E5-03 и экраны D-9.9; обязательный остаток после частичной сдачи SP-E5-03.\n\n**Часть чего:** SP-E5-03. После C функционального остатка SP-E5-03 нет.\n\nЗависимости: SP-E5-03B, SP-E3-08, SP-E3-08B. Protected runtime для open/turn должен быть завершён до подключения токена API.\n\nScope: `app/Seller/Channels/Api/`, `app/ProtectedOperations/SellerFollowup/`, `app/Seller/Runtime/`, `resources/js/pages/Seller/Channels/Api/`, `routes/features/E5-03.php`, `tests/Feature/Seller/Channels/Api/`, `tests/Feature/SellerRuntime/Turns/`, `tests/Unit/Seller/Channels/Api/`, `docs/results/SP-E5-03C.md`. Сгенерированные типы разрешены общим правилом.\n\nЗаменить 503 для open и POST /api/v1/turn на token-scoped вызовы защищённого seller runtime. Если имеющийся runtime требует сессию сотрудника, добавить внутреннюю защищённую точку входа для проверенного токена API в разрешённом scope; прямой обход runtime запрещён. Добавить ссылку на журнал ошибок B к существующим настройкам API.\n\nПриёмка: Fake/HTTP: open, turn, повтор, чужой бренд, отзыв токена и отказ runtime; журнал без секретов. Живые внешние вызовы в тестах запрещены.\n\nЧужие модули не менять; итоговый отчёт до 30 строк с тестами, долгом и решениями.\n"
     },
     {
       "taskKey": "SP-E9-04",
