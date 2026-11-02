@@ -385,6 +385,8 @@ declare module 'ziggy-js' {
     "seller.planned.index": [],
     "seller.planned.interest": [],
     "seller.planned.reminders": [],
+    "seller.channels.email.index": [],
+    "seller.channels.email.update": [],
     "seller.tools.settings": [],
     "seller.tools.settings.update": [],
     "seller.handoff.settings": [],
