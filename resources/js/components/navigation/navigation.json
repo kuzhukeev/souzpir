@@ -3,7 +3,7 @@
     "id": "home",
     "label": "Главная",
     "icon": "Home",
-    "path": "/dashboard"
+    "path": "/dashboard/overview"
   },
   "modules": [
     {
