@@ -7,7 +7,7 @@ type Message = { id: string; role: string; text: string; created_at: string; met
 type Detail = Item & { summary: string | null; email: string | null; phone: string | null; slots: { key: string; label: string; value: string | null }[]; messages: Message[]; tasks: { id: string; type: string; status: string; due_at: string | null }[] };
 type Props = { dialogs: Item[]; dialog: Detail | null; filters: { mode: string; search: string } };
 
-const modeNames: Record<string, string> = { all: 'Все', bot: 'У бота', suggest: 'Подсказки', manager: 'У менеджера', paused: 'Приостановлены' };
+const modeNames: Record<string, string> = { all: 'Все', mine: 'Мои диалоги', bot: 'У бота', suggest: 'Подсказки', manager: 'У менеджера', paused: 'Приостановлены' };
 const roleNames: Record<string, string> = { client: 'Клиент', agent: 'Бот', manager: 'Менеджер', system: 'Событие' };
 const metaNames: Record<string, string> = { intent: 'Тема', goal: 'Цель', tools: 'Действия', guard: 'Guard', model: 'Модель' };
 const date = (value: string) => new Date(value).toLocaleString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
