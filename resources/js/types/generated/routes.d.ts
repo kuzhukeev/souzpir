@@ -359,6 +359,15 @@ declare module 'ziggy-js' {
     "seller.planned.index": [],
     "seller.planned.interest": [],
     "seller.planned.reminders": [],
+    "seller.techniques.index": [],
+    "seller.techniques.quiet": [],
+    "seller.techniques.publish": [],
+    "seller.techniques.save": [
+        {
+            "name": "technique",
+            "required": true
+        }
+    ],
     "seller.settings.limits": [],
     "seller.settings.notifications": [],
     "seller.settings.notifications.update": [],
