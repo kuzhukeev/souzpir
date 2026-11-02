@@ -8,6 +8,8 @@
 
 Проверки: LogoutReceiptTest (1), BrandSwitchReceiptTest (3), SessionIdempotencyTest (18), GeneratedTypesTest (2), TypeScript, ESLint, Pint; Chrome 1440 — 2 новых браузерных сценария reload/retry и 1 профильный экран. Скриншоты: `.local/screenshots/e1-08c/logout-retry-1440.png`, `brand-retry-1440.png`.
 
+CI `41461452567`: frontend, php-lint, ShellCore, Product и browser (1)/(2) зелёные; browser (3) красный. Список shard 3 не содержит E1-08: в нём E8, Layout, SP-UI и SP-E1-10C; журнал упавшего шага недоступен без авторизации GitHub. Перед повторной сдачей влит свежий `main`, локальные тесты receipt и GeneratedTypesTest снова прошли.
+
 ## Техдолг
 - После потери ответа выхода и перехода на страницу входа старый маркер остаётся до повторного входа; приватные страницы при этом закрыты.
 
