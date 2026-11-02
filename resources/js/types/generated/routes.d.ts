@@ -363,6 +363,15 @@ declare module 'ziggy-js' {
     ],
     "seller.knowledge.conditions.index": [],
     "seller.knowledge.conditions.save": [],
+    "seller.knowledge.topics.index": [],
+    "seller.knowledge.topics.draft": [],
+    "seller.knowledge.topics.store": [],
+    "seller.knowledge.topics.update": [
+        {
+            "name": "intent",
+            "required": true
+        }
+    ],
     "seller.knowledge.prohibitions.index": [],
     "seller.knowledge.prohibitions.save": [],
     "seller.sandbox.index": [],
