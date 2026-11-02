@@ -17,7 +17,15 @@ final class MeasurementProgressTest extends TenancyTestCase
 {
     public function refreshDatabase(): void
     {
+        // Gateway's fake driver verifies the call outside a database transaction.
         $this->artisan('migrate:fresh');
+    }
+
+    protected function tearDown(): void
+    {
+        // The next TenancyTestCase creates this fixture table during setUp.
+        $this->artisan('migrate:fresh');
+        parent::tearDown();
     }
 
     private function prepare($owner, $organization, $brand, $membership): void

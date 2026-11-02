@@ -11,7 +11,7 @@ type Row = {
   id: string;
   status: string;
   created_at: string;
-  answers: { question_n: number; provider: string; requested_model: string; run_no: number; status: string; answer_text: string | null; error_code: string | null }[];
+  answers?: { question_n: number; provider: string; requested_model: string; run_no: number; status: string; answer_text: string | null; error_code: string | null }[];
 };
 type Listing = { revision: string; data: Row[]; page: number; last_page: number; total: number };
 const button =
@@ -276,14 +276,14 @@ export default function Index({ measurementBrandRevision, status }: { measuremen
                           <div className="flex flex-wrap items-center justify-between gap-3">
                             <div><p className="font-semibold">Замер · {stateLabel[row.status] ?? row.status}</p><p className="mt-1 text-(--color-ink-muted)">{date(row.created_at)}</p></div>
                             <div className="flex flex-wrap gap-2">
-                              {row.answers.some((answer) => answer.status === 'pending') && <button type="button" className={button} disabled={!!acting || !can?.['vision.measure.run']} onClick={() => act(row.id, 'next')}>Выполнить следующий слот</button>}
+                              {row.answers?.some((answer) => answer.status === 'pending') && <button type="button" className={button} disabled={!!acting || !can?.['vision.measure.run']} onClick={() => act(row.id, 'next')}>Выполнить следующий слот</button>}
                               <button type="button" className={button} disabled={!!acting || !can?.['vision.measure.run']} onClick={() => act(row.id, 'repeat')}>Повторить замер</button>
                             </div>
                           </div>
-                          <details className="mt-4" open={row.answers.length > 0}>
-                            <summary className="cursor-pointer font-semibold">Ответы и слоты ({row.answers.length})</summary>
+                          <details className="mt-4" open={(row.answers?.length ?? 0) > 0}>
+                            <summary className="cursor-pointer font-semibold">Ответы и слоты ({row.answers?.length ?? 0})</summary>
                             <ul className="mt-3 grid gap-2">
-                              {row.answers.map((answer) => <li key={`${answer.question_n}-${answer.provider}-${answer.run_no}`} className="rounded-lg bg-(--color-surface-muted) p-3">
+                              {row.answers?.map((answer) => <li key={`${answer.question_n}-${answer.provider}-${answer.run_no}`} className="rounded-lg bg-(--color-surface-muted) p-3">
                                 <p className="font-medium">Вопрос {answer.question_n} · {answer.provider} · повтор {answer.run_no}</p>
                                 <p className="mt-1 text-(--color-ink-muted)">{stateLabel[answer.status] ?? answer.status} · {answer.requested_model}</p>
                                 {answer.answer_text && <p className="mt-2 whitespace-pre-wrap">{answer.answer_text}</p>}

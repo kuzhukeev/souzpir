@@ -5,6 +5,8 @@
 
 Проверки: `MeasurementProgressTest.php` — 2 теста, 43 проверки (ответ, pending/failed, повтор, права, чужой бренд, неверный ID); `MeasurementStartTest.php` и `MeasurementListTest.php` — 7 тестов, 149 проверок. Browser `measurement-launch.spec.ts` — 1 пройден; TypeScript `tsc --noEmit`, Pint, `git diff --check` — пройдены. Типы маршрутов перегенерированы.
 
+Исправление CI: фикстура фронта приведена к новому URL и форме ответа; тест Gateway очищает таблицы после работы вне транзакции. Vitest 231/231, параллельный Product 360 passed/3 skipped, ESLint, TypeScript и Pint зелёные.
+
 Скриншоты 1440, светлая тема: `.local/screenshots/sp-e8-04b/pending-1440.png`, `.local/screenshots/sp-e8-04b/progress-1440.png`.
 
 Ограничения: слоты запускаются вручную по одному; live LLM и подтверждение снимка V-4 не входят в эту часть.
