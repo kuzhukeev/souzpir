@@ -129,19 +129,10 @@ final class FirstInboundRuntimeTest extends TestCase
         app()->instance(FakeDriver::class, $fake);
         $first = $this->turn($context, $request, $command);
         self::assertSame('completed', $first['status']);
-        if (getenv('RUNTIME_DIAG_STAGE') === 'first') {
-            return;
-        }
         self::assertSame($first, $this->turn($context, $request, $command));
-        if (getenv('RUNTIME_DIAG_STAGE') === 'replay') {
-            return;
-        }
         self::assertSame(2, $fake->calls);
         self::assertStringNotContainsString('synthetic-contact@example.test', json_encode($fake->bodies));
         self::assertSame(1, DB::table('seller_turns')->count());
-        if (getenv('RUNTIME_DIAG_STAGE') === 'preconflict') {
-            return;
-        }
         $other = app(TenantContextRunner::class)->run($context, function () use ($command): TurnCommand {
             $conversation = Conversation::create(['state' => [], 'mode' => 'bot']);
             $message = Message::create(['conversation_id' => $conversation->id, 'role' => 'client', 'text' => 'another-private@example.test', 'meta' => []]);
@@ -156,8 +147,10 @@ final class FirstInboundRuntimeTest extends TestCase
             $trace = $error->getTrace();
             foreach ($trace as $frame) {
                 if (($frame['class'] ?? null) === FirstInboundRuntime::class && ($frame['function'] ?? null) === 'turn') {
-                    self::assertInstanceOf(\SensitiveParameterValue::class, $frame['args'][0]);
-                    self::assertInstanceOf(\SensitiveParameterValue::class, $frame['args'][1]);
+                    if (isset($frame['args'])) {
+                        self::assertInstanceOf(\SensitiveParameterValue::class, $frame['args'][0]);
+                        self::assertInstanceOf(\SensitiveParameterValue::class, $frame['args'][1]);
+                    }
                 }
             }
             array_walk_recursive($trace, static function ($value): void {

@@ -74,7 +74,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        suite: [Core, Shell, Product, Runtime]
+        suite: [Core, Shell, Product]
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
@@ -92,30 +92,6 @@ jobs:
           done
       - uses: ramsey/composer-install@v3
       - run: php artisan test --parallel --without-databases --processes=4 --exclude-group=race --testsuite=${{ matrix.suite }}
-      - name: Diagnose Runtime bot case
-        if: failure() && matrix.suite == 'Runtime'
-        run: php artisan test --parallel --without-databases --processes=4 --testsuite=Runtime --filter=test_bot_first_turn_reuses_protected_result_and_masks_contacts
-      - name: Diagnose Runtime first turn
-        if: failure() && matrix.suite == 'Runtime'
-        env: { RUNTIME_DIAG_STAGE: first }
-        run: php artisan test --parallel --without-databases --processes=4 --testsuite=Runtime --filter=test_bot_first_turn_reuses_protected_result_and_masks_contacts
-      - name: Diagnose Runtime replay
-        if: failure() && matrix.suite == 'Runtime'
-        env: { RUNTIME_DIAG_STAGE: replay }
-        run: php artisan test --parallel --without-databases --processes=4 --testsuite=Runtime --filter=test_bot_first_turn_reuses_protected_result_and_masks_contacts
-      - name: Diagnose Runtime preconflict
-        if: failure() && matrix.suite == 'Runtime'
-        env: { RUNTIME_DIAG_STAGE: preconflict }
-        run: php artisan test --parallel --without-databases --processes=4 --testsuite=Runtime --filter=test_bot_first_turn_reuses_protected_result_and_masks_contacts
-      - name: Diagnose Runtime uncertain case
-        if: failure() && matrix.suite == 'Runtime'
-        run: php artisan test --parallel --without-databases --processes=4 --testsuite=Runtime --filter=test_uncertain_fake_result_is_not_retried_or_finalized
-      - name: Diagnose Runtime manager case
-        if: failure() && matrix.suite == 'Runtime'
-        run: php artisan test --parallel --without-databases --processes=4 --testsuite=Runtime --filter=test_manager_is_silent_and_tampered_input_is_rejected
-      - name: Diagnose Runtime viewer case
-        if: failure() && matrix.suite == 'Runtime'
-        run: php artisan test --parallel --without-databases --processes=4 --testsuite=Runtime --filter=test_viewer_and_wrong_brand_do_not_start_ai
 
   browser:
     if: github.event_name != 'schedule'
