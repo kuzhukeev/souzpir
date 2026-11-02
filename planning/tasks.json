@@ -8500,6 +8500,229 @@
       "screenIds": [],
       "wave": 3,
       "promptPath": "docs/tasks/SP-E3-10.md"
+    },
+    {
+      "taskKey": "SP-E8-08",
+      "title": "SP-E8-08 · Живой замер: провайдеры, очередь, расписание",
+      "description": "# SP-E8-08 · Живой замер: провайдеры, очередь, расписание\n\n**Зачем:** решение владельца от 02.11.2026; экраны V-3.1, V-3.2, V-3.3, V-3.4, V-3.5, V-3.6.\n**Часть чего:** второй проход по частично сданным SP-E8-04/04B/04C/05/05B/06/07; остаток — другие карточки SP-E8-08–12.\n**Зависимости:** нет.\n\nСнять fake-only ограничение MeasurementsController: слоты выполняются job-ами очереди через провайдеров config/eyon.php, ход замера и ответы видны на V-3.3–V-3.5, повтор и расписание — V-3.6, завершение сопровождается уведомлением. Учесть vision.measurements и ai.calls в биллинге. Живой драйвер включается feature-флагом; fake остаётся для тестов и CI. Ошибка провайдера даёт failed с сохранённой частичной трассой. Без разрешения владельца не выполнять живые или платные запросы.\n\nScope: `app/Vision/Measurements/`, `app/Vision/Usage/`, `app/Billing/`, `app/Ai/`, `config/eyon.php`, `routes/features/E8-04.php`, `resources/js/pages/Vision/Measurements/`, `tests/Feature/Vision/Measurements/`, `tests/Unit/Vision/Measurements/`, `tests/Browser/E8-04/`, `docs/results/SP-E8-08.md`, `app/Shell/Billing/`, `app/Shell/Plans/`, `app/Shell/Notifications/`, `config/features/E1-07.php`, `routes/features/E1-07.php`, `tests/Feature/Shell/Billing/`.\n\nОтчёт: docs/results/SP-E8-08.md; локальные тесты задачи, submit и зелёный CI.\n",
+      "goal": "Живой замер: провайдеры, очередь, расписание",
+      "dependsOn": [],
+      "scope": [
+        "app/Vision/Measurements/",
+        "app/Vision/Usage/",
+        "app/Billing/",
+        "app/Ai/",
+        "config/eyon.php",
+        "routes/features/E8-04.php",
+        "resources/js/pages/Vision/Measurements/",
+        "tests/Feature/Vision/Measurements/",
+        "tests/Unit/Vision/Measurements/",
+        "tests/Browser/E8-04/",
+        "docs/results/SP-E8-08.md",
+        "app/Shell/Billing/",
+        "app/Shell/Plans/",
+        "app/Shell/Notifications/",
+        "config/features/E1-07.php",
+        "routes/features/E1-07.php",
+        "tests/Feature/Shell/Billing/"
+      ],
+      "exclusiveResources": [
+        "app/Vision/Measurements/",
+        "routes/features/E8-04.php",
+        "resources/js/pages/Vision/Measurements/"
+      ],
+      "acceptance": [
+        "Снять fake-only ограничение MeasurementsController: слоты выполняются job-ами очереди через провайдеров config/eyon.php, ход замера и ответы видны на V-3.3–V-3.5, повтор и расписание — V-3.6, завершение сопровождается уведомлением. Учесть vision.measurements и ai.calls в биллинге. Живой драйвер включается feature-флагом; fake остаётся для тестов и CI. Ошибка провайдера даёт failed с сохранённой частичной трассой. Без разрешения владельца не выполнять живые или платные запросы."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md"
+      ],
+      "screenIds": [
+        "V-3.1",
+        "V-3.2",
+        "V-3.3",
+        "V-3.4",
+        "V-3.5",
+        "V-3.6"
+      ],
+      "wave": 8,
+      "promptPath": "docs/tasks/SP-E8-08.md"
+    },
+    {
+      "taskKey": "SP-E8-09",
+      "title": "SP-E8-09 · Меню Видения и подключение экранов",
+      "description": "# SP-E8-09 · Меню Видения и подключение экранов\n\n**Зачем:** решение владельца от 02.11.2026; экраны V-0.1, V-0.2.\n**Часть чего:** второй проход по частично сданным SP-E8-04/04B/04C/05/05B/06/07; остаток — другие карточки SP-E8-08–12.\n**Зависимости:** нет.\n\nСделать 11 пунктов Vision по V-0.1/V-0.2 docs/sources/02_screens_matrix.md с замками до прохождения анкеты. Подключить существующие /vision/profile, /vision/report, /vision/competitors, /vision/sources, /vision/publications, /vision/trends и пункт «Анкета» из SP-E8-02. Изменять только блок Vision навигации. Приёмка: замки снимаются после анкеты; Playwright на 390/1024/1440, клавиатура и права.\n\nScope: `resources/js/components/navigation/navigation.json`, `resources/js/components/navigation/Sidebar.tsx`, `tests/Browser/E8-09/`, `docs/results/SP-E8-09.md`.\n\nОтчёт: docs/results/SP-E8-09.md; локальные тесты задачи, submit и зелёный CI.\n",
+      "goal": "Меню Видения и подключение экранов",
+      "dependsOn": [],
+      "scope": [
+        "resources/js/components/navigation/navigation.json",
+        "resources/js/components/navigation/Sidebar.tsx",
+        "tests/Browser/E8-09/",
+        "docs/results/SP-E8-09.md"
+      ],
+      "exclusiveResources": [
+        "resources/js/components/navigation/navigation.json",
+        "resources/js/components/navigation/Sidebar.tsx"
+      ],
+      "acceptance": [
+        "Сделать 11 пунктов Vision по V-0.1/V-0.2 docs/sources/02_screens_matrix.md с замками до прохождения анкеты. Подключить существующие /vision/profile, /vision/report, /vision/competitors, /vision/sources, /vision/publications, /vision/trends и пункт «Анкета» из SP-E8-02. Изменять только блок Vision навигации. Приёмка: замки снимаются после анкеты; Playwright на 390/1024/1440, клавиатура и права."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md"
+      ],
+      "screenIds": [
+        "V-0.1",
+        "V-0.2"
+      ],
+      "wave": 8,
+      "promptPath": "docs/tasks/SP-E8-09.md"
+    },
+    {
+      "taskKey": "SP-E8-10",
+      "title": "SP-E8-10 · Уточнения после замера: мастер V-4",
+      "description": "# SP-E8-10 · Уточнения после замера: мастер V-4\n\n**Зачем:** решение владельца от 02.11.2026; экраны V-4.1, V-4.2, V-4.3, V-4.4.\n**Часть чего:** второй проход по частично сданным SP-E8-04/04B/04C/05/05B/06/07; остаток — другие карточки SP-E8-08–12.\n**Зависимости:** SP-E8-08.\n\nРеализовать мастер V-4.1–V-4.4 вместо текущего подтверждения снимка по docs/contracts/vision-clarifications-proposal.md. Учесть snapshot_confirmations и answer_facts из scope SP-E8-04; сверить существующую схему и выбрать совместимую реализацию. Приёмка: полный путь, отложить/продолжить, ошибки и изоляция бренда; fake/HTTP и браузерные проверки.\n\nScope: `app/Vision/Clarifications/`, `resources/js/pages/Vision/Clarifications/`, `database/migrations/E8-10/`, `routes/features/E8-10.php`, `tests/Feature/Vision/Clarifications/`, `tests/Unit/Vision/Clarifications/`, `tests/Browser/E8-10/`, `docs/results/SP-E8-10.md`.\n\nОтчёт: docs/results/SP-E8-10.md; локальные тесты задачи, submit и зелёный CI.\n",
+      "goal": "Уточнения после замера: мастер V-4",
+      "dependsOn": [
+        "SP-E8-08"
+      ],
+      "scope": [
+        "app/Vision/Clarifications/",
+        "resources/js/pages/Vision/Clarifications/",
+        "database/migrations/E8-10/",
+        "routes/features/E8-10.php",
+        "tests/Feature/Vision/Clarifications/",
+        "tests/Unit/Vision/Clarifications/",
+        "tests/Browser/E8-10/",
+        "docs/results/SP-E8-10.md"
+      ],
+      "exclusiveResources": [
+        "app/Vision/Clarifications/",
+        "resources/js/pages/Vision/Clarifications/"
+      ],
+      "acceptance": [
+        "Реализовать мастер V-4.1–V-4.4 вместо текущего подтверждения снимка по docs/contracts/vision-clarifications-proposal.md. Учесть snapshot_confirmations и answer_facts из scope SP-E8-04; сверить существующую схему и выбрать совместимую реализацию. Приёмка: полный путь, отложить/продолжить, ошибки и изоляция бренда; fake/HTTP и браузерные проверки."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md"
+      ],
+      "screenIds": [
+        "V-4.1",
+        "V-4.2",
+        "V-4.3",
+        "V-4.4"
+      ],
+      "wave": 8,
+      "promptPath": "docs/tasks/SP-E8-10.md"
+    },
+    {
+      "taskKey": "SP-E8-11",
+      "title": "SP-E8-11 · Отчёт, конкуренты и источники",
+      "description": "# SP-E8-11 · Отчёт, конкуренты и источники\n\n**Зачем:** решение владельца от 02.11.2026; экраны V-5.1, V-5.2, V-5.3, V-5.4, V-5.5, V-5.6, V-5.7, V-5.8, V-6.1, V-6.2, V-6.3, V-6.4, V-7.1, V-7.2, V-7.3.\n**Часть чего:** второй проход по частично сданным SP-E8-04/04B/04C/05/05B/06/07; остаток — другие карточки SP-E8-08–12.\n**Зависимости:** SP-E8-08.\n\nЗавершить разделы отчёта «сайт», «рекомендации», «факты» из снимка и ссылку на публикации (SP-E8-05); матрицу сравнения конкурентов, историю замеров, карточку площадки и «куда стоит попасть» (SP-E8-05B). Приёмка: реальные данные снимка, пустые и ошибочные состояния, права и изоляция бренда, browser и fake/HTTP проверки.\n\nScope: `app/Vision/Reports/`, `app/Vision/Competitors/`, `app/Vision/Sources/`, `resources/js/pages/Vision/Reports/`, `resources/js/pages/Vision/Report/`, `resources/js/pages/Vision/Competitors/`, `resources/js/pages/Vision/Sources/`, `routes/features/E8-05.php`, `routes/features/E8-05B.php`, `tests/Feature/Vision/Reports/`, `tests/Feature/Vision/Competitors/`, `tests/Feature/Vision/Sources/`, `tests/Browser/E8-11/`, `docs/results/SP-E8-11.md`.\n\nОтчёт: docs/results/SP-E8-11.md; локальные тесты задачи, submit и зелёный CI.\n",
+      "goal": "Отчёт, конкуренты и источники",
+      "dependsOn": [
+        "SP-E8-08"
+      ],
+      "scope": [
+        "app/Vision/Reports/",
+        "app/Vision/Competitors/",
+        "app/Vision/Sources/",
+        "resources/js/pages/Vision/Reports/",
+        "resources/js/pages/Vision/Report/",
+        "resources/js/pages/Vision/Competitors/",
+        "resources/js/pages/Vision/Sources/",
+        "routes/features/E8-05.php",
+        "routes/features/E8-05B.php",
+        "tests/Feature/Vision/Reports/",
+        "tests/Feature/Vision/Competitors/",
+        "tests/Feature/Vision/Sources/",
+        "tests/Browser/E8-11/",
+        "docs/results/SP-E8-11.md"
+      ],
+      "exclusiveResources": [
+        "app/Vision/Reports/",
+        "app/Vision/Competitors/",
+        "app/Vision/Sources/",
+        "resources/js/pages/Vision/Reports/",
+        "resources/js/pages/Vision/Competitors/",
+        "resources/js/pages/Vision/Sources/"
+      ],
+      "acceptance": [
+        "Завершить разделы отчёта «сайт», «рекомендации», «факты» из снимка и ссылку на публикации (SP-E8-05); матрицу сравнения конкурентов, историю замеров, карточку площадки и «куда стоит попасть» (SP-E8-05B). Приёмка: реальные данные снимка, пустые и ошибочные состояния, права и изоляция бренда, browser и fake/HTTP проверки."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md"
+      ],
+      "screenIds": [
+        "V-5.1",
+        "V-5.2",
+        "V-5.3",
+        "V-5.4",
+        "V-5.5",
+        "V-5.6",
+        "V-5.7",
+        "V-5.8",
+        "V-6.1",
+        "V-6.2",
+        "V-6.3",
+        "V-6.4",
+        "V-7.1",
+        "V-7.2",
+        "V-7.3"
+      ],
+      "wave": 8,
+      "promptPath": "docs/tasks/SP-E8-11.md"
+    },
+    {
+      "taskKey": "SP-E8-12",
+      "title": "SP-E8-12 · Динамика, эффект действий и настройки",
+      "description": "# SP-E8-12 · Динамика, эффект действий и настройки\n\n**Зачем:** решение владельца от 02.11.2026; экраны V-9.3, V-10.1, V-10.2, V-10.3, V-10.4, V-11.1, V-11.2, V-11.3, V-11.4, V-11.5.\n**Часть чего:** второй проход по частично сданным SP-E8-04/04B/04C/05/05B/06/07; остаток — другие карточки SP-E8-08–12.\n**Зависимости:** SP-E8-08.\n\nРеализовать графики по моделям, намерениям и конкурентам с фильтром дат (SP-E8-07), сравнение эффекта действий (SP-E8-06) и настройки V-11.1–V-11.5, включая шесть событий уведомлений V-11.4. SP-E8-08 требуется настройкам расписания; остальные части концептуально независимы. Приёмка: расчёты на снимках, фильтры, настройки и события, изоляция брендов, пустые состояния и fake/HTTP/browser проверки.\n\nScope: `app/Vision/Settings/`, `app/Vision/Actions/`, `app/Vision/Dynamics/`, `resources/js/pages/Vision/Settings/`, `resources/js/pages/Vision/Actions/`, `resources/js/pages/Vision/Dynamics/`, `routes/features/E8-06.php`, `routes/features/E8-07.php`, `tests/Feature/Vision/Settings/`, `tests/Feature/Vision/Actions/`, `tests/Feature/Vision/Dynamics/`, `tests/Browser/E8-12/`, `docs/results/SP-E8-12.md`, `app/Shell/Notifications/`, `tests/Feature/Shell/Notifications/`.\n\nОтчёт: docs/results/SP-E8-12.md; локальные тесты задачи, submit и зелёный CI.\n",
+      "goal": "Динамика, эффект действий и настройки",
+      "dependsOn": [
+        "SP-E8-08"
+      ],
+      "scope": [
+        "app/Vision/Settings/",
+        "app/Vision/Actions/",
+        "app/Vision/Dynamics/",
+        "resources/js/pages/Vision/Settings/",
+        "resources/js/pages/Vision/Actions/",
+        "resources/js/pages/Vision/Dynamics/",
+        "routes/features/E8-06.php",
+        "routes/features/E8-07.php",
+        "tests/Feature/Vision/Settings/",
+        "tests/Feature/Vision/Actions/",
+        "tests/Feature/Vision/Dynamics/",
+        "tests/Browser/E8-12/",
+        "docs/results/SP-E8-12.md",
+        "app/Shell/Notifications/",
+        "tests/Feature/Shell/Notifications/"
+      ],
+      "exclusiveResources": [
+        "app/Vision/Settings/",
+        "app/Vision/Actions/",
+        "resources/js/pages/Vision/Settings/",
+        "resources/js/pages/Vision/Actions/"
+      ],
+      "acceptance": [
+        "Реализовать графики по моделям, намерениям и конкурентам с фильтром дат (SP-E8-07), сравнение эффекта действий (SP-E8-06) и настройки V-11.1–V-11.5, включая шесть событий уведомлений V-11.4. SP-E8-08 требуется настройкам расписания; остальные части концептуально независимы. Приёмка: расчёты на снимках, фильтры, настройки и события, изоляция брендов, пустые состояния и fake/HTTP/browser проверки."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md"
+      ],
+      "screenIds": [
+        "V-9.3",
+        "V-10.1",
+        "V-10.2",
+        "V-10.3",
+        "V-10.4",
+        "V-11.1",
+        "V-11.2",
+        "V-11.3",
+        "V-11.4",
+        "V-11.5"
+      ],
+      "wave": 8,
+      "promptPath": "docs/tasks/SP-E8-12.md"
     }
   ],
   "excludedSourceTasks": {
