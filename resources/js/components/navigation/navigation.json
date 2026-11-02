@@ -101,13 +101,7 @@
           "path": "/seller/scenario/fields",
           "permission": "seller.settings.read"
         },
-        {
-          "id": "seller_techniques",
-          "label": "Приёмы продаж",
-          "icon": "ClipboardList",
-          "path": "/seller/scenario/techniques",
-          "permission": "seller.knowledge.write"
-        },
+
         {
           "id": "character",
           "label": "Персонаж",
@@ -228,4 +222,5 @@
     }
   ]
 }
+
 

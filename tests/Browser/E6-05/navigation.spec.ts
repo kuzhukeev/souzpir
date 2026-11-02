@@ -7,6 +7,7 @@ test('пункт приёмов доступен с клавиатуры и ск
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(`${origin}/tests/Browser/E6-05/navigation-fixture.html`);
   const link = page.getByRole('navigation', { name: 'Основная навигация' }).getByRole('link', { name: 'Приёмы продаж' });
+  await expect(link).toHaveCount(1);
   await expect(link).toHaveAttribute('href', '/seller/scenario/techniques');
   await expect(link).toHaveAttribute('aria-current', 'page');
   await link.focus();
@@ -19,4 +20,5 @@ test('пункт приёмов доступен с клавиатуры и ск
   await page.goto(`${origin}/tests/Browser/E6-05/navigation-fixture.html?viewer`);
   await expect(page.getByRole('navigation', { name: 'Основная навигация' }).getByRole('link', { name: 'Приёмы продаж' })).toHaveCount(0);
 });
+
 
