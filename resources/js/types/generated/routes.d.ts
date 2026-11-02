@@ -346,6 +346,12 @@ declare module 'ziggy-js' {
     "seller.settings.notifications.digests.time": [],
     "seller.settings.notifications.test": [],
     "seller.integrations.crm": [],
+    "seller.integrations.crm.test": [
+        {
+            "name": "webhook",
+            "required": true
+        }
+    ],
     "vision.start": [],
     "vision.private.access": [],
     "vision.private.verify": [],
