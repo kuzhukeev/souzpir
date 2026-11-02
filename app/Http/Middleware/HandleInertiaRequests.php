@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Data\Shared\AuthUserData;
 use App\Http\PreviewProps;
 use App\Providers\Features\FeatureRegistry;
+use App\Shell\Dashboard\DashboardController;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -46,7 +47,7 @@ class HandleInertiaRequests extends Middleware
             'brands' => [],
             // Null means that a real source has not been registered yet, not zero usage.
             'modules' => ['seller' => null, 'vision' => null],
-            'unread' => null,
+            'unread' => fn () => $preview ? null : app(DashboardController::class)->unread($request),
             'request_id' => (string) Str::uuid(),
             ...$contributions,
             // PHP's empty array would otherwise serialize as [] instead of a permission map.
