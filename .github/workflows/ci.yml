@@ -48,6 +48,7 @@ jobs:
         with: { php-version: '8.4', extensions: 'pdo_pgsql, pgsql, mbstring, intl, bcmath, gd', coverage: none }
       - uses: ramsey/composer-install@v3
       - run: composer validate --strict
+      - run: python3 scripts/ci/check-test-suite-coverage.py
       - run: mkdir -p .local/tmp
       - run: composer lint
 
