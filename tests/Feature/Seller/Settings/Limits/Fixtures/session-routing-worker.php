@@ -12,6 +12,7 @@ use Illuminate\Auth\AuthenticationException;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
@@ -37,7 +38,9 @@ echo 'ready:'.DB::selectOne('select pg_backend_pid() as pid')->pid."\n";
 flush();
 fgets(STDIN);
 if ($data['action'] === 'password') {
-    $request->merge(['email' => $user->email, 'token' => $data['token'], 'password' => 'synthetic-new-password', 'password_confirmation' => 'synthetic-new-password']);
+    $request->server->set('HTTPS', 'on');
+    $session->put('auth.password_recovery', ['hash' => hash('sha256', $data['token']), 'email' => Crypt::encryptString($user->email)]);
+    $request->merge(['password' => 'synthetic-new-password', 'password_confirmation' => 'synthetic-new-password']);
     $response = app(PasswordController::class)->store($request);
     if ($response->getTargetUrl() !== route('login')) {
         throw new LogicException('Password reset failed.');

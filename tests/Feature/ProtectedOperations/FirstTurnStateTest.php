@@ -1580,14 +1580,19 @@ SQL);
             }
             foreach ([fn () => DB::table('c02_responder_stages')->where('id', $stage)->update(['request_encrypted' => 'forged']),
                 fn () => DB::table('c02_responder_stages')->where('id', $stage)->update(['ai_call_id' => $oldCall, 'gateway_request_hash' => str_repeat('a', 64)]),
-                fn () => DB::table('c02_responder_stages')->where('id', $stage)->delete(),
-                fn () => DB::statement('TRUNCATE TABLE c02_responder_stages')] as $operation) {
+                fn () => DB::table('c02_responder_stages')->where('id', $stage)->delete()] as $operation) {
                 try {
                     DB::transaction($operation);
                     self::fail('Protected responder history changed.');
                 } catch (QueryException $error) {
                     self::assertSame('23514', $error->errorInfo[0]);
                 }
+            }
+            try {
+                DB::statement('TRUNCATE TABLE c02_responder_stages');
+                self::fail('Protected responder history was truncated.');
+            } catch (QueryException $error) {
+                self::assertSame('0A000', $error->errorInfo[0]);
             }
             self::assertSame('completed', app(Gateway::class)->completeProtectedResponder($http, $claim, $stage));
             $call = DB::table('c02_responder_stages')->where('id', $stage)->value('ai_call_id');
@@ -1735,6 +1740,8 @@ SQL);
     {
         $migration = require database_path('migrations/C-02/2026_11_01_070000_c02_create_responder_stages.php');
         $bindingMigration = require database_path('migrations/C-02/2026_11_01_110000_c02_seal_responder_binding.php');
+        $rawEvidenceMigration = require database_path('migrations/C-02/2026_11_01_140000_c02_create_responder_raw_evidence.php');
+        $rawEvidenceMigration->down();
         $bindingMigration->down();
         $migration->down();
         [$tenant, $http, $claim, $extractor] = $this->fixture();
@@ -1742,6 +1749,7 @@ SQL);
         self::assertSame(1, DB::table('messages')->where('conversation_id', $claim->conversationId)->count());
         $migration->up();
         $bindingMigration->up();
+        $rawEvidenceMigration->up();
         [$stage, , , $file] = $this->responderFixture($tenant, $http, $claim, $extractor);
         self::assertNotEmpty($stage);
         self::assertSame(1, DB::table('c02_responder_stages')->count());

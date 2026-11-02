@@ -12,7 +12,6 @@ use App\Shell\Notifications\DomainEvent;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
 use Illuminate\Auth\AuthenticationException;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -22,12 +21,13 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
+use Tests\Support\IsolatedDatabaseMigrations;
 use Tests\TestCase;
 
 #[Group('race')]
 final class SessionRoutingRaceTest extends TestCase
 {
-    use DatabaseMigrations;
+    use IsolatedDatabaseMigrations;
 
     protected function beforeRefreshingDatabase(): void
     {
@@ -116,7 +116,7 @@ final class SessionRoutingRaceTest extends TestCase
     {
         $f = $this->fixture();
         $token = 'synthetic-reset-token';
-        DB::table('password_reset_tokens')->insert(['email' => $f['user']->email, 'token' => Hash::make($token), 'auth_version' => $f['user']->auth_version, 'created_at' => now()]);
+        DB::table('password_reset_tokens')->insert(['email' => $f['user']->email, 'token' => Hash::make('v2:'.hash('sha256', $token)), 'auth_version' => $f['user']->auth_version, 'created_at' => now()]);
         $data = $this->workerData($f, 'password', []);
         $data['token'] = $token;
         $process = null;
