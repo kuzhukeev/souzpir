@@ -39,7 +39,7 @@ final class HomeEntryTest extends TenancyTestCase
         [$foreign, , $foreignBrand] = $this->cabinet(false);
         $this->actingAs($owner)->withSession(['brand_id' => $first->id]);
         $response = $this->get('/dashboard')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->component('Shell/HomeEntry/Index')->where('brand.id', $first->id)->has('homeLinks', 4));
+            ->component('Shell/Dashboard/Index')->where('brand.id', $first->id)->has('homeLinks', 4));
         $links = collect($response->inertiaProps('homeLinks'))->keyBy('id');
         $this->assertSame('/team', $links['team']['href']);
         $this->assertSame('/journal', $links['journal']['href']);
