@@ -133,7 +133,7 @@ final class CustomersController
             if ($manager && $conversation->assigned_user_id && $conversation->assigned_user_id !== $user->id) {
                 abort(404);
             }
-            if ($manager && ($input['manager_id'] ?? null) !== $user->id) {
+            if ($manager && ($input['manager_id'] ?? null) !== $user->id && ! (($input['manager_id'] ?? null) === null && $conversation->assigned_user_id === $user->id)) {
                 abort(403);
             }
             if (! empty($input['manager_id'])) {

@@ -36,6 +36,10 @@ final class AssignmentTest extends TenancyTestCase
         $this->post("/seller/customers/$contact/manager", ['manager_id' => 'invalid'])->assertSessionHasErrors('manager_id');
         $this->post("/seller/customers/$foreign/manager", ['manager_id' => $manager->id])->assertNotFound();
         $this->get("/seller/customers/$foreign")->assertNotFound();
+        $this->actingAs($manager)->withSession(['brand_id' => $brand->id]);
+        $this->post("/seller/customers/$contact/manager", ['manager_id' => $owner->id])->assertForbidden();
+        $this->post("/seller/customers/$contact/manager", ['manager_id' => null])->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('conversations', ['id' => $dialog, 'assigned_user_id' => null]);
         [$viewer] = $this->member($org, 'viewer', [$brand->id]);
         $this->actingAs($viewer)->withSession(['brand_id' => $brand->id]);
         $this->post("/seller/customers/$contact/manager", ['manager_id' => $viewer->id])->assertForbidden();
