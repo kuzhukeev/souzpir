@@ -435,6 +435,50 @@ final class SessionIdempotencyTest extends TestCase
         DB::purge('c02_session_observer');
     }
 
+    public function test_revoked_session_recovers_only_its_fixed_completed_receipt(): void
+    {
+        [$user, $request] = $this->fixture();
+        $service = app(PostgresSessionIdempotency::class);
+        $key = 'logout-recovery-key-123456';
+        self::assertSame(['logged_out' => true], $service->executeLogout($request, $key, function () use ($request): array {
+            app(AuthSessionRegistry::class)->revokeCurrent($request);
+
+            return ['logged_out' => true];
+        }));
+        self::assertNotNull(DB::table('auth_session_registry')->where('user_id', $user->id)->value('revoked_at'));
+        self::assertSame(['logged_out' => true], $service->recoverRevoked($request, 'profile.logout', $key, 'logout-v1'));
+        foreach ([['profile.logout', 'wrong-key', 'logout-v1'], ['profile.logout', $key, 'different-body'], ['test.session', $key, 'logout-v1']] as [$operation, $probe, $body]) {
+            try {
+                $service->recoverRevoked($request, $operation, $probe, $body);
+                self::fail('Unbound or unrelated receipt was recovered.');
+            } catch (IdempotencyFailure $error) {
+                self::assertNull($error->getPrevious());
+            }
+        }
+        try {
+            $service->execute($request, 'test.session', 'fresh-key', 'body', fn () => ['private' => true]);
+            self::fail('Revoked session performed another operation.');
+        } catch (IdempotencyFailure) {
+            self::assertSame(1, DB::table('c02_session_receipts')->count());
+        }
+    }
+
+    public function test_completed_brand_switch_receipt_can_be_checked_after_revoke_without_running_write(): void
+    {
+        [$user, $request] = $this->fixture();
+        $service = app(PostgresSessionIdempotency::class);
+        $calls = 0;
+        self::assertSame(['switched' => true], $service->execute($request, 'profile.brand_switch', 'brand-recovery-key-123456', '01TARGET', function () use (&$calls): array {
+            $calls++;
+
+            return ['switched' => true];
+        }));
+        app(AuthSessionRegistry::class)->withinLogout($request, fn () => app(AuthSessionRegistry::class)->revokeCurrent($request));
+        self::assertSame(['switched' => true], $service->recoverRevoked($request, 'profile.brand_switch', 'brand-recovery-key-123456', '01TARGET'));
+        self::assertSame(1, $calls);
+        self::assertNotNull(DB::table('auth_session_registry')->where('user_id', $user->id)->value('revoked_at'));
+    }
+
     private function fixture(): array
     {
         $user = User::create(['name' => 'Synthetic', 'email' => 'c02-session-'.Str::lower(Str::random(12)).'@example.test', 'password' => 'synthetic-test-password']);

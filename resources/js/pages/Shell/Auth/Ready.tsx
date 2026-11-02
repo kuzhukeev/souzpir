@@ -1,11 +1,54 @@
 import { Link, router, useForm } from '@inertiajs/react';
 import { Button } from '@/components/ui';
 import { AuthFrame, Field } from '@/features/Shell/Auth/AuthFrame';
-import type { FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { beginProfileContextChange, finishProfileContextChange } from '@/features/Shell/Profile/contextFence';
+
+const logoutRetryKey = 'souzpir.profile-logout.retry';
+const xsrf = () => document.cookie.split('; ').find((item) => item.startsWith('XSRF-TOKEN=')) ?? '';
+function pendingLogout(): { key: string; xsrf: string } | null {
+  try {
+    const value = JSON.parse(sessionStorage.getItem(logoutRetryKey) ?? 'null');
+    if (typeof value?.key !== 'string' || typeof value?.xsrf !== 'string') return null;
+    if (value.xsrf !== xsrf()) {
+      sessionStorage.removeItem(logoutRetryKey);
+      finishProfileContextChange(value.key);
+      return null;
+    }
+    return value;
+  } catch { return null; }
+}
 
 export default function Ready({ mfaEnabled, canOpenJournal }: { mfaEnabled: boolean; canOpenJournal: boolean }) {
   const setup = useForm({ password: '', code: '' });
+  const [logout, setLogout] = useState(pendingLogout);
+  const [logoutError, setLogoutError] = useState('');
+  const finishLogout = (key: string) => {
+    try { sessionStorage.removeItem(logoutRetryKey); } catch { /* Keep private data closed. */ }
+    finishProfileContextChange(key);
+    setLogout(null);
+  };
+  const retryLogout = async (key: string) => {
+    try {
+      const response = await fetch('/logout/recover', { headers: { 'X-Context-Change-Key': key, Accept: 'application/json' }, credentials: 'same-origin', cache: 'no-store' });
+      if (response.ok && (await response.json()).logged_out === true) {
+        finishLogout(key);
+        window.location.assign('/login');
+        return;
+      }
+    } catch { /* The original request can still be retried with the same key. */ }
+    sendLogout(key);
+  };
+  const sendLogout = (key: string) => {
+    setLogoutError('');
+    router.post('/logout', {}, {
+      headers: { 'X-Context-Change-Key': key },
+      onSuccess: () => finishLogout(key),
+      onError: () => setLogoutError('Не удалось выйти. Повторите запрос.'),
+      onNetworkError: () => { setLogoutError('Ответ сервера потерян. Повторите выход.'); return false; },
+      onHttpException: () => { setLogoutError('Не удалось подтвердить выход. Повторите запрос.'); return false; },
+    });
+  };
   const submit = (event: FormEvent) => {
     event.preventDefault();
     setup.post(mfaEnabled ? '/mfa/disable' : '/mfa/setup', {
@@ -50,12 +93,18 @@ export default function Ready({ mfaEnabled, canOpenJournal }: { mfaEnabled: bool
         </Button>
       </form>
       <Button variant="ghost" className="mt-4 w-full" onClick={() => {
-        const contextChange = beginProfileContextChange();
-        if (!contextChange) return;
-        router.post('/logout', {}, { onSuccess: () => finishProfileContextChange(contextChange) });
+        if (logout) { void retryLogout(logout.key); return; }
+        const key = beginProfileContextChange();
+        if (!key) { setLogoutError('Не удалось подтвердить сессию. Обновите страницу.'); return; }
+        const saved = { key, xsrf: xsrf() };
+        try { sessionStorage.setItem(logoutRetryKey, JSON.stringify(saved)); }
+        catch { finishProfileContextChange(key); setLogoutError('Не удалось сохранить запрос выхода.'); return; }
+        setLogout(saved);
+        sendLogout(key);
       }}>
-        Выйти
+        {logout ? 'Повторить выход' : 'Выйти'}
       </Button>
+      {logoutError && <p role="alert" className="mt-2 text-sm text-(--color-danger-ink)">{logoutError}</p>}
     </AuthFrame>
   );
 }

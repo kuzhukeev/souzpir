@@ -17,6 +17,7 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "brand.switch.recover": [],
     "api.v1.brand.show": [],
     "brand.switch": [],
     "notifications.settings.update": [],
@@ -34,6 +35,7 @@ declare module 'ziggy-js' {
     "password.store": [],
     "mfa.challenge": [],
     "mfa.challenge.store": [],
+    "logout.recover": [],
     "invitation.open": [],
     "invitation.exchange": [],
     "invitation.show": [],
