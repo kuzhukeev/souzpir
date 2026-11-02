@@ -9,6 +9,7 @@ const theme =
 const component = Crm;
 const props = {
   canManage: true,
+  status: 'Тестовое событие обработано. Результат виден в журнале.',
   auth: { user: { id: '1', name: 'Иван Петров', email: 'ivan@example.test' } },
   organization: { id: '1', name: 'Союз Пир' },
   brand: { id: '2', name: 'Пиротехника — Северные огни', theme },
@@ -141,9 +142,16 @@ const props = {
         {
           id: 'd1',
           event: 'seller.contact.captured',
-          status: 'sent',
+          status: 'simulated',
           status_code: 200,
           created_at: '2026-10-28T12:04:00Z',
+        },
+        {
+          id: 'd2',
+          event: 'seller.contact.captured',
+          status: 'failed',
+          status_code: 503,
+          created_at: '2026-10-29T12:04:00Z',
         },
       ],
     },

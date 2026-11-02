@@ -1,4 +1,5 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
+import { useState } from 'react';
 import CabinetLayout from '@/layouts/CabinetLayout';
 
 type Hook = {
@@ -26,7 +27,18 @@ const statuses: Record<string, string> = {
   unknown: 'Неизвестно',
 };
 
-export default function Index({ canManage, webhooks }: { canManage: boolean; webhooks: Hook[] }) {
+export default function Index({ canManage, webhooks, status }: { canManage: boolean; webhooks: Hook[]; status?: string | null }) {
+  const [sending, setSending] = useState('');
+  const [error, setError] = useState('');
+  const sendTest = (id: string, fail: boolean) => {
+    setError('');
+    setSending(id);
+    router.post(`/seller/integrations/crm/${id}/test`, { simulate_failure: fail }, {
+      onFinish: () => setSending(''),
+      onError: (errors) => setError(Object.values(errors)[0] ?? 'Не удалось отправить тестовое событие.'),
+      onNetworkError: () => { setError('Связь прервалась. Проверьте журнал перед повтором.'); return false; },
+    });
+  };
   return (
     <CabinetLayout
       breadcrumbs={[
@@ -47,6 +59,8 @@ export default function Index({ canManage, webhooks }: { canManage: boolean; web
         <p className="mt-3 text-sm text-(--color-ink-muted)">
           Передавайте сведения о контакте и передаче диалога в свою CRM.
         </p>
+        {status && <p role="status" className="mt-4 rounded-lg bg-(--color-success-soft) p-3 text-sm">{status}</p>}
+        {error && <p role="alert" className="mt-4 rounded-lg bg-(--color-danger-soft) p-3 text-sm text-(--color-danger-ink)">{error}</p>}
         <section
           className="mt-6 rounded-2xl border border-(--color-border) bg-(--color-surface) p-6 shadow-(--shadow-card)"
           aria-labelledby="crm-status"
@@ -55,8 +69,7 @@ export default function Index({ canManage, webhooks }: { canManage: boolean; web
             Настройка вебхука
           </h2>
           <p className="mt-3 text-sm">
-            Создайте вебхук в общих настройках и выберите события CRM. Автоматическая доставка пока
-            недоступна.
+            Создайте вебхук в общих настройках и выберите события CRM. Сейчас доступна только тестовая доставка без сети.
           </p>
           <h3 className="mt-6 font-semibold">События</h3>
           <ul className="mt-2 list-inside list-disc space-y-1 text-sm">
@@ -89,6 +102,10 @@ export default function Index({ canManage, webhooks }: { canManage: boolean; web
                         .map((event) => labels[event])
                         .join(', ')}
                     </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button type="button" disabled={!!sending} onClick={() => sendTest(hook.id, false)} className="min-h-11 cursor-pointer rounded-lg border border-(--color-border) px-4 text-sm font-semibold text-(--color-link) disabled:cursor-not-allowed disabled:opacity-50">Отправить тестовое событие</button>
+                      <button type="button" disabled={!!sending} onClick={() => sendTest(hook.id, true)} className="min-h-11 cursor-pointer rounded-lg border border-(--color-border) px-4 text-sm font-semibold text-(--color-link) disabled:cursor-not-allowed disabled:opacity-50">Проверить ошибку</button>
+                    </div>
                     {hook.deliveries.length === 0 ? (
                       <p className="mt-2">Записей в журнале пока нет.</p>
                     ) : (
