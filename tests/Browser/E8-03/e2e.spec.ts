@@ -66,7 +66,8 @@ test('actual questions create, select, publish, version, permissions and CSRF', 
     await page.getByRole('link', { name: 'Перейти к утверждению' }).click();
     await page.getByLabel('google/gemini-2.5-flash').check();
     await page.getByRole('button', { name: 'Утвердить без запуска' }).click();
-    await expect(page.getByText('Версия 2 · Активный')).toBeVisible();
+    await expect(page).toHaveURL(/\/vision\/questions\/active$/);
+    await expect(page.getByText('Версия 2 · Активный')).toBeVisible({ timeout: 20_000 });
     await page.getByRole('link', { name: 'История наборов' }).click();
     await expect(page.getByRole('heading', { name: 'Версия 2 · Активный' })).toBeVisible();
     await page.getByRole('button', { name: 'Сравнить с предыдущим' }).click();

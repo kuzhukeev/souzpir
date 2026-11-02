@@ -72,6 +72,17 @@ declare module 'ziggy-js' {
     "onboarding.logo.store": [],
     "onboarding.logo.show": [],
     "onboarding.finish": [],
+    "dashboard.overview": [],
+    "dashboard.notifications.read": [
+        {
+            "name": "kind",
+            "required": true
+        },
+        {
+            "name": "id",
+            "required": true
+        }
+    ],
     "dashboard": [],
     "organization.show": [],
     "organization.update": [],

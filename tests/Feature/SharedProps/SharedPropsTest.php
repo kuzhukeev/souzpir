@@ -40,7 +40,7 @@ final class SharedPropsTest extends TenancyTestCase
             ->where('can', fn ($can) => $can['team.write'] === true)
             ->where('modules.seller', false)
             ->where('modules.vision', false)
-            ->where('unread', null)
+            ->where('unread', 0)
             ->where('translations', fn ($translations) => $translations['Tenancy/Access/messages.invalid_role'] === 'Недопустимая роль или состояние участника.')
             ->where('ziggy.location.search', '')
             ->where('ziggy.location.pathname', '/shared-props-test')

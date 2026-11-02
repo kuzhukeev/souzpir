@@ -1,10 +1,10 @@
 <?php
 
-use App\Shell\HomeEntry\HomeEntryController;
+use App\Shell\Dashboard\DashboardController;
 use Illuminate\Support\Facades\Route;
 
 return [
     'web' => static function (): void {
-        Route::middleware(['auth.version', 'auth.nostore'])->get('/dashboard', HomeEntryController::class)->name('dashboard');
+        Route::middleware(['auth.version', 'auth.nostore'])->get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     },
 ];
