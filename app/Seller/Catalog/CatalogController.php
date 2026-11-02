@@ -40,7 +40,7 @@ final class CatalogController
         $items = $active ? $this->scope('catalog_items', $tenant)->where('import_id', $active->id)->orderBy('name')->get(['id', 'sku', 'name', 'category', 'price', 'wholesale_price', 'stock', 'updated_at']) : [];
         $settings = $this->scope('catalog_settings', $tenant)->first(['low_stock', 'price_file_name']);
 
-        return ['imports' => $imports, 'items' => $items, 'settings' => ['low_stock' => $settings?->low_stock ?? '0', 'price_file_name' => $settings?->price_file_name], 'activeImport' => $active?->id];
+        return ['imports' => $imports, 'items' => $items, 'settings' => ['low_stock' => $settings?->low_stock ?? '0', 'price_file_name' => $settings?->price_file_name], 'activeImport' => $active?->id, 'yml' => ($feed = app(YmlFeedStore::class)->read($tenant->organizationId, $tenant->brandId)) ? ['url' => $feed['url'], 'interval_hours' => $feed['interval_hours'], 'last_run_at' => $feed['last_run_at']] : null];
     }
 
     public function index(Request $request): mixed
