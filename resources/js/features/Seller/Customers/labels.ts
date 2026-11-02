@@ -1,0 +1,6 @@
+export const slots: Record<string, string> = {name:'Имя',city:'Город',purpose:'Цель',experience:'Опыт',outlet_type:'Тип торговой точки',outlet_floor:'Площадь точки',categories:'Категории',brands_interest:'Интересующие бренды',current_supplier:'Текущий поставщик',competitor_discount:'Скидка поставщика',budget_range:'Бюджет',timing:'Сроки',legal:'Юридические данные',email:'Почта',messenger:'Мессенджер',next_contact_at:'Следующий контакт'};
+export const stages: Record<string,string> = {open:'Новый',qualify:'Знакомство',need:'Потребность',budget:'Бюджет',close_contact:'Контакт',followup:'Повторный контакт',handoff:'Передан',lost:'Остыл',done:'Завершён',spam:'Спам'};
+export const outcomes: Record<string,string> = {full_contact:'Контакт получен',partial_contact:'Частичный контакт',handoff:'Передан',paused:'Пауза',declined:'Отказ',stale:'Остыл',spam:'Спам'};
+export const roles: Record<string,string> = {client:'Клиент',assistant:'Бот',agent:'Менеджер',system:'Система'};
+export const taskTypes: Record<string,string> = {handoff:'Передать',promise:'Обещание',reminder:'Напомнить',unknown_question:'Неизвестный вопрос',note:'Пометка',send_price:'Отправить прайс',send_requisites:'Отправить реквизиты',stale:'Остыл'};
+export const taskStatuses: Record<string,string> = {new:'Новая',done:'Выполнена',cancelled:'Отменена'};

@@ -333,6 +333,26 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "seller.customers.index": [],
+    "seller.customers.show": [
+        {
+            "name": "contact",
+            "required": true
+        }
+    ],
+    "seller.customers.notes.store": [
+        {
+            "name": "contact",
+            "required": true
+        }
+    ],
+    "seller.customers.tasks": [],
+    "seller.customers.tasks.update": [
+        {
+            "name": "task",
+            "required": true
+        }
+    ],
     "seller.planned.vk": [],
     "seller.planned.whatsapp": [],
     "seller.planned.calendar": [],
