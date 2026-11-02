@@ -15,7 +15,13 @@
             <directory suffix="Test.php">tests/Feature/Smoke</directory>
             <directory suffix="Test.php">tests/Feature/Support</directory>
         </testsuite>
-        <testsuite name="Shell"><directory suffix="Test.php">tests/Feature/Shell</directory></testsuite>
+        <testsuite name="Shell">
+            <directory suffix="Test.php">tests/Feature/Shell</directory>
+            <directory suffix="Test.php">tests/Feature/SP-E1-10C</directory>
+            <directory suffix="Test.php">tests/Feature/SP-E1-10D</directory>
+            <directory suffix="Test.php">tests/Feature/SP-E1-10E</directory>
+            <directory suffix="Test.php">tests/Feature/SP-E1-10F</directory>
+        </testsuite>
         <testsuite name="Product">
             <directory suffix="Test.php">tests/Feature/Seller</directory>
             <directory suffix="Test.php">tests/Feature/SellerRuntime</directory>
