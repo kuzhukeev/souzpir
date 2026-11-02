@@ -194,7 +194,7 @@ export default function Index({ measurementBrandRevision, status }: { measuremen
             <button type="button" className={button} disabled={starting || !can?.['vision.measure.run'] || !brandId || !profileContextIsStable()} onClick={start}>Начать замер</button>
           </div>
         </header>
-        <p className="mb-4 text-sm text-(--color-ink-muted)">Запуск создаёт план по утверждённым вопросам бренда. В тестовом режиме слоты выполняются по одному.</p>
+        <p className="mb-4 text-sm text-(--color-ink-muted)">Запуск создаёт план по утверждённым вопросам бренда. При включённой очереди слоты обрабатываются автоматически.</p>
         {status && <p role="status" className="mb-4 rounded-lg bg-(--color-success-soft) p-3 text-sm text-(--color-success-ink)">{status}</p>}
         {startError && <p role="alert" className="mb-4 rounded-lg bg-(--color-danger-soft) p-3 text-sm text-(--color-danger-ink)">{startError}</p>}
         <section
