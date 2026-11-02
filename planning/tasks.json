@@ -4441,7 +4441,8 @@
         "SP-E3-07",
         "SP-E5-01",
         "SP-E9-01",
-        "SP-E0-05D"
+        "SP-E0-05D",
+        "SP-E0-05F"
       ],
       "scope": [
         "app/Shadow/",
@@ -4479,7 +4480,7 @@
       ],
       "promptPath": "docs/tasks/SP-E9-03.md",
       "wave": 14,
-      "description": "Прочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: Новый движок в suggest-режиме параллельно прототипу 2 недели; сравнение Judge’ом\n\nЗависимости (нужен done после merge): SP-E0-05D, SP-E0-05B, SP-E0-05C, SP-E1-01B, SP-E3-07, SP-E5-01, SP-E9-01.\nОбласть записи: app/Shadow/, config/features/E9-03.php, database/factories/Shadow/, database/migrations/E9-03/, database/seeders/Shadow/, docs/modules/E9-03.md, lang/ru/Shadow/, resources/js/features/Shadow/, resources/js/pages/Shadow/, resources/js/types/Shadow/, routes/features/E9-03.php, tests/Browser/E9-03/, tests/Feature/Shadow/, tests/Unit/Shadow/, docs/results/SP-E9-03.md.\nЭкраны: инфраструктура/контракты.\nИсточники: E9-03.\n- E9-03: 07 §2 п.7\n\nПриёмка:\n- отчёт расхождений\n\nДополнительно: Операторский этап с отдельным разрешением на live shadow, данными и бюджетом. 2-недельное наблюдение нельзя подменять smoke тестом; реальная исходящая доставка выключена.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E9-03.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n"
+      "description": "# SP-E9-03 · Теневой запуск\n\nПрочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: Новый движок в suggest-режиме параллельно прототипу 2 недели; сравнение Judge’ом\n\nЗависимости (нужен done после merge): SP-E0-05B, SP-E0-05C, SP-E0-05D, SP-E0-05F, SP-E1-01B, SP-E3-07, SP-E5-01, SP-E9-01. Операторская сверка SP-E0-05F обязательна до live shadow.\nОбласть записи: app/Shadow/, config/features/E9-03.php, database/factories/Shadow/, database/migrations/E9-03/, database/seeders/Shadow/, docs/modules/E9-03.md, lang/ru/Shadow/, resources/js/features/Shadow/, resources/js/pages/Shadow/, resources/js/types/Shadow/, routes/features/E9-03.php, tests/Browser/E9-03/, tests/Feature/Shadow/, tests/Unit/Shadow/, docs/results/SP-E9-03.md.\nЭкраны: инфраструктура/контракты.\nИсточники: E9-03.\n- E9-03: 07 §2 п.7\n\nПриёмка:\n- отчёт расхождений\n\nДополнительно: Операторский этап с отдельным разрешением на live shadow, данными и бюджетом. 2-недельное наблюдение нельзя подменять smoke тестом; реальная исходящая доставка выключена.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E9-03.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n\n## Материалы\n\nИсходники только для чтения: C:/OSPanel/home/souzpir.local/.local/references/{eyon-pilot,laravel-prototype}.\nПолный индекс изображений: planning/materials-manifest.json; точный состав по docs/sources/02b_mockup_journal.md.\n"
     },
     {
       "taskKey": "SP-E9-04",
@@ -4879,6 +4880,42 @@
       ],
       "wave": 4,
       "promptPath": "docs/tasks/SP-E0-05E.md"
+    },
+    {
+      "taskKey": "SP-E0-05F",
+      "title": "SP-E0-05F · Операторское действие сверки расходов ИИ",
+      "goal": "Подключить POST-маршрут существующей провайдерской сверки и действие владельца на экране неопределённых расходов до live shadow.",
+      "dependsOn": [
+        "SP-E0-05B",
+        "SP-E0-05E",
+        "SP-E9-01"
+      ],
+      "scope": [
+        "routes/features/E0-05B.php",
+        "resources/js/pages/Shell/Billing/AiRecovery.tsx",
+        "resources/js/features/Shell/Billing/AiRecovery/",
+        "tests/Feature/Ai/Recovery/",
+        "tests/Browser/E0-05E/",
+        "docs/modules/E0-05B.md",
+        "docs/results/SP-E0-05F.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "POST использует существующий RecoverCallController; только текущий бренд и действующий владелец с billing.manage.",
+        "Экран даёт явное подтверждение, loading/success/error и обновление списка без ручного ввода стоимости.",
+        "Feature/browser проверки только на fake/HTTP fixtures; нет живых и платных вызовов."
+      ],
+      "sourceIds": [],
+      "screenIds": [],
+      "notes": "Сверх ТЗ: осознанное решение владельца 2026-11-02. Последнее продолжение E0-05; далее E0-05 не дробить. Часть SP-E0-05B.",
+      "sourceRefs": [
+        "docs/results/SP-E0-05B.md",
+        "docs/modules/E0-05B.md",
+        "docs/decisions-pending.md"
+      ],
+      "promptPath": "docs/tasks/SP-E0-05F.md",
+      "wave": 14,
+      "description": "# SP-E0-05F · Операторское действие сверки расходов ИИ\n\n**Сверх ТЗ: осознанное решение владельца от 2026-11-02.** Это последнее продолжение E0-05; дальше E0-05 не дробить.\n\n**Зачем:** подтверждённая провайдером сверка неопределённых расходов ИИ нужна до live shadow SP-E9-03. Сейчас backend SP-E0-05B готов, но оператор не может вызвать его через штатный маршрут и экран.\n\n**Часть чего:** SP-E0-05B. Закрыть оставшиеся POST-маршрут и операторское действие на существующем экране; после карточки в SP-E0-05B не остаётся пользовательского пути для сверки. Прочие E0-05C/D/E имеют отдельные завершённые области.\n\nРазмер: 1–3 часа. Старт после SP-E0-05B, SP-E0-05E и SP-E9-01: последняя зависимость удерживает карточку ниже SP-E3-03B, SP-E3-05/06 и функциональных цепочек E4–E7. SP-E9-03 ждёт эту карточку.\n\nПодключить `POST /ai/recovery/calls/{callId}/reconcile` с именем `ai.recovery.calls.reconcile` к существующему `RecoverCallController` в `routes/features/E0-05B.php`. На экране `/billing/ai-recovery` добавить явное действие сверки с подтверждением, состояниями отправки/успеха/ошибки и обновлением списка. Показывать результат и фактическую стоимость без поля для ручного ввода суммы. Если провайдер не подтвердил вызов, резерв остаётся заблокированным; оплаченный вызов не повторять автоматически.\n\nScope: `routes/features/E0-05B.php`, `resources/js/pages/Shell/Billing/AiRecovery.tsx`, `resources/js/features/Shell/Billing/AiRecovery/`, `tests/Feature/Ai/Recovery/`, `tests/Browser/E0-05E/`, `docs/modules/E0-05B.md`, `docs/results/SP-E0-05F.md`. Сгенерированные типы разрешены общим правилом AGENTS.md. Не менять реализацию `RecoverCall` и чужие модули.\n\nПриёмка: route вызывает существующий backend только для действующего владельца с `billing.manage` в текущем бренде; чужой вызов/роль отклоняются. UI на русском, доступное подтверждение действия, loading/empty/error и повтор после сбоя; результат и список обновляются без утечки приватных полей. Feature и browser проверки используют только fake/HTTP fixtures, без живых и платных вызовов. Отчёт и submit по AGENTS.md.\n"
     },
     {
       "taskKey": "SP-E1-06B",
