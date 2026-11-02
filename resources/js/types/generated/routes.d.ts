@@ -486,6 +486,7 @@ declare module 'ziggy-js' {
     ],
     "seller.scenarios.index": [],
     "seller.scenarios.save": [],
+    "seller.quality.compare": [],
     "seller.analytics.index": [],
     "seller.analytics.csv": [],
     "vision.start": [],
