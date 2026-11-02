@@ -21,8 +21,8 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
-use Tests\TestCase;
 use Tests\Support\IsolatedDatabaseMigrations;
+use Tests\TestCase;
 
 #[Group('race')]
 final class SessionRoutingRaceTest extends TestCase

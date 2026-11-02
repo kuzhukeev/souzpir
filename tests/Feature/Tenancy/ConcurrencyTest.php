@@ -13,8 +13,8 @@ use Database\Seeders\Tenancy\CabinetFixtureSeeder;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Process\Process;
-use Tests\TestCase;
 use Tests\Support\IsolatedDatabaseMigrations;
+use Tests\TestCase;
 
 #[Group('race')]
 final class ConcurrencyTest extends TestCase
