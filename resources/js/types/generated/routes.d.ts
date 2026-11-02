@@ -333,6 +333,22 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "seller.channels.index": [],
+    "seller.channels.telegram": [],
+    "seller.channels.telegram.save": [],
+    "seller.channels.mode": [
+        {
+            "name": "channel",
+            "required": true
+        }
+    ],
+    "seller.channels.stop": [],
+    "seller.telegram.webhook": [
+        {
+            "name": "channel",
+            "required": true
+        }
+    ],
     "seller.customers.index": [],
     "seller.customers.show": [
         {
