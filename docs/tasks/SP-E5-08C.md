@@ -8,8 +8,8 @@
 
 Зависимости: SP-E5-08B и SP-E1-11.
 
-Работа: завершить CSV/XLSX-форматы экспорта контактов текущего бренда в общий архив S-7.4; включить регистрацию экспортёра после готовности и обновить `tests/Browser/E1-11/data.spec.ts`, чтобы он проверял доступный экспорт. Дать ссылку на экспорт из экрана импорта/экспорта клиентов. Живые внешние сервисы не вызывать.
+Работа: завершить CSV/XLSX-форматы экспорта контактов текущего бренда в общий архив S-7.4; ZIP экспорта продавца должен содержать CSV и XLSX, а существующий JSONL остаётся доступным для остальных модулей. Включить регистрацию экспортёра после готовности и обновить `tests/Browser/E1-11/data.spec.ts`, чтобы он проверял доступный экспорт. Дать ссылку на экспорт из экрана импорта/экспорта клиентов. Живые внешние сервисы не вызывать.
 
-Scope: `app/Seller/Customers/ImportExport/CustomersExport.php`, `app/Seller/Customers/ImportExport/ImportExportController.php`, `config/features/E5-08.php`, `resources/js/pages/Seller/Customers/ImportExport/Index.tsx`, `routes/features/E5-08.php`, `tests/Browser/E1-11/data.spec.ts`, `tests/Browser/E5-08/`, `tests/Feature/Seller/Customers/ImportExport/`, `docs/results/SP-E5-08C.md`. Сгенерированные типы разрешены общим правилом AGENTS.md.
+Scope: `app/Seller/Customers/ImportExport/CustomersExport.php`, `app/Seller/Customers/ImportExport/ImportExportController.php`, `app/Shell/Data/`, `config/features/E5-08.php`, `resources/js/pages/Seller/Customers/ImportExport/Index.tsx`, `resources/js/pages/Shell/Data/`, `routes/features/E5-08.php`, `tests/Browser/E1-11/data.spec.ts`, `tests/Browser/E5-08/`, `tests/Feature/Seller/Customers/ImportExport/`, `tests/Feature/Shell/Data/`, `docs/results/SP-E5-08C.md`. Сгенерированные типы разрешены общим правилом AGENTS.md.
 
 Приёмка: CSV и XLSX скачиваются из архива для разрешённого бренда и не содержат чужих контактов; доступ и пустой экспорт проверены; E1-11 browser-тест обновлён; локальные затронутые тесты и Product проходят, CI ветки зелёный.
