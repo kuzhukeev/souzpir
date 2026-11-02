@@ -190,6 +190,31 @@ class Policy
 
     public function decide(LeadState $s, array $x, bool $isFirstTurn = false): Goal
     {
+        $goal = $this->decideBase($s, $x, $isFirstTurn);
+        $intent = $x['client_intent'] ?? null;
+        if (! is_string($intent) || ! in_array($goal->kind, ['intro_and_ask', 'answer_and_ask', 'ask_slot', 'handle_objection'], true)) {
+            return $goal;
+        }
+        $topic = $this->kb->intent($intent);
+        $answer = $topic['default_answer'] ?? null;
+        $bridge = ($topic['after_action'] ?? null) === 'bridge' ? ($topic['after_action_text'] ?? null) : null;
+        if (is_string($answer) && trim($answer) !== '' && $this->factsForIntent($intent) === []) {
+            $goal->facts[] = ['id' => 'topic_default_'.$intent, 'facts' => [trim($answer)]];
+            $goal->instruction .= "\nОтвет по теме от редактора: ".trim($answer).'. Используй его при ответе клиенту.';
+            if ($goal->kind === 'ask_slot') {
+                $goal->kind = 'answer_and_ask';
+            }
+        }
+        if (is_string($bridge) && trim($bridge) !== '') {
+            $goal->slot = null;
+            $goal->instruction .= "\nПосле ответа задай один вопрос-мостик по теме: ".trim($bridge).'. Другой вопрос не задавай.';
+        }
+
+        return $goal;
+    }
+
+    private function decideBase(LeadState $s, array $x, bool $isFirstTurn): Goal
+    {
         $intent = $x['client_intent'] ?? 'unclear';
         $ct = $s->clientType();
         $tools = $this->toolsFor($s);

@@ -20,9 +20,19 @@ test('совпадения, поиск и предпросмотр импорт�
   await page.goto(fixture);
   await expect(page.getByRole('heading', { name: 'Дубли клиентов' })).toBeVisible();
   await expect(page.getByText('Совпадает: Телефон')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Разные', exact: true })).toBeVisible();
   await page.screenshot({ path: '.local/screenshots/sp-e5-08/duplicates-1440.png', fullPage: true });
   await page.getByLabel('Поиск по контактам').fill('несуществующий');
   await expect(page.getByText('По запросу совпадений нет.')).toBeVisible();
+  await page.getByLabel('Поиск по контактам').fill('');
+  await page.route('**/seller/customer-duplicates/distinct', async route => {
+    expect(route.request().postDataJSON()).toEqual({ first: '01K00000000000000000000001', second: '01K00000000000000000000002' });
+    const response = await page.evaluate(() => JSON.parse(document.querySelector('script[data-page="app"]')!.textContent!));
+    response.props.pairs = [];
+    await route.fulfill({ status: 200, headers: { 'Content-Type': 'application/json', 'X-Inertia': 'true' }, body: JSON.stringify(response) });
+  });
+  await page.getByRole('button', { name: 'Разные', exact: true }).click();
+  await expect(page.getByText('Совпадений по телефону, почте или имени и городу не найдено.')).toBeVisible();
   await page.goto(`${fixture}?import`);
   await expect(page.getByRole('heading', { name: 'Импорт и экспорт клиентов' })).toBeVisible();
   await expect(page.getByText('Всего строк: 1.')).toBeVisible();
@@ -30,3 +40,5 @@ test('совпадения, поиск и предпросмотр импорт�
   await page.screenshot({ path: '.local/screenshots/sp-e5-08/import-1440.png', fullPage: true });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
+
+

@@ -1,4 +1,4 @@
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import CabinetLayout from '@/layouts/CabinetLayout';
 import { slots as slotLabels, stages, outcomes, roles, taskTypes, taskStatuses } from '@/features/Seller/Customers/labels';
@@ -11,9 +11,11 @@ const labels:Record<string,string>={newbie:'Новичок',experienced:'Опы�
 const display=(v:unknown)=>v == null || v === '' ? 'Не указано' : typeof v === 'object' ? JSON.stringify(v) : String(v);
 const tabs=['Карточка','Диалоги','Задачи и обещания','Что обещали отправить','Заметки менеджера'];
 export default function Show({customer,clientType,slots,history,conversations,tasks,notes,canWrite,manager,managers,assignedUserId,canAssign,canReadDialogs}:{customer:{id:string;name:string|null;phone:string|null;email:string|null};clientType:string;slots:Record<string,unknown>;history:History[];conversations:Conversation[];tasks:Task[];notes:Note[];canWrite:boolean;manager:string|null;managers:{id:string;name:string}[];assignedUserId:string|null;canAssign:boolean;canReadDialogs:boolean}) {
+ const permissions=usePage().props.can as Record<string,boolean> | undefined;
  const [tab,setTab]=useState(tabs[0]); const reminder=useForm({text:'',due_at:'',manager_id:assignedUserId??''}); const form=useForm({body:''}); const assignment=useForm({manager_id:assignedUserId??''});
  return <CabinetLayout breadcrumbs={[{label:'Клиенты',href:'/seller/customers'},{label:customer.name || 'Карточка клиента'}]}><Head title="Карточка клиента" /><main className="mx-auto max-w-[1200px]" data-private-profile>
  <Link className="cursor-pointer text-sm text-(--color-link)" href="/seller/customers">← Все клиенты</Link><h1 className="mt-3 text-3xl font-bold">{customer.name || 'Без имени'}</h1><p className="mt-2 text-sm">{labels[clientType] ?? clientType} · {customer.phone || 'Телефон не указан'} · {customer.email || 'Почта не указана'} · Менеджер: {manager || 'не назначен'}</p>
+ <div className="mt-4 flex flex-wrap gap-4 text-sm">{canWrite&&<Link href="/seller/customer-duplicates" className="cursor-pointer text-(--color-link)">Дубли клиентов →</Link>}{permissions?.['seller.settings.write']&&<Link href="/seller/customer-io" className="cursor-pointer text-(--color-link)">Импорт и экспорт →</Link>}</div>
  <nav aria-label="Разделы карточки" className="mt-6 flex flex-wrap gap-2">{tabs.map(t=><button key={t} type="button" aria-pressed={tab===t} onClick={()=>setTab(t)} className={`min-h-11 cursor-pointer rounded-lg border border-(--color-border) px-4 text-sm font-semibold ${tab===t?'bg-(--color-link) text-white':'bg-(--color-surface)'}`}>{t}</button>)}</nav>
  <section className="mt-4 rounded-xl border border-(--color-border) bg-(--color-surface) p-5"><h2 className="text-xl font-bold">{tab}</h2>
  {tab==='Карточка' && <><dl className="mt-4 grid gap-3 sm:grid-cols-2">{Object.entries(slots).map(([key,value])=><div key={key} className="rounded-lg bg-(--color-surface-muted) p-3 text-sm"><dt className="text-(--color-ink-muted)">{slotLabels[key] ?? key}</dt><dd className="mt-1 font-semibold">{display(value)}</dd></div>)}</dl><h3 className="mt-6 font-semibold">История заполнения</h3>{history.length===0?<p className="mt-3 text-sm">Истории заполнения пока нет.</p>:<ul className="mt-3 space-y-2 text-sm">{history.map((h,i)=><li key={i}>{slotLabels[h.slot] ?? h.slot}: {display(h.value)} · {roles[h.role] ?? h.role} · {new Date(h.at).toLocaleString('ru-RU')}</li>)}</ul>}</>}
@@ -23,6 +25,7 @@ export default function Show({customer,clientType,slots,history,conversations,ta
  {tab==='Заметки менеджера' && <>{canWrite&&<form className="mt-4" onSubmit={e=>{e.preventDefault();form.post(`/seller/customers/${customer.id}/notes`,{onSuccess:()=>form.reset()});}}><label className="block text-sm font-semibold">Новая заметка<textarea required maxLength={3000} value={form.data.body} onChange={e=>form.setData('body',e.target.value)} className="mt-2 block min-h-24 w-full rounded-lg border border-(--color-border) bg-(--color-surface) p-3" /></label>{form.errors.body&&<p role="alert" className="mt-2 text-sm text-(--color-danger-ink)">{form.errors.body}</p>}<button disabled={form.processing} className="mt-3 min-h-11 cursor-pointer rounded-lg bg-(--color-link) px-4 text-sm font-semibold text-white disabled:opacity-50">Сохранить заметку</button></form>}<ul className="mt-5 space-y-3">{notes.map(n=><li key={n.id} className="rounded-lg bg-(--color-surface-muted) p-3 text-sm"><p className="whitespace-pre-wrap">{n.body}</p><p className="mt-2 text-(--color-ink-muted)">{new Date(n.created_at).toLocaleString('ru-RU')}</p></li>)}</ul>{notes.length===0&&<p className="mt-3 text-sm">Заметок пока нет.</p>}</>}
  </section></main></CabinetLayout>;
 }
+
 
 
 
