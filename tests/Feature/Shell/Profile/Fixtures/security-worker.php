@@ -58,7 +58,7 @@ try {
     while (DB::transactionLevel() > 0) {
         DB::rollBack();
     }
-    fwrite(STDERR, get_class($error)."\n");
+    fwrite(STDERR, get_class($error).': '.$error->getMessage()."\n");
     echo "failed\n";
     exit(1);
 }

@@ -9,17 +9,17 @@ use App\Models\User;
 use App\Shell\Profile\Security\SecuritySettings;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use Tests\TestCase;
+use Tests\Support\IsolatedDatabaseMigrations;
 
 #[Group('race')]
 final class SecurityConcurrencyTest extends TestCase
 {
-    use DatabaseMigrations;
+    use IsolatedDatabaseMigrations;
 
     protected function beforeRefreshingDatabase(): void
     {
@@ -63,7 +63,7 @@ final class SecurityConcurrencyTest extends TestCase
             self::assertTrue(proc_get_status($b[0])['running'], 'Second device must wait for the held ordered session locks.');
             fwrite($a[1][0], "continue\n");
             fflush($a[1][0]);
-            self::assertSame("applied\n", fgets($a[1][1]));
+            self::assertSame("applied\n", fgets($a[1][1]), stream_get_contents($a[1][2]));
             self::assertSame("revoked\n", fgets($b[1][1]));
             self::assertNull(DB::table('auth_session_registry')->where('session_hash', $firstHash)->value('revoked_at'));
             self::assertNotNull(DB::table('auth_session_registry')->where('session_hash', $secondHash)->value('revoked_at'));
