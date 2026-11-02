@@ -45,6 +45,8 @@ final class ImportExportController
 
                 return ['id' => $contact->id, 'name' => $contact->name, 'phone' => $contact->phone, 'email' => $contact->email, 'city' => $contact->city ?: data_get($state, 'slots.city')];
             })->all();
+            $dismissed = $this->scope('seller_distinct_contact_pairs', $tenant)->get(['first_contact_id', 'second_contact_id'])
+                ->mapWithKeys(fn ($pair) => [$pair->first_contact_id.':'.$pair->second_contact_id => true])->all();
             $pairs = [];
             for ($i = 0; $i < count($rows) && count($pairs) < 100; $i++) {
                 for ($j = $i + 1; $j < count($rows) && count($pairs) < 100; $j++) {
@@ -55,7 +57,9 @@ final class ImportExportController
                     $samePhone = $phoneA !== '' && $phoneA === $phoneB;
                     $sameEmail = ! empty($a['email']) && mb_strtolower($a['email']) === mb_strtolower($b['email'] ?? '');
                     $sameNameCity = ! empty($a['name']) && ! empty($a['city']) && mb_strtolower(trim($a['name'])) === mb_strtolower(trim($b['name'] ?? '')) && mb_strtolower(trim($a['city'])) === mb_strtolower(trim($b['city'] ?? ''));
-                    if ($samePhone || $sameEmail || $sameNameCity) {
+                    $ids = [$a['id'], $b['id']];
+                    sort($ids);
+                    if (($samePhone || $sameEmail || $sameNameCity) && ! isset($dismissed[implode(':', $ids)])) {
                         $pairs[] = ['first' => $a, 'second' => $b, 'reason' => $samePhone ? 'Телефон' : ($sameEmail ? 'Почта' : 'Имя и город')];
                     }
                 }
@@ -65,6 +69,27 @@ final class ImportExportController
         });
 
         return Inertia::render('Seller/Customers/ImportExport/Duplicates', [...$data, 'status' => $request->session()->get('status')]);
+    }
+
+    public function distinct(Request $request): mixed
+    {
+        $input = $request->validate(['first' => ['required', 'ulid', 'different:second'], 'second' => ['required', 'ulid']]);
+        $this->access($request, 'seller.customers.write', function (User $user, TenantContext $tenant) use ($input): void {
+            $ids = [$input['first'], $input['second']];
+            sort($ids);
+            abort_unless($this->scope('contacts', $tenant)->whereNull('merged_into_id')->whereIn('id', $ids)->count() === 2, 404);
+            DB::transaction(function () use ($tenant, $ids): void {
+                $existing = $this->scope('seller_distinct_contact_pairs', $tenant)->where('first_contact_id', $ids[0])->where('second_contact_id', $ids[1])->exists();
+                if (! $existing) {
+                    $id = (string) Str::ulid();
+                    DB::table('seller_distinct_contact_pairs')->insert(['id' => $id, 'organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId,
+                        'first_contact_id' => $ids[0], 'second_contact_id' => $ids[1], 'created_at' => now(), 'updated_at' => now()]);
+                    app(AuditWriter::class)->record($tenant, new AuditEntry('seller.customer.distinct', 'contact_pair', $id));
+                }
+            });
+        });
+
+        return back()->with('status', 'Пара отмечена как разные клиенты.');
     }
 
     public function merge(Request $request): mixed
