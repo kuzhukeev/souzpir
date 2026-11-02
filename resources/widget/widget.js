@@ -1,3 +1,4 @@
+/* global document, HTMLScriptElement, URL, fetch, setTimeout, innerHeight, scrollY, removeEventListener, addEventListener */
 (() => {
   'use strict';
   const script = document.currentScript;
@@ -31,7 +32,14 @@
     const message = document.createElement('p'); message.className = 'message'; message.textContent = 'Чат пока недоступен. Свяжитесь с нами через контакты на сайте.';
     panel.append(top, message);
     const open = () => { panel.hidden = false; button.setAttribute('aria-expanded', 'true'); };
-    button.addEventListener('click', () => { panel.hidden ? open() : (panel.hidden = true, button.setAttribute('aria-expanded', 'false')); });
+    button.addEventListener('click', () => {
+      if (panel.hidden) {
+        open();
+      } else {
+        panel.hidden = true;
+        button.setAttribute('aria-expanded', 'false');
+      }
+    });
     close.addEventListener('click', () => { panel.hidden = true; button.setAttribute('aria-expanded', 'false'); button.focus(); });
     root.append(panel, button); document.body.append(host);
     const invite = () => { if (panel.hidden) { message.textContent = data.behavior.invitation + ' Чат пока недоступен.'; open(); } };
