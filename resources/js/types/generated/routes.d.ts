@@ -339,6 +339,20 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "seller.knowledge.index": [],
+    "seller.knowledge.draft": [],
+    "seller.knowledge.publish": [
+        {
+            "name": "release",
+            "required": true
+        }
+    ],
+    "seller.knowledge.rollback": [
+        {
+            "name": "release",
+            "required": true
+        }
+    ],
     "seller.channels.index": [],
     "seller.channels.telegram": [],
     "seller.channels.telegram.save": [],
