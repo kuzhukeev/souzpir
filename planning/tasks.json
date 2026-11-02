@@ -4511,14 +4511,12 @@
       ],
       "scope": [
         "app/Shell/Dashboard/",
-        "app/Tenancy/BrandSwitchController.php",
         "config/features/E1-03.php",
         "database/factories/Shell/Dashboard/",
         "database/migrations/E1-03/",
         "database/seeders/Shell/Dashboard/",
         "docs/modules/E1-03.md",
         "lang/ru/Shell/Dashboard/",
-        "resources/js/components/navigation/",
         "resources/js/features/Shell/Dashboard/",
         "resources/js/pages/Shell/Dashboard/",
         "resources/js/types/Shell/Dashboard/",
@@ -4526,7 +4524,9 @@
         "tests/Browser/E1-03/",
         "tests/Feature/Shell/Dashboard/",
         "tests/Unit/Shell/Dashboard/",
-        "docs/results/SP-E1-03.md"
+        "docs/results/SP-E1-03.md",
+        "resources/js/components/navigation/Sidebar.tsx",
+        "resources/js/components/navigation/navigation.json"
       ],
       "exclusiveResources": [],
       "acceptance": [
@@ -4551,7 +4551,7 @@
       ],
       "promptPath": "docs/tasks/SP-E1-03.md",
       "wave": 12,
-      "description": "Прочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: S-1.1 (один/несколько брендов), S-1.2 «Требует вашего действия», S-1.3 центр уведомлений (колокольчик, список, прочитано)\n\nЗависимости (нужен done после merge): SP-E0-03, SP-E0-04, SP-E6-07, SP-E7-05, SP-E8-07, SP-F-03, SP-F-04.\nОбласть записи: app/Shell/Dashboard/, app/Tenancy/BrandSwitchController.php, config/features/E1-03.php, database/factories/Shell/Dashboard/, database/migrations/E1-03/, database/seeders/Shell/Dashboard/, docs/modules/E1-03.md, lang/ru/Shell/Dashboard/, resources/js/components/navigation/, resources/js/features/Shell/Dashboard/, resources/js/pages/Shell/Dashboard/, resources/js/types/Shell/Dashboard/, routes/features/E1-03.php, tests/Browser/E1-03/, tests/Feature/Shell/Dashboard/, tests/Unit/Shell/Dashboard/, docs/results/SP-E1-03.md.\nЭкраны: S-1.1, S-1.2, S-1.3.\nИсточники: E1-03.\n- E1-03: ТЗ S-1.1–S-1.3; макеты 12–14; R-S-03\n\nПриёмка:\n- props-тест; виджеты каналов только подключённых\n\nДополнительно: Главная читает реальные module KPI, UsageReader и attention read-models после Seller Dashboard и Vision Settings/Dynamics; статические числа и mock-only агрегатор не принимаются. В общей ленте S-1.3 показывать реальные доставленные кабинетные сводки продавца из SP-E6-07 с соблюдением org/brand/user и актуальных прав; не создавать фиктивные исходные события или одиночные доставки. Тесты смешанной ленты, изоляции и отзыва доступа обязательны. Реализовать именованный маршрут /dashboard; переключение бренда включает только после его готовности, сервер перенаправляет на главную, клиент отменяет запросы/сбрасывает данные старого бренда. Подключить настоящий per-user unread contributor E0-04 и проверять tenant isolation, а не подменять отсутствие источника нулём.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E1-03.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n"
+      "description": "# SP-E1-03 · Главная кабинета и уведомления\n\nПрочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: S-1.1 (один/несколько брендов), S-1.2 «Требует вашего действия», S-1.3 центр уведомлений (колокольчик, список, прочитано)\n\nЗависимости (нужен done после merge): SP-E0-03, SP-E0-04, SP-E6-07, SP-E7-05, SP-E8-07, SP-F-03, SP-F-04.\nОбласть записи: app/Shell/Dashboard/, config/features/E1-03.php, database/factories/Shell/Dashboard/, database/migrations/E1-03/, database/seeders/Shell/Dashboard/, docs/modules/E1-03.md, lang/ru/Shell/Dashboard/, resources/js/components/navigation/Sidebar.tsx, resources/js/components/navigation/navigation.json, resources/js/features/Shell/Dashboard/, resources/js/pages/Shell/Dashboard/, resources/js/types/Shell/Dashboard/, routes/features/E1-03.php, tests/Browser/E1-03/, tests/Feature/Shell/Dashboard/, tests/Unit/Shell/Dashboard/, docs/results/SP-E1-03.md.\nЭкраны: S-1.1, S-1.2, S-1.3.\nИсточники: E1-03.\n- E1-03: ТЗ S-1.1–S-1.3; макеты 12–14; R-S-03\n\nПриёмка:\n- props-тест; виджеты каналов только подключённых\n\nДополнительно: Главная читает реальные module KPI, UsageReader и attention read-models после Seller Dashboard и Vision Settings/Dynamics; статические числа и mock-only агрегатор не принимаются. В общей ленте S-1.3 показывать реальные доставленные кабинетные сводки продавца из SP-E6-07 с соблюдением org/brand/user и актуальных прав; не создавать фиктивные исходные события или одиночные доставки. Тесты смешанной ленты, изоляции и отзыва доступа обязательны. Реализовать именованный маршрут /dashboard; интеграция переключения бренда и перехода на главную выполняется отдельно в SP-E1-03B после SP-E1-08C; до неё существующее переключение не изменять. Подключить настоящий per-user unread contributor E0-04 и проверять tenant isolation, а не подменять отсутствие источника нулём.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E1-03.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n\n## Материалы\n\nИсходники только для чтения: C:/OSPanel/home/souzpir.local/.local/references/{eyon-pilot,laravel-prototype}.\nПолный индекс изображений: planning/materials-manifest.json; точный состав по docs/sources/02b_mockup_journal.md.\n\n- `C:\\OSPanel\\home\\tasks.local\\completed\\12\\13-S-1.1-home-single-profile.png`\n- `C:\\OSPanel\\home\\tasks.local\\completed\\13\\3d675762-S-1.2-attention.png`\n- `C:\\OSPanel\\home\\tasks.local\\completed\\13\\b1e4c96c-S-1.2-attention-empty.png`\n- `C:\\OSPanel\\home\\tasks.local\\completed\\14\\39320931-S-1.3-notifications-v2.png`\n- `C:\\OSPanel\\home\\tasks.local\\completed\\14\\d17e8a02-S-1.3-notifications-empty-v2.png`\n"
     },
     {
       "taskKey": "SP-E9-01",
@@ -8406,6 +8406,37 @@
       "promptPath": "docs/tasks/SP-CI-09.md",
       "wave": 0,
       "description": "# SP-CI-09 · Стабилизировать browser-smoke\n\n**Сверх ТЗ: прямое поручение владельца от 2026-11-02. Размер:** 1–3 часа; код приложения и golden fixtures не менять.\n\n**Зачем:** `browser-smoke.sh` упал на shards 1/2/3 у SP-E5-08, SP-E6-05B и SP-E1-08C. Из-за нестабильного browser CI готовые экранные ветки нельзя уверенно проверить и влить.\n\n**Часть чего:** исправление надёжности CI по решению владельца; эта карточка закрывает общую причину browser-smoke, продолжений не планируется. Ошибки конкретной feature-ветки остаются у её владельца.\n\nЗависимости: SP-CI-08. Приоритет выше новых функциональных claim после восстановления зелёного main.\n\nScope: `scripts/ci/browser-smoke.sh`, `scripts/ci/browser-fixtures.sh`, `playwright.config.ts`, `.github/workflows/ci.yml`, `tests/Browser/CI/`, `docs/results/SP-CI-09.md`. Если понадобится править конкретный спек, сообщить интегратору точный путь для узкого расширения scope. Concurrency main не менять.\n\nРазобрать три запуска: [browser (1)](https://github.com/kuzhukeev/souzpir/actions/runs/41458938070/job/125322700861), [browser (2)](https://github.com/kuzhukeev/souzpir/actions/runs/41460321057/job/125327379969), [browser (3)](https://github.com/kuzhukeev/souzpir/actions/runs/41461452567/job/125331245141). Зафиксировать имя теста и реальную ошибку каждого. Проверить ожидание готовности серверов, занятие портов, разделение fixture-БД и состояние между спеками. Исправить подтверждённую причину; добавить диагностику, которая на следующем падении указывает спек и серверный лог. После первого сбоя автоматически повторять только упавший browser-шард один раз; ограничить время готовности серверов и прогона явными таймаутами, сохранив имя спека и логи первого сбоя. Не пропускать тесты и не ослаблять assertions.\n\nПриёмка: локальный затронутый набор и Product проходят; CI ветки зелёный, затем merge после зелёного main. В отчёте таблица «запуск → тест/причина → исправление».\n"
+    },
+    {
+      "taskKey": "SP-E1-03B",
+      "title": "SP-E1-03B · Переключение бренда и главная",
+      "description": "# SP-E1-03B · Переключение бренда и главная\n\nРазмер: 1–3 часа.\n\n**Зачем:** экраны S-1.1–S-1.3 и исходная SP-E1-03 требуют перехода на главную при смене бренда и сброса данных прежнего бренда.\n\n**Часть чего:** остаток SP-E1-03 после параллельной реализации главной; после этой карточки интеграция переключения бренда завершена.\n\nЗависимости: SP-E1-03 и SP-E1-08C.\n\nScope: `app/Tenancy/BrandSwitchController.php`, `resources/js/components/navigation/BrandSwitch.tsx`, `tests/Feature/Tenancy/`, `tests/Browser/E1-03/`, `docs/results/SP-E1-03B.md`.\n\nПосле успешной смены бренда сервер перенаправляет на именованный маршрут главной; клиент отменяет запросы и сбрасывает данные предыдущего бренда. Проверить переключение, изоляцию, отказ при отсутствии прав и возврат на главную; живые внешние вызовы запрещены.\n",
+      "goal": "Завершить переключение бренда с переходом на главную",
+      "dependsOn": [
+        "SP-E1-03",
+        "SP-E1-08C"
+      ],
+      "scope": [
+        "app/Tenancy/BrandSwitchController.php",
+        "resources/js/components/navigation/BrandSwitch.tsx",
+        "tests/Feature/Tenancy/",
+        "tests/Browser/E1-03/",
+        "docs/results/SP-E1-03B.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Переход на главную и сброс данных старого бренда; изоляция и запрет без прав"
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md"
+      ],
+      "screenIds": [
+        "S-1.1",
+        "S-1.2",
+        "S-1.3"
+      ],
+      "wave": 1,
+      "promptPath": "docs/tasks/SP-E1-03B.md"
     }
   ],
   "excludedSourceTasks": {
