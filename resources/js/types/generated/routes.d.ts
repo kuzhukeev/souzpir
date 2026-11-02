@@ -452,6 +452,8 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "seller.scenarios.index": [],
+    "seller.scenarios.save": [],
     "seller.analytics.index": [],
     "seller.analytics.csv": [],
     "vision.start": [],
