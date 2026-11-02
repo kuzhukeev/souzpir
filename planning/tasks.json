@@ -8507,7 +8507,7 @@
     {
       "taskKey": "SP-E8-08",
       "title": "SP-E8-08 · Живой замер: провайдеры, очередь, расписание",
-      "description": "# SP-E8-08 · Живой замер: провайдеры, очередь, расписание\n\n**Зачем:** решение владельца от 02.11.2026; экраны V-3.1, V-3.2, V-3.3, V-3.4, V-3.5, V-3.6.\n**Часть чего:** второй проход по частично сданным SP-E8-04/04B/04C/05/05B/06/07; остаток — другие карточки SP-E8-08–12.\n**Зависимости:** нет.\n\nСнять fake-only ограничение MeasurementsController: слоты выполняются job-ами очереди через провайдеров config/eyon.php, ход замера и ответы видны на V-3.3–V-3.5, повтор и расписание — V-3.6, завершение сопровождается уведомлением. Учесть vision.measurements и ai.calls в биллинге. Живой драйвер включается feature-флагом; fake остаётся для тестов и CI. Ошибка провайдера даёт failed с сохранённой частичной трассой. Без разрешения владельца не выполнять живые или платные запросы.\n\nScope: `app/Vision/Measurements/`, `app/Vision/Usage/`, `app/Billing/`, `app/Ai/`, `config/eyon.php`, `routes/features/E8-04.php`, `resources/js/pages/Vision/Measurements/`, `tests/Feature/Vision/Measurements/`, `tests/Unit/Vision/Measurements/`, `tests/Browser/E8-04/`, `docs/results/SP-E8-08.md`, `app/Shell/Billing/`, `app/Shell/Plans/`, `app/Shell/Notifications/`, `config/features/E1-07.php`, `routes/features/E1-07.php`, `tests/Feature/Shell/Billing/`.\n\nОтчёт: docs/results/SP-E8-08.md; локальные тесты задачи, submit и зелёный CI.\n",
+      "description": "# SP-E8-08 · Живой замер: провайдеры, очередь, расписание\n\n**Зачем:** решение владельца от 02.11.2026; экраны V-3.1, V-3.2, V-3.3, V-3.4, V-3.5, V-3.6.\n**Часть чего:** второй проход по частично сданным SP-E8-04/04B/04C/05/05B/06/07; остаток — другие карточки SP-E8-08–12.\n**Зависимости:** нет.\n\nСнять fake-only ограничение MeasurementsController: слоты выполняются job-ами очереди через провайдеров config/eyon.php, ход замера и ответы видны на V-3.3–V-3.5, повтор и расписание — V-3.6, завершение сопровождается уведомлением. Учесть vision.measurements и ai.calls в биллинге. Живой драйвер включается feature-флагом; fake остаётся для тестов и CI. Ошибка провайдера даёт failed с сохранённой частичной трассой. Без разрешения владельца не выполнять живые или платные запросы.\n\nScope: `app/Vision/Measurements/`, `app/Vision/Usage/`, `app/Billing/`, `app/Ai/`, `config/eyon.php`, `routes/features/E8-04.php`, `resources/js/pages/Vision/Measurements/`, `tests/Feature/Vision/Measurements/`, `tests/Unit/Vision/Measurements/`, `tests/Browser/E8-04/`, `docs/results/SP-E8-08.md`, `app/Shell/Billing/`, `app/Shell/Plans/`, `app/Shell/Notifications/`, `config/features/E1-07.php`, `routes/features/E1-07.php`, `tests/Feature/Shell/Billing/`.\n\nОтчёт: docs/results/SP-E8-08.md; локальные тесты задачи, submit и зелёный CI.\n\nУточнение интегратора: разрешены app/Vision/Core/MeasurementRunner.php, tests/Feature/Vision/Core/MeasurementRunnerTest.php и tests/Feature/Shell/Organizations/OrganizationTest.php. Завершить live и fake job-контекст в runner, учесть два сценария usage в общих тестах биллинга; VISION_USAGE_ENABLED включать после прохождения проверок.\n",
       "goal": "Живой замер: провайдеры, очередь, расписание",
       "dependsOn": [],
       "scope": [
@@ -8527,7 +8527,10 @@
         "app/Shell/Notifications/",
         "config/features/E1-07.php",
         "routes/features/E1-07.php",
-        "tests/Feature/Shell/Billing/"
+        "tests/Feature/Shell/Billing/",
+        "app/Vision/Core/MeasurementRunner.php",
+        "tests/Feature/Vision/Core/MeasurementRunnerTest.php",
+        "tests/Feature/Shell/Organizations/OrganizationTest.php"
       ],
       "exclusiveResources": [
         "app/Vision/Measurements/",
