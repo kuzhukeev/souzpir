@@ -7,8 +7,13 @@ use App\Models\User;
 use App\Seller\Dashboard\DashboardQuery;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Notifications\RecipientPolicy;
+use App\Shell\Organizations\ModuleEntitlements;
+use App\Shell\Plans\Contracts\UsageQuery;
+use App\Shell\Plans\Contracts\UsageReader;
 use App\Shell\Profile\ProfileAccess;
 use App\Tenancy\TenantContext;
+use App\Vision\Settings\Trends;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -23,6 +28,33 @@ final class DashboardController
         $sellerEnabled = app(SellerModuleAccess::class)->enabled($tenant->organizationId, $tenant->brandId);
         $seller = Gate::forUser($user)->allows('seller.dialogs.read') && $sellerEnabled
             ? app(DashboardQuery::class)->read($tenant, 30) : null;
+        $vision = null;
+        $visionError = false;
+        $canVision = Gate::forUser($user)->allows('vision.report.read') && app(ModuleEntitlements::class)->enabled($tenant, 'vision');
+        if ($canVision) {
+            try {
+                $vision = collect(app(Trends::class)->read($tenant))->last();
+            } catch (\Throwable) {
+                $visionError = true;
+            }
+        }
+        $metrics = [];
+        if ($seller !== null) {
+            $metrics[] = 'seller.dialogues';
+        }
+        if ($canVision) {
+            $metrics[] = 'vision.measurements';
+        }
+        $usage = [];
+        $usageError = false;
+        if ($metrics) {
+            try {
+                $now = CarbonImmutable::now('UTC');
+                $usage = app(UsageReader::class)->read($tenant, new UsageQuery($now->startOfMonth(), $now, $metrics))->metrics;
+            } catch (\Throwable) {
+                $usageError = true;
+            }
+        }
         $policy = app(RecipientPolicy::class);
         $permits = fn (string $key) => (! str_starts_with($key, 'seller.') || $sellerEnabled) && $policy->permits($member, $tenant->brandId, $key);
         $scope = fn ($query) => $query->where('n.organization_id', $tenant->organizationId)->where('n.brand_id', $tenant->brandId)->where('n.user_id', $user->id);
@@ -46,7 +78,7 @@ final class DashboardController
                 return $visible ? ['id' => $n->batch_id, 'kind' => 'digest', 'title' => implode(', ', $visible), 'read' => in_array($n->batch_id, $digestReads, true), 'created_at' => $n->created_at] : null;
             })->filter();
 
-        return ['seller' => $seller, 'items' => $items->concat($digests)->sortByDesc('created_at')->take(100)->values(), 'unread' => $items->where('read', false)->count() + $digests->where('read', false)->count()];
+        return ['seller' => $seller, 'vision' => $vision, 'canVision' => $canVision, 'visionError' => $visionError, 'usage' => $usage, 'usageError' => $usageError, 'items' => $items->concat($digests)->sortByDesc('created_at')->take(100)->values(), 'unread' => $items->where('read', false)->count() + $digests->where('read', false)->count()];
     }
 
     public function index(Request $request): mixed
