@@ -5,11 +5,13 @@ namespace Tests\Feature\Vision\Site;
 use App\Models\User;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
+use App\Vision\Site\Jobs\AuditSiteJob;
 use App\Vision\Site\SiteOperations;
 use App\Vision\SiteAudit\PublicAddressResolver;
 use App\Vision\SiteAudit\SiteInspector;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -114,7 +116,8 @@ final class SessionModuleTest extends TenancyTestCase
 
             return Http::response('', 404, ['Content-Type' => 'text/plain']);
         });
-        $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->post('/vision/site/audit', ['url' => 'https://fixture.example.com'])->assertNotFound();
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->post('/vision/site/audit', ['url' => 'https://fixture.example.com'])->assertRedirect()->assertSessionHasErrors('url');
+        self::assertSame('failed', Cache::get(AuditSiteJob::key($organization->id, $brand->id))['stage']);
         $this->assertDatabaseCount('audit_runs', 0);
         $this->assertDatabaseMissing('audit_logs', ['action' => 'vision.site.audit.created']);
         Http::assertSent(fn ($request): bool => str_starts_with($request->url(), 'https://fixture.example.com'));

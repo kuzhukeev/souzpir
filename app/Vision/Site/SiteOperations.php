@@ -31,9 +31,14 @@ final class SiteOperations
         if (! $tenant->organizationId || ! $tenant->brandId || ! $tenant->actorId || ! $tenant->membershipId) {
             return 'Не удалось определить доступ к бренду.';
         }
+        $version = $request->session()->get('auth.version');
+        if (! is_int($version)) {
+            return 'Не удалось подтвердить сессию.';
+        }
+        $sessionHash = hash_hmac('sha256', 'auth-session:'.$request->session()->getId(), (string) config('app.key'));
         $key = AuditSiteJob::key($tenant->organizationId, $tenant->brandId);
         Cache::put($key, ['stage' => 'queued'], now()->addDay());
-        AuditSiteJob::dispatch($tenant->organizationId, $tenant->brandId, $tenant->actorId, $tenant->membershipId, $url);
+        AuditSiteJob::dispatch($tenant->organizationId, $tenant->brandId, $tenant->actorId, $tenant->membershipId, $url, $sessionHash, $version);
         if (Cache::get($key)['stage'] === 'failed') {
             return 'Не удалось безопасно проверить сайт.';
         }
