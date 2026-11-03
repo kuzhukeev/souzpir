@@ -1,0 +1,10 @@
+import { createInertiaApp } from '@inertiajs/react';
+import { createRoot } from 'react-dom/client';
+import Compare from '../../../resources/js/pages/Seller/Calibration/Compare';
+import '../../../resources/css/app.css';
+import '../../../resources/css/themes/tokens.css';
+const runs=[{id:'a',name:'Оптовик',created_at:'2026-11-01T12:00:00Z',average:3},{id:'b',name:'Оптовик',created_at:'2026-11-02T12:00:00Z',average:4}];
+const comparison={same_scenario:true,improved:1,worsened:0,unchanged:0,total:1,items:[{criterion:'Оптовик',before:3,after:4,delta:1}]};
+const page={component:'Fixture',props:{runs,comparison,filters:{before:'a',after:'b'},theme:'neutral',brand:{id:'b',name:'Пример бренда',theme:'neutral'},brands:[],organization:{id:'o',name:'Компания'},auth:{user:{id:'u',name:'Иван Петров',email:'ivan@example.test'}},modules:{seller:true,vision:false},can:{},unread:null,translations:{},ziggy:{routes:{}},errors:{}},url:location.pathname,version:null,clearHistory:false,encryptHistory:false};
+const script=document.createElement('script');script.type='application/json';script.dataset.page='app';script.textContent=JSON.stringify(page);document.body.appendChild(script);
+void createInertiaApp({resolve:()=>Compare,setup:({el,App,props})=>createRoot(el).render(<App {...props}/>)});
