@@ -48,19 +48,21 @@ final class CustomersController
 
     public function index(Request $request): mixed
     {
-        $filter = $request->validate(['search' => ['nullable', 'string', 'max:120'], 'type' => ['nullable', 'in:newbie,experienced,for_self,prices_only,unknown'], 'stage' => ['nullable', 'string', 'max:32'], 'city' => ['nullable', 'string', 'max:120'], 'outcome' => ['nullable', 'string', 'max:64'], 'manager' => ['nullable', 'string', 'max:120'], 'channel' => ['nullable', 'string', 'max:32'], 'from' => ['nullable', 'date_format:Y-m-d'], 'to' => ['nullable', 'date_format:Y-m-d']]);
+        $filter = $request->validate(['search' => ['nullable', 'string', 'max:120'], 'type' => ['nullable', 'in:newbie,experienced,for_self,prices_only,unknown'], 'stage' => ['nullable', 'string', 'max:32'], 'city' => ['nullable', 'string', 'max:120'], 'outcome' => ['nullable', 'string', 'max:64'], 'manager' => ['nullable', 'string', 'max:120'], 'channel' => ['nullable', 'string', 'max:32'], 'from' => ['nullable', 'date_format:Y-m-d'], 'to' => ['nullable', 'date_format:Y-m-d'], 'page' => ['nullable', 'integer', 'min:1']]);
         $data = $this->access($request, 'seller.customers.read', function (User $user, TenantContext $tenant) use ($filter): array {
-            $contacts = $this->scope('contacts', $tenant)->whereNull('merged_into_id')->orderByDesc('created_at')->get(['id', 'name', 'phone', 'email']);
+            $contacts = $this->scope('contacts', $tenant)->whereNull('merged_into_id')->orderByDesc('created_at')->orderByDesc('id')->get(['id', 'name', 'phone', 'email']);
             $rows = $contacts->map(function ($contact) use ($tenant): array {
                 $conversation = $this->scope('conversations', $tenant)->where('contact_id', $contact->id)->orderByDesc('updated_at')->first();
                 $state = $conversation ? json_decode($conversation->state, true) : [];
+                $outcomes = $this->scope('conversations', $tenant)->where('contact_id', $contact->id)->whereNotNull('outcome')->pluck('outcome')->all();
+                $bestOutcome = collect(['full_contact', 'handoff', 'partial_contact', 'paused', 'stale', 'declined', 'spam'])->first(fn ($value) => in_array($value, $outcomes, true));
                 $tasks = $this->scope('seller_tasks', $tenant)->where(fn ($query) => $query->where('contact_id', $contact->id)->orWhereIn('conversation_id', $this->scope('conversations', $tenant)->where('contact_id', $contact->id)->select('id')))->where('status', 'new')->count();
                 $manager = $conversation?->assigned_user_id ? DB::table('users')->where('id', $conversation->assigned_user_id)->value('name') : null;
                 $channel = $conversation?->channel_account_id ? $this->scope('channel_accounts', $tenant)->where('id', $conversation->channel_account_id)->value('type') : null;
 
                 return ['id' => $contact->id, 'name' => $contact->name, 'phone' => $contact->phone, 'email' => $contact->email,
                     'type' => $this->clientType($conversation?->state), 'city' => data_get($state, 'slots.city'), 'stage' => $conversation?->stage,
-                    'outcome' => $conversation?->outcome, 'manager' => $manager, 'channel' => $channel, 'tasks' => $tasks, 'last_at' => $conversation?->updated_at];
+                    'outcome' => $conversation?->outcome, 'best_outcome' => $bestOutcome, 'conversation_id' => $conversation?->id, 'manager' => $manager, 'channel' => $channel, 'tasks' => $tasks, 'last_at' => $conversation?->updated_at];
             });
             $filtered = $rows->filter(function (array $row) use ($filter): bool {
                 $search = mb_strtolower($filter['search'] ?? '');
@@ -74,7 +76,10 @@ final class CustomersController
                     && (empty($filter['to']) || ($row['last_at'] && substr($row['last_at'], 0, 10) <= $filter['to']));
             })->values();
 
-            return ['customers' => $filtered, 'filters' => $filter, 'counts' => ['total' => $rows->count(),
+            $page = (int) ($filter['page'] ?? 1);
+            $perPage = 20;
+
+            return ['customers' => $filtered->forPage($page, $perPage)->values(), 'pagination' => ['page' => $page, 'perPage' => $perPage, 'total' => $filtered->count(), 'lastPage' => max(1, (int) ceil($filtered->count() / $perPage))], 'filters' => $filter, 'counts' => ['total' => $rows->count(),
                 'contact' => $rows->whereIn('outcome', ['full_contact', 'partial_contact'])->count(),
                 'handoff' => $rows->where('outcome', 'handoff')->count(), 'stale' => $rows->where('outcome', 'stale')->count()]];
         });
