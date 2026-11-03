@@ -167,7 +167,7 @@ final class FirstTurnTextFinalizer
             $guard = $decisionService->finish($det, $goal, $enabled);
         }
         if (($guard['status'] ?? null) !== 'completed' || ($guard['verdict'] ?? null) !== 'ok'
-            || ! in_array($goal->kind, ['ask_slot', 'answer_and_ask', 'small_talk', 'unclear', 'closed_topic', 'decline_off_topic', 'decline_injection', 'bot_disclosure'], true)
+            || ! in_array($goal->kind, ['intro_and_ask', 'ask_slot', 'answer_and_ask', 'answer_only', 'unknown_fact', 'small_talk', 'unclear', 'closed_topic', 'decline_off_topic', 'decline_injection', 'bot_disclosure'], true)
             || ($state->signal('notify_manager') && ! $state->flag('manager_notified'))) {
             throw new LogicException;
         }

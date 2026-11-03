@@ -11,6 +11,9 @@ use App\Seller\Conversations\CanonicalJson;
 use App\Seller\Conversations\Contracts\ConversationRepository;
 use App\Seller\Conversations\Data\TurnCommand;
 use App\Seller\Conversations\Data\TurnOutcome;
+use App\Seller\Runtime\Contracts\ChannelDelivery;
+use App\Seller\Runtime\Contracts\DeliveryCommand;
+use App\Seller\Runtime\Delivery\FakeChannelDelivery;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
 use App\Shell\Auth\AuthSessionRegistry;
@@ -69,10 +72,27 @@ final class FirstInboundRuntime
                 return $dispatch['result'];
             }
             if ($dispatch['mode'] === 'bot' && $dispatch['version'] === 0) {
-                return app(FirstTurnCoordinator::class)->run($http, $command);
+                $result = app(FirstTurnCoordinator::class)->run($http, $command);
+            } else {
+                $result = app(FollowupCoordinator::class)->run($http, $command, $dispatch['mode']);
             }
 
-            return app(FollowupCoordinator::class)->run($http, $command, $dispatch['mode']);
+            if ($dispatch['mode'] === 'bot' && ($result['status'] ?? null) === 'completed') {
+                $messageId = $result['result']['message_id'] ?? null;
+                $turnId = $result['result']['turn_id'] ?? null;
+                if (! is_string($messageId) || ! is_string($turnId)) {
+                    throw new \LogicException;
+                }
+                if (! app()->bound(ChannelDelivery::class)) {
+                    app()->singleton(ChannelDelivery::class, FakeChannelDelivery::class);
+                }
+                $receipt = app(ChannelDelivery::class)->send(new DeliveryCommand(app(TenantContext::class), $command->conversationId, $messageId, 'fake', $turnId));
+                if ($receipt->status !== 'fake_sent' || $receipt->messageId !== $messageId) {
+                    throw new \LogicException;
+                }
+            }
+
+            return $result;
         } catch (IdempotencyConflict) {
             throw new IdempotencyConflict('Idempotency key was used with different content.');
         } catch (Throwable) {
