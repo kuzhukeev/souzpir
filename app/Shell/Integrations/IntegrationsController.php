@@ -150,6 +150,15 @@ final class IntegrationsController
         ]);
     }
 
+    public function apiDocumentation(): Response
+    {
+        Gate::authorize('integrations.write');
+        $context = app(TenantContext::class);
+        abort_unless($context->organizationId && $context->brandId, 404);
+
+        return Inertia::render('Shell/Integrations/ApiDocumentation');
+    }
+
     public function saveNotifications(Request $request, BrandAccess $access, CompanyNotificationSettings $settings): RedirectResponse
     {
         Gate::authorize('integrations.write');
@@ -159,10 +168,13 @@ final class IntegrationsController
             'telegram_chat' => ['nullable', 'string', 'regex:/^-?[0-9]{1,20}$/'],
             'report_emails' => ['present', 'array', 'max:5'],
             'report_emails.*' => ['required', 'email', 'max:254', 'distinct:ignore_case'],
+            'matrix' => ['sometimes', 'array:handoff,unknown_question,report_published,limit_80'],
+            'matrix.*' => ['array:cabinet,email,telegram'],
+            'matrix.*.*' => ['boolean'],
         ]);
         $access->change($request, $context->brandId, function (Brand $brand) use ($settings, $data): void {
             Gate::authorize('integrations.write');
-            $settings->save($brand, $data['telegram_chat'] ?? null, $data['report_emails']);
+            $settings->save($brand, $data['telegram_chat'] ?? null, $data['report_emails'], $data['matrix'] ?? null);
         });
 
         return redirect()->route('integrations.notifications')->with('success', 'Настройки сохранены. Внешняя доставка пока выключена.');
