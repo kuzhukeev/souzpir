@@ -9,6 +9,7 @@ use App\Seller\Engine\LeadState;
 use App\Seller\Knowledge\Contracts\KnowledgeRepository;
 use App\Tenancy\TenantContext;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use LogicException;
 use SensitiveParameter;
@@ -40,9 +41,11 @@ final class FirstTurnDeterministicGuard
                 throw new LogicException;
             }
 
-            // No tool has been executed in this protected path; never accept
-            // caller-supplied context claiming that an effect already occurred.
-            return (new DeterministicGuard($knowledge))->check($candidate['text'], $computed['goal'], new LeadState($computed['state']), ['tools_called' => []]);
+            $continuation = DB::table('e309_responder_continuations')->where('stage_id', $responderId)->first();
+            $payload = $continuation ? json_decode(Crypt::decryptString($continuation->payload_encrypted), true, 512, JSON_THROW_ON_ERROR) : [];
+            $called = array_column($payload['tool_results'] ?? [], 'name');
+
+            return (new DeterministicGuard($knowledge))->check($candidate['text'], $computed['goal'], new LeadState($computed['state']), ['tools_called' => $called]);
         } catch (Throwable) {
             throw new LogicException('Protected first-turn guard unavailable.');
         }

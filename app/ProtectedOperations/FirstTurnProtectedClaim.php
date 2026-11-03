@@ -112,7 +112,8 @@ final class FirstTurnProtectedClaim
                 if ($this->verify($tenant, $user, $selection, $sessionHash, $claim, $requestDigest)->status !== 'completed') {
                     throw new LogicException;
                 }
-                $responder = DB::table('c02_responder_stages')->where('turn_id', $claim->turnId)->lockForUpdate()->first();
+                $responder = DB::table('c02_responder_stages')->where('turn_id', $claim->turnId)
+                    ->orderByDesc('created_at')->orderByDesc('id')->lockForUpdate()->first();
                 if (! $responder || ! Str::isUlid($responder->id)) {
                     throw new LogicException;
                 }
