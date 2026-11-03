@@ -13,7 +13,7 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async () => { await server?.close(); });
-test.use({ viewport: { width: 1440, height: 900 }, launchOptions: { executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe' } });
+test.use({ viewport: { width: 1440, height: 900 }, launchOptions: { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH } });
 
 test('plan shows used limits', async ({ page }) => {
   await page.goto(base);
