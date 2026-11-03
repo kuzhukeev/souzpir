@@ -15,7 +15,8 @@ type Row = {
   created_at: string;
   answers?: { question_n: number; provider: string; requested_model: string; run_no: number; status: string; answer_text: string | null; error_code: string | null }[];
 };
-type Listing = { revision: string; data: Row[]; page: number; last_page: number; total: number };
+type Schedule = { enabled: boolean; frequency: string | null; weekday: number | null; local_time: string | null; timezone: string; next_run_at: string | null; models: string[]; available_models: string[] };
+type Listing = { revision: string; data: Row[]; page: number; last_page: number; total: number; schedule?: Schedule };
 const button =
   'min-h-11 cursor-pointer rounded-lg border border-(--color-border) px-4 text-sm font-semibold text-(--color-link) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus) disabled:cursor-not-allowed disabled:opacity-50';
 const isPageVisible = () => document.visibilityState !== 'hidden';
@@ -27,6 +28,39 @@ function date(value: string | null): string {
   return Number.isNaN(parsed.getTime())
     ? '—'
     : new Intl.DateTimeFormat('ru-RU', { dateStyle: 'medium', timeStyle: 'short' }).format(parsed);
+}
+
+function ScheduleEditor({ schedule, brandId, revision, canEdit, refreshed }: { schedule: Schedule; brandId: string; revision: string; canEdit: boolean; refreshed: () => void }) {
+  const [enabled, setEnabled] = useState(schedule.enabled);
+  const [frequency, setFrequency] = useState(schedule.frequency ?? 'weekly');
+  const [weekday, setWeekday] = useState(schedule.weekday ?? 1);
+  const [localTime, setLocalTime] = useState(schedule.local_time ?? '09:00');
+  const [models, setModels] = useState(schedule.models.length ? schedule.models : schedule.available_models);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const save = () => {
+    setError('');
+    router.put('/vision/runs/schedule', { enabled, frequency, weekday, local_time: localTime, models }, {
+      headers: { 'X-Brand-Id': brandId, 'X-Brand-Revision': revision },
+      onStart: () => setSaving(true),
+      onFinish: () => setSaving(false),
+      onSuccess: refreshed,
+      onError: (errors) => setError(Object.values(errors)[0] ?? 'Не удалось сохранить расписание.'),
+      onNetworkError: () => { setError('Связь прервалась. Обновите страницу и проверьте расписание.'); return false; },
+    });
+  };
+  return <section aria-labelledby="schedule-title" className="mb-5 rounded-2xl border border-(--color-border) bg-(--color-surface) p-4 shadow-(--shadow-card) sm:p-6">
+    <h2 id="schedule-title" className="text-xl font-bold">Следующий замер</h2>
+    <p className="mt-2 text-sm text-(--color-ink-muted)">{schedule.enabled ? `${date(schedule.next_run_at)} · ${schedule.frequency === 'weekly' ? 'еженедельно' : schedule.frequency === 'biweekly' ? 'раз в две недели' : 'ежемесячно'} · ${schedule.models.length} ${schedule.models.length === 1 ? 'модель' : schedule.models.length < 5 ? 'модели' : 'моделей'}` : 'Автозапуск выключен'}</p>
+    <div className="mt-4 grid gap-3 sm:grid-cols-3">
+      <label className="text-sm font-semibold">Частота<select value={frequency} onChange={(event) => setFrequency(event.target.value)} disabled={!canEdit} className="mt-1 block w-full cursor-pointer rounded-lg border border-(--color-border) bg-(--color-surface) p-2 text-sm"><option value="weekly">Еженедельно</option><option value="biweekly">Раз в две недели</option><option value="monthly">Ежемесячно</option></select></label>
+      <label className="text-sm font-semibold">День недели<select value={weekday} onChange={(event) => setWeekday(Number(event.target.value))} disabled={!canEdit} className="mt-1 block w-full cursor-pointer rounded-lg border border-(--color-border) bg-(--color-surface) p-2 text-sm">{['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'].map((day, index) => <option key={day} value={index + 1}>{day}</option>)}</select></label>
+      <label className="text-sm font-semibold">Время ({schedule.timezone})<input type="time" value={localTime} onChange={(event) => setLocalTime(event.target.value)} disabled={!canEdit} className="mt-1 block w-full rounded-lg border border-(--color-border) bg-(--color-surface) p-2 text-sm" /></label>
+    </div>
+    <fieldset className="mt-4"><legend className="text-sm font-semibold">Модели</legend><div className="mt-2 flex flex-wrap gap-3">{schedule.available_models.map((model) => <label key={model} className="flex cursor-pointer items-center gap-2 text-sm"><input type="checkbox" checked={models.includes(model)} disabled={!canEdit} onChange={(event) => setModels((current) => event.target.checked ? [...current, model] : current.filter((item) => item !== model))} />{model}</label>)}</div></fieldset>
+    <div className="mt-4 flex flex-wrap items-center gap-4"><label className="flex cursor-pointer items-center gap-2 text-sm font-semibold"><input type="checkbox" checked={enabled} onChange={(event) => setEnabled(event.target.checked)} disabled={!canEdit} />Автозапуск</label><button type="button" className={button} disabled={!canEdit || saving} onClick={save}>{saving ? 'Сохраняем…' : 'Сохранить расписание'}</button></div>
+    {error && <p role="alert" className="mt-3 text-sm text-(--color-danger-ink)">{error}</p>}
+  </section>;
 }
 
 export default function Index({ measurementBrandRevision, status }: { measurementBrandRevision: string; status?: string | null }) {
@@ -194,9 +228,10 @@ export default function Index({ measurementBrandRevision, status }: { measuremen
             <button type="button" className={button} disabled={starting || !can?.['vision.measure.run'] || !brandId || !profileContextIsStable()} onClick={start}>Начать замер</button>
           </div>
         </header>
-        <p className="mb-4 text-sm text-(--color-ink-muted)">Запуск создаёт план по утверждённым вопросам бренда. В тестовом режиме слоты выполняются по одному.</p>
+        <p className="mb-4 text-sm text-(--color-ink-muted)">Запуск создаёт план по утверждённым вопросам бренда. При включённой очереди слоты обрабатываются автоматически.</p>
         {status && <p role="status" className="mb-4 rounded-lg bg-(--color-success-soft) p-3 text-sm text-(--color-success-ink)">{status}</p>}
         {startError && <p role="alert" className="mb-4 rounded-lg bg-(--color-danger-soft) p-3 text-sm text-(--color-danger-ink)">{startError}</p>}
+        {view.data?.schedule && view.data.revision === measurementBrandRevision && <ScheduleEditor key={JSON.stringify([contextKey, view.data.schedule])} schedule={view.data.schedule} brandId={brandId} revision={measurementBrandRevision} canEdit={!!can?.['vision.measure.run'] && profileContextIsStable()} refreshed={() => setAttempt((value) => value + 1)} />}
         <section
           aria-labelledby="measurements-title"
           aria-busy={view.loading}

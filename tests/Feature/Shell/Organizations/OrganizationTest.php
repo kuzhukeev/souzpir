@@ -258,7 +258,7 @@ final class OrganizationTest extends TenancyTestCase
     {
         [$owner, $org, $brand] = $this->cabinet();
         $this->plan($org->id, ['vision.runs_per_week' => '3']);
-        $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->get('/brands/'.$brand->id.'/modules')->assertInertia(fn (Assert $page) => $page->where('items.vision.quota.configured', true)->where('items.vision.quota.value', '3.0000')->where('items.vision.usage.status', 'unavailable')->where('items.vision.usage.value', null)->where('items.seller.quota.configured', false));
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->get('/brands/'.$brand->id.'/modules')->assertInertia(fn (Assert $page) => $page->where('items.vision.quota.configured', true)->where('items.vision.quota.value', '3.0000')->where('items.vision.usage.status', 'ready')->where('items.vision.usage.value', 0)->where('items.seller.quota.configured', false));
     }
 
     public function test_logo_rejects_a_path_outside_its_organization(): void

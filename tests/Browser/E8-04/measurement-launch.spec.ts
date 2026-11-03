@@ -15,6 +15,9 @@ test('запуск замера виден на странице истории'
   await expect(page.getByText('20 окт. 2026 г.').first()).toBeVisible();
   await expect(page.getByText('Сохранённый ответ бренда')).toBeVisible();
   await expect(page.getByText('Ошибка: Провайдер отклонил запрос')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Следующий замер' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Сохранить расписание' })).toBeEnabled();
+  await page.screenshot({ path: '.local/screenshots/sp-e8-08/schedule-1440.png', fullPage: true });
   await page.screenshot({ path: '.local/screenshots/sp-e8-04b/progress-1440.png' });
   await page.goto(origin + '/tests/Browser/E8-04/launch-fixture.html?pending');
   await expect(page.getByRole('button', { name: 'Выполнить следующий слот' })).toBeVisible();

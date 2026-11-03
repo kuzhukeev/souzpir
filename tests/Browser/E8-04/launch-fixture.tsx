@@ -20,6 +20,8 @@ window.fetch = (input, init) => {
         { question_n: 1, provider: 'gemini', requested_model: 'google/gemini-2.5-flash', run_no: 1, status: 'ok', answer_text: 'Сохранённый ответ бренда', error_code: null },
         { question_n: 2, provider: 'gemini', requested_model: 'google/gemini-2.5-flash', run_no: 1, status: 'failed', answer_text: null, error_code: 'provider_rejected' },
       ] }], page: 1, last_page: 1, total: 1,
+      schedule: { enabled: true, frequency: 'weekly', weekday: 1, local_time: '09:00', timezone: 'Europe/Moscow',
+        next_run_at: '2026-11-09T06:00:00Z', models: ['google/gemini-2.5-flash'], available_models: ['google/gemini-2.5-flash'] },
     }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
   }
   return originalFetch(input, init);

@@ -5,6 +5,8 @@ namespace Tests\Feature\Vision\Core;
 use App\Ai\CanonicalJson;
 use App\Ai\Drivers\Driver;
 use App\Ai\Drivers\FakeDriver;
+use App\Ai\Drivers\Rejected;
+use App\Contracts\Ai\AiGateway;
 use App\Models\Membership;
 use App\Models\User;
 use App\Seller\Knowledge\DatabaseKnowledgeRepository;
@@ -20,9 +22,11 @@ use App\Vision\Core\VisionReportReader;
 use App\Vision\Core\WorkloadLimits;
 use App\Vision\Evidence\Contracts\KnowledgeGate;
 use App\Vision\KnowledgeGrants\GrantRegistry;
+use App\Vision\Measurements\RunMeasurement;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use LogicException;
 use PHPUnit\Framework\Attributes\Group;
@@ -60,6 +64,46 @@ final class MeasurementRunnerTest extends TestCase
         $this->prepareKnowledge();
         Http::preventStrayRequests();
         Http::fake();
+    }
+
+    public function test_fake_job_processes_measurement_and_emits_completion(): void
+    {
+        Queue::fake();
+        $this->within(function (): void {
+            $set = app(QuestionSets::class)->create([['id' => 'q1', 'text' => 'Какие марки выбрать?', 'intent' => 'choose']]);
+            $measurement = app(MeasurementRunner::class)->start($set, ['gemini' => 'google/gemini-2.5-flash'], 1);
+            $this->fixture('Какие марки выбрать?', 'Проверочный ответ');
+            $job = new RunMeasurement($this->organization, $this->brand, $measurement);
+            $job->handle(app(TenantContextRunner::class));
+            self::assertSame('completed', DB::table('measurements')->where('id', $measurement)->value('status'));
+            self::assertSame('ok', DB::table('measurement_answers')->where('measurement_id', $measurement)->value('status'));
+            self::assertTrue(DB::table('outbox_events')->get()->contains(fn ($row) => (json_decode($row->envelope, true)['type'] ?? null) === 'vision.measurement.completed'));
+            Http::assertNothingSent();
+        });
+    }
+
+    public function test_live_driver_is_gated_and_rejection_preserves_partial_trace(): void
+    {
+        $this->within(function (): void {
+            $set = app(QuestionSets::class)->create([['id' => 'q1', 'text' => 'Какие марки выбрать?', 'intent' => 'choose']]);
+            $measurement = app(MeasurementRunner::class)->start($set, ['gemini' => 'google/gemini-2.5-flash'], 1);
+            $answer = DB::table('measurement_answers')->where('measurement_id', $measurement)->value('id');
+            config(['runtime.ai_driver' => 'openrouter', 'eyon.live_measurements_enabled' => false]);
+            try {
+                app(MeasurementRunner::class)->measure($answer);
+                self::fail('Live mode must be disabled by default.');
+            } catch (LogicException) {
+                self::assertSame('pending', DB::table('measurement_answers')->where('id', $answer)->value('status'));
+            }
+            $gateway = \Mockery::mock(AiGateway::class);
+            $gateway->shouldReceive('complete')->once()->andThrow(new Rejected('fixture rejection'));
+            app()->instance(AiGateway::class, $gateway);
+            config(['eyon.live_measurements_enabled' => true]);
+            self::assertSame('failed', app(MeasurementRunner::class)->measure($answer));
+            self::assertSame('failed', DB::table('measurements')->where('id', $measurement)->value('status'));
+            self::assertSame('provider_rejected', DB::table('measurement_answers')->where('id', $answer)->value('error_code'));
+            Http::assertNothingSent();
+        });
     }
 
     public function test_real_gateway_with_fake_fixture_builds_grid_and_never_duplicates_a_call(): void
@@ -171,7 +215,7 @@ final class MeasurementRunnerTest extends TestCase
             $answer = DB::table('measurement_answers')->where('measurement_id', $measurement)->value('id');
             self::assertSame('failed', app(MeasurementRunner::class)->measure($answer));
             self::assertSame('failed', app(MeasurementRunner::class)->measure($answer));
-            self::assertSame('partial', DB::table('measurements')->where('id', $measurement)->value('status'));
+            self::assertSame('failed', DB::table('measurements')->where('id', $measurement)->value('status'));
             self::assertSame(1, DB::table('ai_calls')->count());
             Http::assertNothingSent();
         });
@@ -546,7 +590,7 @@ final class MeasurementRunnerTest extends TestCase
             self::assertSame('uncertain', app(MeasurementRunner::class)->measure($answer));
             self::assertSame(1, DB::table('ai_calls')->count());
             self::assertSame('uncertain', DB::table('ai_calls')->value('status'));
-            self::assertSame('partial', DB::table('measurements')->where('id', $measurement)->value('status'));
+            self::assertSame('failed', DB::table('measurements')->where('id', $measurement)->value('status'));
             self::assertNull(DB::table('measurement_answers')->where('id', $answer)->value('answer_text'));
             Http::assertNothingSent();
         });
@@ -562,7 +606,7 @@ final class MeasurementRunnerTest extends TestCase
             self::assertSame('failed', app(MeasurementRunner::class)->measure($answer));
             self::assertSame('empty_response', DB::table('measurement_answers')->where('id', $answer)->value('error_code'));
             self::assertSame('completed', DB::table('ai_calls')->value('status'));
-            self::assertSame('partial', DB::table('measurements')->where('id', $measurement)->value('status'));
+            self::assertSame('failed', DB::table('measurements')->where('id', $measurement)->value('status'));
         });
     }
 

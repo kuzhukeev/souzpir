@@ -7,8 +7,12 @@ use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
 use App\Vision\Core\QuestionSets;
 use App\Vision\KnowledgeGrants\GrantRegistry;
+use App\Vision\Measurements\MeasurementSchedule;
+use App\Vision\Measurements\RunMeasurement;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use Tests\Feature\Tenancy\TenancyTestCase;
 
@@ -70,5 +74,86 @@ final class MeasurementStartTest extends TenancyTestCase
         $this->withHeaders(['X-Brand-Id' => $brand->id, 'X-Brand-Revision' => $revision])
             ->post('/vision/runs', ['runs' => 0])->assertSessionHasErrors('runs');
         $this->assertDatabaseCount('measurements', 0);
+    }
+
+    public function test_queue_option_dispatches_brand_scoped_measurement(): void
+    {
+        Queue::fake();
+        Http::preventStrayRequests();
+        [$owner, $organization, $brand, , $membership] = $this->cabinet();
+        $this->prepare($owner, $organization, $brand, $membership);
+        config(['eyon.measurement_queue_enabled' => true, 'runtime.ai_driver' => 'fake', 'features.E8-01.defaults.parser' => ['model' => 'google/gemini-2.5-flash', 'temperature' => 0.0, 'max_tokens' => 1200]]);
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $revision = $this->get('/vision/runs')->assertOk()->inertiaProps('measurementBrandRevision');
+        $this->withHeaders(['X-Brand-Id' => $brand->id, 'X-Brand-Revision' => $revision])->post('/vision/runs', ['runs' => 1])->assertRedirect()->assertSessionHasNoErrors();
+        Queue::assertPushed(RunMeasurement::class, fn ($job) => $job->organizationId === $organization->id && $job->brandId === $brand->id);
+        Http::assertNothingSent();
+    }
+
+    public function test_schedule_saves_brand_settings_and_dispatches_one_job_per_slot(): void
+    {
+        Queue::fake();
+        Http::preventStrayRequests();
+        [$owner, $organization, $brand, , $membership] = $this->cabinet();
+        $this->prepare($owner, $organization, $brand, $membership);
+        config(['eyon.measurement_queue_enabled' => true, 'eyon.measurement_schedule_enabled' => true,
+            'runtime.ai_driver' => 'fake', 'features.E8-01.defaults.parser' => ['model' => 'google/gemini-2.5-flash', 'temperature' => 0.0, 'max_tokens' => 1200]]);
+        $context = new TenantContext($organization->id, $brand->id, $owner->id, $membership->id, source: 'job');
+        app(TenantContextRunner::class)->run($context, function (): void {
+            $set = app(QuestionSets::class)->create([
+                ['id' => 'q1', 'text' => 'Первый вопрос', 'intent' => 'choose'],
+                ['id' => 'q2', 'text' => 'Второй вопрос', 'intent' => 'trust'],
+            ]);
+            DB::table('vision_question_approvals')->update(['question_set_id' => $set]);
+        });
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $revision = $this->get('/vision/runs')->assertOk()->inertiaProps('measurementBrandRevision');
+        $headers = ['X-Brand-Id' => $brand->id, 'X-Brand-Revision' => $revision];
+        $this->withHeaders($headers)->put('/vision/runs/schedule', ['enabled' => true, 'frequency' => 'weekly',
+            'weekday' => 1, 'local_time' => '09:00', 'models' => ['google/gemini-2.5-flash']])->assertRedirect();
+        $this->assertDatabaseHas('monitoring_schedules', ['brand_id' => $brand->id, 'enabled' => true, 'frequency' => 'weekly']);
+        DB::table('monitoring_schedules')->where('brand_id', $brand->id)->update(['next_run_at' => now()->subMinute()]);
+        app(MeasurementSchedule::class)->dispatchDue();
+        $this->assertDatabaseHas('measurements', ['brand_id' => $brand->id, 'status' => 'pending']);
+        self::assertSame(2, DB::table('measurement_answers')->where('brand_id', $brand->id)->count());
+        Queue::assertPushed(RunMeasurement::class, 2);
+        app(MeasurementSchedule::class)->dispatchDue();
+        Queue::assertPushed(RunMeasurement::class, 2);
+        Http::assertNothingSent();
+    }
+
+    public function test_schedule_rejects_viewer_other_brand_and_unapproved_model(): void
+    {
+        [$owner, $organization, $brand, $other, $membership] = $this->cabinet();
+        $this->prepare($owner, $organization, $brand, $membership);
+        [$viewer] = $this->member($organization, 'viewer', [$brand->id]);
+        $input = ['enabled' => true, 'frequency' => 'weekly', 'weekday' => 1, 'local_time' => '09:00',
+            'models' => ['google/gemini-2.5-flash']];
+        $this->actingAs($viewer)->withSession(['brand_id' => $brand->id]);
+        $revision = $this->get('/vision/runs')->assertOk()->inertiaProps('measurementBrandRevision');
+        $this->withHeaders(['X-Brand-Id' => $brand->id, 'X-Brand-Revision' => $revision])
+            ->put('/vision/runs/schedule', $input)->assertForbidden();
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $revision = $this->get('/vision/runs')->assertOk()->inertiaProps('measurementBrandRevision');
+        $this->withHeaders(['X-Brand-Id' => $brand->id, 'X-Brand-Revision' => $revision])
+            ->put('/vision/runs/schedule', [...$input, 'models' => ['unapproved']])->assertSessionHasErrors('schedule');
+        $this->post('/brand/switch', ['brand_id' => $other->id])->assertRedirect();
+        $this->withHeaders(['X-Brand-Id' => $brand->id, 'X-Brand-Revision' => $revision])
+            ->put('/vision/runs/schedule', $input)->assertNotFound();
+        $this->assertDatabaseCount('monitoring_schedules', 0);
+    }
+
+    public function test_monthly_schedule_moves_to_first_selected_weekday_of_next_month(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-11-03 12:00:00', 'Europe/Moscow'));
+        [$owner, $organization, $brand, , $membership] = $this->cabinet();
+        $this->prepare($owner, $organization, $brand, $membership);
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $revision = $this->get('/vision/runs')->assertOk()->inertiaProps('measurementBrandRevision');
+        $this->withHeaders(['X-Brand-Id' => $brand->id, 'X-Brand-Revision' => $revision])
+            ->put('/vision/runs/schedule', ['enabled' => true, 'frequency' => 'monthly', 'weekday' => 1,
+                'local_time' => '09:00', 'models' => ['google/gemini-2.5-flash']])->assertRedirect();
+        $next = DB::table('monitoring_schedules')->where('brand_id', $brand->id)->value('next_run_at');
+        self::assertSame('2026-12-07 06:00:00', CarbonImmutable::parse($next)->utc()->format('Y-m-d H:i:s'));
     }
 }
