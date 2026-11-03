@@ -20,7 +20,13 @@ const sections = [
 function Empty({ children }: { children: ReactNode }) {
   return <div className={`${card} text-(--color-ink-muted)`}>{children}</div>;
 }
-export function Score({ audit }: { audit: Audit }) {
+function exactScore(audit: Audit | null | undefined): number | null {
+  const raw = audit?.readiness;
+  if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
+  if (raw && typeof raw === 'object' && 'lower' in raw && 'upper' in raw && typeof raw.lower === 'number' && raw.lower === raw.upper) return raw.lower;
+  return null;
+}
+export function Score({ audit, auditDate, previousAudit }: { audit: Audit; auditDate?: string | null; previousAudit?: Audit | null }) {
   const raw = audit.readiness;
   const bounds =
     raw &&
@@ -41,10 +47,16 @@ export function Score({ audit }: { audit: Audit }) {
         : '—';
   const coverage =
     bounds && 'coverage' in bounds && typeof bounds.coverage === 'number' ? bounds.coverage : null;
+  const value = exactScore(audit);
+  const previous = exactScore(previousAudit);
+  const sameSite = previousAudit?.url && previousAudit.url === audit.url;
+  const delta = value !== null && previous !== null && sameSite ? Math.round((value - previous) * 100) / 100 : null;
+  const progress = value === null ? 0 : Math.max(0, Math.min(100, value));
   return (
     <div className={card}>
       <div className="flex flex-wrap items-center gap-6">
-        <div className="grid size-36 place-items-center rounded-full border-[12px] border-(--color-border)">
+        <div className="relative grid size-36 place-items-center rounded-full">
+          <svg aria-hidden="true" viewBox="0 0 100 100" className="absolute inset-0 size-full -rotate-90"><circle cx="50" cy="50" r="44" fill="none" stroke="var(--color-border)" strokeWidth="8"/><circle cx="50" cy="50" r="44" fill="none" stroke="var(--color-action)" strokeWidth="8" pathLength="100" strokeDasharray={`${progress} 100`}/></svg>
           <span className="text-center">
             <strong className="block text-3xl">{score}</strong>
             <span className="text-sm text-(--color-ink-muted)">из 100</span>
@@ -52,6 +64,8 @@ export function Score({ audit }: { audit: Audit }) {
         </div>
         <div>
           <h2 className="text-xl font-semibold">Готовность к ИИ-поиску</h2>
+          {auditDate && <p className="mt-2 text-sm text-(--color-ink-muted)">Дата проверки: {new Intl.DateTimeFormat('ru-RU', {dateStyle:'medium'}).format(new Date(auditDate))}</p>}
+          <p className="mt-2 text-sm text-(--color-ink-muted)">{delta === null ? 'Изменение пока недоступно' : `Изменение: ${delta > 0 ? '+' : ''}${delta} п.п.`}</p>
           <p className="mt-2 break-all text-(--color-ink-muted)">{audit.final_url || audit.url}</p>
           {coverage !== null && (
             <p className="mt-2 text-sm text-(--color-ink-muted)">
@@ -117,7 +131,9 @@ export default function Index({
   comparison = null,
   canManage,
   members = [],
-}: Props) {
+  auditDate = null,
+  previousAudit = null,
+}: Props & { auditDate?: string | null; previousAudit?: Audit | null }) {
   const titles: Record<Props['section'], string> = {
     overview: 'Готовность сайта к ИИ-поиску',
     criteria: 'Критерии и как исправить',
@@ -162,7 +178,7 @@ export default function Index({
           <div className="space-y-4">
             {audit ? (
               <>
-                <Score audit={audit} />
+                <Score audit={audit} auditDate={auditDate} previousAudit={previousAudit} />
                 <Groups criteria={audit.criteria || []} />
               </>
             ) : (

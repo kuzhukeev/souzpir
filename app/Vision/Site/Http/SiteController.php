@@ -42,10 +42,14 @@ final class SiteController
                 'created_at' => $action->created_at?->toIso8601String(),
             ])->all();
 
+            $audits = AuditRun::query()->orderByDesc('created_at')->orderByDesc('id')->limit(2)->get();
+            $current = $audits->first();
+            $previous = $audits->get(1);
             $history = $request->route('section') === 'history' ? $this->history->read($tenant) : ['achievements' => [], 'comparison' => null];
             $this->access->lock($tenant, false, 'vision.report.read');
 
-            return ['audit' => AuditRun::query()->orderByDesc('created_at')->orderByDesc('id')->first()?->result,
+            return ['audit' => $current?->result, 'auditDate' => $current?->created_at?->toIso8601String(),
+                'previousAudit' => $previous?->result,
                 'actions' => $actions, 'history' => array_values(array_filter($actions, fn (array $a): bool => $a['status'] === 'awaiting_measurement')),
                 'members' => $members, 'canManage' => $this->access->can('vision.actions.write'), ...$history];
         });
