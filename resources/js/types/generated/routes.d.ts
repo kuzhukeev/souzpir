@@ -182,6 +182,18 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "team.invitations.repeat": [
+        {
+            "name": "invitation",
+            "required": true
+        }
+    ],
+    "team.dialogs.transfer": [
+        {
+            "name": "membership",
+            "required": true
+        }
+    ],
     "team.show": [
         {
             "name": "membership",

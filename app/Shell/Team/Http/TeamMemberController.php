@@ -3,11 +3,13 @@
 namespace App\Shell\Team\Http;
 
 use App\Models\Membership;
+use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Auth\SessionBrandSelection;
 use App\Shell\Notifications\RecipientPolicy;
 use App\Shell\Team\TeamMemberProjection;
 use App\Tenancy\TenantContext;
+use App\Tenancy\TenantContextRunner;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -48,6 +50,18 @@ final class TeamMemberController
             ? DB::table('conversations')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)
                 ->where('assigned_user_id', $member->user_id)->where('mode', 'manager')->count()
             : null;
+        $recipients = collect();
+        if ($sharedBrand && Gate::allows('team.manage') && Gate::allows('seller.dialogues.operate') && app(SellerModuleAccess::class)->enabled($context->organizationId, $context->brandId)) {
+            $recipients = Membership::query()->with('user:id,name')->where('status', 'active')->get()
+                ->filter(function ($candidate) use ($context, $member): bool {
+                    if (! $candidate->user || $candidate->user_id === $member->user_id || ! $candidate->permitsBrand($context->brandId)) {
+                        return false;
+                    }
+                    $candidateContext = new TenantContext($context->organizationId, $context->brandId, $candidate->user_id, $candidate->id);
+
+                    return app(TenantContextRunner::class)->run($candidateContext, fn () => Gate::forUser($candidate->user)->allows('seller.dialogues.operate'));
+                })->map(fn ($candidate) => ['id' => $candidate->user_id, 'name' => $candidate->user->name])->values();
+        }
         $receives = [];
         if ($sharedBrand && Gate::allows('team.manage')) {
             foreach (['vision.measurement.completed', 'seller.conversation.handed_off'] as $event) {
@@ -62,7 +76,7 @@ final class TeamMemberController
             }
         }
 
-        return Inertia::render('Shell/Team/Show', ['member' => $data, 'activityUrl' => $activityUrl, 'dialogCount' => $dialogCount, 'receives' => $receives,
+        return Inertia::render('Shell/Team/Show', ['member' => $data, 'activityUrl' => $activityUrl, 'dialogCount' => $dialogCount, 'receives' => $receives, 'transferRecipients' => $recipients,
             'editAccess' => Gate::allows('update', $member) && $controlled && $member->status === 'active'
                 ? ['brands' => TeamMemberProjection::forCurrentActor()->availableBrands(), 'allBrands' => $unrestricted,
                     'memberAllBrands' => $member->role === 'admin' && $member->brand_ids === [], 'revision' => $revision] : null]);

@@ -1,4 +1,4 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, useForm } from '@inertiajs/react';
 import { ArrowLeft, UserRound } from 'lucide-react';
 import CabinetLayout from '@/layouts/CabinetLayout';
 import { SharedBrandModules } from '@/features/Shell/Team/SharedBrandModules';
@@ -14,11 +14,13 @@ export default function Show({
   editAccess,
   dialogCount = null,
   receives = {},
+  transferRecipients = [],
 }: {
   member: TeamMemberDetail;
   activityUrl: string | null;
   dialogCount?: number | null;
   receives?: Record<string, string[]>;
+  transferRecipients?: {id:string;name:string}[];
   editAccess?: {
     brands: { id: string; name: string }[];
     allBrands: boolean;
@@ -26,6 +28,7 @@ export default function Show({
     revision: string;
   } | null;
 }) {
+  const transfer = useForm({recipient_id:''});
   const name = member.name?.trim() || 'Имя недоступно';
   const status =
     member.status === 'active'
@@ -126,7 +129,7 @@ export default function Show({
             </dl>
           </section>
         </div>
-        {dialogCount !== null && <section className={`${panel} mt-4`}><h2 className="text-xl font-bold">Диалоги в работе</h2><p className="mt-3 text-sm">Назначено активных диалогов: {dialogCount}</p><button disabled className="mt-3 min-h-11 rounded-lg border border-(--color-border) px-4 text-sm text-(--color-ink-muted)" title="Массовая передача диалогов пока недоступна">Передать все коллеге · Скоро</button></section>}
+        {dialogCount !== null && <section className={`${panel} mt-4`}><h2 className="text-xl font-bold">Диалоги в работе</h2><p className="mt-3 text-sm">Назначено активных диалогов: {dialogCount}</p>{transferRecipients.length > 0 && <form className="mt-3 flex flex-wrap items-end gap-3" onSubmit={event=>{event.preventDefault();transfer.post(`/team/${member.id}/transfer-dialogs`,{preserveScroll:true,onSuccess:()=>transfer.reset()});}}><label className="text-sm">Коллега<select required value={transfer.data.recipient_id} onChange={event=>transfer.setData('recipient_id',event.target.value)} className="mt-1 block min-h-11 cursor-pointer rounded-lg border border-(--color-border) bg-(--color-surface) px-3"><option value="">Выберите коллегу</option>{transferRecipients.map(person=><option key={person.id} value={person.id}>{person.name}</option>)}</select></label><button disabled={transfer.processing || !dialogCount} className="min-h-11 cursor-pointer rounded-lg border border-(--color-border) px-4 text-sm disabled:opacity-50">Передать все коллеге</button>{transfer.errors.recipient_id && <p role="alert" className="text-sm">{transfer.errors.recipient_id}</p>}</form>}</section>}
         {Object.keys(receives).length > 0 && <section className={`${panel} mt-4`}><h2 className="text-xl font-bold">Получает</h2><p className="mt-2 text-sm text-(--color-ink-muted)">Каналы для текущего бренда</p><ul className="mt-3 space-y-2 text-sm">{Object.entries(receives).map(([event,channels])=><li key={event}><strong>{event === 'vision.measurement.completed' ? 'Отчёт после замера' : 'Диалог ждёт менеджера'}</strong>: {channels.length ? channels.map(channel=>({cabinet:'В кабинете',email:'Почта',telegram:'Telegram'}[channel] ?? channel)).join(', ') : 'Не получает'}</li>)}</ul></section>}
         {activityUrl && (
           <section className={`${panel} mt-4`} aria-labelledby="activity-title">

@@ -47,6 +47,25 @@ export default function Index({
   );
   const [loading, setLoading] = useState(false);
   const [invitationOpen, setInvitationOpen] = useState(false);
+  const [repeatLink, setRepeatLink] = useState('');
+  const [repeatBusy, setRepeatBusy] = useState(false);
+  const [repeatError, setRepeatError] = useState('');
+  const repeat = async (id:string) => {
+    setRepeatBusy(true); setRepeatError(''); setRepeatLink('');
+    try {
+      const bytes = new Uint8Array(32); crypto.getRandomValues(bytes);
+      const attempt_key = Array.from(bytes, value => value.toString(16).padStart(2, '0')).join('');
+      const cookie = document.cookie.split('; ').find(value => value.startsWith('XSRF-TOKEN='));
+      const response = await fetch(`/team/invitations/${encodeURIComponent(id)}/repeat`, {method:'POST',credentials:'same-origin',headers:{Accept:'application/json','Content-Type':'application/json','X-Brand-Revision':teamBrandRevision,...(cookie ? {'X-XSRF-TOKEN':decodeURIComponent(cookie.slice(11))} : {})},body:JSON.stringify({attempt_key})});
+      if (!response.ok) throw new Error('Не удалось повторить приглашение. Обновите страницу и попробуйте снова.');
+      const result = await response.json() as {link?:unknown};
+      if (typeof result.link !== 'string') throw new Error('Не удалось получить ссылку.');
+      const link = new URL(result.link);
+      if (link.pathname !== '/invitations/open' || !/^#[A-Za-z0-9]{64}$/.test(link.hash) || !['https:','http:'].includes(link.protocol)) throw new Error('Не удалось получить ссылку.');
+      setRepeatLink(link.href);
+    } catch (error) {setRepeatError(error instanceof Error ? error.message : 'Не удалось повторить приглашение.');}
+    finally {setRepeatBusy(false);}
+  };
   const [failedPage, setFailedPage] = useState<number | null>(null);
   const [invitationLoading, setInvitationLoading] = useState(false);
   const [failedInvitationPage, setFailedInvitationPage] = useState<number | null>(null);
@@ -639,6 +658,8 @@ export default function Index({
               )}
             </div>
           )}
+          {repeatError && <p role="alert" className="mb-3 text-sm text-(--color-danger-ink)">{repeatError}</p>}
+          {repeatLink && <div className="mb-4 rounded-lg border border-(--color-border) p-4 text-sm"><p>Новая одноразовая ссылка готова. Предыдущая ссылка остаётся действительной до отзыва или истечения срока.</p><label className="mt-3 block">Ссылка<input readOnly value={repeatLink} className="mt-1 block min-h-11 w-full rounded-lg border border-(--color-border) bg-(--color-surface) px-3" /></label><button type="button" onClick={()=>void navigator.clipboard.writeText(repeatLink).catch(()=>setRepeatError('Не удалось скопировать ссылку.'))} className={`${button} mt-3`}>Скопировать ссылку</button><button type="button" onClick={()=>setRepeatLink('')} className={`${button} mt-3 ml-2`}>Закрыть ссылку</button></div>}
           {invitationLoading && (
             <p role="status" className="mb-4 text-sm text-(--color-ink-muted)">
               Загружаем приглашения…
@@ -672,7 +693,7 @@ export default function Index({
                         <span className="rounded-full bg-(--color-surface-muted) px-3 py-1 text-(--color-ink-muted)">
                           {invitation.opened ? 'Ссылка открыта' : 'Ссылка не открыта'}
                         </span>
-                        {invitation.can_revoke && canIssueInvitations && <button type="button" onClick={() => setInvitationOpen(true)} className={button}>Создать новую ссылку</button>}
+                        {invitation.can_revoke && canIssueInvitations && <button type="button" disabled={repeatBusy} onClick={() => void repeat(invitation.id)} className={button}>Повторить приглашение</button>}
                         {invitation.can_revoke && (
                           <button
                             type="button"
