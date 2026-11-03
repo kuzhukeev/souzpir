@@ -684,6 +684,7 @@ declare module 'ziggy-js' {
         }
     ],
     "vision.settings.index": [],
+    "vision.settings.recipients": [],
     "vision.settings.notifications": [],
     "vision.trends.index": [],
     "dev.design-system": [],

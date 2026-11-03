@@ -26,3 +26,9 @@ test('эффект показывает сравнение с оговоркой
  await expect(page.getByText(/не доказывает причинную связь/)).toBeVisible();await expect(page.getByText(/изменение \+15/)).toBeVisible();
  await page.screenshot({path:'.local/screenshots/e8-12/effect.png',fullPage:true});
 });
+
+test('получатели отчёта настраиваются отдельно',async({page})=>{
+ await page.goto('http://127.0.0.1:5292/tests/Browser/E8-12/fixture.html?settings');await page.getByRole('button',{name:'Получатели'}).click();
+ await page.getByLabel('Анна: email').check();await page.route('**/vision/settings/recipients',route=>route.fulfill({status:422,contentType:'application/json',body:'{}'}));
+ const req=page.waitForRequest('**/vision/settings/recipients');await page.getByRole('button',{name:'Сохранить получателей'}).click();expect((await req).postDataJSON().members[0].email).toBe(true);
+});

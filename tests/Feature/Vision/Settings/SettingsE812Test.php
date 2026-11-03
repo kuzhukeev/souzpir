@@ -25,6 +25,11 @@ final class SettingsE812Test extends TenancyTestCase
         $this->assertDatabaseMissing('notification_settings', ['brand_id' => $other->id, 'event_key' => 'vision.measurement.completed']);
         $this->withHeaders($headers)->put('/vision/settings/notifications', ['changes' => [['event' => 'bad', 'channel' => 'email', 'enabled' => true]]])->assertSessionHasErrors('changes.0.event');
         $this->withHeaders($headers)->put('/vision/settings/notifications', ['changes' => [['event' => 'vision.measurement.completed', 'channel' => 'bad', 'enabled' => true]]])->assertSessionHasErrors('changes.0.channel');
+        [$local] = $this->member($org, 'member', [$brand->id]);
+        [$foreign] = $this->member($org, 'member', [$other->id]);
+        $this->withHeaders($headers)->put('/vision/settings/recipients', ['members' => [['id' => $local->id, 'cabinet' => true, 'email' => true]]])->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('notification_settings', ['brand_id' => $brand->id, 'user_id' => $local->id, 'event_key' => 'vision.report.updated', 'channel' => 'email', 'enabled' => true]);
+        $this->withHeaders($headers)->put('/vision/settings/recipients', ['members' => [['id' => $foreign->id, 'cabinet' => true, 'email' => true]]])->assertForbidden();
         $this->post('/logout')->assertRedirect();
         $this->get('/vision/settings')->assertRedirect();
     }
