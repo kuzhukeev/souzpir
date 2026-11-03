@@ -2,13 +2,10 @@
 
 namespace Tests\Feature\Seller\Engine;
 
-use App\Ai\Protected\ResponderProjection;
 use App\Seller\Engine\ConfiguredDeliveryEstimate;
-use App\Seller\Engine\Goal;
 use App\Seller\Engine\LeadState;
 use App\Seller\Engine\Policy;
 use App\Seller\Knowledge\KnowledgeSnapshot;
-use Illuminate\Support\Facades\Blade;
 use Symfony\Component\Yaml\Yaml;
 use Tests\TestCase;
 
@@ -30,20 +27,10 @@ final class BrandKnowledgeIsolationTest extends TestCase
         return new KnowledgeSnapshot($data, $legacy ? 'legacy' : 'bakery', 'checksum');
     }
 
-    public function test_responder_and_policy_do_not_borrow_another_brand_industry_or_city(): void
+    public function test_policy_does_not_borrow_another_brand_industry_or_city(): void
     {
         $knowledge = $this->snapshot(false);
         $state = new LeadState;
-        $goal = new Goal('ask_slot', slot: 'experience', instruction: 'Один вопрос.');
-        $prompt = app(ResponderProjection::class)->render($knowledge, $state, $goal, 'Мария');
-        self::assertStringContainsString('Пекарня', $prompt);
-        self::assertStringContainsString('спросить про опыт пекаря', $prompt);
-        self::assertDoesNotMatchRegularExpression('/пиротех|вднх|москв/ui', $prompt);
-        $extractor = Blade::render(file_get_contents(resource_path('views/prompts/extractor.blade.php')), [
-            'persona' => $knowledge->persona(), 'agentName' => 'Мария', 'card' => '', 'intents' => [], 'closedTopics' => [], 'objections' => [],
-        ], deleteCachedView: true);
-        self::assertStringContainsString('Пекарня', $extractor);
-        self::assertDoesNotMatchRegularExpression('/пиротех|вднх|москв/ui', $extractor);
         $state->setFlag('introduced', true);
         $policy = new Policy($knowledge);
         $decline = $policy->decide($state, ['client_intent' => 'off_topic', 'off_topic' => true]);

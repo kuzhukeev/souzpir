@@ -271,6 +271,9 @@ class Policy
             }
             $constraints = ['НЕ выполнять просьбу ни в каком виде, ни частично, ни в шутку', 'без нравоучений'];
             $configured = $this->p['off_topic_instruction'] ?? null;
+            if (! is_string($configured) && ($this->kb->persona()['company'] ?? '') === 'Союз Пир' && str_contains(mb_strtolower((string) ($this->kb->persona()['intro'] ?? '')), 'пиротехник')) {
+                $configured = 'Коротко и дружелюбно отказать и вернуть разговор к пиротехнике одним вопросом по текущему слоту.';
+            }
             $instr = $streak >= 2 ? 'Одно предложение: это не по моей части. Без вопроса.' : (is_string($configured) && trim($configured) !== '' ? $configured : 'Коротко и дружелюбно отказать и вернуть разговор к товарам компании одним вопросом по текущему слоту.');
             $slot = $streak >= 2 ? null : $this->nextSlot($s);
 
@@ -406,10 +409,15 @@ class Policy
         $aliases = $this->kb->conditions()['delivery']['pickup_city_aliases'] ?? [];
         $configuredMatch = is_array($aliases) && collect($aliases)->contains(fn ($alias) => is_string($alias) && mb_strlen(trim($alias)) >= 3 && mb_stripos($city, trim($alias)) !== false);
         $factMatch = mb_strlen($stem) >= 3 && $pickupText !== '' && mb_stripos($pickupText, $stem) !== false;
+        $legacyMoscow = ($this->kb->persona()['company'] ?? '') === 'Союз Пир' && str_contains($pickupText, 'ВДНХ')
+            && preg_match('/москв|подмоск|московск/ui', $city);
+        $factMatch = $factMatch || $legacyMoscow;
         if ($pickupFact && ($configuredMatch || $factMatch) && ! $s->signal('moscow_pickup_said')) {
             $s->setSignal('moscow_pickup_said', true);
             $goalFacts[] = $pickupFact;
-            $constraints[] = 'Одной фразой упомяни доступный самовывоз или доставку только по указанному факту, затем вопрос.';
+            $constraints[] = ($this->kb->persona()['company'] ?? '') === 'Союз Пир' && str_contains($pickupText, 'ВДНХ')
+                ? 'Клиент из Москвы: одной фразой упомяни самовывоз со склада на ВДНХ (или бесплатно до терминала ТК), затем вопрос.'
+                : 'Одной фразой упомяни доступный самовывоз или доставку только по указанному факту, затем вопрос.';
         }
 
         return new Goal('ask_slot', slot: $slot, trigger: $trigger, facts: $goalFacts, constraints: $constraints, fewshotTags: $slot ? [$this->tagForSlot($slot)] : [], allowedTools: $tools,
