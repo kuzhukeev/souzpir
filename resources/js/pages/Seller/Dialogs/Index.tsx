@@ -1,8 +1,9 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import { useEffect, useState, type FormEvent } from 'react';
 import CabinetLayout from '@/layouts/CabinetLayout';
+import { Avatar } from '@/components/ui';
 
-type Item = { id: string; name: string; mode: string; stage: string; outcome: string | null; channel: string; last_message: string | null; updated_at: string; assigned_user_id: string | null };
+type Item = { id: string; name: string; mode: string; stage: string; outcome: string | null; channel: string; last_message: string | null; updated_at: string; assigned_user_id: string | null; waiting_minutes?: number | null };
 type Message = { id: string; role: string; text: string; created_at: string; meta: Record<string, string | null> };
 type Detail = Item & { summary: string | null; email: string | null; phone: string | null; slots: { key: string; label: string; value: string | null }[]; messages: Message[]; tasks: { id: string; type: string; status: string; due_at: string | null }[] };
 type Props = { dialogs: Item[]; dialog: Detail | null; mineCounts?: { waiting: number; active: number; closed_today: number }; managerOptions?: {id: string; name: string}[]; pagination?: {page: number; pages: number; total: number}; filters: { mode: string; search: string; sort?: string; channel?: string; stage?: string; manager?: string; page?: number } };
@@ -79,7 +80,7 @@ export default function Index({ dialogs, dialog, mineCounts = { waiting: 0, acti
         <div className="border-b border-(--color-border) p-4">
           <form onSubmit={(event: FormEvent) => { event.preventDefault(); filter(filters.mode); }} className="flex gap-2">
             <label className="sr-only" htmlFor="dialog-search">Поиск диалога</label>
-            <input id="dialog-search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Имя клиента" className="min-w-0 flex-1 rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm" />
+            <input id="dialog-search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Имя, телефон, почта или сообщение" className="min-w-0 flex-1 rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm" />
             <button type="submit" disabled={pending} className="cursor-pointer rounded-lg bg-(--color-action) px-3 py-2 text-sm text-white disabled:opacity-50">Найти</button>
           </form>
           {<label className="mt-3 block text-sm">Сортировка<select aria-label="Сортировка" value={filters.sort ?? 'newest'} onChange={(event) => filter(filters.mode, search, event.target.value)} className="mt-1 block w-full cursor-pointer rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2"><option value="newest">Сначала новые</option><option value="oldest">Сначала старые</option></select></label>}
@@ -89,9 +90,9 @@ export default function Index({ dialogs, dialog, mineCounts = { waiting: 0, acti
         {pending && <p role="status" className="px-4 pt-3 text-sm text-(--color-ink-muted)">Загрузка диалогов…</p>}
         {dialogs.length === 0 ? <p className="p-6 text-sm text-(--color-ink-muted)">Диалогов пока нет.</p> : <ul className="divide-y divide-(--color-border)">{dialogs.map((item) => <li key={item.id}>
           <button type="button" onClick={() => open(item.id)} aria-current={dialog?.id === item.id ? 'page' : undefined} className={`w-full cursor-pointer p-4 text-left hover:bg-(--color-surface-muted) ${dialog?.id === item.id ? 'bg-(--color-surface-muted)' : ''}`}>
-            <span className="flex items-start justify-between gap-2"><strong className="min-w-0 truncate text-sm">{item.name}</strong><time className="shrink-0 text-xs text-(--color-ink-muted)">{date(item.updated_at)}</time></span>
+            <span className="flex items-start gap-3"><Avatar name={item.name}/><span className="flex min-w-0 flex-1 items-start justify-between gap-2"><strong className="min-w-0 truncate text-sm">{item.name}</strong><time className="shrink-0 text-xs text-(--color-ink-muted)">{date(item.updated_at)}</time></span></span>
             <span className="mt-1 block truncate text-sm text-(--color-ink-muted)">{item.last_message || 'Сообщений пока нет'}</span>
-            <span className="mt-2 flex flex-wrap gap-2 text-xs"><span className="rounded-full bg-(--color-surface-muted) px-2 py-1">{item.channel}</span><span className="rounded-full bg-(--color-surface-muted) px-2 py-1">{modeNames[item.mode] || item.mode}</span><span className="rounded-full bg-(--color-surface-muted) px-2 py-1">{item.stage}</span></span>
+            <span className="mt-2 flex flex-wrap gap-2 text-xs"><span className="rounded-full bg-(--color-surface-muted) px-2 py-1">{item.channel}</span><span className="rounded-full bg-(--color-surface-muted) px-2 py-1">{modeNames[item.mode] || item.mode}</span>{item.waiting_minutes != null && <span className="rounded-full bg-(--color-surface-muted) px-2 py-1">Ждёт ответа · {item.waiting_minutes} мин</span>}<span className="rounded-full bg-(--color-surface-muted) px-2 py-1">{item.stage}</span></span>
           </button>
         </li>)}</ul>}
         {pagination.pages > 1 && <nav aria-label="Страницы диалогов" className="flex items-center justify-between gap-2 border-t border-(--color-border) p-4 text-sm"><button type="button" disabled={pending || pagination.page<=1} onClick={()=>filter(filters.mode,filters.search,filters.sort,{page:pagination.page-1})} className="cursor-pointer disabled:opacity-50">Назад</button><span>Страница {pagination.page} из {pagination.pages}</span><button type="button" disabled={pending || pagination.page>=pagination.pages} onClick={()=>filter(filters.mode,filters.search,filters.sort,{page:pagination.page+1})} className="cursor-pointer disabled:opacity-50">Вперёд</button></nav>}

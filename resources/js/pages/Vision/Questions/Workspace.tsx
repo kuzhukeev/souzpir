@@ -61,6 +61,7 @@ function WorkspaceBody({ screen, brandId, revision, canRun }: { screen: Screen; 
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
   const [runs, setRuns] = useState(1);
+  const [frequency, setFrequency] = useState('');
   const [filter, setFilter] = useState<Intent | 'all'>('all');
   const [selected, setSelected] = useState<string[]>([]);
   const [models, setModels] = useState<Record<string, string>>({});
@@ -86,6 +87,7 @@ function WorkspaceBody({ screen, brandId, revision, canRun }: { screen: Screen; 
       .then((result) => {
         if (active) {
           setData(result);
+          setFrequency(result.active_set?.frequency ?? '');
           setError('');
         }
       })
@@ -447,7 +449,7 @@ function WorkspaceBody({ screen, brandId, revision, canRun }: { screen: Screen; 
                   <Models models={data.models} selected={models} onChange={setModels} />
                 </div>
                 <section className={card}>
-                  <h2 className="text-xl font-bold">Настройки первого замера</h2>
+                  <h2 className="text-xl font-bold">Настройки первого замера</h2><label className="mt-3 block text-sm">Частота<select aria-label="Частота" value={frequency} onChange={event=>setFrequency(event.target.value)} className="ml-3 min-h-11 cursor-pointer rounded-lg border border-(--color-border) bg-(--color-surface) px-3"><option value="">Вручную</option><option value="weekly">Еженедельно</option><option value="biweekly">Раз в две недели</option><option value="monthly">Ежемесячно</option></select></label><p className="mt-2 text-sm text-(--color-ink-muted)">Частота сохраняется в наборе. Автоматический запуск включается отдельно в расписании.</p><p className="mt-2 text-sm">План ответов: {chosen.length} × {Object.keys(models).length} × {runs} = {chosen.length * Object.keys(models).length * runs} (вопросы × модели × прогоны)</p><Link href="/vision/questions" className="mt-2 inline-flex min-h-11 cursor-pointer items-center text-sm font-semibold text-(--color-link)">Добавить вопросы</Link>
                   <label className="mt-3 block text-sm">Количество прогонов<select className="ml-3 min-h-11 cursor-pointer rounded-lg border border-(--color-border) bg-(--color-surface) px-3" value={runs} onChange={e=>setRuns(Number(e.target.value))}>{[1,2,3].map(n=><option key={n} value={n}>{n}</option>)}</select></label>
                   <p className="mt-2 text-sm">План: {chosen.length} вопросов × {Object.keys(models).length} моделей × {runs} = {chosen.length * Object.keys(models).length * runs} ответов. Стоимость в слотах определяется тарифом.</p>
                   <Link href="/vision/runs" className={link}>Настроить замеры</Link>
@@ -458,7 +460,7 @@ function WorkspaceBody({ screen, brandId, revision, canRun }: { screen: Screen; 
                 {data.can_edit && (
                   <div className="flex flex-wrap gap-3">
                     <Button disabled={!chosen.length || !Object.keys(models).length || busy || !canRun || !revision} loading={busy} onClick={async () => {
-                      if (await action('/vision/questions/approve', 'POST', { candidate_ids: chosen.map((item) => item.id), models, frequency: null })) {
+                      if (await action('/vision/questions/approve', 'POST', { candidate_ids: chosen.map((item) => item.id), models, frequency: frequency || null })) {
                         router.post('/vision/runs', { runs }, { headers: { 'X-Brand-Id': brandId, 'X-Brand-Revision': revision }, onStart: () => setBusy(true), onFinish: () => setBusy(false), onError: () => setError('Набор утверждён, но замер не запущен. Проверьте настройки замера.'), onHttpException: () => { setError('Набор утверждён, но замер не запущен. Проверьте доступ и настройки.'); return false; }, onNetworkError: () => { setError('Набор утверждён, результат запуска неизвестен. Проверьте список замеров.'); return false; } });
                       }
                     }}>Утвердить и запустить</Button>
@@ -470,7 +472,7 @@ function WorkspaceBody({ screen, brandId, revision, canRun }: { screen: Screen; 
                           await action('/vision/questions/approve', 'POST', {
                             candidate_ids: chosen.map((item) => item.id),
                             models,
-                            frequency: null,
+                            frequency: frequency || null,
                           })
                         )
                           window.location.assign('/vision/questions/active');

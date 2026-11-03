@@ -1,6 +1,7 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 import { BarChart3 } from 'lucide-react';
+import * as Dialog from '@radix-ui/react-dialog';
 import CabinetLayout from '@/layouts/CabinetLayout';
 import ConfirmationProgress from '@/features/Vision/Measurements/ConfirmationProgress';
 import {
@@ -16,7 +17,7 @@ type Row = {
   answers?: { question_n: number; provider: string; requested_model: string; run_no: number; status: string; answer_text: string | null; error_code: string | null }[];
 };
 type Schedule = { enabled: boolean; frequency: string | null; weekday: number | null; local_time: string | null; timezone: string; next_run_at: string | null; models: string[]; available_models: string[] };
-type Listing = { revision: string; data: Row[]; page: number; last_page: number; total: number; schedule?: Schedule };
+type Listing = { revision: string; data: Row[]; page: number; last_page: number; total: number; schedule?: Schedule; plan?: { questions: number; models: number } | null };
 const button =
   'min-h-11 cursor-pointer rounded-lg border border-(--color-border) px-4 text-sm font-semibold text-(--color-link) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus) disabled:cursor-not-allowed disabled:opacity-50';
 const isPageVisible = () => document.visibilityState !== 'hidden';
@@ -28,6 +29,13 @@ function date(value: string | null): string {
   return Number.isNaN(parsed.getTime())
     ? '—'
     : new Intl.DateTimeFormat('ru-RU', { dateStyle: 'medium', timeStyle: 'short' }).format(parsed);
+}
+
+function AnswerPanel({ answers }: { answers: NonNullable<Row['answers']> }) {
+  const [provider, setProvider] = useState('');
+  const [status, setStatus] = useState('');
+  const filtered = answers.filter(answer => (!provider || answer.provider === provider) && (!status || answer.status === status));
+  return <><div className="mt-3 flex flex-wrap gap-3"><label>Модель<select value={provider} onChange={event => setProvider(event.target.value)} className="ml-2 min-h-11 rounded-lg border border-(--color-border) bg-(--color-surface) px-3"><option value="">Все</option>{Array.from(new Set(answers.map(answer => answer.provider))).map(value => <option key={value} value={value}>{value}</option>)}</select></label><label>Статус<select value={status} onChange={event => setStatus(event.target.value)} className="ml-2 min-h-11 rounded-lg border border-(--color-border) bg-(--color-surface) px-3"><option value="">Все</option>{Array.from(new Set(answers.map(answer => answer.status))).map(value => <option key={value} value={value}>{stateLabel[value] ?? value}</option>)}</select></label></div>{filtered.length === 0 ? <p className="mt-3">Ответов по фильтрам нет.</p> : <ul className="mt-3 grid gap-2">{filtered.map(answer => <li key={`${answer.question_n}-${answer.provider}-${answer.run_no}`} className="rounded-lg bg-(--color-surface-muted) p-3"><p className="font-medium">Вопрос {answer.question_n} · {answer.provider} · повтор {answer.run_no}</p><p className="mt-1 text-(--color-ink-muted)">{stateLabel[answer.status] ?? answer.status} · {answer.requested_model}</p>{answer.error_code && <p className="mt-2 text-(--color-danger-ink)">Ошибка: {errorLabel[answer.error_code] ?? answer.error_code}</p>}{answer.answer_text && <p className="mt-2 whitespace-pre-wrap">{answer.answer_text}</p>}{answer.answer_text && <Dialog.Root><Dialog.Trigger className={`${button} mt-2`}>Открыть ответ</Dialog.Trigger><Dialog.Portal><Dialog.Overlay className="fixed inset-0 z-40 bg-black/50" /><Dialog.Content className="fixed inset-y-0 right-0 z-50 w-full max-w-xl overflow-y-auto bg-(--color-surface) p-6 text-(--color-ink)"><Dialog.Title className="text-xl font-bold">Ответ</Dialog.Title><Dialog.Description className="mt-2 text-sm">Вопрос {answer.question_n} · {answer.provider} · повтор {answer.run_no}</Dialog.Description><p className="mt-4 whitespace-pre-wrap">{answer.answer_text}</p><Dialog.Close className={`${button} mt-5`}>Закрыть</Dialog.Close></Dialog.Content></Dialog.Portal></Dialog.Root>}</li>)}</ul>}</>;
 }
 
 function ScheduleEditor({ schedule, brandId, revision, canEdit, refreshed }: { schedule: Schedule; brandId: string; revision: string; canEdit: boolean; refreshed: () => void }) {
@@ -76,6 +84,8 @@ export default function Index({ measurementBrandRevision, status }: { measuremen
   const page = navigation.contextKey === contextKey ? navigation.page : 1;
   const [attempt, setAttempt] = useState(0);
   const [runs, setRuns] = useState(1);
+  const [month, setMonth] = useState('');
+  const [launchOpen, setLaunchOpen] = useState(false);
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState('');
   const [acting, setActing] = useState('');
@@ -105,6 +115,7 @@ export default function Index({ measurementBrandRevision, status }: { measuremen
     brandId,
     measurementBrandRevision,
     page,
+    month,
     attempt,
     navigation.epoch,
   ]);
@@ -163,7 +174,7 @@ export default function Index({ measurementBrandRevision, status }: { measuremen
         !isPageVisible()
       )
         throw new Error();
-      const response = await fetch(`/vision/runs/data?page=${page}&view=details`, {
+      const response = await fetch(`/vision/runs/data?page=${page}&view=details${month ? `&month=${encodeURIComponent(month)}` : ''}`, {
         credentials: 'same-origin',
         cache: 'no-store',
         headers,
@@ -208,7 +219,7 @@ export default function Index({ measurementBrandRevision, status }: { measuremen
       window.removeEventListener('pagehide', invalidate);
       window.removeEventListener('pageshow', pageShow);
     };
-  }, [brandId, measurementBrandRevision, page, attempt, requestKey]);
+  }, [brandId, measurementBrandRevision, page, month, attempt, requestKey]);
 
   return (
     <CabinetLayout breadcrumbs={[{ label: 'Видение', href: '/vision' }, { label: 'Замеры' }]}>
@@ -225,9 +236,11 @@ export default function Index({ measurementBrandRevision, status }: { measuremen
             <label className="text-sm font-semibold">Повторов
               <input type="number" min={1} max={3} value={runs} onChange={(event) => setRuns(Number(event.target.value))} className="mt-1 block w-24 rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm" />
             </label>
+            <button type="button" className={button} onClick={() => setLaunchOpen(true)}>Параметры замера</button>
             <button type="button" className={button} disabled={starting || !can?.['vision.measure.run'] || !brandId || !profileContextIsStable()} onClick={start}>Начать замер</button>
           </div>
         </header>
+        <Dialog.Root open={launchOpen} onOpenChange={setLaunchOpen}><Dialog.Portal><Dialog.Overlay className="fixed inset-0 z-40 bg-black/50" /><Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[min(95vw,32rem)] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-(--color-surface) p-6 text-(--color-ink) shadow-xl"><Dialog.Title className="text-xl font-bold">Запуск замера</Dialog.Title><Dialog.Description className="mt-2 text-sm">План строится по утверждённым вопросам и моделям текущего бренда.</Dialog.Description><label className="mt-4 block text-sm">Повторов<input type="number" min={1} max={3} value={runs} onChange={event => setRuns(Number(event.target.value))} className="mt-2 block w-24 rounded-lg border border-(--color-border) bg-(--color-surface) p-2" /></label><p className="mt-4 text-sm">{view.data?.plan ? `Вопросы: ${view.data.plan.questions} · Модели: ${view.data.plan.models} · Повторы: ${runs} · Всего слотов: ${view.data.plan.questions * view.data.plan.models * runs}` : 'Утверждённый набор вопросов недоступен.'}</p><div className="mt-4 flex gap-3"><button type="button" className={button} disabled={starting || !can?.['vision.measure.run'] || !brandId || !profileContextIsStable()} onClick={() => { setLaunchOpen(false); start(); }}>Начать замер</button><Dialog.Close className={button}>Отмена</Dialog.Close></div></Dialog.Content></Dialog.Portal></Dialog.Root>
         <p className="mb-4 text-sm text-(--color-ink-muted)">Запуск создаёт план по утверждённым вопросам бренда. При включённой очереди слоты обрабатываются автоматически.</p>
         {status && <p role="status" className="mb-4 rounded-lg bg-(--color-success-soft) p-3 text-sm text-(--color-success-ink)">{status}</p>}
         {startError && <p role="alert" className="mb-4 rounded-lg bg-(--color-danger-soft) p-3 text-sm text-(--color-danger-ink)">{startError}</p>}
@@ -245,6 +258,7 @@ export default function Index({ measurementBrandRevision, status }: { measuremen
           >
             История замеров
           </h2>
+          <label className="mt-4 block text-sm font-semibold">Месяц<input type="month" value={month} onChange={event => { setMonth(event.target.value); setNavigation(current => ({ ...current, page: 1 })); }} className="mt-1 block min-h-11 rounded-lg border border-(--color-border) bg-(--color-surface) px-3" /></label>
           {view.loading && (
             <div role="status" className="mt-5 text-sm text-(--color-ink-muted)">
               <p>Загружаем замеры…</p>
@@ -317,17 +331,11 @@ export default function Index({ measurementBrandRevision, status }: { measuremen
                               <button type="button" className={button} disabled={!!acting || !can?.['vision.measure.run']} onClick={() => act(row.id, 'repeat')}>Повторить замер</button>
                             </div>
                           </div>
+                          {(row.answers?.length ?? 0) > 0 && <div className="mt-3 text-sm"><p className="font-semibold">Прогресс по моделям</p><p>Вопросов: {new Set((row.answers ?? []).map(answer => answer.question_n)).size}</p>{Array.from(new Set((row.answers ?? []).map(answer => answer.provider))).map(provider => { const answers=(row.answers ?? []).filter(answer => answer.provider===provider); return <p key={provider} className="mt-1">{provider}: {answers.filter(answer => answer.status==='ok').length} / {answers.length}</p>; })}</div>}
                           <ConfirmationProgress status={row.status} answers={row.answers ?? []} confirmed={row.confirmed} canConfirm={Boolean(can?.['vision.measure.run'])} loading={Boolean(acting)} onConfirm={() => act(row.id, 'confirm')} />
                           <details className="mt-4" open={(row.answers?.length ?? 0) > 0}>
                             <summary className="cursor-pointer font-semibold">Ответы и слоты ({row.answers?.length ?? 0})</summary>
-                            <ul className="mt-3 grid gap-2">
-                              {row.answers?.map((answer) => <li key={`${answer.question_n}-${answer.provider}-${answer.run_no}`} className="rounded-lg bg-(--color-surface-muted) p-3">
-                                <p className="font-medium">Вопрос {answer.question_n} · {answer.provider} · повтор {answer.run_no}</p>
-                                <p className="mt-1 text-(--color-ink-muted)">{stateLabel[answer.status] ?? answer.status} · {answer.requested_model}</p>
-                                {answer.answer_text && <p className="mt-2 whitespace-pre-wrap">{answer.answer_text}</p>}
-                                {answer.error_code && <p className="mt-2 text-(--color-danger-ink)">Ошибка: {errorLabel[answer.error_code] ?? answer.error_code}</p>}
-                              </li>)}
-                            </ul>
+                            <AnswerPanel answers={row.answers ?? []} />
                           </details>
                         </li>
                       ))}

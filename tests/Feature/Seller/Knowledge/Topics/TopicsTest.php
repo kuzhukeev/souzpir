@@ -39,7 +39,11 @@ final class TopicsTest extends TenancyTestCase
         $this->assertSame('Доставка', $intent['title']);
         $this->assertSame('Уточним у менеджера.', $intent['default_answer']);
         $this->assertSame('bridge', $intent['after_action']);
+        $conversation = (string) Str::ulid();
+        DB::table('conversations')->insert(['id' => $conversation, 'organization_id' => $org->id, 'brand_id' => $brand->id, 'state' => '{}', 'mode' => 'bot', 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('messages')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $brand->id, 'conversation_id' => $conversation, 'role' => 'client', 'text' => 'Когда доставите заказ?', 'meta' => json_encode(['intent' => $intent['id']]), 'created_at' => now(), 'updated_at' => now()]);
         $this->get('/seller/knowledge/topics')->assertOk()->assertInertia(fn ($page) => $page->where('topics.0.id', $intent['id'])->where('draftVersion', 2));
+        $this->get('/seller/knowledge/topics')->assertOk()->assertInertia(fn ($page) => $page->where('frequencies.'.$intent['id'], 1)->where('frequentQuestions.'.$intent['id'].'.0', 'Когда доставите заказ?'));
         $changed = $this->topic('Сроки доставки');
         $changed['version'] = 2;
         $changed['after_action'] = 'none';

@@ -227,8 +227,11 @@ final class QuestionsHttpTest extends TenancyTestCase
         $this->getJson('/vision/questions/data')->assertOk()->assertJsonCount(0, 'candidates');
         $this->postJson('/vision/questions/approve', ['candidate_ids' => [$candidateId], 'models' => $models, 'frequency' => null])->assertStatus(422);
         $manual = $this->postJson('/vision/questions/candidates', ['text' => 'Где найти надёжные услуги поблизости?', 'intent' => 'choose'])->assertStatus(201)->json('id');
-        $this->postJson('/vision/questions/approve', ['candidate_ids' => [$manual], 'models' => $models, 'frequency' => 'weekly'])->assertStatus(422);
-        self::assertSame(0, DB::table('question_sets')->count());
+        $this->postJson('/vision/questions/approve', ['candidate_ids' => [$manual], 'models' => $models, 'frequency' => 'invalid'])->assertStatus(422);
+        $this->postJson('/vision/questions/approve', ['candidate_ids' => [$manual], 'models' => $models, 'frequency' => 'weekly'])->assertOk();
+        $this->getJson('/vision/questions/data')->assertOk()->assertJsonPath('active_set.frequency', 'weekly');
+        self::assertSame(1, DB::table('question_sets')->count());
+        self::assertSame(0, DB::table('monitoring_schedules')->count());
     }
 
     public function test_unexpected_failure_does_not_log_private_text_or_commit_partial_candidate(): void
