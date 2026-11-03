@@ -25,6 +25,12 @@ final class GreetingResolverTest extends TenancyTestCase
         foreach ($greetings as $channel => $text) {
             self::assertSame($text, $resolver->resolve($tenant, $channel));
         }
+        $this->post('/seller/settings/greetings', ['greetings' => ['widget' => 'Здравствуйте, {имя}. {страница}',
+            'widget_catalog' => 'Каталог для {имя}: {страница}', 'after_hours' => 'Вернёмся позже, {имя}.']])->assertSessionHasNoErrors();
+        self::assertSame('Здравствуйте, Анна. Главная', $resolver->resolve($tenant, 'widget', 'home', 'Анна'));
+        self::assertSame('Каталог для Анна: Каталог', $resolver->resolve($tenant, 'widget', 'catalog', 'Анна'));
+        self::assertSame('Здравствуйте, гость. Главная', $resolver->resolve($tenant, 'widget', 'unknown'));
+        self::assertSame('Вернёмся позже, Анна.', $resolver->resolve($tenant, 'widget', 'catalog', 'Анна', true));
         self::assertNull($resolver->resolve($tenant, 'unknown'));
         self::assertNull($resolver->resolve(new TenantContext($org->id, $other->id, source: 'job'), 'telegram'));
         $this->post('/seller/settings/greetings', ['greetings' => ['telegram' => '  ']])->assertSessionHasNoErrors();
