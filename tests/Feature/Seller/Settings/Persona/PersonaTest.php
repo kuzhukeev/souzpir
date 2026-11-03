@@ -116,11 +116,19 @@ final class PersonaTest extends TenancyTestCase
         $this->assertStringContainsString('Якорь персонажа: Помогает выбрать', $prompt);
 
         $phrases = ['error' => 'Уточню и вернусь.', 'handoff' => 'Передам менеджеру.',
-            'out_of_hours' => '', 'no_answer' => '', 'do_not_disturb' => '', 'reminder' => '', 'goodbye' => 'До связи!'];
+            'out_of_hours' => 'Вернусь утром.', 'no_answer' => 'Проверю информацию.',
+            'do_not_disturb' => 'Больше не напишу.', 'reminder' => 'Напоминаю о разговоре.', 'goodbye' => 'До связи!'];
         $this->post('/seller/persona/phrases', ['version' => 2, 'phrases' => $phrases,
             'quick_replies' => ['Спасибо за вопрос']])->assertRedirect()->assertSessionHasNoErrors();
         $this->get('/seller/persona')->assertInertia(fn ($page) => $page->where('phrases.goodbye', 'До связи!')
             ->where('quickReplies.0', 'Спасибо за вопрос'));
+        $prompt = app(TenantContextRunner::class)->run($tenant, fn () => app(ResponderProjection::class)->render(
+            app(KnowledgeRepository::class)->forRelease($tenant, $draft['id'], true), new LeadState,
+            new Goal('answer_only'), $saved['name']));
+        foreach ($phrases as $phrase) {
+            $this->assertStringContainsString($phrase, $prompt);
+        }
+        $this->assertStringContainsString('Спасибо за вопрос', $prompt);
         $this->post('/seller/persona/phrases', ['version' => 3, 'phrases' => ['bad' => 'x'],
             'quick_replies' => []])->assertSessionHasErrors('phrases');
         $this->post('/seller/persona', [...$profile, 'version' => 3, 'bot_disclosure' => 'never'])->assertSessionHasErrors('bot_disclosure');
