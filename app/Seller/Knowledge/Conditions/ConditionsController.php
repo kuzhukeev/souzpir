@@ -46,6 +46,8 @@ final class ConditionsController
         $input = $request->validate(['version' => ['required', 'integer', 'min:1'], 'min_order_rub' => ['nullable', 'numeric', 'min:0', 'max:999999999'],
             'offseason_min_order_rub' => ['nullable', 'numeric', 'min:0', 'max:999999999'], 'reserve_days' => ['nullable', 'integer', 'min:0', 'max:365'],
             'max_pct_unapproved' => ['required', 'integer', 'min:0', 'max:100'], 'new_client_bonus_pct' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'discount_grid' => ['sometimes', 'array', 'max:50'], 'discount_grid.*.from' => ['required', 'numeric', 'min:0', 'max:999999999'],
+            'discount_grid.*.pct' => ['required', 'numeric', 'min:0', 'max:100'],
             'approved' => ['required', 'array'], 'approved.min_order_rub' => ['required', 'boolean'], 'approved.offseason_min_order_rub' => ['required', 'boolean'],
             'approved.reserve_days' => ['required', 'boolean'], 'approved.new_client_bonus_pct' => ['required', 'boolean']]);
         $this->access($request, function (TenantContext $tenant) use ($input): void {
@@ -59,6 +61,9 @@ final class ConditionsController
                 } else {
                     unset($conditions[$key]);
                 }
+            }
+            if (array_key_exists('discount_grid', $input)) {
+                $conditions['discount_grid'] = array_map(fn (array $row): array => ['from' => 0 + $row['from'], 'pct' => 0 + $row['pct']], $input['discount_grid']);
             }
             $conditions['max_pct_unapproved'] = (int) $input['max_pct_unapproved'];
             $conditions['approvals'] = array_replace($conditions['approvals'] ?? [], $input['approved']);
