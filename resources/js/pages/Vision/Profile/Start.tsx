@@ -3,6 +3,7 @@ import { useState } from 'react';
 import CabinetLayout from '@/layouts/CabinetLayout';
 import { Button } from '@/components/ui/forms';
 import { ArrowRight, ClipboardList, ChartNoAxesCombined, FileCheck2 } from 'lucide-react';
+import { labels } from '@/features/Vision/Profile/answers';
 type Current = { quiz_id: string; revision: number; current_step: number; status: string } | null;
 export default function Start({
   current,
@@ -47,6 +48,7 @@ export default function Start({
               {message}
             </p>
           )}
+          {current?.status === 'draft' && <div className="mt-4 max-w-md text-sm"><p>Шаг {current.current_step} из 8 · {labels[current.current_step - 1] ?? 'Анкета'} · {Math.round(current.current_step / 8 * 100)} %</p><progress className="mt-2 h-2 w-full" max={8} value={current.current_step} aria-label="Прогресс анкеты" /></div>}
           <div className="mt-5 flex flex-wrap gap-3">
             {can_edit && !profile_id && (
               <Button
@@ -96,13 +98,8 @@ export default function Start({
               );
             })}
           </div>
-        </section>
-        <section className="rounded-2xl bg-(--color-surface) p-6">
-          <h2 className="text-xl font-semibold">Что проверяем</h2>
-          <p className="mt-2 text-sm text-(--color-ink-muted)">
-            Упоминания бренда, товаров и преимуществ в ответах моделей. Тарифные значения
-            показываются после настройки.
-          </p>
+          <section className="mt-8 rounded-xl border border-(--color-border) p-4"><h2 className="font-semibold">Что проверяем</h2><p className="mt-2 text-sm text-(--color-ink-muted)">Пример набора моделей; доступные модели определяются настройками замера.</p><ul className="mt-3 flex flex-wrap gap-2 text-sm">{['ChatGPT', 'Claude', 'Gemini', 'Perplexity'].map(name => <li key={name} className="rounded-lg bg-(--color-surface-muted) px-3 py-2">{name}</li>)}</ul></section>
+          <section className="mt-4 rounded-xl border border-(--color-border) p-4"><h2 className="font-semibold">Ваш тариф</h2><p className="mt-2 text-sm text-(--color-ink-muted)">Данные о тарифе и лимитах пока недоступны.</p></section>
         </section>
       </div>
     </CabinetLayout>
