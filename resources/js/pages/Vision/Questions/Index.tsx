@@ -1,4 +1,4 @@
-import Workspace from '@/features/Vision/Questions/Workspace';
+import Workspace from './Workspace';
 export default function Index() {
   return <Workspace screen="index" />;
 }
