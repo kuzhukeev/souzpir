@@ -48,6 +48,10 @@ final class DialogReader
         if ($mode === 'mine') {
             $base->where(fn ($query) => $query->where('c.assigned_user_id', $actorId)
                 ->orWhere(fn ($waiting) => $waiting->where('c.mode', 'manager')->whereNull('c.assigned_user_id')));
+        } elseif ($mode === 'waiting') {
+            $base->where('c.mode', 'manager')->whereNull('c.assigned_user_id')->whereNotIn('c.stage', $closed);
+        } elseif ($mode === 'closed') {
+            $base->whereIn('c.stage', $closed);
         } elseif ($mode !== 'all') {
             $base->where('c.mode', $mode);
         }
@@ -68,6 +72,18 @@ final class DialogReader
         if (! empty($filters['manager'])) {
             $base->where('c.assigned_user_id', $filters['manager']);
         }
+        if (! empty($filters['outcome'])) {
+            $base->where('c.outcome', $filters['outcome']);
+        }
+        if (! empty($filters['period'])) {
+            $base->where('c.created_at', '>=', now()->subDays((int) $filters['period']));
+        }
+        if (! empty($filters['reviewed'])) {
+            $base->whereExists(fn ($query) => $query->selectRaw('1')->from('message_reviews as r')
+                ->join('messages as rm', function ($join): void {
+                    $join->on('rm.id', '=', 'r.message_id')->on('rm.brand_id', '=', 'r.brand_id')->on('rm.organization_id', '=', 'r.organization_id');
+                })->whereColumn('rm.conversation_id', 'c.id')->whereColumn('r.brand_id', 'c.brand_id')->whereColumn('r.organization_id', 'c.organization_id'));
+        }
         $page = (int) ($filters['page'] ?? 1);
         $total = (clone $base)->count();
         $pages = max(1, (int) ceil($total / 50));
@@ -82,11 +98,16 @@ final class DialogReader
         $messages = DB::table('messages')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)
             ->whereIn('conversation_id', $rows->pluck('id')->all())->orderByDesc('created_at')->orderByDesc('id')
             ->get(['id', 'conversation_id', 'role', 'text', 'meta', 'created_at'])->groupBy('conversation_id');
+        $reviewCounts = DB::table('message_reviews as r')->join('messages as m', function ($join): void {
+            $join->on('m.id', '=', 'r.message_id')->on('m.brand_id', '=', 'r.brand_id')->on('m.organization_id', '=', 'r.organization_id');
+        })->where('r.organization_id', $context->organizationId)->where('r.brand_id', $context->brandId)
+            ->whereIn('m.conversation_id', $rows->pluck('id')->all())->selectRaw('m.conversation_id, count(*) as total')->groupBy('m.conversation_id')->pluck('total', 'm.conversation_id');
         $list = $rows->map(fn ($row): array => [
             'id' => $row->id, 'name' => $row->contact_name ?: 'Гость · '.substr($row->id, -6),
             'mode' => $row->mode, 'stage' => $row->stage, 'outcome' => $row->outcome,
             'channel' => $row->channel_type ?: 'Не указан', 'last_message' => $messages->get($row->id)?->first()?->text,
             'updated_at' => $row->last_message_at ?? $row->created_at, 'assigned_user_id' => $row->assigned_user_id,
+            'review_count' => (int) ($reviewCounts[$row->id] ?? 0),
             'waiting_minutes' => ! in_array($row->stage, ['done', 'lost', 'spam'], true) && $messages->get($row->id)?->first()?->role === 'client'
                 ? max(0, (int) Carbon::parse($messages->get($row->id)->first()->created_at)->diffInMinutes(now())) : null,
         ])->all();
