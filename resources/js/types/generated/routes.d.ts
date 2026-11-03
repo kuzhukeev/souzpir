@@ -558,6 +558,12 @@ declare module 'ziggy-js' {
         }
     ],
     "seller.quality.index": [],
+    "seller.quality.disagree": [
+        {
+            "name": "evaluation",
+            "required": true
+        }
+    ],
     "seller.quality.collect": [],
     "seller.quality.recommendation": [
         {
