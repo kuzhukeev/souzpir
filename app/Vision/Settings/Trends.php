@@ -29,7 +29,24 @@ final class Trends
             }
         }
 
-        return array_reverse($result);
+        $result = array_reverse($result);
+        if (count($result) < 2) {
+            return $result;
+        }
+        $actions = DB::table('actions')->where('organization_id', $tenant->organizationId)
+            ->where('brand_id', $tenant->brandId)->whereNotNull('completed_at')
+            ->where('completed_at', '>', substr($result[0]['date'], 0, 10))
+            ->where('completed_at', '<=', substr($result[array_key_last($result)]['date'], 0, 10))
+            ->get(['title', 'completed_at']);
+        foreach ($result as $index => &$row) {
+            $row['share_change_pp'] = $index > 0 && $row['share'] !== null && $result[$index - 1]['share'] !== null
+                ? round($row['share'] - $result[$index - 1]['share'], 2) : null;
+            $row['actions'] = $index === 0 ? [] : $actions->filter(fn ($action) => substr((string) $action->completed_at, 0, 10) > substr($result[$index - 1]['date'], 0, 10)
+                && substr((string) $action->completed_at, 0, 10) <= substr($row['date'], 0, 10))->pluck('title')->values()->all();
+        }
+        unset($row);
+
+        return $result;
     }
 
     public function project(array $snapshot, string $id, string $date): array
