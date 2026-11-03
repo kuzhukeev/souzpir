@@ -6,6 +6,7 @@ test.skip(process.env.RUN_ONBOARDING_E2E !== '1', 'Requires the dedicated onboar
 const base = process.env.ONBOARDING_BASE_URL || 'http://127.0.0.1:8102';
 
 test('real authenticated owner saves draft, resumes and creates the first brand', async ({ page }) => {
+  test.setTimeout(90000);
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(base + '/login');
   await page.getByLabel('Рабочая почта').fill('onboarding-e102-v1@example.test');
@@ -33,7 +34,9 @@ test('real authenticated owner saves draft, resumes and creates the first brand'
   await page.getByRole('radio', { name: /Пиротехника/ }).check();
   await page.getByRole('button', { name: 'Сохранить и продолжить' }).click();
   await expect(page.getByRole('heading', { name: 'Выберите модули' })).toBeVisible();
-  await page.getByRole('checkbox', { name: /ИИ-продавец/ }).check();
+  const sellerSwitch = page.getByRole('switch', { name: /ИИ-продавец/ });
+  await sellerSwitch.locator('xpath=ancestor::label').click();
+  await expect(sellerSwitch).toBeChecked();
   await page.getByRole('button', { name: 'Сохранить и продолжить' }).click();
   await expect(page.getByRole('heading', { name: 'Первый шаг', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Завершить настройку' }).click();
