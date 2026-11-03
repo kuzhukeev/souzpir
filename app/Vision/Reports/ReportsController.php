@@ -5,6 +5,7 @@ namespace App\Vision\Reports;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
 use App\Tenancy\TenantContext;
+use App\Vision\Clarifications\ClarificationController;
 use App\Vision\Core\ReportPreparation;
 use App\Vision\Measurements\MeasurementList;
 use Illuminate\Http\Request;
@@ -44,7 +45,10 @@ final class ReportsController
                 abort(409, 'Отчёт недоступен.');
             }
 
-            return response()->json(['revision' => $revision, ...$data]);
+            $measurement = $data['report']['measurement_id'] ?? null;
+            $pending = is_string($measurement) ? app(ClarificationController::class)->pendingCount($context, $measurement) : 0;
+
+            return response()->json(['revision' => $revision, ...$data, 'clarifications_pending' => $pending]);
         });
     }
 
