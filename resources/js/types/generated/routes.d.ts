@@ -670,6 +670,7 @@ declare module 'ziggy-js' {
     "vision.site.pages": [],
     "vision.site.actions": [],
     "vision.site.history": [],
+    "vision.actions.effect": [],
     "vision.site.audit": [],
     "vision.actions.store": [],
     "vision.actions.update": [
@@ -684,6 +685,9 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "vision.settings.index": [],
+    "vision.settings.recipients": [],
+    "vision.settings.notifications": [],
     "vision.trends.index": [],
     "dev.design-system": [],
     "preview.login": [],
