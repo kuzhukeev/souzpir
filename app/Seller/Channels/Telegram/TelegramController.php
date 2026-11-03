@@ -22,14 +22,15 @@ final class TelegramController
         $this->authorize($context, false);
         $accounts = ChannelAccount::query()->orderBy('name')->get();
         $counts = DB::table('conversations')->where('organization_id', $context->organizationId)
-            ->where('brand_id', $context->brandId)->where('last_client_message_at', '>=', now()->subDays(7))
-            ->selectRaw('channel_account_id, count(*) as total')->groupBy('channel_account_id')->pluck('total', 'channel_account_id');
+            ->where('brand_id', $context->brandId)
+            ->selectRaw('channel_account_id, sum(case when last_client_message_at >= ? then 1 else 0 end) as total, max(last_client_message_at) as last_activity', [now()->subDays(7)])
+            ->groupBy('channel_account_id')->get()->keyBy('channel_account_id');
 
         return Inertia::render('Seller/Channels/Telegram/Index', [
             'channels' => $accounts->map(fn (ChannelAccount $account): array => [
                 'id' => $account->id, 'name' => $account->name ?: 'Telegram', 'type' => $account->type,
                 'status' => $account->status, 'mode' => $account->default_mode,
-                'dialogs7d' => (int) ($counts[$account->id] ?? 0),
+                'dialogs7d' => (int) ($counts->get($account->id)?->total ?? 0), 'lastActivity' => $counts->get($account->id)?->last_activity,
             ])->all(),
             'canManage' => Gate::allows('seller.settings.write'), 'status' => session('status'),
         ]);
