@@ -10,6 +10,7 @@
 Проверки: `CompareTest.php` — 3 теста, 63 проверки (версия, права, изоляция бренда, ошибка ввода); `tests/Browser/E7-03E/compare.spec.ts` — 1 сценарий; `npm run typecheck`; Pint; генерация типов без diff.
 
 ## Остаток
+Продолжение: SP-E7-03F.
 Создатели прогонов `app/Seller/Evaluation/FakeSimulation.php` и `RuntimeSimulation.php` пока не записывают `knowledge_release_id` в `metrics`; новые прогоны без доработки создателей получают метку старого.
 
 ## Техдолг
