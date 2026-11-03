@@ -9,6 +9,7 @@ return ['web' => static function (): void {
         Route::post('/seller/customer-duplicates/distinct', [ImportExportController::class, 'distinct'])->name('seller.customers.merge.distinct');
         Route::post('/seller/customer-duplicates', [ImportExportController::class, 'merge'])->name('seller.customers.merge.store');
         Route::get('/seller/customer-io', [ImportExportController::class, 'index'])->name('seller.customers.io');
+        Route::get('/seller/customer-io/export', [ImportExportController::class, 'export'])->name('seller.customers.io.export');
         Route::get('/seller/customer-io/template', [ImportExportController::class, 'template'])->name('seller.customers.io.template');
         Route::post('/seller/customer-io/preview', [ImportExportController::class, 'preview'])->name('seller.customers.io.preview');
         Route::post('/seller/customer-io/import', [ImportExportController::class, 'import'])->name('seller.customers.io.import');
