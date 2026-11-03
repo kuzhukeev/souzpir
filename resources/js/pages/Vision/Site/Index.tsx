@@ -151,7 +151,8 @@ export default function Index({
   auditDate = null,
   previousAudit = null,
   auditProgress = null,
-}: Props & { auditDate?: string | null; previousAudit?: Audit | null; auditProgress?: {stage:string} | null }) {
+  domainStatus = null,
+}: Props & { domainStatus?: {host:string;verified:boolean} | null; auditDate?: string | null; previousAudit?: Audit | null; auditProgress?: {stage:string} | null }) {
   const titles: Record<Props['section'], string> = {
     overview: 'Готовность сайта к ИИ-поиску',
     criteria: 'Критерии и как исправить',
@@ -223,7 +224,7 @@ export default function Index({
             <Empty>Сначала проверьте сайт.</Empty>
           ))}
         {section === 'bots' &&
-          (audit ? <BotAccess audit={audit} /> : <Empty>Сначала проверьте сайт.</Empty>)}
+          (audit ? <BotAccess audit={audit} domainStatus={domainStatus} /> : <Empty>Сначала проверьте сайт.</Empty>)}
         {section === 'pages' &&
           (audit ? <Pages audit={audit} /> : <Empty>Сначала проверьте сайт.</Empty>)}
         {section === 'actions' && (
