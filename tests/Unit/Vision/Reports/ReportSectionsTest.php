@@ -31,7 +31,7 @@ final class ReportSectionsTest extends TestCase
         self::assertSame([['text' => 'Первый вопрос', 'intent' => 'choose']], $sections['gaps']);
         self::assertCount(1, $sections['facts']);
         self::assertSame('Ошибка', $sections['facts'][0]['text']);
-        self::assertSame([['domain' => 'example.test', 'answers' => 2]], $sections['sources']);
+        self::assertSame([['domain' => 'example.test', 'answers' => 2, 'type' => null, 'presence' => null]], $sections['sources']);
         self::assertSame('Бренд', $sections['competitors'][0]['name']);
         self::assertSame('Обновить данные', $sections['actions'][0]['title']);
     }
