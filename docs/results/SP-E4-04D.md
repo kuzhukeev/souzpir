@@ -2,7 +2,7 @@
 # SP-E4-04D — частичная сдача
 - Первый защищённый fake-ход записывает intent, goal_kind и guard во входящее и исходящее сообщения.
 - Частота и вопросы считают сообщения клиента; процент «не знаю» считает ответы с unknown_fact или указанным fallback. Плашка версии и удаление факта из чипа добавлены.
-- Проверки: 2 Feature-теста, 38 проверок, 2 предупреждения окружения; Playwright E4-04D — 1 тест; TypeScript, Pint и генерация типов — успешно.
+- Проверки: 2 Feature-теста, 38 проверок, 2 предупреждения окружения; Playwright E4-04D — 1 тест, Vite запускается и останавливается внутри теста; TypeScript, Pint и генерация типов — успешно.
 - D-4.6: .local/screenshots/sp-e4-04d/topics.png; макет C:/OSPanel/home/tasks.local/completed/54/5353373b-D-4.6-topics.png.
 - D-4.7: .local/screenshots/sp-e4-04d/topic.png; макет C:/OSPanel/home/tasks.local/completed/55/a362bbb1-D-4.7-topic.png.
 ## Остаток
