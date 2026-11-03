@@ -49,7 +49,14 @@ final class QualityController
     public function index(Request $request): mixed
     {
         [$rows, $reports] = $this->access($request, fn (TenantContext $tenant) => [$this->rows($tenant), $this->reports($tenant)]);
-        $group = fn ($data) => $data->groupBy('day')->map(fn ($items, $day) => ['day' => $day, 'count' => $items->count(), 'average' => round($items->avg('average'), 2), 'issues' => $items->sum(fn ($row) => count($row['issues']))])->values();
+        $group = fn ($data) => $data->groupBy('day')->map(function ($items, $day) {
+            $issues = $items->flatMap(fn ($row) => $row['issues']);
+
+            return ['day' => $day, 'count' => $items->count(), 'average' => round($items->avg('average'), 2),
+                'issues' => $issues->count(), 'withIssues' => $items->filter(fn ($row) => count($row['issues']) > 0)->count(),
+                'high' => $issues->where('severity', 'high')->count(), 'medium' => $issues->where('severity', 'medium')->count(),
+                'topIssues' => $issues->countBy('type')->sortDesc()->take(3)->keys()->values()->all()];
+        })->values();
 
         return Inertia::render('Seller/Quality/Index', ['days' => $group($rows), 'reportDays' => $group($reports)]);
     }
