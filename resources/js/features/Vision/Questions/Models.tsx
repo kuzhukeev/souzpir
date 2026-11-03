@@ -5,7 +5,9 @@ export function Models({
   models,
   selected,
   onChange,
+  limit,
 }: {
+  limit?: string | null;
   models: Model[];
   selected: Record<string, string>;
   onChange: (models: Record<string, string>) => void;
@@ -14,7 +16,7 @@ export function Models({
     <fieldset className={card}>
       <legend className="sr-only">Модели</legend>
       <h2 className="text-xl font-bold">Модели</h2>
-      <p className="mt-2 text-sm text-(--color-ink-muted)">Выберите доступные модели для набора.</p>
+      <p className="mt-2 text-sm text-(--color-ink-muted)">Выбрано: {Object.keys(selected).length} из {limit ?? "без ограничения"}.</p>
       <div className="mt-4 space-y-3">
         {models.map((model) => (
           <label
