@@ -5,6 +5,7 @@ namespace App\Vision\Settings;
 use App\Ai\CanonicalJson;
 use App\Tenancy\TenantContext;
 use App\Vision\Core\VisionReportReader;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 final class Trends
@@ -29,7 +30,29 @@ final class Trends
             }
         }
 
-        return array_reverse($result);
+        return $this->withActions($tenant, array_reverse($result));
+    }
+
+    public function withActions(TenantContext $tenant, array $result): array
+    {
+        if (count($result) < 2) {
+            return $result;
+        }
+        $actions = DB::table('actions')->where('organization_id', $tenant->organizationId)
+            ->where('brand_id', $tenant->brandId)->whereNotNull('completed_at')
+            ->where('updated_at', '>', $result[0]['date'])
+            ->where('updated_at', '<=', $result[array_key_last($result)]['date'])
+            ->orderBy('updated_at')
+            ->get(['title', 'updated_at']);
+        foreach ($result as $index => &$row) {
+            $row['share_change_pp'] = $index > 0 && $row['share'] !== null && $result[$index - 1]['share'] !== null
+                ? round($row['share'] - $result[$index - 1]['share'], 2) : null;
+            $row['actions'] = $index === 0 ? [] : $actions->filter(fn ($action) => Carbon::parse($action->updated_at)->greaterThan(Carbon::parse($result[$index - 1]['date']))
+                && Carbon::parse($action->updated_at)->lessThanOrEqualTo(Carbon::parse($row['date'])))->pluck('title')->values()->all();
+        }
+        unset($row);
+
+        return $result;
     }
 
     public function project(array $snapshot, string $id, string $date): array
