@@ -691,6 +691,18 @@ declare module 'ziggy-js' {
     "vision.questions.approve": [],
     "vision.measurements.index": [],
     "vision.measurements.data": [],
+    "vision.measurements.answers": [
+        {
+            "name": "measurement",
+            "required": true
+        }
+    ],
+    "vision.measurements.answers.data": [
+        {
+            "name": "measurement",
+            "required": true
+        }
+    ],
     "vision.measurements.revision": [],
     "vision.measurements.schedule": [],
     "vision.measurements.start": [],
