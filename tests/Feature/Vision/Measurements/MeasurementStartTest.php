@@ -9,6 +9,7 @@ use App\Vision\Core\QuestionSets;
 use App\Vision\KnowledgeGrants\GrantRegistry;
 use App\Vision\Measurements\MeasurementSchedule;
 use App\Vision\Measurements\RunMeasurement;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
@@ -140,5 +141,19 @@ final class MeasurementStartTest extends TenancyTestCase
         $this->withHeaders(['X-Brand-Id' => $brand->id, 'X-Brand-Revision' => $revision])
             ->put('/vision/runs/schedule', $input)->assertNotFound();
         $this->assertDatabaseCount('monitoring_schedules', 0);
+    }
+
+    public function test_monthly_schedule_moves_to_first_selected_weekday_of_next_month(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-11-03 12:00:00', 'Europe/Moscow'));
+        [$owner, $organization, $brand, , $membership] = $this->cabinet();
+        $this->prepare($owner, $organization, $brand, $membership);
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $revision = $this->get('/vision/runs')->assertOk()->inertiaProps('measurementBrandRevision');
+        $this->withHeaders(['X-Brand-Id' => $brand->id, 'X-Brand-Revision' => $revision])
+            ->put('/vision/runs/schedule', ['enabled' => true, 'frequency' => 'monthly', 'weekday' => 1,
+                'local_time' => '09:00', 'models' => ['google/gemini-2.5-flash']])->assertRedirect();
+        $next = DB::table('monitoring_schedules')->where('brand_id', $brand->id)->value('next_run_at');
+        self::assertSame('2026-12-07 06:00:00', CarbonImmutable::parse($next)->utc()->format('Y-m-d H:i:s'));
     }
 }

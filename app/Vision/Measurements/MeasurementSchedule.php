@@ -118,11 +118,16 @@ final class MeasurementSchedule
         $now = CarbonImmutable::now($timezone);
         $candidate = $frequency === 'monthly' ? $now->startOfMonth() : $now->startOfDay();
         $candidate = $candidate->setTimeFromTimeString($time);
-        while ($candidate->dayOfWeekIso !== $weekday || $candidate->lessThanOrEqualTo($now)) {
+        while ($candidate->dayOfWeekIso !== $weekday) {
             $candidate = $candidate->addDay();
-            if ($frequency === 'monthly' && $candidate->month !== $now->month) {
-                $candidate = $candidate->startOfMonth()->setTimeFromTimeString($time);
+        }
+        if ($frequency === 'monthly' && $candidate->lessThanOrEqualTo($now)) {
+            $candidate = $candidate->addMonthNoOverflow()->startOfMonth()->setTimeFromTimeString($time);
+            while ($candidate->dayOfWeekIso !== $weekday) {
+                $candidate = $candidate->addDay();
             }
+        } elseif ($frequency !== 'monthly' && $candidate->lessThanOrEqualTo($now)) {
+            $candidate = $candidate->addWeek();
         }
 
         return $candidate;
