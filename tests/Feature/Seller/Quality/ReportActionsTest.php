@@ -19,7 +19,7 @@ final class ReportActionsTest extends TenancyTestCase
                 'scores' => json_encode(['naturalness' => 4, 'goal' => 4, 'facts' => 4, 'objections' => 4, 'brevity' => 4]), 'issues' => json_encode([['type' => 'unknown_fact', 'layer' => 'knowledge', 'severity' => 'medium', 'turn' => 1, 'quote' => 'Цена?', 'explanation' => 'Нет факта', 'fix' => 'Добавить цену']], JSON_UNESCAPED_UNICODE),
                 'average' => 4, 'created_at' => now(), 'updated_at' => now()]);
         }
-        $day = now($brand->timezone ?: 'UTC')->toDateString();
+        $day = now(DB::table('brands')->where('id', $brand->id)->value('timezone') ?: 'UTC')->toDateString();
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
         $this->post('/seller/quality/collect')->assertRedirect('/seller/quality/'.$day)->assertSessionHasNoErrors();
         $this->assertDatabaseHas('seller_supervisor_reports', ['organization_id' => $org->id, 'brand_id' => $brand->id, 'report_date' => $day]);
