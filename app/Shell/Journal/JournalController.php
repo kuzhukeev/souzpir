@@ -102,6 +102,17 @@ final class JournalController
         Gate::authorize('journal.read');
         $filters = $this->filters($request);
         $rows = $this->auditQuery($filters)->paginate(30)->withQueryString();
+        $context = app(TenantContext::class);
+        $registry = app(JournalObjectRegistry::class);
+        $rows->through(function (object $row) use ($context, $registry): object {
+            $object = $registry->describe($row, $context);
+            $row->subject_name = $object['name'];
+            $row->subject_url = $object['url'];
+            $row->module_name = $registry->module($row->action);
+            $row->action_label = $registry->action($row->action);
+
+            return $row;
+        });
         $actors = $this->auditQuery([])->reorder()->whereNotNull('a.actor_id')->select('a.actor_id as id', 'u.name')->distinct()->orderBy('u.name')->get();
         $actions = $this->auditQuery([])->reorder()->select('a.action')->distinct()->orderBy('a.action')->pluck('action');
 
@@ -113,13 +124,17 @@ final class JournalController
         Gate::authorize('journal.read');
         $query = $this->auditQuery($this->filters($request));
 
-        return response()->streamDownload(function () use ($query): void {
+        $context = app(TenantContext::class);
+
+        return response()->streamDownload(function () use ($query, $context): void {
             $out = fopen('php://output', 'wb');
             fwrite($out, "\xEF\xBB\xBF");
-            fputcsv($out, ['Время', 'Участник', 'Действие', 'Тип объекта', 'Объект', 'Бренд'], ';', '"', '');
+            fputcsv($out, ['Время', 'Участник', 'Действие', 'Тип объекта', 'Объект', 'Бренд', 'Модуль'], ';', '"', '');
+            $registry = app(JournalObjectRegistry::class);
             foreach ($query->cursor() as $row) {
                 $safe = fn ($value) => $this->csvCell((string) ($value ?? ''));
-                fputcsv($out, [$safe($row->created_at), $safe($row->actor), $safe($row->action), $safe($row->subject_type), $safe($row->subject_id), $safe($row->brand_id)], ';', '"', '');
+                $object = $registry->describe($row, $context);
+                fputcsv($out, [$safe($row->created_at), $safe($row->actor), $safe($registry->action($row->action)), $safe($row->subject_type), $safe($object['name']), $safe($row->brand_id), $safe($registry->module($row->action))], ';', '"', '');
             }
             fclose($out);
         }, 'journal.csv', ['Content-Type' => 'text/csv; charset=UTF-8', 'Cache-Control' => 'private, no-store']);
