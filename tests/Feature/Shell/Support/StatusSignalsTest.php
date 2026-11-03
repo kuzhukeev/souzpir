@@ -34,6 +34,9 @@ final class StatusSignalsTest extends SupportTestCase
         $this->get('/help/status')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('status.components.2.status', 'operational')->where('status.components.4.status', 'degraded')
             ->where('status.providers.items.0.status', 'degraded')->where('status.incidents.available', true)->has('status.incidents.data', 2));
+        DB::table('channel_inbound_events')->where('channel_account_id', $channel)->update(['processed_at' => null]);
+        $this->get('/help/status')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('status.components.2.status', 'unknown')->where('status.components.2.message', 'Последнее входящее событие ожидает обработки.'));
         $this->signIn($owner, $other);
         $this->get('/help/status')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('status.components.2.status', 'unknown')->where('status.components.4.status', 'unknown')

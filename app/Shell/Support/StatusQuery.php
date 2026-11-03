@@ -87,7 +87,7 @@ final class StatusQuery
             if ($event) {
                 $stalled = $event->processed_at === null && CarbonImmutable::parse($event->created_at)->lt(now()->subMinutes(5));
                 $components[$type] = ['status' => $stalled ? 'degraded' : ($event->processed_at ? 'operational' : 'unknown'),
-                    'message' => $stalled ? 'Последнее входящее событие не обработано.' : 'Последнее входящее событие обработано.',
+                    'message' => $stalled ? 'Последнее входящее событие не обработано.' : ($event->processed_at ? 'Последнее входящее событие обработано.' : 'Последнее входящее событие ожидает обработки.'),
                     'source' => 'channel_event', 'checked_at' => $event->processed_at ?? $event->created_at];
                 if ($stalled) {
                     $incidents[] = ['id' => $event->id, 'title' => 'Не обработано событие канала '.($type === 'widget' ? 'Виджет' : 'Telegram'), 'occurred_at' => $event->created_at];
