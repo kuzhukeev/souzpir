@@ -17,6 +17,6 @@ test('карточка набора показывает пример данны
   await expect(page.getByText('Вопрос: Как выбрать услуги?')).toBeVisible();
   await page.screenshot({ path: '.local/screenshots/e8-15b/active.png', fullPage: true });
   await page.goto(`${fixture}?screen=history`);
-  await expect(page.getByText('Замеры: № 12, № 13')).toBeVisible();
+  await expect(page.getByRole('cell', { name: '№ 12, № 13' })).toBeVisible();
   await page.screenshot({ path: '.local/screenshots/e8-15b/history.png', fullPage: true });
 });
