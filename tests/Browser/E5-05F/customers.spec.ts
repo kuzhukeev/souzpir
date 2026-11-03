@@ -1,7 +1,14 @@
 import { expect, test } from '@playwright/test';
+import { createServer, type ViteDevServer } from 'vite';
 
 const base = 'http://127.0.0.1:5241/tests/Browser/E5-05F/fixture.html';
 test.use({ launchOptions: { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH } });
+let vite: ViteDevServer;
+test.beforeAll(async () => {
+  vite = await createServer({ configFile: 'tests/Browser/E5-05F/vite.config.ts', server: { host: '127.0.0.1', port: 5241, strictPort: true } });
+  await vite.listen();
+});
+test.afterAll(async () => { await vite?.close(); });
 
 test('customer list, card, and task screens show the missing fields', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
