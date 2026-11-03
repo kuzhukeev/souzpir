@@ -205,6 +205,22 @@ final class ReleasesController
         return back()->with('status', 'Знания опубликованы.');
     }
 
+    public function backup(Request $request, string $release): mixed
+    {
+        $data = $this->access($request, 'seller.knowledge.write', function (User $user, TenantContext $tenant) use ($release): array {
+            $repository = app(KnowledgeRepository::class);
+            $editor = $repository->draftEditor($tenant, $release);
+            $snapshot = $repository->forRelease($tenant, $release, true)->toArray();
+
+            return ['format' => 'souzpir-knowledge-draft-v1', 'release_id' => $editor['id'], 'version' => $editor['version'],
+                'snapshot' => $snapshot, 'fact_metadata' => $editor['groups']];
+        });
+
+        return response()->streamDownload(function () use ($data): void {
+            echo json_encode($data, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+        }, 'knowledge-draft-'.$release.'.json', ['Content-Type' => 'application/json; charset=UTF-8', 'Cache-Control' => 'private, no-store']);
+    }
+
     public function rollback(Request $request, string $release): mixed
     {
         $this->access($request, 'seller.knowledge.write', function (User $user, TenantContext $tenant) use ($release): void {

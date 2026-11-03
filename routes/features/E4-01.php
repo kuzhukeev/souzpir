@@ -11,6 +11,7 @@ return ['web' => static function (): void {
         Route::get('/seller/knowledge/runs/{run}', [ReleasesController::class, 'scenarioRun'])->whereUlid('run')->name('seller.knowledge.scenario-run');
         Route::post('/seller/knowledge/draft', [ReleasesController::class, 'draft'])->name('seller.knowledge.draft');
         Route::post('/seller/knowledge/incoming', [IncomingController::class, 'handle'])->name('seller.knowledge.incoming');
+        Route::get('/seller/knowledge/{release}/backup', [ReleasesController::class, 'backup'])->whereUlid('release')->name('seller.knowledge.backup');
         Route::post('/seller/knowledge/{release}/scenarios', [ReleasesController::class, 'runScenarios'])->whereUlid('release')->name('seller.knowledge.scenarios');
         Route::post('/seller/knowledge/{release}/publish', [ReleasesController::class, 'publish'])->whereUlid('release')->name('seller.knowledge.publish');
         Route::post('/seller/knowledge/{release}/rollback', [ReleasesController::class, 'rollback'])->whereUlid('release')->name('seller.knowledge.rollback');
