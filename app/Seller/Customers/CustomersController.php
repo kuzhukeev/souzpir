@@ -56,7 +56,7 @@ final class CustomersController
                 $state = $conversation ? json_decode($conversation->state, true) : [];
                 $outcomes = $this->scope('conversations', $tenant)->where('contact_id', $contact->id)->whereNotNull('outcome')->pluck('outcome')->all();
                 $bestOutcome = collect(['full_contact', 'handoff', 'partial_contact', 'paused', 'stale', 'declined', 'spam'])->first(fn ($value) => in_array($value, $outcomes, true));
-                $tasks = $this->scope('seller_tasks', $tenant)->where(fn ($query) => $query->where('contact_id', $contact->id)->orWhereIn('conversation_id', $this->scope('conversations', $tenant)->where('contact_id', $contact->id)->select('id')))->where('status', 'new')->count();
+                $tasks = $this->scope('seller_tasks', $tenant)->where(fn ($query) => $query->where('contact_id', $contact->id)->orWhereIn('conversation_id', $this->scope('conversations', $tenant)->where('contact_id', $contact->id)->select('id')))->whereIn('status', ['new', 'in_progress'])->count();
                 $manager = $conversation?->assigned_user_id ? DB::table('users')->where('id', $conversation->assigned_user_id)->value('name') : null;
                 $channel = $conversation?->channel_account_id ? $this->scope('channel_accounts', $tenant)->where('id', $conversation->channel_account_id)->value('type') : null;
 
@@ -199,17 +199,31 @@ final class CustomersController
 
     public function tasks(Request $request): mixed
     {
-        $filters = $request->validate(['mine' => ['nullable', 'in:1'], 'overdue' => ['nullable', 'in:1']]);
+        $filters = $request->validate(['mine' => ['nullable', 'in:1'], 'overdue' => ['nullable', 'in:1'], 'urgent' => ['nullable', 'in:1'], 'type' => ['nullable', 'in:handoff,promise,reminder,unknown_question,note,send_price,send_requisites,stale']]);
         $data = $this->access($request, 'seller.dialogues.operate', function (User $user, TenantContext $tenant) use ($filters): array {
             $query = $this->scope('seller_tasks', $tenant);
             if (! empty($filters['mine'])) {
                 $query->where('assigned_user_id', $user->id);
             }
             if (! empty($filters['overdue'])) {
-                $query->where('due_at', '<', now())->where('status', 'new');
+                $query->where('due_at', '<', now())->whereIn('status', ['new', 'in_progress']);
             }
-            $tasks = $query->orderByRaw('CASE WHEN due_at < CURRENT_TIMESTAMP AND status = ? THEN 0 ELSE 1 END', ['new'])->orderBy('due_at')->orderByDesc('created_at')->get(['id', 'conversation_id', 'type', 'payload', 'due_at', 'status', 'priority', 'assigned_user_id'])->map(function ($task) {
-                $task->overdue = $task->due_at !== null && $task->status === 'new' && Carbon::parse($task->due_at)->isPast();
+            if (! empty($filters['urgent'])) {
+                $query->where('priority', 'urgent');
+            }
+            if (! empty($filters['type'])) {
+                $query->where('type', $filters['type']);
+            }
+            $member = Membership::withoutGlobalScopes()->where('organization_id', $tenant->organizationId)->where('user_id', $user->id)->where('status', 'active')->first();
+            $manager = $member?->role === 'member' && ($member->settings['sales_manager'] ?? false);
+            $canReadDialogs = Gate::forUser($user)->allows('seller.dialogs.read');
+            $tasks = $query->orderByRaw("CASE WHEN due_at < CURRENT_TIMESTAMP AND status IN ('new', 'in_progress') THEN 0 ELSE 1 END")->orderBy('due_at')->orderByDesc('created_at')->get(['id', 'conversation_id', 'type', 'payload', 'due_at', 'status', 'priority', 'assigned_user_id'])->map(function ($task) use ($tenant, $user, $manager, $canReadDialogs) {
+                $task->overdue = $task->due_at !== null && in_array($task->status, ['new', 'in_progress'], true) && Carbon::parse($task->due_at)->isPast();
+                $dialog = $task->conversation_id && $canReadDialogs ? $this->scope('conversations', $tenant)->where('id', $task->conversation_id)->first(['id', 'mode', 'assigned_user_id']) : null;
+                $visible = $dialog && (! $manager || $dialog->assigned_user_id === $user->id || ($dialog->mode === 'manager' && $dialog->assigned_user_id === null));
+                $task->assignee_name = $task->assigned_user_id ? DB::table('users')->where('id', $task->assigned_user_id)->value('name') : null;
+                $task->can_read_dialog = (bool) $visible;
+                $task->messages = $visible ? $this->scope('messages', $tenant)->where('conversation_id', $dialog->id)->orderByDesc('created_at')->orderByDesc('id')->limit(3)->get(['role', 'text', 'created_at'])->reverse()->values() : [];
 
                 return $task;
             });
@@ -222,7 +236,7 @@ final class CustomersController
 
     public function updateTask(Request $request, string $task): mixed
     {
-        $input = $request->validate(['status' => ['required', 'in:new,done,cancelled']]);
+        $input = $request->validate(['status' => ['required', 'in:new,in_progress,done,cancelled']]);
         $this->access($request, 'seller.dialogues.operate', function (User $user, TenantContext $tenant) use ($task, $input): void {
             $row = $this->scope('seller_tasks', $tenant)->where('id', $task)->first() ?? abort(404);
             $this->scope('seller_tasks', $tenant)->where('id', $task)->update(['status' => $input['status'], 'updated_at' => now()]);

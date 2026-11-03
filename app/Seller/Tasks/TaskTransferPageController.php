@@ -23,7 +23,7 @@ final class TaskTransferPageController
             abort_unless(app(SellerModuleAccess::class)->enabled($context->organizationId, $context->brandId), 404);
             $tasks = DB::table('seller_tasks')->join('users', 'users.id', '=', 'seller_tasks.assigned_user_id')
                 ->where('seller_tasks.organization_id', $context->organizationId)
-                ->where('seller_tasks.brand_id', $context->brandId)->where('seller_tasks.status', 'new')
+                ->where('seller_tasks.brand_id', $context->brandId)->whereIn('seller_tasks.status', ['new', 'in_progress'])
                 ->orderByDesc('seller_tasks.created_at')->get(['seller_tasks.id', 'seller_tasks.type', 'seller_tasks.assigned_user_id', 'users.name as assignee']);
             $members = Membership::withoutGlobalScopes()->with('user')->where('organization_id', $context->organizationId)
                 ->where('status', 'active')->get();
