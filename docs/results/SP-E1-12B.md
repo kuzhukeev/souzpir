@@ -3,7 +3,7 @@
 # SP-E1-12B
 
 Убран несуществующий пункт «Сценарий»; добавлены ссылки на условия, образцы, режим, распределение и уведомления. На статусе выделены реальные проверки, недоступный мониторинг, демонстрационный бейдж и ERR_LOAD.
-Проверки: NavigationStatusE112BTest — 2 теста, 36 утверждений (предупреждение об отсутствующем .env); Chromium — 4 сценария, включая loading/error; ESLint, TypeScript и Pint.
+Проверки: NavigationStatusE112BTest — 2 теста, 36 утверждений (предупреждение об отсутствующем .env); Chromium — 4 сценария, включая loading/error; ESLint, TypeScript и Pint. После возврата CI перегенерирован translations.ts, GeneratedTypesTest — 2 проверки прошли.
 
 Сверка экранов (скриншоты fixture, светлая тема 1440; макеты в `.local/references` по индексу):
 - `.local/screenshots/e1-12b/releases.png` ↔ журнал [49], `49/15-D-4.1-knowledge.webp`.
