@@ -50,6 +50,8 @@ CI_SCOPE_EXCEPTIONS = {
     "SP-E3-09": (
         "app/ProtectedOperations/FirstTurnCoordinator.php",
         "app/ProtectedOperations/FirstTurnTextFinalizer.php",
+        "app/ProtectedOperations/FirstTurnProtectedClaim.php",
+        "app/ProtectedOperations/FirstTurnDeterministicGuard.php",
         "app/Ai/Protected/",
         "database/migrations/C-02/",
         "database/migrations/E3-09/",
