@@ -35,6 +35,7 @@ function QuizBody({ quiz, step, brand, limits, hints, savedAt = null, errors = {
   const [data, setData] = useState<Questionnaire>(() => readAnswers(quiz.answers, brand));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [submitted, setSubmitted] = useState(false);
   const [initial] = useState(() => JSON.stringify(readAnswers(quiz.answers, brand)));
   const dirty = JSON.stringify(data) !== initial;
   const leaveAllowedRef = useDirtyGuard(dirty);
@@ -62,13 +63,16 @@ function QuizBody({ quiz, step, brand, limits, hints, savedAt = null, errors = {
         quiz_id: quiz.id,
         revision: quiz.revision,
       });
+      if (redirect !== '/vision/profile') throw new Error('Сервер вернул неожиданный адрес профиля.');
       leaveAllowedRef.current = true;
-      window.location.assign(redirect);
+      setSubmitted(true);
+      setBusy(false);
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Не удалось отправить анкету.');
       setBusy(false);
     }
   };
+  if (submitted) return <CabinetLayout breadcrumbs={[{label:'Видение',href:'/vision'},{label:'Анкета'}]}><section className="rounded-xl bg-(--color-surface) p-6" role="status"><h1 className="text-3xl font-bold">Анкета отправлена</h1><p className="mt-3 text-sm text-(--color-ink-muted)">Профиль бренда сохранён. Что будет дальше: подготовьте вопросы и настройте замер.</p><Link href="/vision/profile" className="mt-4 inline-flex min-h-11 cursor-pointer items-center rounded-lg bg-(--color-action) px-4 text-sm font-semibold text-white">Открыть профиль</Link></section></CabinetLayout>;
   return (
     <CabinetLayout breadcrumbs={[{ label: 'Видение', href: '/vision' }, { label: 'Анкета' }]}>
       <div className="space-y-5">
@@ -109,7 +113,7 @@ function QuizBody({ quiz, step, brand, limits, hints, savedAt = null, errors = {
           </nav>
           <main className="min-w-0 rounded-xl bg-(--color-surface) p-5 md:p-6">
             {step < 8 ? (
-              <><QuestionnaireFields
+              <>{[3,4,5,7].includes(step) && <aside className="mb-5 rounded-lg bg-(--color-surface-muted) p-4 text-sm"><h2 className="font-semibold">{({3:'Подсказки с сайта',4:'Подсказки о конкурентах',5:'Что найдено на сайте',7:'Подсказки по вашей сфере'} as Record<number,string>)[step]}</h2><p className="mt-2 text-(--color-ink-muted)">Подтверждённых подсказок пока нет. Заполните поля самостоятельно.</p><Link href={`/vision/quiz/${step}`} className="mt-2 inline-block cursor-pointer text-(--color-link) underline">Обновить подсказки</Link></aside>}<QuestionnaireFields
                 key={step}
                 step={step}
                 hints={(hints?.items ?? []).map((item) => ({
