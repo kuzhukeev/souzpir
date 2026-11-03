@@ -23,14 +23,22 @@ export default function Index({ dialogs, dialog, filters }: Props) {
   const [reviewNote, setReviewNote] = useState('');
   const [betterText, setBetterText] = useState('');
   const [reviewSaved, setReviewSaved] = useState(false);
+  const [previousDialogId, setPreviousDialogId] = useState(dialog?.id);
+  const [previousBrandId, setPreviousBrandId] = useState(brand?.id);
+  if (previousDialogId !== dialog?.id || previousBrandId !== brand?.id) {
+    setPreviousDialogId(dialog?.id);
+    setReviewMessage(null); setReviewNote(''); setBetterText(''); setReviewSaved(false);
+  }
+  if (previousBrandId !== brand?.id) {
+    setPreviousBrandId(brand?.id);
+    setSearch(filters.search); setCardOpen(false); setError('');
+  }
   useEffect(() => {
     const timer = window.setInterval(() => {
       if (document.visibilityState === 'visible') router.reload({ only: ['dialogs', 'dialog'] });
     }, 15000);
     return () => window.clearInterval(timer);
   }, []);
-  useEffect(() => { setReviewMessage(null); setReviewNote(''); setBetterText(''); setReviewSaved(false); }, [dialog?.id, brand?.id]);
-  useEffect(() => { setSearch(filters.search); setCardOpen(false); setError(''); }, [brand?.id]);
   const saveReview = (event: FormEvent) => {
     event.preventDefault();
     if (!dialog || !reviewMessage) return;
