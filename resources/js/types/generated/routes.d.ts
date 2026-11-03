@@ -208,6 +208,7 @@ declare module 'ziggy-js' {
     "billing.plans": [],
     "billing.invoices": [],
     "billing.payer": [],
+    "billing.usage.export": [],
     "billing.payer.data": [],
     "billing.payer.update": [],
     "billing.plans.request": [],
