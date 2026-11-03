@@ -1,5 +1,5 @@
 import { Head, router, usePage } from '@inertiajs/react';
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import CabinetLayout from '@/layouts/CabinetLayout';
 
 type Item = { id: string; name: string; mode: string; stage: string; outcome: string | null; channel: string; last_message: string | null; updated_at: string; assigned_user_id: string | null };
@@ -13,11 +13,35 @@ const metaNames: Record<string, string> = { intent: 'Тема', goal: 'Цель'
 const date = (value: string) => new Date(value).toLocaleString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 
 export default function Index({ dialogs, dialog, filters }: Props) {
-  const { can } = usePage<{ can: Record<string, boolean> }>().props;
+  const { can, brand } = usePage<{ can: Record<string, boolean>; brand: { id: string } | null }>().props;
   const [search, setSearch] = useState(filters.search);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
   const [cardOpen, setCardOpen] = useState(false);
+  const [reviewMessage, setReviewMessage] = useState<string | null>(null);
+  const [reviewType, setReviewType] = useState('unclear');
+  const [reviewNote, setReviewNote] = useState('');
+  const [betterText, setBetterText] = useState('');
+  const [reviewSaved, setReviewSaved] = useState(false);
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') router.reload({ only: ['dialogs', 'dialog'] });
+    }, 15000);
+    return () => window.clearInterval(timer);
+  }, []);
+  useEffect(() => { setReviewMessage(null); setReviewNote(''); setBetterText(''); setReviewSaved(false); }, [dialog?.id, brand?.id]);
+  useEffect(() => { setSearch(filters.search); setCardOpen(false); setError(''); }, [brand?.id]);
+  const saveReview = (event: FormEvent) => {
+    event.preventDefault();
+    if (!dialog || !reviewMessage) return;
+    setPending(true); setError('');
+    router.post('/seller/dialogs/' + dialog.id + '/messages/' + reviewMessage + '/reviews', { type: reviewType, note: reviewNote, better_text: betterText }, {
+      preserveScroll: true,
+      onSuccess: () => { setReviewMessage(null); setReviewNote(''); setBetterText(''); setReviewSaved(true); },
+      onError: () => setError('Не удалось сохранить пометку. Проверьте введённые данные.'),
+      onFinish: () => setPending(false),
+    });
+  };
   const filter = (mode: string, query = search) => {
     setPending(true);
     setError('');
@@ -66,8 +90,16 @@ export default function Index({ dialogs, dialog, filters }: Props) {
             <div className="min-w-0"><a href="/seller/dialogs" className="mb-2 inline-block cursor-pointer text-sm text-(--color-action) lg:hidden">← К списку</a><h2 className="truncate text-xl font-semibold">{dialog.name}</h2><p className="mt-1 text-sm text-(--color-ink-muted)">{dialog.channel} · {dialog.stage}{dialog.outcome ? ` · ${dialog.outcome}` : ''}</p></div>
             <div className="flex flex-wrap gap-2">{can['seller.dialogues.operate'] && <>{dialog.mode !== 'manager' || !dialog.assigned_user_id ? <button type="button" disabled={pending} onClick={() => changeMode('take')} className="cursor-pointer rounded-lg bg-(--color-action) px-3 py-2 text-sm text-white disabled:opacity-50">Забрать себе</button> : <button type="button" disabled={pending} onClick={() => changeMode('return')} className="cursor-pointer rounded-lg border border-(--color-border) px-3 py-2 text-sm disabled:opacity-50">Вернуть боту</button>}</>}<button type="button" onClick={() => setCardOpen(true)} className="cursor-pointer rounded-lg border border-(--color-border) px-3 py-2 text-sm xl:hidden">Карточка клиента</button></div>
           </header>
+          {reviewSaved && <p role="status" className="px-4 pt-4 text-sm">Пометка сохранена.</p>}
           <ol className="space-y-4 p-4 md:p-6" aria-label="Сообщения">{dialog.messages.length === 0 ? <li className="text-sm text-(--color-ink-muted)">Сообщений пока нет.</li> : dialog.messages.map((message) => <li key={message.id} className={`max-w-[90%] rounded-xl p-4 text-sm ${message.role === 'client' ? 'border border-(--color-border) bg-(--color-surface-muted)' : message.role === 'system' ? 'mx-auto bg-(--color-surface-muted) text-center' : 'ml-auto bg-(--color-action) text-white'}`}>
             <div className="mb-1 flex flex-wrap gap-2 text-xs opacity-80"><strong>{roleNames[message.role] || message.role}</strong><time>{date(message.created_at)}</time></div><p className="whitespace-pre-wrap break-words">{message.text}</p>
+            {message.role === 'agent' && can['seller.dialogues.operate'] && <button type="button" onClick={() => { setReviewMessage(message.id); setReviewSaved(false); }} className="mt-2 cursor-pointer underline">Пометить</button>}
+            {reviewMessage === message.id && <form onSubmit={saveReview} className="mt-3 space-y-2 rounded-lg bg-(--color-surface) p-3 text-(--color-ink)">
+              <label className="block">Причина<select value={reviewType} onChange={(event) => setReviewType(event.target.value)} className="mt-1 block w-full cursor-pointer rounded-lg border border-(--color-border) bg-(--color-surface) p-2"><option value="unclear">Непонятно</option><option value="bureaucratic">Канцелярит</option><option value="too_long">Слишком длинно</option><option value="wrong_fact">Неверный факт</option><option value="wrong_tone">Неверный тон</option><option value="other">Другое</option></select></label>
+              <label className="block">Комментарий<textarea maxLength={2000} value={reviewNote} onChange={(event) => setReviewNote(event.target.value)} className="mt-1 block w-full rounded-lg border border-(--color-border) bg-(--color-surface) p-2" /></label>
+              <label className="block">Как лучше ответить<textarea maxLength={5000} value={betterText} onChange={(event) => setBetterText(event.target.value)} className="mt-1 block w-full rounded-lg border border-(--color-border) bg-(--color-surface) p-2" /></label>
+              <button disabled={pending} className="cursor-pointer rounded-lg bg-(--color-action) px-3 py-2 text-white disabled:opacity-50">Сохранить</button> <button type="button" onClick={() => setReviewMessage(null)} className="cursor-pointer px-3 py-2">Отмена</button>
+            </form>}
             {message.role === 'agent' && Object.values(message.meta).some(Boolean) && <details className="mt-2 cursor-pointer text-xs"><summary>Подробности хода</summary><dl className="mt-2 space-y-1">{Object.entries(message.meta).filter(([, value]) => value).map(([key, value]) => <div key={key}><dt className="inline font-semibold">{metaNames[key] || key}: </dt><dd className="inline">{value}</dd></div>)}</dl></details>}
           </li>)}</ol>
           <div className="border-t border-(--color-border) p-4 text-sm text-(--color-ink-muted)">Ответ менеджера и подсказки появятся после подключения отправки в SP-E3-03B.</div>
