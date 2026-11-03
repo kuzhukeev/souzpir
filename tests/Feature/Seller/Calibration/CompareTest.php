@@ -34,7 +34,7 @@ final class CompareTest extends TenancyTestCase
         $after = $this->createRun($org->id, $brand->id, ['goal' => 4, 'tone' => 3, 'fact' => 3]);
         $foreign = $this->createRun($org->id, $other->id, ['goal' => 5]);
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
-        $this->get("/seller/quality/compare?before=$before&after=$after")->assertOk()->assertInertia(fn (Assert $page) => $page->has('runs', 2)->where('comparison.improved', 1)->where('comparison.worsened', 1)->where('comparison.unchanged', 1)->has('comparison.items', 3));
+        $this->get("/seller/quality/compare?before=$before&after=$after")->assertOk()->assertInertia(fn (Assert $page) => $page->has('runs', 2)->where('comparison.improved', 1)->where('comparison.worsened', 1)->where('comparison.unchanged', 1)->where('comparison.total', 3)->has('comparison.items', 3));
         $this->get("/seller/quality/compare?before=$before&after=$foreign")->assertNotFound();
         $this->getJson('/seller/quality/compare?before=invalid&after=invalid')->assertUnprocessable();
         [$outsider] = $this->member($org, 'member', []);

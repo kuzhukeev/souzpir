@@ -45,16 +45,30 @@ final class CalibrationController
 
     public function save(Request $request): mixed
     {
-        $input = $request->validate(['evaluation_id' => ['required', 'ulid'], 'rating' => ['required', 'integer', 'min:1', 'max:5'], 'comment' => ['nullable', 'string', 'max:2000']]);
-        $this->access($request, function (User $user, TenantContext $tenant) use ($input): void {
-            DB::table('seller_evaluations')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('id', $input['evaluation_id'])->whereNotNull('sim_run_id')->first() ?? abort(404);
-            $where = ['organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId, 'evaluation_id' => $input['evaluation_id'], 'user_id' => $user->id];
-            $old = DB::table('judge_calibrations')->where($where)->first();
-            $id = $old?->id ?? (string) Str::ulid();
-            DB::table('judge_calibrations')->updateOrInsert($where, ['id' => $id, 'rating' => $input['rating'], 'comment' => $input['comment'] ?? null, 'created_at' => $old?->created_at ?? now(), 'updated_at' => now()]);
-            app(AuditWriter::class)->record($tenant, new AuditEntry('seller.judge.calibrated', 'judge_calibration', $id));
+        if ($request->has('items')) {
+            $input = $request->validate([
+                'items' => ['required', 'array', 'min:1', 'max:100'],
+                'items.*.evaluation_id' => ['required', 'ulid', 'distinct'],
+                'items.*.rating' => ['required', 'integer', 'min:1', 'max:5'],
+                'items.*.comment' => ['nullable', 'string', 'max:2000'],
+            ]);
+            $items = $input['items'];
+        } else {
+            $items = [$request->validate(['evaluation_id' => ['required', 'ulid'], 'rating' => ['required', 'integer', 'min:1', 'max:5'], 'comment' => ['nullable', 'string', 'max:2000']])];
+        }
+        $this->access($request, function (User $user, TenantContext $tenant) use ($items): void {
+            DB::transaction(function () use ($items, $user, $tenant): void {
+                foreach ($items as $item) {
+                    DB::table('seller_evaluations')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('id', $item['evaluation_id'])->whereNotNull('sim_run_id')->first() ?? abort(404);
+                    $where = ['organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId, 'evaluation_id' => $item['evaluation_id'], 'user_id' => $user->id];
+                    $old = DB::table('judge_calibrations')->where($where)->first();
+                    $id = $old?->id ?? (string) Str::ulid();
+                    DB::table('judge_calibrations')->updateOrInsert($where, ['id' => $id, 'rating' => $item['rating'], 'comment' => $item['comment'] ?? null, 'created_at' => $old?->created_at ?? now(), 'updated_at' => now()]);
+                    app(AuditWriter::class)->record($tenant, new AuditEntry('seller.judge.calibrated', 'judge_calibration', $id));
+                }
+            });
         });
 
-        return back()->with('status', 'Оценка сохранена.');
+        return back()->with('status', 'Оценки сохранены.');
     }
 }

@@ -42,7 +42,8 @@ final class CompareController
                 $comparison = ['same_scenario' => $before->persona_id === $after->persona_id, 'items' => $items,
                     'improved' => count(array_filter($items, fn ($item) => $item['delta'] !== null && $item['delta'] > 0)),
                     'worsened' => count(array_filter($items, fn ($item) => $item['delta'] !== null && $item['delta'] < 0)),
-                    'unchanged' => count(array_filter($items, fn ($item) => $item['delta'] !== null && $item['delta'] == 0))];
+                    'unchanged' => count(array_filter($items, fn ($item) => $item['delta'] !== null && $item['delta'] == 0)),
+                    'total' => count($items)];
             }
 
             return ['runs' => $runs, 'comparison' => $comparison, 'filters' => $input];
