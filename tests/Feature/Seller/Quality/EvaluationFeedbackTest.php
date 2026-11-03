@@ -24,7 +24,7 @@ final class EvaluationFeedbackTest extends TenancyTestCase
         $this->assertDatabaseHas('judge_calibrations', ['evaluation_id' => $ids[0], 'user_id' => $owner->id, 'rating' => 2, 'comment' => 'Не учтён контекст']);
         $this->post($url, ['rating' => 4, 'comment' => 'Исправлено'])->assertRedirect();
         $this->assertDatabaseCount('judge_calibrations', 1);
-        $this->get('/seller/quality/'.now($brand->timezone ?: 'UTC')->toDateString())->assertOk()->assertInertia(fn ($page) => $page->where('evaluations.0.feedback.rating', 4)->where('evaluations.0.feedback.comment', 'Исправлено'));
+        $this->get('/seller/quality/'.now(DB::table('brands')->where('id', $brand->id)->value('timezone') ?: 'UTC')->toDateString())->assertOk()->assertInertia(fn ($page) => $page->where('evaluations.0.feedback.rating', 4)->where('evaluations.0.feedback.comment', 'Исправлено'));
         $this->post($url, ['rating' => 9, 'comment' => 'Ошибка'])->assertSessionHasErrors('rating');
         $this->post($url, ['rating' => 3, 'comment' => ''])->assertSessionHasErrors('comment');
         $this->post('/seller/quality/evaluations/'.$ids[1].'/disagree', ['rating' => 3, 'comment' => 'Чужая'])->assertNotFound();
