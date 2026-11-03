@@ -365,6 +365,12 @@ declare module 'ziggy-js' {
     "seller.turns.runtime": [],
     "seller.knowledge.index": [],
     "seller.knowledge.compare": [],
+    "seller.knowledge.scenario-run": [
+        {
+            "name": "run",
+            "required": true
+        }
+    ],
     "seller.knowledge.draft": [],
     "seller.knowledge.incoming": [],
     "seller.knowledge.scenarios": [
