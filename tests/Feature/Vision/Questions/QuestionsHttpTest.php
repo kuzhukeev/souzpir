@@ -83,7 +83,7 @@ final class QuestionsHttpTest extends TenancyTestCase
             self::assertSame(1, DB::table('measurement_answers')->where('measurement_id', $measurement)->count());
             self::assertSame(0, DB::table('ai_calls')->count());
         });
-        $this->getJson('/vision/questions/data')->assertOk()->assertJsonCount(1, 'history.0.measurements')->assertJsonPath('history.0.measurements.0.status', 'pending');
+        $this->getJson('/vision/questions/data')->assertOk()->assertJsonCount(1, 'history.0.measurements')->assertJsonPath('history.0.measurements.0.status', 'pending')->assertJsonPath('history.0.measurements.0.number', 1);
         $this->post('/brand/switch', ['brand_id' => $other->id])->assertRedirect();
         $this->getJson('/vision/questions/data')->assertOk()->assertJsonCount(0, 'history');
         Http::assertNothingSent();
