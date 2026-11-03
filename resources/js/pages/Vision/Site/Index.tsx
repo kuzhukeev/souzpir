@@ -64,6 +64,7 @@ export function Score({ audit, auditDate, previousAudit }: { audit: Audit; audit
         </div>
         <div>
           <h2 className="text-xl font-semibold">Готовность к ИИ-поиску</h2>
+          {value !== null && <p className="mt-2 text-sm font-semibold">{value >= 80 ? 'Хорошая готовность' : value >= 50 ? 'Средняя готовность' : 'Низкая готовность'}</p>}
           {auditDate && <p className="mt-2 text-sm text-(--color-ink-muted)">Дата проверки: {new Intl.DateTimeFormat('ru-RU', {dateStyle:'medium'}).format(new Date(auditDate))}</p>}
           <p className="mt-2 text-sm text-(--color-ink-muted)">{delta === null ? 'Изменение пока недоступно' : `Изменение: ${delta > 0 ? '+' : ''}${delta} п.п.`}</p>
           <p className="mt-2 break-all text-(--color-ink-muted)">{audit.final_url || audit.url}</p>
@@ -99,20 +100,24 @@ export function Groups({ criteria }: { criteria: Criterion[] }) {
           const checked = available.filter(
             (item) => item.status && item.status !== 'unknown',
           ).length;
+          const known = available.filter((item) => typeof item.score === 'number' && Number.isFinite(item.score) && item.score >= 0 && item.score <= 1);
+          const lower = Math.round(known.reduce((sum, item) => sum + (item.score ?? 0) * 5, 0) * 100) / 100;
+          const upper = Math.round((lower + (available.length - known.length) * 5) * 100) / 100;
+          const maximum = available.length * 5;
           return (
             <div key={group}>
               <div className="mb-2 flex flex-wrap justify-between gap-2">
                 <span>{group}</span>
                 <span className="text-sm text-(--color-ink-muted)">
-                  {available.length ? `Проверено ${checked} из ${available.length}` : 'Скоро'}
+                  {available.length ? `${lower === upper ? lower : `${lower}–${upper}`} / ${maximum} · проверено ${checked} из ${available.length}` : 'Скоро'}
                 </span>
               </div>
               {available.length > 0 && (
                 <progress
-                  aria-label={`Проверено критериев: ${group}`}
+                  aria-label={`Баллы группы: ${group}`}
                   className="h-3 w-full accent-(--color-action)"
-                  value={checked}
-                  max={available.length}
+                  value={lower}
+                  max={maximum}
                 />
               )}
             </div>
