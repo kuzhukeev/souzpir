@@ -5232,7 +5232,10 @@
         "SP-E1-02E",
         "SP-E4-04E",
         "SP-E7-03F",
-        "SP-E8-16E"
+        "SP-E8-16E",
+        "SP-E8-20B",
+        "SP-E6-01E",
+        "SP-E1-09E"
       ],
       "scope": [
         "README.md",
@@ -13406,6 +13409,109 @@
       "promptPath": "docs/tasks/SP-E8-16E.md",
       "wave": 18,
       "description": "# SP-E8-16E · Остаток экрана ответов нейросетей\n\n**Зачем:** завершить экраны V-3.4, V-3.5 по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E8-16C из docs/results/SP-E8-16C.md.\n**Зависимости:** SP-E8-16C, SP-E8-16D (дождаться merge).\n\nЗавершить группировку по категориям, суммарные отметки прогонов и цвета; компоновку карточки, цвета бренда и конкурентов, источники, факты, мобильный вид и управление фокусом. До подтверждённого отчёта не показывать непроверенные свидетельства как подтверждённые.\n\nСверить с docs/sources/02b_mockup_journal.md; проверить сценарии, права, изоляцию брендов и ошибки. Без живых или платных вызовов в тестах.\n\nScope: `app/Vision/Measurements/`, `resources/js/pages/Vision/Measurements/`, `resources/js/features/Vision/Measurements/`, `routes/features/E8-04.php`, `tests/Feature/Vision/Measurements/`, `tests/Browser/E8-16E/`, `docs/results/SP-E8-16E.md`.\n\nОтчёт: docs/results/SP-E8-16E.md; остаток указать по пунктам.\n"
+    },
+    {
+      "taskKey": "SP-E8-20B",
+      "title": "SP-E8-20B · Компании и источники Видения: остаток",
+      "goal": "Завершить вкладки и карточки компаний, группы дублей и сравнение, меню источников, пустое состояние, ссылки и создание действия из рекомендации; подтверждённые данные брать из существующих источников, неизвестные не выдумывать.",
+      "dependsOn": [
+        "SP-E8-20"
+      ],
+      "scope": [
+        "app/Vision/Sources/",
+        "app/Vision/Competitors/",
+        "resources/js/pages/Vision/Sources/",
+        "resources/js/pages/Vision/Competitors/",
+        "tests/Feature/Vision/Sources/",
+        "tests/Browser/E8-20B/",
+        "docs/results/SP-E8-20B.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Завершить пункты по макету, проверить права, изоляцию и ошибки; без живых вызовов."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "V-6.1",
+        "V-6.2",
+        "V-6.3",
+        "V-6.4",
+        "V-7.1",
+        "V-7.2",
+        "V-7.3"
+      ],
+      "notes": "Продолжение частичной сдачи по решению владельца.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E8-20B.md",
+      "wave": 18,
+      "description": "# SP-E8-20B · Компании и источники Видения: остаток\n\n**Зачем:** завершить экраны V-6.1, V-6.2, V-6.3, V-6.4, V-7.1, V-7.2, V-7.3 по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E8-20 из docs/results/SP-E8-20.md.\n**Зависимости:** SP-E8-20 (дождаться merge).\n\nЗавершить вкладки и карточки компаний, группы дублей и сравнение, меню источников, пустое состояние, ссылки и создание действия из рекомендации; подтверждённые данные брать из существующих источников, неизвестные не выдумывать.\n\nСверить с docs/sources/02b_mockup_journal.md; проверить сценарии, права, изоляцию брендов и ошибки. Без живых или платных вызовов в тестах.\n\nScope: `app/Vision/Sources/`, `app/Vision/Competitors/`, `resources/js/pages/Vision/Sources/`, `resources/js/pages/Vision/Competitors/`, `tests/Feature/Vision/Sources/`, `tests/Browser/E8-20B/`, `docs/results/SP-E8-20B.md`.\n\nОтчёт: docs/results/SP-E8-20B.md; остаток указать по пунктам.\n"
+    },
+    {
+      "taskKey": "SP-E6-01E",
+      "title": "SP-E6-01E · Подключить служебные фразы к ходу продавца",
+      "goal": "Подключить ServicePhraseSelector к формированию и фиксации первого и последующих ответов на реальные события runtime; выполнить fake-прогон настоящего хода и проверить существующие fixtures.",
+      "dependsOn": [
+        "SP-E6-01D"
+      ],
+      "scope": [
+        "app/Seller/Runtime/",
+        "app/ProtectedOperations/",
+        "tests/Feature/Seller/Runtime/",
+        "tests/Feature/ProtectedOperations/",
+        "tests/Browser/E6-01E/",
+        "docs/results/SP-E6-01E.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Завершить пункты по макету, проверить права, изоляцию и ошибки; без живых вызовов."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "D-6.3"
+      ],
+      "notes": "Продолжение частичной сдачи по решению владельца.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E6-01E.md",
+      "wave": 18,
+      "description": "# SP-E6-01E · Подключить служебные фразы к ходу продавца\n\n**Зачем:** завершить экраны D-6.3 по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E6-01D из docs/results/SP-E6-01D.md.\n**Зависимости:** SP-E6-01D (дождаться merge).\n\nПодключить ServicePhraseSelector к формированию и фиксации первого и последующих ответов на реальные события runtime; выполнить fake-прогон настоящего хода и проверить существующие fixtures.\n\nСверить с docs/sources/02b_mockup_journal.md; проверить сценарии, права, изоляцию брендов и ошибки. Без живых или платных вызовов в тестах.\n\nScope: `app/Seller/Runtime/`, `app/ProtectedOperations/`, `tests/Feature/Seller/Runtime/`, `tests/Feature/ProtectedOperations/`, `tests/Browser/E6-01E/`, `docs/results/SP-E6-01E.md`.\n\nОтчёт: docs/results/SP-E6-01E.md; остаток указать по пунктам.\n"
+    },
+    {
+      "taskKey": "SP-E1-09E",
+      "title": "SP-E1-09E · Имена объектов и экспорт журнала",
+      "goal": "Завершить серверный реестр имён и ссылок объектов, читаемые фразы действий, меню и CSV с названиями и модулем.",
+      "dependsOn": [
+        "SP-E1-09D"
+      ],
+      "scope": [
+        "app/Shell/Journal/",
+        "resources/js/pages/Shell/Journal/",
+        "resources/js/features/Shell/Journal/",
+        "tests/Feature/Shell/Journal/",
+        "tests/Browser/E1-09E/",
+        "docs/results/SP-E1-09E.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Завершить пункты по макету, проверить права, изоляцию и ошибки; без живых вызовов."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "S-6.1"
+      ],
+      "notes": "Продолжение частичной сдачи по решению владельца.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E1-09E.md",
+      "wave": 18,
+      "description": "# SP-E1-09E · Имена объектов и экспорт журнала\n\n**Зачем:** завершить экраны S-6.1 по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E1-09D из docs/results/SP-E1-09D.md.\n**Зависимости:** SP-E1-09D (дождаться merge).\n\nЗавершить серверный реестр имён и ссылок объектов, читаемые фразы действий, меню и CSV с названиями и модулем.\n\nСверить с docs/sources/02b_mockup_journal.md; проверить сценарии, права, изоляцию брендов и ошибки. Без живых или платных вызовов в тестах.\n\nScope: `app/Shell/Journal/`, `resources/js/pages/Shell/Journal/`, `resources/js/features/Shell/Journal/`, `tests/Feature/Shell/Journal/`, `tests/Browser/E1-09E/`, `docs/results/SP-E1-09E.md`.\n\nОтчёт: docs/results/SP-E1-09E.md; остаток указать по пунктам.\n"
     }
   ],
   "excludedSourceTasks": {
