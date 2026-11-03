@@ -4,6 +4,7 @@ namespace App\Seller\Settings\Persona;
 
 use App\Models\User;
 use App\Seller\Knowledge\Contracts\KnowledgeRepository;
+use App\Seller\Runtime\ServicePhraseSelector;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Profile\ProfileAccess;
 use App\Tenancy\TenantContext;
@@ -15,16 +16,6 @@ use Inertia\Inertia;
 
 final class PersonaController
 {
-    private const PHRASE_DEFAULTS = [
-        'error' => 'Секунду, уточню пару моментов и вернусь к вам сегодня.',
-        'handoff' => 'Передаю менеджеру, он напишет сегодня до конца дня.',
-        'out_of_hours' => 'Менеджер подключится в рабочее время.',
-        'no_answer' => 'Не могу ответить на этот вопрос.',
-        'do_not_disturb' => 'Спасибо, больше не будем вас беспокоить.',
-        'reminder' => 'Здравствуйте! Возвращаюсь к нашему разговору.',
-        'goodbye' => 'Спасибо за обращение! Хорошего дня.',
-    ];
-
     private function access(Request $request, callable $callback): mixed
     {
         return app(ProfileAccess::class)->run($request, function (User $user, TenantContext $tenant) use ($callback) {
@@ -47,7 +38,7 @@ final class PersonaController
             $persona = $draft ? app(KnowledgeRepository::class)->forRelease($tenant, $draft->id, true)->persona() : null;
 
             return ['draft' => $draft, 'persona' => $persona,
-                'phrases' => array_replace(self::PHRASE_DEFAULTS, $persona['service_phrases'] ?? []),
+                'phrases' => array_replace(ServicePhraseSelector::DEFAULTS, $persona['service_phrases'] ?? []),
                 'quickReplies' => $persona['quick_replies'] ?? []];
         });
 
@@ -107,7 +98,7 @@ final class PersonaController
             $draft = $this->draft($tenant) ?? abort(404, 'Создайте черновик базы знаний.');
             $repo = app(KnowledgeRepository::class);
             $data = $repo->forRelease($tenant, $draft->id, true)->toArray();
-            $data['persona']['service_phrases'] = array_replace(self::PHRASE_DEFAULTS, $input['phrases']);
+            $data['persona']['service_phrases'] = array_replace(ServicePhraseSelector::DEFAULTS, $input['phrases']);
             $data['persona']['quick_replies'] = $input['quick_replies'];
             $data['persona'] = app(PersonaResponderAdapter::class)->withServicePhrases($data['persona']);
             $repo->saveDraft($tenant, $draft->id, (int) $input['version'], $data);
