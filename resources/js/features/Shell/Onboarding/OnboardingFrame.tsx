@@ -1,13 +1,14 @@
 import type { ReactNode } from 'react';
-import { Check, CircleHelp, Eye, Settings2, Sparkles } from 'lucide-react';
+import { Check, CircleHelp, Sparkles } from 'lucide-react';
+import CabinetLayout from '@/layouts/CabinetLayout';
 
 const steps = ['Компания', 'Сайт и бренд', 'Модули', 'Первый шаг'];
 export const focusClass = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus)';
 export const panelClass = 'rounded-2xl border border-(--color-border) bg-(--color-surface) p-5 shadow-(--shadow-card) sm:p-6';
 
 export function OnboardingFrame({ step, title, subtitle, saving, onSave, children, aside, footer, readOnly = false }: { step: number; title: string; subtitle: string; saving: boolean; onSave: () => void; readOnly?: boolean; children: ReactNode; aside: ReactNode; footer: ReactNode }) {
-  return <div className="min-h-dvh bg-(--color-bg) text-(--color-ink)">
-    <header className="border-b border-(--color-border) bg-(--color-surface)"><div className="mx-auto flex min-h-[72px] max-w-[1540px] items-center gap-4 px-4 sm:px-8 lg:px-12"><div className="flex items-center gap-2.5 font-bold"><span className="grid size-10 place-items-center rounded-xl bg-(--color-brand-primary) text-white"><Eye size={22} aria-hidden="true" /></span><span className="text-xl">eyon<span className="text-(--color-brand-primary)">.</span></span></div><div className="ml-auto flex items-center gap-3 text-sm"><span className="hidden items-center gap-2 text-(--color-ink-muted) sm:flex"><Settings2 size={18} aria-hidden="true" /> Настройка кабинета</span>{!readOnly && <button type="button" disabled={saving} onClick={onSave} className={`cursor-pointer rounded-lg px-3 py-2 font-medium text-(--color-link) hover:bg-(--color-surface-muted) disabled:cursor-wait disabled:opacity-60 ${focusClass}`}>Сохранить и выйти</button>}</div></div></header>
+  return <CabinetLayout breadcrumbs={[{label:'Первый запуск'}]}>
+    {!readOnly && <div className="mb-3 flex justify-end"><button type="button" disabled={saving} onClick={onSave} className={`min-h-11 cursor-pointer rounded-lg px-3 py-2 text-sm font-medium text-(--color-link) hover:bg-(--color-surface-muted) disabled:opacity-60 ${focusClass}`}>Сохранить и выйти</button></div>}
     <main className="mx-auto max-w-[1540px] px-4 py-7 sm:px-8 lg:px-12 lg:py-9">
       <div className="mb-4 text-sm text-(--color-ink-muted)">EYON <span aria-hidden="true" className="px-2">/</span> <span className="text-(--color-link)">Первый запуск</span></div>
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3"><div><h1 className="text-[clamp(28px,3vw,40px)] leading-tight font-bold">{title}</h1><p className="mt-2 text-base text-(--color-ink-muted)">{subtitle}</p></div><p className="text-sm text-(--color-ink-muted)">Шаг {step} из 4</p></div>
@@ -19,7 +20,7 @@ export function OnboardingFrame({ step, title, subtitle, saving, onSave, childre
       </div>
       <div className={`${panelClass} mt-5 flex flex-wrap items-center justify-between gap-3 py-4 sm:py-4`}>{footer}</div>
     </main>
-  </div>;
+  </CabinetLayout>;
 }
 
 export function AsideInfo({ title, children }: { title: string; children: ReactNode }) {

@@ -98,7 +98,7 @@ final class OnboardingController
                 'market' => $data['region'] ?: null, 'timezone' => $data['timezone'],
                 'website' => $data['website'] ?: null, 'theme' => $data['theme'],
                 // This is a request, not an enabled module or permission grant.
-                'settings' => ['logo_path' => $progress?->logo_path, 'onboarding' => ['aliases' => $data['alias'] !== '' ? [$data['alias']] : [], 'modules_requested' => ['seller' => $data['seller'], 'vision' => $data['vision']]]],
+                'settings' => ['logo_path' => $progress?->logo_path, 'onboarding' => ['aliases' => array_values(array_filter(array_map('trim', explode("\n", $data['alias'])), fn (string $alias): bool => $alias !== '')), 'modules_requested' => ['seller' => $data['seller'], 'vision' => $data['vision']]]],
             ]);
             DB::table('onboarding_progress')->updateOrInsert(['organization_id' => $context->organizationId], [
                 'brand_id' => $brand->id, 'draft' => json_encode($data, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
@@ -122,11 +122,20 @@ final class OnboardingController
             'industry' => ['nullable', 'string', 'max:120'], 'region' => ['nullable', 'string', 'max:120'],
             'timezone' => ['required', 'timezone'], 'website' => ['nullable', 'url:http,https', 'max:2048'],
             'brand_name' => [$final ? 'required' : 'nullable', 'string', 'max:160'],
-            'alias' => ['nullable', 'string', 'max:120'], 'theme' => ['required', Rule::in(['neutral', 'pyro', 'confectionery'])],
+            'alias' => ['nullable', 'string', 'max:1200'], 'theme' => ['required', Rule::in(['neutral', 'pyro', 'confectionery'])],
             'seller' => ['required', 'boolean'], 'vision' => ['required', 'boolean'], 'step' => ['required', 'integer', 'min:1', 'max:4'],
         ];
         $validator = Validator::make($request->all(), $rules);
         $validator->after(function ($validator) use ($request, $final): void {
+            $aliases = $request->input('alias');
+            if (is_string($aliases)) {
+                foreach (explode("\n", $aliases) as $alias) {
+                    if (mb_strlen(trim($alias)) > 120) {
+                        $validator->errors()->add('alias', 'Каждый вариант названия должен содержать не более 120 символов.');
+                        break;
+                    }
+                }
+            }
             $url = $request->input('website');
             if (is_string($url) && $url !== '' && (parse_url($url, PHP_URL_USER) !== null || parse_url($url, PHP_URL_PASS) !== null)) {
                 $validator->errors()->add('website', 'Адрес сайта не должен содержать логин или пароль.');
