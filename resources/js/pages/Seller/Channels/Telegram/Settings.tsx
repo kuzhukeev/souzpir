@@ -6,6 +6,7 @@ type Account = { id: string; name: string; status: string; mode: string; tokenCo
 export default function Settings({ account, canManage, status }: { account: Account | null; canManage: boolean; status?: string | null }) {
   const [showSecret, setShowSecret] = useState(false);
   const form = useForm({ name: account?.name ?? 'Telegram', token: '', managers_chat: account?.managersChat ?? '', mode: account?.mode ?? 'bot' });
+  const registration = useForm({ webhook: '' });
   const save = (event: React.FormEvent) => { event.preventDefault(); form.put('/seller/channels/telegram'); };
   return <CabinetLayout breadcrumbs={[{ label: 'Главная', href: '/dashboard' }, { label: 'Каналы', href: '/seller/channels' }, { label: 'Telegram' }]}>
     <Head title="Telegram" />
@@ -20,6 +21,7 @@ export default function Settings({ account, canManage, status }: { account: Acco
         {canManage && <button disabled={form.processing} className="min-h-11 cursor-pointer rounded-lg bg-(--color-link) px-5 text-sm font-semibold text-white">{form.processing ? 'Сохраняем…' : 'Сохранить'}</button>}
       </form>
       {account && <section className="mt-5 rounded-2xl border border-(--color-border) bg-(--color-surface) p-5 text-sm"><h2 className="text-xl font-bold">Вебхук</h2><p className="mt-2">Укажите эти данные при настройке бота. Telegram требует публичный HTTPS-адрес. Входящие сообщения сохраняются в диалогах; ответы из кабинета пока не доставляются.</p><p className="mt-3 break-all">Адрес: <code>{account.webhookUrl}</code></p>{account.webhookSecret && <p className="mt-2">Секрет: <code>{showSecret ? account.webhookSecret : '••••••••'}</code> <button type="button" onClick={() => setShowSecret(!showSecret)} className="ml-2 min-h-11 cursor-pointer text-sm font-semibold text-(--color-link)">{showSecret ? 'Скрыть' : 'Показать'}</button></p>}</section>}
+      {account?.status === 'active' && canManage && <div className="mt-4"><button type="button" disabled={registration.processing} onClick={() => registration.post('/seller/channels/telegram/register')} className="min-h-11 cursor-pointer rounded-lg border border-(--color-border) px-5 text-sm font-semibold">{registration.processing ? 'Регистрируем…' : 'Зарегистрировать вебхук'}</button>{registration.errors.webhook && <p role="alert" className="mt-2 text-sm text-(--color-danger-ink)">{registration.errors.webhook}</p>}</div>}
     </main>
   </CabinetLayout>;
 }
