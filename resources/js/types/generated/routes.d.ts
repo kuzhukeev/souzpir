@@ -719,6 +719,26 @@ declare module 'ziggy-js' {
     "vision.settings.recipients": [],
     "vision.settings.notifications": [],
     "vision.trends.index": [],
+    "vision.clarifications.show": [
+        {
+            "name": "measurement",
+            "required": true
+        },
+        {
+            "name": "step",
+            "required": true
+        }
+    ],
+    "vision.clarifications.save": [
+        {
+            "name": "measurement",
+            "required": true
+        },
+        {
+            "name": "step",
+            "required": true
+        }
+    ],
     "dev.design-system": [],
     "preview.login": [],
     "preview.attention": []
