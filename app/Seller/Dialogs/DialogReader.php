@@ -52,8 +52,12 @@ final class DialogReader
             $base->where('c.mode', $mode);
         }
         if ($search !== '') {
-            $base->where(fn ($query) => $query->where('contact.name', 'ilike', '%'.addcslashes($search, '%_\\').'%')
-                ->orWhere('c.id', $search));
+            $pattern = '%'.addcslashes($search, '%_\\').'%';
+            $base->where(fn ($query) => $query->where('contact.name', 'ilike', $pattern)
+                ->orWhere('contact.email', 'ilike', $pattern)->orWhere('contact.phone', 'ilike', $pattern)
+                ->orWhere('c.id', $search)->orWhereExists(fn ($messages) => $messages->selectRaw('1')->from('messages as search_message')
+                ->whereColumn('search_message.conversation_id', 'c.id')->whereColumn('search_message.brand_id', 'c.brand_id')
+                ->whereColumn('search_message.organization_id', 'c.organization_id')->where('search_message.text', 'ilike', $pattern)));
         }
         if (! empty($filters['channel'])) {
             $base->where('channel.type', $filters['channel']);
@@ -80,6 +84,8 @@ final class DialogReader
             'mode' => $row->mode, 'stage' => $row->stage, 'outcome' => $row->outcome,
             'channel' => $row->channel_type ?: 'Не указан', 'last_message' => $messages->get($row->id)?->first()?->text,
             'updated_at' => $row->updated_at, 'assigned_user_id' => $row->assigned_user_id,
+            'waiting_minutes' => ! in_array($row->stage, ['done', 'lost', 'spam'], true) && $messages->get($row->id)?->first()?->role === 'client'
+                ? max(0, (int) Carbon::parse($messages->get($row->id)->first()->created_at)->diffInMinutes(now())) : null,
         ])->all();
 
         $detail = null;
