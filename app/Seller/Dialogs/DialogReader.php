@@ -113,15 +113,26 @@ final class DialogReader
                     $meta = is_array($meta) ? $meta : [];
 
                     return ['id' => $message->id, 'role' => $message->role, 'text' => $message->text,
-                        'created_at' => $message->created_at, 'meta' => ! $showMeta ? [] : [
+                        'created_at' => $message->created_at, 'attachment_name' => is_string($meta['attachment_name'] ?? null) ? $meta['attachment_name'] : null, 'meta' => ! $showMeta ? [] : [
                             'intent' => $this->slot($meta['intent'] ?? null), 'goal' => $this->slot($meta['goal'] ?? null),
                             'tools' => $this->slot($meta['tools'] ?? null), 'guard' => $this->slot($meta['guard'] ?? null),
                             'model' => $this->slot($meta['model'] ?? null),
                         ]];
                 })->all(),
+                'transfers' => DB::table('audit_logs')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)
+                    ->where('subject_type', 'conversation')->where('subject_id', $row->id)->where('action', 'seller.dialog.transferred')
+                    ->orderByDesc('created_at')->limit(20)->get(['after', 'created_at'])->map(function ($event): array {
+                        $after = json_decode($event->after ?: '{}', true);
+
+                        return ['name' => is_string($after['recipient_name'] ?? null) ? $after['recipient_name'] : 'Сотрудник', 'created_at' => $event->created_at];
+                    })->all(),
                 'tasks' => DB::table('seller_tasks')->where('organization_id', $context->organizationId)
                     ->where('brand_id', $context->brandId)->where('conversation_id', $row->id)
-                    ->orderByDesc('created_at')->limit(20)->get(['id', 'type', 'status', 'due_at'])->all(),
+                    ->orderByDesc('created_at')->limit(20)->get(['id', 'type', 'status', 'due_at', 'payload'])->map(function ($task): array {
+                        $payload = json_decode($task->payload ?: '{}', true);
+
+                        return ['id' => $task->id, 'type' => $task->type, 'status' => $task->status, 'due_at' => $task->due_at, 'text' => is_string($payload['text'] ?? null) ? $payload['text'] : null];
+                    })->all(),
             ];
         }
 

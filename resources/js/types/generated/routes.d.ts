@@ -495,6 +495,40 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "seller.dialogs.messages.attachment": [
+        {
+            "name": "dialog",
+            "required": true
+        },
+        {
+            "name": "message",
+            "required": true
+        }
+    ],
+    "seller.dialogs.messages.store": [
+        {
+            "name": "dialog",
+            "required": true
+        }
+    ],
+    "seller.dialogs.tasks.store": [
+        {
+            "name": "dialog",
+            "required": true
+        }
+    ],
+    "seller.dialogs.transfer": [
+        {
+            "name": "dialog",
+            "required": true
+        }
+    ],
+    "seller.dialogs.profile": [
+        {
+            "name": "dialog",
+            "required": true
+        }
+    ],
     "seller.dialogs.mode": [
         {
             "name": "dialog",
