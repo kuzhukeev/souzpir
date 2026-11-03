@@ -83,4 +83,35 @@ final class FactsTest extends TenancyTestCase
         $this->get('/seller/knowledge/facts')->assertForbidden();
         $this->post('/seller/knowledge/facts/group', ['version' => 2, 'key' => 'y'])->assertForbidden();
     }
+
+    public function test_fact_card_history_bulk_actions_and_brand_isolation(): void
+    {
+        [$owner, $org, $brand, $other] = $this->cabinet();
+        $this->enable($org->id, $brand->id);
+        $this->enable($org->id, $other->id);
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $this->post('/seller/knowledge/draft')->assertRedirect();
+        $this->post('/seller/knowledge/facts/group', ['version' => 1, 'key' => 'delivery'])->assertRedirect();
+        $this->post('/seller/knowledge/facts', ['version' => 2, 'group' => 'delivery', 'text' => 'Бесплатная доставка'])->assertRedirect();
+        $fact = DB::table('kn_facts')->first();
+
+        $this->get('/seller/knowledge/facts')->assertOk()->assertInertia(fn ($page) => $page->where('editor.groups.0.facts.0.text', 'Бесплатная доставка'));
+        $this->get("/seller/knowledge/facts/{$fact->id}")->assertOk()->assertInertia(fn ($page) => $page->where('fact.text', 'Бесплатная доставка')->has('history'));
+        $this->post('/seller/knowledge/facts/bulk', ['version' => 3, 'action' => 'deactivate', 'ids' => [$fact->id]])->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertSame('inactive', DB::table('kn_facts')->where('id', $fact->id)->value('status'));
+        $this->get("/seller/knowledge/facts/{$fact->id}")->assertInertia(fn ($page) => $page->where('fact.status', 'inactive')->has('history.0'));
+
+        $this->post('/seller/knowledge/facts/bulk', ['version' => 4, 'action' => 'bogus', 'ids' => [$fact->id]])->assertSessionHasErrors('action');
+        $this->post('/seller/knowledge/facts/bulk', ['version' => 4, 'action' => 'delete', 'ids' => []])->assertSessionHasErrors('ids');
+        [$viewer] = $this->member($org, 'viewer', [$brand->id]);
+        $this->actingAs($viewer)->withSession(['brand_id' => $brand->id]);
+        $this->get("/seller/knowledge/facts/{$fact->id}")->assertForbidden();
+        $this->post('/seller/knowledge/facts/bulk', ['version' => 4, 'action' => 'delete', 'ids' => [$fact->id]])->assertForbidden();
+
+        $this->actingAs($owner)->withSession(['brand_id' => $other->id]);
+        $this->post('/seller/knowledge/draft')->assertRedirect();
+        $this->get("/seller/knowledge/facts/{$fact->id}")->assertNotFound();
+        $this->post('/seller/knowledge/facts/bulk', ['version' => 1, 'action' => 'delete', 'ids' => [$fact->id]])->assertNotFound();
+        $this->assertDatabaseHas('kn_facts', ['id' => $fact->id, 'status' => 'inactive']);
+    }
 }
