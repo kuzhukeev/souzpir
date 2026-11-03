@@ -1,4 +1,4 @@
-import { Head, router, usePage } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import CabinetLayout from '@/layouts/CabinetLayout';
 import { ReportSections } from '@/features/Vision/Reports/ReportSections';
@@ -69,6 +69,7 @@ export default function Index({ reportBrandRevision, status }: { reportBrandRevi
         </section>
         {activeReport && <div data-private-profile>
           <nav aria-label="Разделы отчёта" className="mb-6 flex flex-wrap gap-2 text-sm"><a className={button} href="#overview">Главное</a><a className={button} href="#models">По моделям</a><a className={button} href="#competitors">Компании</a><a className={button} href="#gaps">Вопросы</a><a className={button} href="#facts">Факты</a><a className={button} href="#sources">Источники</a><a className={button} href="#site">Сайт</a><a className={button} href="#actions">Действия</a><a className={button} href="#changes">Изменения</a><a className={button} href="#method">Методика</a></nav>
+          <p className="mb-5 text-sm"><Link href="/vision/publications" className="cursor-pointer font-semibold text-(--color-link)">Публикации отчётов →</Link></p>
           <section id="overview" className="rounded-2xl border border-(--color-border) bg-(--color-surface) p-5 shadow-(--shadow-card)"><h2 className="text-xl font-bold">Главное</h2><p className="mt-2 text-sm text-(--color-ink-muted)">Вопросов в снимке: {activeReport.questions}. Покрытие: {percent(activeReport.coverage)}.</p>
             <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{[
               ['Видимость', percent(activeReport.visibility)], ['Доля голоса', percent(activeReport.share_of_voice)], ['Средняя позиция', number(activeReport.position)], ['Проверенные ошибки', number(activeReport.verified_errors)],
