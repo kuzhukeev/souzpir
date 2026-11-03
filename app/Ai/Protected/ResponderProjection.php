@@ -20,9 +20,15 @@ final class ResponderProjection
             if (! is_string($template) || trim($agentName) === '') {
                 throw new LogicException;
             }
+            $persona = $knowledge->persona();
+            $legacy = ($persona['company'] ?? '') === 'Союз Пир'
+                && str_contains(mb_strtolower((string) ($persona['intro'] ?? '')), 'пиротехник');
+            if (! $legacy) {
+                $template = str_replace(' (Москва, оптовая пиротехника)', '', $template);
+            }
 
             return Blade::render($template, [
-                'persona' => $knowledge->persona(),
+                'persona' => $persona,
                 'agentName' => $agentName,
                 'card' => $state->cardText(),
                 'summary' => $state->data['summary'] ?? null,
