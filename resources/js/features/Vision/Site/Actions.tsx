@@ -46,22 +46,27 @@ function Responsible({
     />
   );
 }
-function Complete({ action }: { action: SiteAction }) {
+function Complete({ action, onComplete }: { action: SiteAction; onComplete: () => void }) {
   const [open, setOpen] = useState(false);
+  const [failure, setFailure] = useState(false);
   const form = useForm({
     status: 'awaiting_measurement',
     completed_at: '',
     comment: '',
     evidence_url: '',
   });
-  function submit(event: FormEvent) {
-    event.preventDefault();
+  function save() {
+    setFailure(false);
     form.patch(`/vision/actions/${action.id}`, {
       preserveScroll: true,
       onSuccess: () => {
         setOpen(false);
         form.reset();
+        onComplete();
       },
+      onError: () => setFailure(true),
+      onNetworkError: () => { setFailure(true); return false; },
+      onHttpException: () => { setFailure(true); return false; },
     });
   }
   return (
@@ -71,7 +76,7 @@ function Complete({ action }: { action: SiteAction }) {
       </button>
       <Modal open={open} title="Отметить выполненным" onClose={() => setOpen(false)}>
         <p className="mb-4 text-(--color-ink-muted)">{action.title}</p>
-        <form onSubmit={submit} className="space-y-4">
+        <form onSubmit={(event) => { event.preventDefault(); save(); }} className="space-y-4">
           <label className="block font-semibold">
             Дата выполнения
             <input
@@ -105,6 +110,7 @@ function Complete({ action }: { action: SiteAction }) {
             После сохранения действие перейдёт в статус «Ждём замера».
           </p>
           <Errors errors={form.errors} />
+          {failure && <p role="alert" className="rounded-lg bg-(--color-surface-muted) p-3 text-sm">Не удалось сохранить действие. <button type="button" className="cursor-pointer font-semibold text-(--color-link)" onClick={save}>Повторить</button></p>}
           <div className="flex flex-wrap gap-3">
             <button type="button" className={secondary} onClick={() => setOpen(false)}>
               Отмена
@@ -122,10 +128,12 @@ function ActionCard({
   action,
   canManage,
   members,
+  onComplete,
 }: {
   action: SiteAction;
   canManage: boolean;
   members: Member[];
+  onComplete: () => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -254,7 +262,7 @@ function ActionCard({
               <button type="button" className={secondary} onClick={remove} disabled={deleting}>
                 Удалить
               </button>
-              {action.status === 'open' && <Complete action={action} />}
+              {action.status === 'open' && <Complete action={action} onComplete={onComplete} />}
             </div>
           )}
           {failure && <p role="alert">{failure}</p>}
@@ -335,6 +343,7 @@ export function Actions({
   achievements?: Achievement[];
   comparison?: Comparison | null;
 }) {
+  const [notice, setNotice] = useState('');
   const visible = actions.filter((action) =>
     history ? action.status === 'awaiting_measurement' : action.status === 'open',
   );
@@ -343,12 +352,13 @@ export function Actions({
   const cards = (items: SiteAction[]) => (
     <div className="grid gap-4 lg:grid-cols-3">
       {items.map((action) => (
-        <ActionCard key={action.id} action={action} canManage={canManage} members={members} />
+        <ActionCard key={action.id} action={action} canManage={canManage} members={members} onComplete={() => setNotice('Действие отмечено выполненным. Ожидается эффект после следующего замера.')} />
       ))}
     </div>
   );
   return (
     <div className="space-y-4">
+      {notice && <p role="status" className="rounded-lg bg-(--color-success-soft) p-3 text-sm">{notice}</p>}
       {history && <HistoryInsights achievements={achievements} />}
       {!history && canManage && <CreateAction members={members} />}
       {first.length ? (
@@ -389,6 +399,7 @@ function HistoryInsights({ achievements }: { achievements: Achievement[] }) {
                 className="rounded-lg bg-(--color-surface-muted) p-4"
               >
                 <h3 className="font-semibold">{achievement.title}</h3>
+                <p className="mt-1 text-sm text-(--color-ink-muted)">Получено: {formatDate(achievement.earned_at)}</p>
                 {achievement.note && <p className="mt-2 text-sm">{achievement.note}</p>}
               </li>
             ))}
@@ -402,7 +413,6 @@ function HistoryInsights({ achievements }: { achievements: Achievement[] }) {
         <p className="mt-3 text-(--color-ink-muted)">
           Рано судить: порядок и сопоставимость замеров пока нельзя подтвердить.
         </p>
-        <a href="/vision/actions/effect" className="mt-3 inline-flex min-h-11 cursor-pointer items-center text-sm font-semibold text-(--color-link)">Посмотреть эффект</a>
       </section>
     </>
   );
