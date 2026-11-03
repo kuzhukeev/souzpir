@@ -44,11 +44,66 @@ final class FactsController
             foreach ($editor['groups'] as &$group) {
                 $group['metadata'] = $metadata[$group['key']] ?? [];
             }
+            unset($group);
+            $logicalIds = collect($editor['groups'])->flatMap(fn (array $group) => array_column($group['facts'], 'logical_id'))->all();
+            $changed = $logicalIds ? DB::table('audit_logs')->where('organization_id', $tenant->organizationId)
+                ->where('brand_id', $tenant->brandId)->where('subject_type', 'knowledge_fact')
+                ->whereIn('subject_id', $logicalIds)->selectRaw('subject_id, max(created_at) as changed_at')
+                ->groupBy('subject_id')->pluck('changed_at', 'subject_id') : collect();
+            foreach ($editor['groups'] as &$group) {
+                foreach ($group['facts'] as &$fact) {
+                    $fact['changed_at'] = $changed[$fact['logical_id']] ?? null;
+                }
+                unset($fact);
+            }
+            unset($group);
 
             return $editor;
         });
 
         return Inertia::render('Seller/Knowledge/Facts/Index', ['editor' => $editor, 'status' => session('status')]);
+    }
+
+    public function show(Request $request, string $fact): mixed
+    {
+        $data = $this->access($request, function (TenantContext $tenant) use ($fact): array {
+            $draft = $this->draft($tenant);
+            $row = DB::table('kn_facts as f')->join('kn_fact_groups as g', 'g.id', '=', 'f.group_id')
+                ->where('g.release_id', $draft)->where('f.id', $fact)
+                ->first(['f.id', 'f.logical_id', 'f.text', 'f.status', 'f.source', 'g.key as group_key']) ?? abort(404);
+            $version = DB::table('knowledge_releases')->where('id', $draft)->value('version');
+            $history = DB::table('audit_logs as a')->leftJoin('users as u', 'u.id', '=', 'a.actor_id')
+                ->where('a.organization_id', $tenant->organizationId)->where('a.brand_id', $tenant->brandId)
+                ->where('a.subject_type', 'knowledge_fact')->where('a.subject_id', $row->logical_id)
+                ->orderByDesc('a.created_at')->limit(50)->get(['a.action', 'a.created_at', 'u.name as author']);
+
+            return ['fact' => $row, 'version' => $version, 'history' => $history];
+        });
+
+        return Inertia::render('Seller/Knowledge/Facts/Show', [...$data, 'status' => session('status')]);
+    }
+
+    public function bulk(Request $request): mixed
+    {
+        $input = $request->validate(['version' => ['required', 'integer', 'min:1'], 'action' => ['required', 'in:activate,deactivate,delete'],
+            'ids' => ['required', 'array', 'min:1', 'max:50'], 'ids.*' => ['required', 'ulid', 'distinct']]);
+        $this->access($request, function (TenantContext $tenant) use ($input): void {
+            DB::transaction(function () use ($tenant, $input): void {
+                $draft = $this->draft($tenant);
+                $repo = app(KnowledgeRepository::class);
+                $version = (int) $input['version'];
+                foreach ($input['ids'] as $id) {
+                    $fact = DB::table('kn_facts as f')->join('kn_fact_groups as g', 'g.id', '=', 'f.group_id')
+                        ->where('g.release_id', $draft)->where('f.id', $id)->first(['f.text', 'f.source']) ?? abort(404);
+                    $version = $input['action'] === 'delete'
+                        ? $repo->deleteFact($tenant, $draft, $id, $version)
+                        : $repo->setFact($tenant, $draft, $id, $version, $fact->text,
+                            $input['action'] === 'activate' ? 'active' : 'inactive', $fact->source);
+                }
+            });
+        });
+
+        return back()->with('status', 'Выбранные факты обновлены.');
     }
 
     public function group(Request $request): mixed
