@@ -27,7 +27,7 @@ final class AnalyticsController
 
     private function data(Request $request, User $user, TenantContext $tenant): array
     {
-        $input = $request->validate(['from' => ['nullable', 'date_format:Y-m-d'], 'to' => ['nullable', 'date_format:Y-m-d']]);
+        $input = $request->validate(['from' => ['nullable', 'date_format:Y-m-d'], 'to' => ['nullable', 'date_format:Y-m-d'], 'channel' => ['nullable', 'string', 'max:64'], 'source' => ['nullable', 'in:unknown']]);
         $timezone = DB::table('brands')->where('organization_id', $tenant->organizationId)->where('id', $tenant->brandId)->value('timezone') ?: 'UTC';
         $today = CarbonImmutable::now($timezone);
         $from = $input['from'] ?? $today->subDays(29)->format('Y-m-d');
@@ -40,6 +40,13 @@ final class AnalyticsController
         $rows = DB::table('conversations as c')->leftJoin('channel_accounts as a', 'a.id', '=', 'c.channel_account_id')->leftJoin('users as u', 'u.id', '=', 'c.assigned_user_id')
             ->where('c.organization_id', $tenant->organizationId)->where('c.brand_id', $tenant->brandId)->where('c.created_at', '>=', $begin)->where('c.created_at', '<', $end)
             ->get(['c.id', 'c.stage', 'c.client_type', 'c.outcome', 'c.state', 'c.assigned_user_id', 'c.handed_off_at', 'c.taken_at', 'c.created_at', 'a.type as channel', 'u.name as manager']);
+        $channelOptions = $rows->map(fn ($row) => $row->channel ?? 'unknown')->unique()->sort()->values()->all();
+        $channel = $input['channel'] ?? '';
+        $source = $input['source'] ?? '';
+        if ($channel !== '') {
+            $rows = $rows->filter(fn ($row) => ($row->channel ?? 'unknown') === $channel)->values();
+        }
+        // The current intake does not persist source or UTM fields.
         $total = $rows->count();
         $types = array_fill_keys(['unknown', 'newbie', 'experienced', 'for_self', 'prices_only'], 0);
         $stages = [];
@@ -91,7 +98,11 @@ final class AnalyticsController
         }
         arsort($topics);
 
-        return ['from' => $from, 'to' => $to, 'total' => $total, 'contact' => $contact, 'handed' => $handed, 'closed' => $closed,
+        $events = DB::table('seller_stage_events')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
+            ->whereIn('conversation_id', $ids)->where('occurred_at', '>=', $begin)->where('occurred_at', '<', $end)->get(['conversation_id', 'to_stage']);
+        $transitions = $events->groupBy('to_stage')->map(fn ($group) => $group->pluck('conversation_id')->unique()->count())->all();
+
+        return ['from' => $from, 'to' => $to, 'channel' => $channel, 'source' => $source, 'channelOptions' => $channelOptions, 'sources' => ['unknown' => $total], 'transitions' => $transitions, 'total' => $total, 'contact' => $contact, 'handed' => $handed, 'closed' => $closed,
             'types' => $types, 'stages' => $stages, 'channels' => $channels, 'daily' => $daily, 'topics' => $topics,
             'managers' => array_values($managers), 'canManage' => Gate::forUser($user)->allows('seller.settings.write')];
     }
