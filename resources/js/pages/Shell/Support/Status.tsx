@@ -61,6 +61,7 @@ function StatusBadge({ state }: { state: string }) {
 
 export default function Status({ status }: { status: StatusData }) {
   const c = useSupportCopy();
+  const incidents = status.incidents as unknown as { available: boolean; data: { id: string; title: string; occurred_at: string }[] };
   const [loading, setLoading] = useState(false);
   const [failure, setFailure] = useState({ message: '' });
   const refresh = () => {
@@ -97,8 +98,8 @@ export default function Status({ status }: { status: StatusData }) {
         <div className="mb-5 space-y-3">
           <ErrorSummary failure={failure} />
           {failure.message && <p role="status" className="text-sm text-(--color-danger-ink)">ERR_LOAD</p>}
-          <p className="inline-flex rounded-full bg-(--color-warning-soft) px-3 py-1.5 text-sm text-(--color-warning-ink)">Демонстрационные данные</p>
-          <p className="text-sm text-(--color-ink-muted)">Кабинет и база данных проверяются напрямую; состояние провайдеров основано на данных cooldown. Остальной мониторинг пока недоступен.</p>
+          <p className="inline-flex rounded-full bg-(--color-info-soft) px-3 py-1.5 text-sm text-(--color-link)">Данные собственных событий</p>
+          <p className="text-sm text-(--color-ink-muted)">Кабинет и база проверяются напрямую. Остальные статусы основаны на событиях каналов, замерах и вызовах ИИ за 30 дней; без событий статус неизвестен.</p>
           <p className="text-sm text-(--color-ink-muted)">
             {c.checked}: <DateValue value={status.checked_at} />
           </p>
@@ -129,7 +130,7 @@ export default function Status({ status }: { status: StatusData }) {
                         </span>
                         <div className="min-w-0">
                           <h2 className="mb-3 break-words text-lg font-bold">{component.name}</h2>
-                          <p className="mb-2 text-sm text-(--color-ink-muted)">{component.source === 'app_response' || component.source === 'database_probe' ? 'Реальная проверка' : 'Мониторинг недоступен'}</p>
+                          <p className="mb-2 text-sm text-(--color-ink-muted)">{component.source === 'app_response' || component.source === 'database_probe' ? 'Реальная проверка' : component.source === 'unavailable' ? 'Мониторинг недоступен' : 'По сохранённым событиям'}</p>
                           <StatusBadge state={component.status} />
                         </div>
                       </div>
@@ -151,7 +152,7 @@ export default function Status({ status }: { status: StatusData }) {
                   <Bot size={25} className="text-(--color-link)" />
                   {c.providers}
                 </h2>
-                {status.providers.available && <p className="mt-2 text-sm text-(--color-ink-muted)">Реальные данные cooldown</p>}
+                {status.providers.available && <p className="mt-2 text-sm text-(--color-ink-muted)">Сохранённые вызовы ИИ и данные cooldown</p>}
                 <p className="mt-3 text-sm leading-6 text-(--color-ink-muted)">
                   {status.providers.message}
                 </p>
@@ -189,7 +190,7 @@ export default function Status({ status }: { status: StatusData }) {
         </div>
         <section className={[panel, 'mt-5 p-5 sm:p-6'].join(' ')}>
           <h2 className="text-xl font-bold">{c.incidents}</h2>
-          <EmptyState title={c.incidentsUnavailable} description={c.incidentsHint} />
+          {incidents.available ? <ul className="mt-4 divide-y divide-(--color-border)">{incidents.data.map(incident => <li key={incident.id} className="flex flex-wrap justify-between gap-2 py-3 text-sm"><span>{incident.title}</span><DateValue value={incident.occurred_at} /></li>)}</ul> : <EmptyState title={c.incidentsUnavailable} description={c.incidentsHint} />}
         </section>
         <div className="mt-5 flex flex-wrap items-center justify-between gap-4">
           <p className="text-sm leading-6 text-(--color-ink-muted)">{c.healthHint}</p>
