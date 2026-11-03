@@ -1,7 +1,7 @@
 Модель: Terra
 # SP-E5-01E — частичная сдача
 - Ссылки на Почту и API, тестовая проверка токена, одноразовый код чата, ожидание подтверждения, статус и повторная регистрация вебхука, сегмент режима.
-- Проверки: TelegramConnectionTest — 2 теста, 44 проверки, 2 предупреждения окружения; Playwright E5-01E — 1 тест; TypeScript и Pint — успешно.
+- Проверки: TelegramConnectionTest — 2 теста, 44 проверки, 2 предупреждения окружения; Playwright E5-01E — 1 тест, Vite запускается и останавливается внутри теста; TypeScript и Pint — успешно.
 - D-9.1: .local/screenshots/sp-e5-01e/channels.png; макет C:/OSPanel/home/tasks.local/completed/67/25-D-9.1-channels.png.
 - D-9.5: .local/screenshots/sp-e5-01e/telegram.png; макет C:/OSPanel/home/tasks.local/completed/73/b8b8ca90-D-9.5-telegram.png.
 ## Остаток
