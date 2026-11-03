@@ -65,7 +65,7 @@ final class BillingQuery
             $value = $this->limits->get($tenant, $key);
             $label = self::LIMIT_LABELS[$key] ?? 'other';
             $limits[] = ['key' => $key, 'label' => __('Shell/Billing/messages.limits.'.$label),
-                'value' => $value->value, 'unit' => $value->unit, 'used' => null];
+                'value' => $value->value, 'unit' => $value->unit, 'used' => $this->used($tenant, $key)];
         }
         // UsageReader is the only cross-domain port. Do not treat unavailable adapters as zero.
         $snapshot = $this->usage->read($tenant, new UsageQuery($from, $to->addDay(), array_keys(self::METRICS)));
@@ -85,5 +85,25 @@ final class BillingQuery
             'submissionScope' => $scope, 'submissionKey' => $requestEnabled ? (string) Str::ulid() : null,
             'period' => ['from' => $from->format('Y-m-d'), 'to' => $to->format('Y-m-d')],
             'daily' => $tab === 'usage' ? $this->daily($tenant, $from, $to) : null];
+    }
+
+    private function used(TenantContext $tenant, string $key): ?int
+    {
+        if ($key === 'brands.max') {
+            return DB::table('brands')->where('organization_id', $tenant->organizationId)->where('status', 'active')->count();
+        }
+        $metric = match ($key) {
+            'seller.dialogs_month' => 'seller.dialogs_month',
+            'vision.runs_per_week' => 'vision.measurements',
+            default => null,
+        };
+        if ($metric === null) {
+            return null;
+        }
+        $now = CarbonImmutable::now('Europe/Moscow');
+        $start = ($key === 'vision.runs_per_week' ? $now->startOfWeek() : $now->startOfMonth())->utc();
+        $result = $this->usage->read($tenant, new UsageQuery($start, $now->addSecond()->utc(), [$metric]))->metrics[$metric] ?? null;
+
+        return ($result['status'] ?? null) === 'ready' ? (int) $result['value'] : null;
     }
 }

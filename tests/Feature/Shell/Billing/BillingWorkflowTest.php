@@ -55,7 +55,7 @@ final class BillingWorkflowTest extends TenancyTestCase
             DB::table('plan_limits')->insert(['id' => (string) Str::ulid(), 'plan_id' => $plan, 'key' => $key, 'value' => $value, 'unit' => '', 'created_at' => now(), 'updated_at' => now()]);
         }
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->get('/billing')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('currentPlan.name', 'Тестовый план')->where('limits.0.value', '0.0000')->where('limits.0.used', null)
+            ->where('currentPlan.name', 'Тестовый план')->where('limits.0.value', '0.0000')->where('limits.0.used', 2)
             ->where('limits.1.value', null)->where('limits.2.key', 'vision.runs_per_week')->where('limits.2.value', null)
             ->where('requestEnabled', true));
     }
