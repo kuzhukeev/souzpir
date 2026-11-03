@@ -38,6 +38,10 @@ final class ReleasesController
             $releases = $this->query('knowledge_releases', $tenant)->whereIn('status', ['draft', 'published'])->orderByDesc('created_at')->orderByDesc('id')->get(['id', 'status', 'version', 'published_at', 'updated_at']);
             $brand = DB::table('brands')->where('organization_id', $tenant->organizationId)->where('id', $tenant->brandId)->first(['active_knowledge_release_id']);
             $draft = $releases->firstWhere('status', 'draft');
+            $canWrite = Gate::forUser($user)->allows('seller.knowledge.write');
+            $topics = $draft && $canWrite ? collect(app(KnowledgeRepository::class)->forRelease($tenant, $draft->id, true)->toArray()['intents'])
+                ->map(fn (array $topic) => ['id' => $topic['id'] ?? '', 'label' => $topic['description'] ?? $topic['id'] ?? ''])
+                ->filter(fn (array $topic) => $topic['id'] !== '')->values()->all() : [];
             $counts = [];
             try {
                 $snapshot = app(KnowledgeRepository::class)->published($tenant)->toArray();
@@ -51,7 +55,7 @@ final class ReleasesController
             } catch (KnowledgeNotReady) {
             }
             $changeCount = null;
-            if ($draft && $brand?->active_knowledge_release_id && Gate::forUser($user)->allows('seller.knowledge.write')) {
+            if ($draft && $brand?->active_knowledge_release_id && $canWrite) {
                 $repository = app(KnowledgeRepository::class);
                 $comparison = app(ReleaseComparison::class)->compare($repository->published($tenant), $repository->forRelease($tenant, $draft->id, true));
                 $changeCount = array_sum(array_map(fn ($section) => count($section['changes']), $comparison));
@@ -62,7 +66,7 @@ final class ReleasesController
             $evaluations = $this->query('seller_evaluations', $tenant)->whereNotIn('id', $handled)->whereRaw('jsonb_array_length(issues) > 0')->orderByDesc('created_at')->limit(50)->get(['id', 'issues', 'comment', 'created_at']);
 
             return ['releases' => $releases, 'activeId' => $brand?->active_knowledge_release_id, 'draft' => $draft, 'counts' => $counts,
-                'tasks' => $tasks, 'reviews' => $reviews, 'evaluations' => $evaluations, 'changeCount' => $changeCount, 'canWrite' => Gate::forUser($user)->allows('seller.knowledge.write')];
+                'tasks' => $tasks, 'reviews' => $reviews, 'evaluations' => $evaluations, 'changeCount' => $changeCount, 'topics' => $topics, 'canWrite' => $canWrite];
         });
 
         return Inertia::render('Seller/Knowledge/Releases/Index', [...$data, 'status' => session('status')]);
