@@ -6,6 +6,7 @@
 - Скриншот: .local/screenshots/sp-e1-02c/brand.png; макет: C:/OSPanel/home/tasks.local/completed/8/d52881b8-S-0.6b-brand-eyon.png.
 
 ## Остаток
+Продолжение: SP-E1-02E.
 - S-0.6: проверка доступности сайта через подходящий провайдер и SVG-логотип.
 
 ## Техдолг

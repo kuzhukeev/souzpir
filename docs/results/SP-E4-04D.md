@@ -7,6 +7,7 @@
 - D-4.6: .local/screenshots/sp-e4-04d/topics.png; макет C:/OSPanel/home/tasks.local/completed/54/5353373b-D-4.6-topics.png.
 - D-4.7: .local/screenshots/sp-e4-04d/topic.png; макет C:/OSPanel/home/tasks.local/completed/55/a362bbb1-D-4.7-topic.png.
 ## Остаток
+Продолжение: SP-E4-04E.
 - D-4.6: обработчик log_unknown_question и задачи unknown_question; подключение требует общего ToolRunner и FirstTurnCoordinator вне scope.
 - D-4.6: метаданные последующих ходов и реальных guard-fallback; end-to-end сценарий unknown_fact → задача и статистика.
 - D-4.6: оформление строк, иконок и плашек процента по макету.
