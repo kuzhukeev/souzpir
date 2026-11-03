@@ -90,6 +90,8 @@ final class DashboardQuery
             $attention[] = ['kind' => 'channels', 'title' => 'Каналы выключены', 'count' => $disabled, 'severity' => 'normal', 'href' => '/seller/channels'];
         }
 
+        $attention = array_merge($attention, app(AttentionEvents::class)->read($tenant, $rows->count(), $contact, $previous->count(), $previousContact));
+
         return ['days' => $days, 'total' => $rows->count(), 'contact' => $contact, 'handoff' => $handoff, 'done' => $done,
             'need' => $need, 'daily' => $daily, 'channels' => $channels, 'attention' => $attention, 'delta' => $delta, 'quality' => $quality, 'issues' => $issues, 'topics' => $topics, 'managers' => $managers];
     }
