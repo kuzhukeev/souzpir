@@ -6,7 +6,6 @@ import type { TeamMemberDetail } from '@/types/Shell/Team/members';
 
 vi.mock('@inertiajs/react', () => ({
   Head: () => null,
-  useForm: (data: unknown) => ({ data, errors: {}, processing: false, post: vi.fn(), setData: vi.fn(), reset: vi.fn() }),
   Link: ({ href, children, ...props }: { href: string; children: ReactNode }) => (
     <a href={href} {...props}>
       {children}

@@ -22,4 +22,4 @@
 - Без настройки кабинетный канал включён по правилам существующего обработчика.
 
 ## Нужно от интегратора
-- Нет.
+- `task.py submit` запрещает изменение `resources/js/features/Shell/Team/teamDetail.test.tsx` вне scope. Добавить в mock `useForm: (data: unknown) => ({ data, errors: {}, processing: false, post: vi.fn(), setData: vi.fn(), reset: vi.fn() })`; проверено Vitest 2/2. До этого frontend CI останется красным.
