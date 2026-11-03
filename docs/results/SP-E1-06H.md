@@ -6,6 +6,7 @@
 - Карточка показывает назначенные диалоги и каналы уведомлений текущего бренда; доступные коллеги могут получить все назначенные диалоги в режиме менеджера.
 - Повторная выдача использует существующий механизм одноразовых ссылок; передача записывает аудит каждого диалога.
 - Проверки: Team и GeneratedTypes PHPUnit 12 тестов / 324 проверки; Product Seller/Tasks 4 / 33; Playwright 4; TypeScript, ESLint, Pint. После возврата повторены TeamActions и GeneratedTypes — 4 теста / 28 проверок; Playwright 4 — прошли.
+- После возврата frontend: Vitest teamDetail 2 теста, Team и Product Tasks PHPUnit 10 / 175; ESLint.
 - Скриншоты 1440 светлая тема, fixture: `.local/screenshots/sp-e1-06h/team-1440.png`, `member-1440.png`.
 - Макеты: `C:/OSPanel/home/tasks.local/completed/19/17-S-3.1-team.png`, `C:/OSPanel/home/tasks.local/completed/20/d8c35dea-S-3.2-user.png`.
 
