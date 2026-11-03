@@ -24,4 +24,32 @@ final class PersonaResponderAdapter
 
         return $persona;
     }
+
+    /** Keep the published responder prompt in sync with the saved phrase editor. */
+    public function withServicePhrases(array $persona): array
+    {
+        $persona['tone'] = array_values(array_filter($persona['tone'] ?? [],
+            fn ($line) => ! str_starts_with((string) $line, 'Служебная фраза (')
+                && ! str_starts_with((string) $line, 'Быстрый ответ менеджера:')));
+        $labels = [
+            'error' => 'ошибка', 'handoff' => 'передача менеджеру',
+            'out_of_hours' => 'вне рабочего времени', 'no_answer' => 'нет ответа',
+            'do_not_disturb' => 'не беспокоить', 'reminder' => 'напоминание',
+            'goodbye' => 'прощание',
+        ];
+        foreach ($labels as $key => $label) {
+            $phrase = trim((string) ($persona['service_phrases'][$key] ?? ''));
+            if ($phrase !== '') {
+                $persona['tone'][] = "Служебная фраза ({$label}): {$phrase}";
+            }
+        }
+        foreach ($persona['quick_replies'] ?? [] as $reply) {
+            $reply = trim((string) $reply);
+            if ($reply !== '') {
+                $persona['tone'][] = "Быстрый ответ менеджера: {$reply}";
+            }
+        }
+
+        return $persona;
+    }
 }

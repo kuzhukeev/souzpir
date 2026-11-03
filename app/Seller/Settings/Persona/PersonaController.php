@@ -90,7 +90,7 @@ final class PersonaController
                 $length['max_sentences'] = (int) $input['max_sentences'];
             }
             $persona['length'] = array_replace($persona['length'] ?? [], $length);
-            $data['persona'] = $persona;
+            $data['persona'] = app(PersonaResponderAdapter::class)->withServicePhrases($persona);
             $repo->saveDraft($tenant, $draft->id, (int) $input['version'], $data);
         });
 
@@ -109,6 +109,7 @@ final class PersonaController
             $data = $repo->forRelease($tenant, $draft->id, true)->toArray();
             $data['persona']['service_phrases'] = array_replace(self::PHRASE_DEFAULTS, $input['phrases']);
             $data['persona']['quick_replies'] = $input['quick_replies'];
+            $data['persona'] = app(PersonaResponderAdapter::class)->withServicePhrases($data['persona']);
             $repo->saveDraft($tenant, $draft->id, (int) $input['version'], $data);
         });
 
