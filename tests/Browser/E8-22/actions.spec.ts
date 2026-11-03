@@ -24,7 +24,7 @@ test('история сохраняет осторожную оценку эфф
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(`${url}?history`);
   await expect(page.getByText(/Рано судить: порядок/)).toBeVisible();
-  await expect(page.locator('a[href="/vision/actions/effect"]')).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Посмотреть эффект' })).toHaveAttribute('href', '/vision/actions/effect');
   await page.screenshot({ path: '.local/screenshots/SP-E8-22/history.png', fullPage: true });
 });
 
