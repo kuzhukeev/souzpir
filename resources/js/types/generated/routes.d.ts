@@ -482,6 +482,7 @@ declare module 'ziggy-js' {
             "required": false
         }
     ],
+    "seller.dialogs.pending": [],
     "seller.dialogs.show": [
         {
             "name": "dialog",
