@@ -65,6 +65,8 @@ final class ReportSections
                 ->map(fn ($item) => ['text' => $item['text'], 'reason' => $item['reason'] ?? '', 'provider' => $item['provider'] ?? ''])->values()->all(),
             'sources' => collect($metrics['sources'] ?? [])->take(10)->map(fn ($item) => [
                 'domain' => $item['domain'], 'answers' => $item['answers'],
+                'type' => is_string($item['type'] ?? null) ? $item['type'] : null,
+                'presence' => is_bool($item['presence'] ?? null) ? $item['presence'] : null,
             ])->values()->all(),
             'actions' => collect(data_get($payload, 'recommendations.items', []))->take(3)->map(fn ($item) => [
                 'title' => $item['title'] ?? '', 'why' => $item['why'] ?? '',

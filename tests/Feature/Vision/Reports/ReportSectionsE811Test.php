@@ -21,6 +21,19 @@ final class ReportSectionsE811Test extends TestCase
         self::assertSame([], app(ReportSections::class)->make([])['actions']);
     }
 
+    public function test_source_presence_is_taken_from_the_snapshot_and_unknown_stays_unknown(): void
+    {
+        $result = app(ReportSections::class)->make(['metrics' => ['sources' => [
+            ['domain' => 'one.test', 'answers' => 3, 'type' => 'maps', 'presence' => true],
+            ['domain' => 'two.test', 'answers' => 1, 'type' => 'media', 'presence' => false],
+            ['domain' => 'three.test', 'answers' => 1],
+        ]]]);
+        self::assertSame(true, $result['sources'][0]['presence']);
+        self::assertSame('maps', $result['sources'][0]['type']);
+        self::assertSame(false, $result['sources'][1]['presence']);
+        self::assertNull($result['sources'][2]['presence']);
+    }
+
     public function test_site_is_taken_only_from_an_intact_measurement_snapshot(): void
     {
         $profile = ['site' => 'https://example.test'];
