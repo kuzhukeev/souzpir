@@ -648,6 +648,7 @@ declare module 'ziggy-js' {
     "seller.quality.calibration": [],
     "seller.quality.calibration.save": [],
     "seller.analytics.index": [],
+    "seller.analytics.send": [],
     "seller.analytics.csv": [],
     "seller.dashboard.index": [],
     "seller.dashboard.attention": [],
