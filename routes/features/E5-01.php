@@ -11,6 +11,8 @@ return [
             Route::get('/seller/channels', [TelegramController::class, 'index'])->name('seller.channels.index');
             Route::get('/seller/channels/telegram', [TelegramController::class, 'telegram'])->name('seller.channels.telegram');
             Route::post('/seller/channels/telegram/register', TelegramRegistrationController::class)->name('seller.channels.telegram.register');
+            Route::post('/seller/channels/telegram/verify', [TelegramController::class, 'verify'])->name('seller.channels.telegram.verify');
+            Route::post('/seller/channels/telegram/link-code', [TelegramController::class, 'linkCode'])->name('seller.channels.telegram.link-code');
             Route::put('/seller/channels/telegram', [TelegramController::class, 'save'])->name('seller.channels.telegram.save');
             Route::patch('/seller/channels/{channel}/mode', [TelegramController::class, 'mode'])->whereUlid('channel')->name('seller.channels.mode');
             Route::post('/seller/channels/stop', [TelegramController::class, 'stop'])->name('seller.channels.stop');

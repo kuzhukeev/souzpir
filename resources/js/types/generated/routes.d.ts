@@ -442,6 +442,8 @@ declare module 'ziggy-js' {
     "seller.channels.index": [],
     "seller.channels.telegram": [],
     "seller.channels.telegram.register": [],
+    "seller.channels.telegram.verify": [],
+    "seller.channels.telegram.link-code": [],
     "seller.channels.telegram.save": [],
     "seller.channels.mode": [
         {
