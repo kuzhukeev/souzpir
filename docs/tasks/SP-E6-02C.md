@@ -1,13 +1,14 @@
 # SP-E6-02C · Приветствия: разделы сайта, переменные, нерабочее время
 
 **Зачем:** решение владельца от 03.11.2026 закрыть незапланированные расхождения с макетами по итогам аудита 160 экранов; экраны D-6.2.
-**Часть чего:** SP-E6-02B закрывает только runtime.
+**Часть чего:** остаток SP-E6-02B и экран D-6.2: resolver уже создан, подключение к первому ходу отсутствует.
 **Зависимости:** SP-E6-02B (дождаться merge).
 
 - Экран D-6.2 «Приветствия» соответствует макету из матрицы по пунктам (журнал docs/sources/02b_mockup_journal.md [62]): «Раздел сайта» (Главная/Каталог/Контакты); чипы переменных {имя}{страница}; «В нерабочее время»; превью виджета; метка «Скоро» для WhatsApp; заглушки «…автоматическую генерацию приветствия после подключения к движку.» и «Применение сохранённых приветствий при открытии диалога подключается отдельно.» (:4–9). Где сейчас: Settings/Greetings/Index.tsx:4–9; Settings/Greetings/GreetingsController.php:37; E6-02.php.
+- Остаток SP-E6-02B: подключить выбор приветствия бренда и канала к защищённому первому ходу runtime; передавать страницу и переменные, сохранить fallback для пустого текста и проверить fake-генерацию пяти каналов и изоляцию бренда.
 - Каждый пункт покрыт Feature- или Browser-тестом; данные только текущего бренда, проверены права ролей; состояния пусто / загрузка / ошибка как на макете; в отчёте скриншоты каждого экрана рядом с макетом.
 - Без живых и платных внешних вызовов без разрешения владельца; если пункт макета противоречит ТЗ или требует решения владельца, исполнитель не выдумывает, а записывает вопрос в docs/decisions-pending.md и делает остальное.
 
-Scope: `app/Seller/Settings/Greetings/`, `resources/js/pages/Seller/Settings/Greetings/`, `routes/features/E6-02.php`, `tests/Feature/Seller/Settings/Greetings/`, `tests/Browser/E6-02C/`, `docs/results/SP-E6-02C.md`.
+Scope: `app/Seller/Runtime/`, `app/ProtectedOperations/FirstTurnCoordinator.php`, `app/ProtectedOperations/FirstTurnTextFinalizer.php`, `tests/Feature/SellerRuntime/Turns/`, `app/Seller/Settings/Greetings/`, `resources/js/pages/Seller/Settings/Greetings/`, `routes/features/E6-02.php`, `tests/Feature/Seller/Settings/Greetings/`, `tests/Browser/E6-02C/`, `docs/results/SP-E6-02C.md`.
 
 Отчёт: docs/results/SP-E6-02C.md; локальные тесты задачи, submit и зелёный CI.
