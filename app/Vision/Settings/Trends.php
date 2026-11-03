@@ -2,6 +2,7 @@
 
 namespace App\Vision\Settings;
 
+use App\Ai\CanonicalJson;
 use App\Tenancy\TenantContext;
 use App\Vision\Core\VisionReportReader;
 use Illuminate\Support\Facades\DB;
@@ -36,7 +37,7 @@ final class Trends
         $metrics = $snapshot['metrics'] ?? [];
 
         return [
-            'id' => $id, 'date' => $date,
+            'id' => $id, 'date' => $date, 'signature' => isset($snapshot['question_set_checksum'], $snapshot['providers'], $snapshot['runs']) ? CanonicalJson::hash(['questions' => $snapshot['question_set_checksum'], 'providers' => $snapshot['providers'], 'runs' => $snapshot['runs']]) : null,
             'visibility' => data_get($metrics, 'visibility.macro_percent'),
             'share' => data_get($metrics, 'panel.share_of_voice'),
             'providers' => collect($metrics['providers'] ?? [])->map(fn ($row) => [
