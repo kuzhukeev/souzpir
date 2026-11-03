@@ -70,14 +70,24 @@ final class FactsController
             $draft = $this->draft($tenant);
             $row = DB::table('kn_facts as f')->join('kn_fact_groups as g', 'g.id', '=', 'f.group_id')
                 ->where('g.release_id', $draft)->where('f.id', $fact)
-                ->first(['f.id', 'f.logical_id', 'f.text', 'f.status', 'f.source', 'g.key as group_key']) ?? abort(404);
+                ->first(['f.id', 'f.logical_id', 'f.text', 'f.status', 'f.source', 'g.key as group_key', 'g.data as group_data']) ?? abort(404);
+            $group = json_decode($row->group_data, true);
+            unset($row->group_data);
             $version = DB::table('knowledge_releases')->where('id', $draft)->value('version');
             $history = DB::table('audit_logs as a')->leftJoin('users as u', 'u.id', '=', 'a.actor_id')
                 ->where('a.organization_id', $tenant->organizationId)->where('a.brand_id', $tenant->brandId)
                 ->where('a.subject_type', 'knowledge_fact')->where('a.subject_id', $row->logical_id)
-                ->orderByDesc('a.created_at')->limit(50)->get(['a.action', 'a.created_at', 'u.name as author']);
+                ->orderByDesc('a.created_at')->limit(50)->get(['a.action', 'a.created_at', 'a.before', 'a.after', 'u.name as author'])
+                ->map(function ($change) {
+                    $before = json_decode($change->before ?? '{}', true);
+                    $after = json_decode($change->after ?? '{}', true);
 
-            return ['fact' => $row, 'version' => $version, 'history' => $history];
+                    return ['action' => $change->action, 'created_at' => $change->created_at, 'author' => $change->author,
+                        'before_status' => $before['status'] ?? null, 'after_status' => $after['status'] ?? null];
+                });
+
+            return ['fact' => $row, 'version' => $version, 'history' => $history,
+                'group' => ['topic' => $group['topic'] ?? null, 'bridge_hint' => $group['bridge_hint'] ?? null, 'must_not' => $group['must_not'] ?? []]];
         });
 
         return Inertia::render('Seller/Knowledge/Facts/Show', [...$data, 'status' => session('status')]);
@@ -85,7 +95,8 @@ final class FactsController
 
     public function bulk(Request $request): mixed
     {
-        $input = $request->validate(['version' => ['required', 'integer', 'min:1'], 'action' => ['required', 'in:activate,deactivate,delete'],
+        $input = $request->validate(['version' => ['required', 'integer', 'min:1'], 'action' => ['required', 'in:activate,deactivate,delete,move'],
+            'group' => ['required_if:action,move', 'nullable', 'string', 'max:64'],
             'ids' => ['required', 'array', 'min:1', 'max:50'], 'ids.*' => ['required', 'ulid', 'distinct']]);
         $this->access($request, function (TenantContext $tenant) use ($input): void {
             DB::transaction(function () use ($tenant, $input): void {
@@ -95,10 +106,16 @@ final class FactsController
                 foreach ($input['ids'] as $id) {
                     $fact = DB::table('kn_facts as f')->join('kn_fact_groups as g', 'g.id', '=', 'f.group_id')
                         ->where('g.release_id', $draft)->where('f.id', $id)->first(['f.text', 'f.source']) ?? abort(404);
-                    $version = $input['action'] === 'delete'
-                        ? $repo->deleteFact($tenant, $draft, $id, $version)
-                        : $repo->setFact($tenant, $draft, $id, $version, $fact->text,
+                    if ($input['action'] === 'move') {
+                        $group = DB::table('kn_fact_groups')->where('release_id', $draft)->where('key', $input['group'])->first(['id']) ?? abort(404);
+                        $position = DB::table('kn_facts')->where('group_id', $group->id)->where('id', '!=', $id)->count();
+                        $version = $repo->moveFact($tenant, $draft, $id, $version, $input['group'], $position);
+                    } elseif ($input['action'] === 'delete') {
+                        $version = $repo->deleteFact($tenant, $draft, $id, $version);
+                    } else {
+                        $version = $repo->setFact($tenant, $draft, $id, $version, $fact->text,
                             $input['action'] === 'activate' ? 'active' : 'inactive', $fact->source);
+                    }
                 }
             });
         });

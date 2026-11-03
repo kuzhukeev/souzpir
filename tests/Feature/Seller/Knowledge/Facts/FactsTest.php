@@ -114,4 +114,25 @@ final class FactsTest extends TenancyTestCase
         $this->post('/seller/knowledge/facts/bulk', ['version' => 1, 'action' => 'delete', 'ids' => [$fact->id]])->assertNotFound();
         $this->assertDatabaseHas('kn_facts', ['id' => $fact->id, 'status' => 'inactive']);
     }
+
+    public function test_bulk_move_preserves_facts_and_checks_destination_and_version(): void
+    {
+        [$owner, $org, $brand] = $this->cabinet();
+        $this->enable($org->id, $brand->id);
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $this->post('/seller/knowledge/draft')->assertRedirect();
+        $this->post('/seller/knowledge/facts/group', ['version' => 1, 'key' => 'source', 'topic' => 'Доставка', 'bridge_hint' => 'Уточнить город', 'must_not' => 'Не обещать срок'])->assertRedirect();
+        $this->post('/seller/knowledge/facts/group', ['version' => 2, 'key' => 'target'])->assertRedirect();
+        $this->post('/seller/knowledge/facts', ['version' => 3, 'group' => 'source', 'text' => 'Первый'])->assertRedirect();
+        $this->post('/seller/knowledge/facts', ['version' => 4, 'group' => 'source', 'text' => 'Второй'])->assertRedirect();
+        $ids = DB::table('kn_facts')->orderBy('position')->pluck('id')->all();
+        $this->get('/seller/knowledge/facts/'.$ids[0])->assertOk()->assertInertia(fn ($page) => $page->where('group.topic', 'Доставка')->where('group.bridge_hint', 'Уточнить город')->where('group.must_not.0', 'Не обещать срок'));
+        $this->post('/seller/knowledge/facts/bulk', ['version' => 5, 'action' => 'move', 'ids' => $ids])->assertSessionHasErrors('group');
+        $this->post('/seller/knowledge/facts/bulk', ['version' => 5, 'action' => 'move', 'group' => 'missing', 'ids' => $ids])->assertNotFound();
+        $this->post('/seller/knowledge/facts/bulk', ['version' => 4, 'action' => 'move', 'group' => 'target', 'ids' => $ids])->assertStatus(409);
+        $this->post('/seller/knowledge/facts/bulk', ['version' => 5, 'action' => 'move', 'group' => 'target', 'ids' => $ids])->assertRedirect()->assertSessionHasNoErrors();
+        $target = DB::table('kn_fact_groups')->where('key', 'target')->value('id');
+        $this->assertSame($ids, DB::table('kn_facts')->where('group_id', $target)->orderBy('position')->pluck('id')->all());
+        $this->get('/seller/knowledge/facts/'.$ids[0])->assertOk()->assertInertia(fn ($page) => $page->where('fact.group_key', 'target')->has('history'));
+    }
 }
