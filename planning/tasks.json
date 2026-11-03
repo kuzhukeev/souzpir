@@ -11858,6 +11858,39 @@
       ],
       "wave": 17,
       "promptPath": "docs/tasks/SP-E6-07C.md"
+    },
+    {
+      "taskKey": "SP-E3-10B",
+      "title": "SP-E3-10B · Отрасль бренда в остальных стадиях продавца",
+      "description": "# SP-E3-10B · Отрасль бренда в остальных стадиях продавца\n\n**Зачем:** решение владельца от 02.11.2026: второй бренд не должен получать чужую отрасль, город и компанию.\n**Часть чего:** незавершённая часть SP-E3-10 — пять v1-стадий и выбор версий prompt sets.\n**Зависимости:** SP-E3-10, SP-E3-03.\n\nУбрать пиротехнику, Москву и компанию прототипа из остальных стадий для других брендов: использовать данные persona/policy/facts текущего бренда и версионированный per-brand prompt set. Дополнить загрузчики и seeder, сохраняя неизменными исходную v1-версию и golden-фикстуры прототипа. Живые вызовы запрещены.\n\nПриёмка: импортированные знания «Союз Пир» сохраняют golden-ответы всех стадий; бренд другой отрасли и города не получает чужих отраслевых или московских формулировок ни в одной стадии. Проверить изоляцию брендов, отсутствующие знания и fake-LLM.\n\nScope: `app/Ai/Protected/`, `app/Seller/Engine/`, `resources/views/prompts/`, `database/seeders/Ai/`, `database/migrations/E3-10B/`, `tests/Feature/Ai/`, `tests/Feature/Seller/Engine/`, `tests/Unit/Seller/Engine/`, `docs/results/SP-E3-10B.md`.\n",
+      "goal": "Завершить решение владельца об отсутствии чужой отрасли и города у второго бренда.",
+      "dependsOn": [
+        "SP-E3-10",
+        "SP-E3-03"
+      ],
+      "scope": [
+        "app/Ai/Protected/",
+        "app/Seller/Engine/",
+        "resources/views/prompts/",
+        "database/seeders/Ai/",
+        "database/migrations/E3-10B/",
+        "tests/Feature/Ai/",
+        "tests/Feature/Seller/Engine/",
+        "tests/Unit/Seller/Engine/",
+        "docs/results/SP-E3-10B.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Golden-ответы Союз Пир сохраняются; другой бренд не получает чужих отраслевых и московских формулировок ни в одной стадии.",
+        "Изоляция брендов, отсутствие знаний и fake-LLM проверены без живых вызовов."
+      ],
+      "sourceRefs": [
+        "docs/tasks/SP-E3-10.md",
+        "docs/results/SP-E3-10.md"
+      ],
+      "screenIds": [],
+      "wave": 3,
+      "promptPath": "docs/tasks/SP-E3-10B.md"
     }
   ],
   "excludedSourceTasks": {

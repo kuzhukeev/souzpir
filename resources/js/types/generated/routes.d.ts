@@ -473,6 +473,16 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "seller.dialogs.reviews.store": [
+        {
+            "name": "dialog",
+            "required": true
+        },
+        {
+            "name": "message",
+            "required": true
+        }
+    ],
     "seller.customers.index": [],
     "seller.customers.show": [
         {
@@ -523,6 +533,7 @@ declare module 'ziggy-js' {
     "seller.customers.io.import": [],
     "seller.persona.index": [],
     "seller.persona.save": [],
+    "seller.persona.phrases.save": [],
     "seller.settings.greetings.index": [],
     "seller.settings.greetings.update": [],
     "seller.settings.policy.index": [],

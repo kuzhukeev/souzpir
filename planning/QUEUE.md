@@ -264,3 +264,5 @@
 - [SP-R-05C](../docs/tasks/SP-R-05C.md)
 - [SP-R-06](../docs/tasks/SP-R-06.md)
 
+
+Остаток SP-E3-10: [SP-E3-10B](../docs/tasks/SP-E3-10B.md) после SP-E3-03; до завершения второй бренд не считать готовым.
