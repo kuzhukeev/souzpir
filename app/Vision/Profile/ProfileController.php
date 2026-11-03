@@ -127,6 +127,7 @@ HTML;
             app(CompletionRules::class)->validate($draft['answers']);
             app(Questionnaire::class)->submit($request, $data['id'], $data['revision']);
             Inertia::clearHistory();
+            $request->session()->flash('vision.quiz_submitted', true);
 
             return $request->expectsJson() ? response()->json(['ok' => true, 'redirect' => '/vision/profile']) : redirect()->route('vision.profile.show')->with('status', 'Анкета отправлена.');
         });
@@ -145,7 +146,7 @@ HTML;
                 ->where('version', '<', $profile['version'])->orderByDesc('version')->value('id'));
             $previous = $previousId ? app(Questionnaire::class)->profile($request, $previousId) : null;
 
-            return Inertia::render('Vision/Profile/Show', ['profile' => $profile, 'previous_profile' => $previous, 'history' => $state['history'], 'current_profile_id' => $state['profile_id'], 'is_latest' => $profile['id'] === $state['profile_id'], 'limits' => QuizLimits::configured()->values()]);
+            return Inertia::render('Vision/Profile/Show', ['profile' => $profile, 'previous_profile' => $previous, 'history' => $state['history'], 'current_profile_id' => $state['profile_id'], 'is_latest' => $profile['id'] === $state['profile_id'], 'submitted' => (bool) $request->session()->get('vision.quiz_submitted', false), 'limits' => QuizLimits::configured()->values()]);
         });
     }
 
@@ -163,6 +164,7 @@ HTML;
             app(CompletionRules::class)->validate($answers);
             app(Questionnaire::class)->edit($request, $data['id'], $step, $data['values']);
             Inertia::clearHistory();
+            $request->session()->flash('vision.quiz_submitted', true);
 
             return $request->expectsJson() ? response()->json(['ok' => true, 'redirect' => '/vision/profile']) : redirect()->route('vision.profile.show')->with('status', 'Профиль обновлён.');
         });

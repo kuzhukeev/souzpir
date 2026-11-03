@@ -17,6 +17,7 @@ type Profile = { id: string; quiz_id: string; version: number; checksum: string;
 type Props = {
   profile: Profile;
   previous_profile: Profile | null;
+  submitted?: boolean;
   history: { id: string; version: number; source: string; created_at: string }[];
   is_latest: boolean;
   limits: { competitors?: number; facts?: number; questions?: number };
@@ -32,7 +33,38 @@ function dateUtc(value: string): string {
         timeZone: 'UTC',
       }).format(parsed) + ' UTC';
 }
-function Details({ profile, previous_profile, history, is_latest, limits, errors = {} }: Props) {
+function ProfileComparison({profile, previous}: {profile: Profile; previous: Profile}) {
+  return (
+            <div className="mt-5 space-y-4">
+              <h3 className="font-semibold">Сравнение с версией {previous.version}</h3>
+              {labels.slice(0, 7).map((title, i) => {
+                const key = `step${i + 1}`;
+                const before = JSON.stringify(previous.answers[key] ?? {}, null, 2);
+                const after = JSON.stringify(profile.answers[key] ?? {}, null, 2);
+                return before === after ? null : (
+                  <section key={key} className="rounded-lg border border-(--color-border) p-4">
+                    <h4 className="font-semibold">{title}</h4>
+                    <div className="mt-3 grid gap-4 md:grid-cols-2">
+                      <div>
+                        <p className="text-sm font-semibold">Было</p>
+                        <p className="whitespace-pre-wrap break-words text-sm">
+                          {answerText(previous.answers[key])}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold">Стало</p>
+                        <p className="whitespace-pre-wrap break-words text-sm">
+                          {answerText(profile.answers[key])}
+                        </p>
+                      </div>
+                    </div>
+                  </section>
+                );
+              })}
+            </div>
+  );
+}
+function Details({ profile, previous_profile, history, is_latest, limits, submitted = false, errors = {} }: Props) {
   const { brand } = usePage<{ brand: { id: string } | null }>().props;
   const [section, setSection] = useState<number | null>(null);
   const [data, setData] = useState(() => readAnswers(profile.answers, { name: '' }));
@@ -72,6 +104,7 @@ function Details({ profile, previous_profile, history, is_latest, limits, errors
             Открыть вопросы для пересборки
           </Link>
         </header>
+        {submitted && <section role="status" className="rounded-xl bg-(--color-surface) p-5"><h2 className="text-xl font-bold">Анкета отправлена</h2><p className="mt-2 text-sm text-(--color-ink-muted)">Профиль сохранён. Теперь можно подготовить вопросы и настроить замер.</p></section>}
         {error && (
           <p role="alert" className="rounded-lg bg-red-50 p-4 text-sm text-red-800">
             {error}
@@ -147,35 +180,10 @@ function Details({ profile, previous_profile, history, is_latest, limits, errors
               </li>
             ))}
           </ul>
+          {previous_profile && <ProfileComparison profile={profile} previous={previous_profile} />}
           {previous_profile && (
             <Dialog.Root><Dialog.Trigger asChild><button type="button" className="mt-4 min-h-11 cursor-pointer rounded-lg border border-(--color-border) px-4 text-sm font-semibold text-(--color-link)">Сравнить с предыдущей версией</button></Dialog.Trigger><Dialog.Portal><Dialog.Overlay className="fixed inset-0 z-40 bg-black/50"/><Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[85vh] w-[min(92vw,44rem)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl bg-(--color-surface) p-6 text-(--color-ink)"><div className="flex items-start justify-between gap-4"><Dialog.Title className="text-xl font-bold">История изменений</Dialog.Title><Dialog.Close className="min-h-11 min-w-11 cursor-pointer rounded-lg border border-(--color-border)" aria-label="Закрыть">✕</Dialog.Close></div><Dialog.Description className="mt-2 text-sm text-(--color-ink-muted)">Сравнение текущей и предыдущей версий профиля.</Dialog.Description>
-            <div className="mt-5 space-y-4">
-              <h3 className="font-semibold">Сравнение с версией {previous_profile.version}</h3>
-              {labels.slice(0, 7).map((title, i) => {
-                const key = `step${i + 1}`;
-                const before = JSON.stringify(previous_profile.answers[key] ?? {}, null, 2);
-                const after = JSON.stringify(profile.answers[key] ?? {}, null, 2);
-                return before === after ? null : (
-                  <section key={key} className="rounded-lg border border-(--color-border) p-4">
-                    <h4 className="font-semibold">{title}</h4>
-                    <div className="mt-3 grid gap-4 md:grid-cols-2">
-                      <div>
-                        <p className="text-sm font-semibold">Было</p>
-                        <p className="whitespace-pre-wrap break-words text-sm">
-                          {answerText(previous_profile.answers[key])}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold">Стало</p>
-                        <p className="whitespace-pre-wrap break-words text-sm">
-                          {answerText(profile.answers[key])}
-                        </p>
-                      </div>
-                    </div>
-                  </section>
-                );
-              })}
-            </div></Dialog.Content></Dialog.Portal></Dialog.Root>
+            <ProfileComparison profile={profile} previous={previous_profile} /></Dialog.Content></Dialog.Portal></Dialog.Root>
           )}
         </section>
       </div>
