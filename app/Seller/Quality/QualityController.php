@@ -2,7 +2,9 @@
 
 namespace App\Seller\Quality;
 
+use App\Ai\Drivers\Rejected;
 use App\Models\User;
+use App\Seller\Evaluation\Judge;
 use App\Seller\Evaluation\Supervisor;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Audit\AuditEntry;
@@ -77,6 +79,33 @@ final class QualityController
         [$rows, $reports] = $this->access($request, fn (TenantContext $tenant) => [$this->rows($tenant)->where('day', $day)->values(), $this->reports($tenant)->where('day', $day)->values()]);
 
         return Inertia::render('Seller/Quality/Day', ['day' => $day, 'evaluations' => $rows, 'reports' => $reports]);
+    }
+
+    public function evaluateSimulation(Request $request): mixed
+    {
+        $day = $this->access($request, function (TenantContext $tenant): string {
+            if (config('runtime.ai_driver') !== 'fake') {
+                throw ValidationException::withMessages(['evaluation' => 'Тестовая оценка доступна только с fake-драйвером. Оценка реальных диалогов пока недоступна.']);
+            }
+            $run = DB::table('seller_sim_runs as r')
+                ->where('r.organization_id', $tenant->organizationId)->where('r.brand_id', $tenant->brandId)
+                ->where('r.status', 'completed')->where('r.turn_count', '>', 0)
+                ->whereNotExists(fn ($query) => $query->selectRaw('1')->from('seller_evaluations as e')->whereColumn('e.sim_run_id', 'r.id')->whereColumn('e.organization_id', 'r.organization_id')->whereColumn('e.brand_id', 'r.brand_id'))
+                ->orderByDesc('r.created_at')->orderByDesc('r.id')->value('r.id');
+            if (! $run) {
+                throw ValidationException::withMessages(['evaluation' => 'Нет завершённых симуляций без оценки для текущего бренда.']);
+            }
+            try {
+                app(Judge::class)->evaluate($tenant, $run);
+            } catch (Rejected $exception) {
+                throw ValidationException::withMessages(['evaluation' => 'Для этой симуляции нет подготовленного тестового ответа Judge.']);
+            }
+            $timezone = DB::table('brands')->where('organization_id', $tenant->organizationId)->where('id', $tenant->brandId)->value('timezone') ?: 'UTC';
+
+            return now($timezone)->toDateString();
+        });
+
+        return redirect()->route('seller.quality.day', ['day' => $day]);
     }
 
     public function collectToday(Request $request): mixed

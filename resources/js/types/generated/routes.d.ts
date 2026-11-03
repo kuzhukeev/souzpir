@@ -551,6 +551,7 @@ declare module 'ziggy-js' {
         }
     ],
     "seller.quality.collect": [],
+    "seller.quality.evaluate-simulation": [],
     "seller.quality.recommendation": [
         {
             "name": "day",
