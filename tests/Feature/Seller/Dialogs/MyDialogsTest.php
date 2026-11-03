@@ -20,6 +20,9 @@ final class MyDialogsTest extends TenancyTestCase
         $waiting = $this->addDialog($org->id, $brand->id, null);
         $foreign = $this->addDialog($org->id, $other->id, $manager->id);
         $this->actingAs($manager)->withSession(['brand_id' => $brand->id]);
+        $this->get('/seller/dialogs/mine')->assertOk()->assertInertia(fn (Assert $page) => $page->component('Seller/Dialogs/Mine')->has('dialogs', 2)->where('filters.mode', 'mine'));
+        $this->get('/seller/dialogs/mine/'.$foreign)->assertNotFound();
+        $this->getJson('/seller/dialogs/mine?sort=invalid')->assertUnprocessable();
         $this->get('/seller/dialogs?mode=mine')->assertOk()->assertInertia(fn (Assert $page) => $page->has('dialogs', 2)->where('mineCounts.active', 2)->where('mineCounts.waiting', 0)->where('filters.mode', 'mine'));
         $this->get('/seller/dialogs/'.$waiting.'?mode=mine')->assertOk();
         $this->get('/seller/dialogs/'.$foreign.'?mode=mine')->assertNotFound();
