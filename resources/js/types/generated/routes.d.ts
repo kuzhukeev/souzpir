@@ -579,6 +579,18 @@ declare module 'ziggy-js' {
     ],
     "seller.scenarios.index": [],
     "seller.scenarios.save": [],
+    "seller.scenarios.copy": [
+        {
+            "name": "scenario",
+            "required": true
+        }
+    ],
+    "seller.scenarios.set": [
+        {
+            "name": "scenario",
+            "required": true
+        }
+    ],
     "seller.quality.compare": [],
     "seller.quality.calibration": [],
     "seller.quality.calibration.save": [],
