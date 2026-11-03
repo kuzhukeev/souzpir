@@ -1,3 +1,4 @@
+import * as Dialog from '@radix-ui/react-dialog';
 import { useState } from 'react';
 import { Link, usePage } from '@inertiajs/react';
 import { mutate } from '@/features/Vision/Profile/mutate';
@@ -68,7 +69,7 @@ function Details({ profile, previous_profile, history, is_latest, limits, errors
             Ответы анкеты и сведения для следующих замеров · версия {profile.version}
           </p>
           <Link href="/vision/questions" className="mt-3 inline-block text-sm text-(--color-link) underline underline-offset-2">
-            Перейти к вопросам для замера
+            Открыть вопросы для пересборки
           </Link>
         </header>
         {error && (
@@ -77,7 +78,7 @@ function Details({ profile, previous_profile, history, is_latest, limits, errors
           </p>
         )}
         <div className="rounded-lg bg-(--color-brand-primary-soft) p-4 text-sm">
-          Данные профиля предоставлены вами и не являются независимо подтверждёнными фактами.
+          Изменения профиля применятся к следующему замеру. Данные предоставлены вами и не являются независимо подтверждёнными фактами.
         </div>
         <div className="grid gap-4 lg:grid-cols-2">
           {labels.slice(0, 7).map((title, i) => (
@@ -147,6 +148,7 @@ function Details({ profile, previous_profile, history, is_latest, limits, errors
             ))}
           </ul>
           {previous_profile && (
+            <Dialog.Root><Dialog.Trigger asChild><button type="button" className="mt-4 min-h-11 cursor-pointer rounded-lg border border-(--color-border) px-4 text-sm font-semibold text-(--color-link)">Сравнить с предыдущей версией</button></Dialog.Trigger><Dialog.Portal><Dialog.Overlay className="fixed inset-0 z-40 bg-black/50"/><Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[85vh] w-[min(92vw,44rem)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl bg-(--color-surface) p-6 text-(--color-ink)"><div className="flex items-start justify-between gap-4"><Dialog.Title className="text-xl font-bold">История изменений</Dialog.Title><Dialog.Close className="min-h-11 min-w-11 cursor-pointer rounded-lg border border-(--color-border)" aria-label="Закрыть">✕</Dialog.Close></div><Dialog.Description className="mt-2 text-sm text-(--color-ink-muted)">Сравнение текущей и предыдущей версий профиля.</Dialog.Description>
             <div className="mt-5 space-y-4">
               <h3 className="font-semibold">Сравнение с версией {previous_profile.version}</h3>
               {labels.slice(0, 7).map((title, i) => {
@@ -173,7 +175,7 @@ function Details({ profile, previous_profile, history, is_latest, limits, errors
                   </section>
                 );
               })}
-            </div>
+            </div></Dialog.Content></Dialog.Portal></Dialog.Root>
           )}
         </section>
       </div>

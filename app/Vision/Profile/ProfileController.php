@@ -95,7 +95,10 @@ HTML;
             }
             $quiz = app(Questionnaire::class)->read($request, $state['current']['quiz_id']);
 
-            return Inertia::render('Vision/Profile/Quiz', ['quiz' => $quiz, 'step' => $step, 'brand' => $state['brand'], 'hints' => $this->hints($request, $step, $state['brand']['website'] ?? null), 'limits' => QuizLimits::configured()->values()]);
+            $savedAt = $quiz['revision'] > 1 ? app(ProfileAccess::class)->run($request, fn (TenantContext $tenant) => DB::table('visibility_quizzes')
+                ->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('id', $quiz['id'])->value('updated_at')) : null;
+
+            return Inertia::render('Vision/Profile/Quiz', ['quiz' => $quiz, 'step' => $step, 'brand' => $state['brand'], 'savedAt' => $savedAt, 'hints' => $this->hints($request, $step, $state['brand']['website'] ?? null), 'limits' => QuizLimits::configured()->values()]);
         });
     }
 
