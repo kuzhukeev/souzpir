@@ -52,7 +52,8 @@ final class QuestionWorkspace
             $approvals = DB::table('vision_question_approvals as a')->join('question_sets as s', 's.id', '=', 'a.question_set_id')->join('users as u', 'u.id', '=', 'a.approved_by')
                 ->where('a.organization_id', $ctx->organizationId)->where('a.brand_id', $ctx->brandId)->orderByDesc('s.version')
                 ->limit(100)->get(['s.id', 's.version', 's.questions', 's.size', 's.checksum', 'a.providers', 'a.frequency', 'a.active', 'a.created_at', 'a.approved_by', 'u.name as approver_name']);
-            $history = $approvals->map(function ($row): array {
+            $measurements = DB::table('measurements')->where('organization_id', $ctx->organizationId)->where('brand_id', $ctx->brandId)->whereIn('question_set_id', $approvals->pluck('id'))->orderByDesc('created_at')->get(['id', 'question_set_id', 'status', 'created_at'])->groupBy('question_set_id');
+            $history = $approvals->map(function ($row) use ($measurements): array {
                 $questions = json_decode($row->questions, true, 32, JSON_THROW_ON_ERROR);
                 $providers = json_decode($row->providers, true, 32, JSON_THROW_ON_ERROR);
                 if (! is_array($questions) || ! is_array($providers) || ! hash_equals($row->checksum, CanonicalJson::hash($questions))) {
@@ -61,7 +62,8 @@ final class QuestionWorkspace
 
                 return ['id' => $row->id, 'version' => (int) $row->version, 'questions' => $questions, 'size' => (int) $row->size,
                     'checksum' => $row->checksum, 'providers' => $providers, 'frequency' => $row->frequency, 'active' => (bool) $row->active,
-                    'approved_by' => $row->approved_by, 'approver_name' => $row->approver_name, 'created_at' => $row->created_at];
+                    'approved_by' => $row->approved_by, 'approver_name' => $row->approver_name, 'created_at' => $row->created_at,
+                    'measurements' => ($measurements[$row->id] ?? collect())->map(fn ($measurement) => ['id' => $measurement->id, 'status' => $measurement->status, 'created_at' => $measurement->created_at])->values()->all()];
             })->all();
             $limits = app(PlanLimits::class);
             $catalog = app(ProviderCatalog::class)->models();
