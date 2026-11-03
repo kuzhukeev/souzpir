@@ -172,6 +172,13 @@ function ActionCard({
           {action.status === 'awaiting_measurement' ? 'Ждём замера' : 'В работе'}
         </p>
       </div>
+      {action.status === 'open' && !editing && (
+        <dl className="grid gap-2 text-sm text-(--color-ink-muted)">
+          <div><dt className="inline">Приоритет: </dt><dd className="inline">не указан</dd></div>
+          <div><dt className="inline">Затронутые вопросы: </dt><dd className="inline">нет данных</dd></div>
+          <div><dt className="inline">Шаги: </dt><dd className="inline">не указаны</dd></div>
+        </dl>
+      )}
       {editing ? (
         <form onSubmit={save} className="space-y-3">
           <label className="block text-sm font-semibold">
@@ -361,7 +368,21 @@ export function Actions({
       {notice && <p role="status" className="rounded-lg bg-(--color-success-soft) p-3 text-sm">{notice}</p>}
       {history && <HistoryInsights achievements={achievements} />}
       {!history && canManage && <CreateAction members={members} />}
-      {first.length ? (
+      {first.length && history ? (
+        <>
+          <div className={`${card} overflow-x-auto`}>
+            <table className="w-full min-w-[640px] text-left text-sm">
+              <thead><tr><th className="p-2">Действие</th><th className="p-2">Выполнено</th><th className="p-2">Автор</th><th className="p-2">До → после</th><th className="p-2">Эффект</th></tr></thead>
+              <tbody>{first.map((action) => (
+                <tr key={action.id} className="border-t border-(--color-border)">
+                  <td className="p-2">{action.title}</td><td className="p-2">{formatDate(action.completed_at)}</td><td className="p-2">Нет данных</td><td className="p-2">Нет данных</td><td className="p-2">Рано судить</td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+          <details className={card}><summary className="cursor-pointer font-semibold">Подробнее о действиях</summary><div className="mt-4">{cards(first)}</div></details>
+        </>
+      ) : first.length ? (
         cards(first)
       ) : (
         <div className={`${card} text-(--color-ink-muted)`}>
