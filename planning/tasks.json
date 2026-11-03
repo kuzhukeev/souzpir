@@ -5220,7 +5220,9 @@
         "SP-E8-17B",
         "SP-E8-18B",
         "SP-E8-21B",
-        "SP-E8-14C"
+        "SP-E8-14C",
+        "SP-E6-03I",
+        "SP-E4-01G"
       ],
       "scope": [
         "README.md",
@@ -12985,6 +12987,71 @@
       "promptPath": "docs/tasks/SP-E8-14C.md",
       "wave": 18,
       "description": "# SP-E8-14C · Оставшиеся подсказки анкеты и экран старта\n\n**Зачем:** завершить экраны V-0.1, V-1.1, V-1.3, V-1.4, V-1.5, V-1.7 по решению владельца от 03.11.2026 и журналу макетов.\n**Часть чего:** остаток SP-E8-14B, перечисленный в docs/results/SP-E8-14B.md.\n**Зависимости:** SP-E8-14B (дождаться merge).\n\nДобавить логотипы моделей и сохранённые план и лимиты, проверку доступности сайта текущим запуском, семантические подсказки товаров, аудитории, конкурентов, фактов и вопросов из результата аудита; тесты без живых вызовов.\n\nСверить пункты с docs/sources/02b_mockup_journal.md, проверить основной сценарий, права и изоляцию брендов, ошибки ввода; приложить ключевой скриншот. Живых и платных вызовов в тестах нет.\n\nScope: `app/Vision/Profile/`, `app/Vision/Site/`, `resources/js/pages/Vision/Profile/`, `app/Shell/Billing/`, `tests/Browser/E8-14C/`, `docs/results/SP-E8-14C.md`.\n\nОтчёт: docs/results/SP-E8-14C.md; оставшиеся пункты перечислить в разделе «Остаток».\n"
+    },
+    {
+      "taskKey": "SP-E6-03I",
+      "title": "SP-E6-03I · Массовая отправка и статистика дожимов",
+      "goal": "Завершить массовую отправку выбранным клиентам только при подтверждённом согласии через очередь и fake-транспорт; показывать достоверные ответы, отписки и время будущей отправки на основе сохранённых событий.",
+      "dependsOn": [
+        "SP-E6-03H"
+      ],
+      "scope": [
+        "app/Seller/Followups/",
+        "resources/js/pages/Seller/Followups/",
+        "routes/features/E6-03H.php",
+        "tests/Feature/Seller/Followups/",
+        "tests/Browser/E6-03I/",
+        "docs/results/SP-E6-03I.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Пункты остатка выполнены по макету, проверены права и изоляция; тесты без живых вызовов."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "D-2.5"
+      ],
+      "notes": "Продолжение частичной сдачи по решению владельца.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E6-03I.md",
+      "wave": 18,
+      "description": "# SP-E6-03I · Массовая отправка и статистика дожимов\n\n**Зачем:** завершить экран D-2.5 по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E6-03H из docs/results/SP-E6-03H.md.\n**Зависимости:** SP-E6-03H (дождаться merge).\n\nЗавершить массовую отправку выбранным клиентам только при подтверждённом согласии через очередь и fake-транспорт; показывать достоверные ответы, отписки и время будущей отправки на основе сохранённых событий.\n\nСверить с docs/sources/02b_mockup_journal.md; проверить основной сценарий, права, изоляцию брендов и ошибки. Без живых или платных вызовов.\n\nScope: `app/Seller/Followups/`, `resources/js/pages/Seller/Followups/`, `routes/features/E6-03H.php`, `tests/Feature/Seller/Followups/`, `tests/Browser/E6-03I/`, `docs/results/SP-E6-03I.md`.\n\nОтчёт: docs/results/SP-E6-03I.md; незавершённые пункты перечислить в «Остаток».\n"
+    },
+    {
+      "taskKey": "SP-E4-01G",
+      "title": "SP-E4-01G · Полный прогон сценариев и черновик отката",
+      "goal": "Проверять fake-ответы по ожиданиям сценариев, открыть конкретный прогон; реализовать откат в новый черновик с ясной подсказкой и обработать уже существующий черновик без потери данных.",
+      "dependsOn": [
+        "SP-E4-01F"
+      ],
+      "scope": [
+        "app/Seller/Knowledge/",
+        "app/Seller/Evaluation/",
+        "resources/js/pages/Seller/Knowledge/Releases/",
+        "routes/features/E4-01.php",
+        "tests/Feature/Seller/Knowledge/",
+        "tests/Browser/E4-01G/",
+        "docs/results/SP-E4-01G.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Пункты остатка выполнены по макету, проверены права и изоляция; тесты без живых вызовов."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "D-4.12"
+      ],
+      "notes": "Продолжение частичной сдачи по решению владельца.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E4-01G.md",
+      "wave": 18,
+      "description": "# SP-E4-01G · Полный прогон сценариев и черновик отката\n\n**Зачем:** завершить экран D-4.12 по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E4-01F из docs/results/SP-E4-01F.md.\n**Зависимости:** SP-E4-01F (дождаться merge).\n\nПроверять fake-ответы по ожиданиям сценариев, открыть конкретный прогон; реализовать откат в новый черновик с ясной подсказкой и обработать уже существующий черновик без потери данных.\n\nСверить с docs/sources/02b_mockup_journal.md; проверить основной сценарий, права, изоляцию брендов и ошибки. Без живых или платных вызовов.\n\nScope: `app/Seller/Knowledge/`, `app/Seller/Evaluation/`, `resources/js/pages/Seller/Knowledge/Releases/`, `routes/features/E4-01.php`, `tests/Feature/Seller/Knowledge/`, `tests/Browser/E4-01G/`, `docs/results/SP-E4-01G.md`.\n\nОтчёт: docs/results/SP-E4-01G.md; незавершённые пункты перечислить в «Остаток».\n"
     }
   ],
   "excludedSourceTasks": {
