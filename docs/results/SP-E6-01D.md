@@ -9,6 +9,7 @@
 Скриншот редактора, светлая тема, 1440: [Служебные фразы](../../.local/screenshots/SP-E6-01D/phrases.png).
 
 ## Остаток
+Продолжение: SP-E6-01E.
 
 - Автоматическая отправка выбранной фразы клиенту при реальных событиях Runtime не подключена. Формирование и фиксация первого/последующих ответов находятся в `app/ProtectedOperations/FirstTurnTextFinalizer.php` и `app/ProtectedOperations/SellerFollowup/FollowupFinalizer.php` вне scope карточки. Нужна отдельная интеграционная задача с fake-прогоном настоящего хода и сверкой fixtures.
 
