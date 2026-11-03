@@ -516,6 +516,7 @@ declare module 'ziggy-js' {
     "seller.customers.io.import": [],
     "seller.persona.index": [],
     "seller.persona.save": [],
+    "seller.persona.phrases.save": [],
     "seller.settings.greetings.index": [],
     "seller.settings.greetings.update": [],
     "seller.settings.policy.index": [],
