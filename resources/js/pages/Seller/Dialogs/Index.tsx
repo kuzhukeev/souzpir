@@ -72,7 +72,7 @@ export default function Index({ dialogs, dialog, mineCounts = { waiting: 0, acti
 
   return <CabinetLayout breadcrumbs={[{ label: 'Продавец', href: '/seller' }, { label: 'Диалоги' }]}>
     <Head title={minePage ? 'Мои диалоги' : 'Диалоги'} />
-    <div className="mb-6"><h1 className="text-3xl font-bold">{minePage ? 'Мои диалоги' : 'Диалоги'}</h1><p className="mt-2 text-sm text-(--color-ink-muted)">Сохранённые разговоры с клиентами по текущему бренду</p></div>
+    <div className="mb-6"><a href="/seller/dialogs/pending" className="mb-3 inline-block cursor-pointer text-sm text-(--color-link)">Очередь на одобрение →</a><h1 className="text-3xl font-bold">{minePage ? 'Мои диалоги' : 'Диалоги'}</h1><p className="mt-2 text-sm text-(--color-ink-muted)">Сохранённые разговоры с клиентами по текущему бренду</p></div>
     {error && <div role="alert" className="mb-4 rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-800 dark:bg-red-950 dark:text-red-200">{error}</div>}
     {filters.mode === 'mine' && <div className="mb-4 grid gap-3 sm:grid-cols-3" aria-label="Счётчики моих диалогов"><div className="rounded-xl border border-(--color-border) bg-(--color-surface) p-4 text-sm">Ждут ответа <strong>{mineCounts.waiting}</strong></div><div className="rounded-xl border border-(--color-border) bg-(--color-surface) p-4 text-sm">В работе <strong>{mineCounts.active}</strong></div><div className="rounded-xl border border-(--color-border) bg-(--color-surface) p-4 text-sm">Закрыты сегодня <strong>{mineCounts.closed_today}</strong></div></div>}
     <div className="grid min-w-0 gap-4 lg:grid-cols-[320px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(0,1fr)_300px]">
