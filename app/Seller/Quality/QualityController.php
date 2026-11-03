@@ -63,6 +63,8 @@ final class QualityController
 
             return ['day' => $day, 'count' => $items->count(), 'average' => round($items->avg('average'), 2),
                 'issues' => $issues->count(), 'withIssues' => $items->filter(fn ($row) => count($row['issues']) > 0)->count(),
+                'dialogueIds' => $items->pluck('conversation_id')->filter()->unique()->values()->all(),
+                'problemDialogueIds' => $items->filter(fn ($row) => $row['conversation_id'] && count($row['issues']) > 0)->pluck('conversation_id')->unique()->values()->all(),
                 'high' => $issues->where('severity', 'high')->count(), 'medium' => $issues->where('severity', 'medium')->count(),
                 'topIssues' => $issues->countBy('type')->sortDesc()->take(3)->keys()->values()->all()];
         })->values();
