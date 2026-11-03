@@ -18,7 +18,7 @@ import { SetDetails } from '@/features/Vision/Questions/SetDetails';
 import { Tabs } from '@/features/Vision/Questions/Tabs';
 import { card, link, secondary } from '@/features/Vision/Questions/styles';
 
-type Data = Omit<BaseData, 'history'> & { history: (BaseData['history'][number] & { measurements?: { id: string; status: string; created_at: string }[] })[] };
+type Data = Omit<BaseData, 'history'> & { history: (BaseData['history'][number] & { measurements?: { id: string; number: number; status: string; created_at: string }[] })[] };
 type Screen = 'index' | 'approve' | 'active' | 'history';
 const intentKeys = Object.keys(intents) as Intent[];
 function ErrorText(error: unknown): string {
@@ -560,7 +560,7 @@ function WorkspaceBody({ screen, brandId, revision, canRun }: { screen: Screen; 
                             </span>
                           </div>
                           <p className="mt-2 text-sm">Автор: {item.approver_name ?? 'Не указан'}</p>
-                          <p className="mt-1 text-sm">Замеры: {item.measurements?.length ? item.measurements.map((measurement) => measurement.id).join(', ') : 'Нет'}</p>
+                          <p className="mt-1 text-sm">Замеры: {item.measurements?.length ? item.measurements.map((measurement) => `№ ${measurement.number}`).join(', ') : 'Нет'}</p>
                           <p className="mt-2 text-sm">
                             Вопросов: {item.size} · моделей:{' '}
                             {Object.keys(item.providers ?? {}).length}
