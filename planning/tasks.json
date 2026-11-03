@@ -5222,7 +5222,9 @@
         "SP-E8-21B",
         "SP-E8-14C",
         "SP-E6-03I",
-        "SP-E4-01G"
+        "SP-E4-01G",
+        "SP-E5-01F",
+        "SP-E8-16D"
       ],
       "scope": [
         "README.md",
@@ -13052,6 +13054,74 @@
       "promptPath": "docs/tasks/SP-E4-01G.md",
       "wave": 18,
       "description": "# SP-E4-01G · Полный прогон сценариев и черновик отката\n\n**Зачем:** завершить экран D-4.12 по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E4-01F из docs/results/SP-E4-01F.md.\n**Зависимости:** SP-E4-01F (дождаться merge).\n\nПроверять fake-ответы по ожиданиям сценариев, открыть конкретный прогон; реализовать откат в новый черновик с ясной подсказкой и обработать уже существующий черновик без потери данных.\n\nСверить с docs/sources/02b_mockup_journal.md; проверить основной сценарий, права, изоляцию брендов и ошибки. Без живых или платных вызовов.\n\nScope: `app/Seller/Knowledge/`, `app/Seller/Evaluation/`, `resources/js/pages/Seller/Knowledge/Releases/`, `routes/features/E4-01.php`, `tests/Feature/Seller/Knowledge/`, `tests/Browser/E4-01G/`, `docs/results/SP-E4-01G.md`.\n\nОтчёт: docs/results/SP-E4-01G.md; незавершённые пункты перечислить в «Остаток».\n"
+    },
+    {
+      "taskKey": "SP-E5-01F",
+      "title": "SP-E5-01F · Каналы: оформление списка и Telegram",
+      "goal": "Убрать дубликаты карточек, привести порядок Сайта и Telegram и сегменты режимов к макету; завершить двухколоночные блоки бота, режима, чата, подсказок и вебхука, проверить мобильный экран.",
+      "dependsOn": [
+        "SP-E5-01E"
+      ],
+      "scope": [
+        "app/Seller/Channels/",
+        "resources/js/pages/Seller/Channels/",
+        "tests/Feature/Seller/Channels/",
+        "tests/Browser/E5-01F/",
+        "docs/results/SP-E5-01F.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Реализовать пункты остатка по макету и проверить права, изоляцию и ошибки; без живых вызовов."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "D-9.1",
+        "D-9.5"
+      ],
+      "notes": "Продолжение частичной сдачи по решению владельца.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E5-01F.md",
+      "wave": 18,
+      "description": "# SP-E5-01F · Каналы: оформление списка и Telegram\n\n**Зачем:** завершить экраны D-9.1, D-9.5 по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E5-01E из docs/results/SP-E5-01E.md.\n**Зависимости:** SP-E5-01E (дождаться merge).\n\nУбрать дубликаты карточек, привести порядок Сайта и Telegram и сегменты режимов к макету; завершить двухколоночные блоки бота, режима, чата, подсказок и вебхука, проверить мобильный экран.\n\nСверить с docs/sources/02b_mockup_journal.md; проверить сценарии, права, изоляцию брендов и ошибки. Без живых или платных вызовов в тестах.\n\nScope: `app/Seller/Channels/`, `resources/js/pages/Seller/Channels/`, `tests/Feature/Seller/Channels/`, `tests/Browser/E5-01F/`, `docs/results/SP-E5-01F.md`.\n\nОтчёт: docs/results/SP-E5-01F.md; остаток указать по пунктам.\n"
+    },
+    {
+      "taskKey": "SP-E8-16D",
+      "title": "SP-E8-16D · Оставшиеся данные истории и хода замера",
+      "goal": "Завершить источник запуска, видимость и дельту, упоминания, меню действий и расписание; показать достоверные слоты, остаток, дату пополнения и модели; статусы моделей, этапы вопросов, оставшееся время, события, уведомление и баннер уточнений. Для лимитов использовать согласованные контракты, не выдумывать значения.",
+      "dependsOn": [
+        "SP-E8-16B",
+        "SP-E8-16C"
+      ],
+      "scope": [
+        "app/Vision/Measurements/",
+        "resources/js/pages/Vision/Measurements/",
+        "resources/js/features/Vision/Measurements/",
+        "routes/features/E8-04.php",
+        "tests/Feature/Vision/Measurements/",
+        "tests/Browser/E8-16D/",
+        "docs/results/SP-E8-16D.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Реализовать пункты остатка по макету и проверить права, изоляцию и ошибки; без живых вызовов."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "V-3.1",
+        "V-3.2",
+        "V-3.3"
+      ],
+      "notes": "Продолжение частичной сдачи по решению владельца.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E8-16D.md",
+      "wave": 18,
+      "description": "# SP-E8-16D · Оставшиеся данные истории и хода замера\n\n**Зачем:** завершить экраны V-3.1, V-3.2, V-3.3 по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E8-16B из docs/results/SP-E8-16B.md.\n**Зависимости:** SP-E8-16B, SP-E8-16C (дождаться merge).\n\nЗавершить источник запуска, видимость и дельту, упоминания, меню действий и расписание; показать достоверные слоты, остаток, дату пополнения и модели; статусы моделей, этапы вопросов, оставшееся время, события, уведомление и баннер уточнений. Для лимитов использовать согласованные контракты, не выдумывать значения.\n\nСверить с docs/sources/02b_mockup_journal.md; проверить сценарии, права, изоляцию брендов и ошибки. Без живых или платных вызовов в тестах.\n\nScope: `app/Vision/Measurements/`, `resources/js/pages/Vision/Measurements/`, `resources/js/features/Vision/Measurements/`, `routes/features/E8-04.php`, `tests/Feature/Vision/Measurements/`, `tests/Browser/E8-16D/`, `docs/results/SP-E8-16D.md`.\n\nОтчёт: docs/results/SP-E8-16D.md; остаток указать по пунктам.\n"
     }
   ],
   "excludedSourceTasks": {
