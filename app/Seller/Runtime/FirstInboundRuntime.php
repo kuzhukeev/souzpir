@@ -54,7 +54,7 @@ final class FirstInboundRuntime
                     throw new \LogicException;
                 }
                 $conversation = DB::table('conversations')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
-                    ->where('id', $command->conversationId)->first(['id', 'mode', 'version']);
+                    ->where('id', $command->conversationId)->first(['id', 'mode', 'version', 'stage']);
                 $message = DB::table('messages')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
                     ->where('conversation_id', $command->conversationId)->where('id', $command->inputMessageId)->where('role', 'client')
                     ->first(['text', 'external_event_id']);
@@ -66,7 +66,7 @@ final class FirstInboundRuntime
                     return ['mode' => 'manager', 'result' => $this->suppressManagerTurn($tenant, $command)];
                 }
 
-                return ['mode' => $conversation->mode, 'version' => (int) $conversation->version];
+                return ['mode' => $conversation->mode, 'version' => (int) $conversation->version, 'stage' => $conversation->stage];
             });
             if ($dispatch['mode'] === 'manager') {
                 return $dispatch['result'];
@@ -77,6 +77,14 @@ final class FirstInboundRuntime
                 $result = app(FollowupCoordinator::class)->run($http, $command, $dispatch['mode']);
             }
 
+            if (($result['status'] ?? null) === 'completed') {
+                $tenant = app(TenantContext::class);
+                $after = DB::table('conversations')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
+                    ->where('id', $command->conversationId)->value('stage');
+                if (is_string($after)) {
+                    app(StageTransitions::class)->record($tenant, $command->conversationId, $dispatch['stage'], $after);
+                }
+            }
             if ($dispatch['mode'] === 'bot' && ($result['status'] ?? null) === 'completed') {
                 $messageId = $result['result']['message_id'] ?? null;
                 $turnId = $result['result']['turn_id'] ?? null;
