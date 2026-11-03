@@ -373,9 +373,16 @@ declare module 'ziggy-js' {
         }
     ],
     "seller.knowledge.facts.index": [],
+    "seller.knowledge.facts.show": [
+        {
+            "name": "fact",
+            "required": true
+        }
+    ],
     "seller.knowledge.facts.group": [],
     "seller.knowledge.facts.group.delete": [],
     "seller.knowledge.facts.add": [],
+    "seller.knowledge.facts.bulk": [],
     "seller.knowledge.facts.update": [
         {
             "name": "fact",
