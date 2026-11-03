@@ -5253,7 +5253,9 @@
         "SP-E5-04L",
         "SP-E8-24D",
         "SP-E7-04G",
-        "SP-E8-18D"
+        "SP-E8-18D",
+        "SP-E5-04M",
+        "SP-E8-19C"
       ],
       "scope": [
         "README.md",
@@ -14160,6 +14162,81 @@
       "promptPath": "docs/tasks/SP-E8-18D.md",
       "wave": 18,
       "description": "# SP-E8-18D · Завершение разделов отчёта\n\n**Зачем:** завершить экраны по решению владельца от 03.11.2026 и журналу макетов.\n**Часть чего:** остаток SP-E8-18C из docs/results/SP-E8-18C.md.\n**Зависимости:** SP-E8-18C (дождаться merge).\n\nЗавершить V-5.2–V-5.4: сверку таблицы и диаграммы, привязку рекомендаций и классификацию фактов со снимком при наличии подтверждённых источников.\n\nСверить с docs/sources/02b_mockup_journal.md; проверить сценарии, права, изоляцию и ошибки. Без живых или платных вызовов.\n\nScope: `app/Vision/Reports/`, `resources/js/pages/Vision/Reports/`, `tests/Browser/E8-18D/`, `docs/results/SP-E8-18D.md`.\n\nОтчёт: docs/results/SP-E8-18D.md; остаток указать по пунктам.\n"
+    },
+    {
+      "taskKey": "SP-E5-04M",
+      "title": "Подсказка и доставка диалога",
+      "goal": "Подключить подсказку к защищённому fake runtime, предусмотреть подключение канального транспорта и сохранение шаблонов без живых отправок; завершить D-2.3 по макету.",
+      "dependsOn": [
+        "SP-E5-04J",
+        "SP-E5-04K"
+      ],
+      "scope": [
+        "app/Seller/Dialogs/",
+        "resources/js/pages/Seller/Dialogs/",
+        "routes/features/E5-04.php",
+        "tests/Feature/Seller/Dialogs/",
+        "tests/Browser/E5-04M/",
+        "docs/results/SP-E5-04M.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Пункты остатка реализованы по макету, проверены права, изоляция и ошибки; без живых вызовов."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "D-2.2",
+        "D-2.3"
+      ],
+      "notes": "Продолжение частичной сдачи SP-E5-04J по решению владельца.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E5-04M.md",
+      "wave": 18,
+      "description": "# SP-E5-04M · Подсказка и доставка диалога\n\n**Зачем:** завершить экраны по решению владельца от 03.11.2026 и журналу макетов.\n**Часть чего:** остаток SP-E5-04J из docs/results/SP-E5-04J.md.\n**Зависимости:** SP-E5-04J, SP-E5-04K (дождаться merge).\n\nПодключить подсказку к защищённому fake runtime, предусмотреть подключение канального транспорта и сохранение шаблонов без живых отправок; завершить D-2.3 по макету.\n\nСверить с docs/sources/02b_mockup_journal.md; проверить сценарии, права, изоляцию и ошибки. Без живых или платных вызовов.\n\nScope: `app/Seller/Dialogs/`, `resources/js/pages/Seller/Dialogs/`, `routes/features/E5-04.php`, `tests/Feature/Seller/Dialogs/`, `tests/Browser/E5-04M/`, `docs/results/SP-E5-04M.md`.\n\nОтчёт: docs/results/SP-E5-04M.md; остаток указать по пунктам.\n"
+    },
+    {
+      "taskKey": "SP-E8-19C",
+      "title": "Завершение отчёта и публичной ссылки",
+      "goal": "Завершить V-5.6–V-5.10 и V-5.P по макету: критерии, состояния, изменения, логотип, историю и допустимые шаги только при наличии подтверждённых источников.",
+      "dependsOn": [
+        "SP-E8-19B",
+        "SP-E8-18D"
+      ],
+      "scope": [
+        "app/Vision/Reports/",
+        "app/Vision/Publications/",
+        "resources/js/pages/Vision/Reports/",
+        "resources/js/pages/Vision/Publications/",
+        "resources/views/public-report/",
+        "tests/Feature/Vision/Reports/",
+        "tests/Feature/Vision/Publications/",
+        "tests/Browser/E8-19C/",
+        "docs/results/SP-E8-19C.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Пункты остатка реализованы по макету, проверены права, изоляция и ошибки; без живых вызовов."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "V-5.6",
+        "V-5.7",
+        "V-5.8",
+        "V-5.9",
+        "V-5.10",
+        "V-5.P"
+      ],
+      "notes": "Продолжение частичной сдачи SP-E8-19B по решению владельца.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E8-19C.md",
+      "wave": 18,
+      "description": "# SP-E8-19C · Завершение отчёта и публичной ссылки\n\n**Зачем:** завершить экраны по решению владельца от 03.11.2026 и журналу макетов.\n**Часть чего:** остаток SP-E8-19B из docs/results/SP-E8-19B.md.\n**Зависимости:** SP-E8-19B, SP-E8-18D (дождаться merge).\n\nЗавершить V-5.6–V-5.10 и V-5.P по макету: критерии, состояния, изменения, логотип, историю и допустимые шаги только при наличии подтверждённых источников.\n\nСверить с docs/sources/02b_mockup_journal.md; проверить сценарии, права, изоляцию и ошибки. Без живых или платных вызовов.\n\nScope: `app/Vision/Reports/`, `app/Vision/Publications/`, `resources/js/pages/Vision/Reports/`, `resources/js/pages/Vision/Publications/`, `resources/views/public-report/`, `tests/Feature/Vision/Reports/`, `tests/Feature/Vision/Publications/`, `tests/Browser/E8-19C/`, `docs/results/SP-E8-19C.md`.\n\nОтчёт: docs/results/SP-E8-19C.md; остаток указать по пунктам.\n"
     }
   ],
   "excludedSourceTasks": {
