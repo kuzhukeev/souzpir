@@ -5242,7 +5242,11 @@
         "SP-E8-22B",
         "SP-E8-20C",
         "SP-E8-16F",
-        "SP-E8-24C"
+        "SP-E8-24C",
+        "SP-E8-15D",
+        "SP-E7-04F",
+        "SP-E8-16G",
+        "SP-E8-20D"
       ],
       "scope": [
         "README.md",
@@ -13763,6 +13767,148 @@
       "promptPath": "docs/tasks/SP-E8-24C.md",
       "wave": 18,
       "description": "# SP-E8-24C · Остаток моделей и настроек Видения\n\n**Зачем:** завершить экраны V-11.1, V-11.2, V-11.3, V-11.5 по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E8-24B из docs/results/SP-E8-24B.md.\n**Зависимости:** SP-E8-24B (дождаться merge).\n\nЗавершить описания и доступность моделей, независимое сохранение выбора, справку о слотах, расход и историю, доступ получателей и состояния загрузки и ошибки; стоимость и лимиты не выдумывать.\n\nСверить с docs/sources/02b_mockup_journal.md; проверить сценарии, права, изоляцию брендов и ошибки. Без живых или платных вызовов в тестах.\n\nScope: `app/Vision/Settings/`, `resources/js/pages/Vision/Settings/`, `tests/Feature/Vision/Settings/`, `tests/Browser/E8-24C/`, `docs/results/SP-E8-24C.md`.\n\nОтчёт: docs/results/SP-E8-24C.md; остаток указать по пунктам.\n"
+    },
+    {
+      "taskKey": "SP-E8-15D",
+      "title": "SP-E8-15D · Завершение вопросов и расписания",
+      "goal": "Довести таблицу и меню, день и время, включение monitoring_schedule и историю до макета; недельный расход показывать только из согласованного источника.",
+      "dependsOn": [
+        "SP-E8-15C"
+      ],
+      "scope": [
+        "app/Vision/Questions/",
+        "resources/js/pages/Vision/Questions/",
+        "resources/js/features/Vision/Questions/",
+        "tests/Feature/Vision/Questions/",
+        "tests/Browser/E8-15D/",
+        "docs/results/SP-E8-15D.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Завершить пункты по макету, проверить права, изоляцию и ошибки; без живых вызовов."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "V-2.1",
+        "V-2.3",
+        "V-2.5"
+      ],
+      "notes": "Продолжение частичной сдачи по решению владельца.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E8-15D.md",
+      "wave": 18,
+      "description": "# SP-E8-15D · Завершение вопросов и расписания\n\n**Зачем:** завершить экраны V-2.1, V-2.3, V-2.5 по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E8-15C из docs/results/SP-E8-15C.md.\n**Зависимости:** SP-E8-15C (дождаться merge).\n\nДовести таблицу и меню, день и время, включение monitoring_schedule и историю до макета; недельный расход показывать только из согласованного источника.\n\nСверить с docs/sources/02b_mockup_journal.md; проверить сценарии, права, изоляцию брендов и ошибки. Без живых или платных вызовов в тестах.\n\nScope: `app/Vision/Questions/`, `resources/js/pages/Vision/Questions/`, `resources/js/features/Vision/Questions/`, `tests/Feature/Vision/Questions/`, `tests/Browser/E8-15D/`, `docs/results/SP-E8-15D.md`.\n\nОтчёт: docs/results/SP-E8-15D.md; остаток указать по пунктам.\n"
+    },
+    {
+      "taskKey": "SP-E7-04F",
+      "title": "SP-E7-04F · Завершение воронки и источников",
+      "goal": "Показать шесть шагов и конверсии соседних этапов, записывать переходы во всех защищённых путях и действиях менеджера; сохранять источники и UTM при приёме обращений и показать каналы и страницы.",
+      "dependsOn": [
+        "SP-E7-04B",
+        "SP-E7-04E"
+      ],
+      "scope": [
+        "app/Seller/Analytics/",
+        "app/Seller/Runtime/",
+        "app/ProtectedOperations/",
+        "resources/js/pages/Seller/Analytics/",
+        "tests/Feature/Seller/Analytics/",
+        "tests/Browser/E7-04F/",
+        "docs/results/SP-E7-04F.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Завершить пункты по макету, проверить права, изоляцию и ошибки; без живых вызовов."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "D-8.1",
+        "D-8.4"
+      ],
+      "notes": "Продолжение частичной сдачи по решению владельца.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E7-04F.md",
+      "wave": 18,
+      "description": "# SP-E7-04F · Завершение воронки и источников\n\n**Зачем:** завершить экраны D-8.1, D-8.4 по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E7-04B из docs/results/SP-E7-04B.md.\n**Зависимости:** SP-E7-04B, SP-E7-04E (дождаться merge).\n\nПоказать шесть шагов и конверсии соседних этапов, записывать переходы во всех защищённых путях и действиях менеджера; сохранять источники и UTM при приёме обращений и показать каналы и страницы.\n\nСверить с docs/sources/02b_mockup_journal.md; проверить сценарии, права, изоляцию брендов и ошибки. Без живых или платных вызовов в тестах.\n\nScope: `app/Seller/Analytics/`, `app/Seller/Runtime/`, `app/ProtectedOperations/`, `resources/js/pages/Seller/Analytics/`, `tests/Feature/Seller/Analytics/`, `tests/Browser/E7-04F/`, `docs/results/SP-E7-04F.md`.\n\nОтчёт: docs/results/SP-E7-04F.md; остаток указать по пунктам.\n"
+    },
+    {
+      "taskKey": "SP-E8-16G",
+      "title": "SP-E8-16G · Завершить матрицу ответов",
+      "goal": "Завершить группировку, суммарные отметки и цвета матрицы, компоновку карточки, источники, факты и мобильный вид; неподтверждённые свидетельства не выдавать за подтверждённые.",
+      "dependsOn": [
+        "SP-E8-16E",
+        "SP-E8-16F"
+      ],
+      "scope": [
+        "app/Vision/Measurements/",
+        "resources/js/pages/Vision/Measurements/",
+        "resources/js/features/Vision/Measurements/",
+        "tests/Feature/Vision/Measurements/",
+        "tests/Browser/E8-16G/",
+        "docs/results/SP-E8-16G.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Завершить пункты по макету, проверить права, изоляцию и ошибки; без живых вызовов."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "V-3.4",
+        "V-3.5"
+      ],
+      "notes": "Продолжение частичной сдачи по решению владельца.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E8-16G.md",
+      "wave": 18,
+      "description": "# SP-E8-16G · Завершить матрицу ответов\n\n**Зачем:** завершить экраны V-3.4, V-3.5 по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E8-16E из docs/results/SP-E8-16E.md.\n**Зависимости:** SP-E8-16E, SP-E8-16F (дождаться merge).\n\nЗавершить группировку, суммарные отметки и цвета матрицы, компоновку карточки, источники, факты и мобильный вид; неподтверждённые свидетельства не выдавать за подтверждённые.\n\nСверить с docs/sources/02b_mockup_journal.md; проверить сценарии, права, изоляцию брендов и ошибки. Без живых или платных вызовов в тестах.\n\nScope: `app/Vision/Measurements/`, `resources/js/pages/Vision/Measurements/`, `resources/js/features/Vision/Measurements/`, `tests/Feature/Vision/Measurements/`, `tests/Browser/E8-16G/`, `docs/results/SP-E8-16G.md`.\n\nОтчёт: docs/results/SP-E8-16G.md; остаток указать по пунктам.\n"
+    },
+    {
+      "taskKey": "SP-E8-20D",
+      "title": "SP-E8-20D · Завершение компаний и источников",
+      "goal": "Завершить вкладки анкеты, карточку компании и слияние дублей, численную heatmap и radar при наличии данных, меню источника и подтверждённые ссылки; отсутствующие метрики не выдумывать.",
+      "dependsOn": [
+        "SP-E8-20C"
+      ],
+      "scope": [
+        "app/Vision/Sources/",
+        "app/Vision/Competitors/",
+        "resources/js/pages/Vision/Sources/",
+        "resources/js/pages/Vision/Competitors/",
+        "tests/Feature/Vision/Sources/",
+        "tests/Browser/E8-20D/",
+        "docs/results/SP-E8-20D.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Завершить пункты по макету, проверить права, изоляцию и ошибки; без живых вызовов."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "V-6.1",
+        "V-6.2",
+        "V-6.3",
+        "V-6.4",
+        "V-7.1",
+        "V-7.2",
+        "V-7.3"
+      ],
+      "notes": "Продолжение частичной сдачи по решению владельца.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E8-20D.md",
+      "wave": 18,
+      "description": "# SP-E8-20D · Завершение компаний и источников\n\n**Зачем:** завершить экраны V-6.1, V-6.2, V-6.3, V-6.4, V-7.1, V-7.2, V-7.3 по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E8-20C из docs/results/SP-E8-20C.md.\n**Зависимости:** SP-E8-20C (дождаться merge).\n\nЗавершить вкладки анкеты, карточку компании и слияние дублей, численную heatmap и radar при наличии данных, меню источника и подтверждённые ссылки; отсутствующие метрики не выдумывать.\n\nСверить с docs/sources/02b_mockup_journal.md; проверить сценарии, права, изоляцию брендов и ошибки. Без живых или платных вызовов в тестах.\n\nScope: `app/Vision/Sources/`, `app/Vision/Competitors/`, `resources/js/pages/Vision/Sources/`, `resources/js/pages/Vision/Competitors/`, `tests/Feature/Vision/Sources/`, `tests/Browser/E8-20D/`, `docs/results/SP-E8-20D.md`.\n\nОтчёт: docs/results/SP-E8-20D.md; остаток указать по пунктам.\n"
     }
   ],
   "excludedSourceTasks": {
