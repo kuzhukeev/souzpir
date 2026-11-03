@@ -166,6 +166,20 @@ final class SellerResponderStages
         }
         $state = new LeadState($computed['state']);
         $system = app(ResponderProjection::class)->render($knowledge, $state, $goal, $name);
+        if ($goal->kind === 'intro_and_ask') {
+            $channelId = DB::table('conversations')->where('id', $claim->conversationId)
+                ->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->value('channel_account_id');
+            $channel = $channelId ? DB::table('channel_accounts')->where('id', $channelId)
+                ->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->value('type') : null;
+            if ($channel === 'widget') {
+                $settings = DB::table('brand_seller_settings')->where('organization_id', $tenant->organizationId)
+                    ->where('brand_id', $tenant->brandId)->value('greetings');
+                $greeting = is_string($settings) ? (json_decode($settings, true)['widget'] ?? null) : null;
+                if (is_string($greeting) && trim($greeting) !== '') {
+                    $system .= "\n\nНастроенное приветствие для сайта: ".trim($greeting);
+                }
+            }
+        }
         $request = app(ResponderRequest::class)->build($system, [['role' => 'client', 'text' => $message]], $goal->allowedTools,
             $model, (float) $temperature, $prompt->version, $prompt->checksum);
 

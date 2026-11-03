@@ -18,15 +18,18 @@ final class ToolRunner
     public function run(#[SensitiveParameter] mixed $name, #[SensitiveParameter] mixed $arguments, #[SensitiveParameter] mixed $config): array
     {
         try {
+            if ($name !== 'calc_delivery' && $name !== 'check_stock' && $name !== 'send_price') {
+                return ['status' => 'unavailable'];
+            }
+            if (($name === 'check_stock' || $name === 'send_price') && ! $config instanceof TenantContext) {
+                return ['status' => 'unavailable'];
+            }
             if (! (new ToolArguments)->check($name, $arguments)['valid']) {
                 return ['status' => 'invalid_arguments'];
             }
             if ($name === 'check_stock' || $name === 'send_price') {
                 return $config instanceof TenantContext && $config->organizationId && $config->brandId
                     ? $this->catalog($name, $arguments, $config) : ['status' => 'unavailable'];
-            }
-            if ($name !== 'calc_delivery') {
-                return ['status' => 'unavailable'];
             }
 
             // The donor accepts weight_kg but does not use it in its estimate.
