@@ -51,7 +51,7 @@ test('four wizard screens and typed controls', async ({ page }) => {
 
 test('empty and unavailable states', async ({ page }) => {
   await page.goto(`${base}?step=presence&empty`);
-  await expect(page.getByText('Нет данных для уточнения на этом шаге.')).toBeVisible();
+  await expect(page.getByText('Нет площадок для уточнения.')).toBeVisible();
   await page.goto(`${base}?step=facts&unavailable`);
   await expect(page.getByText('Уточнения станут доступны после подтверждения завершённого замера.')).toBeVisible();
 });
