@@ -1,7 +1,7 @@
 import {expect,test} from '@playwright/test';
 import {createServer,type ViteDevServer} from 'vite';
 test.setTimeout(60000); let server:ViteDevServer; let fixture:string;
-test.beforeAll(async()=>{server=await createServer({configFile:'tests/Browser/E4-04D/vite.config.ts',server:{host:'127.0.0.1',port:0}});await server.listen();fixture=new URL('/tests/Browser/E4-04D/fixture.html',server.resolvedUrls!.local[0]).href;});
+test.beforeAll(async()=>{server=await createServer({configFile:'tests/Browser/E4-04D/vite.config.ts',server:{host:'127.0.0.1',port:0,strictPort:false}});await server.listen();fixture=new URL('/tests/Browser/E4-04D/fixture.html',server.resolvedUrls!.local[0]).href;});
 test.afterAll(async()=>{await server?.close();});
 test.use({launchOptions:{executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH}});
 test('процент ответов и удаление факта из темы',async ({page})=>{
