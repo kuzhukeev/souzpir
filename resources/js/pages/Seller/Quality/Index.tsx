@@ -4,7 +4,7 @@ import CabinetLayout from '@/layouts/CabinetLayout';
 
 type Day = { day: string; count: number; average: number; issues: number; withIssues: number; high: number; medium: number; topIssues: string[] };
 const card = 'rounded-xl border border-(--color-border) bg-(--color-surface) p-5';
-const labels: Record<string, string> = { invented_fact:'Выдуманный факт', unknown_fact:'Неизвестный факт', repeated_question:'Повторный вопрос', too_long:'Длинный ответ', forbidden_promise:'Недопустимое обещание', wrong_slot_value:'Неверное значение поля' };
+const labels:Record<string,string>={misunderstood_intent:'Неверно понято намерение',wrong_slot_value:'Неверное значение поля',false_refusal:'Ложный отказ',missed_signal:'Пропущен сигнал',wrong_next_question:'Неверный следующий вопрос',repeated_question:'Повторный вопрос',ignored_client_question:'Пропущен вопрос клиента',pushy_sales:'Навязчивость',missed_escalation:'Не передано менеджеру',needless_escalation:'Лишняя передача',no_followup:'Нет напоминания',unnatural:'Неестественный ответ',two_questions:'Два вопроса',too_long:'Длинный ответ',missed_personal_hook:'Пропущена персонализация',argued:'Спор с клиентом',bad_objection_handling:'Работа с возражением',invented_fact:'Выдуманный факт',forbidden_promise:'Недопустимое обещание',false_action_claim:'Неверное сообщение о действии',off_topic_fulfilled:'Ответ вне темы',lied_about_bot:'Неверный ответ о боте',unknown_fact:'Неизвестный факт',stale_or_conflicting_fact:'Устаревший или противоречивый факт',other:'Другое'};
 const label = (key: string) => labels[key] ?? key.replaceAll('_', ' ');
 const date = (value: string) => value.split('-').reverse().join('.');
 
