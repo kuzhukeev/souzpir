@@ -1,0 +1,10 @@
+import { createInertiaApp } from '@inertiajs/react';
+import { createRoot } from 'react-dom/client';
+import Actions from '../../../resources/js/pages/Shell/Journal/Actions';
+import '../../../resources/css/app.css';
+import '../../../resources/css/themes/tokens.css';
+const id='01ARZ3NDEKTSV4RRFFQ69G5FAV';
+const rows={data:[{id:'a',created_at:'2026-11-01T12:00:00Z',action:'seller.dialog.mode_changed',subject_type:'conversation',subject_id:id,brand_id:'b',actor:'Иван',before:'{}',after:'{}'},{id:'c',created_at:'2026-11-01T11:00:00Z',action:'other',subject_type:'unknown',subject_id:'unsafe/path',brand_id:null,actor:null,before:null,after:null}],current_page:1,last_page:1,total:2};
+const page={component:'Fixture',props:{rows,filters:{},actors:[],actions:[],canNotifications:true,theme:'neutral',brand:{id:'b',name:'Пример бренда',theme:'neutral'},brands:[],organization:{id:'o',name:'Компания'},auth:{user:{id:'u',name:'Иван Петров',email:'ivan@example.test'}},modules:{seller:true,vision:false},can:{},unread:null,translations:{},ziggy:{routes:{}},errors:{}},url:location.pathname,version:null,clearHistory:false,encryptHistory:false};
+const script=document.createElement('script');script.type='application/json';script.dataset.page='app';script.textContent=JSON.stringify(page);document.body.appendChild(script);
+void createInertiaApp({resolve:()=>Actions,setup:({el,App,props})=>createRoot(el).render(<App {...props}/>)});

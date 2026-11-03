@@ -1,4 +1,4 @@
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { Avatar, Button, DataTable, Drawer, Skeleton } from '@/components/ui';
 import CabinetLayout from '@/layouts/CabinetLayout';
@@ -11,6 +11,7 @@ import {
 } from '@/features/Shell/Journal/model';
 import { useJournalNavigation } from '@/features/Shell/Journal/navigation';
 import { FiltersForm, JournalHeader, Pages } from '@/features/Shell/Journal/shared';
+import { subjectPath } from '@/features/Shell/Journal/subjectPath';
 
 type Row = {
   id: string;
@@ -46,6 +47,7 @@ function changes(value: string | null) {
   }
 }
 export default function Actions({ rows, filters, actors, actions, canNotifications }: Props) {
+  const { brand } = usePage<{ brand: { id: string; name: string } | null }>().props;
   const [selected, setSelected] = useState<Row | null>(null);
   const { loading, failed, retry: retryLoad } = useJournalNavigation();
   const query = new URLSearchParams(compact(filters)).toString();
@@ -137,12 +139,12 @@ export default function Actions({ rows, filters, actors, actions, canNotificatio
                 {
                   key: 'subject_id',
                   label: 'Объект',
-                  render: (row) => <span className="break-all">{row.subject_id}</span>,
+                  render: (row) => { const path = subjectPath(row.subject_type, row.subject_id); return path ? <a className="cursor-pointer break-all text-(--color-link) underline" href={path}>{row.subject_id}</a> : <span className="break-all">{row.subject_id}</span>; },
                 },
                 {
                   key: 'brand_id',
                   label: 'Бренд',
-                  render: (row) => (row.brand_id ? 'Текущий бренд' : 'Вся компания'),
+                  render: (row) => (row.brand_id ? (brand?.name ?? 'Текущий бренд') : 'Вся компания'),
                 },
                 { key: 'subject_type', label: 'Модуль', render: (row) => moduleName(row.action) },
                 {
@@ -177,7 +179,7 @@ export default function Actions({ rows, filters, actors, actions, canNotificatio
             </div>
             <div>
               <dt className="text-(--color-ink-muted)">Бренд</dt>
-              <dd>{selected.brand_id ? 'Текущий бренд' : 'Вся компания'}</dd>
+              <dd>{selected.brand_id ? (brand?.name ?? 'Текущий бренд') : 'Вся компания'}</dd>
             </div>
             <div>
               <dt className="text-(--color-ink-muted)">Модуль</dt>
@@ -199,6 +201,8 @@ export default function Actions({ rows, filters, actors, actions, canNotificatio
                 </pre>
               </dd>
             </div>
+            <div><dt className="text-(--color-ink-muted)">Объект</dt><dd className="break-all">{selected.subject_id}</dd></div>
+            {subjectPath(selected.subject_type, selected.subject_id) && <div><a href={subjectPath(selected.subject_type, selected.subject_id) ?? '#'} className="inline-flex min-h-11 cursor-pointer items-center font-semibold text-(--color-link)">Открыть полностью</a></div>}
           </dl>
         )}
       </Drawer>
