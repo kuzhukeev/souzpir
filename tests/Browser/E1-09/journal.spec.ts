@@ -73,9 +73,10 @@ test('journal uses real filtered data, shows details, and adapts to screen sizes
       animations: 'disabled',
     });
   }
+  await page.getByRole('combobox', { name: 'Период' }).click();
+  await page.getByRole('option', { name: 'Свой диапазон' }).click();
   await page.getByLabel('С даты').fill('2100-01-01');
-  await page.getByRole('button', { name: 'Применить' }).click();
-  await expect(page.getByText('Действий пока нет')).toBeVisible();
+  await expect(page.getByText('По выбранным фильтрам действий нет')).toBeVisible();
   await page.getByRole('button', { name: 'Сбросить' }).click();
   await expect(page.getByText('journal-browser-fixture').last()).toBeVisible();
   await page.getByRole('link', { name: 'История уведомлений' }).click();
