@@ -402,6 +402,7 @@ function HistoryInsights({ achievements }: { achievements: Achievement[] }) {
         <p className="mt-3 text-(--color-ink-muted)">
           Рано судить: порядок и сопоставимость замеров пока нельзя подтвердить.
         </p>
+        <a href="/vision/actions/effect" className="mt-3 inline-flex min-h-11 cursor-pointer items-center text-sm font-semibold text-(--color-link)">Посмотреть эффект</a>
       </section>
     </>
   );

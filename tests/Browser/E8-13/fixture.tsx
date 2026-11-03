@@ -1,0 +1,14 @@
+import { createInertiaApp } from '@inertiajs/react';
+import { createRoot } from 'react-dom/client';
+import Index from '../../../resources/js/pages/Vision/Clarifications/Index';
+import Wizard from '../../../resources/js/pages/Vision/Clarifications/Wizard';
+import Measurements from '../../../resources/js/pages/Vision/Measurements/Index';
+import Report from '../../../resources/js/pages/Vision/Reports/Index';
+import { Actions } from '../../../resources/js/features/Vision/Site/Actions';
+import '../../../resources/css/app.css';
+import '../../../resources/css/themes/tokens.css';
+const query=new URLSearchParams(location.search); const screen=query.get('screen');
+const id='01ARZ3NDEKTSV4RRFFQ69G5FAV';
+const page={component:'Fixture',props:{measurements:[{measurement_id:id,created_at:'2026-11-01T12:00:00Z'}],measurement:id,step:'mentions',available:true,items:[{key:'a'.repeat(64),value:'Пример названия',excerpt:null,decision:'yes',correction:null,profile_url:null,add_alias:false}],total:1,pending:0,measurementBrandRevision:'a'.repeat(64),reportBrandRevision:'a'.repeat(64),actions:[],canManage:false,history:true,members:[],status:null,theme:'neutral',brand:{id:'b',name:'Пример бренда',theme:'neutral'},brands:[],organization:{id:'o',name:'Компания'},auth:{user:{id:'u',name:'Иван Петров',email:'ivan@example.test'}},modules:{seller:false,vision:true},can:{'vision.measure.read':true,'vision.report.read':true},visionProfileReady:true,unread:null,translations:{},ziggy:{routes:{'vision.clarifications.index':{uri:'vision/clarifications',methods:['GET','HEAD']}}},errors:{}},url:location.pathname,version:null,clearHistory:false,encryptHistory:false};
+const script=document.createElement('script');script.type='application/json';script.dataset.page='app';script.textContent=JSON.stringify(page);document.body.appendChild(script);
+void createInertiaApp({resolve:()=>screen==='wizard'?Wizard:screen==='runs'?Measurements:screen==='report'?Report:screen==='actions'?Actions:Index,setup:({el,App,props})=>createRoot(el).render(<App {...props}/>)});

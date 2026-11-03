@@ -19,12 +19,11 @@ function DecisionCard({ item, step, measurement }: { item: Item; step: Exclude<S
     const [decision, setDecision] = useState(item.decision ?? '');
     const [correction, setCorrection] = useState(item.correction ?? '');
     const [profileUrl, setProfileUrl] = useState(item.profile_url ?? '');
-    const [addAlias, setAddAlias] = useState(item.add_alias);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const save = (value: string) => {
         setError('');
-        router.post(path(measurement, step), { item_key: item.key, decision: value, correction, profile_url: profileUrl, add_alias: addAlias }, {
+        router.post(path(measurement, step), { item_key: item.key, decision: value, correction, profile_url: profileUrl }, {
             preserveScroll: true,
             onStart: () => setSaving(true),
             onFinish: () => setSaving(false),
@@ -38,7 +37,6 @@ function DecisionCard({ item, step, measurement }: { item: Item; step: Exclude<S
         <h2 className="text-lg font-bold">{item.value}</h2>
         {item.excerpt && <p className="mt-2 rounded-lg bg-(--color-surface-muted) p-3 text-(--color-ink-muted)">Фрагмент ответа: {item.excerpt}</p>}
         <fieldset className="mt-4"><legend className="font-semibold">Ваш ответ</legend><div className="mt-2 flex flex-wrap gap-3">{options[step].map(([value, label]) => <label key={value} className="flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-(--color-border) px-3"><input type="radio" name={`decision-${item.key}`} checked={decision === value} onChange={() => setDecision(value)} />{label}</label>)}</div></fieldset>
-        {step === 'mentions' && decision === 'yes' && <label className="mt-4 flex cursor-pointer items-center gap-2"><input type="checkbox" checked={addAlias} onChange={(event) => setAddAlias(event.target.checked)} />Отметить для добавления в профиль как вариант названия</label>}
         {step === 'presence' && <label className="mt-4 block font-medium">Ссылка на профиль (если есть)<input type="url" value={profileUrl} onChange={(event) => setProfileUrl(event.target.value)} maxLength={1000} className="mt-1 block min-h-11 w-full rounded-lg border border-(--color-border) bg-(--color-surface) px-3 text-sm" placeholder="https://example.com/profile" /></label>}
         {step === 'facts' && (decision === 'incorrect' || decision === 'outdated') && <label className="mt-4 block font-medium">Как правильно<textarea required value={correction} onChange={(event) => setCorrection(event.target.value)} maxLength={1000} rows={3} className="mt-1 block w-full rounded-lg border border-(--color-border) bg-(--color-surface) p-3 text-sm" /></label>}
         {error && <p role="alert" className="mt-3 text-(--color-danger-ink)">{error}</p>}

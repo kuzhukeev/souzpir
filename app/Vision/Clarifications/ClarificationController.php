@@ -22,6 +22,17 @@ final class ClarificationController
         'facts' => ['correct', 'incorrect', 'outdated', 'deferred'],
     ];
 
+    public function index(Request $request): mixed
+    {
+        return app(MeasurementList::class)->withinCurrent($request, function (TenantContext $tenant): mixed {
+            $items = DB::table('snapshot_confirmations')->where('organization_id', $tenant->organizationId)
+                ->where('brand_id', $tenant->brandId)->orderByDesc('created_at')->limit(50)
+                ->get(['measurement_id', 'created_at']);
+
+            return Inertia::render('Vision/Clarifications/Index', ['measurements' => $items]);
+        }, false);
+    }
+
     public function show(Request $request, string $measurement, string $step): mixed
     {
         return app(MeasurementList::class)->withinCurrent($request, function (TenantContext $tenant) use ($measurement, $step): mixed {

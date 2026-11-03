@@ -34,7 +34,7 @@ test('four wizard screens and typed controls', async ({ page }) => {
   await page.goto(`${base}?step=mentions`);
   await expect(page.getByRole('heading', { name: 'Это про вас?' })).toBeVisible();
   await page.getByRole('radio', { name: 'Да, это мы' }).check();
-  await expect(page.getByText('Отметить для добавления в профиль')).toBeVisible();
+  await expect(page.getByText('Отметить для добавления в профиль')).toHaveCount(0);
   await page.screenshot({ path: '.local/screenshots/sp-e8-10/mentions-1440.png', fullPage: true });
   await page.goto(`${base}?step=presence`);
   await expect(page.getByRole('heading', { name: 'Вы есть на этих площадках?' })).toBeVisible();
