@@ -104,7 +104,7 @@ function Details({ profile, previous_profile, history, is_latest, limits, submit
             Открыть вопросы для пересборки
           </Link>
         </header>
-        {submitted && <section role="status" className="rounded-xl bg-(--color-surface) p-5"><h2 className="text-xl font-bold">Анкета отправлена</h2><p className="mt-2 text-sm text-(--color-ink-muted)">Профиль сохранён. Теперь можно подготовить вопросы и настроить замер.</p></section>}
+        {submitted && <section role="status" className="rounded-xl bg-(--color-surface) p-5"><h2 className="text-xl font-bold">Анкета отправлена</h2><p className="mt-2 text-sm text-(--color-ink-muted)">Профиль сохранён. Теперь можно подготовить вопросы и настроить замер.</p><Link href="/vision/questions" className="mt-3 inline-block cursor-pointer text-sm font-semibold text-(--color-link) underline">Перейти к вопросам</Link></section>}
         {error && (
           <p role="alert" className="rounded-lg bg-red-50 p-4 text-sm text-red-800">
             {error}

@@ -192,7 +192,7 @@ HTML;
     private function hints(#[\SensitiveParameter] Request $request, int $step, ?string $website): array
     {
         $unavailable = ['status' => 'unavailable', 'items' => []];
-        if ($step !== 2 || ! Gate::allows('vision.settings.write') || ! $website) {
+        if (! in_array($step, [1, 2, 3, 4, 5, 7], true) || ! Gate::allows('vision.settings.write') || ! $website) {
             return $unavailable;
         }
         try {
@@ -204,11 +204,33 @@ HTML;
 
                 return app(SiteDraftStore::class)->read($context, $website);
             });
-            if (! $page || ! is_string($page['title'] ?? null) || trim($page['title']) === '') {
+            if (! $page) {
                 return ['status' => 'empty', 'items' => []];
             }
+            $title = trim((string) ($page['title'] ?? ''));
+            $source = (string) ($page['source_url'] ?? $website);
+            $items = [];
+            if (in_array($step, [2, 5], true) && $title !== '') {
+                $items[] = ['label' => 'Заголовок сайта', 'value' => mb_substr($title, 0, 180), 'source' => $source];
+            }
+            if (in_array($step, [3, 4, 7], true)) {
+                $prefix = match ($step) {
+                    3 => 'Категории|Товары|Услуги',
+                    4 => 'Конкуренты',
+                    7 => 'Вопросы клиентов',
+                };
+                $text = (string) ($page['content_text'] ?? '');
+                if (preg_match('~^(?:'.$prefix.'):\s*(.+)$~umi', $text, $matches)) {
+                    foreach (array_slice(preg_split('/\s*[;,]\s*/u', $matches[1]) ?: [], 0, 5) as $value) {
+                        $value = trim($value);
+                        if ($value !== '') {
+                            $items[] = ['label' => 'С сайта', 'value' => mb_substr($value, 0, 180), 'source' => $source];
+                        }
+                    }
+                }
+            }
 
-            return ['status' => 'available', 'items' => [['label' => 'Заголовок сайта', 'value' => mb_substr(trim($page['title']), 0, 180), 'source' => $page['source_url']]]];
+            return ['status' => $items || $step === 1 ? 'available' : 'empty', 'items' => $items];
         } catch (Throwable) {
             // Local failure must not block the form or expose private source data in logs.
             return $unavailable;
