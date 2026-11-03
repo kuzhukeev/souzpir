@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Ai\Recovery;
 
-use App\Ai\Http\RecoverCallController;
 use App\Contracts\Ai\AiResult;
 use App\Models\Brand;
 use App\Models\Organization;
@@ -10,7 +9,6 @@ use Illuminate\Http\Client\Factory;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Tests\Feature\Tenancy\TenancyTestCase;
 
@@ -21,8 +19,6 @@ final class RecoverCallTest extends TenancyTestCase
         parent::setUp();
         config(['features.E0-05.defaults.openrouter_key' => 'fake-only-key']);
         Http::preventStrayRequests();
-        Route::middleware(['web', 'auth', 'verified', 'tenant', 'auth.version', 'auth.nostore'])
-            ->post('/ai/recovery/calls/{callId}/reconcile', RecoverCallController::class);
     }
 
     private function seedCall(Organization $organization, Brand $brand, string $status = 'uncertain', ?int $resultCost = null): string
