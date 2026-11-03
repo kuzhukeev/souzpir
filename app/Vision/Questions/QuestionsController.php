@@ -3,6 +3,7 @@
 namespace App\Vision\Questions;
 
 use App\Privacy\VerifiedHttps;
+use App\Vision\Measurements\MeasurementList;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -17,9 +18,10 @@ final class QuestionsController
         return Inertia::render('Vision/Questions/Index');
     }
 
-    public function approvePage(): mixed
+    public function approvePage(Request $request): mixed
     {
-        return Inertia::render('Vision/Questions/Approve');
+        return app(MeasurementList::class)->withinCurrent($request,
+            fn ($context, string $revision) => Inertia::render('Vision/Questions/Approve', ['measurementBrandRevision' => $revision]), false);
     }
 
     public function active(): mixed

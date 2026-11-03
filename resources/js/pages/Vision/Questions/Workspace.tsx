@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, usePage } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import CabinetLayout from '@/layouts/CabinetLayout';
 import { Button } from '@/components/ui/forms';
 import { Modal } from '@/components/ui/overlay';
@@ -51,15 +51,16 @@ function source(origin: string): string {
   );
 }
 export default function Workspace({ screen }: { screen: Screen }) {
-  const { brand } = usePage<{ brand: { id: string } | null }>().props;
-  return <WorkspaceBody key={brand?.id ?? 'none'} screen={screen} brandId={brand?.id ?? ''} />;
+  const { brand, measurementBrandRevision, can } = usePage<{ brand: { id: string } | null; measurementBrandRevision?: string; can?: Record<string, boolean> }>().props;
+  return <WorkspaceBody key={brand?.id ?? 'none'} screen={screen} brandId={brand?.id ?? ''} revision={measurementBrandRevision ?? ''} canRun={!!can?.['vision.measure.run']} />;
 }
-function WorkspaceBody({ screen, brandId }: { screen: Screen; brandId: string }) {
+function WorkspaceBody({ screen, brandId, revision, canRun }: { screen: Screen; brandId: string; revision: string; canRun: boolean }) {
   const privateContent = useRef<HTMLDivElement>(null);
   const [data, setData] = useState<Data | null>(null);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
+  const [runs, setRuns] = useState(1);
   const [filter, setFilter] = useState<Intent | 'all'>('all');
   const [selected, setSelected] = useState<string[]>([]);
   const [models, setModels] = useState<Record<string, string>>({});
@@ -447,8 +448,8 @@ function WorkspaceBody({ screen, brandId }: { screen: Screen; brandId: string })
                 </div>
                 <section className={card}>
                   <h2 className="text-xl font-bold">Настройки первого замера</h2>
-                  <p className="mt-2 text-sm text-(--color-ink-muted)">Расписание и количество прогонов настраиваются на странице замеров после утверждения.</p>
-                  <p className="mt-2 text-sm">Для одного прогона: {chosen.length} вопросов × {Object.keys(models).length} моделей = {chosen.length * Object.keys(models).length} ответов. Стоимость в слотах определяется тарифом.</p>
+                  <label className="mt-3 block text-sm">Количество прогонов<select className="ml-3 min-h-11 cursor-pointer rounded-lg border border-(--color-border) bg-(--color-surface) px-3" value={runs} onChange={e=>setRuns(Number(e.target.value))}>{[1,2,3].map(n=><option key={n} value={n}>{n}</option>)}</select></label>
+                  <p className="mt-2 text-sm">План: {chosen.length} вопросов × {Object.keys(models).length} моделей × {runs} = {chosen.length * Object.keys(models).length * runs} ответов. Стоимость в слотах определяется тарифом.</p>
                   <Link href="/vision/runs" className={link}>Настроить замеры</Link>
                   <p className="mt-2 text-sm text-(--color-ink-muted)">
                     Лимит моделей: {limit(data.limits.models)}
@@ -456,9 +457,11 @@ function WorkspaceBody({ screen, brandId }: { screen: Screen; brandId: string })
                 </section>
                 {data.can_edit && (
                   <div className="flex flex-wrap gap-3">
-                    <Button disabled={!chosen.length || !Object.keys(models).length || busy} loading={busy} onClick={async () => {
-                      if (await action('/vision/questions/approve', 'POST', { candidate_ids: chosen.map((item) => item.id), models, frequency: null })) window.location.assign('/vision/runs');
-                    }}>Утвердить и настроить запуск</Button>
+                    <Button disabled={!chosen.length || !Object.keys(models).length || busy || !canRun || !revision} loading={busy} onClick={async () => {
+                      if (await action('/vision/questions/approve', 'POST', { candidate_ids: chosen.map((item) => item.id), models, frequency: null })) {
+                        router.post('/vision/runs', { runs }, { headers: { 'X-Brand-Id': brandId, 'X-Brand-Revision': revision }, onStart: () => setBusy(true), onFinish: () => setBusy(false), onError: () => setError('Набор утверждён, но замер не запущен. Проверьте настройки замера.'), onHttpException: () => { setError('Набор утверждён, но замер не запущен. Проверьте доступ и настройки.'); return false; }, onNetworkError: () => { setError('Набор утверждён, результат запуска неизвестен. Проверьте список замеров.'); return false; } });
+                      }
+                    }}>Утвердить и запустить</Button>
                     <Button
                       disabled={!chosen.length || !Object.keys(models).length || busy}
                       loading={busy}

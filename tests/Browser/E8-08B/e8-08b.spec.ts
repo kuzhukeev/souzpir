@@ -17,7 +17,7 @@ test('предложенные показывают слот, источник �
 test('утверждение и история показывают данные замера',async({page})=>{
  await page.goto(base+'?screen=approve');
  await expect(page.getByText('Настройки первого замера')).toBeVisible();
- await expect(page.getByRole('button',{name:'Утвердить и настроить запуск'})).toBeVisible();
+ await expect(page.getByRole('button',{name:'Утвердить и запустить'})).toBeVisible();
  await page.screenshot({path:'.local/screenshots/e8-08b/approve.png',fullPage:true});
  await page.goto(base+'?screen=history');
  await expect(page.getByText('Автор: Иван Петров')).toBeVisible();
@@ -34,4 +34,16 @@ test('кнопка добавления в набор видима без отк
  await page.route('**/vision/questions/data', route => route.fulfill({json:{...data,candidates:[{...question,selected:false}]}}));
  await page.goto(base+'?screen=index');
  await expect(page.getByRole('button',{name:'В набор',exact:true})).toBeVisible();
+});
+
+test('утверждение запускает замер с выбранным числом прогонов', async ({ page, context }) => {
+ await context.addCookies([{ name: 'XSRF-TOKEN', value: 'test-token', url: 'http://127.0.0.1:5289' }]);
+ await page.route('**/vision/questions/approve', route => route.fulfill({json:{ok:true,id:'s2'}}));
+ await page.route('**/vision/runs', route => route.fulfill({status:422,contentType:'application/json',body:'{}'}));
+ await page.goto(base+'?screen=approve');
+ await page.getByLabel('google/gemini').check();
+ await page.getByLabel('Количество прогонов').selectOption('2');
+ const start=page.waitForRequest('**/vision/runs');
+ await page.getByRole('button',{name:'Утвердить и запустить'}).click();
+ const request=await start;expect(request.postDataJSON().runs).toBe(2);expect(request.headers()['x-brand-id']).toBe('b');expect(request.headers()['x-brand-revision']).toBe('a'.repeat(64));
 });

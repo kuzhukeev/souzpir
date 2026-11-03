@@ -63,6 +63,7 @@ final class QuestionsHttpTest extends TenancyTestCase
     public function test_approved_set_can_be_used_by_fake_measurement_runtime_with_real_grant(): void
     {
         [$owner, $org, $brand, $other] = $this->fixture();
+        $this->get('/vision/questions/approve')->assertOk()->assertInertia(fn ($page) => $page->has('measurementBrandRevision'));
         $id = $this->postJson('/vision/questions/candidates', ['text' => 'Где найти качественные услуги рядом?', 'intent' => 'choose'])->assertStatus(201)->json('id');
         $set = $this->postJson('/vision/questions/approve', ['candidate_ids' => [$id], 'models' => ['gemini' => 'google/gemini-2.5-flash'], 'frequency' => null])->assertOk()->json('id');
         self::assertSame($set, DB::table('vision_question_approvals')->where('brand_id', $brand->id)->where('active', true)->value('question_set_id'));
