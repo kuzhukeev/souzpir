@@ -28,6 +28,7 @@ export function SetDetails({
         <p className="mt-2 text-sm">
           Модели: {Object.values(value.providers ?? {}).join(', ') || 'Не указаны'}
         </p>
+        <p className="mt-2 text-sm">Частота: {({weekly:'Еженедельно',biweekly:'Раз в две недели',monthly:'Ежемесячно'} as Record<string,string>)[value.frequency ?? ''] ?? 'Вручную'}</p>
         <p className="mt-2 break-all text-sm text-(--color-ink-muted)">
           Контрольная сумма: {value.checksum}
         </p>

@@ -272,7 +272,7 @@ final class QuestionWorkspace
     {
         if (! array_is_list($ids) || count($ids) < 1 || count($ids) > 100 || array_filter($ids, fn ($id) => ! is_string($id) || ! Str::isUlid($id))
             || count(array_unique($ids)) !== count($ids) || $providers === [] || array_is_list($providers)
-            || $frequency !== null) {
+            || ($frequency !== null && ! in_array($frequency, ['weekly', 'biweekly', 'monthly'], true))) {
             throw new InvalidArgumentException('Invalid approval.');
         }
 
