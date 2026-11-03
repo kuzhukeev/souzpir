@@ -14,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
@@ -35,10 +36,14 @@ final class QualityController
 
         return DB::table('seller_evaluations')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
             ->orderByDesc('created_at')->orderByDesc('id')->limit(500)->get(['id', 'sim_run_id', 'conversation_id', 'scores', 'issues', 'average', 'comment', 'created_at'])
-            ->map(fn ($row) => ['id' => $row->id, 'source' => $row->sim_run_id ? 'simulation' : ($row->conversation_id ? 'dialogue' : 'unknown'),
-                'conversation_id' => $row->conversation_id, 'scores' => json_decode($row->scores, true) ?: [], 'issues' => json_decode($row->issues, true) ?: [],
-                'average' => (float) $row->average, 'comment' => $row->comment, 'created_at' => $row->created_at,
-                'day' => CarbonImmutable::parse($row->created_at)->setTimezone($timezone)->format('Y-m-d')]);
+            ->map(function ($row) use ($tenant, $timezone): array {
+                $feedback = $tenant->actorId ? DB::table('judge_calibrations')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('evaluation_id', $row->id)->where('user_id', $tenant->actorId)->first(['rating', 'comment']) : null;
+
+                return ['id' => $row->id, 'source' => $row->sim_run_id ? 'simulation' : ($row->conversation_id ? 'dialogue' : 'unknown'),
+                    'conversation_id' => $row->conversation_id, 'scores' => json_decode($row->scores, true) ?: [], 'issues' => json_decode($row->issues, true) ?: [],
+                    'average' => (float) $row->average, 'comment' => $row->comment, 'created_at' => $row->created_at,
+                    'feedback' => $feedback, 'day' => CarbonImmutable::parse($row->created_at)->setTimezone($timezone)->format('Y-m-d')];
+            });
     }
 
     private function reports(TenantContext $tenant): Collection
@@ -124,6 +129,22 @@ final class QualityController
                 abort_unless($found, 404);
                 app(AuditWriter::class)->record($tenant, new AuditEntry('seller.supervisor.recommendation.updated', 'seller_supervisor_report', $day, after: ['completed' => $input['completed']]));
             });
+        });
+
+        return back();
+    }
+
+    public function disagree(Request $request, string $evaluation): mixed
+    {
+        $input = $request->validate(['rating' => ['required', 'integer', 'min:1', 'max:5'], 'comment' => ['required', 'string', 'max:2000']]);
+        $this->access($request, function (TenantContext $tenant) use ($request, $evaluation, $input): void {
+            Gate::authorize('seller.settings.write');
+            DB::table('seller_evaluations')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('id', $evaluation)->first() ?? abort(404);
+            $where = ['organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId, 'evaluation_id' => $evaluation, 'user_id' => $request->user()->id];
+            $old = DB::table('judge_calibrations')->where($where)->first();
+            $id = $old?->id ?? (string) Str::ulid();
+            DB::table('judge_calibrations')->updateOrInsert($where, ['id' => $id, 'rating' => $input['rating'], 'comment' => $input['comment'], 'created_at' => $old?->created_at ?? now(), 'updated_at' => now()]);
+            app(AuditWriter::class)->record($tenant, new AuditEntry('seller.judge.calibrated', 'judge_calibration', $id));
         });
 
         return back();
