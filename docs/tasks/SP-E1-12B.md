@@ -14,3 +14,5 @@
 Scope: `app/Shell/Support/StatusQuery.php`, `resources/js/pages/Shell/Support/Status.tsx`, `resources/js/pages/Seller/Knowledge/Releases/Index.tsx`, `resources/js/pages/Seller/Settings/Limits/Index.tsx`, `resources/js/components/navigation/navigation.json`, `tests/Feature/Shell/Support/`, `tests/Browser/E1-12B/`, `docs/results/SP-E1-12B.md`.
 
 Отчёт: docs/results/SP-E1-12B.md; локальные тесты задачи, submit и зелёный CI.
+
+Приёмка по макетам: сверить каждый затронутый экран с матрицей docs/sources/02_screens_matrix.md по пунктам журнала docs/sources/02b_mockup_journal.md.

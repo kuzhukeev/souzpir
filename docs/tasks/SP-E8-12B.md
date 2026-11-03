@@ -11,3 +11,5 @@
 Scope: `resources/js/pages/Vision/Settings/Trends.tsx`, `tests/Feature/Vision/Settings/`, `tests/Browser/E8-12B/`, `docs/results/SP-E8-12B.md`.
 
 Отчёт: docs/results/SP-E8-12B.md; локальные тесты задачи, submit и зелёный CI.
+
+Приёмка по макетам: сверить каждый затронутый экран с матрицей docs/sources/02_screens_matrix.md по пунктам журнала docs/sources/02b_mockup_journal.md.
