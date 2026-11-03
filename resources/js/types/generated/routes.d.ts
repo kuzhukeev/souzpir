@@ -281,6 +281,7 @@ declare module 'ziggy-js' {
     ],
     "integrations.index": [],
     "integrations.api": [],
+    "integrations.api.docs": [],
     "integrations.secrets.consume": [],
     "integrations.notifications": [],
     "integrations.keys.store": [],
