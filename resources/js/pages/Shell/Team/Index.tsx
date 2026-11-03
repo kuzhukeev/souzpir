@@ -474,6 +474,7 @@ export default function Index({
                       <th scope="col" className="px-4 py-3">
                         Последний вход
                       </th>
+                      <th scope="col" className="px-4 py-3">Действия</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -496,6 +497,7 @@ export default function Index({
                             value={lastLogins.values[member.id]}
                           />
                         </td>
+                        <td className="px-4 py-4"><details className="relative"><summary aria-label={`Действия: ${member.name || 'участник'}`} className="cursor-pointer px-3 py-2">⋮</summary><div className="mt-2 min-w-48 rounded-lg border border-(--color-border) bg-(--color-surface) p-3"><Link href={`/team/${encodeURIComponent(member.id)}`} className="block py-2 text-(--color-link)">Открыть карточку</Link>{canIssueInvitations && <><Link href={`/team/${encodeURIComponent(member.id)}#access-title`} className="block py-2 text-(--color-link)">Изменить роль</Link><Link href={`/team/${encodeURIComponent(member.id)}#access-title`} className="block py-2 text-(--color-link)">Отключить</Link></>}</div></details></td>
                       </tr>
                     ))}
                   </tbody>
@@ -508,6 +510,7 @@ export default function Index({
                     className="rounded-xl border border-(--color-border) p-4"
                   >
                     <Person member={member} />
+                    <details className="mt-3 text-sm"><summary className="cursor-pointer py-2">Действия</summary><div className="space-y-2"><Link href={`/team/${encodeURIComponent(member.id)}`} className="block py-2 text-(--color-link)">Открыть карточку</Link>{canIssueInvitations && <><Link href={`/team/${encodeURIComponent(member.id)}#access-title`} className="block py-2 text-(--color-link)">Изменить роль</Link><Link href={`/team/${encodeURIComponent(member.id)}#access-title`} className="block py-2 text-(--color-link)">Отключить</Link></>}</div></details>
                     <dl className="mt-4 space-y-3 text-sm">
                       <div>
                         <dt className="text-(--color-ink-muted)">Роль</dt>
@@ -669,6 +672,7 @@ export default function Index({
                         <span className="rounded-full bg-(--color-surface-muted) px-3 py-1 text-(--color-ink-muted)">
                           {invitation.opened ? 'Ссылка открыта' : 'Ссылка не открыта'}
                         </span>
+                        {invitation.can_revoke && canIssueInvitations && <button type="button" onClick={() => setInvitationOpen(true)} className={button}>Создать новую ссылку</button>}
                         {invitation.can_revoke && (
                           <button
                             type="button"

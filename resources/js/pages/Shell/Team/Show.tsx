@@ -12,9 +12,13 @@ export default function Show({
   member,
   activityUrl,
   editAccess,
+  dialogCount = null,
+  receives = {},
 }: {
   member: TeamMemberDetail;
   activityUrl: string | null;
+  dialogCount?: number | null;
+  receives?: Record<string, string[]>;
   editAccess?: {
     brands: { id: string; name: string }[];
     allBrands: boolean;
@@ -122,6 +126,8 @@ export default function Show({
             </dl>
           </section>
         </div>
+        {dialogCount !== null && <section className={`${panel} mt-4`}><h2 className="text-xl font-bold">Диалоги в работе</h2><p className="mt-3 text-sm">Назначено активных диалогов: {dialogCount}</p><button disabled className="mt-3 min-h-11 rounded-lg border border-(--color-border) px-4 text-sm text-(--color-ink-muted)" title="Массовая передача диалогов пока недоступна">Передать все коллеге · Скоро</button></section>}
+        {Object.keys(receives).length > 0 && <section className={`${panel} mt-4`}><h2 className="text-xl font-bold">Получает</h2><p className="mt-2 text-sm text-(--color-ink-muted)">Каналы для текущего бренда</p><ul className="mt-3 space-y-2 text-sm">{Object.entries(receives).map(([event,channels])=><li key={event}><strong>{event === 'vision.measurement.completed' ? 'Отчёт после замера' : 'Диалог ждёт менеджера'}</strong>: {channels.length ? channels.map(channel=>({cabinet:'В кабинете',email:'Почта',telegram:'Telegram'}[channel] ?? channel)).join(', ') : 'Не получает'}</li>)}</ul></section>}
         {activityUrl && (
           <section className={`${panel} mt-4`} aria-labelledby="activity-title">
             <h2 id="activity-title" className="text-xl font-bold">

@@ -5,9 +5,11 @@ namespace App\Shell\Team\Http;
 use App\Models\Membership;
 use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Auth\SessionBrandSelection;
+use App\Shell\Notifications\RecipientPolicy;
 use App\Shell\Team\TeamMemberProjection;
 use App\Tenancy\TenantContext;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -40,7 +42,27 @@ final class TeamMemberController
             return app(SessionBrandSelection::class)->profileRevision($request, $expected);
         });
 
-        return Inertia::render('Shell/Team/Show', ['member' => $data, 'activityUrl' => $activityUrl,
+        $context = app(TenantContext::class);
+        $sharedBrand = $context->brandId && $member->permitsBrand($context->brandId);
+        $dialogCount = $sharedBrand && Gate::allows('seller.dialogs.read')
+            ? DB::table('conversations')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)
+                ->where('assigned_user_id', $member->user_id)->where('mode', 'manager')->count()
+            : null;
+        $receives = [];
+        if ($sharedBrand && Gate::allows('team.manage')) {
+            foreach (['vision.measurement.completed', 'seller.conversation.handed_off'] as $event) {
+                if (! app(RecipientPolicy::class)->permits($member, $context->brandId, $event)) {
+                    $receives[$event] = [];
+
+                    continue;
+                }
+                $settings = DB::table('notification_settings')->where('organization_id', $context->organizationId)
+                    ->where('brand_id', $context->brandId)->where('user_id', $member->user_id)->where('event_key', $event)->get(['channel', 'enabled'])->keyBy('channel');
+                $receives[$event] = collect(['cabinet', 'email', 'telegram'])->filter(fn ($channel) => isset($settings[$channel]) ? (bool) $settings[$channel]->enabled : $channel === 'cabinet')->values()->all();
+            }
+        }
+
+        return Inertia::render('Shell/Team/Show', ['member' => $data, 'activityUrl' => $activityUrl, 'dialogCount' => $dialogCount, 'receives' => $receives,
             'editAccess' => Gate::allows('update', $member) && $controlled && $member->status === 'active'
                 ? ['brands' => TeamMemberProjection::forCurrentActor()->availableBrands(), 'allBrands' => $unrestricted,
                     'memberAllBrands' => $member->role === 'admin' && $member->brand_ids === [], 'revision' => $revision] : null]);

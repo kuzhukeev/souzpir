@@ -1,0 +1,11 @@
+import { expect, test } from '@playwright/test';
+import { spawn, type ChildProcess } from 'node:child_process';
+import { mkdir } from 'node:fs/promises';
+let server:ChildProcess;
+const url='http://127.0.0.1:5319/tests/Browser/E1-06H/fixture.html';
+test.beforeAll(async()=>{server=spawn(process.execPath,['node_modules/vite/bin/vite.js','--config','tests/Browser/E1-06H/vite.config.ts'],{stdio:'ignore'});for(let i=0;i<60;i++){try{if((await fetch(url)).ok)return;}catch{/* Ожидаем сервер. */}await new Promise(resolve=>setTimeout(resolve,500));}throw new Error('Vite не запустился');});
+test.afterAll(()=>server?.kill());
+test.use({launchOptions:process.env.E106H_CHROMIUM_PATH?{executablePath:process.env.E106H_CHROMIUM_PATH}:{}});
+test('список: меню и новая ссылка',async({page})=>{await page.setViewportSize({width:1440,height:900});await page.goto(url);await page.getByLabel('Действия: Анна Соколова').click();await expect(page.getByRole('link',{name:'Изменить роль'})).toHaveAttribute('href',/\/team\/.+#access-title/);await expect(page.getByRole('link',{name:'Отключить'})).toBeVisible();await expect(page.getByRole('button',{name:'Создать новую ссылку'})).toBeVisible();await mkdir('.local/screenshots/sp-e1-06h',{recursive:true});await page.screenshot({path:'.local/screenshots/sp-e1-06h/team-1440.png',fullPage:true});});
+test('карточка: нагрузка и каналы текущего бренда',async({page})=>{await page.setViewportSize({width:1440,height:900});await page.goto(`${url}?show`);await expect(page.getByText('Назначено активных диалогов: 2')).toBeVisible();await expect(page.getByText(/Отчёт после замера/).locator('..')).toContainText('Почта');await expect(page.getByRole('button',{name:/Передать все коллеге/})).toBeDisabled();await mkdir('.local/screenshots/sp-e1-06h',{recursive:true});await page.screenshot({path:'.local/screenshots/sp-e1-06h/member-1440.png',fullPage:true});});
+test('действия доступны в мобильной карточке',async({page})=>{await page.setViewportSize({width:390,height:844});await page.goto(url);await page.getByText('Действия',{exact:true}).filter({visible:true}).click();await expect(page.getByRole('link',{name:'Изменить роль'})).toBeVisible();});
