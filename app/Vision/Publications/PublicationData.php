@@ -3,6 +3,7 @@
 namespace App\Vision\Publications;
 
 use App\Vision\Core\VisionReportReader;
+use App\Vision\Reports\SiteCriteria;
 
 final class PublicationData
 {
@@ -28,7 +29,8 @@ final class PublicationData
 
         return [...$this->fromPayload($source), 'competitors' => $entities,
             'confirmed_facts' => count(array_filter($facts, fn ($item) => is_array($item) && ($item['confirmed'] ?? false) === true)),
-            'reviewed_facts' => count($facts), 'actions' => $actions, 'site_readiness' => $site];
+            'reviewed_facts' => count($facts), 'actions' => $actions, 'site_readiness' => $site,
+            'site_criteria' => SiteCriteria::project($siteAudit['criteria'] ?? [])];
     }
 
     public function fromPayload(array $source): array
