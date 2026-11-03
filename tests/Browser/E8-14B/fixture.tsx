@@ -1,0 +1,14 @@
+import { createInertiaApp } from '@inertiajs/react';
+import { createRoot } from 'react-dom/client';
+import Start from '../../../resources/js/pages/Vision/Profile/Start';
+import Show from '../../../resources/js/pages/Vision/Profile/Show';
+import Quiz from '../../../resources/js/pages/Vision/Profile/Quiz';
+import '../../../resources/css/app.css';
+import '../../../resources/css/themes/tokens.css';
+const section = new URLSearchParams(location.search).get('screen') ?? 'start';
+const profile={id:'01ARZ3NDEKTSV4RRFFQ69G5FAV',quiz_id:'01ARZ3NDEKTSV4RRFFQ69G5FAW',version:2,checksum:'x',answers:{step1:{brand_name:'Новое имя'}}};
+const props={auth:{user:{id:'u',name:'Иван',email:'ivan@example.test'}},organization:{id:'o',name:'Компания'},brand:{id:'b',name:'Бренд',website:'https://example.com'},brands:[],modules:{vision:true,seller:false},can:{},theme:'neutral',translations:{},ziggy:{routes:{}},errors:{},current:{quiz_id:'q',revision:2,current_step:4,status:'draft'},profile_id:null,can_edit:true,secure_context:true,local_http:true,profile,previous_profile:{...profile,id:'p',version:1,answers:{step1:{brand_name:'Старое имя'}}},history:[{id:'p',version:1,source:'edit',created_at:'2026-11-02 12:00:00+00'}],is_latest:true,submitted:location.search.includes('submitted'),limits:{},quiz:{id:'q',version:1,revision:2,status:'draft',current_step:4,answers:{step1:{site:'https://example.com',brand_name:'Бренд'}}},step:section==='review'?8:section==='competitors'?4:section==='facts'?5:section==='questions'?7:section==='hints'?3:1,hints:{status:'available',items:[{label:'С сайта',value:section==='competitors'?'Магазин Искра':section==='questions'?'Как выбрать салют?':section==='hints'?'Фейерверки':'Заголовок сайта',source:'https://example.com/'}]},savedAt:'2026-11-02 12:04:00+00'};
+const script=document.createElement('script');script.type='application/json';script.dataset.page='app';script.textContent=JSON.stringify({component:'Fixture',props,url:'/vision',version:'fixture',clearHistory:false,encryptHistory:false});document.body.append(script);
+void createInertiaApp({resolve:()=>section==='profile'?Show:['quiz','review','hints','competitors','facts','questions'].includes(section)?Quiz:Start,setup:({el,App,props})=>createRoot(el).render(<App {...props}/>)});
+
+
