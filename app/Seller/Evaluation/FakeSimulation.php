@@ -25,12 +25,13 @@ final class FakeSimulation
             }
         }
         $id = (string) Str::ulid();
+        $releaseId = app(SimulationKnowledgeRelease::class)->id($context);
         $fallbacks = count(array_filter($turns, fn ($turn) => ($turn['meta']['guard_fallback'] ?? false) === true));
-        DB::transaction(function () use ($context, $persona, $turns, $id, $fallbacks): void {
+        DB::transaction(function () use ($context, $persona, $turns, $id, $fallbacks, $releaseId): void {
             DB::table('seller_sim_runs')->insert(['id' => $id, 'organization_id' => $context->organizationId,
                 'brand_id' => $context->brandId, 'persona_id' => $persona->id, 'status' => 'completed',
                 'turn_count' => count($turns), 'turns' => json_encode($turns, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
-                'metrics' => json_encode(['agent_turns' => count($turns), 'guard_fallbacks' => $fallbacks], JSON_THROW_ON_ERROR),
+                'metrics' => json_encode(['agent_turns' => count($turns), 'guard_fallbacks' => $fallbacks, 'knowledge_release_id' => $releaseId], JSON_THROW_ON_ERROR),
                 'created_at' => now(), 'updated_at' => now()]);
             app(AuditWriter::class)->record($context, new AuditEntry('seller.simulation.completed', 'seller_sim_run', $id,
                 after: ['persona_id' => $persona->id, 'turn_count' => count($turns)]));
