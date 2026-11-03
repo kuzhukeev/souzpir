@@ -1,0 +1,42 @@
+import { expect, test } from '@playwright/test';
+import { createServer, type ViteDevServer } from 'vite';
+let server: ViteDevServer;
+let fixture: string;
+test.setTimeout(60000);
+test.use({ viewport: { width: 1440, height: 900 }, launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH } : {} });
+test.beforeAll(async () => { server = await createServer({ configFile: 'tests/Browser/E8-15C/vite.config.ts' }); await server.listen(); fixture = new URL('/tests/Browser/E8-15C/pages-fixture.html', server.resolvedUrls!.local[0]).href; });
+test.afterAll(async () => { await server?.close(); });
+test('таблица вопросов, пагинация и покрытие намерений', async ({ page }) => {
+  const candidates = Array.from({ length: 9 }, (_, i) => ({ id: `q${i}`, text: `Вопрос ${i + 1}`, intent: 'choose', status: 'proposed', selected: true, origin: 'manual', can_delete: true }));
+  const data = { candidates, active_set: null, history: [], limits: { questions: '20', models: '3' }, models: [{ id: 'model-a', provider: 'provider', status: 'active' }], generation: { status: 'blocked' }, can_edit: true, has_profile: true };
+  await page.route('**/vision/questions/data', route => route.fulfill({ json: data }));
+  await page.goto(`${fixture}?screen=index`);
+  await expect(page.getByRole('table', { name: 'Вопросы' })).toBeVisible();
+  await expect(page.getByText('1–8 из 9', { exact: false })).toBeVisible();
+  await page.screenshot({ path: '.local/screenshots/sp-e8-15c/questions.png', fullPage: true });
+  await page.getByRole('button', { name: 'Вперёд' }).click();
+  await expect(page.getByText('Вопрос 9', { exact: true })).toBeVisible();
+  await page.goto(`${fixture}?screen=approve`);
+  await expect(page.getByText('Выбрано: 0 из 3.')).toBeVisible();
+  await page.getByLabel('model-a').check();
+  await expect(page.getByText('Выбрано: 1 из 3.')).toBeVisible();
+  await expect(page.getByText('Не все намерения покрыты вопросами.', { exact: false })).toBeVisible();
+  await page.screenshot({ path: '.local/screenshots/sp-e8-15c/approve.png', fullPage: true });
+});
+
+test('история показывает изменения и сохраняет сравнение, чтение без прав не даёт действий', async ({ page }) => {
+  const oldQuestion = { id: 'q1', text: 'Старый вопрос', intent: 'choose' };
+  const newQuestion = { id: 'q2', text: 'Новый вопрос', intent: 'price' };
+  const base = { size: 1, checksum: 'a'.repeat(64), providers: { gemini: 'google/gemini' }, frequency: null, approved_by: 'u', approver_name: 'Иван', created_at: '2026-10-31T12:00:00Z', measurements: [] };
+  const data = { candidates: [{ ...newQuestion, status: 'proposed', selected: false, origin: 'manual', can_delete: true }], active_set: null, history: [{ ...base, id: 'v2', version: 2, active: true, questions: [newQuestion] }, { ...base, id: 'v1', version: 1, active: false, questions: [oldQuestion] }], limits: { questions: null, models: null }, models: [], generation: { status: 'blocked' }, can_edit: false, has_profile: true };
+  await page.route('**/vision/questions/data', route => route.fulfill({ json: data }));
+  await page.goto(`${fixture}?screen=history`);
+  await expect(page.getByRole('table')).toBeVisible();
+  await expect(page.getByText('+1 / −1')).toBeVisible();
+  await page.getByRole('button', { name: 'Сравнить с предыдущим' }).click();
+  await expect(page.getByText('Старый вопрос')).toBeVisible();
+  await expect(page.getByText('Новый вопрос')).toBeVisible();
+  await page.screenshot({ path: '.local/screenshots/sp-e8-15c/history.png', fullPage: true });
+  await page.goto(`${fixture}?screen=index`);
+  await expect(page.getByRole('button', { name: 'Отключить выбранные' })).toHaveCount(0);
+});

@@ -69,7 +69,7 @@ test('actual questions create, select, publish, version, permissions and CSRF', 
     await expect(page).toHaveURL(/\/vision\/questions\/active$/);
     await expect(page.getByText('Версия 2 · Активный')).toBeVisible({ timeout: 20_000 });
     await page.getByRole('link', { name: 'История наборов' }).click();
-    await expect(page.getByRole('heading', { name: 'Версия 2 · Активный' })).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'Версия 2 · Активный' })).toBeVisible();
     await page.getByRole('button', { name: 'Сравнить с предыдущим' }).click();
     await expect(page.getByText('Как узнать цену доставки?')).toBeVisible();
     await page.screenshot({ path: '.local/screenshots/e8-03/real-history.png', fullPage: true });
