@@ -40,7 +40,10 @@ final class DialogsController
             abort_unless(app(SellerModuleAccess::class)->enabled($context->organizationId, $context->brandId), 404);
             $manager = $member->role === 'member' && ($member->settings['sales_manager'] ?? false);
 
-            return $reader->read($context, $actor->id, $manager, ! $manager && $member->role !== 'viewer', $dialog, $input['mode'] ?? 'all', trim($input['search'] ?? ''), $input['sort'] ?? 'newest', $input);
+            $data = $reader->read($context, $actor->id, $manager, ! $manager && $member->role !== 'viewer', $dialog, $input['mode'] ?? 'all', trim($input['search'] ?? ''), $input['sort'] ?? 'newest', $input);
+            $data['transferOptions'] = $dialog && Gate::forUser($actor)->allows('seller.dialogues.operate') ? app(DialogTransferController::class)->candidates($context) : [];
+
+            return $data;
         });
 
         return Inertia::render($mine ? 'Seller/Dialogs/Mine' : 'Seller/Dialogs/Index', $data + ['filters' => ['mode' => $input['mode'] ?? 'all', 'search' => $input['search'] ?? '', 'sort' => $input['sort'] ?? 'newest', 'channel' => $input['channel'] ?? '', 'stage' => $input['stage'] ?? '', 'manager' => $input['manager'] ?? '', 'page' => (int) ($input['page'] ?? 1)]]);
