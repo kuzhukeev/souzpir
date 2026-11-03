@@ -17,7 +17,7 @@ final class DialogReader
         'next_contact_at' => 'Когда связаться',
     ];
 
-    public function read(TenantContext $context, string $actorId, bool $manager, bool $showMeta, ?string $selected, string $mode, string $search, string $sort = 'newest'): array
+    public function read(TenantContext $context, string $actorId, bool $manager, bool $showMeta, ?string $selected, string $mode, string $search, string $sort = 'newest', array $filters = []): array
     {
         $base = DB::table('conversations as c')->leftJoin('contacts as contact', function ($join): void {
             $join->on('contact.id', '=', 'c.contact_id')->on('contact.brand_id', '=', 'c.brand_id')
@@ -30,6 +30,8 @@ final class DialogReader
             $base->where(fn ($query) => $query->where('c.assigned_user_id', $actorId)
                 ->orWhere(fn ($waiting) => $waiting->where('c.mode', 'manager')->whereNull('c.assigned_user_id')));
         }
+        $managerOptions = (clone $base)->join('users as assigned', 'assigned.id', '=', 'c.assigned_user_id')
+            ->select('assigned.id', 'assigned.name')->distinct()->orderBy('assigned.name')->orderBy('assigned.id')->get();
         $mine = (clone $base)->where(fn ($query) => $query->where('c.assigned_user_id', $actorId)
             ->orWhere(fn ($waiting) => $waiting->where('c.mode', 'manager')->whereNull('c.assigned_user_id')));
         $counterRows = $mine->select(['c.stage', 'c.updated_at'])->selectSub(
@@ -53,10 +55,23 @@ final class DialogReader
             $base->where(fn ($query) => $query->where('contact.name', 'ilike', '%'.addcslashes($search, '%_\\').'%')
                 ->orWhere('c.id', $search));
         }
+        if (! empty($filters['channel'])) {
+            $base->where('channel.type', $filters['channel']);
+        }
+        if (! empty($filters['stage'])) {
+            $base->where('c.stage', $filters['stage']);
+        }
+        if (! empty($filters['manager'])) {
+            $base->where('c.assigned_user_id', $filters['manager']);
+        }
+        $page = (int) ($filters['page'] ?? 1);
+        $total = (clone $base)->count();
+        $pages = max(1, (int) ceil($total / 50));
+        $page = min($page, $pages);
         $columns = ['c.id', 'c.mode', 'c.stage', 'c.outcome', 'c.assigned_user_id', 'c.created_at', 'c.updated_at',
             'c.last_client_message_at', 'c.summary', 'c.state', 'contact.name as contact_name',
             'contact.email as contact_email', 'contact.phone as contact_phone', 'channel.type as channel_type'];
-        $rows = $base->orderBy('c.updated_at', $sort === 'oldest' ? 'asc' : 'desc')->orderByDesc('c.id')->limit(50)->get($columns);
+        $rows = (clone $base)->orderBy('c.updated_at', $sort === 'oldest' ? 'asc' : 'desc')->orderByDesc('c.id')->forPage($page, 50)->get($columns);
         $messages = DB::table('messages')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)
             ->whereIn('conversation_id', $rows->pluck('id')->all())->orderByDesc('created_at')->orderByDesc('id')
             ->get(['id', 'conversation_id', 'role', 'text', 'meta', 'created_at'])->groupBy('conversation_id');
@@ -101,7 +116,7 @@ final class DialogReader
             ];
         }
 
-        return ['dialogs' => $list, 'dialog' => $detail, 'mineCounts' => $counts];
+        return ['dialogs' => $list, 'dialog' => $detail, 'mineCounts' => $counts, 'managerOptions' => $managerOptions, 'pagination' => ['page' => $page, 'pages' => $pages, 'total' => $total]];
     }
 
     private function slot(mixed $value): ?string
