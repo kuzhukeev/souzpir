@@ -21,7 +21,11 @@ final class ReportsController
         return app(MeasurementList::class)->withinCurrent($request, function (TenantContext $context, string $revision): mixed {
             Gate::authorize('vision.report.read');
 
-            return Inertia::render('Vision/Reports/Index', ['reportBrandRevision' => $revision, 'status' => session('status')]);
+            if (session()->has('publication_url')) {
+                Inertia::encryptHistory();
+            }
+
+            return Inertia::render('Vision/Reports/Index', ['reportBrandRevision' => $revision, 'status' => session('status'), 'createdUrl' => session('publication_url'), 'ttlDays' => config('features.E8-05C.defaults.publication_ttl_days')]);
         }, false);
     }
 

@@ -81,10 +81,12 @@ final class PublicationsTest extends TenancyTestCase
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
         $revision = $this->get('/vision/publications')->assertOk()->inertiaProps('reportBrandRevision');
         $this->withHeaders(['X-Brand-Id' => $brand->id, 'X-Brand-Revision' => $revision])
-            ->post('/vision/publications', ['report_id' => $report, 'ttl_days' => 7])->assertRedirect()->assertSessionHas('publication_url');
+            ->post('/vision/publications', ['report_id' => $report, 'ttl_days' => 7, 'return_to' => 'report'])
+            ->assertRedirect('/vision/report?report='.$report)->assertSessionHas('publication_url');
         $url = session('publication_url');
         $this->assertIsString($url);
-        $this->get(parse_url($url, PHP_URL_PATH))->assertOk()->assertSee('42,0%')->assertDontSee('Скрытый промпт')->assertDontSee('Личные данные');
+        $this->get(parse_url($url, PHP_URL_PATH))->assertOk()->assertSee('42,0%')->assertSee('Главные выводы')
+            ->assertSee('Методика')->assertDontSee('Скрытый промпт')->assertDontSee('Личные данные');
         $this->assertSame(1, DB::table('audit_logs')->where('action', 'vision.report.published')->where('brand_id', $brand->id)->count());
     }
 
@@ -99,6 +101,7 @@ final class PublicationsTest extends TenancyTestCase
         $this->actingAs($owner)->withSession(['brand_id' => $first->id]);
         $revision = $this->get('/vision/publications')->assertOk()->inertiaProps('reportBrandRevision');
         $this->withHeaders(['X-Brand-Id' => $first->id, 'X-Brand-Revision' => $revision])->post('/vision/publications', ['report_id' => (string) Str::ulid(), 'ttl_days' => 99])->assertSessionHasErrors('ttl_days');
+        $this->post('/vision/publications', ['report_id' => (string) Str::ulid(), 'ttl_days' => 7, 'return_to' => 'external'])->assertSessionHasErrors('return_to');
         $foreignReport = $this->report($org->id, $second->id, $owner->id);
         $this->post('/vision/publications', ['report_id' => $foreignReport, 'ttl_days' => 7])->assertNotFound();
         $this->post('/brand/switch', ['brand_id' => $second->id])->assertRedirect();

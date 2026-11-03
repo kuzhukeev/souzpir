@@ -49,6 +49,7 @@ final class PublicationsController
         $data = $request->validate([
             'report_id' => ['required', 'ulid'],
             'ttl_days' => ['required', 'integer', Rule::in(config('features.E8-05C.defaults.publication_ttl_days'))],
+            'return_to' => ['nullable', Rule::in(['report'])],
         ]);
         $token = bin2hex(random_bytes(32));
         app(MeasurementList::class)->withinCurrent($request, function (TenantContext $context) use ($data, $token): void {
@@ -74,7 +75,9 @@ final class PublicationsController
                 after: ['report_id' => $report->id, 'ttl_days' => $data['ttl_days']]));
         });
 
-        return redirect()->route('vision.publications.index')->with('publication_url', route('vision.publications.public', $token))
+        $destination = ($data['return_to'] ?? null) === 'report' ? route('vision.reports.index', ['report' => $data['report_id']]) : route('vision.publications.index');
+
+        return redirect($destination)->with('publication_url', route('vision.publications.public', $token))
             ->with('status', 'Ссылка создана. Сохраните её сейчас: повторно показать токен нельзя.');
     }
 

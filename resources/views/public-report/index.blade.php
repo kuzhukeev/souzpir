@@ -43,7 +43,12 @@
                 <section class="card"><h2>{{ $title }}</h2><p class="value">{{ $value === null ? '—' : number_format($value, 1, ',', ' ').$suffix }}</p></section>
             @endforeach
         </div>
-        <section class="card" style="margin-top: 24px"><h2>Методика</h2><p>В снимке учтено {{ $report['questions'] }} вопросов. Пропущенные и непроверенные ответы не считаются отрицательными.</p></section>
+        <section class="card" style="margin-top: 24px"><h2>Главные выводы</h2><ul><li>Видимость: {{ $report['visibility'] === null ? 'недостаточно данных' : number_format($report['visibility'], 1, ',', ' ').' %' }}.</li><li>Покрытие ответов: {{ $report['coverage'] === null ? 'недостаточно данных' : number_format($report['coverage'], 1, ',', ' ').' %' }}.</li><li>В снимке {{ $report['questions'] }} вопросов.</li></ul></section>
+        <section class="card" style="margin-top: 24px"><h2>Кого называют вместо вас</h2><p class="muted">Детализация компаний в этой публикации недоступна.</p></section>
+        <section class="card" style="margin-top: 24px"><h2>Что о вас говорят</h2><p class="muted">Счётчики проверенных утверждений в этой публикации недоступны.</p></section>
+        <section class="card" style="margin-top: 24px"><h2>Ваш сайт</h2><p class="muted">Оценка сайта в этой публикации недоступна.</p></section>
+        <section class="card" style="margin-top: 24px"><h2>Три действия</h2><p class="muted">Подтверждённые действия в этой публикации недоступны.</p></section>
+        <section class="card" style="margin-top: 24px"><h2>Методика</h2><details><summary>Как рассчитаны показатели</summary><p>В снимке учтено {{ $report['questions'] }} вопросов. Пропущенные и непроверенные ответы не считаются отрицательными.</p></details></section>
     @endif
 </main>
 </body>
