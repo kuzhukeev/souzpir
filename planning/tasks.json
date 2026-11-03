@@ -5230,7 +5230,9 @@
         "SP-E8-15C",
         "SP-E8-19B",
         "SP-E1-02E",
-        "SP-E4-04E"
+        "SP-E4-04E",
+        "SP-E7-03F",
+        "SP-E8-16E"
       ],
       "scope": [
         "README.md",
@@ -13339,6 +13341,71 @@
       "promptPath": "docs/tasks/SP-E4-04E.md",
       "wave": 18,
       "description": "# SP-E4-04E · Неизвестные вопросы и оформление тем\n\n**Зачем:** завершить экраны D-4.6, D-4.7 по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E4-04D из docs/results/SP-E4-04D.md.\n**Зависимости:** SP-E4-04D (дождаться merge).\n\nПодключить log_unknown_question и создание задач unknown_question через общий диспетчер инструментов; обработать метаданные последующих ходов и guard-fallback, проверить end-to-end статистику и задачу; завершить оформление тем, панели и мобильного вида по макету.\n\nСверить с docs/sources/02b_mockup_journal.md; проверить сценарии, права, изоляцию брендов и ошибки. Без живых или платных вызовов в тестах.\n\nScope: `app/Seller/Knowledge/Topics/`, `app/Seller/Runtime/`, `app/ProtectedOperations/`, `resources/js/pages/Seller/Knowledge/Topics/`, `tests/Feature/Seller/Knowledge/Topics/`, `tests/Browser/E4-04E/`, `docs/results/SP-E4-04E.md`.\n\nОтчёт: docs/results/SP-E4-04E.md; остаток указать по пунктам.\n"
+    },
+    {
+      "taskKey": "SP-E7-03F",
+      "title": "SP-E7-03F · Сохранять версию базы в новых прогонах",
+      "goal": "При создании fake- и runtime-прогонов сохранять в metrics.knowledge_release_id идентификатор активного опубликованного релиза текущего бренда; проверить отсутствие релиза, права и изоляцию.",
+      "dependsOn": [
+        "SP-E7-03E"
+      ],
+      "scope": [
+        "app/Seller/Evaluation/",
+        "tests/Feature/Seller/Evaluation/",
+        "tests/Browser/E7-03F/",
+        "docs/results/SP-E7-03F.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Завершить пункты по макету, проверить права и изоляцию; без живых вызовов."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "D-7.7"
+      ],
+      "notes": "Продолжение частичной сдачи по решению владельца.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E7-03F.md",
+      "wave": 18,
+      "description": "# SP-E7-03F · Сохранять версию базы в новых прогонах\n\n**Зачем:** завершить экраны D-7.7 по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E7-03E из docs/results/SP-E7-03E.md.\n**Зависимости:** SP-E7-03E (дождаться merge).\n\nПри создании fake- и runtime-прогонов сохранять в metrics.knowledge_release_id идентификатор активного опубликованного релиза текущего бренда; проверить отсутствие релиза, права и изоляцию.\n\nСверить с docs/sources/02b_mockup_journal.md; проверить сценарии, права, изоляцию брендов и ошибки. Без живых или платных вызовов в тестах.\n\nScope: `app/Seller/Evaluation/`, `tests/Feature/Seller/Evaluation/`, `tests/Browser/E7-03F/`, `docs/results/SP-E7-03F.md`.\n\nОтчёт: docs/results/SP-E7-03F.md; остаток указать по пунктам.\n"
+    },
+    {
+      "taskKey": "SP-E8-16E",
+      "title": "SP-E8-16E · Остаток экрана ответов нейросетей",
+      "goal": "Завершить группировку по категориям, суммарные отметки прогонов и цвета; компоновку карточки, цвета бренда и конкурентов, источники, факты, мобильный вид и управление фокусом. До подтверждённого отчёта не показывать непроверенные свидетельства как подтверждённые.",
+      "dependsOn": [
+        "SP-E8-16C",
+        "SP-E8-16D"
+      ],
+      "scope": [
+        "app/Vision/Measurements/",
+        "resources/js/pages/Vision/Measurements/",
+        "resources/js/features/Vision/Measurements/",
+        "routes/features/E8-04.php",
+        "tests/Feature/Vision/Measurements/",
+        "tests/Browser/E8-16E/",
+        "docs/results/SP-E8-16E.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Завершить пункты по макету, проверить права и изоляцию; без живых вызовов."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "V-3.4",
+        "V-3.5"
+      ],
+      "notes": "Продолжение частичной сдачи по решению владельца.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E8-16E.md",
+      "wave": 18,
+      "description": "# SP-E8-16E · Остаток экрана ответов нейросетей\n\n**Зачем:** завершить экраны V-3.4, V-3.5 по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E8-16C из docs/results/SP-E8-16C.md.\n**Зависимости:** SP-E8-16C, SP-E8-16D (дождаться merge).\n\nЗавершить группировку по категориям, суммарные отметки прогонов и цвета; компоновку карточки, цвета бренда и конкурентов, источники, факты, мобильный вид и управление фокусом. До подтверждённого отчёта не показывать непроверенные свидетельства как подтверждённые.\n\nСверить с docs/sources/02b_mockup_journal.md; проверить сценарии, права, изоляцию брендов и ошибки. Без живых или платных вызовов в тестах.\n\nScope: `app/Vision/Measurements/`, `resources/js/pages/Vision/Measurements/`, `resources/js/features/Vision/Measurements/`, `routes/features/E8-04.php`, `tests/Feature/Vision/Measurements/`, `tests/Browser/E8-16E/`, `docs/results/SP-E8-16E.md`.\n\nОтчёт: docs/results/SP-E8-16E.md; остаток указать по пунктам.\n"
     }
   ],
   "excludedSourceTasks": {
