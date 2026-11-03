@@ -49,6 +49,8 @@ final class PublicationsController
         $data = $request->validate([
             'report_id' => ['required', 'ulid'],
             'ttl_days' => ['required', 'integer', Rule::in(config('features.E8-05C.defaults.publication_ttl_days'))],
+            'return_to' => ['nullable', Rule::in(['report'])],
+            'allow_pdf' => ['sometimes', 'boolean'],
         ]);
         $token = bin2hex(random_bytes(32));
         app(MeasurementList::class)->withinCurrent($request, function (TenantContext $context) use ($data, $token): void {
@@ -59,7 +61,11 @@ final class PublicationsController
                 ->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)->select('measurement_id'))->first(['id']);
             abort_unless($report, 404);
             try {
-                $public = app(PublicationData::class)->fromReport($report->id);
+                $audit = DB::table('audit_runs')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)
+                    ->orderByDesc('created_at')->orderByDesc('id')->value('result');
+                $siteAudit = is_string($audit) ? json_decode($audit, true) : null;
+                $public = app(PublicationData::class)->fromReport($report->id, is_array($siteAudit) ? $siteAudit : null);
+                $public['allow_pdf'] = (bool) ($data['allow_pdf'] ?? false);
             } catch (LogicException) {
                 abort(409, 'Отчёт недоступен.');
             }
@@ -74,7 +80,9 @@ final class PublicationsController
                 after: ['report_id' => $report->id, 'ttl_days' => $data['ttl_days']]));
         });
 
-        return redirect()->route('vision.publications.index')->with('publication_url', route('vision.publications.public', $token))
+        $destination = ($data['return_to'] ?? null) === 'report' ? route('vision.reports.index', ['report' => $data['report_id']]) : route('vision.publications.index');
+
+        return redirect($destination)->with('publication_url', route('vision.publications.public', $token))
             ->with('status', 'Ссылка создана. Сохраните её сейчас: повторно показать токен нельзя.');
     }
 
