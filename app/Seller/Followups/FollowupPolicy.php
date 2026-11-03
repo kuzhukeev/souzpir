@@ -32,7 +32,7 @@ final class FollowupPolicy
         if (is_string($agreed) && $agreed !== '') {
             try {
                 $next = CarbonImmutable::parse($agreed, $timezone);
-                if ($next->lessThanOrEqualTo($now)) {
+                if ($next->lessThanOrEqualTo($now) && ! data_get($conversation, 'state.flags._followup_done_'.$next->timestamp, false)) {
                     return ['reason' => 'next_contact_at', 'source_at' => $next->utc()->toIso8601String(), 'sequence' => $count + 1];
                 }
             } catch (\Throwable) {
