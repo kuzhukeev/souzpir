@@ -1,7 +1,7 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { AuditForm, BotAccess, Criteria, Pages } from '@/features/Vision/Site/AuditDetails';
 import { Actions } from '@/features/Vision/Site/Actions';
-import { type ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import CabinetLayout from '@/layouts/CabinetLayout';
 import type { Audit, Criterion, Props } from '@/types/Vision/Site';
 
@@ -122,6 +122,18 @@ export function Groups({ criteria }: { criteria: Criterion[] }) {
     </section>
   );
 }
+export function AuditProgress({progress}: {progress?: {stage:string} | null}) {
+  const stage = progress?.stage;
+  useEffect(() => {
+    if (!['queued','inspecting','saving'].includes(stage ?? '')) return;
+    const timer = window.setInterval(() => router.reload({only:['auditProgress','audit','auditDate','previousAudit']}), 2000);
+    return () => window.clearInterval(timer);
+  }, [stage]);
+  if (!stage) return null;
+  const phases = [{key:'queued',label:'Ожидание'}, {key:'inspecting',label:'Проверка страниц и ботов'}, {key:'saving',label:'Сохранение результатов'}];
+  const active = stage === 'complete' ? phases.length : phases.findIndex(item => item.key === stage);
+  return <section className={card} aria-live="polite"><h2 className="text-lg font-semibold">Проверка сайта</h2><p className="mt-2 text-sm">{({queued:'Ожидает очереди',inspecting:'Проверяем страницы и доступ ботов',saving:'Сохраняем результаты',complete:'Проверка завершена',failed:'Не удалось проверить сайт. Повторите попытку.'} as Record<string,string>)[stage] ?? 'Состояние недоступно'}</p>{active >= 0 && <><progress className="mt-3 w-full accent-(--color-action)" aria-label="Проверка сайта" max={phases.length} value={active} /><ol className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm">{phases.map((phase,index)=><li key={phase.key}>{phase.label} · {index < active ? 'готово' : index === active ? 'выполняется' : 'ожидает'}</li>)}</ol></>}</section>;
+}
 export default function Index({
   section,
   audit,
@@ -133,7 +145,8 @@ export default function Index({
   members = [],
   auditDate = null,
   previousAudit = null,
-}: Props & { auditDate?: string | null; previousAudit?: Audit | null }) {
+  auditProgress = null,
+}: Props & { auditDate?: string | null; previousAudit?: Audit | null; auditProgress?: {stage:string} | null }) {
   const titles: Record<Props['section'], string> = {
     overview: 'Готовность сайта к ИИ-поиску',
     criteria: 'Критерии и как исправить',
@@ -185,6 +198,7 @@ export default function Index({
               <Empty>Проверок сайта пока нет.</Empty>
             )}
             {canManage && <AuditForm />}
+            <AuditProgress progress={auditProgress} />
             {audit?.issues?.length ? (
               <section className={card}>
                 <h2 className="text-lg font-semibold">Замечания</h2>
