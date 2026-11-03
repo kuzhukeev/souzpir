@@ -55,7 +55,7 @@ final class BillingQuery
         $assigned = DB::table('organization_plan as assignment')->join('plans as plan', 'plan.id', '=', 'assignment.plan_id')
             ->where('assignment.organization_id', $tenant->organizationId)->where('assignment.starts_at', '<=', now())
             ->where(fn ($q) => $q->whereNull('assignment.ends_at')->orWhere('assignment.ends_at', '>', now()))
-            ->first(['plan.id', 'plan.name']);
+            ->first(['plan.id', 'plan.name', 'assignment.starts_at', 'assignment.ends_at']);
         $limits = [];
         $keys = array_keys(self::LIMIT_LABELS);
         if ($assigned) {
@@ -78,7 +78,7 @@ final class BillingQuery
         $requestEnabled = $canManage && app()->bound(PlanRequestPort::class) && $scope !== null;
         $scope = $canManage ? $scope : null;
 
-        return ['tab' => $tab, 'currentPlan' => $assigned ? ['id' => $assigned->id, 'name' => $assigned->name] : null,
+        return ['tab' => $tab, 'currentPlan' => $assigned ? ['id' => $assigned->id, 'name' => $assigned->name, 'startsAt' => $assigned->starts_at, 'endsAt' => $assigned->ends_at] : null,
             'limits' => $limits, 'usage' => $usage,
             'plans' => $canManage ? DB::table('plans')->where('is_public', true)->orderBy('name')->get(['id', 'name'])->toArray() : [],
             'canManage' => $canManage, 'requestEnabled' => $requestEnabled,
