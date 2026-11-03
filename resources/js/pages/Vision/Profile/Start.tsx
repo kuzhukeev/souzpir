@@ -98,7 +98,7 @@ export default function Start({
               );
             })}
           </div>
-          <section className="mt-8 rounded-xl border border-(--color-border) p-4"><h2 className="font-semibold">Что проверяем</h2><p className="mt-2 text-sm text-(--color-ink-muted)">Пример набора моделей; доступные модели определяются настройками замера.</p><ul className="mt-3 flex flex-wrap gap-2 text-sm">{['ChatGPT', 'Claude', 'Gemini', 'Perplexity'].map(name => <li key={name} className="rounded-lg bg-(--color-surface-muted) px-3 py-2">{name}</li>)}</ul></section>
+          <section className="mt-8 rounded-xl border border-(--color-border) p-4"><h2 className="font-semibold">Что проверяем</h2><p className="mt-2 text-sm text-(--color-ink-muted)">Пример набора моделей; доступные модели определяются настройками замера.</p><ul className="mt-3 flex flex-wrap gap-2 text-sm">{[['ChatGPT','✳'], ['Claude','✺'], ['Gemini','✦'], ['Perplexity','◈']].map(([name, mark]) => <li key={name} className="flex items-center gap-2 rounded-lg bg-(--color-surface-muted) px-3 py-2"><span aria-hidden="true" className="flex h-7 w-7 items-center justify-center rounded-full bg-(--color-brand-primary-soft) text-lg text-(--color-link)">{mark}</span>{name}</li>)}</ul></section>
           <section className="mt-4 rounded-xl border border-(--color-border) p-4"><h2 className="font-semibold">Ваш тариф</h2><p className="mt-2 text-sm text-(--color-ink-muted)">Данные о тарифе и лимитах пока недоступны.</p></section>
         </section>
       </div>

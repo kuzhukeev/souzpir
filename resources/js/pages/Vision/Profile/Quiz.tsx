@@ -87,6 +87,7 @@ function QuizBody({ quiz, step, brand, limits, hints, savedAt = null, errors = {
               Ваш ввод сохранён на этой странице. Если анкету изменили в другой вкладке, скопируйте
               его и обновите страницу.
             </p>
+            <button type="button" className="cursor-pointer font-semibold underline" disabled={busy} onClick={step === 8 ? submit : save}>Повторить</button>
           </div>
         )}
         <div className="grid items-start gap-4 lg:grid-cols-[235px_minmax(0,1fr)_260px]">
@@ -110,7 +111,7 @@ function QuizBody({ quiz, step, brand, limits, hints, savedAt = null, errors = {
           </nav>
           <main className="min-w-0 rounded-xl bg-(--color-surface) p-5 md:p-6">
             {step < 8 ? (
-              <>{[3,4,5,7].includes(step) && <aside className="mb-5 rounded-lg bg-(--color-surface-muted) p-4 text-sm"><h2 className="font-semibold">{({3:'Подсказки с сайта',4:'Подсказки о конкурентах',5:'Что найдено на сайте',7:'Подсказки по вашей сфере'} as Record<number,string>)[step]}</h2><p className="mt-2 text-(--color-ink-muted)">Подтверждённых подсказок пока нет. Заполните поля самостоятельно.</p><Link href={`/vision/quiz/${step}`} className="mt-2 inline-block cursor-pointer text-(--color-link) underline">Обновить подсказки</Link></aside>}<QuestionnaireFields
+              <>{[3,4,5,7].includes(step) && <aside className="mb-5 rounded-lg bg-(--color-surface-muted) p-4 text-sm"><h2 className="font-semibold">{({3:'Подсказки с сайта',4:'Подсказки о конкурентах',5:'Мы нашли на вашем сайте',7:'Подсказки по вашей сфере'} as Record<number,string>)[step]}</h2><p role="status" className="mt-2 text-(--color-ink-muted)">{hints?.status === 'available' ? 'Проверьте найденные сведения перед добавлением в анкету.' : hints?.status === 'empty' ? 'В аудите сайта подходящих сведений пока нет. Заполните поля самостоятельно.' : 'Подсказки временно недоступны. Заполните поля самостоятельно.'}</p><Link href={`/vision/quiz/${step}`} className="mt-2 inline-block cursor-pointer text-(--color-link) underline">Повторить поиск подсказок</Link></aside>}<QuestionnaireFields
                 key={step}
                 step={step}
                 hints={(hints?.items ?? []).map((item) => ({
@@ -121,11 +122,11 @@ function QuizBody({ quiz, step, brand, limits, hints, savedAt = null, errors = {
                 onChange={setData}
                 limits={limits}
                 errors={errors}
-              />{step === 1 && <p className="mt-4 text-sm text-(--color-ink-muted)">Проверка сайта доступна в разделе <Link href="/vision/site" className="cursor-pointer text-(--color-link) underline">«Сайт»</Link>. Сохраните данные анкеты перед переходом.</p>}</>
+              />{step === 1 && <p role="status" className="mt-4 text-sm text-(--color-ink-muted)">{hints?.status === 'available' && data.website === brand.website ? 'Сайт доступен: результат проверки сохранён в аудите текущего бренда.' : 'Указанный сайт пока не проверен. Проверить его можно в разделе'} {!(hints?.status === 'available' && data.website === brand.website) && <Link href="/vision/site" className="cursor-pointer text-(--color-link) underline">«Сайт»</Link>}. Сохраните данные анкеты перед переходом.</p>}</>
             ) : (
               <div className="space-y-4">
                 <h2 className="text-xl font-semibold">Проверьте ответы перед отправкой</h2>
-                <section className="rounded-lg bg-(--color-surface-muted) p-4"><h3 className="font-semibold">Что будет дальше</h3><p className="mt-2 text-sm text-(--color-ink-muted)">После отправки откроется профиль бренда. Затем можно подготовить вопросы и настроить замер.</p></section>
+                <section className="rounded-lg bg-(--color-surface-muted) p-4"><h3 className="font-semibold">Что будет дальше</h3><ol className="mt-2 list-inside list-decimal space-y-2 text-sm text-(--color-ink-muted)"><li>Сохраним профиль бренда.</li><li>Вы подготовите и утвердите вопросы.</li><li>После настройки можно запустить замер.</li></ol></section>
                 {labels.slice(0, 7).map((title, i) => (
                   <section key={title} className="rounded-lg border border-(--color-border) p-4">
                     <div className="flex items-center justify-between gap-2">
