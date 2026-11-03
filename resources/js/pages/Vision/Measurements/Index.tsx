@@ -1,5 +1,5 @@
 import { Head, router, usePage } from '@inertiajs/react';
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { BarChart3 } from 'lucide-react';
 import * as Dialog from '@radix-ui/react-dialog';
 import CabinetLayout from '@/layouts/CabinetLayout';
@@ -14,6 +14,8 @@ type Row = {
   status: string;
   confirmed?: boolean;
   created_at: string;
+  started_at?: string | null;
+  finished_at?: string | null;
   answers?: { question_n: number; provider: string; requested_model: string; run_no: number; status: string; answer_text: string | null; error_code: string | null }[];
 };
 type Schedule = { enabled: boolean; frequency: string | null; weekday: number | null; local_time: string | null; timezone: string; next_run_at: string | null; models: string[]; available_models: string[] };
@@ -131,6 +133,12 @@ export default function Index({ measurementBrandRevision, status }: { measuremen
     loading: true,
   });
   const view = state.key === requestKey ? state : { data: null, error: '', loading: true };
+  const hasActiveRun = Boolean(view.data?.data.some(row => ['pending', 'running', 'in_progress'].includes(row.status)));
+  useEffect(() => {
+    if (!hasActiveRun) return;
+    const timer = window.setInterval(() => { if (isPageVisible() && profileContextIsStable()) setAttempt(value => value + 1); }, 15000);
+    return () => window.clearInterval(timer);
+  }, [hasActiveRun]);
 
   useEffect(() => {
     let active = true;
@@ -233,14 +241,12 @@ export default function Index({ measurementBrandRevision, status }: { measuremen
             </p>
           </div>
           <div className="flex flex-wrap items-end gap-2">
-            <label className="text-sm font-semibold">Повторов
-              <input type="number" min={1} max={3} value={runs} onChange={(event) => setRuns(Number(event.target.value))} className="mt-1 block w-24 rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm" />
-            </label>
+            <fieldset><legend className="text-sm font-semibold">Повторов</legend><div className="mt-1 flex gap-1">{[1,2,3].map(n=><button key={n} type="button" aria-pressed={runs===n} onClick={()=>setRuns(n)} className={`${button} ${runs===n?'bg-(--color-surface-muted)':''}`}>{n}</button>)}</div></fieldset>
             <button type="button" className={button} onClick={() => setLaunchOpen(true)}>Параметры замера</button>
             <button type="button" className={button} disabled={starting || !can?.['vision.measure.run'] || !brandId || !profileContextIsStable()} onClick={start}>Начать замер</button>
           </div>
         </header>
-        <Dialog.Root open={launchOpen} onOpenChange={setLaunchOpen}><Dialog.Portal><Dialog.Overlay className="fixed inset-0 z-40 bg-black/50" /><Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[min(95vw,32rem)] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-(--color-surface) p-6 text-(--color-ink) shadow-xl"><Dialog.Title className="text-xl font-bold">Запуск замера</Dialog.Title><Dialog.Description className="mt-2 text-sm">План строится по утверждённым вопросам и моделям текущего бренда.</Dialog.Description><label className="mt-4 block text-sm">Повторов<input type="number" min={1} max={3} value={runs} onChange={event => setRuns(Number(event.target.value))} className="mt-2 block w-24 rounded-lg border border-(--color-border) bg-(--color-surface) p-2" /></label><p className="mt-4 text-sm">{view.data?.plan ? `Вопросы: ${view.data.plan.questions} · Модели: ${view.data.plan.models} · Повторы: ${runs} · Всего слотов: ${view.data.plan.questions * view.data.plan.models * runs}` : 'Утверждённый набор вопросов недоступен.'}</p><div className="mt-4 flex gap-3"><button type="button" className={button} disabled={starting || !can?.['vision.measure.run'] || !brandId || !profileContextIsStable()} onClick={() => { setLaunchOpen(false); start(); }}>Начать замер</button><Dialog.Close className={button}>Отмена</Dialog.Close></div></Dialog.Content></Dialog.Portal></Dialog.Root>
+        <Dialog.Root open={launchOpen} onOpenChange={setLaunchOpen}><Dialog.Portal><Dialog.Overlay className="fixed inset-0 z-40 bg-black/50" /><Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[min(95vw,32rem)] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-(--color-surface) p-6 text-(--color-ink) shadow-xl"><Dialog.Title className="text-xl font-bold">Запуск замера</Dialog.Title><Dialog.Description className="mt-2 text-sm">План строится по утверждённым вопросам и моделям текущего бренда.</Dialog.Description><label className="mt-4 block text-sm">Повторов<input type="number" min={1} max={3} value={runs} onChange={event => setRuns(Number(event.target.value))} className="mt-2 block w-24 rounded-lg border border-(--color-border) bg-(--color-surface) p-2" /></label><div role="group" aria-label="Число прогонов" className="mt-3 flex gap-1">{[1,2,3].map(n=><button key={n} type="button" aria-pressed={runs===n} onClick={()=>setRuns(n)} className={`${button} ${runs===n?'bg-(--color-surface-muted)':''}`}>{n}</button>)}</div><p className="mt-4 text-sm">{view.data?.plan ? `Вопросы: ${view.data.plan.questions} · Модели: ${view.data.plan.models} · Повторы: ${runs} · Всего слотов: ${view.data.plan.questions * view.data.plan.models * runs}` : 'Утверждённый набор вопросов недоступен.'}</p><p className="mt-2 text-sm text-(--color-ink-muted)">Оценка времени: 20–40 минут.</p><a href="/vision/questions" className="mt-2 inline-flex min-h-11 cursor-pointer items-center text-sm text-(--color-link)">Открыть набор вопросов →</a><div className="mt-4 flex gap-3"><button type="button" className={button} disabled={starting || !can?.['vision.measure.run'] || !brandId || !profileContextIsStable()} onClick={() => { setLaunchOpen(false); start(); }}>Начать замер</button><Dialog.Close className={button}>Отмена</Dialog.Close></div></Dialog.Content></Dialog.Portal></Dialog.Root>
         <p className="mb-4 text-sm text-(--color-ink-muted)">Запуск создаёт план по утверждённым вопросам бренда. При включённой очереди слоты обрабатываются автоматически.</p>
         {status && <p role="status" className="mb-4 rounded-lg bg-(--color-success-soft) p-3 text-sm text-(--color-success-ink)">{status}</p>}
         {startError && <p role="alert" className="mb-4 rounded-lg bg-(--color-danger-soft) p-3 text-sm text-(--color-danger-ink)">{startError}</p>}
@@ -321,25 +327,7 @@ export default function Index({ measurementBrandRevision, status }: { measuremen
                   </p>
                 ) : (
                   <>
-                    <ul className="grid gap-4" aria-label="История замеров">
-                      {view.data.data.map((row) => (
-                        <li key={row.id} className="rounded-xl border border-(--color-border) p-4 text-sm">
-                          <div className="flex flex-wrap items-center justify-between gap-3">
-                            <div><p className="font-semibold">Замер · {stateLabel[row.status] ?? row.status}</p><p className="mt-1 text-(--color-ink-muted)">{date(row.created_at)}</p></div>
-                            <div className="flex flex-wrap gap-2">
-                              {row.answers?.some((answer) => answer.status === 'pending') && <button type="button" className={button} disabled={!!acting || !can?.['vision.measure.run']} onClick={() => act(row.id, 'next')}>Выполнить следующий слот</button>}
-                              <button type="button" className={button} disabled={!!acting || !can?.['vision.measure.run']} onClick={() => act(row.id, 'repeat')}>Повторить замер</button>
-                            </div>
-                          </div>
-                          {(row.answers?.length ?? 0) > 0 && <div className="mt-3 text-sm"><p className="font-semibold">Прогресс по моделям</p><p>Вопросов: {new Set((row.answers ?? []).map(answer => answer.question_n)).size}</p>{Array.from(new Set((row.answers ?? []).map(answer => answer.provider))).map(provider => { const answers=(row.answers ?? []).filter(answer => answer.provider===provider); return <p key={provider} className="mt-1">{provider}: {answers.filter(answer => answer.status==='ok').length} / {answers.length}</p>; })}</div>}
-                          <ConfirmationProgress status={row.status} answers={row.answers ?? []} confirmed={row.confirmed} canConfirm={Boolean(can?.['vision.measure.run'])} loading={Boolean(acting)} onConfirm={() => act(row.id, 'confirm')} />
-                          <details className="mt-4" open={(row.answers?.length ?? 0) > 0}>
-                            <summary className="cursor-pointer font-semibold">Ответы и слоты ({row.answers?.length ?? 0})</summary>
-                            <AnswerPanel answers={row.answers ?? []} />
-                          </details>
-                        </li>
-                      ))}
-                    </ul>
+                    <div className="overflow-x-auto"><table className="w-full min-w-[850px] text-left text-sm"><thead><tr className="border-b border-(--color-border)"><th className="p-3">№</th><th className="p-3">Дата</th><th className="p-3">Статус</th><th className="p-3">Вопросы × модели × прогоны</th><th className="p-3">Видимость</th><th className="p-3">Упоминания</th><th className="p-3">Длительность</th><th className="p-3">Действия</th></tr></thead><tbody>{view.data.data.map((row,index)=>{const answers=row.answers ?? [];const duration=row.started_at&&row.finished_at?Math.max(0,Math.round((new Date(row.finished_at).getTime()-new Date(row.started_at).getTime())/60000)):null;return <Fragment key={row.id}><tr className="border-b border-(--color-border)"><td className="p-3">{view.data!.total-(page-1)*25-index}</td><td className="p-3">{date(row.created_at)}</td><td className="p-3">{stateLabel[row.status] ?? row.status}</td><td className="p-3">{answers.length?`${new Set(answers.map(a=>a.question_n)).size} × ${new Set(answers.map(a=>a.provider)).size} × ${new Set(answers.map(a=>a.run_no)).size}`:'—'}</td><td className="p-3">—</td><td className="p-3">—</td><td className="p-3">{duration===null?'—':`${duration} мин`}</td><td className="p-3"><button type="button" className={button} disabled={!!acting || !can?.['vision.measure.run']} onClick={()=>act(row.id,'repeat')}>Повторить замер</button></td></tr><tr><td colSpan={8} className="p-3"><details open><summary className="cursor-pointer font-semibold">Замер · {stateLabel[row.status] ?? row.status} — ответы и прогресс</summary>{answers.length>0&&<div className="mt-3"><p className="font-semibold">Прогресс по моделям</p><p>Вопросов: {new Set(answers.map(answer=>answer.question_n)).size}</p>{Array.from(new Set(answers.map(answer=>answer.provider))).map(provider=>{const group=answers.filter(answer=>answer.provider===provider);return <p key={provider} className="mt-1">{provider}: {group.filter(answer=>answer.status==='ok').length} / {group.length}</p>;})}</div>}{answers.some(answer=>answer.status==='pending')&&<button type="button" className={`${button} mt-3`} disabled={!!acting || !can?.['vision.measure.run']} onClick={()=>act(row.id,'next')}>Выполнить следующий слот</button>}<ConfirmationProgress status={row.status} answers={answers} confirmed={row.confirmed} canConfirm={Boolean(can?.['vision.measure.run'])} loading={Boolean(acting)} onConfirm={()=>act(row.id,'confirm')} /><details className="mt-4" open={answers.length>0}><summary className="cursor-pointer font-semibold">Ответы и слоты ({answers.length})</summary><AnswerPanel answers={answers} /></details></details></td></tr></Fragment>;})}</tbody></table></div>
                   </>
                 )}
                 {view.data.last_page > 1 && (
@@ -385,3 +373,4 @@ export default function Index({ measurementBrandRevision, status }: { measuremen
     </CabinetLayout>
   );
 }
+
