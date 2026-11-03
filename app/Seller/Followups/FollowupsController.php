@@ -36,7 +36,16 @@ final class FollowupsController
                 ->where('f.created_at', '>=', now()->subDays($days))->orderByDesc('f.created_at')
                 ->get(['f.id', 'f.text', 'f.status', 'f.created_at', 'f.updated_at', 'p.name as contact', 'a.type as channel']);
 
-            return ['items' => $rows, 'counts' => ['scheduled' => $rows->where('status', 'pending')->count(), 'sent' => $rows->where('status', 'completed')->count()], 'canCancel' => Gate::forUser($user)->allows('seller.dialogues.operate')];
+            $replies = DB::table('seller_followup_candidates as f')
+                ->where('f.organization_id', $tenant->organizationId)->where('f.brand_id', $tenant->brandId)
+                ->where('f.status', 'completed')->where('f.created_at', '>=', now()->subDays($days))
+                ->whereExists(function ($query): void {
+                    $query->selectRaw('1')->from('messages as m')->whereColumn('m.conversation_id', 'f.conversation_id')
+                        ->whereColumn('m.organization_id', 'f.organization_id')->whereColumn('m.brand_id', 'f.brand_id')
+                        ->where('m.role', 'client')->whereColumn('m.created_at', '>', 'f.updated_at');
+                })->distinct()->count('f.conversation_id');
+
+            return ['items' => $rows, 'counts' => ['scheduled' => $rows->where('status', 'pending')->count(), 'sent' => $rows->where('status', 'completed')->count(), 'replies_after_test' => $replies], 'canCancel' => Gate::forUser($user)->allows('seller.dialogues.operate')];
         });
 
         return Inertia::render('Seller/Followups/Index', [...$data, 'days' => $days, 'status' => session('status')]);
