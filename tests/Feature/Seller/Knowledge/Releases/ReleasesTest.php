@@ -24,8 +24,10 @@ final class ReleasesTest extends TenancyTestCase
         $draft = DB::table('knowledge_releases')->where('brand_id', $brand->id)->where('status', 'draft')->first();
         $this->post('/seller/knowledge/draft')->assertStatus(409);
         $this->post("/seller/knowledge/{$draft->id}/publish", ['version' => 999])->assertStatus(409);
-        $this->post("/seller/knowledge/{$draft->id}/publish", ['version' => 1])->assertRedirect();
+        $this->post("/seller/knowledge/{$draft->id}/publish", ['version' => 1, 'note' => str_repeat('x', 501)])->assertSessionHasErrors('note');
+        $this->post("/seller/knowledge/{$draft->id}/publish", ['version' => 1, 'note' => 'Уточнили доставку'])->assertRedirect()->assertSessionHasNoErrors();
         $first = DB::table('brands')->where('id', $brand->id)->value('active_knowledge_release_id');
+        $this->get('/seller/knowledge')->assertOk()->assertInertia(fn ($page) => $page->where('publicationNotes.'.$first, 'Уточнили доставку'));
         $this->post("/seller/knowledge/{$draft->id}/publish", ['version' => 2])->assertRedirect();
         $second = DB::table('brands')->where('id', $brand->id)->value('active_knowledge_release_id');
         $this->assertNotSame($first, $second);
@@ -45,13 +47,19 @@ final class ReleasesTest extends TenancyTestCase
             $conversation = (string) Str::ulid();
             $message = (string) Str::ulid();
             DB::table('conversations')->insert(['id' => $conversation, 'organization_id' => $org->id, 'brand_id' => $brandId, 'created_at' => now(), 'updated_at' => now()]);
+            DB::table('messages')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $brandId, 'conversation_id' => $conversation, 'role' => 'client', 'text' => 'Вопрос', 'created_at' => now(), 'updated_at' => now()]);
             DB::table('seller_tasks')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $brandId, 'conversation_id' => $conversation, 'type' => 'unknown_question', 'payload' => json_encode(['question' => 'Вопрос']), 'status' => 'new', 'created_at' => now(), 'updated_at' => now()]);
             DB::table('messages')->insert(['id' => $message, 'organization_id' => $org->id, 'brand_id' => $brandId, 'conversation_id' => $conversation, 'role' => 'agent', 'text' => 'Ответ', 'created_at' => now(), 'updated_at' => now()]);
             DB::table('message_reviews')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $brandId, 'message_id' => $message, 'user_id' => $owner->id, 'type' => 'wrong_fact', 'note' => 'Ошибка', 'created_at' => now(), 'updated_at' => now()]);
             DB::table('seller_evaluations')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $brandId, 'scores' => '{}', 'issues' => '[{"explanation":"Проверка"}]', 'average' => 3, 'created_at' => now(), 'updated_at' => now()]);
         }
+        $answered = (string) Str::ulid();
+        DB::table('conversations')->insert(['id' => $answered, 'organization_id' => $org->id, 'brand_id' => $brand->id, 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('messages')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $brand->id, 'conversation_id' => $answered, 'role' => 'client', 'text' => 'Другой вопрос', 'created_at' => now(), 'updated_at' => now()]);
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
-        $this->get('/seller/knowledge')->assertOk()->assertInertia(fn ($page) => $page->has('tasks', 1)->has('reviews', 1)->has('evaluations', 1));
+        $this->get('/seller/knowledge')->assertOk()->assertInertia(fn ($page) => $page->has('tasks', 1)->has('reviews', 1)->has('evaluations', 1)->where('coverage', 50));
+        $this->post('/brand/switch', ['brand_id' => $other->id])->assertRedirect();
+        $this->get('/seller/knowledge')->assertOk()->assertInertia(fn ($page) => $page->where('coverage', 0));
     }
 
     public function test_permissions_and_invalid_version(): void

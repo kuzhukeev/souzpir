@@ -20,7 +20,7 @@ const page = {
         examples: { totalBefore: 1, totalAfter: 1, changes: [] },
       },
     } : {
-      releases: [second, first], draft: { id:'draft', status:'draft', version:4, published_at:null, updated_at:'2026-11-02' }, activeId: second.id, counts: { facts: 1, conditions: 3, intents: 2, examples: 4, closed_topics: 1 }, changeCount: 2,
+      releases: [second, first], draft: { id:'draft', status:'draft', version:4, published_at:null, updated_at:'2026-11-02' }, activeId: second.id, counts: { facts: 1, conditions: 3, intents: 2, examples: 4, closed_topics: 1 }, changeCount: 2, coverage: 75, topics: [{id:'delivery',label:'Доставка'}], changes:[{section:'facts',type:'changed',name:'facts:delivery'}],
       tasks: [{ id: 't1', conversation_id: 'dialog1', payload: '{"question":"Сколько доставка?"}', created_at: '2026-11-01' }, { id: 't2', conversation_id: 'dialog2', payload: '{"question":"Сколько доставка?"}', created_at: '2026-11-02' }], reviews: [{id:'r', note:'Проверить цену', better_text:null}], evaluations: [], canWrite: true, status: null,
     }),
     theme: 'neutral', brand: { id: 'b', name: 'Пример бренда', theme: 'neutral' }, brands: [],

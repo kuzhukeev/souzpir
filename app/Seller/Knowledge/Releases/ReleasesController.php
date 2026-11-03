@@ -7,6 +7,8 @@ use App\Seller\Knowledge\Contracts\KnowledgeRepository;
 use App\Seller\Knowledge\KnowledgeNotReady;
 use App\Seller\Knowledge\KnowledgeSnapshot;
 use App\Seller\Settings\Limits\SellerModuleAccess;
+use App\Shell\Audit\AuditEntry;
+use App\Shell\Audit\Contracts\AuditWriter;
 use App\Shell\Profile\ProfileAccess;
 use App\Tenancy\TenantContext;
 use Illuminate\Database\Query\Builder;
@@ -55,18 +57,35 @@ final class ReleasesController
             } catch (KnowledgeNotReady) {
             }
             $changeCount = null;
+            $changes = [];
             if ($draft && $brand?->active_knowledge_release_id && $canWrite) {
                 $repository = app(KnowledgeRepository::class);
                 $comparison = app(ReleaseComparison::class)->compare($repository->published($tenant), $repository->forRelease($tenant, $draft->id, true));
                 $changeCount = array_sum(array_map(fn ($section) => count($section['changes']), $comparison));
+                foreach ($comparison as $section => $result) {
+                    foreach ($result['changes'] as $change) {
+                        $changes[] = ['section' => $section, 'type' => $change['type'], 'name' => $change['key']];
+                    }
+                }
             }
+            $since = now()->subDays(7);
+            $dialogIds = $this->query('messages', $tenant)->where('role', 'client')->where('created_at', '>=', $since)->distinct()->pluck('conversation_id');
+            $unanswered = $dialogIds->isEmpty() ? 0 : $this->query('seller_tasks', $tenant)->where('type', 'unknown_question')
+                ->where('created_at', '>=', $since)->whereIn('conversation_id', $dialogIds)->distinct()->count('conversation_id');
+            $coverage = $dialogIds->isEmpty() ? null : (int) round(100 * (1 - $unanswered / $dialogIds->count()));
+            $notes = $this->query('audit_logs', $tenant)->where('action', 'knowledge.release.note')
+                ->whereIn('subject_id', $releases->pluck('id'))->get(['subject_id', 'after'])->mapWithKeys(function ($row): array {
+                    $value = json_decode($row->after, true);
+
+                    return [$row->subject_id => is_array($value) ? ($value['note'] ?? null) : null];
+                })->all();
             $tasks = $this->query('seller_tasks', $tenant)->where('type', 'unknown_question')->where('status', 'new')->orderByDesc('created_at')->limit(50)->get(['id', 'conversation_id', 'payload', 'created_at']);
             $reviews = $this->query('message_reviews', $tenant)->where('type', 'wrong_fact')->where('status', 'new')->orderByDesc('created_at')->limit(50)->get(['id', 'note', 'better_text', 'created_at']);
             $handled = $this->query('audit_logs', $tenant)->where('action', 'knowledge.incoming.handled')->where('subject_type', 'evaluation')->pluck('subject_id');
             $evaluations = $this->query('seller_evaluations', $tenant)->whereNotIn('id', $handled)->whereRaw('jsonb_array_length(issues) > 0')->orderByDesc('created_at')->limit(50)->get(['id', 'issues', 'comment', 'created_at']);
 
             return ['releases' => $releases, 'activeId' => $brand?->active_knowledge_release_id, 'draft' => $draft, 'counts' => $counts,
-                'tasks' => $tasks, 'reviews' => $reviews, 'evaluations' => $evaluations, 'changeCount' => $changeCount, 'topics' => $topics, 'canWrite' => $canWrite];
+                'tasks' => $tasks, 'reviews' => $reviews, 'evaluations' => $evaluations, 'changeCount' => $changeCount, 'changes' => $changes, 'coverage' => $coverage, 'publicationNotes' => $notes, 'topics' => $topics, 'canWrite' => $canWrite];
         });
 
         return Inertia::render('Seller/Knowledge/Releases/Index', [...$data, 'status' => session('status')]);
@@ -105,8 +124,16 @@ final class ReleasesController
 
     public function publish(Request $request, string $release): mixed
     {
-        $input = $request->validate(['version' => ['required', 'integer', 'min:1']]);
-        $this->access($request, 'seller.knowledge.write', fn (User $user, TenantContext $tenant) => app(KnowledgeRepository::class)->publish($tenant, $release, (int) $input['version']));
+        $input = $request->validate(['version' => ['required', 'integer', 'min:1'], 'note' => ['nullable', 'string', 'max:500']]);
+        $this->access($request, 'seller.knowledge.write', function (User $user, TenantContext $tenant) use ($release, $input): void {
+            DB::transaction(function () use ($tenant, $release, $input): void {
+                $published = app(KnowledgeRepository::class)->publish($tenant, $release, (int) $input['version']);
+                $note = trim($input['note'] ?? '');
+                if ($note !== '') {
+                    app(AuditWriter::class)->record($tenant, new AuditEntry('knowledge.release.note', 'knowledge_release', $published->releaseId(), after: ['note' => $note]));
+                }
+            });
+        });
 
         return back()->with('status', 'Знания опубликованы.');
     }

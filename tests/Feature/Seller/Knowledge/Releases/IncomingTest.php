@@ -8,6 +8,35 @@ use Tests\Feature\Tenancy\TenancyTestCase;
 
 final class IncomingTest extends TenancyTestCase
 {
+    public function test_incoming_can_be_attached_or_merged_only_with_current_brand_topic(): void
+    {
+        [$owner, $org, $brand, $other] = $this->cabinet();
+        DB::table('brand_modules')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $brand->id,
+            'module' => 'seller', 'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $this->post('/seller/knowledge/draft')->assertRedirect();
+        $draft = DB::table('knowledge_releases')->where('brand_id', $brand->id)->where('status', 'draft')->value('id');
+        DB::table('kn_intents')->insert(['id' => (string) Str::ulid(), 'release_id' => $draft, 'key' => 'delivery', 'position' => 0,
+            'data' => json_encode(['id' => 'delivery', 'description' => 'Доставка', 'examples' => []])]);
+        $id = $this->evaluation($org->id, $brand->id);
+        $foreign = $this->evaluation($org->id, $other->id);
+        $payload = ['type' => 'evaluation', 'id' => $id, 'decision' => 'attach', 'existing_topic_id' => 'delivery', 'version' => 1, 'text' => 'Когда доставка?'];
+        $this->post('/seller/knowledge/incoming', [...$payload, 'id' => $foreign])->assertNotFound();
+        $this->post('/seller/knowledge/incoming', [...$payload, 'existing_topic_id' => 'missing'])->assertStatus(422);
+        $this->post('/seller/knowledge/incoming', [...$payload, 'text' => str_repeat('x', 201)])->assertSessionHasErrors('text');
+        $this->post('/seller/knowledge/incoming', $payload)->assertRedirect()->assertSessionHasNoErrors();
+        $topic = json_decode(DB::table('kn_intents')->where('release_id', $draft)->value('data'), true);
+        $this->assertSame(['Когда доставка?'], $topic['examples']);
+        $ban = $this->evaluation($org->id, $brand->id);
+        $this->post('/seller/knowledge/incoming', ['type' => 'evaluation', 'id' => $ban, 'decision' => 'accept', 'target' => 'closed_topic', 'version' => 2, 'group' => 'commercial', 'text' => 'Не обещать скидку'])->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertSame('Не обещать скидку', json_decode(DB::table('kn_closed_topics')->where('release_id', $draft)->value('data'), true)['idea']);
+        $another = $this->evaluation($org->id, $brand->id);
+        $this->post('/seller/knowledge/incoming', ['type' => 'evaluation', 'id' => $another, 'decision' => 'merge', 'existing_topic_id' => 'delivery'])->assertRedirect()->assertSessionHasNoErrors();
+        [$viewer] = $this->member($org, 'viewer', [$brand->id]);
+        $this->actingAs($viewer)->withSession(['brand_id' => $brand->id]);
+        $this->post('/seller/knowledge/incoming', [...$payload, 'id' => $this->evaluation($org->id, $brand->id)])->assertForbidden();
+    }
+
     private function evaluation(string $org, string $brand): string
     {
         $id = (string) Str::ulid();
