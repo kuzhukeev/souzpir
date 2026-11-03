@@ -336,7 +336,7 @@ function WorkspaceBody({ screen, brandId }: { screen: Screen; brandId: string })
                               {source(item.origin)}
                             </span>
                             {data.can_edit && (
-                              <details><summary className="cursor-pointer rounded-lg border border-(--color-border) px-3 py-2" aria-label="Действия с вопросом">⋯</summary><div className="mt-2 flex flex-wrap gap-2">
+                              <div className="flex flex-wrap gap-2">
                                 <button
                                   className={secondary}
                                   disabled={busy}
@@ -356,6 +356,7 @@ function WorkspaceBody({ screen, brandId }: { screen: Screen; brandId: string })
                                       ? 'Исключить'
                                       : 'В набор'}
                                 </button>
+                                <details><summary className="cursor-pointer rounded-lg border border-(--color-border) px-3 py-2" aria-label="Действия с вопросом">⋯</summary><div className="mt-2 flex flex-wrap gap-2">
                                 <button
                                   className={secondary}
                                   disabled={busy}
@@ -381,7 +382,7 @@ function WorkspaceBody({ screen, brandId }: { screen: Screen; brandId: string })
                                     Удалить
                                   </button>
                                 )}
-                              </div></details>
+                              </div></details></div>
                             )}
                           </li>
                         ))}

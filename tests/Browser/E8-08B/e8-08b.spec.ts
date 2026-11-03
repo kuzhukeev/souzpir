@@ -24,3 +24,14 @@ test('утверждение и история показывают данные
  await expect(page.getByText('Замеры: measurement-1')).toBeVisible();
  await page.screenshot({path:'.local/screenshots/e8-08b/history.png',fullPage:true});
 });
+
+test('пустой раздел и кнопка выбора остаются доступны', async ({ page }) => {
+ await page.route('**/vision/questions/data', route => route.fulfill({json:{...data,candidates:[]}}));
+ await page.goto(base+'?screen=index');
+ await expect(page.getByText('Пока нет вопросов в этом разделе.')).toBeVisible();
+});
+test('кнопка добавления в набор видима без открытия меню', async ({ page }) => {
+ await page.route('**/vision/questions/data', route => route.fulfill({json:{...data,candidates:[{...question,selected:false}]}}));
+ await page.goto(base+'?screen=index');
+ await expect(page.getByRole('button',{name:'В набор',exact:true})).toBeVisible();
+});

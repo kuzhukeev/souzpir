@@ -16,7 +16,7 @@ final class NotifyDuePromises extends Command
 
     public function handle(NotificationDispatcher $notifications): int
     {
-        $tasks = DB::table('seller_tasks')->whereIn('type', ['promise', 'reminder'])->where('status', 'new')->whereNotNull('due_at')->where('due_at', '<=', now())->orderBy('due_at')->get();
+        $tasks = DB::table('seller_tasks')->whereIn('type', ['promise', 'reminder'])->whereIn('status', ['new', 'in_progress'])->whereNotNull('due_at')->where('due_at', '<=', now())->orderBy('due_at')->get();
         foreach ($tasks as $task) {
             DB::transaction(function () use ($task, $notifications): void {
                 if (DB::table('seller_promise_notifications')->where('task_id', $task->id)->where('due_at', $task->due_at)->exists()) {
