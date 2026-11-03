@@ -58,7 +58,7 @@ final class ReportData
                 foreach ($auditRows as $auditRow) {
                     $audit = json_decode($auditRow->result, true);
                     if (is_array($audit) && is_string($audit['url'] ?? null) && rtrim($audit['url'], '/') === rtrim($site, '/') && is_array($audit['readiness'] ?? null) && is_numeric($audit['readiness']['lower'] ?? null) && is_numeric($audit['readiness']['upper'] ?? null)) {
-                        $siteAudit = ['readiness' => $audit['readiness'], 'date' => $auditRow->created_at];
+                        $siteAudit = ['readiness' => $audit['readiness'], 'date' => $auditRow->created_at, 'criteria' => SiteCriteria::project($audit['criteria'] ?? [])];
                         break;
                     }
                 }
