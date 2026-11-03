@@ -39,7 +39,7 @@ final class AnalyticsController
         $end = CarbonImmutable::parse($to, $timezone)->addDay()->startOfDay()->utc();
         $rows = DB::table('conversations as c')->leftJoin('channel_accounts as a', 'a.id', '=', 'c.channel_account_id')->leftJoin('users as u', 'u.id', '=', 'c.assigned_user_id')
             ->where('c.organization_id', $tenant->organizationId)->where('c.brand_id', $tenant->brandId)->where('c.created_at', '>=', $begin)->where('c.created_at', '<', $end)
-            ->get(['c.id', 'c.stage', 'c.client_type', 'c.outcome', 'c.state', 'c.assigned_user_id', 'c.handed_off_at', 'c.taken_at', 'c.created_at', 'a.type as channel', 'u.name as manager']);
+            ->get(['c.id', 'c.stage', 'c.client_type', 'c.outcome', 'c.state', 'c.assigned_user_id', 'c.handed_off_at', 'c.taken_at', 'c.created_at', 'c.updated_at', 'a.type as channel', 'u.name as manager']);
         $channelOptions = $rows->map(fn ($row) => $row->channel ?? 'unknown')->unique()->sort()->values()->all();
         $channel = $input['channel'] ?? '';
         $source = $input['source'] ?? '';
@@ -87,13 +87,40 @@ final class AnalyticsController
         }
         ksort($daily);
         $ids = $rows->pluck('id');
-        $messages = DB::table('messages')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->whereIn('conversation_id', $ids)->get(['meta']);
+        $messages = DB::table('messages')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->whereIn('conversation_id', $ids)->get(['meta', 'conversation_id', 'role', 'created_at']);
         $topics = [];
+        $triggers = [];
+        $messageCounts = $messages->groupBy('conversation_id')->map->count();
+        $dialogs = $rows->map(function ($row) use ($messageCounts): array {
+            $state = json_decode($row->state, true) ?: [];
+            $slots = $state['slots'] ?? [];
+
+            return ['id' => $row->id, 'stage' => $row->stage, 'channel' => $row->channel ?? 'unknown',
+                'messages' => $messageCounts[$row->id] ?? 0, 'has_contact' => ! empty($slots['email']) || ! empty($slots['messenger']),
+                'handed_off' => $row->handed_off_at !== null, 'last_activity' => $row->updated_at, 'created_at' => $row->created_at];
+        })->values()->all();
+        $hours = [];
+        foreach ($rows as $row) {
+            $date = CarbonImmutable::parse($row->created_at)->setTimezone($timezone);
+            $key = $date->dayOfWeekIso.':'.$date->format('H');
+            $hours[$key] = ($hours[$key] ?? 0) + 1;
+        }
+        $unknownQuestions = DB::table('seller_tasks')->where('organization_id', $tenant->organizationId)
+            ->where('brand_id', $tenant->brandId)->whereIn('conversation_id', $ids)->where('type', 'unknown_question')
+            ->get(['payload'])->map(function ($task) {
+                $payload = json_decode($task->payload, true) ?: [];
+
+                return is_string($payload['question'] ?? null) ? trim($payload['question']) : '';
+            })->filter()->countBy()->sortDesc()->all();
         foreach ($messages as $message) {
             $meta = json_decode($message->meta, true) ?: [];
-            $intent = $meta['intent'] ?? null;
+            $intent = data_get($meta, 'extraction.client_intent') ?? ($meta['intent'] ?? null);
             if (is_string($intent) && $intent !== '') {
                 $topics[$intent] = ($topics[$intent] ?? 0) + 1;
+            }
+            $trigger = data_get($meta, 'goal.trigger');
+            if (is_string($trigger) && $trigger !== '') {
+                $triggers[$trigger] = ($triggers[$trigger] ?? 0) + 1;
             }
         }
         arsort($topics);
@@ -104,6 +131,7 @@ final class AnalyticsController
 
         return ['from' => $from, 'to' => $to, 'channel' => $channel, 'source' => $source, 'channelOptions' => $channelOptions, 'sources' => ['unknown' => $total], 'transitions' => $transitions, 'total' => $total, 'contact' => $contact, 'handed' => $handed, 'closed' => $closed,
             'types' => $types, 'stages' => $stages, 'channels' => $channels, 'daily' => $daily, 'topics' => $topics,
+            'dialogs' => $dialogs, 'hours' => $hours, 'unknownQuestions' => $unknownQuestions, 'messageCount' => $messages->count(), 'triggers' => $triggers,
             'managers' => array_values($managers), 'canManage' => Gate::forUser($user)->allows('seller.settings.write')];
     }
 
