@@ -47,6 +47,7 @@ export default function Start({
               {message}
             </p>
           )}
+          {current?.status === 'draft' && <p className="mt-4 text-sm text-(--color-ink-muted)">Анкета: шаг {current.current_step} из 8</p>}
           <div className="mt-5 flex flex-wrap gap-3">
             {can_edit && !profile_id && (
               <Button
