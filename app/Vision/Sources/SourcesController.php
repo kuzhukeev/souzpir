@@ -34,9 +34,35 @@ final class SourcesController
         $data = $this->access($request, 'vision.report.read', function (User $user, TenantContext $tenant): array {
             $snapshot = app(SnapshotView::class)->current($tenant);
             $presence = DB::table('vision_source_presence')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->pluck('presence', 'domain')->all();
-            $sources = collect(data_get($snapshot, 'metrics.sources', []))->map(fn ($source) => ['domain' => $source['domain'], 'answers' => $source['answers'],
-                'type' => ReportPreparation::SOURCE_TYPES[$source['type'] ?? 'other'] ?? ReportPreparation::SOURCE_TYPES['other'],
-                'presence' => $presence[$source['domain']] ?? 'unknown'])->values()->all();
+            $questions = collect($snapshot['questions'] ?? [])->keyBy('id');
+            $sources = collect(data_get($snapshot, 'metrics.sources', []))->map(function ($source) use ($presence, $snapshot, $questions): array {
+                $examples = [];
+                $competitors = [];
+                foreach (data_get($snapshot, 'metrics.slots', []) as $slot) {
+                    if (! ($slot['valid'] ?? false)) {
+                        continue;
+                    }
+                    foreach ($slot['sources'] ?? [] as $item) {
+                        if (($item['domain'] ?? null) !== $source['domain']) {
+                            continue;
+                        }
+                        $url = $item['url'] ?? null;
+                        if (! is_string($url) || ! in_array(parse_url($url, PHP_URL_SCHEME), ['http', 'https'], true)) {
+                            $url = null;
+                        }
+                        foreach ($slot['mentions'] ?? [] as $mention) {
+                            if (! ($mention['is_brand'] ?? false) && is_string($mention['name'] ?? null)) {
+                                $competitors[] = $mention['name'];
+                            }
+                        }
+                        $examples[] = ['url' => $url, 'provider' => $slot['provider'] ?? '', 'question' => data_get($questions->get($slot['qid'] ?? ''), 'text', '')];
+                    }
+                }
+
+                return ['domain' => $source['domain'], 'answers' => $source['answers'],
+                    'type' => ReportPreparation::SOURCE_TYPES[$source['type'] ?? 'other'] ?? ReportPreparation::SOURCE_TYPES['other'],
+                    'presence' => $presence[$source['domain']] ?? 'unknown', 'competitors' => array_values(array_unique($competitors)), 'examples' => array_slice($examples, 0, 20)];
+            })->values()->all();
 
             return ['sources' => $sources, 'available' => $snapshot !== null, 'canEdit' => Gate::forUser($user)->allows('vision.actions.write')];
         });

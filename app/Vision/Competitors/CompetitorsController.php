@@ -36,9 +36,11 @@ final class CompetitorsController
     public function index(Request $request): mixed
     {
         $data = $this->access($request, 'vision.report.read', function (User $user, TenantContext $tenant): array {
+            $confirmed = $this->scope('snapshot_confirmations', $tenant)->pluck('measurement_id');
+            $history = $this->scope('vision_reports', $tenant)->whereIn('measurement_id', $confirmed)->orderByDesc('created_at')->limit(20)->get(['id', 'measurement_id', 'created_at'])->toArray();
             $snapshot = app(SnapshotView::class)->current($tenant);
             if (! $snapshot) {
-                return ['entities' => [], 'available' => false, 'canEdit' => Gate::forUser($user)->allows('vision.actions.write')];
+                return ['history' => $history, 'entities' => [], 'available' => false, 'canEdit' => Gate::forUser($user)->allows('vision.actions.write')];
             }
             $aliases = $this->scope('vision_competitor_aliases', $tenant)->pluck('canonical', 'alias')->all();
             $tracked = $this->scope('vision_competitor_tracking', $tenant)->pluck('name')->all();
@@ -66,7 +68,7 @@ final class CompetitorsController
                     'sources' => $matched->flatMap(fn ($slot) => array_column($slot['sources'] ?? [], 'domain'))->filter()->unique()->values()->all()];
             })->values()->all();
 
-            return ['entities' => $entities, 'available' => true, 'canEdit' => Gate::forUser($user)->allows('vision.actions.write')];
+            return ['history' => $history, 'entities' => $entities, 'available' => true, 'canEdit' => Gate::forUser($user)->allows('vision.actions.write')];
         });
 
         return Inertia::render('Vision/Competitors/Index', [...$data, 'status' => $request->session()->get('status')]);
