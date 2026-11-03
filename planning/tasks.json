@@ -5246,7 +5246,8 @@
         "SP-E8-15D",
         "SP-E7-04F",
         "SP-E8-16G",
-        "SP-E8-20D"
+        "SP-E8-20D",
+        "SP-E8-18C"
       ],
       "scope": [
         "README.md",
@@ -13909,6 +13910,38 @@
       "promptPath": "docs/tasks/SP-E8-20D.md",
       "wave": 18,
       "description": "# SP-E8-20D · Завершение компаний и источников\n\n**Зачем:** завершить экраны V-6.1, V-6.2, V-6.3, V-6.4, V-7.1, V-7.2, V-7.3 по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E8-20C из docs/results/SP-E8-20C.md.\n**Зависимости:** SP-E8-20C (дождаться merge).\n\nЗавершить вкладки анкеты, карточку компании и слияние дублей, численную heatmap и radar при наличии данных, меню источника и подтверждённые ссылки; отсутствующие метрики не выдумывать.\n\nСверить с docs/sources/02b_mockup_journal.md; проверить сценарии, права, изоляцию брендов и ошибки. Без живых или платных вызовов в тестах.\n\nScope: `app/Vision/Sources/`, `app/Vision/Competitors/`, `resources/js/pages/Vision/Sources/`, `resources/js/pages/Vision/Competitors/`, `tests/Feature/Vision/Sources/`, `tests/Browser/E8-20D/`, `docs/results/SP-E8-20D.md`.\n\nОтчёт: docs/results/SP-E8-20D.md; остаток указать по пунктам.\n"
+    },
+    {
+      "taskKey": "SP-E8-18C",
+      "title": "Завершение отчёта о конкурентах и фактах",
+      "goal": "Завершить диаграмму и колонку «Сильнее всего», работу с конкурентами и привязку рекомендаций и классификаций фактов по подтверждённым сохранённым данным; отсутствие источника показывать явно.",
+      "dependsOn": [
+        "SP-E8-18B"
+      ],
+      "scope": [
+        "app/Vision/Reports/",
+        "resources/js/pages/Vision/Reports/",
+        "tests/Browser/E8-18C/",
+        "docs/results/SP-E8-18C.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Пункты остатка реализованы по макету, проверены права, изоляция брендов и ошибки ввода; тесты без живых вызовов."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "V-5.2",
+        "V-5.3",
+        "V-5.4"
+      ],
+      "notes": "Продолжение частичной сдачи SP-E8-18B по решению владельца.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E8-18C.md",
+      "wave": 18,
+      "description": "# SP-E8-18C · Завершение отчёта о конкурентах и фактах\n\n**Зачем:** завершить V-5.2, V-5.3 и V-5.4 по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E8-18B из docs/results/SP-E8-18B.md.\n**Зависимости:** SP-E8-18B (дождаться merge).\n\nЗавершить диаграмму и колонку «Сильнее всего», работу с конкурентами и привязку рекомендаций и классификаций фактов по подтверждённым сохранённым данным; отсутствие источника показывать явно. Сверить пункты с docs/sources/02b_mockup_journal.md; проверить сценарии, права, изоляцию брендов и ошибки. Без живых или платных вызовов.\n\nScope: `app/Vision/Reports/`, `resources/js/pages/Vision/Reports/`, `tests/Browser/E8-18C/`, `docs/results/SP-E8-18C.md`.\n\nОтчёт: docs/results/SP-E8-18C.md; остаток указать по пунктам.\n"
     }
   ],
   "excludedSourceTasks": {
