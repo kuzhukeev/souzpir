@@ -96,6 +96,9 @@ export default function Status({ status }: { status: StatusData }) {
       >
         <div className="mb-5 space-y-3">
           <ErrorSummary failure={failure} />
+          {failure.message && <p role="status" className="text-sm text-(--color-danger-ink)">ERR_LOAD</p>}
+          <p className="inline-flex rounded-full bg-(--color-warning-soft) px-3 py-1.5 text-sm text-(--color-warning-ink)">Демонстрационные данные</p>
+          <p className="text-sm text-(--color-ink-muted)">Кабинет и база данных проверяются напрямую; состояние провайдеров основано на данных cooldown. Остальной мониторинг пока недоступен.</p>
           <p className="text-sm text-(--color-ink-muted)">
             {c.checked}: <DateValue value={status.checked_at} />
           </p>
@@ -126,6 +129,7 @@ export default function Status({ status }: { status: StatusData }) {
                         </span>
                         <div className="min-w-0">
                           <h2 className="mb-3 break-words text-lg font-bold">{component.name}</h2>
+                          <p className="mb-2 text-sm text-(--color-ink-muted)">{component.source === 'app_response' || component.source === 'database_probe' ? 'Реальная проверка' : 'Мониторинг недоступен'}</p>
                           <StatusBadge state={component.status} />
                         </div>
                       </div>
@@ -147,6 +151,7 @@ export default function Status({ status }: { status: StatusData }) {
                   <Bot size={25} className="text-(--color-link)" />
                   {c.providers}
                 </h2>
+                {status.providers.available && <p className="mt-2 text-sm text-(--color-ink-muted)">Реальные данные cooldown</p>}
                 <p className="mt-3 text-sm leading-6 text-(--color-ink-muted)">
                   {status.providers.message}
                 </p>
