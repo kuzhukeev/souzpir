@@ -1,0 +1,11 @@
+import { createInertiaApp } from '@inertiajs/react';
+import { createRoot } from 'react-dom/client';
+import Index from '../../../resources/js/pages/Seller/Catalog/Index';
+import Stock from '../../../resources/js/pages/Seller/Catalog/Stock';
+import '../../../resources/css/app.css';
+import '../../../resources/css/themes/tokens.css';
+const isStock=location.search.includes('stock');
+const item={id:'1',sku:'S-1',name:'Товар',category:'Категория',price:'150',wholesale_price:'100',stock:'4',updated_at:'2026-11-01T12:00:00Z'};
+const page={component:'Fixture',props:{items:[item],imports:[],settings:{low_stock:'5',price_file_name:null},status:null,yml:null,theme:'neutral',brand:{id:'b',name:'Пример бренда',theme:'neutral'},brands:[],organization:{id:'o',name:'Компания'},auth:{user:{id:'u',name:'Иван Петров',email:'ivan@example.test'}},modules:{seller:true,vision:false},can:{},unread:null,translations:{},ziggy:{routes:{}},errors:{}},url:location.pathname+location.search,version:null,clearHistory:false,encryptHistory:false};
+const script=document.createElement('script');script.type='application/json';script.dataset.page='app';script.textContent=JSON.stringify(page);document.body.appendChild(script);
+void createInertiaApp({resolve:()=>isStock?Stock:Index,setup:({el,App,props})=>createRoot(el).render(<App {...props}/>)});
