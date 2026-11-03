@@ -6,6 +6,7 @@ use App\Contracts\ProtectedOperations\IdempotencyConflict;
 use App\Models\Membership;
 use App\Models\User;
 use App\ProtectedOperations\FirstTurnCoordinator;
+use App\ProtectedOperations\SellerFollowup\FollowupCoordinator;
 use App\Seller\Conversations\CanonicalJson;
 use App\Seller\Conversations\Contracts\ConversationRepository;
 use App\Seller\Conversations\Data\TurnCommand;
@@ -23,7 +24,7 @@ use Illuminate\Support\Str;
 use SensitiveParameter;
 use Throwable;
 
-/** First inbound fake-only runtime; subsequent turns and delivery remain separate. */
+/** Routes fake inbound turns by conversation mode and expected revision. */
 final class FirstInboundRuntime
 {
     public function turn(#[SensitiveParameter] Request $http, #[SensitiveParameter] TurnCommand $command): array
@@ -62,16 +63,16 @@ final class FirstInboundRuntime
                     return ['mode' => 'manager', 'result' => $this->suppressManagerTurn($tenant, $command)];
                 }
 
-                return ['mode' => $conversation->mode];
+                return ['mode' => $conversation->mode, 'version' => (int) $conversation->version];
             });
             if ($dispatch['mode'] === 'manager') {
                 return $dispatch['result'];
             }
-            if ($dispatch['mode'] !== 'bot') {
-                return ['status' => 'unavailable'];
+            if ($dispatch['mode'] === 'bot' && $dispatch['version'] === 0) {
+                return app(FirstTurnCoordinator::class)->run($http, $command);
             }
 
-            return app(FirstTurnCoordinator::class)->run($http, $command);
+            return app(FollowupCoordinator::class)->run($http, $command, $dispatch['mode']);
         } catch (IdempotencyConflict) {
             throw new IdempotencyConflict('Idempotency key was used with different content.');
         } catch (Throwable) {
