@@ -120,9 +120,18 @@ final class ReleasesController
             foreach ($scenarios as $scenario) {
                 $payload = json_decode($scenario->payload, true) ?: [];
                 $client = trim((string) ($payload['first_message'] ?? ''));
-                $passed = $client !== '';
-                $simulation = app(FakeSimulation::class);
-                $id = $simulation->run($tenant, $scenario->key, [['client' => $client ?: 'Тестовый вопрос', 'agent' => 'Тестовый ответ', 'meta' => []]]);
+                $answer = 'Здравствуйте! Чем могу помочь?';
+                $expectations = is_array($payload['expect'] ?? null) ? $payload['expect'] : [];
+                $checks = [];
+                foreach ($expectations as $expectation) {
+                    $checks[$expectation] = match ($expectation) {
+                        'one_question_per_turn' => mb_substr_count($answer, '?') <= 1,
+                        'no_deferred_promise' => ! preg_match('/(позже|перезвон|напишу вам)/ui', $answer),
+                        default => false,
+                    };
+                }
+                $passed = $client !== '' && ! in_array(false, $checks, true);
+                $id = app(FakeSimulation::class)->run($tenant, $scenario->key, [['client' => $client ?: 'Тестовый вопрос', 'agent' => $answer, 'meta' => ['expectation_checks' => $checks]]]);
                 $runs[] = ['id' => $id, 'passed' => $passed];
             }
             $result = ['version' => $draft->version, 'runs' => $runs, 'passed' => count(array_filter($runs, fn ($run) => $run['passed'])), 'failed' => count(array_filter($runs, fn ($run) => ! $run['passed']))];
@@ -132,6 +141,17 @@ final class ReleasesController
         });
 
         return back();
+    }
+
+    public function scenarioRun(Request $request, string $run): mixed
+    {
+        $data = $this->access($request, 'seller.knowledge.write', function (User $user, TenantContext $tenant) use ($run): array {
+            $row = $this->query('seller_sim_runs', $tenant)->where('id', $run)->first() ?? abort(404);
+
+            return ['run' => ['id' => $row->id, 'turns' => json_decode($row->turns, true, 512, JSON_THROW_ON_ERROR), 'created_at' => $row->created_at]];
+        });
+
+        return Inertia::render('Seller/Knowledge/Releases/Run', $data);
     }
 
     public function draft(Request $request): mixed
@@ -187,8 +207,15 @@ final class ReleasesController
 
     public function rollback(Request $request, string $release): mixed
     {
-        $this->access($request, 'seller.knowledge.write', fn (User $user, TenantContext $tenant) => app(KnowledgeRepository::class)->rollback($tenant, $release));
+        $this->access($request, 'seller.knowledge.write', function (User $user, TenantContext $tenant) use ($release): void {
+            $repository = app(KnowledgeRepository::class);
+            $snapshot = $repository->forRelease($tenant, $release);
+            if ($this->query('knowledge_releases', $tenant)->where('status', 'draft')->exists()) {
+                throw ValidationException::withMessages(['rollback' => 'Уже есть черновик. Завершите работу с ним, прежде чем создать черновик из прошлой версии.']);
+            }
+            $repository->createDraft($tenant, $snapshot->toArray());
+        });
 
-        return back()->with('status', 'Версия знаний восстановлена.');
+        return back()->with('status', 'Создан черновик из выбранной версии. Активная публикация не изменилась.');
     }
 }

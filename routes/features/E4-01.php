@@ -8,6 +8,7 @@ return ['web' => static function (): void {
     Route::middleware(['auth.version', 'auth.nostore'])->group(static function (): void {
         Route::get('/seller/knowledge', [ReleasesController::class, 'index'])->name('seller.knowledge.index');
         Route::get('/seller/knowledge/releases/compare', [ReleasesController::class, 'compare'])->name('seller.knowledge.compare');
+        Route::get('/seller/knowledge/runs/{run}', [ReleasesController::class, 'scenarioRun'])->whereUlid('run')->name('seller.knowledge.scenario-run');
         Route::post('/seller/knowledge/draft', [ReleasesController::class, 'draft'])->name('seller.knowledge.draft');
         Route::post('/seller/knowledge/incoming', [IncomingController::class, 'handle'])->name('seller.knowledge.incoming');
         Route::post('/seller/knowledge/{release}/scenarios', [ReleasesController::class, 'runScenarios'])->whereUlid('release')->name('seller.knowledge.scenarios');
