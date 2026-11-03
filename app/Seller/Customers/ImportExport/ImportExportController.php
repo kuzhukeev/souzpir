@@ -126,6 +126,17 @@ final class ImportExportController
         return Inertia::render('Seller/Customers/ImportExport/Index', [...$data, 'status' => $request->session()->get('status')]);
     }
 
+    public function template(Request $request): mixed
+    {
+        $this->access($request, 'seller.settings.write', fn () => null);
+
+        return response("\xEF\xBB\xBFИмя;Телефон;Почта;Город\r\n", 200, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="customers-template.csv"',
+            'Cache-Control' => 'private, no-store',
+        ]);
+    }
+
     public function preview(Request $request): mixed
     {
         $input = $request->validate(['file' => ['required', 'file', 'max:2048', 'extensions:csv']]);

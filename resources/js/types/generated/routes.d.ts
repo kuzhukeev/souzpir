@@ -498,6 +498,7 @@ declare module 'ziggy-js' {
     "seller.customers.merge.distinct": [],
     "seller.customers.merge.store": [],
     "seller.customers.io": [],
+    "seller.customers.io.template": [],
     "seller.customers.io.preview": [],
     "seller.customers.io.import": [],
     "seller.persona.index": [],
