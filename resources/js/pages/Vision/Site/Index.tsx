@@ -1,7 +1,7 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { AuditForm, BotAccess, Criteria, Pages } from '@/features/Vision/Site/AuditDetails';
 import { Actions } from '@/features/Vision/Site/Actions';
-import { type ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import CabinetLayout from '@/layouts/CabinetLayout';
 import type { Audit, Criterion, Props } from '@/types/Vision/Site';
 
@@ -20,7 +20,13 @@ const sections = [
 function Empty({ children }: { children: ReactNode }) {
   return <div className={`${card} text-(--color-ink-muted)`}>{children}</div>;
 }
-export function Score({ audit }: { audit: Audit }) {
+function exactScore(audit: Audit | null | undefined): number | null {
+  const raw = audit?.readiness;
+  if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
+  if (raw && typeof raw === 'object' && 'lower' in raw && 'upper' in raw && typeof raw.lower === 'number' && raw.lower === raw.upper) return raw.lower;
+  return null;
+}
+export function Score({ audit, auditDate, previousAudit }: { audit: Audit; auditDate?: string | null; previousAudit?: Audit | null }) {
   const raw = audit.readiness;
   const bounds =
     raw &&
@@ -41,10 +47,16 @@ export function Score({ audit }: { audit: Audit }) {
         : '—';
   const coverage =
     bounds && 'coverage' in bounds && typeof bounds.coverage === 'number' ? bounds.coverage : null;
+  const value = exactScore(audit);
+  const previous = exactScore(previousAudit);
+  const sameSite = previousAudit?.url && previousAudit.url === audit.url;
+  const delta = value !== null && previous !== null && sameSite ? Math.round((value - previous) * 100) / 100 : null;
+  const progress = value === null ? 0 : Math.max(0, Math.min(100, value));
   return (
     <div className={card}>
       <div className="flex flex-wrap items-center gap-6">
-        <div className="grid size-36 place-items-center rounded-full border-[12px] border-(--color-border)">
+        <div className="relative grid size-36 place-items-center rounded-full">
+          <svg aria-hidden="true" viewBox="0 0 100 100" className="absolute inset-0 size-full -rotate-90"><circle cx="50" cy="50" r="44" fill="none" stroke="var(--color-border)" strokeWidth="8"/><circle cx="50" cy="50" r="44" fill="none" stroke="var(--color-action)" strokeWidth="8" pathLength="100" strokeDasharray={`${progress} 100`}/></svg>
           <span className="text-center">
             <strong className="block text-3xl">{score}</strong>
             <span className="text-sm text-(--color-ink-muted)">из 100</span>
@@ -52,6 +64,8 @@ export function Score({ audit }: { audit: Audit }) {
         </div>
         <div>
           <h2 className="text-xl font-semibold">Готовность к ИИ-поиску</h2>
+          {auditDate && <p className="mt-2 text-sm text-(--color-ink-muted)">Дата проверки: {new Intl.DateTimeFormat('ru-RU', {dateStyle:'medium'}).format(new Date(auditDate))}</p>}
+          <p className="mt-2 text-sm text-(--color-ink-muted)">{delta === null ? 'Изменение пока недоступно' : `Изменение: ${delta > 0 ? '+' : ''}${delta} п.п.`}</p>
           <p className="mt-2 break-all text-(--color-ink-muted)">{audit.final_url || audit.url}</p>
           {coverage !== null && (
             <p className="mt-2 text-sm text-(--color-ink-muted)">
@@ -108,6 +122,18 @@ export function Groups({ criteria }: { criteria: Criterion[] }) {
     </section>
   );
 }
+export function AuditProgress({progress}: {progress?: {stage:string} | null}) {
+  const stage = progress?.stage;
+  useEffect(() => {
+    if (!['queued','inspecting','saving'].includes(stage ?? '')) return;
+    const timer = window.setInterval(() => router.reload({only:['auditProgress','audit','auditDate','previousAudit']}), 2000);
+    return () => window.clearInterval(timer);
+  }, [stage]);
+  if (!stage) return null;
+  const phases = [{key:'queued',label:'Ожидание'}, {key:'inspecting',label:'Проверка страниц и ботов'}, {key:'saving',label:'Сохранение результатов'}];
+  const active = stage === 'complete' ? phases.length : phases.findIndex(item => item.key === stage);
+  return <section className={card} aria-live="polite"><h2 className="text-lg font-semibold">Проверка сайта</h2><p className="mt-2 text-sm">{({queued:'Ожидает очереди',inspecting:'Проверяем страницы и доступ ботов',saving:'Сохраняем результаты',complete:'Проверка завершена',failed:'Не удалось проверить сайт. Повторите попытку.'} as Record<string,string>)[stage] ?? 'Состояние недоступно'}</p>{active >= 0 && <><progress className="mt-3 w-full accent-(--color-action)" aria-label="Проверка сайта" max={phases.length} value={active} /><ol className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm">{phases.map((phase,index)=><li key={phase.key}>{phase.label} · {index < active ? 'готово' : index === active ? 'выполняется' : 'ожидает'}</li>)}</ol></>}</section>;
+}
 export default function Index({
   section,
   audit,
@@ -117,7 +143,10 @@ export default function Index({
   comparison = null,
   canManage,
   members = [],
-}: Props) {
+  auditDate = null,
+  previousAudit = null,
+  auditProgress = null,
+}: Props & { auditDate?: string | null; previousAudit?: Audit | null; auditProgress?: {stage:string} | null }) {
   const titles: Record<Props['section'], string> = {
     overview: 'Готовность сайта к ИИ-поиску',
     criteria: 'Критерии и как исправить',
@@ -162,13 +191,14 @@ export default function Index({
           <div className="space-y-4">
             {audit ? (
               <>
-                <Score audit={audit} />
+                <Score audit={audit} auditDate={auditDate} previousAudit={previousAudit} />
                 <Groups criteria={audit.criteria || []} />
               </>
             ) : (
               <Empty>Проверок сайта пока нет.</Empty>
             )}
             {canManage && <AuditForm />}
+            <AuditProgress progress={auditProgress} />
             {audit?.issues?.length ? (
               <section className={card}>
                 <h2 className="text-lg font-semibold">Замечания</h2>
