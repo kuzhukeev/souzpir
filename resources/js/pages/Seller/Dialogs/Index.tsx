@@ -5,14 +5,14 @@ import CabinetLayout from '@/layouts/CabinetLayout';
 type Item = { id: string; name: string; mode: string; stage: string; outcome: string | null; channel: string; last_message: string | null; updated_at: string; assigned_user_id: string | null };
 type Message = { id: string; role: string; text: string; created_at: string; meta: Record<string, string | null> };
 type Detail = Item & { summary: string | null; email: string | null; phone: string | null; slots: { key: string; label: string; value: string | null }[]; messages: Message[]; tasks: { id: string; type: string; status: string; due_at: string | null }[] };
-type Props = { dialogs: Item[]; dialog: Detail | null; filters: { mode: string; search: string } };
+type Props = { dialogs: Item[]; dialog: Detail | null; mineCounts?: { waiting: number; active: number; closed_today: number }; filters: { mode: string; search: string; sort?: string } };
 
 const modeNames: Record<string, string> = { all: 'Все', mine: 'Мои диалоги', bot: 'У бота', suggest: 'Подсказки', manager: 'У менеджера', paused: 'Приостановлены' };
 const roleNames: Record<string, string> = { client: 'Клиент', agent: 'Бот', manager: 'Менеджер', system: 'Событие' };
 const metaNames: Record<string, string> = { intent: 'Тема', goal: 'Цель', tools: 'Действия', guard: 'Guard', model: 'Модель' };
 const date = (value: string) => new Date(value).toLocaleString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 
-export default function Index({ dialogs, dialog, filters }: Props) {
+export default function Index({ dialogs, dialog, mineCounts = { waiting: 0, active: 0, closed_today: 0 }, filters }: Props) {
   const { can, brand } = usePage<{ can: Record<string, boolean>; brand: { id: string } | null }>().props;
   const [search, setSearch] = useState(filters.search);
   const [pending, setPending] = useState(false);
@@ -35,7 +35,7 @@ export default function Index({ dialogs, dialog, filters }: Props) {
   }
   useEffect(() => {
     const timer = window.setInterval(() => {
-      if (document.visibilityState === 'visible') router.reload({ only: ['dialogs', 'dialog'] });
+      if (document.visibilityState === 'visible') router.reload({ only: ['dialogs', 'dialog', 'mineCounts'] });
     }, 15000);
     return () => window.clearInterval(timer);
   }, []);
@@ -50,16 +50,16 @@ export default function Index({ dialogs, dialog, filters }: Props) {
       onFinish: () => setPending(false),
     });
   };
-  const filter = (mode: string, query = search) => {
+  const filter = (mode: string, query = search, sort = filters.sort) => {
     setPending(true);
     setError('');
-    router.get('/seller/dialogs', { mode, search: query }, { preserveState: true, onError: () => setError('Не удалось загрузить диалоги.'), onFinish: () => setPending(false) });
+    router.get('/seller/dialogs', { mode, search: query, ...(sort ? { sort } : {}) }, { preserveState: true, onError: () => setError('Не удалось загрузить диалоги.'), onFinish: () => setPending(false) });
   };
   const open = (id: string) => {
     setPending(true);
     setError('');
     setCardOpen(false);
-    router.get(`/seller/dialogs/${id}`, { mode: filters.mode, search: filters.search }, { preserveState: true, onError: () => setError('Не удалось открыть диалог.'), onFinish: () => setPending(false) });
+    router.get(`/seller/dialogs/${id}`, { mode: filters.mode, search: filters.search, ...(filters.sort ? { sort: filters.sort } : {}) }, { preserveState: true, onError: () => setError('Не удалось открыть диалог.'), onFinish: () => setPending(false) });
   };
   const changeMode = (action: 'take' | 'return') => {
     if (!dialog) return;
@@ -72,6 +72,7 @@ export default function Index({ dialogs, dialog, filters }: Props) {
     <Head title="Диалоги" />
     <div className="mb-6"><h1 className="text-3xl font-bold">Диалоги</h1><p className="mt-2 text-sm text-(--color-ink-muted)">Сохранённые разговоры с клиентами по текущему бренду</p></div>
     {error && <div role="alert" className="mb-4 rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-800 dark:bg-red-950 dark:text-red-200">{error}</div>}
+    {filters.mode === 'mine' && <div className="mb-4 grid gap-3 sm:grid-cols-3" aria-label="Счётчики моих диалогов"><div className="rounded-xl border border-(--color-border) bg-(--color-surface) p-4 text-sm">Ждут ответа <strong>{mineCounts.waiting}</strong></div><div className="rounded-xl border border-(--color-border) bg-(--color-surface) p-4 text-sm">В работе <strong>{mineCounts.active}</strong></div><div className="rounded-xl border border-(--color-border) bg-(--color-surface) p-4 text-sm">Закрыты сегодня <strong>{mineCounts.closed_today}</strong></div></div>}
     <div className="grid min-w-0 gap-4 lg:grid-cols-[320px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(0,1fr)_300px]">
       <section aria-label="Список диалогов" className={`${dialog ? 'hidden lg:block' : 'block'} min-w-0 rounded-2xl border border-(--color-border) bg-(--color-surface) shadow-(--shadow-card)`}>
         <div className="border-b border-(--color-border) p-4">
@@ -80,6 +81,7 @@ export default function Index({ dialogs, dialog, filters }: Props) {
             <input id="dialog-search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Имя клиента" className="min-w-0 flex-1 rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm" />
             <button type="submit" disabled={pending} className="cursor-pointer rounded-lg bg-(--color-action) px-3 py-2 text-sm text-white disabled:opacity-50">Найти</button>
           </form>
+          {filters.mode === 'mine' && <label className="mt-3 block text-sm">Сортировка<select aria-label="Сортировка" value={filters.sort ?? 'newest'} onChange={(event) => filter(filters.mode, search, event.target.value)} className="mt-1 block w-full cursor-pointer rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2"><option value="newest">Сначала новые</option><option value="oldest">Сначала старые</option></select></label>}
           <div className="mt-3 flex flex-wrap gap-2" aria-label="Фильтр по режиму">{Object.entries(modeNames).map(([mode, label]) => <button key={mode} type="button" disabled={pending} onClick={() => filter(mode)} aria-pressed={filters.mode === mode} className={`cursor-pointer rounded-full border px-3 py-1 text-sm disabled:opacity-50 ${filters.mode === mode ? 'border-(--color-action) bg-(--color-action) text-white' : 'border-(--color-border)'}`}>{label}</button>)}</div>
         </div>
         {pending && <p role="status" className="px-4 pt-3 text-sm text-(--color-ink-muted)">Загрузка диалогов…</p>}
@@ -110,7 +112,7 @@ export default function Index({ dialogs, dialog, filters }: Props) {
             </form>}
             {message.role === 'agent' && Object.values(message.meta).some(Boolean) && <details className="mt-2 cursor-pointer text-xs"><summary>Подробности хода</summary><dl className="mt-2 space-y-1">{Object.entries(message.meta).filter(([, value]) => value).map(([key, value]) => <div key={key}><dt className="inline font-semibold">{metaNames[key] || key}: </dt><dd className="inline">{value}</dd></div>)}</dl></details>}
           </li>)}</ol>
-          <div className="border-t border-(--color-border) p-4 text-sm text-(--color-ink-muted)">Ответ менеджера и подсказки появятся после подключения отправки в SP-E3-03B.</div>
+          <div className="border-t border-(--color-border) p-4 text-sm text-(--color-ink-muted)">Отправка сообщений из кабинета пока недоступна.</div>
         </>}
       </section>
 

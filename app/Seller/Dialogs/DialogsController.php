@@ -25,16 +25,17 @@ final class DialogsController
         $input = $request->validate([
             'mode' => ['sometimes', 'string', Rule::in(['all', 'mine', 'bot', 'suggest', 'manager', 'paused'])],
             'search' => ['sometimes', 'string', 'max:100'],
+            'sort' => ['sometimes', Rule::in(['newest', 'oldest'])],
         ]);
         $data = app(ProfileAccess::class)->run($request, function (User $actor, TenantContext $context, $brand, Membership $member) use ($reader, $dialog, $input): array {
             Gate::forUser($actor)->authorize('seller.dialogs.read');
             abort_unless(app(SellerModuleAccess::class)->enabled($context->organizationId, $context->brandId), 404);
             $manager = $member->role === 'member' && ($member->settings['sales_manager'] ?? false);
 
-            return $reader->read($context, $actor->id, $manager, ! $manager && $member->role !== 'viewer', $dialog, $input['mode'] ?? 'all', trim($input['search'] ?? ''));
+            return $reader->read($context, $actor->id, $manager, ! $manager && $member->role !== 'viewer', $dialog, $input['mode'] ?? 'all', trim($input['search'] ?? ''), $input['sort'] ?? 'newest');
         });
 
-        return Inertia::render('Seller/Dialogs/Index', $data + ['filters' => ['mode' => $input['mode'] ?? 'all', 'search' => $input['search'] ?? '']]);
+        return Inertia::render('Seller/Dialogs/Index', $data + ['filters' => ['mode' => $input['mode'] ?? 'all', 'search' => $input['search'] ?? '', 'sort' => $input['sort'] ?? 'newest']]);
     }
 
     public function mode(Request $request, string $dialog): RedirectResponse

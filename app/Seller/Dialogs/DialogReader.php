@@ -3,6 +3,7 @@
 namespace App\Seller\Dialogs;
 
 use App\Tenancy\TenantContext;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 final class DialogReader
@@ -16,7 +17,7 @@ final class DialogReader
         'next_contact_at' => 'Когда связаться',
     ];
 
-    public function read(TenantContext $context, string $actorId, bool $manager, bool $showMeta, ?string $selected, string $mode, string $search): array
+    public function read(TenantContext $context, string $actorId, bool $manager, bool $showMeta, ?string $selected, string $mode, string $search, string $sort): array
     {
         $base = DB::table('conversations as c')->leftJoin('contacts as contact', function ($join): void {
             $join->on('contact.id', '=', 'c.contact_id')->on('contact.brand_id', '=', 'c.brand_id')
@@ -29,8 +30,22 @@ final class DialogReader
             $base->where(fn ($query) => $query->where('c.assigned_user_id', $actorId)
                 ->orWhere(fn ($waiting) => $waiting->where('c.mode', 'manager')->whereNull('c.assigned_user_id')));
         }
+        $mine = (clone $base)->where(fn ($query) => $query->where('c.assigned_user_id', $actorId)
+            ->orWhere(fn ($waiting) => $waiting->where('c.mode', 'manager')->whereNull('c.assigned_user_id')));
+        $counterRows = $mine->select(['c.stage', 'c.updated_at'])->selectSub(
+            DB::table('messages as m')->select('m.role')->whereColumn('m.conversation_id', 'c.id')
+                ->whereColumn('m.organization_id', 'c.organization_id')->whereColumn('m.brand_id', 'c.brand_id')
+                ->orderByDesc('m.created_at')->orderByDesc('m.id')->limit(1), 'last_role'
+        )->get();
+        $closed = ['done', 'lost', 'spam'];
+        $counts = [
+            'waiting' => $counterRows->filter(fn ($row) => ! in_array($row->stage, $closed, true) && $row->last_role === 'client')->count(),
+            'active' => $counterRows->filter(fn ($row) => ! in_array($row->stage, $closed, true))->count(),
+            'closed_today' => $counterRows->filter(fn ($row) => in_array($row->stage, $closed, true) && Carbon::parse($row->updated_at)->isToday())->count(),
+        ];
         if ($mode === 'mine') {
-            $base->where('c.assigned_user_id', $actorId);
+            $base->where(fn ($query) => $query->where('c.assigned_user_id', $actorId)
+                ->orWhere(fn ($waiting) => $waiting->where('c.mode', 'manager')->whereNull('c.assigned_user_id')));
         } elseif ($mode !== 'all') {
             $base->where('c.mode', $mode);
         }
@@ -41,7 +56,7 @@ final class DialogReader
         $columns = ['c.id', 'c.mode', 'c.stage', 'c.outcome', 'c.assigned_user_id', 'c.created_at', 'c.updated_at',
             'c.last_client_message_at', 'c.summary', 'c.state', 'contact.name as contact_name',
             'contact.email as contact_email', 'contact.phone as contact_phone', 'channel.type as channel_type'];
-        $rows = $base->orderByDesc('c.updated_at')->orderByDesc('c.id')->limit(50)->get($columns);
+        $rows = $base->orderBy('c.updated_at', $sort === 'oldest' ? 'asc' : 'desc')->orderByDesc('c.id')->limit(50)->get($columns);
         $messages = DB::table('messages')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)
             ->whereIn('conversation_id', $rows->pluck('id')->all())->orderByDesc('created_at')->orderByDesc('id')
             ->get(['id', 'conversation_id', 'role', 'text', 'meta', 'created_at'])->groupBy('conversation_id');
@@ -86,7 +101,7 @@ final class DialogReader
             ];
         }
 
-        return ['dialogs' => $list, 'dialog' => $detail];
+        return ['dialogs' => $list, 'dialog' => $detail, 'mineCounts' => $counts];
     }
 
     private function slot(mixed $value): ?string
