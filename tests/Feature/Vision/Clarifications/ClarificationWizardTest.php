@@ -92,6 +92,22 @@ final class ClarificationWizardTest extends TenancyTestCase
         Http::assertNothingSent();
     }
 
+    public function test_index_shows_only_confirmed_measurements_of_current_brand(): void
+    {
+        [$owner, $org, $brand, $other] = $this->cabinet();
+        $own = $this->measurement($org, $brand);
+        $foreign = $this->measurement($org, $other);
+        $this->confirm($owner, $brand, $own);
+        DB::table('snapshot_confirmations')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $other->id, 'measurement_id' => $foreign, 'confirmed_by' => $owner->id, 'created_at' => now(), 'updated_at' => now()]);
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $this->get('/vision/clarifications')->assertOk()->assertInertia(fn ($page) => $page
+            ->component('Vision/Clarifications/Index')->has('measurements', 1)->where('measurements.0.measurement_id', $own));
+        [$viewer] = $this->member($org, 'viewer', [$brand->id]);
+        $this->actingAs($viewer)->withSession(['brand_id' => $brand->id]);
+        $this->get('/vision/clarifications')->assertOk()->assertInertia(fn ($page) => $page->has('measurements', 1));
+        Http::assertNothingSent();
+    }
+
     public function test_member_without_write_right_cannot_change_decision(): void
     {
         [$owner, $org, $brand] = $this->cabinet();

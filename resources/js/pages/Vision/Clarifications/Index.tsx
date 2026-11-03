@@ -1,0 +1,6 @@
+import { Head, Link } from '@inertiajs/react';
+import CabinetLayout from '@/layouts/CabinetLayout';
+type Measurement = { measurement_id: string; created_at: string };
+export default function Index({ measurements }: { measurements: Measurement[] }) {
+  return <CabinetLayout breadcrumbs={[{label:'Видение',href:'/vision'},{label:'Уточнения'}]}><Head title="Уточнения"/><main className="mx-auto max-w-[1100px]" data-private-profile><h1 className="text-3xl font-bold">Уточнения</h1><p className="mt-2 text-sm text-(--color-ink-muted)">Выберите подтверждённый замер текущего бренда.</p>{measurements.length ? <ul className="mt-5 space-y-3">{measurements.map(item=><li key={item.measurement_id} className="rounded-xl border border-(--color-border) bg-(--color-surface) p-4"><Link className="inline-flex min-h-11 cursor-pointer items-center font-semibold text-(--color-link)" href={`/vision/runs/${item.measurement_id}/clarify/mentions`}>Уточнить замер от {new Date(item.created_at).toLocaleString('ru-RU')}</Link></li>)}</ul> : <p className="mt-5 rounded-xl bg-(--color-surface-muted) p-5 text-sm">Подтверждённых замеров пока нет. <Link className="cursor-pointer text-(--color-link)" href="/vision/runs">Перейти к замерам</Link>.</p>}</main></CabinetLayout>;
+}

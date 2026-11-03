@@ -216,7 +216,7 @@ export default function Index({ measurementBrandRevision, status }: { measuremen
       <div className="mx-auto max-w-[1500px]">
         <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold">Замеры</h1>
+            <h1 className="text-3xl font-bold">Замеры</h1><a href="/vision/clarifications" className="mt-2 inline-flex min-h-11 cursor-pointer items-center text-sm font-semibold text-(--color-link)">Уточнения</a>
             <p className="mt-2 text-base text-(--color-ink-muted)">
               История проверок видимости бренда
             </p>

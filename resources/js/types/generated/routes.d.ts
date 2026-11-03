@@ -738,6 +738,7 @@ declare module 'ziggy-js' {
     "vision.settings.recipients": [],
     "vision.settings.notifications": [],
     "vision.trends.index": [],
+    "vision.clarifications.index": [],
     "vision.clarifications.show": [
         {
             "name": "measurement",
