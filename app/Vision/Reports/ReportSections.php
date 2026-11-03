@@ -57,7 +57,11 @@ final class ReportSections
                 ->filter(fn ($item) => is_array($item) && ($item['question_id'] ?? $item['qid'] ?? null) === $id)
                 ->map(fn ($item) => ['title' => $item['title'] ?? '', 'why' => is_string($item['why'] ?? null) ? $item['why'] : ''])
                 ->filter(fn ($item) => is_string($item['title']) && $item['title'] !== '')->values()->all();
-            $gaps[] = ['text' => $question['text'], 'intent' => $question['intent'], 'recommendations' => $recommendations];
+            $companies = collect($metrics['slots'] ?? [])->filter(fn ($slot) => ($slot['valid'] ?? false) && ($slot['qid'] ?? null) === $id)
+                ->flatMap(fn ($slot) => $slot['mentions'] ?? [])->filter(fn ($mention) => is_array($mention) && ! ($mention['is_brand'] ?? false)
+                    && ! ($mention['ambiguous_brand'] ?? false) && ($mention['relevance'] ?? 'confirmed') !== 'candidate' && is_string($mention['name'] ?? null))
+                ->pluck('name')->unique()->values()->all();
+            $gaps[] = ['text' => $question['text'], 'intent' => $question['intent'], 'recommendations' => $recommendations, 'companies' => $companies];
         }
 
         return [
@@ -77,7 +81,16 @@ final class ReportSections
                     return false;
                 });
 
-                return ['name' => $item['name'], 'answers' => $item['answers'], 'is_brand' => $item['is_brand'],
+                $rates = [];
+                foreach ($metrics['intents'] ?? [] as $intent => $group) {
+                    $entry = collect($group['entities'] ?? [])->firstWhere('name', $item['name']);
+                    if (is_numeric($entry['frequency'] ?? null)) {
+                        $rates[$intent] = (float) $entry['frequency'];
+                    }
+                }
+                $strongest = $rates ? array_keys($rates, max($rates), true) : [];
+
+                return ['name' => $item['name'], 'answers' => $item['answers'], 'is_brand' => $item['is_brand'], 'strongest' => $strongest,
                     'models' => $matched->pluck('provider')->filter(fn ($value) => is_string($value) && $value !== '')->unique()->values()->all()];
             })->values()->all(),
             'gaps' => $gaps,
