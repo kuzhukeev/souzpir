@@ -1,0 +1,10 @@
+import { createInertiaApp } from '@inertiajs/react';
+import { createRoot } from 'react-dom/client';
+import Index from '../../../resources/js/pages/Seller/Channels/Telegram/Index';
+import Settings from '../../../resources/js/pages/Seller/Channels/Telegram/Settings';
+import '../../../resources/css/app.css';
+import '../../../resources/css/themes/tokens.css';
+const settings = location.search.includes('settings');
+const page = { component: 'Fixture', props: { channels:[{id:'a',name:'Telegram',type:'telegram',status:'active',mode:'suggest',dialogs7d:2,lastActivity:'2026-11-03T12:00:00Z'}], account:{id:'a',name:'Telegram',status:'active',mode:'suggest',tokenConfigured:true,managersChat:null,webhookUrl:'https://example.test/webhook',webhookSecret:'fixture'}, canManage:true,status:null,theme:'neutral',brand:{id:'b',name:'Бренд',theme:'neutral'},brands:[],organization:{id:'o',name:'Компания'},auth:{user:{id:'u',name:'Иван',email:'a@example.test'}},modules:{seller:true,vision:false},can:{},unread:null,translations:{},ziggy:{routes:{}},errors:{} },url:location.pathname+location.search,version:null,clearHistory:false,encryptHistory:false };
+const script=document.createElement('script');script.type='application/json';script.dataset.page='app';script.textContent=JSON.stringify(page);document.body.appendChild(script);
+void createInertiaApp({resolve:()=>settings?Settings:Index,setup:({el,App,props})=>createRoot(el).render(<App {...props}/>)});
