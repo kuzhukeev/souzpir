@@ -1,6 +1,14 @@
-import { defineConfig } from 'vite';
-import laravel from 'laravel-vite-plugin';
+import { fileURLToPath } from 'node:url';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
+import { defineConfig } from 'vite';
 
-export default defineConfig({ plugins: [laravel({ input: ['resources/js/app.tsx'], refresh: false }), react(), tailwindcss()], resolve: { alias: { '@': '/resources/js' } }, server: { port: 5306 } });
+export default defineConfig({
+  cacheDir: '.local/runtime/vite-e8-22',
+  plugins: [react(), tailwindcss()],
+  publicDir: 'public',
+  resolve: { alias: { '@': fileURLToPath(new URL('../../../resources/js', import.meta.url)) } },
+  server: { host: '127.0.0.1', port: 5306, strictPort: true, watch: { ignored: ['**/.local/**'] } },
+});
+
+
