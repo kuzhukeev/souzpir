@@ -28,10 +28,12 @@ final class MeasurementsController
         $page = filter_var($request->query('page', 1), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 100000]]);
         abort_if($page === false, 404);
         $detailed = $request->query('view') === 'details';
+        $month = $request->query('month');
+        abort_if($month !== null && (! is_string($month) || ! preg_match('/^[1-9]\d{3}-(0[1-9]|1[0-2])$/D', $month)), 422);
 
         return app(MeasurementList::class)->withinCurrent($request,
             fn (TenantContext $context, string $revision) => response()->json(['revision' => $revision,
-                ...($detailed ? app(MeasurementList::class)->readDetailed($context, $page) : app(MeasurementList::class)->read($context, $page))]));
+                ...($detailed ? app(MeasurementList::class)->readDetailed($context, $page, $month) : app(MeasurementList::class)->read($context, $page))]));
     }
 
     public function revision(Request $request): mixed

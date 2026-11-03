@@ -7,6 +7,7 @@ use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Auth\SessionBrandSelection;
 use App\Tenancy\TenantContext;
 use App\Vision\Site\SiteAccess;
+use Carbon\CarbonImmutable;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -52,9 +53,13 @@ final class MeasurementList
         return ['data' => $rows->all(), 'page' => $page, 'last_page' => max(1, (int) ceil($count / 25)), 'total' => $count];
     }
 
-    public function readDetailed(TenantContext $context, int $page): array
+    public function readDetailed(TenantContext $context, int $page, ?string $month = null): array
     {
         $query = DB::table('measurements')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId);
+        if ($month !== null) {
+            $start = CarbonImmutable::createFromFormat('!Y-m', $month, 'UTC');
+            $query->where('created_at', '>=', $start)->where('created_at', '<', $start->addMonth());
+        }
         $count = (clone $query)->count();
         $rows = $query->orderByDesc('created_at')->orderByDesc('id')->forPage($page, 25)
             ->get(['id', 'status', 'created_at', 'started_at', 'finished_at']);
@@ -67,17 +72,25 @@ final class MeasurementList
             ->where('brand_id', $context->brandId)->whereIn('measurement_id', $rows->pluck('id'))
             ->pluck('measurement_id')->all();
 
-        return ['data' => $rows->map(fn ($row) => [
-            'id' => $row->id, 'status' => $row->status, 'created_at' => $row->created_at,
-            'started_at' => $row->started_at, 'finished_at' => $row->finished_at,
-            'confirmed' => in_array($row->id, $confirmed, true),
-            'answers' => ($answers[$row->id] ?? collect())->map(fn ($answer) => [
-                'question_n' => $answer->question_n, 'provider' => $answer->provider,
-                'requested_model' => $answer->requested_model, 'run_no' => $answer->run_no,
-                'status' => $answer->status, 'answer_text' => $answer->answer_text,
-                'error_code' => $answer->error_code,
-            ])->values()->all(),
-        ])->all(), 'page' => $page, 'last_page' => max(1, (int) ceil($count / 25)), 'total' => $count,
+        $approval = DB::table('vision_question_approvals as approval')
+            ->join('question_sets as questions', 'questions.id', '=', 'approval.question_set_id')
+            ->where('approval.organization_id', $context->organizationId)->where('approval.brand_id', $context->brandId)
+            ->where('questions.organization_id', $context->organizationId)->where('questions.brand_id', $context->brandId)
+            ->where('approval.active', true)->first(['questions.size', 'approval.providers']);
+        $providers = $approval ? json_decode($approval->providers, true) : [];
+
+        return ['plan' => $approval ? ['questions' => (int) $approval->size, 'models' => is_array($providers) ? count($providers) : 0] : null,
+            'data' => $rows->map(fn ($row) => [
+                'id' => $row->id, 'status' => $row->status, 'created_at' => $row->created_at,
+                'started_at' => $row->started_at, 'finished_at' => $row->finished_at,
+                'confirmed' => in_array($row->id, $confirmed, true),
+                'answers' => ($answers[$row->id] ?? collect())->map(fn ($answer) => [
+                    'question_n' => $answer->question_n, 'provider' => $answer->provider,
+                    'requested_model' => $answer->requested_model, 'run_no' => $answer->run_no,
+                    'status' => $answer->status, 'answer_text' => $answer->answer_text,
+                    'error_code' => $answer->error_code,
+                ])->values()->all(),
+            ])->all(), 'page' => $page, 'last_page' => max(1, (int) ceil($count / 25)), 'total' => $count,
             'schedule' => app(MeasurementSchedule::class)->read($context)];
     }
 }
