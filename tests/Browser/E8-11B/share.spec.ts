@@ -22,6 +22,12 @@ test('методика и создание публичной ссылки из 
   await page.getByRole('button', { name:'Поделиться отчётом' }).click();
   await expect(page.getByRole('dialog')).toBeVisible();
   await expect(page.getByLabel('Срок действия')).toHaveValue('7');
-  await expect(page.getByRole('checkbox', { name:'Разрешить PDF' })).toBeDisabled();
+  await page.getByRole('checkbox', { name:'Разрешить сохранение в PDF' }).check();
+  await expect(page.getByRole('checkbox', { name:'Разрешить сохранение в PDF' })).toBeChecked();
+  await page.screenshot({path:'.local/screenshots/e8-11b/share.png'});
   await expect(page.getByRole('button', { name:'Создать ссылку' })).toBeEnabled();
+  await page.route('**/vision/publications', route => route.fulfill({status: 422, contentType:'application/json', body:'{}'}));
+  const request = page.waitForRequest('**/vision/publications');
+  await page.getByRole('button', { name:'Создать ссылку' }).click();
+  expect((await request).postDataJSON().allow_pdf).toBe(true);
 });
