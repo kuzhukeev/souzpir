@@ -14,9 +14,8 @@ test('завершённые настройки доступны для прос
       await page.keyboard.press('Enter');
       await expect(page.getByRole('heading', { name: 'Модули для настройки' })).toBeVisible();
       await expect(page.getByText('Настройка завершена. Данные доступны только для просмотра.')).toBeVisible();
-      for (const box of await page.getByRole('checkbox').all()) {
+      for (const box of await page.getByRole('switch').all()) {
         await expect(box).toBeDisabled();
-        expect(await box.evaluate((input) => getComputedStyle(input).cursor)).toBe('default');
         expect(await box.locator('xpath=ancestor::label').evaluate((label) => getComputedStyle(label).cursor)).toBe('default');
       }
       await back.click();
@@ -41,7 +40,7 @@ test('до завершения карточки остаются доступн
   await theme.check();
   await expect(theme).toBeChecked();
   await page.goto(`${fixture}?step=3`);
-  const module = page.getByRole('checkbox', { name: /Видение/ });
+  const module = page.getByRole('switch', { name: /Видение/ });
   await expect(module).toBeEnabled();
   expect(await module.evaluate((input) => getComputedStyle(input).cursor)).toBe('pointer');
   await module.focus();

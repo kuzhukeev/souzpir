@@ -33,7 +33,7 @@ test('real authenticated owner saves draft, resumes and creates the first brand'
   await page.getByRole('radio', { name: /Пиротехника/ }).check();
   await page.getByRole('button', { name: 'Сохранить и продолжить' }).click();
   await expect(page.getByRole('heading', { name: 'Выберите модули' })).toBeVisible();
-  await page.getByRole('checkbox', { name: /ИИ-продавец/ }).check();
+  await page.getByRole('switch', { name: /ИИ-продавец/ }).check();
   await page.getByRole('button', { name: 'Сохранить и продолжить' }).click();
   await expect(page.getByRole('heading', { name: 'Первый шаг', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Завершить настройку' }).click();
