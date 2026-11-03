@@ -49,11 +49,13 @@ GENERATED_CONTRACT_FILES = frozenset(
 CI_SCOPE_EXCEPTIONS = {
     "SP-E3-09": (
         "app/ProtectedOperations/FirstTurnCoordinator.php",
+        "app/ProtectedOperations/FirstTurnTextFinalizer.php",
         "app/Ai/Protected/",
         "database/migrations/C-02/",
         "database/migrations/E3-09/",
         "tests/Feature/ProtectedOperations/",
         "tests/Feature/Ai/Protected/",
+        "tests/Unit/Seller/Engine/ToolRunnerTest.php",
     ),
     "SP-E5-05C": ("database/migrations/E5-05C/",),
     "SP-E3-08": (

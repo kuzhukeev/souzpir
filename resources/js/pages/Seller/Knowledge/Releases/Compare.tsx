@@ -7,7 +7,12 @@ type Section = { totalBefore: number; totalAfter: number; changes: Change[] };
 type Props = { from: Release; to: Release; sections: Record<'facts' | 'conditions' | 'topics' | 'examples', Section> };
 const names = { facts: 'Факты', conditions: 'Условия', topics: 'Темы', examples: 'Образцы' };
 const types = { added: 'Добавлено', removed: 'Удалено', changed: 'Изменено' };
-const format = (value: unknown) => value === null ? '—' : typeof value === 'string' ? value : JSON.stringify(value, null, 2);
+const format = (value: unknown): string => {
+ if (value == null) return '—';
+ if (Array.isArray(value)) return value.map(format).join('\n');
+ if (typeof value === 'object') return Object.entries(value).map(([key, entry]) => `${key}: ${format(entry)}`).join('\n');
+ return String(value);
+};
 const releaseName = (release: Release) => release.status === 'draft' ? `Черновик · v${release.version}` : `Публикация ${release.published_at ? new Date(release.published_at).toLocaleString('ru-RU') : ''} · v${release.version}`;
 
 export default function Compare({ from, to, sections }: Props) {
