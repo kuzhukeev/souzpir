@@ -24,8 +24,18 @@ final class CompareController
             })->join('seller_personas as p', function ($join): void {
                 $join->on('p.id', '=', 'r.persona_id')->on('p.organization_id', '=', 'r.organization_id')->on('p.brand_id', '=', 'r.brand_id');
             })->where('r.organization_id', $tenant->organizationId)->where('r.brand_id', $tenant->brandId);
-            $rows = (clone $query)->orderByDesc('r.created_at')->limit(100)->get(['r.id', 'r.persona_id', 'r.created_at', 'p.name', 'e.average', 'e.scores']);
-            $runs = $rows->map(fn ($row) => ['id' => $row->id, 'persona_id' => $row->persona_id, 'name' => $row->name, 'created_at' => $row->created_at, 'average' => (float) $row->average]);
+            $rows = (clone $query)->orderByDesc('r.created_at')->limit(100)->get(['r.id', 'r.persona_id', 'r.created_at', 'r.metrics', 'p.name', 'e.average', 'e.scores']);
+            $releaseIds = $rows->map(fn ($row) => json_decode($row->metrics, true)['knowledge_release_id'] ?? null)->filter()->unique()->values();
+            $versions = $releaseIds->isEmpty() ? collect() : DB::table('knowledge_releases')
+                ->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
+                ->where('status', 'published')->whereIn('id', $releaseIds)->pluck('version', 'id');
+            $runs = $rows->map(function ($row) use ($versions): array {
+                $releaseId = json_decode($row->metrics, true)['knowledge_release_id'] ?? null;
+
+                return ['id' => $row->id, 'persona_id' => $row->persona_id, 'name' => $row->name,
+                    'created_at' => $row->created_at, 'average' => (float) $row->average,
+                    'knowledge_version' => $versions->get($releaseId)];
+            });
             $comparison = null;
             if (! empty($input['before_ids']) && ! empty($input['after_ids'])) {
                 $beforeRows = (clone $query)->whereIn('r.id', $input['before_ids'])->get(['r.id', 'r.persona_id', 'p.name', 'e.average']);

@@ -60,4 +60,26 @@ final class CompareTest extends TenancyTestCase
         $this->get($url)->assertOk()->assertInertia(fn (Assert $page) => $page->where('comparison.total', 2)->where('comparison.improved', 1)->where('comparison.items.0.delta', 2)->where('comparison.items.1.delta', null));
         $this->get('/seller/quality/compare?'.http_build_query(['before_ids' => [$before], 'after_ids' => [$foreign]]))->assertNotFound();
     }
+
+    public function test_version_label_uses_recorded_release_of_current_brand_only(): void
+    {
+        [$owner, $org, $brand, $other] = $this->cabinet();
+        $this->enable($org->id, $brand->id);
+        $this->enable($org->id, $other->id);
+        $release = (string) Str::ulid();
+        DB::table('knowledge_releases')->insert(['id' => $release, 'organization_id' => $org->id,
+            'brand_id' => $brand->id, 'version' => 7, 'status' => 'published',
+            'checksum' => str_repeat('a', 64), 'published_at' => now(), 'created_at' => now(), 'updated_at' => now()]);
+        $known = $this->createRun($org->id, $brand->id, ['goal' => 3]);
+        $legacy = $this->createRun($org->id, $brand->id, ['goal' => 4]);
+        $foreign = $this->createRun($org->id, $other->id, ['goal' => 5]);
+        DB::table('seller_sim_runs')->where('id', $known)->update(['metrics' => json_encode(['knowledge_release_id' => $release]), 'created_at' => now()->subMinute()]);
+        DB::table('seller_sim_runs')->where('id', $foreign)->update(['metrics' => json_encode(['knowledge_release_id' => $release])]);
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $this->get('/seller/quality/compare')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->has('runs', 2)->where('runs.0.knowledge_version', null)->where('runs.1.knowledge_version', 7));
+        $this->post('/brand/switch', ['brand_id' => $other->id])->assertRedirect();
+        $this->get('/seller/quality/compare')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->has('runs', 1)->where('runs.0.knowledge_version', null));
+    }
 }
