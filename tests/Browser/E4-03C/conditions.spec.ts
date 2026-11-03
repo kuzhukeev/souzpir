@@ -1,0 +1,9 @@
+import { expect, test } from '@playwright/test';
+import { spawn, type ChildProcess } from 'node:child_process';
+import { mkdir } from 'node:fs/promises';
+test.use({launchOptions:process.env.E403C_CHROMIUM_PATH?{executablePath:process.env.E403C_CHROMIUM_PATH}:{}});
+let server:ChildProcess;
+const url='http://127.0.0.1:5373/tests/Browser/E4-03C/fixture.html';
+test.beforeAll(async()=>{server=spawn(process.execPath,['node_modules/vite/bin/vite.js','--config','tests/Browser/E4-03C/vite.config.ts'],{stdio:'ignore'});for(let i=0;i<100;i++){try{if((await fetch(url)).ok)return;}catch{/* Ждём сервер. */}await new Promise(resolve=>setTimeout(resolve,500));}throw new Error('Vite не запустился');});
+test.afterAll(()=>server?.kill());
+test('редакторы оплаты и доставки',async({page})=>{await page.setViewportSize({width:1440,height:900});await page.goto(url);await expect(page.getByLabel('Название')).toHaveValue('По счёту');await page.getByRole('button',{name:'Добавить способ оплаты'}).click();await page.getByLabel('Название').nth(1).fill('Карта');await page.getByLabel('Описание').nth(1).fill('После получения');await page.getByRole('button',{name:'Добавить способ доставки'}).click();await page.getByLabel('Способ',{exact:true}).fill('Курьер');await page.getByLabel('Срок',{exact:true}).fill('Два дня');await page.getByLabel('Стоимость',{exact:true}).fill('По тарифу');await page.getByLabel('Зоны',{exact:true}).fill('Москва');await mkdir('.local/screenshots/sp-e4-03c',{recursive:true});await page.getByRole('heading',{name:'Способы оплаты'}).scrollIntoViewIfNeeded();await page.screenshot({path:'.local/screenshots/sp-e4-03c/conditions.png',fullPage:true});await page.getByRole('button',{name:'Удалить способ доставки'}).click();await expect(page.getByText('Способы доставки не заданы.')).toBeVisible();});
