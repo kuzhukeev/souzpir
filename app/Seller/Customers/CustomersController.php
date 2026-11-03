@@ -51,18 +51,27 @@ final class CustomersController
         $filter = $request->validate(['search' => ['nullable', 'string', 'max:120'], 'type' => ['nullable', 'in:newbie,experienced,for_self,prices_only,unknown'], 'stage' => ['nullable', 'string', 'max:32'], 'city' => ['nullable', 'string', 'max:120'], 'outcome' => ['nullable', 'string', 'max:64'], 'manager' => ['nullable', 'string', 'max:120'], 'channel' => ['nullable', 'string', 'max:32'], 'from' => ['nullable', 'date_format:Y-m-d'], 'to' => ['nullable', 'date_format:Y-m-d'], 'page' => ['nullable', 'integer', 'min:1']]);
         $data = $this->access($request, 'seller.customers.read', function (User $user, TenantContext $tenant) use ($filter): array {
             $contacts = $this->scope('contacts', $tenant)->whereNull('merged_into_id')->orderByDesc('created_at')->orderByDesc('id')->get(['id', 'name', 'phone', 'email']);
-            $rows = $contacts->map(function ($contact) use ($tenant): array {
-                $conversation = $this->scope('conversations', $tenant)->where('contact_id', $contact->id)->orderByDesc('updated_at')->first();
+            $conversations = $this->scope('conversations', $tenant)->whereIn('contact_id', $contacts->pluck('id'))->orderByDesc('updated_at')->get();
+            $byContact = $conversations->groupBy('contact_id');
+            $tasks = $this->scope('seller_tasks', $tenant)->whereIn('status', ['new', 'in_progress'])
+                ->where(fn ($query) => $query->whereIn('contact_id', $contacts->pluck('id'))->orWhereIn('conversation_id', $conversations->pluck('id')))
+                ->get(['id', 'contact_id', 'conversation_id']);
+            $managers = DB::table('users')->whereIn('id', $conversations->pluck('assigned_user_id')->filter()->unique())->pluck('name', 'id');
+            $channels = $this->scope('channel_accounts', $tenant)->whereIn('id', $conversations->pluck('channel_account_id')->filter()->unique())->pluck('type', 'id');
+            $rows = $contacts->map(function ($contact) use ($byContact, $tasks, $managers, $channels): array {
+                $dialogs = $byContact->get($contact->id, collect());
+                $conversation = $dialogs->first();
                 $state = $conversation ? json_decode($conversation->state, true) : [];
-                $outcomes = $this->scope('conversations', $tenant)->where('contact_id', $contact->id)->whereNotNull('outcome')->pluck('outcome')->all();
+                $outcomes = $dialogs->pluck('outcome')->filter()->all();
                 $bestOutcome = collect(['full_contact', 'handoff', 'partial_contact', 'paused', 'stale', 'declined', 'spam'])->first(fn ($value) => in_array($value, $outcomes, true));
-                $tasks = $this->scope('seller_tasks', $tenant)->where(fn ($query) => $query->where('contact_id', $contact->id)->orWhereIn('conversation_id', $this->scope('conversations', $tenant)->where('contact_id', $contact->id)->select('id')))->whereIn('status', ['new', 'in_progress'])->count();
-                $manager = $conversation?->assigned_user_id ? DB::table('users')->where('id', $conversation->assigned_user_id)->value('name') : null;
-                $channel = $conversation?->channel_account_id ? $this->scope('channel_accounts', $tenant)->where('id', $conversation->channel_account_id)->value('type') : null;
+                $dialogIds = $dialogs->pluck('id')->all();
+                $taskCount = $tasks->filter(fn ($task) => $task->contact_id === $contact->id || in_array($task->conversation_id, $dialogIds, true))->count();
+                $manager = $conversation?->assigned_user_id ? $managers->get($conversation->assigned_user_id) : null;
+                $channel = $conversation?->channel_account_id ? $channels->get($conversation->channel_account_id) : null;
 
                 return ['id' => $contact->id, 'name' => $contact->name, 'phone' => $contact->phone, 'email' => $contact->email,
                     'type' => $this->clientType($conversation?->state), 'city' => data_get($state, 'slots.city'), 'stage' => $conversation?->stage,
-                    'outcome' => $conversation?->outcome, 'best_outcome' => $bestOutcome, 'conversation_id' => $conversation?->id, 'manager' => $manager, 'channel' => $channel, 'tasks' => $tasks, 'last_at' => $conversation?->updated_at];
+                    'outcome' => $conversation?->outcome, 'best_outcome' => $bestOutcome, 'conversation_id' => $conversation?->id, 'manager' => $manager, 'channel' => $channel, 'tasks' => $taskCount, 'last_at' => $conversation?->updated_at];
             });
             $filtered = $rows->filter(function (array $row) use ($filter): bool {
                 $search = mb_strtolower($filter['search'] ?? '');
