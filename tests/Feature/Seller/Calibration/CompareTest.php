@@ -41,4 +41,23 @@ final class CompareTest extends TenancyTestCase
         $this->actingAs($outsider)->withSession(['brand_id' => $brand->id]);
         $this->get('/seller/quality/compare')->assertForbidden();
     }
+
+    public function test_compares_user_selected_sets_by_scenario_and_rejects_foreign_runs(): void
+    {
+        [$owner, $org, $brand, $other] = $this->cabinet();
+        $this->enable($org->id, $brand->id);
+        $this->enable($org->id, $other->id);
+        $before = $this->createRun($org->id, $brand->id, ['goal' => 2]);
+        $after = $this->createRun($org->id, $brand->id, ['goal' => 4]);
+        $unmatched = $this->createRun($org->id, $brand->id, ['goal' => 3]);
+        $foreign = $this->createRun($org->id, $other->id, ['goal' => 5]);
+        $persona = DB::table('seller_sim_runs')->where('id', $before)->value('persona_id');
+        DB::table('seller_sim_runs')->where('id', $after)->update(['persona_id' => $persona]);
+        DB::table('seller_evaluations')->where('sim_run_id', $before)->update(['average' => 2]);
+        DB::table('seller_evaluations')->where('sim_run_id', $after)->update(['average' => 4]);
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $url = '/seller/quality/compare?'.http_build_query(['before_ids' => [$before], 'after_ids' => [$after, $unmatched]]);
+        $this->get($url)->assertOk()->assertInertia(fn (Assert $page) => $page->where('comparison.total', 2)->where('comparison.improved', 1)->where('comparison.items.0.delta', 2)->where('comparison.items.1.delta', null));
+        $this->get('/seller/quality/compare?'.http_build_query(['before_ids' => [$before], 'after_ids' => [$foreign]]))->assertNotFound();
+    }
 }
