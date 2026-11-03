@@ -13,6 +13,27 @@ final class ReleasesTest extends TenancyTestCase
         DB::table('brand_modules')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org, 'brand_id' => $brand, 'module' => 'seller', 'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
     }
 
+    public function test_overview_exposes_release_author_and_review_dialog_for_current_brand(): void
+    {
+        [$owner, $org, $brand, $other] = $this->cabinet();
+        $this->enable($org->id, $brand->id);
+        $this->enable($org->id, $other->id);
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $this->post('/seller/knowledge/draft')->assertRedirect();
+        $draft = DB::table('knowledge_releases')->where('brand_id', $brand->id)->where('status', 'draft')->first();
+        $this->post("/seller/knowledge/{$draft->id}/publish", ['version' => 1])->assertRedirect();
+        $dialog = (string) Str::ulid();
+        $message = (string) Str::ulid();
+        DB::table('conversations')->insert(['id' => $dialog, 'organization_id' => $org->id, 'brand_id' => $brand->id, 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('messages')->insert(['id' => $message, 'organization_id' => $org->id, 'brand_id' => $brand->id, 'conversation_id' => $dialog, 'role' => 'agent', 'text' => 'Неточный ответ', 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('message_reviews')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $brand->id, 'message_id' => $message, 'user_id' => $owner->id, 'type' => 'wrong_fact', 'note' => 'Ошибка', 'better_text' => 'Верный ответ', 'created_at' => now(), 'updated_at' => now()]);
+        $this->get('/seller/knowledge')->assertOk()->assertInertia(fn ($page) => $page->where('releases.0.author', $owner->name)->where('releases.0.version', 1)->where('reviews.0.better_text', 'Верный ответ')->where('reviews.0.conversation_id', $dialog));
+        $this->post('/brand/switch', ['brand_id' => $other->id])->assertRedirect();
+        $this->get('/seller/knowledge')->assertOk()->assertInertia(fn ($page) => $page->has('reviews', 0)->has('releases', 0));
+        [$viewer] = $this->member($org, 'viewer', [$other->id]);
+        $this->actingAs($viewer)->withSession(['brand_id' => $other->id])->post('/seller/knowledge/draft')->assertForbidden();
+    }
+
     public function test_draft_publish_conflict_rollback_and_brand_isolation(): void
     {
         [$owner, $org, $brand, $other] = $this->cabinet();
