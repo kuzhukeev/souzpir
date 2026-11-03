@@ -546,6 +546,13 @@ declare module 'ziggy-js' {
     "seller.settings.policy.index": [],
     "seller.settings.off-topic.save": [],
     "seller.settings.followups.update": [],
+    "seller.followups.index": [],
+    "seller.followups.cancel": [
+        {
+            "name": "candidate",
+            "required": true
+        }
+    ],
     "seller.tools.settings": [],
     "seller.tools.settings.update": [],
     "seller.handoff.settings": [],
