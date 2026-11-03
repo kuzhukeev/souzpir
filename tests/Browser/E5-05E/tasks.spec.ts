@@ -1,0 +1,10 @@
+import { expect, test } from '@playwright/test';
+import { spawn, type ChildProcess } from 'node:child_process';
+import { mkdir } from 'node:fs/promises';
+let server:ChildProcess;
+const url='http://127.0.0.1:5320/tests/Browser/E5-05E/fixture.html';
+test.beforeAll(async()=>{server=spawn(process.execPath,['node_modules/vite/bin/vite.js','--config','tests/Browser/E5-05E/vite.config.ts'],{stdio:'ignore'});for(let i=0;i<60;i++){try{if((await fetch(url)).ok)return;}catch{/* Ожидаем сервер. */}await new Promise(resolve=>setTimeout(resolve,500));}throw new Error('Vite не запустился');});
+test.afterAll(()=>server?.kill());
+test.use({launchOptions:process.env.E505E_CHROMIUM_PATH?{executablePath:process.env.E505E_CHROMIUM_PATH}:{}});
+test('фильтры, статус и дровер',async({page})=>{await page.setViewportSize({width:1440,height:900});await page.goto(url);await expect(page.getByLabel('Мои')).toBeChecked();await expect(page.getByLabel('Просроченные')).toBeChecked();await expect(page.getByLabel('Статус задачи')).toHaveValue('in_progress');await page.getByRole('button',{name:'Канбан'}).click();await expect(page.getByRole('heading',{name:'В работе'})).toBeVisible();await mkdir('.local/screenshots/sp-e5-05e',{recursive:true});await page.screenshot({path:'.local/screenshots/sp-e5-05e/board-1440.png',fullPage:true});await page.getByRole('button',{name:'Подробнее'}).click();await expect(page.getByRole('dialog')).toContainText('Пришлите прайс');await expect(page.getByRole('link',{name:'Открыть полностью →'})).toHaveAttribute('href',/seller\/dialogs\//);await page.screenshot({path:'.local/screenshots/sp-e5-05e/drawer-1440.png',fullPage:true});await page.getByRole('button',{name:'Закрыть'}).click();});
+test('ошибка запроса и пустой фильтр',async({page})=>{await page.goto(`${url}?empty`);await expect(page.getByText('Подходящих задач нет.')).toBeVisible();await page.route('**/seller/tasks?*',route=>route.abort());await page.getByLabel('Мои').click();await expect(page.getByRole('alert')).toContainText('Не удалось загрузить');});
