@@ -21,7 +21,7 @@ use Inertia\Response;
 
 final class DialogsController
 {
-    public function index(Request $request, DialogReader $reader, ?string $dialog = null): Response
+    public function index(Request $request, DialogReader $reader, ?string $dialog = null, bool $mine = false): Response
     {
         $input = $request->validate([
             'mode' => ['sometimes', 'string', Rule::in(['all', 'mine', 'bot', 'suggest', 'manager', 'paused'])],
@@ -32,6 +32,9 @@ final class DialogsController
             'manager' => ['sometimes', 'ulid'],
             'page' => ['sometimes', 'integer', 'min:1', 'max:100000'],
         ]);
+        if ($mine) {
+            $input['mode'] = 'mine';
+        }
         $data = app(ProfileAccess::class)->run($request, function (User $actor, TenantContext $context, $brand, Membership $member) use ($reader, $dialog, $input): array {
             Gate::forUser($actor)->authorize('seller.dialogs.read');
             abort_unless(app(SellerModuleAccess::class)->enabled($context->organizationId, $context->brandId), 404);
@@ -40,7 +43,12 @@ final class DialogsController
             return $reader->read($context, $actor->id, $manager, ! $manager && $member->role !== 'viewer', $dialog, $input['mode'] ?? 'all', trim($input['search'] ?? ''), $input['sort'] ?? 'newest', $input);
         });
 
-        return Inertia::render('Seller/Dialogs/Index', $data + ['filters' => ['mode' => $input['mode'] ?? 'all', 'search' => $input['search'] ?? '', 'sort' => $input['sort'] ?? 'newest', 'channel' => $input['channel'] ?? '', 'stage' => $input['stage'] ?? '', 'manager' => $input['manager'] ?? '', 'page' => (int) ($input['page'] ?? 1)]]);
+        return Inertia::render($mine ? 'Seller/Dialogs/Mine' : 'Seller/Dialogs/Index', $data + ['filters' => ['mode' => $input['mode'] ?? 'all', 'search' => $input['search'] ?? '', 'sort' => $input['sort'] ?? 'newest', 'channel' => $input['channel'] ?? '', 'stage' => $input['stage'] ?? '', 'manager' => $input['manager'] ?? '', 'page' => (int) ($input['page'] ?? 1)]]);
+    }
+
+    public function mine(Request $request, DialogReader $reader, ?string $dialog = null): Response
+    {
+        return $this->index($request, $reader, $dialog, true);
     }
 
     public function mode(Request $request, string $dialog): RedirectResponse

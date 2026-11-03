@@ -468,6 +468,12 @@ declare module 'ziggy-js' {
     "api.v1.leads.create": [],
     "api.v1.turn.create": [],
     "seller.dialogs.index": [],
+    "seller.dialogs.mine": [
+        {
+            "name": "dialog",
+            "required": false
+        }
+    ],
     "seller.dialogs.show": [
         {
             "name": "dialog",

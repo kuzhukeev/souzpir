@@ -13,7 +13,7 @@ const roleNames: Record<string, string> = { client: 'Клиент', agent: 'Бо
 const metaNames: Record<string, string> = { intent: 'Тема', goal: 'Цель', tools: 'Действия', guard: 'Guard', model: 'Модель' };
 const date = (value: string) => new Date(value).toLocaleString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 
-export default function Index({ dialogs, dialog, mineCounts = { waiting: 0, active: 0, closed_today: 0 }, managerOptions = [], pagination = {page: 1, pages: 1, total: 0}, filters }: Props) {
+export default function Index({ dialogs, dialog, mineCounts = { waiting: 0, active: 0, closed_today: 0 }, managerOptions = [], pagination = {page: 1, pages: 1, total: 0}, filters, minePage = false }: Props & { minePage?: boolean }) {
   const { can, brand } = usePage<{ can: Record<string, boolean>; brand: { id: string } | null }>().props;
   const [search, setSearch] = useState(filters.search);
   const [pending, setPending] = useState(false);
@@ -55,13 +55,13 @@ export default function Index({ dialogs, dialog, mineCounts = { waiting: 0, acti
     setPending(true);
     setError('');
     const channel = changes.channel ?? filters.channel; const stage = changes.stage ?? filters.stage; const manager = changes.manager ?? filters.manager; const page = changes.page ?? 1;
-    router.get('/seller/dialogs', { mode, search: query, ...(sort ? { sort } : {}), ...(channel ? {channel} : {}), ...(stage ? {stage} : {}), ...(manager ? {manager} : {}), ...(page > 1 ? {page} : {}) }, { preserveState: true, onError: () => setError('Не удалось загрузить диалоги.'), onFinish: () => setPending(false) });
+    router.get(mode === 'mine' ? '/seller/dialogs/mine' : '/seller/dialogs', { mode, search: query, ...(sort ? { sort } : {}), ...(channel ? {channel} : {}), ...(stage ? {stage} : {}), ...(manager ? {manager} : {}), ...(page > 1 ? {page} : {}) }, { preserveState: true, onError: () => setError('Не удалось загрузить диалоги.'), onFinish: () => setPending(false) });
   };
   const open = (id: string) => {
     setPending(true);
     setError('');
     setCardOpen(false);
-    router.get(`/seller/dialogs/${id}`, { mode: filters.mode, search: filters.search, ...(filters.sort ? { sort: filters.sort } : {}), ...(filters.channel ? {channel: filters.channel} : {}), ...(filters.stage ? {stage: filters.stage} : {}), ...(filters.manager ? {manager: filters.manager} : {}), ...(filters.page && filters.page > 1 ? {page: filters.page} : {}) }, { preserveState: true, onError: () => setError('Не удалось открыть диалог.'), onFinish: () => setPending(false) });
+    router.get(`${minePage ? '/seller/dialogs/mine' : '/seller/dialogs'}/${id}`, { mode: filters.mode, search: filters.search, ...(filters.sort ? { sort: filters.sort } : {}), ...(filters.channel ? {channel: filters.channel} : {}), ...(filters.stage ? {stage: filters.stage} : {}), ...(filters.manager ? {manager: filters.manager} : {}), ...(filters.page && filters.page > 1 ? {page: filters.page} : {}) }, { preserveState: true, onError: () => setError('Не удалось открыть диалог.'), onFinish: () => setPending(false) });
   };
   const changeMode = (action: 'take' | 'return') => {
     if (!dialog) return;
@@ -71,8 +71,8 @@ export default function Index({ dialogs, dialog, mineCounts = { waiting: 0, acti
   };
 
   return <CabinetLayout breadcrumbs={[{ label: 'Продавец', href: '/seller' }, { label: 'Диалоги' }]}>
-    <Head title="Диалоги" />
-    <div className="mb-6"><h1 className="text-3xl font-bold">Диалоги</h1><p className="mt-2 text-sm text-(--color-ink-muted)">Сохранённые разговоры с клиентами по текущему бренду</p></div>
+    <Head title={minePage ? 'Мои диалоги' : 'Диалоги'} />
+    <div className="mb-6"><h1 className="text-3xl font-bold">{minePage ? 'Мои диалоги' : 'Диалоги'}</h1><p className="mt-2 text-sm text-(--color-ink-muted)">Сохранённые разговоры с клиентами по текущему бренду</p></div>
     {error && <div role="alert" className="mb-4 rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-800 dark:bg-red-950 dark:text-red-200">{error}</div>}
     {filters.mode === 'mine' && <div className="mb-4 grid gap-3 sm:grid-cols-3" aria-label="Счётчики моих диалогов"><div className="rounded-xl border border-(--color-border) bg-(--color-surface) p-4 text-sm">Ждут ответа <strong>{mineCounts.waiting}</strong></div><div className="rounded-xl border border-(--color-border) bg-(--color-surface) p-4 text-sm">В работе <strong>{mineCounts.active}</strong></div><div className="rounded-xl border border-(--color-border) bg-(--color-surface) p-4 text-sm">Закрыты сегодня <strong>{mineCounts.closed_today}</strong></div></div>}
     <div className="grid min-w-0 gap-4 lg:grid-cols-[320px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(0,1fr)_300px]">
@@ -101,7 +101,7 @@ export default function Index({ dialogs, dialog, mineCounts = { waiting: 0, acti
       <section aria-label="Диалог" className={`${dialog ? 'block' : 'hidden lg:block'} min-w-0 rounded-2xl border border-(--color-border) bg-(--color-surface) shadow-(--shadow-card)`}>
         {!dialog ? <div className="p-6 text-sm text-(--color-ink-muted)">Выберите диалог из списка.</div> : <>
           <header className="flex flex-wrap items-center justify-between gap-3 border-b border-(--color-border) p-4">
-            <div className="min-w-0"><a href="/seller/dialogs" className="mb-2 inline-block cursor-pointer text-sm text-(--color-action) lg:hidden">← К списку</a><h2 className="truncate text-xl font-semibold">{dialog.name}</h2><p className="mt-1 text-sm text-(--color-ink-muted)">{dialog.channel} · {dialog.stage}{dialog.outcome ? ` · ${dialog.outcome}` : ''}</p></div>
+            <div className="min-w-0"><a href={minePage ? "/seller/dialogs/mine" : "/seller/dialogs"} className="mb-2 inline-block cursor-pointer text-sm text-(--color-action) lg:hidden">← К списку</a><h2 className="truncate text-xl font-semibold">{dialog.name}</h2><p className="mt-1 text-sm text-(--color-ink-muted)">{dialog.channel} · {dialog.stage}{dialog.outcome ? ` · ${dialog.outcome}` : ''}</p></div>
             <div className="flex flex-wrap gap-2">{can['seller.dialogues.operate'] && <>{dialog.mode !== 'manager' || !dialog.assigned_user_id ? <button type="button" disabled={pending} onClick={() => changeMode('take')} className="cursor-pointer rounded-lg bg-(--color-action) px-3 py-2 text-sm text-white disabled:opacity-50">Забрать себе</button> : <button type="button" disabled={pending} onClick={() => changeMode('return')} className="cursor-pointer rounded-lg border border-(--color-border) px-3 py-2 text-sm disabled:opacity-50">Вернуть боту</button>}</>}<button type="button" onClick={() => setCardOpen(true)} className="cursor-pointer rounded-lg border border-(--color-border) px-3 py-2 text-sm xl:hidden">Карточка клиента</button></div>
           </header>
           {reviewSaved && <p role="status" className="px-4 pt-4 text-sm">Пометка сохранена.</p>}
@@ -122,7 +122,8 @@ export default function Index({ dialogs, dialog, mineCounts = { waiting: 0, acti
 
       {dialog && <><div onClick={() => setCardOpen(false)} className={`${cardOpen ? 'fixed inset-0 z-30 bg-black/40 xl:hidden' : 'hidden'}`} aria-hidden="true" /><aside aria-label="Карточка клиента" className={`${cardOpen ? 'fixed inset-y-0 right-0 z-40 w-[min(90vw,340px)] overflow-y-auto' : 'hidden'} min-w-0 rounded-2xl border border-(--color-border) bg-(--color-surface) p-4 shadow-(--shadow-card) xl:static xl:block xl:w-auto`}>
         <div className="mb-4 flex items-center justify-between"><h2 className="text-lg font-semibold">Карточка клиента</h2><button type="button" onClick={() => setCardOpen(false)} aria-label="Закрыть карточку" className="cursor-pointer text-lg xl:hidden">×</button></div>
-        <p className="mb-4 text-sm text-(--color-ink-muted)">{dialog.phone || dialog.email || 'Контакты не указаны'}</p>
+        <dl className="mb-4 space-y-2 text-sm"><div><dt>Телефон</dt><dd>{dialog.phone || 'Не указан'}</dd></div><div><dt>Почта</dt><dd>{dialog.email || 'Не указана'}</dd></div><div><dt>Источник</dt><dd>{dialog.channel}</dd></div></dl>
+        <h3 className="mb-2 text-sm font-semibold">Чего не хватает</h3><p className="mb-4 text-sm">{[...(!dialog.phone ? ['Телефон'] : []), ...(!dialog.email ? ['Почта'] : []), ...dialog.slots.filter(slot => !slot.value && slot.key !== 'email' && slot.key !== 'messenger').map(slot => slot.label)].join(', ') || 'Все поля заполнены'}</p>
         <h3 className="mb-2 text-sm font-semibold">16 полей клиента</h3><dl className="space-y-2">{dialog.slots.map((slot) => <div key={slot.key} className="border-b border-(--color-border) pb-2 text-sm"><dt className="text-(--color-ink-muted)">{slot.label}</dt><dd className="break-words">{slot.value || 'Не известно'}</dd></div>)}</dl>
         <h3 className="mt-5 text-sm font-semibold">Краткое содержание</h3><p className="mt-2 whitespace-pre-wrap text-sm text-(--color-ink-muted)">{dialog.summary || 'Пока нет содержания.'}</p>
         <h3 className="mt-5 text-sm font-semibold">Задачи и обещания</h3>{dialog.tasks.length ? <ul className="mt-2 space-y-2 text-sm">{dialog.tasks.map((task) => <li key={task.id} className="rounded-lg bg-(--color-surface-muted) p-2">{task.type} · {task.status}{task.due_at ? ` · ${date(task.due_at)}` : ''}</li>)}</ul> : <p className="mt-2 text-sm text-(--color-ink-muted)">Задач пока нет.</p>}
