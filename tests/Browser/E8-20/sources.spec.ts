@@ -1,0 +1,8 @@
+import { expect, test } from '@playwright/test';
+import { createServer, type ViteDevServer } from 'vite';
+import { mkdir } from 'node:fs/promises';
+let vite:ViteDevServer;
+test.use({viewport:{width:1440,height:900},launchOptions:process.env.E820_CHROMIUM_PATH?{executablePath:process.env.E820_CHROMIUM_PATH}:{}});
+test.beforeAll(async()=>{vite=await createServer({configFile:'tests/Browser/E8-20/vite.config.ts'});await vite.listen();});
+test.afterAll(async()=>{await vite?.close();});
+test('источники, показатели и панель площадки',async({page})=>{await page.goto('http://127.0.0.1:5401/tests/Browser/E8-20/fixture.html');await expect(page.getByRole('columnheader',{name:'Модели'})).toBeVisible();await expect(page.getByRole('cell',{name:'gemini'})).toBeVisible();await mkdir('.local/screenshots/sp-e8-20',{recursive:true});await page.screenshot({path:'.local/screenshots/sp-e8-20/sources.png',fullPage:true});await page.getByRole('button',{name:'example.test'}).click();const dialog=page.getByRole('dialog');await expect(dialog.getByText('Компания А, Компания Б')).toBeVisible();await expect(dialog.getByRole('link',{name:'Открыть источник'})).toHaveAttribute('href','https://example.test/article');await expect(dialog.getByRole('link',{name:/Перейти к действиям/})).toHaveAttribute('href','/vision/actions');await page.screenshot({path:'.local/screenshots/sp-e8-20/source-drawer.png',fullPage:true});await dialog.getByRole('button',{name:'Закрыть'}).click();await page.getByLabel('Вы там').selectOption('present');await expect(page.getByText('По выбранным фильтрам источников нет.')).toBeVisible();});

@@ -38,6 +38,7 @@ final class SourcesController
             $sources = collect(data_get($snapshot, 'metrics.sources', []))->map(function ($source) use ($presence, $snapshot, $questions): array {
                 $examples = [];
                 $competitors = [];
+                $models = [];
                 foreach (data_get($snapshot, 'metrics.slots', []) as $slot) {
                     if (! ($slot['valid'] ?? false)) {
                         continue;
@@ -55,13 +56,16 @@ final class SourcesController
                                 $competitors[] = $mention['name'];
                             }
                         }
+                        if (is_string($slot['provider'] ?? null) && $slot['provider'] !== '') {
+                            $models[] = $slot['provider'];
+                        }
                         $examples[] = ['url' => $url, 'provider' => $slot['provider'] ?? '', 'question' => data_get($questions->get($slot['qid'] ?? ''), 'text', '')];
                     }
                 }
 
                 return ['domain' => $source['domain'], 'answers' => $source['answers'],
                     'type' => ReportPreparation::SOURCE_TYPES[$source['type'] ?? 'other'] ?? ReportPreparation::SOURCE_TYPES['other'],
-                    'presence' => $presence[$source['domain']] ?? 'unknown', 'competitors' => array_values(array_unique($competitors)), 'examples' => array_slice($examples, 0, 20)];
+                    'presence' => $presence[$source['domain']] ?? 'unknown', 'competitors' => array_values(array_unique($competitors)), 'models' => array_values(array_unique($models)), 'examples' => array_slice($examples, 0, 20)];
             })->values()->all();
 
             return ['sources' => $sources, 'available' => $snapshot !== null, 'canEdit' => Gate::forUser($user)->allows('vision.actions.write')];
