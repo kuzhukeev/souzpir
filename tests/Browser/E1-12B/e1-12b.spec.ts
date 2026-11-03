@@ -38,3 +38,9 @@ test('обновление статуса показывает загрузку 
   await expect(page.locator('div[aria-busy="true"]')).toBeVisible();
   await expect(page.getByText('ERR_LOAD')).toBeVisible();
 });
+
+ test('отсутствующий маршрут уведомлений отмечен недоступным', async ({ page }) => {
+  await page.goto(base + '?screen=limits&unavailable');
+  await expect(page.getByRole('link', { name: 'Уведомления', exact: true })).toHaveCount(0);
+  await expect(page.getByText('Уведомления · Скоро')).toHaveAttribute('aria-disabled', 'true');
+});

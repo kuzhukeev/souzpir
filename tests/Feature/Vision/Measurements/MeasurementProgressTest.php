@@ -83,7 +83,7 @@ final class MeasurementProgressTest extends TenancyTestCase
         unlink($fixture);
         $repeat = DB::table('measurements')->where('id', '!=', $id)->value('id');
         $this->withHeaders($headers)->post('/vision/runs/'.$repeat.'/next')->assertRedirect();
-        $this->withHeaders($headers)->getJson('/vision/runs/data?view=details')->assertJsonPath('data.0.status', 'partial')
+        $this->withHeaders($headers)->getJson('/vision/runs/data?view=details')->assertJsonPath('data.0.status', 'failed')
             ->assertJsonPath('data.0.answers.0.status', 'failed')->assertJsonPath('data.0.answers.0.error_code', 'provider_rejected');
         Http::assertNothingSent();
     }

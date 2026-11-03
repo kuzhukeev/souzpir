@@ -38,8 +38,8 @@ final class BillingWorkflowTest extends TenancyTestCase
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
         $this->get('/billing/usage?from=2026-10-01&to=2026-10-31')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('Shell/Billing/Index')->where('usage.0.key', 'seller.dialogues')->where('usage.0.value', 2)
-            ->where('usage.0.status', 'ready')->where('usage.1.value', null)->where('usage.1.status', 'unavailable')
-            ->where('usage.2.value', null)->where('usage.3.value', null)->where('period.from', '2026-10-01')->where('period.to', '2026-10-31'));
+            ->where('usage.0.status', 'ready')->where('usage.1.value', 0)->where('usage.1.status', 'ready')
+            ->where('usage.2.value', 0)->where('usage.3.value', null)->where('period.from', '2026-10-01')->where('period.to', '2026-10-31'));
         $this->post('/brand/switch', ['brand_id' => $other->id])->assertRedirect();
         $this->get('/billing/usage?from=2026-10-01&to=2026-10-31')->assertOk()
             ->assertInertia(fn (Assert $page) => $page->where('usage.0.value', 1));

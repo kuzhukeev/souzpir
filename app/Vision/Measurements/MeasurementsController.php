@@ -40,6 +40,28 @@ final class MeasurementsController
             fn (TenantContext $context, string $revision) => response()->json(['revision' => $revision]));
     }
 
+    public function schedule(Request $request): mixed
+    {
+        return app(MeasurementList::class)->withinCurrent($request, function (TenantContext $context) use ($request): mixed {
+            Gate::authorize('vision.measure.run');
+            $data = $request->validate([
+                'enabled' => ['required', 'boolean'],
+                'frequency' => ['nullable', 'in:weekly,biweekly,monthly'],
+                'weekday' => ['nullable', 'integer', 'between:1,7'],
+                'local_time' => ['nullable', 'date_format:H:i'],
+                'models' => ['nullable', 'array', 'min:1'],
+                'models.*' => ['string', 'max:120'],
+            ]);
+            try {
+                app(MeasurementSchedule::class)->save($context, $data);
+            } catch (\InvalidArgumentException) {
+                throw ValidationException::withMessages(['schedule' => 'Проверьте частоту, день, время и модели расписания.']);
+            }
+
+            return redirect()->route('vision.measurements.index')->with('status', 'Расписание сохранено.');
+        });
+    }
+
     public function start(Request $request): mixed
     {
         return app(MeasurementList::class)->withinCurrent($request, function (TenantContext $context) use ($request): mixed {
@@ -59,6 +81,7 @@ final class MeasurementsController
             } catch (\InvalidArgumentException|\LogicException) {
                 throw ValidationException::withMessages(['runs' => 'Не удалось подготовить замер. Проверьте вопросы и доступные модели.']);
             }
+            $this->enqueue($context, $id);
             app(AuditWriter::class)->record($context, new AuditEntry('vision.measurement.started', 'measurement', $id, after: ['runs' => (int) $data['runs']]));
 
             return redirect()->route('vision.measurements.index')->with('status', 'Замер создан и ожидает выполнения.');
@@ -69,7 +92,7 @@ final class MeasurementsController
     {
         $answer = app(MeasurementList::class)->withinCurrent($request, function (TenantContext $context) use ($measurement): ?string {
             Gate::authorize('vision.measure.run');
-            abort_unless(config('runtime.ai_driver', 'fake') === 'fake', 403);
+            abort_unless(config('runtime.ai_driver', 'fake') === 'fake' || config('eyon.live_measurements_enabled', false), 403);
             $plan = DB::table('measurements')->where('organization_id', $context->organizationId)
                 ->where('brand_id', $context->brandId)->where('id', $measurement)->first(['id']);
             abort_unless($plan, 404);
@@ -111,6 +134,7 @@ final class MeasurementsController
             } catch (\InvalidArgumentException|\LogicException) {
                 throw ValidationException::withMessages(['measurement' => 'Не удалось повторить замер. Проверьте набор и модели.']);
             }
+            $this->enqueue($context, $id);
             app(AuditWriter::class)->record($context, new AuditEntry('vision.measurement.repeated', 'measurement', $id, after: ['source_measurement_id' => $measurement]));
 
             return redirect()->route('vision.measurements.index')->with('status', 'Создан новый план замера.');
@@ -122,5 +146,16 @@ final class MeasurementsController
         $created = app(ConfirmSnapshot::class)->run($request, $measurement);
 
         return redirect()->route('vision.measurements.index')->with('status', $created ? 'Снимок подтверждён.' : 'Снимок уже подтверждён.');
+    }
+
+    private function enqueue(TenantContext $context, string $measurement): void
+    {
+        if (config('eyon.measurement_queue_enabled', false)) {
+            $answers = DB::table('measurement_answers')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)
+                ->where('measurement_id', $measurement)->pluck('id');
+            foreach ($answers as $answer) {
+                RunMeasurement::dispatch($context->organizationId, $context->brandId, $measurement, $answer)->afterCommit();
+            }
+        }
     }
 }

@@ -208,6 +208,7 @@ declare module 'ziggy-js' {
     "billing.plans": [],
     "billing.invoices": [],
     "billing.payer": [],
+    "billing.usage.export": [],
     "billing.payer.data": [],
     "billing.payer.update": [],
     "billing.plans.request": [],
@@ -543,6 +544,13 @@ declare module 'ziggy-js' {
         }
     ],
     "seller.quality.index": [],
+    "seller.quality.collect": [],
+    "seller.quality.recommendation": [
+        {
+            "name": "day",
+            "required": true
+        }
+    ],
     "seller.quality.day": [
         {
             "name": "day",
@@ -612,6 +620,7 @@ declare module 'ziggy-js' {
     "vision.measurements.index": [],
     "vision.measurements.data": [],
     "vision.measurements.revision": [],
+    "vision.measurements.schedule": [],
     "vision.measurements.start": [],
     "vision.measurements.next": [
         {

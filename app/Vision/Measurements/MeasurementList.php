@@ -77,6 +77,7 @@ final class MeasurementList
                 'status' => $answer->status, 'answer_text' => $answer->answer_text,
                 'error_code' => $answer->error_code,
             ])->values()->all(),
-        ])->all(), 'page' => $page, 'last_page' => max(1, (int) ceil($count / 25)), 'total' => $count];
+        ])->all(), 'page' => $page, 'last_page' => max(1, (int) ceil($count / 25)), 'total' => $count,
+            'schedule' => app(MeasurementSchedule::class)->read($context)];
     }
 }

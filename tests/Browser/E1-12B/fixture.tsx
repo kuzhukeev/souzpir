@@ -6,7 +6,8 @@ import Status from '../../../resources/js/pages/Shell/Support/Status';
 import '../../../resources/css/app.css';
 import '../../../resources/css/themes/tokens.css';
 
-const screen = new URLSearchParams(location.search).get('screen');
+const params = new URLSearchParams(location.search);
+const screen = params.get('screen');
 const page = {
   component: 'Fixture', props: {
     releases: [], draft: null, activeId: null, counts: {}, tasks: [], reviews: [], evaluations: [], canWrite: true, status: screen === 'status' ? {
@@ -19,7 +20,7 @@ const page = {
     rows: [], budget: null, period: { from: '2026-11-01', to: '2026-11-30', timezone: 'UTC' },
     theme: 'neutral', brand: { id: 'b', name: 'Пример бренда', theme: 'neutral' }, brands: [],
     organization: { id: 'o', name: 'Компания' }, auth: { user: { id: 'u', name: 'Иван Петров', email: 'ivan@example.test' } },
-    modules: { seller: true, vision: false }, can: {}, unread: null, translations: {}, ziggy: { routes: {} }, errors: {},
+    modules: { seller: true, vision: false }, can: {}, unread: null, translations: {}, ziggy: { routes: params.has('unavailable') ? {} : { notifications: { uri: 'seller/settings/notifications', methods: ['GET'] } } }, errors: {},
   }, url: location.pathname + location.search, version: null, clearHistory: false, encryptHistory: false,
 };
 const script = document.createElement('script');

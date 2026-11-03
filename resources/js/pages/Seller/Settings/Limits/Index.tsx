@@ -1,4 +1,4 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import {
   ChartNoAxesCombined,
   CreditCard,
@@ -8,6 +8,7 @@ import {
   Users,
 } from 'lucide-react';
 import CabinetLayout from '@/layouts/CabinetLayout';
+import type { SharedPropsV1 } from '@/types/generated/data';
 
 type Row = {
   key: string;
@@ -37,6 +38,8 @@ function date(value: string) {
   }).format(new Date(value + 'T00:00:00Z'));
 }
 export default function Index({ rows, budget, period }: Props) {
+  const { props } = usePage<SharedPropsV1 & Record<string, unknown>>();
+  const notificationsAvailable = Object.values(props.ziggy?.routes ?? {}).some(route => route.uri === 'seller/settings/notifications' && route.methods.includes('GET'));
   return (
     <CabinetLayout
       breadcrumbs={[
@@ -62,7 +65,7 @@ export default function Index({ rows, budget, period }: Props) {
         >
           Лимиты
         </span>
-        <Link href="/seller/settings/notifications" className="cursor-pointer rounded-lg bg-(--color-surface) px-4 py-3 text-sm text-(--color-link)">Уведомления</Link>
+        {notificationsAvailable ? <Link href="/seller/settings/notifications" className="cursor-pointer rounded-lg bg-(--color-surface) px-4 py-3 text-sm text-(--color-link)">Уведомления</Link> : <span aria-disabled="true" className="rounded-lg bg-(--color-surface) px-4 py-3 text-sm text-(--color-ink-muted)">Уведомления · Скоро</span>}
       </nav>
       <section
         aria-labelledby="usage-heading"
