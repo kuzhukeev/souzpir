@@ -141,6 +141,28 @@ final class ClarificationController
         return back()->with('status', 'Ответ сохранён.');
     }
 
+    public function pendingCount(TenantContext $tenant, string $measurement): int
+    {
+        $confirmation = $this->confirmation($tenant, $measurement);
+        if (! $confirmation) {
+            return 0;
+        }
+        $decisions = DB::table('vision_clarification_decisions')->where('organization_id', $tenant->organizationId)
+            ->where('brand_id', $tenant->brandId)->where('snapshot_confirmation_id', $confirmation->id)
+            ->pluck('decision', 'item_key');
+        $pending = 0;
+        foreach ($this->catalog($tenant, $confirmation->id) as $items) {
+            foreach ($items as $item) {
+                $decision = $decisions[$item['key']] ?? null;
+                if ($decision === null || in_array($decision, ['unknown', 'deferred'], true)) {
+                    $pending++;
+                }
+            }
+        }
+
+        return $pending;
+    }
+
     private function confirmation(TenantContext $tenant, string $measurement): ?object
     {
         $row = DB::table('measurements')->where('organization_id', $tenant->organizationId)
