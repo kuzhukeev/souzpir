@@ -2,12 +2,20 @@
 
 namespace App\Vision\Reports;
 
+use App\Ai\CanonicalJson;
 use App\Tenancy\TenantContext;
 use App\Vision\Core\VisionReportReader;
 use Illuminate\Support\Facades\DB;
 
 final class ReportData
 {
+    public function siteFromProfile(?object $measurement): ?string
+    {
+        $profile = $measurement && is_string($measurement->profile_snapshot) ? json_decode($measurement->profile_snapshot, true) : null;
+
+        return is_array($profile) && is_string($measurement->profile_checksum) && hash_equals($measurement->profile_checksum, CanonicalJson::hash($profile)) && is_string($profile['site'] ?? null) ? $profile['site'] : null;
+    }
+
     public function read(TenantContext $context, ?string $reportId): array
     {
         $confirmed = DB::table('snapshot_confirmations')->where('organization_id', $context->organizationId)
@@ -41,12 +49,14 @@ final class ReportData
                 }
                 break;
             }
+            $measurement = DB::table('measurements')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)->where('id', $payload['measurement_id'])->first(['profile_snapshot', 'profile_checksum']);
+            $site = $this->siteFromProfile($measurement);
             $metrics = $payload['metrics'] ?? [];
             $panel = $metrics['panel'] ?? [];
             $visibility = $metrics['visibility'] ?? [];
             $report = [
                 'id' => $selected, 'measurement_id' => $payload['measurement_id'],
-                'sections' => [...app(ReportSections::class)->make($payload), 'changes' => $changes],
+                'sections' => [...app(ReportSections::class)->make($payload), 'changes' => $changes, 'site' => $site],
                 'visibility' => $visibility['macro_percent'] ?? null,
                 'visibility_kind' => $visibility['macro_kind'] ?? 'available',
                 'coverage' => $visibility['coverage'] ?? null,

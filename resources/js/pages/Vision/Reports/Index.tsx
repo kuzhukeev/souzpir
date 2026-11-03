@@ -1,7 +1,7 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import CabinetLayout from '@/layouts/CabinetLayout';
-import { ReportSections } from '@/features/Vision/Reports/ReportSections';
+import { ReportSections } from './ReportSections';
 import { profileContextIsStable, subscribeProfileContext } from '@/features/Shell/Profile/contextFence';
 
 type Report = { sections: Parameters<typeof ReportSections>[0]['data']; id: string; measurement_id: string; visibility: number | null; visibility_kind: string; coverage: number | null; share_of_voice: number | null; position: number | null; verified_errors: number | null; providers: { name: string; mention_rate: number | null; coverage: number | null }[]; questions: number; evidence_status: string };

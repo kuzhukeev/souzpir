@@ -12,3 +12,9 @@ test('история конкурентов ведёт к отчёту',async({p
  await expect(page.getByRole('link',{name:/Отчёт от/})).toHaveAttribute('href','/vision/report?report=r1');
  await page.screenshot({path:'.local/screenshots/e8-11/competitors.png',fullPage:true});
 });
+
+test('сайт, факты и рекомендации показывают данные снимка',async({page})=>{
+ await page.goto(base+'?report');await expect(page.getByText(/Сайт из анкеты на момент замера: https/)).toBeVisible();
+ await expect(page.getByText('Проверенный факт')).toBeVisible();await expect(page.getByText('Обновить сведения')).toBeVisible();
+ await page.screenshot({path:'.local/screenshots/e8-11/report.png',fullPage:true});
+});
