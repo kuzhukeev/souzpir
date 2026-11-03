@@ -41,7 +41,7 @@ test('actual questions create, select, publish, version, permissions and CSRF', 
     await page.getByRole('button', { name: 'Добавить свой' }).click();
     await page.getByLabel('Текст вопроса').fill('Как выбрать торт на свадьбу?');
     await page.getByRole('button', { name: 'Добавить вопрос', exact: true }).click();
-    await expect(page.getByText('Как выбрать торт на свадьбу?')).toBeVisible();
+    await expect(page.getByText('Как выбрать торт на свадьбу?', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'В набор' }).click();
     await expect(page.getByText('Выбран', { exact: true })).toBeVisible();
     await page.getByRole('link', { name: 'Перейти к утверждению' }).click();
@@ -51,10 +51,10 @@ test('actual questions create, select, publish, version, permissions and CSRF', 
     await page.getByRole('button', { name: 'Утвердить без запуска' }).click();
     await expect(page).toHaveURL(/\/vision\/questions\/active$/);
     await expect(page.getByText('Версия 1 · Активный')).toBeVisible();
-    await expect(page.getByText('Как выбрать торт на свадьбу?')).toBeVisible();
+    await expect(page.getByText('Как выбрать торт на свадьбу?', { exact: true })).toBeVisible();
     await page.screenshot({ path: '.local/screenshots/e8-03/real-active.png', fullPage: true });
     await viewer.goto(base + '/vision/questions/active');
-    await expect(viewer.getByText('Как выбрать торт на свадьбу?')).toBeVisible();
+    await expect(viewer.getByText('Как выбрать торт на свадьбу?', { exact: true })).toBeVisible();
     await expect(viewer.getByRole('button', { name: 'Изменить набор' })).toHaveCount(0);
     await page.getByRole('button', { name: 'Изменить набор' }).click();
     await expect(page).toHaveURL(/\/vision\/questions$/);
@@ -103,7 +103,7 @@ test('actual questions create, select, publish, version, permissions and CSRF', 
 
     // A cached private DOM must be hidden before BFCache and refetched after restoration.
     await page.goto(base + '/vision/questions');
-    const marker = page.getByText('Как выбрать торт на свадьбу?');
+    const marker = page.getByText('Как выбрать торт на свадьбу?', { exact: true });
     await expect(marker).toBeVisible();
     await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true })));
     await expect(marker).toBeHidden();
