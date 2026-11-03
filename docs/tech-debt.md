@@ -130,3 +130,6 @@
 - Фрагменты диалогов загружаются для каждой доступной задачи отдельно; при большом числе задач запросы стоит объединить.
 - Вне scope сводки и база знаний местами выбирают только `status = new` (например, `app/Seller/Dashboard/DashboardQuery.php` и `app/Seller/Knowledge/Releases/ReleasesController.php`); согласовать учёт `in_progress` в этих модулях.
 - Общий словарь `resources/js/features/Seller/Customers/labels.ts` вне scope: добавить перевод `in_progress` для других потребителей.
+
+### SP-E7-03C
+- Постоянной сущности набора прогонов нет: два набора задаются явным выбором прогонов на странице.
