@@ -6,6 +6,7 @@ import Actions from '@/pages/Shell/Journal/Actions';
 const calls = vi.hoisted(() => ({ get: vi.fn() }));
 vi.mock('@inertiajs/react', () => ({
   Head: () => null,
+  usePage: () => ({ props: { brand: null } }),
   Link: ({ href, children, ...props }: { href: string; children: ReactNode }) => (
     <a href={href} {...props}>
       {children}
