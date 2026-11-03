@@ -5228,7 +5228,9 @@
         "SP-E5-04J",
         "SP-E8-24B",
         "SP-E8-15C",
-        "SP-E8-19B"
+        "SP-E8-19B",
+        "SP-E1-02E",
+        "SP-E4-04E"
       ],
       "scope": [
         "README.md",
@@ -13270,6 +13272,73 @@
       "promptPath": "docs/tasks/SP-E8-19B.md",
       "wave": 18,
       "description": "# SP-E8-19B · Остаток отчёта и публикации\n\n**Зачем:** завершить экраны V-5.6, V-5.7, V-5.8, V-5.9, V-5.10, V-5.P по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E8-19 из docs/results/SP-E8-19.md.\n**Зависимости:** SP-E8-19, SP-E8-18B (дождаться merge).\n\nЗавершить критерии оценки сайта, данные трёх шагов, карточки изменений и аккордеон; тумблер публикации, логотип, спарклайны и разрешённые публичные критерии, приоритеты и шаги без раскрытия приватных данных.\n\nСверить с docs/sources/02b_mockup_journal.md; проверить сценарии, права, изоляцию брендов и ошибки. Без живых или платных вызовов в тестах.\n\nScope: `app/Vision/Reports/`, `app/Vision/Publications/`, `resources/js/pages/Vision/Reports/`, `resources/js/pages/Vision/Publications/`, `resources/views/public-report/`, `tests/Feature/Vision/Reports/`, `tests/Feature/Vision/Publications/`, `tests/Browser/E8-19B/`, `docs/results/SP-E8-19B.md`.\n\nОтчёт: docs/results/SP-E8-19B.md; остаток указать по пунктам.\n"
+    },
+    {
+      "taskKey": "SP-E1-02E",
+      "title": "SP-E1-02E · Проверка сайта и SVG логотипа мастера",
+      "goal": "Завершить проверку доступности сайта через существующий подходящий провайдер и загрузку SVG-логотипа с безопасной обработкой; в тестах использовать fake-драйвер без живой сети.",
+      "dependsOn": [
+        "SP-E1-02C",
+        "SP-E1-02D"
+      ],
+      "scope": [
+        "app/Shell/Onboarding/",
+        "resources/js/pages/Shell/Onboarding/",
+        "resources/js/features/Shell/Onboarding/",
+        "tests/Feature/Shell/Onboarding/",
+        "tests/Browser/E1-02E/",
+        "docs/results/SP-E1-02E.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Реализовать пункты остатка по макету, проверить права, изоляцию и ошибки; без живых вызовов."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "S-0.6"
+      ],
+      "notes": "Продолжение частичной сдачи по решению владельца.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E1-02E.md",
+      "wave": 18,
+      "description": "# SP-E1-02E · Проверка сайта и SVG логотипа мастера\n\n**Зачем:** завершить экраны S-0.6 по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E1-02C из docs/results/SP-E1-02C.md.\n**Зависимости:** SP-E1-02C, SP-E1-02D (дождаться merge).\n\nЗавершить проверку доступности сайта через существующий подходящий провайдер и загрузку SVG-логотипа с безопасной обработкой; в тестах использовать fake-драйвер без живой сети.\n\nСверить с docs/sources/02b_mockup_journal.md; проверить сценарии, права, изоляцию брендов и ошибки. Без живых или платных вызовов в тестах.\n\nScope: `app/Shell/Onboarding/`, `resources/js/pages/Shell/Onboarding/`, `resources/js/features/Shell/Onboarding/`, `tests/Feature/Shell/Onboarding/`, `tests/Browser/E1-02E/`, `docs/results/SP-E1-02E.md`.\n\nОтчёт: docs/results/SP-E1-02E.md; остаток указать по пунктам.\n"
+    },
+    {
+      "taskKey": "SP-E4-04E",
+      "title": "SP-E4-04E · Неизвестные вопросы и оформление тем",
+      "goal": "Подключить log_unknown_question и создание задач unknown_question через общий диспетчер инструментов; обработать метаданные последующих ходов и guard-fallback, проверить end-to-end статистику и задачу; завершить оформление тем, панели и мобильного вида по макету.",
+      "dependsOn": [
+        "SP-E4-04D"
+      ],
+      "scope": [
+        "app/Seller/Knowledge/Topics/",
+        "app/Seller/Runtime/",
+        "app/ProtectedOperations/",
+        "resources/js/pages/Seller/Knowledge/Topics/",
+        "tests/Feature/Seller/Knowledge/Topics/",
+        "tests/Browser/E4-04E/",
+        "docs/results/SP-E4-04E.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Реализовать пункты остатка по макету, проверить права, изоляцию и ошибки; без живых вызовов."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "D-4.6",
+        "D-4.7"
+      ],
+      "notes": "Продолжение частичной сдачи по решению владельца.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E4-04E.md",
+      "wave": 18,
+      "description": "# SP-E4-04E · Неизвестные вопросы и оформление тем\n\n**Зачем:** завершить экраны D-4.6, D-4.7 по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E4-04D из docs/results/SP-E4-04D.md.\n**Зависимости:** SP-E4-04D (дождаться merge).\n\nПодключить log_unknown_question и создание задач unknown_question через общий диспетчер инструментов; обработать метаданные последующих ходов и guard-fallback, проверить end-to-end статистику и задачу; завершить оформление тем, панели и мобильного вида по макету.\n\nСверить с docs/sources/02b_mockup_journal.md; проверить сценарии, права, изоляцию брендов и ошибки. Без живых или платных вызовов в тестах.\n\nScope: `app/Seller/Knowledge/Topics/`, `app/Seller/Runtime/`, `app/ProtectedOperations/`, `resources/js/pages/Seller/Knowledge/Topics/`, `tests/Feature/Seller/Knowledge/Topics/`, `tests/Browser/E4-04E/`, `docs/results/SP-E4-04E.md`.\n\nОтчёт: docs/results/SP-E4-04E.md; остаток указать по пунктам.\n"
     }
   ],
   "excludedSourceTasks": {

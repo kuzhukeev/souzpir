@@ -47,6 +47,7 @@ GENERATED_CONTRACT_FILES = frozenset(
 # Narrow integrator-approved scope corrections for shared routes, UI and CI
 # regressions. They do not broaden ownership to neighboring modules.
 CI_SCOPE_EXCEPTIONS = {
+    "SP-E7-03E": ("tests/Browser/E7-03D/fixture.tsx", "tests/Browser/E7-03D/compare.spec.ts"),
     "SP-E8-15B": ("tests/Browser/E8-03/e2e.spec.ts",),
     "SP-E5-04G": ("tests/Browser/E5-04E/filters.spec.ts",),
     "SP-E8-17": ("tests/Browser/E8-10/wizard.spec.ts",),
