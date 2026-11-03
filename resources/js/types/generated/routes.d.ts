@@ -473,6 +473,16 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "seller.dialogs.reviews.store": [
+        {
+            "name": "dialog",
+            "required": true
+        },
+        {
+            "name": "message",
+            "required": true
+        }
+    ],
     "seller.customers.index": [],
     "seller.customers.show": [
         {
