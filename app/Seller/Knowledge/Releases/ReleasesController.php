@@ -3,6 +3,7 @@
 namespace App\Seller\Knowledge\Releases;
 
 use App\Models\User;
+use App\Seller\Evaluation\FakeSimulation;
 use App\Seller\Knowledge\Contracts\KnowledgeRepository;
 use App\Seller\Knowledge\KnowledgeNotReady;
 use App\Seller\Knowledge\KnowledgeSnapshot;
@@ -15,6 +16,7 @@ use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 final class ReleasesController
@@ -89,11 +91,47 @@ final class ReleasesController
             $handled = $this->query('audit_logs', $tenant)->where('action', 'knowledge.incoming.handled')->where('subject_type', 'evaluation')->pluck('subject_id');
             $evaluations = $this->query('seller_evaluations', $tenant)->whereNotIn('id', $handled)->whereRaw('jsonb_array_length(issues) > 0')->orderByDesc('created_at')->limit(50)->get(['id', 'issues', 'comment', 'created_at']);
 
-            return ['releases' => $releases, 'activeId' => $brand?->active_knowledge_release_id, 'draft' => $draft, 'counts' => $counts,
+            $lastRun = $draft ? $this->scenarioResult($tenant, $draft->id) : null;
+
+            return ['scenarioRun' => $lastRun, 'releases' => $releases, 'activeId' => $brand?->active_knowledge_release_id, 'draft' => $draft, 'counts' => $counts,
                 'tasks' => $tasks, 'reviews' => $reviews, 'evaluations' => $evaluations, 'changeCount' => $changeCount, 'changes' => $changes, 'comparison' => $comparison, 'coverage' => $coverage, 'publicationNotes' => $notes, 'topics' => $topics, 'canWrite' => $canWrite];
         });
 
         return Inertia::render('Seller/Knowledge/Releases/Index', [...$data, 'status' => session('status')]);
+    }
+
+    private function scenarioResult(TenantContext $tenant, string $release): ?array
+    {
+        $json = $this->query('audit_logs', $tenant)->where('action', 'knowledge.scenarios.checked')->where('subject_id', $release)->orderByDesc('created_at')->orderByDesc('id')->value('after');
+
+        return $json ? json_decode($json, true) : null;
+    }
+
+    public function runScenarios(Request $request, string $release): mixed
+    {
+        $this->access($request, 'seller.knowledge.write', function (User $user, TenantContext $tenant) use ($release): array {
+            $draft = $this->query('knowledge_releases', $tenant)->where('id', $release)->where('status', 'draft')->first() ?? abort(404);
+            $scenarios = $this->query('seller_personas', $tenant)->orderBy('name')->get()->filter(function ($row): bool {
+                $payload = json_decode($row->payload, true) ?: [];
+
+                return ($payload['in_set'] ?? true) === true;
+            });
+            $runs = [];
+            foreach ($scenarios as $scenario) {
+                $payload = json_decode($scenario->payload, true) ?: [];
+                $client = trim((string) ($payload['first_message'] ?? ''));
+                $passed = $client !== '';
+                $simulation = app(FakeSimulation::class);
+                $id = $simulation->run($tenant, $scenario->key, [['client' => $client ?: 'Тестовый вопрос', 'agent' => 'Тестовый ответ', 'meta' => []]]);
+                $runs[] = ['id' => $id, 'passed' => $passed];
+            }
+            $result = ['version' => $draft->version, 'runs' => $runs, 'passed' => count(array_filter($runs, fn ($run) => $run['passed'])), 'failed' => count(array_filter($runs, fn ($run) => ! $run['passed']))];
+            app(AuditWriter::class)->record($tenant, new AuditEntry('knowledge.scenarios.checked', 'knowledge_release', $release, after: $result));
+
+            return $result;
+        });
+
+        return back();
     }
 
     public function draft(Request $request): mixed
@@ -129,8 +167,12 @@ final class ReleasesController
 
     public function publish(Request $request, string $release): mixed
     {
-        $input = $request->validate(['version' => ['required', 'integer', 'min:1'], 'note' => ['nullable', 'string', 'max:500']]);
+        $input = $request->validate(['version' => ['required', 'integer', 'min:1'], 'note' => ['nullable', 'string', 'max:500'], 'confirm_failed' => ['sometimes', 'boolean']]);
         $this->access($request, 'seller.knowledge.write', function (User $user, TenantContext $tenant) use ($release, $input): void {
+            $run = $this->scenarioResult($tenant, $release);
+            if ($run && $run['version'] === (int) $input['version'] && $run['failed'] > 0 && ! ($input['confirm_failed'] ?? false)) {
+                throw ValidationException::withMessages(['confirm_failed' => 'Подтвердите публикацию при проваленных сценариях.']);
+            }
             DB::transaction(function () use ($tenant, $release, $input): void {
                 $published = app(KnowledgeRepository::class)->publish($tenant, $release, (int) $input['version']);
                 $note = trim($input['note'] ?? '');

@@ -367,6 +367,12 @@ declare module 'ziggy-js' {
     "seller.knowledge.compare": [],
     "seller.knowledge.draft": [],
     "seller.knowledge.incoming": [],
+    "seller.knowledge.scenarios": [
+        {
+            "name": "release",
+            "required": true
+        }
+    ],
     "seller.knowledge.publish": [
         {
             "name": "release",

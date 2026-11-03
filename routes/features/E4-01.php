@@ -10,6 +10,7 @@ return ['web' => static function (): void {
         Route::get('/seller/knowledge/releases/compare', [ReleasesController::class, 'compare'])->name('seller.knowledge.compare');
         Route::post('/seller/knowledge/draft', [ReleasesController::class, 'draft'])->name('seller.knowledge.draft');
         Route::post('/seller/knowledge/incoming', [IncomingController::class, 'handle'])->name('seller.knowledge.incoming');
+        Route::post('/seller/knowledge/{release}/scenarios', [ReleasesController::class, 'runScenarios'])->whereUlid('release')->name('seller.knowledge.scenarios');
         Route::post('/seller/knowledge/{release}/publish', [ReleasesController::class, 'publish'])->whereUlid('release')->name('seller.knowledge.publish');
         Route::post('/seller/knowledge/{release}/rollback', [ReleasesController::class, 'rollback'])->whereUlid('release')->name('seller.knowledge.rollback');
     });
