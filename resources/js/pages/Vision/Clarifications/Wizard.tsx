@@ -4,7 +4,7 @@ import CabinetLayout from '@/layouts/CabinetLayout';
 
 type Step = 'mentions' | 'presence' | 'facts' | 'done';
 type Item = { key: string; value: string; excerpt: string | null; decision: string | null; correction: string | null; profile_url: string | null; add_alias: boolean };
-type Props = { measurement: string; step: Step; available: boolean; items: Item[]; total: number; pending: number; status: string | null };
+type Props = { measurement: string; step: Step; available: boolean; items: Item[]; total: number; pending: number; status: string | null; alias_available?: boolean };
 const order: Step[] = ['mentions', 'presence', 'facts', 'done'];
 const titles: Record<Step, string> = { mentions: 'Это про вас?', presence: 'Вы есть на этих площадках?', facts: 'Это ваши утверждения или ошибки нейросети?', done: 'Готово к отчёту' };
 const options: Record<Exclude<Step, 'done'>, [string, string][]> = {
@@ -15,15 +15,16 @@ const options: Record<Exclude<Step, 'done'>, [string, string][]> = {
 const path = (measurement: string, step: Step) => `/vision/runs/${measurement}/clarify/${step}`;
 const action = 'min-h-11 cursor-pointer rounded-lg px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50';
 
-function DecisionCard({ item, step, measurement }: { item: Item; step: Exclude<Step, 'done'>; measurement: string }) {
+function DecisionCard({ item, step, measurement, aliasAvailable }: { item: Item; step: Exclude<Step, 'done'>; measurement: string; aliasAvailable: boolean }) {
     const [decision, setDecision] = useState(item.decision ?? '');
     const [correction, setCorrection] = useState(item.correction ?? '');
     const [profileUrl, setProfileUrl] = useState(item.profile_url ?? '');
     const [saving, setSaving] = useState(false);
+    const [addAlias, setAddAlias] = useState(false);
     const [error, setError] = useState('');
     const save = (value: string) => {
         setError('');
-        router.post(path(measurement, step), { item_key: item.key, decision: value, correction, profile_url: profileUrl }, {
+        router.post(path(measurement, step), { item_key: item.key, decision: value, correction, profile_url: profileUrl, apply_alias: step === 'mentions' && value === 'yes' && addAlias }, {
             preserveScroll: true,
             onStart: () => setSaving(true),
             onFinish: () => setSaving(false),
@@ -33,10 +34,14 @@ function DecisionCard({ item, step, measurement }: { item: Item; step: Exclude<S
         });
     };
 
+    const match = item.excerpt?.toLocaleLowerCase().indexOf(item.value.toLocaleLowerCase()) ?? -1;
     return <section className="rounded-xl border border-(--color-border) bg-(--color-surface) p-5 text-sm">
         <h2 className="text-lg font-bold">{item.value}</h2>
-        {item.excerpt && <p className="mt-2 rounded-lg bg-(--color-surface-muted) p-3 text-(--color-ink-muted)">Фрагмент ответа: {item.excerpt}</p>}
+        {item.excerpt && <p className="mt-2 rounded-lg bg-(--color-surface-muted) p-3 text-(--color-ink-muted)">Фрагмент ответа: {match < 0 ? item.excerpt : <>{item.excerpt.slice(0, match)}<mark className="rounded bg-(--color-warning-soft) text-(--color-warning-ink)">{item.excerpt.slice(match, match + item.value.length)}</mark>{item.excerpt.slice(match + item.value.length)}</>}</p>}
         <fieldset className="mt-4"><legend className="font-semibold">Ваш ответ</legend><div className="mt-2 flex flex-wrap gap-3">{options[step].map(([value, label]) => <label key={value} className="flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-(--color-border) px-3"><input type="radio" name={`decision-${item.key}`} checked={decision === value} onChange={() => setDecision(value)} />{label}</label>)}</div></fieldset>
+        {step === 'mentions' && decision === 'yes' && <label className="mt-4 flex items-center gap-2"><input type="checkbox" checked={addAlias} disabled={!aliasAvailable} onChange={event => setAddAlias(event.target.checked)} />Добавить в профиль как вариант названия</label>}
+        {step === 'mentions' && decision === 'yes' && !aliasAvailable && <p className="mt-2 text-(--color-ink-muted)">Сначала заполните профиль бренда.</p>}
+        {step === 'facts' && <p className="mt-4 text-(--color-ink-muted)">Неверные факты сохраняются для отчёта; отображение в отчёте появится позже.</p>}
         {step === 'presence' && <label className="mt-4 block font-medium">Ссылка на профиль (если есть)<input type="url" value={profileUrl} onChange={(event) => setProfileUrl(event.target.value)} maxLength={1000} className="mt-1 block min-h-11 w-full rounded-lg border border-(--color-border) bg-(--color-surface) px-3 text-sm" placeholder="https://example.com/profile" /></label>}
         {step === 'facts' && (decision === 'incorrect' || decision === 'outdated') && <label className="mt-4 block font-medium">Как правильно<textarea required value={correction} onChange={(event) => setCorrection(event.target.value)} maxLength={1000} rows={3} className="mt-1 block w-full rounded-lg border border-(--color-border) bg-(--color-surface) p-3 text-sm" /></label>}
         {error && <p role="alert" className="mt-3 text-(--color-danger-ink)">{error}</p>}
@@ -45,7 +50,7 @@ function DecisionCard({ item, step, measurement }: { item: Item; step: Exclude<S
     </section>;
 }
 
-export default function Wizard({ measurement, step, available, items, total, pending, status }: Props) {
+export default function Wizard({ measurement, step, available, items, total, pending, status, alias_available = false }: Props) {
     const index = order.indexOf(step);
     const next = order[index + 1];
     const title = titles[step];
@@ -57,7 +62,7 @@ export default function Wizard({ measurement, step, available, items, total, pen
             {status && <p role="status" className="mt-5 rounded-lg bg-(--color-success-soft) p-3 text-sm">{status}</p>}
             {!available ? <section className="mt-6 rounded-xl border border-(--color-border) bg-(--color-surface) p-6"><p>Уточнения станут доступны после подтверждения завершённого замера.</p><Link href="/vision/runs" className="mt-4 inline-flex min-h-11 cursor-pointer items-center text-(--color-link)">К замерам</Link></section> : step === 'done' ? <section className="mt-6 rounded-xl border border-(--color-border) bg-(--color-surface) p-6"><h2 className="text-xl font-bold">Ответы сохранены</h2><p className="mt-3 text-sm">Всего уточнений: {total}. Требуют ответа или оставлены на потом: {pending}.</p><p className="mt-3 rounded-lg bg-(--color-warning-soft) p-3 text-sm text-(--color-warning-ink)">Уточнения сохранены отдельно от отчёта. Перерасчёт показателей ещё не подключён; внутренний отчёт можно открыть с исходными значениями.</p><div className="mt-5 flex flex-wrap gap-4"><Link href={path(measurement, 'mentions')} className="inline-flex min-h-11 cursor-pointer items-center text-(--color-link)">Вернуться к уточнениям</Link><Link href="/vision/report" className={`${action} inline-flex items-center bg-(--color-link) text-white`}>Открыть отчёт</Link></div></section> : <>
                 <p className="mt-4 text-sm text-(--color-ink-muted)">{total - pending} из {total} уточнений решено. Ответы «Не знаю» и «Решить позже» можно изменить позже.</p>
-                {items.length === 0 ? <section className="mt-6 rounded-xl border border-(--color-border) bg-(--color-surface) p-8 text-center text-sm text-(--color-ink-muted)">Нет данных для уточнения на этом шаге.</section> : <div className="mt-6 space-y-4">{items.map((item) => <DecisionCard key={item.key} item={item} step={step} measurement={measurement} />)}</div>}
+                {items.length === 0 ? <section className="mt-6 rounded-xl border border-(--color-border) bg-(--color-surface) p-8 text-center text-sm text-(--color-ink-muted)">{step === 'mentions' ? 'Нет упоминаний для уточнения.' : step === 'presence' ? 'Нет площадок для уточнения.' : 'Нет фактов для уточнения.'}</section> : <div className="mt-6 space-y-4">{items.map((item) => <DecisionCard key={item.key} item={item} step={step} measurement={measurement} aliasAvailable={alias_available} />)}</div>}
                 <div className="mt-6 flex flex-wrap items-center justify-between gap-3"><Link href="/vision/runs" className="inline-flex min-h-11 cursor-pointer items-center text-sm text-(--color-link)">К замерам</Link>{next && <Link href={path(measurement, next)} className={`${action} inline-flex items-center bg-(--color-link) text-white`}>Продолжить</Link>}</div>
             </>}
         </main>

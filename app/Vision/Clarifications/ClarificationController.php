@@ -5,7 +5,9 @@ namespace App\Vision\Clarifications;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
 use App\Tenancy\TenantContext;
+use App\Vision\Core\Profiles\Questionnaire;
 use App\Vision\Measurements\MeasurementList;
+use App\Vision\Profile\CompletionRules;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -60,7 +62,7 @@ final class ClarificationController
 
             return Inertia::render('Vision/Clarifications/Wizard', ['measurement' => $measurement, 'step' => $step,
                 'available' => (bool) $confirmation, 'items' => $items, 'total' => $total, 'pending' => $pending,
-                'status' => session('status')]);
+                'status' => session('status'), 'alias_available' => Gate::allows('vision.quiz.write') && DB::table('brand_profiles')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->exists()]);
         }, false);
     }
 
@@ -68,8 +70,8 @@ final class ClarificationController
     {
         $input = $request->validate(['item_key' => ['required', 'string', 'regex:/^[a-f0-9]{64}$/D'],
             'decision' => ['required', Rule::in(self::DECISIONS[$step])], 'correction' => ['nullable', 'string', 'max:1000'],
-            'profile_url' => ['nullable', 'url', 'max:1000'], 'add_alias' => ['sometimes', 'boolean']]);
-        app(MeasurementList::class)->withinCurrent($request, function (TenantContext $tenant) use ($measurement, $step, $input): void {
+            'profile_url' => ['nullable', 'url', 'max:1000'], 'add_alias' => ['sometimes', 'boolean'], 'apply_alias' => ['sometimes', 'boolean']]);
+        app(MeasurementList::class)->withinCurrent($request, function (TenantContext $tenant) use ($measurement, $step, $input, $request): void {
             Gate::authorize('vision.measure.run');
             $confirmation = $this->confirmation($tenant, $measurement);
             if (! $confirmation) {
@@ -91,11 +93,38 @@ final class ClarificationController
             if ($step !== 'mentions' && ! empty($input['add_alias'])) {
                 throw ValidationException::withMessages(['add_alias' => 'Вариант названия доступен только для упоминаний.']);
             }
+            if ($input['apply_alias'] ?? false) {
+                Gate::authorize('vision.quiz.write');
+                if ($step !== 'mentions' || $input['decision'] !== 'yes') {
+                    throw ValidationException::withMessages(['apply_alias' => 'Вариант названия доступен только для подтверждённого упоминания.']);
+                }
+                $profileId = DB::table('brand_profiles')->where('organization_id', $tenant->organizationId)
+                    ->where('brand_id', $tenant->brandId)->orderByDesc('version')->value('id');
+                if (! $profileId) {
+                    throw ValidationException::withMessages(['apply_alias' => 'Сначала заполните профиль бренда.']);
+                }
+                try {
+                    $questionnaire = app(Questionnaire::class);
+                    $profile = $questionnaire->profile($request, $profileId);
+                    $answers = $profile['answers'];
+                    $aliases = $answers['step2']['aliases'] ?? [];
+                    if (! is_array($aliases)) {
+                        throw new \LogicException;
+                    }
+                    if (! in_array($item['value'], $aliases, true)) {
+                        $answers['step2']['aliases'][] = $item['value'];
+                        app(CompletionRules::class)->validate($answers);
+                        $questionnaire->edit($request, $profileId, 2, $answers['step2']);
+                    }
+                } catch (\Throwable) {
+                    throw ValidationException::withMessages(['apply_alias' => 'Не удалось добавить вариант. Проверьте профиль бренда.']);
+                }
+            }
             $existing = DB::table('vision_clarification_decisions')->where('snapshot_confirmation_id', $confirmation->id)
                 ->where('item_key', $item['key'])->first(['id']);
             $values = ['decision' => $input['decision'], 'correction' => $step === 'facts' ? ($input['correction'] ?? null) : null,
                 'profile_url' => $step === 'presence' ? ($input['profile_url'] ?? null) : null,
-                'add_alias' => $step === 'mentions' && $input['decision'] === 'yes' && ($input['add_alias'] ?? false),
+                'add_alias' => $step === 'mentions' && $input['decision'] === 'yes' && (($input['add_alias'] ?? false) || ($input['apply_alias'] ?? false)),
                 'decided_by' => $tenant->actorId, 'updated_at' => now()];
             if ($existing) {
                 DB::table('vision_clarification_decisions')->where('id', $existing->id)->update($values);
