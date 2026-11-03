@@ -39,10 +39,7 @@ function date(value: string) {
 }
 export default function Index({ rows, budget, period }: Props) {
   const { props } = usePage<SharedPropsV1 & Record<string, unknown>>();
-  const exists = (uri: string) =>
-    Object.values(props.ziggy?.routes ?? {}).some(
-      (route) => route.uri === uri && route.methods.includes('GET'),
-    );
+  const notificationsAvailable = Object.values(props.ziggy?.routes ?? {}).some(route => route.uri === 'seller/settings/notifications' && route.methods.includes('GET'));
   return (
     <CabinetLayout
       breadcrumbs={[
@@ -60,39 +57,15 @@ export default function Index({ rows, budget, period }: Props) {
         </p>
       </header>
       <nav aria-label="Настройки продавца" className="mb-6 flex flex-wrap gap-2">
-        <span
-          aria-disabled="true"
-          className="rounded-lg bg-(--color-surface) px-4 py-3 text-sm text-(--color-ink-muted)"
-        >
-          Режим работы · Скоро
-        </span>
-        <span
-          aria-disabled="true"
-          className="rounded-lg bg-(--color-surface) px-4 py-3 text-sm text-(--color-ink-muted)"
-        >
-          Распределение · Скоро
-        </span>
+        <Link href="/seller/settings" className="cursor-pointer rounded-lg bg-(--color-surface) px-4 py-3 text-sm text-(--color-link)">Режим работы</Link>
+        <Link href="/seller/settings" className="cursor-pointer rounded-lg bg-(--color-surface) px-4 py-3 text-sm text-(--color-link)">Распределение</Link>
         <span
           aria-current="page"
           className="rounded-lg bg-(--color-success-soft) px-4 py-3 text-sm font-semibold text-(--color-action)"
         >
           Лимиты
         </span>
-        {exists('seller/settings/notifications') ? (
-          <Link
-            href="/seller/settings/notifications"
-            className="cursor-pointer rounded-lg bg-(--color-surface) px-4 py-3 text-sm text-(--color-link) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus)"
-          >
-            Уведомления
-          </Link>
-        ) : (
-          <span
-            aria-disabled="true"
-            className="rounded-lg bg-(--color-surface) px-4 py-3 text-sm text-(--color-ink-muted)"
-          >
-            Уведомления · Скоро
-          </span>
-        )}
+        {notificationsAvailable ? <Link href="/seller/settings/notifications" className="cursor-pointer rounded-lg bg-(--color-surface) px-4 py-3 text-sm text-(--color-link)">Уведомления</Link> : <span aria-disabled="true" className="rounded-lg bg-(--color-surface) px-4 py-3 text-sm text-(--color-ink-muted)">Уведомления · Скоро</span>}
       </nav>
       <section
         aria-labelledby="usage-heading"

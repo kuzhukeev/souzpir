@@ -18,7 +18,12 @@ for (const theme of ['neutral', 'confectionery', 'pyro']) {
       await page.keyboard.press('Shift+Tab');
       await expect(link).toHaveCSS('outline-style', 'solid');
       await expect(nav.getByRole('link', { name: /Скоро/ })).toHaveCount(0);
-      await expect(nav.locator('[aria-disabled="true"]')).toHaveCount(2);
+      for (const name of ['Режим работы', 'Распределение']) {
+        const settingsLink = nav.getByRole('link', { name });
+        await expect(settingsLink).toBeVisible();
+        await expect(settingsLink).toHaveAttribute('href', '/seller/settings');
+      }
+      await expect(nav.locator('[aria-disabled="true"]')).toHaveCount(0);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       if (theme === 'neutral' && width === 1440) {
         await page.screenshot({ path: '.local/screenshots/sp-ui-06/limits-1440.png', fullPage: true });
