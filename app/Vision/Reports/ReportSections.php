@@ -53,13 +53,33 @@ final class ReportSections
             if (! $question || ($row['planned'] ?? 0) < 1 || ($row['mention_denominator'] ?? 0) !== $row['planned'] || ($row['mentioned'] ?? 0) !== 0) {
                 continue;
             }
-            $gaps[] = ['text' => $question['text'], 'intent' => $question['intent']];
+            $recommendations = collect(data_get($payload, 'recommendations.items', []))
+                ->filter(fn ($item) => is_array($item) && ($item['question_id'] ?? $item['qid'] ?? null) === $id)
+                ->map(fn ($item) => ['title' => $item['title'] ?? '', 'why' => is_string($item['why'] ?? null) ? $item['why'] : ''])
+                ->filter(fn ($item) => is_string($item['title']) && $item['title'] !== '')->values()->all();
+            $gaps[] = ['text' => $question['text'], 'intent' => $question['intent'], 'recommendations' => $recommendations];
         }
 
         return [
-            'competitors' => collect($metrics['entities'] ?? [])->take(10)->map(fn ($item) => [
-                'name' => $item['name'], 'answers' => $item['answers'], 'is_brand' => $item['is_brand'],
-            ])->values()->all(),
+            'competitors' => collect($metrics['entities'] ?? [])->take(10)->map(function ($item) use ($metrics) {
+                $matched = collect($metrics['slots'] ?? [])->filter(function ($slot) use ($item): bool {
+                    if (! ($slot['valid'] ?? false)) {
+                        return false;
+                    }
+                    foreach ($slot['mentions'] ?? [] as $mention) {
+                        if (($mention['name'] ?? null) === ($item['name'] ?? null)
+                            && ! ($mention['ambiguous_brand'] ?? false)
+                            && (! ($mention['is_brand'] ?? false) || ($slot['fact']['mention_status'] ?? 'confirmed') === 'confirmed')) {
+                            return true;
+                        }
+                    }
+
+                    return false;
+                });
+
+                return ['name' => $item['name'], 'answers' => $item['answers'], 'is_brand' => $item['is_brand'],
+                    'models' => $matched->pluck('provider')->filter(fn ($value) => is_string($value) && $value !== '')->unique()->values()->all()];
+            })->values()->all(),
             'gaps' => $gaps,
             'facts' => collect($payload['reviewed_facts'] ?? [])->filter(fn ($item) => ($item['confirmed'] ?? false) === true)
                 ->map(fn ($item) => ['text' => $item['text'], 'reason' => $item['reason'] ?? '', 'provider' => $item['provider'] ?? ''])->values()->all(),
