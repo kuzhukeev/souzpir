@@ -75,7 +75,10 @@ final class DialogReader
         $columns = ['c.id', 'c.mode', 'c.stage', 'c.outcome', 'c.assigned_user_id', 'c.created_at', 'c.updated_at',
             'c.last_client_message_at', 'c.summary', 'c.state', 'contact.name as contact_name',
             'contact.email as contact_email', 'contact.phone as contact_phone', 'channel.type as channel_type'];
-        $rows = (clone $base)->orderBy('c.updated_at', $sort === 'oldest' ? 'asc' : 'desc')->orderByDesc('c.id')->forPage($page, 50)->get($columns);
+        $lastMessage = DB::table('messages as latest')->selectRaw('max(latest.created_at)')->whereColumn('latest.conversation_id', 'c.id')
+            ->whereColumn('latest.brand_id', 'c.brand_id')->whereColumn('latest.organization_id', 'c.organization_id');
+        $rows = (clone $base)->select($columns)->selectSub($lastMessage, 'last_message_at')
+            ->orderByRaw('COALESCE((SELECT MAX(latest.created_at) FROM messages AS latest WHERE latest.conversation_id = c.id AND latest.brand_id = c.brand_id AND latest.organization_id = c.organization_id), c.created_at) '.($sort === 'oldest' ? 'asc' : 'desc'))->orderByDesc('c.id')->forPage($page, 50)->get();
         $messages = DB::table('messages')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)
             ->whereIn('conversation_id', $rows->pluck('id')->all())->orderByDesc('created_at')->orderByDesc('id')
             ->get(['id', 'conversation_id', 'role', 'text', 'meta', 'created_at'])->groupBy('conversation_id');
@@ -83,7 +86,7 @@ final class DialogReader
             'id' => $row->id, 'name' => $row->contact_name ?: 'Гость · '.substr($row->id, -6),
             'mode' => $row->mode, 'stage' => $row->stage, 'outcome' => $row->outcome,
             'channel' => $row->channel_type ?: 'Не указан', 'last_message' => $messages->get($row->id)?->first()?->text,
-            'updated_at' => $row->updated_at, 'assigned_user_id' => $row->assigned_user_id,
+            'updated_at' => $row->last_message_at ?? $row->created_at, 'assigned_user_id' => $row->assigned_user_id,
             'waiting_minutes' => ! in_array($row->stage, ['done', 'lost', 'spam'], true) && $messages->get($row->id)?->first()?->role === 'client'
                 ? max(0, (int) Carbon::parse($messages->get($row->id)->first()->created_at)->diffInMinutes(now())) : null,
         ])->all();
