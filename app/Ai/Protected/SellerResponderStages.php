@@ -29,7 +29,8 @@ final class SellerResponderStages
         try {
             return DB::transaction(function () use ($http, $claim, $extractorId, $stateId): string {
                 [$request, , $release] = $this->build($http, $claim, $extractorId, $stateId);
-                $existing = DB::table('c02_responder_stages')->where('turn_id', $claim->turnId)->lockForUpdate()->first();
+                $existing = DB::table('c02_responder_stages')->where('turn_id', $claim->turnId)
+                    ->whereNotIn('id', DB::table('e309_responder_continuations')->select('stage_id'))->lockForUpdate()->first();
                 if ($existing) {
                     $this->verify($existing, $claim, $extractorId, $stateId, $release, $request);
 
@@ -50,6 +51,42 @@ final class SellerResponderStages
         }
     }
 
+    public function prepareContinuation(#[SensitiveParameter] Request $http, #[SensitiveParameter] TurnClaim $claim,
+        #[SensitiveParameter] string $previousId, #[SensitiveParameter] array $toolResults = [],
+        #[SensitiveParameter] array $guardIssues = []): string
+    {
+        try {
+            return DB::transaction(function () use ($http, $claim, $previousId, $toolResults, $guardIssues): string {
+                $previous = DB::table('c02_responder_stages')->where('id', $previousId)->where('turn_id', $claim->turnId)
+                    ->lockForUpdate()->first() ?? throw new LogicException;
+                $existing = DB::table('e309_responder_continuations')->where('previous_stage_id', $previousId)->first();
+                if ($existing) {
+                    $this->load($http, $claim, $existing->stage_id);
+
+                    return $existing->stage_id;
+                }
+                $payload = ['tool_results' => $toolResults, 'guard_issues' => $guardIssues];
+                [$request, , $release] = $this->build($http, $claim, $previous->extractor_stage_id,
+                    $previous->first_state_id, $toolResults, $guardIssues);
+                $json = $this->requestJson($request);
+                $data = ['id' => (string) Str::ulid(), 'organization_id' => $claim->organizationId,
+                    'brand_id' => $claim->brandId, 'conversation_id' => $claim->conversationId,
+                    'turn_id' => $claim->turnId, 'extractor_stage_id' => $previous->extractor_stage_id,
+                    'first_state_id' => $previous->first_state_id, 'release_id' => $release,
+                    'request_encrypted' => Crypt::encryptString($json), 'request_digest' => $this->digest($json)];
+                $data['seal'] = $this->seal((object) $data);
+                DB::table('c02_responder_stages')->insert($data);
+                DB::table('e309_responder_continuations')->insert(['stage_id' => $data['id'],
+                    'previous_stage_id' => $previousId,
+                    'payload_encrypted' => Crypt::encryptString(json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR))]);
+
+                return $data['id'];
+            });
+        } catch (Throwable) {
+            throw new LogicException('Protected responder continuation rejected.');
+        }
+    }
+
     /** Stage ID is only a lookup: all source authorization is repeated. */
     public function load(#[SensitiveParameter] Request $http, #[SensitiveParameter] TurnClaim $claim, #[SensitiveParameter] string $stageId): array
     {
@@ -60,7 +97,13 @@ final class SellerResponderStages
                     throw new LogicException;
                 }
                 // Source locks precede the responder row lock in both paths.
-                [$request, $context, $release] = $this->build($http, $claim, $candidate->extractor_stage_id, $candidate->first_state_id);
+                $continuation = DB::table('e309_responder_continuations')->where('stage_id', $stageId)->first();
+                $payload = $continuation ? json_decode(Crypt::decryptString($continuation->payload_encrypted), true, 512, JSON_THROW_ON_ERROR) : [];
+                if (! is_array($payload) || ! is_array($payload['tool_results'] ?? []) || ! is_array($payload['guard_issues'] ?? [])) {
+                    throw new LogicException;
+                }
+                [$request, $context, $release] = $this->build($http, $claim, $candidate->extractor_stage_id,
+                    $candidate->first_state_id, $payload['tool_results'] ?? [], $payload['guard_issues'] ?? []);
                 $row = DB::table('c02_responder_stages')->where('id', $stageId)->lockForUpdate()->first();
                 if (! $row) {
                     throw new LogicException;
@@ -128,7 +171,9 @@ final class SellerResponderStages
         }
     }
 
-    private function build(#[SensitiveParameter] Request $http, #[SensitiveParameter] TurnClaim $claim, #[SensitiveParameter] string $extractorId, #[SensitiveParameter] string $stateId): array
+    private function build(#[SensitiveParameter] Request $http, #[SensitiveParameter] TurnClaim $claim,
+        #[SensitiveParameter] string $extractorId, #[SensitiveParameter] string $stateId,
+        #[SensitiveParameter] array $toolResults = [], #[SensitiveParameter] array $guardIssues = []): array
     {
         if (DB::connection()->transactionLevel() < 1) {
             throw new LogicException;
@@ -180,8 +225,9 @@ final class SellerResponderStages
                 }
             }
         }
-        $request = app(ResponderRequest::class)->build($system, [['role' => 'client', 'text' => $message]], $goal->allowedTools,
-            $model, (float) $temperature, $prompt->version, $prompt->checksum);
+        $request = app(ResponderRequest::class)->build($system, [['role' => 'client', 'text' => $message]],
+            $toolResults === [] ? $goal->allowedTools : [], $model, (float) $temperature,
+            $prompt->version, $prompt->checksum, $toolResults, $guardIssues);
 
         return [$request, $context, $knowledge->releaseId()];
     }
