@@ -31,7 +31,7 @@ final class ResponderProjection
                 'trigger' => $goal->trigger,
                 'examples' => $knowledge->fewshot($goal->fewshotTags, $state->clientType(), 6, 0.7),
                 'badExamples' => array_slice($knowledge->badExamples(), 0, 8),
-                'slotHint' => $goal->slot ? $this->slotHint($goal->slot, $state) : null,
+                'slotHint' => $goal->slot ? $this->slotHint($goal->slot, $state, $knowledge) : null,
                 'guardIssues' => [],
                 'closedTopic' => $goal->extras['closed_topic'] ?? null,
                 'conditionsNote' => empty($knowledge->conditions()['approved_by']) ? 'Условия (минималка, проценты) пока не утверждены руководителем — называй их как ориентир («обычно», «примерно»), без гарантий.' : null,
@@ -41,14 +41,14 @@ final class ResponderProjection
         }
     }
 
-    private function slotHint(string $slot, LeadState $state): string
+    private function slotHint(string $slot, LeadState $state, KnowledgeSnapshot $knowledge): string
     {
         $hints = [
             'city' => 'спросить, из какого города клиент',
             'purpose' => 'спросить, для себя или на продажу',
-            'experience' => 'спросить, был ли опыт торговли пиротехникой или первый сезон',
+            'experience' => 'спросить, был ли опыт торговли или это первый сезон',
             'outlet_type' => 'спросить формат точки: павильон / ТЦ (и этаж) / жилой дом / интернет / с машины',
-            'categories' => 'спросить, что в основном интересует: салюты, петарды, мелочь, всё',
+            'categories' => 'спросить, какие категории товаров интересуют клиента',
             'current_supplier' => 'спросить, с кем работает сейчас и какую скидку дают (мягко, без переманивания)',
             'budget_range' => $state->counter('budget_asks') >= 1
                 ? 'ВТОРАЯ попытка узнать бюджет: предложить вилку 50 / 100 / 200 тысяч, объяснить, что это для скидки и ни к чему не обязывает. Если откажется — больше не спрашивать.'
@@ -60,6 +60,8 @@ final class ResponderProjection
             'legal' => 'уточнить, на кого оформлять: физлицо, ИП или ООО',
         ];
 
-        return $hints[$slot] ?? "спросить {$slot}";
+        $configured = $knowledge->persona()['slot_hints'][$slot] ?? null;
+
+        return is_string($configured) && trim($configured) !== '' ? $configured : ($hints[$slot] ?? "спросить {$slot}");
     }
 }

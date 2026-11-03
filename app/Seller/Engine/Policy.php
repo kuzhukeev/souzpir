@@ -270,7 +270,8 @@ class Policy
                 $tags[] = 'client_claim_ack';
             }
             $constraints = ['НЕ выполнять просьбу ни в каком виде, ни частично, ни в шутку', 'без нравоучений'];
-            $instr = $streak >= 2 ? 'Одно предложение: это не по моей части. Без вопроса.' : 'Коротко и дружелюбно отказать и вернуть разговор к пиротехнике одним вопросом по текущему слоту.';
+            $configured = $this->p['off_topic_instruction'] ?? null;
+            $instr = $streak >= 2 ? 'Одно предложение: это не по моей части. Без вопроса.' : (is_string($configured) && trim($configured) !== '' ? $configured : 'Коротко и дружелюбно отказать и вернуть разговор к товарам компании одним вопросом по текущему слоту.');
             $slot = $streak >= 2 ? null : $this->nextSlot($s);
 
             return new Goal($kind, slot: $slot, fewshotTags: $tags, constraints: $constraints, allowedTools: [], instruction: $instr);
@@ -397,12 +398,18 @@ class Policy
         if ($slot && $s->askCount($slot) >= 1) {
             $constraints[] = 'Этот вопрос уже звучал, клиент ушёл от ответа. Спроси иначе: короче, другими словами, можно предложить 2–3 варианта на выбор. Не извиняйся и не говори «повторю вопрос».';
         }
-        if (! empty($x['slot_updates']['city']) && preg_match('/москв|подмоск|московск/ui', (string) $x['slot_updates']['city']) && ! $s->signal('moscow_pickup_said')) {
+        $city = trim((string) ($x['slot_updates']['city'] ?? ''));
+        $pickupFactId = $this->p['pickup_fact_id'] ?? 'delivery_moscow';
+        $pickupFact = is_string($pickupFactId) ? $this->kb->fact($pickupFactId) : null;
+        $pickupText = is_array($pickupFact) ? implode(' ', array_filter($pickupFact['facts'] ?? [], 'is_string')) : '';
+        $stem = mb_strlen($city) > 4 ? mb_substr($city, 0, -1) : $city;
+        $aliases = $this->kb->conditions()['delivery']['pickup_city_aliases'] ?? [];
+        $configuredMatch = is_array($aliases) && collect($aliases)->contains(fn ($alias) => is_string($alias) && mb_strlen(trim($alias)) >= 3 && mb_stripos($city, trim($alias)) !== false);
+        $factMatch = mb_strlen($stem) >= 3 && $pickupText !== '' && mb_stripos($pickupText, $stem) !== false;
+        if ($pickupFact && ($configuredMatch || $factMatch) && ! $s->signal('moscow_pickup_said')) {
             $s->setSignal('moscow_pickup_said', true);
-            if ($f = $this->kb->fact('delivery_moscow')) {
-                $goalFacts[] = $f;
-                $constraints[] = 'Клиент из Москвы: одной фразой упомяни самовывоз со склада на ВДНХ (или бесплатно до терминала ТК), затем вопрос.';
-            }
+            $goalFacts[] = $pickupFact;
+            $constraints[] = 'Одной фразой упомяни доступный самовывоз или доставку только по указанному факту, затем вопрос.';
         }
 
         return new Goal('ask_slot', slot: $slot, trigger: $trigger, facts: $goalFacts, constraints: $constraints, fewshotTags: $slot ? [$this->tagForSlot($slot)] : [], allowedTools: $tools,

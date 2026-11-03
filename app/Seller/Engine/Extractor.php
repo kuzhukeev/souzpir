@@ -97,12 +97,19 @@ class Extractor
     public function buildRequest(#[\SensitiveParameter] LeadState $state, #[\SensitiveParameter] array $history, #[\SensitiveParameter] string $clientMessage): AiRequest
     {
         $this->assertIntents();
+        $persona = $this->kb->persona();
+        $legacyDelivery = $this->kb->fact('delivery_moscow');
+        $legacyPrompt = ($persona['company'] ?? '') === 'Союз Пир'
+            && str_contains(mb_strtolower((string) ($persona['intro'] ?? '')), 'пиротехник')
+            && str_contains(implode(' ', $legacyDelivery['facts'] ?? []), 'ВДНХ');
         $system = Blade::render($this->prompt->body, [
             'card' => $state->cardText(),
             'intents' => $this->kb->intents(),
             'closedTopics' => $this->kb->closedTopics(),
             'objections' => self::OBJECTIONS,
             'agentName' => $this->agentName,
+            'persona' => $persona,
+            'legacyPrompt' => $legacyPrompt,
         ], deleteCachedView: true);
 
         $messages = [['role' => 'system', 'content' => $system]];
