@@ -188,6 +188,7 @@ export function QuestionnaireFields({
   errors?: Record<string, string>;
   limits: { competitors?: number; facts?: number; questions?: number };
 }) {
+  const [editingFact, setEditingFact] = useState<number | null>(null);
   const audienceErrorId = useId();
   const priceErrorId = useId();
   const set = <K extends keyof Questionnaire>(key: K, value: Questionnaire[K]) =>
@@ -460,18 +461,12 @@ export function QuestionnaireFields({
             )}
             {data.site_facts.map((fact, index) => (
               <div key={index} className="space-y-2 rounded-lg border border-(--color-border) p-3">
-                <TextField
+                {editingFact === index ? <><TextField
                   title={fact.label}
                   value={fact.value}
                   error={errors[`site_facts.${index}.value`]}
-                  onChange={(value) =>
-                    set(
-                      'site_facts',
-                      data.site_facts.map((item, i) => (i === index ? { ...item, value } : item)),
-                    )
-                  }
-                />
-                <button type="button" className={button} onClick={(event) => event.currentTarget.parentElement?.querySelector('input')?.focus()}>Исправить</button>
+                  onChange={(value) => set('site_facts', data.site_facts.map((item, i) => i === index ? { ...item, value } : item))}
+                /><button type="button" className={button} onClick={() => setEditingFact(null)}>Готово</button></> : <><p className="text-sm font-semibold">{fact.label}</p><p className="text-sm">{fact.value}</p><button type="button" className={button} onClick={() => setEditingFact(index)}>Исправить</button></>}
                 <div className="flex flex-wrap gap-2">
                   {(
                     [

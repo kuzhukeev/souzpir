@@ -196,17 +196,28 @@ HTML;
             return $unavailable;
         }
         try {
-            $page = app(ProfileAccess::class)->run($request, function (TenantContext $context) use ($website) {
+            $sources = app(ProfileAccess::class)->run($request, function (TenantContext $context) use ($website) {
                 $currentWebsite = DB::table('brands')->where('id', $context->brandId)->where('organization_id', $context->organizationId)->value('website');
                 if ($currentWebsite !== $website) {
                     return null;
                 }
 
-                return app(SiteDraftStore::class)->read($context, $website);
+                $page = app(SiteDraftStore::class)->read($context, $website);
+                $raw = DB::table('audit_runs')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)->orderByDesc('created_at')->orderByDesc('id')->value('result');
+                $audit = is_string($raw) ? json_decode($raw, true) : null;
+                $host = strtolower((string) parse_url($website, PHP_URL_HOST));
+                if (! is_array($audit) || $host === '' || strtolower((string) parse_url((string) ($audit['url'] ?? ''), PHP_URL_HOST)) !== $host) {
+                    $audit = null;
+                }
+
+                return ['page' => $page, 'audit' => $audit];
             });
-            if (! $page) {
+            $page = $sources['page'] ?? null;
+            $audit = $sources['audit'] ?? null;
+            if (! $page && ! $audit) {
                 return ['status' => 'empty', 'items' => []];
             }
+            $page ??= [];
             $title = trim((string) ($page['title'] ?? ''));
             $source = (string) ($page['source_url'] ?? $website);
             $items = [];
@@ -230,7 +241,27 @@ HTML;
                 }
             }
 
-            return ['status' => $items || $step === 1 ? 'available' : 'empty', 'items' => $items];
+            if (in_array($step, [3, 5, 7], true)) {
+                foreach (($audit['pages'] ?? []) as $auditedPage) {
+                    if (! is_array($auditedPage) || ($auditedPage['status'] ?? 0) < 200 || ($auditedPage['status'] ?? 0) >= 300) {
+                        continue;
+                    }
+                    foreach (($auditedPage['headings'] ?? []) as $heading) {
+                        if (! is_string($heading) || trim($heading) === '' || ($step === 7 && ! str_ends_with(trim($heading), '?'))) {
+                            continue;
+                        }
+                        $value = mb_substr(trim($heading), 0, 180);
+                        if (! in_array($value, array_column($items, 'value'), true)) {
+                            $items[] = ['label' => 'Заголовок из аудита', 'value' => $value, 'source' => (string) ($auditedPage['url'] ?? $website)];
+                        }
+                        if (count($items) >= 5) {
+                            break 2;
+                        }
+                    }
+                }
+            }
+
+            return ['status' => $items || ($step === 1 && $page) ? 'available' : 'empty', 'items' => $items];
         } catch (Throwable) {
             // Local failure must not block the form or expose private source data in logs.
             return $unavailable;
