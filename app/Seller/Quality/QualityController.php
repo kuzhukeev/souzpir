@@ -3,7 +3,10 @@
 namespace App\Seller\Quality;
 
 use App\Models\User;
+use App\Seller\Evaluation\Supervisor;
 use App\Seller\Settings\Limits\SellerModuleAccess;
+use App\Shell\Audit\AuditEntry;
+use App\Shell\Audit\Contracts\AuditWriter;
 use App\Shell\Profile\ProfileAccess;
 use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
@@ -11,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 final class QualityController
@@ -68,5 +72,60 @@ final class QualityController
         [$rows, $reports] = $this->access($request, fn (TenantContext $tenant) => [$this->rows($tenant)->where('day', $day)->values(), $this->reports($tenant)->where('day', $day)->values()]);
 
         return Inertia::render('Seller/Quality/Day', ['day' => $day, 'evaluations' => $rows, 'reports' => $reports]);
+    }
+
+    public function collectToday(Request $request): mixed
+    {
+        $day = $this->access($request, function (TenantContext $tenant): string {
+            $timezone = DB::table('brands')->where('organization_id', $tenant->organizationId)->where('id', $tenant->brandId)->value('timezone') ?: 'UTC';
+            $day = now($timezone)->toDateString();
+            $evaluations = $this->rows($tenant)->where('day', $day)->where('source', 'dialogue')->filter(fn ($row) => collect(Supervisor::SCORES)->every(fn ($key) => isset($row['scores'][$key]) && is_int($row['scores'][$key]) && $row['scores'][$key] >= 1 && $row['scores'][$key] <= 5));
+            if ($evaluations->isEmpty()) {
+                throw ValidationException::withMessages(['report' => 'За сегодня нет полных оценок диалогов для доклада.']);
+            }
+            $result = [];
+            foreach (Supervisor::SCORES as $key) {
+                $result[$key] = (int) round($evaluations->avg(fn ($row) => $row['scores'][$key]));
+            }
+            $result['issues'] = $evaluations->flatMap(fn ($row) => $row['issues'])->values()->all();
+            $result['comment'] = 'Сводка по сохранённым оценкам диалогов за день.';
+            $turnCount = max(1, collect($result['issues'])->max('turn') ?? 1);
+            app(SupervisorReportWriter::class)->write($tenant, $day, $result, $turnCount);
+
+            return $day;
+        });
+
+        return redirect()->route('seller.quality.day', ['day' => $day]);
+    }
+
+    public function recommendation(Request $request, string $day): mixed
+    {
+        [$year, $month, $date] = array_map('intval', explode('-', $day));
+        abort_unless(checkdate($month, $date, $year), 404);
+        $input = $request->validate(['fix' => ['required', 'string', 'max:3000'], 'completed' => ['required', 'boolean']]);
+        $this->access($request, function (TenantContext $tenant) use ($day, $input): void {
+            DB::transaction(function () use ($tenant, $day, $input): void {
+                $reports = DB::table('seller_supervisor_reports')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('report_date', $day)->get(['id', 'issues']);
+                $found = false;
+                foreach ($reports as $report) {
+                    $issues = json_decode($report->issues, true) ?: [];
+                    $changed = false;
+                    foreach ($issues as &$issue) {
+                        if (($issue['fix'] ?? null) === $input['fix']) {
+                            $issue['completed'] = $input['completed'];
+                            $changed = $found = true;
+                        }
+                    }
+                    unset($issue);
+                    if ($changed) {
+                        DB::table('seller_supervisor_reports')->where('id', $report->id)->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->update(['issues' => json_encode($issues, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), 'updated_at' => now()]);
+                    }
+                }
+                abort_unless($found, 404);
+                app(AuditWriter::class)->record($tenant, new AuditEntry('seller.supervisor.recommendation.updated', 'seller_supervisor_report', $day, after: ['completed' => $input['completed']]));
+            });
+        });
+
+        return back();
     }
 }
