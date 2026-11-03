@@ -109,6 +109,18 @@ jobs:
             php artisan test --parallel --without-databases --processes=4 --exclude-group=race --testsuite="$suite"
           fi
 
+  equivalence:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with: { php-version: '8.4', extensions: 'pdo_pgsql, pgsql, mbstring, intl, bcmath, gd', coverage: none }
+      - uses: ramsey/composer-install@v3
+      - name: Check recorded fixtures and available policy replay
+        run: vendor/bin/phpunit --testsuite=Equivalence --no-coverage
+
   browser:
     if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
