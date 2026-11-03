@@ -137,14 +137,6 @@
           "permission": "seller.knowledge.write"
         },
         {
-          "id": "scenario",
-          "label": "Сценарий",
-          "icon": "ClipboardList",
-          "path": "/seller/scenario/fields",
-          "permission": "seller.settings.read"
-        },
-
-        {
           "id": "character",
           "label": "Персонаж",
           "icon": "UserRound",
