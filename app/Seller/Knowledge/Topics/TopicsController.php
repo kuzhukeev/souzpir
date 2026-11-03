@@ -57,13 +57,24 @@ final class TopicsController
             ], $source['intents']);
             $frequencies = [];
             $questionCounts = [];
+            $answers = [];
+            $unknown = [];
             $rows = DB::table('messages')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
                 ->where('created_at', '>=', now()->subDays(30))->whereNotNull('meta')->get(['meta', 'role', 'text']);
             foreach ($rows as $row) {
-                $intent = json_decode($row->meta, true)['intent'] ?? null;
+                $meta = json_decode($row->meta, true) ?: [];
+                $intent = $meta['intent'] ?? null;
                 if (is_string($intent)) {
-                    $frequencies[$intent] = ($frequencies[$intent] ?? 0) + 1;
+                    if ($row->role === 'agent') {
+                        $answers[$intent] = ($answers[$intent] ?? 0) + 1;
+                        if (($meta['goal_kind'] ?? null) === 'unknown_fact' || ($meta['guard'] ?? null) === 'fallback' || ($meta['guard_fallback'] ?? false) === true) {
+                            $unknown[$intent] = ($unknown[$intent] ?? 0) + 1;
+                        }
+                    }
                     $question = trim($row->text);
+                    if ($row->role === 'client') {
+                        $frequencies[$intent] = ($frequencies[$intent] ?? 0) + 1;
+                    }
                     if ($row->role === 'client' && $question !== '') {
                         $question = mb_substr($question, 0, 200);
                         $questionCounts[$intent][$question] = ($questionCounts[$intent][$question] ?? 0) + 1;
@@ -76,7 +87,12 @@ final class TopicsController
                 $frequentQuestions[$intent] = array_slice(array_keys($counts), 0, 5);
             }
 
-            return ['topics' => $topics, 'facts' => $facts, 'frequencies' => $frequencies, 'frequentQuestions' => $frequentQuestions, 'canWrite' => $canWrite,
+            $unknownRates = [];
+            foreach ($answers as $intent => $count) {
+                $unknownRates[$intent] = round(100 * ($unknown[$intent] ?? 0) / $count, 1);
+            }
+
+            return ['unknownRates' => $unknownRates, 'topics' => $topics, 'facts' => $facts, 'frequencies' => $frequencies, 'frequentQuestions' => $frequentQuestions, 'canWrite' => $canWrite,
                 'draftVersion' => $canWrite ? $draft?->version : null, 'status' => session('status')];
         });
 

@@ -192,12 +192,19 @@ final class FirstTurnTextFinalizer
         $policy = new Policy($knowledge);
         $state->setOutcome($policy->computeOutcome($state));
         $state->data['missing'] = $policy->computeMissing($state);
+        $metadata = ['intent' => $extraction['client_intent'] ?? null, 'goal_kind' => $goal->kind, 'guard' => $guard['verdict'] ?? null];
+        $inputId = DB::table('seller_turns')->where('id', $claim->turnId)->where('organization_id', $tenant->organizationId)
+            ->where('brand_id', $tenant->brandId)->value('input_message_id');
+        $input = DB::table('messages')->where('id', $inputId)->where('conversation_id', $claim->conversationId)
+            ->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('role', 'client')->first() ?? throw new LogicException;
+        $previousMeta = json_decode($input->meta ?: '{}', true) ?: [];
+        DB::table('messages')->where('id', $inputId)->update(['meta' => json_encode([...$previousMeta, ...$metadata], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), 'updated_at' => now()]);
         $messageId = (string) Str::ulid();
-        $message = ['id' => $messageId, 'role' => 'agent', 'text' => $candidate['text'], 'meta' => []];
+        $message = ['id' => $messageId, 'role' => 'agent', 'text' => $candidate['text'], 'meta' => $metadata];
         $outcome = new TurnOutcome($claim->turnId, $claim->conversationId, 'completed', $claim->baseVersion + 1, $messageId,
             $goal->toArray(), $guard, [], $state->toArray(), [$message]);
         DB::table('messages')->insert(['id' => $messageId, 'organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId,
-            'conversation_id' => $claim->conversationId, 'role' => 'agent', 'text' => $candidate['text'], 'meta' => '{}', 'created_at' => now(), 'updated_at' => now()]);
+            'conversation_id' => $claim->conversationId, 'role' => 'agent', 'text' => $candidate['text'], 'meta' => json_encode($metadata, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), 'created_at' => now(), 'updated_at' => now()]);
         DB::table('conversations')->where('id', $claim->conversationId)->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->update([
             'state' => json_encode($state->toArray(), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), 'stage' => $state->stage(), 'outcome' => $state->outcome(),
             'client_type' => $state->clientType(), 'version' => $claim->baseVersion + 1, 'updated_at' => now(),
