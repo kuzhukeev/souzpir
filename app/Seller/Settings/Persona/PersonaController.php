@@ -46,6 +46,7 @@ final class PersonaController
     {
         $input = $request->validate(['version' => ['required', 'integer', 'min:1'], 'name' => ['required', 'string', 'max:40'], 'intro' => ['nullable', 'string', 'max:400'],
             'tone' => ['present', 'array', 'max:8'], 'tone.*' => ['required', 'string', 'max:300'], 'form_bans' => ['present', 'array', 'max:30'], 'form_bans.*' => ['required', 'string', 'max:300'],
+            'job_title' => ['nullable', 'string', 'max:100'], 'bot_disclosure' => ['nullable', 'in:always,asked'], 'address' => ['nullable', 'in:vy,ty'], 'anchors' => ['nullable', 'array', 'max:30'], 'anchors.*' => ['string', 'max:300'], 'service_phrases' => ['nullable', 'array'], 'service_phrases.*' => ['nullable', 'string', 'max:500'], 'quick_replies' => ['nullable', 'array', 'max:30'], 'quick_replies.*' => ['string', 'max:500'],
             'max_words' => ['required', 'integer', 'min:20', 'max:300'], 'target_min' => ['required', 'integer', 'min:1', 'max:300'], 'target_max' => ['required', 'integer', 'min:1', 'max:300'], 'max_questions' => ['required', 'integer', 'min:1', 'max:2']]);
         if ($input['target_min'] > $input['target_max'] || $input['target_max'] > $input['max_words']) {
             throw ValidationException::withMessages(['target_max' => 'Диапазон должен быть по возрастанию и не превышать максимум слов.']);
@@ -59,6 +60,11 @@ final class PersonaController
             $persona['intro'] = $input['intro'] ?? '';
             $persona['tone'] = $input['tone'];
             $persona['form_bans'] = $input['form_bans'];
+            foreach (['job_title', 'bot_disclosure', 'address', 'anchors', 'service_phrases', 'quick_replies'] as $key) {
+                if (array_key_exists($key, $input)) {
+                    $persona[$key] = $input[$key];
+                }
+            }
             $persona['length'] = array_replace($persona['length'] ?? [], ['target_words' => [(int) $input['target_min'], (int) $input['target_max']], 'max_words' => (int) $input['max_words'], 'max_questions' => (int) $input['max_questions']]);
             $data['persona'] = $persona;
             $repo->saveDraft($tenant, $draft->id, (int) $input['version'], $data);

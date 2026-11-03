@@ -7,6 +7,7 @@ use App\Seller\Engine\Goal;
 use App\Seller\Engine\LeadState;
 use App\Seller\Knowledge\Contracts\KnowledgeRepository;
 use App\Seller\Knowledge\KnowledgeSnapshot;
+use App\Seller\Settings\Persona\ResponderPersonaAdapter;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
 use Illuminate\Support\Facades\DB;
@@ -85,5 +86,30 @@ final class PersonaTest extends TenancyTestCase
         $this->actingAs($viewer)->withSession(['brand_id' => $brand->id]);
         $this->get('/seller/persona')->assertForbidden();
         $this->post('/seller/persona', $this->input($persona))->assertForbidden();
+    }
+
+    public function test_extended_persona_is_saved_per_brand_and_validated(): void
+    {
+        [$owner, $org, $brand, $other, $member] = $this->cabinet();
+        $this->enable($org->id, $brand->id);
+        $this->enable($org->id, $other->id);
+        $tenant = new TenantContext($org->id, $brand->id, $owner->id, $member->id);
+        [$draft, $persona] = $this->setupDraft($tenant);
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $input = [...$this->input($persona), 'job_title' => 'Менеджер', 'bot_disclosure' => 'always', 'address' => 'vy', 'anchors' => ['Помогать'], 'service_phrases' => ['error' => 'Попробуйте позже'], 'quick_replies' => ['Здравствуйте']];
+        $this->post('/seller/persona', $input)->assertRedirect()->assertSessionHasNoErrors();
+        $this->get('/seller/persona')->assertOk()->assertInertia(fn ($page) => $page->where('persona.job_title', 'Менеджер')->where('persona.service_phrases.error', 'Попробуйте позже')->where('persona.quick_replies.0', 'Здравствуйте'));
+        $this->post('/seller/persona', [...$input, 'bot_disclosure' => 'never'])->assertSessionHasErrors('bot_disclosure');
+        $this->post('/seller/persona', [...$input, 'address' => 'invalid'])->assertSessionHasErrors('address');
+        self::assertSame(0, DB::table('knowledge_releases')->where('organization_id', $org->id)->where('brand_id', $other->id)->where('status', 'draft')->count());
+        [$viewer] = $this->member($org, 'viewer', [$brand->id]);
+        $this->actingAs($viewer)->withSession(['brand_id' => $brand->id])->post('/seller/persona', $input)->assertForbidden();
+    }
+
+    public function test_responder_adapter_formats_introduction_and_bans(): void
+    {
+        $text = app(ResponderPersonaAdapter::class)->instructions(['intro' => 'Добрый день', 'form_bans' => ['Скидка гарантирована']]);
+        self::assertStringContainsString('Добрый день', $text);
+        self::assertStringContainsString('Скидка гарантирована', $text);
     }
 }
