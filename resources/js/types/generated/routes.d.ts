@@ -544,6 +544,13 @@ declare module 'ziggy-js' {
         }
     ],
     "seller.quality.index": [],
+    "seller.quality.collect": [],
+    "seller.quality.recommendation": [
+        {
+            "name": "day",
+            "required": true
+        }
+    ],
     "seller.quality.day": [
         {
             "name": "day",
