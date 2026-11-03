@@ -17,7 +17,7 @@ final class DialogReader
         'next_contact_at' => 'Когда связаться',
     ];
 
-    public function read(TenantContext $context, string $actorId, bool $manager, bool $showMeta, ?string $selected, string $mode, string $search, string $sort): array
+    public function read(TenantContext $context, string $actorId, bool $manager, bool $showMeta, ?string $selected, string $mode, string $search, string $sort = 'newest'): array
     {
         $base = DB::table('conversations as c')->leftJoin('contacts as contact', function ($join): void {
             $join->on('contact.id', '=', 'c.contact_id')->on('contact.brand_id', '=', 'c.brand_id')
