@@ -70,6 +70,8 @@ final class ReportSections
             ])->values()->all(),
             'actions' => collect(data_get($payload, 'recommendations.items', []))->take(3)->map(fn ($item) => [
                 'title' => $item['title'] ?? '', 'why' => $item['why'] ?? '',
+                'priority' => is_string($item['priority'] ?? null) ? $item['priority'] : null,
+                'steps' => array_values(array_slice(array_filter(is_array($item['steps'] ?? null) ? $item['steps'] : [], 'is_string'), 0, 3)),
             ])->filter(fn ($item) => $item['title'] !== '')->values()->all(),
         ];
     }

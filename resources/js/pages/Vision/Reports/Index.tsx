@@ -12,7 +12,7 @@ const button = 'min-h-11 cursor-pointer rounded-lg border border-(--color-border
 const percent = (value: number | null) => value === null ? 'Недостаточно данных' : `${value.toLocaleString('ru-RU')} %`;
 const number = (value: number | null) => value === null ? 'Недостаточно данных' : value.toLocaleString('ru-RU');
 
-export default function Index({ reportBrandRevision, status, createdUrl, ttlDays = [] }: { reportBrandRevision: string; status?: string | null; createdUrl?: string | null; ttlDays?: number[] }) {
+export default function Index({ reportBrandRevision, status, createdUrl, ttlDays = [], publications = [] }: { reportBrandRevision: string; status?: string | null; createdUrl?: string | null; ttlDays?: number[]; publications?: {id:string;report_id:string;expires_at:string}[] }) {
   const { brand, can } = usePage<{ brand: { id: string } | null; can: Record<string, boolean> }>().props;
   const brandId = brand?.id ?? '';
   const [selected, setSelected] = useState(() => new URLSearchParams(window.location.search).get('report'));
@@ -27,6 +27,7 @@ export default function Index({ reportBrandRevision, status, createdUrl, ttlDays
   const key = JSON.stringify([brandId, reportBrandRevision, selected, epoch]);
   const view = state.key === key ? state : { data: null, error: '' };
   const activeReport = view.data?.report;
+  const activePublication = publications.find(item => item.report_id === activeReport?.id);
   useEffect(() => {
     let active = true;
     const controller = new AbortController();
@@ -86,11 +87,13 @@ export default function Index({ reportBrandRevision, status, createdUrl, ttlDays
           </section>
           <section id="models" className="mt-6 rounded-2xl border border-(--color-border) bg-(--color-surface) p-5 shadow-(--shadow-card)"><h2 className="text-xl font-bold">Видимость по моделям</h2>{activeReport.providers.length === 0 ? <p className="mt-3 text-sm">Данных пока нет.</p> : <ul className="mt-4 grid gap-3">{activeReport.providers.map((provider) => <li key={provider.name} className="flex flex-wrap justify-between gap-2 rounded-lg bg-(--color-surface-muted) p-3 text-sm"><span>{provider.name}</span><strong>{percent(provider.mention_rate)}</strong><span>Покрытие {percent(provider.coverage)}</span></li>)}</ul>}</section>
           <ReportSections data={activeReport.sections} />
-          <section id="method" className="mt-6 rounded-2xl border border-(--color-border) bg-(--color-surface) p-5 shadow-(--shadow-card)"><h2 className="text-xl font-bold">Методика</h2><details className="mt-3 text-sm"><summary className="cursor-pointer font-semibold">Как рассчитаны показатели</summary><p className="mt-3">Метрики сохранены в неизменяемом снимке отчёта. Пропущенные и непроверенные ответы не считаются отрицательными. Доля голоса показывается только при полной проверке упоминаний.</p></details></section>
+          <section id="method" className="mt-6 rounded-2xl border border-(--color-border) bg-(--color-surface) p-5 shadow-(--shadow-card)"><h2 className="text-xl font-bold">Методика</h2>{[['Как рассчитаны показатели','Метрики сохранены в неизменяемом снимке отчёта. Отчёт построен по подтверждённому замеру и сохранённому набору вопросов.'],['Видимость','Пропущенные и непроверенные ответы не считаются отрицательными.'],['Доля голоса и позиция','Доля голоса показывается при полной проверке упоминаний.'],['Сравнение замеров','Сравниваются снимки с одинаковыми вопросами, моделями и числом прогонов.']].map(([title,description])=><details key={title} className="mt-3 text-sm"><summary className="cursor-pointer font-semibold">{title}</summary><p className="mt-3">{description}</p></details>)}</section>
         </div>}
       </>}
       <Modal open={shareOpen && profileContextIsStable()} title="Поделиться отчётом" onClose={() => setShareOpen(false)}>
+        <div className="mb-4 text-sm"><p>Публичный доступ: {activePublication ? 'включён' : 'выключен'}</p>{activePublication && can?.['vision.measure.run'] && <button type="button" className={button} onClick={()=>router.delete(`/vision/publications/${activePublication.id}`,{headers:{'X-Brand-Id':brandId,'X-Brand-Revision':reportBrandRevision}})}>Отозвать ссылку</button>}</div>
         {createdUrl ? <div className="space-y-4"><p>Сохраните ссылку: повторно показать её нельзя.</p><input readOnly aria-label="Публичная ссылка" value={createdUrl} className="min-h-11 w-full rounded border border-(--color-border) bg-(--color-surface) px-3"/><button type="button" className={button} onClick={() => void navigator.clipboard.writeText(createdUrl)}>Копировать</button><QrCode value={createdUrl} label="QR-код публичного отчёта" /></div> : <div className="space-y-4"><p>В публичной версии нет полных текстов и внутренних данных.</p><label className="block">Срок действия<select value={ttl} onChange={e=>setTtl(Number(e.target.value))} className="mt-1 block min-h-11 w-full cursor-pointer rounded border border-(--color-border) bg-(--color-surface) px-3">{ttlDays.map(days=><option key={days} value={days}>{days} дней</option>)}</select></label><label className="flex gap-2"><input type="checkbox" checked={allowPdf} onChange={event=>setAllowPdf(event.target.checked)} /> Разрешить сохранение в PDF</label><button type="button" disabled={!activeReport || !can?.['vision.measure.run'] || sharing} className={button} onClick={() => { if (!activeReport) return; router.post('/vision/publications', { report_id: activeReport.id, ttl_days: ttl, return_to: 'report', allow_pdf: allowPdf }, { headers: { 'X-Brand-Id': brandId, 'X-Brand-Revision': reportBrandRevision }, onStart:()=>setSharing(true), onFinish:()=>setSharing(false), onError:()=>setCreateError('Не удалось создать ссылку.'), onNetworkError:()=>{setCreateError('Нет связи. Проверьте список публикаций.');return false;} }); }}>{sharing ? 'Создаём…' : 'Создать ссылку'}</button></div>}
+        <button type="button" className={`${button} mt-4`} onClick={()=>setShareOpen(false)}>Готово</button>
       </Modal>
     </div>
   </CabinetLayout>;

@@ -51,12 +51,24 @@ final class ReportData
             }
             $measurement = DB::table('measurements')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)->where('id', $payload['measurement_id'])->first(['profile_snapshot', 'profile_checksum']);
             $site = $this->siteFromProfile($measurement);
+            $siteAudit = null;
+            if ($site) {
+                $auditRows = DB::table('audit_runs')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)
+                    ->where('created_at', '<=', $reports->firstWhere('id', $selected)->created_at)->orderByDesc('created_at')->orderByDesc('id')->get(['result', 'created_at']);
+                foreach ($auditRows as $auditRow) {
+                    $audit = json_decode($auditRow->result, true);
+                    if (is_array($audit) && is_string($audit['url'] ?? null) && rtrim($audit['url'], '/') === rtrim($site, '/') && is_array($audit['readiness'] ?? null) && is_numeric($audit['readiness']['lower'] ?? null) && is_numeric($audit['readiness']['upper'] ?? null)) {
+                        $siteAudit = ['readiness' => $audit['readiness'], 'date' => $auditRow->created_at];
+                        break;
+                    }
+                }
+            }
             $metrics = $payload['metrics'] ?? [];
             $panel = $metrics['panel'] ?? [];
             $visibility = $metrics['visibility'] ?? [];
             $report = [
                 'id' => $selected, 'measurement_id' => $payload['measurement_id'],
-                'sections' => [...app(ReportSections::class)->make($payload), 'changes' => $changes, 'site' => $site],
+                'sections' => [...app(ReportSections::class)->make($payload), 'changes' => $changes, 'site' => $site, 'site_audit' => $siteAudit],
                 'visibility' => $visibility['macro_percent'] ?? null,
                 'visibility_kind' => $visibility['macro_kind'] ?? 'available',
                 'coverage' => $visibility['coverage'] ?? null,

@@ -25,7 +25,10 @@ final class ReportsController
                 Inertia::encryptHistory();
             }
 
-            return Inertia::render('Vision/Reports/Index', ['reportBrandRevision' => $revision, 'status' => session('status'), 'createdUrl' => session('publication_url'), 'ttlDays' => config('features.E8-05C.defaults.publication_ttl_days')]);
+            $publications = DB::table('report_publications')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)
+                ->whereNull('revoked_at')->where('expires_at', '>', now())->orderByDesc('created_at')->get(['id', 'report_id', 'expires_at']);
+
+            return Inertia::render('Vision/Reports/Index', ['publications' => $publications, 'reportBrandRevision' => $revision, 'status' => session('status'), 'createdUrl' => session('publication_url'), 'ttlDays' => config('features.E8-05C.defaults.publication_ttl_days')]);
         }, false);
     }
 
