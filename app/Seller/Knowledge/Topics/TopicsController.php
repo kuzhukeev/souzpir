@@ -56,16 +56,27 @@ final class TopicsController
                 'after_action_text' => $intent['after_action_text'] ?? '',
             ], $source['intents']);
             $frequencies = [];
+            $questionCounts = [];
             $rows = DB::table('messages')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
-                ->where('created_at', '>=', now()->subDays(30))->whereNotNull('meta')->get(['meta']);
+                ->where('created_at', '>=', now()->subDays(30))->whereNotNull('meta')->get(['meta', 'role', 'text']);
             foreach ($rows as $row) {
                 $intent = json_decode($row->meta, true)['intent'] ?? null;
                 if (is_string($intent)) {
                     $frequencies[$intent] = ($frequencies[$intent] ?? 0) + 1;
+                    $question = trim($row->text);
+                    if ($row->role === 'client' && $question !== '') {
+                        $question = mb_substr($question, 0, 200);
+                        $questionCounts[$intent][$question] = ($questionCounts[$intent][$question] ?? 0) + 1;
+                    }
                 }
             }
+            $frequentQuestions = [];
+            foreach ($questionCounts as $intent => $counts) {
+                arsort($counts);
+                $frequentQuestions[$intent] = array_slice(array_keys($counts), 0, 5);
+            }
 
-            return ['topics' => $topics, 'facts' => $facts, 'frequencies' => $frequencies, 'canWrite' => $canWrite,
+            return ['topics' => $topics, 'facts' => $facts, 'frequencies' => $frequencies, 'frequentQuestions' => $frequentQuestions, 'canWrite' => $canWrite,
                 'draftVersion' => $canWrite ? $draft?->version : null, 'status' => session('status')];
         });
 
