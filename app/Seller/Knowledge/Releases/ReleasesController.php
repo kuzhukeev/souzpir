@@ -41,18 +41,28 @@ final class ReleasesController
             $counts = [];
             try {
                 $snapshot = app(KnowledgeRepository::class)->published($tenant)->toArray();
-                foreach (['facts', 'intents', 'triggers', 'closed_topics'] as $key) {
-                    $counts[$key] = $key === 'facts' ? array_sum(array_map(fn ($group) => count($group['facts']), $snapshot[$key])) : count($snapshot[$key]);
-                }
+                $counts = [
+                    'facts' => array_sum(array_map(fn ($group) => count($group['facts']), $snapshot['facts'])),
+                    'conditions' => count($snapshot['conditions']),
+                    'intents' => count($snapshot['intents']),
+                    'examples' => count($snapshot['fewshot']['examples'] ?? (array_is_list($snapshot['fewshot']) ? $snapshot['fewshot'] : [])),
+                    'closed_topics' => count($snapshot['closed_topics']),
+                ];
             } catch (KnowledgeNotReady) {
             }
-            $tasks = $this->query('seller_tasks', $tenant)->where('type', 'unknown_question')->where('status', 'new')->orderByDesc('created_at')->limit(50)->get(['id', 'payload', 'created_at']);
+            $changeCount = null;
+            if ($draft && $brand?->active_knowledge_release_id && Gate::forUser($user)->allows('seller.knowledge.write')) {
+                $repository = app(KnowledgeRepository::class);
+                $comparison = app(ReleaseComparison::class)->compare($repository->published($tenant), $repository->forRelease($tenant, $draft->id, true));
+                $changeCount = array_sum(array_map(fn ($section) => count($section['changes']), $comparison));
+            }
+            $tasks = $this->query('seller_tasks', $tenant)->where('type', 'unknown_question')->where('status', 'new')->orderByDesc('created_at')->limit(50)->get(['id', 'conversation_id', 'payload', 'created_at']);
             $reviews = $this->query('message_reviews', $tenant)->where('type', 'wrong_fact')->where('status', 'new')->orderByDesc('created_at')->limit(50)->get(['id', 'note', 'better_text', 'created_at']);
             $handled = $this->query('audit_logs', $tenant)->where('action', 'knowledge.incoming.handled')->where('subject_type', 'evaluation')->pluck('subject_id');
             $evaluations = $this->query('seller_evaluations', $tenant)->whereNotIn('id', $handled)->whereRaw('jsonb_array_length(issues) > 0')->orderByDesc('created_at')->limit(50)->get(['id', 'issues', 'comment', 'created_at']);
 
             return ['releases' => $releases, 'activeId' => $brand?->active_knowledge_release_id, 'draft' => $draft, 'counts' => $counts,
-                'tasks' => $tasks, 'reviews' => $reviews, 'evaluations' => $evaluations, 'canWrite' => Gate::forUser($user)->allows('seller.knowledge.write')];
+                'tasks' => $tasks, 'reviews' => $reviews, 'evaluations' => $evaluations, 'changeCount' => $changeCount, 'canWrite' => Gate::forUser($user)->allows('seller.knowledge.write')];
         });
 
         return Inertia::render('Seller/Knowledge/Releases/Index', [...$data, 'status' => session('status')]);
