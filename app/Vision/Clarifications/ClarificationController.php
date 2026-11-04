@@ -192,6 +192,14 @@ final class ClarificationController
             if (is_string($fact['value'] ?? null) && trim($fact['value']) !== '') {
                 $catalog['facts'][] = $this->item('facts', $row->id, $fact['value'], $row->answer_text);
             }
+            foreach (['errors', 'suspected_errors'] as $field) {
+                foreach (is_array($fact[$field] ?? null) ? $fact[$field] : [] as $error) {
+                    $value = is_string($error) ? $error : (is_array($error) ? ($error['claim'] ?? $error['text'] ?? null) : null);
+                    if (is_string($value) && trim($value) !== '') {
+                        $catalog['facts'][] = $this->item('facts', $row->id, $value, $row->answer_text);
+                    }
+                }
+            }
             foreach (['mentions' => 'identity_candidates', 'presence' => 'presence_candidates'] as $kind => $field) {
                 foreach (array_slice(is_array($fact[$field] ?? null) ? $fact[$field] : [], 0, 20) as $candidate) {
                     $value = is_string($candidate) ? $candidate : ($candidate['name'] ?? $candidate['domain'] ?? null);
@@ -201,6 +209,8 @@ final class ClarificationController
                 }
             }
         }
+
+        $catalog['facts'] = collect($catalog['facts'])->unique('key')->values()->all();
 
         return $catalog;
     }

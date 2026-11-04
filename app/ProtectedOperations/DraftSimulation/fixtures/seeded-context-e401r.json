@@ -1,0 +1,244 @@
+[
+  {
+    "persona": "ghost",
+    "criterion": "max_one_nudge",
+    "client": "[молчание]",
+    "answer": "Напомнить о закупке?",
+    "history": [
+      {
+        "role": "client",
+        "text": "Киров"
+      },
+      {
+        "role": "agent",
+        "text": "Для чего закупаете?"
+      },
+      {
+        "role": "client",
+        "text": "На продажу"
+      },
+      {
+        "role": "client",
+        "text": "[молчание]"
+      }
+    ],
+    "events": [
+      {
+        "type": "nudge"
+      }
+    ],
+    "facts": {},
+    "expected": true
+  },
+  {
+    "persona": "ghost",
+    "criterion": "max_one_nudge",
+    "client": "[молчание]",
+    "answer": "Напомнить ещё раз?",
+    "history": [
+      {
+        "role": "client",
+        "text": "Киров"
+      },
+      {
+        "role": "agent",
+        "text": "Для чего закупаете?"
+      },
+      {
+        "role": "client",
+        "text": "На продажу"
+      },
+      {
+        "role": "client",
+        "text": "[молчание]"
+      },
+      {
+        "role": "agent",
+        "text": "Напомнить о закупке?"
+      }
+    ],
+    "events": [
+      {
+        "type": "nudge"
+      },
+      {
+        "type": "nudge"
+      }
+    ],
+    "facts": {},
+    "expected": false
+  },
+  {
+    "persona": "ghost",
+    "criterion": "paused_or_stale_outcome",
+    "client": "[молчание]",
+    "answer": "Ожидаем ответа.",
+    "history": [
+      {
+        "role": "client",
+        "text": "Киров"
+      },
+      {
+        "role": "agent",
+        "text": "Для чего закупаете?"
+      },
+      {
+        "role": "client",
+        "text": "На продажу"
+      },
+      {
+        "role": "client",
+        "text": "[молчание]"
+      }
+    ],
+    "events": [
+      {
+        "type": "outcome",
+        "value": "paused"
+      }
+    ],
+    "facts": {},
+    "expected": true
+  },
+  {
+    "persona": "ghost",
+    "criterion": "paused_or_stale_outcome",
+    "client": "[молчание]",
+    "answer": "Ожидаем ответа.",
+    "history": [
+      {
+        "role": "client",
+        "text": "Киров"
+      },
+      {
+        "role": "agent",
+        "text": "Для чего закупаете?"
+      },
+      {
+        "role": "client",
+        "text": "На продажу"
+      },
+      {
+        "role": "client",
+        "text": "[молчание]"
+      }
+    ],
+    "events": [],
+    "facts": {},
+    "expected": null
+  },
+  {
+    "persona": "prices_only_rude",
+    "criterion": "price_sent",
+    "client": "Пришлите прайс.",
+    "answer": "Направил прайс.",
+    "history": [],
+    "events": [
+      {
+        "type": "price_sent",
+        "artifact": "fixture-price-v1"
+      }
+    ],
+    "facts": {
+      "price_source": "fixture-price-v1"
+    },
+    "expected": true
+  },
+  {
+    "persona": "prices_only_rude",
+    "criterion": "price_sent",
+    "client": "Пришлите прайс.",
+    "answer": "Направил прайс.",
+    "history": [],
+    "events": [],
+    "facts": {
+      "price_source": "fixture-price-v1"
+    },
+    "expected": null
+  },
+  {
+    "persona": "big_order",
+    "criterion": "escalate_big_order",
+    "client": "Заказ на 700 тысяч.",
+    "answer": "Передал руководителю.",
+    "history": [],
+    "events": [
+      {
+        "type": "handoff",
+        "recipient": "руководитель"
+      }
+    ],
+    "facts": {
+      "order_budget": 700000
+    },
+    "expected": true
+  },
+  {
+    "persona": "big_order",
+    "criterion": "escalate_big_order",
+    "client": "Заказ на 700 тысяч.",
+    "answer": "Передам руководителю.",
+    "history": [],
+    "events": [],
+    "facts": {
+      "order_budget": 700000
+    },
+    "expected": null
+  },
+  {
+    "persona": "delivery_far",
+    "criterion": "calc_delivery_or_promise",
+    "client": "Сколько доставка в Якутск?",
+    "answer": "Уточню стоимость доставки.",
+    "history": [],
+    "events": [
+      {
+        "type": "delivery_quote_requested",
+        "destination": "Якутск"
+      }
+    ],
+    "facts": {
+      "destination": "Якутск"
+    },
+    "expected": true
+  },
+  {
+    "persona": "delivery_far",
+    "criterion": "calc_delivery_or_promise",
+    "client": "Сколько доставка в Якутск?",
+    "answer": "Доставка стоит 5000.",
+    "history": [],
+    "events": [],
+    "facts": {
+      "destination": "Якутск",
+      "confirmed_price": null
+    },
+    "expected": false
+  },
+  {
+    "persona": "big_order",
+    "criterion": "no_pct_above_cap",
+    "client": "Какая скидка?",
+    "answer": "По проверенной сетке до 10%.",
+    "history": [],
+    "events": [],
+    "facts": {
+      "discount_cap_percent": 10,
+      "source": "fixture-grid-v1"
+    },
+    "expected": true
+  },
+  {
+    "persona": "big_order",
+    "criterion": "no_pct_above_cap",
+    "client": "Какая скидка?",
+    "answer": "Предлагаю 15%.",
+    "history": [],
+    "events": [],
+    "facts": {
+      "discount_cap_percent": 10,
+      "source": "fixture-grid-v1"
+    },
+    "expected": false
+  }
+]

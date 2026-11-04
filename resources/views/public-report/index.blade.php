@@ -18,12 +18,20 @@
         .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-top: 36px; }
         .card { border: 1px solid #dce5dc; border-radius: 16px; background: white; padding: 22px; box-shadow: 0 4px 18px #1f3c2710; }
         .value { font-size: 28px; font-weight: 750; margin: 12px 0 0; }
+        .site-layout { display: flex; flex-wrap: wrap; align-items: center; gap: 24px; margin-top: 16px; }
+        .site-score { width: 132px; height: 132px; flex: none; border: 10px solid #dce5dc; border-radius: 50%; display: grid; place-items: center; text-align: center; }
+        .site-score strong { font-size: 26px; } .site-score span { display: block; font-size: 14px; }
+        .criteria { flex: 1 1 340px; list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+        .criteria li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding: 10px 12px; background: #f4f7f2; border-radius: 8px; font-size: 15px; }
+        .action-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 0; list-style: none; }
+        .action-grid li { background: #f4f7f2; border-radius: 10px; padding: 16px; font-size: 15px; line-height: 1.5; }
+        details { border-top: 1px solid #dce5dc; padding: 12px 0; } summary { cursor: pointer; font-weight: 600; }
         .print-button[type="button"] { min-height: 44px; padding: 10px 16px; border: 0; border-radius: 8px; background: #245b3e; color: white; font-size: 15px; font-weight: 600; cursor: pointer; }
         .print-button[type="button"]:focus-visible { outline: 3px solid #246dcc; outline-offset: 3px; }
         @media (max-width: 760px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } main { padding-top: 32px; } }
-        @media (max-width: 420px) { .grid { grid-template-columns: 1fr; } }
+        @media (max-width: 760px) { .action-grid { grid-template-columns: 1fr; } }
         @media print { .print-button { display: none; } :root { color: #172c26; background: white; } .card { break-inside: avoid; box-shadow: none; } }
-        @media (prefers-color-scheme: dark) { :root { color: #e7f0e9; background: #16231c; } .card { background: #243329; border-color: #3f5948; } .muted { color: #b4c7b9; } }
+        @media (prefers-color-scheme: dark) { :root { color: #e7f0e9; background: #16231c; } .card { background: #243329; border-color: #3f5948; } .muted { color: #b4c7b9; } .criteria li, .action-grid li { background: #1c2a21; } }
     </style>
 </head>
 <body>
@@ -58,8 +66,16 @@
         </section>
         <section class="card" style="margin-top: 24px"><h2>Кого называют вместо вас</h2>@if (count($report['competitors'] ?? []))<ol>@foreach ($report['competitors'] as $company)<li>{{ $company['name'] }} · упоминаний: {{ $company['answers'] }}</li>@endforeach</ol>@else<p class="muted">Нет подтверждённых упоминаний компаний.</p>@endif</section>
         <section class="card" style="margin-top: 24px"><h2>Что о вас говорят</h2>@if (array_key_exists('reviewed_facts', $report))<p>Утверждений в снимке: {{ $report['reviewed_facts'] }}; подтверждено: {{ $report['confirmed_facts'] }}.</p>@else<p class="muted">Счётчики проверенных утверждений в этой публикации недоступны.</p>@endif</section>
-        <section class="card" style="margin-top: 24px"><h2>Ваш сайт</h2>@php($site = $report['site_readiness'] ?? null)@if (is_array($site))<p>Оценка на момент публикации: {{ $site['lower'] }}–{{ $site['upper'] }}.</p>@elseif ($site !== null)<p>Оценка на момент публикации: {{ $site }}.</p>@else<p class="muted">Оценка сайта в этой публикации недоступна.</p>@endif @if (count($report['site_criteria'] ?? []))<ul>@foreach ($report['site_criteria'] as $criterion)<li>{{ $criterion['title'] }} · {{ ['pass' => 'Есть', 'fail' => 'Нет', 'partial' => 'Частично', 'unknown' => 'Неизвестно'][$criterion['status']] ?? 'Неизвестно' }}</li>@endforeach</ul>@endif</section>
-        <section class="card" style="margin-top: 24px"><h2>Три действия</h2>@if (count($report['actions'] ?? []))<ol>@foreach ($report['actions'] as $action)<li>{{ $action }}</li>@endforeach</ol>@else<p class="muted">Подтверждённых действий пока нет.</p>@endif</section>
+        <section class="card" style="margin-top: 24px"><h2>Ваш сайт</h2>
+            @php($site = $report['site_readiness'] ?? null)
+            @if ($site !== null)
+                <div class="site-layout"><div class="site-score" aria-label="Оценка сайта на момент публикации"><div><strong>{{ is_array($site) ? $site['lower'].'–'.$site['upper'] : $site }}</strong><span>из 100</span></div></div>
+                @if (count($report['site_criteria'] ?? []))<ul class="criteria">@foreach ($report['site_criteria'] as $criterion)<li><span>{{ $criterion['title'] }}</span><strong>{{ ['pass' => 'Есть', 'fail' => 'Нет', 'partial' => 'Частично', 'unknown' => 'Неизвестно'][$criterion['status']] ?? 'Неизвестно' }}</strong></li>@endforeach</ul>@endif</div>
+                <p class="muted">Оценка на момент публикации; диапазон отражает неопределённость.</p>
+            @else<p class="muted">Оценка сайта в этой публикации недоступна.</p>@if (count($report['site_criteria'] ?? []))<ul class="criteria">@foreach ($report['site_criteria'] as $criterion)<li><span>{{ $criterion['title'] }}</span><strong>{{ ['pass' => 'Есть', 'fail' => 'Нет', 'partial' => 'Частично', 'unknown' => 'Неизвестно'][$criterion['status']] ?? 'Неизвестно' }}</strong></li>@endforeach</ul>@endif @endif
+        </section>
+        <section class="card" style="margin-top: 24px"><h2>Три действия</h2>@if (count($report['actions'] ?? []))<ol class="action-grid">@foreach ($report['actions'] as $action)<li><strong>{{ $action }}</strong><p class="muted">Приоритет и шаги не опубликованы.</p></li>@endforeach</ol>@else<p class="muted">Подтверждённых действий пока нет.</p>@endif</section>
+        <section class="card" style="margin-top: 24px"><h2>История изменений</h2><p class="muted">Сопоставимая история не включена в этот снимок.</p></section>
         <section class="card" style="margin-top: 24px"><h2>Методика</h2><details><summary>Вопросы</summary><p>В снимке учтено {{ $report['questions'] }} вопросов.</p></details>
             <details><summary>Ответы моделей</summary><p>Пропущенные и непроверенные ответы не считаются отрицательными.</p></details>
             <details><summary>Видимость</summary><p>Показатель рассчитан по доступным проверенным ответам.</p></details>
