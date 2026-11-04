@@ -123,6 +123,31 @@ class TaskCliTests(unittest.TestCase):
         self.assertEqual(task_cli.git(worktree, "rev-parse", "HEAD"), head)
         self.assertEqual(target.read_text(encoding="utf-8"), "saved")
 
+    def test_reclaim_accepts_published_task_merged_with_new_main(self):
+        worktree, original = self.claim()
+        self.commit(worktree)
+        published = task_cli.git(worktree, "rev-parse", "HEAD")
+        task_cli.git(self.root, "update-ref", "refs/remotes/origin/codex/sp-001", published)
+        self.commit(self.root, "app/Common/upstream.php")
+        task_cli.git(worktree, "merge", "--no-ff", "main", "-m", "Merge upstream")
+        task_cli.git(worktree, "merge-base", "--is-ancestor", published, "HEAD")
+        self.client.release("SP-001", "Transfer")
+        self.assertEqual(self.client.ready()["tasks"][0]["taskKey"], "SP-001")
+        reclaimed = self.client.claim("SP-001", "new-owner")
+        self.assertEqual(reclaimed["baseCommit"], original["baseCommit"])
+        self.assertEqual(self.client.submit("SP-001", "Scoped work", ["Checked"])["status"], "review")
+
+    def test_reclaim_rejects_unpublished_out_of_scope_commit_after_merge(self):
+        worktree, _ = self.claim()
+        self.commit(worktree)
+        published = task_cli.git(worktree, "rev-parse", "HEAD")
+        task_cli.git(self.root, "update-ref", "refs/remotes/origin/codex/sp-001", published)
+        self.commit(worktree, "app/Common/unapproved.php")
+        self.client.release("SP-001", "Transfer")
+        self.assertEqual(self.client.ready()["tasks"], [])
+        with self.assertRaisesRegex(task_cli.TaskError, "preserved changes"):
+            self.client.claim("SP-001", "new-owner")
+
     def test_released_dirty_worktree_is_not_reclaimed(self):
         worktree, _ = self.claim()
         self.client.release("SP-001", "Stopped")
