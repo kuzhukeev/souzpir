@@ -30,6 +30,7 @@ return [
     },
     'session' => static function (): void {
         Route::middleware('auth.nostore')->group(static function (): void {
+            Route::get('/logout/recover', [SessionController::class, 'recoverLogout'])->name('logout.recover');
             Route::get('/invitations/open', [InvitationController::class, 'open'])->middleware('throttle:30,1')->name('invitation.open');
             Route::post('/invitations/exchange', [InvitationController::class, 'exchange'])->middleware(['auth.version', 'throttle:10,1'])->name('invitation.exchange');
             Route::get('/invitations/show', [InvitationController::class, 'show'])->middleware('auth.version')->name('invitation.show');
