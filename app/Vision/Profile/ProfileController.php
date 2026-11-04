@@ -10,9 +10,11 @@ use App\Tenancy\TenantContext;
 use App\Vision\Core\Profiles\ProfileAccess;
 use App\Vision\Core\Profiles\Questionnaire;
 use App\Vision\Core\Profiles\QuizConflict;
+use App\Vision\Site\Jobs\AuditSiteJob;
 use App\Vision\SiteAudit\Knowledge\SiteDraftStore;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
@@ -219,12 +221,14 @@ HTML;
                     $audit = null;
                 }
 
-                return ['page' => $page, 'audit' => $audit];
+                return ['page' => $page, 'audit' => $audit, 'progress' => Cache::get(AuditSiteJob::key($context->organizationId, $context->brandId))];
             });
+            $progress = $sources['progress']['stage'] ?? null;
+            $siteCheck = ['stage' => in_array($progress, ['queued', 'inspecting', 'saving', 'complete', 'failed'], true) ? $progress : null, 'readiness' => $sources['audit']['readiness'] ?? null, 'pages' => $sources['audit']['crawled_pages'] ?? null];
             $page = $sources['page'] ?? null;
             $audit = $sources['audit'] ?? null;
             if (! $page && ! $audit) {
-                return ['status' => 'empty', 'items' => []];
+                return ['status' => 'empty', 'items' => [], 'site_check' => $siteCheck];
             }
             $page ??= [];
             $title = trim((string) ($page['title'] ?? ''));
@@ -338,7 +342,7 @@ HTML;
                 }
             }
 
-            return ['status' => $items || ($step === 1 && $page) ? 'available' : 'empty', 'items' => $items];
+            return ['status' => $items || ($step === 1 && $page) ? 'available' : 'empty', 'items' => $items, 'site_check' => $siteCheck];
         } catch (Throwable) {
             // Local failure must not block the form or expose private source data in logs.
             return $unavailable;

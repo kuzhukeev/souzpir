@@ -1,3 +1,4 @@
+import SiteCheck from './SiteCheck';
 import { useState } from 'react';
 import { useDirtyGuard } from '@/features/Vision/Profile/useDirtyGuard';
 import { Link, router, usePage } from '@inertiajs/react';
@@ -26,7 +27,7 @@ type Props = {
   step: number;
   brand: { id: string; name: string; website: string | null };
   limits: { competitors?: number; facts?: number; questions?: number };
-  hints: { status: string; items?: { label: string; value: string; source: string; kind?: string }[] };
+  hints: { status: string; site_check?: {stage?: string | null; readiness?: number | {lower?: number; upper?: number} | null; pages?: number | null}; items?: { label: string; value: string; source: string; kind?: string }[] };
   savedAt?: string | null;
   errors?: Record<string, string>;
 };
@@ -124,7 +125,7 @@ function QuizBody({ quiz, step, brand, limits, hints, savedAt = null, errors = {
                 onChange={setData}
                 limits={limits}
                 errors={errors}
-              />{step === 1 && <section className="mt-4 text-sm"><p role="status" className="text-(--color-ink-muted)">{hints?.status === 'available' && data.website === brand.website ? 'Сайт доступен на момент сохранения данных; текущую доступность проверьте повторно.' : 'Для указанного сайта нет сохранённых данных проверки.'}</p><p className="mt-2 text-(--color-ink-muted)">Для нового запуска сохраните данные анкеты и укажите адрес в настройках бренда. Результат откроется в разделе «Сайт».</p>{can?.['vision.actions.write'] && <button type="button" disabled={dirty || !brand.website || data.website !== brand.website || checkingSite} className="mt-2 min-h-11 cursor-pointer rounded-lg border border-(--color-border) px-3 text-(--color-link) disabled:cursor-not-allowed disabled:opacity-50" onClick={() => { if (!brand.website) return; setError(''); router.post('/vision/site/audit', {url: brand.website}, {onStart:()=>setCheckingSite(true),onFinish:()=>setCheckingSite(false),onError:(errors)=>setError(errors.url ?? 'Не удалось запустить проверку сайта.'),onNetworkError:()=>{setError('Нет связи с сервером. Повторите попытку.');return false;},onHttpException:()=>{setError('Не удалось запустить проверку сайта.');return false;}}); }}>{checkingSite ? 'Запускаем проверку…' : 'Проверить сайт'}</button>} <Link href="/vision/site" className="ml-2 cursor-pointer text-(--color-link) underline">Раздел «Сайт»</Link></section>}</>
+              />{step === 1 && <><SiteCheck check={hints?.site_check} current={data.website === brand.website}/><section className="mt-4 text-sm"><p role="status" className="text-(--color-ink-muted)">{hints?.status === 'available' && data.website === brand.website ? 'Сайт доступен на момент сохранения данных; текущую доступность проверьте повторно.' : 'Для указанного сайта нет сохранённых данных проверки.'}</p><p className="mt-2 text-(--color-ink-muted)">Для нового запуска сохраните данные анкеты и укажите адрес в настройках бренда. Результат появится в анкете и в разделе «Сайт».</p>{can?.['vision.actions.write'] && <button type="button" disabled={dirty || !brand.website || data.website !== brand.website || checkingSite} className="mt-2 min-h-11 cursor-pointer rounded-lg border border-(--color-border) px-3 text-(--color-link) disabled:cursor-not-allowed disabled:opacity-50" onClick={() => { if (!brand.website) return; setError(''); router.post('/vision/site/audit', {url: brand.website}, {headers: {'X-Quiz-Origin': '1'},onStart:()=>setCheckingSite(true),onFinish:()=>setCheckingSite(false),onError:(errors)=>setError(errors.url ?? 'Не удалось запустить проверку сайта.'),onNetworkError:()=>{setError('Нет связи с сервером. Повторите попытку.');return false;},onHttpException:()=>{setError('Не удалось запустить проверку сайта.');return false;}}); }}>{checkingSite ? 'Запускаем проверку…' : 'Проверить сайт'}</button>} <Link href="/vision/site" className="ml-2 cursor-pointer text-(--color-link) underline">Раздел «Сайт»</Link></section></>}</>
             ) : (
               <div className="space-y-4">
                 <h2 className="text-xl font-semibold">Проверьте ответы перед отправкой</h2>
