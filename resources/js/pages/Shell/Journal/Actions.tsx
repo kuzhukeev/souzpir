@@ -1,3 +1,4 @@
+import JournalRowMenu from '@/features/Shell/Journal/JournalRowMenu';
 import { Head, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { Avatar, Button, DataTable, Drawer, Skeleton } from '@/components/ui';
@@ -33,6 +34,7 @@ type Props = {
   filters: Filters;
   actors: { id: string; name: string }[];
   actions: string[];
+  actionLabels?: Record<string, string>;
   canNotifications: boolean;
 };
 function changes(before: string | null, after: string | null): {key:string;before:string;after:string}[] {
@@ -40,7 +42,7 @@ function changes(before: string | null, after: string | null): {key:string;befor
   const left=parse(before),right=parse(after);const display=(value:unknown)=>value===undefined||value===null?'—':typeof value==='string'?value:JSON.stringify(value);
   return [...new Set([...Object.keys(left),...Object.keys(right)])].filter(key=>JSON.stringify(left[key])!==JSON.stringify(right[key])).map(key=>({key,before:display(left[key]),after:display(right[key])}));
 }
-export default function Actions({ rows, filters, actors, actions, canNotifications }: Props) {
+export default function Actions({ rows, filters, actors, actions, actionLabels = {}, canNotifications }: Props) {
   const { brand } = usePage<{ brand: { id: string; name: string } | null }>().props;
   const [selected, setSelected] = useState<Row | null>(null);
   const { loading, failed, retry: retryLoad } = useJournalNavigation();
@@ -87,7 +89,7 @@ export default function Actions({ rows, filters, actors, actions, canNotificatio
           {
             key: 'action',
             label: 'Тип действия',
-            items: actions.map((action) => ({ value: action, label: actionLabel(action) })),
+            items: actions.map((action) => ({ value: action, label: actionLabels[action] ?? actionLabel(action) })),
           },
         ]}
       />
@@ -142,11 +144,9 @@ export default function Actions({ rows, filters, actors, actions, canNotificatio
                 { key: 'subject_type', label: 'Модуль', render: (row) => row.module_name },
                 {
                   key: 'id',
-                  label: 'Детали',
+                  label: 'Действия',
                   render: (row) => (
-                    <Button variant="ghost" size="sm" onClick={() => setSelected(row)}>
-                      Открыть
-                    </Button>
+                    <JournalRowMenu url={row.subject_url} onDetails={() => setSelected(row)} />
                   ),
                 },
               ]}

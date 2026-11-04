@@ -55,7 +55,8 @@ test('journal uses real filtered data, shows details, and adapts to screen sizes
   await page.goto('/journal');
   await expect(page.getByRole('heading', { name: 'Действия в кабинете' })).toBeVisible();
   await expect(page.getByText('journal-browser-fixture').first()).toBeVisible();
-  await page.getByRole('button', { name: 'Открыть' }).first().click();
+  await page.getByRole('button', { name: 'Действия с записью' }).first().click();
+  await page.getByRole('button', { name: 'Детали действия', exact: true }).click();
   await expect(page.getByRole('dialog', { name: 'Детали действия' })).toContainText('черновик');
   await expect(page.getByRole('dialog', { name: 'Детали действия' })).toContainText('готово');
   await page.getByRole('button', { name: 'Закрыть' }).click();

@@ -45,4 +45,32 @@ final class JournalNamesTest extends TenancyTestCase
         [$viewer] = $this->member($org, 'viewer', [$brand->id]);
         $this->flushSession()->actingAs($viewer)->withSession(['brand_id' => $brand->id])->get('/journal')->assertForbidden();
     }
+
+    public function test_knowledge_object_names_and_action_filter_labels_are_resolved_in_brand_scope(): void
+    {
+        [$owner, $org, $brand, $other, $membership] = $this->cabinet();
+        $context = new TenantContext($org->id, $brand->id, $owner->id, $membership->id);
+        $logical = (string) Str::ulid();
+        foreach ([[$brand->id, 'Свой факт'], [$other->id, 'Чужой факт']] as [$brandId, $text]) {
+            $release = (string) Str::ulid();
+            $group = (string) Str::ulid();
+            DB::table('knowledge_releases')->insert(['id' => $release, 'organization_id' => $org->id, 'brand_id' => $brandId, 'version' => 1, 'status' => 'draft', 'created_by' => $owner->id]);
+            DB::table('kn_fact_groups')->insert(['id' => $group, 'release_id' => $release, 'key' => 'facts', 'position' => 0, 'data' => '{}']);
+            DB::table('kn_facts')->insert(['id' => (string) Str::ulid(), 'logical_id' => $logical, 'group_id' => $group, 'text' => $text, 'position' => 0, 'source' => 'manual', 'status' => 'active']);
+        }
+        app(TenantContextRunner::class)->run($context, function () use ($context, $logical): void {
+            app(AuditWriter::class)->record($context, new AuditEntry('knowledge.fact.updated', 'knowledge_fact', $logical));
+            app(AuditWriter::class)->record($context, new AuditEntry('vision.profile.updated', 'brand', $context->brandId));
+        });
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $page = $this->get('/journal')->assertOk();
+        $rows = collect($page->inertiaProps('rows.data'));
+        self::assertSame('Свой факт', $rows->firstWhere('subject_id', $logical)['subject_name']);
+        self::assertSame('/seller/knowledge', $rows->firstWhere('subject_id', $logical)['subject_url']);
+        self::assertSame('Изменение профиля', $page->inertiaProps('actionLabels')['vision.profile.updated']);
+        $csv = $this->get('/journal/export')->assertOk()->streamedContent();
+        self::assertStringContainsString($brand->name, $csv);
+        self::assertStringContainsString('Свой факт', $csv);
+        self::assertStringNotContainsString('Чужой факт', $csv);
+    }
 }

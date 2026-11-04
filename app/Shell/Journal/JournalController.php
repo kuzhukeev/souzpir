@@ -116,7 +116,7 @@ final class JournalController
         $actors = $this->auditQuery([])->reorder()->whereNotNull('a.actor_id')->select('a.actor_id as id', 'u.name')->distinct()->orderBy('u.name')->get();
         $actions = $this->auditQuery([])->reorder()->select('a.action')->distinct()->orderBy('a.action')->pluck('action');
 
-        return Inertia::render('Shell/Journal/Actions', ['rows' => $rows, 'filters' => $filters, 'actors' => $actors, 'actions' => $actions, 'canNotifications' => Gate::allows('journal.notifications.read')]);
+        return Inertia::render('Shell/Journal/Actions', ['rows' => $rows, 'filters' => $filters, 'actors' => $actors, 'actions' => $actions, 'actionLabels' => $actions->mapWithKeys(fn (string $action) => [$action => $registry->action($action)]), 'canNotifications' => Gate::allows('journal.notifications.read')]);
     }
 
     public function export(Request $request): StreamedResponse
@@ -131,10 +131,11 @@ final class JournalController
             fwrite($out, "\xEF\xBB\xBF");
             fputcsv($out, ['Время', 'Участник', 'Действие', 'Тип объекта', 'Объект', 'Бренд', 'Модуль'], ';', '"', '');
             $registry = app(JournalObjectRegistry::class);
+            $brandName = DB::table('brands')->where('organization_id', $context->organizationId)->where('id', $context->brandId)->value('name');
             foreach ($query->cursor() as $row) {
                 $safe = fn ($value) => $this->csvCell((string) ($value ?? ''));
                 $object = $registry->describe($row, $context);
-                fputcsv($out, [$safe($row->created_at), $safe($row->actor), $safe($registry->action($row->action)), $safe($row->subject_type), $safe($object['name']), $safe($row->brand_id), $safe($registry->module($row->action))], ';', '"', '');
+                fputcsv($out, [$safe($row->created_at), $safe($row->actor), $safe($registry->action($row->action)), $safe($row->subject_type), $safe($object['name']), $safe($row->brand_id ? $brandName : 'Вся компания'), $safe($registry->module($row->action))], ';', '"', '');
             }
             fclose($out);
         }, 'journal.csv', ['Content-Type' => 'text/csv; charset=UTF-8', 'Cache-Control' => 'private, no-store']);

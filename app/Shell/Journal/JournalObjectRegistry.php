@@ -4,9 +4,26 @@ namespace App\Shell\Journal;
 
 use App\Tenancy\TenantContext;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 final class JournalObjectRegistry
 {
+    private const OBJECTS = [
+        'knowledge_release' => ['knowledge_releases', 'Версия знаний', '/seller/knowledge'],
+        'question_candidate' => ['question_candidates', 'Вопрос', '/vision/questions'],
+        'question_set' => ['question_sets', 'Набор вопросов', '/vision/questions'],
+        'measurement' => ['measurements', 'Замер', '/vision/runs'],
+        'vision_report' => ['vision_reports', 'Отчёт', '/vision/report'],
+        'seller_persona' => ['seller_personas', 'Персона', '/seller/quality/scenarios'],
+        'seller_task' => ['seller_tasks', 'Задача', '/seller/tasks'],
+        'channel_account' => ['channel_accounts', 'Канал', '/seller/channels'],
+        'brand_profile' => ['brand_profiles', 'Профиль бренда', '/vision/profile'],
+        'vision_action' => ['actions', 'Рекомендация', '/vision/actions'],
+        'report_publication' => ['report_publications', 'Публикация', '/vision/publications'],
+        'site_audit' => ['audit_runs', 'Аудит сайта', '/vision/site'],
+        'monitoring_schedule' => ['monitoring_schedules', 'Расписание', '/vision/runs'],
+    ];
+
     private const ACTIONS = [
         'knowledge.fact.created' => 'Добавлен факт',
         'knowledge.fact.updated' => 'Изменён факт',
@@ -49,6 +66,28 @@ final class JournalObjectRegistry
                 $result['name'] = $contact?->name ?: ($contact?->phone ?: ($contact?->email ?: 'Диалог '.$id));
                 $result['url'] = '/seller/dialogs/'.$id;
             }
+        } elseif ($row->subject_type === 'knowledge_fact') {
+            $fact = DB::table('kn_facts as f')->join('kn_fact_groups as g', 'g.id', '=', 'f.group_id')
+                ->join('knowledge_releases as r', 'r.id', '=', 'g.release_id')
+                ->where('r.organization_id', $context->organizationId)->where('r.brand_id', $context->brandId)
+                ->where('f.logical_id', $id)->orderByDesc('r.version')->value('f.text');
+            if ($fact) {
+                $result = ['name' => $fact, 'url' => '/seller/knowledge'];
+            }
+        } elseif (isset(self::OBJECTS[$row->subject_type])) {
+            [$table, $label, $url] = self::OBJECTS[$row->subject_type];
+            if (Schema::hasTable($table) && Schema::hasColumns($table, ['organization_id', 'brand_id'])) {
+                $object = DB::table($table)->where($scope)->where('id', $id)->first();
+                if ($object) {
+                    $name = $object->name ?? $object->title ?? $object->text ?? (isset($object->version) ? $label.' №'.$object->version : null);
+                    $result = ['name' => $name ?: $label.' '.$id, 'url' => $url];
+                }
+            }
+        } elseif ($row->subject_type === 'brand' && $id === $context->brandId) {
+            $name = DB::table('brands')->where('organization_id', $context->organizationId)->where('id', $id)->value('name');
+            if ($name) {
+                $result = ['name' => $name, 'url' => '/brands/'.$id.'/settings'];
+            }
         }
 
         return $result;
@@ -62,6 +101,6 @@ final class JournalObjectRegistry
 
     public function action(string $action): string
     {
-        return self::ACTIONS[$action] ?? 'Действие: '.$action;
+        return self::ACTIONS[$action] ?? JournalActionLabels::label($action);
     }
 }
