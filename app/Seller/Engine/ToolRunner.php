@@ -3,6 +3,7 @@
 namespace App\Seller\Engine;
 
 use App\Tenancy\TenantContext;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use SensitiveParameter;
 use Throwable;
@@ -18,6 +19,23 @@ final class ToolRunner
     public function run(#[SensitiveParameter] mixed $name, #[SensitiveParameter] mixed $arguments, #[SensitiveParameter] mixed $config): array
     {
         try {
+            if ($name === 'set_followup' && is_array($config) && ($config['now'] ?? null) instanceof CarbonImmutable) {
+                if (! (new ToolArguments)->check($name, $arguments)['valid']) {
+                    return ['status' => 'invalid_arguments'];
+                }
+                $candidate = (new FollowupDate)->parse($arguments['datetime'], $config['now']);
+                if ($candidate['status'] !== 'candidate') {
+                    return ['status' => 'needs_clarification'];
+                }
+
+                return [
+                    'status' => 'candidate',
+                    'datetime' => $candidate['date']->toIso8601String(),
+                    'time_defaulted' => $candidate['time_defaulted'],
+                    'day_defaulted' => $candidate['day_defaulted'],
+                    'year_defaulted' => $candidate['year_defaulted'],
+                ];
+            }
             if ($name !== 'calc_delivery' && $name !== 'check_stock' && $name !== 'send_price') {
                 return ['status' => 'unavailable'];
             }
