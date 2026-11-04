@@ -19,32 +19,37 @@ final class DraftScenarioPreview
         return $this->previewTurn($draft, $client, $expectations, $state, true);
     }
 
-    public function dialogue(KnowledgeSnapshot $draft, array $persona, int $maxTurns, ?Request $request = null): array
+    public function dialogue(KnowledgeSnapshot $draft, array $persona, int $maxTurns, ?Request $request = null, ?string $personaKey = null): array
     {
-        $clients = [trim((string) ($persona['first_message'] ?? ''))];
-        foreach (array_slice((array) ($persona['facts'] ?? []), 0, max(0, $maxTurns - 1)) as $fact) {
+        $clients = [];
+        $first = trim((string) ($persona['first_message'] ?? ''));
+        if ($first !== '') {
+            $clients[] = ['text' => $first, 'field' => null];
+        }
+        foreach ((array) ($persona['facts'] ?? []) as $field => $fact) {
             if (is_scalar($fact) && trim((string) $fact) !== '') {
-                $clients[] = 'Уточню: '.trim((string) $fact);
+                $clients[] = ['text' => 'Уточню: '.trim((string) $fact), 'field' => is_string($field) ? $field : null];
             }
         }
-        if (count($clients) === 1 && is_string($persona['behavior'] ?? null) && trim($persona['behavior']) !== '') {
-            $clients[] = trim($persona['behavior']);
+        if ($clients === []) {
+            $clients[] = ['text' => 'Тестовый вопрос', 'field' => null];
         }
         $expectations = is_array($persona['expect'] ?? null) ? $persona['expect'] : [];
         $state = new LeadState;
         $turns = [];
         foreach (array_slice($clients, 0, max(1, $maxTurns)) as $index => $client) {
-            $turns[] = $this->previewTurn($draft, $client ?: 'Тестовый вопрос', $expectations, $state, $index === 0, $request);
+            $seed = $personaKey !== null && $client['field'] !== null ? ['persona_key' => $personaKey, 'field' => $client['field']] : null;
+            $turns[] = $this->previewTurn($draft, $client['text'], $expectations, $state, $index === 0, $request, $seed);
         }
 
         return $turns;
     }
 
-    private function previewTurn(KnowledgeSnapshot $draft, string $client, array $expectations, LeadState $state, bool $first, ?Request $request = null): array
+    private function previewTurn(KnowledgeSnapshot $draft, string $client, array $expectations, LeadState $state, bool $first, ?Request $request = null, ?array $seed = null): array
     {
         try {
             $policy = new Policy($draft);
-            $extraction = $request ? app(FixtureRuntime::class)->extract($request, $draft, $client) : null;
+            $extraction = $request ? app(FixtureRuntime::class)->extract($request, $draft, $client, $seed) : null;
             $extractionAvailable = $extraction !== null;
             $extraction ??= ['client_intent' => 'unclear'];
             $policy->applyExtraction($state, $extraction);
