@@ -5265,7 +5265,8 @@
         "SP-E4-01K",
         "SP-E1-02F",
         "SP-E8-22C",
-        "SP-E8-21D"
+        "SP-E8-21D",
+        "SP-E4-01L"
       ],
       "scope": [
         "README.md",
@@ -14602,6 +14603,39 @@
       "promptPath": "docs/tasks/SP-E8-21D.md",
       "wave": 18,
       "description": "# SP-E8-21D · Остаток аудита сайта\n\n**Зачем:** завершить экраны V-8.1–V-8.5 по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E8-21C из docs/results/SP-E8-21C.md.\n**Зависимости:** SP-E8-21C (дождаться merge).\n\nЗакрыть оставшиеся пункты: группы проверок по макету; важность и примеры кода; признаки капчи и антибота; типы страниц, извлечённые факты и проблемы; прогресс по страницам, прогноз времени и уведомление. Использовать подтверждённые данные, при необходимости реализовать недостающие источники в рамках задачи; не выдумывать результаты проверки.\n\nСверить с docs/sources/02b_mockup_journal.md; проверить сценарии, права, изоляцию брендов и ошибки. Без живых или платных вызовов в тестах.\n\nScope: `app/Vision/Site/`, `resources/js/pages/Vision/Site/`, `resources/js/features/Vision/Site/`, `tests/Browser/E8-21D/`, `docs/results/SP-E8-21D.md`.\n\nОтчёт: docs/results/SP-E8-21D.md; остаток указать по пунктам.\n"
+    },
+    {
+      "taskKey": "SP-E4-01L",
+      "title": "SP-E4-01L · Защищённый прогон черновика",
+      "goal": "Завершить защищённый fake runtime и проверку критериев на экране D-4.12.",
+      "dependsOn": [
+        "SP-E4-01K"
+      ],
+      "scope": [
+        "app/Seller/Knowledge/",
+        "app/Seller/Evaluation/",
+        "resources/js/pages/Seller/Knowledge/Releases/",
+        "routes/features/E4-01.php",
+        "tests/Feature/Seller/Knowledge/",
+        "tests/Browser/E4-01L/",
+        "docs/results/SP-E4-01L.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Пункты остатка выполнены по макету, проверены права и изоляция; тесты без живых вызовов."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "D-4.12"
+      ],
+      "notes": "Продолжение частичной сдачи SP-E4-01K по решению владельца.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E4-01L.md",
+      "wave": 18,
+      "description": "# SP-E4-01L · Защищённый прогон черновика\n\n**Зачем:** завершить экран D-4.12 по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E4-01K из docs/results/SP-E4-01K.md.\n**Зависимости:** SP-E4-01K (дождаться merge).\n\nЗавершить защищённый fake runtime для прогона черновика с извлечением намерений на каждом ходе и смысловую проверку произвольных критериев. Использовать существующие защищённые механизмы и подтверждённые данные; отсутствие HTTP-сессии в runtime устранить в согласованной области или описать остаток. Сверить экран с журналом макетов; проверить права, изоляцию бренда и ошибки. Без живых или платных вызовов в тестах.\n\nScope: `app/Seller/Knowledge/`, `app/Seller/Evaluation/`, `resources/js/pages/Seller/Knowledge/Releases/`, `routes/features/E4-01.php`, `tests/Feature/Seller/Knowledge/`, `tests/Browser/E4-01L/`, `docs/results/SP-E4-01L.md`.\n\nОтчёт: docs/results/SP-E4-01L.md; остаток указать по пунктам.\n"
     }
   ],
   "excludedSourceTasks": {
