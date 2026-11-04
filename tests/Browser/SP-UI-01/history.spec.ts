@@ -22,7 +22,7 @@ for (const theme of ['neutral', 'confectionery', 'pyro']) {
 
 test('completed history stays on history screen, current action stays on actions screen', async ({ page }) => {
   await page.goto(`${base}?filled`);
-  await expect(page.getByText('Завершённое действие')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Завершённое действие' })).toBeVisible();
   await expect(page.getByText('Текущее действие')).toHaveCount(0);
   await page.goto(`${base}?section=actions`);
   await expect(page.getByText('Текущее действие')).toBeVisible();
