@@ -12,7 +12,7 @@ test.use({ viewport: { width: 1440, height: 900 }, launchOptions: process.env.PL
 test('локальная проверка и сохранность черновика', async ({ page }) => {
   await page.goto(fixture);
   await expect(page.getByText('Локальная проверка одного хода использует', { exact: false })).toBeVisible();
-  await expect(page.getByText('Полный прогон и смысловые критерии пока недоступны.', { exact: false })).toBeVisible();
+  await expect(page.getByText('полноценный прогон ещё не подключён.', { exact: false })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Скачать копию черновика' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Создать черновик' })).toBeDisabled();
   await page.screenshot({ path: '.local/screenshots/sp-e4-01i/releases.png', fullPage: true });
