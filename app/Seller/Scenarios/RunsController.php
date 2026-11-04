@@ -47,7 +47,8 @@ final class RunsController
                 $items = collect(json_decode($group->items, true) ?: [])->map(function (array $item) use ($groupEvaluations): array {
                     $average = $groupEvaluations[$item['run_id'] ?? ''] ?? null;
 
-                    return ['name' => $item['name'], 'status' => $item['status'], 'run_id' => $item['run_id'] ?? null, 'average' => $average];
+                    return ['name' => $item['name'], 'status' => $item['status'], 'run_id' => $item['run_id'] ?? null, 'average' => $average,
+                        'evaluation' => $average === null && ($item['evaluation'] ?? null) === 'unavailable' ? 'unavailable' : null];
                 });
 
                 return ['id' => $group->id, 'status' => $group->status, 'created_at' => $group->created_at, 'items' => $items->all(), 'average' => $items->whereNotNull('average')->avg('average'),
