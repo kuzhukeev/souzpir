@@ -48,7 +48,7 @@ function CriterionRow({ item, canManage }: { item: Criterion; canManage: boolean
         </span>
       </summary>
       <div className="mt-4 space-y-3">
-        <p className="text-sm text-(--color-ink-muted)">Важность: не определена</p>
+        <p className="text-sm text-(--color-ink-muted)">Важность: не определена{typeof (item as Criterion & {weight?: number}).weight === 'number' ? ` · вес: ${(item as Criterion & {weight:number}).weight}` : ''}</p>
         <h3 className="font-semibold">Что сделать</h3>
         <p className="whitespace-pre-wrap break-words text-(--color-ink-muted)">
           {item.explanation || 'Рекомендаций пока нет.'}
@@ -196,6 +196,7 @@ export function AuditForm() {
 export function BotAccess({ audit, domainStatus }: { audit: Audit; domainStatus?: {host: string; verified: boolean} | null }) {
   const { brand } = usePage<{brand: {id: string} | null}>().props;
   const access = audit.ai_access;
+  const captcha = (access as typeof access & {captcha?: {indicators: string[]; pages_observed: number}})?.captcha;
   const [copyStatus, setCopyStatus] = useState('');
   if (!access)
     return (
@@ -238,7 +239,7 @@ export function BotAccess({ audit, domainStatus }: { audit: Audit; domainStatus?
         ))}
         <section className={card}>
           <h2 className="text-lg font-semibold">Капча и антибот</h2>
-          <p className="mt-2 text-(--color-ink-muted)">Нет данных</p>
+          <p className="mt-2 text-(--color-ink-muted)">{captcha?.indicators?.length ? `Обнаружены признаки: ${captcha.indicators.join(', ')}` : captcha?.pages_observed ? 'На проверенных страницах явных признаков не найдено; защита может присутствовать.' : 'Нет данных'}</p>
         </section>
         <section className={card}>
           <h2 className="text-lg font-semibold">Пример правила для robots.txt</h2>
@@ -261,8 +262,15 @@ export function Pages({ audit }: { audit: Audit }) {
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<AuditPage | null>(null);
   const evidenceFor = (page: AuditPage) => (audit.criteria || []).flatMap((criterion) => (criterion.evidence || []).filter((evidence) => evidence.url === page.url).map((evidence) => ({ criterion, evidence })));
+  const structuredFacts = (page: AuditPage) => (page as AuditPage & {structured_facts?: {label:string; value:string}[]}).structured_facts ?? [];
   const pageType = (page: AuditPage) => {
     if (page.url === (audit.final_url || audit.url)) return 'Главная';
+    const types = (page as AuditPage & {structured_types?: string[]}).structured_types ?? [];
+    if (types.includes('ContactPage')) return 'Контакты · разметка';
+    if (types.includes('AboutPage')) return 'О компании · разметка';
+    if (types.includes('CollectionPage') || types.includes('ItemList')) return 'Каталог · разметка';
+    if (types.includes('Product')) return 'Товар · разметка';
+    if (types.includes('Service')) return 'Услуга · разметка';
     for (const { evidence } of evidenceFor(page)) {
       try {
         const data = JSON.parse(evidence.excerpt || '');
@@ -295,7 +303,7 @@ export function Pages({ audit }: { audit: Audit }) {
         <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[750px] text-left text-sm">
             <thead><tr className="border-b border-(--color-border)"><th className="p-3">URL</th><th className="p-3">Заголовок</th><th className="p-3">Тип</th><th className="p-3">Свидетельства</th><th className="p-3">HTTP</th><th className="p-3">Проверено</th><th className="p-3">Подробнее</th></tr></thead>
-            <tbody>{pages.map((page) => <tr key={page.url} className="border-b border-(--color-border)"><td className="break-all p-3">{page.url}</td><td className="p-3">{page.primary_heading || 'Без заголовка'}</td><td className="p-3">{pageType(page)}</td><td className="p-3">{evidenceFor(page).length}</td><td className="p-3">{page.status ?? '—'}</td><td className="p-3">{date(page.observed_at)}</td><td className="p-3"><button type="button" className={secondary} onClick={() => setSelected(page)} aria-label={`Подробнее: ${page.primary_heading || page.url}`}>Подробнее</button></td></tr>)}</tbody>
+            <tbody>{pages.map((page) => <tr key={page.url} className="border-b border-(--color-border)"><td className="break-all p-3">{page.url}</td><td className="p-3">{page.primary_heading || 'Без заголовка'}</td><td className="p-3">{pageType(page)}</td><td className="p-3">{evidenceFor(page).length + structuredFacts(page).length}</td><td className="p-3">{page.status ?? '—'}</td><td className="p-3">{date(page.observed_at)}</td><td className="p-3"><button type="button" className={secondary} onClick={() => setSelected(page)} aria-label={`Подробнее: ${page.primary_heading || page.url}`}>Подробнее</button></td></tr>)}</tbody>
           </table>
         </div>
       ) : (
@@ -314,6 +322,7 @@ export function Pages({ audit }: { audit: Audit }) {
             <p>
               Тип: {pageType(selected)} · Проверено: {date(selected.observed_at)} · Статус: {selected.status ?? '—'}
             </p>
+            {structuredFacts(selected).length > 0 && <div><h3 className="font-semibold">Заявлено в разметке страницы</h3><ul className="mt-2 space-y-1">{structuredFacts(selected).map((fact,index)=><li key={index}>{fact.label}: {fact.value}</li>)}</ul></div>}
             <div><h3 className="font-semibold">Извлечённые факты и свидетельства</h3>{evidenceFor(selected).length ? <ul className="mt-2 space-y-2">{evidenceFor(selected).map(({criterion, evidence}, index) => <li key={index} className="rounded-lg bg-(--color-surface-muted) p-3"><strong>{criterion.title || 'Критерий'}</strong><p>{evidence.excerpt || 'Нет выдержки'}</p><p className="text-sm text-(--color-ink-muted)">{labels[criterion.status || 'unknown'] || 'Нет данных'}</p></li>)}</ul> : <p className="mt-2 text-(--color-ink-muted)">Для этой страницы нет подтверждённых фактов или свидетельств.</p>}</div>
             <div>
               <h3 className="font-semibold">Заголовки страницы</h3>
