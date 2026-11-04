@@ -47,7 +47,8 @@ GENERATED_CONTRACT_FILES = frozenset(
 # Narrow integrator-approved scope corrections for shared routes, UI and CI
 # regressions. They do not broaden ownership to neighboring modules.
 CI_SCOPE_EXCEPTIONS = {
-    "SP-E1-07D": ("config/billing.php",),
+    "SP-E8-20O": ("scripts/ci/browser-smoke.sh", ".github/workflows/ci.yml"),
+    "SP-E1-07D": ("scripts/ci/browser-smoke.sh", ".github/workflows/ci.yml", "config/billing.php",),
     "SP-E8-18G": ("tests/Browser/E8-18/report.spec.ts", "tests/Browser/E8-18F/report.spec.ts"),
     "SP-E8-22C": ("resources/js/features/Vision/Site/actions.test.tsx",),
     "SP-E8-18F": ("tests/Unit/Vision/Reports/ReportSectionsTest.php",),
@@ -64,14 +65,14 @@ CI_SCOPE_EXCEPTIONS = {
     "SP-E8-18B": ("tests/Unit/Vision/Reports/ReportSectionsTest.php",),
     "SP-E8-22B": ("tests/Browser/SP-UI-01/history.spec.ts",),
     "SP-E4-01J": ("tests/Feature/Seller/Knowledge/Releases/ReleasesTest.php",),
-    "SP-E6-02C": ("tests/Feature/Seller/Quality/EvaluationFeedbackTest.php", "tests/Feature/Seller/Quality/ReportActionsTest.php"),
+    "SP-E6-02C": ("scripts/ci/browser-smoke.sh", ".github/workflows/ci.yml", "tests/Feature/Seller/Quality/EvaluationFeedbackTest.php", "tests/Feature/Seller/Quality/ReportActionsTest.php"),
     "SP-E8-20D": ("tests/Feature/Seller/Quality/EvaluationFeedbackTest.php", "tests/Feature/Seller/Quality/ReportActionsTest.php"),
     "SP-E8-16F": ("tests/Feature/Seller/Quality/EvaluationFeedbackTest.php", "tests/Feature/Seller/Quality/ReportActionsTest.php"),
     "SP-E7-05D": ("scripts/ci/browser-smoke.sh", ".github/workflows/ci.yml"),
     "SP-E8-18D": ("tests/Browser/E8-18B/report.spec.ts",),
     "SP-E7-04C": ("tests/Feature/Seller/Quality/EvaluationFeedbackTest.php", "tests/Feature/Seller/Quality/ReportActionsTest.php"),
     "SP-E8-18C": ("tests/Unit/Vision/Reports/ReportSectionsTest.php", "tests/Feature/Seller/Quality/EvaluationFeedbackTest.php", "tests/Feature/Seller/Quality/ReportActionsTest.php"),
-    "SP-E1-09E": ("tests/Browser/E1-09/journal.spec.ts", "tests/Browser/E1-09C/fixture.tsx", "tests/Browser/E1-09C/journal.spec.ts"),
+    "SP-E1-09E": ("scripts/ci/browser-smoke.sh", ".github/workflows/ci.yml", "tests/Browser/E1-09/journal.spec.ts", "tests/Browser/E1-09C/fixture.tsx", "tests/Browser/E1-09C/journal.spec.ts"),
     "SP-E8-15B": ("tests/Browser/E8-03/e2e.spec.ts",),
     "SP-E5-04G": ("tests/Browser/E5-04E/filters.spec.ts",),
     "SP-E8-17": ("tests/Browser/E8-10/wizard.spec.ts",),
