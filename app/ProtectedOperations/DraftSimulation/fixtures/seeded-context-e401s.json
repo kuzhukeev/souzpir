@@ -290,5 +290,1645 @@
       "rule_source": "laravel-prototype/tools/report.py:REQUIRED,contact,full_card"
     },
     "expected": null
+  },
+  {
+    "persona": "unknown_item",
+    "criterion": "full_card",
+    "history": [
+      {
+        "role": "agent",
+        "text": "В каком городе?"
+      },
+      {
+        "role": "client",
+        "text": "Нижний Новгород",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Для себя или на продажу?"
+      },
+      {
+        "role": "client",
+        "text": "на продажу",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Есть опыт продаж?"
+      },
+      {
+        "role": "client",
+        "text": "много лет",
+        "field": "experience"
+      },
+      {
+        "role": "agent",
+        "text": "Какие категории интересуют?"
+      },
+      {
+        "role": "client",
+        "text": "салюты",
+        "field": "categories"
+      },
+      {
+        "role": "agent",
+        "text": "Какой бюджет?"
+      },
+      {
+        "role": "client",
+        "text": "300 тысяч",
+        "field": "budget_range"
+      },
+      {
+        "role": "agent",
+        "text": "На какую почту ответить?"
+      },
+      {
+        "role": "client",
+        "text": "nn.fire@gmail.com",
+        "field": "email"
+      },
+      {
+        "role": "agent",
+        "text": "Какой мессенджер удобен?"
+      },
+      {
+        "role": "client",
+        "text": "Telegram",
+        "field": "messenger"
+      }
+    ],
+    "client": "Спасибо",
+    "answer": "Спасибо за обращение.",
+    "events": [
+      {
+        "type": "conversation_end"
+      }
+    ],
+    "facts": {
+      "customer_type": "experienced",
+      "card": {
+        "city": "Нижний Новгород",
+        "purpose": "на продажу",
+        "experience": "много лет",
+        "categories": "салюты",
+        "budget_range": "300 тысяч",
+        "email": "nn.fire@gmail.com",
+        "messenger": "Telegram"
+      },
+      "rule_source": "laravel-prototype/tools/report.py:REQUIRED,contact,full_card",
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:unknown_item"
+    },
+    "expected": false
+  },
+  {
+    "persona": "unknown_item",
+    "criterion": "full_card",
+    "history": [
+      {
+        "role": "agent",
+        "text": "В каком городе?"
+      },
+      {
+        "role": "client",
+        "text": "Нижний Новгород",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Для себя или на продажу?"
+      },
+      {
+        "role": "client",
+        "text": "на продажу",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Есть опыт продаж?"
+      },
+      {
+        "role": "client",
+        "text": "много лет",
+        "field": "experience"
+      },
+      {
+        "role": "agent",
+        "text": "Какие категории интересуют?"
+      },
+      {
+        "role": "client",
+        "text": "салюты",
+        "field": "categories"
+      },
+      {
+        "role": "agent",
+        "text": "Какой бюджет?"
+      },
+      {
+        "role": "client",
+        "text": "300 тысяч",
+        "field": "budget_range"
+      },
+      {
+        "role": "agent",
+        "text": "На какую почту ответить?"
+      },
+      {
+        "role": "client",
+        "text": "nn.fire@gmail.com",
+        "field": "email"
+      },
+      {
+        "role": "agent",
+        "text": "Какой мессенджер удобен?"
+      },
+      {
+        "role": "client",
+        "text": "Telegram",
+        "field": "messenger"
+      }
+    ],
+    "client": "Пока уточняю",
+    "answer": "Хорошо, продолжим, когда будет удобно.",
+    "events": [],
+    "facts": {
+      "customer_type": "experienced",
+      "card": {
+        "city": "Нижний Новгород",
+        "purpose": "на продажу",
+        "experience": "много лет",
+        "categories": "салюты",
+        "budget_range": "300 тысяч",
+        "email": "nn.fire@gmail.com",
+        "messenger": "Telegram"
+      },
+      "rule_source": "laravel-prototype/tools/report.py:REQUIRED,contact,full_card",
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:unknown_item"
+    },
+    "expected": null
+  },
+  {
+    "persona": "are_you_bot",
+    "criterion": "full_card",
+    "history": [
+      {
+        "role": "agent",
+        "text": "В каком городе?"
+      },
+      {
+        "role": "client",
+        "text": "Калуга",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Для себя или на продажу?"
+      },
+      {
+        "role": "client",
+        "text": "на продажу",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Есть опыт продаж?"
+      },
+      {
+        "role": "client",
+        "text": "нет",
+        "field": "experience"
+      },
+      {
+        "role": "agent",
+        "text": "Какая торговая точка?"
+      },
+      {
+        "role": "client",
+        "text": "жилой дом",
+        "field": "outlet_type"
+      },
+      {
+        "role": "agent",
+        "text": "Какой бюджет?"
+      },
+      {
+        "role": "client",
+        "text": "50 тысяч",
+        "field": "budget_range"
+      },
+      {
+        "role": "agent",
+        "text": "На какую почту ответить?"
+      },
+      {
+        "role": "client",
+        "text": "kaluga.start@mail.ru",
+        "field": "email"
+      }
+    ],
+    "client": "Спасибо",
+    "answer": "Спасибо за обращение.",
+    "events": [
+      {
+        "type": "conversation_end"
+      }
+    ],
+    "facts": {
+      "customer_type": "newbie",
+      "card": {
+        "city": "Калуга",
+        "purpose": "на продажу",
+        "experience": "нет",
+        "outlet_type": "жилой дом",
+        "budget_range": "50 тысяч",
+        "email": "kaluga.start@mail.ru"
+      },
+      "rule_source": "laravel-prototype/tools/report.py:REQUIRED,contact,full_card",
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:are_you_bot"
+    },
+    "expected": false
+  },
+  {
+    "persona": "are_you_bot",
+    "criterion": "full_card",
+    "history": [
+      {
+        "role": "agent",
+        "text": "В каком городе?"
+      },
+      {
+        "role": "client",
+        "text": "Калуга",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Для себя или на продажу?"
+      },
+      {
+        "role": "client",
+        "text": "на продажу",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Есть опыт продаж?"
+      },
+      {
+        "role": "client",
+        "text": "нет",
+        "field": "experience"
+      },
+      {
+        "role": "agent",
+        "text": "Какая торговая точка?"
+      },
+      {
+        "role": "client",
+        "text": "жилой дом",
+        "field": "outlet_type"
+      },
+      {
+        "role": "agent",
+        "text": "Какой бюджет?"
+      },
+      {
+        "role": "client",
+        "text": "50 тысяч",
+        "field": "budget_range"
+      },
+      {
+        "role": "agent",
+        "text": "На какую почту ответить?"
+      },
+      {
+        "role": "client",
+        "text": "kaluga.start@mail.ru",
+        "field": "email"
+      }
+    ],
+    "client": "Пока уточняю",
+    "answer": "Хорошо, продолжим, когда будет удобно.",
+    "events": [],
+    "facts": {
+      "customer_type": "newbie",
+      "card": {
+        "city": "Калуга",
+        "purpose": "на продажу",
+        "experience": "нет",
+        "outlet_type": "жилой дом",
+        "budget_range": "50 тысяч",
+        "email": "kaluga.start@mail.ru"
+      },
+      "rule_source": "laravel-prototype/tools/report.py:REQUIRED,contact,full_card",
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:are_you_bot"
+    },
+    "expected": null
+  },
+  {
+    "persona": "tc_floor",
+    "criterion": "full_card",
+    "history": [
+      {
+        "role": "agent",
+        "text": "В каком городе?"
+      },
+      {
+        "role": "client",
+        "text": "Рязань",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Для себя или на продажу?"
+      },
+      {
+        "role": "client",
+        "text": "на продажу",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Есть опыт продаж?"
+      },
+      {
+        "role": "client",
+        "text": "нет",
+        "field": "experience"
+      },
+      {
+        "role": "agent",
+        "text": "Какая торговая точка?"
+      },
+      {
+        "role": "client",
+        "text": "ТЦ",
+        "field": "outlet_type"
+      },
+      {
+        "role": "agent",
+        "text": "Какие категории интересуют?"
+      },
+      {
+        "role": "client",
+        "text": "салюты",
+        "field": "categories"
+      },
+      {
+        "role": "agent",
+        "text": "Какой бюджет?"
+      },
+      {
+        "role": "client",
+        "text": "80 тысяч",
+        "field": "budget_range"
+      },
+      {
+        "role": "agent",
+        "text": "Когда нужна закупка?"
+      },
+      {
+        "role": "client",
+        "text": "декабрь",
+        "field": "timing"
+      },
+      {
+        "role": "agent",
+        "text": "На какую почту ответить?"
+      },
+      {
+        "role": "client",
+        "text": "ryazan.tc@mail.ru",
+        "field": "email"
+      },
+      {
+        "role": "agent",
+        "text": "Какой мессенджер удобен?"
+      },
+      {
+        "role": "client",
+        "text": "Макс",
+        "field": "messenger"
+      }
+    ],
+    "client": "Спасибо",
+    "answer": "Спасибо за обращение.",
+    "events": [
+      {
+        "type": "conversation_end"
+      }
+    ],
+    "facts": {
+      "customer_type": "newbie",
+      "card": {
+        "city": "Рязань",
+        "purpose": "на продажу",
+        "experience": "нет",
+        "outlet_type": "ТЦ",
+        "categories": "салюты",
+        "budget_range": "80 тысяч",
+        "timing": "декабрь",
+        "email": "ryazan.tc@mail.ru",
+        "messenger": "Макс"
+      },
+      "rule_source": "laravel-prototype/tools/report.py:REQUIRED,contact,full_card",
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:tc_floor"
+    },
+    "expected": true
+  },
+  {
+    "persona": "tc_floor",
+    "criterion": "full_card",
+    "history": [
+      {
+        "role": "agent",
+        "text": "В каком городе?"
+      },
+      {
+        "role": "client",
+        "text": "Рязань",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Для себя или на продажу?"
+      },
+      {
+        "role": "client",
+        "text": "на продажу",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Есть опыт продаж?"
+      },
+      {
+        "role": "client",
+        "text": "нет",
+        "field": "experience"
+      },
+      {
+        "role": "agent",
+        "text": "Какая торговая точка?"
+      },
+      {
+        "role": "client",
+        "text": "ТЦ",
+        "field": "outlet_type"
+      },
+      {
+        "role": "agent",
+        "text": "Какие категории интересуют?"
+      },
+      {
+        "role": "client",
+        "text": "салюты",
+        "field": "categories"
+      },
+      {
+        "role": "agent",
+        "text": "Какой бюджет?"
+      },
+      {
+        "role": "client",
+        "text": "80 тысяч",
+        "field": "budget_range"
+      },
+      {
+        "role": "agent",
+        "text": "Когда нужна закупка?"
+      },
+      {
+        "role": "client",
+        "text": "декабрь",
+        "field": "timing"
+      },
+      {
+        "role": "agent",
+        "text": "На какую почту ответить?"
+      },
+      {
+        "role": "client",
+        "text": "ryazan.tc@mail.ru",
+        "field": "email"
+      },
+      {
+        "role": "agent",
+        "text": "Какой мессенджер удобен?"
+      },
+      {
+        "role": "client",
+        "text": "Макс",
+        "field": "messenger"
+      }
+    ],
+    "client": "Пока уточняю",
+    "answer": "Хорошо, продолжим, когда будет удобно.",
+    "events": [],
+    "facts": {
+      "customer_type": "newbie",
+      "card": {
+        "city": "Рязань",
+        "purpose": "на продажу",
+        "experience": "нет",
+        "outlet_type": "ТЦ",
+        "categories": "салюты",
+        "budget_range": "80 тысяч",
+        "timing": "декабрь",
+        "email": "ryazan.tc@mail.ru",
+        "messenger": "Макс"
+      },
+      "rule_source": "laravel-prototype/tools/report.py:REQUIRED,contact,full_card",
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:tc_floor"
+    },
+    "expected": null
+  },
+  {
+    "persona": "cash_discount",
+    "criterion": "full_card",
+    "history": [
+      {
+        "role": "agent",
+        "text": "В каком городе?"
+      },
+      {
+        "role": "client",
+        "text": "Москва",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Для себя или на продажу?"
+      },
+      {
+        "role": "client",
+        "text": "на продажу",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Есть опыт продаж?"
+      },
+      {
+        "role": "client",
+        "text": "много лет",
+        "field": "experience"
+      },
+      {
+        "role": "agent",
+        "text": "Какой бюджет?"
+      },
+      {
+        "role": "client",
+        "text": "250 тысяч",
+        "field": "budget_range"
+      },
+      {
+        "role": "agent",
+        "text": "На какую почту ответить?"
+      },
+      {
+        "role": "client",
+        "text": "msk.opt@mail.ru",
+        "field": "email"
+      }
+    ],
+    "client": "Спасибо",
+    "answer": "Спасибо за обращение.",
+    "events": [
+      {
+        "type": "conversation_end"
+      }
+    ],
+    "facts": {
+      "customer_type": "experienced",
+      "card": {
+        "city": "Москва",
+        "purpose": "на продажу",
+        "experience": "много лет",
+        "budget_range": "250 тысяч",
+        "email": "msk.opt@mail.ru"
+      },
+      "rule_source": "laravel-prototype/tools/report.py:REQUIRED,contact,full_card",
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:cash_discount"
+    },
+    "expected": false
+  },
+  {
+    "persona": "cash_discount",
+    "criterion": "full_card",
+    "history": [
+      {
+        "role": "agent",
+        "text": "В каком городе?"
+      },
+      {
+        "role": "client",
+        "text": "Москва",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Для себя или на продажу?"
+      },
+      {
+        "role": "client",
+        "text": "на продажу",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Есть опыт продаж?"
+      },
+      {
+        "role": "client",
+        "text": "много лет",
+        "field": "experience"
+      },
+      {
+        "role": "agent",
+        "text": "Какой бюджет?"
+      },
+      {
+        "role": "client",
+        "text": "250 тысяч",
+        "field": "budget_range"
+      },
+      {
+        "role": "agent",
+        "text": "На какую почту ответить?"
+      },
+      {
+        "role": "client",
+        "text": "msk.opt@mail.ru",
+        "field": "email"
+      }
+    ],
+    "client": "Пока уточняю",
+    "answer": "Хорошо, продолжим, когда будет удобно.",
+    "events": [],
+    "facts": {
+      "customer_type": "experienced",
+      "card": {
+        "city": "Москва",
+        "purpose": "на продажу",
+        "experience": "много лет",
+        "budget_range": "250 тысяч",
+        "email": "msk.opt@mail.ru"
+      },
+      "rule_source": "laravel-prototype/tools/report.py:REQUIRED,contact,full_card",
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:cash_discount"
+    },
+    "expected": null
+  },
+  {
+    "persona": "return_unsold",
+    "criterion": "full_card",
+    "history": [
+      {
+        "role": "agent",
+        "text": "В каком городе?"
+      },
+      {
+        "role": "client",
+        "text": "Тверь",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Для себя или на продажу?"
+      },
+      {
+        "role": "client",
+        "text": "на продажу",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Есть опыт продаж?"
+      },
+      {
+        "role": "client",
+        "text": "нет",
+        "field": "experience"
+      },
+      {
+        "role": "agent",
+        "text": "Какая торговая точка?"
+      },
+      {
+        "role": "client",
+        "text": "павильон",
+        "field": "outlet_type"
+      },
+      {
+        "role": "agent",
+        "text": "Какой бюджет?"
+      },
+      {
+        "role": "client",
+        "text": "60 тысяч",
+        "field": "budget_range"
+      },
+      {
+        "role": "agent",
+        "text": "На какую почту ответить?"
+      },
+      {
+        "role": "client",
+        "text": "tver.start@mail.ru",
+        "field": "email"
+      }
+    ],
+    "client": "Спасибо",
+    "answer": "Спасибо за обращение.",
+    "events": [
+      {
+        "type": "conversation_end"
+      }
+    ],
+    "facts": {
+      "customer_type": "newbie",
+      "card": {
+        "city": "Тверь",
+        "purpose": "на продажу",
+        "experience": "нет",
+        "outlet_type": "павильон",
+        "budget_range": "60 тысяч",
+        "email": "tver.start@mail.ru"
+      },
+      "rule_source": "laravel-prototype/tools/report.py:REQUIRED,contact,full_card",
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:return_unsold"
+    },
+    "expected": false
+  },
+  {
+    "persona": "return_unsold",
+    "criterion": "full_card",
+    "history": [
+      {
+        "role": "agent",
+        "text": "В каком городе?"
+      },
+      {
+        "role": "client",
+        "text": "Тверь",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Для себя или на продажу?"
+      },
+      {
+        "role": "client",
+        "text": "на продажу",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Есть опыт продаж?"
+      },
+      {
+        "role": "client",
+        "text": "нет",
+        "field": "experience"
+      },
+      {
+        "role": "agent",
+        "text": "Какая торговая точка?"
+      },
+      {
+        "role": "client",
+        "text": "павильон",
+        "field": "outlet_type"
+      },
+      {
+        "role": "agent",
+        "text": "Какой бюджет?"
+      },
+      {
+        "role": "client",
+        "text": "60 тысяч",
+        "field": "budget_range"
+      },
+      {
+        "role": "agent",
+        "text": "На какую почту ответить?"
+      },
+      {
+        "role": "client",
+        "text": "tver.start@mail.ru",
+        "field": "email"
+      }
+    ],
+    "client": "Пока уточняю",
+    "answer": "Хорошо, продолжим, когда будет удобно.",
+    "events": [],
+    "facts": {
+      "customer_type": "newbie",
+      "card": {
+        "city": "Тверь",
+        "purpose": "на продажу",
+        "experience": "нет",
+        "outlet_type": "павильон",
+        "budget_range": "60 тысяч",
+        "email": "tver.start@mail.ru"
+      },
+      "rule_source": "laravel-prototype/tools/report.py:REQUIRED,contact,full_card",
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:return_unsold"
+    },
+    "expected": null
+  },
+  {
+    "persona": "big_order",
+    "criterion": "full_card",
+    "history": [
+      {
+        "role": "agent",
+        "text": "В каком городе?"
+      },
+      {
+        "role": "client",
+        "text": "Уфа",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Для себя или на продажу?"
+      },
+      {
+        "role": "client",
+        "text": "на продажу",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Есть опыт продаж?"
+      },
+      {
+        "role": "client",
+        "text": "много лет",
+        "field": "experience"
+      },
+      {
+        "role": "agent",
+        "text": "Какой бюджет?"
+      },
+      {
+        "role": "client",
+        "text": "700 тысяч",
+        "field": "budget_range"
+      },
+      {
+        "role": "agent",
+        "text": "На какую почту ответить?"
+      },
+      {
+        "role": "client",
+        "text": "ufa.big@mail.ru",
+        "field": "email"
+      },
+      {
+        "role": "agent",
+        "text": "Какой мессенджер удобен?"
+      },
+      {
+        "role": "client",
+        "text": "Telegram",
+        "field": "messenger"
+      }
+    ],
+    "client": "Спасибо",
+    "answer": "Спасибо за обращение.",
+    "events": [
+      {
+        "type": "conversation_end"
+      }
+    ],
+    "facts": {
+      "customer_type": "experienced",
+      "card": {
+        "city": "Уфа",
+        "purpose": "на продажу",
+        "experience": "много лет",
+        "budget_range": "700 тысяч",
+        "email": "ufa.big@mail.ru",
+        "messenger": "Telegram"
+      },
+      "rule_source": "laravel-prototype/tools/report.py:REQUIRED,contact,full_card",
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:big_order"
+    },
+    "expected": false
+  },
+  {
+    "persona": "big_order",
+    "criterion": "full_card",
+    "history": [
+      {
+        "role": "agent",
+        "text": "В каком городе?"
+      },
+      {
+        "role": "client",
+        "text": "Уфа",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Для себя или на продажу?"
+      },
+      {
+        "role": "client",
+        "text": "на продажу",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Есть опыт продаж?"
+      },
+      {
+        "role": "client",
+        "text": "много лет",
+        "field": "experience"
+      },
+      {
+        "role": "agent",
+        "text": "Какой бюджет?"
+      },
+      {
+        "role": "client",
+        "text": "700 тысяч",
+        "field": "budget_range"
+      },
+      {
+        "role": "agent",
+        "text": "На какую почту ответить?"
+      },
+      {
+        "role": "client",
+        "text": "ufa.big@mail.ru",
+        "field": "email"
+      },
+      {
+        "role": "agent",
+        "text": "Какой мессенджер удобен?"
+      },
+      {
+        "role": "client",
+        "text": "Telegram",
+        "field": "messenger"
+      }
+    ],
+    "client": "Пока уточняю",
+    "answer": "Хорошо, продолжим, когда будет удобно.",
+    "events": [],
+    "facts": {
+      "customer_type": "experienced",
+      "card": {
+        "city": "Уфа",
+        "purpose": "на продажу",
+        "experience": "много лет",
+        "budget_range": "700 тысяч",
+        "email": "ufa.big@mail.ru",
+        "messenger": "Telegram"
+      },
+      "rule_source": "laravel-prototype/tools/report.py:REQUIRED,contact,full_card",
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:big_order"
+    },
+    "expected": null
+  },
+  {
+    "persona": "typo_short",
+    "criterion": "full_card",
+    "history": [
+      {
+        "role": "agent",
+        "text": "В каком городе?"
+      },
+      {
+        "role": "client",
+        "text": "Иваново",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Для себя или на продажу?"
+      },
+      {
+        "role": "client",
+        "text": "на продажу",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Есть опыт продаж?"
+      },
+      {
+        "role": "client",
+        "text": "нет",
+        "field": "experience"
+      },
+      {
+        "role": "agent",
+        "text": "Какая торговая точка?"
+      },
+      {
+        "role": "client",
+        "text": "павильон",
+        "field": "outlet_type"
+      },
+      {
+        "role": "agent",
+        "text": "Какие категории интересуют?"
+      },
+      {
+        "role": "client",
+        "text": "петарды",
+        "field": "categories"
+      },
+      {
+        "role": "agent",
+        "text": "Какой бюджет?"
+      },
+      {
+        "role": "client",
+        "text": "30 тыщ",
+        "field": "budget_range"
+      },
+      {
+        "role": "agent",
+        "text": "На какую почту ответить?"
+      },
+      {
+        "role": "client",
+        "text": "ivanovo.p@mail.ru",
+        "field": "email"
+      }
+    ],
+    "client": "Спасибо",
+    "answer": "Спасибо за обращение.",
+    "events": [
+      {
+        "type": "conversation_end"
+      }
+    ],
+    "facts": {
+      "customer_type": "newbie",
+      "card": {
+        "city": "Иваново",
+        "purpose": "на продажу",
+        "experience": "нет",
+        "outlet_type": "павильон",
+        "categories": "петарды",
+        "budget_range": "30 тыщ",
+        "email": "ivanovo.p@mail.ru"
+      },
+      "rule_source": "laravel-prototype/tools/report.py:REQUIRED,contact,full_card",
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:typo_short"
+    },
+    "expected": false
+  },
+  {
+    "persona": "typo_short",
+    "criterion": "full_card",
+    "history": [
+      {
+        "role": "agent",
+        "text": "В каком городе?"
+      },
+      {
+        "role": "client",
+        "text": "Иваново",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Для себя или на продажу?"
+      },
+      {
+        "role": "client",
+        "text": "на продажу",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Есть опыт продаж?"
+      },
+      {
+        "role": "client",
+        "text": "нет",
+        "field": "experience"
+      },
+      {
+        "role": "agent",
+        "text": "Какая торговая точка?"
+      },
+      {
+        "role": "client",
+        "text": "павильон",
+        "field": "outlet_type"
+      },
+      {
+        "role": "agent",
+        "text": "Какие категории интересуют?"
+      },
+      {
+        "role": "client",
+        "text": "петарды",
+        "field": "categories"
+      },
+      {
+        "role": "agent",
+        "text": "Какой бюджет?"
+      },
+      {
+        "role": "client",
+        "text": "30 тыщ",
+        "field": "budget_range"
+      },
+      {
+        "role": "agent",
+        "text": "На какую почту ответить?"
+      },
+      {
+        "role": "client",
+        "text": "ivanovo.p@mail.ru",
+        "field": "email"
+      }
+    ],
+    "client": "Пока уточняю",
+    "answer": "Хорошо, продолжим, когда будет удобно.",
+    "events": [],
+    "facts": {
+      "customer_type": "newbie",
+      "card": {
+        "city": "Иваново",
+        "purpose": "на продажу",
+        "experience": "нет",
+        "outlet_type": "павильон",
+        "categories": "петарды",
+        "budget_range": "30 тыщ",
+        "email": "ivanovo.p@mail.ru"
+      },
+      "rule_source": "laravel-prototype/tools/report.py:REQUIRED,contact,full_card",
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:typo_short"
+    },
+    "expected": null
+  },
+  {
+    "persona": "price_increase_doubt",
+    "criterion": "full_card",
+    "history": [
+      {
+        "role": "agent",
+        "text": "В каком городе?"
+      },
+      {
+        "role": "client",
+        "text": "Саратов",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Для себя или на продажу?"
+      },
+      {
+        "role": "client",
+        "text": "на продажу",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Есть опыт продаж?"
+      },
+      {
+        "role": "client",
+        "text": "много лет",
+        "field": "experience"
+      },
+      {
+        "role": "agent",
+        "text": "Какой бюджет?"
+      },
+      {
+        "role": "client",
+        "text": "200 тысяч",
+        "field": "budget_range"
+      },
+      {
+        "role": "agent",
+        "text": "Когда нужна закупка?"
+      },
+      {
+        "role": "client",
+        "text": "декабрь",
+        "field": "timing"
+      },
+      {
+        "role": "agent",
+        "text": "На какую почту ответить?"
+      },
+      {
+        "role": "client",
+        "text": "saratov.opt@mail.ru",
+        "field": "email"
+      }
+    ],
+    "client": "Спасибо",
+    "answer": "Спасибо за обращение.",
+    "events": [
+      {
+        "type": "conversation_end"
+      }
+    ],
+    "facts": {
+      "customer_type": "experienced",
+      "card": {
+        "city": "Саратов",
+        "purpose": "на продажу",
+        "experience": "много лет",
+        "budget_range": "200 тысяч",
+        "timing": "декабрь",
+        "email": "saratov.opt@mail.ru"
+      },
+      "rule_source": "laravel-prototype/tools/report.py:REQUIRED,contact,full_card",
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:price_increase_doubt"
+    },
+    "expected": false
+  },
+  {
+    "persona": "price_increase_doubt",
+    "criterion": "full_card",
+    "history": [
+      {
+        "role": "agent",
+        "text": "В каком городе?"
+      },
+      {
+        "role": "client",
+        "text": "Саратов",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Для себя или на продажу?"
+      },
+      {
+        "role": "client",
+        "text": "на продажу",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Есть опыт продаж?"
+      },
+      {
+        "role": "client",
+        "text": "много лет",
+        "field": "experience"
+      },
+      {
+        "role": "agent",
+        "text": "Какой бюджет?"
+      },
+      {
+        "role": "client",
+        "text": "200 тысяч",
+        "field": "budget_range"
+      },
+      {
+        "role": "agent",
+        "text": "Когда нужна закупка?"
+      },
+      {
+        "role": "client",
+        "text": "декабрь",
+        "field": "timing"
+      },
+      {
+        "role": "agent",
+        "text": "На какую почту ответить?"
+      },
+      {
+        "role": "client",
+        "text": "saratov.opt@mail.ru",
+        "field": "email"
+      }
+    ],
+    "client": "Пока уточняю",
+    "answer": "Хорошо, продолжим, когда будет удобно.",
+    "events": [],
+    "facts": {
+      "customer_type": "experienced",
+      "card": {
+        "city": "Саратов",
+        "purpose": "на продажу",
+        "experience": "много лет",
+        "budget_range": "200 тысяч",
+        "timing": "декабрь",
+        "email": "saratov.opt@mail.ru"
+      },
+      "rule_source": "laravel-prototype/tools/report.py:REQUIRED,contact,full_card",
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:price_increase_doubt"
+    },
+    "expected": null
+  },
+  {
+    "persona": "legal_questions",
+    "criterion": "full_card",
+    "history": [
+      {
+        "role": "agent",
+        "text": "В каком городе?"
+      },
+      {
+        "role": "client",
+        "text": "Ярославль",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Для себя или на продажу?"
+      },
+      {
+        "role": "client",
+        "text": "на продажу",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Есть опыт продаж?"
+      },
+      {
+        "role": "client",
+        "text": "нет",
+        "field": "experience"
+      },
+      {
+        "role": "agent",
+        "text": "Какая торговая точка?"
+      },
+      {
+        "role": "client",
+        "text": "павильон",
+        "field": "outlet_type"
+      },
+      {
+        "role": "agent",
+        "text": "Какой бюджет?"
+      },
+      {
+        "role": "client",
+        "text": "100 тысяч",
+        "field": "budget_range"
+      },
+      {
+        "role": "agent",
+        "text": "На какую почту ответить?"
+      },
+      {
+        "role": "client",
+        "text": "yar.start@mail.ru",
+        "field": "email"
+      }
+    ],
+    "client": "Спасибо",
+    "answer": "Спасибо за обращение.",
+    "events": [
+      {
+        "type": "conversation_end"
+      }
+    ],
+    "facts": {
+      "customer_type": "newbie",
+      "card": {
+        "city": "Ярославль",
+        "purpose": "на продажу",
+        "experience": "нет",
+        "outlet_type": "павильон",
+        "budget_range": "100 тысяч",
+        "email": "yar.start@mail.ru"
+      },
+      "rule_source": "laravel-prototype/tools/report.py:REQUIRED,contact,full_card",
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:legal_questions"
+    },
+    "expected": false
+  },
+  {
+    "persona": "legal_questions",
+    "criterion": "full_card",
+    "history": [
+      {
+        "role": "agent",
+        "text": "В каком городе?"
+      },
+      {
+        "role": "client",
+        "text": "Ярославль",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Для себя или на продажу?"
+      },
+      {
+        "role": "client",
+        "text": "на продажу",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Есть опыт продаж?"
+      },
+      {
+        "role": "client",
+        "text": "нет",
+        "field": "experience"
+      },
+      {
+        "role": "agent",
+        "text": "Какая торговая точка?"
+      },
+      {
+        "role": "client",
+        "text": "павильон",
+        "field": "outlet_type"
+      },
+      {
+        "role": "agent",
+        "text": "Какой бюджет?"
+      },
+      {
+        "role": "client",
+        "text": "100 тысяч",
+        "field": "budget_range"
+      },
+      {
+        "role": "agent",
+        "text": "На какую почту ответить?"
+      },
+      {
+        "role": "client",
+        "text": "yar.start@mail.ru",
+        "field": "email"
+      }
+    ],
+    "client": "Пока уточняю",
+    "answer": "Хорошо, продолжим, когда будет удобно.",
+    "events": [],
+    "facts": {
+      "customer_type": "newbie",
+      "card": {
+        "city": "Ярославль",
+        "purpose": "на продажу",
+        "experience": "нет",
+        "outlet_type": "павильон",
+        "budget_range": "100 тысяч",
+        "email": "yar.start@mail.ru"
+      },
+      "rule_source": "laravel-prototype/tools/report.py:REQUIRED,contact,full_card",
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:legal_questions"
+    },
+    "expected": null
+  },
+  {
+    "persona": "delivery_far",
+    "criterion": "full_card",
+    "history": [
+      {
+        "role": "agent",
+        "text": "В каком городе?"
+      },
+      {
+        "role": "client",
+        "text": "Якутск",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Для себя или на продажу?"
+      },
+      {
+        "role": "client",
+        "text": "на продажу",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Есть опыт продаж?"
+      },
+      {
+        "role": "client",
+        "text": "много лет",
+        "field": "experience"
+      },
+      {
+        "role": "agent",
+        "text": "Какой бюджет?"
+      },
+      {
+        "role": "client",
+        "text": "300 тысяч",
+        "field": "budget_range"
+      },
+      {
+        "role": "agent",
+        "text": "На какую почту ответить?"
+      },
+      {
+        "role": "client",
+        "text": "yakutsk.fire@mail.ru",
+        "field": "email"
+      }
+    ],
+    "client": "Спасибо",
+    "answer": "Спасибо за обращение.",
+    "events": [
+      {
+        "type": "conversation_end"
+      }
+    ],
+    "facts": {
+      "customer_type": "experienced",
+      "card": {
+        "city": "Якутск",
+        "purpose": "на продажу",
+        "experience": "много лет",
+        "budget_range": "300 тысяч",
+        "email": "yakutsk.fire@mail.ru"
+      },
+      "rule_source": "laravel-prototype/tools/report.py:REQUIRED,contact,full_card",
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:delivery_far"
+    },
+    "expected": false
+  },
+  {
+    "persona": "delivery_far",
+    "criterion": "full_card",
+    "history": [
+      {
+        "role": "agent",
+        "text": "В каком городе?"
+      },
+      {
+        "role": "client",
+        "text": "Якутск",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Для себя или на продажу?"
+      },
+      {
+        "role": "client",
+        "text": "на продажу",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Есть опыт продаж?"
+      },
+      {
+        "role": "client",
+        "text": "много лет",
+        "field": "experience"
+      },
+      {
+        "role": "agent",
+        "text": "Какой бюджет?"
+      },
+      {
+        "role": "client",
+        "text": "300 тысяч",
+        "field": "budget_range"
+      },
+      {
+        "role": "agent",
+        "text": "На какую почту ответить?"
+      },
+      {
+        "role": "client",
+        "text": "yakutsk.fire@mail.ru",
+        "field": "email"
+      }
+    ],
+    "client": "Пока уточняю",
+    "answer": "Хорошо, продолжим, когда будет удобно.",
+    "events": [],
+    "facts": {
+      "customer_type": "experienced",
+      "card": {
+        "city": "Якутск",
+        "purpose": "на продажу",
+        "experience": "много лет",
+        "budget_range": "300 тысяч",
+        "email": "yakutsk.fire@mail.ru"
+      },
+      "rule_source": "laravel-prototype/tools/report.py:REQUIRED,contact,full_card",
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:delivery_far"
+    },
+    "expected": null
   }
 ]
