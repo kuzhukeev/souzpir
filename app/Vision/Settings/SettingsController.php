@@ -2,6 +2,7 @@
 
 namespace App\Vision\Settings;
 
+use App\Ai\ProviderCatalog;
 use App\Models\Membership;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
@@ -38,7 +39,12 @@ final class SettingsController
 
             $schedule = app(MeasurementSchedule::class)->read($tenant);
 
-            return Inertia::render('Vision/Settings/Index', ['revision' => $revision, 'schedule' => $schedule, 'nextRuns' => app(SchedulePreview::class)->nextThree($schedule), 'events' => $events, 'members' => $members, 'canManageRecipients' => Gate::allows('vision.settings.write'), 'limits' => ['questions' => app(PlanLimits::class)->get($tenant, 'vision.questions')->value, 'models' => app(PlanLimits::class)->get($tenant, 'vision.models')->value], 'questionCount' => $questionCount]);
+            $catalog = app(ProviderCatalog::class)->models();
+            $modelOptions = collect(array_unique([...$schedule['available_models'], ...array_keys(array_filter($catalog, fn (array $model): bool => $model['status'] === 'planned'))]))
+                ->map(fn (string $id): array => ['id' => $id, 'provider' => $catalog[$id]['provider'] ?? null, 'status' => $catalog[$id]['status'] ?? 'unavailable', 'approved' => in_array($id, $schedule['available_models'], true)])
+                ->values()->all();
+
+            return Inertia::render('Vision/Settings/Index', ['revision' => $revision, 'schedule' => $schedule, 'modelOptions' => $modelOptions, 'nextRuns' => app(SchedulePreview::class)->nextThree($schedule), 'events' => $events, 'members' => $members, 'canManageRecipients' => Gate::allows('vision.settings.write'), 'limits' => ['questions' => app(PlanLimits::class)->get($tenant, 'vision.questions')->value, 'models' => app(PlanLimits::class)->get($tenant, 'vision.models')->value], 'questionCount' => $questionCount]);
         }, false);
     }
 
