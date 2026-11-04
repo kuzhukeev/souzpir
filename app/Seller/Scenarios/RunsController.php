@@ -10,6 +10,7 @@ use App\Tenancy\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -39,7 +40,22 @@ final class RunsController
             $releaseIds = $runs->map(fn ($row) => data_get(json_decode($row->metrics, true), 'knowledge_release_id'))->filter()->unique()->all();
             $releaseStatuses = DB::table('knowledge_releases')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->whereIn('id', $releaseIds)->pluck('status', 'id');
 
-            return ['scenarios' => $personas, 'publishedAvailable' => $release !== null, 'runtimeAvailable' => config('runtime.ai_driver', 'fake') === 'fake' && config('features.E3-06D.defaults.runtime_enabled', true) !== false,
+            $groups = DB::table('seller_scenario_run_groups')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->orderByDesc('created_at')->limit(50)->get();
+            $groupRunIds = $groups->flatMap(fn ($group) => collect(json_decode($group->items, true) ?: [])->pluck('run_id'))->filter()->all();
+            $groupEvaluations = DB::table('seller_evaluations')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->whereIn('sim_run_id', $groupRunIds)->pluck('average', 'sim_run_id');
+            $groupData = $groups->map(function ($group) use ($groupEvaluations): array {
+                $items = collect(json_decode($group->items, true) ?: [])->map(function (array $item) use ($groupEvaluations): array {
+                    $average = $groupEvaluations[$item['run_id'] ?? ''] ?? null;
+
+                    return ['name' => $item['name'], 'status' => $item['status'], 'run_id' => $item['run_id'] ?? null, 'average' => $average];
+                });
+
+                return ['id' => $group->id, 'status' => $group->status, 'created_at' => $group->created_at, 'items' => $items->all(), 'average' => $items->whereNotNull('average')->avg('average'),
+                    'passed' => $items->filter(fn (array $item) => $item['average'] !== null && (float) $item['average'] >= 4)->count(),
+                    'failed' => $items->filter(fn (array $item) => $item['average'] !== null && (float) $item['average'] < 4)->count()];
+            });
+
+            return ['groups' => $groupData, 'scenarios' => $personas, 'publishedAvailable' => $release !== null, 'runtimeAvailable' => config('runtime.ai_driver', 'fake') === 'fake' && config('features.E3-06D.defaults.runtime_enabled', true) !== false,
                 'runs' => $runs->map(function ($run) use ($evaluations, $personas, $releaseStatuses): array {
                     $evaluation = $evaluations->get($run->id);
                     $metrics = json_decode($run->metrics, true) ?: [];
@@ -91,13 +107,14 @@ final class RunsController
             if (! $release) {
                 throw ValidationException::withMessages(['knowledge' => 'Опубликованная версия знаний недоступна.']);
             }
-            $personas = DB::table('seller_personas')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->whereIn('id', $input['scenarios'])->get(['id', 'key', 'max_turns']);
+            $personas = DB::table('seller_personas')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->whereIn('id', $input['scenarios'])->get(['id', 'key', 'name', 'max_turns']);
             if ($personas->count() !== count($input['scenarios'])) {
                 throw ValidationException::withMessages(['scenarios' => 'Один из сценариев недоступен.']);
             }
-            foreach ($personas as $persona) {
-                SimulateFakeJob::dispatch($tenant->organizationId, $tenant->brandId, $persona->key, array_fill(0, (int) $persona->max_turns, []));
-            }
+            $groupId = (string) Str::ulid();
+            $items = $personas->map(fn ($persona) => ['id' => $persona->id, 'key' => $persona->key, 'name' => $persona->name, 'max_turns' => (int) $persona->max_turns, 'status' => 'queued'])->all();
+            DB::table('seller_scenario_run_groups')->insert(['id' => $groupId, 'organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId, 'status' => 'queued', 'items' => json_encode($items, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE), 'created_at' => now(), 'updated_at' => now()]);
+            RunScenarioGroup::dispatch($tenant->organizationId, $tenant->brandId, $groupId)->afterCommit();
         });
 
         return back()->with('status', 'Прогоны отправлены в очередь.');

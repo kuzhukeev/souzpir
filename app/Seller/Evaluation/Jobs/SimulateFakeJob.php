@@ -21,18 +21,17 @@ final class SimulateFakeJob implements ShouldQueue
 
     public function __construct(public string $organizationId, public string $brandId, public string $personaKey, public array $turns) {}
 
-    public function handle(FakeSimulation $simulation): void
+    public function handle(FakeSimulation $simulation): string
     {
         $tenant = new TenantContext($this->organizationId, $this->brandId, source: 'job');
         if (config('features.E3-06D.defaults.runtime_enabled', true) === false) {
-            $simulation->run($tenant, $this->personaKey, $this->turns);
-
-            return;
+            return $simulation->run($tenant, $this->personaKey, $this->turns);
         }
         if (config('runtime.ai_driver', 'fake') !== 'fake') {
             throw new LogicException('Protected fake simulation runtime is unavailable.');
         }
-        app(TenantContextRunner::class)->run($tenant, fn () => app(RuntimeSimulation::class)->run(
+
+        return app(TenantContextRunner::class)->run($tenant, fn () => app(RuntimeSimulation::class)->run(
             $tenant, $this->personaKey, count($this->turns), app()->bound(SimulationRuntime::class)
             ? app(SimulationRuntime::class) : app(ProtectedSimulationRuntime::class)
         ));
