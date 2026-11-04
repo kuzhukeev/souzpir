@@ -681,6 +681,8 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "seller.scenarios.runs": [],
+    "seller.scenarios.runs.store": [],
     "seller.scenarios.index": [],
     "seller.scenarios.save": [],
     "seller.scenarios.copy": [
