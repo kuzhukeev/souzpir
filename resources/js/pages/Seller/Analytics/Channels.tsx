@@ -3,7 +3,7 @@ type Page = {page:string;opens:number;dialogs:number;contacts:number;utm:string|
 const names:Record<string,string>={widget:'Сайт',telegram:'Telegram',whatsapp:'WhatsApp',api:'API',unknown:'Не определён'};
 
 export default function Channels({metrics,pages}:{metrics:Metric[];pages:Page[]}) {
-  return <section id="channels" className="mt-4 rounded-xl border border-(--color-border) bg-(--color-surface) p-5" aria-label="Каналы и источники">
+  return <section id="channels" className="mt-4 rounded-xl border border-(--color-border) bg-(--color-surface) p-5" aria-label="Сводка продаж">
     <h2 className="text-xl font-bold">Каналы и источники</h2>
     <p className="mt-2 text-sm text-(--color-ink-muted)">Конверсия — доля диалогов с сохранённым контактом. Оценка — средняя последняя оценка диалога.</p>
     <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[620px] text-left text-sm"><thead><tr className="border-b border-(--color-border)"><th className="p-3">Канал</th><th className="p-3">Диалоги</th><th className="p-3">Контакты</th><th className="p-3">Конверсия</th><th className="p-3">Средняя оценка</th></tr></thead><tbody>{metrics.map(item=><tr key={item.channel} className="border-b border-(--color-border) last:border-0"><th className="p-3">{names[item.channel]??item.channel}{item.planned&&<span className="ml-2 text-(--color-ink-muted)">Скоро</span>}</th><td className="p-3">{item.planned?'—':item.dialogs}</td><td className="p-3">{item.planned?'—':item.contacts}</td><td className="p-3">{item.planned?'—':item.conversion===null?'—':`${item.conversion}%`}</td><td className="p-3">{item.planned?'—':item.average_rating??'—'}</td></tr>)}</tbody></table></div>

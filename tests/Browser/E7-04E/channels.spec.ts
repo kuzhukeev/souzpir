@@ -14,7 +14,7 @@ test.afterAll(async () => { await server?.close(); });
 
 test('каналы показывают оценку, конверсию и пустые страницы сайта', async ({ page }) => {
   await page.goto(fixture);
-  const section = page.getByRole('region', { name: 'Каналы и источники' });
+  const section = page.getByRole('region', { name: 'Сводка продаж' });
   await expect(section.getByRole('row', { name: /Сайт 2 1 50% 4.2/ })).toBeVisible();
   await expect(section.getByRole('row').filter({ hasText: 'WhatsApp' }).getByText('Скоро')).toBeVisible();
   await expect(section.getByText('Данных по страницам пока нет: события открытия виджета и адрес страницы не сохраняются.')).toBeVisible();
