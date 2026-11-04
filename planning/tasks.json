@@ -16722,6 +16722,77 @@
         "SP-E4-05B"
       ],
       "notes": "Остаток частичной сдачи SP-E4-05B"
+    },
+    {
+      "taskKey": "SP-E6-03O",
+      "title": "SP-E6-03O · Напоминания: исключения и задача менеджеру",
+      "description": "# SP-E6-03O · Напоминания: исключения и задача менеджеру\n\n**Зачем:** завершить D-5.5 по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E6-03E, docs/results/SP-E6-03E.md.\n**Зависимости:** SP-E6-03E в done.\n\nДобавить изменение исключений, создание задачи менеджеру при отсутствии ответа и точную компоновку по макету. Использовать fake-доставку.\n\nScope: `app/Seller/Followups/`, `app/Seller/Settings/Policy/`, `resources/js/pages/Seller/Settings/Policy/`, `routes/features/E6-03.php`, `tests/Feature/Seller/Followups/`, `tests/Browser/E6-03O/`, `docs/results/SP-E6-03O.md`.\n\nПриёмка: основной сценарий, права, бренд и ошибки; только fake внешние вызовы. Остаток записать в docs/results/SP-E6-03O.md.\n",
+      "goal": "Добавить изменение исключений, создание задачи менеджеру при отсутствии ответа и точную компоновку по макету. Использовать fake-доставку.",
+      "dependsOn": [
+        "SP-E6-03E"
+      ],
+      "scope": [
+        "app/Seller/Followups/",
+        "app/Seller/Settings/Policy/",
+        "resources/js/pages/Seller/Settings/Policy/",
+        "routes/features/E6-03.php",
+        "tests/Feature/Seller/Followups/",
+        "tests/Browser/E6-03O/",
+        "docs/results/SP-E6-03O.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Сценарий, права, бренд и ошибки; только fake внешние вызовы."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "D-5.5"
+      ],
+      "wave": 10,
+      "promptPath": "docs/tasks/SP-E6-03O.md",
+      "sourceIds": [
+        "SP-E6-03E"
+      ],
+      "notes": "Остаток частичной сдачи SP-E6-03E"
+    },
+    {
+      "taskKey": "SP-E1-08G",
+      "title": "SP-E1-08G · Уведомления: тихие часы и сводка",
+      "description": "# SP-E1-08G · Уведомления: тихие часы и сводка\n\n**Зачем:** завершить S-7.1 по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E1-08F, docs/results/SP-E1-08F.md.\n**Зависимости:** SP-E1-08F в done.\n\nПодключить сохранённые тихие часы и ежедневную сводку к существующей доставке email и Telegram с учётом бренда и часового пояса. Только fake-драйверы, живые отправки без разрешения запрещены.\n\nScope: `app/Shell/Notifications/`, `app/Seller/Settings/Limits/`, `app/Shell/Profile/`, `resources/js/pages/Shell/Profile/`, `tests/Feature/Shell/Notifications/`, `tests/Browser/E1-08G/`, `docs/results/SP-E1-08G.md`.\n\nПриёмка: основной сценарий, права, бренд и ошибки; только fake внешние вызовы. Остаток записать в docs/results/SP-E1-08G.md.\n",
+      "goal": "Подключить сохранённые тихие часы и ежедневную сводку к существующей доставке email и Telegram с учётом бренда и часового пояса. Только fake-драйверы, живые отправки без разрешения запрещены.",
+      "dependsOn": [
+        "SP-E1-08F"
+      ],
+      "scope": [
+        "app/Shell/Notifications/",
+        "app/Seller/Settings/Limits/",
+        "app/Shell/Profile/",
+        "resources/js/pages/Shell/Profile/",
+        "tests/Feature/Shell/Notifications/",
+        "tests/Browser/E1-08G/",
+        "docs/results/SP-E1-08G.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Сценарий, права, бренд и ошибки; только fake внешние вызовы."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "S-7.1",
+        "S-7.2"
+      ],
+      "wave": 10,
+      "promptPath": "docs/tasks/SP-E1-08G.md",
+      "sourceIds": [
+        "SP-E1-08F"
+      ],
+      "notes": "Остаток частичной сдачи SP-E1-08F"
     }
   ],
   "excludedSourceTasks": {
