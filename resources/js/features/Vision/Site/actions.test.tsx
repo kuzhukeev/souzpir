@@ -4,6 +4,11 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Actions } from './Actions';
 
+vi.mock('@inertiajs/react', async (importOriginal) => ({
+  ...await importOriginal<typeof import('@inertiajs/react')>(),
+  usePage: () => ({ props: { brand: null } }),
+}));
+
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
