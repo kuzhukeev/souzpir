@@ -13,7 +13,7 @@ final class BrandSwitchDashboardTest extends TenancyTestCase
         $this->actingAs($owner)->withSession(['brand_id' => $first->id]);
         $this->get('/dashboard')->assertOk()->assertInertia(fn ($page) => $page->where('brand.id', $first->id));
 
-        $this->post('/brand/switch', ['brand_id' => $second->id])->assertRedirect(route('dashboard', absolute: false));
+        $this->post('/brand/switch', ['brand_id' => $second->id], ['X-Context-Change-Key' => 'dashboard-switch-key-123456'])->assertRedirect(route('dashboard', absolute: false));
         $this->get('/dashboard')->assertOk()->assertInertia(fn ($page) => $page->where('brand.id', $second->id));
         $this->withHeader('X-Brand-Id', $first->id)->getJson('/dashboard')->assertNotFound();
         Http::assertNothingSent();

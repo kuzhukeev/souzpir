@@ -66,6 +66,6 @@ final class BrandSwitchController
         }
 
         // Fixed same-origin destination; no user-supplied redirect URL.
-        return redirect()->route('dashboard');
+        return redirect()->route($key !== null ? 'dashboard' : 'auth.ready');
     }
 }
