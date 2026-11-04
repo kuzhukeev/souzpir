@@ -76,6 +76,7 @@ final class DraftScenarioPreview
         return ['client' => $client, 'agent' => $answer, 'meta' => ['expectation_checks' => $checks,
             'guard_verdict' => $guard['verdict'], 'guard_issues' => $guard['issues'], 'goal' => $goalKind,
             'draft_release_id' => $draft->releaseId(), 'preview_only' => true,
-            'extraction_available' => $extractionAvailable ?? false, 'extracted_intent' => $extraction['client_intent'] ?? null, 'semantic_available' => $semantic !== null]];
+            'extraction_available' => $extractionAvailable ?? false, 'extracted_intent' => $extraction['client_intent'] ?? null,
+            'extracted_slots' => $extraction['slot_updates'] ?? [], 'semantic_available' => $semantic !== null]];
     }
 }

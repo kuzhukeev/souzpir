@@ -4,6 +4,8 @@ namespace App\ProtectedOperations\DraftSimulation;
 
 use App\Ai\Drivers\FakeDriver;
 use App\Models\User;
+use App\Seller\Engine\Extractor;
+use App\Seller\Engine\LeadState;
 use App\Seller\Knowledge\Contracts\KnowledgeRepository;
 use App\Seller\Knowledge\KnowledgeSnapshot;
 use App\Seller\Settings\Limits\SellerModuleAccess;
@@ -25,7 +27,55 @@ final class FixtureRuntime
             return null;
         }
 
-        return ['client_intent' => $data['client_intent']];
+        $slots = $data['slot_updates'] ?? [];
+        if (! is_array($slots) || array_is_list($slots) && $slots !== [] || array_diff(array_keys($slots), LeadState::SLOTS)) {
+            return null;
+        }
+        foreach ($slots as $key => $value) {
+            if (in_array($key, ['categories', 'brands_interest'], true)) {
+                if ($value !== null && (! is_array($value) || ! array_is_list($value) || count(array_filter($value, 'is_string')) !== count($value))) {
+                    return null;
+                }
+            } elseif ($value !== null && ! is_string($value)) {
+                return null;
+            }
+        }
+        $result = ['client_intent' => $data['client_intent'], 'slot_updates' => $slots, '_text' => $client];
+        foreach (['wants_only_prices', 'asked_if_bot', 'wants_human', 'do_not_disturb', 'off_topic', 'prompt_injection'] as $field) {
+            if (array_key_exists($field, $data)) {
+                if (! is_bool($data[$field])) {
+                    return null;
+                }
+                $result[$field] = $data[$field];
+            }
+        }
+        foreach (['client_questions', 'client_claims', 'refused_slots', 'objections'] as $field) {
+            if (array_key_exists($field, $data)) {
+                $value = $data[$field];
+                if (! is_array($value) || ! array_is_list($value) || count(array_filter($value, 'is_string')) !== count($value)
+                    || ($field === 'refused_slots' && array_diff($value, LeadState::SLOTS))
+                    || ($field === 'objections' && array_diff($value, Extractor::OBJECTIONS))) {
+                    return null;
+                }
+                $result[$field] = $value;
+            }
+        }
+        if (isset($data['sentiment'])) {
+            if (! in_array($data['sentiment'], ['positive', 'neutral', 'negative'], true)) {
+                return null;
+            }
+            $result['sentiment'] = $data['sentiment'];
+        }
+        foreach (['unknown_question', 'closed_topic'] as $field) {
+            if (isset($data[$field])) {
+                if (! is_string($data[$field]) || ($field === 'closed_topic' && ! in_array($data[$field], array_column($draft->closedTopics(), 'id'), true))) {
+                    return null;
+                }
+                $result[$field] = $data[$field];
+            }
+        }
+
+        return $result;
     }
 
     public function check(Request $request, KnowledgeSnapshot $draft, string $client, string $answer, array $expectations): ?array
@@ -71,7 +121,12 @@ final class FixtureRuntime
 
                 return is_array($value) ? $value : null;
             } catch (Throwable) {
-                return null;
+                if ($stage !== 'extract') {
+                    return null;
+                }
+                $fixtures = json_decode(file_get_contents(__DIR__.'/fixtures/seeded-extractions.json'), true);
+
+                return is_array($fixtures) ? ($fixtures[$input['client']] ?? null) : null;
             }
         });
     }
