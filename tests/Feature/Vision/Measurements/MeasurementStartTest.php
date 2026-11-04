@@ -115,6 +115,9 @@ final class MeasurementStartTest extends TenancyTestCase
         DB::table('monitoring_schedules')->where('brand_id', $brand->id)->update(['next_run_at' => now()->subMinute()]);
         app(MeasurementSchedule::class)->dispatchDue();
         $this->assertDatabaseHas('measurements', ['brand_id' => $brand->id, 'status' => 'pending']);
+        $measurement = DB::table('measurements')->where('brand_id', $brand->id)->value('id');
+        $this->assertDatabaseHas('audit_logs', ['brand_id' => $brand->id, 'subject_id' => $measurement, 'action' => 'vision.measurement.scheduled']);
+        $this->withHeaders($headers)->getJson('/vision/runs/data?view=details')->assertOk()->assertJsonPath('data.0.launch_source', 'scheduled');
         self::assertSame(2, DB::table('measurement_answers')->where('brand_id', $brand->id)->count());
         Queue::assertPushed(RunMeasurement::class, 2);
         app(MeasurementSchedule::class)->dispatchDue();

@@ -100,6 +100,7 @@ final class MeasurementSchedule
                             return;
                         }
                         $measurement = app(MeasurementRunner::class)->start($approval->question_set_id, $models, 1);
+                        app(AuditWriter::class)->record(app(TenantContext::class), new AuditEntry('vision.measurement.scheduled', 'measurement', $measurement, after: ['schedule_id' => $schedule->id]));
                         $next = $this->advance($schedule);
                         DB::table('monitoring_schedules')->where($where)->where('id', $item->id)->update(['next_run_at' => $next->utc(), 'updated_at' => now()]);
                         foreach (DB::table('measurement_answers')->where($where)->where('measurement_id', $measurement)->pluck('id') as $answer) {
