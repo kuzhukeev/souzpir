@@ -112,6 +112,7 @@ final class CompetitorsController
                     'models' => $matched->pluck('provider')->unique()->values()->all(),
                     'intents' => $matched->pluck('intent')->filter()->unique()->values()->all(),
                     'questions' => $matched->pluck('qid')->unique()->map(fn ($id) => data_get($questions->get($id), 'text'))->filter()->values()->all(),
+                    'source_ranking' => app(SourceRanking::class)->forSlots($matched),
                     'sources' => $matched->flatMap(fn ($slot) => array_column($slot['sources'] ?? [], 'domain'))->filter()->unique()->values()->all()];
             })->values()->all();
 
