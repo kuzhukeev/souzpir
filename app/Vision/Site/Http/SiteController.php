@@ -86,7 +86,7 @@ final class SiteController
             return back()->withErrors(['url' => $error]);
         }
 
-        return $request->boolean('from_quiz')
+        return $request->header('X-Quiz-Origin') === '1'
             ? redirect()->route('vision.quiz.show', ['step' => 1])
             : redirect()->route('vision.site.overview');
     }
