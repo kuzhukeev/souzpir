@@ -1,0 +1,26 @@
+import { expect, test } from '@playwright/test';
+import { createServer, type ViteDevServer } from 'vite';
+import { mkdir } from 'node:fs/promises';
+let server: ViteDevServer;
+let url: string;
+test.setTimeout(60000);
+test.use({ viewport: { width: 1440, height: 900 }, launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH } : {} });
+test.beforeAll(async () => { server = await createServer({ configFile: 'tests/Browser/E4-05B/vite.config.ts' }); await server.listen(); url = new URL('/tests/Browser/E4-05B/fixture.html', server.resolvedUrls!.local[0]).href; });
+test.afterAll(async () => { await server?.close(); });
+test('правила, стиль и проверка фразы', async ({ page }) => {
+  await page.route('**/seller/knowledge/prohibitions/check', route => route.fulfill({ json: { verdict: 'regenerate', issues: ['запрещённое обещание: Отсрочка'], warnings: [] } }));
+  await page.goto(url);
+  await page.getByRole('button', { name: 'Запрещённые обещания' }).click();
+  await page.getByLabel('Паттерны, по одному на строку').fill('кредит');
+  await expect(page.getByText('Сработок за 30 дней: —')).toBeVisible();
+  await mkdir('.local/screenshots/SP-E4-05B', { recursive: true });
+  await page.screenshot({ path: '.local/screenshots/SP-E4-05B/rules.png', fullPage: true });
+  await page.getByRole('button', { name: 'Стиль', exact: true }).click();
+  await expect(page.getByLabel('Максимум вопросов в ответе')).toBeVisible();
+  await page.getByRole('button', { name: 'Проверить фразу' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Проверить фразу' });
+  await dialog.getByLabel('Фраза').fill('Дадим кредит');
+  await dialog.getByRole('button', { name: 'Проверить', exact: true }).click();
+  await expect(dialog.getByText('Сработало правило')).toBeVisible();
+  await page.screenshot({ path: '.local/screenshots/SP-E4-05B/check.png' });
+});

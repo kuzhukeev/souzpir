@@ -3,6 +3,9 @@
 namespace App\Seller\Knowledge\Prohibitions;
 
 use App\Models\User;
+use App\Seller\Engine\DeterministicGuard;
+use App\Seller\Engine\Goal;
+use App\Seller\Engine\LeadState;
 use App\Seller\Knowledge\Contracts\KnowledgeRepository;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Profile\ProfileAccess;
@@ -36,7 +39,9 @@ final class ProhibitionsController
             $draft = $this->draft($tenant);
             $data = $draft ? app(KnowledgeRepository::class)->forRelease($tenant, $draft->id, true)->toArray() : null;
 
-            return ['draft' => $draft, 'topics' => $data['closed_topics'] ?? [], 'rules' => $data['guard_rules']['forbidden_promises'] ?? [], 'maxWords' => $data['persona']['length']['max_words'] ?? 90];
+            return ['draft' => $draft, 'topics' => $data['closed_topics'] ?? [], 'rules' => $data['guard_rules']['forbidden_promises'] ?? [],
+                'maxWords' => $data['persona']['length']['max_words'] ?? 90, 'maxQuestions' => $data['persona']['length']['max_questions'] ?? 1,
+                'stopPhrases' => $data['persona']['stop_phrases'] ?? []];
         });
 
         return Inertia::render('Seller/Knowledge/Prohibitions/Index', [...$data, 'status' => session('status')]);
@@ -47,6 +52,9 @@ final class ProhibitionsController
         $input = $request->validate(['version' => ['required', 'integer', 'min:1'], 'topics' => ['present', 'array', 'max:100'], 'topics.*.id' => ['required', 'string', 'max:100'],
             'topics.*.category' => ['required', 'string', 'max:100'], 'topics.*.idea' => ['required', 'string', 'max:300'], 'topics.*.next' => ['required', 'in:return,handoff'],
             'rules' => ['present', 'array', 'max:100'], 'rules.*.id' => ['required', 'string', 'max:100'], 'rules.*.severity' => ['required', 'in:block,warn'],
+            'rules.*.patterns' => ['sometimes', 'array', 'max:50'], 'rules.*.patterns.*' => ['required', 'string', 'max:500'],
+            'rules.*.enabled' => ['sometimes', 'boolean'], 'maxQuestions' => ['sometimes', 'integer', 'min:0', 'max:10'],
+            'stopPhrases' => ['sometimes', 'array', 'max:100'], 'stopPhrases.*' => ['required', 'string', 'max:200'],
             'maxWords' => ['required', 'integer', 'min:20', 'max:300']]);
         $this->access($request, function (TenantContext $tenant) use ($input): void {
             $draft = $this->draft($tenant) ?? abort(404);
@@ -74,15 +82,45 @@ final class ProhibitionsController
                 }
                 $original = $rules[$item['id']];
                 $original['severity'] = $item['severity'];
+                if (array_key_exists('enabled', $item)) {
+                    $original['enabled'] = (bool) $item['enabled'];
+                }
+                if (array_key_exists('patterns', $item)) {
+                    foreach ($item['patterns'] as $pattern) {
+                        if (@preg_match('~'.str_replace('~', '\\~', $pattern).'~ium', '') === false) {
+                            throw ValidationException::withMessages(['rules' => 'Проверьте синтаксис паттерна.']);
+                        }
+                    }
+                    $original['patterns'] = array_values($item['patterns']);
+                }
                 $rules[$item['id']] = $original;
             }
             $data['closed_topics'] = $topics->values()->all();
             $data['guard_rules']['forbidden_promises'] = $rules->values()->all();
             $data['persona']['length'] ??= [];
             $data['persona']['length']['max_words'] = (int) $input['maxWords'];
+            if (array_key_exists('maxQuestions', $input)) {
+                $data['persona']['length']['max_questions'] = (int) $input['maxQuestions'];
+            }
+            if (array_key_exists('stopPhrases', $input)) {
+                $data['persona']['stop_phrases'] = array_values($input['stopPhrases']);
+            }
             $repo->saveDraft($tenant, $draft->id, (int) $input['version'], $data);
         });
 
         return back()->with('status', 'Правила сохранены в черновике.');
+    }
+
+    public function check(Request $request): mixed
+    {
+        $input = $request->validate(['text' => ['required', 'string', 'max:5000']]);
+        $result = $this->access($request, function (TenantContext $tenant) use ($input): array {
+            $draft = $this->draft($tenant) ?? abort(404);
+            $snapshot = app(KnowledgeRepository::class)->forRelease($tenant, $draft->id, true);
+
+            return (new DeterministicGuard($snapshot))->check($input['text'], new Goal('answer_only'), new LeadState);
+        });
+
+        return response()->json($result)->header('Cache-Control', 'private, no-store');
     }
 }
