@@ -179,6 +179,25 @@ final class AnalyticsController
         }
         arsort($topics);
 
+        $ratings = DB::table('seller_evaluations')->where('organization_id', $tenant->organizationId)
+            ->where('brand_id', $tenant->brandId)->whereIn('conversation_id', $ids)
+            ->orderByDesc('created_at')->orderByDesc('id')->get(['conversation_id', 'average'])
+            ->unique('conversation_id')->keyBy('conversation_id');
+        $channelMetrics = collect(['widget', 'telegram', 'whatsapp', 'api', ...array_keys($channels)])->unique()->map(function (string $name) use ($rows, $ratings): array {
+            $items = $rows->filter(fn ($row): bool => ($row->channel ?? 'unknown') === $name);
+            $contacts = $items->filter(function ($row): bool {
+                $slots = (json_decode($row->state, true) ?: [])['slots'] ?? [];
+
+                return ! empty($slots['email']) || ! empty($slots['messenger']);
+            })->count();
+            $scores = $items->map(fn ($row) => $ratings[$row->id]->average ?? null)->filter(fn ($score): bool => $score !== null);
+
+            return ['channel' => $name, 'dialogs' => $items->count(), 'contacts' => $contacts,
+                'conversion' => $items->count() ? round($contacts / $items->count() * 100, 1) : null,
+                'average_rating' => $scores->isNotEmpty() ? round($scores->avg(), 1) : null,
+                'planned' => $name === 'whatsapp'];
+        })->values()->all();
+
         $events = DB::table('seller_stage_events')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
             ->whereIn('conversation_id', $ids)->where('occurred_at', '>=', $begin)->where('occurred_at', '<', $end)->get(['conversation_id', 'to_stage']);
         $transitions = $events->groupBy('to_stage')->map(fn ($group) => $group->pluck('conversation_id')->unique()->count())->all();
@@ -234,7 +253,7 @@ final class AnalyticsController
             $rates[$stage] = count($prior) ? round(count(array_intersect($prior, $current)) / count($prior) * 100, 1) : null;
         }
 
-        return ['from' => $from, 'to' => $to, 'channel' => $channel, 'source' => $source, 'manager' => $manager, 'managerOptions' => $managerOptions, 'funnel' => $funnel, 'outcomes' => $outcomes, 'previousTotal' => $previousTotal, 'transitionRates' => $rates, 'channelOptions' => $channelOptions, 'sources' => ['unknown' => $total], 'transitions' => $transitions, 'total' => $total, 'contact' => $contact, 'handed' => $handed, 'closed' => $closed,
+        return ['from' => $from, 'to' => $to, 'channel' => $channel, 'source' => $source, 'manager' => $manager, 'managerOptions' => $managerOptions, 'funnel' => $funnel, 'outcomes' => $outcomes, 'previousTotal' => $previousTotal, 'transitionRates' => $rates, 'channelOptions' => $channelOptions, 'sources' => ['unknown' => $total], 'channelMetrics' => $channelMetrics, 'sitePages' => [], 'transitions' => $transitions, 'total' => $total, 'contact' => $contact, 'handed' => $handed, 'closed' => $closed,
             'types' => $types, 'stages' => $stages, 'channels' => $channels, 'daily' => $daily, 'topics' => $topics,
             'dialogs' => $dialogs, 'hours' => $hours, 'unknownDialogs' => $unknownDialogs, 'unknownQuestions' => $unknownQuestions, 'messageCount' => $messages->count(), 'triggers' => $triggers, 'triggerStats' => $triggerStats,
             'managers' => array_values($managers), 'canManage' => Gate::forUser($user)->allows('seller.settings.write')];
