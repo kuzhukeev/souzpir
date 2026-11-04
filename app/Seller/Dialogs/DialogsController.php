@@ -52,6 +52,8 @@ final class DialogsController
                 return ['dialogs' => [], 'dialog' => null, 'loadError' => true];
             }
             $data['transferOptions'] = $dialog && Gate::forUser($actor)->allows('seller.dialogues.operate') ? app(DialogTransferController::class)->candidates($context) : [];
+            $templates = app()->bound(MessageTemplates::class) ? app(MessageTemplates::class) : app(DefaultMessageTemplates::class);
+            $data['messageTemplates'] = $templates->forBrand($context);
 
             return $data;
         });
