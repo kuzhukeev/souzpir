@@ -7849,7 +7849,7 @@
     {
       "taskKey": "SP-E6-06C",
       "title": "SP-E6-06C · Устойчивое распределение менеджеров",
-      "goal": "закрыть оставшиеся правила распределения D-11.2 из SP-E6-06.",
+      "goal": "закрыть оставшиеся правила распределения D-11.2 из SP-E6-06.\nПосле SP-E6-06B также применить общий режим suggest к существующему диалогу bot и выполнять назначение при передаче менеджеру, а не только на следующем входящем сообщении.\n",
       "dependsOn": [
         "SP-E6-06B"
       ],
@@ -7858,7 +7858,11 @@
         "database/migrations/E6-06/",
         "tests/Feature/Seller/Settings/Schedule/",
         "tests/Unit/Seller/Settings/Schedule/",
-        "docs/results/SP-E6-06C.md"
+        "docs/results/SP-E6-06C.md",
+        "app/Seller/Runtime/",
+        "app/ProtectedOperations/",
+        "tests/Feature/Seller/Runtime/",
+        "tests/Feature/ProtectedOperations/"
       ],
       "exclusiveResources": [],
       "acceptance": [
@@ -7882,7 +7886,7 @@
       ],
       "promptPath": "docs/tasks/SP-E6-06C.md",
       "wave": 9,
-      "description": "# SP-E6-06C · Устойчивое распределение менеджеров\n\n**Размер:** 1–3 часа. **Зачем:** закрыть оставшиеся правила распределения D-11.2 из SP-E6-06.\n\n**Часть чего:** финальный остаток SP-E6-06 после SP-E6-06B; дальнейших продолжений E6-06 не создавать.\n\n**Зависимости:** SP-E6-06B в done.\n\n**Scope:** `app/Seller/Settings/Schedule/`, `database/migrations/E6-06/`, `tests/Feature/Seller/Settings/Schedule/`, `tests/Unit/Seller/Settings/Schedule/`, `docs/results/SP-E6-06C.md`.\n\nСохранять позицию кругового распределения по бренду и завершить режимы первого взявшего/фиксированного менеджера с проверкой активного назначения и лимита. Тесты — последовательный выбор, смена бренда, недоступный менеджер и повтор.\n"
+      "description": "# SP-E6-06C · Устойчивое распределение менеджеров\n\n**Размер:** 1–3 часа. **Зачем:** закрыть оставшиеся правила распределения D-11.2 из SP-E6-06.\n\n**Часть чего:** финальный остаток SP-E6-06 после SP-E6-06B; дальнейших продолжений E6-06 не создавать.\n\n**Зависимости:** SP-E6-06B в done.\n\n**Scope:** `app/Seller/Settings/Schedule/`, `database/migrations/E6-06/`, `tests/Feature/Seller/Settings/Schedule/`, `tests/Unit/Seller/Settings/Schedule/`, `docs/results/SP-E6-06C.md`.\n\nСохранять позицию кругового распределения по бренду и завершить режимы первого взявшего/фиксированного менеджера с проверкой активного назначения и лимита. Тесты — последовательный выбор, смена бренда, недоступный менеджер и повтор.\n\nПосле SP-E6-06B также применить общий режим suggest к существующему диалогу bot и выполнять назначение при передаче менеджеру, а не только на следующем входящем сообщении.\n\nРасширенный scope: `app/Seller/Runtime/`, `app/ProtectedOperations/`, `tests/Feature/Seller/Runtime/`, `tests/Feature/ProtectedOperations/`.\n"
     },
     {
       "taskKey": "SP-E4-01B",
@@ -15861,6 +15865,72 @@
       "promptPath": "docs/tasks/SP-E3-10C.md",
       "wave": 19,
       "description": "# SP-E3-10C · Версии prompt для защищённых стадий\n\n**Зачем:** завершить отраслевую изоляцию стадий продавца по решению владельца от 02.11.2026.\n**Часть чего:** остаток SP-E3-10B, перечисленный в docs/results/SP-E3-10B.md.\n**Зависимости:** SP-E3-10B в done.\n\nПодключить версию v2 к защищённому summary и имеющимся точкам запуска simulator/judge; сохранять v1 и golden-фикстуры для прототипа, работу без опубликованных знаний и изоляцию бренда. Если загрузчика стадии нет, реализовать минимальный действующий вход для неё без живых AI-вызовов.\n\nScope: `app/Ai/Protected/`, `app/Seller/Engine/`, `app/Seller/Evaluation/`, `resources/views/prompts/`, `tests/Feature/Ai/`, `tests/Feature/Seller/Evaluation/`, `tests/Unit/Seller/Engine/`, `docs/results/SP-E3-10C.md`.\n\nПриёмка: сохранены golden v1 и отсутствие знаний, другой бренд не получает чужую отрасль; проверить права и fake-LLM. Отчёт `docs/results/SP-E3-10C.md`; остаток описать явно.\n"
+    },
+    {
+      "taskKey": "SP-E3-06E",
+      "title": "SP-E3-06E · Первый защищённый ход симуляции",
+      "goal": "Подключить первое входящее сообщение симуляции через job-вход FirstTurnCoordinator и защищённые extractor/guard/responder с tenant/brand и идемпотентностью. Использовать fake AI, проверить чужой бренд и трассу первого хода.",
+      "dependsOn": [
+        "SP-E3-06D"
+      ],
+      "scope": [
+        "app/ProtectedOperations/",
+        "app/Seller/Evaluation/",
+        "tests/Feature/ProtectedOperations/",
+        "tests/Feature/Seller/Evaluation/",
+        "docs/results/SP-E3-06E.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Основной сценарий, права, бренд, ошибки; без живых вызовов."
+      ],
+      "sourceIds": [
+        "SP-E3-06D"
+      ],
+      "screenIds": [],
+      "notes": "Остаток SP-E3-06D",
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E3-06E.md",
+      "wave": 19,
+      "description": "# SP-E3-06E · Первый защищённый ход симуляции\n\n**Зачем:** завершить остаток по решению владельца 03.11.2026.\n**Часть чего:** частичная сдача SP-E3-06D, отчёт docs/results/SP-E3-06D.md.\n**Зависимости:** SP-E3-06D в done.\n\nПодключить первое входящее сообщение симуляции через job-вход FirstTurnCoordinator и защищённые extractor/guard/responder с tenant/brand и идемпотентностью. Использовать fake AI, проверить чужой бренд и трассу первого хода.\n\nScope: `app/ProtectedOperations/`, `app/Seller/Evaluation/`, `tests/Feature/ProtectedOperations/`, `tests/Feature/Seller/Evaluation/`, `docs/results/SP-E3-06E.md`.\n\nПриёмка: соответствие указанным пунктам, права, бренд и ошибки; только fake внешние вызовы. Остаток и проверки записать в docs/results/SP-E3-06E.md.\n"
+    },
+    {
+      "taskKey": "SP-E8-24F",
+      "title": "SP-E8-24F · Оставшиеся слоты и внешние получатели",
+      "goal": "После появления подтверждённых тарифных данных и контракта реализовать историю и остаток слотов, внешних получателей и отдельное право полных ответов. До подтверждения источников не выдумывать тарифы, права или данные; карточку не выдавать без уточнения контракта.",
+      "dependsOn": [
+        "SP-E8-24E"
+      ],
+      "scope": [
+        "app/Vision/Settings/",
+        "app/Vision/Measurements/",
+        "resources/js/pages/Vision/Settings/",
+        "tests/Feature/Vision/Settings/",
+        "tests/Browser/E8-24F/",
+        "docs/results/SP-E8-24F.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Основной сценарий, права, бренд, ошибки; без живых вызовов."
+      ],
+      "sourceIds": [
+        "SP-E8-24E"
+      ],
+      "screenIds": [
+        "V-11.3",
+        "V-11.5"
+      ],
+      "notes": "Остаток SP-E8-24E",
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E8-24F.md",
+      "wave": 19,
+      "description": "# SP-E8-24F · Оставшиеся слоты и внешние получатели\n\n**Зачем:** завершить остаток по решению владельца 03.11.2026.\n**Часть чего:** частичная сдача SP-E8-24E, отчёт docs/results/SP-E8-24E.md.\n**Зависимости:** SP-E8-24E в done.\n\nПосле появления подтверждённых тарифных данных и контракта реализовать историю и остаток слотов, внешних получателей и отдельное право полных ответов. До подтверждения источников не выдумывать тарифы, права или данные; карточку не выдавать без уточнения контракта.\n\nScope: `app/Vision/Settings/`, `app/Vision/Measurements/`, `resources/js/pages/Vision/Settings/`, `tests/Feature/Vision/Settings/`, `tests/Browser/E8-24F/`, `docs/results/SP-E8-24F.md`.\n\nПриёмка: соответствие указанным пунктам, права, бренд и ошибки; только fake внешние вызовы. Остаток и проверки записать в docs/results/SP-E8-24F.md.\n"
     }
   ],
   "excludedSourceTasks": {
