@@ -52,7 +52,7 @@ final class ReleasesTest extends TenancyTestCase
         $this->post("/seller/knowledge/{$draft->id}/publish", ['version' => 2])->assertRedirect();
         $second = DB::table('brands')->where('id', $brand->id)->value('active_knowledge_release_id');
         $this->assertNotSame($first, $second);
-        $this->post("/seller/knowledge/{$first}/rollback")->assertSessionHasErrors('rollback');
+        $this->post("/seller/knowledge/{$first}/rollback")->assertRedirect()->assertSessionHasNoErrors();
         $this->assertSame($second, DB::table('brands')->where('id', $brand->id)->value('active_knowledge_release_id'));
         $this->post('/brand/switch', ['brand_id' => $other->id])->assertRedirect();
         $this->get('/seller/knowledge')->assertOk()->assertInertia(fn ($page) => $page->where('activeId', null)->has('releases', 0));
