@@ -18,7 +18,7 @@ final readonly class ExtractorPrompt
 
     public static function verified(TenantContext $context, string $version, string $checksum, string $body): self
     {
-        if ($context->organizationId === null || $context->brandId === null || ! in_array($version, ['v1', 'v2'], true)) {
+        if ($context->organizationId === null || $context->brandId === null || $version === '') {
             throw new LogicException('A brand and prompt version are required.');
         }
         $trusted = file_get_contents(resource_path('views/prompts/'.($version === 'v2' ? 'v2/' : '').'extractor.blade.php'));
