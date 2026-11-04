@@ -214,25 +214,7 @@ export function BotAccess({ audit, domainStatus }: { audit: Audit; domainStatus?
       <section className={card}>
         <h2 className="text-xl font-semibold">Правила robots.txt</h2>
         {access.bots?.length ? (
-          <ul className="mt-4 divide-y divide-(--color-border)">
-            {access.bots.map((bot) => (
-              <li key={bot.user_agent} className="py-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <strong>{bot.user_agent}</strong>
-                  <span className="rounded-full bg-(--color-surface-muted) px-3 py-1 text-sm">
-                    Правило robots.txt:{' '}
-                    {bot.allowed === true
-                      ? 'разрешено'
-                      : bot.allowed === false
-                        ? 'запрещено'
-                        : 'нет достоверных данных'}
-                  </span>
-                </div>
-                {bot.role && <p className="mt-2 text-sm text-(--color-ink-muted)">{bot.role}</p>}
-                {bot.note && <p className="mt-1 text-sm text-(--color-ink-muted)">{bot.note}</p>}
-              </li>
-            ))}
-          </ul>
+          <div className="mt-4 overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr className="border-b border-(--color-border)"><th className="p-3">Бот</th><th className="p-3">Правило для проверенного адреса</th></tr></thead><tbody>{access.bots.map((bot) => <tr key={bot.user_agent} className="border-b border-(--color-border)"><td className="p-3"><strong>{bot.user_agent}</strong>{bot.role && <p className="mt-1 text-(--color-ink-muted)">{bot.role}</p>}</td><td className="p-3">{bot.allowed === true ? 'Разрешено' : bot.allowed === false ? 'Запрещено' : 'Нет достоверных данных'}{bot.note && <p className="mt-1 text-(--color-ink-muted)">{bot.note}</p>}</td></tr>)}</tbody></table></div>
         ) : (
           <p className="mt-4 text-(--color-ink-muted)">Нет данных о правилах для ботов.</p>
         )}
@@ -276,6 +258,7 @@ export function BotAccess({ audit, domainStatus }: { audit: Audit; domainStatus?
 export function Pages({ audit }: { audit: Audit }) {
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<AuditPage | null>(null);
+  const evidenceFor = (page: AuditPage) => (audit.criteria || []).flatMap((criterion) => (criterion.evidence || []).filter((evidence) => evidence.url === page.url).map((evidence) => ({ criterion, evidence })));
   const pages = (audit.pages || []).filter((page) =>
     `${page.url} ${page.primary_heading || ''}`
       .toLocaleLowerCase('ru')
@@ -296,8 +279,8 @@ export function Pages({ audit }: { audit: Audit }) {
       {pages.length ? (
         <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[750px] text-left text-sm">
-            <thead><tr className="border-b border-(--color-border)"><th className="p-3">URL</th><th className="p-3">Заголовок</th><th className="p-3">HTTP</th><th className="p-3">Проверено</th><th className="p-3">Подробнее</th></tr></thead>
-            <tbody>{pages.map((page) => <tr key={page.url} className="border-b border-(--color-border)"><td className="break-all p-3">{page.url}</td><td className="p-3">{page.primary_heading || 'Без заголовка'}</td><td className="p-3">{page.status ?? '—'}</td><td className="p-3">{date(page.observed_at)}</td><td className="p-3"><button type="button" className={secondary} onClick={() => setSelected(page)} aria-label={`Подробнее: ${page.primary_heading || page.url}`}>Подробнее</button></td></tr>)}</tbody>
+            <thead><tr className="border-b border-(--color-border)"><th className="p-3">URL</th><th className="p-3">Заголовок</th><th className="p-3">Тип</th><th className="p-3">Свидетельства</th><th className="p-3">HTTP</th><th className="p-3">Проверено</th><th className="p-3">Подробнее</th></tr></thead>
+            <tbody>{pages.map((page) => <tr key={page.url} className="border-b border-(--color-border)"><td className="break-all p-3">{page.url}</td><td className="p-3">{page.primary_heading || 'Без заголовка'}</td><td className="p-3">{page.url === (audit.final_url || audit.url) ? 'Главная' : 'Не определён'}</td><td className="p-3">{evidenceFor(page).length}</td><td className="p-3">{page.status ?? '—'}</td><td className="p-3">{date(page.observed_at)}</td><td className="p-3"><button type="button" className={secondary} onClick={() => setSelected(page)} aria-label={`Подробнее: ${page.primary_heading || page.url}`}>Подробнее</button></td></tr>)}</tbody>
           </table>
         </div>
       ) : (
@@ -316,6 +299,7 @@ export function Pages({ audit }: { audit: Audit }) {
             <p>
               Проверено: {date(selected.observed_at)} · Статус: {selected.status ?? '—'}
             </p>
+            <div><h3 className="font-semibold">Свидетельства проверки</h3>{evidenceFor(selected).length ? <ul className="mt-2 space-y-2">{evidenceFor(selected).map(({criterion, evidence}, index) => <li key={index} className="rounded-lg bg-(--color-surface-muted) p-3"><strong>{criterion.title || 'Критерий'}</strong><p>{evidence.excerpt || 'Нет выдержки'}</p><p className="text-sm text-(--color-ink-muted)">{labels[criterion.status || 'unknown'] || 'Нет данных'}</p></li>)}</ul> : <p className="mt-2 text-(--color-ink-muted)">Для этой страницы нет отдельных свидетельств.</p>}</div>
             <div>
               <h3 className="font-semibold">Заголовки страницы</h3>
               {selected.headings?.length ? (
@@ -345,7 +329,7 @@ export function Pages({ audit }: { audit: Audit }) {
             <div>
               <h3 className="font-semibold">Проблемы страницы</h3>
               <p className="mt-2 text-(--color-ink-muted)">
-                Отдельные данные о проблемах страницы недоступны.
+                {typeof selected.status === 'number' && selected.status >= 400 ? `Страница вернула HTTP ${selected.status}.` : 'Отдельные данные о проблемах страницы недоступны.'}
               </p>
             </div>
             <div>

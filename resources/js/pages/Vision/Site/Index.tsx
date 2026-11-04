@@ -127,7 +127,7 @@ export function Groups({ criteria }: { criteria: Criterion[] }) {
     </section>
   );
 }
-export function AuditProgress({progress}: {progress?: {stage:string} | null}) {
+export function AuditProgress({progress}: {progress?: {stage:string; events?: {stage:string; at:string}[]} | null}) {
   const stage = progress?.stage;
   useEffect(() => {
     if (!['queued','inspecting','saving'].includes(stage ?? '')) return;
@@ -137,7 +137,7 @@ export function AuditProgress({progress}: {progress?: {stage:string} | null}) {
   if (!stage) return null;
   const phases = [{key:'queued',label:'Ожидание'}, {key:'inspecting',label:'Проверка страниц и ботов'}, {key:'saving',label:'Сохранение результатов'}];
   const active = stage === 'complete' ? phases.length : phases.findIndex(item => item.key === stage);
-  return <section className={card} aria-live="polite"><h2 className="text-lg font-semibold">Проверка сайта</h2><p className="mt-2 text-sm">{({queued:'Ожидает очереди',inspecting:'Проверяем страницы и доступ ботов',saving:'Сохраняем результаты',complete:'Проверка завершена',failed:'Не удалось проверить сайт. Повторите попытку.'} as Record<string,string>)[stage] ?? 'Состояние недоступно'}</p>{active >= 0 && <><progress className="mt-3 w-full accent-(--color-action)" aria-label="Проверка сайта" max={phases.length} value={active} /><ol className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm">{phases.map((phase,index)=><li key={phase.key}>{phase.label} · {index < active ? 'готово' : index === active ? 'выполняется' : 'ожидает'}</li>)}</ol></>}</section>;
+  return <section className={card} aria-live="polite"><h2 className="text-lg font-semibold">Проверка сайта</h2><p className="mt-2 text-sm">{({queued:'Ожидает очереди',inspecting:'Проверяем страницы и доступ ботов',saving:'Сохраняем результаты',complete:'Проверка завершена',failed:'Не удалось проверить сайт. Повторите попытку.'} as Record<string,string>)[stage] ?? 'Состояние недоступно'}</p>{active >= 0 && <><progress className="mt-3 w-full accent-(--color-action)" aria-label="Проверка сайта" max={phases.length} value={active} /><ol className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm">{phases.map((phase,index)=><li key={phase.key}>{phase.label} · {index < active ? 'готово' : index === active ? 'выполняется' : 'ожидает'}</li>)}</ol></>}{Boolean(progress?.events?.length) && <div className="mt-4"><h3 className="font-semibold">Последние события</h3><ol className="mt-2 space-y-1 text-sm">{progress?.events?.map((event, index) => <li key={`${event.stage}-${index}`}><time dateTime={event.at}>{new Date(event.at).toLocaleString('ru-RU')}</time> · {({queued:'Ожидание',inspecting:'Проверка страниц и ботов',saving:'Сохранение результатов',complete:'Проверка завершена',failed:'Ошибка проверки'} as Record<string,string>)[event.stage] ?? 'Событие'}</li>)}</ol></div>}</section>;
 }
 export default function Index({
   section,
@@ -152,7 +152,7 @@ export default function Index({
   previousAudit = null,
   auditProgress = null,
   domainStatus = null,
-}: Props & { domainStatus?: {host:string;verified:boolean} | null; auditDate?: string | null; previousAudit?: Audit | null; auditProgress?: {stage:string} | null }) {
+}: Props & { domainStatus?: {host:string;verified:boolean} | null; auditDate?: string | null; previousAudit?: Audit | null; auditProgress?: {stage:string; events?: {stage:string; at:string}[]} | null }) {
   const titles: Record<Props['section'], string> = {
     overview: 'Готовность сайта к ИИ-поиску',
     criteria: 'Критерии и как исправить',
