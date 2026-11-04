@@ -39,7 +39,16 @@ final class AuditSiteJob implements ShouldQueue
                     $access->lock($tenant, true, 'vision.actions.write');
                 });
                 $this->progress($key, 'inspecting');
-                $result = $inspector->inspect($this->url);
+                $started = microtime(true);
+                $result = $inspector->inspect($this->url, null, function (int $processed, int $total) use ($key, $started): void {
+                    $data = Cache::get($key, []);
+                    $seconds = microtime(true) - $started;
+                    $data['pages_processed'] = $processed;
+                    $data['pages_total'] = $total;
+                    $data['remaining_seconds'] = $processed >= 2 && $processed < $total && $seconds > 0
+                        ? max(1, (int) ceil($seconds / $processed * ($total - $processed))) : null;
+                    Cache::put($key, $data, now()->addDay());
+                });
                 $this->progress($key, 'saving');
                 DB::transaction(function () use ($access, $audit, $tenant, $result): void {
                     $this->assertSessionActive();
@@ -59,9 +68,10 @@ final class AuditSiteJob implements ShouldQueue
 
     private function progress(string $key, string $stage): void
     {
-        $events = Cache::get($key)['events'] ?? [];
+        $data = Cache::get($key, []);
+        $events = $data['events'] ?? [];
         $events[] = ['stage' => $stage, 'at' => now()->toIso8601String()];
-        Cache::put($key, ['stage' => $stage, 'events' => $events], now()->addDay());
+        Cache::put($key, [...$data, 'stage' => $stage, 'events' => $events], now()->addDay());
     }
 
     /** The job stores only the session digest, and checks the same lease before the protected write. */
