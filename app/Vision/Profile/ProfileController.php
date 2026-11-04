@@ -250,6 +250,30 @@ HTML;
                 }
             }
 
+            if ($step === 3) {
+                foreach (($audit['pages'] ?? []) as $auditedPage) {
+                    $pageUrl = is_array($auditedPage) ? ($auditedPage['url'] ?? null) : null;
+                    $types = is_array($auditedPage['structured_types'] ?? null) ? $auditedPage['structured_types'] : [];
+                    if (! is_string($pageUrl) || strtolower((string) parse_url($pageUrl, PHP_URL_HOST)) !== strtolower((string) parse_url($website, PHP_URL_HOST))
+                        || ! is_numeric($auditedPage['status'] ?? null) || $auditedPage['status'] < 200 || $auditedPage['status'] >= 300
+                        || count($types) !== 1 || ! in_array($types[0], ['Product', 'Service'], true)) {
+                        continue;
+                    }
+                    foreach (is_array($auditedPage['structured_facts'] ?? null) ? $auditedPage['structured_facts'] : [] as $fact) {
+                        if (! is_array($fact) || ($fact['label'] ?? null) !== 'Название' || ! is_string($fact['value'] ?? null) || trim($fact['value']) === '') {
+                            continue;
+                        }
+                        $value = mb_substr(trim($fact['value']), 0, 180);
+                        if (! in_array($value, array_column($items, 'value'), true)) {
+                            $items[] = ['label' => $types[0] === 'Product' ? 'Товар из аудита' : 'Услуга из аудита', 'value' => $value, 'source' => $pageUrl];
+                        }
+                        if (count($items) >= 5) {
+                            break 2;
+                        }
+                    }
+                }
+            }
+
             if ($step === 5) {
                 foreach (($audit['pages'] ?? []) as $auditedPage) {
                     $pageUrl = is_array($auditedPage) ? ($auditedPage['url'] ?? null) : null;
