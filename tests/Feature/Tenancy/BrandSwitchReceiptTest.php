@@ -23,7 +23,7 @@ final class BrandSwitchReceiptTest extends TenancyTestCase
         $this->actingAs($owner)->withSession(['brand_id' => $a->id]);
         $oldCookie = session()->getId();
         $key = 'synthetic-switch-recover-123456';
-        $this->post('/brand/switch', ['brand_id' => $b->id], ['X-Context-Change-Key' => $key])->assertRedirect('/auth/ready');
+        $this->post('/brand/switch', ['brand_id' => $b->id], ['X-Context-Change-Key' => $key])->assertRedirect('/dashboard');
         $this->post('/logout', [], ['X-Context-Change-Key' => 'synthetic-logout-recover-123456'])->assertRedirect('/login');
         $this->withCookie(config('session.cookie'), $oldCookie)
             ->getJson('/brand/switch/recover?brand_id='.$b->id, ['X-Context-Change-Key' => $key])
@@ -39,9 +39,9 @@ final class BrandSwitchReceiptTest extends TenancyTestCase
         [$owner,$org,$a,$b] = $this->cabinet();
         $this->actingAs($owner)->withSession(['brand_id' => $a->id]);
         $headers = ['X-Context-Change-Key' => 'synthetic-change-key-123456'];
-        $this->post('/brand/switch', ['brand_id' => $b->id], $headers)->assertRedirect('/auth/ready');
+        $this->post('/brand/switch', ['brand_id' => $b->id], $headers)->assertRedirect('/dashboard');
         $revision = DB::table('auth_session_registry')->where('user_id', $owner->id)->value('brand_revision');
-        $this->post('/brand/switch', ['brand_id' => $b->id], $headers)->assertRedirect('/auth/ready');
+        $this->post('/brand/switch', ['brand_id' => $b->id], $headers)->assertRedirect('/dashboard');
         $this->assertSame((string) $revision, (string) DB::table('auth_session_registry')->where('user_id', $owner->id)->value('brand_revision'));
         $this->post('/brand/switch', ['brand_id' => $a->id], $headers)->assertStatus(409);
         $this->assertSame($b->id, DB::table('auth_session_registry')->where('user_id', $owner->id)->value('selected_brand_id'));
