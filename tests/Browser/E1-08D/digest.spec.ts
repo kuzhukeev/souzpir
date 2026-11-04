@@ -1,0 +1,9 @@
+import {test,expect} from '@playwright/test';
+import {createServer,type ViteDevServer} from 'vite';
+import {mkdir} from 'node:fs/promises';
+let server:ViteDevServer;let url:string;
+test.use({viewport:{width:1440,height:900},launchOptions:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH?{executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH}:{}});
+test.beforeAll(async()=>{server=await createServer({configFile:'tests/Browser/E1-08D/vite.config.ts',cacheDir:'.local/runtime/vite-e108d',server:{host:'127.0.0.1',port:0,strictPort:false}});await server.listen();url=new URL('/tests/Browser/E1-08D/fixture.html',server.resolvedUrls!.local[0]).href;});
+test.afterAll(async()=>{await server?.close();});
+test('сводка в черновике включается на 09:00 и сохраняется',async({page})=>{await page.goto(url);const toggle=page.getByRole('checkbox',{name:'Сводка вместо каждого события: раз в день'});await expect(toggle).not.toBeChecked();await toggle.check();await expect(page.getByLabel('Время ежедневной сводки')).toHaveValue('09:00');await mkdir('.local/screenshots/SP-E1-08D',{recursive:true});await page.screenshot({path:'.local/screenshots/SP-E1-08D/digest.png',fullPage:true});let body:unknown;await page.route('**/profile/notifications/timing',async route=>{body=route.request().postDataJSON();await route.abort();});await page.getByRole('button',{name:'Сохранить черновик'}).click();await expect.poll(()=>body).toEqual({quiet_start:null,quiet_end:null,digest_time:'09:00'});});
+test('сохранение доступно только при изменении черновика',async({page})=>{await page.goto(url);const save=page.getByRole('button',{name:'Сохранить черновик'});await expect(save).toBeDisabled();const toggle=page.getByRole('checkbox',{name:'Сводка вместо каждого события: раз в день'});await toggle.check();await expect(save).toBeEnabled();await toggle.uncheck();await expect(save).toBeDisabled();});
