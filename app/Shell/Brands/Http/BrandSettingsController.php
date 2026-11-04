@@ -169,7 +169,7 @@ final class BrandSettingsController
         $path = $target->settings['logo_path'] ?? null;
         abort_unless(is_string($path) && BrandSettings::validLogoPath($target->organization_id, $path) && Storage::disk('local')->exists($path), 404);
 
-        return response(Storage::disk('local')->get($path), 200, ['Content-Type' => 'image/png', 'X-Content-Type-Options' => 'nosniff', 'Cache-Control' => 'private, no-store', 'Content-Security-Policy' => "default-src 'none'; sandbox"]);
+        return response(Storage::disk('local')->get($path), 200, ['Content-Type' => str_ends_with($path, '.svg') ? 'image/svg+xml' : 'image/png', 'X-Content-Type-Options' => 'nosniff', 'Cache-Control' => 'private, no-store', 'Content-Security-Policy' => "default-src 'none'; sandbox"]);
     }
 
     private function validate(Request $request, string $brand, array $rules): array

@@ -5269,7 +5269,10 @@
         "SP-E4-01L",
         "SP-E8-20F",
         "SP-E8-21E",
-        "SP-E1-02G"
+        "SP-E1-02G",
+        "SP-E8-20G",
+        "SP-E1-02H",
+        "SP-E8-20H"
       ],
       "scope": [
         "README.md",
@@ -14748,6 +14751,119 @@
       "promptPath": "docs/tasks/SP-E1-02G.md",
       "wave": 18,
       "description": "# SP-E1-02G · SVG-логотип в настройках бренда\n\n**Зачем:** завершить видимый сценарий по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E1-02E из docs/results/SP-E1-02E.md.\n**Зависимости:** SP-E1-02E (дождаться merge).\n\nОбеспечить отображение приватного SVG-логотипа из онбординга в настройках текущего бренда без ослабления существующих проверок и изоляции.\n\nСверить с журналом макетов; проверить сценарии, права, изоляцию брендов и ошибки. Без живых и платных вызовов в тестах. Невыполненные пункты перечислить в отчёте.\n\nScope: `app/Shell/Brands/`, `resources/js/pages/Shell/Brands/`, `tests/Feature/Shell/Brands/`, `tests/Browser/E1-02G/`, `docs/results/SP-E1-02G.md`.\n\nОтчёт: docs/results/SP-E1-02G.md.\n"
+    },
+    {
+      "taskKey": "SP-E8-20G",
+      "title": "SP-E8-20G · Остаток компаний и источников",
+      "goal": "Завершить V-6.1–V-6.4 и V-7.1–V-7.3: вкладку отсутствующих в ответах, подтверждённые динамику и цитаты, сохранение решения о разных компаниях, сравнение и ссылки из уточнений. Не выдумывать данные.",
+      "dependsOn": [
+        "SP-E8-20F"
+      ],
+      "scope": [
+        "app/Vision/Competitors/",
+        "app/Vision/Sources/",
+        "resources/js/pages/Vision/Competitors/",
+        "resources/js/pages/Vision/Sources/",
+        "database/migrations/E8-20G/",
+        "tests/Feature/Vision/Competitors/",
+        "tests/Feature/Vision/Sources/",
+        "tests/Browser/E8-20G/",
+        "docs/results/SP-E8-20G.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Завершить пункты по макету, проверить права, изоляцию и ошибки; без живых вызовов."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "V-6.1",
+        "V-6.2",
+        "V-6.3",
+        "V-6.4",
+        "V-7.1",
+        "V-7.2",
+        "V-7.3"
+      ],
+      "notes": "Продолжение SP-E8-20F по решению владельца.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E8-20G.md",
+      "wave": 18,
+      "description": "# SP-E8-20G · Остаток компаний и источников\n\n**Зачем:** завершить видимый сценарий по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E8-20F из docs/results/SP-E8-20F.md.\n**Зависимости:** SP-E8-20F (дождаться merge).\n\nЗавершить V-6.1–V-6.4 и V-7.1–V-7.3: вкладку отсутствующих в ответах, подтверждённые динамику и цитаты, сохранение решения о разных компаниях, сравнение и ссылки из уточнений. Не выдумывать данные.\n\nСверить с журналом макетов; проверить сценарии, права, изоляцию брендов и ошибки. Без живых и платных вызовов в тестах. Невыполненные пункты перечислить в отчёте.\n\nScope: `app/Vision/Competitors/`, `app/Vision/Sources/`, `resources/js/pages/Vision/Competitors/`, `resources/js/pages/Vision/Sources/`, `database/migrations/E8-20G/`, `tests/Feature/Vision/Competitors/`, `tests/Feature/Vision/Sources/`, `tests/Browser/E8-20G/`, `docs/results/SP-E8-20G.md`.\n\nОтчёт: docs/results/SP-E8-20G.md.\n"
+    },
+    {
+      "taskKey": "SP-E1-02H",
+      "title": "SP-E1-02H · SVG-логотип текущей организации",
+      "goal": "Показать на S-0.7 проверенный приватный SVG-логотип, сохранённый онбордингом, с существующей изоляцией организации и политикой выдачи.",
+      "dependsOn": [
+        "SP-E1-02G",
+        "SP-E1-02F"
+      ],
+      "scope": [
+        "app/Shell/Context/",
+        "resources/js/pages/Shell/Context/",
+        "tests/Feature/Shell/Context/",
+        "tests/Browser/E1-02H/",
+        "docs/results/SP-E1-02H.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Реализовать пункты остатка по макету, проверить права, изоляцию и ошибки; без живых вызовов."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "S-0.7"
+      ],
+      "notes": "Продолжение SP-E1-02G по решению владельца.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E1-02H.md",
+      "wave": 18,
+      "description": "# SP-E1-02H · SVG-логотип текущей организации\n\n**Зачем:** завершить видимый сценарий по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E1-02G из docs/results/SP-E1-02G.md.\n**Зависимости:** SP-E1-02G, SP-E1-02F (дождаться merge).\n\nПоказать на S-0.7 проверенный приватный SVG-логотип, сохранённый онбордингом, с существующей изоляцией организации и политикой выдачи.\n\nСверить с журналом макетов; проверить сценарии, права, изоляцию брендов и ошибки. Без живых и платных вызовов в тестах. Невыполненные пункты перечислить в отчёте.\n\nScope: `app/Shell/Context/`, `resources/js/pages/Shell/Context/`, `tests/Feature/Shell/Context/`, `tests/Browser/E1-02H/`, `docs/results/SP-E1-02H.md`.\n\nОтчёт: docs/results/SP-E1-02H.md.\n"
+    },
+    {
+      "taskKey": "SP-E8-20H",
+      "title": "SP-E8-20H · Остаток сравнения и источников",
+      "goal": "Завершить по макету V-6.1–V-6.4 и V-7.1–V-7.3: вкладки, таблицу и карточку компании, подтверждённые динамику и цитаты, оформление дублей и сравнения, ссылки из уточнений и источники. Использовать только доступные проверенные данные.",
+      "dependsOn": [
+        "SP-E8-20G"
+      ],
+      "scope": [
+        "app/Vision/Competitors/",
+        "app/Vision/Sources/",
+        "resources/js/pages/Vision/Competitors/",
+        "resources/js/pages/Vision/Sources/",
+        "tests/Feature/Vision/Competitors/",
+        "tests/Feature/Vision/Sources/",
+        "tests/Browser/E8-20H/",
+        "docs/results/SP-E8-20H.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Завершить пункты по макету, проверить права, изоляцию и ошибки; без живых вызовов."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "V-6.1",
+        "V-6.2",
+        "V-6.3",
+        "V-6.4",
+        "V-7.1",
+        "V-7.2",
+        "V-7.3"
+      ],
+      "notes": "Продолжение частичной сдачи SP-E8-20G по решению владельца.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E8-20H.md",
+      "wave": 18,
+      "description": "# SP-E8-20H · Остаток сравнения и источников\n\n**Зачем:** завершить экраны по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E8-20G из docs/results/SP-E8-20G.md.\n**Зависимости:** SP-E8-20G (дождаться merge).\n\nЗавершить по макету V-6.1–V-6.4 и V-7.1–V-7.3: вкладки, таблицу и карточку компании, подтверждённые динамику и цитаты, оформление дублей и сравнения, ссылки из уточнений и источники. Использовать только доступные проверенные данные.\n\nСверить с журналом макетов; проверить сценарии, права, изоляцию брендов и ошибки. Без живых и платных вызовов в тестах. Невыполненные пункты перечислить в отчёте.\n\nScope: `app/Vision/Competitors/`, `app/Vision/Sources/`, `resources/js/pages/Vision/Competitors/`, `resources/js/pages/Vision/Sources/`, `tests/Feature/Vision/Competitors/`, `tests/Feature/Vision/Sources/`, `tests/Browser/E8-20H/`, `docs/results/SP-E8-20H.md`.\n\nОтчёт: docs/results/SP-E8-20H.md.\n"
     }
   ],
   "excludedSourceTasks": {
