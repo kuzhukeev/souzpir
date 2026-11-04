@@ -234,6 +234,28 @@ final class QuestionsHttpTest extends TenancyTestCase
         self::assertSame(0, DB::table('monitoring_schedules')->count());
     }
 
+    public function test_approval_enables_explicit_schedule_for_selected_brand_only(): void
+    {
+        [$owner, $org, $brand, $other] = $this->fixture();
+        $id = $this->postJson('/vision/questions/candidates', ['text' => 'Где найти качественные услуги рядом?', 'intent' => 'choose'])->assertCreated()->json('id');
+        $payload = ['candidate_ids' => [$id], 'models' => ['gemini' => 'google/gemini-2.5-flash'], 'frequency' => 'weekly',
+            'schedule' => ['enabled' => true, 'weekday' => 1, 'local_time' => '09:00']];
+        $this->postJson('/vision/questions/approve', [...$payload, 'schedule' => ['enabled' => true, 'weekday' => 1, 'local_time' => '25:00']])->assertStatus(422);
+        $this->assertDatabaseCount('vision_question_approvals', 0);
+        $this->assertDatabaseCount('monitoring_schedules', 0);
+
+        $this->postJson('/vision/questions/approve', $payload)->assertOk();
+        $this->assertDatabaseHas('monitoring_schedules', ['brand_id' => $brand->id, 'enabled' => true, 'frequency' => 'weekly', 'weekday' => 1]);
+        self::assertSame(['gemini' => 'google/gemini-2.5-flash'], json_decode(DB::table('monitoring_schedules')->where('brand_id', $brand->id)->value('models'), true));
+        [$viewer] = $this->member($org, 'viewer', [$brand->id]);
+        $this->actingAs($viewer)->withSession(['brand_id' => $brand->id])->postJson('/vision/questions/approve', $payload)->assertForbidden();
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $this->post('/brand/switch', ['brand_id' => $other->id])->assertRedirect();
+        $this->getJson('/vision/questions/data')->assertOk()->assertJsonCount(0, 'history');
+        $this->assertDatabaseCount('monitoring_schedules', 1);
+        Http::assertNothingSent();
+    }
+
     public function test_unexpected_failure_does_not_log_private_text_or_commit_partial_candidate(): void
     {
         $this->fixture();

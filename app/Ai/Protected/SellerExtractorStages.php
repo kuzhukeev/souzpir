@@ -13,6 +13,7 @@ use App\ProtectedOperations\ExtractorEffectReservations;
 use App\ProtectedOperations\FirstTurnProtectedClaim;
 use App\ProtectedOperations\SellerTurnFence;
 use App\Seller\Conversations\Data\TurnClaim;
+use App\Seller\Engine\BrandPromptSets;
 use App\Seller\Engine\Extractor;
 use App\Seller\Engine\ExtractorPromptLoader;
 use App\Seller\Engine\LeadState;
@@ -193,7 +194,8 @@ final class SellerExtractorStages
             $query->where(fn ($platform) => $platform->whereNull('organization_id')->whereNull('brand_id'))
                 ->orWhere(fn ($brand) => $brand->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId));
         })->orderBy('id')->lockForUpdate()->get(['id']);
-        $prompt = app(ExtractorPromptLoader::class)->load($tenant);
+        $promptRow = app(BrandPromptSets::class)->load($tenant, $release, 'extractor');
+        $prompt = app(ExtractorPromptLoader::class)->load($tenant, $promptRow->version);
         $model = config('features.E0-05.defaults.seller_defaults.extractor.model');
         $temperature = config('features.E0-05.defaults.seller_defaults.extractor.temperature');
         if (! is_string($name) || trim($name) === '' || ! is_string($model) || $model === '' || ! is_numeric($temperature)) {

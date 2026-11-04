@@ -85,10 +85,12 @@ final class QuestionsController
             $ids = $request->input('candidate_ids');
             $models = $request->input('models');
             $frequency = $request->input('frequency');
-            if (! is_array($ids) || ! is_array($models) || ($frequency !== null && ! is_string($frequency))) {
+            $schedule = $request->input('schedule');
+            if (! is_array($ids) || ! is_array($models) || ($frequency !== null && ! is_string($frequency))
+                || ($schedule !== null && ! is_array($schedule))) {
                 throw new InvalidArgumentException('Invalid input.');
             }
-            $id = app(QuestionWorkspace::class)->approve($request, $ids, $models, $frequency);
+            $id = app(QuestionWorkspace::class)->approve($request, $ids, $models, $frequency, $schedule);
 
             return response()->json(['ok' => true, 'id' => $id]);
         });

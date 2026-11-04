@@ -1,9 +1,11 @@
-type Answer = { question_n: number; provider: string; status: string };
+type Answer = { question_n: number; provider: string; requested_model?: string; status: string };
 
 const settled = (status: string) => ['ok', 'failed', 'uncertain'].includes(status);
 
-export default function RunProgress({ answers, status }: { answers: Answer[]; status: string }) {
-  if (!answers.length) return <p className="mt-3 text-sm">Слоты замера пока не созданы.</p>;
+export default function RunProgress({ answers, status, createdAt, startedAt, finishedAt }: { answers: Answer[]; status: string; createdAt?: string | null; startedAt?: string | null; finishedAt?: string | null }) {
+  const events = [['Создан', createdAt], ['Начат', startedAt], ['Завершён', finishedAt]].filter((event): event is [string, string] => Boolean(event[1]));
+  const eventList = events.length > 0 && <div><h3 className="font-semibold">События замера</h3><ul className="mt-2 space-y-1">{events.map(([label, value])=><li key={label}>{label} · <time dateTime={value}>{new Date(value).toLocaleString('ru-RU')}</time></li>)}</ul></div>;
+  if (!answers.length) return <div className="mt-3 space-y-3 text-sm"><p>Слоты замера пока не созданы.</p>{eventList}</div>;
 
   const done = answers.filter(answer => settled(answer.status)).length;
   const questions = Array.from(new Set(answers.map(answer => answer.question_n)));
@@ -19,8 +21,9 @@ export default function RunProgress({ answers, status }: { answers: Answer[]; st
       const label = group.some(answer => ['failed', 'uncertain'].includes(answer.status)) ? 'Ошибка'
         : received === group.length ? 'Готово'
           : group.some(answer => ['in_progress', 'running', 'ok'].includes(answer.status)) ? 'Отвечает' : 'Ожидает';
-      return <li key={provider} className="rounded-lg bg-(--color-surface-muted) p-3">{provider}: {label} · {received} из {group.length}</li>;
+      return <li key={provider} className="rounded-lg bg-(--color-surface-muted) p-3"><span>{provider}: {label} · {received} из {group.length}</span>{group.some(answer=>answer.requested_model) && <p className="mt-1 text-(--color-ink-muted)">Модели: {Array.from(new Set(group.map(answer=>answer.requested_model).filter(Boolean))).join(', ')}</p>}</li>;
     })}</ul></div>
+    {eventList}
     {['pending', 'running', 'in_progress'].includes(status) && <a className="inline-flex min-h-11 cursor-pointer items-center font-semibold text-(--color-link)" href="/vision/settings">Уведомить, когда будет готово</a>}
     {status === 'completed' && <p className="rounded-lg bg-(--color-success-soft) p-3">Замер готов. <a className="cursor-pointer font-semibold text-(--color-link)" href="/vision/clarifications">Проверить уточнения</a></p>}
   </div>;

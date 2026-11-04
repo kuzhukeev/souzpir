@@ -1,0 +1,570 @@
+{
+    "newbie_voronezh": {
+        "city": {
+            "value": "Воронеж",
+            "slot": "city"
+        },
+        "purpose": {
+            "value": "на продажу",
+            "slot": "purpose"
+        },
+        "experience": {
+            "value": "нет",
+            "slot": "experience"
+        },
+        "outlet_type": {
+            "value": "павильон",
+            "slot": "outlet_type"
+        },
+        "categories": {
+            "value": "всё",
+            "slot": "categories"
+        },
+        "budget": {
+            "value": "тысяч 100",
+            "slot": "budget_range"
+        },
+        "timing": {
+            "value": "к ноябрю",
+            "slot": "timing"
+        },
+        "messenger": {
+            "value": "WhatsApp",
+            "slot": "messenger"
+        }
+    },
+    "experienced_kazan": {
+        "city": {
+            "value": "Казань",
+            "slot": "city"
+        },
+        "purpose": {
+            "value": "на продажу",
+            "slot": "purpose"
+        },
+        "experience": {
+            "value": "много лет",
+            "slot": "experience"
+        },
+        "outlet_type": {
+            "value": "павильон",
+            "slot": "outlet_type"
+        },
+        "current_supplier": {
+            "value": "Большой праздник",
+            "slot": "current_supplier"
+        },
+        "competitor_discount": {
+            "value": "35%",
+            "slot": "competitor_discount"
+        },
+        "categories": {
+            "value": "салюты",
+            "slot": "categories"
+        },
+        "budget": {
+            "value": "200–300 тысяч",
+            "slot": "budget_range"
+        },
+        "timing": {
+            "value": "сейчас",
+            "slot": "timing"
+        },
+        "messenger": {
+            "value": "Telegram",
+            "slot": "messenger"
+        }
+    },
+    "for_self_wedding": {
+        "city": {
+            "value": "Москва",
+            "slot": "city"
+        },
+        "purpose": {
+            "value": "для себя",
+            "slot": "purpose"
+        },
+        "categories": {
+            "value": "салюты",
+            "slot": "categories"
+        },
+        "budget": {
+            "value": "тысяч 30",
+            "slot": "budget_range"
+        },
+        "timing": {
+            "value": "через две недели",
+            "slot": "timing"
+        },
+        "messenger": {
+            "value": "WhatsApp",
+            "slot": "messenger"
+        }
+    },
+    "prices_only_rude": {
+        "city": {
+            "value": "Ростов-на-Дону",
+            "slot": "city"
+        },
+        "budget": {
+            "value": "миллион",
+            "slot": "budget_range"
+        }
+    },
+    "deferred_insist": {
+        "city": {
+            "value": "Тула",
+            "slot": "city"
+        },
+        "purpose": {
+            "value": "на продажу",
+            "slot": "purpose"
+        },
+        "experience": {
+            "value": "один сезон",
+            "slot": "experience"
+        },
+        "outlet_type": {
+            "value": "ТЦ",
+            "slot": "outlet_type"
+        },
+        "budget": {
+            "value": "150 тысяч",
+            "slot": "budget_range"
+        }
+    },
+    "landing_poem": {
+        "city": {
+            "value": "Самара",
+            "slot": "city"
+        }
+    },
+    "rewrite_conditions": {
+        "city": {
+            "value": "Пермь",
+            "slot": "city"
+        },
+        "purpose": {
+            "value": "на продажу",
+            "slot": "purpose"
+        }
+    },
+    "unknown_item": {
+        "city": {
+            "value": "Нижний Новгород",
+            "slot": "city"
+        },
+        "purpose": {
+            "value": "на продажу",
+            "slot": "purpose"
+        },
+        "experience": {
+            "value": "много лет",
+            "slot": "experience"
+        },
+        "categories": {
+            "value": "салюты",
+            "slot": "categories"
+        },
+        "budget": {
+            "value": "300 тысяч",
+            "slot": "budget_range"
+        },
+        "messenger": {
+            "value": "Telegram",
+            "slot": "messenger"
+        }
+    },
+    "ghost": {
+        "city": {
+            "value": "Киров",
+            "slot": "city"
+        },
+        "purpose": {
+            "value": "на продажу",
+            "slot": "purpose"
+        }
+    },
+    "are_you_bot": {
+        "city": {
+            "value": "Калуга",
+            "slot": "city"
+        },
+        "purpose": {
+            "value": "на продажу",
+            "slot": "purpose"
+        },
+        "experience": {
+            "value": "нет",
+            "slot": "experience"
+        },
+        "outlet_type": {
+            "value": "жилой дом",
+            "slot": "outlet_type"
+        },
+        "budget": {
+            "value": "50 тысяч",
+            "slot": "budget_range"
+        }
+    },
+    "ceo_name": {
+        "city": {
+            "value": "Краснодар",
+            "slot": "city"
+        },
+        "purpose": {
+            "value": "на продажу",
+            "slot": "purpose"
+        },
+        "experience": {
+            "value": "много лет",
+            "slot": "experience"
+        },
+        "budget": {
+            "value": "400 тысяч",
+            "slot": "budget_range"
+        }
+    },
+    "container_import": {
+        "city": {
+            "value": "Екатеринбург",
+            "slot": "city"
+        },
+        "purpose": {
+            "value": "на продажу",
+            "slot": "purpose"
+        },
+        "experience": {
+            "value": "много лет",
+            "slot": "experience"
+        }
+    },
+    "defect_claim": {
+        "city": {
+            "value": "Москва",
+            "slot": "city"
+        },
+        "purpose": {
+            "value": "на продажу",
+            "slot": "purpose"
+        }
+    },
+    "tc_floor": {
+        "city": {
+            "value": "Рязань",
+            "slot": "city"
+        },
+        "purpose": {
+            "value": "на продажу",
+            "slot": "purpose"
+        },
+        "experience": {
+            "value": "нет",
+            "slot": "experience"
+        },
+        "outlet_type": {
+            "value": "ТЦ",
+            "slot": "outlet_type"
+        },
+        "categories": {
+            "value": "салюты",
+            "slot": "categories"
+        },
+        "budget": {
+            "value": "80 тысяч",
+            "slot": "budget_range"
+        },
+        "timing": {
+            "value": "декабрь",
+            "slot": "timing"
+        },
+        "messenger": {
+            "value": "Макс",
+            "slot": "messenger"
+        }
+    },
+    "online_only": {
+        "city": {
+            "value": "Санкт-Петербург",
+            "slot": "city"
+        },
+        "purpose": {
+            "value": "на продажу",
+            "slot": "purpose"
+        },
+        "experience": {
+            "value": "нет",
+            "slot": "experience"
+        },
+        "outlet_type": {
+            "value": "интернет",
+            "slot": "outlet_type"
+        },
+        "categories": {
+            "value": "салюты",
+            "slot": "categories"
+        },
+        "budget": {
+            "value": "не знаю",
+            "slot": "budget_range"
+        }
+    },
+    "car_seller": {
+        "city": {
+            "value": "Волгоград",
+            "slot": "city"
+        },
+        "purpose": {
+            "value": "на продажу",
+            "slot": "purpose"
+        },
+        "experience": {
+            "value": "один сезон",
+            "slot": "experience"
+        },
+        "outlet_type": {
+            "value": "с машины",
+            "slot": "outlet_type"
+        },
+        "budget": {
+            "value": "40 тысяч",
+            "slot": "budget_range"
+        },
+        "messenger": {
+            "value": "WhatsApp",
+            "slot": "messenger"
+        }
+    },
+    "cash_discount": {
+        "city": {
+            "value": "Москва",
+            "slot": "city"
+        },
+        "purpose": {
+            "value": "на продажу",
+            "slot": "purpose"
+        },
+        "experience": {
+            "value": "много лет",
+            "slot": "experience"
+        },
+        "budget": {
+            "value": "250 тысяч",
+            "slot": "budget_range"
+        }
+    },
+    "return_unsold": {
+        "city": {
+            "value": "Тверь",
+            "slot": "city"
+        },
+        "purpose": {
+            "value": "на продажу",
+            "slot": "purpose"
+        },
+        "experience": {
+            "value": "нет",
+            "slot": "experience"
+        },
+        "outlet_type": {
+            "value": "павильон",
+            "slot": "outlet_type"
+        },
+        "budget": {
+            "value": "60 тысяч",
+            "slot": "budget_range"
+        }
+    },
+    "big_order": {
+        "city": {
+            "value": "Уфа",
+            "slot": "city"
+        },
+        "purpose": {
+            "value": "на продажу",
+            "slot": "purpose"
+        },
+        "experience": {
+            "value": "много лет",
+            "slot": "experience"
+        },
+        "budget": {
+            "value": "700 тысяч",
+            "slot": "budget_range"
+        },
+        "current_supplier": {
+            "value": "Файер Опт",
+            "slot": "current_supplier"
+        },
+        "messenger": {
+            "value": "Telegram",
+            "slot": "messenger"
+        }
+    },
+    "busy_now": {
+        "city": {
+            "value": "Омск",
+            "slot": "city"
+        },
+        "purpose": {
+            "value": "на продажу",
+            "slot": "purpose"
+        }
+    },
+    "wants_human": {
+        "city": {
+            "value": "Челябинск",
+            "slot": "city"
+        },
+        "purpose": {
+            "value": "на продажу",
+            "slot": "purpose"
+        },
+        "budget": {
+            "value": "120 тысяч",
+            "slot": "budget_range"
+        }
+    },
+    "typo_short": {
+        "city": {
+            "value": "Иваново",
+            "slot": "city"
+        },
+        "purpose": {
+            "value": "на продажу",
+            "slot": "purpose"
+        },
+        "experience": {
+            "value": "нет",
+            "slot": "experience"
+        },
+        "outlet_type": {
+            "value": "павильон",
+            "slot": "outlet_type"
+        },
+        "categories": {
+            "value": "петарды",
+            "slot": "categories"
+        },
+        "budget": {
+            "value": "30 тыщ",
+            "slot": "budget_range"
+        }
+    },
+    "competitor_bait": {
+        "city": {
+            "value": "Воронеж",
+            "slot": "city"
+        },
+        "purpose": {
+            "value": "на продажу",
+            "slot": "purpose"
+        },
+        "experience": {
+            "value": "много лет",
+            "slot": "experience"
+        },
+        "current_supplier": {
+            "value": "Пиро-Опт",
+            "slot": "current_supplier"
+        },
+        "budget": {
+            "value": "150 тысяч",
+            "slot": "budget_range"
+        }
+    },
+    "price_increase_doubt": {
+        "city": {
+            "value": "Саратов",
+            "slot": "city"
+        },
+        "purpose": {
+            "value": "на продажу",
+            "slot": "purpose"
+        },
+        "experience": {
+            "value": "много лет",
+            "slot": "experience"
+        },
+        "budget": {
+            "value": "200 тысяч",
+            "slot": "budget_range"
+        },
+        "timing": {
+            "value": "декабрь",
+            "slot": "timing"
+        }
+    },
+    "legal_questions": {
+        "city": {
+            "value": "Ярославль",
+            "slot": "city"
+        },
+        "purpose": {
+            "value": "на продажу",
+            "slot": "purpose"
+        },
+        "experience": {
+            "value": "нет",
+            "slot": "experience"
+        },
+        "outlet_type": {
+            "value": "павильон",
+            "slot": "outlet_type"
+        },
+        "budget": {
+            "value": "100 тысяч",
+            "slot": "budget_range"
+        }
+    },
+    "delivery_far": {
+        "city": {
+            "value": "Якутск",
+            "slot": "city"
+        },
+        "purpose": {
+            "value": "на продажу",
+            "slot": "purpose"
+        },
+        "experience": {
+            "value": "много лет",
+            "slot": "experience"
+        },
+        "budget": {
+            "value": "300 тысяч",
+            "slot": "budget_range"
+        }
+    },
+    "requisites": {
+        "city": {
+            "value": "Москва",
+            "slot": "city"
+        },
+        "purpose": {
+            "value": "на продажу",
+            "slot": "purpose"
+        },
+        "experience": {
+            "value": "много лет",
+            "slot": "experience"
+        },
+        "budget": {
+            "value": "500 тысяч",
+            "slot": "budget_range"
+        }
+    },
+    "duplicate_lead": {
+        "city": {
+            "value": "Москва",
+            "slot": "city"
+        },
+        "purpose": {
+            "value": "на продажу",
+            "slot": "purpose"
+        },
+        "experience": {
+            "value": "много лет",
+            "slot": "experience"
+        }
+    }
+}

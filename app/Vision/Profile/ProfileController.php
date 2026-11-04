@@ -3,6 +3,9 @@
 namespace App\Vision\Profile;
 
 use App\Privacy\VerifiedHttps;
+use App\Shell\Auth\AuthSessionRegistry;
+use App\Shell\Billing\BillingAccess;
+use App\Shell\Billing\VisionPlanSummary;
 use App\Tenancy\TenantContext;
 use App\Vision\Core\Profiles\ProfileAccess;
 use App\Vision\Core\Profiles\Questionnaire;
@@ -26,7 +29,13 @@ final class ProfileController
             $allowed = Gate::allows('vision.quiz.write');
             $state = $allowed ? $this->index($request) : ['current' => null, 'profile_id' => null, 'history' => [], 'brand' => null];
 
-            return Inertia::render('Vision/Profile/Start', ['current' => $state['current'], 'profile_id' => $state['profile_id'], 'can_edit' => $allowed, 'secure_context' => $this->secureContext($request), 'local_http' => $this->localHttp($request)]);
+            $plan = Gate::allows('billing.read') ? app(AuthSessionRegistry::class)->withinActive($request, function (): array {
+                app(BillingAccess::class)->lock(false);
+
+                return app(VisionPlanSummary::class)->read(app(TenantContext::class));
+            }) : null;
+
+            return Inertia::render('Vision/Profile/Start', ['current' => $state['current'], 'profile_id' => $state['profile_id'], 'can_edit' => $allowed, 'secure_context' => $this->secureContext($request), 'local_http' => $this->localHttp($request), 'plan' => $plan]);
         });
     }
 
@@ -236,6 +245,52 @@ HTML;
                         $value = trim($value);
                         if ($value !== '') {
                             $items[] = ['label' => 'С сайта', 'value' => mb_substr($value, 0, 180), 'source' => $source];
+                        }
+                    }
+                }
+            }
+
+            if ($step === 3) {
+                foreach (($audit['pages'] ?? []) as $auditedPage) {
+                    $pageUrl = is_array($auditedPage) ? ($auditedPage['url'] ?? null) : null;
+                    $types = is_array($auditedPage['structured_types'] ?? null) ? $auditedPage['structured_types'] : [];
+                    if (! is_string($pageUrl) || strtolower((string) parse_url($pageUrl, PHP_URL_HOST)) !== strtolower((string) parse_url($website, PHP_URL_HOST))
+                        || ! is_numeric($auditedPage['status'] ?? null) || $auditedPage['status'] < 200 || $auditedPage['status'] >= 300
+                        || count($types) !== 1 || ! in_array($types[0], ['Product', 'Service'], true)) {
+                        continue;
+                    }
+                    foreach (is_array($auditedPage['structured_facts'] ?? null) ? $auditedPage['structured_facts'] : [] as $fact) {
+                        if (! is_array($fact) || ($fact['label'] ?? null) !== 'Название' || ! is_string($fact['value'] ?? null) || trim($fact['value']) === '') {
+                            continue;
+                        }
+                        $value = mb_substr(trim($fact['value']), 0, 180);
+                        if (! in_array($value, array_column($items, 'value'), true)) {
+                            $items[] = ['label' => $types[0] === 'Product' ? 'Товар из аудита' : 'Услуга из аудита', 'value' => $value, 'source' => $pageUrl];
+                        }
+                        if (count($items) >= 5) {
+                            break 2;
+                        }
+                    }
+                }
+            }
+
+            if ($step === 5) {
+                foreach (($audit['pages'] ?? []) as $auditedPage) {
+                    $pageUrl = is_array($auditedPage) ? ($auditedPage['url'] ?? null) : null;
+                    if (! is_string($pageUrl) || strtolower((string) parse_url($pageUrl, PHP_URL_HOST)) !== strtolower((string) parse_url($website, PHP_URL_HOST))
+                        || ! is_numeric($auditedPage['status'] ?? null) || $auditedPage['status'] < 200 || $auditedPage['status'] >= 300) {
+                        continue;
+                    }
+                    foreach (is_array($auditedPage['structured_facts'] ?? null) ? $auditedPage['structured_facts'] : [] as $fact) {
+                        if (! is_array($fact) || ! in_array($fact['label'] ?? null, ['Название', 'Описание'], true) || ! is_string($fact['value'] ?? null) || trim($fact['value']) === '') {
+                            continue;
+                        }
+                        $value = mb_substr(trim($fact['value']), 0, 180);
+                        if (! in_array($value, array_column($items, 'value'), true)) {
+                            $items[] = ['label' => 'Данные сайта: '.$fact['label'], 'value' => $value, 'source' => $pageUrl];
+                        }
+                        if (count($items) >= 5) {
+                            break 2;
                         }
                     }
                 }

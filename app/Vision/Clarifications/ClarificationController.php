@@ -40,6 +40,14 @@ final class ClarificationController
         return app(MeasurementList::class)->withinCurrent($request, function (TenantContext $tenant) use ($measurement, $step): mixed {
             $confirmation = $this->confirmation($tenant, $measurement);
             $catalog = $confirmation ? $this->catalog($tenant, $confirmation->id) : ['mentions' => [], 'presence' => [], 'facts' => []];
+            if ($step === 'presence') {
+                $platforms = $this->questionnairePlatforms($tenant);
+                $catalog['presence'] = array_map(function (array $item) use ($platforms): array {
+                    $url = $this->questionnairePresence($platforms, $item['value']);
+
+                    return [...$item, 'from_questionnaire' => $url !== null, 'questionnaire_url' => $url];
+                }, $catalog['presence']);
+            }
             $saved = $confirmation ? DB::table('vision_clarification_decisions')->where('organization_id', $tenant->organizationId)
                 ->where('brand_id', $tenant->brandId)->where('snapshot_confirmation_id', $confirmation->id)
                 ->get(['item_key', 'decision', 'correction', 'profile_url', 'add_alias'])->keyBy('item_key') : collect();
@@ -184,6 +192,14 @@ final class ClarificationController
             if (is_string($fact['value'] ?? null) && trim($fact['value']) !== '') {
                 $catalog['facts'][] = $this->item('facts', $row->id, $fact['value'], $row->answer_text);
             }
+            foreach (['errors', 'suspected_errors'] as $field) {
+                foreach (is_array($fact[$field] ?? null) ? $fact[$field] : [] as $error) {
+                    $value = is_string($error) ? $error : (is_array($error) ? ($error['claim'] ?? $error['text'] ?? null) : null);
+                    if (is_string($value) && trim($value) !== '') {
+                        $catalog['facts'][] = $this->item('facts', $row->id, $value, $row->answer_text);
+                    }
+                }
+            }
             foreach (['mentions' => 'identity_candidates', 'presence' => 'presence_candidates'] as $kind => $field) {
                 foreach (array_slice(is_array($fact[$field] ?? null) ? $fact[$field] : [], 0, 20) as $candidate) {
                     $value = is_string($candidate) ? $candidate : ($candidate['name'] ?? $candidate['domain'] ?? null);
@@ -194,6 +210,8 @@ final class ClarificationController
             }
         }
 
+        $catalog['facts'] = collect($catalog['facts'])->unique('key')->values()->all();
+
         return $catalog;
     }
 
@@ -201,5 +219,33 @@ final class ClarificationController
     {
         return ['key' => hash('sha256', $kind.':'.$factId.':'.$value), 'answer_fact_id' => $factId,
             'value' => $value, 'excerpt' => $excerpt];
+    }
+
+    private function questionnairePlatforms(TenantContext $tenant): array
+    {
+        $stored = DB::table('brand_profiles')->where('organization_id', $tenant->organizationId)
+            ->where('brand_id', $tenant->brandId)->orderByDesc('version')->value('answers');
+        $answers = is_string($stored) ? json_decode($stored, true) : null;
+        $platforms = data_get($answers, 'step6.presence', []);
+
+        return is_array($platforms) ? $platforms : [];
+    }
+
+    private function questionnairePresence(array $platforms, string $candidate): ?string
+    {
+        $candidateHost = parse_url(str_contains($candidate, '://') ? $candidate : 'https://'.$candidate, PHP_URL_HOST);
+        foreach ($platforms as $platform) {
+            if (! is_array($platform) || ! is_string($platform['url'] ?? null) || ! in_array(parse_url($platform['url'], PHP_URL_SCHEME), ['http', 'https'], true)) {
+                continue;
+            }
+            $url = $platform['url'];
+            $host = parse_url($url, PHP_URL_HOST);
+            if ((is_string($host) && is_string($candidateHost) && strcasecmp($host, $candidateHost) === 0)
+                || (is_string($platform['name'] ?? null) && mb_strtolower($platform['name']) === mb_strtolower($candidate))) {
+                return $url;
+            }
+        }
+
+        return null;
     }
 }

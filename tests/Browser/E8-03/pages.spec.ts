@@ -121,7 +121,7 @@ test('history diff compares normalized text and intent as a multiset', async ({ 
     return r.continue();
   });
   await page.goto(`${base}?screen=history`);
-  await expect(page.getByText('Добавлено: 2 · удалено: 2')).toBeVisible();
+  await expect(page.getByRole('cell', { name: '+2 / −2' })).toBeVisible();
   await page.getByRole('button', { name: 'Сравнить с предыдущим' }).click();
   await expect(page.getByText('Новый вопрос?')).toBeVisible();
   await expect(page.getByText('Как выбрать товар?', { exact: true })).toBeVisible();

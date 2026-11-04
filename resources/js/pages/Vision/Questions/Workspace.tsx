@@ -62,6 +62,9 @@ function WorkspaceBody({ screen, brandId, revision, canRun }: { screen: Screen; 
   const [busy, setBusy] = useState(false);
   const [runs, setRuns] = useState(1);
   const [frequency, setFrequency] = useState('');
+  const [scheduleEnabled, setScheduleEnabled] = useState(false);
+  const [weekday, setWeekday] = useState(1);
+  const [localTime, setLocalTime] = useState('09:00');
   const [filter, setFilter] = useState<Intent | 'all'>('all');
   const [selected, setSelected] = useState<string[]>([]);
   const [models, setModels] = useState<Record<string, string>>({});
@@ -303,13 +306,11 @@ function WorkspaceBody({ screen, brandId, revision, canRun }: { screen: Screen; 
                           </>
                         )}
                       </div>
-                      <ul>
+                      <div role="table" aria-label="Вопросы" className="mt-3">
+                        <div role="row" className="hidden gap-3 border-b border-(--color-border) py-3 text-sm font-semibold lg:grid lg:grid-cols-[minmax(220px,2fr)_1fr_1fr_1fr_2fr]"><span role="columnheader">Вопрос</span><span role="columnheader">Намерение</span><span role="columnheader">Статус</span><span role="columnheader">Источник</span><span role="columnheader">Действия</span></div>
                         {pageRows.map((item) => (
-                          <li
-                            key={item.id}
-                            className="flex flex-wrap items-center gap-3 border-b border-(--color-border) py-4"
-                          >
-                            <label className="flex min-w-[220px] flex-1 cursor-pointer items-start gap-3 text-sm">
+                          <div role="row" key={item.id} className="flex flex-wrap items-center gap-3 border-b border-(--color-border) py-4 lg:grid lg:grid-cols-[minmax(220px,2fr)_1fr_1fr_1fr_2fr]">
+                            <label role="cell" className="flex min-w-[220px] flex-1 cursor-pointer items-start gap-3 text-sm">
                               <input
                                 type="checkbox"
                                 checked={selected.includes(item.id)}
@@ -323,10 +324,10 @@ function WorkspaceBody({ screen, brandId, revision, canRun }: { screen: Screen; 
                               />
                               <span className="break-words">{item.text}</span>
                             </label>
-                            <span className="rounded-full bg-(--color-brand-primary-soft) px-3 py-1 text-sm">
+                            <span role="cell" className="rounded-full bg-(--color-brand-primary-soft) px-3 py-1 text-sm">
                               {intents[item.intent] ?? 'Без намерения'}
                             </span>
-                            <span className="text-sm">
+                            <span role="cell" className="text-sm">
                               {item.status === 'disabled'
                                 ? 'Отключён'
                                 : item.status === 'active'
@@ -335,11 +336,11 @@ function WorkspaceBody({ screen, brandId, revision, canRun }: { screen: Screen; 
                                     ? 'Выбран'
                                     : 'Предложен'}
                             </span>
-                            <span className="text-sm text-(--color-ink-muted)">
+                            <span role="cell" className="text-sm text-(--color-ink-muted)">
                               {source(item.origin)}
                             </span>
                             {data.can_edit && (
-                              <div className="flex flex-wrap gap-2">
+                              <div role="cell" className="flex flex-wrap gap-2">
                                 <button
                                   className={secondary}
                                   disabled={busy}
@@ -387,12 +388,12 @@ function WorkspaceBody({ screen, brandId, revision, canRun }: { screen: Screen; 
                                 )}
                               </div></details></div>
                             )}
-                          </li>
+                          </div>
                         ))}
-                      </ul>
+                      </div>
                       <div className="mt-4 flex items-center justify-between gap-2 text-sm">
                         <span>
-                          Страница {Math.min(page, totalPages)} из {totalPages}
+                          {(Math.min(page, totalPages) - 1) * 8 + 1}–{Math.min(Math.min(page, totalPages) * 8, visible.length)} из {visible.length} · Страница {Math.min(page, totalPages)} из {totalPages}
                         </span>
                         <div className="flex gap-2">
                           <button
@@ -427,17 +428,14 @@ function WorkspaceBody({ screen, brandId, revision, canRun }: { screen: Screen; 
               <>
                 <div className="grid items-start gap-4 lg:grid-cols-2">
                   <section className={card}>
-                    <h2 className="text-xl font-bold">Выбрано {chosen.length} вопросов</h2>
+                    <h2 className="text-xl font-bold">Выбрано вопросов: {chosen.length}</h2>
                     <p className="mt-2 text-sm text-(--color-ink-muted)">
                       Лимит по тарифу: {limit(data.limits.questions)}
                     </p>
                     <h3 className="mt-5 font-semibold">Покрытие намерений</h3>
                     <ul className="mt-3 space-y-2">
                       {intentKeys.map((key) => (
-                        <li key={key} className="flex justify-between gap-3 text-sm">
-                          <span>{intents[key]}</span>
-                          <strong>{chosen.filter((item) => item.intent === key).length}</strong>
-                        </li>
+                        <li key={key} className="text-sm"><div className="flex justify-between gap-3"><span>{intents[key]}</span><strong>{chosen.filter((item) => item.intent === key).length}</strong></div><div className="mt-1 h-2 overflow-hidden rounded-full bg-(--color-border)" aria-hidden="true"><div className="h-full rounded-full bg-(--color-brand-primary)" style={{ width: `${chosen.length ? chosen.filter((item) => item.intent === key).length / chosen.length * 100 : 0}%` }} /></div></li>
                       ))}
                     </ul>
                     {intentKeys.some((key) => chosen.every((item) => item.intent !== key)) && (
@@ -446,12 +444,20 @@ function WorkspaceBody({ screen, brandId, revision, canRun }: { screen: Screen; 
                       </p>
                     )}
                   </section>
-                  <Models models={data.models} selected={models} onChange={setModels} />
+                  <Models models={data.models} selected={models} onChange={setModels} limit={data.limits.models} />
                 </div>
                 <section className={card}>
-                  <h2 className="text-xl font-bold">Настройки первого замера</h2><label className="mt-3 block text-sm">Частота<select aria-label="Частота" value={frequency} onChange={event=>setFrequency(event.target.value)} className="ml-3 min-h-11 cursor-pointer rounded-lg border border-(--color-border) bg-(--color-surface) px-3"><option value="">Вручную</option><option value="weekly">Еженедельно</option><option value="biweekly">Раз в две недели</option><option value="monthly">Ежемесячно</option></select></label><p className="mt-2 text-sm text-(--color-ink-muted)">Частота сохраняется в наборе. Автоматический запуск включается отдельно в расписании.</p><p className="mt-2 text-sm">План ответов: {chosen.length} × {Object.keys(models).length} × {runs} = {chosen.length * Object.keys(models).length * runs} (вопросы × модели × прогоны)</p><Link href="/vision/questions" className="mt-2 inline-flex min-h-11 cursor-pointer items-center text-sm font-semibold text-(--color-link)">Добавить вопросы</Link>
+                  <h2 className="text-xl font-bold">Настройки первого замера</h2>
+                  <label className="mt-3 flex items-center gap-3 text-sm"><input type="checkbox" checked={scheduleEnabled} disabled={!canRun} onChange={event => { setScheduleEnabled(event.target.checked); if (event.target.checked && !frequency) setFrequency('weekly'); }} />Включить автоматическое расписание</label>
+                  <div className="mt-3 flex flex-wrap gap-3">
+                    <label className="grid gap-1 text-sm">Частота<select aria-label="Частота" value={frequency} onChange={event=>setFrequency(event.target.value)} className="min-h-11 cursor-pointer rounded-lg border border-(--color-border) bg-(--color-surface) px-3"><option value="" disabled={scheduleEnabled}>Вручную</option><option value="weekly">Еженедельно</option><option value="biweekly">Раз в две недели</option><option value="monthly">Ежемесячно</option></select></label>
+                    {scheduleEnabled && <><label className="grid gap-1 text-sm">День недели<select aria-label="День недели" value={weekday} onChange={event => setWeekday(Number(event.target.value))} className="min-h-11 cursor-pointer rounded-lg border border-(--color-border) bg-(--color-surface) px-3">{['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'].map((day, index) => <option key={day} value={index + 1}>{day}</option>)}</select></label><label className="grid gap-1 text-sm">Время бренда<input aria-label="Время бренда" type="time" value={localTime} onChange={event => setLocalTime(event.target.value)} className="min-h-11 rounded-lg border border-(--color-border) bg-(--color-surface) px-3" /></label></>}
+                  </div>
+                  <p className="mt-2 text-sm text-(--color-ink-muted)">{scheduleEnabled ? 'Расписание включится после утверждения набора.' : 'Частота сохраняется в наборе. Автоматический запуск включается отдельно.'}</p>
+                  <p className="mt-2 text-sm">План ответов: {chosen.length} × {Object.keys(models).length} × {runs} = {chosen.length * Object.keys(models).length * runs} (вопросы × модели × прогоны)</p><Link href="/vision/questions" className="mt-2 inline-flex min-h-11 cursor-pointer items-center text-sm font-semibold text-(--color-link)">Добавить вопросы</Link>
                   <label className="mt-3 block text-sm">Количество прогонов<select className="ml-3 min-h-11 cursor-pointer rounded-lg border border-(--color-border) bg-(--color-surface) px-3" value={runs} onChange={e=>setRuns(Number(e.target.value))}>{[1,2,3].map(n=><option key={n} value={n}>{n}</option>)}</select></label>
                   <p className="mt-2 text-sm">План: {chosen.length} вопросов × {Object.keys(models).length} моделей × {runs} = {chosen.length * Object.keys(models).length * runs} ответов. Стоимость в слотах определяется тарифом.</p>
+                  {scheduleEnabled && <p className="mt-2 text-sm" role="status">Недельный расход тарифных слотов: нет данных по тарифу.</p>}
                   <Link href="/vision/runs" className={link}>Настроить замеры</Link>
                   <p className="mt-2 text-sm text-(--color-ink-muted)">
                     Лимит моделей: {limit(data.limits.models)}
@@ -459,13 +465,13 @@ function WorkspaceBody({ screen, brandId, revision, canRun }: { screen: Screen; 
                 </section>
                 {data.can_edit && (
                   <div className="flex flex-wrap gap-3">
-                    <Button disabled={!chosen.length || !Object.keys(models).length || busy || !canRun || !revision} loading={busy} onClick={async () => {
-                      if (await action('/vision/questions/approve', 'POST', { candidate_ids: chosen.map((item) => item.id), models, frequency: frequency || null })) {
+                    <Button disabled={!chosen.length || !Object.keys(models).length || busy || !canRun || !revision || (scheduleEnabled && (!frequency || !localTime))} loading={busy} onClick={async () => {
+                      if (await action('/vision/questions/approve', 'POST', { candidate_ids: chosen.map((item) => item.id), models, frequency: frequency || null, schedule: scheduleEnabled ? { enabled: true, weekday, local_time: localTime } : null })) {
                         router.post('/vision/runs', { runs }, { headers: { 'X-Brand-Id': brandId, 'X-Brand-Revision': revision }, onStart: () => setBusy(true), onFinish: () => setBusy(false), onError: () => setError('Набор утверждён, но замер не запущен. Проверьте настройки замера.'), onHttpException: () => { setError('Набор утверждён, но замер не запущен. Проверьте доступ и настройки.'); return false; }, onNetworkError: () => { setError('Набор утверждён, результат запуска неизвестен. Проверьте список замеров.'); return false; } });
                       }
                     }}>Утвердить и запустить</Button>
                     <Button
-                      disabled={!chosen.length || !Object.keys(models).length || busy}
+                      disabled={!chosen.length || !Object.keys(models).length || busy || (scheduleEnabled && (!frequency || !localTime))}
                       loading={busy}
                       onClick={async () => {
                         if (
@@ -473,6 +479,7 @@ function WorkspaceBody({ screen, brandId, revision, canRun }: { screen: Screen; 
                             candidate_ids: chosen.map((item) => item.id),
                             models,
                             frequency: frequency || null,
+                            schedule: scheduleEnabled ? { enabled: true, weekday, local_time: localTime } : null,
                           })
                         )
                           window.location.assign('/vision/questions/active');
@@ -539,78 +546,26 @@ function WorkspaceBody({ screen, brandId, revision, canRun }: { screen: Screen; 
                     </Link>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    {data.history.map((item, index) => {
-                      const previous = data.history[index + 1];
-                      const added = previous ? difference(item.questions, previous.questions) : [];
-                      const removed = previous
-                        ? difference(previous.questions, item.questions)
-                        : [];
-                      return (
-                        <article
-                          key={item.id}
-                          className="rounded-lg border border-(--color-border) p-4"
-                        >
-                          <div className="flex flex-wrap justify-between gap-3">
-                            <h2 className="font-semibold">
-                              Версия {item.version} {item.active && '· Активный'}
-                            </h2>
-                            <span className="text-sm text-(--color-ink-muted)">
-                              {dateUtc(item.created_at)}
-                            </span>
-                          </div>
-                          <p className="mt-2 text-sm">Автор: {item.approver_name ?? 'Не указан'}</p>
-                          <p className="mt-1 text-sm">Замеры: {item.measurements?.length ? item.measurements.map((measurement) => `№ ${measurement.number}`).join(', ') : 'Нет'}</p>
-                          <p className="mt-2 text-sm">
-                            Вопросов: {item.size} · моделей:{' '}
-                            {Object.keys(item.providers ?? {}).length}
-                          </p>
-                          <p className="mt-1 text-sm text-(--color-ink-muted)">
-                            {previous
-                              ? `Добавлено: ${added.length} · удалено: ${removed.length}`
-                              : 'Первый набор'}
-                          </p>
-                          {previous && (
-                            <button
-                              type="button"
-                              className={link}
-                              aria-expanded={compare === item.id}
-                              onClick={() => setCompare(compare === item.id ? null : item.id)}
-                            >
-                              Сравнить с предыдущим
-                            </button>
-                          )}
-                          {compare === item.id && previous && (
-                            <div className="mt-3 grid gap-4 md:grid-cols-2">
-                              <div>
-                                <h3 className="font-semibold">Добавлено</h3>
-                                {added.length ? (
-                                  <ul className="list-inside list-disc text-sm">
-                                    {added.map((q) => (
-                                      <li key={q.id}>{q.text}</li>
-                                    ))}
-                                  </ul>
-                                ) : (
-                                  <p className="text-sm">Нет</p>
-                                )}
-                              </div>
-                              <div>
-                                <h3 className="font-semibold">Удалено</h3>
-                                {removed.length ? (
-                                  <ul className="list-inside list-disc text-sm">
-                                    {removed.map((q) => (
-                                      <li key={q.id}>{q.text}</li>
-                                    ))}
-                                  </ul>
-                                ) : (
-                                  <p className="text-sm">Нет</p>
-                                )}
-                              </div>
-                            </div>
-                          )}
-                        </article>
-                      );
-                    })}
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[850px] text-left text-sm">
+                      <thead><tr className="border-b border-(--color-border)"><th className="p-3">Версия</th><th className="p-3">Дата</th><th className="p-3">Автор</th><th className="p-3">Вопросы</th><th className="p-3">Модели</th><th className="p-3">Изменения</th><th className="p-3">Замеры</th><th className="p-3">Действия</th></tr></thead>
+                      {data.history.map((item, index) => {
+                        const previous = data.history[index + 1];
+                        const added = previous ? difference(item.questions, previous.questions) : [];
+                        const removed = previous ? difference(previous.questions, item.questions) : [];
+                        return <tbody key={item.id}>
+                          <tr className="border-b border-(--color-border)">
+                            <td className="p-3 font-semibold">Версия {item.version} {item.active && '· Активный'}</td>
+                            <td className="p-3">{dateUtc(item.created_at)}</td><td className="p-3">{item.approver_name ?? 'Не указан'}</td>
+                            <td className="p-3">{item.size}</td><td className="p-3">{Object.keys(item.providers ?? {}).length}</td>
+                            <td className="p-3">{previous ? `+${added.length} / −${removed.length}` : 'Первый набор'}</td>
+                            <td className="p-3">{item.measurements?.length ? item.measurements.map((measurement) => `№ ${measurement.number}`).join(', ') : 'Нет'}</td>
+                            <td className="p-3"><div className="flex items-center gap-3">{previous && <button type="button" className={link} aria-expanded={compare === item.id} onClick={() => setCompare(compare === item.id ? null : item.id)}>Сравнить с предыдущим</button>}<details><summary className="inline-flex cursor-pointer rounded-lg border border-(--color-border) px-3 py-2" aria-label={`Действия с версией ${item.version}`}>⋯</summary><div className="mt-2">{item.measurements?.length ? <Link className={link} href="/vision/runs">Посмотреть замеры</Link> : <span className="text-(--color-ink-muted)">Замеров нет</span>}</div></details></div></td>
+                          </tr>
+                          {compare === item.id && previous && <tr><td colSpan={8} className="p-3"><div className="grid gap-4 md:grid-cols-2"><div><h3 className="font-semibold">Добавлено</h3>{added.length ? <ul className="list-inside list-disc">{added.map((q) => <li key={q.id}>{q.text}</li>)}</ul> : <p>Нет</p>}</div><div><h3 className="font-semibold">Удалено</h3>{removed.length ? <ul className="list-inside list-disc">{removed.map((q) => <li key={q.id}>{q.text}</li>)}</ul> : <p>Нет</p>}</div></div></td></tr>}
+                        </tbody>;
+                      })}
+                    </table>
                   </div>
                 )}
               </section>

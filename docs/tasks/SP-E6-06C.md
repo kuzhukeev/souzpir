@@ -9,3 +9,7 @@
 **Scope:** `app/Seller/Settings/Schedule/`, `database/migrations/E6-06/`, `tests/Feature/Seller/Settings/Schedule/`, `tests/Unit/Seller/Settings/Schedule/`, `docs/results/SP-E6-06C.md`.
 
 Сохранять позицию кругового распределения по бренду и завершить режимы первого взявшего/фиксированного менеджера с проверкой активного назначения и лимита. Тесты — последовательный выбор, смена бренда, недоступный менеджер и повтор.
+
+После SP-E6-06B также применить общий режим suggest к существующему диалогу bot и выполнять назначение при передаче менеджеру, а не только на следующем входящем сообщении.
+
+Расширенный scope: `app/Seller/Runtime/`, `app/ProtectedOperations/`, `tests/Feature/Seller/Runtime/`, `tests/Feature/ProtectedOperations/`.

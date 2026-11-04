@@ -25,11 +25,11 @@ final class RuntimeSimulation
         }
         $id = (string) Str::ulid();
         $trace = [];
+        $metrics = ['knowledge_release_id' => app(SimulationKnowledgeRelease::class)->id($context)];
         DB::table('seller_sim_runs')->insert(['id' => $id, 'organization_id' => $context->organizationId,
             'brand_id' => $context->brandId, 'persona_id' => $persona->id, 'status' => 'processing',
-            'turn_count' => 0, 'turns' => '[]', 'metrics' => '{}', 'created_at' => now(), 'updated_at' => now()]);
+            'turn_count' => 0, 'turns' => '[]', 'metrics' => json_encode($metrics, JSON_THROW_ON_ERROR), 'created_at' => now(), 'updated_at' => now()]);
         $status = 'completed';
-        $metrics = [];
         try {
             $opened = $runtime->open($context, $id.':open');
             $conversationId = $opened['conversation_id'] ?? null;

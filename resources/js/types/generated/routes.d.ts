@@ -17,6 +17,7 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "brand.switch.recover": [],
     "api.v1.brand.show": [],
     "brand.switch": [],
     "notifications.settings.update": [],
@@ -40,6 +41,7 @@ declare module 'ziggy-js' {
     "password.store": [],
     "mfa.challenge": [],
     "mfa.challenge.store": [],
+    "logout.recover": [],
     "invitation.open": [],
     "invitation.exchange": [],
     "invitation.show": [],
@@ -78,6 +80,8 @@ declare module 'ziggy-js' {
     "onboarding.logo.store": [],
     "onboarding.logo.show": [],
     "onboarding.finish": [],
+    "context.organization": [],
+    "context.organization.logo": [],
     "dashboard.overview": [],
     "dashboard.notifications.read": [
         {
@@ -365,8 +369,21 @@ declare module 'ziggy-js' {
     "seller.turns.runtime": [],
     "seller.knowledge.index": [],
     "seller.knowledge.compare": [],
+    "seller.knowledge.scenario-run": [
+        {
+            "name": "run",
+            "required": true
+        }
+    ],
+    "seller.knowledge.restore-file": [],
     "seller.knowledge.draft": [],
     "seller.knowledge.incoming": [],
+    "seller.knowledge.backup": [
+        {
+            "name": "release",
+            "required": true
+        }
+    ],
     "seller.knowledge.scenarios": [
         {
             "name": "release",
@@ -380,6 +397,12 @@ declare module 'ziggy-js' {
         }
     ],
     "seller.knowledge.rollback": [
+        {
+            "name": "release",
+            "required": true
+        }
+    ],
+    "seller.knowledge.restore": [
         {
             "name": "release",
             "required": true
@@ -484,6 +507,40 @@ declare module 'ziggy-js' {
     ],
     "seller.dialogs.pending": [],
     "seller.dialogs.show": [
+        {
+            "name": "dialog",
+            "required": true
+        }
+    ],
+    "seller.dialogs.messages.attachment": [
+        {
+            "name": "dialog",
+            "required": true
+        },
+        {
+            "name": "message",
+            "required": true
+        }
+    ],
+    "seller.dialogs.messages.store": [
+        {
+            "name": "dialog",
+            "required": true
+        }
+    ],
+    "seller.dialogs.tasks.store": [
+        {
+            "name": "dialog",
+            "required": true
+        }
+    ],
+    "seller.dialogs.transfer": [
+        {
+            "name": "dialog",
+            "required": true
+        }
+    ],
+    "seller.dialogs.profile": [
         {
             "name": "dialog",
             "required": true
@@ -642,6 +699,7 @@ declare module 'ziggy-js' {
     "seller.quality.calibration": [],
     "seller.quality.calibration.save": [],
     "seller.analytics.index": [],
+    "seller.analytics.send": [],
     "seller.analytics.csv": [],
     "seller.dashboard.index": [],
     "seller.dashboard.attention": [],
@@ -775,6 +833,7 @@ declare module 'ziggy-js' {
         }
     ],
     "vision.settings.index": [],
+    "vision.settings.models": [],
     "vision.settings.recipients": [],
     "vision.settings.notifications": [],
     "vision.trends.index": [],

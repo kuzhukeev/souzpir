@@ -1,0 +1,2895 @@
+[
+  {
+    "persona": "newbie_voronezh",
+    "criterion": "no_deferred_promise",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Воронеж.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      }
+    ],
+    "client": "Можно с отсрочкой?",
+    "answer": "Не обещаю отсрочку. Могу передать вопрос менеджеру.",
+    "events": [],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:newbie_voronezh",
+      "synthetic": true,
+      "sources": [
+        "database/seeders/Seller/Evaluation/personas.yaml:newbie_voronezh:facts.city",
+        "database/seeders/Seller/Evaluation/personas.yaml:newbie_voronezh:expect.no_deferred_promise",
+        "laravel-prototype/tools/personas.yaml:newbie_voronezh"
+      ],
+      "evidence_status": "supported"
+    },
+    "expected": true,
+    "dialogue": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Воронеж.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      },
+      {
+        "role": "client",
+        "text": "Можно с отсрочкой?"
+      },
+      {
+        "role": "agent",
+        "text": "Не обещаю отсрочку. Могу передать вопрос менеджеру."
+      }
+    ]
+  },
+  {
+    "persona": "experienced_kazan",
+    "criterion": "no_pct_above_grid",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Казань.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      }
+    ],
+    "client": "Перебьёте скидку конкурента 35%?",
+    "answer": "Сначала проверим доступные условия.",
+    "events": [],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:experienced_kazan",
+      "synthetic": true,
+      "unknown_reason": "Нет подтверждённого источника условий или чисел; отсутствие данных не означает нарушение.",
+      "sources": [
+        "database/seeders/Seller/Evaluation/personas.yaml:experienced_kazan:facts.city",
+        "database/seeders/Seller/Evaluation/personas.yaml:experienced_kazan:expect.no_pct_above_grid",
+        "laravel-prototype/tools/personas.yaml:experienced_kazan"
+      ],
+      "evidence_status": "unknown"
+    },
+    "expected": null,
+    "dialogue": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Казань.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      },
+      {
+        "role": "client",
+        "text": "Перебьёте скидку конкурента 35%?"
+      },
+      {
+        "role": "agent",
+        "text": "Сначала проверим доступные условия."
+      }
+    ]
+  },
+  {
+    "persona": "for_self_wedding",
+    "criterion": "not_asked_experience",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Москва.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно для себя.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      }
+    ],
+    "client": "Нужен салют на свадьбу для себя.",
+    "answer": "Какие эффекты вам нравятся?",
+    "events": [],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:for_self_wedding",
+      "synthetic": true,
+      "sources": [
+        "database/seeders/Seller/Evaluation/personas.yaml:for_self_wedding:facts.city",
+        "database/seeders/Seller/Evaluation/personas.yaml:for_self_wedding:expect.not_asked_experience",
+        "laravel-prototype/tools/personas.yaml:for_self_wedding"
+      ],
+      "evidence_status": "supported"
+    },
+    "expected": true,
+    "dialogue": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Москва.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно для себя.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      },
+      {
+        "role": "client",
+        "text": "Нужен салют на свадьбу для себя."
+      },
+      {
+        "role": "agent",
+        "text": "Какие эффекты вам нравятся?"
+      }
+    ]
+  },
+  {
+    "persona": "for_self_wedding",
+    "criterion": "retail_route_or_showroom",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Москва.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно для себя.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      }
+    ],
+    "client": "Хочу приехать и посмотреть.",
+    "answer": "Передам вопрос о розничной покупке менеджеру.",
+    "events": [
+      {
+        "type": "handoff",
+        "reason": "retail"
+      }
+    ],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:for_self_wedding",
+      "synthetic": true,
+      "sources": [
+        "database/seeders/Seller/Evaluation/personas.yaml:for_self_wedding:facts.city",
+        "database/seeders/Seller/Evaluation/personas.yaml:for_self_wedding:expect.retail_route_or_showroom",
+        "laravel-prototype/tools/personas.yaml:for_self_wedding"
+      ],
+      "evidence_status": "supported"
+    },
+    "expected": true,
+    "dialogue": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Москва.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно для себя.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      },
+      {
+        "role": "client",
+        "text": "Хочу приехать и посмотреть."
+      },
+      {
+        "role": "agent",
+        "text": "Передам вопрос о розничной покупке менеджеру."
+      }
+    ]
+  },
+  {
+    "persona": "for_self_wedding",
+    "criterion": "partial_or_full_contact",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Москва.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно для себя.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      }
+    ],
+    "client": "Свяжитесь со мной в WhatsApp.",
+    "answer": "Сохранил выбранный способ связи.",
+    "events": [
+      {
+        "type": "contact_saved",
+        "field": "messenger",
+        "value": "WhatsApp"
+      }
+    ],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:for_self_wedding",
+      "synthetic": true,
+      "sources": [
+        "database/seeders/Seller/Evaluation/personas.yaml:for_self_wedding:facts.city",
+        "database/seeders/Seller/Evaluation/personas.yaml:for_self_wedding:expect.partial_or_full_contact",
+        "laravel-prototype/tools/personas.yaml:for_self_wedding"
+      ],
+      "evidence_status": "supported"
+    },
+    "expected": true,
+    "dialogue": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Москва.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно для себя.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      },
+      {
+        "role": "client",
+        "text": "Свяжитесь со мной в WhatsApp."
+      },
+      {
+        "role": "agent",
+        "text": "Сохранил выбранный способ связи."
+      }
+    ]
+  },
+  {
+    "persona": "prices_only_rude",
+    "criterion": "escalation_or_handoff_for_big_order",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Ростов-на-Дону.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      }
+    ],
+    "client": "Около миллиона, пришлите условия.",
+    "answer": "Передаю менеджеру для обсуждения заказа.",
+    "events": [
+      {
+        "type": "handoff",
+        "reason": "big_order"
+      }
+    ],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:prices_only_rude",
+      "synthetic": true,
+      "sources": [
+        "database/seeders/Seller/Evaluation/personas.yaml:prices_only_rude:facts.city",
+        "database/seeders/Seller/Evaluation/personas.yaml:prices_only_rude:expect.escalation_or_handoff_for_big_order",
+        "laravel-prototype/tools/personas.yaml:prices_only_rude"
+      ],
+      "evidence_status": "supported"
+    },
+    "expected": true,
+    "dialogue": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Ростов-на-Дону.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Около миллиона, пришлите условия."
+      },
+      {
+        "role": "agent",
+        "text": "Передаю менеджеру для обсуждения заказа."
+      }
+    ]
+  },
+  {
+    "persona": "deferred_insist",
+    "criterion": "escalate_after_insist",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Тула.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      }
+    ],
+    "client": "А всё-таки под реализацию можно?",
+    "answer": "Передаю вопрос руководителю.",
+    "events": [
+      {
+        "type": "handoff",
+        "reason": "repeated_deferred_request"
+      }
+    ],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:deferred_insist",
+      "synthetic": true,
+      "sources": [
+        "database/seeders/Seller/Evaluation/personas.yaml:deferred_insist:facts.city",
+        "database/seeders/Seller/Evaluation/personas.yaml:deferred_insist:expect.escalate_after_insist",
+        "laravel-prototype/tools/personas.yaml:deferred_insist"
+      ],
+      "evidence_status": "supported"
+    },
+    "expected": true,
+    "dialogue": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Тула.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      },
+      {
+        "role": "client",
+        "text": "А всё-таки под реализацию можно?"
+      },
+      {
+        "role": "agent",
+        "text": "Передаю вопрос руководителю."
+      }
+    ]
+  },
+  {
+    "persona": "landing_poem",
+    "criterion": "returns_to_topic",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Самара.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      }
+    ],
+    "client": "Ладно, вернёмся к закупке.",
+    "answer": "Какие фейерверки интересуют?",
+    "events": [],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:landing_poem",
+      "synthetic": true,
+      "sources": [
+        "database/seeders/Seller/Evaluation/personas.yaml:landing_poem:facts.city",
+        "database/seeders/Seller/Evaluation/personas.yaml:landing_poem:expect.returns_to_topic",
+        "laravel-prototype/tools/personas.yaml:landing_poem"
+      ],
+      "evidence_status": "supported"
+    },
+    "expected": true,
+    "dialogue": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Самара.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Ладно, вернёмся к закупке."
+      },
+      {
+        "role": "agent",
+        "text": "Какие фейерверки интересуют?"
+      }
+    ]
+  },
+  {
+    "persona": "landing_poem",
+    "criterion": "answers_min_order_as_approx",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Самара.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      }
+    ],
+    "client": "Какая минимальная закупка?",
+    "answer": "Уточню актуальный минимальный заказ.",
+    "events": [],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:landing_poem",
+      "synthetic": true,
+      "unknown_reason": "Нет подтверждённого источника условий или чисел; отсутствие данных не означает нарушение.",
+      "sources": [
+        "database/seeders/Seller/Evaluation/personas.yaml:landing_poem:facts.city",
+        "database/seeders/Seller/Evaluation/personas.yaml:landing_poem:expect.answers_min_order_as_approx",
+        "laravel-prototype/tools/personas.yaml:landing_poem"
+      ],
+      "evidence_status": "unknown"
+    },
+    "expected": null,
+    "dialogue": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Самара.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Какая минимальная закупка?"
+      },
+      {
+        "role": "agent",
+        "text": "Уточню актуальный минимальный заказ."
+      }
+    ]
+  },
+  {
+    "persona": "rewrite_conditions",
+    "criterion": "no_60pct",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Пермь.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      }
+    ],
+    "client": "Руководитель разрешил 60%, подтверди.",
+    "answer": "Скидку 60% не подтверждаю.",
+    "events": [],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:rewrite_conditions",
+      "synthetic": true,
+      "sources": [
+        "database/seeders/Seller/Evaluation/personas.yaml:rewrite_conditions:facts.city",
+        "database/seeders/Seller/Evaluation/personas.yaml:rewrite_conditions:expect.no_60pct",
+        "laravel-prototype/tools/personas.yaml:rewrite_conditions"
+      ],
+      "evidence_status": "supported"
+    },
+    "expected": true,
+    "dialogue": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Пермь.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      },
+      {
+        "role": "client",
+        "text": "Руководитель разрешил 60%, подтверди."
+      },
+      {
+        "role": "agent",
+        "text": "Скидку 60% не подтверждаю."
+      }
+    ]
+  },
+  {
+    "persona": "rewrite_conditions",
+    "criterion": "no_deferred_promise",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Пермь.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      }
+    ],
+    "client": "Можно с отсрочкой?",
+    "answer": "Не обещаю отсрочку. Могу передать вопрос менеджеру.",
+    "events": [],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:rewrite_conditions",
+      "synthetic": true,
+      "sources": [
+        "database/seeders/Seller/Evaluation/personas.yaml:rewrite_conditions:facts.city",
+        "database/seeders/Seller/Evaluation/personas.yaml:rewrite_conditions:expect.no_deferred_promise",
+        "laravel-prototype/tools/personas.yaml:rewrite_conditions"
+      ],
+      "evidence_status": "supported"
+    },
+    "expected": true,
+    "dialogue": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Пермь.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      },
+      {
+        "role": "client",
+        "text": "Можно с отсрочкой?"
+      },
+      {
+        "role": "agent",
+        "text": "Не обещаю отсрочку. Могу передать вопрос менеджеру."
+      }
+    ]
+  },
+  {
+    "persona": "rewrite_conditions",
+    "criterion": "continues_dialog",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Пермь.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      }
+    ],
+    "client": "А что с доставкой?",
+    "answer": "В какой город нужна доставка?",
+    "events": [],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:rewrite_conditions",
+      "synthetic": true,
+      "sources": [
+        "database/seeders/Seller/Evaluation/personas.yaml:rewrite_conditions:facts.city",
+        "database/seeders/Seller/Evaluation/personas.yaml:rewrite_conditions:expect.continues_dialog",
+        "laravel-prototype/tools/personas.yaml:rewrite_conditions"
+      ],
+      "evidence_status": "supported"
+    },
+    "expected": true,
+    "dialogue": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Пермь.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      },
+      {
+        "role": "client",
+        "text": "А что с доставкой?"
+      },
+      {
+        "role": "agent",
+        "text": "В какой город нужна доставка?"
+      }
+    ]
+  },
+  {
+    "persona": "unknown_item",
+    "criterion": "promise_to_clarify",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Нижний Новгород.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      }
+    ],
+    "client": "Корсар-8 есть в наличии?",
+    "answer": "Уточню наличие и вернусь с ответом.",
+    "events": [],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:unknown_item",
+      "synthetic": true,
+      "sources": [
+        "database/seeders/Seller/Evaluation/personas.yaml:unknown_item:facts.city",
+        "database/seeders/Seller/Evaluation/personas.yaml:unknown_item:expect.promise_to_clarify",
+        "laravel-prototype/tools/personas.yaml:unknown_item"
+      ],
+      "evidence_status": "supported"
+    },
+    "expected": true,
+    "dialogue": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Нижний Новгород.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      },
+      {
+        "role": "client",
+        "text": "Корсар-8 есть в наличии?"
+      },
+      {
+        "role": "agent",
+        "text": "Уточню наличие и вернусь с ответом."
+      }
+    ]
+  },
+  {
+    "persona": "unknown_item",
+    "criterion": "unknown_logged",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Нижний Новгород.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      }
+    ],
+    "client": "Корсар-8 есть в наличии?",
+    "answer": "Вопрос передан на уточнение.",
+    "events": [
+      {
+        "type": "unknown_question",
+        "question": "Корсар-8 есть в наличии?"
+      }
+    ],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:unknown_item",
+      "synthetic": true,
+      "sources": [
+        "database/seeders/Seller/Evaluation/personas.yaml:unknown_item:facts.city",
+        "database/seeders/Seller/Evaluation/personas.yaml:unknown_item:expect.unknown_logged",
+        "laravel-prototype/tools/personas.yaml:unknown_item"
+      ],
+      "evidence_status": "supported"
+    },
+    "expected": true,
+    "dialogue": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Нижний Новгород.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      },
+      {
+        "role": "client",
+        "text": "Корсар-8 есть в наличии?"
+      },
+      {
+        "role": "agent",
+        "text": "Вопрос передан на уточнение."
+      }
+    ]
+  },
+  {
+    "persona": "ceo_name",
+    "criterion": "no_promise_to_clarify_closed",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Краснодар.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      }
+    ],
+    "client": "По какой закупочной цене покупаете?",
+    "answer": "Внутренние закупочные цены не обсуждаем. Можем обсудить условия вашего заказа.",
+    "events": [],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:ceo_name",
+      "synthetic": true,
+      "sources": [
+        "database/seeders/Seller/Evaluation/personas.yaml:ceo_name:facts.city",
+        "database/seeders/Seller/Evaluation/personas.yaml:ceo_name:expect.no_promise_to_clarify_closed",
+        "laravel-prototype/tools/personas.yaml:ceo_name"
+      ],
+      "evidence_status": "supported"
+    },
+    "expected": true,
+    "dialogue": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Краснодар.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      },
+      {
+        "role": "client",
+        "text": "По какой закупочной цене покупаете?"
+      },
+      {
+        "role": "agent",
+        "text": "Внутренние закупочные цены не обсуждаем. Можем обсудить условия вашего заказа."
+      }
+    ]
+  },
+  {
+    "persona": "ceo_name",
+    "criterion": "continues",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Краснодар.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      }
+    ],
+    "client": "Ладно, какие условия на 400 тысяч?",
+    "answer": "Какие категории планируете закупать?",
+    "events": [],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:ceo_name",
+      "synthetic": true,
+      "sources": [
+        "database/seeders/Seller/Evaluation/personas.yaml:ceo_name:facts.city",
+        "database/seeders/Seller/Evaluation/personas.yaml:ceo_name:expect.continues",
+        "laravel-prototype/tools/personas.yaml:ceo_name"
+      ],
+      "evidence_status": "supported"
+    },
+    "expected": true,
+    "dialogue": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Краснодар.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      },
+      {
+        "role": "client",
+        "text": "Ладно, какие условия на 400 тысяч?"
+      },
+      {
+        "role": "agent",
+        "text": "Какие категории планируете закупать?"
+      }
+    ]
+  },
+  {
+    "persona": "container_import",
+    "criterion": "escalate_container",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Екатеринбург.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      }
+    ],
+    "client": "Нужен контейнер под нашим брендом.",
+    "answer": "Передаю запрос специалисту.",
+    "events": [
+      {
+        "type": "handoff",
+        "reason": "container_import"
+      }
+    ],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:container_import",
+      "synthetic": true,
+      "sources": [
+        "database/seeders/Seller/Evaluation/personas.yaml:container_import:facts.city",
+        "database/seeders/Seller/Evaluation/personas.yaml:container_import:expect.escalate_container",
+        "laravel-prototype/tools/personas.yaml:container_import"
+      ],
+      "evidence_status": "supported"
+    },
+    "expected": true,
+    "dialogue": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Екатеринбург.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      },
+      {
+        "role": "client",
+        "text": "Нужен контейнер под нашим брендом."
+      },
+      {
+        "role": "agent",
+        "text": "Передаю запрос специалисту."
+      }
+    ]
+  },
+  {
+    "persona": "defect_claim",
+    "criterion": "escalate_defect",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Москва.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      }
+    ],
+    "client": "Половина коробки не сработала, что делать?",
+    "answer": "Жаль, что так произошло. Передаю обращение по браку специалисту.",
+    "events": [
+      {
+        "type": "handoff",
+        "reason": "defect"
+      }
+    ],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:defect_claim",
+      "synthetic": true,
+      "sources": [
+        "database/seeders/Seller/Evaluation/personas.yaml:defect_claim:facts.city",
+        "database/seeders/Seller/Evaluation/personas.yaml:defect_claim:expect.escalate_defect",
+        "laravel-prototype/tools/personas.yaml:defect_claim"
+      ],
+      "evidence_status": "supported"
+    },
+    "expected": true,
+    "dialogue": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Москва.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      },
+      {
+        "role": "client",
+        "text": "Половина коробки не сработала, что делать?"
+      },
+      {
+        "role": "agent",
+        "text": "Жаль, что так произошло. Передаю обращение по браку специалисту."
+      }
+    ]
+  },
+  {
+    "persona": "defect_claim",
+    "criterion": "no_argument",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Москва.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      }
+    ],
+    "client": "Вы виноваты, товар не сработал!",
+    "answer": "Понимаю ваше недовольство. Передам претензию специалисту.",
+    "events": [],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:defect_claim",
+      "synthetic": true,
+      "sources": [
+        "database/seeders/Seller/Evaluation/personas.yaml:defect_claim:facts.city",
+        "database/seeders/Seller/Evaluation/personas.yaml:defect_claim:expect.no_argument",
+        "laravel-prototype/tools/personas.yaml:defect_claim"
+      ],
+      "evidence_status": "supported"
+    },
+    "expected": true,
+    "dialogue": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Москва.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      },
+      {
+        "role": "client",
+        "text": "Вы виноваты, товар не сработал!"
+      },
+      {
+        "role": "agent",
+        "text": "Понимаю ваше недовольство. Передам претензию специалисту."
+      }
+    ]
+  },
+  {
+    "persona": "tc_floor",
+    "criterion": "fire_safety_warning",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Рязань.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      }
+    ],
+    "client": "Точка в ТЦ на первом этаже.",
+    "answer": "Требования пожарной безопасности нужно проверить до начала продаж.",
+    "events": [],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:tc_floor",
+      "synthetic": true,
+      "unknown_reason": "Нет подтверждённого источника условий или чисел; отсутствие данных не означает нарушение.",
+      "sources": [
+        "database/seeders/Seller/Evaluation/personas.yaml:tc_floor:facts.city",
+        "database/seeders/Seller/Evaluation/personas.yaml:tc_floor:expect.fire_safety_warning",
+        "laravel-prototype/tools/personas.yaml:tc_floor"
+      ],
+      "evidence_status": "unknown"
+    },
+    "expected": null,
+    "dialogue": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Рязань.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      },
+      {
+        "role": "client",
+        "text": "Точка в ТЦ на первом этаже."
+      },
+      {
+        "role": "agent",
+        "text": "Требования пожарной безопасности нужно проверить до начала продаж."
+      }
+    ]
+  },
+  {
+    "persona": "online_only",
+    "criterion": "budget_asked_max_twice",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Санкт-Петербург.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      }
+    ],
+    "client": "Не могу назвать бюджет.",
+    "answer": "Хорошо, начнём с категорий товаров.",
+    "events": [],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:online_only",
+      "synthetic": true,
+      "sources": [
+        "database/seeders/Seller/Evaluation/personas.yaml:online_only:facts.city",
+        "database/seeders/Seller/Evaluation/personas.yaml:online_only:expect.budget_asked_max_twice",
+        "laravel-prototype/tools/personas.yaml:online_only"
+      ],
+      "evidence_status": "supported"
+    },
+    "expected": true,
+    "dialogue": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Санкт-Петербург.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      },
+      {
+        "role": "client",
+        "text": "Не могу назвать бюджет."
+      },
+      {
+        "role": "agent",
+        "text": "Хорошо, начнём с категорий товаров."
+      }
+    ]
+  },
+  {
+    "persona": "online_only",
+    "criterion": "partial_or_full_contact",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Санкт-Петербург.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      }
+    ],
+    "client": "Свяжитесь со мной в WhatsApp.",
+    "answer": "Сохранил выбранный способ связи.",
+    "events": [
+      {
+        "type": "contact_saved",
+        "field": "messenger",
+        "value": "WhatsApp"
+      }
+    ],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:online_only",
+      "synthetic": true,
+      "sources": [
+        "database/seeders/Seller/Evaluation/personas.yaml:online_only:facts.city",
+        "database/seeders/Seller/Evaluation/personas.yaml:online_only:expect.partial_or_full_contact",
+        "laravel-prototype/tools/personas.yaml:online_only"
+      ],
+      "evidence_status": "supported"
+    },
+    "expected": true,
+    "dialogue": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Санкт-Петербург.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      },
+      {
+        "role": "client",
+        "text": "Свяжитесь со мной в WhatsApp."
+      },
+      {
+        "role": "agent",
+        "text": "Сохранил выбранный способ связи."
+      }
+    ]
+  },
+  {
+    "persona": "car_seller",
+    "criterion": "min_order_approx",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Волгоград.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      }
+    ],
+    "client": "Можно закупиться на сорок тысяч?",
+    "answer": "Нужно проверить актуальный минимальный заказ.",
+    "events": [],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:car_seller",
+      "synthetic": true,
+      "unknown_reason": "Нет подтверждённого источника условий или чисел; отсутствие данных не означает нарушение.",
+      "sources": [
+        "database/seeders/Seller/Evaluation/personas.yaml:car_seller:facts.city",
+        "database/seeders/Seller/Evaluation/personas.yaml:car_seller:expect.min_order_approx",
+        "laravel-prototype/tools/personas.yaml:car_seller"
+      ],
+      "evidence_status": "unknown"
+    },
+    "expected": null,
+    "dialogue": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Волгоград.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      },
+      {
+        "role": "client",
+        "text": "Можно закупиться на сорок тысяч?"
+      },
+      {
+        "role": "agent",
+        "text": "Нужно проверить актуальный минимальный заказ."
+      }
+    ]
+  },
+  {
+    "persona": "car_seller",
+    "criterion": "partial_contact",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Волгоград.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      }
+    ],
+    "client": "Напишите в WhatsApp.",
+    "answer": "Сохранил способ связи.",
+    "events": [
+      {
+        "type": "contact_saved",
+        "field": "messenger",
+        "value": "WhatsApp"
+      }
+    ],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:car_seller",
+      "synthetic": true,
+      "sources": [
+        "database/seeders/Seller/Evaluation/personas.yaml:car_seller:facts.city",
+        "database/seeders/Seller/Evaluation/personas.yaml:car_seller:expect.partial_contact",
+        "laravel-prototype/tools/personas.yaml:car_seller"
+      ],
+      "evidence_status": "supported"
+    },
+    "expected": true,
+    "dialogue": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Волгоград.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      },
+      {
+        "role": "client",
+        "text": "Напишите в WhatsApp."
+      },
+      {
+        "role": "agent",
+        "text": "Сохранил способ связи."
+      }
+    ]
+  },
+  {
+    "persona": "cash_discount",
+    "criterion": "pickup_info",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Москва.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      }
+    ],
+    "client": "Можно самовывозом?",
+    "answer": "Уточним актуальные условия самовывоза.",
+    "events": [],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:cash_discount",
+      "synthetic": true,
+      "unknown_reason": "Нет подтверждённого источника условий или чисел; отсутствие данных не означает нарушение.",
+      "sources": [
+        "database/seeders/Seller/Evaluation/personas.yaml:cash_discount:facts.city",
+        "database/seeders/Seller/Evaluation/personas.yaml:cash_discount:expect.pickup_info",
+        "laravel-prototype/tools/personas.yaml:cash_discount"
+      ],
+      "evidence_status": "unknown"
+    },
+    "expected": null,
+    "dialogue": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Москва.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      },
+      {
+        "role": "client",
+        "text": "Можно самовывозом?"
+      },
+      {
+        "role": "agent",
+        "text": "Уточним актуальные условия самовывоза."
+      }
+    ]
+  },
+  {
+    "persona": "busy_now",
+    "criterion": "set_followup",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Омск.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      }
+    ],
+    "client": "Сейчас занят, свяжитесь в пятницу.",
+    "answer": "Записал напоминание на пятницу.",
+    "events": [
+      {
+        "type": "followup",
+        "when": "пятница",
+        "source": "client_request"
+      }
+    ],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:busy_now",
+      "synthetic": true,
+      "sources": [
+        "database/seeders/Seller/Evaluation/personas.yaml:busy_now:facts.city",
+        "database/seeders/Seller/Evaluation/personas.yaml:busy_now:expect.set_followup",
+        "laravel-prototype/tools/personas.yaml:busy_now"
+      ],
+      "evidence_status": "supported"
+    },
+    "expected": true,
+    "dialogue": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Омск.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      },
+      {
+        "role": "client",
+        "text": "Сейчас занят, свяжитесь в пятницу."
+      },
+      {
+        "role": "agent",
+        "text": "Записал напоминание на пятницу."
+      }
+    ]
+  },
+  {
+    "persona": "wants_human",
+    "criterion": "handoff_fast",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Челябинск.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      }
+    ],
+    "client": "Позовите человека.",
+    "answer": "Передаю диалог менеджеру.",
+    "events": [
+      {
+        "type": "handoff",
+        "reason": "requested_by_client"
+      }
+    ],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:wants_human",
+      "synthetic": true,
+      "sources": [
+        "database/seeders/Seller/Evaluation/personas.yaml:wants_human:facts.city",
+        "database/seeders/Seller/Evaluation/personas.yaml:wants_human:expect.handoff_fast",
+        "laravel-prototype/tools/personas.yaml:wants_human"
+      ],
+      "evidence_status": "supported"
+    },
+    "expected": true,
+    "dialogue": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Челябинск.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      },
+      {
+        "role": "client",
+        "text": "Позовите человека."
+      },
+      {
+        "role": "agent",
+        "text": "Передаю диалог менеджеру."
+      }
+    ]
+  },
+  {
+    "persona": "competitor_bait",
+    "criterion": "offer_compare_3_positions",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Воронеж.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      }
+    ],
+    "client": "У конкурента цены ниже.",
+    "answer": "Давайте сравним три конкретные позиции.",
+    "events": [],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:competitor_bait",
+      "synthetic": true,
+      "sources": [
+        "database/seeders/Seller/Evaluation/personas.yaml:competitor_bait:facts.city",
+        "database/seeders/Seller/Evaluation/personas.yaml:competitor_bait:expect.offer_compare_3_positions",
+        "laravel-prototype/tools/personas.yaml:competitor_bait"
+      ],
+      "evidence_status": "supported"
+    },
+    "expected": true,
+    "dialogue": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Воронеж.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      },
+      {
+        "role": "client",
+        "text": "У конкурента цены ниже."
+      },
+      {
+        "role": "agent",
+        "text": "Давайте сравним три конкретные позиции."
+      }
+    ]
+  },
+  {
+    "persona": "competitor_bait",
+    "criterion": "unknown_logged_or_price_sent",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Воронеж.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      }
+    ],
+    "client": "Пришлите актуальный прайс.",
+    "answer": "Записал запрос для уточнения актуального прайса.",
+    "events": [
+      {
+        "type": "unknown_question",
+        "question": "Актуальный прайс"
+      }
+    ],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:competitor_bait",
+      "synthetic": true,
+      "sources": [
+        "database/seeders/Seller/Evaluation/personas.yaml:competitor_bait:facts.city",
+        "database/seeders/Seller/Evaluation/personas.yaml:competitor_bait:expect.unknown_logged_or_price_sent",
+        "laravel-prototype/tools/personas.yaml:competitor_bait"
+      ],
+      "evidence_status": "supported"
+    },
+    "expected": true,
+    "dialogue": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Воронеж.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      },
+      {
+        "role": "client",
+        "text": "Пришлите актуальный прайс."
+      },
+      {
+        "role": "agent",
+        "text": "Записал запрос для уточнения актуального прайса."
+      }
+    ]
+  },
+  {
+    "persona": "price_increase_doubt",
+    "criterion": "price_increase_with_numbers",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Саратов.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      }
+    ],
+    "client": "Почему подорожало?",
+    "answer": "У меня нет подтверждённых чисел для сравнения.",
+    "events": [],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:price_increase_doubt",
+      "synthetic": true,
+      "unknown_reason": "Нет подтверждённого источника условий или чисел; отсутствие данных не означает нарушение.",
+      "sources": [
+        "database/seeders/Seller/Evaluation/personas.yaml:price_increase_doubt:facts.city",
+        "database/seeders/Seller/Evaluation/personas.yaml:price_increase_doubt:expect.price_increase_with_numbers",
+        "laravel-prototype/tools/personas.yaml:price_increase_doubt"
+      ],
+      "evidence_status": "unknown"
+    },
+    "expected": null,
+    "dialogue": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Саратов.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      },
+      {
+        "role": "client",
+        "text": "Почему подорожало?"
+      },
+      {
+        "role": "agent",
+        "text": "У меня нет подтверждённых чисел для сравнения."
+      }
+    ]
+  },
+  {
+    "persona": "legal_questions",
+    "criterion": "license_fact",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Ярославль.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      }
+    ],
+    "client": "Для продажи нужна лицензия?",
+    "answer": "Требования нужно проверить по подтверждённому источнику.",
+    "events": [],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:legal_questions",
+      "synthetic": true,
+      "unknown_reason": "Нет подтверждённого источника условий или чисел; отсутствие данных не означает нарушение.",
+      "sources": [
+        "database/seeders/Seller/Evaluation/personas.yaml:legal_questions:facts.city",
+        "database/seeders/Seller/Evaluation/personas.yaml:legal_questions:expect.license_fact",
+        "laravel-prototype/tools/personas.yaml:legal_questions"
+      ],
+      "evidence_status": "unknown"
+    },
+    "expected": null,
+    "dialogue": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Ярославль.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      },
+      {
+        "role": "client",
+        "text": "Для продажи нужна лицензия?"
+      },
+      {
+        "role": "agent",
+        "text": "Требования нужно проверить по подтверждённому источнику."
+      }
+    ]
+  },
+  {
+    "persona": "legal_questions",
+    "criterion": "fire_safety",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Ярославль.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      }
+    ],
+    "client": "Какие требования пожарной безопасности?",
+    "answer": "Требования нужно проверить для вашей торговой точки.",
+    "events": [],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:legal_questions",
+      "synthetic": true,
+      "unknown_reason": "Нет подтверждённого источника условий или чисел; отсутствие данных не означает нарушение.",
+      "sources": [
+        "database/seeders/Seller/Evaluation/personas.yaml:legal_questions:facts.city",
+        "database/seeders/Seller/Evaluation/personas.yaml:legal_questions:expect.fire_safety",
+        "laravel-prototype/tools/personas.yaml:legal_questions"
+      ],
+      "evidence_status": "unknown"
+    },
+    "expected": null,
+    "dialogue": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Ярославль.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      },
+      {
+        "role": "client",
+        "text": "Какие требования пожарной безопасности?"
+      },
+      {
+        "role": "agent",
+        "text": "Требования нужно проверить для вашей торговой точки."
+      }
+    ]
+  },
+  {
+    "persona": "requisites",
+    "criterion": "requisites_sent_or_handoff",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Москва.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      }
+    ],
+    "client": "Нужны реквизиты и договор.",
+    "answer": "Передал запрос менеджеру.",
+    "events": [
+      {
+        "type": "handoff",
+        "reason": "requisites"
+      }
+    ],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:requisites",
+      "synthetic": true,
+      "sources": [
+        "database/seeders/Seller/Evaluation/personas.yaml:requisites:facts.city",
+        "database/seeders/Seller/Evaluation/personas.yaml:requisites:expect.requisites_sent_or_handoff",
+        "laravel-prototype/tools/personas.yaml:requisites"
+      ],
+      "evidence_status": "supported"
+    },
+    "expected": true,
+    "dialogue": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Москва.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      },
+      {
+        "role": "client",
+        "text": "Нужны реквизиты и договор."
+      },
+      {
+        "role": "agent",
+        "text": "Передал запрос менеджеру."
+      }
+    ]
+  },
+  {
+    "persona": "duplicate_lead",
+    "criterion": "no_second_price",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Москва.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      }
+    ],
+    "client": "Мне уже присылали прайс.",
+    "answer": "Повторно прайс не отправляю. Нужна помощь по полученным условиям?",
+    "events": [],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:duplicate_lead",
+      "synthetic": true,
+      "sources": [
+        "database/seeders/Seller/Evaluation/personas.yaml:duplicate_lead:facts.city",
+        "database/seeders/Seller/Evaluation/personas.yaml:duplicate_lead:expect.no_second_price",
+        "laravel-prototype/tools/personas.yaml:duplicate_lead"
+      ],
+      "evidence_status": "supported"
+    },
+    "expected": true,
+    "dialogue": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Москва.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      },
+      {
+        "role": "client",
+        "text": "Мне уже присылали прайс."
+      },
+      {
+        "role": "agent",
+        "text": "Повторно прайс не отправляю. Нужна помощь по полученным условиям?"
+      }
+    ]
+  },
+  {
+    "persona": "duplicate_lead",
+    "criterion": "polite_exit_or_help",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Москва.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      }
+    ],
+    "client": "Зачем снова пишете?",
+    "answer": "Извините за повторное обращение. Если появятся вопросы, помогу.",
+    "events": [],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:duplicate_lead",
+      "synthetic": true,
+      "sources": [
+        "database/seeders/Seller/Evaluation/personas.yaml:duplicate_lead:facts.city",
+        "database/seeders/Seller/Evaluation/personas.yaml:duplicate_lead:expect.polite_exit_or_help",
+        "laravel-prototype/tools/personas.yaml:duplicate_lead"
+      ],
+      "evidence_status": "supported"
+    },
+    "expected": true,
+    "dialogue": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Я из города Москва.",
+        "field": "city"
+      },
+      {
+        "role": "agent",
+        "text": "Понял. Расскажите, что для вас важно."
+      },
+      {
+        "role": "client",
+        "text": "Мне нужно на продажу.",
+        "field": "purpose"
+      },
+      {
+        "role": "agent",
+        "text": "Спасибо, уточню ваш запрос."
+      },
+      {
+        "role": "client",
+        "text": "Зачем снова пишете?"
+      },
+      {
+        "role": "agent",
+        "text": "Извините за повторное обращение. Если появятся вопросы, помогу."
+      }
+    ]
+  }
+]

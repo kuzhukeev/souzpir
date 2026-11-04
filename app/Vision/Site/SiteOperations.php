@@ -37,7 +37,7 @@ final class SiteOperations
         }
         $sessionHash = hash_hmac('sha256', 'auth-session:'.$request->session()->getId(), (string) config('app.key'));
         $key = AuditSiteJob::key($tenant->organizationId, $tenant->brandId);
-        Cache::put($key, ['stage' => 'queued'], now()->addDay());
+        Cache::put($key, ['stage' => 'queued', 'events' => [['stage' => 'queued', 'at' => now()->toIso8601String()]]], now()->addDay());
         AuditSiteJob::dispatch($tenant->organizationId, $tenant->brandId, $tenant->actorId, $tenant->membershipId, $url, $sessionHash, $version);
         if (Cache::get($key)['stage'] === 'failed') {
             return 'Не удалось безопасно проверить сайт.';

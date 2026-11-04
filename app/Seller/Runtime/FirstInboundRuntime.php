@@ -20,6 +20,7 @@ use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Auth\SessionBrandSelection;
 use App\Shell\Organizations\ModuleEntitlements;
 use App\Tenancy\TenantContext;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -54,7 +55,7 @@ final class FirstInboundRuntime
                     throw new \LogicException;
                 }
                 $conversation = DB::table('conversations')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
-                    ->where('id', $command->conversationId)->first(['id', 'mode', 'version']);
+                    ->where('id', $command->conversationId)->first(['id', 'mode', 'version', 'stage']);
                 $message = DB::table('messages')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
                     ->where('conversation_id', $command->conversationId)->where('id', $command->inputMessageId)->where('role', 'client')
                     ->first(['text', 'external_event_id']);
@@ -62,13 +63,20 @@ final class FirstInboundRuntime
                     || $message->external_event_id !== $command->externalEventId) {
                     throw new \LogicException;
                 }
+                $schedule = app(BrandRuntimeSchedule::class);
+                $settings = $schedule->settings($tenant);
                 if ($conversation->mode === 'manager') {
-                    return ['mode' => 'manager', 'result' => $this->suppressManagerTurn($tenant, $command)];
+                    $schedule->assignWaiting($tenant, $command->conversationId, $settings);
+
+                    return ['mode' => 'suppressed', 'result' => $this->suppressManagerTurn($tenant, $command, 'manager')];
+                }
+                if (! $schedule->available($tenant, $settings, CarbonImmutable::now())) {
+                    return ['mode' => 'suppressed', 'result' => $this->suppressManagerTurn($tenant, $command, $conversation->mode)];
                 }
 
-                return ['mode' => $conversation->mode, 'version' => (int) $conversation->version];
+                return ['mode' => $conversation->mode, 'version' => (int) $conversation->version, 'stage' => $conversation->stage];
             });
-            if ($dispatch['mode'] === 'manager') {
+            if ($dispatch['mode'] === 'suppressed') {
                 return $dispatch['result'];
             }
             if ($dispatch['mode'] === 'bot' && $dispatch['version'] === 0) {
@@ -77,6 +85,14 @@ final class FirstInboundRuntime
                 $result = app(FollowupCoordinator::class)->run($http, $command, $dispatch['mode']);
             }
 
+            if (($result['status'] ?? null) === 'completed') {
+                $tenant = app(TenantContext::class);
+                $after = DB::table('conversations')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
+                    ->where('id', $command->conversationId)->value('stage');
+                if (is_string($after)) {
+                    app(StageTransitions::class)->record($tenant, $command->conversationId, $dispatch['stage'], $after);
+                }
+            }
             if ($dispatch['mode'] === 'bot' && ($result['status'] ?? null) === 'completed') {
                 $messageId = $result['result']['message_id'] ?? null;
                 $turnId = $result['result']['turn_id'] ?? null;
@@ -100,7 +116,7 @@ final class FirstInboundRuntime
         }
     }
 
-    private function suppressManagerTurn(#[SensitiveParameter] TenantContext $tenant, #[SensitiveParameter] TurnCommand $command): array
+    private function suppressManagerTurn(#[SensitiveParameter] TenantContext $tenant, #[SensitiveParameter] TurnCommand $command, string $expectedMode): array
     {
         if (DB::connection()->transactionLevel() < 1 || ! $tenant->organizationId || ! $tenant->brandId) {
             throw new \LogicException;
@@ -123,7 +139,7 @@ final class FirstInboundRuntime
             ->where('brand_id', $tenant->brandId)->lockForUpdate()->first();
         $turn = DB::table('seller_turns')->where('id', $claim->turnId)->where('organization_id', $tenant->organizationId)
             ->where('brand_id', $tenant->brandId)->where('conversation_id', $claim->conversationId)->lockForUpdate()->first();
-        if (! $conversation || ! $turn || $conversation->mode !== 'manager' || $turn->status !== 'processing'
+        if (! $conversation || ! $turn || $conversation->mode !== $expectedMode || $turn->status !== 'processing'
             || (int) $conversation->version !== $claim->baseVersion || ! hash_equals($turn->claim_hash, hash('sha256', $claim->token()))
             || ! $conversation->history_ready || (string) $turn->base_history_revision !== (string) $conversation->history_revision
             || (string) $turn->cutoff_sequence !== (string) $conversation->history_sequence || $turn->input_message_id !== $command->inputMessageId) {
