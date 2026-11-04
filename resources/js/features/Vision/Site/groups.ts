@@ -12,5 +12,5 @@ const groups: Record<number, string> = {
 };
 export function criterionGroup(item: Criterion): string {
   const id = typeof item.id === 'number' ? item.id : Number(item.id);
-  return groups[id] || item.group || 'Другие критерии';
+  return (item.title ? groups[id] : undefined) || item.group || 'Другие критерии';
 }
