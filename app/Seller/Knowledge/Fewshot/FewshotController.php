@@ -81,10 +81,13 @@ final class FewshotController
         $examples = $this->access($request, function (TenantContext $tenant) use ($input): array {
             $draft = $this->draft($tenant) ?? abort(404);
 
-            return app(KnowledgeRepository::class)->forRelease($tenant, $draft->id, true)->fewshot([$input['tag']], $input['client_type'] ?? null, 6, 0.7);
+            $snapshot = app(KnowledgeRepository::class)->forRelease($tenant, $draft->id, true);
+
+            return ['examples' => $snapshot->fewshot([$input['tag']], $input['client_type'] ?? null, 6, 0.7),
+                'bad_examples' => array_slice($snapshot->badExamples(), 0, 8)];
         });
 
-        return response()->json(['examples' => $examples])->header('Cache-Control', 'private, no-store');
+        return response()->json($examples)->header('Cache-Control', 'private, no-store');
     }
 
     public function saveBad(Request $request): mixed
