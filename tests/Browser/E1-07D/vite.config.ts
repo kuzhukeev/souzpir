@@ -10,5 +10,3 @@ export default defineConfig({
   resolve: { alias: { '@': fileURLToPath(new URL('../../../resources/js', import.meta.url)) } },
   server: { host: '127.0.0.1', port: 0, strictPort: false, watch: { ignored: ['**/.local/**'] } },
 });
-
-

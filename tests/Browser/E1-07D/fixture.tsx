@@ -9,5 +9,3 @@ const page = { component:'Fixture', props:{ tab:location.search.includes('invoic
 }, url:location.pathname + location.search, version:null, clearHistory:false, encryptHistory:false };
 const script=document.createElement('script');script.type='application/json';script.dataset.page='app';script.textContent=JSON.stringify(page);document.body.appendChild(script);
 void createInertiaApp({resolve:()=>Index,setup:({el,App,props})=>createRoot(el).render(<App {...props}/>)});
-
-

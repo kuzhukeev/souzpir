@@ -4,4 +4,3 @@ import tailwindcss from '@tailwindcss/vite';
 import { fileURLToPath } from 'node:url';
 
 export default defineConfig({ cacheDir: '.local/runtime/vite-e4-01s', plugins: [react(), tailwindcss()], resolve: { alias: { '@': fileURLToPath(new URL('../../../resources/js', import.meta.url)) } } });
-
