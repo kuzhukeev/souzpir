@@ -11,3 +11,5 @@
 Scope: `app/ProtectedOperations/`, `app/Ai/Protected/`, `app/Ai/Gateway.php`, `app/Seller/Evaluation/`, `tests/Feature/ProtectedOperations/`, `tests/Browser/E4-01O/`, `docs/results/SP-E4-01O.md`.
 
 Отчёт: docs/results/SP-E4-01O.md.
+
+Подключить проверенные контекстные каталоги SP-E4-01Q/R/S к защищённому runtime.
