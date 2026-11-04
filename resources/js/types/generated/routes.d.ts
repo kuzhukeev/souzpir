@@ -45,10 +45,13 @@ declare module 'ziggy-js' {
     "invitation.open": [],
     "invitation.exchange": [],
     "invitation.show": [],
+    "invitation.state": [],
     "invitation.register": [],
     "invitation.accept": [],
     "logout": [],
     "verification.notice": [],
+    "verification.success": [],
+    "verification.email.update": [],
     "verification.verify": [
         {
             "name": "id",

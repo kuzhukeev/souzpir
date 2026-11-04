@@ -48,6 +48,9 @@ final class VerificationIntegrationTest extends TestCase
         $this->post('/register', ['name' => 'Owner', 'email' => 'owner@example.test', 'password' => 'secure-password-example',
             'password_confirmation' => 'secure-password-example', 'terms' => true, 'ai_consent' => true, 'bootstrap_code' => $secret])
             ->assertRedirect(route('verification.notice'))->assertSessionHas('status', 'Запрос на отправку принят. Проверьте почту позже.');
+        $this->withCookie(config('session.cookie'), session()->getId());
+        $this->get('/email/verify')->assertOk()->assertInertia(fn ($page) => $page->has('resendAfter'));
+        self::assertGreaterThan(now()->timestamp, session('verification_resend_after'));
         $user = User::where('email', 'owner@example.test')->firstOrFail();
         $intent = DB::table('verification_delivery_intents')->where('user_id', $user->id)->first();
         self::assertNotNull($intent);
