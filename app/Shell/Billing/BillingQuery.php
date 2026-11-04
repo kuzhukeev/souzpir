@@ -33,6 +33,8 @@ final class BillingQuery
     {
         $brand = DB::table('brands')->where('organization_id', $tenant->organizationId)->where('id', $tenant->brandId)->value('name');
         $result = [];
+        $plan = $this->assignedPlan($tenant);
+        $terms = $plan ? (config('billing.plans', [])[$plan->id] ?? []) : [];
         if ($from->diffInDays($to) > 92 || ! $brand) {
             return ['brand' => $brand, 'rows' => [], 'limited' => $from->diffInDays($to) > 92];
         }
@@ -43,7 +45,11 @@ final class BillingQuery
                 if (($metric['status'] ?? null) !== 'ready' || (float) $metric['value'] == 0.0) {
                     continue;
                 }
-                $result[] = ['date' => $day->format('Y-m-d'), 'key' => $key, 'label' => __('Shell/Billing/messages.metrics.'.$label), 'brand' => $brand, 'value' => $metric['value'], 'unit' => $metric['unit']];
+                $rate = $terms['units_per_event'][$key] ?? null;
+                $units = is_numeric($rate) && $rate >= 0 ? round((float) $metric['value'] * (float) $rate, 6) : null;
+                $price = $terms['unit_price'] ?? null;
+                $cost = $units !== null && is_numeric($price) && $price >= 0 ? round($units * (float) $price, 6) : null;
+                $result[] = ['date' => $day->format('Y-m-d'), 'key' => $key, 'label' => __('Shell/Billing/messages.metrics.'.$label), 'brand' => $brand, 'value' => $metric['value'], 'unit' => $metric['unit'], 'tariffUnits' => $units, 'tariffCost' => $cost];
             }
         }
 
@@ -52,10 +58,7 @@ final class BillingQuery
 
     public function read(TenantContext $tenant, string $tab, CarbonImmutable $from, CarbonImmutable $to, bool $canManage): array
     {
-        $assigned = DB::table('organization_plan as assignment')->join('plans as plan', 'plan.id', '=', 'assignment.plan_id')
-            ->where('assignment.organization_id', $tenant->organizationId)->where('assignment.starts_at', '<=', now())
-            ->where(fn ($q) => $q->whereNull('assignment.ends_at')->orWhere('assignment.ends_at', '>', now()))
-            ->first(['plan.id', 'plan.name', 'assignment.starts_at', 'assignment.ends_at']);
+        $assigned = $this->assignedPlan($tenant);
         $limits = [];
         $keys = array_keys(self::LIMIT_LABELS);
         if ($assigned) {
@@ -65,7 +68,7 @@ final class BillingQuery
             $value = $this->limits->get($tenant, $key);
             $label = self::LIMIT_LABELS[$key] ?? 'other';
             $limits[] = ['key' => $key, 'label' => __('Shell/Billing/messages.limits.'.$label),
-                'value' => $value->value, 'unit' => $value->unit, 'used' => null];
+                'value' => $value->value, 'unit' => $value->unit, 'used' => $this->used($tenant, $key)];
         }
         // UsageReader is the only cross-domain port. Do not treat unavailable adapters as zero.
         $snapshot = $this->usage->read($tenant, new UsageQuery($from, $to->addDay(), array_keys(self::METRICS)));
@@ -78,12 +81,40 @@ final class BillingQuery
         $requestEnabled = $canManage && app()->bound(PlanRequestPort::class) && $scope !== null;
         $scope = $canManage ? $scope : null;
 
-        return ['tab' => $tab, 'currentPlan' => $assigned ? ['id' => $assigned->id, 'name' => $assigned->name, 'startsAt' => $assigned->starts_at, 'endsAt' => $assigned->ends_at] : null,
+        return ['tab' => $tab, 'currentPlan' => $assigned ? ['id' => $assigned->id, 'name' => $assigned->name, 'startsAt' => $assigned->starts_at, 'endsAt' => $assigned->ends_at, 'renewsAt' => config('billing.renewals', [])[$tenant->organizationId][$assigned->id] ?? null] : null,
             'limits' => $limits, 'usage' => $usage,
             'plans' => $canManage ? DB::table('plans')->where('is_public', true)->orderBy('name')->get(['id', 'name'])->toArray() : [],
             'canManage' => $canManage, 'requestEnabled' => $requestEnabled,
             'submissionScope' => $scope, 'submissionKey' => $requestEnabled ? (string) Str::ulid() : null,
             'period' => ['from' => $from->format('Y-m-d'), 'to' => $to->format('Y-m-d')],
             'daily' => $tab === 'usage' ? $this->daily($tenant, $from, $to) : null];
+    }
+
+    private function used(TenantContext $tenant, string $key): ?int
+    {
+        if ($key === 'brands.max') {
+            return DB::table('brands')->where('organization_id', $tenant->organizationId)->where('status', 'active')->count();
+        }
+        $metric = match ($key) {
+            'seller.dialogs_month' => 'seller.dialogs_month',
+            'vision.runs_per_week' => 'vision.measurements',
+            default => null,
+        };
+        if ($metric === null) {
+            return null;
+        }
+        $now = CarbonImmutable::now('Europe/Moscow');
+        $start = ($key === 'vision.runs_per_week' ? $now->startOfWeek() : $now->startOfMonth())->utc();
+        $result = $this->usage->read($tenant, new UsageQuery($start, $now->addSecond()->utc(), [$metric]))->metrics[$metric] ?? null;
+
+        return ($result['status'] ?? null) === 'ready' ? (int) $result['value'] : null;
+    }
+
+    private function assignedPlan(TenantContext $tenant): ?object
+    {
+        return DB::table('organization_plan as assignment')->join('plans as plan', 'plan.id', '=', 'assignment.plan_id')
+            ->where('assignment.organization_id', $tenant->organizationId)->where('assignment.starts_at', '<=', now())
+            ->where(fn ($q) => $q->whereNull('assignment.ends_at')->orWhere('assignment.ends_at', '>', now()))
+            ->first(['plan.id', 'plan.name', 'assignment.starts_at', 'assignment.ends_at']);
     }
 }

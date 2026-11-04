@@ -72,10 +72,10 @@ final class BillingController
         return response()->streamDownload(function () use ($daily): void {
             $out = fopen('php://output', 'w');
             fwrite($out, "\xEF\xBB\xBF");
-            fputcsv($out, ['День', 'Показатель', 'Бренд', 'Значение', 'Единица'], ';', '"', '');
+            fputcsv($out, ['День', 'Модуль', 'Показатель', 'Бренд', 'Значение', 'Единица', 'Единиц тарифа', 'Стоимость в единицах тарифа'], ';', '"', '');
             foreach ($daily['rows'] as $row) {
                 $brand = preg_match('/^[=+@\-]/u', $row['brand']) ? "'".$row['brand'] : $row['brand'];
-                fputcsv($out, [$row['date'], $row['label'], $brand, $row['value'], $row['unit']], ';', '"', '');
+                fputcsv($out, [$row['date'], str_starts_with($row['key'], 'seller.') ? 'ИИ-продавец' : (str_starts_with($row['key'], 'vision.') ? 'Видение' : 'Общее'), $row['label'], $brand, $row['value'], $row['unit'], $row['tariffUnits'], $row['tariffCost']], ';', '"', '');
             }
             fclose($out);
         }, 'usage.csv', ['Content-Type' => 'text/csv; charset=UTF-8', 'Cache-Control' => 'private, no-store']);
