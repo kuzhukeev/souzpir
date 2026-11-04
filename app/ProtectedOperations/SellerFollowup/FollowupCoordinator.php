@@ -11,15 +11,63 @@ use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Auth\SessionBrandSelection;
 use App\Shell\Organizations\ModuleEntitlements;
 use App\Tenancy\TenantContext;
+use App\Tenancy\TenantContextRunner;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 use LogicException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 /** Fake-only follow-up and suggestion path; all writes remain in the active session transaction. */
 final class FollowupCoordinator
 {
+    /** Internal fake path for a trusted simulation job; no browser session is involved. */
+    public function runJob(TenantContext $tenant, string $conversationId, string $client, string $key): array
+    {
+        if ($tenant->source !== 'job' || ! $tenant->organizationId || ! $tenant->brandId
+            || config('runtime.ai_driver', 'fake') !== 'fake') {
+            throw new LogicException('Simulation context unavailable.');
+        }
+
+        return app(TenantContextRunner::class)->run($tenant, function () use ($tenant, $conversationId, $client, $key): array {
+            $conversation = DB::table('conversations')->where('id', $conversationId)
+                ->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
+                ->where('mode', 'bot')->first(['version']);
+            if (! $conversation || (int) $conversation->version < 1
+                || DB::connection()->transactionLevel() < 1
+                || ! DB::table('messages')->where('conversation_id', $conversationId)
+                    ->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
+                    ->where('role', 'agent')->where('meta->simulation', true)->exists()) {
+                throw new LogicException('Simulation conversation unavailable.');
+            }
+            $messageId = (string) Str::ulid();
+            DB::table('messages')->insert([
+                'id' => $messageId, 'organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId,
+                'conversation_id' => $conversationId, 'role' => 'client', 'text' => $client,
+                'meta' => json_encode(['fake' => true, 'simulation' => true], JSON_THROW_ON_ERROR),
+                'created_at' => now(), 'updated_at' => now(),
+            ]);
+            $claim = app(ConversationRepository::class)->claimTurn(
+                $tenant, new TurnCommand($conversationId, $messageId, $client, null, $key, (int) $conversation->version)
+            );
+            if ($claim->status !== 'claimed') {
+                throw new LogicException('Simulation turn unavailable.');
+            }
+            $outcome = app(FollowupFinalizer::class)->finish($tenant, $claim, 'bot');
+            $assistantId = $outcome['result']['message_id'] ?? null;
+            $agent = is_string($assistantId)
+                ? DB::table('messages')->where('id', $assistantId)->where('organization_id', $tenant->organizationId)
+                    ->where('brand_id', $tenant->brandId)->where('conversation_id', $conversationId)->value('text')
+                : null;
+            if (! is_string($agent) || $agent === '') {
+                throw new LogicException('Simulation answer unavailable.');
+            }
+
+            return ['agent' => $agent];
+        });
+    }
+
     public function run(Request $http, TurnCommand $command, string $mode): array
     {
         if (config('runtime.ai_driver', 'fake') !== 'fake' || ! in_array($mode, ['bot', 'suggest'], true)
