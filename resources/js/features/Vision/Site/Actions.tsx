@@ -366,6 +366,8 @@ export function Actions({
   useEffect(() => {
     if (!history || !brand?.id) return;
     const controller = new AbortController();
+    // Clear the previous brand's data immediately when the context changes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setEffects({});
     setEffectState('loading');
     fetch('/vision/actions/effect', {headers: {'Accept': 'application/json', 'X-Brand-Id': brand.id}, signal: controller.signal})
@@ -374,7 +376,7 @@ export function Actions({
         setEffects(Object.fromEntries(data.items.map((item) => [item.id, item])));
         setEffectState('ready');
       })
-      .catch((error: unknown) => { if (!controller.signal.aborted) setEffectState('error'); });
+      .catch(() => { if (!controller.signal.aborted) setEffectState('error'); });
     return () => controller.abort();
   }, [history, brand?.id, retry]);
   const visible = actions.filter((action) =>
