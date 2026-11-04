@@ -106,6 +106,22 @@ class TaskCliTests(unittest.TestCase):
         self.assertEqual(self.client.read_claim("SP-001")["worker"], "another-chat")
         self.assertTrue(worktree.exists())
 
+    def test_reclaim_preserves_published_task_commits_and_original_base(self):
+        worktree, original = self.claim()
+        target = worktree / "app/Feature/saved.txt"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("saved", encoding="utf-8")
+        task_cli.git(worktree, "add", "app/Feature/saved.txt")
+        task_cli.git(worktree, "commit", "-m", "Preserve task work")
+        head = task_cli.git(worktree, "rev-parse", "HEAD")
+        task_cli.git(self.root, "update-ref", "refs/remotes/origin/codex/sp-001", head)
+        self.client.release("SP-001", "Transfer")
+        self.assertEqual(self.client.ready()["tasks"][0]["taskKey"], "SP-001")
+        reclaimed = self.client.claim("SP-001", "new-owner")
+        self.assertEqual(reclaimed["baseCommit"], original["baseCommit"])
+        self.assertEqual(task_cli.git(worktree, "rev-parse", "HEAD"), head)
+        self.assertEqual(target.read_text(encoding="utf-8"), "saved")
+
     def test_released_dirty_worktree_is_not_reclaimed(self):
         worktree, _ = self.claim()
         self.client.release("SP-001", "Stopped")

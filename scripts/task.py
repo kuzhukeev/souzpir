@@ -254,6 +254,19 @@ class Coordinator:
             raise TaskError("Task is absent from the local project plan")
         return matches[0]
 
+    def preserved_head_is_safe(self, key: str, record: dict, worktree: Path) -> bool:
+        try:
+            head = git(worktree, "rev-parse", "HEAD^{commit}")
+            base = record.get("baseCommit", "")
+            git(worktree, "merge-base", "--is-ancestor", base, head)
+            if head != base:
+                remote = git(self.root, "rev-parse", "--verify", "refs/remotes/origin/" + record["branch"] + "^{commit}")
+                if head != remote or unapproved_changes(worktree, base, head, [*record["scope"], *CI_SCOPE_EXCEPTIONS.get(key, ())]):
+                    return False
+            return True
+        except (TaskError, KeyError, TypeError):
+            return False
+
     def ready(self) -> dict:
         response = self.api.call("ready", project=self.project)
         available, blocked = [], []
@@ -278,7 +291,7 @@ class Coordinator:
                             and sorted(record.get("dependsOn", [])) == sorted(task.get("dependsOn", []))
                             and git(worktree, "branch", "--show-current") == branch
                             and not git(worktree, "status", "--porcelain=v1", "--untracked-files=all")
-                            and git(worktree, "rev-parse", "HEAD^{commit}") == record.get("baseCommit")):
+                            and self.preserved_head_is_safe(key, record, worktree)):
                         reasons = []
                 except (OSError, TaskError, ValueError):
                     pass
@@ -346,7 +359,7 @@ class Coordinator:
             head = git(worktree, "rev-parse", "HEAD^{commit}")
             if (git(worktree, "branch", "--show-current") != branch
                     or git(worktree, "status", "--porcelain=v1", "--untracked-files=all")
-                    or head != record.get("baseCommit")):
+                    or not self.preserved_head_is_safe(key, record, worktree)):
                 raise TaskError("Released worktree has preserved changes; inspect it without overwriting")
             dependencies = self.dependency_commits(task, tasks, base)
             self.dependency_commits(task, tasks, head)
@@ -368,7 +381,7 @@ class Coordinator:
                     raise TaskError("Worktree reclaim failed and release could not be confirmed; inspect queue") from None
                 raise TaskError("Worktree reclaim failed; preserved worktree was not modified: " + str(error)) from None
             return {"taskKey": key, "status": "progress", "branch": branch, "worktree": str(worktree),
-                    "baseCommit": head, "promptPath": plan.get("promptPath", "")}
+                    "baseCommit": record["baseCommit"], "promptPath": plan.get("promptPath", "")}
         if git(self.root, "rev-parse", "--verify", "refs/heads/" + branch, check=False):
             raise TaskError("Task branch already exists; inspect it, do not overwrite it")
         base = self.integration_base()
