@@ -50,6 +50,7 @@ export default function Index({
 }) {
   const [tab, setTab] = useState<'all' | 'tracked' | 'declared'>('all');
   const [mergeSearch, setMergeSearch] = useState('');
+  const [openedCompany, setOpenedCompany] = useState<string | null>(null);
   const [pendingPair, setPendingPair] = useState<string[]>([]);
   const [left, setLeft] = useState('');
   const [right, setRight] = useState('');
@@ -243,18 +244,29 @@ export default function Index({
                             className="border-b border-(--color-border) last:border-0"
                           >
                             <td className="p-4">
-                              <details>
-                                <summary className="cursor-pointer font-semibold">
+                              <details open={openedCompany === e.name}>
+                                <summary
+                                  className="cursor-pointer font-semibold"
+                                  onClick={(event) => {
+                                    event.preventDefault();
+                                    setOpenedCompany(openedCompany === e.name ? null : e.name);
+                                  }}
+                                >
                                   {e.name}
                                   {e.is_brand ? ' · Ваш бренд' : ''}
                                 </summary>
-                                <CompanyDetails
-                                  company={e}
-                                  own={
-                                    e.is_brand ? undefined : entities.find((item) => item.is_brand)
-                                  }
-                                  site={declared.find((item) => item.name === e.name)?.site}
-                                />
+                                {openedCompany === e.name && (
+                                  <CompanyDetails
+                                    onClose={() => setOpenedCompany(null)}
+                                    company={e}
+                                    own={
+                                      e.is_brand
+                                        ? undefined
+                                        : entities.find((item) => item.is_brand)
+                                    }
+                                    site={declared.find((item) => item.name === e.name)?.site}
+                                  />
+                                )}
                               </details>
                             </td>
                             <td className="p-4">{e.answers}</td>
@@ -672,7 +684,7 @@ export default function Index({
                       required
                       className={`${field} mt-1 block w-full cursor-pointer`}
                       aria-label="Объединить"
-                    value={source}
+                      value={source}
                       onChange={(e) => setSource(e.target.value)}
                     >
                       <option value="">Выберите название</option>
@@ -698,7 +710,7 @@ export default function Index({
                       required
                       className={`${field} mt-1 block w-full cursor-pointer`}
                       aria-label="Основное название"
-                    value={target}
+                      value={target}
                       onChange={(e) => setTarget(e.target.value)}
                     >
                       <option value="">Выберите название</option>
