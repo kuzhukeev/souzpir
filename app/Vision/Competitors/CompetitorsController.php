@@ -59,22 +59,24 @@ final class CompetitorsController
             $aliases = $this->scope('vision_competitor_aliases', $tenant)->pluck('canonical', 'alias')->all();
             $tracked = $this->scope('vision_competitor_tracking', $tenant)->pluck('name')->all();
             $deltas = null;
+            $historySeries = [];
             foreach ($history as $previous) {
                 if (! isset($snapshot['measurement_id']) || $previous->measurement_id === $snapshot['measurement_id']) {
                     continue;
                 }
                 try {
                     $earlier = app(VisionReportReader::class)->read($previous->id);
-                    $deltas = app(ComparableCompanyHistory::class)->deltas($earlier, $snapshot, $aliases);
-                    if ($deltas !== null) {
-                        break;
+                    $difference = app(ComparableCompanyHistory::class)->deltas($earlier, $snapshot, $aliases);
+                    if ($difference !== null) {
+                        $deltas ??= $difference;
+                        $historySeries[] = ['date' => $previous->created_at, 'difference' => $difference];
                     }
                 } catch (\LogicException) {
                     // Skip unavailable or unverified reports.
                 }
             }
             $metrics = app(SnapshotView::class)->metrics($snapshot, $aliases);
-            $entities = collect($metrics['entities'] ?? [])->map(function ($entity) use ($metrics, $tracked, $snapshot, $aliases, $deltas): array {
+            $entities = collect($metrics['entities'] ?? [])->map(function ($entity) use ($metrics, $tracked, $snapshot, $aliases, $deltas, $historySeries, $history): array {
                 $matched = collect($metrics['slots'] ?? [])->filter(function ($slot) use ($entity): bool {
                     if (! ($slot['valid'] ?? false)) {
                         return false;
@@ -100,13 +102,29 @@ final class CompetitorsController
                 }
 
                 $quotes = ($entity['is_brand'] ?? false) ? $matched->filter(fn ($slot) => ($slot['fact']['brand_mentioned'] ?? false) === true
-                    && ($slot['fact']['mention_status'] ?? 'confirmed') === 'confirmed' && is_string($slot['fact']['mention_quote'] ?? null)
+                    && ($slot['fact']['mention_status'] ?? null) === 'confirmed' && is_string($slot['fact']['mention_quote'] ?? null)
                     && trim($slot['fact']['mention_quote']) !== '')
                     ->map(fn ($slot) => ['text' => $slot['fact']['mention_quote'], 'provider' => $slot['provider'] ?? ''])
                     ->values()->all() : [];
+                $withoutBrand = $matched->filter(fn ($slot) => ($slot['mentions_complete'] ?? false) === true
+                    && ($slot['fact']['brand_mentioned'] ?? null) === false)
+                    ->groupBy('qid')->map(fn ($slots, $id) => [
+                        'text' => data_get($questions->get($id), 'text', ''),
+                        'intent' => $slots->pluck('intent')->filter()->first(),
+                        'models' => $slots->pluck('provider')->filter()->unique()->values()->all(),
+                    ])->filter(fn ($item) => is_string($item['text']) && $item['text'] !== '')->values()->all();
+                $series = collect(array_reverse($historySeries))->map(fn ($point) => [
+                    'date' => $point['date'], 'answers' => max(0, $entity['answers'] - ($point['difference'][$entity['name']] ?? $entity['answers'])),
+                ])->all();
+                if ($series && isset($history[0])) {
+                    $series[] = ['date' => $history[0]->created_at, 'answers' => $entity['answers']];
+                }
 
                 return ['name' => $entity['name'], 'answers' => $entity['answers'], 'share' => $entity['share_of_voice'] ?? null,
-                    'quotes' => $quotes, 'delta' => $deltas === null ? null : ($deltas[$entity['name']] ?? null), 'intent_rates' => $intentRates, 'intent_denominators' => $intentDenominators, 'intent_bases' => $intentBases,
+                    'quotes' => $quotes, 'delta' => $deltas === null ? null : ($deltas[$entity['name']] ?? null), 'history_series' => $series,
+                    'question_count' => $matched->filter(fn ($slot) => ($slot['mentions_complete'] ?? false) === true)->pluck('qid')->filter()->unique()->count(),
+                    'question_total' => count($snapshot['questions'] ?? []), 'questions_without_brand' => $withoutBrand,
+                    'intent_rates' => $intentRates, 'intent_denominators' => $intentDenominators, 'intent_bases' => $intentBases,
                     'aliases' => array_values(array_keys($aliases, $entity['name'], true)),
                     'is_brand' => $entity['is_brand'], 'tracked' => in_array($entity['name'], $tracked, true),
                     'models' => $matched->pluck('provider')->unique()->values()->all(),
