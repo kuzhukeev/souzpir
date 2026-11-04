@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Auth\SessionBrandSelection;
 use App\Tenancy\TenantContext;
+use App\Vision\Clarifications\ClarificationController;
 use App\Vision\Core\VisionReportReader;
 use App\Vision\Reports\ReportSections;
 use App\Vision\Site\SiteAccess;
@@ -64,7 +65,7 @@ final class MeasurementList
         }
         $count = (clone $query)->count();
         $rows = $query->orderByDesc('created_at')->orderByDesc('id')->forPage($page, 25)
-            ->get(['id', 'status', 'created_at', 'started_at', 'finished_at']);
+            ->get(['id', 'question_set_id', 'status', 'created_at', 'started_at', 'finished_at']);
         $answers = DB::table('measurement_answers')->where('organization_id', $context->organizationId)
             ->where('brand_id', $context->brandId)->whereIn('measurement_id', $rows->pluck('id'))
             ->orderBy('question_n')->orderBy('provider')->orderBy('run_no')
@@ -76,7 +77,7 @@ final class MeasurementList
 
         $launches = DB::table('audit_logs')->where('organization_id', $context->organizationId)
             ->where('brand_id', $context->brandId)->where('subject_type', 'measurement')
-            ->whereIn('subject_id', $rows->pluck('id'))->whereIn('action', ['vision.measurement.started', 'vision.measurement.repeated'])
+            ->whereIn('subject_id', $rows->pluck('id'))->whereIn('action', ['vision.measurement.started', 'vision.measurement.repeated', 'vision.measurement.scheduled'])
             ->orderByDesc('created_at')->get(['subject_id', 'action'])->unique('subject_id')->keyBy('subject_id');
 
         $reportIds = DB::table('vision_reports')->where('organization_id', $context->organizationId)
@@ -130,9 +131,12 @@ final class MeasurementList
                 'id' => $row->id, 'status' => $row->status, 'created_at' => $row->created_at,
                 'started_at' => $row->started_at, 'finished_at' => $row->finished_at,
                 'confirmed' => in_array($row->id, $confirmed, true),
+                'pending_clarifications' => in_array($row->id, $confirmed, true) ? app(ClarificationController::class)->pendingCount($context, $row->id) : null,
+                'estimated_minutes' => app(MeasurementTimeEstimate::class)->forMeasurement($context, $row, $answers[$row->id] ?? collect()),
                 'launch_source' => match ($launches[$row->id]->action ?? null) {
                     'vision.measurement.started' => 'manual',
                     'vision.measurement.repeated' => 'repeat',
+                    'vision.measurement.scheduled' => 'scheduled',
                     default => null,
                 },
                 'visibility' => $reportMetrics[$row->id]['visibility'] ?? null,
