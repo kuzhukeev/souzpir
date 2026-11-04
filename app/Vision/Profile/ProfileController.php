@@ -250,6 +250,28 @@ HTML;
                 }
             }
 
+            if ($step === 5) {
+                $text = (string) ($page['content_text'] ?? '');
+                preg_match_all('/^(Адрес|Телефон|Год основания|Сертификаты|Доставка):\h*([^\r\n]{1,180})$/umi', $text, $facts, PREG_SET_ORDER);
+                foreach ($facts as $fact) {
+                    $value = trim($fact[2]);
+                    if ($value !== '' && ! in_array($value, array_column($items, 'value'), true)) {
+                        $items[] = ['label' => 'Данные сайта: '.$fact[1], 'value' => $value, 'source' => $source];
+                    }
+                    if (count($items) >= 5) {
+                        break;
+                    }
+                }
+            }
+
+            if ($step === 3 && preg_match('/^Типы покупателей:\h*([^\r\n]+)$/umi', (string) ($page['content_text'] ?? ''), $audience)) {
+                foreach (array_slice(preg_split('/\s*[;,]\s*/u', $audience[1]) ?: [], 0, 5) as $value) {
+                    if (trim($value) !== '') {
+                        $items[] = ['label' => 'Тип покупателя', 'value' => mb_substr(trim($value), 0, 180), 'source' => $source, 'kind' => 'customer_type'];
+                    }
+                }
+            }
+
             if ($step === 3) {
                 foreach (($audit['pages'] ?? []) as $auditedPage) {
                     $pageUrl = is_array($auditedPage) ? ($auditedPage['url'] ?? null) : null;

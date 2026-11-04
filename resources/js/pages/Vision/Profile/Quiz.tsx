@@ -26,7 +26,7 @@ type Props = {
   step: number;
   brand: { id: string; name: string; website: string | null };
   limits: { competitors?: number; facts?: number; questions?: number };
-  hints: { status: string; items?: { label: string; value: string; source: string }[] };
+  hints: { status: string; items?: { label: string; value: string; source: string; kind?: string }[] };
   savedAt?: string | null;
   errors?: Record<string, string>;
 };
@@ -113,10 +113,10 @@ function QuizBody({ quiz, step, brand, limits, hints, savedAt = null, errors = {
           </nav>
           <main className="min-w-0 rounded-xl bg-(--color-surface) p-5 md:p-6">
             {step < 8 ? (
-              <>{[3,4,5,7].includes(step) && <aside className="mb-5 rounded-lg bg-(--color-surface-muted) p-4 text-sm"><h2 className="font-semibold">{({3:'Подсказки с сайта',4:'Подсказки о конкурентах',5:'Мы нашли на вашем сайте',7:'Подсказки по вашей сфере'} as Record<number,string>)[step]}</h2><p role="status" className="mt-2 text-(--color-ink-muted)">{hints?.status === 'available' ? 'Проверьте найденные сведения перед добавлением в анкету.' : hints?.status === 'empty' ? 'В аудите сайта подходящих сведений пока нет. Заполните поля самостоятельно.' : 'Подсказки временно недоступны. Заполните поля самостоятельно.'}</p><Link href={`/vision/quiz/${step}`} className="mt-2 inline-block cursor-pointer text-(--color-link) underline">Повторить поиск подсказок</Link></aside>}<QuestionnaireFields
+              <>{[3,4,5,7].includes(step) && <aside className="mb-5 rounded-lg bg-(--color-surface-muted) p-4 text-sm"><h2 className="font-semibold">{({3:'Подсказки с сайта',4:'Подсказки о конкурентах',5:'Мы нашли на вашем сайте',7:'Подсказки по вашей сфере'} as Record<number,string>)[step]}</h2><p role="status" className="mt-2 text-(--color-ink-muted)">{hints?.status === 'available' ? 'Проверьте найденные сведения перед добавлением в анкету.' : hints?.status === 'empty' ? 'В аудите сайта подходящих сведений пока нет. Заполните поля самостоятельно.' : 'Подсказки временно недоступны. Заполните поля самостоятельно.'}</p>{step === 3 && (hints?.items ?? []).filter(item => item.kind === 'customer_type').map(item => <button key={`${item.source}-${item.value}`} type="button" className="mt-2 mr-2 cursor-pointer rounded-lg border border-(--color-border) px-3 py-2 disabled:opacity-50" disabled={data.customer_types.includes(item.value)} onClick={() => setData({...data,customer_types:[...data.customer_types,item.value]})}>Тип покупателя: {item.value} ({item.source}) +</button>)}<Link href={`/vision/quiz/${step}`} className="mt-2 inline-block cursor-pointer text-(--color-link) underline">Повторить поиск подсказок</Link></aside>}<QuestionnaireFields
                 key={step}
                 step={step}
-                hints={(hints?.items ?? []).map((item) => ({
+                hints={(hints?.items ?? []).filter(item => item.kind !== 'customer_type').map((item) => ({
                   label: `${item.label} (${item.source})`,
                   value: item.value,
                 }))}
