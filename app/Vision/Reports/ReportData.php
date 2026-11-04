@@ -6,6 +6,7 @@ use App\Ai\CanonicalJson;
 use App\Tenancy\TenantContext;
 use App\Vision\Core\ConfirmedClarifications;
 use App\Vision\Core\VisionReportReader;
+use App\Vision\Publications\PublicationData;
 use Illuminate\Support\Facades\DB;
 
 final class ReportData
@@ -88,6 +89,7 @@ final class ReportData
                 ])->values()->all(),
                 'questions' => count($payload['questions'] ?? []),
                 'evidence_status' => $payload['evidence_status'] ?? 'not_available',
+                'publication_candidates' => app(PublicationData::class)->candidatesFromPayload($payload),
             ];
         }
 

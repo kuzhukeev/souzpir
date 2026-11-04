@@ -51,6 +51,8 @@ final class PublicationsController
             'ttl_days' => ['required', 'integer', Rule::in(config('features.E8-05C.defaults.publication_ttl_days'))],
             'return_to' => ['nullable', Rule::in(['report'])],
             'allow_pdf' => ['sometimes', 'boolean'],
+            'confirmed_actions' => ['sometimes', 'array', 'max:3'],
+            'confirmed_actions.*' => ['required', 'string', 'regex:/^action:\d+$/D'],
         ]);
         $token = bin2hex(random_bytes(32));
         app(MeasurementList::class)->withinCurrent($request, function (TenantContext $context) use ($data, $token): void {
@@ -64,7 +66,8 @@ final class PublicationsController
                 $audit = DB::table('audit_runs')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)
                     ->orderByDesc('created_at')->orderByDesc('id')->value('result');
                 $siteAudit = is_string($audit) ? json_decode($audit, true) : null;
-                $public = app(PublicationData::class)->fromReport($report->id, is_array($siteAudit) ? $siteAudit : null);
+                $public = app(PublicationData::class)->fromReport($report->id, is_array($siteAudit) ? $siteAudit : null,
+                    array_key_exists('confirmed_actions', $data) ? $data['confirmed_actions'] : null);
                 $public['allow_pdf'] = (bool) ($data['allow_pdf'] ?? false);
             } catch (LogicException) {
                 abort(409, 'Отчёт недоступен.');
@@ -77,7 +80,7 @@ final class PublicationsController
                 'expires_at' => now()->addDays($data['ttl_days']), 'created_at' => now(), 'updated_at' => now(),
             ]);
             app(AuditWriter::class)->record($context, new AuditEntry('vision.report.published', 'report_publication', $id,
-                after: ['report_id' => $report->id, 'ttl_days' => $data['ttl_days']]));
+                after: ['report_id' => $report->id, 'ttl_days' => $data['ttl_days'], 'approved_actions' => count($data['confirmed_actions'] ?? [])]));
         });
 
         $destination = ($data['return_to'] ?? null) === 'report' ? route('vision.reports.index', ['report' => $data['report_id']]) : route('vision.publications.index');
