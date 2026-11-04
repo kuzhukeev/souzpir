@@ -41,7 +41,7 @@ final class ProhibitionsController
 
             return ['draft' => $draft, 'topics' => $data['closed_topics'] ?? [], 'rules' => $data['guard_rules']['forbidden_promises'] ?? [],
                 'maxWords' => $data['persona']['length']['max_words'] ?? 90, 'maxQuestions' => $data['persona']['length']['max_questions'] ?? 1,
-                'stopPhrases' => $data['persona']['stop_phrases'] ?? []];
+                'stopPhrases' => $data['persona']['stop_phrases'] ?? [], 'stopPhrasesEnabled' => $data['persona']['stop_phrases_enabled'] ?? true];
         });
 
         return Inertia::render('Seller/Knowledge/Prohibitions/Index', [...$data, 'status' => session('status')]);
@@ -55,6 +55,7 @@ final class ProhibitionsController
             'rules.*.patterns' => ['sometimes', 'array', 'max:50'], 'rules.*.patterns.*' => ['required', 'string', 'max:500'],
             'rules.*.enabled' => ['sometimes', 'boolean'], 'maxQuestions' => ['sometimes', 'integer', 'min:0', 'max:10'],
             'stopPhrases' => ['sometimes', 'array', 'max:100'], 'stopPhrases.*' => ['required', 'string', 'max:200'],
+            'stopPhrasesEnabled' => ['sometimes', 'boolean'],
             'maxWords' => ['required', 'integer', 'min:20', 'max:300']]);
         $this->access($request, function (TenantContext $tenant) use ($input): void {
             $draft = $this->draft($tenant) ?? abort(404);
@@ -105,6 +106,9 @@ final class ProhibitionsController
             if (array_key_exists('stopPhrases', $input)) {
                 $data['persona']['stop_phrases'] = array_values($input['stopPhrases']);
             }
+            if (array_key_exists('stopPhrasesEnabled', $input)) {
+                $data['persona']['stop_phrases_enabled'] = (bool) $input['stopPhrasesEnabled'];
+            }
             $repo->saveDraft($tenant, $draft->id, (int) $input['version'], $data);
         });
 
@@ -118,7 +122,28 @@ final class ProhibitionsController
             $draft = $this->draft($tenant) ?? abort(404);
             $snapshot = app(KnowledgeRepository::class)->forRelease($tenant, $draft->id, true);
 
-            return (new DeterministicGuard($snapshot))->check($input['text'], new Goal('answer_only'), new LeadState);
+            $result = (new DeterministicGuard($snapshot))->check($input['text'], new Goal('answer_only'), new LeadState);
+            $result['matches'] = [];
+            foreach ($snapshot->guardRules()['forbidden_promises'] ?? [] as $rule) {
+                if (($rule['enabled'] ?? true) === false) {
+                    continue;
+                }
+                if (collect($rule['allow_if'] ?? [])->contains(fn ($value) => str_contains(mb_strtolower($input['text']), mb_strtolower($value)))) {
+                    continue;
+                }
+                $issue = 'запрещённое обещание: '.($rule['description'] ?? '');
+                if (! in_array($issue, [...$result['issues'], ...$result['warnings']], true)) {
+                    continue;
+                }
+                foreach ($rule['patterns'] ?? [] as $pattern) {
+                    if (@preg_match('~'.str_replace('~', '\\~', $pattern).'~ium', $input['text'], $match) === 1 && $match[0] !== '') {
+                        $result['matches'][] = ['text' => $match[0], 'rule' => $rule['description'] ?? 'Правило'];
+                        break;
+                    }
+                }
+            }
+
+            return $result;
         });
 
         return response()->json($result)->header('Cache-Control', 'private, no-store');
