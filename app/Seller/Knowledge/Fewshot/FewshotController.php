@@ -38,7 +38,10 @@ final class FewshotController
             $draft = $this->draft($tenant);
             $snapshot = $draft ? app(KnowledgeRepository::class)->forRelease($tenant, $draft->id, true) : null;
 
-            return ['draft' => $draft, 'fewshot' => $snapshot?->all('fewshot')];
+            $persona = $snapshot?->all('persona');
+            $maxWords = $persona['length']['max_words'] ?? null;
+
+            return ['draft' => $draft, 'fewshot' => $snapshot?->all('fewshot'), 'maxWords' => is_int($maxWords) && $maxWords > 0 ? $maxWords : null];
         });
 
         return Inertia::render('Seller/Knowledge/Fewshot/Index', [...$data, 'status' => session('status')]);
