@@ -39,18 +39,15 @@ final class SimulationBridgeE306DTest extends TenancyTestCase
         Http::assertNothingSent();
     }
 
-    public function test_enabled_job_does_not_fall_back_when_runtime_is_missing_or_live(): void
+    public function test_enabled_job_uses_protected_runtime_without_binding_and_rejects_live_ai(): void
     {
-        [$owner, $org, $brand] = $this->cabinet();
+        [$owner, $org, $brand, , $membership] = $this->cabinet();
+        app(SellerPersonaSeeder::class)->seedForBrand(new TenantContext($org->id, $brand->id, $owner->id, $membership->id));
         config(['runtime.ai_driver' => 'fake', 'features.E3-06D.defaults.runtime_enabled' => true]);
         app()->forgetInstance(SimulationRuntime::class);
-        try {
-            SimulateFakeJob::dispatchSync($org->id, $brand->id, 'newbie_voronezh', [[]]);
-            self::fail('Missing runtime accepted');
-        } catch (LogicException) {
-            self::assertDatabaseCount('seller_sim_runs', 0);
-        }
-        app()->instance(SimulationRuntime::class, new BridgeFixtureRuntime);
+        SimulateFakeJob::dispatchSync($org->id, $brand->id, 'newbie_voronezh', [[], []]);
+        self::assertSame('completed', DB::table('seller_sim_runs')->sole()->status);
+
         config(['runtime.ai_driver' => 'openrouter']);
         $this->expectException(LogicException::class);
         SimulateFakeJob::dispatchSync($org->id, $brand->id, 'newbie_voronezh', [[]]);
