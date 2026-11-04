@@ -20,10 +20,10 @@ use Throwable;
 /** Fixture-only draft runtime bound to an authorized session and immutable draft. */
 final class FixtureRuntime
 {
-    public function extract(Request $request, KnowledgeSnapshot $draft, string $client): ?array
+    public function extract(Request $request, KnowledgeSnapshot $draft, string $client, ?array $seed = null): ?array
     {
-        $data = $this->run($request, $draft, 'extract', ['client' => $client, 'intents' => $draft->intentIds()]);
-        if (! is_array($data) || ! is_string($data['client_intent'] ?? null) || ! in_array($data['client_intent'], $draft->intentIds(), true)) {
+        $data = $this->run($request, $draft, 'extract', ['client' => $client, 'intents' => $draft->intentIds()], $seed);
+        if (! is_array($data) || ! is_string($data['client_intent'] ?? null) || ! in_array($data['client_intent'], [...$draft->intentIds(), 'unclear'], true)) {
             return null;
         }
 
@@ -100,9 +100,9 @@ final class FixtureRuntime
         return ['model' => 'fake-draft-'.$stage, 'draft' => $draft->releaseId(), 'checksum' => $draft->checksum(), 'input' => $input];
     }
 
-    private function run(Request $request, KnowledgeSnapshot $draft, string $stage, array $input): ?array
+    private function run(Request $request, KnowledgeSnapshot $draft, string $stage, array $input, ?array $seed = null): ?array
     {
-        return app(ProfileAccess::class)->run($request, function (User $user, TenantContext $tenant) use ($draft, $stage, $input): ?array {
+        return app(ProfileAccess::class)->run($request, function (User $user, TenantContext $tenant) use ($draft, $stage, $input, $seed): ?array {
             Gate::forUser($user)->authorize('seller.knowledge.write');
             abort_unless(app(SellerModuleAccess::class)->enabled($tenant->organizationId, $tenant->brandId), 404);
             $exists = DB::table('knowledge_releases')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
@@ -121,7 +121,41 @@ final class FixtureRuntime
 
                 return is_array($value) ? $value : null;
             } catch (Throwable) {
+                if ($stage === 'judge') {
+                    $checks = [];
+                    foreach ($input['expectations'] as $expectation) {
+                        $answer = $input['answer'];
+                        $checked = match ($expectation) {
+                            'one_question_per_turn' => mb_substr_count($answer, '?') <= 1,
+                            'no_html' => ! preg_match('/<[^>]+>/', $answer),
+                            default => null,
+                        };
+                        if ($checked === null) {
+                            return null;
+                        }
+                        $checks[$expectation] = $checked;
+                    }
+
+                    return ['checks' => $checks];
+                }
                 if ($stage !== 'extract') {
+                    return null;
+                }
+                if (is_array($seed) && is_string($seed['persona_key'] ?? null) && is_string($seed['field'] ?? null)) {
+                    $catalog = json_decode(file_get_contents(__DIR__.'/fixtures/seeded-personas.json'), true);
+                    $entry = $catalog[$seed['persona_key']][$seed['field']] ?? null;
+                    $stored = DB::table('seller_personas')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
+                        ->where('key', $seed['persona_key'])->value('payload');
+                    $persona = is_string($stored) ? json_decode($stored, true) : null;
+                    if (is_array($entry) && is_string($entry['value'] ?? null) && is_string($entry['slot'] ?? null)
+                        && data_get($persona, 'facts.'.$seed['field']) === $entry['value']
+                        && $input['client'] === 'Уточню: '.$entry['value']) {
+                        $value = $entry['slot'] === 'categories' ? [$entry['value']] : $entry['value'];
+
+                        return ['client_intent' => 'unclear', 'slot_updates' => [$entry['slot'] => $value]];
+                    }
+                }
+                if ($seed !== null) {
                     return null;
                 }
                 $fixtures = json_decode(file_get_contents(__DIR__.'/fixtures/seeded-extractions.json'), true);
