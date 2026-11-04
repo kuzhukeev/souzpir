@@ -8,6 +8,7 @@ use App\Shell\Audit\Contracts\AuditWriter;
 use App\Shell\Organizations\ModuleEntitlements;
 use App\Shell\Profile\ProfileAccess;
 use App\Tenancy\TenantContext;
+use App\Vision\Core\VisionReportReader;
 use App\Vision\KnowledgeBridge\SelfDeclaredProfile;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
@@ -57,8 +58,23 @@ final class CompetitorsController
             }
             $aliases = $this->scope('vision_competitor_aliases', $tenant)->pluck('canonical', 'alias')->all();
             $tracked = $this->scope('vision_competitor_tracking', $tenant)->pluck('name')->all();
+            $deltas = null;
+            foreach ($history as $previous) {
+                if (! isset($snapshot['measurement_id']) || $previous->measurement_id === $snapshot['measurement_id']) {
+                    continue;
+                }
+                try {
+                    $earlier = app(VisionReportReader::class)->read($previous->id);
+                    $deltas = app(ComparableCompanyHistory::class)->deltas($earlier, $snapshot, $aliases);
+                    if ($deltas !== null) {
+                        break;
+                    }
+                } catch (\LogicException) {
+                    // Skip unavailable or unverified reports.
+                }
+            }
             $metrics = app(SnapshotView::class)->metrics($snapshot, $aliases);
-            $entities = collect($metrics['entities'] ?? [])->map(function ($entity) use ($metrics, $tracked, $snapshot, $aliases): array {
+            $entities = collect($metrics['entities'] ?? [])->map(function ($entity) use ($metrics, $tracked, $snapshot, $aliases, $deltas): array {
                 $matched = collect($metrics['slots'] ?? [])->filter(function ($slot) use ($entity): bool {
                     if (! ($slot['valid'] ?? false)) {
                         return false;
@@ -83,8 +99,14 @@ final class CompetitorsController
                     $intentBases[$intent] = $this->completeAnswerBase($metrics['slots'] ?? [], (string) $intent, $intentDenominators[$intent]);
                 }
 
+                $quotes = ($entity['is_brand'] ?? false) ? $matched->filter(fn ($slot) => ($slot['fact']['brand_mentioned'] ?? false) === true
+                    && ($slot['fact']['mention_status'] ?? 'confirmed') === 'confirmed' && is_string($slot['fact']['mention_quote'] ?? null)
+                    && trim($slot['fact']['mention_quote']) !== '')
+                    ->map(fn ($slot) => ['text' => $slot['fact']['mention_quote'], 'provider' => $slot['provider'] ?? ''])
+                    ->values()->all() : [];
+
                 return ['name' => $entity['name'], 'answers' => $entity['answers'], 'share' => $entity['share_of_voice'] ?? null,
-                    'intent_rates' => $intentRates, 'intent_denominators' => $intentDenominators, 'intent_bases' => $intentBases,
+                    'quotes' => $quotes, 'delta' => $deltas === null ? null : ($deltas[$entity['name']] ?? null), 'intent_rates' => $intentRates, 'intent_denominators' => $intentDenominators, 'intent_bases' => $intentBases,
                     'aliases' => array_values(array_keys($aliases, $entity['name'], true)),
                     'is_brand' => $entity['is_brand'], 'tracked' => in_array($entity['name'], $tracked, true),
                     'models' => $matched->pluck('provider')->unique()->values()->all(),
