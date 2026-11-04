@@ -31,11 +31,16 @@ test('brand switch offers its original request after reload', async ({ page }) =
     localStorage.setItem('souzpir.profile-brand-switch.retry', JSON.stringify({ id: '01J00000000000000000000005', from: '01J00000000000000000000004', key: value }));
     localStorage.setItem('souzpir.profile-context.pending.' + value, '1');
   }, key);
-  await page.route('**/brand/switch', (route) => route.fulfill({ status: 401, contentType: 'application/json', body: '{}' }));
+  let switchRequests = 0;
+  await page.route('**/brand/switch', (route) => { switchRequests++; return route.fulfill({ status: 401, contentType: 'application/json', body: '{}' }); });
   await page.route('**/brand/switch/recover?**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '{"switched":true}' }));
   await page.route('**/login', (route) => route.fulfill({ status: 200, contentType: 'text/html', body: '<html lang="ru"><body>Вход</body></html>' }));
   await page.goto(fixture + '?screen=switch');
   await expect(page.getByRole('button', { name: 'Повторить' })).toBeVisible();
+  await page.getByRole('combobox', { name: 'Выбрать бренд' }).click();
+  await page.getByRole('option', { name: 'Второй бренд' }).click();
+  await expect(page.getByRole('alert')).toContainText('Сначала завершите прежнее переключение.');
+  expect(switchRequests).toBe(0);
   await page.screenshot({ path: '.local/screenshots/e1-08c/brand-retry-1440.png', fullPage: true });
   const request = page.waitForRequest('**/brand/switch');
   const recovery = page.waitForRequest('**/brand/switch/recover?**');
