@@ -60,7 +60,16 @@ final class CompetitorsController
                 });
                 $questions = collect($snapshot['questions'] ?? [])->keyBy('id');
 
+                $intentRates = [];
+                $intentDenominators = [];
+                foreach ($metrics['intents'] ?? [] as $intent => $group) {
+                    $match = collect($group['entities'] ?? [])->firstWhere('name', $entity['name']);
+                    $intentRates[$intent] = is_numeric($match['frequency'] ?? null) ? (float) $match['frequency'] : null;
+                    $intentDenominators[$intent] = is_numeric($match['denominator'] ?? null) ? (int) $match['denominator'] : null;
+                }
+
                 return ['name' => $entity['name'], 'answers' => $entity['answers'], 'share' => $entity['share_of_voice'] ?? null,
+                    'intent_rates' => $intentRates, 'intent_denominators' => $intentDenominators,
                     'is_brand' => $entity['is_brand'], 'tracked' => in_array($entity['name'], $tracked, true),
                     'models' => $matched->pluck('provider')->unique()->values()->all(),
                     'intents' => $matched->pluck('intent')->filter()->unique()->values()->all(),
