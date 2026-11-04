@@ -1,0 +1,294 @@
+[
+  {
+    "persona": "newbie_voronezh",
+    "criterion": "full_card",
+    "history": [
+      {
+        "role": "client",
+        "text": "Воронеж",
+        "field": "city"
+      },
+      {
+        "role": "client",
+        "text": "на продажу",
+        "field": "purpose"
+      },
+      {
+        "role": "client",
+        "text": "нет",
+        "field": "experience"
+      },
+      {
+        "role": "client",
+        "text": "павильон",
+        "field": "outlet_type"
+      },
+      {
+        "role": "client",
+        "text": "всё",
+        "field": "categories"
+      },
+      {
+        "role": "client",
+        "text": "тысяч 100",
+        "field": "budget_range"
+      },
+      {
+        "role": "client",
+        "text": "к ноябрю",
+        "field": "timing"
+      },
+      {
+        "role": "client",
+        "text": "ivan.pav@mail.ru",
+        "field": "email"
+      }
+    ],
+    "client": "Спасибо",
+    "answer": "Спасибо за обращение.",
+    "events": [
+      {
+        "type": "conversation_end"
+      }
+    ],
+    "facts": {
+      "customer_type": "newbie",
+      "card": {
+        "city": "Воронеж",
+        "purpose": "на продажу",
+        "experience": "нет",
+        "outlet_type": "павильон",
+        "categories": "всё",
+        "budget_range": "тысяч 100",
+        "timing": "к ноябрю",
+        "email": "ivan.pav@mail.ru"
+      },
+      "rule_source": "laravel-prototype/tools/report.py:REQUIRED,contact,full_card"
+    },
+    "expected": true
+  },
+  {
+    "persona": "newbie_voronezh",
+    "criterion": "full_card",
+    "history": [
+      {
+        "role": "client",
+        "text": "Воронеж",
+        "field": "city"
+      },
+      {
+        "role": "client",
+        "text": "на продажу",
+        "field": "purpose"
+      },
+      {
+        "role": "client",
+        "text": "нет",
+        "field": "experience"
+      },
+      {
+        "role": "client",
+        "text": "павильон",
+        "field": "outlet_type"
+      },
+      {
+        "role": "client",
+        "text": "всё",
+        "field": "categories"
+      },
+      {
+        "role": "client",
+        "text": "тысяч 100",
+        "field": "budget_range"
+      },
+      {
+        "role": "client",
+        "text": "к ноябрю",
+        "field": "timing"
+      }
+    ],
+    "client": "Спасибо",
+    "answer": "Спасибо за обращение.",
+    "events": [
+      {
+        "type": "conversation_end"
+      }
+    ],
+    "facts": {
+      "customer_type": "newbie",
+      "card": {
+        "city": "Воронеж",
+        "purpose": "на продажу",
+        "experience": "нет",
+        "outlet_type": "павильон",
+        "categories": "всё",
+        "budget_range": "тысяч 100",
+        "timing": "к ноябрю"
+      },
+      "rule_source": "laravel-prototype/tools/report.py:REQUIRED,contact,full_card"
+    },
+    "expected": false
+  },
+  {
+    "persona": "newbie_voronezh",
+    "criterion": "full_card",
+    "history": [
+      {
+        "role": "client",
+        "text": "Воронеж",
+        "field": "city"
+      }
+    ],
+    "client": "Спасибо",
+    "answer": "Спасибо за обращение.",
+    "events": [],
+    "facts": {
+      "customer_type": "newbie",
+      "card": {
+        "city": "Воронеж"
+      },
+      "rule_source": "laravel-prototype/tools/report.py:REQUIRED,contact,full_card"
+    },
+    "expected": null
+  },
+  {
+    "persona": "experienced_kazan",
+    "criterion": "full_card",
+    "history": [
+      {
+        "role": "client",
+        "text": "Казань",
+        "field": "city"
+      },
+      {
+        "role": "client",
+        "text": "на продажу",
+        "field": "purpose"
+      },
+      {
+        "role": "client",
+        "text": "много лет",
+        "field": "experience"
+      },
+      {
+        "role": "client",
+        "text": "салюты",
+        "field": "categories"
+      },
+      {
+        "role": "client",
+        "text": "200–300 тысяч",
+        "field": "budget_range"
+      },
+      {
+        "role": "client",
+        "text": "сейчас",
+        "field": "timing"
+      },
+      {
+        "role": "client",
+        "text": "kazan.salut@yandex.ru",
+        "field": "email"
+      }
+    ],
+    "client": "Спасибо",
+    "answer": "Спасибо за обращение.",
+    "events": [
+      {
+        "type": "conversation_end"
+      }
+    ],
+    "facts": {
+      "customer_type": "experienced",
+      "card": {
+        "city": "Казань",
+        "purpose": "на продажу",
+        "experience": "много лет",
+        "categories": "салюты",
+        "budget_range": "200–300 тысяч",
+        "timing": "сейчас",
+        "email": "kazan.salut@yandex.ru"
+      },
+      "rule_source": "laravel-prototype/tools/report.py:REQUIRED,contact,full_card"
+    },
+    "expected": true
+  },
+  {
+    "persona": "experienced_kazan",
+    "criterion": "full_card",
+    "history": [
+      {
+        "role": "client",
+        "text": "Казань",
+        "field": "city"
+      },
+      {
+        "role": "client",
+        "text": "на продажу",
+        "field": "purpose"
+      },
+      {
+        "role": "client",
+        "text": "много лет",
+        "field": "experience"
+      },
+      {
+        "role": "client",
+        "text": "салюты",
+        "field": "categories"
+      },
+      {
+        "role": "client",
+        "text": "200–300 тысяч",
+        "field": "budget_range"
+      },
+      {
+        "role": "client",
+        "text": "сейчас",
+        "field": "timing"
+      }
+    ],
+    "client": "Спасибо",
+    "answer": "Спасибо за обращение.",
+    "events": [
+      {
+        "type": "conversation_end"
+      }
+    ],
+    "facts": {
+      "customer_type": "experienced",
+      "card": {
+        "city": "Казань",
+        "purpose": "на продажу",
+        "experience": "много лет",
+        "categories": "салюты",
+        "budget_range": "200–300 тысяч",
+        "timing": "сейчас"
+      },
+      "rule_source": "laravel-prototype/tools/report.py:REQUIRED,contact,full_card"
+    },
+    "expected": false
+  },
+  {
+    "persona": "experienced_kazan",
+    "criterion": "full_card",
+    "history": [
+      {
+        "role": "client",
+        "text": "Казань",
+        "field": "city"
+      }
+    ],
+    "client": "Спасибо",
+    "answer": "Спасибо за обращение.",
+    "events": [],
+    "facts": {
+      "customer_type": "experienced",
+      "card": {
+        "city": "Казань"
+      },
+      "rule_source": "laravel-prototype/tools/report.py:REQUIRED,contact,full_card"
+    },
+    "expected": null
+  }
+]
