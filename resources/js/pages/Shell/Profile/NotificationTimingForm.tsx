@@ -36,7 +36,7 @@ export function NotificationTimingForm({ draft, revision }: { draft: Notificatio
         <input type="checkbox" checked={form.data.digest_time !== null} onChange={(event) => form.setData('digest_time', event.target.checked ? '09:00' : null)} />
         Сводка вместо каждого события: раз в день
       </label>
-      {form.data.digest_time !== null && <TimePicker label={t('digest_time')} value={form.data.digest_time} onChange={(event) => form.setData('digest_time', event.target.value || null)} error={form.errors.digest_time} />}
+      <TimePicker label={t('digest_time')} value={form.data.digest_time ?? ''} onChange={(event) => form.setData('digest_time', event.target.value || null)} error={form.errors.digest_time} />
       <Button type="submit" variant="secondary" className="cursor-pointer" loading={form.processing} disabled={!form.isDirty}>{t('timing_draft_save')}</Button>
     </form>
   );
