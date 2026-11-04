@@ -5279,7 +5279,9 @@
         "SP-E8-20I",
         "SP-E4-01N",
         "SP-E4-01O",
-        "SP-E4-01P"
+        "SP-E4-01P",
+        "SP-E8-20J",
+        "SP-E8-20K"
       ],
       "scope": [
         "README.md",
@@ -15116,6 +15118,73 @@
       "promptPath": "docs/tasks/SP-E4-01P.md",
       "wave": 18,
       "description": "# SP-E4-01P · Фикстуры смысловой оценки\n\n**Зачем:** завершить экран D-4.12 по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E4-01N из docs/results/SP-E4-01N.md.\n**Зависимости:** SP-E4-01N (дождаться merge).\n\nДля сидированных персон подготовить и проверить воспроизводимые fake-фикстуры смысловой оценки; неподтверждённые критерии оставлять непроверенными. Подключение защищённых стадий выполняется отдельно в SP-E4-01O.\n\nПроверить сценарии, права, изоляцию брендов и ошибки; без живых и платных вызовов. Невыполненные пункты перечислить в отчёте.\n\nScope: `app/ProtectedOperations/DraftSimulation/fixtures/`, `tests/Feature/Seller/Knowledge/DraftSeedFixturesE401PTest.php`, `tests/Browser/E4-01P/`, `docs/results/SP-E4-01P.md`.\n\nОтчёт: docs/results/SP-E4-01P.md.\n"
+    },
+    {
+      "taskKey": "SP-E8-20J",
+      "title": "SP-E8-20J · Компании: карточки и сравнение",
+      "goal": "Завершить V-6.1–V-6.4 по журналу макетов: вкладки, таблицу, карточки, дубли и сравнение. Для динамики использовать существующие сопоставимые подтверждённые замеры, для цитат — сохранённые проверенные ответы; отсутствие данных показывать явно.",
+      "dependsOn": [
+        "SP-E8-20I"
+      ],
+      "scope": [
+        "app/Vision/Competitors/",
+        "resources/js/pages/Vision/Competitors/",
+        "tests/Feature/Vision/Competitors/",
+        "tests/Browser/E8-20J/",
+        "docs/results/SP-E8-20J.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Завершить пункты по макету, проверить права, изоляцию и ошибки; без живых вызовов."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "V-6.1",
+        "V-6.2",
+        "V-6.3",
+        "V-6.4"
+      ],
+      "notes": "Остаток SP-E8-20I разделён по решению интегратора.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E8-20J.md",
+      "wave": 18,
+      "description": "# SP-E8-20J · Компании: карточки и сравнение\n\n**Зачем:** завершить экраны по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E8-20I из docs/results/SP-E8-20I.md.\n**Зависимости:** SP-E8-20I (дождаться merge).\n\nЗавершить V-6.1–V-6.4 по журналу макетов: вкладки, таблицу, карточки, дубли и сравнение. Для динамики использовать существующие сопоставимые подтверждённые замеры, для цитат — сохранённые проверенные ответы; отсутствие данных показывать явно.\n\nПроверить сценарии, права, изоляцию брендов и ошибки; без живых и платных вызовов. Невыполненные пункты перечислить в отчёте.\n\nScope: `app/Vision/Competitors/`, `resources/js/pages/Vision/Competitors/`, `tests/Feature/Vision/Competitors/`, `tests/Browser/E8-20J/`, `docs/results/SP-E8-20J.md`.\n\nОтчёт: docs/results/SP-E8-20J.md.\n"
+    },
+    {
+      "taskKey": "SP-E8-20K",
+      "title": "SP-E8-20K · Источники: KPI и действия",
+      "goal": "Завершить V-7.1–V-7.3 по журналу макетов: KPI и оформление таблицы и карточек, CTA добавления именно выбранной площадки в действия. Использовать сохранённые подтверждённые данные; неизвестные значения не выдумывать.",
+      "dependsOn": [
+        "SP-E8-20I"
+      ],
+      "scope": [
+        "app/Vision/Sources/",
+        "resources/js/pages/Vision/Sources/",
+        "tests/Feature/Vision/Sources/",
+        "tests/Browser/E8-20K/",
+        "docs/results/SP-E8-20K.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Завершить пункты по макету, проверить права, изоляцию и ошибки; без живых вызовов."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "V-7.1",
+        "V-7.2",
+        "V-7.3"
+      ],
+      "notes": "Остаток SP-E8-20I разделён по решению интегратора.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E8-20K.md",
+      "wave": 18,
+      "description": "# SP-E8-20K · Источники: KPI и действия\n\n**Зачем:** завершить экраны по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E8-20I из docs/results/SP-E8-20I.md.\n**Зависимости:** SP-E8-20I (дождаться merge).\n\nЗавершить V-7.1–V-7.3 по журналу макетов: KPI и оформление таблицы и карточек, CTA добавления именно выбранной площадки в действия. Использовать сохранённые подтверждённые данные; неизвестные значения не выдумывать.\n\nПроверить сценарии, права, изоляцию брендов и ошибки; без живых и платных вызовов. Невыполненные пункты перечислить в отчёте.\n\nScope: `app/Vision/Sources/`, `resources/js/pages/Vision/Sources/`, `tests/Feature/Vision/Sources/`, `tests/Browser/E8-20K/`, `docs/results/SP-E8-20K.md`.\n\nОтчёт: docs/results/SP-E8-20K.md.\n"
     }
   ],
   "excludedSourceTasks": {
