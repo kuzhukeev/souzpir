@@ -37,10 +37,16 @@ final class SourcesController
             $presence = DB::table('vision_source_presence')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->pluck('presence', 'domain')->all();
             $questions = collect($snapshot['questions'] ?? [])->keyBy('id');
             $profiles = $snapshot ? $this->confirmedProfiles($tenant, $snapshot) : [];
-            $sources = collect(data_get($snapshot, 'metrics.sources', []))->map(function ($source) use ($presence, $snapshot, $questions, $profiles): array {
+            $descriptions = collect(data_get($snapshot, 'metrics.sources', []))->pluck('domain')->filter(fn ($domain) => is_string($domain))
+                ->map(fn ($domain) => "Проверить присутствие бренда на площадке {$domain}.")->all();
+            $actions = DB::table('actions')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
+                ->whereIn('description', $descriptions)->orderByDesc('updated_at')->get(['id', 'description', 'status', 'completed_at'])->unique('description')->keyBy('description');
+            $citationAvailable = is_array(data_get($snapshot, 'metrics.slots'));
+            $sources = collect(data_get($snapshot, 'metrics.sources', []))->map(function ($source) use ($presence, $snapshot, $questions, $profiles, $actions, $citationAvailable): array {
                 $examples = [];
                 $competitors = [];
                 $models = [];
+                $citations = $citationAvailable ? 0 : null;
                 foreach (data_get($snapshot, 'metrics.slots', []) as $slot) {
                     if (! ($slot['valid'] ?? false)) {
                         continue;
@@ -48,6 +54,9 @@ final class SourcesController
                     foreach ($slot['sources'] ?? [] as $item) {
                         if (($item['domain'] ?? null) !== $source['domain']) {
                             continue;
+                        }
+                        if ($citations !== null) {
+                            $citations++;
                         }
                         $url = $item['url'] ?? null;
                         if (! is_string($url) || ! in_array(parse_url($url, PHP_URL_SCHEME), ['http', 'https'], true)) {
@@ -65,9 +74,12 @@ final class SourcesController
                     }
                 }
 
-                return ['domain' => $source['domain'], 'answers' => $source['answers'],
+                $action = $actions->get("Проверить присутствие бренда на площадке {$source['domain']}.");
+
+                return ['domain' => $source['domain'], 'answers' => $source['answers'], 'citations' => $citations,
                     'type' => ReportPreparation::SOURCE_TYPES[$source['type'] ?? 'other'] ?? ReportPreparation::SOURCE_TYPES['other'],
-                    'profile_url' => $profiles[$source['domain']] ?? null, 'presence' => $presence[$source['domain']] ?? 'unknown', 'competitors' => array_values(array_unique($competitors)), 'models' => array_values(array_unique($models)), 'examples' => array_slice($examples, 0, 20)];
+                    'profile_url' => $profiles[$source['domain']] ?? null, 'presence' => $presence[$source['domain']] ?? 'unknown', 'competitors' => array_values(array_unique($competitors)), 'models' => array_values(array_unique($models)), 'examples' => array_slice($examples, 0, 20),
+                    'action_id' => $action?->id, 'action_status' => $action ? ($action->completed_at ? 'completed' : $action->status) : null];
             })->values()->all();
 
             return ['sources' => $sources, 'available' => $snapshot !== null, 'canEdit' => Gate::forUser($user)->allows('vision.actions.write')];
