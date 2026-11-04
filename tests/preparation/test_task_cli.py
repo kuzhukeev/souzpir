@@ -4,6 +4,7 @@ import importlib.util
 import json
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
 from unittest.mock import patch
 
@@ -329,6 +330,90 @@ class TaskCliTests(unittest.TestCase):
         with self.assertRaisesRegex(task_cli.TaskError, "must be on main"):
             self.claim()
         self.assertNotIn("claim", self.api.calls)
+
+    def completed_tree(self, *, published=True):
+        remote = self.root / ".local" / "remote.git"
+        remote.mkdir(parents=True)
+        task_cli.git(remote, "init", "--bare")
+        task_cli.git(self.root, "remote", "add", "origin", str(remote))
+        task_cli.git(self.root, "push", "origin", "main")
+        worktree, _ = self.claim()
+        self.commit(worktree)
+        self.client.submit("SP-001", "Ready", ["Checked"])
+        task_cli.git(self.root, "merge", "--no-ff", "codex/sp-001", "-m", "Accept task")
+        self.client.mark_merged("SP-001")
+        if published:
+            task_cli.git(self.root, "push", "origin", "main")
+        return worktree
+
+    def test_cleanup_previews_then_archives_settings_and_keeps_branch(self):
+        worktree = self.completed_tree()
+        settings = worktree / ".local" / "settings.txt"
+        settings.parent.mkdir(exist_ok=True)
+        settings.write_text("local settings", encoding="utf-8")
+        (self.root / ".git" / "info" / "exclude").write_text("node_modules/\n", encoding="utf-8")
+        dependency = worktree / "node_modules" / "package.js"
+        dependency.parent.mkdir()
+        dependency.write_text("reinstallable", encoding="utf-8")
+        self.assertEqual(self.client.cleanup_merged()["eligible"], ["SP-001"])
+        self.assertTrue(worktree.exists())
+        self.assertFalse((self.root / ".local" / "retired-worktrees").exists())
+        with patch.object(task_cli, "windows_process_commands", return_value=""):
+            result = self.client.cleanup_merged(apply=True)
+        self.assertEqual(result["removed"], ["SP-001"])
+        self.assertFalse(worktree.exists())
+        task_cli.git(self.root, "show-ref", "--verify", "refs/heads/codex/sp-001")
+        archive = next((self.root / ".local" / "retired-worktrees").rglob("*.zip"))
+        with zipfile.ZipFile(archive) as saved:
+            self.assertEqual(saved.read(".local/settings.txt"), b"local settings")
+            self.assertNotIn("node_modules/package.js", saved.namelist())
+
+    def test_cleanup_preserves_unpublished_head(self):
+        worktree = self.completed_tree(published=False)
+        with patch.object(task_cli, "windows_process_commands", return_value=""):
+            self.assertEqual(self.client.cleanup_merged(apply=True)["removed"], [])
+        self.assertTrue(worktree.exists())
+
+    def test_cleanup_preserves_queued_dirty_and_locked_trees(self):
+        worktree = self.completed_tree()
+        with patch.object(task_cli, "windows_process_commands", return_value=""):
+            self.api.task["status"] = "queue"
+            self.assertEqual(self.client.cleanup_merged(apply=True)["eligible"], [])
+            self.api.task["status"] = "done"
+            (worktree / "unfinished.txt").write_text("keep", encoding="utf-8")
+            self.assertEqual(self.client.cleanup_merged(apply=True)["eligible"], [])
+            (worktree / "unfinished.txt").unlink()
+            (worktree / "app/Feature/file.php").write_text("uncommitted", encoding="utf-8")
+            self.assertEqual(self.client.cleanup_merged(apply=True)["eligible"], [])
+            task_cli.git(worktree, "restore", "app/Feature/file.php")
+            task_cli.git(self.root, "worktree", "lock", str(worktree))
+            self.assertEqual(self.client.cleanup_merged(apply=True)["eligible"], [])
+        self.assertTrue(worktree.exists())
+
+    def test_cleanup_preserves_running_tree_and_failed_backup(self):
+        worktree = self.completed_tree()
+        with patch.object(task_cli, "windows_process_commands", return_value=worktree.as_posix().casefold()):
+            self.assertEqual(self.client.cleanup_merged(apply=True)["eligible"], [])
+        with patch.object(task_cli, "windows_process_commands", return_value=""), patch.object(task_cli, "archive_ignored", side_effect=OSError("backup failed")):
+            result = self.client.cleanup_merged(apply=True)
+        self.assertEqual(result["errors"], ["SP-001"])
+        self.assertTrue(worktree.exists())
+
+    def test_publish_pushes_before_cleanup(self):
+        worktree = self.completed_tree(published=False)
+        with patch.object(task_cli, "windows_process_commands", return_value=""):
+            result = self.client.publish()
+        self.assertEqual(result["cleanup"]["removed"], ["SP-001"])
+        self.assertFalse(worktree.exists())
+        self.assertEqual(task_cli.git(self.root, "rev-parse", "origin/main"), result["published"])
+
+    def test_failed_push_never_cleans_worktree(self):
+        worktree = self.completed_tree(published=False)
+        task_cli.git(self.root, "remote", "set-url", "--push", "origin", str(self.root / "missing.git"))
+        with self.assertRaises(task_cli.TaskError), patch.object(self.client, "cleanup_merged") as cleanup:
+            self.client.publish()
+        cleanup.assert_not_called()
+        self.assertTrue(worktree.exists())
 
 
 if __name__ == "__main__":

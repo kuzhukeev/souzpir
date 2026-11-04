@@ -6,17 +6,64 @@ import argparse
 import json
 import os
 import re
+import stat
 import subprocess
 import sys
 import tempfile
+import zipfile
 import urllib.error
 import urllib.parse
 import urllib.request
+from datetime import datetime, timezone
 from pathlib import Path
 
 
 class TaskError(RuntimeError):
     pass
+
+
+REBUILDABLE = ("vendor/", "node_modules/", "public/build/", "test-results/",
+               "playwright-report/", "storage/framework/cache/", "storage/framework/views/",
+               "storage/logs/", "bootstrap/cache/")
+
+
+def is_link(path: Path) -> bool:
+    return path.is_symlink() or bool(getattr(path.lstat(), "st_file_attributes", 0) & stat.FILE_ATTRIBUTE_REPARSE_POINT)
+
+
+def archive_ignored(worktree: Path, destination: Path) -> None:
+    """Preserve ignored settings/artifacts, excluding only reproducible output."""
+    ignored = git(worktree, "ls-files", "--others", "--ignored", "--exclude-standard", "--directory", "-z")
+    with zipfile.ZipFile(destination, "x", compression=zipfile.ZIP_DEFLATED) as archive:
+        def add(path: Path) -> None:
+            relative = path.relative_to(worktree).as_posix()
+            if any((relative + "/").startswith(prefix) for prefix in REBUILDABLE):
+                return
+            if is_link(path):
+                raise TaskError("Ignored link requires manual review: " + relative)
+            if path.is_dir():
+                for child in path.iterdir():
+                    add(child)
+            else:
+                archive.write(path, relative)
+        for relative in filter(None, ignored.split("\0")):
+            add(worktree / relative)
+    with zipfile.ZipFile(destination) as archive:
+        if archive.testzip() is not None:
+            raise TaskError("Local artifact archive failed verification")
+
+
+def windows_process_commands() -> str:
+    if os.name != "nt":
+        return ""
+    result = subprocess.run(
+        ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command",
+         "Get-CimInstance Win32_Process -ErrorAction Stop | Select-Object -ExpandProperty CommandLine"],
+        capture_output=True, text=True, errors="replace", timeout=30,
+    )
+    if result.returncode:
+        raise TaskError("Cannot check processes before worktree cleanup")
+    return result.stdout.casefold().replace("\\", "/")
 
 
 def git(root: Path, *args: str, check: bool = True) -> str:
@@ -513,6 +560,87 @@ class Coordinator:
             self.save_claim(record)
         return {"taskKey": key, "status": "done", "mergeCommit": main}
 
+    def cleanup_merged(self, *, apply: bool = False) -> dict:
+        """Only canonical, completed task trees whose entire HEAD is published."""
+        tasks = self.api.call("list").get("tasks", [])
+        git(self.root, "fetch", "origin", "refs/heads/main:refs/remotes/origin/main")
+        processes = windows_process_commands() if apply else ""
+        records = git(self.root, "worktree", "list", "--porcelain", "-z").split("\0\0")
+        registered = {}
+        for record in records:
+            fields = {item.partition(" ")[0]: item.partition(" ")[2] for item in record.split("\0") if item}
+            if "worktree" in fields:
+                registered[Path(fields["worktree"]).resolve()] = fields
+        output = {"removed": [], "eligible": [], "preserved": [], "errors": []}
+        trees = self.root / ".worktrees"
+        if not trees.exists():
+            return output
+        if is_link(trees):
+            raise TaskError("Worktree container must not be a link")
+        for task in tasks:
+            if task.get("project") != self.project:
+                continue
+            key = key_name(task.get("taskKey", ""))
+            path = trees / key.lower()
+            if not path.exists():
+                continue
+            try:
+                if is_link(path):
+                    raise TaskError("Worktree path is a link")
+                if path.resolve().parent != trees.resolve() or path.resolve() in (Path.cwd().resolve(), *Path.cwd().resolve().parents):
+                    raise TaskError("Worktree path is outside the allowed directory or is the current directory")
+                record = registered.get(path.resolve(), {})
+                if "locked" in record or "prunable" in record:
+                    raise TaskError("Worktree is locked or prunable")
+                if not record or record.get("branch", "").casefold() != "refs/heads/codex/" + key.casefold():
+                    raise TaskError("Not the registered task branch")
+                if task.get("status") != "done":
+                    raise TaskError("Task is not done")
+                head = git(path, "rev-parse", "HEAD^{commit}")
+                for target in ("refs/heads/main", "refs/remotes/origin/main"):
+                    try:
+                        git(self.root, "merge-base", "--is-ancestor", head, target)
+                    except TaskError:
+                        raise TaskError("Worktree HEAD is not fully included in " + target) from None
+                if git(path, "status", "--porcelain=v1", "--untracked-files=all"):
+                    raise TaskError("Local changes or untracked files")
+                if path.as_posix().casefold() in processes:
+                    raise TaskError("A running process references this worktree")
+                output["eligible"].append(key)
+                if not apply:
+                    continue
+                directory = self.root / ".local" / "retired-worktrees" / key.lower()
+                directory.mkdir(parents=True, exist_ok=True)
+                stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+                archive = directory / (stamp + ".zip")
+                archive_ignored(path, archive)
+                manifest = {"taskKey": key, "head": head, "worktree": str(path),
+                            "archive": archive.name, "removed": False}
+                log = directory / (stamp + ".json")
+                log.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+                if git(path, "rev-parse", "HEAD") != head or git(path, "status", "--porcelain=v1", "--untracked-files=all"):
+                    raise TaskError("Worktree changed during backup")
+                git(self.root, "-c", "core.longpaths=true", "worktree", "remove", "--force", str(path))
+                manifest["removed"] = True
+                log.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+                output["removed"].append(key)
+            except (TaskError, OSError, ValueError, zipfile.BadZipFile) as error:
+                output["preserved"].append({"taskKey": key, "reason": str(error)})
+                if key in output["eligible"]:
+                    output["errors"].append(key)
+        return output
+
+    def publish(self) -> dict:
+        if git(self.root, "branch", "--show-current") != "main" or git(self.root, "status", "--porcelain=v1", "--untracked-files=all"):
+            raise TaskError("Publish requires a clean main checkout")
+        git(self.root, "push", "origin", "main")
+        output = {"published": git(self.root, "rev-parse", "HEAD")}
+        try:
+            output["cleanup"] = self.cleanup_merged(apply=True)
+        except (TaskError, OSError, ValueError, subprocess.TimeoutExpired) as error:
+            output["cleanupError"] = str(error)
+        return output
+
 
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(description=__doc__)
@@ -521,6 +649,9 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--project", default="souzpir")
     commands = result.add_subparsers(dest="command", required=True)
     commands.add_parser("ready", help="Read tasks currently available to claim")
+    commands.add_parser("publish", help="Push clean main, then archive and remove completed published task worktrees")
+    cleanup = commands.add_parser("cleanup-merged", help="Preview safe cleanup of completed published task worktrees")
+    cleanup.add_argument("--apply", action="store_true", help="Archive ignored artifacts and remove eligible worktrees")
     claim = commands.add_parser("claim", help="Atomically claim a task and create its isolated worktree")
     claim.add_argument("task_key"); claim.add_argument("--worker", required=True)
     submit = commands.add_parser("submit", help="Validate clean scoped commits and send to review")
@@ -541,6 +672,10 @@ def main(argv: list[str] | None = None) -> int:
         coordinator = Coordinator(args.root, Api(args.api), args.project)
         if args.command == "ready":
             output = coordinator.ready()
+        elif args.command == "publish":
+            output = coordinator.publish()
+        elif args.command == "cleanup-merged":
+            output = coordinator.cleanup_merged(apply=args.apply)
         elif args.command == "claim":
             output = coordinator.claim(args.task_key, args.worker)
         elif args.command == "submit":
@@ -550,8 +685,8 @@ def main(argv: list[str] | None = None) -> int:
         else:
             output = coordinator.mark_merged(args.task_key)
         print(json.dumps(output, ensure_ascii=True, indent=2))
-        return 0
-    except (TaskError, OSError, ValueError) as error:
+        return 1 if output.get("cleanupError") or output.get("errors") or output.get("cleanup", {}).get("errors") else 0
+    except (TaskError, OSError, ValueError, subprocess.TimeoutExpired) as error:
         print("ERROR: " + str(error), file=sys.stderr)
         return 1
 
