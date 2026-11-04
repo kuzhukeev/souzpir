@@ -24,3 +24,10 @@ test('доступные и будущие модели, получатели и
   await page.getByRole('button', { name: 'Слоты' }).click();
   await expect(page.getByText(/Расход и остаток слотов не предоставлены источником/)).toBeVisible();
 });
+
+test('одобренные модели остаются доступными без подробного каталога', async ({ page }) => {
+  await page.goto(fixture + '?legacy=1');
+  await expect(page.getByText('Выбрано 1 из 2')).toBeVisible();
+  await page.getByRole('checkbox', { name: /claude-sonnet/ }).check();
+  await expect(page.getByText('Выбрано 2 из 2')).toBeVisible();
+});
