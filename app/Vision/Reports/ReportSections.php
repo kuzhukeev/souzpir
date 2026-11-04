@@ -54,7 +54,7 @@ final class ReportSections
                 continue;
             }
             $recommendations = collect(data_get($payload, 'recommendations.items', []))
-                ->filter(fn ($item) => is_array($item) && ($item['question_id'] ?? $item['qid'] ?? null) === $id)
+                ->filter(fn ($item) => is_array($item) && (($item['question_id'] ?? $item['qid'] ?? null) === $id || (is_array($item['question_ids'] ?? null) && in_array($id, $item['question_ids'], true))))
                 ->map(fn ($item) => ['title' => $item['title'] ?? '', 'why' => is_string($item['why'] ?? null) ? $item['why'] : ''])
                 ->filter(fn ($item) => is_string($item['title']) && $item['title'] !== '')->values()->all();
             $companies = collect($metrics['slots'] ?? [])->filter(fn ($slot) => ($slot['valid'] ?? false) && ($slot['qid'] ?? null) === $id)
@@ -94,8 +94,15 @@ final class ReportSections
                     'models' => $matched->pluck('provider')->filter(fn ($value) => is_string($value) && $value !== '')->unique()->values()->all()];
             })->values()->all(),
             'gaps' => $gaps,
-            'facts' => collect($payload['reviewed_facts'] ?? [])->filter(fn ($item) => ($item['confirmed'] ?? false) === true)
-                ->map(fn ($item) => ['text' => $item['text'], 'reason' => $item['reason'] ?? '', 'provider' => $item['provider'] ?? ''])->values()->all(),
+            'facts' => collect($payload['reviewed_facts'] ?? [])->filter(fn ($item) => is_array($item) && ($item['confirmed'] ?? false) === true && is_string($item['text'] ?? null) && $item['text'] !== '')
+                ->map(function ($item): array {
+                    $classification = in_array($item['classification'] ?? null, ['correct', 'incorrect', 'outdated'], true) ? $item['classification'] : 'incorrect';
+
+                    return ['text' => $item['text'], 'reason' => is_string($item['reason'] ?? null) ? $item['reason'] : '',
+                        'provider' => is_string($item['provider'] ?? null) ? $item['provider'] : '', 'classification' => $classification,
+                        'correction' => is_string($item['correction'] ?? null) ? $item['correction'] : null,
+                        'source' => is_string($item['source'] ?? null) ? $item['source'] : null];
+                })->values()->all(),
             'sources' => collect($metrics['sources'] ?? [])->take(10)->map(fn ($item) => [
                 'domain' => $item['domain'], 'answers' => $item['answers'],
                 'type' => is_string($item['type'] ?? null) ? $item['type'] : null,
