@@ -5294,7 +5294,6 @@
         "SP-E4-01S",
         "SP-E8-21H",
         "SP-E8-19D",
-        "SP-E7-04F",
         "SP-E8-20O"
       ],
       "scope": [
@@ -15606,40 +15605,6 @@
       "promptPath": "docs/tasks/SP-E8-19D.md",
       "wave": 18,
       "description": "# SP-E8-19D · Продолжение экранов\n\n**Зачем:** завершить экраны по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E8-19C из docs/results/SP-E8-19C.md.\n**Зависимости:** SP-E8-19C (дождаться merge).\n\nСверить V-5.6–V-5.10/V-5.P с макетом; логотип, история, приоритеты и шаги публиковать только из разрешённых проверенных данных; аудит сопоставлять с адресом и датой отчёта. При отсутствии подтверждённых данных показать пустое состояние. Проверить права, изоляцию, ошибки и соответствие журналу макетов. Без живых и платных вызовов.\n\nScope: `app/Vision/Reports/`, `app/Vision/Publications/`, `resources/js/pages/Vision/Reports/`, `resources/js/pages/Vision/Publications/`, `resources/views/public-report/`, `tests/Feature/Vision/Reports/`, `tests/Feature/Vision/Publications/`, `tests/Browser/E8-19D/`, `docs/results/SP-E8-19D.md`.\n\nОтчёт: docs/results/SP-E8-19D.md; остаток указать по пунктам.\n"
-    },
-    {
-      "taskKey": "SP-E7-04F",
-      "title": "SP-E7-04F · Продолжение экранов",
-      "description": "# SP-E7-04F · Продолжение экранов\n\n**Зачем:** завершить экраны по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E7-04E из docs/results/SP-E7-04E.md.\n**Зависимости:** SP-E7-04E (дождаться merge).\n\nДовести D-8.4: страницы, открытия виджета и UTM из сохранённых событий текущего бренда; при отсутствии источника показывать пустое состояние. При отсутствии подтверждённых данных показать пустое состояние. Проверить права, изоляцию, ошибки и соответствие журналу макетов. Без живых и платных вызовов.\n\nScope: `app/Seller/Analytics/`, `resources/js/pages/Seller/Analytics/`, `routes/features/E7-04.php`, `tests/Feature/Seller/Analytics/`, `tests/Browser/E7-04F/`, `docs/results/SP-E7-04F.md`.\n\nОтчёт: docs/results/SP-E7-04F.md; остаток указать по пунктам.\n",
-      "goal": "Довести D-8.4: страницы, открытия виджета и UTM из сохранённых событий текущего бренда; при отсутствии источника показывать пустое состояние.",
-      "dependsOn": [
-        "SP-E7-04E"
-      ],
-      "scope": [
-        "app/Seller/Analytics/",
-        "resources/js/pages/Seller/Analytics/",
-        "routes/features/E7-04.php",
-        "tests/Feature/Seller/Analytics/",
-        "tests/Browser/E7-04F/",
-        "docs/results/SP-E7-04F.md"
-      ],
-      "exclusiveResources": [],
-      "acceptance": [
-        "Пути в «Где сейчас» без каталога даны относительно resources/js/pages/Seller/ и app/Seller/.",
-        "Экран D-8.4 «Каналы и источники» (остаток после SP-E7-04B; журнал docs/sources/02b_mockup_journal.md [147]): средняя оценка по каналам; страницы сайта, с которых приходят диалоги. Где сейчас: AnalyticsController.php:56.",
-        "Каждый пункт покрыт Feature- или Browser-тестом; данные только текущего бренда, проверены права ролей; состояния пусто / загрузка / ошибка как на макете; в отчёте скриншоты каждого экрана рядом с макетом.",
-        "Без живых и платных внешних вызовов без разрешения владельца; если пункт макета противоречит ТЗ или требует решения владельца, исполнитель не выдумывает, а записывает вопрос в docs/decisions-pending.md и делает остальное."
-      ],
-      "sourceRefs": [
-        "docs/sources/02_screens_matrix.md",
-        "docs/sources/02b_mockup_journal.md"
-      ],
-      "screenIds": [
-        "D-8.4"
-      ],
-      "wave": 17,
-      "promptPath": "docs/tasks/SP-E7-04F.md",
-      "notes": "Продолжение частичной сдачи SP-E7-04E."
     },
     {
       "taskKey": "SP-E8-20O",
