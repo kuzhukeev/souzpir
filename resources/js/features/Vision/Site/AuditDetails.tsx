@@ -1,3 +1,4 @@
+import { criterionGroup } from '@/features/Vision/Site/groups';
 import { Link, useForm, usePage } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import { Drawer, Modal } from '@/components/ui';
@@ -111,8 +112,8 @@ export function Criteria({ criteria, canManage }: { criteria: Criterion[]; canMa
     return <div className={`${card} text-(--color-ink-muted)`}>Критерии пока не проверены.</div>;
   const groups = new Map<string, Criterion[]>();
   criteria.forEach((item) =>
-    groups.set(item.group || 'Другие критерии', [
-      ...(groups.get(item.group || 'Другие критерии') || []),
+    groups.set(criterionGroup(item), [
+      ...(groups.get(criterionGroup(item)) || []),
       item,
     ]),
   );
