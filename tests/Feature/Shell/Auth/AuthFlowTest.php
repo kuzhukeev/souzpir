@@ -162,6 +162,65 @@ final class AuthFlowTest extends TestCase
         }
     }
 
+    public function test_verified_email_has_success_screen(): void
+    {
+        [, $owner] = $this->fixture();
+        $this->post('/login', ['email' => $owner->email, 'password' => 'secure-password-example'])->assertRedirect();
+        $this->withCookie(config('session.cookie'), session()->getId());
+        $this->get('/email/verified')->assertOk()->assertInertia(fn ($page) => $page->component('Shell/Auth/VerifyEmail')->where('verified', true)->where('continueUrl', route('auth.ready')));
+    }
+
+    public function test_verified_account_can_change_email_with_validation(): void
+    {
+        [, $owner] = $this->fixture();
+        $this->post('/email/change', ['email' => 'new@example.test'])->assertRedirect(route('login'));
+        $this->post('/login', ['email' => $owner->email, 'password' => 'secure-password-example'])->assertRedirect();
+        $this->withCookie(config('session.cookie'), session()->getId());
+        $this->post('/email/change', ['email' => 'bad'])->assertSessionHasErrors('email');
+        $other = User::create(['name' => 'Other', 'email' => 'other@example.test', 'password' => 'another-secure-password']);
+        $this->post('/email/change', ['email' => $other->email])->assertSessionHasErrors('email');
+        $this->post('/email/change', ['email' => ' NEW@example.test '])->assertRedirect(route('verification.notice'));
+        $this->assertSame('new@example.test', $owner->fresh()->email);
+        $this->assertNull($owner->fresh()->email_verified_at);
+        $this->get('/email/verify')->assertOk()->assertInertia(fn ($page) => $page->where('email', 'new@example.test'));
+    }
+
+    public function test_invitation_for_another_signed_in_email_shows_mismatch_without_grant(): void
+    {
+        [$org, $owner] = $this->fixture();
+        $token = str_repeat('f', 64);
+        app(TenantContextRunner::class)->run(new TenantContext($org->id, actorId: $owner->id), fn () => Invitation::create([
+            'email' => 'member@example.test', 'role' => 'member', 'brand_ids' => [],
+            'token_hash' => hash('sha256', $token), 'invited_by' => $owner->id, 'expires_at' => now()->addDay(),
+        ]));
+        $this->post('/login', ['email' => $owner->email, 'password' => 'secure-password-example'])->assertRedirect();
+        $this->withCookie(config('session.cookie'), session()->getId());
+        $this->exchangeInvitation($token)->assertNotFound()->assertJsonPath('state', 'email_mismatch');
+        $this->get('/invitations/show')->assertNotFound();
+    }
+
+    public function test_inactive_invitation_states_are_distinct_and_do_not_grant_access(): void
+    {
+        [$org, $owner] = $this->fixture();
+        foreach (['expired', 'revoked', 'accepted'] as $state) {
+            $token = str_repeat(match ($state) {
+                'expired' => 'c', 'revoked' => 'd', default => 'e'
+            }, 64);
+            $invite = app(TenantContextRunner::class)->run(new TenantContext($org->id, actorId: $owner->id), fn () => Invitation::create([
+                'email' => 'member@example.test', 'role' => 'member', 'brand_ids' => [],
+                'token_hash' => hash('sha256', $token), 'invited_by' => $owner->id, 'expires_at' => now()->addDay(),
+            ]));
+            DB::table('invitations')->where('id', $invite->id)->update(match ($state) {
+                'expired' => ['expires_at' => now()->subDay()],
+                'revoked' => ['revoked_at' => now()],
+                default => ['accepted_at' => now(), 'accepted_by' => $owner->id],
+            });
+            $this->exchangeInvitation($token)->assertNotFound()->assertJsonPath('state', $state);
+            $this->get('/invitations/show')->assertNotFound();
+            $this->get('/invitations/state?state='.$state)->assertOk()->assertInertia(fn ($page) => $page->component('Shell/Auth/Invitation')->where('state', $state));
+        }
+    }
+
     public function test_initial_owner_is_single_organization_and_requires_secret(): void
     {
         [$org] = $this->fixture(false);
@@ -175,6 +234,8 @@ final class AuthFlowTest extends TestCase
         $this->assertDatabaseCount('users', 0);
         $this->assertNull(session()->getOldInput('bootstrap_code'));
         $this->post('/register', [...$data, 'bootstrap_code' => $secret])->assertRedirect(route('verification.notice'));
+        $this->withCookie(config('session.cookie'), session()->getId());
+        $this->get('/email/verify')->assertOk()->assertInertia(fn ($page) => $page->component('Shell/Auth/VerifyEmail')->where('email', 'owner@example.test')->has('resendAfter'));
         $user = User::where('email', 'owner@example.test')->firstOrFail();
         $this->assertDatabaseCount('organizations', 1);
         $this->assertDatabaseHas('memberships', ['organization_id' => $org->id, 'user_id' => $user->id, 'role' => 'owner']);
@@ -235,7 +296,7 @@ final class AuthFlowTest extends TestCase
         $this->withCookie(config('session.cookie'), session()->getId());
         $this->get($url)->assertOk();
         $this->assertNull($user->fresh()->email_verified_at);
-        $this->post($url)->assertRedirect(route('auth.ready'));
+        $this->post($url)->assertRedirect(route('verification.success'));
         $this->assertNotNull($user->fresh()->email_verified_at);
         $this->post('/logout');
         config(['features.E1-01F.defaults.enabled' => true, 'queue.default' => 'sync']);
@@ -255,10 +316,10 @@ final class AuthFlowTest extends TestCase
         $token = ResetToken::generate();
         DB::table('password_reset_tokens')->insert(['email' => $user->email, 'token' => Hash::make('v2:'.hash('sha256', $token)), 'auth_version' => $user->auth_version, 'created_at' => now()]);
         $data = ['email' => $user->email, 'token' => $token, 'password' => 'a-different-strong-password', 'password_confirmation' => 'a-different-strong-password'];
-        $this->postJson('/reset-password/exchange', ['email' => $user->email, 'token' => $token])->assertOk();
+        $this->postJson('https://souzpir.local/reset-password/exchange', ['email' => $user->email, 'token' => $token])->assertOk();
         $this->post('/reset-password', ['password' => $data['password'], 'password_confirmation' => $data['password_confirmation']])->assertRedirect(route('login'));
         $this->assertTrue(Hash::check($data['password'], $user->fresh()->password));
-        $this->postJson('/reset-password/exchange', ['email' => $user->email, 'token' => $token])->assertOk();
+        $this->postJson('https://souzpir.local/reset-password/exchange', ['email' => $user->email, 'token' => $token])->assertOk();
         $this->post('/reset-password', ['password' => $data['password'], 'password_confirmation' => $data['password_confirmation']])->assertSessionHasErrors('email');
         $this->assertNull(session()->getOldInput('token'));
         $this->assertSame(1, $user->fresh()->auth_version);
@@ -292,7 +353,7 @@ final class AuthFlowTest extends TestCase
         ]));
         $this->get('/invitations/open')->assertOk()->assertHeader('Cache-Control', 'no-store, private')->assertHeader('Referrer-Policy', 'no-referrer');
         $this->exchangeInvitation($token)->assertOk();
-        $this->get('/invitations/show')->assertOk();
+        $this->get('/invitations/show')->assertOk()->assertInertia(fn ($page) => $page->component('Shell/Auth/Invitation')->where('email', 'member@example.test')->where('inviter', 'Owner')->where('organization', 'Cabinet')->where('brands.0', 'Brand'));
         $this->post('/invitations/register', ['name' => 'Member', 'password' => 'another-secure-password', 'password_confirmation' => 'another-secure-password', 'terms' => true])->assertRedirect(route('verification.notice'));
         $member = User::where('email', 'member@example.test')->firstOrFail();
         $this->assertDatabaseMissing('memberships', ['user_id' => $member->id]);

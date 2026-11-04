@@ -77,7 +77,15 @@ final class InvitationController
             // hashchange is queued as a task; a response may resolve first.
             if(location.hash)capture();
             if(version!==generation)return;
-            if(!response.ok)throw 0;
+            if(!response.ok){
+                const data=await response.json().catch(()=>({}));
+                if(['expired','revoked','accepted','email_mismatch'].includes(data.state)){
+                    const labels={expired:'Срок приглашения истёк.',revoked:'Приглашение отозвано.',accepted:'Приглашение уже принято.',email_mismatch:'Почта не совпадает.'};
+                    status.textContent=failed+' '+labels[data.state];
+                    return;
+                }
+                throw 0;
+            }
             location.replace('/invitations/show');
         }).catch(()=>{
             if(location.hash)capture();
@@ -112,7 +120,16 @@ HTML;
             $exchange = fn () => app(InvitationExchangeGrants::class)->exchange($request, $hash, $epoch, $sequence);
             $ok = $request->user() ? app(AuthSessionRegistry::class)->withinActive($request, $exchange) : $exchange();
             if (! $ok) {
-                return response()->json(['ok' => false], 404);
+                $state = null;
+                if (is_string($hash) && preg_match('/^[a-f0-9]{64}$/D', $hash)) {
+                    $row = DB::table('invitations')->where('organization_id', app(Cabinet::class)->organizationId())
+                        ->where('token_hash', $hash)->first(['email', 'accepted_at', 'revoked_at', 'expires_at']);
+                    $state = $row?->accepted_at ? 'accepted' : ($row?->revoked_at ? 'revoked'
+                        : ($row && now()->greaterThanOrEqualTo($row->expires_at) ? 'expired'
+                        : ($row && $request->user() && mb_strtolower(trim($request->user()->email)) !== $row->email ? 'email_mismatch' : null)));
+                }
+
+                return response()->json(['ok' => false, 'state' => $state], 404);
             }
             if ($request->user()) {
                 app(InvitationAcceptance::class)->inspectSession($request->user(), $request);
@@ -128,6 +145,14 @@ HTML;
         }
     }
 
+    public function state(Request $request): Response
+    {
+        $state = $request->query('state');
+        abort_unless(in_array($state, ['expired', 'revoked', 'accepted', 'email_mismatch'], true), 404);
+
+        return Inertia::render('Shell/Auth/Invitation', ['state' => $state]);
+    }
+
     public function show(Request $request, InvitationAcceptance $acceptance): Response
     {
         $invitation = $this->invite($request);
@@ -137,8 +162,15 @@ HTML;
             $request->session()->put('url.intended', route('invitation.show'));
         }
 
+        $organization = DB::table('organizations')->where('id', $invitation->organization_id)->value('name');
+        $inviter = DB::table('users')->where('id', $invitation->invited_by)->value('name');
+        $brands = DB::table('brands')->where('organization_id', $invitation->organization_id)
+            ->whereIn('id', $invitation->brand_ids ?? [])->pluck('name')->all();
+
         return Inertia::render('Shell/Auth/Invitation', [
             'email' => $invitation->email, 'role' => $invitation->role,
+            'inviter' => $inviter, 'organization' => $organization, 'brands' => $brands,
+            'salesManager' => (bool) ($invitation->settings['sales_manager'] ?? false),
             'authenticated' => (bool) $request->user(), 'verified' => (bool) $request->user()?->hasVerifiedEmail(),
         ]);
     }
