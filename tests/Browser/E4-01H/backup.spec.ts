@@ -11,6 +11,6 @@ test('черновик можно скачать и восстановить и�
  await expect(page.getByLabel('Восстановить копию из JSON')).toBeVisible();
  await expect(page.getByRole('button',{name:'Восстановить из файла'})).toBeDisabled();
  await expect(page.getByRole('button',{name:'Создать черновик'})).toBeDisabled();
- await expect(page.getByText('содержимое черновика и смысловые критерии не проверяются',{exact:false})).toBeVisible();
+ await expect(page.getByText('смысловые критерии доступны при наличии проверенных локальных fake-фикстур',{exact:false})).toBeVisible();
  await page.screenshot({path:'.local/screenshots/SP-E4-01H/releases.png',fullPage:true});
 });

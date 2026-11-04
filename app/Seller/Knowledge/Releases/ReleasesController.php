@@ -114,7 +114,7 @@ final class ReleasesController
 
     public function runScenarios(Request $request, string $release): mixed
     {
-        $this->access($request, 'seller.knowledge.write', function (User $user, TenantContext $tenant) use ($release): array {
+        $this->access($request, 'seller.knowledge.write', function (User $user, TenantContext $tenant) use ($release, $request): array {
             $draft = $this->query('knowledge_releases', $tenant)->where('id', $release)->where('status', 'draft')->first() ?? abort(404);
             $scenarios = $this->query('seller_personas', $tenant)->orderBy('name')->get()->filter(function ($row): bool {
                 $payload = json_decode($row->payload, true) ?: [];
@@ -126,7 +126,7 @@ final class ReleasesController
             foreach ($scenarios as $scenario) {
                 $payload = json_decode($scenario->payload, true) ?: [];
                 $client = trim((string) ($payload['first_message'] ?? ''));
-                $turns = app(DraftScenarioPreview::class)->dialogue($snapshot, $payload, (int) $scenario->max_turns);
+                $turns = app(DraftScenarioPreview::class)->dialogue($snapshot, $payload, (int) $scenario->max_turns, $request);
                 $passed = $client !== '' && collect($turns)->every(fn (array $turn): bool => $turn['meta']['guard_verdict'] === 'ok'
                     && ! in_array(false, $turn['meta']['expectation_checks'], true));
                 $id = app(FakeSimulation::class)->run($tenant, $scenario->key, $turns, $draft->id);
