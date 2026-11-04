@@ -5295,7 +5295,8 @@
         "SP-E8-21H",
         "SP-E8-19D",
         "SP-E8-20O",
-        "SP-E4-01T"
+        "SP-E4-01T",
+        "SP-E7-04H"
       ],
       "scope": [
         "README.md",
@@ -15671,6 +15672,47 @@
       "promptPath": "docs/tasks/SP-E4-01T.md",
       "wave": 18,
       "description": "# SP-E4-01T · Остальные контекстные критерии\n\n**Зачем:** завершить критерии по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E4-01S из docs/results/SP-E4-01S.md.\n**Зависимости:** SP-E4-01S (дождаться merge).\n\nПодготовить оставшуюся проверяемую разметку по персонам и критериям после SP-E4-01S: полные диалоги и источники, включая незавершённые и завершённые ситуации. Неподтверждённые исходы оставлять неизвестными; условия продукта не выдумывать. Сверить с журналом и прототипом; проверить сценарии, права, изоляцию и ошибки. Без живых и платных вызовов.\n\nScope: `app/ProtectedOperations/DraftSimulation/fixtures/`, `tests/Feature/Seller/Knowledge/DraftSeedFixturesE401TTest.php`, `tests/Browser/E4-01T/`, `docs/results/SP-E4-01T.md`.\n\nОтчёт: docs/results/SP-E4-01T.md; остаток указать по пунктам.\n"
+    },
+    {
+      "taskKey": "SP-E7-04H",
+      "title": "SP-E7-04H · Остаток аналитики",
+      "goal": "Завершить D-8.1–D-8.3 и D-8.6: вкладки, время до контакта, доля ответов, клиент, конверсия приёмов и детализация тем, PDF, менеджеры, отправка и подписки. Для контактов и исходов использовать подтверждённые события и переходы SP-E7-04F, сохранённые назначения и имеющиеся локальные порты; при отсутствии данных или транспорта явно показать недоступность, не имитируя отправку и не добавляя платный сервис.",
+      "dependsOn": [
+        "SP-E7-04G",
+        "SP-E7-04F"
+      ],
+      "scope": [
+        "app/Seller/Analytics/",
+        "resources/js/pages/Seller/Analytics/",
+        "routes/features/E7-04.php",
+        "tests/Feature/Seller/Analytics/",
+        "tests/Browser/E7-04/",
+        "docs/results/SP-E7-04H.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "HTTP/browser детализация и PDF, пустой период, неверный фильтр, чужой бренд; экраны D-8.2/D-8.3/D-8.6. Итоговый отчёт до 30 строк."
+      ],
+      "sourceIds": [
+        "E7-04"
+      ],
+      "screenIds": [
+        "D-8.2",
+        "D-8.3",
+        "D-8.6"
+      ],
+      "notes": "Продолжение частичной сдачи SP-E7-04G по решению владельца.",
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/contracts/",
+        "docs/sources/10_backlog.md",
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02c_discrepancies.md",
+        "docs/sources/04c_settings_paths.md"
+      ],
+      "promptPath": "docs/tasks/SP-E7-04H.md",
+      "wave": 18,
+      "description": "# SP-E7-04H · Остаток аналитики\n\n**Зачем:** завершить экраны аналитики по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E7-04G из docs/results/SP-E7-04G.md.\n**Зависимости:** SP-E7-04G и SP-E7-04F (дождаться merge).\n\nЗавершить D-8.1–D-8.3 и D-8.6: вкладки, время до контакта, доля ответов, клиент, конверсия приёмов и детализация тем, PDF, менеджеры, отправка и подписки. Для контактов и исходов использовать подтверждённые события и переходы SP-E7-04F, сохранённые назначения и имеющиеся локальные порты; при отсутствии данных или транспорта явно показать недоступность, не имитируя отправку и не добавляя платный сервис.\n\nСверить с журналом макетов; проверить сценарии, права, изоляцию брендов и ошибки. Без живых или платных вызовов. Невыполненные пункты перечислить в отчёте.\n\nScope: `app/Seller/Analytics/`, `resources/js/pages/Seller/Analytics/`, `routes/features/E7-04.php`, `tests/Feature/Seller/Analytics/`, `tests/Browser/E7-04/`, `docs/results/SP-E7-04H.md`.\n\nОтчёт: docs/results/SP-E7-04H.md.\n"
     }
   ],
   "excludedSourceTasks": {
