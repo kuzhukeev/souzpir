@@ -73,7 +73,7 @@ CI_SCOPE_EXCEPTIONS = {
     "SP-E8-18D": ("tests/Browser/E8-18B/report.spec.ts",),
     "SP-E7-04C": ("tests/Feature/Seller/Quality/EvaluationFeedbackTest.php", "tests/Feature/Seller/Quality/ReportActionsTest.php"),
     "SP-E8-18C": ("tests/Unit/Vision/Reports/ReportSectionsTest.php", "tests/Feature/Seller/Quality/EvaluationFeedbackTest.php", "tests/Feature/Seller/Quality/ReportActionsTest.php"),
-    "SP-E1-09E": ("scripts/ci/browser-smoke.sh", ".github/workflows/ci.yml", "tests/Browser/E1-09/journal.spec.ts", "tests/Browser/E1-09C/fixture.tsx", "tests/Browser/E1-09C/journal.spec.ts"),
+    "SP-E1-09E": ("scripts/ci/browser-smoke.sh", ".github/workflows/ci.yml", "tests/Browser/E1-09/journal.spec.ts", "tests/Browser/E1-09C/fixture.tsx", "tests/Browser/E1-09C/journal.spec.ts", "tests/Browser/E1-09D/journal.spec.ts"),
     "SP-E8-15B": ("tests/Browser/E8-03/e2e.spec.ts",),
     "SP-E5-04G": ("tests/Browser/E5-04E/filters.spec.ts",),
     "SP-E8-17": ("tests/Browser/E8-10/wizard.spec.ts",),
@@ -558,3 +558,4 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
