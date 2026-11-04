@@ -5255,7 +5255,8 @@
         "SP-E7-04G",
         "SP-E8-18D",
         "SP-E5-04M",
-        "SP-E8-19C"
+        "SP-E8-19C",
+        "SP-E4-01I"
       ],
       "scope": [
         "README.md",
@@ -14237,6 +14238,39 @@
       "promptPath": "docs/tasks/SP-E8-19C.md",
       "wave": 18,
       "description": "# SP-E8-19C · Завершение отчёта и публичной ссылки\n\n**Зачем:** завершить экраны по решению владельца от 03.11.2026 и журналу макетов.\n**Часть чего:** остаток SP-E8-19B из docs/results/SP-E8-19B.md.\n**Зависимости:** SP-E8-19B, SP-E8-18D (дождаться merge).\n\nЗавершить V-5.6–V-5.10 и V-5.P по макету: критерии, состояния, изменения, логотип, историю и допустимые шаги только при наличии подтверждённых источников.\n\nСверить с docs/sources/02b_mockup_journal.md; проверить сценарии, права, изоляцию и ошибки. Без живых или платных вызовов.\n\nScope: `app/Vision/Reports/`, `app/Vision/Publications/`, `resources/js/pages/Vision/Reports/`, `resources/js/pages/Vision/Publications/`, `resources/views/public-report/`, `tests/Feature/Vision/Reports/`, `tests/Feature/Vision/Publications/`, `tests/Browser/E8-19C/`, `docs/results/SP-E8-19C.md`.\n\nОтчёт: docs/results/SP-E8-19C.md; остаток указать по пунктам.\n"
+    },
+    {
+      "taskKey": "SP-E4-01I",
+      "title": "Завершение прогона и отката знаний",
+      "goal": "Завершить D-4.12: fake-прогон продавца по черновику со смысловыми критериями, безопасное сохранение и восстановление существующего черновика при откате.",
+      "dependsOn": [
+        "SP-E4-01H"
+      ],
+      "scope": [
+        "app/Seller/Knowledge/",
+        "app/Seller/Evaluation/",
+        "resources/js/pages/Seller/Knowledge/Releases/",
+        "routes/features/E4-01.php",
+        "tests/Feature/Seller/Knowledge/",
+        "tests/Browser/E4-01I/",
+        "docs/results/SP-E4-01I.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Пункты остатка выполнены по макету, проверены права и изоляция; тесты без живых вызовов."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "D-4.12"
+      ],
+      "notes": "Продолжение частичной сдачи SP-E4-01H по решению владельца.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E4-01I.md",
+      "wave": 18,
+      "description": "# SP-E4-01I · Завершение прогона и отката знаний\n\n**Зачем:** завершить D-4.12 по решению владельца от 03.11.2026 и журналу макетов.\n**Часть чего:** остаток SP-E4-01H из docs/results/SP-E4-01H.md.\n**Зависимости:** SP-E4-01H (дождаться merge).\n\nЗавершить D-4.12: fake-прогон продавца по черновику со смысловыми критериями, безопасное сохранение и восстановление существующего черновика при откате.\n\nСверить с docs/sources/02b_mockup_journal.md; проверить сценарии, права, изоляцию и ошибки. Без живых или платных вызовов.\n\nScope: `app/Seller/Knowledge/`, `app/Seller/Evaluation/`, `resources/js/pages/Seller/Knowledge/Releases/`, `routes/features/E4-01.php`, `tests/Feature/Seller/Knowledge/`, `tests/Browser/E4-01I/`, `docs/results/SP-E4-01I.md`.\n\nОтчёт: docs/results/SP-E4-01I.md; остаток указать по пунктам.\n"
     }
   ],
   "excludedSourceTasks": {
