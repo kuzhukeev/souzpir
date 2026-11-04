@@ -52,6 +52,9 @@ final class DialogsController
                 return ['dialogs' => [], 'dialog' => null, 'loadError' => true];
             }
             $data['transferOptions'] = $dialog && Gate::forUser($actor)->allows('seller.dialogues.operate') ? app(DialogTransferController::class)->candidates($context) : [];
+            $data['readySuggestion'] = $dialog && ($data['dialog']['mode'] ?? null) === 'suggest' && Gate::forUser($actor)->allows('seller.dialogues.operate')
+                ? collect(app(ReadySuggestions::class)->read($context, $actor->id, $member))->firstWhere('conversation_id', $dialog)['suggestion'] ?? null
+                : null;
             $templates = app()->bound(MessageTemplates::class) ? app(MessageTemplates::class) : app(DefaultMessageTemplates::class);
             $data['messageTemplates'] = $templates->forBrand($context);
 
