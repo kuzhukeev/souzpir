@@ -17,8 +17,7 @@ export default function Index({ reports, publications, ttlDays, canPublish, repo
   const [retry,setRetry]=useState(0);
   useEffect(()=>{
     if (!canPublish || !form.data.report_id) return;
-    setReviewError('');
-    router.get('/vision/publications',{review_report:form.data.report_id},{only:['review'],preserveScroll:true,preserveState:true,replace:true,onStart:()=>setLoadingReview(true),onFinish:()=>setLoadingReview(false),onError:()=>setReviewError('Не удалось загрузить предложения.'),onNetworkError:()=>{setReviewError('Не удалось загрузить предложения.');return false;},onHttpException:()=>{setReviewError('Не удалось загрузить предложения.');return false;}});
+    router.get('/vision/publications',{review_report:form.data.report_id},{only:['review'],preserveScroll:true,preserveState:true,replace:true,onStart:()=>{setReviewError('');setLoadingReview(true);},onFinish:()=>setLoadingReview(false),onError:()=>setReviewError('Не удалось загрузить предложения.'),onNetworkError:()=>{setReviewError('Не удалось загрузить предложения.');return false;},onHttpException:()=>{setReviewError('Не удалось загрузить предложения.');return false;}});
   },[canPublish,form.data.report_id,retry]);
   const candidates = review?.report_id === form.data.report_id ? review.candidates : [];
   const reviewReady = review?.report_id === form.data.report_id && !loadingReview && !reviewError;
