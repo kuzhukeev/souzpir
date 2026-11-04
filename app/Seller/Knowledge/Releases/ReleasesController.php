@@ -125,9 +125,9 @@ final class ReleasesController
             $runs = [];
             foreach ($scenarios as $scenario) {
                 $payload = json_decode($scenario->payload, true) ?: [];
-                $client = trim((string) ($payload['first_message'] ?? ''));
-                $turns = app(DraftScenarioPreview::class)->dialogue($snapshot, $payload, (int) $scenario->max_turns, $request);
-                $passed = $client !== '' && collect($turns)->every(fn (array $turn): bool => $turn['meta']['guard_verdict'] === 'ok' && $turn['meta']['extraction_available'] && $turn['meta']['semantic_available']
+                $hasInput = trim((string) ($payload['first_message'] ?? '')) !== '' || collect($payload['facts'] ?? [])->contains(fn ($fact) => is_scalar($fact) && trim((string) $fact) !== '');
+                $turns = app(DraftScenarioPreview::class)->dialogue($snapshot, $payload, (int) $scenario->max_turns, $request, $scenario->key);
+                $passed = $hasInput && collect($turns)->every(fn (array $turn): bool => $turn['meta']['guard_verdict'] === 'ok' && $turn['meta']['extraction_available'] && $turn['meta']['semantic_available']
                     && ! in_array(false, $turn['meta']['expectation_checks'], true));
                 $id = app(FakeSimulation::class)->run($tenant, $scenario->key, $turns, $draft->id);
                 $runs[] = ['id' => $id, 'passed' => $passed];
