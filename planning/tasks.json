@@ -5264,7 +5264,8 @@
         "SP-E8-20E",
         "SP-E4-01K",
         "SP-E1-02F",
-        "SP-E8-22C"
+        "SP-E8-22C",
+        "SP-E8-21D"
       ],
       "scope": [
         "README.md",
@@ -14566,6 +14567,41 @@
       "promptPath": "docs/tasks/SP-E8-22C.md",
       "wave": 18,
       "description": "# SP-E8-22C · Источники данных истории действий\n\n**Зачем:** завершить экраны по решению владельца от 03.11.2026 и журналу макетов.\n**Часть чего:** остаток SP-E8-22B из docs/results/SP-E8-22B.md.\n**Зависимости:** SP-E8-22B (дождаться merge).\n\nЗавершить V-9.1 и V-9.3: передавать подтверждённые приоритет, число вопросов, шаги, автора выполнения и сопоставимые замеры до/после при наличии источника, не выдумывая отсутствующие значения.\n\nСверить с docs/sources/02b_mockup_journal.md; проверить сценарии, права, изоляцию и ошибки. Без живых или платных вызовов.\n\nScope: `app/Vision/Actions/`, `resources/js/features/Vision/Site/`, `tests/Feature/Vision/Site/`, `tests/Browser/E8-22C/`, `docs/results/SP-E8-22C.md`.\n\nОтчёт: docs/results/SP-E8-22C.md; остаток указать по пунктам.\n"
+    },
+    {
+      "taskKey": "SP-E8-21D",
+      "title": "SP-E8-21D · Остаток аудита сайта",
+      "goal": "Закрыть остатки аудита V-8.1–V-8.5 по отчёту SP-E8-21C.",
+      "dependsOn": [
+        "SP-E8-21C"
+      ],
+      "scope": [
+        "app/Vision/Site/",
+        "resources/js/pages/Vision/Site/",
+        "resources/js/features/Vision/Site/",
+        "tests/Browser/E8-21D/",
+        "docs/results/SP-E8-21D.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Пункты остатка реализованы по макету, проверены права, изоляция брендов и ошибки ввода; тесты без живых вызовов."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "V-8.1",
+        "V-8.2",
+        "V-8.3",
+        "V-8.4",
+        "V-8.5"
+      ],
+      "notes": "Продолжение частичной сдачи SP-E8-21C по решению владельца от 03.11.2026.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E8-21D.md",
+      "wave": 18,
+      "description": "# SP-E8-21D · Остаток аудита сайта\n\n**Зачем:** завершить экраны V-8.1–V-8.5 по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E8-21C из docs/results/SP-E8-21C.md.\n**Зависимости:** SP-E8-21C (дождаться merge).\n\nЗакрыть оставшиеся пункты: группы проверок по макету; важность и примеры кода; признаки капчи и антибота; типы страниц, извлечённые факты и проблемы; прогресс по страницам, прогноз времени и уведомление. Использовать подтверждённые данные, при необходимости реализовать недостающие источники в рамках задачи; не выдумывать результаты проверки.\n\nСверить с docs/sources/02b_mockup_journal.md; проверить сценарии, права, изоляцию брендов и ошибки. Без живых или платных вызовов в тестах.\n\nScope: `app/Vision/Site/`, `resources/js/pages/Vision/Site/`, `resources/js/features/Vision/Site/`, `tests/Browser/E8-21D/`, `docs/results/SP-E8-21D.md`.\n\nОтчёт: docs/results/SP-E8-21D.md; остаток указать по пунктам.\n"
     }
   ],
   "excludedSourceTasks": {
