@@ -14,7 +14,15 @@ final class DeliverManagerMessage implements ShouldQueue
 
     public function handle(): void
     {
-        // Fake transport: the MVP records delivery without contacting an external channel.
+        $message = DB::table('messages')->where('organization_id', $this->organizationId)->where('brand_id', $this->brandId)
+            ->where('conversation_id', $this->conversationId)->where('id', $this->messageId)->where('role', 'manager')->first();
+        if (! $message) {
+            return;
+        }
+        $transport = app()->bound(ManagerMessageTransport::class)
+            ? app(ManagerMessageTransport::class)
+            : app(FakeManagerMessageTransport::class);
+        $transport->send($this->organizationId, $this->brandId, $this->conversationId, $this->messageId);
         DB::table('messages')->where('organization_id', $this->organizationId)->where('brand_id', $this->brandId)
             ->where('conversation_id', $this->conversationId)->where('id', $this->messageId)->where('role', 'manager')
             ->update(['delivered_at' => now(), 'updated_at' => now()]);

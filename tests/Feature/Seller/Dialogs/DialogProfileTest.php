@@ -3,6 +3,9 @@
 namespace Tests\Feature\Seller\Dialogs;
 
 use App\Seller\Dialogs\DeliverManagerMessage;
+use App\Seller\Dialogs\ManagerMessageTransport;
+use App\Seller\Dialogs\MessageTemplates;
+use App\Tenancy\TenantContext;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
@@ -12,6 +15,17 @@ use Tests\Feature\Tenancy\TenancyTestCase;
 
 final class DialogProfileTest extends TenancyTestCase
 {
+    public function test_templates_are_loaded_with_selected_brand_context(): void
+    {
+        [$owner, $org, $brand] = $this->cabinet();
+        DB::table('brand_modules')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $brand->id, 'module' => 'seller', 'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
+        $templates = $this->mock(MessageTemplates::class);
+        $templates->shouldReceive('forBrand')->once()->withArgs(fn (TenantContext $context) => $context->brandId === $brand->id && $context->organizationId === $org->id)
+            ->andReturn([['name' => 'Example', 'text' => 'Hello']]);
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->get('/seller/dialogs')
+            ->assertOk()->assertInertia(fn ($page) => $page->where('messageTemplates.0.name', 'Example'));
+    }
+
     public function test_profile_saves_only_brand_dialog_and_validates_fields(): void
     {
         [$owner, $org, $brand, $other] = $this->cabinet();
@@ -60,6 +74,9 @@ final class DialogProfileTest extends TenancyTestCase
         self::assertSame('manager', $message->role);
         self::assertSame('Добрый день', $message->text);
         Queue::assertPushed(DeliverManagerMessage::class, fn ($job) => $job->messageId === $message->id && $job->brandId === $brand->id);
+        $transport = $this->mock(ManagerMessageTransport::class);
+        $transport->shouldReceive('send')->once()->with($org->id, $brand->id, $mine, $message->id);
+        (new DeliverManagerMessage($org->id, $other->id, $mine, $message->id))->handle();
         (new DeliverManagerMessage($org->id, $brand->id, $mine, $message->id))->handle();
         self::assertNotNull(DB::table('messages')->where('id', $message->id)->value('delivered_at'));
         $this->post('/seller/dialogs/'.$mine.'/messages', ['attachment' => UploadedFile::fake()->create('document.pdf', 5, 'application/pdf')])->assertRedirect();
