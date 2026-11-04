@@ -1,3 +1,4 @@
+import { criterionGroup } from '@/features/Vision/Site/groups';
 import { Head, Link, router } from '@inertiajs/react';
 import { AuditForm, BotAccess, Criteria, Pages } from '@/features/Vision/Site/AuditDetails';
 import { Actions } from '@/features/Vision/Site/Actions';
@@ -85,8 +86,8 @@ export function Score({ audit, auditDate, previousAudit }: { audit: Audit; audit
 export function Groups({ criteria }: { criteria: Criterion[] }) {
   const groups = new Map<string, Criterion[]>();
   criteria.forEach((item) =>
-    groups.set(item.group || 'Другие критерии', [
-      ...(groups.get(item.group || 'Другие критерии') || []),
+    groups.set(criterionGroup(item), [
+      ...(groups.get(criterionGroup(item)) || []),
       item,
     ]),
   );
