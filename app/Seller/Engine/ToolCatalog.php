@@ -24,7 +24,7 @@ final class ToolCatalog
             'create_promise' => $d('create_promise', 'Записать обещание клиенту (пришлю видео, посчитаю доставку, уточню).', ['text' => ['type' => 'string']], ['text']),
             'escalate' => $d('escalate', 'Передать клиента живому менеджеру.', ['reason' => ['type' => 'string'], 'summary' => ['type' => 'string']], ['reason']),
             'mark_do_not_disturb' => $d('mark_do_not_disturb', 'Клиент попросил не писать — пометить и прекратить сообщения.', []),
-            'check_stock' => $d('check_stock', 'Проверить наличие позиции (заглушка: создаёт обещание уточнить).', ['query' => ['type' => 'string']], ['query']),
+            'check_stock' => $d('check_stock', 'Проверить остаток позиции в каталоге текущего бренда.', ['query' => ['type' => 'string']], ['query']),
             'log_unknown_question' => $d('log_unknown_question', 'Зафиксировать вопрос клиента, на который нет факта в базе; создать задачу менеджеру и обещание клиенту.', ['question' => ['type' => 'string']], ['question']),
             'send_requisites' => $d('send_requisites', 'Отправить реквизиты юрлица клиенту отдельным сообщением.', []),
         ];

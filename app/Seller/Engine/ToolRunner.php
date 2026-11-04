@@ -80,9 +80,12 @@ final class ToolRunner
         if (! $import) {
             return ['status' => 'unavailable'];
         }
-        $items = $scope('catalog_items')->where('import_id', $import)
-            ->where(fn ($match) => $match->where('sku', $query)->orWhere('name', 'ilike', '%'.$query.'%'))
+        $items = $scope('catalog_items')->where('import_id', $import)->where('sku', $query)
             ->orderBy('name')->limit(5)->get(['sku', 'name', 'stock']);
+        if ($items->isEmpty()) {
+            $items = $scope('catalog_items')->where('import_id', $import)->where('name', 'ilike', '%'.$query.'%')
+                ->orderBy('name')->limit(5)->get(['sku', 'name', 'stock']);
+        }
 
         return ['status' => 'completed', 'items' => $items->map(fn ($item) => ['sku' => $item->sku, 'name' => $item->name,
             'stock' => $item->stock === null ? null : (float) $item->stock])->all()];
