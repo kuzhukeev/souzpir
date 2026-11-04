@@ -35,6 +35,10 @@ function CriterionRow({ item, canManage }: { item: Criterion; canManage: boolean
   const title = item.title || item.name || item.label || 'Критерий';
   const form = useForm({ title, description: item.explanation || '' });
   const [saved, setSaved] = useState(false);
+  const observedJson = item.evidence?.find((evidence) => {
+    if (!evidence.excerpt?.trim().startsWith('{')) return false;
+    try { return typeof JSON.parse(evidence.excerpt) === 'object'; } catch { return false; }
+  });
   return (
     <details className="py-4">
       <summary className="flex cursor-pointer flex-wrap items-center justify-between gap-2">
@@ -72,9 +76,7 @@ function CriterionRow({ item, canManage }: { item: Criterion; canManage: boolean
         )}
         <details className="rounded-lg bg-(--color-surface-muted) p-3">
           <summary className="cursor-pointer font-semibold">Для разработчика</summary>
-          <p className="mt-2 text-sm text-(--color-ink-muted)">
-            Пример кода для этого критерия не предоставлен.
-          </p>
+          {observedJson ? <><p className="mt-2 text-sm text-(--color-ink-muted)">Найденный фрагмент структурированных данных с проверенной страницы. Используйте как пример исходных данных, не как готовую рекомендацию.</p><pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-all rounded-lg bg-(--color-surface) p-3 text-sm">{observedJson.excerpt}</pre></> : <p className="mt-2 text-sm text-(--color-ink-muted)">Пример кода для этого критерия не предоставлен.</p>}
         </details>
         {canManage && !item.pending && (item.status === 'fail' || item.status === 'partial') && (
           <div>
@@ -259,6 +261,19 @@ export function Pages({ audit }: { audit: Audit }) {
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<AuditPage | null>(null);
   const evidenceFor = (page: AuditPage) => (audit.criteria || []).flatMap((criterion) => (criterion.evidence || []).filter((evidence) => evidence.url === page.url).map((evidence) => ({ criterion, evidence })));
+  const pageType = (page: AuditPage) => {
+    if (page.url === (audit.final_url || audit.url)) return 'Главная';
+    for (const { evidence } of evidenceFor(page)) {
+      try {
+        const data = JSON.parse(evidence.excerpt || '');
+        const types = Array.isArray(data?.['@type']) ? data['@type'] : [data?.['@type']];
+        if (types.includes('ContactPage')) return 'Контакты · разметка';
+        if (types.includes('AboutPage')) return 'О компании · разметка';
+        if (types.includes('CollectionPage') || types.includes('ItemList')) return 'Каталог · разметка';
+      } catch { /* This evidence is plain text, not structured markup. */ }
+    }
+    return 'Не определён';
+  };
   const pages = (audit.pages || []).filter((page) =>
     `${page.url} ${page.primary_heading || ''}`
       .toLocaleLowerCase('ru')
@@ -280,7 +295,7 @@ export function Pages({ audit }: { audit: Audit }) {
         <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[750px] text-left text-sm">
             <thead><tr className="border-b border-(--color-border)"><th className="p-3">URL</th><th className="p-3">Заголовок</th><th className="p-3">Тип</th><th className="p-3">Свидетельства</th><th className="p-3">HTTP</th><th className="p-3">Проверено</th><th className="p-3">Подробнее</th></tr></thead>
-            <tbody>{pages.map((page) => <tr key={page.url} className="border-b border-(--color-border)"><td className="break-all p-3">{page.url}</td><td className="p-3">{page.primary_heading || 'Без заголовка'}</td><td className="p-3">{page.url === (audit.final_url || audit.url) ? 'Главная' : 'Не определён'}</td><td className="p-3">{evidenceFor(page).length}</td><td className="p-3">{page.status ?? '—'}</td><td className="p-3">{date(page.observed_at)}</td><td className="p-3"><button type="button" className={secondary} onClick={() => setSelected(page)} aria-label={`Подробнее: ${page.primary_heading || page.url}`}>Подробнее</button></td></tr>)}</tbody>
+            <tbody>{pages.map((page) => <tr key={page.url} className="border-b border-(--color-border)"><td className="break-all p-3">{page.url}</td><td className="p-3">{page.primary_heading || 'Без заголовка'}</td><td className="p-3">{pageType(page)}</td><td className="p-3">{evidenceFor(page).length}</td><td className="p-3">{page.status ?? '—'}</td><td className="p-3">{date(page.observed_at)}</td><td className="p-3"><button type="button" className={secondary} onClick={() => setSelected(page)} aria-label={`Подробнее: ${page.primary_heading || page.url}`}>Подробнее</button></td></tr>)}</tbody>
           </table>
         </div>
       ) : (
@@ -297,9 +312,9 @@ export function Pages({ audit }: { audit: Audit }) {
           <div className="space-y-4">
             <p className="break-all">{selected.url}</p>
             <p>
-              Проверено: {date(selected.observed_at)} · Статус: {selected.status ?? '—'}
+              Тип: {pageType(selected)} · Проверено: {date(selected.observed_at)} · Статус: {selected.status ?? '—'}
             </p>
-            <div><h3 className="font-semibold">Свидетельства проверки</h3>{evidenceFor(selected).length ? <ul className="mt-2 space-y-2">{evidenceFor(selected).map(({criterion, evidence}, index) => <li key={index} className="rounded-lg bg-(--color-surface-muted) p-3"><strong>{criterion.title || 'Критерий'}</strong><p>{evidence.excerpt || 'Нет выдержки'}</p><p className="text-sm text-(--color-ink-muted)">{labels[criterion.status || 'unknown'] || 'Нет данных'}</p></li>)}</ul> : <p className="mt-2 text-(--color-ink-muted)">Для этой страницы нет отдельных свидетельств.</p>}</div>
+            <div><h3 className="font-semibold">Извлечённые факты и свидетельства</h3>{evidenceFor(selected).length ? <ul className="mt-2 space-y-2">{evidenceFor(selected).map(({criterion, evidence}, index) => <li key={index} className="rounded-lg bg-(--color-surface-muted) p-3"><strong>{criterion.title || 'Критерий'}</strong><p>{evidence.excerpt || 'Нет выдержки'}</p><p className="text-sm text-(--color-ink-muted)">{labels[criterion.status || 'unknown'] || 'Нет данных'}</p></li>)}</ul> : <p className="mt-2 text-(--color-ink-muted)">Для этой страницы нет подтверждённых фактов или свидетельств.</p>}</div>
             <div>
               <h3 className="font-semibold">Заголовки страницы</h3>
               {selected.headings?.length ? (
