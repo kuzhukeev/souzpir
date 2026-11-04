@@ -5,6 +5,7 @@ namespace App\Vision\Publications;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
 use App\Tenancy\TenantContext;
+use App\Vision\Core\VisionReportReader;
 use App\Vision\Measurements\MeasurementList;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,7 +21,7 @@ final class PublicationsController
 {
     public function index(Request $request): Response
     {
-        return app(MeasurementList::class)->withinCurrent($request, function (TenantContext $context, string $revision): Response {
+        return app(MeasurementList::class)->withinCurrent($request, function (TenantContext $context, string $revision) use ($request): Response {
             Gate::authorize('vision.report.read');
             $reports = DB::table('vision_reports')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)
                 ->whereIn('measurement_id', DB::table('snapshot_confirmations')->where('organization_id', $context->organizationId)
@@ -30,12 +31,25 @@ final class PublicationsController
                 ->where('brand_id', $context->brandId)->orderByDesc('created_at')
                 ->get(['id', 'report_id', 'expires_at', 'revoked_at', 'created_at']);
 
+            $review = null;
+            if ($request->filled('review_report')) {
+                Gate::authorize('vision.measure.run');
+                $input = $request->validate(['review_report' => ['required', 'ulid']]);
+                abort_unless($reports->contains('id', $input['review_report']), 404);
+                try {
+                    $payload = app(VisionReportReader::class)->read($input['review_report']);
+                    $review = ['report_id' => $input['review_report'], 'candidates' => app(PublicationData::class)->candidatesFromPayload($payload)];
+                } catch (LogicException) {
+                    abort(404);
+                }
+            }
+
             if (session()->has('publication_url')) {
                 Inertia::encryptHistory();
             }
 
             return Inertia::render('Vision/Publications/Index', [
-                'reports' => $reports, 'publications' => $publications,
+                'reports' => $reports, 'publications' => $publications, 'review' => $review,
                 'ttlDays' => config('features.E8-05C.defaults.publication_ttl_days'),
                 'reportBrandRevision' => $revision,
                 'canPublish' => Gate::allows('vision.measure.run'),
