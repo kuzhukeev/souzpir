@@ -2,6 +2,7 @@
 
 namespace App\Seller\Engine\Summarizer;
 
+use App\Seller\Engine\BrandPromptSets;
 use App\Seller\Knowledge\Contracts\KnowledgeRepository;
 use App\Tenancy\TenantContext;
 use Illuminate\Support\Facades\DB;
@@ -22,15 +23,7 @@ final class PublishedSource implements PublicationSource
             throw new LogicException('Published summary input unavailable.');
         }
         $snapshot = $this->knowledge->published($tenant);
-        $prompt = DB::table('prompt_sets')->where('name', 'summary')->where('version', 'v1')->where('status', 'published')
-            ->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->first();
-        $prompt ??= DB::table('prompt_sets')->where('name', 'summary')->where('version', 'v1')->where('status', 'published')
-            ->whereNull('organization_id')->whereNull('brand_id')->first();
-        $template = file_get_contents(resource_path('views/prompts/summary.blade.php'));
-        if (! $prompt || ! is_string($template) || ! is_string($prompt->checksum)
-            || ! hash_equals(hash('sha256', $template), $prompt->checksum)) {
-            throw new LogicException('Published summary input unavailable.');
-        }
+        $prompt = app(BrandPromptSets::class)->load($tenant, $snapshot, 'summary');
         $history = DB::table('messages')->where('conversation_id', $conversationId)
             ->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
             ->whereIn('role', ['client', 'agent'])->orderBy('history_sequence')

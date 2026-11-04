@@ -10,6 +10,7 @@ use App\Contracts\Ai\AiRequest;
 use App\ProtectedOperations\FirstTurnDeterministicGuard;
 use App\ProtectedOperations\FirstTurnGoal;
 use App\Seller\Conversations\Data\TurnClaim;
+use App\Seller\Engine\BrandPromptSets;
 use App\Seller\Engine\GuardDecision;
 use App\Seller\Engine\GuardRequest;
 use App\Seller\Engine\LeadState;
@@ -154,16 +155,13 @@ final class SellerGuardStages
             $query->where(fn ($platform) => $platform->whereNull('organization_id')->whereNull('brand_id'))
                 ->orWhere(fn ($brand) => $brand->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId));
         })->orderBy('id')->lockForUpdate()->get(['id']);
-        $prompt = DB::table('prompt_sets')->where('name', 'guard')->where('version', 'v1')->where('status', 'published')
-            ->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->first();
-        $prompt ??= DB::table('prompt_sets')->where('name', 'guard')->where('version', 'v1')->where('status', 'published')
-            ->whereNull('organization_id')->whereNull('brand_id')->first();
+        $prompt = app(BrandPromptSets::class)->load($tenant, $knowledge, 'guard');
         $model = config('features.E0-05.defaults.seller_defaults.guard.model');
         if (! $prompt || ! hash_equals(hash('sha256', $prompt->body), $prompt->checksum) || ! is_string($model) || $model === '') {
             throw new LogicException;
         }
         $state = new LeadState($computed['state']);
-        $projection = app(GuardProjection::class)->render($state, $goal);
+        $projection = app(GuardProjection::class)->render($state, $goal, $prompt->body);
         if (! hash_equals($projection['checksum'], $prompt->checksum)) {
             throw new LogicException;
         }
