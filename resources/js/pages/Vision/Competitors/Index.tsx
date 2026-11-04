@@ -3,7 +3,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 import { Modal } from '@/components/ui';
 import CabinetLayout from '@/layouts/CabinetLayout';
-type Entity={name:string;answers:number;share:number|null;is_brand:boolean;tracked:boolean;models?:string[];intents?:string[];questions?:string[];sources?:string[];intent_rates?:Record<string,number|null>;intent_denominators?:Record<string,number|null>};
+type Entity={name:string;answers:number;share:number|null;is_brand:boolean;tracked:boolean;models?:string[];intents?:string[];questions?:string[];sources?:string[];intent_rates?:Record<string,number|null>;intent_denominators?:Record<string,number|null>;intent_bases?:Record<string,string|null>};
 const intents:Record<string,string>={choose:'Выбор и сравнение',price:'Цена',buy:'Покупка',information:'Информация'};
 const field='min-h-11 rounded-lg border border-(--color-border) bg-(--color-surface) px-3 text-sm';
 export default function Index({entities,available,canEdit,status,history=[]}:{entities:Entity[];available:boolean;canEdit:boolean;status?:string|null;history?:{id:string;measurement_id:string;created_at:string}[]}) {

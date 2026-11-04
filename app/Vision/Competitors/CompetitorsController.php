@@ -62,14 +62,16 @@ final class CompetitorsController
 
                 $intentRates = [];
                 $intentDenominators = [];
+                $intentBases = [];
                 foreach ($metrics['intents'] ?? [] as $intent => $group) {
                     $match = collect($group['entities'] ?? [])->firstWhere('name', $entity['name']);
                     $intentRates[$intent] = is_numeric($match['frequency'] ?? null) ? (float) $match['frequency'] : null;
                     $intentDenominators[$intent] = is_numeric($match['denominator'] ?? null) ? (int) $match['denominator'] : null;
+                    $intentBases[$intent] = $this->completeAnswerBase($metrics['slots'] ?? [], (string) $intent, $intentDenominators[$intent]);
                 }
 
                 return ['name' => $entity['name'], 'answers' => $entity['answers'], 'share' => $entity['share_of_voice'] ?? null,
-                    'intent_rates' => $intentRates, 'intent_denominators' => $intentDenominators,
+                    'intent_rates' => $intentRates, 'intent_denominators' => $intentDenominators, 'intent_bases' => $intentBases,
                     'is_brand' => $entity['is_brand'], 'tracked' => in_array($entity['name'], $tracked, true),
                     'models' => $matched->pluck('provider')->unique()->values()->all(),
                     'intents' => $matched->pluck('intent')->filter()->unique()->values()->all(),
@@ -81,6 +83,30 @@ final class CompetitorsController
         });
 
         return Inertia::render('Vision/Competitors/Index', [...$data, 'status' => $request->session()->get('status')]);
+    }
+
+    /** A radar is comparable only if each denominator covers the same identified, complete answers. */
+    private function completeAnswerBase(array $slots, string $intent, ?int $denominator): ?string
+    {
+        if (! $denominator) {
+            return null;
+        }
+        $keys = [];
+        foreach ($slots as $slot) {
+            if (! ($slot['valid'] ?? false) || ($slot['intent'] ?? 'choose') !== $intent) {
+                continue;
+            }
+            if (($slot['mentions_complete'] ?? false) !== true || ! isset($slot['provider'], $slot['question_n'], $slot['run_no'])) {
+                return null;
+            }
+            $keys[] = json_encode([$slot['provider'], $slot['question_n'], $slot['run_no']], JSON_THROW_ON_ERROR);
+        }
+        if (count($keys) !== $denominator || count(array_unique($keys)) !== $denominator) {
+            return null;
+        }
+        sort($keys, SORT_STRING);
+
+        return hash('sha256', implode('|', $keys));
     }
 
     private function validNames(TenantContext $tenant): array
