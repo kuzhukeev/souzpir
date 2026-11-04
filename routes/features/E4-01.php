@@ -15,5 +15,6 @@ return ['web' => static function (): void {
         Route::post('/seller/knowledge/{release}/scenarios', [ReleasesController::class, 'runScenarios'])->whereUlid('release')->name('seller.knowledge.scenarios');
         Route::post('/seller/knowledge/{release}/publish', [ReleasesController::class, 'publish'])->whereUlid('release')->name('seller.knowledge.publish');
         Route::post('/seller/knowledge/{release}/rollback', [ReleasesController::class, 'rollback'])->whereUlid('release')->name('seller.knowledge.rollback');
+        Route::post('/seller/knowledge/{release}/restore', [ReleasesController::class, 'restore'])->whereUlid('release')->name('seller.knowledge.restore');
     });
 }];

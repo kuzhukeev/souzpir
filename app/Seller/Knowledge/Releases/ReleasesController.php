@@ -93,9 +93,12 @@ final class ReleasesController
             $evaluations = $this->query('seller_evaluations', $tenant)->whereNotIn('id', $handled)->whereRaw('jsonb_array_length(issues) > 0')->orderByDesc('created_at')->limit(50)->get(['id', 'issues', 'comment', 'created_at']);
 
             $lastRun = $draft ? $this->scenarioResult($tenant, $draft->id) : null;
+            $backupIds = $this->query('audit_logs', $tenant)->where('action', 'knowledge.draft.autosaved')->pluck('subject_id');
+            $backups = $canWrite ? $this->query('knowledge_releases', $tenant)->whereIn('id', $backupIds)->where('status', 'building')
+                ->orderByDesc('updated_at')->get(['id', 'version', 'updated_at']) : [];
 
             return ['scenarioRun' => $lastRun, 'releases' => $releases, 'activeId' => $brand?->active_knowledge_release_id, 'draft' => $draft, 'counts' => $counts,
-                'tasks' => $tasks, 'reviews' => $reviews, 'evaluations' => $evaluations, 'changeCount' => $changeCount, 'changes' => $changes, 'comparison' => $comparison, 'coverage' => $coverage, 'publicationNotes' => $notes, 'topics' => $topics, 'canWrite' => $canWrite];
+                'tasks' => $tasks, 'reviews' => $reviews, 'evaluations' => $evaluations, 'changeCount' => $changeCount, 'changes' => $changes, 'comparison' => $comparison, 'coverage' => $coverage, 'publicationNotes' => $notes, 'topics' => $topics, 'canWrite' => $canWrite, 'backups' => $backups];
         });
 
         return Inertia::render('Seller/Knowledge/Releases/Index', [...$data, 'status' => session('status')]);
@@ -122,11 +125,10 @@ final class ReleasesController
             foreach ($scenarios as $scenario) {
                 $payload = json_decode($scenario->payload, true) ?: [];
                 $client = trim((string) ($payload['first_message'] ?? ''));
-                $expectations = is_array($payload['expect'] ?? null) ? $payload['expect'] : [];
-                $turn = app(DraftScenarioPreview::class)->turn($snapshot, $client ?: 'Тестовый вопрос', $expectations);
-                $checks = $turn['meta']['expectation_checks'];
-                $passed = $client !== '' && $turn['meta']['guard_verdict'] === 'ok' && ! in_array(false, $checks, true);
-                $id = app(FakeSimulation::class)->run($tenant, $scenario->key, [$turn], $draft->id);
+                $turns = app(DraftScenarioPreview::class)->dialogue($snapshot, $payload, (int) $scenario->max_turns);
+                $passed = $client !== '' && collect($turns)->every(fn (array $turn): bool => $turn['meta']['guard_verdict'] === 'ok'
+                    && ! in_array(false, $turn['meta']['expectation_checks'], true));
+                $id = app(FakeSimulation::class)->run($tenant, $scenario->key, $turns, $draft->id);
                 $runs[] = ['id' => $id, 'passed' => $passed];
             }
             $result = ['version' => $draft->version, 'runs' => $runs, 'passed' => count(array_filter($runs, fn ($run) => $run['passed'])), 'failed' => count(array_filter($runs, fn ($run) => ! $run['passed']))];
@@ -221,12 +223,35 @@ final class ReleasesController
         $this->access($request, 'seller.knowledge.write', function (User $user, TenantContext $tenant) use ($release): void {
             $repository = app(KnowledgeRepository::class);
             $snapshot = $repository->forRelease($tenant, $release);
-            if ($this->query('knowledge_releases', $tenant)->where('status', 'draft')->exists()) {
-                throw ValidationException::withMessages(['rollback' => 'Уже есть черновик. Завершите работу с ним, прежде чем создать черновик из прошлой версии.']);
-            }
-            $repository->createDraft($tenant, $snapshot->toArray());
+            DB::transaction(function () use ($tenant, $repository, $snapshot, $release): void {
+                $draft = $this->query('knowledge_releases', $tenant)->where('status', 'draft')->lockForUpdate()->first(['id', 'version']);
+                if ($draft) {
+                    $this->query('knowledge_releases', $tenant)->where('id', $draft->id)->update(['status' => 'building', 'updated_at' => now()]);
+                    app(AuditWriter::class)->record($tenant, new AuditEntry('knowledge.draft.autosaved', 'knowledge_release', $draft->id, after: ['version' => $draft->version, 'rollback_to' => $release]));
+                }
+                $repository->createDraft($tenant, $snapshot->toArray());
+            });
         });
 
-        return back()->with('status', 'Создан черновик из выбранной версии. Активная публикация не изменилась.');
+        return back()->with('status', 'Создан черновик из выбранной версии. Прежний черновик сохранён для восстановления.');
+    }
+
+    public function restore(Request $request, string $release): mixed
+    {
+        $this->access($request, 'seller.knowledge.write', function (User $user, TenantContext $tenant) use ($release): void {
+            DB::transaction(function () use ($tenant, $release): void {
+                $backup = $this->query('knowledge_releases', $tenant)->where('id', $release)->where('status', 'building')->lockForUpdate()->first(['id']) ?? abort(404);
+                abort_unless($this->query('audit_logs', $tenant)->where('action', 'knowledge.draft.autosaved')->where('subject_id', $backup->id)->exists(), 404);
+                $current = $this->query('knowledge_releases', $tenant)->where('status', 'draft')->lockForUpdate()->first(['id', 'version']);
+                if ($current) {
+                    $this->query('knowledge_releases', $tenant)->where('id', $current->id)->update(['status' => 'building', 'updated_at' => now()]);
+                    app(AuditWriter::class)->record($tenant, new AuditEntry('knowledge.draft.autosaved', 'knowledge_release', $current->id, after: ['version' => $current->version, 'restore_to' => $release]));
+                }
+                $this->query('knowledge_releases', $tenant)->where('id', $backup->id)->update(['status' => 'draft', 'updated_at' => now()]);
+                app(AuditWriter::class)->record($tenant, new AuditEntry('knowledge.draft.restored', 'knowledge_release', $backup->id));
+            });
+        });
+
+        return back()->with('status', 'Черновик восстановлен. Предыдущий сохранён как копия.');
     }
 }
