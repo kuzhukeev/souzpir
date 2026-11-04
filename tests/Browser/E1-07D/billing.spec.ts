@@ -19,6 +19,7 @@ test('plan shows used limits', async ({ page }) => {
   await page.goto(base);
   await expect(page.getByRole('progressbar', { name: 'Лимит 80' })).toBeVisible();
   await expect(page.getByText('80 / 100')).toBeVisible();
+  await expect(page.getByText('Продление: 02.12.2026')).toBeVisible();
   await page.screenshot({ path: '.local/screenshots/SP-E1-07D/plan.png', fullPage: true });
 });
 
@@ -33,5 +34,7 @@ test('invoices show an empty table', async ({ page }) => {
 test('usage shows daily data', async ({ page }) => {
   await page.goto(`${base}?usage`);
   await expect(page.getByRole('img', { name: 'Столбцы использования по дням' })).toBeVisible();
+  await expect(page.locator('[data-day="2026-10-01"]')).toHaveCount(1);
+  await expect(page.locator('[data-day="2026-10-01"] [data-module]')).toHaveCount(2);
   await page.screenshot({ path: '.local/screenshots/SP-E1-07D/usage.png', fullPage: true });
 });
