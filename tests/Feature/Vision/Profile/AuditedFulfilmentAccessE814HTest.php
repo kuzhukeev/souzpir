@@ -70,15 +70,20 @@ final class AuditedFulfilmentAccessE814HTest extends TestCase
             DB::table('brand_modules')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $item->id, 'module' => 'vision', 'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
         }
         DB::table('audit_runs')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $brand->id,
-            'created_by' => $owner->id, 'result' => json_encode(['url' => 'https://example.com', 'readiness' => 74, 'crawled_pages' => 3, 'pages' => [['url' => 'https://example.com/delivery', 'status' => 200, 'fulfilment_evidence' => 'Доставка в течение двух дней']]]), 'created_at' => now(), 'updated_at' => now()]);
+            'created_by' => $owner->id, 'result' => json_encode(['url' => 'https://example.com', 'readiness' => 74, 'crawled_pages' => 3, 'pages' => [['url' => 'https://example.com/delivery', 'status' => 200, 'fulfilment_evidence' => 'Доставка в течение двух дней', 'headings' => ['Типы покупателей: Магазины', 'Конкуренты: Сосед', 'Вопросы клиентов: Есть доставка?']]]]), 'created_at' => now(), 'updated_at' => now()]);
         $this->signIn($owner, $brand->id);
         $this->post('/vision/quiz/start')->assertRedirect();
         $this->privateGet('/vision/quiz/1')->assertOk()->assertInertia(fn (Assert $page) => $page->where('hints.site_check.readiness', 74)->where('hints.site_check.pages', 3));
         $this->privateGet('/vision/quiz/5')->assertOk()->assertInertia(fn (Assert $page) => $page->where('hints.items.0.value', 'Доставка в течение двух дней')->where('hints.items.0.source', 'https://example.com/delivery'));
+        $this->privateGet('/vision/quiz/3')->assertOk()->assertInertia(fn (Assert $page) => $page->where('hints.items.0.value', 'Магазины')->where('hints.items.0.kind', 'customer_type'));
+        $this->privateGet('/vision/quiz/4')->assertOk()->assertInertia(fn (Assert $page) => $page->where('hints.items.0.value', 'Сосед'));
+        $this->privateGet('/vision/quiz/7')->assertOk()->assertInertia(fn (Assert $page) => $page->where('hints.items.0.value', 'Есть доставка?'));
         $this->signIn($editor, $brand->id);
+        $this->privateGet('/vision/quiz/4')->assertOk()->assertInertia(fn (Assert $page) => $page->where('hints.status', 'unavailable')->where('hints.items', []));
         $this->privateGet('/vision/quiz/1')->assertOk()->assertInertia(fn (Assert $page) => $page->where('hints.status', 'unavailable')->missing('hints.site_check'));
         $this->signIn($owner, $other->id);
         $this->post('/vision/quiz/start')->assertRedirect();
+        $this->privateGet('/vision/quiz/4')->assertOk()->assertInertia(fn (Assert $page) => $page->where('hints.items', []));
         $this->privateGet('/vision/quiz/5')->assertOk()->assertInertia(fn (Assert $page) => $page->where('hints.items', []));
         $this->privateGet('/vision/quiz/1')->assertOk()->assertInertia(fn (Assert $page) => $page->where('hints.site_check.readiness', null));
         Http::assertNothingSent();
