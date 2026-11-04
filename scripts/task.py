@@ -52,6 +52,7 @@ CI_SCOPE_EXCEPTIONS = {
     "SP-E8-15C": ("tests/Browser/E8-03/pages.spec.ts", "tests/Browser/E8-03/e2e.spec.ts", "tests/Browser/E8-15B/questions.spec.ts"),
     "SP-E8-24B": ("tests/Browser/E8-24/fixture.tsx",),
     "SP-E8-18B": ("tests/Unit/Vision/Reports/ReportSectionsTest.php",),
+    "SP-E8-22B": ("tests/Browser/SP-UI-01/history.spec.ts",),
     "SP-E4-01J": ("tests/Feature/Seller/Knowledge/Releases/ReleasesTest.php",),
     "SP-E6-02C": ("tests/Feature/Seller/Quality/EvaluationFeedbackTest.php", "tests/Feature/Seller/Quality/ReportActionsTest.php"),
     "SP-E8-20D": ("tests/Feature/Seller/Quality/EvaluationFeedbackTest.php", "tests/Feature/Seller/Quality/ReportActionsTest.php"),
