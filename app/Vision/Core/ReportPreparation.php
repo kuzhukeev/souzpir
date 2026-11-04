@@ -120,7 +120,8 @@ final class ReportPreparation
                 $metrics = $this->metrics->calculate($slots, array_keys($providers), count($questions), $runs);
                 $payload = ['measurement_id' => $measurementId, 'question_set_checksum' => $configuration['question_set_checksum'],
                     'questions' => $questions, 'providers' => $providers, 'runs' => $runs,
-                    'metrics' => $metrics, 'recommendations' => ['items' => []], 'evidence_status' => $verifiedCount ? 'available' : 'not_available'];
+                    'metrics' => $metrics, 'recommendations' => ['items' => []],
+                    'reviewed_facts' => app(ConfirmedClarifications::class)->read($tenant, $measurementId, $slots), 'evidence_status' => $verifiedCount ? 'available' : 'not_available'];
                 $revision = 1 + (int) DB::table('vision_reports')->where($tenant)->where('measurement_id', $measurementId)->max('revision');
                 $id = (string) Str::ulid();
                 $checksum = CanonicalJson::hash($payload);

@@ -75,7 +75,7 @@ final class ReportData
                 'share_of_voice' => $panel['share_of_voice'] ?? null,
                 'position' => $panel['position_average'] ?? null,
                 'verified_errors' => is_array($payload['reviewed_facts'] ?? null)
-                    ? count(array_filter($payload['reviewed_facts'], fn ($item) => ($item['confirmed'] ?? false) === true)) : null,
+                    ? count(array_filter($payload['reviewed_facts'], fn ($item) => ($item['confirmed'] ?? false) === true && ($item['classification'] ?? 'incorrect') !== 'correct')) : null,
                 'providers' => collect($metrics['providers'] ?? [])->map(fn ($row, $name) => [
                     'name' => $name, 'mention_rate' => $row['mention_rate'] ?? null,
                     'coverage' => $row['coverage'] ?? null,
