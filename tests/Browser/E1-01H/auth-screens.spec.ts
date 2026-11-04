@@ -51,7 +51,7 @@ test.beforeAll(async () => {
     cwd: root, env: { ...process.env, APP_ENV: 'testing' }, timeout: 30_000,
   });
   vite = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', String(vitePort), '--strictPort'], {
-    cwd: root, env: { ...process.env, APP_ENV: 'testing' }, stdio: 'ignore',
+    cwd: root, env: { ...process.env, APP_ENV: 'testing', LARAVEL_BYPASS_ENV_CHECK: '1' }, stdio: 'ignore',
   });
   await ready(`http://127.0.0.1:${vitePort}/@vite/client`);
   server = spawn(php, ['-S', `127.0.0.1:${appPort}`, '-t', 'public', 'tests/Browser/E1-01H/router.php'], {

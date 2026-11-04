@@ -59,6 +59,7 @@ export default function Invitation({
       <div className="mb-5 rounded-xl bg-(--color-bg) p-4 text-sm leading-6">
         <p><strong>{inviter || 'Участник команды'}</strong> приглашает вас в компанию <strong>«{organization || 'Организация'}»</strong> как {roleName}.</p>
         <p className="mt-2 text-(--color-ink-muted)">Доступ к брендам: <strong className="text-(--color-ink)">{brands.length ? brands.join(', ') : 'Не указан'}</strong></p>
+        <p className="mt-2">Электронная почта: <strong>{email}</strong></p>
       </div>
       {authenticated && !verified ? (
         <p className="text-sm">
@@ -77,7 +78,7 @@ export default function Invitation({
               <Check label="Я принимаю условия использования и обработки данных" required checked={form.data.terms} onChange={(e) => form.setData('terms', e.target.checked)} error={form.errors.terms} />
             </>
           )}
-          <Button type="submit" loading={form.processing} className="min-h-12 w-full">Принять приглашение</Button>
+          <Button type="submit" loading={form.processing} className="min-h-12 w-full">{authenticated ? 'Принять приглашение' : 'Создать аккаунт'}</Button>
         </form>
       )}
       {!authenticated && (

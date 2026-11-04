@@ -80,7 +80,8 @@ final class InvitationController
             if(!response.ok){
                 const data=await response.json().catch(()=>({}));
                 if(['expired','revoked','accepted','email_mismatch'].includes(data.state)){
-                    location.replace('/invitations/state?state='+encodeURIComponent(data.state));
+                    const labels={expired:'Срок приглашения истёк.',revoked:'Приглашение отозвано.',accepted:'Приглашение уже принято.',email_mismatch:'Почта не совпадает.'};
+                    status.textContent=failed+' '+labels[data.state];
                     return;
                 }
                 throw 0;
@@ -128,7 +129,7 @@ HTML;
                         : ($row && $request->user() && mb_strtolower(trim($request->user()->email)) !== $row->email ? 'email_mismatch' : null)));
                 }
 
-                return response()->json(['ok' => false, 'state' => $state], $state ? 410 : 404);
+                return response()->json(['ok' => false, 'state' => $state], 404);
             }
             if ($request->user()) {
                 app(InvitationAcceptance::class)->inspectSession($request->user(), $request);

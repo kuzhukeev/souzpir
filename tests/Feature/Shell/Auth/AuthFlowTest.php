@@ -195,7 +195,7 @@ final class AuthFlowTest extends TestCase
         ]));
         $this->post('/login', ['email' => $owner->email, 'password' => 'secure-password-example'])->assertRedirect();
         $this->withCookie(config('session.cookie'), session()->getId());
-        $this->exchangeInvitation($token)->assertStatus(410)->assertJsonPath('state', 'email_mismatch');
+        $this->exchangeInvitation($token)->assertNotFound()->assertJsonPath('state', 'email_mismatch');
         $this->get('/invitations/show')->assertNotFound();
     }
 
@@ -215,7 +215,7 @@ final class AuthFlowTest extends TestCase
                 'revoked' => ['revoked_at' => now()],
                 default => ['accepted_at' => now(), 'accepted_by' => $owner->id],
             });
-            $this->exchangeInvitation($token)->assertStatus(410)->assertJsonPath('state', $state);
+            $this->exchangeInvitation($token)->assertNotFound()->assertJsonPath('state', $state);
             $this->get('/invitations/show')->assertNotFound();
             $this->get('/invitations/state?state='.$state)->assertOk()->assertInertia(fn ($page) => $page->component('Shell/Auth/Invitation')->where('state', $state));
         }
