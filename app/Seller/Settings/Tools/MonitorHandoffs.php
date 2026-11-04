@@ -28,9 +28,24 @@ final class MonitorHandoffs extends Command
             $conversations = DB::table('conversations')->where('organization_id', $row->organization_id)->where('brand_id', $row->brand_id)
                 ->where('stage', 'handoff')->whereNull('taken_at')->whereNotNull('handed_off_at')->where('handed_off_at', '<=', now()->subMinutes($minutes))->get(['id', 'handed_off_at']);
             foreach ($conversations as $conversation) {
-                DB::table('seller_handoff_reminders')->insertOrIgnore(['id' => (string) Str::ulid(), 'organization_id' => $row->organization_id,
-                    'brand_id' => $row->brand_id, 'conversation_id' => $conversation->id, 'handed_off_at' => $conversation->handed_off_at,
-                    'status' => 'pending', 'created_at' => now(), 'updated_at' => now()]);
+                DB::transaction(function () use ($row, $conversation): void {
+                    $stillWaiting = DB::table('conversations')->where('id', $conversation->id)->where('organization_id', $row->organization_id)
+                        ->where('brand_id', $row->brand_id)->where('stage', 'handoff')->whereNull('taken_at')
+                        ->where('handed_off_at', $conversation->handed_off_at)->exists();
+                    if (! $stillWaiting) {
+                        return;
+                    }
+                    $inserted = DB::table('seller_handoff_reminders')->insertOrIgnore(['id' => (string) Str::ulid(), 'organization_id' => $row->organization_id,
+                        'brand_id' => $row->brand_id, 'conversation_id' => $conversation->id, 'handed_off_at' => $conversation->handed_off_at,
+                        'status' => 'sent', 'created_at' => now(), 'updated_at' => now()]);
+                    if ($inserted < 1) {
+                        return;
+                    }
+                    DB::table('seller_tasks')->insert(['id' => (string) Str::ulid(), 'organization_id' => $row->organization_id,
+                        'brand_id' => $row->brand_id, 'conversation_id' => $conversation->id, 'type' => 'reminder',
+                        'payload' => json_encode(['text' => 'Передачу клиента менеджеру ещё не приняли.'], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
+                        'status' => 'new', 'priority' => 'urgent', 'created_at' => now(), 'updated_at' => now()]);
+                });
             }
         }
 
