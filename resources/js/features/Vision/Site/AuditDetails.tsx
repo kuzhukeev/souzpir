@@ -107,6 +107,9 @@ function CriterionRow({ item, canManage }: { item: Criterion; canManage: boolean
     </details>
   );
 }
+export function SpeedUnavailable() {
+  return <section className={card}><h2 className="text-lg font-semibold">Скорость сайта</h2><p className="mt-2 text-sm text-(--color-ink-muted)">Данные недоступны: аудит не измеряет скорость загрузки страниц.</p></section>;
+}
 export function Criteria({ criteria, canManage }: { criteria: Criterion[]; canManage: boolean }) {
   if (!criteria.length)
     return <div className={`${card} text-(--color-ink-muted)`}>Критерии пока не проверены.</div>;
@@ -119,6 +122,7 @@ export function Criteria({ criteria, canManage }: { criteria: Criterion[]; canMa
   );
   return (
     <div className="space-y-4">
+      <p className="text-sm text-(--color-ink-muted)">Качественная важность проверок не определена; доступный числовой вес указан в каждом критерии.</p>
       {Array.from(groups, ([group, items]) => (
         <details key={group} className={card} open>
           <summary className="cursor-pointer text-lg font-semibold">{group}</summary>
