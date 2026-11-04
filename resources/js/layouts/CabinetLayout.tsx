@@ -144,6 +144,7 @@ export default function CabinetLayout({
                   <span className="sr-only">Уведомления пока недоступны</span>
                 </span>
               ))}
+            {props.auth.user && props.can?.['profile.own'] === true && <nav aria-label="Меню профиля"><Link href="/context/organization" className="cursor-pointer text-sm font-semibold text-(--color-link)">Выбор компании</Link></nav>}
             {props.auth.user && (
               <div className="flex items-center gap-3">
                 <span
