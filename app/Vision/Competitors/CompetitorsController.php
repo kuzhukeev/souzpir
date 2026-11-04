@@ -8,6 +8,7 @@ use App\Shell\Audit\Contracts\AuditWriter;
 use App\Shell\Organizations\ModuleEntitlements;
 use App\Shell\Profile\ProfileAccess;
 use App\Tenancy\TenantContext;
+use App\Vision\KnowledgeBridge\SelfDeclaredProfile;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -35,17 +36,28 @@ final class CompetitorsController
 
     public function index(Request $request): mixed
     {
-        $data = $this->access($request, 'vision.report.read', function (User $user, TenantContext $tenant): array {
+        $data = $this->access($request, 'vision.report.read', function (User $user, TenantContext $tenant) use ($request): array {
+            $declared = [];
+            if (Gate::forUser($user)->allows('vision.quiz.write')) {
+                $profileId = $this->scope('brand_profiles', $tenant)->orderByDesc('version')->value('id');
+                if ($profileId) {
+                    try {
+                        $declared = app(SelfDeclaredProfile::class)->read($request, $profileId)['competitors'];
+                    } catch (\LogicException|\InvalidArgumentException) {
+                        // An inaccessible or invalid profile must not be displayed.
+                    }
+                }
+            }
             $confirmed = $this->scope('snapshot_confirmations', $tenant)->pluck('measurement_id');
             $history = $this->scope('vision_reports', $tenant)->whereIn('measurement_id', $confirmed)->orderByDesc('created_at')->limit(20)->get(['id', 'measurement_id', 'created_at'])->toArray();
             $snapshot = app(SnapshotView::class)->current($tenant);
             if (! $snapshot) {
-                return ['history' => $history, 'entities' => [], 'available' => false, 'canEdit' => Gate::forUser($user)->allows('vision.actions.write')];
+                return ['declared' => $declared, 'history' => $history, 'entities' => [], 'available' => false, 'canEdit' => Gate::forUser($user)->allows('vision.actions.write')];
             }
             $aliases = $this->scope('vision_competitor_aliases', $tenant)->pluck('canonical', 'alias')->all();
             $tracked = $this->scope('vision_competitor_tracking', $tenant)->pluck('name')->all();
             $metrics = app(SnapshotView::class)->metrics($snapshot, $aliases);
-            $entities = collect($metrics['entities'] ?? [])->map(function ($entity) use ($metrics, $tracked, $snapshot): array {
+            $entities = collect($metrics['entities'] ?? [])->map(function ($entity) use ($metrics, $tracked, $snapshot, $aliases): array {
                 $matched = collect($metrics['slots'] ?? [])->filter(function ($slot) use ($entity): bool {
                     if (! ($slot['valid'] ?? false)) {
                         return false;
@@ -72,6 +84,7 @@ final class CompetitorsController
 
                 return ['name' => $entity['name'], 'answers' => $entity['answers'], 'share' => $entity['share_of_voice'] ?? null,
                     'intent_rates' => $intentRates, 'intent_denominators' => $intentDenominators, 'intent_bases' => $intentBases,
+                    'aliases' => array_values(array_keys($aliases, $entity['name'], true)),
                     'is_brand' => $entity['is_brand'], 'tracked' => in_array($entity['name'], $tracked, true),
                     'models' => $matched->pluck('provider')->unique()->values()->all(),
                     'intents' => $matched->pluck('intent')->filter()->unique()->values()->all(),
@@ -79,7 +92,7 @@ final class CompetitorsController
                     'sources' => $matched->flatMap(fn ($slot) => array_column($slot['sources'] ?? [], 'domain'))->filter()->unique()->values()->all()];
             })->values()->all();
 
-            return ['history' => $history, 'entities' => $entities, 'available' => true, 'canEdit' => Gate::forUser($user)->allows('vision.actions.write')];
+            return ['declared' => $declared, 'history' => $history, 'entities' => $entities, 'available' => true, 'canEdit' => Gate::forUser($user)->allows('vision.actions.write')];
         });
 
         return Inertia::render('Vision/Competitors/Index', [...$data, 'status' => $request->session()->get('status')]);
