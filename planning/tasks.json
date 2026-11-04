@@ -16079,6 +16079,108 @@
       "promptPath": "docs/tasks/SP-E8-14F.md",
       "wave": 19,
       "description": "# SP-E8-14F · Дальнейшие подсказки анкеты\n\n**Зачем:** завершить V-0.1, V-1.1, V-1.3, V-1.4, V-1.5, V-1.7 по решению владельца 03.11.2026.\n**Часть чего:** остаток SP-E8-14E, docs/results/SP-E8-14E.md.\n**Зависимости:** SP-E8-14E в done.\n\nПоказать текущий результат проверки сайта прямо в анкете. По подтверждённым источникам завершить подсказки аудитории, конкурентов, фактов и вопросов из других форматов; для логотипов моделей использовать только разрешённые и подтверждённые изображения. Отсутствующие источники и оставшиеся пункты не выдумывать, описать в отчёте.\n\nScope: `app/Vision/Profile/`, `app/Vision/Site/`, `resources/js/pages/Vision/Profile/`, `tests/Feature/Vision/Profile/`, `tests/Browser/E8-14F/`, `docs/results/SP-E8-14F.md`.\n\nПриёмка: сверить пункты с журналом макетов; проверить основной сценарий, права и изоляцию бренда, ошибки; внешние вызовы только fake. Остаток записать в docs/results/SP-E8-14F.md.\n"
+    },
+    {
+      "taskKey": "SP-E6-03K",
+      "title": "SP-E6-03K · Массовая отправка с согласием",
+      "goal": "Завершить массовую отправку при подтверждённом согласии, реальные отписки и хранение планируемого времени. Согласие на передачу контактов не считать согласием на рассылку. При отсутствии подтверждённых источников и контракта не включать отправку и не выдавать задачу до их уточнения; использовать fake-транспорт.",
+      "dependsOn": [
+        "SP-E6-03J"
+      ],
+      "scope": [
+        "app/Seller/Followups/",
+        "resources/js/pages/Seller/Followups/",
+        "tests/Feature/Seller/Followups/",
+        "tests/Browser/E6-03K/",
+        "docs/results/SP-E6-03K.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Основной сценарий, права, бренд, ошибки; только fake внешние вызовы."
+      ],
+      "sourceIds": [
+        "SP-E6-03J"
+      ],
+      "screenIds": [
+        "D-2.5"
+      ],
+      "notes": "Остаток частичной сдачи SP-E6-03J",
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E6-03K.md",
+      "wave": 19,
+      "description": "# SP-E6-03K · Массовая отправка с согласием\n\n**Зачем:** завершить D-2.5 по решению владельца.\n**Часть чего:** остаток SP-E6-03J, docs/results/SP-E6-03J.md.\n**Зависимости:** SP-E6-03J в done.\n\nЗавершить массовую отправку при подтверждённом согласии, реальные отписки и хранение планируемого времени. Согласие на передачу контактов не считать согласием на рассылку. При отсутствии подтверждённых источников и контракта не включать отправку и не выдавать задачу до их уточнения; использовать fake-транспорт.\n\nScope: `app/Seller/Followups/`, `resources/js/pages/Seller/Followups/`, `tests/Feature/Seller/Followups/`, `tests/Browser/E6-03K/`, `docs/results/SP-E6-03K.md`.\n\nПриёмка: основной сценарий, права, изоляция брендов и ошибки; только fake внешние вызовы. Остаток описать в docs/results/SP-E6-03K.md.\n"
+    },
+    {
+      "taskKey": "SP-E6-03L",
+      "title": "SP-E6-03L · Policy в защищённых ходах",
+      "goal": "Подключить Policy опубликованного снимка к защищённому follow-up и финализатору первого хода, включая handoff при пороге сообщений вне темы и правила негатива. Проверить runtime, изоляцию брендов и fake AI, сохраняя прежний spam по умолчанию.",
+      "dependsOn": [
+        "SP-E6-03C"
+      ],
+      "scope": [
+        "app/ProtectedOperations/",
+        "app/Seller/Engine/",
+        "tests/Feature/ProtectedOperations/",
+        "tests/Feature/Seller/Engine/",
+        "tests/Browser/E6-03L/",
+        "docs/results/SP-E6-03L.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Основной сценарий, права, бренд, ошибки; только fake внешние вызовы."
+      ],
+      "sourceIds": [
+        "SP-E6-03C"
+      ],
+      "screenIds": [
+        "D-5.6"
+      ],
+      "notes": "Остаток частичной сдачи SP-E6-03C",
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E6-03L.md",
+      "wave": 19,
+      "description": "# SP-E6-03L · Policy в защищённых ходах\n\n**Зачем:** завершить D-5.6 по решению владельца.\n**Часть чего:** остаток SP-E6-03C, docs/results/SP-E6-03C.md.\n**Зависимости:** SP-E6-03C в done.\n\nПодключить Policy опубликованного снимка к защищённому follow-up и финализатору первого хода, включая handoff при пороге сообщений вне темы и правила негатива. Проверить runtime, изоляцию брендов и fake AI, сохраняя прежний spam по умолчанию.\n\nScope: `app/ProtectedOperations/`, `app/Seller/Engine/`, `tests/Feature/ProtectedOperations/`, `tests/Feature/Seller/Engine/`, `tests/Browser/E6-03L/`, `docs/results/SP-E6-03L.md`.\n\nПриёмка: основной сценарий, права, изоляция брендов и ошибки; только fake внешние вызовы. Остаток описать в docs/results/SP-E6-03L.md.\n"
+    },
+    {
+      "taskKey": "SP-E6-04F",
+      "title": "SP-E6-04F · Передача человеку: runtime настроек",
+      "goal": "Подключить сохранённые настройки уведомления, напоминания и запасной фразы к соответствующему runtime и открыть настройки распределения прямой ссылкой при наличии маршрута. Проверить текущий бренд, права, выключенные переключатели и fake-уведомления.",
+      "dependsOn": [
+        "SP-E6-04C"
+      ],
+      "scope": [
+        "app/Seller/Settings/Tools/",
+        "app/Seller/Runtime/",
+        "app/ProtectedOperations/",
+        "resources/js/pages/Seller/Settings/Tools/",
+        "tests/Feature/Seller/Settings/Tools/",
+        "tests/Browser/E6-04F/",
+        "docs/results/SP-E6-04F.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Основной сценарий, права, бренд, ошибки; только fake внешние вызовы."
+      ],
+      "sourceIds": [
+        "SP-E6-04C"
+      ],
+      "screenIds": [
+        "D-5.3"
+      ],
+      "notes": "Остаток частичной сдачи SP-E6-04C",
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E6-04F.md",
+      "wave": 19,
+      "description": "# SP-E6-04F · Передача человеку: runtime настроек\n\n**Зачем:** завершить D-5.3 по решению владельца.\n**Часть чего:** остаток SP-E6-04C, docs/results/SP-E6-04C.md.\n**Зависимости:** SP-E6-04C в done.\n\nПодключить сохранённые настройки уведомления, напоминания и запасной фразы к соответствующему runtime и открыть настройки распределения прямой ссылкой при наличии маршрута. Проверить текущий бренд, права, выключенные переключатели и fake-уведомления.\n\nScope: `app/Seller/Settings/Tools/`, `app/Seller/Runtime/`, `app/ProtectedOperations/`, `resources/js/pages/Seller/Settings/Tools/`, `tests/Feature/Seller/Settings/Tools/`, `tests/Browser/E6-04F/`, `docs/results/SP-E6-04F.md`.\n\nПриёмка: основной сценарий, права, изоляция брендов и ошибки; только fake внешние вызовы. Остаток описать в docs/results/SP-E6-04F.md.\n"
     }
   ],
   "excludedSourceTasks": {
