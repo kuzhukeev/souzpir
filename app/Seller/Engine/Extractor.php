@@ -42,7 +42,7 @@ class Extractor
                 'slot_updates' => ['type' => 'object', 'additionalProperties' => false, 'required' => array_keys($slotProps), 'properties' => $slotProps],
                 'client_intent' => ['type' => 'string', 'enum' => $intents],
                 'client_questions' => ['type' => 'array', 'items' => ['type' => 'string']],
-                'objections' => ['type' => 'array', 'items' => ['type' => 'string', 'enum' => self::OBJECTIONS]],
+                'objections' => ['type' => 'array', 'items' => ['type' => 'string', 'enum' => $this->objections()]],
                 'sentiment' => ['type' => 'string', 'enum' => ['positive', 'neutral', 'negative']],
                 'wants_only_prices' => ['type' => 'boolean'],
                 'asked_if_bot' => ['type' => 'boolean'],
@@ -101,8 +101,10 @@ class Extractor
             'card' => $state->cardText(),
             'intents' => $this->kb->intents(),
             'closedTopics' => $this->kb->closedTopics(),
-            'objections' => self::OBJECTIONS,
+            'objections' => $this->objections(),
             'agentName' => $this->agentName,
+            'persona' => $this->kb->persona(),
+            'policy' => $this->kb->policy(),
         ], deleteCachedView: true);
 
         $messages = [['role' => 'system', 'content' => $system]];
@@ -216,6 +218,13 @@ class Extractor
         if (! in_array('unclear', $ids, true)) {
             throw new LogicException('Published knowledge requires the unclear intent.');
         }
+    }
+
+    private function objections(): array
+    {
+        return $this->prompt->version === 'v2'
+            ? array_values(array_diff(self::OBJECTIONS, ['zerga_unknown']))
+            : self::OBJECTIONS;
     }
 
     private function recoverContacts(#[\SensitiveParameter] LeadState $state, #[\SensitiveParameter] string $message, #[\SensitiveParameter] array $data): array
