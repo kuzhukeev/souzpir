@@ -457,6 +457,7 @@ function WorkspaceBody({ screen, brandId, revision, canRun }: { screen: Screen; 
                   <p className="mt-2 text-sm">План ответов: {chosen.length} × {Object.keys(models).length} × {runs} = {chosen.length * Object.keys(models).length * runs} (вопросы × модели × прогоны)</p><Link href="/vision/questions" className="mt-2 inline-flex min-h-11 cursor-pointer items-center text-sm font-semibold text-(--color-link)">Добавить вопросы</Link>
                   <label className="mt-3 block text-sm">Количество прогонов<select className="ml-3 min-h-11 cursor-pointer rounded-lg border border-(--color-border) bg-(--color-surface) px-3" value={runs} onChange={e=>setRuns(Number(e.target.value))}>{[1,2,3].map(n=><option key={n} value={n}>{n}</option>)}</select></label>
                   <p className="mt-2 text-sm">План: {chosen.length} вопросов × {Object.keys(models).length} моделей × {runs} = {chosen.length * Object.keys(models).length * runs} ответов. Стоимость в слотах определяется тарифом.</p>
+                  {scheduleEnabled && <p className="mt-2 text-sm" role="status">Недельный расход тарифных слотов: нет данных по тарифу.</p>}
                   <Link href="/vision/runs" className={link}>Настроить замеры</Link>
                   <p className="mt-2 text-sm text-(--color-ink-muted)">
                     Лимит моделей: {limit(data.limits.models)}
