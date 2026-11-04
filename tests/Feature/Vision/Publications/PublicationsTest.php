@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Vision\Publications;
 
+use App\Ai\CanonicalJson;
 use App\Vision\Core\VisionReportReader;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -34,7 +35,7 @@ final class PublicationsTest extends TenancyTestCase
         DB::table('question_sets')->insert(['id' => $set, 'organization_id' => $organization, 'brand_id' => $brand, 'version' => $version,
             'questions' => '[{"id":"q1","text":"Вопрос","intent":"general"}]', 'size' => 1, 'checksum' => str_repeat('0', 64), 'created_at' => now(), 'updated_at' => now()]);
         DB::table('measurements')->insert(['id' => $measurement, 'organization_id' => $organization, 'brand_id' => $brand,
-            'question_set_id' => $set, 'status' => 'completed', 'configuration' => '{}', 'created_at' => now(), 'updated_at' => now()]);
+            'question_set_id' => $set, 'status' => 'completed', 'configuration' => '{}', 'profile_snapshot' => json_encode(['site' => 'https://example.test']), 'profile_checksum' => CanonicalJson::hash(['site' => 'https://example.test']), 'created_at' => now(), 'updated_at' => now()]);
         DB::table('vision_reports')->insert(['id' => $report, 'organization_id' => $organization, 'brand_id' => $brand,
             'measurement_id' => $measurement, 'revision' => 1, 'payload' => '{}', 'checksum' => str_repeat('0', 64),
             'created_at' => now(), 'updated_at' => now()]);
@@ -75,7 +76,7 @@ final class PublicationsTest extends TenancyTestCase
             'module' => 'vision', 'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
         $report = $this->report($org->id, $brand->id, $owner->id);
         DB::table('audit_runs')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $brand->id,
-            'created_by' => $owner->id, 'result' => json_encode(['readiness' => ['lower' => 35, 'upper' => 60], 'private' => 'Секрет сайта']), 'created_at' => now(), 'updated_at' => now()]);
+            'created_by' => $owner->id, 'result' => json_encode(['url' => 'https://example.test', 'readiness' => ['lower' => 35, 'upper' => 60], 'private' => 'Секрет сайта']), 'created_at' => now()->subMinute(), 'updated_at' => now()]);
         DB::table('audit_runs')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $other->id,
             'created_by' => $owner->id, 'result' => json_encode(['readiness' => 99]), 'created_at' => now()->addMinute(), 'updated_at' => now()]);
         $reader = Mockery::mock(app(VisionReportReader::class));
@@ -97,7 +98,7 @@ final class PublicationsTest extends TenancyTestCase
         $this->assertIsString($url);
         $this->get(parse_url($url, PHP_URL_PATH))->assertOk()->assertSee('42,0%')->assertSee('Главные выводы')
             ->assertSee('Методика')->assertSee('Альфа')->assertDontSee('Наш бренд')->assertDontSee('Низкий ранг')->assertSee('подтверждено: 1')
-            ->assertSee('35–60')->assertSee('Уточнить описание товаров')->assertSee('Сохранить в PDF')
+            ->assertSee('35–60')->assertDontSee('Уточнить описание товаров')->assertSee('Сохранить в PDF')
             ->assertDontSee('private@example.test')->assertDontSee('+7 999 111-22-33')->assertDontSee('Секрет сайта')->assertDontSee('Личный факт')->assertDontSee('Секрет рекомендации')->assertDontSee('Скрытый промпт')->assertDontSee('Личные данные');
         DB::table('audit_runs')->where('brand_id', $brand->id)->update(['result' => json_encode(['readiness' => 99])]);
         $this->get(parse_url($url, PHP_URL_PATH))->assertOk()->assertSee('35–60');

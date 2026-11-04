@@ -74,7 +74,8 @@
                 <p class="muted">Оценка на момент публикации; диапазон отражает неопределённость.</p>
             @else<p class="muted">Оценка сайта в этой публикации недоступна.</p>@if (count($report['site_criteria'] ?? []))<ul class="criteria">@foreach ($report['site_criteria'] as $criterion)<li><span>{{ $criterion['title'] }}</span><strong>{{ ['pass' => 'Есть', 'fail' => 'Нет', 'partial' => 'Частично', 'unknown' => 'Неизвестно'][$criterion['status']] ?? 'Неизвестно' }}</strong></li>@endforeach</ul>@endif @endif
         </section>
-        <section class="card" style="margin-top: 24px"><h2>Три действия</h2>@if (count($report['actions'] ?? []))<ol class="action-grid">@foreach ($report['actions'] as $action)<li>{{ $action }}</li>@endforeach</ol>@else<p class="muted">Подтверждённых действий пока нет.</p>@endif</section>
+        <section class="card" style="margin-top: 24px"><h2>Три действия</h2>@if (count($report['actions'] ?? []))<ol class="action-grid">@foreach ($report['actions'] as $action)<li><strong>{{ $action }}</strong><p class="muted">Приоритет и шаги не опубликованы.</p></li>@endforeach</ol>@else<p class="muted">Подтверждённых действий пока нет.</p>@endif</section>
+        <section class="card" style="margin-top: 24px"><h2>История изменений</h2><p class="muted">Сопоставимая история не включена в этот снимок.</p></section>
         <section class="card" style="margin-top: 24px"><h2>Методика</h2><details><summary>Вопросы</summary><p>В снимке учтено {{ $report['questions'] }} вопросов.</p></details>
             <details><summary>Ответы моделей</summary><p>Пропущенные и непроверенные ответы не считаются отрицательными.</p></details>
             <details><summary>Видимость</summary><p>Показатель рассчитан по доступным проверенным ответам.</p></details>
