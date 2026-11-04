@@ -1,4 +1,4 @@
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import CabinetLayout from '@/layouts/CabinetLayout';
 
@@ -59,7 +59,7 @@ export default function Index({ scenarios, runs, status }: Props) {
     const toggle = (scenario: Scenario) => { setBusy(scenario.id); setError(null); router.patch(`/seller/quality/scenarios/${scenario.id}/set`, { in_set: !scenario.in_set }, { preserveScroll: true, onError: () => setError('Не удалось обновить набор.'), onFinish: () => setBusy(null) }); };
 
     return <CabinetLayout breadcrumbs={[{ label: 'Продавец', href: '/seller' }, { label: 'Качество', href: '/seller/quality' }, { label: 'Сценарии' }]}><Head title="Контрольные сценарии" />
-        <main className="mx-auto max-w-[1320px] text-(--color-ink)" data-private-profile>
+        <main className="mx-auto max-w-[1320px] text-(--color-ink)" data-private-profile><Link href="/seller/quality/runs" className="inline-block min-h-11 cursor-pointer text-sm text-(--color-link)">Прогоны →</Link>
             <div className="flex flex-wrap items-start justify-between gap-4"><div><h1 className="text-3xl font-bold">Контрольные сценарии</h1><p className="mt-2 text-sm text-(--color-ink-muted)">Проверка продавца на типичных ситуациях текущего бренда</p></div><button type="button" disabled title="Запуск всех будет доступен после подключения runtime продавца" className={`${button} border border-(--color-border)`}>Запустить все</button></div>
             <p className="mt-3 text-sm text-(--color-ink-muted)">Массовый запуск появится после подключения симулятора к runtime продавца.</p>
             {status && <p role="status" className="mt-4 rounded-lg bg-(--color-success-soft) p-3 text-sm">{status}</p>}
