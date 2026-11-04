@@ -240,7 +240,17 @@ final class AnalyticsController
         if ($manager !== '') {
             $previousQuery->where('c.assigned_user_id', $manager);
         }
-        $previousTotal = $previousQuery->count();
+        $previousRows = $previousQuery->get(['c.state', 'c.handed_off_at', 'c.stage']);
+        $previousTotal = $previousRows->count();
+        $previousMetrics = [
+            'contact' => $previousRows->filter(function ($row): bool {
+                $slots = (json_decode($row->state, true) ?: [])['slots'] ?? [];
+
+                return ! empty($slots['email']) || ! empty($slots['messenger']);
+            })->count(),
+            'handed' => $previousRows->whereNotNull('handed_off_at')->count(),
+            'closed' => $previousRows->where('stage', 'done')->count(),
+        ];
         $stageGroups = $events->groupBy('to_stage')->map(fn ($group) => $group->pluck('conversation_id')->unique()->all());
         $rates = [];
         $orderedStages = ['open', 'qualify', 'need', 'budget', 'close_contact'];
@@ -253,7 +263,7 @@ final class AnalyticsController
             $rates[$stage] = count($prior) ? round(count(array_intersect($prior, $current)) / count($prior) * 100, 1) : null;
         }
 
-        return ['from' => $from, 'to' => $to, 'channel' => $channel, 'source' => $source, 'manager' => $manager, 'managerOptions' => $managerOptions, 'funnel' => $funnel, 'outcomes' => $outcomes, 'previousTotal' => $previousTotal, 'transitionRates' => $rates, 'channelOptions' => $channelOptions, 'sources' => ['unknown' => $total], 'channelMetrics' => $channelMetrics, 'sitePages' => [], 'transitions' => $transitions, 'total' => $total, 'contact' => $contact, 'handed' => $handed, 'closed' => $closed,
+        return ['from' => $from, 'to' => $to, 'channel' => $channel, 'source' => $source, 'manager' => $manager, 'managerOptions' => $managerOptions, 'funnel' => $funnel, 'outcomes' => $outcomes, 'previousTotal' => $previousTotal, 'previousMetrics' => $previousMetrics, 'transitionRates' => $rates, 'channelOptions' => $channelOptions, 'sources' => ['unknown' => $total], 'channelMetrics' => $channelMetrics, 'sitePages' => [], 'transitions' => $transitions, 'total' => $total, 'contact' => $contact, 'handed' => $handed, 'closed' => $closed,
             'types' => $types, 'stages' => $stages, 'channels' => $channels, 'daily' => $daily, 'topics' => $topics,
             'dialogs' => $dialogs, 'hours' => $hours, 'unknownDialogs' => $unknownDialogs, 'unknownQuestions' => $unknownQuestions, 'messageCount' => $messages->count(), 'triggers' => $triggers, 'triggerStats' => $triggerStats,
             'managers' => array_values($managers), 'canManage' => Gate::forUser($user)->allows('seller.settings.write')];
