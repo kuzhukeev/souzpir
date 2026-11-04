@@ -5272,7 +5272,9 @@
         "SP-E1-02G",
         "SP-E8-20G",
         "SP-E1-02H",
-        "SP-E8-20H"
+        "SP-E8-20H",
+        "SP-E8-18G",
+        "SP-E8-22D"
       ],
       "scope": [
         "README.md",
@@ -14864,6 +14866,76 @@
       "promptPath": "docs/tasks/SP-E8-20H.md",
       "wave": 18,
       "description": "# SP-E8-20H · Остаток сравнения и источников\n\n**Зачем:** завершить экраны по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E8-20G из docs/results/SP-E8-20G.md.\n**Зависимости:** SP-E8-20G (дождаться merge).\n\nЗавершить по макету V-6.1–V-6.4 и V-7.1–V-7.3: вкладки, таблицу и карточку компании, подтверждённые динамику и цитаты, оформление дублей и сравнения, ссылки из уточнений и источники. Использовать только доступные проверенные данные.\n\nСверить с журналом макетов; проверить сценарии, права, изоляцию брендов и ошибки. Без живых и платных вызовов в тестах. Невыполненные пункты перечислить в отчёте.\n\nScope: `app/Vision/Competitors/`, `app/Vision/Sources/`, `resources/js/pages/Vision/Competitors/`, `resources/js/pages/Vision/Sources/`, `tests/Feature/Vision/Competitors/`, `tests/Feature/Vision/Sources/`, `tests/Browser/E8-20H/`, `docs/results/SP-E8-20H.md`.\n\nОтчёт: docs/results/SP-E8-20H.md.\n"
+    },
+    {
+      "taskKey": "SP-E8-18G",
+      "title": "SP-E8-18G · Подтверждённые факты и review публикации",
+      "goal": "Завершить V-5.3–V-5.4: добавить подтверждённые элементы errors в каталог уточнений и подключить ручное подтверждение рекомендаций к публикации снимка. Не подменять источники; сохранять проверенные ID вопросов и неизменность старых снимков.",
+      "dependsOn": [
+        "SP-E8-18F"
+      ],
+      "scope": [
+        "app/Vision/Core/",
+        "app/Vision/Reports/",
+        "app/Vision/Clarifications/",
+        "app/Vision/Publications/",
+        "resources/js/pages/Vision/Reports/",
+        "tests/Feature/Vision/Reports/",
+        "tests/Browser/E8-18G/",
+        "docs/results/SP-E8-18G.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Пункты остатка реализованы по макету, проверены права, изоляция брендов и ошибки ввода; тесты без живых вызовов."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "V-5.2",
+        "V-5.3",
+        "V-5.4"
+      ],
+      "notes": "Продолжение SP-E8-18F по решению владельца.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E8-18G.md",
+      "wave": 18,
+      "description": "# SP-E8-18G · Подтверждённые факты и review публикации\n\n**Зачем:** завершить экраны по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E8-18F из docs/results/SP-E8-18F.md.\n**Зависимости:** SP-E8-18F (дождаться merge).\n\nЗавершить V-5.3–V-5.4: добавить подтверждённые элементы errors в каталог уточнений и подключить ручное подтверждение рекомендаций к публикации снимка. Не подменять источники; сохранять проверенные ID вопросов и неизменность старых снимков.\n\nСверить с журналом макетов; проверить сценарии, права, изоляцию брендов и ошибки. Без живых и платных вызовов в тестах. Невыполненные пункты перечислить в отчёте.\n\nScope: `app/Vision/Core/`, `app/Vision/Reports/`, `app/Vision/Clarifications/`, `app/Vision/Publications/`, `resources/js/pages/Vision/Reports/`, `tests/Feature/Vision/Reports/`, `tests/Browser/E8-18G/`, `docs/results/SP-E8-18G.md`.\n\nОтчёт: docs/results/SP-E8-18G.md.\n"
+    },
+    {
+      "taskKey": "SP-E8-22D",
+      "title": "SP-E8-22D · Связь действий с рекомендациями",
+      "goal": "Завершить V-9.1 и V-9.3: связать действие с подтверждённой рекомендацией отчёта и сохранить её приоритет, шаги и ID затронутых вопросов. Не сопоставлять по изменяемому заголовку, сохранять пустое состояние при отсутствии данных.",
+      "dependsOn": [
+        "SP-E8-22C"
+      ],
+      "scope": [
+        "app/Vision/Actions/",
+        "app/Vision/Reports/",
+        "resources/js/features/Vision/Site/",
+        "database/migrations/E8-22D/",
+        "tests/Feature/Vision/Site/",
+        "tests/Browser/E8-22D/",
+        "docs/results/SP-E8-22D.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Завершить пункты по макету, проверить права, изоляцию и ошибки; без живых вызовов."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "V-9.1",
+        "V-9.3"
+      ],
+      "notes": "Продолжение SP-E8-22C по решению владельца.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E8-22D.md",
+      "wave": 18,
+      "description": "# SP-E8-22D · Связь действий с рекомендациями\n\n**Зачем:** завершить экраны по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E8-22C из docs/results/SP-E8-22C.md.\n**Зависимости:** SP-E8-22C (дождаться merge).\n\nЗавершить V-9.1 и V-9.3: связать действие с подтверждённой рекомендацией отчёта и сохранить её приоритет, шаги и ID затронутых вопросов. Не сопоставлять по изменяемому заголовку, сохранять пустое состояние при отсутствии данных.\n\nСверить с журналом макетов; проверить сценарии, права, изоляцию брендов и ошибки. Без живых и платных вызовов в тестах. Невыполненные пункты перечислить в отчёте.\n\nScope: `app/Vision/Actions/`, `app/Vision/Reports/`, `resources/js/features/Vision/Site/`, `database/migrations/E8-22D/`, `tests/Feature/Vision/Site/`, `tests/Browser/E8-22D/`, `docs/results/SP-E8-22D.md`.\n\nОтчёт: docs/results/SP-E8-22D.md.\n"
     }
   ],
   "excludedSourceTasks": {
