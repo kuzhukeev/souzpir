@@ -2,9 +2,11 @@
 
 namespace App\Seller\Scenarios;
 
+use App\Ai\Drivers\Rejected;
 use App\Seller\Evaluation\FakeSimulation;
 use App\Seller\Evaluation\Jobs\SimulateFakeJob;
 use App\Seller\Evaluation\Judge;
+use App\Seller\Evaluation\ScenarioFallbackJudge;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -37,6 +39,14 @@ final class RunScenarioGroup implements ShouldQueue
                     $tenant = new TenantContext($this->organizationId, $this->brandId, source: 'job');
                     try {
                         app(TenantContextRunner::class)->run($tenant, fn () => app(Judge::class)->evaluate($tenant, $runId));
+                    } catch (Rejected $error) {
+                        if (config('features.E7-02H.defaults.fallback_enabled', false) === true && str_starts_with($error->getMessage(), 'AI fixture missing for normalized request ')) {
+                            app(TenantContextRunner::class)->run($tenant, fn () => app(ScenarioFallbackJudge::class)->evaluate($tenant, $runId));
+                            $item['evaluation'] = 'fake';
+                        } else {
+                            report($error);
+                            $item['evaluation'] = 'unavailable';
+                        }
                     } catch (Throwable $error) {
                         report($error);
                         $item['evaluation'] = 'unavailable';
