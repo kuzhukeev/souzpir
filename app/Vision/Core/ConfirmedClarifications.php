@@ -30,19 +30,37 @@ final class ConfirmedClarifications
             $slot = $byId->get($row->measurement_answer_id);
             $saved = is_string($row->fact) ? json_decode($row->fact, true) : null;
             $verified = is_array($slot) ? ($slot['fact'] ?? null) : null;
-            if (! is_array($saved) || ! is_array($verified) || ! is_string($saved['value'] ?? null) || trim($saved['value']) === ''
+            if (! is_array($saved) || ! is_array($verified) || (($slot['valid'] ?? true) !== true)
                 || ! hash_equals(CanonicalJson::hash($verified), CanonicalJson::hash($saved))
-                || ! hash_equals(hash('sha256', 'facts:'.$row->fact_id.':'.$saved['value']), $row->item_key)
                 || ! in_array($row->decision, ['correct', 'incorrect', 'outdated'], true)) {
                 continue;
             }
-            $correction = is_string($row->correction) ? trim($row->correction) : '';
-            if ($row->decision !== 'correct' && $correction === '') {
-                continue;
+            $candidates = [];
+            if (is_string($saved['value'] ?? null)) {
+                $candidates[] = ['text' => $saved['value'], 'source' => $saved['source'] ?? null];
             }
-            $result[] = ['text' => $saved['value'], 'classification' => $row->decision, 'correction' => $correction ?: null,
-                'provider' => is_string($slot['provider'] ?? null) ? $slot['provider'] : '',
-                'source' => is_string($verified['source'] ?? null) ? $verified['source'] : null, 'confirmed' => true];
+            foreach (['errors', 'suspected_errors'] as $field) {
+                foreach (is_array($saved[$field] ?? null) ? $saved[$field] : [] as $error) {
+                    $text = is_string($error) ? $error : (is_array($error) ? ($error['claim'] ?? $error['text'] ?? null) : null);
+                    if (is_string($text)) {
+                        $candidates[] = ['text' => $text, 'source' => is_array($error) ? ($error['source'] ?? null) : null];
+                    }
+                }
+            }
+            foreach ($candidates as $candidate) {
+                $text = $candidate['text'];
+                if (trim($text) === '' || ! hash_equals(hash('sha256', 'facts:'.$row->fact_id.':'.$text), $row->item_key)) {
+                    continue;
+                }
+                $correction = is_string($row->correction) ? trim($row->correction) : '';
+                if ($row->decision !== 'correct' && $correction === '') {
+                    continue;
+                }
+                $result[] = ['text' => $text, 'classification' => $row->decision, 'correction' => $correction ?: null,
+                    'provider' => is_string($slot['provider'] ?? null) ? $slot['provider'] : '',
+                    'source' => is_string($candidate['source']) ? $candidate['source'] : null, 'confirmed' => true];
+                break;
+            }
         }
 
         return $result;
