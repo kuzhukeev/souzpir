@@ -15871,7 +15871,8 @@
       "title": "SP-E3-06E · Первый защищённый ход симуляции",
       "goal": "Подключить первое входящее сообщение симуляции через job-вход FirstTurnCoordinator и защищённые extractor/guard/responder с tenant/brand и идемпотентностью. Использовать fake AI, проверить чужой бренд и трассу первого хода.",
       "dependsOn": [
-        "SP-E3-06D"
+        "SP-E3-06D",
+        "SP-E3-06F"
       ],
       "scope": [
         "app/ProtectedOperations/",
@@ -15888,14 +15889,14 @@
         "SP-E3-06D"
       ],
       "screenIds": [],
-      "notes": "Остаток SP-E3-06D",
+      "notes": "Остаток SP-E3-06D; job-адаптация общих AI-стадий выделена в SP-E3-06F.",
       "sourceRefs": [
         "docs/preparation/decisions.md",
         "docs/sources/02b_mockup_journal.md"
       ],
       "promptPath": "docs/tasks/SP-E3-06E.md",
       "wave": 19,
-      "description": "# SP-E3-06E · Первый защищённый ход симуляции\n\n**Зачем:** завершить остаток по решению владельца 03.11.2026.\n**Часть чего:** частичная сдача SP-E3-06D, отчёт docs/results/SP-E3-06D.md.\n**Зависимости:** SP-E3-06D в done.\n\nПодключить первое входящее сообщение симуляции через job-вход FirstTurnCoordinator и защищённые extractor/guard/responder с tenant/brand и идемпотентностью. Использовать fake AI, проверить чужой бренд и трассу первого хода.\n\nScope: `app/ProtectedOperations/`, `app/Seller/Evaluation/`, `tests/Feature/ProtectedOperations/`, `tests/Feature/Seller/Evaluation/`, `docs/results/SP-E3-06E.md`.\n\nПриёмка: соответствие указанным пунктам, права, бренд и ошибки; только fake внешние вызовы. Остаток и проверки записать в docs/results/SP-E3-06E.md.\n"
+      "description": "# SP-E3-06E · Первый защищённый ход симуляции\n\n**Зачем:** завершить остаток по решению владельца 03.11.2026.\n**Часть чего:** частичная сдача SP-E3-06D, отчёт docs/results/SP-E3-06D.md.\n**Зависимости:** SP-E3-06D и SP-E3-06F в done.\n\nПодключить первое входящее сообщение симуляции через job-вход FirstTurnCoordinator и защищённые extractor/guard/responder с tenant/brand и идемпотентностью. Использовать fake AI, проверить чужой бренд и трассу первого хода.\n\nScope: `app/ProtectedOperations/`, `app/Seller/Evaluation/`, `tests/Feature/ProtectedOperations/`, `tests/Feature/Seller/Evaluation/`, `docs/results/SP-E3-06E.md`.\n\nПриёмка: соответствие указанным пунктам, права, бренд и ошибки; только fake внешние вызовы. Остаток и проверки записать в docs/results/SP-E3-06E.md.\n"
     },
     {
       "taskKey": "SP-E8-24F",
@@ -16438,6 +16439,39 @@
       "promptPath": "docs/tasks/SP-E8-14H.md",
       "wave": 19,
       "description": "# SP-E8-14H · Анкета: дополнительные источники и логотипы\n\n**Зачем:** завершить экраны V-0.1, V-1.3, V-1.4, V-1.5 и V-1.7 по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E8-14G, docs/results/SP-E8-14G.md.\n**Зависимости:** SP-E8-14G в done.\n\nДобавить подсказки аудитории, конкурентов, фактов и вопросов из дополнительных подтверждённых источников. Логотипы моделей показать при наличии подтверждённых источников и разрешения на использование; отсутствующие источники и права не выдумывать. Сверить с макетами; недоступное записать в остаток.\n\nScope: `app/Vision/Profile/`, `resources/js/pages/Vision/Profile/`, `tests/Feature/Vision/Profile/`, `tests/Browser/E8-14H/`, `docs/results/SP-E8-14H.md`.\n\nПриёмка: сценарий, права, изоляция брендов и ошибки; только fake внешние вызовы. Остаток описать в отчёте.\n"
+    },
+    {
+      "taskKey": "SP-E3-06F",
+      "title": "SP-E3-06F · Job-вход для общих AI-стадий первого хода",
+      "goal": "Адаптировать общие стадии первого хода для проверенного job-контекста, сохранив HTTP-вход.",
+      "dependsOn": [
+        "SP-E3-06D"
+      ],
+      "scope": [
+        "app/Ai/Protected/",
+        "app/Ai/Gateway.php",
+        "app/ProtectedOperations/",
+        "tests/Feature/ProtectedOperations/",
+        "tests/Feature/Ai/",
+        "tests/Unit/Ai/",
+        "docs/results/SP-E3-06F.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Job и HTTP используют общие fake AI-стадии; проверки организации, бренда и ошибок проходят."
+      ],
+      "sourceIds": [
+        "SP-E3-06E"
+      ],
+      "screenIds": [],
+      "notes": "Подготовка SP-E3-06E по решению владельца 05.11.2026.",
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E3-06F.md",
+      "wave": 19,
+      "description": "# SP-E3-06F · Job-вход для общих AI-стадий первого хода\n\n**Зачем:** решение владельца 05.11.2026 разблокировать первый защищённый ход симуляции.\n**Часть чего:** подготовительный остаток SP-E3-06E (отчёт SP-E3-06D).\n**Зависимости:** SP-E3-06D в done.\n\nАдаптировать общие extractor, guard и responder и их вызов из FirstTurnCoordinator для job-входа с явно подтверждённым контекстом организации и бренда. Сохранить действующий HTTP-вход и его проверки сессии и прав. Job-вход должен проверять соответствие контекста ходу и не опираться на клиентские данные без проверки; использовать только fake AI. Не дублировать реализацию общих стадий. Само подключение первого хода симуляции остаётся в SP-E3-06E.\n\nScope: `app/Ai/Protected/`, `app/Ai/Gateway.php`, `app/ProtectedOperations/`, `tests/Feature/ProtectedOperations/`, `tests/Feature/Ai/`, `tests/Unit/Ai/`, `docs/results/SP-E3-06F.md`.\n\nПриёмка: адресные тесты для job-входа и прежнего HTTP-входа, проверки организации и бренда, неправильного контекста, основных ошибок и работы fake стадий. Сохранить существующие проверки. Остаток и ограничения записать в отчёт.\n"
     }
   ],
   "excludedSourceTasks": {
