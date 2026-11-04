@@ -9,6 +9,7 @@ return ['web' => static function (): void {
         Route::get('/seller/knowledge', [ReleasesController::class, 'index'])->name('seller.knowledge.index');
         Route::get('/seller/knowledge/releases/compare', [ReleasesController::class, 'compare'])->name('seller.knowledge.compare');
         Route::get('/seller/knowledge/runs/{run}', [ReleasesController::class, 'scenarioRun'])->whereUlid('run')->name('seller.knowledge.scenario-run');
+        Route::post('/seller/knowledge/restore-file', [ReleasesController::class, 'restoreFile'])->name('seller.knowledge.restore-file');
         Route::post('/seller/knowledge/draft', [ReleasesController::class, 'draft'])->name('seller.knowledge.draft');
         Route::post('/seller/knowledge/incoming', [IncomingController::class, 'handle'])->name('seller.knowledge.incoming');
         Route::get('/seller/knowledge/{release}/backup', [ReleasesController::class, 'backup'])->whereUlid('release')->name('seller.knowledge.backup');

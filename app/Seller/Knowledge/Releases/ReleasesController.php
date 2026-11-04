@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Seller\Evaluation\DraftScenarioPreview;
 use App\Seller\Evaluation\FakeSimulation;
 use App\Seller\Knowledge\Contracts\KnowledgeRepository;
+use App\Seller\Knowledge\DatabaseKnowledgeRepository;
 use App\Seller\Knowledge\KnowledgeNotReady;
 use App\Seller\Knowledge\KnowledgeSnapshot;
 use App\Seller\Settings\Limits\SellerModuleAccess;
@@ -216,6 +217,24 @@ final class ReleasesController
         return response()->streamDownload(function () use ($data): void {
             echo json_encode($data, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
         }, 'knowledge-draft-'.$release.'.json', ['Content-Type' => 'application/json; charset=UTF-8', 'Cache-Control' => 'private, no-store']);
+    }
+
+    public function restoreFile(Request $request): mixed
+    {
+        $this->access($request, 'seller.knowledge.write', function (User $user, TenantContext $tenant) use ($request): void {
+            $input = $request->validate(['backup' => ['required', 'file', 'max:2048']]);
+            try {
+                $data = json_decode($input['backup']->getContent(), true, 512, JSON_THROW_ON_ERROR);
+                if (! is_array($data) || ($data['format'] ?? null) !== 'souzpir-knowledge-draft-v1' || ! is_array($data['snapshot'] ?? null) || ! is_array($data['fact_metadata'] ?? null)) {
+                    throw new \InvalidArgumentException;
+                }
+                app(DatabaseKnowledgeRepository::class)->restoreFile($tenant, $data['snapshot'], $data['fact_metadata']);
+            } catch (\JsonException|\InvalidArgumentException $error) {
+                throw ValidationException::withMessages(['backup' => 'Файл копии повреждён или имеет неподдерживаемый формат.']);
+            }
+        });
+
+        return back()->with('status', 'Черновик восстановлен из файла. Предыдущий сохранён как копия.');
     }
 
     public function rollback(Request $request, string $release): mixed
