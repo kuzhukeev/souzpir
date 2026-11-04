@@ -44,12 +44,12 @@ final class OrganizationSelectController
             $path = DB::table('onboarding_progress')->where('organization_id', $context->organizationId)->value('logo_path');
             abort_unless(is_string($path) && $this->validPath($context->organizationId, $path) && Storage::disk('local')->exists($path), 404);
 
-            return response(Storage::disk('local')->get($path), 200, ['Content-Type' => 'image/png', 'Cache-Control' => 'private, no-store', 'X-Content-Type-Options' => 'nosniff']);
+            return response(Storage::disk('local')->get($path), 200, ['Content-Type' => str_ends_with($path, '.svg') ? 'image/svg+xml' : 'image/png', 'Cache-Control' => 'private, no-store', 'X-Content-Type-Options' => 'nosniff', 'Content-Security-Policy' => "default-src 'none'; sandbox"]);
         });
     }
 
     private function validPath(string $organization, string $path): bool
     {
-        return preg_match('~^organizations/'.preg_quote($organization, '~').'/onboarding/logos/[a-f0-9]{32}\\.png$~D', $path) === 1;
+        return preg_match('~^organizations/'.preg_quote($organization, '~').'/onboarding/logos/[a-f0-9]{32}\\.(?:png|svg)$~D', $path) === 1;
     }
 }
