@@ -14,6 +14,7 @@ test.afterAll(async () => { await server?.close(); });
 
 test('каналы показывают оценку, конверсию и пустые страницы сайта', async ({ page }) => {
   await page.goto(fixture);
+  await page.getByRole('button',{name:'Источники и каналы',exact:true}).click();
   const section = page.getByRole('region', { name: 'Сводка продаж' });
   await expect(section.getByRole('row', { name: /Сайт 2 1 50% 4.2/ })).toBeVisible();
   await expect(section.getByRole('row').filter({ hasText: 'WhatsApp' }).getByText('Скоро')).toBeVisible();

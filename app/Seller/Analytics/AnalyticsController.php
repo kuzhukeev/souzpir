@@ -40,7 +40,7 @@ final class AnalyticsController
         $end = CarbonImmutable::parse($to, $timezone)->addDay()->startOfDay()->utc();
         $rows = DB::table('conversations as c')->leftJoin('channel_accounts as a', 'a.id', '=', 'c.channel_account_id')->leftJoin('users as u', 'u.id', '=', 'c.assigned_user_id')
             ->where('c.organization_id', $tenant->organizationId)->where('c.brand_id', $tenant->brandId)->where('c.created_at', '>=', $begin)->where('c.created_at', '<', $end)
-            ->get(['c.id', 'c.stage', 'c.client_type', 'c.outcome', 'c.state', 'c.assigned_user_id', 'c.handed_off_at', 'c.taken_at', 'c.created_at', 'c.updated_at', 'a.type as channel', 'u.name as manager']);
+            ->get(['c.id', 'c.contact_id', 'c.stage', 'c.client_type', 'c.outcome', 'c.state', 'c.assigned_user_id', 'c.handed_off_at', 'c.taken_at', 'c.created_at', 'c.updated_at', 'a.type as channel', 'u.name as manager']);
         $canManage = Gate::forUser($user)->allows('seller.settings.write');
         $manager = $input['manager'] ?? '';
         abort_if($manager !== '' && ! $canManage, 403);
@@ -111,15 +111,20 @@ final class AnalyticsController
         ksort($daily);
         $ids = $rows->pluck('id');
         $messages = DB::table('messages')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->whereIn('conversation_id', $ids)->get(['meta', 'conversation_id', 'role', 'created_at']);
+        $messageRoles = $messages->groupBy('conversation_id');
+        $botCompleted = $rows->filter(fn ($row) => $row->stage === 'done' && ! $row->handed_off_at
+            && ($messageRoles[$row->id] ?? collect())->contains('role', 'agent')
+            && ! ($messageRoles[$row->id] ?? collect())->contains('role', 'manager'))->count();
         $topics = [];
         $triggers = [];
         $triggerDialogs = [];
+        $clientNames = DB::table('contacts')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->whereIn('id', $rows->pluck('contact_id')->filter())->pluck('name', 'id');
         $messageCounts = $messages->groupBy('conversation_id')->map->count();
-        $dialogs = $rows->map(function ($row) use ($messageCounts): array {
+        $dialogs = $rows->map(function ($row) use ($messageCounts, $clientNames): array {
             $state = json_decode($row->state, true) ?: [];
             $slots = $state['slots'] ?? [];
 
-            return ['id' => $row->id, 'stage' => $row->stage, 'channel' => $row->channel ?? 'unknown',
+            return ['id' => $row->id, 'client' => $clientNames[$row->contact_id] ?? null, 'stage' => $row->stage, 'channel' => $row->channel ?? 'unknown',
                 'messages' => $messageCounts[$row->id] ?? 0, 'has_contact' => ! empty($slots['email']) || ! empty($slots['messenger']),
                 'handed_off' => $row->handed_off_at !== null, 'last_activity' => $row->updated_at, 'created_at' => $row->created_at];
         })->values()->all();
@@ -265,7 +270,7 @@ final class AnalyticsController
 
         return ['from' => $from, 'to' => $to, 'channel' => $channel, 'source' => $source, 'manager' => $manager, 'managerOptions' => $managerOptions, 'funnel' => $funnel, 'outcomes' => $outcomes, 'previousTotal' => $previousTotal, 'previousMetrics' => $previousMetrics, 'transitionRates' => $rates, 'channelOptions' => $channelOptions, 'sources' => ['unknown' => $total], 'channelMetrics' => $channelMetrics, 'sitePages' => [], 'transitions' => $transitions, 'total' => $total, 'contact' => $contact, 'handed' => $handed, 'closed' => $closed,
             'types' => $types, 'stages' => $stages, 'channels' => $channels, 'daily' => $daily, 'topics' => $topics,
-            'dialogs' => $dialogs, 'hours' => $hours, 'unknownDialogs' => $unknownDialogs, 'unknownQuestions' => $unknownQuestions, 'messageCount' => $messages->count(), 'triggers' => $triggers, 'triggerStats' => $triggerStats,
+            'dialogs' => $dialogs, 'hours' => $hours, 'unknownDialogs' => $unknownDialogs, 'unknownQuestions' => $unknownQuestions, 'messageCount' => $messages->count(), 'botCompleted' => $botCompleted, 'triggers' => $triggers, 'triggerStats' => $triggerStats,
             'managers' => array_values($managers), 'canManage' => Gate::forUser($user)->allows('seller.settings.write')];
     }
 
@@ -278,13 +283,13 @@ final class AnalyticsController
 
     public function send(Request $request): mixed
     {
-        $input = $request->validate(['email' => ['required', 'email:rfc', 'max:255'], 'report_type' => ['required', 'in:weekly,dialogs,topics']]);
+        $input = $request->validate(['email' => ['required', 'email:rfc', 'max:255'], 'report_type' => ['required', 'in:weekly,dialogs,topics,managers']]);
         $data = $this->access($request, function (User $user, TenantContext $tenant) use ($request): array {
             Gate::forUser($user)->authorize('seller.settings.write');
 
             return $this->data($request, $user, $tenant);
         });
-        $titles = ['weekly' => 'Сводка владельцу', 'dialogs' => 'Диалоги', 'topics' => 'Темы и вопросы'];
+        $titles = ['weekly' => 'Сводка владельцу', 'dialogs' => 'Диалоги', 'topics' => 'Темы и вопросы', 'managers' => 'Воронка по менеджерам'];
         $title = $titles[$input['report_type']];
         $body = $title."\nПериод: {$data['from']} — {$data['to']}\nДиалогов: {$data['total']}\nС контактом: {$data['contact']}\nПередано: {$data['handed']}\nЗавершено: {$data['closed']}";
         if ($input['report_type'] === 'topics') {
@@ -293,6 +298,11 @@ final class AnalyticsController
         } elseif ($input['report_type'] === 'dialogs') {
             $body .= "\nСообщений: ".$data['messageCount'];
             $body .= "\nСтадии: ".collect($data['stages'])->map(fn ($count, $stage) => $stage.': '.$count)->implode(', ');
+        }
+        if ($input['report_type'] === 'managers') {
+            foreach ($data['managers'] as $manager) {
+                $body .= "\n{$manager['name']}: назначено {$manager['assigned']}, принято {$manager['taken']}, завершено {$manager['closed']}";
+            }
         }
         // Explicit in-memory transport; never deliver a real email from this action.
         Mail::mailer('array')->raw($body, fn ($message) => $message->to($input['email'])->subject('Тестовый отчёт: '.$title));
