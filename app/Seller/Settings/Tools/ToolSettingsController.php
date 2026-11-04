@@ -79,7 +79,9 @@ final class ToolSettingsController
     {
         $input = $request->validate(['reasons' => ['present', 'array'], 'reasons.*.enabled' => ['required', 'boolean'],
             'reasons.*.priority' => ['required', 'in:normal,urgent'], 'reasons.*.message' => ['nullable', 'string', 'max:1000'],
-            'reasons.*.after' => ['required', 'in:silent,simple,continue'], 'timeout_minutes' => ['nullable', 'integer', 'min:1', 'max:10080']]);
+            'reasons.*.after' => ['required', 'in:silent,simple,continue'], 'timeout_minutes' => ['nullable', 'integer', 'min:1', 'max:10080'],
+            'timeout_notification' => ['sometimes', 'boolean'], 'timeout_reminder' => ['sometimes', 'boolean'],
+            'timeout_fallback' => ['sometimes', 'nullable', 'string', 'max:1000']]);
         $this->access($request, function (User $user, TenantContext $tenant) use ($input): void {
             $preferences = app(ToolPreferences::class)->read($tenant);
             if (array_diff(array_keys($input['reasons']), array_keys($preferences['reasons']))) {
@@ -89,6 +91,14 @@ final class ToolSettingsController
                 $preferences['reasons'][$id] = array_replace($preferences['reasons'][$id], $reason);
             }
             $preferences['timeout_minutes'] = isset($input['timeout_minutes']) ? (int) $input['timeout_minutes'] : null;
+            foreach (['timeout_notification', 'timeout_reminder'] as $key) {
+                if (array_key_exists($key, $input)) {
+                    $preferences[$key] = (bool) $input[$key];
+                }
+            }
+            if (array_key_exists('timeout_fallback', $input)) {
+                $preferences['timeout_fallback'] = $input['timeout_fallback'] ?? '';
+            }
             $this->save($tenant, $preferences);
         });
 

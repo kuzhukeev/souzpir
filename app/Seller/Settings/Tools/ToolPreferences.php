@@ -28,7 +28,8 @@ final class ToolPreferences
         }
 
         return ['tools' => array_fill_keys(array_keys(ToolCatalog::definitions()), true), 'reasons' => $reasons,
-            'delivery_rules' => [], 'requisites' => '', 'timeout_minutes' => null];
+            'delivery_rules' => [], 'requisites' => '', 'timeout_minutes' => null,
+            'timeout_notification' => false, 'timeout_reminder' => false, 'timeout_fallback' => ''];
     }
 
     public function read(TenantContext $tenant): array
@@ -47,6 +48,9 @@ final class ToolPreferences
         $defaults['delivery_rules'] = $saved['delivery_rules'] ?? [];
         $defaults['requisites'] = $saved['requisites'] ?? '';
         $defaults['timeout_minutes'] = $saved['timeout_minutes'] ?? null;
+        $defaults['timeout_notification'] = $saved['timeout_notification'] ?? false;
+        $defaults['timeout_reminder'] = $saved['timeout_reminder'] ?? false;
+        $defaults['timeout_fallback'] = $saved['timeout_fallback'] ?? '';
 
         return $defaults;
     }
