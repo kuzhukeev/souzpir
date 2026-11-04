@@ -15508,7 +15508,7 @@
       ],
       "scope": [
         "app/ProtectedOperations/DraftSimulation/fixtures/",
-        "tests/Feature/Seller/Knowledge/DraftSeedFixturesE401RTest.php",
+        "tests/Feature/Seller/Knowledge/DraftSeedFixturesE401STest.php",
         "tests/Browser/E4-01S/",
         "docs/results/SP-E4-01S.md"
       ],
@@ -15527,7 +15527,7 @@
       ],
       "promptPath": "docs/tasks/SP-E4-01S.md",
       "wave": 18,
-      "description": "# SP-E4-01S · Оставшиеся контекстные фикстуры\n\n**Зачем:** завершить остаток по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E4-01R из docs/results/SP-E4-01R.md.\n**Зависимости:** SP-E4-01R (дождаться merge).\n\nПодготовить проверяемые полные диалоги и источники для оставшихся критериев персон, включая полную карточку; неизвестный результат оставлять неизвестным. Не менять условия продукта и не выдумывать факты.\n\nПроверить сценарии, права, изоляцию брендов и ошибки. Без живых и платных вызовов. Невыполненные пункты перечислить в отчёте.\n\nScope: `app/ProtectedOperations/DraftSimulation/fixtures/`, `tests/Feature/Seller/Knowledge/DraftSeedFixturesE401RTest.php`, `tests/Browser/E4-01S/`, `docs/results/SP-E4-01S.md`.\n\nОтчёт: docs/results/SP-E4-01S.md.\n"
+      "description": "# SP-E4-01S · Оставшиеся контекстные фикстуры\n\n**Зачем:** завершить остаток по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E4-01R из docs/results/SP-E4-01R.md.\n**Зависимости:** SP-E4-01R (дождаться merge).\n\nПодготовить проверяемые полные диалоги и источники для оставшихся критериев персон, включая полную карточку; неизвестный результат оставлять неизвестным. Не менять условия продукта и не выдумывать факты.\n\nПроверить сценарии, права, изоляцию брендов и ошибки. Без живых и платных вызовов. Невыполненные пункты перечислить в отчёте.\n\nScope: `app/ProtectedOperations/DraftSimulation/fixtures/`, `tests/Feature/Seller/Knowledge/DraftSeedFixturesE401STest.php`, `tests/Browser/E4-01S/`, `docs/results/SP-E4-01S.md`.\n\nОтчёт: docs/results/SP-E4-01S.md.\n"
     },
     {
       "taskKey": "SP-E8-21H",

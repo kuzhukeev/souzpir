@@ -8,6 +8,6 @@
 
 Проверить сценарии, права, изоляцию брендов и ошибки. Без живых и платных вызовов. Невыполненные пункты перечислить в отчёте.
 
-Scope: `app/ProtectedOperations/DraftSimulation/fixtures/`, `tests/Feature/Seller/Knowledge/DraftSeedFixturesE401RTest.php`, `tests/Browser/E4-01S/`, `docs/results/SP-E4-01S.md`.
+Scope: `app/ProtectedOperations/DraftSimulation/fixtures/`, `tests/Feature/Seller/Knowledge/DraftSeedFixturesE401STest.php`, `tests/Browser/E4-01S/`, `docs/results/SP-E4-01S.md`.
 
 Отчёт: docs/results/SP-E4-01S.md.
