@@ -380,7 +380,7 @@ export function Actions({
               ))}</tbody>
             </table>
           </div>
-          <details className={card}><summary className="cursor-pointer font-semibold">Подробнее о действиях</summary><div className="mt-4">{cards(first)}</div></details>
+          <section aria-label="Подробности выполненных действий"><h2 className="mb-3 text-lg font-semibold">Подробности выполненных действий</h2>{cards(first)}</section>
         </>
       ) : first.length ? (
         cards(first)

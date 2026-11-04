@@ -23,6 +23,9 @@ test('history shows completion and preserves effect link', async ({ page }) => {
   await expect(table).toContainText('01.11.2026');
   await expect(table).toContainText('Нет данных');
   await expect(table).toContainText('Рано судить');
+  const action = page.getByRole('article').filter({ hasText: 'Добавить раздел с условиями' });
+  await expect(action).toBeVisible();
+  await expect(action.getByText('Комментарий: Сведения обновлены')).toBeVisible();
   await expect(page.getByRole('link', { name: 'Посмотреть эффект' })).toHaveAttribute('href', '/vision/actions/effect');
   await page.screenshot({ path: '.local/screenshots/SP-E8-22B/history.png', fullPage: true });
 });
