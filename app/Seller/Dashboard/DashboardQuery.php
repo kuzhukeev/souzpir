@@ -17,8 +17,10 @@ final class DashboardQuery
             ->where('created_at', '>=', $start)->where('created_at', '<', $today->addDay()->startOfDay()->utc())
             ->get(['id', 'stage', 'state', 'handed_off_at', 'taken_at', 'created_at', 'channel_account_id']);
         $daily = [];
+        $dailyContacts = [];
         for ($day = $days - 1; $day >= 0; $day--) {
             $daily[$today->subDays($day)->format('Y-m-d')] = 0;
+            $dailyContacts[$today->subDays($day)->format('Y-m-d')] = 0;
         }
         $contact = $handoff = $done = $need = 0;
         foreach ($rows as $row) {
@@ -30,6 +32,9 @@ final class DashboardQuery
             $slots = $state['slots'] ?? [];
             if (! empty($slots['email']) || ! empty($slots['messenger'])) {
                 $contact++;
+                if (array_key_exists($date, $dailyContacts)) {
+                    $dailyContacts[$date]++;
+                }
             }
             $handoff += (int) ($row->handed_off_at !== null);
             $done += (int) ($row->stage === 'done');
@@ -94,7 +99,10 @@ final class DashboardQuery
         $topics = array_slice($topics, 0, 5, true);
         $managers = DB::table('conversations as c')->join('users as u', 'u.id', '=', 'c.assigned_user_id')
             ->where('c.organization_id', $tenant->organizationId)->where('c.brand_id', $tenant->brandId)->where('c.mode', 'manager')
-            ->select('u.id', 'u.name', DB::raw('count(*) as total'))->groupBy('u.id', 'u.name')->orderByDesc('total')->limit(10)->get();
+            ->where('c.created_at', '>=', $start)->where('c.created_at', '<', $end)
+            ->select('u.id', 'u.name')->selectRaw("count(*) as total, sum(case when c.handed_off_at is not null then 1 else 0 end) as handed, sum(case when c.stage = 'done' then 1 else 0 end) as closed")
+            ->groupBy('u.id', 'u.name')->orderByDesc('total')->limit(10)->get()
+            ->map(fn ($row): array => ['id' => $row->id, 'name' => $row->name, 'total' => (int) $row->total, 'handed' => (int) $row->handed, 'closed' => (int) $row->closed]);
         $waiting = $scope('conversations')->where('mode', 'manager')->whereNull('assigned_user_id')->count();
         $overdue = $scope('seller_tasks')->where('status', 'new')->whereNotNull('due_at')->where('due_at', '<', now())->count();
         $channels = $scope('channel_accounts')->orderBy('type')->get(['id', 'type', 'name', 'default_mode', 'status'])->map(function ($channel) use ($rows): array {
@@ -110,7 +118,9 @@ final class DashboardQuery
         })->all();
         $attention = [];
         if ($waiting > 0) {
-            $attention[] = ['kind' => 'manager', 'title' => 'Диалоги ждут менеджера', 'count' => $waiting, 'severity' => 'high', 'href' => '/seller/dialogs?mode=manager'];
+            $oldest = $scope('conversations')->where('mode', 'manager')->whereNull('assigned_user_id')->whereNotNull('handed_off_at')->min('handed_off_at');
+            $detail = $oldest ? 'Ожидание до '.max(0, (int) CarbonImmutable::parse($oldest)->diffInMinutes(now())).' мин · '.$waiting : (string) $waiting;
+            $attention[] = ['kind' => 'manager', 'title' => 'Диалоги ждут менеджера', 'count' => $waiting, 'detail' => $detail, 'severity' => 'high', 'href' => '/seller/dialogs?mode=manager'];
         }
         if ($overdue > 0) {
             $attention[] = ['kind' => 'tasks', 'title' => 'Обещания просрочены', 'count' => $overdue, 'severity' => 'high', 'href' => '/seller/tasks'];
@@ -123,6 +133,6 @@ final class DashboardQuery
         $attention = array_merge($attention, app(AttentionEvents::class)->read($tenant, $rows->count(), $contact, $previous->count(), $previousContact));
 
         return ['days' => $days, 'total' => $rows->count(), 'contact' => $contact, 'handoff' => $handoff, 'done' => $done,
-            'need' => $need, 'daily' => $daily, 'channels' => $channels, 'attention' => $attention, 'delta' => $delta, 'quality' => $quality, 'issues' => $issues, 'issue_details' => $issueDetails, 'topics' => $topics, 'managers' => $managers];
+            'need' => $need, 'daily' => $daily, 'daily_contacts' => $dailyContacts, 'channels' => $channels, 'attention' => $attention, 'delta' => $delta, 'quality' => $quality, 'issues' => $issues, 'issue_details' => $issueDetails, 'topics' => $topics, 'managers' => $managers];
     }
 }
