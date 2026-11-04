@@ -1,0 +1,8 @@
+import {test,expect} from '@playwright/test';
+import {createServer,type ViteDevServer} from 'vite';
+import {mkdir} from 'node:fs/promises';
+let server:ViteDevServer; let url:string;
+test.use({viewport:{width:1440,height:900},launchOptions:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH?{executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH}:{}});
+test.beforeAll(async()=>{server=await createServer({configFile:'tests/Browser/E6-03E/vite.config.ts',cacheDir:'.local/runtime/vite-e603e',server:{host:'127.0.0.1',port:0,strictPort:false}});await server.listen();url=new URL('/tests/Browser/E6-03E/fixture.html',server.resolvedUrls!.local[0]).href;});
+test.afterAll(async()=>{await server?.close();});
+test('несколько текстов, пояс и исключения',async({page})=>{await page.goto(url);await expect(page.getByLabel('Текст 2')).toHaveValue('Второй текст');await page.getByRole('button',{name:'Добавить текст'}).click();await expect(page.getByLabel('Текст 3')).toBeVisible();await page.getByRole('button',{name:'Удалить текст 3'}).click();await expect(page.getByLabel('Текст 3')).toHaveCount(0);await expect(page.getByText('Часовой пояс бренда: Europe/Moscow')).toBeVisible();await expect(page.getByLabel('Спаму')).toBeDisabled();await page.getByText('Часовой пояс бренда:',{exact:false}).scrollIntoViewIfNeeded();await mkdir('.local/screenshots/SP-E6-03E',{recursive:true});await page.screenshot({path:'.local/screenshots/SP-E6-03E/followups.png',fullPage:true});});

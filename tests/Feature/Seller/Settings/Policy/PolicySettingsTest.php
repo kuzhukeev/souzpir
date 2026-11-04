@@ -14,6 +14,23 @@ use Tests\Feature\Tenancy\TenancyTestCase;
 
 final class PolicySettingsTest extends TenancyTestCase
 {
+    public function test_followup_statistics_count_replies_per_brand(): void
+    {
+        [$owner, $org, $brand, $other] = $this->cabinet();
+        foreach ([$brand, $other] as $item) {
+            $this->enable($org->id, $item->id);
+            $dialog = (string) Str::ulid();
+            DB::table('conversations')->insert(['id' => $dialog, 'organization_id' => $org->id, 'brand_id' => $item->id, 'created_at' => now(), 'updated_at' => now()]);
+            foreach (['agent', 'client', 'agent', 'agent', 'client'] as $index => $role) {
+                DB::table('messages')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $item->id, 'conversation_id' => $dialog,
+                    'role' => $role, 'text' => 'test', 'meta' => json_encode($role === 'agent' ? ['goal' => ['kind' => 'followup_nudge']] : []),
+                    'created_at' => now()->addMinutes($index), 'updated_at' => now()]);
+            }
+        }
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->get('/seller/settings/policy')
+            ->assertOk()->assertInertia(fn ($page) => $page->where('followupSent', 3)->where('followupReplies', [1, 1]));
+    }
+
     private function enable(string $org, string $brand): void
     {
         DB::table('brand_modules')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org, 'brand_id' => $brand, 'module' => 'seller', 'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
@@ -25,10 +42,11 @@ final class PolicySettingsTest extends TenancyTestCase
         $this->enable($org->id, $brand->id);
         $this->enable($org->id, $other->id);
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
-        $this->get('/seller/settings/policy')->assertOk()->assertInertia(fn ($page) => $page->where('policy', null)->where('followup.first_hours', 20));
-        $input = ['enabled' => true, 'first_hours' => 4, 'second_hours' => 8, 'max_auto' => 2, 'window' => ['start' => '09:00', 'end' => '18:00'], 'texts' => ['Напоминание'], 'agreed_text' => 'Договорились'];
+        $this->get('/seller/settings/policy')->assertOk()->assertInertia(fn ($page) => $page->where('policy', null)->where('followup.first_hours', 20)->where('followupSent', 0)->where('followupTimezone', $brand->fresh()->timezone));
+        $input = ['enabled' => true, 'first_hours' => 4, 'second_hours' => 8, 'max_auto' => 2, 'window' => ['start' => '09:00', 'end' => '18:00'], 'texts' => ['Напоминание', 'Второй текст'], 'agreed_text' => 'Договорились'];
         $this->post('/seller/settings/followups', $input)->assertRedirect();
         $settings = json_decode(DB::table('brand_seller_settings')->where('brand_id', $brand->id)->value('followup'), true);
+        $this->assertSame(['Напоминание', 'Второй текст'], $settings['texts']);
         $now = CarbonImmutable::parse('2026-11-02 12:00 UTC');
         $conversation = ['stage' => 'need', 'last_client_message_at' => $now->subHours(6)->toIso8601String(), 'state' => []];
         $policy = new FollowupPolicy;
