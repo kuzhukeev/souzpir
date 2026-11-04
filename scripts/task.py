@@ -190,6 +190,9 @@ def unapproved_changes(worktree: Path, base: str, head: str, scope: list[str]) -
     try:
         common = git(worktree, "merge-base", head, "refs/heads/main")
         git(worktree, "merge-base", "--is-ancestor", base, common)
+        common_diff = set(git(worktree, "diff", "--name-only", "-z", "--no-renames", common, head).split("\0"))
+        if not any(path in common_diff or path.replace("\\", "/").split("/", 1)[0].casefold() in (".local", ".worktrees", ".git") for path in outside):
+            return []
         approved.append(common)
     except TaskError:
         pass
@@ -206,7 +209,9 @@ def unapproved_changes(worktree: Path, base: str, head: str, scope: list[str]) -
     remaining = set(outside)
     forbidden_roots = {".local", ".worktrees", ".git"}
     for parent in approved:
-        differing = set(git(worktree, "diff", "--name-only", "-z", "--no-renames", parent, head, "--", *outside).split("\0"))
+        # Compare all paths in one short command: a large main merge can exceed
+        # Windows' command-line length when every outside path is an argument.
+        differing = set(git(worktree, "diff", "--name-only", "-z", "--no-renames", parent, head).split("\0"))
         remaining = {path for path in remaining if path in differing or path.replace("\\", "/").split("/", 1)[0].casefold() in forbidden_roots}
     return [path for path in outside if path in remaining]
 
@@ -320,7 +325,8 @@ class Coordinator:
             git(worktree, "merge-base", "--is-ancestor", base, head)
             if head != base:
                 remote = git(self.root, "rev-parse", "--verify", "refs/remotes/origin/" + record["branch"] + "^{commit}")
-                if head != remote or unapproved_changes(worktree, base, head, [*record["scope"], *CI_SCOPE_EXCEPTIONS.get(key, ())]):
+                git(worktree, "merge-base", "--is-ancestor", remote, head)
+                if unapproved_changes(worktree, base, head, [*record["scope"], *CI_SCOPE_EXCEPTIONS.get(key, ())]):
                     return False
             return True
         except (TaskError, KeyError, TypeError):
