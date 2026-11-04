@@ -204,12 +204,12 @@ class Coordinator:
     def local_path(self, key: str) -> Path:
         return self.claims / (key_name(key).lower() + ".json")
 
-    def read_claim(self, key: str) -> dict:
+    def read_claim(self, key: str, *, allow_released: bool = False) -> dict:
         try:
             claim = json.loads(self.local_path(key).read_text(encoding="utf-8"))
         except (OSError, ValueError) as error:
             raise TaskError("No readable local ownership record for this task") from error
-        if claim.get("taskKey") != key or claim.get("project") != self.project or not claim.get("claimToken"):
+        if claim.get("taskKey") != key or claim.get("project") != self.project or (not claim.get("claimToken") and not (allow_released and claim.get("status") == "released")):
             raise TaskError("Local record has no active ownership token")
         return claim
 
@@ -265,6 +265,21 @@ class Coordinator:
                 reasons.append("local_worktree")
             if git(self.root, "rev-parse", "--verify", "refs/heads/" + branch, check=False):
                 reasons.append("local_branch")
+            if reasons and self.local_path(key).exists() and (self.root / ".worktrees" / key.lower()).is_dir():
+                worktree = self.root / ".worktrees" / key.lower()
+                try:
+                    record = self.read_claim(key, allow_released=True)
+                    if (record.get("status") == "released" and not record.get("claimToken")
+                            and record.get("project") == self.project and record.get("branch") == branch
+                            and Path(record.get("worktree", "")).resolve() == worktree.resolve()
+                            and scope_signature(record.get("scope", [])) == scope_signature(task.get("scope", []))
+                            and sorted(record.get("dependsOn", [])) == sorted(task.get("dependsOn", []))
+                            and git(worktree, "branch", "--show-current") == branch
+                            and not git(worktree, "status", "--porcelain=v1", "--untracked-files=all")
+                            and git(worktree, "rev-parse", "HEAD^{commit}") == record.get("baseCommit")):
+                        reasons = []
+                except (OSError, TaskError, ValueError):
+                    pass
             if reasons:
                 blocked.append({"taskKey": key, "localBlockers": reasons})
             else:
@@ -316,7 +331,42 @@ class Coordinator:
         git(self.root, "check-ref-format", "--branch", branch)
         worktree = self.root / ".worktrees" / key.lower()
         if self.local_path(key).exists() or worktree.exists():
-            raise TaskError("Local claim or worktree already exists; inspect it, do not overwrite it")
+            if not self.local_path(key).exists() or not worktree.is_dir():
+                raise TaskError("Local claim or worktree already exists; inspect it, do not overwrite it")
+            record = self.read_claim(key, allow_released=True)
+            if (record.get("status") != "released" or record.get("claimToken") or task.get("status") != "queue"
+                    or record.get("project") != self.project or record.get("branch") != branch
+                    or Path(record.get("worktree", "")).resolve() != worktree.resolve()
+                    or scope_signature(record.get("scope", [])) != scope_signature(task.get("scope", []))
+                    or sorted(record.get("dependsOn", [])) != sorted(task.get("dependsOn", []))):
+                raise TaskError("Existing worktree is not safely released; inspect it without overwriting")
+            base = self.integration_base()
+            head = git(worktree, "rev-parse", "HEAD^{commit}")
+            if (git(worktree, "branch", "--show-current") != branch
+                    or git(worktree, "status", "--porcelain=v1", "--untracked-files=all")
+                    or head != record.get("baseCommit")):
+                raise TaskError("Released worktree has preserved changes; inspect it without overwriting")
+            dependencies = self.dependency_commits(task, tasks, base)
+            self.dependency_commits(task, tasks, head)
+            response = self.api.call("claim", {"project": self.project, "taskKey": key, "worker": worker})
+            token = response.get("claimToken")
+            if not isinstance(token, str) or not token:
+                raise TaskError("Claim response has no token; inspect the task before retrying")
+            try:
+                self.validate_plan(key, plan, response["task"])
+                record.update(claimToken=token, worker=worker, dependencyCommits=dependencies,
+                              status="progress", revision=response["task"]["revision"])
+                self.save_claim(record)
+            except (OSError, TaskError) as error:
+                try:
+                    self.api.call("release", {"project": self.project, "taskKey": key,
+                        "claimToken": token, "expectedRevision": response["task"]["revision"],
+                        "reason": "Released worktree reclaim failed; inspect preserved local state"})
+                except Exception:
+                    raise TaskError("Worktree reclaim failed and release could not be confirmed; inspect queue") from None
+                raise TaskError("Worktree reclaim failed; preserved worktree was not modified: " + str(error)) from None
+            return {"taskKey": key, "status": "progress", "branch": branch, "worktree": str(worktree),
+                    "baseCommit": head, "promptPath": plan.get("promptPath", "")}
         if git(self.root, "rev-parse", "--verify", "refs/heads/" + branch, check=False):
             raise TaskError("Task branch already exists; inspect it, do not overwrite it")
         base = self.integration_base()

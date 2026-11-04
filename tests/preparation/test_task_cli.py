@@ -96,15 +96,25 @@ class TaskCliTests(unittest.TestCase):
         self.assertEqual(len(self.client.ready()["tasks"]), 1)
         self.assertEqual(self.api.calls, ["ready"])
 
-    def test_ready_excludes_released_task_with_local_claim_or_worktree(self):
+    def test_released_clean_worktree_can_be_claimed_without_replacing_it(self):
+        worktree, original = self.claim()
+        self.client.release("SP-001", "Stopped")
+        self.assertEqual(len(self.client.ready()["tasks"]), 1)
+        reclaimed = self.client.claim("SP-001", "another-chat")
+        self.assertEqual(Path(reclaimed["worktree"]), worktree)
+        self.assertEqual(reclaimed["baseCommit"], original["baseCommit"])
+        self.assertEqual(self.client.read_claim("SP-001")["worker"], "another-chat")
+        self.assertTrue(worktree.exists())
+
+    def test_released_dirty_worktree_is_not_reclaimed(self):
         worktree, _ = self.claim()
         self.client.release("SP-001", "Stopped")
-        result = self.client.ready()
-        self.assertEqual(result["tasks"], [])
-        self.assertEqual(result["blockedLocal"][0]["taskKey"], "SP-001")
-        self.assertEqual(set(result["blockedLocal"][0]["localBlockers"]),
-                         {"local_claim", "local_worktree", "local_branch"})
-        self.assertTrue(worktree.exists())
+        (worktree / "untracked.txt").write_text("keep", encoding="utf-8")
+        self.assertEqual(self.client.ready()["tasks"], [])
+        with self.assertRaisesRegex(task_cli.TaskError, "preserved changes"):
+            self.client.claim("SP-001", "another-chat")
+        self.assertEqual((worktree / "untracked.txt").read_text(encoding="utf-8"), "keep")
+        self.assertEqual(self.api.task["status"], "queue")
 
     def test_ready_excludes_task_with_leftover_branch_only(self):
         task_cli.git(self.root, "branch", "codex/sp-001")
