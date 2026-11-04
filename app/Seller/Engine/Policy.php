@@ -236,6 +236,9 @@ class Policy
         // спам: 3 подряд не по теме (только настоящий оффтоп/инъекции, не закрытые темы)
         $isClosed = ! empty($x['closed_topic']) || $intent === 'closed_topic';
         if ($s->counter('off_topic_streak') >= $this->limit('off_topic_streak_silent', 3) && ! $isClosed) {
+            if (($this->p['off_topic_action'] ?? 'spam') === 'handoff') {
+                return $this->handoffGoal($s, ['id' => 'off_topic']);
+            }
             $s->setStage('spam');
 
             return new Goal('silent', instruction: 'Не отвечать.');
