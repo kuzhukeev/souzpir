@@ -129,13 +129,14 @@ final class GreetingFirstTurnTest extends TestCase
         app(TenantContextRunner::class)->run($tenant, function () use ($channels): void {
             $settings = BrandSellerSettings::query()->firstOrFail();
             $settings->greetings = array_combine($channels, array_map(fn (string $channel) => 'Канал '.$channel, $channels));
+            $settings->greetings = [...$settings->greetings, 'widget_catalog' => 'Канал widget: {страница}'];
             $settings->save();
         });
         foreach ($channels as $channel) {
             [$nextConversation, $nextInput, $eventId] = app(TenantContextRunner::class)->run($tenant, function () use ($channel): array {
                 $account = ChannelAccount::create(['type' => $channel, 'status' => 'active']);
                 $conversation = Conversation::create(['state' => [], 'mode' => 'bot', 'channel_account_id' => $account->id]);
-                $event = ChannelInboundEvent::create(['channel_account_id' => $account->id, 'external_id' => 'greeting-'.$channel, 'payload' => []]);
+                $event = ChannelInboundEvent::create(['channel_account_id' => $account->id, 'external_id' => 'greeting-'.$channel, 'payload' => ['page' => 'catalog']]);
                 $input = Message::create(['conversation_id' => $conversation->id, 'channel_account_id' => $account->id,
                     'external_event_id' => $event->id, 'role' => 'client', 'text' => 'Ещё вопрос', 'meta' => []]);
 
@@ -143,7 +144,7 @@ final class GreetingFirstTurnTest extends TestCase
             });
             $turn = new TurnCommand($nextConversation->id, $nextInput->id, $nextInput->text, $eventId, 'greeting-'.$channel, 0);
             self::assertSame('completed', $run($turn)['status']);
-            self::assertStringStartsWith('Канал '.$channel, DB::table('messages')->where('conversation_id', $nextConversation->id)->where('role', 'agent')->value('text'));
+            self::assertStringStartsWith($channel === 'widget' ? 'Канал widget: Каталог' : 'Канал '.$channel, DB::table('messages')->where('conversation_id', $nextConversation->id)->where('role', 'agent')->value('text'));
         }
         self::assertSame(14, $fake->calls);
         Http::assertNothingSent();

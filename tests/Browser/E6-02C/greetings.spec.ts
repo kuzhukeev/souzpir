@@ -3,7 +3,7 @@ import { createServer, type ViteDevServer } from 'vite';
 let server: ViteDevServer;
 let fixture: string;
 test.setTimeout(60000);
-test.use({ viewport: { width: 1440, height: 900 }, launchOptions: { executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe' } });
+test.use({ viewport: { width: 1440, height: 900 }, launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH } : {} });
 test.beforeAll(async () => { server = await createServer({ configFile: 'tests/Browser/E6-02C/vite.config.ts' }); await server.listen(); fixture = new URL('/tests/Browser/E6-02C/fixture.html', server.resolvedUrls!.local[0]).href; });
 test.afterAll(async () => { await server?.close(); });
 

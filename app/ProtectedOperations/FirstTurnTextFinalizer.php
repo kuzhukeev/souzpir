@@ -213,7 +213,12 @@ final class FirstTurnTextFinalizer
             $schedule = DB::table('brand_seller_settings')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->value('schedule');
             $settings = is_string($schedule) ? json_decode($schedule, true) : [];
             $afterHours = $brand && is_array($settings) && app(Availability::class)->forTime($settings, CarbonImmutable::now(), $brand->timezone)['mode'] === 'off';
-            $page = is_string($previousMeta['page'] ?? null) ? $previousMeta['page'] : 'home';
+            $eventPayload = $input->external_event_id ? DB::table('channel_inbound_events')->where('id', $input->external_event_id)
+                ->where('channel_account_id', $conversation->channel_account_id)->where('organization_id', $tenant->organizationId)
+                ->where('brand_id', $tenant->brandId)->value('payload') : null;
+            $eventData = is_string($eventPayload) ? json_decode($eventPayload, true) : [];
+            $pageValue = $previousMeta['page'] ?? $eventData['page'] ?? 'home';
+            $page = is_string($pageValue) ? $pageValue : 'home';
             $greeting = app(GreetingResolver::class)->resolve($tenant, is_string($channel) ? $channel : '', $page, is_string($name) ? $name : null, $afterHours);
             if ($greeting !== null) {
                 $replyText = $greeting."\n\n".$replyText;
