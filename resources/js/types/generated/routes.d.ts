@@ -373,6 +373,12 @@ declare module 'ziggy-js' {
     ],
     "seller.knowledge.draft": [],
     "seller.knowledge.incoming": [],
+    "seller.knowledge.backup": [
+        {
+            "name": "release",
+            "required": true
+        }
+    ],
     "seller.knowledge.scenarios": [
         {
             "name": "release",
