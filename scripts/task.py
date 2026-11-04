@@ -47,6 +47,7 @@ GENERATED_CONTRACT_FILES = frozenset(
 # Narrow integrator-approved scope corrections for shared routes, UI and CI
 # regressions. They do not broaden ownership to neighboring modules.
 CI_SCOPE_EXCEPTIONS = {
+    "SP-E1-07D": ("config/billing.php",),
     "SP-E8-18G": ("tests/Browser/E8-18/report.spec.ts", "tests/Browser/E8-18F/report.spec.ts"),
     "SP-E8-22C": ("resources/js/features/Vision/Site/actions.test.tsx",),
     "SP-E8-18F": ("tests/Unit/Vision/Reports/ReportSectionsTest.php",),
