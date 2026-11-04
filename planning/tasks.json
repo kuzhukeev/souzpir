@@ -15827,6 +15827,40 @@
       "promptPath": "docs/tasks/SP-E8-24E.md",
       "wave": 19,
       "description": "# SP-E8-24E · Завершить настройки моделей и получателей\n\n**Зачем:** завершить V-11.1, V-11.2, V-11.3, V-11.5 по решению владельца 03.11.2026 и отчёту SP-E8-24D.\n**Часть чего:** остаток частичной сдачи SP-E8-24D.\n**Зависимости:** SP-E8-24D в done.\n\nСохранить выбор доступных моделей при выключенном расписании и включить отдельный маршрут настройки; проверить права и бренд. Внешние адреса, право полных ответов и историю списаний реализовать только при наличии проверенных контрактов и данных; остаток явно описать, цены и лимиты не выдумывать.\n\nScope: `app/Vision/Settings/`, `app/Vision/Measurements/`, `resources/js/pages/Vision/Settings/`, `routes/features/`, `tests/Feature/Vision/Settings/`, `tests/Browser/E8-24E/`, `docs/results/SP-E8-24E.md`.\n\nПриёмка: сверка с макетом, основной сценарий, права и изоляция брендов, ошибки; тесты без живых вызовов. Невыполненные пункты перечислить в разделе «Остаток» отчёта `docs/results/SP-E8-24E.md`.\n"
+    },
+    {
+      "taskKey": "SP-E3-10C",
+      "title": "SP-E3-10C · Версии prompt для защищённых стадий",
+      "goal": "Подключить версию v2 к защищённому summary и имеющимся точкам запуска simulator/judge; сохранять v1 и golden-фикстуры для прототипа, работу без опубликованных знаний и изоляцию бренда. Если загрузчика стадии нет, реализовать минимальный действующий вход для неё без живых AI-вызовов.",
+      "dependsOn": [
+        "SP-E3-10B"
+      ],
+      "scope": [
+        "app/Ai/Protected/",
+        "app/Seller/Engine/",
+        "app/Seller/Evaluation/",
+        "resources/views/prompts/",
+        "tests/Feature/Ai/",
+        "tests/Feature/Seller/Evaluation/",
+        "tests/Unit/Seller/Engine/",
+        "docs/results/SP-E3-10C.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Golden v1, изоляция бренда, отсутствие знаний и fake-LLM."
+      ],
+      "sourceIds": [
+        "SP-E3-10B"
+      ],
+      "screenIds": [],
+      "notes": "Остаток частичной сдачи SP-E3-10B",
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/sources/10_backlog.md"
+      ],
+      "promptPath": "docs/tasks/SP-E3-10C.md",
+      "wave": 19,
+      "description": "# SP-E3-10C · Версии prompt для защищённых стадий\n\n**Зачем:** завершить отраслевую изоляцию стадий продавца по решению владельца от 02.11.2026.\n**Часть чего:** остаток SP-E3-10B, перечисленный в docs/results/SP-E3-10B.md.\n**Зависимости:** SP-E3-10B в done.\n\nПодключить версию v2 к защищённому summary и имеющимся точкам запуска simulator/judge; сохранять v1 и golden-фикстуры для прототипа, работу без опубликованных знаний и изоляцию бренда. Если загрузчика стадии нет, реализовать минимальный действующий вход для неё без живых AI-вызовов.\n\nScope: `app/Ai/Protected/`, `app/Seller/Engine/`, `app/Seller/Evaluation/`, `resources/views/prompts/`, `tests/Feature/Ai/`, `tests/Feature/Seller/Evaluation/`, `tests/Unit/Seller/Engine/`, `docs/results/SP-E3-10C.md`.\n\nПриёмка: сохранены golden v1 и отсутствие знаний, другой бренд не получает чужую отрасль; проверить права и fake-LLM. Отчёт `docs/results/SP-E3-10C.md`; остаток описать явно.\n"
     }
   ],
   "excludedSourceTasks": {
