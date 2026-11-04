@@ -5,6 +5,7 @@ namespace App\Vision\Site\Http;
 use App\Models\Membership;
 use App\Shell\Brands\BrandDomain;
 use App\Tenancy\TenantContext;
+use App\Vision\Core\Profiles\ProfileAccess;
 use App\Vision\Site\AuditRun;
 use App\Vision\Site\History;
 use App\Vision\Site\Jobs\AuditSiteJob;
@@ -12,10 +13,12 @@ use App\Vision\Site\SiteAccess;
 use App\Vision\Site\SiteAction;
 use App\Vision\Site\SiteOperations;
 use App\Vision\SiteAudit\SiteSafety;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -26,8 +29,11 @@ final class SiteController
 {
     public function __construct(private SiteAccess $access, private SiteOperations $operations, private History $history) {}
 
-    public function index(Request $request): Response
+    public function index(Request $request): Response|JsonResponse
     {
+        if ($request->query('quiz_status') === '1') {
+            return $this->quizStatus($request);
+        }
         $tenant = app(TenantContext::class);
         $props = DB::transaction(function () use ($tenant, $request): array {
             $this->access->lock($tenant, false, 'vision.report.read');
@@ -61,6 +67,25 @@ final class SiteController
         });
 
         return Inertia::render('Vision/Site/Index', ['section' => $request->route('section'), ...$props]);
+    }
+
+    private function quizStatus(Request $request): JsonResponse
+    {
+        return app(ProfileAccess::class)->run($request, function (TenantContext $tenant): JsonResponse {
+            Gate::authorize('vision.settings.write');
+            $website = DB::table('brands')->where('organization_id', $tenant->organizationId)->where('id', $tenant->brandId)->value('website');
+            $progress = Cache::get(AuditSiteJob::key($tenant->organizationId, $tenant->brandId), []);
+            $stage = is_string($website) && $website !== '' && is_array($progress) && ($progress['url'] ?? null) === $website ? ($progress['stage'] ?? null) : null;
+            $stage = in_array($stage, ['queued', 'inspecting', 'saving', 'complete', 'failed'], true) ? $stage : null;
+            $raw = DB::table('audit_runs')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->orderByDesc('created_at')->orderByDesc('id')->value('result');
+            $audit = is_string($raw) ? json_decode($raw, true) : null;
+            if (! is_string($website) || ! is_array($audit) || ($audit['url'] ?? null) !== $website) {
+                $audit = [];
+            }
+
+            return response()->json(['website' => $website, 'stage' => $stage, 'readiness' => $audit['readiness'] ?? null,
+                'pages' => $audit['crawled_pages'] ?? null])->header('Cache-Control', 'private, no-store');
+        });
     }
 
     public function audit(Request $request): RedirectResponse

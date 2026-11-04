@@ -217,13 +217,13 @@ HTML;
                 $raw = DB::table('audit_runs')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)->orderByDesc('created_at')->orderByDesc('id')->value('result');
                 $audit = is_string($raw) ? json_decode($raw, true) : null;
                 $host = strtolower((string) parse_url($website, PHP_URL_HOST));
-                if (! is_array($audit) || $host === '' || strtolower((string) parse_url((string) ($audit['url'] ?? ''), PHP_URL_HOST)) !== $host) {
+                if (! is_array($audit) || $host === '' || ($audit['url'] ?? null) !== $website) {
                     $audit = null;
                 }
 
                 return ['page' => $page, 'audit' => $audit, 'progress' => Cache::get(AuditSiteJob::key($context->organizationId, $context->brandId))];
             });
-            $progress = $sources['progress']['stage'] ?? null;
+            $progress = is_string($website) && $website !== '' && ($sources['progress']['url'] ?? null) === $website ? ($sources['progress']['stage'] ?? null) : null;
             $siteCheck = ['stage' => in_array($progress, ['queued', 'inspecting', 'saving', 'complete', 'failed'], true) ? $progress : null, 'readiness' => $sources['audit']['readiness'] ?? null, 'pages' => $sources['audit']['crawled_pages'] ?? null];
             $page = $sources['page'] ?? null;
             $audit = $sources['audit'] ?? null;
