@@ -397,6 +397,12 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "seller.knowledge.restore": [
+        {
+            "name": "release",
+            "required": true
+        }
+    ],
     "seller.knowledge.facts.index": [],
     "seller.knowledge.facts.show": [
         {
