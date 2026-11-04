@@ -4,6 +4,7 @@ import CabinetLayout from '@/layouts/CabinetLayout';
 import { Button } from '@/components/ui/forms';
 import { ArrowRight, ClipboardList, ChartNoAxesCombined, FileCheck2 } from 'lucide-react';
 import { labels } from '@/features/Vision/Profile/answers';
+const displayLimit = (value: string | null) => value === null ? 'Нет данных' : value.replace(/\.0+$/, '');
 type Current = { quiz_id: string; revision: number; current_step: number; status: string } | null;
 export default function Start({
   current,
@@ -11,12 +12,14 @@ export default function Start({
   can_edit,
   secure_context,
   local_http,
+  plan = null,
 }: {
   current: Current;
   profile_id: string | null;
   can_edit: boolean;
   secure_context: boolean;
   local_http: boolean;
+  plan?: {name: string | null; questions: string | null; runs_per_week: string | null} | null;
 }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
@@ -99,7 +102,7 @@ export default function Start({
             })}
           </div>
           <section className="mt-8 rounded-xl border border-(--color-border) p-4"><h2 className="font-semibold">Что проверяем</h2><p className="mt-2 text-sm text-(--color-ink-muted)">Пример набора моделей; доступные модели определяются настройками замера.</p><ul className="mt-3 flex flex-wrap gap-2 text-sm">{[['ChatGPT','✳'], ['Claude','✺'], ['Gemini','✦'], ['Perplexity','◈']].map(([name, mark]) => <li key={name} className="flex items-center gap-2 rounded-lg bg-(--color-surface-muted) px-3 py-2"><span aria-hidden="true" className="flex h-7 w-7 items-center justify-center rounded-full bg-(--color-brand-primary-soft) text-lg text-(--color-link)">{mark}</span>{name}</li>)}</ul></section>
-          <section className="mt-4 rounded-xl border border-(--color-border) p-4"><h2 className="font-semibold">Ваш тариф</h2><p className="mt-2 text-sm text-(--color-ink-muted)">Данные о тарифе и лимитах пока недоступны.</p></section>
+          <section className="mt-4 rounded-xl border border-(--color-border) p-4"><h2 className="font-semibold">Ваш тариф</h2>{plan && (plan.name || plan.questions !== null || plan.runs_per_week !== null) ? <dl className="mt-2 space-y-1 text-sm text-(--color-ink-muted)"><div><dt className="inline">План: </dt><dd className="inline">{plan.name ?? 'Нет данных'}</dd></div><div><dt className="inline">Вопросы: </dt><dd className="inline">{displayLimit(plan.questions)}</dd></div><div><dt className="inline">Прогоны в неделю: </dt><dd className="inline">{displayLimit(plan.runs_per_week)}</dd></div></dl> : <p className="mt-2 text-sm text-(--color-ink-muted)">Данные о тарифе и лимитах пока недоступны.</p>}</section>
         </section>
       </div>
     </CabinetLayout>
