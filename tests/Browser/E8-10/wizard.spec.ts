@@ -44,7 +44,7 @@ test('four wizard screens and typed controls', async ({ page }) => {
   await expect(page.getByRole('textbox', { name: 'Как правильно' })).toBeVisible();
   await page.screenshot({ path: '.local/screenshots/sp-e8-10/facts-1440.png', fullPage: true });
   await page.goto(`${base}?step=done`);
-  await expect(page.getByText('Перерасчёт показателей ещё не подключён', { exact: false })).toBeVisible();
+  await expect(page.getByText('Сохранённый снимок отчёта не меняется', { exact: false })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Открыть отчёт' })).toHaveAttribute('href', '/vision/report');
   await page.screenshot({ path: '.local/screenshots/sp-e8-10/done-1440.png', fullPage: true });
 });

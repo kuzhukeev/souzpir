@@ -4,10 +4,15 @@ namespace Tests\Feature\Vision\Clarifications;
 
 use App\Ai\CanonicalJson;
 use App\Tenancy\TenantContext;
+use App\Vision\Core\VisibilityMetrics;
+use App\Vision\Core\VisionReportReader;
 use App\Vision\Evidence\Contracts\KnowledgeGate;
+use App\Vision\Reports\ClarificationVisibility;
+use App\Vision\Reports\ReportData;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use Mockery;
 use Tests\Feature\Tenancy\TenancyTestCase;
 
 final class ClarificationWizardTest extends TenancyTestCase
@@ -119,5 +124,55 @@ final class ClarificationWizardTest extends TenancyTestCase
         $this->actingAs($viewer)->withSession(['brand_id' => $brand->id]);
         $this->post($base, ['item_key' => $fact['key'], 'decision' => 'correct'])->assertForbidden();
         Http::assertNothingSent();
+    }
+
+    public function test_confirmed_identity_recalculates_display_metrics_without_mutating_snapshot_or_other_brand(): void
+    {
+        [$owner, $org, $brand, $other] = $this->cabinet();
+        $measurement = $this->measurement($org, $brand);
+        $this->confirm($owner, $brand, $measurement);
+        $path = "/vision/runs/{$measurement}/clarify/mentions";
+        $item = $this->get($path)->assertOk()->inertiaProps('items.0');
+        $answerId = DB::table('answer_facts')->where('brand_id', $brand->id)->value('measurement_answer_id');
+        $sourceFact = ['value' => 'Работает с 2009 года', 'identity_candidates' => ['Союз-Пир СПб'],
+            'presence_candidates' => ['2gis.ru'], 'brand_mentioned' => false, 'mention_status' => 'possible', 'companies' => []];
+        DB::table('answer_facts')->where('measurement_answer_id', $answerId)->update(['fact' => json_encode($sourceFact)]);
+        $slot = ['id' => $answerId, 'provider' => 'fake', 'question_n' => 1, 'run_no' => 1,
+            'status' => 'ok', 'protocol_valid' => true, 'fact' => $sourceFact,
+            'mentions' => [], 'sources' => []];
+        $metrics = app(VisibilityMetrics::class)->calculate([$slot], ['fake'], 1, 1);
+        $payload = ['measurement_id' => $measurement, 'providers' => ['fake' => 'fake-model'],
+            'questions' => [['id' => 'q1', 'text' => 'Вопрос', 'intent' => 'choose']], 'runs' => 1, 'metrics' => $metrics, 'reviewed_facts' => []];
+        self::assertNull($metrics['visibility']['macro_percent']);
+
+        $this->post($path, ['item_key' => $item['key'], 'decision' => 'yes'])->assertSessionHasNoErrors();
+        $factPath = "/vision/runs/{$measurement}/clarify/facts";
+        $fact = $this->get($factPath)->assertOk()->inertiaProps('items.0');
+        $this->post($factPath, ['item_key' => $fact['key'], 'decision' => 'incorrect', 'correction' => 'Работает с 2010 года'])->assertSessionHasNoErrors();
+        $result = app(ClarificationVisibility::class)->apply(new TenantContext($org->id, $brand->id), $payload);
+        self::assertSame(1, $result['applied']);
+        self::assertSame(100.0, $result['metrics']['visibility']['macro_percent']);
+        self::assertNull($payload['metrics']['visibility']['macro_percent']);
+        self::assertSame(0, app(ClarificationVisibility::class)->apply(new TenantContext($org->id, $other->id), $payload)['applied']);
+
+        $report = (string) Str::ulid();
+        DB::table('vision_reports')->insert(['id' => $report, 'organization_id' => $org->id, 'brand_id' => $brand->id,
+            'measurement_id' => $measurement, 'revision' => 1, 'payload' => '{}', 'checksum' => str_repeat('0', 64),
+            'created_at' => now(), 'updated_at' => now()]);
+        $reader = Mockery::mock(app(VisionReportReader::class));
+        $reader->shouldReceive('read')->once()->with($report)->andReturn($payload);
+        app()->instance(VisionReportReader::class, $reader);
+        $display = app(ReportData::class)->read(new TenantContext($org->id, $brand->id), $report)['report'];
+        self::assertSame(100.0, $display['visibility']);
+        self::assertNull($display['visibility_before']);
+        self::assertSame(1, $display['clarifications_applied']);
+        self::assertSame('incorrect', $display['sections']['facts'][0]['classification']);
+        self::assertSame('Работает с 2010 года', $display['sections']['facts'][0]['correction']);
+        self::assertSame(1, $display['verified_errors']);
+        self::assertSame('{}', DB::table('vision_reports')->where('id', $report)->value('payload'));
+
+        $this->post($path, ['item_key' => $item['key'], 'decision' => 'no'])->assertSessionHasNoErrors();
+        $result = app(ClarificationVisibility::class)->apply(new TenantContext($org->id, $brand->id), $payload);
+        self::assertSame(0.0, $result['metrics']['visibility']['macro_percent']);
     }
 }

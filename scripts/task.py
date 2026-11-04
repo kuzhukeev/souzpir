@@ -47,15 +47,34 @@ GENERATED_CONTRACT_FILES = frozenset(
 # Narrow integrator-approved scope corrections for shared routes, UI and CI
 # regressions. They do not broaden ownership to neighboring modules.
 CI_SCOPE_EXCEPTIONS = {
+    "SP-E8-18G": ("tests/Browser/E8-18/report.spec.ts", "tests/Browser/E8-18F/report.spec.ts"),
+    "SP-E8-22C": ("resources/js/features/Vision/Site/actions.test.tsx",),
+    "SP-E8-18F": ("tests/Unit/Vision/Reports/ReportSectionsTest.php",),
+    "SP-E4-01L": ("tests/Browser/E4-01G/run.spec.ts", "tests/Browser/E4-01H/backup.spec.ts", "tests/Browser/E4-01I/preview.spec.ts", "tests/Browser/E4-01J/restore.spec.ts"),
+    "SP-E8-20G": ("tests/Browser/E8-20F/compare.spec.ts",),
+    "SP-E8-20E": ("tests/Browser/E8-20D/fixture.tsx",),
+    "SP-E1-02E": ("tests/Browser/E1-02/onboarding-ui.spec.ts",),
+    "SP-E4-01K": ("tests/Browser/E4-01H/backup.spec.ts", "tests/Browser/E4-01J/restore.spec.ts"),
+    "SP-E8-15D": ("tests/Browser/E8-03/e2e.spec.ts",),
     "SP-E7-03E": ("tests/Browser/E7-03D/fixture.tsx", "tests/Browser/E7-03D/compare.spec.ts"),
     "SP-E1-09D": ("tests/Browser/E1-09/journal.spec.ts", "tests/Unit/Shell/Journal/actorFilter.test.tsx", "tests/Browser/E1-09/selected-actor.spec.ts"),
     "SP-E8-15C": ("tests/Browser/E8-03/pages.spec.ts", "tests/Browser/E8-03/e2e.spec.ts", "tests/Browser/E8-15B/questions.spec.ts"),
     "SP-E8-24B": ("tests/Browser/E8-24/fixture.tsx",),
     "SP-E8-18B": ("tests/Unit/Vision/Reports/ReportSectionsTest.php",),
+    "SP-E8-22B": ("tests/Browser/SP-UI-01/history.spec.ts",),
+    "SP-E4-01J": ("tests/Feature/Seller/Knowledge/Releases/ReleasesTest.php",),
+    "SP-E6-02C": ("tests/Feature/Seller/Quality/EvaluationFeedbackTest.php", "tests/Feature/Seller/Quality/ReportActionsTest.php"),
+    "SP-E8-20D": ("tests/Feature/Seller/Quality/EvaluationFeedbackTest.php", "tests/Feature/Seller/Quality/ReportActionsTest.php"),
+    "SP-E8-16F": ("tests/Feature/Seller/Quality/EvaluationFeedbackTest.php", "tests/Feature/Seller/Quality/ReportActionsTest.php"),
+    "SP-E7-05D": ("scripts/ci/browser-smoke.sh", ".github/workflows/ci.yml"),
+    "SP-E8-18D": ("tests/Browser/E8-18B/report.spec.ts",),
+    "SP-E7-04C": ("tests/Feature/Seller/Quality/EvaluationFeedbackTest.php", "tests/Feature/Seller/Quality/ReportActionsTest.php"),
+    "SP-E8-18C": ("tests/Unit/Vision/Reports/ReportSectionsTest.php", "tests/Feature/Seller/Quality/EvaluationFeedbackTest.php", "tests/Feature/Seller/Quality/ReportActionsTest.php"),
     "SP-E1-09E": ("tests/Browser/E1-09C/fixture.tsx", "tests/Browser/E1-09C/journal.spec.ts"),
     "SP-E8-15B": ("tests/Browser/E8-03/e2e.spec.ts",),
     "SP-E5-04G": ("tests/Browser/E5-04E/filters.spec.ts",),
     "SP-E8-17": ("tests/Browser/E8-10/wizard.spec.ts",),
+    "SP-E8-17C": ("tests/Browser/E8-10/wizard.spec.ts",),
     "SP-E8-18": ("tests/Unit/Vision/Reports/ReportSectionsTest.php",),
     "SP-E8-21": ("resources/js/features/Vision/Site/audit.test.tsx",),
     "SP-E4-04C": ("tests/Browser/E4-04/fixture.tsx",),
@@ -196,12 +215,12 @@ class Coordinator:
     def local_path(self, key: str) -> Path:
         return self.claims / (key_name(key).lower() + ".json")
 
-    def read_claim(self, key: str) -> dict:
+    def read_claim(self, key: str, *, allow_released: bool = False) -> dict:
         try:
             claim = json.loads(self.local_path(key).read_text(encoding="utf-8"))
         except (OSError, ValueError) as error:
             raise TaskError("No readable local ownership record for this task") from error
-        if claim.get("taskKey") != key or claim.get("project") != self.project or not claim.get("claimToken"):
+        if claim.get("taskKey") != key or claim.get("project") != self.project or (not claim.get("claimToken") and not (allow_released and claim.get("status") == "released")):
             raise TaskError("Local record has no active ownership token")
         return claim
 
@@ -244,6 +263,19 @@ class Coordinator:
             raise TaskError("Task is absent from the local project plan")
         return matches[0]
 
+    def preserved_head_is_safe(self, key: str, record: dict, worktree: Path) -> bool:
+        try:
+            head = git(worktree, "rev-parse", "HEAD^{commit}")
+            base = record.get("baseCommit", "")
+            git(worktree, "merge-base", "--is-ancestor", base, head)
+            if head != base:
+                remote = git(self.root, "rev-parse", "--verify", "refs/remotes/origin/" + record["branch"] + "^{commit}")
+                if head != remote or unapproved_changes(worktree, base, head, [*record["scope"], *CI_SCOPE_EXCEPTIONS.get(key, ())]):
+                    return False
+            return True
+        except (TaskError, KeyError, TypeError):
+            return False
+
     def ready(self) -> dict:
         response = self.api.call("ready", project=self.project)
         available, blocked = [], []
@@ -257,6 +289,21 @@ class Coordinator:
                 reasons.append("local_worktree")
             if git(self.root, "rev-parse", "--verify", "refs/heads/" + branch, check=False):
                 reasons.append("local_branch")
+            if reasons and self.local_path(key).exists() and (self.root / ".worktrees" / key.lower()).is_dir():
+                worktree = self.root / ".worktrees" / key.lower()
+                try:
+                    record = self.read_claim(key, allow_released=True)
+                    if (record.get("status") == "released" and not record.get("claimToken")
+                            and record.get("project") == self.project and record.get("branch") == branch
+                            and Path(record.get("worktree", "")).resolve() == worktree.resolve()
+                            and scope_signature(record.get("scope", [])) == scope_signature(task.get("scope", []))
+                            and sorted(record.get("dependsOn", [])) == sorted(task.get("dependsOn", []))
+                            and git(worktree, "branch", "--show-current") == branch
+                            and not git(worktree, "status", "--porcelain=v1", "--untracked-files=all")
+                            and self.preserved_head_is_safe(key, record, worktree)):
+                        reasons = []
+                except (OSError, TaskError, ValueError):
+                    pass
             if reasons:
                 blocked.append({"taskKey": key, "localBlockers": reasons})
             else:
@@ -308,7 +355,42 @@ class Coordinator:
         git(self.root, "check-ref-format", "--branch", branch)
         worktree = self.root / ".worktrees" / key.lower()
         if self.local_path(key).exists() or worktree.exists():
-            raise TaskError("Local claim or worktree already exists; inspect it, do not overwrite it")
+            if not self.local_path(key).exists() or not worktree.is_dir():
+                raise TaskError("Local claim or worktree already exists; inspect it, do not overwrite it")
+            record = self.read_claim(key, allow_released=True)
+            if (record.get("status") != "released" or record.get("claimToken") or task.get("status") != "queue"
+                    or record.get("project") != self.project or record.get("branch") != branch
+                    or Path(record.get("worktree", "")).resolve() != worktree.resolve()
+                    or scope_signature(record.get("scope", [])) != scope_signature(task.get("scope", []))
+                    or sorted(record.get("dependsOn", [])) != sorted(task.get("dependsOn", []))):
+                raise TaskError("Existing worktree is not safely released; inspect it without overwriting")
+            base = self.integration_base()
+            head = git(worktree, "rev-parse", "HEAD^{commit}")
+            if (git(worktree, "branch", "--show-current") != branch
+                    or git(worktree, "status", "--porcelain=v1", "--untracked-files=all")
+                    or not self.preserved_head_is_safe(key, record, worktree)):
+                raise TaskError("Released worktree has preserved changes; inspect it without overwriting")
+            dependencies = self.dependency_commits(task, tasks, base)
+            self.dependency_commits(task, tasks, head)
+            response = self.api.call("claim", {"project": self.project, "taskKey": key, "worker": worker})
+            token = response.get("claimToken")
+            if not isinstance(token, str) or not token:
+                raise TaskError("Claim response has no token; inspect the task before retrying")
+            try:
+                self.validate_plan(key, plan, response["task"])
+                record.update(claimToken=token, worker=worker, dependencyCommits=dependencies,
+                              status="progress", revision=response["task"]["revision"])
+                self.save_claim(record)
+            except (OSError, TaskError) as error:
+                try:
+                    self.api.call("release", {"project": self.project, "taskKey": key,
+                        "claimToken": token, "expectedRevision": response["task"]["revision"],
+                        "reason": "Released worktree reclaim failed; inspect preserved local state"})
+                except Exception:
+                    raise TaskError("Worktree reclaim failed and release could not be confirmed; inspect queue") from None
+                raise TaskError("Worktree reclaim failed; preserved worktree was not modified: " + str(error)) from None
+            return {"taskKey": key, "status": "progress", "branch": branch, "worktree": str(worktree),
+                    "baseCommit": record["baseCommit"], "promptPath": plan.get("promptPath", "")}
         if git(self.root, "rev-parse", "--verify", "refs/heads/" + branch, check=False):
             raise TaskError("Task branch already exists; inspect it, do not overwrite it")
         base = self.integration_base()

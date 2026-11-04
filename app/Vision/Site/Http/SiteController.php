@@ -3,6 +3,7 @@
 namespace App\Vision\Site\Http;
 
 use App\Models\Membership;
+use App\Shell\Brands\BrandDomain;
 use App\Tenancy\TenantContext;
 use App\Vision\Site\AuditRun;
 use App\Vision\Site\History;
@@ -46,10 +47,13 @@ final class SiteController
             $audits = AuditRun::query()->orderByDesc('created_at')->orderByDesc('id')->limit(2)->get();
             $current = $audits->first();
             $previous = $audits->get(1);
+            $host = parse_url($current?->result['final_url'] ?? $current?->result['url'] ?? '', PHP_URL_HOST);
+            $domain = is_string($host) ? BrandDomain::query()->where('host', mb_strtolower($host))->first(['host', 'status']) : null;
+            $domainStatus = is_string($host) ? ['host' => $host, 'verified' => $domain?->status === 'verified'] : null;
             $history = $request->route('section') === 'history' ? $this->history->read($tenant) : ['achievements' => [], 'comparison' => null];
             $this->access->lock($tenant, false, 'vision.report.read');
 
-            return ['audit' => $current?->result, 'auditDate' => $current?->created_at?->toIso8601String(),
+            return ['domainStatus' => $domainStatus, 'audit' => $current?->result, 'auditDate' => $current?->created_at?->toIso8601String(),
                 'previousAudit' => $previous?->result,
                 'auditProgress' => Cache::get(AuditSiteJob::key($tenant->organizationId, $tenant->brandId)),
                 'actions' => $actions, 'history' => array_values(array_filter($actions, fn (array $a): bool => $a['status'] === 'awaiting_measurement')),

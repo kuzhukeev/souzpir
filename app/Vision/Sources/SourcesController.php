@@ -2,6 +2,7 @@
 
 namespace App\Vision\Sources;
 
+use App\Ai\CanonicalJson;
 use App\Models\User;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
@@ -35,7 +36,8 @@ final class SourcesController
             $snapshot = app(SnapshotView::class)->current($tenant);
             $presence = DB::table('vision_source_presence')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->pluck('presence', 'domain')->all();
             $questions = collect($snapshot['questions'] ?? [])->keyBy('id');
-            $sources = collect(data_get($snapshot, 'metrics.sources', []))->map(function ($source) use ($presence, $snapshot, $questions): array {
+            $profiles = $snapshot ? $this->confirmedProfiles($tenant, $snapshot) : [];
+            $sources = collect(data_get($snapshot, 'metrics.sources', []))->map(function ($source) use ($presence, $snapshot, $questions, $profiles): array {
                 $examples = [];
                 $competitors = [];
                 $models = [];
@@ -65,13 +67,56 @@ final class SourcesController
 
                 return ['domain' => $source['domain'], 'answers' => $source['answers'],
                     'type' => ReportPreparation::SOURCE_TYPES[$source['type'] ?? 'other'] ?? ReportPreparation::SOURCE_TYPES['other'],
-                    'presence' => $presence[$source['domain']] ?? 'unknown', 'competitors' => array_values(array_unique($competitors)), 'models' => array_values(array_unique($models)), 'examples' => array_slice($examples, 0, 20)];
+                    'profile_url' => $profiles[$source['domain']] ?? null, 'presence' => $presence[$source['domain']] ?? 'unknown', 'competitors' => array_values(array_unique($competitors)), 'models' => array_values(array_unique($models)), 'examples' => array_slice($examples, 0, 20)];
             })->values()->all();
 
             return ['sources' => $sources, 'available' => $snapshot !== null, 'canEdit' => Gate::forUser($user)->allows('vision.actions.write')];
         });
 
         return Inertia::render('Vision/Sources/Index', [...$data, 'status' => $request->session()->get('status')]);
+    }
+
+    /** Only a confirmed decision attached to verified evidence for this snapshot is projected. */
+    private function confirmedProfiles(TenantContext $tenant, array $snapshot): array
+    {
+        if (! is_string($snapshot['measurement_id'] ?? null)) {
+            return [];
+        }
+        $slots = collect(data_get($snapshot, 'metrics.slots', []))->filter(fn ($slot) => is_array($slot) && ($slot['valid'] ?? false) && is_string($slot['id'] ?? null))->keyBy('id');
+        $domains = array_column(data_get($snapshot, 'metrics.sources', []), 'domain');
+        $rows = DB::table('vision_clarification_decisions as d')
+            ->join('snapshot_confirmations as c', function ($join): void {
+                $join->on('c.id', '=', 'd.snapshot_confirmation_id')->on('c.organization_id', '=', 'd.organization_id')->on('c.brand_id', '=', 'd.brand_id');
+            })->join('answer_facts as f', function ($join): void {
+                $join->on('f.id', '=', 'd.answer_fact_id')->on('f.snapshot_confirmation_id', '=', 'c.id')->on('f.organization_id', '=', 'c.organization_id')->on('f.brand_id', '=', 'c.brand_id');
+            })->where('d.organization_id', $tenant->organizationId)->where('d.brand_id', $tenant->brandId)
+            ->where('c.measurement_id', $snapshot['measurement_id'])->where('d.kind', 'presence')->where('d.decision', 'yes')
+            ->whereNotNull('d.profile_url')->orderByDesc('d.updated_at')->get(['d.item_key', 'd.profile_url', 'f.id as fact_id', 'f.measurement_answer_id', 'f.fact']);
+        $profiles = [];
+        foreach ($rows as $row) {
+            $slot = $slots->get($row->measurement_answer_id);
+            $fact = is_string($row->fact) ? json_decode($row->fact, true) : null;
+            if (! is_array($fact) || ! is_array($slot['fact'] ?? null) || ! hash_equals(CanonicalJson::hash($slot['fact']), CanonicalJson::hash($fact))) {
+                continue;
+            }
+            $parts = parse_url($row->profile_url);
+            if (! is_array($parts) || ! in_array(strtolower($parts['scheme'] ?? ''), ['http', 'https'], true) || isset($parts['user']) || isset($parts['pass'])) {
+                continue;
+            }
+            $host = strtolower($parts['host'] ?? '');
+            foreach (is_array($fact['presence_candidates'] ?? null) ? $fact['presence_candidates'] : [] as $candidate) {
+                $domain = is_string($candidate) ? $candidate : (is_array($candidate) ? ($candidate['domain'] ?? null) : null);
+                if (! is_string($domain) || ! in_array($domain, $domains, true) || ! hash_equals(hash('sha256', 'presence:'.$row->fact_id.':'.$domain), $row->item_key)) {
+                    continue;
+                }
+                $expected = strtolower($domain);
+                if (($host === $expected || str_ends_with($host, '.'.$expected)) && ! isset($profiles[$domain])) {
+                    $profiles[$domain] = $row->profile_url;
+                }
+            }
+        }
+
+        return $profiles;
     }
 
     public function presence(Request $request): mixed

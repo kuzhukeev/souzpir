@@ -65,7 +65,7 @@ final class AnswersController
                 })->filter()->values()->all();
                 $verified = $slot['fact'] ?? null;
 
-                return ['id' => $answer->id, 'question_n' => $answer->question_n, 'question' => is_array($question) ? ($question['text'] ?? '') : (is_string($question) ? $question : ''), 'provider' => $answer->provider, 'model' => $answer->requested_model, 'run_no' => $answer->run_no, 'status' => $answer->status, 'text' => $answer->answer_text, 'error' => $answer->error_code, 'created_at' => $answer->created_at, 'fact' => $verified, 'mentions' => $slot['mentions'] ?? [], 'sources' => $slot['sources'] ?? [], 'candidates' => $candidates];
+                return ['id' => $answer->id, 'question_n' => $answer->question_n, 'intent' => is_array($question) && is_string($question['intent'] ?? null) ? $question['intent'] : null, 'question' => is_array($question) ? ($question['text'] ?? '') : (is_string($question) ? $question : ''), 'provider' => $answer->provider, 'model' => $answer->requested_model, 'run_no' => $answer->run_no, 'status' => $answer->status, 'text' => $answer->answer_text, 'error' => $answer->error_code, 'created_at' => $answer->created_at, 'fact' => $verified, 'mentions' => $slot['mentions'] ?? [], 'sources' => $slot['sources'] ?? [], 'candidates' => $candidates];
             })->all();
 
             return response()->json(['revision' => $revision, 'answers' => $items]);

@@ -11,7 +11,7 @@ use InvalidArgumentException;
 
 final class FakeSimulation
 {
-    public function run(TenantContext $context, string $personaKey, array $turns): string
+    public function run(TenantContext $context, string $personaKey, array $turns, ?string $draftReleaseId = null): string
     {
         $persona = DB::table('seller_personas')->where('organization_id', $context->requireOrganizationId())
             ->where('brand_id', $context->brandId)->where('key', $personaKey)->first() ?? abort(404);
@@ -25,12 +25,17 @@ final class FakeSimulation
             }
         }
         $id = (string) Str::ulid();
+        $releaseId = app(SimulationKnowledgeRelease::class)->id($context);
+        if ($draftReleaseId !== null) {
+            $releaseId = DB::table('knowledge_releases')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)
+                ->where('id', $draftReleaseId)->where('status', 'draft')->value('id') ?? abort(404);
+        }
         $fallbacks = count(array_filter($turns, fn ($turn) => ($turn['meta']['guard_fallback'] ?? false) === true));
-        DB::transaction(function () use ($context, $persona, $turns, $id, $fallbacks): void {
+        DB::transaction(function () use ($context, $persona, $turns, $id, $fallbacks, $releaseId): void {
             DB::table('seller_sim_runs')->insert(['id' => $id, 'organization_id' => $context->organizationId,
                 'brand_id' => $context->brandId, 'persona_id' => $persona->id, 'status' => 'completed',
                 'turn_count' => count($turns), 'turns' => json_encode($turns, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
-                'metrics' => json_encode(['agent_turns' => count($turns), 'guard_fallbacks' => $fallbacks], JSON_THROW_ON_ERROR),
+                'metrics' => json_encode(['agent_turns' => count($turns), 'guard_fallbacks' => $fallbacks, 'knowledge_release_id' => $releaseId], JSON_THROW_ON_ERROR),
                 'created_at' => now(), 'updated_at' => now()]);
             app(AuditWriter::class)->record($context, new AuditEntry('seller.simulation.completed', 'seller_sim_run', $id,
                 after: ['persona_id' => $persona->id, 'turn_count' => count($turns)]));

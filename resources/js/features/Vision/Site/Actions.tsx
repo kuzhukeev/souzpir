@@ -1,5 +1,5 @@
-import { router, useForm } from '@inertiajs/react';
-import { useState, type FormEvent } from 'react';
+import { router, useForm, usePage } from '@inertiajs/react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Modal, Select } from '@/components/ui';
 import type { Achievement, Comparison, Member, SiteAction } from '@/types/Vision/Site';
 
@@ -24,6 +24,13 @@ function formatDate(value?: string | null) {
   if (!value) return '—';
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleDateString('ru-RU');
+}
+type Effect = {id: string; completed_by_name: string | null; before: {visibility: number} | null; after: {visibility: number} | null; delta: number | null};
+function effectComparison(effect?: Effect) {
+  return effect?.before && effect.after ? `${effect.before.visibility} % → ${effect.after.visibility} %` : 'Нет сопоставимых замеров';
+}
+function effectDelta(effect?: Effect) {
+  return effect?.delta === null || effect?.delta === undefined ? 'Рано судить' : `${effect.delta > 0 ? '+' : ''}${effect.delta} п.п.`;
 }
 function Responsible({
   members,
@@ -172,6 +179,13 @@ function ActionCard({
           {action.status === 'awaiting_measurement' ? 'Ждём замера' : 'В работе'}
         </p>
       </div>
+      {action.status === 'open' && !editing && (
+        <dl className="grid gap-2 text-sm text-(--color-ink-muted)">
+          <div><dt className="inline">Приоритет: </dt><dd className="inline">не указан</dd></div>
+          <div><dt className="inline">Затронутые вопросы: </dt><dd className="inline">нет данных</dd></div>
+          <div><dt className="inline">Шаги: </dt><dd className="inline">не указаны</dd></div>
+        </dl>
+      )}
       {editing ? (
         <form onSubmit={save} className="space-y-3">
           <label className="block text-sm font-semibold">
@@ -344,6 +358,27 @@ export function Actions({
   comparison?: Comparison | null;
 }) {
   const [notice, setNotice] = useState('');
+  const { brand } = usePage<{brand: {id: string} | null}>().props;
+  const [effects, setEffects] = useState<Record<string, Effect>>({});
+  const [effectState, setEffectState] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [retry, setRetry] = useState(0);
+  const hasComparable = Object.values(effects).some((effect) => effect.before && effect.after);
+  useEffect(() => {
+    if (!history || !brand?.id) return;
+    const controller = new AbortController();
+    // Clear the previous brand's data immediately when the context changes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setEffects({});
+    setEffectState('loading');
+    fetch('/vision/actions/effect', {headers: {'Accept': 'application/json', 'X-Brand-Id': brand.id}, signal: controller.signal})
+      .then((response) => { if (!response.ok) throw new Error('Effect unavailable'); return response.json(); })
+      .then((data: {items: Effect[]}) => {
+        setEffects(Object.fromEntries(data.items.map((item) => [item.id, item])));
+        setEffectState('ready');
+      })
+      .catch(() => { if (!controller.signal.aborted) setEffectState('error'); });
+    return () => controller.abort();
+  }, [history, brand?.id, retry]);
   const visible = actions.filter((action) =>
     history ? action.status === 'awaiting_measurement' : action.status === 'open',
   );
@@ -359,9 +394,25 @@ export function Actions({
   return (
     <div className="space-y-4">
       {notice && <p role="status" className="rounded-lg bg-(--color-success-soft) p-3 text-sm">{notice}</p>}
-      {history && <HistoryInsights achievements={achievements} />}
+      {history && <HistoryInsights achievements={achievements} hasComparable={hasComparable} />}
       {!history && canManage && <CreateAction members={members} />}
-      {first.length ? (
+      {first.length && history ? (
+        <>
+          {effectState === 'loading' && <p role="status" className="text-sm">Загружаем данные истории…</p>}
+          {effectState === 'error' && <p role="alert" className="text-sm">Не удалось загрузить данные истории. <button type="button" className="cursor-pointer font-semibold text-(--color-link)" onClick={() => setRetry((value) => value + 1)}>Повторить</button></p>}
+          <div className={`${card} overflow-x-auto`}>
+            <table className="w-full min-w-[640px] text-left text-sm">
+              <thead><tr><th className="p-2">Действие</th><th className="p-2">Выполнено</th><th className="p-2">Автор</th><th className="p-2">До → после</th><th className="p-2">Эффект</th></tr></thead>
+              <tbody>{first.map((action) => (
+                <tr key={action.id} className="border-t border-(--color-border)">
+                  <td className="p-2">{action.title}</td><td className="p-2">{formatDate(action.completed_at)}</td><td className="p-2">{effects[action.id]?.completed_by_name || 'Нет данных'}</td><td className="p-2">{effectComparison(effects[action.id])}</td><td className="p-2">{effectDelta(effects[action.id])}</td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+          <section aria-label="Подробности выполненных действий"><h2 className="mb-3 text-lg font-semibold">Подробности выполненных действий</h2>{cards(first)}</section>
+        </>
+      ) : first.length ? (
         cards(first)
       ) : (
         <div className={`${card} text-(--color-ink-muted)`}>
@@ -376,13 +427,13 @@ export function Actions({
       )}
       {history && (
         <p className="text-sm text-(--color-ink-muted)">
-          Эффект отдельных действий: рано судить. Связь с затронутыми вопросами не установлена.
+          {hasComparable ? 'Изменение видимости не доказывает влияние отдельного действия. Связь с затронутыми вопросами не установлена.' : 'Эффект отдельных действий: рано судить. Связь с затронутыми вопросами не установлена.'}
         </p>
       )}
     </div>
   );
 }
-function HistoryInsights({ achievements }: { achievements: Achievement[] }) {
+function HistoryInsights({ achievements, hasComparable }: { achievements: Achievement[]; hasComparable: boolean }) {
   return (
     <>
       <section className={card}>
@@ -411,7 +462,7 @@ function HistoryInsights({ achievements }: { achievements: Achievement[] }) {
       <section className={card}>
         <h2 className="text-xl font-semibold">Сравнение замеров бренда</h2>
         <p className="mt-3 text-(--color-ink-muted)">
-          Рано судить: порядок и сопоставимость замеров пока нельзя подтвердить.
+          {hasComparable ? 'Сопоставимые замеры отдельных действий показаны ниже. Их изменение не доказывает причинную связь.' : 'Рано судить: порядок и сопоставимость замеров пока нельзя подтвердить.'}
         </p>
         <a href="/vision/actions/effect" className="mt-3 inline-flex min-h-11 cursor-pointer items-center text-sm font-semibold text-(--color-link)">Посмотреть эффект</a>
       </section>

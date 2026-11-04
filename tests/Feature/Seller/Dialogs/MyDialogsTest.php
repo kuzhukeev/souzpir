@@ -46,7 +46,7 @@ final class MyDialogsTest extends TenancyTestCase
         DB::table('conversations')->where('id', $first)->update(['updated_at' => now()->subDays(2)]);
         DB::table('conversations')->where('id', $closed)->update(['stage' => 'done']);
         foreach ([[$first, $brand->id], [$foreign, $other->id]] as [$id, $brandId]) {
-            DB::table('messages')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $brandId, 'conversation_id' => $id, 'role' => 'client', 'text' => 'Вопрос', 'meta' => '{}', 'created_at' => now(), 'updated_at' => now()]);
+            DB::table('messages')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $brandId, 'conversation_id' => $id, 'role' => 'client', 'text' => 'Вопрос', 'meta' => '{}', 'created_at' => now()->subDays(2), 'updated_at' => now()->subDays(2)]);
         }
         $this->actingAs($manager)->withSession(['brand_id' => $brand->id]);
         $this->get('/seller/dialogs?mode=mine&sort=oldest')->assertOk()->assertInertia(fn (Assert $page) => $page

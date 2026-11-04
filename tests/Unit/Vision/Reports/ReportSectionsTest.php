@@ -28,7 +28,7 @@ final class ReportSectionsTest extends TestCase
             ],
             'recommendations' => ['items' => [['title' => 'Обновить данные', 'why' => 'Исправит ошибку']]],
         ]);
-        self::assertSame([['text' => 'Первый вопрос', 'intent' => 'choose', 'recommendations' => []]], $sections['gaps']);
+        self::assertSame([['text' => 'Первый вопрос', 'intent' => 'choose', 'recommendations' => [['title' => 'Изучить ответы на этот вопрос', 'why' => 'Проверьте сохранённые ответы; причины не установлены.']], 'companies' => []]], $sections['gaps']);
         self::assertCount(1, $sections['facts']);
         self::assertSame('Ошибка', $sections['facts'][0]['text']);
         self::assertSame([['domain' => 'example.test', 'answers' => 2, 'type' => null, 'presence' => null]], $sections['sources']);

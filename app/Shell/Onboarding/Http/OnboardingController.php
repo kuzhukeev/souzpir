@@ -6,6 +6,7 @@ use App\Models\Brand;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
 use App\Shell\Auth\AuthSessionRegistry;
+use App\Shell\Brands\Network\SafeBrandHttp;
 use App\Shell\Onboarding\OwnerLock;
 use App\Shell\Plans\LimitEnforcer;
 use App\Tenancy\TenantContext;
@@ -17,6 +18,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use Throwable;
 
 final class OnboardingController
 {
@@ -37,6 +39,7 @@ final class OnboardingController
             'completed' => $progress?->completed_at !== null,
             'already_configured' => $existing && ! $progress?->completed_at,
             'logo_url' => $progress?->logo_path ? route('onboarding.logo.show', ['v' => hash('sha256', $progress->logo_path)]) : null,
+            'website_check' => ($request->session()->get('website_check.organization_id') === $context->organizationId && $request->session()->get('website_check.website') === ($data['website'] ?? '')) ? $request->session()->get('website_check') : null,
         ]);
 
         return Inertia::render('Shell/Onboarding/Start', ['initial' => $initial]);
@@ -60,6 +63,19 @@ final class OnboardingController
             ]);
             app(AuditWriter::class)->record($context, new AuditEntry('onboarding.draft.saved', 'organization', $context->organizationId, after: ['step' => $step]));
         });
+
+        if ($request->boolean('check_website')) {
+            $website = $data['website'];
+            $status = 'unavailable';
+            if ($website !== '') {
+                try {
+                    $status = app(SafeBrandHttp::class)->get($website, 65536)->successful() ? 'available' : 'unavailable';
+                } catch (Throwable) {
+                    // DNS, private addresses and transport failures all mean unavailable.
+                }
+            }
+            $request->session()->put('website_check', ['organization_id' => $context->organizationId, 'website' => $website, 'status' => $status]);
+        }
 
         return redirect()->route('onboarding.show');
     }
