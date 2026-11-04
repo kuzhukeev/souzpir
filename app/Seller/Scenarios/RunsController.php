@@ -53,6 +53,31 @@ final class RunsController
         return Inertia::render('Seller/Scenarios/Runs', [...$data, 'status' => $request->session()->get('status')]);
     }
 
+    public function runAll(Request $request): mixed
+    {
+        $this->access($request, function (TenantContext $tenant): void {
+            if (config('runtime.ai_driver', 'fake') !== 'fake' || config('features.E3-06D.defaults.runtime_enabled', true) === false) {
+                throw ValidationException::withMessages(['scenarios' => 'Защищённый fake runtime недоступен.']);
+            }
+            $release = DB::table('brands as b')->join('knowledge_releases as r', function ($join): void {
+                $join->on('r.id', '=', 'b.active_knowledge_release_id')->on('r.organization_id', '=', 'b.organization_id')->on('r.brand_id', '=', 'b.id');
+            })->where('b.organization_id', $tenant->organizationId)->where('b.id', $tenant->brandId)->where('r.status', 'published')->value('r.id');
+            if (! $release) {
+                throw ValidationException::withMessages(['scenarios' => 'Опубликованная версия знаний недоступна.']);
+            }
+            $personas = DB::table('seller_personas')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
+                ->get(['key', 'payload', 'max_turns'])->filter(fn ($persona) => (json_decode($persona->payload, true)['in_set'] ?? true) === true);
+            if ($personas->isEmpty()) {
+                throw ValidationException::withMessages(['scenarios' => 'В наборе нет сценариев для запуска.']);
+            }
+            foreach ($personas as $persona) {
+                SimulateFakeJob::dispatch($tenant->organizationId, $tenant->brandId, $persona->key, array_fill(0, (int) $persona->max_turns, []));
+            }
+        });
+
+        return back()->with('status', 'Все сценарии набора отправлены в очередь.');
+    }
+
     public function store(Request $request): mixed
     {
         $input = $request->validate(['scenarios' => ['required', 'array', 'min:1', 'max:29'], 'scenarios.*' => ['required', 'ulid', 'distinct'], 'knowledge' => ['required', Rule::in(['published'])], 'model' => ['required', Rule::in(['fake'])]]);
