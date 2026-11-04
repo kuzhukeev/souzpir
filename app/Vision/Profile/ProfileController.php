@@ -330,6 +330,14 @@ HTML;
                 }
             }
 
+            if (in_array($step, [3, 4, 7], true) && is_array($audit)) {
+                foreach (app(AuditedExplicitHints::class)->extract($audit, $website, $step) as $hint) {
+                    if (! in_array($hint['value'], array_column($items, 'value'), true) && count($items) < 5) {
+                        $items[] = $hint;
+                    }
+                }
+            }
+
             if (in_array($step, [3, 5, 7], true)) {
                 foreach (($audit['pages'] ?? []) as $auditedPage) {
                     if (! is_array($auditedPage) || ! is_string($auditedPage['url'] ?? null)
