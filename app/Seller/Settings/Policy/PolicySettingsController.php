@@ -34,8 +34,18 @@ final class PolicySettingsController
         $data = $this->access($request, 'seller.knowledge.read', function (TenantContext $tenant): array {
             $row = BrandSellerSettings::query()->first();
             $followup = array_replace(['enabled' => true, 'first_hours' => 20, 'second_hours' => null, 'max_auto' => 2, 'window' => null, 'texts' => [], 'agreed_text' => ''], $row?->followup ?? []);
+            $reactionExamples = [];
             try {
-                $policy = app(KnowledgeRepository::class)->published($tenant)->policy();
+                $snapshot = app(KnowledgeRepository::class)->published($tenant);
+                $policy = $snapshot->policy();
+                foreach (['decline_off_topic', 'decline_off_topic_second', 'decline_injection', 'opt_out_ack'] as $tag) {
+                    $reactionExamples[$tag] = array_values(array_filter(array_map(
+                        static fn (array $item): ?string => is_string($item['text'] ?? null) ? $item['text'] : null,
+                        $snapshot->fewshot([$tag], null, 6, 0.7)
+                    )));
+                }
+                $reason = collect($snapshot->escalation()['reasons'] ?? [])->firstWhere('id', 'negative_sentiment');
+                $reactionExamples['negative_sentiment'] = is_string($reason['message_idea'] ?? null) ? [$reason['message_idea']] : [];
             } catch (KnowledgeNotReady) {
                 $policy = null;
             }
@@ -72,7 +82,7 @@ final class PolicySettingsController
                 }
             }
 
-            return ['followup' => $followup, 'policy' => $policy, 'canWrite' => Gate::allows('seller.settings.write'), 'draftPolicy' => $draftPolicy,
+            return ['followup' => $followup, 'policy' => $policy, 'reactionExamples' => $reactionExamples, 'canWrite' => Gate::allows('seller.settings.write'), 'draftPolicy' => $draftPolicy,
                 'followupTimezone' => $timezone, 'followupSent' => $sent, 'followupReplies' => array_values($replies)];
         });
 
