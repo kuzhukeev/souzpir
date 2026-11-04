@@ -3,6 +3,7 @@
 namespace App\Seller\Knowledge\Releases;
 
 use App\Models\User;
+use App\Seller\Evaluation\DraftScenarioPreview;
 use App\Seller\Evaluation\FakeSimulation;
 use App\Seller\Knowledge\Contracts\KnowledgeRepository;
 use App\Seller\Knowledge\KnowledgeNotReady;
@@ -116,22 +117,16 @@ final class ReleasesController
 
                 return ($payload['in_set'] ?? true) === true;
             });
+            $snapshot = app(KnowledgeRepository::class)->forRelease($tenant, $draft->id, true);
             $runs = [];
             foreach ($scenarios as $scenario) {
                 $payload = json_decode($scenario->payload, true) ?: [];
                 $client = trim((string) ($payload['first_message'] ?? ''));
-                $answer = 'Здравствуйте! Чем могу помочь?';
                 $expectations = is_array($payload['expect'] ?? null) ? $payload['expect'] : [];
-                $checks = [];
-                foreach ($expectations as $expectation) {
-                    $checks[$expectation] = match ($expectation) {
-                        'one_question_per_turn' => mb_substr_count($answer, '?') <= 1,
-                        'no_deferred_promise' => ! preg_match('/(позже|перезвон|напишу вам)/ui', $answer),
-                        default => false,
-                    };
-                }
-                $passed = $client !== '' && ! in_array(false, $checks, true);
-                $id = app(FakeSimulation::class)->run($tenant, $scenario->key, [['client' => $client ?: 'Тестовый вопрос', 'agent' => $answer, 'meta' => ['expectation_checks' => $checks]]]);
+                $turn = app(DraftScenarioPreview::class)->turn($snapshot, $client ?: 'Тестовый вопрос', $expectations);
+                $checks = $turn['meta']['expectation_checks'];
+                $passed = $client !== '' && $turn['meta']['guard_verdict'] === 'ok' && ! in_array(false, $checks, true);
+                $id = app(FakeSimulation::class)->run($tenant, $scenario->key, [$turn], $draft->id);
                 $runs[] = ['id' => $id, 'passed' => $passed];
             }
             $result = ['version' => $draft->version, 'runs' => $runs, 'passed' => count(array_filter($runs, fn ($run) => $run['passed'])), 'failed' => count(array_filter($runs, fn ($run) => ! $run['passed']))];

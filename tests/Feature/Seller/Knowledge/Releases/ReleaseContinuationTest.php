@@ -21,7 +21,7 @@ final class ReleaseContinuationTest extends TenancyTestCase
         $this->post('/seller/knowledge/draft')->assertRedirect();
         $draft = DB::table('knowledge_releases')->where('brand_id', $brand->id)->where('status', 'draft')->first();
         $this->post('/seller/knowledge/'.$draft->id.'/scenarios')->assertRedirect();
-        $this->get('/seller/knowledge')->assertOk()->assertInertia(fn ($page) => $page->where('scenarioRun.passed', 1)->where('scenarioRun.failed', 1));
+        $this->get('/seller/knowledge')->assertOk()->assertInertia(fn ($page) => $page->where('scenarioRun.passed', 0)->where('scenarioRun.failed', 2));
         $run = DB::table('seller_sim_runs')->where('brand_id', $brand->id)->first();
         $this->get('/seller/knowledge/runs/'.$run->id)->assertOk()->assertInertia(fn ($page) => $page->where('run.id', $run->id));
         [$viewer] = $this->member($org, 'viewer', [$brand->id]);
