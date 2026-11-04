@@ -73,6 +73,49 @@ final class DatabaseKnowledgeRepository implements KnowledgeRepository
         });
     }
 
+    /** Restore the downloaded snapshot and fact metadata without replacing the active release. */
+    public function restoreFile(TenantContext $context, array $data, array $groups): array
+    {
+        $this->assertWrite($context);
+        $this->validateData($data);
+        if (! array_is_list($groups) || count($groups) !== count($data['facts'])) {
+            throw new InvalidArgumentException('Invalid backup groups.');
+        }
+        $metadata = [];
+        foreach ($data['facts'] as $index => $group) {
+            $saved = $groups[$index] ?? null;
+            if (! is_array($saved) || ($saved['key'] ?? null) !== $group['id'] || ! is_array($saved['facts'] ?? null)
+                || ! array_is_list($saved['facts']) || count($saved['facts']) !== count($group['facts'])) {
+                throw new InvalidArgumentException('Invalid backup facts.');
+            }
+            foreach ($group['facts'] as $position => $text) {
+                $fact = $saved['facts'][$position] ?? null;
+                if (! is_array($fact) || ($fact['text'] ?? null) !== $text || (! is_string($fact['logical_id'] ?? null) || ! Str::isUlid($fact['logical_id']))
+                    || ! in_array($fact['status'] ?? null, ['active', 'inactive'], true)
+                    || ! in_array($fact['source'] ?? null, ['manual', 'import', 'url'], true)) {
+                    throw new InvalidArgumentException('Invalid backup fact metadata.');
+                }
+                $metadata[$group['id']][$text][] = (object) $fact;
+            }
+        }
+
+        return DB::transaction(function () use ($context, $data, $metadata): array {
+            $brand = $this->brand($context, true);
+            $this->assertWrite($context, true);
+            $current = DB::table('knowledge_releases')->where('organization_id', $context->organizationId)->where('brand_id', $brand->id)->where('status', 'draft')->lockForUpdate()->first();
+            if ($current) {
+                DB::table('knowledge_releases')->where('id', $current->id)->update(['status' => 'building', 'updated_at' => now()]);
+                app(AuditWriter::class)->record($context, new AuditEntry('knowledge.draft.autosaved', 'knowledge_release', $current->id, after: ['version' => $current->version]));
+            }
+            $id = (string) Str::ulid();
+            DB::table('knowledge_releases')->insert(['id' => $id, 'organization_id' => $context->organizationId, 'brand_id' => $brand->id, 'status' => 'draft', 'version' => 1, 'created_by' => $context->actorId, 'created_at' => now(), 'updated_at' => now()]);
+            $this->writeData($id, $data, $metadata);
+            app(AuditWriter::class)->record($context, new AuditEntry('knowledge.draft.restored', 'knowledge_release', $id));
+
+            return ['id' => $id, 'version' => 1];
+        });
+    }
+
     /** @return array{id:string,version:int} */
     public function saveDraft(TenantContext $context, string $id, int $expectedVersion, array $data): array
     {

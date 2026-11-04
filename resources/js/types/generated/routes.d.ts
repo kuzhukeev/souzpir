@@ -373,6 +373,7 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "seller.knowledge.restore-file": [],
     "seller.knowledge.draft": [],
     "seller.knowledge.incoming": [],
     "seller.knowledge.backup": [
