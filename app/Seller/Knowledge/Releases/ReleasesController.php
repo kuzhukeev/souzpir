@@ -127,7 +127,7 @@ final class ReleasesController
                 $payload = json_decode($scenario->payload, true) ?: [];
                 $client = trim((string) ($payload['first_message'] ?? ''));
                 $turns = app(DraftScenarioPreview::class)->dialogue($snapshot, $payload, (int) $scenario->max_turns, $request);
-                $passed = $client !== '' && collect($turns)->every(fn (array $turn): bool => $turn['meta']['guard_verdict'] === 'ok'
+                $passed = $client !== '' && collect($turns)->every(fn (array $turn): bool => $turn['meta']['guard_verdict'] === 'ok' && $turn['meta']['extraction_available'] && $turn['meta']['semantic_available']
                     && ! in_array(false, $turn['meta']['expectation_checks'], true));
                 $id = app(FakeSimulation::class)->run($tenant, $scenario->key, $turns, $draft->id);
                 $runs[] = ['id' => $id, 'passed' => $passed];
