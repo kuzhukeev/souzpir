@@ -45,7 +45,7 @@ test('actual questions create, select, publish, version, permissions and CSRF', 
     await page.getByRole('button', { name: 'В набор' }).click();
     await expect(page.getByText('Выбран', { exact: true })).toBeVisible();
     await page.getByRole('link', { name: 'Перейти к утверждению' }).click();
-    await expect(page.getByRole('heading', { name: 'Выбрано 1 вопросов' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Выбрано вопросов: 1' })).toBeVisible();
     await page.getByLabel('google/gemini-2.5-flash').check();
     await expect(page.getByLabel('yandexgpt')).toBeDisabled();
     await page.getByRole('button', { name: 'Утвердить без запуска' }).click();
