@@ -1,0 +1,8 @@
+import {expect,test} from '@playwright/test';
+import {createServer,type ViteDevServer} from 'vite';
+import {mkdir} from 'node:fs/promises';
+let server:ViteDevServer;let url:string;
+test.use({viewport:{width:1440,height:900},launchOptions:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH?{executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH}:{}});
+test.beforeAll(async()=>{server=await createServer({configFile:'tests/Browser/E5-04O/vite.config.ts',cacheDir:'.local/runtime/vite-e504o',server:{host:'127.0.0.1',port:0,strictPort:false}});await server.listen();url=new URL('/tests/Browser/E5-04O/fixture.html',server.resolvedUrls!.local[0]).href;});
+test.afterAll(async()=>{await server?.close();});
+test('сетевая ошибка сохраняет сообщение и вложение',async({page})=>{await page.goto(url);const reply=page.getByRole('textbox',{name:'Сообщение',exact:true});await reply.fill('Сохранённый текст');const attachment=page.getByLabel('Вложение (до 10 МБ)');await attachment.setInputFiles({name:'test.txt',mimeType:'text/plain',buffer:Buffer.from('fake')});await page.route('**/seller/dialogs/*/messages',route=>route.abort());await page.getByRole('button',{name:'Отправить',exact:true}).click();await expect(page.getByText('Не удалось связаться с сервером. Текст и вложение сохранены в форме.')).toBeVisible();await expect(reply).toHaveValue('Сохранённый текст');await expect.poll(()=>attachment.evaluate((node:HTMLInputElement)=>node.files?.[0]?.name)).toBe('test.txt');await mkdir('.local/screenshots/SP-E5-04O',{recursive:true});await page.screenshot({path:'.local/screenshots/SP-E5-04O/error.png',fullPage:true});});
