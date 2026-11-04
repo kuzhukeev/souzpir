@@ -2,6 +2,8 @@
 
 namespace App\Vision\Reports;
 
+use App\Vision\Core\QuestionSuggestions;
+
 final class ReportSections
 {
     public function compare(array $previous, array $current): ?array
@@ -48,12 +50,14 @@ final class ReportSections
         $metrics = $payload['metrics'] ?? [];
         $questions = collect($payload['questions'] ?? [])->keyBy('id');
         $gaps = [];
+        $storedRecommendations = data_get($payload, 'recommendations.items', []);
+        $storedRecommendations = is_array($storedRecommendations) ? $storedRecommendations : [];
         foreach ($metrics['questions'] ?? [] as $id => $row) {
             $question = $questions->get($id);
             if (! $question || ($row['planned'] ?? 0) < 1 || ($row['mention_denominator'] ?? 0) !== $row['planned'] || ($row['mentioned'] ?? 0) !== 0) {
                 continue;
             }
-            $recommendations = collect(data_get($payload, 'recommendations.items', []))
+            $recommendations = collect([...$storedRecommendations, ...app(QuestionSuggestions::class)->make($payload)])
                 ->filter(fn ($item) => is_array($item) && (($item['question_id'] ?? $item['qid'] ?? null) === $id || (is_array($item['question_ids'] ?? null) && in_array($id, $item['question_ids'], true))))
                 ->map(fn ($item) => ['title' => $item['title'] ?? '', 'why' => is_string($item['why'] ?? null) ? $item['why'] : ''])
                 ->filter(fn ($item) => is_string($item['title']) && $item['title'] !== '')->values()->all();
