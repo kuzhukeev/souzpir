@@ -2,9 +2,9 @@
 
 namespace Tests\Feature\Seller\Scenarios;
 
-use App\Seller\Evaluation\Jobs\SimulateFakeJob;
 use App\Seller\Knowledge\DatabaseKnowledgeRepository;
 use App\Seller\Knowledge\KnowledgeSnapshot;
+use App\Seller\Scenarios\RunScenarioGroup;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
 use Illuminate\Support\Facades\DB;
@@ -47,6 +47,7 @@ final class RunsE702CTest extends TenancyTestCase
         $persona = DB::table('seller_personas')->where('brand_id', $brand->id)->first();
         Queue::fake();
         $this->post('/seller/quality/runs', ['scenarios' => [$persona->id], 'knowledge' => 'published', 'model' => 'fake'])->assertSessionHasNoErrors()->assertRedirect();
-        Queue::assertPushed(SimulateFakeJob::class, fn ($job) => $job->brandId === $brand->id && $job->personaKey === $persona->key && count($job->turns) === 2);
+        Queue::assertPushed(RunScenarioGroup::class, fn ($job) => $job->brandId === $brand->id);
+        $this->get('/seller/quality/runs')->assertInertia(fn ($page) => $page->where('groups.0.items.0.name', $persona->name)->where('groups.0.status', 'queued'));
     }
 }
