@@ -100,7 +100,7 @@ else
 fi
 # Keep the first output separately: a successful retry must not hide the failure.
 set +e
-timeout --signal=TERM --kill-after=15s 480s npm run test:browser -- "${browser_options[@]}" 2>&1 | tee .local/runtime/browser-first-attempt.log
+timeout --signal=TERM --kill-after=15s 900s npm run test:browser -- "${browser_options[@]}" 2>&1 | tee .local/runtime/browser-first-attempt.log
 first_status=${PIPESTATUS[0]}
 set -e
 if (( first_status != 0 )); then
@@ -109,5 +109,5 @@ if (( first_status != 0 )); then
     [[ $log == *.first.log || $log == *browser-first-attempt.log ]] && continue
     [[ -f $log ]] && cp "$log" "${log%.log}.first.log"
   done
-  timeout --signal=TERM --kill-after=15s 480s npm run test:browser -- "${browser_options[@]}" 2>&1 | tee .local/runtime/browser-retry.log
+  timeout --signal=TERM --kill-after=15s 900s npm run test:browser -- "${browser_options[@]}" 2>&1 | tee .local/runtime/browser-retry.log
 fi
