@@ -51,7 +51,7 @@ final class MeasurementsController
                 'frequency' => ['nullable', 'in:weekly,biweekly,monthly'],
                 'weekday' => ['nullable', 'integer', 'between:1,7'],
                 'local_time' => ['nullable', 'date_format:H:i'],
-                'models' => ['nullable', 'array', 'min:1'],
+                'models' => ['nullable', 'array'],
                 'models.*' => ['string', 'max:120'],
             ]);
             try {

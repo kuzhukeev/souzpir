@@ -2,6 +2,7 @@
 
 namespace App\Vision\Measurements;
 
+use App\Ai\ProviderCatalog;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
 use App\Tenancy\TenantContext;
@@ -27,28 +28,22 @@ final class MeasurementSchedule
         $weekday = $data['weekday'] ?? null;
         $time = $data['local_time'] ?? null;
         $selected = $data['models'] ?? null;
-        $models = null;
-        if ($enabled) {
-            if (! in_array($frequency, ['weekly', 'biweekly', 'monthly'], true) || ! is_int($weekday)
-                || $weekday < 1 || $weekday > 7 || ! is_string($time) || ! preg_match('/^([01][0-9]|2[0-3]):[0-5][0-9]$/', $time)
-                || ! is_array($selected) || ! array_is_list($selected) || $selected === [] || count($selected) !== count(array_unique($selected))) {
-                throw new InvalidArgumentException('Invalid schedule.');
-            }
-            $approval = DB::table('vision_question_approvals')->where('organization_id', $context->organizationId)
-                ->where('brand_id', $context->brandId)->where('active', true)->first(['providers']);
-            $available = $approval ? json_decode($approval->providers, true, 32, JSON_THROW_ON_ERROR) : [];
-            if (! is_array($available)) {
-                throw new InvalidArgumentException('No approved models.');
-            }
-            $models = array_intersect($available, $selected);
-            if (count($models) !== count($selected)) {
-                throw new InvalidArgumentException('Model not approved.');
-            }
+        if ($enabled && (! in_array($frequency, ['weekly', 'biweekly', 'monthly'], true) || ! is_int($weekday)
+            || $weekday < 1 || $weekday > 7 || ! is_string($time) || ! preg_match('/^([01][0-9]|2[0-3]):[0-5][0-9]$/', $time)
+            || ! is_array($selected) || $selected === [])) {
+            throw new InvalidArgumentException('Invalid schedule.');
+        }
+        if (! $enabled && ($selected === null || $selected === [])) {
+            $stored = DB::table('monitoring_schedules')->where('organization_id', $context->organizationId)
+                ->where('brand_id', $context->brandId)->value('models');
+            $models = $stored ? json_decode($stored, true, 32, JSON_THROW_ON_ERROR) : [];
+        } else {
+            $models = $this->approvedModels($context, $selected);
         }
         $where = ['organization_id' => $context->organizationId, 'brand_id' => $context->brandId];
         $values = ['enabled' => $enabled, 'frequency' => $enabled ? $frequency : null,
             'weekday' => $enabled ? $weekday : null, 'local_time' => $enabled ? $time : null,
-            'timezone' => $brand->timezone, 'models' => $models ? json_encode($models, JSON_THROW_ON_ERROR) : null,
+            'timezone' => $brand->timezone, 'models' => $models !== [] ? json_encode($models, JSON_THROW_ON_ERROR) : null,
             'next_run_at' => $enabled ? $this->nextAt($frequency, $weekday, $time, $brand->timezone)->utc() : null,
             'updated_at' => now()];
         $existing = DB::table('monitoring_schedules')->where($where)->first(['id']);
@@ -60,6 +55,53 @@ final class MeasurementSchedule
         }
         app(AuditWriter::class)->record($context, new AuditEntry('vision.schedule.saved', 'monitoring_schedule', $id,
             after: ['enabled' => $enabled, 'frequency' => $enabled ? $frequency : null]));
+    }
+
+    public function saveModels(TenantContext $context, array $selected): void
+    {
+        $models = $this->approvedModels($context, $selected);
+        $brand = DB::table('brands')->where('organization_id', $context->requireOrganizationId())
+            ->where('id', $context->brandId)->first(['timezone']);
+        if (! $brand) {
+            throw new InvalidArgumentException('Brand unavailable.');
+        }
+        $where = ['organization_id' => $context->organizationId, 'brand_id' => $context->brandId];
+        $existing = DB::table('monitoring_schedules')->where($where)->first(['id']);
+        $id = $existing?->id ?? (string) Str::ulid();
+        $values = ['models' => json_encode($models, JSON_THROW_ON_ERROR), 'updated_at' => now()];
+        if ($existing) {
+            DB::table('monitoring_schedules')->where($where)->update($values);
+        } else {
+            DB::table('monitoring_schedules')->insert([
+                'id' => $id, ...$where, 'enabled' => false,
+                'timezone' => $brand->timezone, ...$values, 'created_at' => now(),
+            ]);
+        }
+        app(AuditWriter::class)->record($context, new AuditEntry('vision.models.saved', 'monitoring_schedule',
+            $id, after: ['models' => $models]));
+    }
+
+    private function approvedModels(TenantContext $context, mixed $selected): array
+    {
+        if (! is_array($selected) || ! array_is_list($selected) || $selected === []
+            || count($selected) !== count(array_unique($selected))
+            || count(array_filter($selected, fn (mixed $id): bool => is_string($id) && $id !== '')) !== count($selected)) {
+            throw new InvalidArgumentException('Invalid models.');
+        }
+        $approval = DB::table('vision_question_approvals')->where('organization_id', $context->organizationId)
+            ->where('brand_id', $context->brandId)->where('active', true)->first(['providers']);
+        $available = $approval ? json_decode($approval->providers, true, 32, JSON_THROW_ON_ERROR) : [];
+        $catalog = app(ProviderCatalog::class)->models();
+        if (! is_array($available) || count(array_intersect($available, $selected)) !== count($selected)) {
+            throw new InvalidArgumentException('Model not approved.');
+        }
+        foreach ($selected as $id) {
+            if (($catalog[$id]['status'] ?? null) !== 'active') {
+                throw new InvalidArgumentException('Model unavailable.');
+            }
+        }
+
+        return array_intersect($available, $selected);
     }
 
     public function read(TenantContext $context): array
