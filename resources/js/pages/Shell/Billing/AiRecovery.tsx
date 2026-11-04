@@ -4,6 +4,7 @@ import CabinetLayout from '@/layouts/CabinetLayout';
 import { panel } from '@/features/Shell/Billing/Shared';
 import { focus } from '@/features/Shell/Organizations/Shared';
 import { useRecovery } from '@/features/Shell/Billing/AiRecovery/useRecovery';
+import { useReconcile } from '@/features/Shell/Billing/AiRecovery/useReconcile';
 import type { RecoveryCall } from '@/features/Shell/Billing/AiRecovery/listing';
 
 function date(value: string | null) {
@@ -13,7 +14,7 @@ function date(value: string | null) {
     : 'Дата недоступна';
 }
 
-function CallCard({ call }: { call: RecoveryCall }) {
+function CallCard({ call, onSelect, disabled }: { call: RecoveryCall; onSelect: (id: string) => void; disabled: boolean }) {
   return (
     <li
       className="rounded-xl border border-(--color-border) p-4 text-sm"
@@ -42,13 +43,20 @@ function CallCard({ call }: { call: RecoveryCall }) {
           <dd className="mt-1">{date(call.createdAt)}</dd>
         </div>
       </dl>
+      <button type="button" disabled={disabled} onClick={() => onSelect(call.id)} className={`mt-4 min-h-11 cursor-pointer rounded-lg border border-(--color-border) px-4 font-semibold text-(--color-link) disabled:opacity-50 ${focus}`}>Сверить с провайдером</button>
     </li>
   );
 }
 
 export default function AiRecovery({ aiRecoveryRevision }: { aiRecoveryRevision: string }) {
   const { brand } = usePage<{ brand: { id: string } | null }>().props;
-  const { view, page, previous, next, retry } = useRecovery(brand?.id ?? '', aiRecoveryRevision);
+  const brandId = brand?.id ?? '';
+  return <RecoveryContent key={`${brandId}:${aiRecoveryRevision}`} brandId={brandId} revision={aiRecoveryRevision} />;
+}
+
+function RecoveryContent({ brandId, revision }: { brandId: string; revision: string }) {
+  const { view, page, previous, next, retry } = useRecovery(brandId, revision);
+  const action = useReconcile(brandId, revision, retry);
   const button = `inline-flex min-h-11 cursor-pointer items-center justify-center rounded-lg border border-(--color-border) px-4 text-sm font-semibold text-(--color-link) disabled:cursor-not-allowed disabled:opacity-50 ${focus}`;
   return (
     <CabinetLayout
@@ -80,6 +88,14 @@ export default function AiRecovery({ aiRecoveryRevision }: { aiRecoveryRevision:
             Состояние вызова и резерв не подтверждают итоговую стоимость. Данные показываются только
             владельцу.
           </p>
+          {action.result && <div data-private-profile role="status" className="mt-5 rounded-xl bg-(--color-success-soft) p-4 text-sm">Сверка завершена: {action.result.status === 'completed' ? 'результат подтверждён' : 'вызов завершён без сохранённого результата'}. Фактическая стоимость подтверждена провайдером; пересчёт в тарифные единицы пока не настроен.</div>}
+          {action.selected && <div data-private-profile role="alertdialog" aria-labelledby="confirm-reconcile" aria-describedby="confirm-reconcile-description" className="mt-5 rounded-xl border border-(--color-border) p-4 text-sm">
+            <h3 id="confirm-reconcile" className="font-semibold">Подтвердить сверку?</h3>
+            <p id="confirm-reconcile-description" className="mt-2">Провайдер проверит сохранённый вызов. Новый платный вызов не запускается.</p>
+            {action.error && <p role="alert" className="mt-3 text-(--color-danger-ink)">{action.error}</p>}
+            {action.pending && <p role="status" className="mt-3">Проверяем результат…</p>}
+            <div className="mt-3 flex flex-wrap gap-2"><button type="button" disabled={action.pending} onClick={action.confirm} className={button}>Подтвердить сверку</button><button type="button" disabled={action.pending} onClick={action.cancel} className={button}>Отмена</button></div>
+          </div>}
           {view.loading && (
             <p role="status" className="mt-5 text-sm">
               Проверяем доступ и загружаем вызовы…
@@ -105,7 +121,7 @@ export default function AiRecovery({ aiRecoveryRevision }: { aiRecoveryRevision:
               ) : (
                 <ul className="space-y-3">
                   {view.data.calls.map((call) => (
-                    <CallCard key={call.id} call={call} />
+                    <CallCard key={call.id} call={call} onSelect={action.select} disabled={action.pending} />
                   ))}
                 </ul>
               )}

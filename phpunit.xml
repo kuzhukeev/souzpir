@@ -21,11 +21,13 @@
             <directory suffix="Test.php">tests/Feature/Smoke</directory>
             <directory suffix="Test.php">tests/Feature/Support</directory>
             <directory suffix="Test.php">tests/Feature/Shell</directory>
-            <directory suffix="Test.php">tests/Feature/Equivalence</directory>
             <directory suffix="Test.php">tests/Feature/SP-E1-10C</directory>
             <directory suffix="Test.php">tests/Feature/SP-E1-10D</directory>
             <directory suffix="Test.php">tests/Feature/SP-E1-10E</directory>
             <directory suffix="Test.php">tests/Feature/SP-E1-10F</directory>
+        </testsuite>
+        <testsuite name="Equivalence">
+            <directory suffix="Test.php">tests/Feature/Equivalence</directory>
         </testsuite>
         <testsuite name="CoreTurns">
             <file>tests/Feature/ProtectedOperations/FirstTurnStateTest.php</file>

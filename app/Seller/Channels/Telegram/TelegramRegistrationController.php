@@ -38,6 +38,12 @@ final class TelegramRegistrationController
         $ok = app(TelegramTransport::class)->register($token, $url, $secret);
         app(ProfileAccess::class)->run($request, function (User $user, TenantContext $tenant) use ($account, $ok): void {
             Gate::forUser($user)->authorize('seller.settings.write');
+            if ($ok) {
+                $settings = $account->settings ?? [];
+                $settings['webhook_installed'] = true;
+                $account->settings = $settings;
+                $account->save();
+            }
             app(AuditWriter::class)->record($tenant, new AuditEntry('seller.telegram.webhook.registration', 'channel_account', $account->id, after: ['success' => $ok]));
         });
 

@@ -3,16 +3,18 @@
 namespace App\Vision\Site\Http;
 
 use App\Models\Membership;
+use App\Shell\Brands\BrandDomain;
 use App\Tenancy\TenantContext;
 use App\Vision\Site\AuditRun;
 use App\Vision\Site\History;
+use App\Vision\Site\Jobs\AuditSiteJob;
 use App\Vision\Site\SiteAccess;
 use App\Vision\Site\SiteAction;
 use App\Vision\Site\SiteOperations;
-use App\Vision\SiteAudit\SiteInspector;
 use App\Vision\SiteAudit\SiteSafety;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -42,10 +44,18 @@ final class SiteController
                 'created_at' => $action->created_at?->toIso8601String(),
             ])->all();
 
+            $audits = AuditRun::query()->orderByDesc('created_at')->orderByDesc('id')->limit(2)->get();
+            $current = $audits->first();
+            $previous = $audits->get(1);
+            $host = parse_url($current?->result['final_url'] ?? $current?->result['url'] ?? '', PHP_URL_HOST);
+            $domain = is_string($host) ? BrandDomain::query()->where('host', mb_strtolower($host))->first(['host', 'status']) : null;
+            $domainStatus = is_string($host) ? ['host' => $host, 'verified' => $domain?->status === 'verified'] : null;
             $history = $request->route('section') === 'history' ? $this->history->read($tenant) : ['achievements' => [], 'comparison' => null];
             $this->access->lock($tenant, false, 'vision.report.read');
 
-            return ['audit' => AuditRun::query()->orderByDesc('created_at')->orderByDesc('id')->first()?->result,
+            return ['domainStatus' => $domainStatus, 'audit' => $current?->result, 'auditDate' => $current?->created_at?->toIso8601String(),
+                'previousAudit' => $previous?->result,
+                'auditProgress' => Cache::get(AuditSiteJob::key($tenant->organizationId, $tenant->brandId)),
                 'actions' => $actions, 'history' => array_values(array_filter($actions, fn (array $a): bool => $a['status'] === 'awaiting_measurement')),
                 'members' => $members, 'canManage' => $this->access->can('vision.actions.write'), ...$history];
         });
@@ -53,7 +63,7 @@ final class SiteController
         return Inertia::render('Vision/Site/Index', ['section' => $request->route('section'), ...$props]);
     }
 
-    public function audit(Request $request, SiteInspector $inspector): RedirectResponse
+    public function audit(Request $request): RedirectResponse
     {
         $tenant = app(TenantContext::class);
         $this->operations->authorize($tenant, $request);
@@ -71,7 +81,7 @@ final class SiteController
         } catch (\Throwable) {
             return back()->withErrors(['url' => 'Укажите публичный адрес без параметров и учётных данных.']);
         }
-        $error = $this->operations->runAudit($tenant, $request, $data['url'], $inspector);
+        $error = $this->operations->runAudit($tenant, $request, $data['url']);
         if ($error !== null) {
             return back()->withErrors(['url' => $error]);
         }

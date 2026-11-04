@@ -1,4 +1,4 @@
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { Avatar, Button, DataTable, Drawer, Skeleton } from '@/components/ui';
 import CabinetLayout from '@/layouts/CabinetLayout';
@@ -10,7 +10,9 @@ import {
   type Page,
 } from '@/features/Shell/Journal/model';
 import { useJournalNavigation } from '@/features/Shell/Journal/navigation';
-import { FiltersForm, JournalHeader, Pages } from '@/features/Shell/Journal/shared';
+import { JournalHeader, Pages } from '@/features/Shell/Journal/shared';
+import ActionFilters from '@/features/Shell/Journal/ActionFilters';
+import { subjectPath } from '@/features/Shell/Journal/subjectPath';
 
 type Row = {
   id: string;
@@ -37,15 +39,13 @@ function moduleName(action: string) {
       ? 'ИИ-продавец'
       : 'Кабинет';
 }
-function changes(value: string | null) {
-  if (!value) return '—';
-  try {
-    return JSON.stringify(JSON.parse(value), null, 2);
-  } catch {
-    return value;
-  }
+function changes(before: string | null, after: string | null): {key:string;before:string;after:string}[] {
+  const parse=(value:string|null):Record<string,unknown>=>{if(!value)return {};try { const parsed:unknown=JSON.parse(value);return parsed && typeof parsed==='object' && !Array.isArray(parsed)?parsed as Record<string,unknown>:{'значение':parsed}; } catch { return {'значение':value}; }};
+  const left=parse(before),right=parse(after);const display=(value:unknown)=>value===undefined||value===null?'—':typeof value==='string'?value:JSON.stringify(value);
+  return [...new Set([...Object.keys(left),...Object.keys(right)])].filter(key=>JSON.stringify(left[key])!==JSON.stringify(right[key])).map(key=>({key,before:display(left[key]),after:display(right[key])}));
 }
 export default function Actions({ rows, filters, actors, actions, canNotifications }: Props) {
+  const { brand } = usePage<{ brand: { id: string; name: string } | null }>().props;
   const [selected, setSelected] = useState<Row | null>(null);
   const { loading, failed, retry: retryLoad } = useJournalNavigation();
   const query = new URLSearchParams(compact(filters)).toString();
@@ -70,9 +70,8 @@ export default function Actions({ rows, filters, actors, actions, canNotificatio
           </a>
         }
       />
-      <FiltersForm
+      <ActionFilters
         key={JSON.stringify(filters)}
-        path="/journal"
         initial={filters}
         options={[
           {
@@ -120,7 +119,7 @@ export default function Actions({ rows, filters, actors, actions, canNotificatio
             <DataTable<Row>
               label="Действия в кабинете"
               rows={rows.data}
-              empty="Действий пока нет"
+              empty={Object.values(filters).some(Boolean) ? 'По выбранным фильтрам действий нет' : 'Действий пока нет'}
               columns={[
                 { key: 'created_at', label: 'Время', render: (row) => formatDate(row.created_at) },
                 {
@@ -137,12 +136,12 @@ export default function Actions({ rows, filters, actors, actions, canNotificatio
                 {
                   key: 'subject_id',
                   label: 'Объект',
-                  render: (row) => <span className="break-all">{row.subject_id}</span>,
+                  render: (row) => { const path = subjectPath(row.subject_type, row.subject_id); return path ? <a className="cursor-pointer break-all text-(--color-link) underline" href={path}>{row.subject_id}</a> : <span className="break-all">{row.subject_id}</span>; },
                 },
                 {
                   key: 'brand_id',
                   label: 'Бренд',
-                  render: (row) => (row.brand_id ? 'Текущий бренд' : 'Вся компания'),
+                  render: (row) => (row.brand_id ? (brand?.name ?? 'Текущий бренд') : 'Вся компания'),
                 },
                 { key: 'subject_type', label: 'Модуль', render: (row) => moduleName(row.action) },
                 {
@@ -177,28 +176,15 @@ export default function Actions({ rows, filters, actors, actions, canNotificatio
             </div>
             <div>
               <dt className="text-(--color-ink-muted)">Бренд</dt>
-              <dd>{selected.brand_id ? 'Текущий бренд' : 'Вся компания'}</dd>
+              <dd>{selected.brand_id ? (brand?.name ?? 'Текущий бренд') : 'Вся компания'}</dd>
             </div>
             <div>
               <dt className="text-(--color-ink-muted)">Модуль</dt>
               <dd>{moduleName(selected.action)}</dd>
             </div>
-            <div>
-              <dt className="text-(--color-ink-muted)">Было</dt>
-              <dd>
-                <pre className="overflow-auto whitespace-pre-wrap break-all rounded-lg bg-(--color-bg) p-3">
-                  {changes(selected.before)}
-                </pre>
-              </dd>
-            </div>
-            <div>
-              <dt className="text-(--color-ink-muted)">Стало</dt>
-              <dd>
-                <pre className="overflow-auto whitespace-pre-wrap break-all rounded-lg bg-(--color-bg) p-3">
-                  {changes(selected.after)}
-                </pre>
-              </dd>
-            </div>
+            <div><dt className="text-(--color-ink-muted)">Изменения</dt><dd>{changes(selected.before,selected.after).length ? <dl className="mt-2 space-y-2">{changes(selected.before,selected.after).map(item=><div key={item.key} className="rounded-lg bg-(--color-bg) p-3"><dt className="font-semibold">{item.key.replaceAll('_',' ')}</dt><dd className="mt-1 break-words">{item.before} → {item.after}</dd></div>)}</dl> : 'Изменений нет'}</dd></div>
+            <div><dt className="text-(--color-ink-muted)">Объект</dt><dd className="break-all">{selected.subject_id}</dd></div>
+            {subjectPath(selected.subject_type, selected.subject_id) && <div><a href={subjectPath(selected.subject_type, selected.subject_id) ?? '#'} className="inline-flex min-h-11 cursor-pointer items-center font-semibold text-(--color-link)">Открыть полностью</a></div>}
           </dl>
         )}
       </Drawer>

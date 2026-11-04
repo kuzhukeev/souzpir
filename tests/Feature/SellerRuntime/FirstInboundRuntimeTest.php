@@ -211,7 +211,16 @@ final class FirstInboundRuntimeTest extends TestCase
 
             return new TurnCommand($conversation->id, $message->id, $message->text, null, 'suggest', 0);
         });
-        self::assertSame(['status' => 'unavailable'], $this->turn($context, $request, $suggest));
+        $suggested = $this->turn($context, $request, $suggest);
+        self::assertSame('suggested', $suggested['status']);
+        self::assertSame(1, $suggested['result']['version']);
+        self::assertNull($suggested['result']['message_id']);
+        self::assertNotEmpty($suggested['result']['suggestion']);
+        $outcome = json_decode(DB::table('seller_turns')->where('conversation_id', $suggest->conversationId)->value('outcome'), true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame('suggested', $outcome['status']);
+        self::assertSame($suggested['result']['suggestion'], $outcome['messages'][0]['text']);
+        self::assertSame(0, DB::table('messages')->where('conversation_id', $suggest->conversationId)->where('role', 'agent')->count());
+        self::assertSame($suggested, $this->turn($context, $request, $suggest));
         $request->attributes->set('tenant.brand_revision', 'stale');
         self::assertSame(['status' => 'unavailable'], $this->turn($context, $request, $command));
         self::assertSame(0, $fake->calls);

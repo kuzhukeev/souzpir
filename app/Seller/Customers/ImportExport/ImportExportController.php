@@ -6,8 +6,10 @@ use App\Models\User;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
+use App\Shell\Data\CustomerSpreadsheet;
 use App\Shell\Profile\ProfileAccess;
 use App\Tenancy\TenantContext;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
@@ -124,6 +126,63 @@ final class ImportExportController
         });
 
         return Inertia::render('Seller/Customers/ImportExport/Index', [...$data, 'status' => $request->session()->get('status')]);
+    }
+
+    public function export(Request $request): mixed
+    {
+        $input = $request->validate(['from' => ['required', 'date_format:Y-m-d'], 'to' => ['required', 'date_format:Y-m-d', 'after_or_equal:from'], 'stage' => ['nullable', 'string', 'max:32'], 'format' => ['required', 'in:csv,xlsx']]);
+
+        return $this->access($request, 'seller.settings.write', function (User $user, TenantContext $tenant) use ($input) {
+            abort_unless(DB::table('memberships')->where('id', $tenant->membershipId)->where('role', 'owner')->exists(), 403);
+            $from = CarbonImmutable::createFromFormat('!Y-m-d', $input['from'], 'Europe/Moscow')->utc();
+            $until = CarbonImmutable::createFromFormat('!Y-m-d', $input['to'], 'Europe/Moscow')->addDay()->utc();
+            if ($from->diffInDays($until) > 365) {
+                throw ValidationException::withMessages(['to' => 'Период не может превышать 365 дней.']);
+            }
+            $contacts = $this->scope('contacts', $tenant)->whereNull('merged_into_id')->where('created_at', '>=', $from)->where('created_at', '<', $until)->orderBy('id')->get(['id', 'name', 'phone', 'email', 'city', 'created_at']);
+            $base = tempnam(storage_path('app'), 'customer-export-');
+            if ($base === false) {
+                abort(503);
+            }
+            $csv = $base.'.csv';
+            $xlsx = $base.'.xlsx';
+            try {
+                $file = fopen($base, 'wb');
+                foreach ($contacts as $contact) {
+                    if (! empty($input['stage'])) {
+                        $stage = $this->scope('conversations', $tenant)->where('contact_id', $contact->id)->orderByDesc('updated_at')->orderByDesc('id')->value('stage');
+                        if ($stage !== $input['stage']) {
+                            continue;
+                        }
+                    }
+                    fwrite($file, json_encode(['type' => 'contact', 'data' => (array) $contact], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)."\n");
+                }
+                fclose($file);
+                CustomerSpreadsheet::build($base, $csv, $xlsx);
+                $output = $input['format'] === 'csv' ? $csv : $xlsx;
+                @unlink($base);
+                @unlink($input['format'] === 'csv' ? $xlsx : $csv);
+                app(AuditWriter::class)->record($tenant, new AuditEntry('seller.customers.exported', 'brand', $tenant->brandId, after: ['format' => $input['format'], 'stage' => $input['stage'] ?? null]));
+
+                return response()->download($output, 'customers.'.$input['format'])->deleteFileAfterSend(true);
+            } catch (\Throwable $error) {
+                @unlink($base);
+                @unlink($csv);
+                @unlink($xlsx);
+                throw $error;
+            }
+        });
+    }
+
+    public function template(Request $request): mixed
+    {
+        $this->access($request, 'seller.settings.write', fn () => null);
+
+        return response("\xEF\xBB\xBFИмя;Телефон;Почта;Город\r\n", 200, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="customers-template.csv"',
+            'Cache-Control' => 'private, no-store',
+        ]);
     }
 
     public function preview(Request $request): mixed

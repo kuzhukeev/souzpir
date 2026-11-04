@@ -1,0 +1,10 @@
+import { createInertiaApp } from '@inertiajs/react';
+import { createRoot } from 'react-dom/client';
+import '../../../resources/css/app.css';
+import '../../../resources/css/themes/tokens.css';
+import Day from '../../../resources/js/pages/Seller/Quality/Day';
+const issue={type:'unknown_fact',layer:'knowledge',severity:'medium',turn:2,quote:'Сколько стоит доставка?',explanation:'Нет подтверждённой цены',fix:'Добавить условия доставки'};
+const evaluation={id:'01ARZ3NDEKTSV4RRFFQ69G5FAV',source:'dialogue',conversation_id:'01ARZ3NDEKTSV4RRFFQ69G5FAW',scores:{naturalness:4,goal:3,facts:4,objections:3,brevity:5},issues:[issue],average:3.8,comment:'Не хватило ясности',created_at:'2026-11-03T12:00:00Z'};
+const props={auth:{user:{id:'u',name:'Иван',email:'ivan@example.test'}},organization:{id:'o',name:'Компания'},brand:{id:'b',name:'Пример бренда'},brands:[],modules:{seller:true,vision:false},can:{'profile.own':true,'seller.settings.write':true},theme:'neutral',translations:{},ziggy:{routes:{}},errors:{},reports:[],evaluations:location.search.includes('empty')?[]:[evaluation],day:'2026-11-03'};
+const script=document.createElement('script');script.type='application/json';script.dataset.page='app';script.textContent=JSON.stringify({component:'Fixture',props,url:'/seller/quality/2026-11-03',version:'fixture',clearHistory:false,encryptHistory:false});document.body.append(script);
+void createInertiaApp({resolve:()=>Day,setup:({el,App,props})=>createRoot(el).render(<App {...props}/>)});

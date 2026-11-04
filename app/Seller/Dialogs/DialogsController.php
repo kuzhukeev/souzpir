@@ -4,11 +4,13 @@ namespace App\Seller\Dialogs;
 
 use App\Models\Membership;
 use App\Models\User;
+use App\Seller\Engine\LeadState;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
 use App\Shell\Profile\ProfileAccess;
 use App\Tenancy\TenantContext;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,21 +22,46 @@ use Inertia\Response;
 
 final class DialogsController
 {
-    public function index(Request $request, DialogReader $reader, ?string $dialog = null): Response
+    public function index(Request $request, DialogReader $reader, ?string $dialog = null, bool $mine = false): Response
     {
         $input = $request->validate([
-            'mode' => ['sometimes', 'string', Rule::in(['all', 'mine', 'bot', 'suggest', 'manager', 'paused'])],
+            'mode' => ['sometimes', 'string', Rule::in(['all', 'mine', 'bot', 'suggest', 'manager', 'paused', 'waiting', 'closed'])],
             'search' => ['sometimes', 'string', 'max:100'],
+            'sort' => ['sometimes', Rule::in(['newest', 'oldest'])],
+            'channel' => ['sometimes', Rule::in(['telegram', 'widget', 'api', 'email', 'whatsapp'])],
+            'stage' => ['sometimes', Rule::in(LeadState::STAGES)],
+            'manager' => ['sometimes', 'ulid'],
+            'outcome' => ['sometimes', Rule::in(LeadState::OUTCOMES)],
+            'period' => ['sometimes', Rule::in(['7', '30', '90'])],
+            'reviewed' => ['sometimes', 'in:1'],
+            'page' => ['sometimes', 'integer', 'min:1', 'max:100000'],
         ]);
+        if ($mine) {
+            $input['mode'] = 'mine';
+        }
         $data = app(ProfileAccess::class)->run($request, function (User $actor, TenantContext $context, $brand, Membership $member) use ($reader, $dialog, $input): array {
             Gate::forUser($actor)->authorize('seller.dialogs.read');
             abort_unless(app(SellerModuleAccess::class)->enabled($context->organizationId, $context->brandId), 404);
             $manager = $member->role === 'member' && ($member->settings['sales_manager'] ?? false);
 
-            return $reader->read($context, $actor->id, $manager, ! $manager && $member->role !== 'viewer', $dialog, $input['mode'] ?? 'all', trim($input['search'] ?? ''));
+            try {
+                $data = $reader->read($context, $actor->id, $manager, ! $manager && $member->role !== 'viewer', $dialog, $input['mode'] ?? 'all', trim($input['search'] ?? ''), $input['sort'] ?? 'newest', $input);
+            } catch (QueryException $exception) {
+                report($exception);
+
+                return ['dialogs' => [], 'dialog' => null, 'loadError' => true];
+            }
+            $data['transferOptions'] = $dialog && Gate::forUser($actor)->allows('seller.dialogues.operate') ? app(DialogTransferController::class)->candidates($context) : [];
+
+            return $data;
         });
 
-        return Inertia::render('Seller/Dialogs/Index', $data + ['filters' => ['mode' => $input['mode'] ?? 'all', 'search' => $input['search'] ?? '']]);
+        return Inertia::render($mine ? 'Seller/Dialogs/Mine' : 'Seller/Dialogs/Index', $data + ['filters' => ['mode' => $input['mode'] ?? 'all', 'search' => $input['search'] ?? '', 'sort' => $input['sort'] ?? 'newest', 'channel' => $input['channel'] ?? '', 'stage' => $input['stage'] ?? '', 'manager' => $input['manager'] ?? '', 'outcome' => $input['outcome'] ?? '', 'period' => $input['period'] ?? '', 'reviewed' => $input['reviewed'] ?? '', 'page' => (int) ($input['page'] ?? 1)]]);
+    }
+
+    public function mine(Request $request, DialogReader $reader, ?string $dialog = null): Response
+    {
+        return $this->index($request, $reader, $dialog, true);
     }
 
     public function mode(Request $request, string $dialog): RedirectResponse

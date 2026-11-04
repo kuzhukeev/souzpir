@@ -12,6 +12,7 @@ const calls = vi.hoisted(() => ({ post: vi.fn(), get: vi.fn(), on: vi.fn((...arg
 vi.mock('@inertiajs/react', () => {
   return {
     Head: () => null,
+    usePage: () => ({ props: { brand: null, brands: [] } }),
     Link: ({ href, children, ...props }: { href: string; children: ReactNode }) => <a href={href} {...props}>{children}</a>,
     router: { get: calls.get, post: calls.post, on: calls.on },
   };

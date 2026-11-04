@@ -6,10 +6,14 @@ use App\Contracts\ProtectedOperations\IdempotencyConflict;
 use App\Models\Membership;
 use App\Models\User;
 use App\ProtectedOperations\FirstTurnCoordinator;
+use App\ProtectedOperations\SellerFollowup\FollowupCoordinator;
 use App\Seller\Conversations\CanonicalJson;
 use App\Seller\Conversations\Contracts\ConversationRepository;
 use App\Seller\Conversations\Data\TurnCommand;
 use App\Seller\Conversations\Data\TurnOutcome;
+use App\Seller\Runtime\Contracts\ChannelDelivery;
+use App\Seller\Runtime\Contracts\DeliveryCommand;
+use App\Seller\Runtime\Delivery\FakeChannelDelivery;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
 use App\Shell\Auth\AuthSessionRegistry;
@@ -23,7 +27,7 @@ use Illuminate\Support\Str;
 use SensitiveParameter;
 use Throwable;
 
-/** First inbound fake-only runtime; subsequent turns and delivery remain separate. */
+/** Routes fake inbound turns by conversation mode and expected revision. */
 final class FirstInboundRuntime
 {
     public function turn(#[SensitiveParameter] Request $http, #[SensitiveParameter] TurnCommand $command): array
@@ -50,7 +54,7 @@ final class FirstInboundRuntime
                     throw new \LogicException;
                 }
                 $conversation = DB::table('conversations')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
-                    ->where('id', $command->conversationId)->first(['id', 'mode', 'version']);
+                    ->where('id', $command->conversationId)->first(['id', 'mode', 'version', 'stage']);
                 $message = DB::table('messages')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
                     ->where('conversation_id', $command->conversationId)->where('id', $command->inputMessageId)->where('role', 'client')
                     ->first(['text', 'external_event_id']);
@@ -62,16 +66,41 @@ final class FirstInboundRuntime
                     return ['mode' => 'manager', 'result' => $this->suppressManagerTurn($tenant, $command)];
                 }
 
-                return ['mode' => $conversation->mode];
+                return ['mode' => $conversation->mode, 'version' => (int) $conversation->version, 'stage' => $conversation->stage];
             });
             if ($dispatch['mode'] === 'manager') {
                 return $dispatch['result'];
             }
-            if ($dispatch['mode'] !== 'bot') {
-                return ['status' => 'unavailable'];
+            if ($dispatch['mode'] === 'bot' && $dispatch['version'] === 0) {
+                $result = app(FirstTurnCoordinator::class)->run($http, $command);
+            } else {
+                $result = app(FollowupCoordinator::class)->run($http, $command, $dispatch['mode']);
             }
 
-            return app(FirstTurnCoordinator::class)->run($http, $command);
+            if (($result['status'] ?? null) === 'completed') {
+                $tenant = app(TenantContext::class);
+                $after = DB::table('conversations')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
+                    ->where('id', $command->conversationId)->value('stage');
+                if (is_string($after)) {
+                    app(StageTransitions::class)->record($tenant, $command->conversationId, $dispatch['stage'], $after);
+                }
+            }
+            if ($dispatch['mode'] === 'bot' && ($result['status'] ?? null) === 'completed') {
+                $messageId = $result['result']['message_id'] ?? null;
+                $turnId = $result['result']['turn_id'] ?? null;
+                if (! is_string($messageId) || ! is_string($turnId)) {
+                    throw new \LogicException;
+                }
+                if (! app()->bound(ChannelDelivery::class)) {
+                    app()->singleton(ChannelDelivery::class, FakeChannelDelivery::class);
+                }
+                $receipt = app(ChannelDelivery::class)->send(new DeliveryCommand(app(TenantContext::class), $command->conversationId, $messageId, 'fake', $turnId));
+                if ($receipt->status !== 'fake_sent' || $receipt->messageId !== $messageId) {
+                    throw new \LogicException;
+                }
+            }
+
+            return $result;
         } catch (IdempotencyConflict) {
             throw new IdempotencyConflict('Idempotency key was used with different content.');
         } catch (Throwable) {

@@ -188,7 +188,7 @@ final class BrandSettings
 
     public static function validLogoPath(string $organization, string $path): bool
     {
-        return preg_match('~^organizations/'.preg_quote($organization, '~').'/onboarding/logos/[a-f0-9]{32}\.png$~D', $path) === 1;
+        return preg_match('~^organizations/'.preg_quote($organization, '~').'/onboarding/logos/[a-f0-9]{32}\.(?:png|svg)$~D', $path) === 1;
     }
 
     private function blocksAllRobots(string $body): bool

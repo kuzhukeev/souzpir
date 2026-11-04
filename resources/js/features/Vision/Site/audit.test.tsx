@@ -25,7 +25,7 @@ describe('Представление аудита сайта', () => {
         ]}
       />,
     );
-    expect(screen.getByText('Проверено 1 из 2')).toBeTruthy();
+    expect(screen.getByText(/проверено 1 из 2/i)).toBeTruthy();
     expect(screen.getByText('Понимание ИИ')).toBeTruthy();
     expect(screen.getByText('Скоро')).toBeTruthy();
   });

@@ -9,6 +9,7 @@ return ['web' => static function (): void {
     Route::middleware(['auth.version', 'auth.nostore'])->group(static function (): void {
         Route::get('/integrations', [IntegrationsController::class, 'index'])->name('integrations.index');
         Route::get('/integrations/api', [IntegrationsController::class, 'api'])->block()->name('integrations.api');
+        Route::get('/integrations/api/docs', [IntegrationsController::class, 'apiDocumentation'])->name('integrations.api.docs');
         Route::post('/integrations/api/secrets', [IntegrationsController::class, 'secret'])->block()->name('integrations.secrets.consume');
         Route::get('/integrations/notifications', [IntegrationsController::class, 'notifications'])->name('integrations.notifications');
         Route::post('/integrations/api/keys', [KeysController::class, 'store'])->block()->name('integrations.keys.store');

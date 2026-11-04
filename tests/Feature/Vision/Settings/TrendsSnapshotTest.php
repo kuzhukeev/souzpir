@@ -77,12 +77,19 @@ final class TrendsSnapshotTest extends TenancyTestCase
         $this->withHeaders($headers)->post('/vision/report', ['measurement_id' => $measurement])->assertRedirect();
         $this->assertDatabaseCount('vision_reports', 1);
         $report = DB::table('vision_reports')->value('id');
+        $this->get('/vision/report?report='.$report)->assertOk()->assertInertia(fn ($page) => $page->component('Vision/Reports/Index'));
         $this->withHeaders($headers)->getJson('/vision/report/data?report='.$report)->assertOk()
-            ->assertJsonPath('report.measurement_id', $measurement)->assertJsonPath('report.questions', 1)
+            ->assertJsonPath('report.id', $report)->assertJsonPath('report.measurement_id', $measurement)->assertJsonPath('report.questions', 1)
             ->assertJsonPath('report.providers.0.name', 'gemini')->assertJsonCount(1, 'confirmed')
             ->assertJsonCount(0, 'report.sections.gaps')->assertJsonCount(0, 'report.sections.sources');
+        $this->withHeaders($headers)->getJson('/vision/report/data?report[]=bad')->assertNotFound();
         $this->assertDatabaseHas('audit_logs', ['action' => 'vision.report.created', 'subject_id' => $report]);
         $this->get('/vision/trends')->assertOk()->assertInertia(fn ($page) => $page->has('rows', 1)->where('rows.0.id', $report));
+        [$viewer] = $this->member($organization, 'viewer', [$brand->id]);
+        $this->actingAs($viewer)->withSession(['brand_id' => $brand->id]);
+        $this->get('/vision/trends')->assertOk()->assertInertia(fn ($page) => $page->where('rows.0.id', $report));
+        $this->get('/vision/report?report='.$report)->assertOk();
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
         DB::table('brand_modules')->insert(['id' => (string) Str::ulid(), 'organization_id' => $organization->id, 'brand_id' => $other->id, 'module' => 'vision', 'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
         $this->post('/brand/switch', ['brand_id' => $other->id])->assertRedirect();
         $this->flushHeaders();

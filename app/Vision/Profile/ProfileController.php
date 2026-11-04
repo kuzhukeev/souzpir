@@ -95,7 +95,10 @@ HTML;
             }
             $quiz = app(Questionnaire::class)->read($request, $state['current']['quiz_id']);
 
-            return Inertia::render('Vision/Profile/Quiz', ['quiz' => $quiz, 'step' => $step, 'brand' => $state['brand'], 'hints' => $this->hints($request, $step, $state['brand']['website'] ?? null), 'limits' => QuizLimits::configured()->values()]);
+            $savedAt = $quiz['revision'] > 1 ? app(ProfileAccess::class)->run($request, fn (TenantContext $tenant) => DB::table('visibility_quizzes')
+                ->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('id', $quiz['id'])->value('updated_at')) : null;
+
+            return Inertia::render('Vision/Profile/Quiz', ['quiz' => $quiz, 'step' => $step, 'brand' => $state['brand'], 'savedAt' => $savedAt, 'hints' => $this->hints($request, $step, $state['brand']['website'] ?? null), 'limits' => QuizLimits::configured()->values()]);
         });
     }
 
@@ -124,6 +127,7 @@ HTML;
             app(CompletionRules::class)->validate($draft['answers']);
             app(Questionnaire::class)->submit($request, $data['id'], $data['revision']);
             Inertia::clearHistory();
+            $request->session()->flash('vision.quiz_submitted', true);
 
             return $request->expectsJson() ? response()->json(['ok' => true, 'redirect' => '/vision/profile']) : redirect()->route('vision.profile.show')->with('status', 'Анкета отправлена.');
         });
@@ -142,7 +146,7 @@ HTML;
                 ->where('version', '<', $profile['version'])->orderByDesc('version')->value('id'));
             $previous = $previousId ? app(Questionnaire::class)->profile($request, $previousId) : null;
 
-            return Inertia::render('Vision/Profile/Show', ['profile' => $profile, 'previous_profile' => $previous, 'history' => $state['history'], 'current_profile_id' => $state['profile_id'], 'is_latest' => $profile['id'] === $state['profile_id'], 'limits' => QuizLimits::configured()->values()]);
+            return Inertia::render('Vision/Profile/Show', ['profile' => $profile, 'previous_profile' => $previous, 'history' => $state['history'], 'current_profile_id' => $state['profile_id'], 'is_latest' => $profile['id'] === $state['profile_id'], 'submitted' => (bool) $request->session()->get('vision.quiz_submitted', false), 'limits' => QuizLimits::configured()->values()]);
         });
     }
 
@@ -160,6 +164,7 @@ HTML;
             app(CompletionRules::class)->validate($answers);
             app(Questionnaire::class)->edit($request, $data['id'], $step, $data['values']);
             Inertia::clearHistory();
+            $request->session()->flash('vision.quiz_submitted', true);
 
             return $request->expectsJson() ? response()->json(['ok' => true, 'redirect' => '/vision/profile']) : redirect()->route('vision.profile.show')->with('status', 'Профиль обновлён.');
         });
@@ -187,23 +192,76 @@ HTML;
     private function hints(#[\SensitiveParameter] Request $request, int $step, ?string $website): array
     {
         $unavailable = ['status' => 'unavailable', 'items' => []];
-        if ($step !== 2 || ! Gate::allows('vision.settings.write') || ! $website) {
+        if (! in_array($step, [1, 2, 3, 4, 5, 7], true) || ! Gate::allows('vision.settings.write') || ! $website) {
             return $unavailable;
         }
         try {
-            $page = app(ProfileAccess::class)->run($request, function (TenantContext $context) use ($website) {
+            $sources = app(ProfileAccess::class)->run($request, function (TenantContext $context) use ($website) {
                 $currentWebsite = DB::table('brands')->where('id', $context->brandId)->where('organization_id', $context->organizationId)->value('website');
                 if ($currentWebsite !== $website) {
                     return null;
                 }
 
-                return app(SiteDraftStore::class)->read($context, $website);
+                $page = app(SiteDraftStore::class)->read($context, $website);
+                $raw = DB::table('audit_runs')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)->orderByDesc('created_at')->orderByDesc('id')->value('result');
+                $audit = is_string($raw) ? json_decode($raw, true) : null;
+                $host = strtolower((string) parse_url($website, PHP_URL_HOST));
+                if (! is_array($audit) || $host === '' || strtolower((string) parse_url((string) ($audit['url'] ?? ''), PHP_URL_HOST)) !== $host) {
+                    $audit = null;
+                }
+
+                return ['page' => $page, 'audit' => $audit];
             });
-            if (! $page || ! is_string($page['title'] ?? null) || trim($page['title']) === '') {
+            $page = $sources['page'] ?? null;
+            $audit = $sources['audit'] ?? null;
+            if (! $page && ! $audit) {
                 return ['status' => 'empty', 'items' => []];
             }
+            $page ??= [];
+            $title = trim((string) ($page['title'] ?? ''));
+            $source = (string) ($page['source_url'] ?? $website);
+            $items = [];
+            if (in_array($step, [2, 5], true) && $title !== '') {
+                $items[] = ['label' => 'Заголовок сайта', 'value' => mb_substr($title, 0, 180), 'source' => $source];
+            }
+            if (in_array($step, [3, 4, 7], true)) {
+                $prefix = match ($step) {
+                    3 => 'Категории|Товары|Услуги',
+                    4 => 'Конкуренты',
+                    7 => 'Вопросы клиентов',
+                };
+                $text = (string) ($page['content_text'] ?? '');
+                if (preg_match('~^(?:'.$prefix.'):\s*(.+)$~umi', $text, $matches)) {
+                    foreach (array_slice(preg_split('/\s*[;,]\s*/u', $matches[1]) ?: [], 0, 5) as $value) {
+                        $value = trim($value);
+                        if ($value !== '') {
+                            $items[] = ['label' => 'С сайта', 'value' => mb_substr($value, 0, 180), 'source' => $source];
+                        }
+                    }
+                }
+            }
 
-            return ['status' => 'available', 'items' => [['label' => 'Заголовок сайта', 'value' => mb_substr(trim($page['title']), 0, 180), 'source' => $page['source_url']]]];
+            if (in_array($step, [3, 5, 7], true)) {
+                foreach (($audit['pages'] ?? []) as $auditedPage) {
+                    if (! is_array($auditedPage) || ($auditedPage['status'] ?? 0) < 200 || ($auditedPage['status'] ?? 0) >= 300) {
+                        continue;
+                    }
+                    foreach (($auditedPage['headings'] ?? []) as $heading) {
+                        if (! is_string($heading) || trim($heading) === '' || ($step === 7 && ! str_ends_with(trim($heading), '?'))) {
+                            continue;
+                        }
+                        $value = mb_substr(trim($heading), 0, 180);
+                        if (! in_array($value, array_column($items, 'value'), true)) {
+                            $items[] = ['label' => 'Заголовок из аудита', 'value' => $value, 'source' => (string) ($auditedPage['url'] ?? $website)];
+                        }
+                        if (count($items) >= 5) {
+                            break 2;
+                        }
+                    }
+                }
+            }
+
+            return ['status' => $items || ($step === 1 && $page) ? 'available' : 'empty', 'items' => $items];
         } catch (Throwable) {
             // Local failure must not block the form or expose private source data in logs.
             return $unavailable;

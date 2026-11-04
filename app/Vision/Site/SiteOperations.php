@@ -7,8 +7,9 @@ use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
 use App\Shell\Auth\AuthSessionRegistry;
 use App\Tenancy\TenantContext;
-use App\Vision\SiteAudit\SiteInspector;
+use App\Vision\Site\Jobs\AuditSiteJob;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\ValidationException;
 
 /** Mutations retain tenant, authorization and audit in the same transaction. */
@@ -21,25 +22,26 @@ final class SiteOperations
         app(AuthSessionRegistry::class)->withinActive($request, fn () => $this->access->lock($tenant, true, 'vision.actions.write'));
     }
 
-    public function runAudit(TenantContext $tenant, Request $request, string $url, SiteInspector $inspector): ?string
+    public function runAudit(TenantContext $tenant, Request $request, string $url): ?string
     {
         $this->authorize($tenant, $request);
         if (! config('features.E8-01B.defaults.fetch_enabled', false)) {
             return 'Проверка сайтов не включена в этом окружении.';
         }
-        try {
-            $result = $inspector->inspect($url);
-        } catch (\Throwable) {
+        if (! $tenant->organizationId || ! $tenant->brandId || ! $tenant->actorId || ! $tenant->membershipId) {
+            return 'Не удалось определить доступ к бренду.';
+        }
+        $version = $request->session()->get('auth.version');
+        if (! is_int($version)) {
+            return 'Не удалось подтвердить сессию.';
+        }
+        $sessionHash = hash_hmac('sha256', 'auth-session:'.$request->session()->getId(), (string) config('app.key'));
+        $key = AuditSiteJob::key($tenant->organizationId, $tenant->brandId);
+        Cache::put($key, ['stage' => 'queued', 'events' => [['stage' => 'queued', 'at' => now()->toIso8601String()]]], now()->addDay());
+        AuditSiteJob::dispatch($tenant->organizationId, $tenant->brandId, $tenant->actorId, $tenant->membershipId, $url, $sessionHash, $version);
+        if (Cache::get($key)['stage'] === 'failed') {
             return 'Не удалось безопасно проверить сайт.';
         }
-        app(AuthSessionRegistry::class)->withinActive($request, function () use ($tenant, $result): void {
-            $this->access->lock($tenant, true, 'vision.actions.write');
-            $run = new AuditRun;
-            $run->result = $result;
-            $run->created_by = $tenant->actorId;
-            $run->save();
-            $this->audit->record($tenant, new AuditEntry('vision.site.audit.created', 'site_audit', $run->id));
-        });
 
         return null;
     }

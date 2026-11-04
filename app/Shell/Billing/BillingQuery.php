@@ -29,12 +29,33 @@ final class BillingQuery
 
     public function __construct(private PlanLimits $limits, private UsageReader $usage) {}
 
+    public function daily(TenantContext $tenant, CarbonImmutable $from, CarbonImmutable $to): array
+    {
+        $brand = DB::table('brands')->where('organization_id', $tenant->organizationId)->where('id', $tenant->brandId)->value('name');
+        $result = [];
+        if ($from->diffInDays($to) > 92 || ! $brand) {
+            return ['brand' => $brand, 'rows' => [], 'limited' => $from->diffInDays($to) > 92];
+        }
+        for ($day = $from; $day <= $to; $day = $day->addDay()) {
+            $snapshot = $this->usage->read($tenant, new UsageQuery($day, $day->addDay(), array_keys(self::METRICS)));
+            foreach (self::METRICS as $key => $label) {
+                $metric = $snapshot->metrics[$key] ?? null;
+                if (($metric['status'] ?? null) !== 'ready' || (float) $metric['value'] == 0.0) {
+                    continue;
+                }
+                $result[] = ['date' => $day->format('Y-m-d'), 'key' => $key, 'label' => __('Shell/Billing/messages.metrics.'.$label), 'brand' => $brand, 'value' => $metric['value'], 'unit' => $metric['unit']];
+            }
+        }
+
+        return ['brand' => $brand, 'rows' => $result, 'limited' => false];
+    }
+
     public function read(TenantContext $tenant, string $tab, CarbonImmutable $from, CarbonImmutable $to, bool $canManage): array
     {
         $assigned = DB::table('organization_plan as assignment')->join('plans as plan', 'plan.id', '=', 'assignment.plan_id')
             ->where('assignment.organization_id', $tenant->organizationId)->where('assignment.starts_at', '<=', now())
             ->where(fn ($q) => $q->whereNull('assignment.ends_at')->orWhere('assignment.ends_at', '>', now()))
-            ->first(['plan.id', 'plan.name']);
+            ->first(['plan.id', 'plan.name', 'assignment.starts_at', 'assignment.ends_at']);
         $limits = [];
         $keys = array_keys(self::LIMIT_LABELS);
         if ($assigned) {
@@ -57,11 +78,12 @@ final class BillingQuery
         $requestEnabled = $canManage && app()->bound(PlanRequestPort::class) && $scope !== null;
         $scope = $canManage ? $scope : null;
 
-        return ['tab' => $tab, 'currentPlan' => $assigned ? ['id' => $assigned->id, 'name' => $assigned->name] : null,
+        return ['tab' => $tab, 'currentPlan' => $assigned ? ['id' => $assigned->id, 'name' => $assigned->name, 'startsAt' => $assigned->starts_at, 'endsAt' => $assigned->ends_at] : null,
             'limits' => $limits, 'usage' => $usage,
             'plans' => $canManage ? DB::table('plans')->where('is_public', true)->orderBy('name')->get(['id', 'name'])->toArray() : [],
             'canManage' => $canManage, 'requestEnabled' => $requestEnabled,
             'submissionScope' => $scope, 'submissionKey' => $requestEnabled ? (string) Str::ulid() : null,
-            'period' => ['from' => $from->format('Y-m-d'), 'to' => $to->format('Y-m-d')]];
+            'period' => ['from' => $from->format('Y-m-d'), 'to' => $to->format('Y-m-d')],
+            'daily' => $tab === 'usage' ? $this->daily($tenant, $from, $to) : null];
     }
 }

@@ -3,16 +3,22 @@
 namespace App\Seller\Knowledge\Releases;
 
 use App\Models\User;
+use App\Seller\Evaluation\DraftScenarioPreview;
+use App\Seller\Evaluation\FakeSimulation;
 use App\Seller\Knowledge\Contracts\KnowledgeRepository;
+use App\Seller\Knowledge\DatabaseKnowledgeRepository;
 use App\Seller\Knowledge\KnowledgeNotReady;
 use App\Seller\Knowledge\KnowledgeSnapshot;
 use App\Seller\Settings\Limits\SellerModuleAccess;
+use App\Shell\Audit\AuditEntry;
+use App\Shell\Audit\Contracts\AuditWriter;
 use App\Shell\Profile\ProfileAccess;
 use App\Tenancy\TenantContext;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 final class ReleasesController
@@ -35,27 +41,115 @@ final class ReleasesController
     public function index(Request $request): mixed
     {
         $data = $this->access($request, 'seller.knowledge.read', function (User $user, TenantContext $tenant): array {
-            $releases = $this->query('knowledge_releases', $tenant)->whereIn('status', ['draft', 'published'])->orderByDesc('created_at')->orderByDesc('id')->get(['id', 'status', 'version', 'published_at', 'updated_at']);
+            $releases = $this->query('knowledge_releases', $tenant)->whereIn('status', ['draft', 'published'])->orderByDesc('created_at')->orderByDesc('id')->get(['id', 'status', 'version', 'published_at', 'updated_at', 'created_by']);
+            $authors = DB::table('users')->whereIn('id', $releases->pluck('created_by')->filter()->unique())->pluck('name', 'id');
+            $releases->each(fn ($release) => $release->author = $release->created_by ? $authors->get($release->created_by) : null);
             $brand = DB::table('brands')->where('organization_id', $tenant->organizationId)->where('id', $tenant->brandId)->first(['active_knowledge_release_id']);
             $draft = $releases->firstWhere('status', 'draft');
+            $canWrite = Gate::forUser($user)->allows('seller.knowledge.write');
+            $topics = $draft && $canWrite ? collect(app(KnowledgeRepository::class)->forRelease($tenant, $draft->id, true)->toArray()['intents'])
+                ->map(fn (array $topic) => ['id' => $topic['id'] ?? '', 'label' => $topic['description'] ?? $topic['id'] ?? ''])
+                ->filter(fn (array $topic) => $topic['id'] !== '')->values()->all() : [];
             $counts = [];
             try {
                 $snapshot = app(KnowledgeRepository::class)->published($tenant)->toArray();
-                foreach (['facts', 'intents', 'triggers', 'closed_topics'] as $key) {
-                    $counts[$key] = $key === 'facts' ? array_sum(array_map(fn ($group) => count($group['facts']), $snapshot[$key])) : count($snapshot[$key]);
-                }
+                $counts = [
+                    'facts' => array_sum(array_map(fn ($group) => count($group['facts']), $snapshot['facts'])),
+                    'conditions' => count($snapshot['conditions']),
+                    'intents' => count($snapshot['intents']),
+                    'examples' => count($snapshot['fewshot']['examples'] ?? (array_is_list($snapshot['fewshot']) ? $snapshot['fewshot'] : [])),
+                    'closed_topics' => count($snapshot['closed_topics']),
+                ];
             } catch (KnowledgeNotReady) {
             }
-            $tasks = $this->query('seller_tasks', $tenant)->where('type', 'unknown_question')->where('status', 'new')->orderByDesc('created_at')->limit(50)->get(['id', 'payload', 'created_at']);
-            $reviews = $this->query('message_reviews', $tenant)->where('type', 'wrong_fact')->where('status', 'new')->orderByDesc('created_at')->limit(50)->get(['id', 'note', 'better_text', 'created_at']);
+            $changeCount = null;
+            $changes = [];
+            $comparison = [];
+            if ($draft && $brand?->active_knowledge_release_id && $canWrite) {
+                $repository = app(KnowledgeRepository::class);
+                $comparison = app(ReleaseComparison::class)->compare($repository->published($tenant), $repository->forRelease($tenant, $draft->id, true));
+                $changeCount = array_sum(array_map(fn ($section) => count($section['changes']), $comparison));
+                foreach ($comparison as $section => $result) {
+                    foreach ($result['changes'] as $change) {
+                        $changes[] = ['section' => $section, 'type' => $change['type'], 'name' => $change['key']];
+                    }
+                }
+            }
+            $since = now()->subDays(7);
+            $dialogIds = $this->query('messages', $tenant)->where('role', 'client')->where('created_at', '>=', $since)->distinct()->pluck('conversation_id');
+            $unanswered = $dialogIds->isEmpty() ? 0 : $this->query('seller_tasks', $tenant)->where('type', 'unknown_question')
+                ->where('created_at', '>=', $since)->whereIn('conversation_id', $dialogIds)->distinct()->count('conversation_id');
+            $coverage = $dialogIds->isEmpty() ? null : (int) round(100 * (1 - $unanswered / $dialogIds->count()));
+            $notes = $this->query('audit_logs', $tenant)->where('action', 'knowledge.release.note')
+                ->whereIn('subject_id', $releases->pluck('id'))->get(['subject_id', 'after'])->mapWithKeys(function ($row): array {
+                    $value = json_decode($row->after, true);
+
+                    return [$row->subject_id => is_array($value) ? ($value['note'] ?? null) : null];
+                })->all();
+            $tasks = $this->query('seller_tasks', $tenant)->where('type', 'unknown_question')->where('status', 'new')->orderByDesc('created_at')->limit(50)->get(['id', 'conversation_id', 'payload', 'created_at']);
+            $reviews = $this->query('message_reviews', $tenant)->where('type', 'wrong_fact')->where('status', 'new')->orderByDesc('created_at')->limit(50)->get(['id', 'message_id', 'note', 'better_text', 'created_at']);
+            $reviewDialogs = $this->query('messages', $tenant)->whereIn('id', $reviews->pluck('message_id'))->pluck('conversation_id', 'id');
+            $reviews->each(fn ($review) => $review->conversation_id = $reviewDialogs->get($review->message_id));
             $handled = $this->query('audit_logs', $tenant)->where('action', 'knowledge.incoming.handled')->where('subject_type', 'evaluation')->pluck('subject_id');
             $evaluations = $this->query('seller_evaluations', $tenant)->whereNotIn('id', $handled)->whereRaw('jsonb_array_length(issues) > 0')->orderByDesc('created_at')->limit(50)->get(['id', 'issues', 'comment', 'created_at']);
 
-            return ['releases' => $releases, 'activeId' => $brand?->active_knowledge_release_id, 'draft' => $draft, 'counts' => $counts,
-                'tasks' => $tasks, 'reviews' => $reviews, 'evaluations' => $evaluations, 'canWrite' => Gate::forUser($user)->allows('seller.knowledge.write')];
+            $lastRun = $draft ? $this->scenarioResult($tenant, $draft->id) : null;
+            $backupIds = $this->query('audit_logs', $tenant)->where('action', 'knowledge.draft.autosaved')->pluck('subject_id');
+            $backups = $canWrite ? $this->query('knowledge_releases', $tenant)->whereIn('id', $backupIds)->where('status', 'building')
+                ->orderByDesc('updated_at')->get(['id', 'version', 'updated_at']) : [];
+
+            return ['scenarioRun' => $lastRun, 'releases' => $releases, 'activeId' => $brand?->active_knowledge_release_id, 'draft' => $draft, 'counts' => $counts,
+                'tasks' => $tasks, 'reviews' => $reviews, 'evaluations' => $evaluations, 'changeCount' => $changeCount, 'changes' => $changes, 'comparison' => $comparison, 'coverage' => $coverage, 'publicationNotes' => $notes, 'topics' => $topics, 'canWrite' => $canWrite, 'backups' => $backups];
         });
 
         return Inertia::render('Seller/Knowledge/Releases/Index', [...$data, 'status' => session('status')]);
+    }
+
+    private function scenarioResult(TenantContext $tenant, string $release): ?array
+    {
+        $json = $this->query('audit_logs', $tenant)->where('action', 'knowledge.scenarios.checked')->where('subject_id', $release)->orderByDesc('created_at')->orderByDesc('id')->value('after');
+
+        return $json ? json_decode($json, true) : null;
+    }
+
+    public function runScenarios(Request $request, string $release): mixed
+    {
+        $this->access($request, 'seller.knowledge.write', function (User $user, TenantContext $tenant) use ($release, $request): array {
+            $draft = $this->query('knowledge_releases', $tenant)->where('id', $release)->where('status', 'draft')->first() ?? abort(404);
+            $scenarios = $this->query('seller_personas', $tenant)->orderBy('name')->get()->filter(function ($row): bool {
+                $payload = json_decode($row->payload, true) ?: [];
+
+                return ($payload['in_set'] ?? true) === true;
+            });
+            $snapshot = app(KnowledgeRepository::class)->forRelease($tenant, $draft->id, true);
+            $runs = [];
+            foreach ($scenarios as $scenario) {
+                $payload = json_decode($scenario->payload, true) ?: [];
+                $hasInput = trim((string) ($payload['first_message'] ?? '')) !== '' || collect($payload['facts'] ?? [])->contains(fn ($fact) => is_scalar($fact) && trim((string) $fact) !== '');
+                $turns = app(DraftScenarioPreview::class)->dialogue($snapshot, $payload, (int) $scenario->max_turns, $request, $scenario->key);
+                $passed = $hasInput && collect($turns)->every(fn (array $turn): bool => $turn['meta']['guard_verdict'] === 'ok' && $turn['meta']['extraction_available'] && $turn['meta']['semantic_available']
+                    && ! in_array(false, $turn['meta']['expectation_checks'], true));
+                $id = app(FakeSimulation::class)->run($tenant, $scenario->key, $turns, $draft->id);
+                $runs[] = ['id' => $id, 'passed' => $passed];
+            }
+            $result = ['version' => $draft->version, 'runs' => $runs, 'passed' => count(array_filter($runs, fn ($run) => $run['passed'])), 'failed' => count(array_filter($runs, fn ($run) => ! $run['passed']))];
+            app(AuditWriter::class)->record($tenant, new AuditEntry('knowledge.scenarios.checked', 'knowledge_release', $release, after: $result));
+
+            return $result;
+        });
+
+        return back();
+    }
+
+    public function scenarioRun(Request $request, string $run): mixed
+    {
+        $data = $this->access($request, 'seller.knowledge.write', function (User $user, TenantContext $tenant) use ($run): array {
+            $row = $this->query('seller_sim_runs', $tenant)->where('id', $run)->first() ?? abort(404);
+
+            return ['run' => ['id' => $row->id, 'turns' => json_decode($row->turns, true, 512, JSON_THROW_ON_ERROR), 'created_at' => $row->created_at]];
+        });
+
+        return Inertia::render('Seller/Knowledge/Releases/Run', $data);
     }
 
     public function draft(Request $request): mixed
@@ -91,16 +185,92 @@ final class ReleasesController
 
     public function publish(Request $request, string $release): mixed
     {
-        $input = $request->validate(['version' => ['required', 'integer', 'min:1']]);
-        $this->access($request, 'seller.knowledge.write', fn (User $user, TenantContext $tenant) => app(KnowledgeRepository::class)->publish($tenant, $release, (int) $input['version']));
+        $input = $request->validate(['version' => ['required', 'integer', 'min:1'], 'note' => ['nullable', 'string', 'max:500'], 'confirm_failed' => ['sometimes', 'boolean']]);
+        $this->access($request, 'seller.knowledge.write', function (User $user, TenantContext $tenant) use ($release, $input): void {
+            $run = $this->scenarioResult($tenant, $release);
+            if ($run && $run['version'] === (int) $input['version'] && $run['failed'] > 0 && ! ($input['confirm_failed'] ?? false)) {
+                throw ValidationException::withMessages(['confirm_failed' => 'Подтвердите публикацию при проваленных сценариях.']);
+            }
+            DB::transaction(function () use ($tenant, $release, $input): void {
+                $published = app(KnowledgeRepository::class)->publish($tenant, $release, (int) $input['version']);
+                $note = trim($input['note'] ?? '');
+                if ($note !== '') {
+                    app(AuditWriter::class)->record($tenant, new AuditEntry('knowledge.release.note', 'knowledge_release', $published->releaseId(), after: ['note' => $note]));
+                }
+            });
+        });
 
         return back()->with('status', 'Знания опубликованы.');
     }
 
+    public function backup(Request $request, string $release): mixed
+    {
+        $data = $this->access($request, 'seller.knowledge.write', function (User $user, TenantContext $tenant) use ($release): array {
+            $repository = app(KnowledgeRepository::class);
+            $editor = $repository->draftEditor($tenant, $release);
+            $snapshot = $repository->forRelease($tenant, $release, true)->toArray();
+
+            return ['format' => 'souzpir-knowledge-draft-v1', 'release_id' => $editor['id'], 'version' => $editor['version'],
+                'snapshot' => $snapshot, 'fact_metadata' => $editor['groups']];
+        });
+
+        return response()->streamDownload(function () use ($data): void {
+            echo json_encode($data, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+        }, 'knowledge-draft-'.$release.'.json', ['Content-Type' => 'application/json; charset=UTF-8', 'Cache-Control' => 'private, no-store']);
+    }
+
+    public function restoreFile(Request $request): mixed
+    {
+        $this->access($request, 'seller.knowledge.write', function (User $user, TenantContext $tenant) use ($request): void {
+            $input = $request->validate(['backup' => ['required', 'file', 'max:2048']]);
+            try {
+                $data = json_decode($input['backup']->getContent(), true, 512, JSON_THROW_ON_ERROR);
+                if (! is_array($data) || ($data['format'] ?? null) !== 'souzpir-knowledge-draft-v1' || ! is_array($data['snapshot'] ?? null) || ! is_array($data['fact_metadata'] ?? null)) {
+                    throw new \InvalidArgumentException;
+                }
+                app(DatabaseKnowledgeRepository::class)->restoreFile($tenant, $data['snapshot'], $data['fact_metadata']);
+            } catch (\JsonException|\InvalidArgumentException $error) {
+                throw ValidationException::withMessages(['backup' => 'Файл копии повреждён или имеет неподдерживаемый формат.']);
+            }
+        });
+
+        return back()->with('status', 'Черновик восстановлен из файла. Предыдущий сохранён как копия.');
+    }
+
     public function rollback(Request $request, string $release): mixed
     {
-        $this->access($request, 'seller.knowledge.write', fn (User $user, TenantContext $tenant) => app(KnowledgeRepository::class)->rollback($tenant, $release));
+        $this->access($request, 'seller.knowledge.write', function (User $user, TenantContext $tenant) use ($release): void {
+            $repository = app(KnowledgeRepository::class);
+            $snapshot = $repository->forRelease($tenant, $release);
+            DB::transaction(function () use ($tenant, $repository, $snapshot, $release): void {
+                $draft = $this->query('knowledge_releases', $tenant)->where('status', 'draft')->lockForUpdate()->first(['id', 'version']);
+                if ($draft) {
+                    $this->query('knowledge_releases', $tenant)->where('id', $draft->id)->update(['status' => 'building', 'updated_at' => now()]);
+                    app(AuditWriter::class)->record($tenant, new AuditEntry('knowledge.draft.autosaved', 'knowledge_release', $draft->id, after: ['version' => $draft->version, 'rollback_to' => $release]));
+                }
+                $repository->createDraft($tenant, $snapshot->toArray());
+            });
+        });
 
-        return back()->with('status', 'Версия знаний восстановлена.');
+        return back()->with('status', 'Создан черновик из выбранной версии. Прежний черновик сохранён для восстановления.');
+    }
+
+    public function restore(Request $request, string $release): mixed
+    {
+        $this->access($request, 'seller.knowledge.write', function (User $user, TenantContext $tenant) use ($release): void {
+            DB::transaction(function () use ($tenant, $release): void {
+                $backup = $this->query('knowledge_releases', $tenant)->where('id', $release)->where('status', 'building')->lockForUpdate()->first(['id']) ?? abort(404);
+                abort_unless($this->query('audit_logs', $tenant)->where('action', 'knowledge.draft.autosaved')->where('subject_id', $backup->id)->exists(), 404);
+                $current = $this->query('knowledge_releases', $tenant)->where('status', 'draft')->lockForUpdate()->first(['id', 'version']);
+                if ($current) {
+                    $this->query('knowledge_releases', $tenant)->where('id', $current->id)->update(['status' => 'building', 'updated_at' => now()]);
+                    app(AuditWriter::class)->record($tenant, new AuditEntry('knowledge.draft.autosaved', 'knowledge_release', $current->id, after: ['version' => $current->version, 'restore_to' => $release]));
+                }
+                $this->query('knowledge_releases', $tenant)->where('id', $backup->id)->update(['status' => 'draft', 'updated_at' => now()]);
+                app(AuditWriter::class)->record($tenant, new AuditEntry('knowledge.draft.restored', 'knowledge_release', $backup->id));
+            });
+        });
+
+        return back()->with('status', 'Черновик восстановлен. Предыдущий сохранён как копия.');
     }
 }

@@ -7,7 +7,9 @@ use App\Shell\Audit\Contracts\AuditWriter;
 use App\Tenancy\TenantContext;
 use App\Vision\Core\ReportSeal;
 use App\Vision\Evidence\Contracts\KnowledgeGate;
+use App\Vision\Site\Jobs\AuditSiteJob;
 use App\Vision\SiteAudit\PublicAddressResolver;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -125,18 +127,20 @@ final class SiteWorkflowTest extends TenancyTestCase
 
     public function test_membership_revocation_during_fake_crawl_prevents_persistence(): void
     {
-        [$owner, , $brand, , $membership] = $this->cabinet();
+        [$owner, $org, $brand, , $membership] = $this->cabinet();
         $this->fakeSite($membership->id);
-        $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->post('/vision/site/audit', ['url' => 'https://fixture.example.com'])->assertForbidden();
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->post('/vision/site/audit', ['url' => 'https://fixture.example.com'])->assertRedirect()->assertSessionHasErrors('url');
+        self::assertSame('failed', Cache::get(AuditSiteJob::key($org->id, $brand->id))['stage']);
         $this->assertDatabaseCount('audit_runs', 0);
         $this->assertDatabaseMissing('audit_logs', ['action' => 'vision.site.audit.created']);
     }
 
     public function test_session_revocation_during_fake_crawl_prevents_persistence(): void
     {
-        [$owner, , $brand] = $this->cabinet();
+        [$owner, $org, $brand] = $this->cabinet();
         $this->fakeSite(null, $owner->id);
-        $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->postJson('/vision/site/audit', ['url' => 'https://fixture.example.com'])->assertUnauthorized();
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->postJson('/vision/site/audit', ['url' => 'https://fixture.example.com'])->assertRedirect()->assertSessionHasErrors('url');
+        self::assertSame('failed', Cache::get(AuditSiteJob::key($org->id, $brand->id))['stage']);
         $this->assertDatabaseCount('audit_runs', 0);
         $this->assertDatabaseMissing('audit_logs', ['action' => 'vision.site.audit.created']);
     }

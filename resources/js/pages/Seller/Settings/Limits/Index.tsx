@@ -22,6 +22,8 @@ type Props = {
   rows: Row[];
   budget: { used: string | null; limit: string | null } | null;
   period: { from: string; to: string; timezone: string };
+  daysRemaining: number;
+  canViewPlans: boolean;
 };
 const icons = [MessageCircle, MessagesSquare, Share2, Users];
 function display(value: string | number | null) {
@@ -37,12 +39,9 @@ function date(value: string) {
     timeZone: 'UTC',
   }).format(new Date(value + 'T00:00:00Z'));
 }
-export default function Index({ rows, budget, period }: Props) {
+export default function Index({ rows, budget, period, daysRemaining, canViewPlans }: Props) {
   const { props } = usePage<SharedPropsV1 & Record<string, unknown>>();
-  const exists = (uri: string) =>
-    Object.values(props.ziggy?.routes ?? {}).some(
-      (route) => route.uri === uri && route.methods.includes('GET'),
-    );
+  const notificationsAvailable = Object.values(props.ziggy?.routes ?? {}).some(route => route.uri === 'seller/settings/notifications' && route.methods.includes('GET'));
   return (
     <CabinetLayout
       breadcrumbs={[
@@ -60,39 +59,15 @@ export default function Index({ rows, budget, period }: Props) {
         </p>
       </header>
       <nav aria-label="Настройки продавца" className="mb-6 flex flex-wrap gap-2">
-        <span
-          aria-disabled="true"
-          className="rounded-lg bg-(--color-surface) px-4 py-3 text-sm text-(--color-ink-muted)"
-        >
-          Режим работы · Скоро
-        </span>
-        <span
-          aria-disabled="true"
-          className="rounded-lg bg-(--color-surface) px-4 py-3 text-sm text-(--color-ink-muted)"
-        >
-          Распределение · Скоро
-        </span>
+        <Link href="/seller/settings" className="cursor-pointer rounded-lg bg-(--color-surface) px-4 py-3 text-sm text-(--color-link)">Режим работы</Link>
+        <Link href="/seller/settings" className="cursor-pointer rounded-lg bg-(--color-surface) px-4 py-3 text-sm text-(--color-link)">Распределение</Link>
         <span
           aria-current="page"
           className="rounded-lg bg-(--color-success-soft) px-4 py-3 text-sm font-semibold text-(--color-action)"
         >
           Лимиты
         </span>
-        {exists('seller/settings/notifications') ? (
-          <Link
-            href="/seller/settings/notifications"
-            className="cursor-pointer rounded-lg bg-(--color-surface) px-4 py-3 text-sm text-(--color-link) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus)"
-          >
-            Уведомления
-          </Link>
-        ) : (
-          <span
-            aria-disabled="true"
-            className="rounded-lg bg-(--color-surface) px-4 py-3 text-sm text-(--color-ink-muted)"
-          >
-            Уведомления · Скоро
-          </span>
-        )}
+        {notificationsAvailable ? <Link href="/seller/settings/notifications" className="cursor-pointer rounded-lg bg-(--color-surface) px-4 py-3 text-sm text-(--color-link)">Уведомления</Link> : <span aria-disabled="true" className="rounded-lg bg-(--color-surface) px-4 py-3 text-sm text-(--color-ink-muted)">Уведомления · Скоро</span>}
       </nav>
       <section
         aria-labelledby="usage-heading"
@@ -103,10 +78,11 @@ export default function Index({ rows, budget, period }: Props) {
             Использование за период
           </h2>
           <p className="text-sm text-(--color-ink-muted)">
-            С {date(period.from)} до {date(period.to)} · UTC
+            С {date(period.from)} до {date(period.to)} (не включая) · {period.timezone}
           </p>
         </div>
         <ul className="divide-y divide-(--color-border)">
+          {rows.length === 0 && <li className="py-4 text-sm text-(--color-ink-muted)">Данные об использовании пока недоступны.</li>}
           {rows.map((row, i) => {
             const Icon = icons[i] || ChartNoAxesCombined;
             const value = row.status === 'ready' && row.value !== null ? Number(row.value) : null;
@@ -137,15 +113,9 @@ export default function Index({ rows, budget, period }: Props) {
                   </span>
                 </span>
                 {percent !== null ? (
-                  <progress
-                    aria-label={row.label}
-                    value={Math.min(percent, 100)}
-                    max={100}
-                    className={
-                      'h-3 w-full ' +
-                      (percent >= 80 ? 'accent-amber-500' : 'accent-(--color-action)')
-                    }
-                  />
+                  <div role="progressbar" aria-label={row.label} aria-valuenow={Math.min(percent, 100)} aria-valuemin={0} aria-valuemax={100} className="h-3 w-full overflow-hidden rounded-full bg-(--color-border)">
+                    <div className={`h-full ${percent >= 80 ? 'bg-amber-500' : 'bg-(--color-action)'}`} style={{ width: `${Math.min(percent, 100)}%` }} />
+                  </div>
                 ) : (
                   <span className="text-sm text-(--color-ink-muted)">
                     {row.configured ? 'Нет данных для расчёта' : 'Лимит не установлен'}
@@ -156,6 +126,16 @@ export default function Index({ rows, budget, period }: Props) {
             );
           })}
         </ul>
+      </section>
+      <section aria-labelledby="period-heading" className="mt-5 rounded-2xl bg-(--color-surface) p-5 shadow-(--shadow-card)">
+        <h2 id="period-heading" className="text-lg font-bold">До конца периода</h2>
+        <p className="mt-2 text-sm">{daysRemaining} дн. · следующий период начнётся {date(period.to)} ({period.timezone}).</p>
+      </section>
+      <section aria-labelledby="exhaustion-heading" className="mt-5 rounded-2xl bg-(--color-surface) p-5 shadow-(--shadow-card)">
+        <h2 id="exhaustion-heading" className="text-lg font-bold">Что произойдёт при исчерпании</h2>
+        <p className="mt-2 text-sm">Если настроенный бюджет ИИ закончится, новые вызовы ИИ будут остановлены до обновления бюджета. Автоматическая передача диалога менеджеру при этом пока не настроена.</p>
+        <p className="mt-2 text-sm text-(--color-ink-muted)">Не заданные тарифные лимиты не означают нулевой остаток.</p>
+        {canViewPlans ? <Link href="/billing/plans" className="mt-4 inline-block cursor-pointer text-sm font-semibold text-(--color-link)">Открыть тариф и лимиты</Link> : <p className="mt-4 text-sm text-(--color-ink-muted)">Тариф доступен владельцу компании.</p>}
       </section>
       <section
         aria-labelledby="units-heading"

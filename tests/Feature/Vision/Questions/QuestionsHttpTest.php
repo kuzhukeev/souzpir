@@ -62,7 +62,8 @@ final class QuestionsHttpTest extends TenancyTestCase
 
     public function test_approved_set_can_be_used_by_fake_measurement_runtime_with_real_grant(): void
     {
-        [$owner, $org, $brand] = $this->fixture();
+        [$owner, $org, $brand, $other] = $this->fixture();
+        $this->get('/vision/questions/approve')->assertOk()->assertInertia(fn ($page) => $page->has('measurementBrandRevision'));
         $id = $this->postJson('/vision/questions/candidates', ['text' => 'Где найти качественные услуги рядом?', 'intent' => 'choose'])->assertStatus(201)->json('id');
         $set = $this->postJson('/vision/questions/approve', ['candidate_ids' => [$id], 'models' => ['gemini' => 'google/gemini-2.5-flash'], 'frequency' => null])->assertOk()->json('id');
         self::assertSame($set, DB::table('vision_question_approvals')->where('brand_id', $brand->id)->where('active', true)->value('question_set_id'));
@@ -82,6 +83,9 @@ final class QuestionsHttpTest extends TenancyTestCase
             self::assertSame(1, DB::table('measurement_answers')->where('measurement_id', $measurement)->count());
             self::assertSame(0, DB::table('ai_calls')->count());
         });
+        $this->getJson('/vision/questions/data')->assertOk()->assertJsonCount(1, 'history.0.measurements')->assertJsonPath('history.0.measurements.0.status', 'pending')->assertJsonPath('history.0.measurements.0.number', 1);
+        $this->post('/brand/switch', ['brand_id' => $other->id])->assertRedirect();
+        $this->getJson('/vision/questions/data')->assertOk()->assertJsonCount(0, 'history');
         Http::assertNothingSent();
     }
 
@@ -223,8 +227,11 @@ final class QuestionsHttpTest extends TenancyTestCase
         $this->getJson('/vision/questions/data')->assertOk()->assertJsonCount(0, 'candidates');
         $this->postJson('/vision/questions/approve', ['candidate_ids' => [$candidateId], 'models' => $models, 'frequency' => null])->assertStatus(422);
         $manual = $this->postJson('/vision/questions/candidates', ['text' => 'Где найти надёжные услуги поблизости?', 'intent' => 'choose'])->assertStatus(201)->json('id');
-        $this->postJson('/vision/questions/approve', ['candidate_ids' => [$manual], 'models' => $models, 'frequency' => 'weekly'])->assertStatus(422);
-        self::assertSame(0, DB::table('question_sets')->count());
+        $this->postJson('/vision/questions/approve', ['candidate_ids' => [$manual], 'models' => $models, 'frequency' => 'invalid'])->assertStatus(422);
+        $this->postJson('/vision/questions/approve', ['candidate_ids' => [$manual], 'models' => $models, 'frequency' => 'weekly'])->assertOk();
+        $this->getJson('/vision/questions/data')->assertOk()->assertJsonPath('active_set.frequency', 'weekly');
+        self::assertSame(1, DB::table('question_sets')->count());
+        self::assertSame(0, DB::table('monitoring_schedules')->count());
     }
 
     public function test_unexpected_failure_does_not_log_private_text_or_commit_partial_candidate(): void

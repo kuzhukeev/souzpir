@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Profile\ProfileAccess;
 use App\Tenancy\TenantContext;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -26,7 +27,13 @@ final class DashboardController
 
     public function index(Request $request): mixed
     {
-        return Inertia::render('Seller/Dashboard/Index', ['dashboard' => $this->data($request)]);
+        try {
+            return Inertia::render('Seller/Dashboard/Index', ['dashboard' => $this->data($request)]);
+        } catch (QueryException $exception) {
+            report($exception);
+
+            return Inertia::render('Seller/Dashboard/Index', ['dashboard' => null, 'initialLoadError' => true]);
+        }
     }
 
     public function attention(Request $request): mixed

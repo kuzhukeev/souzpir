@@ -4,6 +4,7 @@ namespace App\Seller\Settings\Persona;
 
 use App\Models\User;
 use App\Seller\Knowledge\Contracts\KnowledgeRepository;
+use App\Seller\Runtime\ServicePhraseSelector;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Profile\ProfileAccess;
 use App\Tenancy\TenantContext;
@@ -36,7 +37,9 @@ final class PersonaController
             $draft = $this->draft($tenant);
             $persona = $draft ? app(KnowledgeRepository::class)->forRelease($tenant, $draft->id, true)->persona() : null;
 
-            return ['draft' => $draft, 'persona' => $persona];
+            return ['draft' => $draft, 'persona' => $persona,
+                'phrases' => array_replace(ServicePhraseSelector::DEFAULTS, $persona['service_phrases'] ?? []),
+                'quickReplies' => $persona['quick_replies'] ?? []];
         });
 
         return Inertia::render('Seller/Settings/Persona/Index', [...$data, 'status' => session('status')]);
@@ -45,6 +48,11 @@ final class PersonaController
     public function save(Request $request): mixed
     {
         $input = $request->validate(['version' => ['required', 'integer', 'min:1'], 'name' => ['required', 'string', 'max:40'], 'intro' => ['nullable', 'string', 'max:400'],
+            'role' => ['sometimes', 'required', 'string', 'max:100'], 'bot_disclosure' => ['sometimes', 'in:always,if_asked'],
+            'address' => ['sometimes', 'in:vy,ty'], 'anchors' => ['sometimes', 'array', 'max:12'],
+            'anchors.*' => ['required', 'string', 'max:100'], 'stop_phrases' => ['sometimes', 'array', 'max:30'],
+            'stop_phrases.*' => ['required', 'string', 'max:100'], 'hard_bans' => ['sometimes', 'array', 'max:20'],
+            'hard_bans.*' => ['required', 'string', 'max:300'], 'max_sentences' => ['sometimes', 'integer', 'min:1', 'max:6'],
             'tone' => ['present', 'array', 'max:8'], 'tone.*' => ['required', 'string', 'max:300'], 'form_bans' => ['present', 'array', 'max:30'], 'form_bans.*' => ['required', 'string', 'max:300'],
             'max_words' => ['required', 'integer', 'min:20', 'max:300'], 'target_min' => ['required', 'integer', 'min:1', 'max:300'], 'target_max' => ['required', 'integer', 'min:1', 'max:300'], 'max_questions' => ['required', 'integer', 'min:1', 'max:2']]);
         if ($input['target_min'] > $input['target_max'] || $input['target_max'] > $input['max_words']) {
@@ -59,11 +67,43 @@ final class PersonaController
             $persona['intro'] = $input['intro'] ?? '';
             $persona['tone'] = $input['tone'];
             $persona['form_bans'] = $input['form_bans'];
-            $persona['length'] = array_replace($persona['length'] ?? [], ['target_words' => [(int) $input['target_min'], (int) $input['target_max']], 'max_words' => (int) $input['max_words'], 'max_questions' => (int) $input['max_questions']]);
-            $data['persona'] = $persona;
+            foreach (['role', 'bot_disclosure', 'address', 'anchors', 'hard_bans'] as $field) {
+                if (array_key_exists($field, $input)) {
+                    $persona[$field] = $input[$field];
+                }
+            }
+            if (array_key_exists('role', $input) && array_key_exists('stop_phrases', $input)) {
+                $persona = app(PersonaResponderAdapter::class)->apply($persona, $input);
+            }
+            $length = ['target_words' => [(int) $input['target_min'], (int) $input['target_max']],
+                'max_words' => (int) $input['max_words'], 'max_questions' => (int) $input['max_questions']];
+            if (isset($input['max_sentences'])) {
+                $length['max_sentences'] = (int) $input['max_sentences'];
+            }
+            $persona['length'] = array_replace($persona['length'] ?? [], $length);
+            $data['persona'] = app(PersonaResponderAdapter::class)->withServicePhrases($persona);
             $repo->saveDraft($tenant, $draft->id, (int) $input['version'], $data);
         });
 
         return back()->with('status', 'Персонаж сохранён в черновике.');
+    }
+
+    public function savePhrases(Request $request): mixed
+    {
+        $input = $request->validate(['version' => ['required', 'integer', 'min:1'],
+            'phrases' => ['required', 'array:error,handoff,out_of_hours,no_answer,do_not_disturb,reminder,goodbye'],
+            'phrases.*' => ['nullable', 'string', 'max:500'],
+            'quick_replies' => ['present', 'array', 'max:20'], 'quick_replies.*' => ['required', 'string', 'max:300']]);
+        $this->access($request, function (TenantContext $tenant) use ($input): void {
+            $draft = $this->draft($tenant) ?? abort(404, 'Создайте черновик базы знаний.');
+            $repo = app(KnowledgeRepository::class);
+            $data = $repo->forRelease($tenant, $draft->id, true)->toArray();
+            $data['persona']['service_phrases'] = array_replace(ServicePhraseSelector::DEFAULTS, $input['phrases']);
+            $data['persona']['quick_replies'] = $input['quick_replies'];
+            $data['persona'] = app(PersonaResponderAdapter::class)->withServicePhrases($data['persona']);
+            $repo->saveDraft($tenant, $draft->id, (int) $input['version'], $data);
+        });
+
+        return back()->with('status', 'Служебные фразы сохранены в черновике.');
     }
 }

@@ -2,11 +2,22 @@ import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 import CabinetLayout from '@/layouts/CabinetLayout';
 
-type Channel = { id: string; name: string; type: string; status: string; mode: string; dialogs7d: number };
+type CardItem = { key:string; types:string[]; name:string; status:string; href?:string };
+type Channel = { id: string; name: string; type: string; status: string; mode: string; dialogs7d: number; lastActivity?: string | null };
 const modes: Record<string, string> = { bot: 'Автономно', suggest: 'Подсказки', manager: 'Выключен' };
 const statuses: Record<string, string> = { active: 'Токен сохранён', unconfigured: 'Не настроен', disabled: 'Отключён', error: 'Ошибка', planned: 'Скоро' };
 
 export default function Index({ channels, canManage, status }: { channels: Channel[]; canManage: boolean; status?: string | null }) {
+  const types: CardItem[] = [
+    {key:'widget',types:['widget','site','website'],name:'Сайт',status:'Настройка виджета',href:'/seller/channels/widget'},
+    {key:'telegram',types:['telegram'],name:'Telegram',status:'Не подключён',href:'/seller/channels/telegram'},
+    {key:'whatsapp',types:['whatsapp'],name:'WhatsApp',status:'Скоро'},
+    {key:'vk',types:['vk'],name:'ВКонтакте',status:'Скоро'},
+    {key:'email',types:['email'],name:'Почта',status:'Не подключена',href:'/seller/channels/email'},
+    {key:'api',types:['api'],name:'Входящие формы и API',status:'Не подключены',href:'/integrations/api'},
+  ];
+  const cards = types.flatMap<{key:string;channel:Channel|null;item:CardItem}>(item => { const matches=channels.filter(channel=>item.types.includes(channel.type));return matches.length ? matches.map(channel=>({key:channel.id,channel,item})) : [{key:item.key,channel:null,item}]; });
+  cards.push(...channels.filter(channel=>!types.some(item=>item.types.includes(channel.type))).map(channel=>({key:channel.id,channel,item:{key:channel.type,types:[channel.type],name:channel.name,status:''}})));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [confirmStop, setConfirmStop] = useState(false);
@@ -34,18 +45,14 @@ export default function Index({ channels, canManage, status }: { channels: Chann
       {status && <p role="status" className="mt-4 rounded-lg bg-(--color-success-soft) p-3 text-sm">{status}</p>}
       {error && <p role="alert" className="mt-4 rounded-lg bg-(--color-danger-soft) p-3 text-sm">{error}</p>}
       {canManage && <button type="button" onClick={() => setConfirmStop(true)} className="mt-6 min-h-11 cursor-pointer rounded-lg border border-(--color-border) px-4 text-sm font-semibold">Остановить всех ботов</button>}
+      <section className="mt-5 rounded-xl bg-(--color-surface-muted) p-4 text-sm"><h2 className="font-semibold">Режимы каналов</h2><p className="mt-2">Автономно — бот отвечает сам · Подсказки — ответ утверждает менеджер · Выключен — бот не отвечает.</p></section>
       {confirmStop && <div role="dialog" aria-modal="true" aria-labelledby="stop-title" className="mt-4 rounded-xl border border-(--color-border) bg-(--color-surface) p-5 shadow-(--shadow-card)">
         <h2 id="stop-title" className="text-lg font-bold">Остановить всех ботов?</h2>
         <p className="mt-2 text-sm">Все каналы в автономном режиме перейдут в режим «Выключен».</p>
         <div className="mt-4 flex gap-3"><button type="button" disabled={busy} onClick={stop} className="min-h-11 cursor-pointer rounded-lg bg-(--color-danger-soft) px-4 text-sm font-semibold">Остановить</button><button type="button" onClick={() => setConfirmStop(false)} className="min-h-11 cursor-pointer rounded-lg border border-(--color-border) px-4 text-sm">Отмена</button></div>
       </div>}
-      {channels.length === 0 ? <section className="mt-6 rounded-2xl border border-(--color-border) bg-(--color-surface) p-6"><h2 className="text-xl font-bold">Каналы ещё не подключены</h2><p className="mt-2 text-sm">Начните с Telegram.</p><Link href="/seller/channels/telegram" className="mt-4 inline-flex min-h-11 cursor-pointer items-center text-sm font-semibold text-(--color-link)">Настроить Telegram →</Link></section>
-        : <div className="mt-6 grid gap-4 md:grid-cols-2">{channels.map((channel) => <section key={channel.id} className="rounded-2xl border border-(--color-border) bg-(--color-surface) p-5 shadow-(--shadow-card)">
-          <h2 className="text-xl font-bold">{channel.name}</h2><p className="mt-2 text-sm">{statuses[channel.status] ?? channel.status}</p><p className="mt-1 text-sm">Диалогов за 7 дней: {channel.dialogs7d}</p>
-          <label className="mt-4 block text-sm font-semibold" htmlFor={`mode-${channel.id}`}>Режим</label>
-          <select id={`mode-${channel.id}`} disabled={!canManage || busy} value={channel.mode} onChange={(event) => saveMode(channel, event.target.value)} className="mt-2 min-h-11 w-full cursor-pointer rounded-lg border border-(--color-border) bg-(--color-surface) px-3 text-sm">{Object.entries(modes).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
-          {channel.type === 'telegram' && <Link href="/seller/channels/telegram" className="mt-4 inline-flex min-h-11 cursor-pointer items-center text-sm font-semibold text-(--color-link)">Настройки Telegram →</Link>}
-        </section>)}</div>}
+      {channels.length===0 && <p className="mt-6 text-sm text-(--color-ink-muted)">Каналы ещё не подключены. Выберите канал для настройки.</p>}
+      <div className="mt-6 grid gap-4 md:grid-cols-2">{cards.map(({key,channel,item})=><section key={key} className="rounded-2xl border border-(--color-border) bg-(--color-surface) p-5 shadow-(--shadow-card)"><h2 className="text-xl font-bold">{channel?.name || item.name}</h2>{channel ? <><p className="mt-2 text-sm">{statuses[channel.status] ?? channel.status}</p><p className="mt-1 text-sm">Диалогов за 7 дней: {channel.dialogs7d}</p><p className="mt-1 text-sm text-(--color-ink-muted)">Последняя активность: {channel.lastActivity ? new Date(channel.lastActivity).toLocaleString('ru-RU') : 'нет данных'}</p><fieldset className="mt-4"><legend className="text-sm font-semibold">Режим</legend><div className="mt-2 flex flex-wrap gap-1">{Object.entries(modes).map(([value,label])=><button type="button" key={value} aria-pressed={channel.mode===value} disabled={!canManage||busy} onClick={()=>saveMode(channel,value)} className={`min-h-11 cursor-pointer rounded-lg border px-3 text-sm disabled:opacity-50 ${channel.mode===value?'border-(--color-link) bg-(--color-surface-muted)':'border-(--color-border)'}`}>{label}</button>)}</div></fieldset></>:<p className="mt-2 text-sm text-(--color-ink-muted)">{item.status}</p>}{'href' in item && item.href && <Link href={item.href} className="mt-4 inline-flex min-h-11 cursor-pointer items-center text-sm font-semibold text-(--color-link)">Настроить →</Link>}</section>)}</div>
     </main>
   </CabinetLayout>;
 }

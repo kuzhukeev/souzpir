@@ -16,6 +16,7 @@ final class HomeEntryController
         return $access->run($request, function ($user): Response {
             Gate::forUser($user)->authorize('profile.own');
             $destinations = [
+                ['id' => 'context-organization', 'label' => 'Выбор компании', 'description' => 'Текущая компания и доступные бренды', 'permission' => 'profile.own', 'route' => 'context.organization'],
                 ['id' => 'company', 'label' => 'Компания и бренды', 'description' => 'Данные компании и доступные бренды', 'permission' => 'org.settings.write', 'route' => 'organization.show'],
                 ['id' => 'team', 'label' => 'Команда', 'description' => 'Участники и приглашения', 'permission' => 'team.read', 'route' => 'team.index'],
                 ['id' => 'journal', 'label' => 'Журнал', 'description' => 'Действия в кабинете', 'permission' => 'journal.read', 'route' => 'journal.index'],

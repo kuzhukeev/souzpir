@@ -202,6 +202,7 @@ export default function Api({
         >
           <ArrowLeft size={17} aria-hidden="true" /> Подключения
         </Link>
+        <Link href="/integrations/api/docs" className={'mb-5 ml-4 inline-flex min-h-10 cursor-pointer items-center text-sm font-semibold text-(--color-link) ' + focus}>Документация API</Link>
         <Errors errors={{}} transport={error} />
         {notice && (
           <p role="status" className="mb-4 text-sm">

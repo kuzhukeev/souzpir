@@ -188,6 +188,7 @@ export function QuestionnaireFields({
   errors?: Record<string, string>;
   limits: { competitors?: number; facts?: number; questions?: number };
 }) {
+  const [editingFact, setEditingFact] = useState<number | null>(null);
   const audienceErrorId = useId();
   const priceErrorId = useId();
   const set = <K extends keyof Questionnaire>(key: K, value: Questionnaire[K]) =>
@@ -385,6 +386,7 @@ export function QuestionnaireFields({
               {limits.competitors !== undefined ? ` из ${limits.competitors}` : ''}
             </span>
           </div>
+          {hints.length > 0 && <div className="flex flex-wrap gap-2">{hints.map((hint, index) => <button key={`${hint.value}-${index}`} type="button" className={button} disabled={data.competitors.some(item => item.name === hint.value) || (limits.competitors !== undefined && data.competitors.length >= limits.competitors)} onClick={() => set('competitors', [...data.competitors, { name: hint.value, website: '', reason: '' }])}>Добавить из аудита: {hint.value}</button>)}</div>}
           {data.competitors.map((competitor, index) => (
             <div key={index} className="space-y-3 rounded-lg border border-(--color-border) p-4">
               <div className="flex justify-between">
@@ -451,6 +453,7 @@ export function QuestionnaireFields({
         <>
           <section className="space-y-3">
             <h3 className="font-semibold">Данные с сайта</h3>
+            {hints.length > 0 && <div className="flex flex-wrap gap-2">{hints.map((hint, index) => <button key={`${hint.value}-${index}`} type="button" className={button} disabled={data.site_facts.some(item => item.value === hint.value)} onClick={() => set('site_facts', [...data.site_facts, { label: hint.label, value: hint.value, decision: 'pending' }])}>Добавить факт: {hint.value}</button>)}</div>}
             {data.site_facts.length === 0 && (
               <p className="text-sm text-(--color-ink-muted)">
                 Подсказок с сайта пока нет. Добавьте факты самостоятельно.
@@ -458,17 +461,12 @@ export function QuestionnaireFields({
             )}
             {data.site_facts.map((fact, index) => (
               <div key={index} className="space-y-2 rounded-lg border border-(--color-border) p-3">
-                <TextField
+                {editingFact === index ? <><TextField
                   title={fact.label}
                   value={fact.value}
                   error={errors[`site_facts.${index}.value`]}
-                  onChange={(value) =>
-                    set(
-                      'site_facts',
-                      data.site_facts.map((item, i) => (i === index ? { ...item, value } : item)),
-                    )
-                  }
-                />
+                  onChange={(value) => set('site_facts', data.site_facts.map((item, i) => i === index ? { ...item, value } : item))}
+                /><button type="button" className={button} onClick={() => setEditingFact(null)}>Готово</button></> : <><p className="text-sm font-semibold">{fact.label}</p><p className="text-sm">{fact.value}</p><button type="button" className={button} onClick={() => setEditingFact(index)}>Исправить</button></>}
                 <div className="flex flex-wrap gap-2">
                   {(
                     [

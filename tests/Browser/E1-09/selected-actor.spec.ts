@@ -58,7 +58,7 @@ test('переход из карточки сохраняет пустой фи�
   await expect(page).toHaveURL(`${origin}${target}`);
   const filter = page.getByRole('combobox', { name: 'Участник' });
   await expect(filter).toContainText('Выбранный участник');
-  await expect(page.getByText('Действий пока нет')).toBeVisible();
+  await expect(page.getByText('По выбранным фильтрам действий нет')).toBeVisible();
   await expect(page.getByText(`activity-target-${tag}`)).toHaveCount(0);
   await filter.click();
   await expect(page.getByRole('option', { name: 'Выбранный участник' })).toHaveCount(1);

@@ -46,6 +46,13 @@ final class ConditionsController
         $input = $request->validate(['version' => ['required', 'integer', 'min:1'], 'min_order_rub' => ['nullable', 'numeric', 'min:0', 'max:999999999'],
             'offseason_min_order_rub' => ['nullable', 'numeric', 'min:0', 'max:999999999'], 'reserve_days' => ['nullable', 'integer', 'min:0', 'max:365'],
             'max_pct_unapproved' => ['required', 'integer', 'min:0', 'max:100'], 'new_client_bonus_pct' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'discount_grid' => ['sometimes', 'array', 'max:50'], 'discount_grid.*.from' => ['required', 'numeric', 'min:0', 'max:999999999'],
+            'discount_grid.*.pct' => ['required', 'numeric', 'min:0', 'max:100'],
+            'payment_options' => ['sometimes', 'array', 'max:50'], 'payment_options.*.name' => ['required', 'string', 'max:255'],
+            'payment_options.*.description' => ['nullable', 'string', 'max:2000'], 'payment_options.*.enabled' => ['required', 'boolean'],
+            'delivery_methods' => ['sometimes', 'array', 'max:50'], 'delivery_methods.*.name' => ['required', 'string', 'max:255'],
+            'delivery_methods.*.time' => ['nullable', 'string', 'max:255'], 'delivery_methods.*.cost' => ['nullable', 'string', 'max:255'],
+            'delivery_methods.*.zones' => ['nullable', 'string', 'max:1000'],
             'approved' => ['required', 'array'], 'approved.min_order_rub' => ['required', 'boolean'], 'approved.offseason_min_order_rub' => ['required', 'boolean'],
             'approved.reserve_days' => ['required', 'boolean'], 'approved.new_client_bonus_pct' => ['required', 'boolean']]);
         $this->access($request, function (TenantContext $tenant) use ($input): void {
@@ -59,6 +66,16 @@ final class ConditionsController
                 } else {
                     unset($conditions[$key]);
                 }
+            }
+            if (array_key_exists('discount_grid', $input)) {
+                $conditions['discount_grid'] = array_map(fn (array $row): array => ['from' => 0 + $row['from'], 'pct' => 0 + $row['pct']], $input['discount_grid']);
+            }
+            if (array_key_exists('payment_options', $input)) {
+                $conditions['payment_options'] = $input['payment_options'];
+                $conditions['payment_methods'] = array_values(array_map(fn (array $option): string => $option['name'], array_filter($input['payment_options'], fn (array $option): bool => (bool) $option['enabled'])));
+            }
+            if (array_key_exists('delivery_methods', $input)) {
+                $conditions['delivery_methods'] = $input['delivery_methods'];
             }
             $conditions['max_pct_unapproved'] = (int) $input['max_pct_unapproved'];
             $conditions['approvals'] = array_replace($conditions['approvals'] ?? [], $input['approved']);

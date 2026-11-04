@@ -26,6 +26,7 @@ use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 use SensitiveParameter;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Throwable;
@@ -52,6 +53,32 @@ final class BillingController
         });
 
         return Inertia::render('Shell/Billing/Index', $props);
+    }
+
+    public function exportUsage(Request $request, BillingQuery $query): StreamedResponse
+    {
+        app(AuthSessionRegistry::class)->withinActive($request, fn () => $this->access->lock(false));
+        $input = Validator::make($request->query(), BillingPeriod::rules(), BillingPeriod::messages())->validate();
+        $now = CarbonImmutable::now('UTC');
+        $from = isset($input['from']) ? CarbonImmutable::createFromFormat('!Y-m-d', $input['from'], 'UTC') : $now->startOfMonth();
+        $to = isset($input['to']) ? CarbonImmutable::createFromFormat('!Y-m-d', $input['to'], 'UTC') : $now->endOfMonth()->startOfDay();
+        $daily = app(AuthSessionRegistry::class)->withinActive($request, function () use ($query, $from, $to): array {
+            $this->access->lock(false);
+
+            return $query->daily(app(TenantContext::class), $from, $to);
+        });
+        abort_if($daily['limited'], 422, 'Выберите период не более 93 дней.');
+
+        return response()->streamDownload(function () use ($daily): void {
+            $out = fopen('php://output', 'w');
+            fwrite($out, "\xEF\xBB\xBF");
+            fputcsv($out, ['День', 'Показатель', 'Бренд', 'Значение', 'Единица'], ';', '"', '');
+            foreach ($daily['rows'] as $row) {
+                $brand = preg_match('/^[=+@\-]/u', $row['brand']) ? "'".$row['brand'] : $row['brand'];
+                fputcsv($out, [$row['date'], $row['label'], $brand, $row['value'], $row['unit']], ';', '"', '');
+            }
+            fclose($out);
+        }, 'usage.csv', ['Content-Type' => 'text/csv; charset=UTF-8', 'Cache-Control' => 'private, no-store']);
     }
 
     public function payerData(#[SensitiveParameter] Request $request): JsonResponse

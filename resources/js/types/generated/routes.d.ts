@@ -22,6 +22,12 @@ declare module 'ziggy-js' {
     "brand.switch": [],
     "notifications.settings.update": [],
     "ai.recovery.calls.index": [],
+    "ai.recovery.calls.reconcile": [
+        {
+            "name": "callId",
+            "required": true
+        }
+    ],
     "billing.ai-recovery": [],
     "login": [],
     "login.store": [],
@@ -74,6 +80,8 @@ declare module 'ziggy-js' {
     "onboarding.logo.store": [],
     "onboarding.logo.show": [],
     "onboarding.finish": [],
+    "context.organization": [],
+    "context.organization.logo": [],
     "dashboard.overview": [],
     "dashboard.notifications.read": [
         {
@@ -184,6 +192,18 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "team.invitations.repeat": [
+        {
+            "name": "invitation",
+            "required": true
+        }
+    ],
+    "team.dialogs.transfer": [
+        {
+            "name": "membership",
+            "required": true
+        }
+    ],
     "team.show": [
         {
             "name": "membership",
@@ -210,6 +230,7 @@ declare module 'ziggy-js' {
     "billing.plans": [],
     "billing.invoices": [],
     "billing.payer": [],
+    "billing.usage.export": [],
     "billing.payer.data": [],
     "billing.payer.update": [],
     "billing.plans.request": [],
@@ -270,6 +291,7 @@ declare module 'ziggy-js' {
     ],
     "integrations.index": [],
     "integrations.api": [],
+    "integrations.api.docs": [],
     "integrations.secrets.consume": [],
     "integrations.notifications": [],
     "integrations.keys.store": [],
@@ -347,8 +369,27 @@ declare module 'ziggy-js' {
     "seller.turns.runtime": [],
     "seller.knowledge.index": [],
     "seller.knowledge.compare": [],
+    "seller.knowledge.scenario-run": [
+        {
+            "name": "run",
+            "required": true
+        }
+    ],
+    "seller.knowledge.restore-file": [],
     "seller.knowledge.draft": [],
     "seller.knowledge.incoming": [],
+    "seller.knowledge.backup": [
+        {
+            "name": "release",
+            "required": true
+        }
+    ],
+    "seller.knowledge.scenarios": [
+        {
+            "name": "release",
+            "required": true
+        }
+    ],
     "seller.knowledge.publish": [
         {
             "name": "release",
@@ -361,10 +402,23 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "seller.knowledge.restore": [
+        {
+            "name": "release",
+            "required": true
+        }
+    ],
     "seller.knowledge.facts.index": [],
+    "seller.knowledge.facts.show": [
+        {
+            "name": "fact",
+            "required": true
+        }
+    ],
     "seller.knowledge.facts.group": [],
     "seller.knowledge.facts.group.delete": [],
     "seller.knowledge.facts.add": [],
+    "seller.knowledge.facts.bulk": [],
     "seller.knowledge.facts.update": [
         {
             "name": "fact",
@@ -417,6 +471,8 @@ declare module 'ziggy-js' {
     "seller.channels.index": [],
     "seller.channels.telegram": [],
     "seller.channels.telegram.register": [],
+    "seller.channels.telegram.verify": [],
+    "seller.channels.telegram.link-code": [],
     "seller.channels.telegram.save": [],
     "seller.channels.mode": [
         {
@@ -443,7 +499,48 @@ declare module 'ziggy-js' {
     "api.v1.leads.create": [],
     "api.v1.turn.create": [],
     "seller.dialogs.index": [],
+    "seller.dialogs.mine": [
+        {
+            "name": "dialog",
+            "required": false
+        }
+    ],
+    "seller.dialogs.pending": [],
     "seller.dialogs.show": [
+        {
+            "name": "dialog",
+            "required": true
+        }
+    ],
+    "seller.dialogs.messages.attachment": [
+        {
+            "name": "dialog",
+            "required": true
+        },
+        {
+            "name": "message",
+            "required": true
+        }
+    ],
+    "seller.dialogs.messages.store": [
+        {
+            "name": "dialog",
+            "required": true
+        }
+    ],
+    "seller.dialogs.tasks.store": [
+        {
+            "name": "dialog",
+            "required": true
+        }
+    ],
+    "seller.dialogs.transfer": [
+        {
+            "name": "dialog",
+            "required": true
+        }
+    ],
+    "seller.dialogs.profile": [
         {
             "name": "dialog",
             "required": true
@@ -452,6 +549,16 @@ declare module 'ziggy-js' {
     "seller.dialogs.mode": [
         {
             "name": "dialog",
+            "required": true
+        }
+    ],
+    "seller.dialogs.reviews.store": [
+        {
+            "name": "dialog",
+            "required": true
+        },
+        {
+            "name": "message",
             "required": true
         }
     ],
@@ -499,15 +606,25 @@ declare module 'ziggy-js' {
     "seller.customers.merge.distinct": [],
     "seller.customers.merge.store": [],
     "seller.customers.io": [],
+    "seller.customers.io.export": [],
+    "seller.customers.io.template": [],
     "seller.customers.io.preview": [],
     "seller.customers.io.import": [],
     "seller.persona.index": [],
     "seller.persona.save": [],
+    "seller.persona.phrases.save": [],
     "seller.settings.greetings.index": [],
     "seller.settings.greetings.update": [],
     "seller.settings.policy.index": [],
     "seller.settings.off-topic.save": [],
     "seller.settings.followups.update": [],
+    "seller.followups.index": [],
+    "seller.followups.cancel": [
+        {
+            "name": "candidate",
+            "required": true
+        }
+    ],
     "seller.tools.settings": [],
     "seller.tools.settings.update": [],
     "seller.handoff.settings": [],
@@ -545,6 +662,19 @@ declare module 'ziggy-js' {
         }
     ],
     "seller.quality.index": [],
+    "seller.quality.disagree": [
+        {
+            "name": "evaluation",
+            "required": true
+        }
+    ],
+    "seller.quality.collect": [],
+    "seller.quality.recommendation": [
+        {
+            "name": "day",
+            "required": true
+        }
+    ],
     "seller.quality.day": [
         {
             "name": "day",
@@ -553,10 +683,23 @@ declare module 'ziggy-js' {
     ],
     "seller.scenarios.index": [],
     "seller.scenarios.save": [],
+    "seller.scenarios.copy": [
+        {
+            "name": "scenario",
+            "required": true
+        }
+    ],
+    "seller.scenarios.set": [
+        {
+            "name": "scenario",
+            "required": true
+        }
+    ],
     "seller.quality.compare": [],
     "seller.quality.calibration": [],
     "seller.quality.calibration.save": [],
     "seller.analytics.index": [],
+    "seller.analytics.send": [],
     "seller.analytics.csv": [],
     "seller.dashboard.index": [],
     "seller.dashboard.attention": [],
@@ -613,7 +756,20 @@ declare module 'ziggy-js' {
     "vision.questions.approve": [],
     "vision.measurements.index": [],
     "vision.measurements.data": [],
+    "vision.measurements.answers": [
+        {
+            "name": "measurement",
+            "required": true
+        }
+    ],
+    "vision.measurements.answers.data": [
+        {
+            "name": "measurement",
+            "required": true
+        }
+    ],
     "vision.measurements.revision": [],
+    "vision.measurements.schedule": [],
     "vision.measurements.start": [],
     "vision.measurements.next": [
         {
@@ -661,6 +817,7 @@ declare module 'ziggy-js' {
     "vision.site.pages": [],
     "vision.site.actions": [],
     "vision.site.history": [],
+    "vision.actions.effect": [],
     "vision.site.audit": [],
     "vision.actions.store": [],
     "vision.actions.update": [
@@ -675,7 +832,31 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "vision.settings.index": [],
+    "vision.settings.recipients": [],
+    "vision.settings.notifications": [],
     "vision.trends.index": [],
+    "vision.clarifications.index": [],
+    "vision.clarifications.show": [
+        {
+            "name": "measurement",
+            "required": true
+        },
+        {
+            "name": "step",
+            "required": true
+        }
+    ],
+    "vision.clarifications.save": [
+        {
+            "name": "measurement",
+            "required": true
+        },
+        {
+            "name": "step",
+            "required": true
+        }
+    ],
     "dev.design-system": [],
     "preview.login": [],
     "preview.attention": []
