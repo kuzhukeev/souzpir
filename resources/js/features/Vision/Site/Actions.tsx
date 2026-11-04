@@ -25,6 +25,7 @@ function formatDate(value?: string | null) {
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleDateString('ru-RU');
 }
+type Recommendation = {priority: string | null; steps: string[]; question_ids: string[]};
 type Effect = {id: string; completed_by_name: string | null; before: {visibility: number} | null; after: {visibility: number} | null; delta: number | null};
 function effectComparison(effect?: Effect) {
   return effect?.before && effect.after ? `${effect.before.visibility} % → ${effect.after.visibility} %` : 'Нет сопоставимых замеров';
@@ -136,8 +137,10 @@ function ActionCard({
   canManage,
   members,
   onComplete,
+  recommendation,
 }: {
   action: SiteAction;
+  recommendation?: Recommendation;
   canManage: boolean;
   members: Member[];
   onComplete: () => void;
@@ -181,9 +184,9 @@ function ActionCard({
       </div>
       {action.status === 'open' && !editing && (
         <dl className="grid gap-2 text-sm text-(--color-ink-muted)">
-          <div><dt className="inline">Приоритет: </dt><dd className="inline">не указан</dd></div>
-          <div><dt className="inline">Затронутые вопросы: </dt><dd className="inline">нет данных</dd></div>
-          <div><dt className="inline">Шаги: </dt><dd className="inline">не указаны</dd></div>
+          <div><dt className="inline">Приоритет: </dt><dd className="inline">{recommendation?.priority || 'не указан'}</dd></div>
+          <div><dt className="inline">Затронутые вопросы: </dt><dd className="inline">{recommendation?.question_ids?.join(', ') || 'нет данных'}</dd></div>
+          <div><dt className="inline">Шаги: </dt><dd className="inline">{recommendation?.steps?.join('; ') || 'не указаны'}</dd></div>
         </dl>
       )}
       {editing ? (
@@ -359,20 +362,23 @@ export function Actions({
 }) {
   const [notice, setNotice] = useState('');
   const { brand } = usePage<{brand: {id: string} | null}>().props;
+  const [recommendations, setRecommendations] = useState<Record<string, Recommendation>>({});
   const [effects, setEffects] = useState<Record<string, Effect>>({});
   const [effectState, setEffectState] = useState<'loading' | 'ready' | 'error'>('loading');
   const [retry, setRetry] = useState(0);
   const hasComparable = Object.values(effects).some((effect) => effect.before && effect.after);
   useEffect(() => {
-    if (!history || !brand?.id) return;
+    if (!brand?.id) return;
     const controller = new AbortController();
     // Clear the previous brand's data immediately when the context changes.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setEffects({});
+    setRecommendations({});
     setEffectState('loading');
     fetch('/vision/actions/effect', {headers: {'Accept': 'application/json', 'X-Brand-Id': brand.id}, signal: controller.signal})
       .then((response) => { if (!response.ok) throw new Error('Effect unavailable'); return response.json(); })
-      .then((data: {items: Effect[]}) => {
+      .then((data: {items: Effect[]; recommendations?: Record<string, Recommendation>}) => {
+        setRecommendations(data.recommendations ?? {});
         setEffects(Object.fromEntries(data.items.map((item) => [item.id, item])));
         setEffectState('ready');
       })
@@ -387,7 +393,7 @@ export function Actions({
   const cards = (items: SiteAction[]) => (
     <div className="grid gap-4 lg:grid-cols-3">
       {items.map((action) => (
-        <ActionCard key={action.id} action={action} canManage={canManage} members={members} onComplete={() => setNotice('Действие отмечено выполненным. Ожидается эффект после следующего замера.')} />
+        <ActionCard key={action.id} recommendation={recommendations[action.id]} action={action} canManage={canManage} members={members} onComplete={() => setNotice('Действие отмечено выполненным. Ожидается эффект после следующего замера.')} />
       ))}
     </div>
   );

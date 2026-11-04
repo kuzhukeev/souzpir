@@ -40,7 +40,11 @@ final class EffectController
             }, $items);
 
             if ($request->expectsJson()) {
-                return response()->json(['items' => $items]);
+                $links = DB::table('vision_action_recommendation_links')->where('organization_id', $tenant->organizationId)
+                    ->where('brand_id', $tenant->brandId)->get(['action_id', 'metadata']);
+                $recommendations = $links->mapWithKeys(fn ($link) => [$link->action_id => json_decode($link->metadata, true) ?: []]);
+
+                return response()->json(['items' => $items, 'recommendations' => $recommendations]);
             }
 
             return Inertia::render('Vision/Actions/Effect', ['items' => $items]);
