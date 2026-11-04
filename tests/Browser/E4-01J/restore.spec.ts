@@ -15,7 +15,7 @@ test.afterAll(async () => { await server?.close(); });
 test('автоматически сохранённый черновик доступен для восстановления', async ({ page }) => {
   await page.goto(fixture);
   await expect(page.getByRole('heading', { name: 'Сохранённые черновики' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Восстановить' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Восстановить', exact: true })).toBeEnabled();
   await expect(page.getByRole('button', { name: 'Создать черновик' }).last()).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Откатить с сохранением' })).toBeEnabled();
   await expect(page.getByText(/критерии без надёжной проверки/)).toBeVisible();
