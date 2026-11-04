@@ -28,6 +28,7 @@ test('approval exposes day and local time only for explicit schedule', async ({ 
   await page.goto(`${fixture}?screen=approve`);
   await page.getByLabel('google/gemini-2.5-flash').check();
   await expect(page.getByLabel('День недели')).toHaveCount(0);
+  await expect(page.getByText(/Автоматический запуск включается отдельно/)).toBeVisible();
   await page.getByRole('checkbox', { name: 'Включить автоматическое расписание' }).check();
   await expect(page.getByLabel('День недели')).toHaveValue('1');
   await expect(page.getByLabel('Время бренда')).toHaveValue('09:00');
