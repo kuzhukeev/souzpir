@@ -18,7 +18,7 @@ test('автоматически сохранённый черновик дос�
   await expect(page.getByRole('button', { name: 'Восстановить', exact: true })).toBeEnabled();
   await expect(page.getByRole('button', { name: 'Создать черновик' }).last()).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Откатить с сохранением' })).toBeEnabled();
-  await expect(page.getByText(/критерии без надёжной проверки/)).toBeVisible();
+  await expect(page.getByText(/проверенных локальных fake-фикстур/)).toBeVisible();
   await page.getByRole('heading', { name: 'Сохранённые черновики' }).scrollIntoViewIfNeeded();
   await page.screenshot({ path: '.local/screenshots/SP-E4-01J/restore.png' });
 });
