@@ -5262,7 +5262,9 @@
         "SP-E8-18F",
         "SP-E8-16H",
         "SP-E8-20E",
-        "SP-E4-01K"
+        "SP-E4-01K",
+        "SP-E1-02F",
+        "SP-E8-22C"
       ],
       "scope": [
         "README.md",
@@ -14487,6 +14489,83 @@
       "promptPath": "docs/tasks/SP-E4-01K.md",
       "wave": 18,
       "description": "# SP-E4-01K · Завершение защищённого прогона и восстановления\n\n**Зачем:** завершить экраны по решению владельца от 03.11.2026 и журналу макетов.\n**Часть чего:** остаток SP-E4-01J из docs/results/SP-E4-01J.md.\n**Зависимости:** SP-E4-01J (дождаться merge).\n\nЗавершить D-4.12: защищённый fake runtime с извлечением намерений, смысловые критерии и восстановление сохранённой JSON-копии черновика без потери данных.\n\nСверить с docs/sources/02b_mockup_journal.md; проверить сценарии, права, изоляцию и ошибки. Без живых или платных вызовов.\n\nScope: `app/Seller/Knowledge/`, `app/Seller/Evaluation/`, `resources/js/pages/Seller/Knowledge/Releases/`, `routes/features/E4-01.php`, `tests/Feature/Seller/Knowledge/`, `tests/Browser/E4-01K/`, `docs/results/SP-E4-01K.md`.\n\nОтчёт: docs/results/SP-E4-01K.md; остаток указать по пунктам.\n"
+    },
+    {
+      "taskKey": "SP-E1-02F",
+      "title": "Завершение экрана единственной организации",
+      "description": "# SP-E1-02F · Завершение экрана единственной организации\n\n**Зачем:** завершить экраны по решению владельца от 03.11.2026 и журналу макетов.\n**Часть чего:** остаток SP-E1-02D из docs/results/SP-E1-02D.md.\n**Зависимости:** SP-E1-02D (дождаться merge).\n\nЗавершить S-0.7: состояния загрузки и ошибки, вход на фактической главной /dashboard и ссылку в меню для единственной текущей организации, без переключения организаций.\n\nСверить с docs/sources/02b_mockup_journal.md; проверить сценарии, права, изоляцию и ошибки. Без живых или платных вызовов.\n\nScope: `app/Shell/Context/`, `resources/js/pages/Shell/Context/`, `resources/js/features/Shell/Context/`, `routes/features/E1-02F.php`, `lang/ru/Shell/Context/`, `tests/Feature/Shell/Context/`, `tests/Browser/E1-02F/`, `docs/results/SP-E1-02F.md`, `app/Shell/HomeEntry/HomeEntryController.php`, `AGENTS.md`, `planning/screen-coverage.json`, `app/Shell/HomeEntry/`, `resources/js/layouts/`, `resources/js/pages/Shell/Dashboard/`.\n\nОтчёт: docs/results/SP-E1-02F.md; остаток указать по пунктам.\n",
+      "goal": "Завершить S-0.7: состояния загрузки и ошибки, вход на фактической главной /dashboard и ссылку в меню для единственной текущей организации, без переключения организаций.",
+      "dependsOn": [
+        "SP-E1-02D"
+      ],
+      "scope": [
+        "app/Shell/Context/",
+        "resources/js/pages/Shell/Context/",
+        "resources/js/features/Shell/Context/",
+        "routes/features/E1-02F.php",
+        "lang/ru/Shell/Context/",
+        "tests/Feature/Shell/Context/",
+        "tests/Browser/E1-02F/",
+        "docs/results/SP-E1-02F.md",
+        "app/Shell/HomeEntry/HomeEntryController.php",
+        "AGENTS.md",
+        "planning/screen-coverage.json",
+        "app/Shell/HomeEntry/",
+        "resources/js/layouts/",
+        "resources/js/pages/Shell/Dashboard/"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Экран S-0.7 «Выберите компанию» соответствует макету из матрицы по пунктам (журнал docs/sources/02b_mockup_journal.md [11], матрица docs/sources/02_screens_matrix.md строка S-0.7): маршрут `GET /context/organization` (имя `context.organization`), страница `resources/js/pages/Shell/Context/OrganizationSelect.tsx`; заголовок «Выберите компанию», поле поиска по названию (фильтрует список на клиенте), строка «Доступно компаний: N» (N = число организаций, доступных пользователю; сейчас всегда 1), карточки компаний: аватар (логотип организации, если загружен в мастере, иначе инициалы названия), название, роль пользователя, чипы брендов, «Последний вход». Клик по карточке ведёт на точку входа кабинета (HomeEntry), без смены контекста: организация у пользователя одна и выбрана всегда.",
+        "Данные настоящие, не заглушка: организация из текущего контекста; роль из `memberships.role` с подписями по журналу [11] — owner «Владелец», admin «Администратор», member «Редактор» или «Менеджер» при `settings.sales_manager = true`, viewer «Наблюдатель»; чипы брендов — только бренды, доступные участнику (`Membership::brand_ids`, owner/admin с пустым списком видят все); «Последний вход» — `member_last_logins.last_login_at` текущего пользователя в формате «сегодня в 12:40 / вчера / 1 ноя», если входа ещё не было — «впервые». Отключённое членство (`status = disabled`) на экран не попадает: 403 как в остальных экранах оболочки.",
+        "Точка входа на экран: ссылка «Выбор компании» в меню профиля/оболочки и карточка на HomeEntry (S-1.x точка входа) только если у пользователя есть доступ к кабинету; после входа экран не показывается принудительно (решение владельца: не добавлять лишний клик при одной компании). Пустое состояние поиска «Ничего не найдено» со сбросом фильтра; состояния загрузки и ошибки как на макете.",
+        "В AGENTS.md строка про одну организацию дополнена: «S-0.7 верстается как экран с одной компанией (SP-E1-02D), выбор между организациями не вводится». Исполнитель не добавляет таблицы, миграции и middleware для нескольких организаций; если какой-то пункт макета требует второй организации, пункт записывается в docs/decisions-pending.md, а не реализуется.",
+        "Каждый пункт покрыт Feature- или Browser-тестом (роль каждого типа, подпись «Менеджер» для sales_manager, бренды по brand_ids, «впервые» без записи в member_last_logins, поиск с пустым результатом, 403 для disabled); данные только текущей организации; в отчёте скриншот экрана рядом с макетом 11/5513d4ce-S-0.7-company-select-v2.webp.",
+        "Без живых и платных внешних вызовов без разрешения владельца; если пункт макета противоречит ТЗ или требует решения владельца, исполнитель не выдумывает, а записывает вопрос в docs/decisions-pending.md и делает остальное.",
+        "Сдача частями: если что-то из пунктов не сделано, в отчёте раздел «Остаток» перечисляет невыполненные пункты по экранам; интегратор принимает такой отчёт только вместе с заведённой карточкой-продолжением на этот остаток (правило в AGENTS.md)."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "S-0.7"
+      ],
+      "wave": 18,
+      "promptPath": "docs/tasks/SP-E1-02F.md",
+      "notes": "Продолжение частичной сдачи SP-E1-02D по решению владельца."
+    },
+    {
+      "taskKey": "SP-E8-22C",
+      "title": "Источники данных истории действий",
+      "goal": "Завершить V-9.1 и V-9.3: передавать подтверждённые приоритет, число вопросов, шаги, автора выполнения и сопоставимые замеры до/после при наличии источника, не выдумывая отсутствующие значения.",
+      "dependsOn": [
+        "SP-E8-22B"
+      ],
+      "scope": [
+        "app/Vision/Actions/",
+        "resources/js/features/Vision/Site/",
+        "tests/Feature/Vision/Site/",
+        "tests/Browser/E8-22C/",
+        "docs/results/SP-E8-22C.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Завершить пункты по макету, проверить права, изоляцию и ошибки; без живых вызовов."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "V-9.1",
+        "V-9.3"
+      ],
+      "notes": "Продолжение частичной сдачи SP-E8-22B по решению владельца.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E8-22C.md",
+      "wave": 18,
+      "description": "# SP-E8-22C · Источники данных истории действий\n\n**Зачем:** завершить экраны по решению владельца от 03.11.2026 и журналу макетов.\n**Часть чего:** остаток SP-E8-22B из docs/results/SP-E8-22B.md.\n**Зависимости:** SP-E8-22B (дождаться merge).\n\nЗавершить V-9.1 и V-9.3: передавать подтверждённые приоритет, число вопросов, шаги, автора выполнения и сопоставимые замеры до/после при наличии источника, не выдумывая отсутствующие значения.\n\nСверить с docs/sources/02b_mockup_journal.md; проверить сценарии, права, изоляцию и ошибки. Без живых или платных вызовов.\n\nScope: `app/Vision/Actions/`, `resources/js/features/Vision/Site/`, `tests/Feature/Vision/Site/`, `tests/Browser/E8-22C/`, `docs/results/SP-E8-22C.md`.\n\nОтчёт: docs/results/SP-E8-22C.md; остаток указать по пунктам.\n"
     }
   ],
   "excludedSourceTasks": {
