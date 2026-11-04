@@ -1,6 +1,7 @@
 import {test,expect} from '@playwright/test';
 import {createServer,type ViteDevServer} from 'vite';
 test.setTimeout(60000);let server:ViteDevServer;let url:string;
+test.use({launchOptions:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH?{executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH}:{}});
 test.beforeAll(async()=>{server=await createServer({configFile:'tests/Browser/E8-18/vite.config.ts',server:{host:'127.0.0.1',port:0,strictPort:false}});await server.listen();url=new URL('/tests/Browser/E8-18/fixture.html',server.resolvedUrls!.local[0]).href;});
 test.afterAll(async()=>{await server?.close();});
 test('выводы, печать, таблица компаний и проверенное присутствие',async({page})=>{
