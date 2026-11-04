@@ -7,6 +7,7 @@ use App\Shell\Audit\Contracts\AuditWriter;
 use App\Tenancy\TenantContext;
 use App\Vision\Core\VisionReportReader;
 use App\Vision\Measurements\MeasurementList;
+use App\Vision\Reports\ReportData;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -74,14 +75,15 @@ final class PublicationsController
             Gate::authorize('vision.measure.run');
             $report = DB::table('vision_reports')->where('id', $data['report_id'])->where('organization_id', $context->organizationId)
                 ->where('brand_id', $context->brandId)->whereIn('measurement_id', DB::table('snapshot_confirmations')
-                ->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)->select('measurement_id'))->first(['id']);
+                ->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)->select('measurement_id'))->first(['id', 'measurement_id', 'created_at']);
             abort_unless($report, 404);
             try {
-                $audit = DB::table('audit_runs')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)
-                    ->orderByDesc('created_at')->orderByDesc('id')->value('result');
-                $siteAudit = is_string($audit) ? json_decode($audit, true) : null;
-                $public = app(PublicationData::class)->fromReport($report->id, is_array($siteAudit) ? $siteAudit : null,
-                    array_key_exists('confirmed_actions', $data) ? $data['confirmed_actions'] : null);
+                $measurement = DB::table('measurements')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)
+                    ->where('id', $report->measurement_id)->first(['profile_snapshot', 'profile_checksum']);
+                $reportData = app(ReportData::class);
+                $siteAudit = $reportData->siteAudit($context, $reportData->siteFromProfile($measurement), $report->created_at);
+                $public = app(PublicationData::class)->fromReport($report->id, $siteAudit,
+                    $data['confirmed_actions'] ?? []);
                 $public['allow_pdf'] = (bool) ($data['allow_pdf'] ?? false);
             } catch (LogicException) {
                 abort(409, 'Отчёт недоступен.');
