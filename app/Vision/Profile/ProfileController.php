@@ -322,9 +322,19 @@ HTML;
                 }
             }
 
+            if ($step === 5 && is_array($audit)) {
+                foreach (app(AuditedFulfilmentHints::class)->extract($audit, $website) as $hint) {
+                    if (! in_array($hint['value'], array_column($items, 'value'), true) && count($items) < 5) {
+                        $items[] = $hint;
+                    }
+                }
+            }
+
             if (in_array($step, [3, 5, 7], true)) {
                 foreach (($audit['pages'] ?? []) as $auditedPage) {
-                    if (! is_array($auditedPage) || ($auditedPage['status'] ?? 0) < 200 || ($auditedPage['status'] ?? 0) >= 300) {
+                    if (! is_array($auditedPage) || ! is_string($auditedPage['url'] ?? null)
+                        || strtolower((string) parse_url($auditedPage['url'], PHP_URL_HOST)) !== strtolower((string) parse_url($website, PHP_URL_HOST))
+                        || ($auditedPage['status'] ?? 0) < 200 || ($auditedPage['status'] ?? 0) >= 300) {
                         continue;
                     }
                     foreach (($auditedPage['headings'] ?? []) as $heading) {
