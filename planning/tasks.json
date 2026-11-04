@@ -5285,7 +5285,18 @@
         "SP-E8-18H",
         "SP-E8-21F",
         "SP-E4-01Q",
-        "SP-E8-20L"
+        "SP-E8-20L",
+        "SP-E4-01R",
+        "SP-E8-21G",
+        "SP-E8-20M",
+        "SP-E8-20N",
+        "SP-E8-15E",
+        "SP-E4-01S",
+        "SP-E8-21H",
+        "SP-E8-19D",
+        "SP-E8-20O",
+        "SP-E4-01T",
+        "SP-E7-04H"
       ],
       "scope": [
         "README.md",
@@ -15065,7 +15076,8 @@
       "title": "SP-E4-01O · Защищённые стадии для черновика",
       "goal": "Подключить проверенный fake-прогон конкретного черновика к существующим защищённым стадиям first-turn через отдельный внутренний адаптер; сохранить права, сессию и изоляцию бренда. Не заменять опубликованный релиз черновиком. Каталог смысловых фикстур выполняется в SP-E4-01P.",
       "dependsOn": [
-        "SP-E4-01N"
+        "SP-E4-01N",
+        "SP-E4-01S"
       ],
       "scope": [
         "app/ProtectedOperations/",
@@ -15091,7 +15103,7 @@
       ],
       "promptPath": "docs/tasks/SP-E4-01O.md",
       "wave": 18,
-      "description": "# SP-E4-01O · Защищённые стадии для черновика\n\n**Зачем:** завершить экран D-4.12 по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E4-01N из docs/results/SP-E4-01N.md.\n**Зависимости:** SP-E4-01N (дождаться merge).\n\nПодключить проверенный fake-прогон конкретного черновика к существующим защищённым стадиям first-turn через отдельный внутренний адаптер; сохранить права, сессию и изоляцию бренда. Не заменять опубликованный релиз черновиком. Каталог смысловых фикстур выполняется в SP-E4-01P.\n\nПроверить сценарии, права, изоляцию брендов и ошибки; без живых и платных вызовов. Невыполненные пункты перечислить в отчёте.\n\nScope: `app/ProtectedOperations/`, `app/Ai/Protected/`, `app/Ai/Gateway.php`, `app/Seller/Evaluation/`, `tests/Feature/ProtectedOperations/`, `tests/Browser/E4-01O/`, `docs/results/SP-E4-01O.md`.\n\nОтчёт: docs/results/SP-E4-01O.md.\n"
+      "description": "# SP-E4-01O · Защищённые стадии для черновика\n\n**Зачем:** завершить экран D-4.12 по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E4-01N из docs/results/SP-E4-01N.md.\n**Зависимости:** SP-E4-01N (дождаться merge).\n\nПодключить проверенный fake-прогон конкретного черновика к существующим защищённым стадиям first-turn через отдельный внутренний адаптер; сохранить права, сессию и изоляцию бренда. Не заменять опубликованный релиз черновиком. Каталог смысловых фикстур выполняется в SP-E4-01P.\n\nПроверить сценарии, права, изоляцию брендов и ошибки; без живых и платных вызовов. Невыполненные пункты перечислить в отчёте.\n\nScope: `app/ProtectedOperations/`, `app/Ai/Protected/`, `app/Ai/Gateway.php`, `app/Seller/Evaluation/`, `tests/Feature/ProtectedOperations/`, `tests/Browser/E4-01O/`, `docs/results/SP-E4-01O.md`.\n\nОтчёт: docs/results/SP-E4-01O.md.\n\nПодключить проверенные контекстные каталоги SP-E4-01Q/R/S к защищённому runtime.\n"
     },
     {
       "taskKey": "SP-E4-01P",
@@ -15323,6 +15335,384 @@
       "promptPath": "docs/tasks/SP-E8-20L.md",
       "wave": 18,
       "description": "# SP-E8-20L · Остаток экранов компаний\n\n**Зачем:** завершить V-6.1–V-6.4 по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E8-20J из docs/results/SP-E8-20J.md.\n**Зависимости:** SP-E8-20J (дождаться merge).\n\nЗавершить V-6.1–V-6.4 по пунктам журнала: вкладки и таблицу, карточку и график сопоставимой истории, оформление дублей, сравнения и лидеров. Цитаты конкурентов показывать только из явно проверенных сохранённых фрагментов; при отсутствии источника — пустое состояние.\n\nСверить с журналом макетов; проверить сценарии, права, изоляцию брендов и ошибки. Без живых и платных вызовов в тестах. Невыполненные пункты перечислить в отчёте.\n\nScope: `app/Vision/Competitors/`, `resources/js/pages/Vision/Competitors/`, `tests/Feature/Vision/Competitors/`, `tests/Browser/E8-20L/`, `docs/results/SP-E8-20L.md`.\n\nОтчёт: docs/results/SP-E8-20L.md.\n"
+    },
+    {
+      "taskKey": "SP-E4-01R",
+      "title": "SP-E4-01R · Контекстные фикстуры сценариев",
+      "goal": "Подготовить проверяемые контекстные fake-фикстуры по остатку: история напоминаний и исход персоны ghost, полный диалог, карточка, доставка, прайс, эскалация и скидки. Результат размечать только при наличии проверенных истории, источника или факта действия; неподтверждённые критерии оставлять непроверенными. Подключение каталога к защищённому runtime выполняется в SP-E4-01O.",
+      "dependsOn": [
+        "SP-E4-01Q"
+      ],
+      "scope": [
+        "app/ProtectedOperations/DraftSimulation/fixtures/",
+        "tests/Feature/Seller/Knowledge/DraftSeedFixturesE401RTest.php",
+        "tests/Browser/E4-01R/",
+        "docs/results/SP-E4-01R.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Пункты остатка выполнены по макету, проверены права и изоляция; тесты без живых вызовов."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "D-4.12"
+      ],
+      "notes": "Продолжение частичной сдачи SP-E4-01Q по решению владельца.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E4-01R.md",
+      "wave": 18,
+      "description": "# SP-E4-01R · Контекстные фикстуры сценариев\n\n**Зачем:** завершить экран D-4.12 по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E4-01Q из docs/results/SP-E4-01Q.md.\n**Зависимости:** SP-E4-01Q (дождаться merge).\n\nПодготовить проверяемые контекстные fake-фикстуры по остатку: история напоминаний и исход персоны ghost, полный диалог, карточка, доставка, прайс, эскалация и скидки. Результат размечать только при наличии проверенных истории, источника или факта действия; неподтверждённые критерии оставлять непроверенными. Подключение каталога к защищённому runtime выполняется в SP-E4-01O.\n\nПроверить воспроизводимость, соответствие контексту и отсутствие переноса оценки на другие реплики; без живых и платных вызовов. Невыполненные пункты перечислить в отчёте.\n\nScope: `app/ProtectedOperations/DraftSimulation/fixtures/`, `tests/Feature/Seller/Knowledge/DraftSeedFixturesE401RTest.php`, `tests/Browser/E4-01R/`, `docs/results/SP-E4-01R.md`.\n\nОтчёт: docs/results/SP-E4-01R.md.\n"
+    },
+    {
+      "taskKey": "SP-E8-21G",
+      "title": "SP-E8-21G · Группы и значимость проверок сайта",
+      "goal": "Завершить группы и значимость проверок V-8.1–V-8.2 по журналу макетов: сопоставить группы по фактической семантике существующих проверок, не изменяя их метрики; качественный уровень показывать только при подтверждённом правиле, иначе явно оставлять числовой вес. Проверить серверные права и изоляцию брендов.",
+      "dependsOn": [
+        "SP-E8-21F"
+      ],
+      "scope": [
+        "app/Vision/Site/",
+        "app/Vision/SiteAudit/",
+        "resources/js/pages/Vision/Site/",
+        "resources/js/features/Vision/Site/",
+        "tests/Feature/Vision/Site/",
+        "tests/Browser/E8-21G/",
+        "docs/results/SP-E8-21G.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Пункты остатка реализованы по макету, проверены права, изоляция брендов и ошибки ввода; тесты без живых вызовов."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "V-8.1",
+        "V-8.2",
+        "V-8.3",
+        "V-8.4",
+        "V-8.5"
+      ],
+      "notes": "Продолжение частичной сдачи SP-E8-21F по решению владельца.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E8-21G.md",
+      "wave": 18,
+      "description": "# SP-E8-21G · Группы и значимость проверок сайта\n\n**Зачем:** завершить экраны аудита по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E8-21F из docs/results/SP-E8-21F.md.\n**Зависимости:** SP-E8-21F (дождаться merge).\n\nЗавершить группы и значимость проверок V-8.1–V-8.2 по журналу макетов: сопоставить группы по фактической семантике существующих проверок, не изменяя их метрики; качественный уровень показывать только при подтверждённом правиле, иначе явно оставлять числовой вес. Проверить серверные права и изоляцию брендов.\n\nСверить с журналом макетов; проверить сценарии, права, изоляцию брендов и ошибки. Без живых и платных вызовов. Невыполненные пункты перечислить в отчёте.\n\nScope: `app/Vision/Site/`, `app/Vision/SiteAudit/`, `resources/js/pages/Vision/Site/`, `resources/js/features/Vision/Site/`, `tests/Feature/Vision/Site/`, `tests/Browser/E8-21G/`, `docs/results/SP-E8-21G.md`.\n\nОтчёт: docs/results/SP-E8-21G.md.\n"
+    },
+    {
+      "taskKey": "SP-E8-20M",
+      "title": "SP-E8-20M · Завершение экранов компаний",
+      "goal": "Завершить остаток V-6.1–V-6.4 после SP-E8-20L: рейтинг источников, оформление чипов и звезды; карточка и KPI, история более двух замеров, вопросы без бренда и проверенные цитаты; оформление выбора дублей, сравнения и лидеров. Цитировать только сохранённые явно проверенные фрагменты с привязкой к источнику; при их отсутствии показать пустое состояние. Топ-3 ранжировать по фактической частоте упоминания источника в сохранённых данных текущего отчёта, если она доступна; иначе не выдавать домены за рейтинг и показать отсутствие данных.",
+      "dependsOn": [
+        "SP-E8-20L"
+      ],
+      "scope": [
+        "app/Vision/Competitors/",
+        "resources/js/pages/Vision/Competitors/",
+        "tests/Feature/Vision/Competitors/",
+        "tests/Browser/E8-20M/",
+        "docs/results/SP-E8-20M.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Завершить пункты по макету, проверить права, изоляцию и ошибки; без живых вызовов."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "V-6.1",
+        "V-6.2",
+        "V-6.3",
+        "V-6.4"
+      ],
+      "notes": "Продолжение частичной сдачи SP-E8-20L по решению владельца.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E8-20M.md",
+      "wave": 18,
+      "description": "# SP-E8-20M · Завершение экранов компаний\n\n**Зачем:** завершить экраны V-6.1–V-6.4 по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E8-20L из docs/results/SP-E8-20L.md.\n**Зависимости:** SP-E8-20L (дождаться merge).\n\nЗавершить остаток V-6.1–V-6.4 после SP-E8-20L: рейтинг источников, оформление чипов и звезды; карточка и KPI, история более двух замеров, вопросы без бренда и проверенные цитаты; оформление выбора дублей, сравнения и лидеров. Цитировать только сохранённые явно проверенные фрагменты с привязкой к источнику; при их отсутствии показать пустое состояние. Топ-3 ранжировать по фактической частоте упоминания источника в сохранённых данных текущего отчёта, если она доступна; иначе не выдавать домены за рейтинг и показать отсутствие данных.\n\nСверить с журналом макетов; проверить сценарии, права, изоляцию брендов и ошибки. Без живых и платных вызовов. Невыполненные пункты перечислить в отчёте.\n\nScope: `app/Vision/Competitors/`, `resources/js/pages/Vision/Competitors/`, `tests/Feature/Vision/Competitors/`, `tests/Browser/E8-20M/`, `docs/results/SP-E8-20M.md`.\n\nОтчёт: docs/results/SP-E8-20M.md.\n"
+    },
+    {
+      "taskKey": "SP-E8-20N",
+      "title": "SP-E8-20N · Завершение источников",
+      "goal": "Завершить оформление источников по макету: отдельный счётчик цитирований, сложность и статус действия; связать действие с конкретной площадкой и проверить сохранение и изоляцию брендов. Показывать метрики и статус только из подтверждённых сохранённых данных; иначе явно обозначить отсутствие данных.",
+      "dependsOn": [
+        "SP-E8-20K"
+      ],
+      "scope": [
+        "app/Vision/Sources/",
+        "resources/js/pages/Vision/Sources/",
+        "tests/Feature/Vision/Sources/",
+        "tests/Browser/E8-20N/",
+        "docs/results/SP-E8-20N.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Завершить пункты по макету, проверить права, изоляцию и ошибки; без живых вызовов."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "V-7.1",
+        "V-7.2",
+        "V-7.3"
+      ],
+      "notes": "Продолжение частичной сдачи SP-E8-20K по решению владельца.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E8-20N.md",
+      "wave": 18,
+      "description": "# SP-E8-20N · Завершение источников\n\n**Зачем:** завершить экраны по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E8-20K из docs/results/SP-E8-20K.md.\n**Зависимости:** SP-E8-20K (дождаться merge).\n\nЗавершить оформление источников по макету: отдельный счётчик цитирований, сложность и статус действия; связать действие с конкретной площадкой и проверить сохранение и изоляцию брендов. Показывать метрики и статус только из подтверждённых сохранённых данных; иначе явно обозначить отсутствие данных.\n\nСверить с журналом макетов; проверить сценарии, права, изоляцию брендов и ошибки. Без живых и платных вызовов. Невыполненные пункты перечислить в отчёте.\n\nScope: `app/Vision/Sources/`, `resources/js/pages/Vision/Sources/`, `tests/Feature/Vision/Sources/`, `tests/Browser/E8-20N/`, `docs/results/SP-E8-20N.md`.\n\nОтчёт: docs/results/SP-E8-20N.md.\n"
+    },
+    {
+      "taskKey": "SP-E8-15E",
+      "title": "SP-E8-15E · Недельный расход расписания",
+      "goal": "Показать недельный расход тарифных слотов для выбранного расписания из подтверждённых тарифных и расписных данных; если расчёт или коэффициенты недоступны, показать отсутствие данных, не придумывая лимиты или стоимость. Проверить существующие флаги запуска планировщика.",
+      "dependsOn": [
+        "SP-E8-15D"
+      ],
+      "scope": [
+        "app/Vision/Questions/",
+        "resources/js/pages/Vision/Questions/",
+        "resources/js/features/Vision/Questions/",
+        "tests/Feature/Vision/Questions/",
+        "tests/Browser/E8-15E/",
+        "docs/results/SP-E8-15E.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Завершить пункты по макету, проверить права, изоляцию и ошибки; без живых вызовов."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "V-2.3"
+      ],
+      "notes": "Продолжение частичной сдачи SP-E8-15D по решению владельца.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E8-15E.md",
+      "wave": 18,
+      "description": "# SP-E8-15E · Недельный расход расписания\n\n**Зачем:** завершить экраны по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E8-15D из docs/results/SP-E8-15D.md.\n**Зависимости:** SP-E8-15D (дождаться merge).\n\nПоказать недельный расход тарифных слотов для выбранного расписания из подтверждённых тарифных и расписных данных; если расчёт или коэффициенты недоступны, показать отсутствие данных, не придумывая лимиты или стоимость. Проверить существующие флаги запуска планировщика.\n\nСверить с журналом макетов; проверить сценарии, права, изоляцию брендов и ошибки. Без живых и платных вызовов. Невыполненные пункты перечислить в отчёте.\n\nScope: `app/Vision/Questions/`, `resources/js/pages/Vision/Questions/`, `resources/js/features/Vision/Questions/`, `tests/Feature/Vision/Questions/`, `tests/Browser/E8-15E/`, `docs/results/SP-E8-15E.md`.\n\nОтчёт: docs/results/SP-E8-15E.md.\n"
+    },
+    {
+      "taskKey": "SP-E4-01S",
+      "title": "SP-E4-01S · Оставшиеся контекстные фикстуры",
+      "goal": "Подготовить проверяемые полные диалоги и источники для оставшихся критериев персон, включая полную карточку; неизвестный результат оставлять неизвестным. Не менять условия продукта и не выдумывать факты.",
+      "dependsOn": [
+        "SP-E4-01R"
+      ],
+      "scope": [
+        "app/ProtectedOperations/DraftSimulation/fixtures/",
+        "tests/Feature/Seller/Knowledge/DraftSeedFixturesE401STest.php",
+        "tests/Browser/E4-01S/",
+        "docs/results/SP-E4-01S.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Пункты остатка выполнены по макету, проверены права и изоляция; тесты без живых вызовов."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "D-4.12"
+      ],
+      "notes": "Продолжение частичной сдачи SP-E4-01R по решению владельца.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E4-01S.md",
+      "wave": 18,
+      "description": "# SP-E4-01S · Оставшиеся контекстные фикстуры\n\n**Зачем:** завершить остаток по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E4-01R из docs/results/SP-E4-01R.md.\n**Зависимости:** SP-E4-01R (дождаться merge).\n\nПодготовить проверяемые полные диалоги и источники для оставшихся критериев персон, включая полную карточку; неизвестный результат оставлять неизвестным. Не менять условия продукта и не выдумывать факты.\n\nПроверить сценарии, права, изоляцию брендов и ошибки. Без живых и платных вызовов. Невыполненные пункты перечислить в отчёте.\n\nScope: `app/ProtectedOperations/DraftSimulation/fixtures/`, `tests/Feature/Seller/Knowledge/DraftSeedFixturesE401STest.php`, `tests/Browser/E4-01S/`, `docs/results/SP-E4-01S.md`.\n\nОтчёт: docs/results/SP-E4-01S.md.\n"
+    },
+    {
+      "taskKey": "SP-E8-21H",
+      "title": "SP-E8-21H · Скорость и важность проверок сайта",
+      "goal": "Завершить отображение скорости сайта и качественной важности в аудите по макету, используя только существующие подтверждённые измерения и правила; при отсутствии данных явно показать недоступность. Проверить доступ и изоляцию брендов.",
+      "dependsOn": [
+        "SP-E8-21G"
+      ],
+      "scope": [
+        "app/Vision/Site/",
+        "app/Vision/SiteAudit/",
+        "resources/js/pages/Vision/Site/",
+        "resources/js/features/Vision/Site/",
+        "tests/Feature/Vision/Site/",
+        "tests/Browser/E8-21H/",
+        "docs/results/SP-E8-21H.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Пункты остатка реализованы по макету, проверены права, изоляция брендов и ошибки ввода; тесты без живых вызовов."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "V-8.1",
+        "V-8.2",
+        "V-8.3",
+        "V-8.4",
+        "V-8.5"
+      ],
+      "notes": "Продолжение частичной сдачи SP-E8-21G по решению владельца.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E8-21H.md",
+      "wave": 18,
+      "description": "# SP-E8-21H · Скорость и важность проверок сайта\n\n**Зачем:** завершить остаток по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E8-21G из docs/results/SP-E8-21G.md.\n**Зависимости:** SP-E8-21G (дождаться merge).\n\nЗавершить отображение скорости сайта и качественной важности в аудите по макету, используя только существующие подтверждённые измерения и правила; при отсутствии данных явно показать недоступность. Проверить доступ и изоляцию брендов.\n\nПроверить сценарии, права, изоляцию брендов и ошибки. Без живых и платных вызовов. Невыполненные пункты перечислить в отчёте.\n\nScope: `app/Vision/Site/`, `app/Vision/SiteAudit/`, `resources/js/pages/Vision/Site/`, `resources/js/features/Vision/Site/`, `tests/Feature/Vision/Site/`, `tests/Browser/E8-21H/`, `docs/results/SP-E8-21H.md`.\n\nОтчёт: docs/results/SP-E8-21H.md.\n"
+    },
+    {
+      "taskKey": "SP-E8-19D",
+      "title": "SP-E8-19D · Продолжение экранов",
+      "goal": "Сверить V-5.6–V-5.10/V-5.P с макетом; логотип, история, приоритеты и шаги публиковать только из разрешённых проверенных данных; аудит сопоставлять с адресом и датой отчёта.",
+      "dependsOn": [
+        "SP-E8-19C"
+      ],
+      "scope": [
+        "app/Vision/Reports/",
+        "app/Vision/Publications/",
+        "resources/js/pages/Vision/Reports/",
+        "resources/js/pages/Vision/Publications/",
+        "resources/views/public-report/",
+        "tests/Feature/Vision/Reports/",
+        "tests/Feature/Vision/Publications/",
+        "tests/Browser/E8-19D/",
+        "docs/results/SP-E8-19D.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Пункты остатка реализованы по макету, проверены права, изоляция и ошибки; без живых вызовов."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "V-5.6",
+        "V-5.7",
+        "V-5.8",
+        "V-5.9",
+        "V-5.10",
+        "V-5.P"
+      ],
+      "notes": "Продолжение частичной сдачи SP-E8-19C.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E8-19D.md",
+      "wave": 18,
+      "description": "# SP-E8-19D · Продолжение экранов\n\n**Зачем:** завершить экраны по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E8-19C из docs/results/SP-E8-19C.md.\n**Зависимости:** SP-E8-19C (дождаться merge).\n\nСверить V-5.6–V-5.10/V-5.P с макетом; логотип, история, приоритеты и шаги публиковать только из разрешённых проверенных данных; аудит сопоставлять с адресом и датой отчёта. При отсутствии подтверждённых данных показать пустое состояние. Проверить права, изоляцию, ошибки и соответствие журналу макетов. Без живых и платных вызовов.\n\nScope: `app/Vision/Reports/`, `app/Vision/Publications/`, `resources/js/pages/Vision/Reports/`, `resources/js/pages/Vision/Publications/`, `resources/views/public-report/`, `tests/Feature/Vision/Reports/`, `tests/Feature/Vision/Publications/`, `tests/Browser/E8-19D/`, `docs/results/SP-E8-19D.md`.\n\nОтчёт: docs/results/SP-E8-19D.md; остаток указать по пунктам.\n"
+    },
+    {
+      "taskKey": "SP-E8-20O",
+      "title": "SP-E8-20O · Продолжение экранов",
+      "goal": "Довести V-6.1–V-6.4: звезда и чипы, карточка и KPI, история, вопросы без бренда, проверенные цитаты, выбор дублей, сравнение и лидеры.",
+      "dependsOn": [
+        "SP-E8-20M"
+      ],
+      "scope": [
+        "app/Vision/Competitors/",
+        "resources/js/pages/Vision/Competitors/",
+        "tests/Feature/Vision/Competitors/",
+        "tests/Browser/E8-20O/",
+        "docs/results/SP-E8-20O.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Завершить пункты по макету, проверить права, изоляцию и ошибки; без живых вызовов."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "V-6.1",
+        "V-6.2",
+        "V-6.3",
+        "V-6.4"
+      ],
+      "notes": "Продолжение частичной сдачи SP-E8-20M.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E8-20O.md",
+      "wave": 18,
+      "description": "# SP-E8-20O · Продолжение экранов\n\n**Зачем:** завершить экраны по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E8-20M из docs/results/SP-E8-20M.md.\n**Зависимости:** SP-E8-20M (дождаться merge).\n\nДовести V-6.1–V-6.4: звезда и чипы, карточка и KPI, история, вопросы без бренда, проверенные цитаты, выбор дублей, сравнение и лидеры. При отсутствии подтверждённых данных показать пустое состояние. Проверить права, изоляцию, ошибки и соответствие журналу макетов. Без живых и платных вызовов.\n\nScope: `app/Vision/Competitors/`, `resources/js/pages/Vision/Competitors/`, `tests/Feature/Vision/Competitors/`, `tests/Browser/E8-20O/`, `docs/results/SP-E8-20O.md`.\n\nОтчёт: docs/results/SP-E8-20O.md; остаток указать по пунктам.\n"
+    },
+    {
+      "taskKey": "SP-E4-01T",
+      "title": "SP-E4-01T · Остальные контекстные критерии",
+      "goal": "Подготовить оставшуюся проверяемую разметку по персонам и критериям после SP-E4-01S: полные диалоги и источники, включая незавершённые и завершённые ситуации. Неподтверждённые исходы оставлять неизвестными; условия продукта не выдумывать.",
+      "dependsOn": [
+        "SP-E4-01S"
+      ],
+      "scope": [
+        "app/ProtectedOperations/DraftSimulation/fixtures/",
+        "tests/Feature/Seller/Knowledge/DraftSeedFixturesE401TTest.php",
+        "tests/Browser/E4-01T/",
+        "docs/results/SP-E4-01T.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Пункты остатка выполнены по макету, проверены права и изоляция; тесты без живых вызовов."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "D-4.12"
+      ],
+      "notes": "Продолжение частичной сдачи SP-E4-01S по решению владельца.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E4-01T.md",
+      "wave": 18,
+      "description": "# SP-E4-01T · Остальные контекстные критерии\n\n**Зачем:** завершить критерии по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E4-01S из docs/results/SP-E4-01S.md.\n**Зависимости:** SP-E4-01S (дождаться merge).\n\nПодготовить оставшуюся проверяемую разметку по персонам и критериям после SP-E4-01S: полные диалоги и источники, включая незавершённые и завершённые ситуации. Неподтверждённые исходы оставлять неизвестными; условия продукта не выдумывать. Сверить с журналом и прототипом; проверить сценарии, права, изоляцию и ошибки. Без живых и платных вызовов.\n\nScope: `app/ProtectedOperations/DraftSimulation/fixtures/`, `tests/Feature/Seller/Knowledge/DraftSeedFixturesE401TTest.php`, `tests/Browser/E4-01T/`, `docs/results/SP-E4-01T.md`.\n\nОтчёт: docs/results/SP-E4-01T.md; остаток указать по пунктам.\n"
+    },
+    {
+      "taskKey": "SP-E7-04H",
+      "title": "SP-E7-04H · Остаток аналитики",
+      "goal": "Завершить D-8.1–D-8.3 и D-8.6: вкладки, время до контакта, доля ответов, клиент, конверсия приёмов и детализация тем, PDF, менеджеры, отправка и подписки. Для контактов и исходов использовать подтверждённые события и переходы SP-E7-04F, сохранённые назначения и имеющиеся локальные порты; при отсутствии данных или транспорта явно показать недоступность, не имитируя отправку и не добавляя платный сервис.",
+      "dependsOn": [
+        "SP-E7-04G",
+        "SP-E7-04F"
+      ],
+      "scope": [
+        "app/Seller/Analytics/",
+        "resources/js/pages/Seller/Analytics/",
+        "routes/features/E7-04.php",
+        "tests/Feature/Seller/Analytics/",
+        "tests/Browser/E7-04/",
+        "docs/results/SP-E7-04H.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "HTTP/browser детализация и PDF, пустой период, неверный фильтр, чужой бренд; экраны D-8.2/D-8.3/D-8.6. Итоговый отчёт до 30 строк."
+      ],
+      "sourceIds": [
+        "E7-04"
+      ],
+      "screenIds": [
+        "D-8.2",
+        "D-8.3",
+        "D-8.6"
+      ],
+      "notes": "Продолжение частичной сдачи SP-E7-04G по решению владельца.",
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/contracts/",
+        "docs/sources/10_backlog.md",
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02c_discrepancies.md",
+        "docs/sources/04c_settings_paths.md"
+      ],
+      "promptPath": "docs/tasks/SP-E7-04H.md",
+      "wave": 18,
+      "description": "# SP-E7-04H · Остаток аналитики\n\n**Зачем:** завершить экраны аналитики по решению владельца от 03.11.2026.\n**Часть чего:** остаток SP-E7-04G из docs/results/SP-E7-04G.md.\n**Зависимости:** SP-E7-04G и SP-E7-04F (дождаться merge).\n\nЗавершить D-8.1–D-8.3 и D-8.6: вкладки, время до контакта, доля ответов, клиент, конверсия приёмов и детализация тем, PDF, менеджеры, отправка и подписки. Для контактов и исходов использовать подтверждённые события и переходы SP-E7-04F, сохранённые назначения и имеющиеся локальные порты; при отсутствии данных или транспорта явно показать недоступность, не имитируя отправку и не добавляя платный сервис.\n\nСверить с журналом макетов; проверить сценарии, права, изоляцию брендов и ошибки. Без живых или платных вызовов. Невыполненные пункты перечислить в отчёте.\n\nScope: `app/Seller/Analytics/`, `resources/js/pages/Seller/Analytics/`, `routes/features/E7-04.php`, `tests/Feature/Seller/Analytics/`, `tests/Browser/E7-04/`, `docs/results/SP-E7-04H.md`.\n\nОтчёт: docs/results/SP-E7-04H.md.\n"
     }
   ],
   "excludedSourceTasks": {

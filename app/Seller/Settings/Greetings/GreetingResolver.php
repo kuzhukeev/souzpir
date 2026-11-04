@@ -9,7 +9,7 @@ final class GreetingResolver
 {
     private const CHANNELS = ['telegram', 'widget', 'api', 'email', 'whatsapp'];
 
-    public function resolve(TenantContext $tenant, string $channel): ?string
+    public function resolve(TenantContext $tenant, string $channel, string $page = 'home', ?string $name = null, bool $afterHours = false): ?string
     {
         if (! $tenant->organizationId || ! $tenant->brandId || ! in_array($channel, self::CHANNELS, true)) {
             return null;
@@ -17,8 +17,18 @@ final class GreetingResolver
         $stored = DB::table('brand_seller_settings')->where('organization_id', $tenant->organizationId)
             ->where('brand_id', $tenant->brandId)->value('greetings');
         $settings = is_string($stored) ? json_decode($stored, true) : [];
-        $text = is_array($settings) ? ($settings[$channel] ?? null) : null;
+        if (! is_array($settings)) {
+            return null;
+        }
+        $page = in_array($page, ['home', 'catalog', 'contacts'], true) ? $page : 'home';
+        $key = $channel === 'widget' && $page !== 'home' ? 'widget_'.$page : $channel;
+        $text = $afterHours && is_string($settings['after_hours'] ?? null) && trim($settings['after_hours']) !== ''
+            ? $settings['after_hours'] : ($settings[$key] ?? $settings[$channel] ?? null);
 
-        return is_string($text) && trim($text) !== '' ? trim($text) : null;
+        if (! is_string($text) || trim($text) === '') {
+            return null;
+        }
+
+        return str_replace(['{имя}', '{страница}'], [$name ?: 'гость', ['home' => 'Главная', 'catalog' => 'Каталог', 'contacts' => 'Контакты'][$page]], trim($text));
     }
 }

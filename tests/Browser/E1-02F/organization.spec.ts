@@ -9,4 +9,14 @@ test('главная, меню и ошибка перехода',async({page})=>
 
 test('нет ссылки без права профиля',async({page})=>{await page.goto(`${url}?dashboard=1&forbid=1`);await expect(page.getByRole('link',{name:/Выбор компании/})).toHaveCount(0);});
 
-test('обновление показывает загрузку и ошибку',async({page})=>{await page.goto(url);await page.route('**/fixture.html',async route=>{await new Promise(resolve=>setTimeout(resolve,700));await route.abort();});await page.getByRole('button',{name:'Обновить данные'}).click();await expect(page.getByRole('status')).toContainText('Загрузка данных компании');await expect(page.getByRole('alert')).toContainText('Не удалось загрузить данные компании');await expect(page.getByRole('link',{name:/Союз Пир Владелец/})).toBeVisible();});
+test('обновление показывает загрузку и ошибку',async({page})=>{
+  await page.goto(url);
+  let release!:()=>void;
+  const waitForAssertion=new Promise<void>(resolve=>{release=resolve;});
+  await page.route('**/context/organization*',async route=>{await waitForAssertion;await route.abort();});
+  await page.getByRole('button',{name:'Обновить данные'}).click();
+  try { await expect(page.getByRole('status')).toContainText('Загрузка данных компании'); }
+  finally { release(); }
+  await expect(page.getByRole('alert')).toContainText('Не удалось загрузить данные компании');
+  await expect(page.getByRole('link',{name:/Союз Пир Владелец/})).toBeVisible();
+});

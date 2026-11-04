@@ -18,6 +18,7 @@ use App\Vision\Core\Profiles\Questionnaire;
 use App\Vision\Core\QuestionSets;
 use App\Vision\Evidence\VisibilityProfile;
 use App\Vision\KnowledgeBridge\SelfDeclaredProfile;
+use App\Vision\Measurements\MeasurementSchedule;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -274,15 +275,20 @@ final class QuestionWorkspace
         });
     }
 
-    public function approve(#[\SensitiveParameter] Request $request, array $ids, array $providers, ?string $frequency): string
+    public function approve(#[\SensitiveParameter] Request $request, array $ids, array $providers, ?string $frequency, ?array $schedule = null): string
     {
         if (! array_is_list($ids) || count($ids) < 1 || count($ids) > 100 || array_filter($ids, fn ($id) => ! is_string($id) || ! Str::isUlid($id))
             || count(array_unique($ids)) !== count($ids) || $providers === [] || array_is_list($providers)
-            || ($frequency !== null && ! in_array($frequency, ['weekly', 'biweekly', 'monthly'], true))) {
+            || ($frequency !== null && ! in_array($frequency, ['weekly', 'biweekly', 'monthly'], true))
+            || ($schedule !== null && (count($schedule) !== 3 || array_diff(array_keys($schedule), ['enabled', 'weekday', 'local_time'])
+                || ($schedule['enabled'] ?? null) !== true))) {
             throw new InvalidArgumentException('Invalid approval.');
         }
 
-        return app(ProfileAccess::class)->run($request, function (TenantContext $ctx, User $user) use ($request, $ids, $providers, $frequency): string {
+        return app(ProfileAccess::class)->run($request, function (TenantContext $ctx, User $user) use ($request, $ids, $providers, $frequency, $schedule): string {
+            if ($schedule !== null && ! Gate::forUser($user)->allows('vision.measure.run')) {
+                throw new InvalidArgumentException('Measurement access denied.');
+            }
             $where = $this->tenant($ctx);
             $profile = DB::table('brand_profiles')->where($where)->orderByDesc('version')->first(['id']);
             if (! $profile) {
@@ -331,6 +337,11 @@ final class QuestionWorkspace
                 'providers' => json_encode($providers, JSON_THROW_ON_ERROR), 'frequency' => $frequency, 'active' => true, 'created_at' => now()]);
             DB::table('question_candidates')->where($where)->where('profile_id', $profile->id)->update(['status' => DB::raw("case when status = 'active' then 'proposed' else status end"), 'selected' => false, 'updated_at' => now()]);
             DB::table('question_candidates')->where($where)->where('profile_id', $profile->id)->whereIn('id', $ids)->update(['status' => 'active', 'selected' => true, 'updated_at' => now()]);
+            if ($schedule !== null) {
+                app(MeasurementSchedule::class)->save($ctx, [
+                    ...$schedule, 'frequency' => $frequency, 'models' => array_values($providers),
+                ]);
+            }
             app(AuditWriter::class)->record($ctx, new AuditEntry('vision.questions.approved', 'question_set', $setId, after: ['count' => count($questions)]));
 
             return $setId;

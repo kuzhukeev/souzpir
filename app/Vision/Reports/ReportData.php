@@ -18,6 +18,24 @@ final class ReportData
         return is_array($profile) && is_string($measurement->profile_checksum) && hash_equals($measurement->profile_checksum, CanonicalJson::hash($profile)) && is_string($profile['site'] ?? null) ? $profile['site'] : null;
     }
 
+    public function siteAudit(TenantContext $context, ?string $site, string $reportDate): ?array
+    {
+        if (! $site) {
+            return null;
+        }
+        $rows = DB::table('audit_runs')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)
+            ->where('created_at', '<=', $reportDate)->orderByDesc('created_at')->orderByDesc('id')->get(['result', 'created_at']);
+        foreach ($rows as $row) {
+            $audit = is_string($row->result) ? json_decode($row->result, true) : null;
+            if (is_array($audit) && is_string($audit['url'] ?? null) && rtrim($audit['url'], '/') === rtrim($site, '/')
+                && is_array($audit['readiness'] ?? null) && is_numeric($audit['readiness']['lower'] ?? null) && is_numeric($audit['readiness']['upper'] ?? null)) {
+                return ['readiness' => $audit['readiness'], 'date' => $row->created_at, 'criteria' => $audit['criteria'] ?? []];
+            }
+        }
+
+        return null;
+    }
+
     public function read(TenantContext $context, ?string $reportId): array
     {
         $confirmed = DB::table('snapshot_confirmations')->where('organization_id', $context->organizationId)
@@ -56,17 +74,9 @@ final class ReportData
             }
             $measurement = DB::table('measurements')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)->where('id', $payload['measurement_id'])->first(['profile_snapshot', 'profile_checksum']);
             $site = $this->siteFromProfile($measurement);
-            $siteAudit = null;
-            if ($site) {
-                $auditRows = DB::table('audit_runs')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)
-                    ->where('created_at', '<=', $reports->firstWhere('id', $selected)->created_at)->orderByDesc('created_at')->orderByDesc('id')->get(['result', 'created_at']);
-                foreach ($auditRows as $auditRow) {
-                    $audit = json_decode($auditRow->result, true);
-                    if (is_array($audit) && is_string($audit['url'] ?? null) && rtrim($audit['url'], '/') === rtrim($site, '/') && is_array($audit['readiness'] ?? null) && is_numeric($audit['readiness']['lower'] ?? null) && is_numeric($audit['readiness']['upper'] ?? null)) {
-                        $siteAudit = ['readiness' => $audit['readiness'], 'date' => $auditRow->created_at, 'criteria' => SiteCriteria::project($audit['criteria'] ?? [])];
-                        break;
-                    }
-                }
+            $siteAudit = $this->siteAudit($context, $site, $reports->firstWhere('id', $selected)->created_at);
+            if ($siteAudit !== null) {
+                $siteAudit['criteria'] = SiteCriteria::project($siteAudit['criteria']);
             }
             $metrics = $adjusted['metrics'];
             $panel = $metrics['panel'] ?? [];

@@ -1,3 +1,4 @@
+import { criterionGroup } from '@/features/Vision/Site/groups';
 import { Link, useForm, usePage } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import { Drawer, Modal } from '@/components/ui';
@@ -48,7 +49,7 @@ function CriterionRow({ item, canManage }: { item: Criterion; canManage: boolean
         </span>
       </summary>
       <div className="mt-4 space-y-3">
-        <p className="text-sm text-(--color-ink-muted)">Важность: не определена{typeof (item as Criterion & {weight?: number}).weight === 'number' ? ` · вес: ${(item as Criterion & {weight:number}).weight}` : ''}</p>
+        <p className="text-sm text-(--color-ink-muted)">{typeof (item as Criterion & {weight?: number}).weight === 'number' ? `Вес в расчёте готовности: ${(item as Criterion & {weight:number}).weight}. ` : 'Вес критерия недоступен. '}Качественная важность не определена.</p>
         <h3 className="font-semibold">Что сделать</h3>
         <p className="whitespace-pre-wrap break-words text-(--color-ink-muted)">
           {item.explanation || 'Рекомендаций пока нет.'}
@@ -62,7 +63,7 @@ function CriterionRow({ item, canManage }: { item: Criterion; canManage: boolean
                   key={evidence.id || index}
                   className="rounded-lg bg-(--color-surface-muted) p-3 text-sm"
                 >
-                  <p className="break-all">{evidence.url}</p>
+                  <p className="break-all">Источник: {evidence.url || 'не указан'}</p>
                   <p className="mt-1 whitespace-pre-wrap break-words">{evidence.excerpt}</p>
                   {evidence.observed_at && (
                     <p className="mt-1 text-(--color-ink-muted)">
@@ -74,6 +75,7 @@ function CriterionRow({ item, canManage }: { item: Criterion; canManage: boolean
             </ul>
           </div>
         )}
+        {!item.evidence?.length && <p className="text-sm text-(--color-ink-muted)">Источник свидетельства недоступен.</p>}
         <details className="rounded-lg bg-(--color-surface-muted) p-3">
           <summary className="cursor-pointer font-semibold">Для разработчика</summary>
           {observedJson ? <><p className="mt-2 text-sm text-(--color-ink-muted)">Найденный фрагмент структурированных данных с проверенной страницы. Используйте как пример исходных данных, не как готовую рекомендацию.</p><pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-all rounded-lg bg-(--color-surface) p-3 text-sm">{observedJson.excerpt}</pre></> : <p className="mt-2 text-sm text-(--color-ink-muted)">Пример кода для этого критерия не предоставлен.</p>}
@@ -105,21 +107,26 @@ function CriterionRow({ item, canManage }: { item: Criterion; canManage: boolean
     </details>
   );
 }
+export function SpeedUnavailable() {
+  return <section className={card}><h2 className="text-lg font-semibold">Скорость сайта</h2><p className="mt-2 text-sm text-(--color-ink-muted)">Данные недоступны: аудит не измеряет скорость загрузки страниц.</p></section>;
+}
 export function Criteria({ criteria, canManage }: { criteria: Criterion[]; canManage: boolean }) {
   if (!criteria.length)
     return <div className={`${card} text-(--color-ink-muted)`}>Критерии пока не проверены.</div>;
   const groups = new Map<string, Criterion[]>();
   criteria.forEach((item) =>
-    groups.set(item.group || 'Другие критерии', [
-      ...(groups.get(item.group || 'Другие критерии') || []),
+    groups.set(criterionGroup(item), [
+      ...(groups.get(criterionGroup(item)) || []),
       item,
     ]),
   );
   return (
     <div className="space-y-4">
+      <p className="text-sm text-(--color-ink-muted)">Качественная важность проверок не определена; доступный числовой вес указан в каждом критерии.</p>
       {Array.from(groups, ([group, items]) => (
         <details key={group} className={card} open>
           <summary className="cursor-pointer text-lg font-semibold">{group}</summary>
+          <p className="mt-2 text-sm text-(--color-ink-muted)">Состав группы: {items.map((item) => item.title || item.name || item.label || 'критерий без названия').join(' · ')}</p>
           <div className="mt-4 divide-y divide-(--color-border)">
             {items.map((item, index) => (
               <CriterionRow
@@ -289,6 +296,7 @@ export function Pages({ audit }: { audit: Audit }) {
   );
   return (
     <section className={card}>
+      <p className="mb-4 text-sm text-(--color-ink-muted)">Показаны только загруженные публичные страницы на момент проверки. Тип и факты основаны на доступной разметке JSON-LD; отсутствие данных не означает их отсутствия на сайте.</p>
       <label htmlFor="page-search" className="block text-sm font-semibold">
         Поиск по страницам
       </label>

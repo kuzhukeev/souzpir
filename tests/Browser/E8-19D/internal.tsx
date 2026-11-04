@@ -1,0 +1,10 @@
+import {createInertiaApp} from '@inertiajs/react';
+import {createRoot} from 'react-dom/client';
+import {ReportSections} from '../../../resources/js/pages/Vision/Reports/ReportSections';
+import '../../../resources/css/app.css';
+import '../../../resources/css/themes/tokens.css';
+const empty=new URLSearchParams(location.search).has('empty');
+const data={site:'https://example.test',competitors:empty?[]:[{name:'Пример компании',answers:2,is_brand:false,models:['fake'],strongest:['choose']}],gaps:[],facts:[],sources:[],actions:empty?[]:[{title:'Уточнить описание товаров',why:'Ответить на вопрос покупателя'}],site_audit:null,changes:null};
+const page={component:'Fixture',props:{can:{},brand:{id:'b'}},url:'/vision/report',version:null,clearHistory:false,encryptHistory:false};
+const script=document.createElement('script');script.type='application/json';script.dataset.page='app';script.textContent=JSON.stringify(page);document.body.append(script);
+void createInertiaApp({resolve:()=>()=> <main className="mx-auto max-w-5xl p-4"><h1 className="text-2xl">Отчёт Видения</h1><ReportSections data={data}/></main>,setup:({el,App,props})=>createRoot(el).render(<App {...props}/>)});
