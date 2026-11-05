@@ -350,9 +350,47 @@ final class AnalyticsController
         return response()->streamDownload(function () use ($data): void {
             $file = fopen('php://output', 'w');
             fputcsv($file, ['Показатель', 'Значение'], ';', '"', '');
-            foreach (['Диалоги' => 'total', 'Контакт получен' => 'contact', 'Переданы менеджеру' => 'handed', 'Завершены' => 'closed'] as $label => $key) {
-                fputcsv($file, [$label, $data[$key]], ';', '"', '');
+            $safe = static function (mixed $value): string {
+                $value = $value === null ? 'Нет данных' : (is_bool($value) ? ($value ? 'Да' : 'Нет') : (string) $value);
+
+                return preg_match('/^[\s]*[=+@\-]/u', $value) ? "'".$value : $value;
+            };
+            $write = static function (string $label, mixed $value) use ($file, $safe, &$write): void {
+                if (is_array($value)) {
+                    foreach ($value as $key => $item) {
+                        $write($label.' / '.$key, $item);
+                    }
+
+                    return;
+                }
+                fputcsv($file, [$safe($label), $safe($value)], ';', '"', '');
+            };
+            $labels = ['from' => 'Период с', 'to' => 'Период по', 'channel' => 'Фильтр канала', 'source' => 'Фильтр источника', 'manager' => 'Фильтр менеджера',
+                'total' => 'Диалоги', 'contact' => 'Контакт получен', 'handed' => 'Переданы менеджеру', 'closed' => 'Завершены', 'messageCount' => 'Сообщения',
+                'botCompleted' => 'Бот завершил диалог', 'unknownDialogs' => 'Диалоги с неизвестными вопросами', 'previousTotal' => 'Диалоги за предыдущий период',
+                'previousMetrics' => 'Показатели предыдущего периода', 'funnel' => 'Воронка', 'transitionRates' => 'Конверсия переходов, %', 'transitions' => 'Переходы по стадиям',
+                'outcomes' => 'Исходы', 'types' => 'Типы клиентов', 'stages' => 'Стадии', 'channels' => 'Каналы', 'channelMetrics' => 'Показатели каналов',
+                'sources' => 'Источники', 'daily' => 'Диалоги по дням', 'hours' => 'Диалоги по времени', 'topics' => 'Темы', 'unknownQuestions' => 'Неизвестные вопросы',
+                'triggers' => 'Приёмы', 'triggerStats' => 'Показатели приёмов', 'managers' => 'Менеджеры'];
+            foreach ($labels as $key => $label) {
+                $write($label, $data[$key] ?? null);
             }
+            $total = $data['total'];
+            $write('Среднее число сообщений', $total ? round($data['messageCount'] / $total, 1) : null);
+            $write('Бот ответил до конца, %', $total ? round($data['botCompleted'] / $total * 100) : null);
+            $write('Закрыто без передачи', collect($data['dialogs'])->filter(fn ($dialog) => $dialog['stage'] === 'done' && ! $dialog['handed_off'])->count());
+            $write('Длинные диалоги без контакта', collect($data['dialogs'])->filter(fn ($dialog) => $dialog['messages'] >= 8 && ! $dialog['has_contact'])->count());
+            $write('Диалоги с неизвестными вопросами, %', $total ? round($data['unknownDialogs'] / $total * 100) : null);
+            foreach ($data['funnel'] as $index => $step) {
+                if ($index > 0) {
+                    $previous = $data['funnel'][$index - 1]['count'];
+                    $write('Воронка / '.$step['label'].' / от предыдущего шага, %', $previous ? round($step['count'] / $previous * 100) : null);
+                }
+            }
+            foreach ($data['triggerStats'] as $trigger => $stats) {
+                $write('Приём / '.$trigger.' / конверсия, %', $stats['dialogs'] ? round($stats['with_contact'] / $stats['dialogs'] * 100) : 0);
+            }
+            $write('Среднее время до контакта', null);
             fclose($file);
         }, 'seller-analytics.csv', ['Content-Type' => 'text/csv; charset=UTF-8', 'Cache-Control' => 'private, no-store']);
     }
