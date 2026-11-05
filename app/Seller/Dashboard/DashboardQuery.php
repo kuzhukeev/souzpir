@@ -3,6 +3,8 @@
 namespace App\Seller\Dashboard;
 
 use App\Seller\Evaluation\EvaluationVisibility;
+use App\Seller\Knowledge\Contracts\KnowledgeRepository;
+use App\Seller\Knowledge\KnowledgeNotReady;
 use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -89,11 +91,19 @@ final class DashboardQuery
             $issueDetails[] = ['type' => $type, 'share' => $share, 'delta' => $previousShare === null ? null : round($share - $previousShare, 1), 'href' => '/seller/quality'];
         }
         $topics = [];
+        try {
+            $intentTitles = collect(app(KnowledgeRepository::class)->published($tenant)->intents())
+                ->filter(fn ($intent) => is_array($intent) && is_string($intent['id'] ?? null) && is_string($intent['title'] ?? null) && trim($intent['title']) !== '')
+                ->pluck('title', 'id')->all();
+        } catch (KnowledgeNotReady) {
+            $intentTitles = [];
+        }
         foreach ($scope('messages')->where('created_at', '>=', $start)->where('created_at', '<', $end)->get(['meta']) as $message) {
             $meta = json_decode($message->meta, true) ?: [];
             $intent = $meta['intent'] ?? null;
-            if (is_string($intent) && $intent !== '') {
-                $topics[$intent] = ($topics[$intent] ?? 0) + 1;
+            if (is_string($intent) && isset($intentTitles[$intent])) {
+                $title = $intentTitles[$intent];
+                $topics[$title] = ($topics[$title] ?? 0) + 1;
             }
         }
         arsort($topics);

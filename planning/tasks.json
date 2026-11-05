@@ -18606,6 +18606,203 @@
       ],
       "wave": 20,
       "promptPath": "docs/tasks/SP-E7-04I.md"
+    },
+    {
+      "taskKey": "SP-E8-21K",
+      "title": "SP-E8-21K · Пять критериев и важность проверки сайта",
+      "goal": "V-5.6: обеспечить пять ключевых критериев в данных отчёта. V-8.1: пять групп и шкала N/20 для фактических критериев инспектора. V-8.2: важность из веса и примеры кода; обновить браузерный тест E8-21H и удалить неиспользуемый SpeedUnavailable.",
+      "description": "# SP-E8-21K · Пять критериев и важность проверки сайта\n\n**Зачем:** полное соответствие экранам по решению владельца 05.11.2026.\n**Часть чего:** остаток частичной сдачи SP-E8-21I, docs/results/SP-E8-21I.md.\n**Зависимости:** SP-E8-21I.\n\n## Приёмка\n- V-5.6: обеспечить пять ключевых критериев в данных отчёта.\n- V-8.1: пять групп и шкала N/20 для фактических критериев инспектора.\n- V-8.2: важность из веса и примеры кода; обновить браузерный тест E8-21H и удалить неиспользуемый SpeedUnavailable.\n\nПроверить права, бренд и ошибки; остаток записать в отчёт.\n\nScope: `app/Vision/Site/`, `app/Vision/SiteAudit/`, `app/Vision/Reports/`, `resources/js/pages/Vision/Site/`, `resources/js/pages/Vision/Reports/`, `resources/js/features/Vision/Site/`, `tests/Browser/E8-21H/`, `tests/Browser/E8-21K/`, `tests/Feature/Vision/Site/`, `docs/results/SP-E8-21K.md`.\n",
+      "dependsOn": [
+        "SP-E8-21I"
+      ],
+      "scope": [
+        "app/Vision/Site/",
+        "app/Vision/SiteAudit/",
+        "app/Vision/Reports/",
+        "resources/js/pages/Vision/Site/",
+        "resources/js/pages/Vision/Reports/",
+        "resources/js/features/Vision/Site/",
+        "tests/Browser/E8-21H/",
+        "tests/Browser/E8-21K/",
+        "tests/Feature/Vision/Site/",
+        "docs/results/SP-E8-21K.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "V-5.6: обеспечить пять ключевых критериев в данных отчёта.",
+        "V-8.1: пять групп и шкала N/20 для фактических критериев инспектора.",
+        "V-8.2: важность из веса и примеры кода; обновить браузерный тест E8-21H и удалить неиспользуемый SpeedUnavailable."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "V-5.6",
+        "V-8.1",
+        "V-8.2"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E8-21K.md"
+    },
+    {
+      "taskKey": "SP-E7-04J",
+      "title": "SP-E7-04J · Образцы речи в аналитике менеджеров",
+      "goal": "Учесть добавленные образцы речи и их авторов через источник событий редактора знаний и аудита. Показать «Образцов речи добавил» в аналитике; проверить права, бренд и ошибки.",
+      "description": "# SP-E7-04J · Образцы речи в аналитике менеджеров\n\n**Зачем:** полное соответствие экранам по решению владельца 05.11.2026.\n**Часть чего:** остаток частичной сдачи SP-E7-04I, docs/results/SP-E7-04I.md.\n**Зависимости:** SP-E7-04I.\n\n## Приёмка\n- Учесть добавленные образцы речи и их авторов через источник событий редактора знаний и аудита.\n- Показать «Образцов речи добавил» в аналитике; проверить права, бренд и ошибки.\n\nПроверить права, бренд и ошибки; остаток записать в отчёт.\n\nScope: `app/Seller/Analytics/`, `app/Seller/Knowledge/`, `resources/js/pages/Seller/Analytics/`, `tests/Feature/Seller/Analytics/`, `tests/Feature/Owner/E7-04J/`, `tests/Browser/E7-04J/`, `docs/results/SP-E7-04J.md`.\n",
+      "dependsOn": [
+        "SP-E7-04I"
+      ],
+      "scope": [
+        "app/Seller/Analytics/",
+        "app/Seller/Knowledge/",
+        "resources/js/pages/Seller/Analytics/",
+        "tests/Feature/Seller/Analytics/",
+        "tests/Feature/Owner/E7-04J/",
+        "tests/Browser/E7-04J/",
+        "docs/results/SP-E7-04J.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Учесть добавленные образцы речи и их авторов через источник событий редактора знаний и аудита.",
+        "Показать «Образцов речи добавил» в аналитике; проверить права, бренд и ошибки."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "D-8.5"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E7-04J.md"
+    },
+    {
+      "taskKey": "SP-E4-01V",
+      "title": "SP-E4-01V · Откат и аудит версий знаний",
+      "goal": "Согласовать контракт KnowledgeRepository::rollback с экраном и существующими вызовами. Показывать показатели истории версий и автора/время изменений по подтверждённому аудиту; проверить права и бренд.",
+      "description": "# SP-E4-01V · Откат и аудит версий знаний\n\n**Зачем:** завершить экран по решению владельца от 05.11.2026.\n**Часть чего:** остаток SP-E4-01U, docs/results/SP-E4-01U.md.\n**Зависимости:** SP-E4-01U.\n\n## Приёмка\n- Согласовать контракт KnowledgeRepository::rollback с экраном и существующими вызовами.\n- Показывать показатели истории версий и автора/время изменений по подтверждённому аудиту; проверить права и бренд.\n\nОстаток записать в отчёт.\n\nScope: `app/Seller/Knowledge/`, `resources/js/pages/Seller/Knowledge/`, `tests/Feature/Seller/Knowledge/`, `tests/Browser/E4-01V/`, `docs/results/SP-E4-01V.md`.\n",
+      "dependsOn": [
+        "SP-E4-01U"
+      ],
+      "scope": [
+        "app/Seller/Knowledge/",
+        "resources/js/pages/Seller/Knowledge/",
+        "tests/Feature/Seller/Knowledge/",
+        "tests/Browser/E4-01V/",
+        "docs/results/SP-E4-01V.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Согласовать контракт KnowledgeRepository::rollback с экраном и существующими вызовами.",
+        "Показывать показатели истории версий и автора/время изменений по подтверждённому аудиту; проверить права и бренд."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "D-4.12"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E4-01V.md"
+    },
+    {
+      "taskKey": "SP-E1-11C",
+      "title": "SP-E1-11C · Хранение и удаление аккаунта",
+      "goal": "Показать хранение и политику 365 дней, опираясь на действующий источник и механизм очистки. Реализовать удаление аккаунта с повторным паролем, проверкой прав, состояний и тестами. Удаление организации не реализовывать до решения владельца: оно противоречит AGENTS.md.",
+      "description": "# SP-E1-11C · Хранение и удаление аккаунта\n\n**Зачем:** завершить экран по решению владельца от 05.11.2026.\n**Часть чего:** остаток SP-E1-11B, docs/results/SP-E1-11B.md.\n**Зависимости:** SP-E1-11B.\n\n## Приёмка\n- Показать хранение и политику 365 дней, опираясь на действующий источник и механизм очистки.\n- Реализовать удаление аккаунта с повторным паролем, проверкой прав, состояний и тестами.\n- Удаление организации не реализовывать до решения владельца: оно противоречит AGENTS.md.\n\nОстаток записать в отчёт.\n\nScope: `app/Shell/Data/`, `app/Privacy/`, `resources/js/pages/Shell/Data/`, `tests/Feature/Owner/E1-11C/`, `tests/Browser/E1-11C/`, `docs/results/SP-E1-11C.md`.\n",
+      "dependsOn": [
+        "SP-E1-11B"
+      ],
+      "scope": [
+        "app/Shell/Data/",
+        "app/Privacy/",
+        "resources/js/pages/Shell/Data/",
+        "tests/Feature/Owner/E1-11C/",
+        "tests/Browser/E1-11C/",
+        "docs/results/SP-E1-11C.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Показать хранение и политику 365 дней, опираясь на действующий источник и механизм очистки.",
+        "Реализовать удаление аккаунта с повторным паролем, проверкой прав, состояний и тестами.",
+        "Удаление организации не реализовывать до решения владельца: оно противоречит AGENTS.md."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "S-7.4"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E1-11C.md"
+    },
+    {
+      "taskKey": "SP-E8-21L",
+      "title": "SP-E8-21L · Этапы и запуск проверки сайта",
+      "goal": "Четыре подтверждённых этапа, запуск одной кнопкой по текущему домену бренда, оценка 2–5 минут и до 50 страниц. Расширить инспектор и проверить права, бренд и ошибки на изолированной БД.",
+      "description": "# SP-E8-21L · Этапы и запуск проверки сайта\n\n**Зачем:** завершить экран по решению владельца от 05.11.2026.\n**Часть чего:** остаток SP-E8-21J, docs/results/SP-E8-21J.md.\n**Зависимости:** SP-E8-21J.\n\n## Приёмка\n- Четыре подтверждённых этапа, запуск одной кнопкой по текущему домену бренда, оценка 2–5 минут и до 50 страниц.\n- Расширить инспектор и проверить права, бренд и ошибки на изолированной БД.\n\nОстаток записать в отчёт.\n\nScope: `app/Vision/Site/`, `app/Vision/SiteAudit/`, `resources/js/pages/Vision/Site/`, `resources/js/features/Vision/Site/`, `tests/Feature/Vision/Site/`, `tests/Browser/E8-21L/`, `docs/results/SP-E8-21L.md`.\n",
+      "dependsOn": [
+        "SP-E8-21J"
+      ],
+      "scope": [
+        "app/Vision/Site/",
+        "app/Vision/SiteAudit/",
+        "resources/js/pages/Vision/Site/",
+        "resources/js/features/Vision/Site/",
+        "tests/Feature/Vision/Site/",
+        "tests/Browser/E8-21L/",
+        "docs/results/SP-E8-21L.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Четыре подтверждённых этапа, запуск одной кнопкой по текущему домену бренда, оценка 2–5 минут и до 50 страниц.",
+        "Расширить инспектор и проверить права, бренд и ошибки на изолированной БД."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "V-8.5"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E8-21L.md"
+    },
+    {
+      "taskKey": "SP-E7-06C",
+      "title": "SP-E7-06C · Фильтр канала и CRM",
+      "goal": "Реализовать выбор фильтра «Канал» и полностью сверить экран с макетом. Скрыть «Проверить ошибку» в CRM; проверить права, бренд и ошибки.",
+      "description": "# SP-E7-06C · Фильтр канала и CRM\n\n**Зачем:** завершить экран по решению владельца от 05.11.2026.\n**Часть чего:** остаток SP-E7-06B, docs/results/SP-E7-06B.md.\n**Зависимости:** SP-E7-06B.\n\n## Приёмка\n- Реализовать выбор фильтра «Канал» и полностью сверить экран с макетом.\n- Скрыть «Проверить ошибку» в CRM; проверить права, бренд и ошибки.\n\nОстаток записать в отчёт.\n\nScope: `app/Seller/Dashboard/`, `resources/js/pages/Seller/Dashboard/`, `resources/js/pages/Seller/Channels/Crm/`, `resources/js/pages/Seller/Analytics/`, `tests/Feature/Seller/Dashboard/`, `tests/Browser/E7-06C/`, `docs/results/SP-E7-06C.md`.\n",
+      "dependsOn": [
+        "SP-E7-06B"
+      ],
+      "scope": [
+        "app/Seller/Dashboard/",
+        "resources/js/pages/Seller/Dashboard/",
+        "resources/js/pages/Seller/Channels/Crm/",
+        "resources/js/pages/Seller/Analytics/",
+        "tests/Feature/Seller/Dashboard/",
+        "tests/Browser/E7-06C/",
+        "docs/results/SP-E7-06C.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Реализовать выбор фильтра «Канал» и полностью сверить экран с макетом.",
+        "Скрыть «Проверить ошибку» в CRM; проверить права, бренд и ошибки."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "D-1.1",
+        "D-10.2"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E7-06C.md"
     }
   ],
   "excludedSourceTasks": {
