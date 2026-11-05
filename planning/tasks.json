@@ -19998,6 +19998,68 @@
       "promptPath": "docs/tasks/SP-E4-01Y.md",
       "wave": 20,
       "description": "# SP-E4-01Y · История и контракт отката знаний\n\n**Зачем:** закрыть оставшиеся пункты экрана D-4.12 по принятому результату.\n**Часть чего:** остаток SP-E4-01V, docs/results/SP-E4-01V.md.\n**Зависимости:** SP-E4-01V.\n\n## Приёмка\n- Выровнять поведение repository rollback и экрана с существующими вызовами; показатели изменений, диалогов и качества в истории, автор и время строк diff при наличии подтверждённых источников.\n- Проверить основной сценарий, права и изоляцию брендов, состояния и ошибки; без живых платных вызовов.\n- Незавершённое указать в разделе «Остаток» отчёта.\n\nScope: `app/Seller/Knowledge/Contracts/`, `app/Seller/Knowledge/Releases/`, `resources/js/pages/Seller/Knowledge/Releases/`, `tests/Feature/Seller/Knowledge/Releases/`, `tests/Browser/E4-01Y/`, `docs/results/SP-E4-01Y.md`.\n"
+    },
+    {
+      "taskKey": "SP-E3-06L",
+      "title": "SP-E3-06L · Защищённый fake-ход job",
+      "goal": "Подключить защищённые gateway, результат extractor, coordinator, responder, guard и финализацию к job-источнику; проверить fake-ход и восстановление стадий. Очередь не подключать. Если изменения затрагивают общие AI-стадии, не выполнять их до решения владельца.",
+      "dependsOn": [
+        "SP-E3-06K"
+      ],
+      "scope": [
+        "app/Ai/Protected/",
+        "app/Ai/Gateway.php",
+        "app/ProtectedOperations/",
+        "app/Seller/Conversations/",
+        "tests/Feature/Ai/",
+        "tests/Feature/ProtectedOperations/",
+        "docs/results/SP-E3-06L.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Подключить защищённые gateway, результат extractor, coordinator, responder, guard и финализацию к job-источнику; проверить fake-ход и восстановление стадий. Очередь не подключать. Если изменения затрагивают общие AI-стадии, не выполнять их до решения владельца."
+      ],
+      "sourceIds": [],
+      "screenIds": [],
+      "notes": "Остаток SP-E3-06K.",
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E3-06K.md"
+      ],
+      "promptPath": "docs/tasks/SP-E3-06L.md",
+      "wave": 20,
+      "description": "# SP-E3-06L · Защищённый fake-ход job\n\n**Зачем:** завершить принятый остаток.\n**Часть чего:** SP-E3-06K, docs/results/SP-E3-06K.md.\n**Зависимости:** SP-E3-06K.\n\n## Приёмка\n- Подключить защищённые gateway, результат extractor, coordinator, responder, guard и финализацию к job-источнику; проверить fake-ход и восстановление стадий. Очередь не подключать. Если изменения затрагивают общие AI-стадии, не выполнять их до решения владельца.\n- Проверить сценарий, ошибки, права и изоляцию брендов; без платных и живых вызовов.\n- Незавершённое указать в «Остатке».\n\nScope: `app/Ai/Protected/`, `app/Ai/Gateway.php`, `app/ProtectedOperations/`, `app/Seller/Conversations/`, `tests/Feature/Ai/`, `tests/Feature/ProtectedOperations/`, `docs/results/SP-E3-06L.md`.\n"
+    },
+    {
+      "taskKey": "SP-E6-03X",
+      "title": "SP-E6-03X · Цели и закрывающие поля воронки",
+      "goal": "Показать цели и закрывающие поля после подтверждения источников; реализовать не более двух вопросов подряд после согласования контракта и runtime; проверить состояния загрузки и ошибки полного экрана. Неподтверждённые значения не выдумывать.",
+      "dependsOn": [
+        "SP-E6-03N"
+      ],
+      "scope": [
+        "app/Seller/Settings/Policy/",
+        "resources/js/pages/Seller/Settings/Policy/",
+        "tests/Feature/Seller/Settings/Policy/",
+        "tests/Browser/E6-03X/",
+        "docs/results/SP-E6-03X.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Показать цели и закрывающие поля после подтверждения источников; реализовать не более двух вопросов подряд после согласования контракта и runtime; проверить состояния загрузки и ошибки полного экрана. Неподтверждённые значения не выдумывать."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "D-5.2"
+      ],
+      "notes": "Остаток SP-E6-03N.",
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E6-03N.md"
+      ],
+      "promptPath": "docs/tasks/SP-E6-03X.md",
+      "wave": 20,
+      "description": "# SP-E6-03X · Цели и закрывающие поля воронки\n\n**Зачем:** завершить принятый остаток.\n**Часть чего:** SP-E6-03N, docs/results/SP-E6-03N.md.\n**Зависимости:** SP-E6-03N.\n\n## Приёмка\n- Показать цели и закрывающие поля после подтверждения источников; реализовать не более двух вопросов подряд после согласования контракта и runtime; проверить состояния загрузки и ошибки полного экрана. Неподтверждённые значения не выдумывать.\n- Проверить сценарий, ошибки, права и изоляцию брендов; без платных и живых вызовов.\n- Незавершённое указать в «Остатке».\n\nScope: `app/Seller/Settings/Policy/`, `resources/js/pages/Seller/Settings/Policy/`, `tests/Feature/Seller/Settings/Policy/`, `tests/Browser/E6-03X/`, `docs/results/SP-E6-03X.md`.\n"
     }
   ],
   "excludedSourceTasks": {
