@@ -33,6 +33,7 @@ final class DialogsController
             'manager' => ['sometimes', 'ulid'],
             'outcome' => ['sometimes', Rule::in(LeadState::OUTCOMES)],
             'period' => ['sometimes', Rule::in(['7', '30', '90'])],
+            'report_day' => ['sometimes', 'date_format:Y-m-d'],
             'reviewed' => ['sometimes', 'in:1'],
             'page' => ['sometimes', 'integer', 'min:1', 'max:100000'],
         ]);
@@ -58,6 +59,9 @@ final class DialogsController
             $data['evaluationId'] = $dialog && ($data['dialog']['id'] ?? null) === $dialog && Gate::forUser($actor)->allows('seller.knowledge.write')
                 ? DB::table('seller_evaluations')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)->where('conversation_id', $dialog)->orderByDesc('created_at')->orderByDesc('id')->value('id')
                 : null;
+            $data['reportDay'] = $dialog && isset($input['report_day']) && ($data['dialog']['id'] ?? null) === $dialog && Gate::forUser($actor)->allows('seller.knowledge.write')
+                && DB::table('seller_supervisor_reports')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)->where('report_date', $input['report_day'])->whereJsonContains('issues', [['conversation_id' => $dialog]])->exists()
+                ? $input['report_day'] : null;
             $templates = app()->bound(MessageTemplates::class) ? app(MessageTemplates::class) : app(DefaultMessageTemplates::class);
             $data['messageTemplates'] = $templates->forBrand($context);
 

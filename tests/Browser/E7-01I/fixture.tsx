@@ -1,0 +1,18 @@
+import { createInertiaApp } from '@inertiajs/react';
+import { createRoot } from 'react-dom/client';
+import '../../../resources/css/app.css';
+import '../../../resources/css/themes/tokens.css';
+import Index from '../../../resources/js/pages/Seller/Quality/Index';
+import Day from '../../../resources/js/pages/Seller/Quality/Day';
+const issue={conversation_id:'01ARZ3NDEKTSV4RRFFQ69G5FAV',type:'unknown_fact',layer:'knowledge',severity:'medium',turn:1,quote:'Сколько стоит доставка?',explanation:'Нет подтверждённой цены',fix:'Добавить условия доставки'};
+const day=new Date().toLocaleDateString('en-CA');
+const report={id:'report',source:'supervisor',conversation_id:null,scores:{naturalness:4},issues:[issue],average:4.2,comment:null,created_at:day};
+const score={...report,id:'evaluation',source:'dialogue',conversation_id:'01ARZ3NDEKTSV4RRFFQ69G5FAV'};
+const summary={day,count:1,average:4.2,issues:1,withIssues:1,high:0,medium:1,topIssues:['unknown_fact'],dialogueIds:['01ARZ3NDEKTSV4RRFFQ69G5FAV'],problemDialogueIds:['01ARZ3NDEKTSV4RRFFQ69G5FAV']};
+const empty=location.search.includes('empty');
+const isDay=location.search.includes('day');
+const props={auth:{user:{id:'u',name:'Иван',email:'ivan@example.test'}},organization:{id:'o',name:'Компания'},brand:{id:'b',name:'Пример бренда'},brands:[],modules:{seller:true,vision:false},can:{'profile.own':true,'seller.knowledge.read':true},theme:'neutral',translations:{},ziggy:{routes:{}},errors:{},period:30,pagination:{page:1,pages:2,total:12},reportPageDays:empty?[]:[summary],reportDays:empty?[]:[summary],days:empty?[]:[summary],reports:empty?[]:[report],evaluations:empty?[]:[score],day};
+const script=document.createElement('script');script.type='application/json';script.dataset.page='app';script.textContent=JSON.stringify({component:'Fixture',props,url:'/seller/quality',version:'fixture',clearHistory:false,encryptHistory:false});document.body.append(script);
+void createInertiaApp({resolve:()=>isDay?Day:Index,setup:({el,App,props})=>createRoot(el).render(<App {...props}/>)});
+
+

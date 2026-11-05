@@ -47,10 +47,12 @@ final class QualityController
             });
     }
 
-    private function reports(TenantContext $tenant): Collection
+    private function reports(TenantContext $tenant, ?string $from = null, ?string $day = null): Collection
     {
         return DB::table('seller_supervisor_reports')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
-            ->orderByDesc('report_date')->orderByDesc('created_at')->limit(500)->get(['id', 'report_date', 'scores', 'issues', 'average', 'comment', 'created_at'])
+            ->when($from !== null, fn ($query) => $query->where('report_date', '>=', $from))
+            ->when($day !== null, fn ($query) => $query->where('report_date', $day))
+            ->orderByDesc('report_date')->orderByDesc('created_at')->get(['id', 'report_date', 'scores', 'issues', 'average', 'comment', 'created_at'])
             ->map(fn ($row) => ['id' => $row->id, 'source' => 'supervisor', 'conversation_id' => null, 'scores' => json_decode($row->scores, true) ?: [],
                 'issues' => json_decode($row->issues, true) ?: [], 'average' => (float) $row->average, 'comment' => $row->comment,
                 'created_at' => $row->created_at, 'day' => $row->report_date]);
@@ -58,11 +60,23 @@ final class QualityController
 
     public function index(Request $request): mixed
     {
-        [$rows, $reports, $missing] = $this->access($request, function (TenantContext $tenant): array {
+        $input = $request->validate(['period' => ['sometimes', 'integer', 'in:7,30,90'], 'page' => ['sometimes', 'integer', 'min:1', 'max:100000']]);
+        $period = (int) ($input['period'] ?? 7);
+        $page = (int) ($input['page'] ?? 1);
+        [$rows, $reports, $missing, $dates] = $this->access($request, function (TenantContext $tenant) use ($period, $page): array {
             $missing = DB::table('seller_sim_runs as r')->where('r.organization_id', $tenant->organizationId)->where('r.brand_id', $tenant->brandId)->where('r.status', 'completed')
                 ->whereNotExists(fn ($query) => $query->selectRaw('1')->from('seller_evaluations as e')->whereColumn('e.sim_run_id', 'r.id')->whereColumn('e.organization_id', 'r.organization_id')->whereColumn('e.brand_id', 'r.brand_id'))->count();
 
-            return [$this->rows($tenant), $this->reports($tenant), $missing];
+            $timezone = DB::table('brands')->where('organization_id', $tenant->organizationId)->where('id', $tenant->brandId)->value('timezone') ?: 'UTC';
+            $from = now($timezone)->startOfDay()->subDays($period - 1)->toDateString();
+            $dateQuery = DB::table('seller_supervisor_reports')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('report_date', '>=', $from)
+                ->select('report_date')->distinct()->orderByDesc('report_date');
+            $dates = (clone $dateQuery)->paginate(10, ['report_date'], 'page', $page);
+            if ($page > max(1, $dates->lastPage())) {
+                $dates = $dateQuery->paginate(10, ['report_date'], 'page', max(1, $dates->lastPage()));
+            }
+
+            return [$this->rows($tenant), $this->reports($tenant, $from), $missing, $dates];
         });
         $group = fn ($data) => $data->groupBy('day')->map(function ($items, $day) {
             $issues = $items->flatMap(fn ($row) => $row['issues']);
@@ -77,7 +91,12 @@ final class QualityController
 
         $testDays = $rows->where('test_baseline', true)->groupBy('day')->map(fn ($items, $day) => ['day' => $day, 'count' => $items->count()])->values();
 
-        return Inertia::render('Seller/Quality/Index', ['days' => $group($rows->where('test_baseline', false)), 'reportDays' => $group($reports), 'testDays' => $testDays, 'missingEvaluations' => $missing]);
+        $reportDays = $group($reports);
+        $visibleDates = collect($dates->items())->pluck('report_date')->map(fn ($date) => (string) $date)->all();
+
+        return Inertia::render('Seller/Quality/Index', ['days' => $group($rows->where('test_baseline', false)), 'reportDays' => $reportDays,
+            'reportPageDays' => $reportDays->whereIn('day', $visibleDates)->values(), 'pagination' => ['page' => $dates->currentPage(), 'pages' => max(1, $dates->lastPage()), 'total' => $dates->total()],
+            'period' => $period, 'testDays' => $testDays, 'missingEvaluations' => $missing]);
     }
 
     public function day(Request $request, string $day): mixed
@@ -93,7 +112,7 @@ final class QualityController
             $start = CarbonImmutable::parse($day, $timezone)->startOfDay();
             $turns = DB::table('seller_turns')->where($scope)->whereIn('conversation_id', $ids)->where('status', 'completed')->where('created_at', '>=', $start->utc())->where('created_at', '<', $start->addDay()->utc())->count();
 
-            return [$rows, $this->reports($tenant)->where('day', $day)->values(), ['dialogs' => count($ids), 'turns' => $turns,
+            return [$rows, $this->reports($tenant, day: $day)->values(), ['dialogs' => count($ids), 'turns' => $turns,
                 'contact' => $outcomes->filter(fn ($outcome) => in_array($outcome, ['full_contact', 'partial_contact'], true))->count(),
                 'handoff' => $outcomes->filter(fn ($outcome) => $outcome === 'handoff')->count(),
                 'other' => $outcomes->filter(fn ($outcome) => ! in_array($outcome, ['full_contact', 'partial_contact', 'handoff'], true))->count()]];
@@ -115,7 +134,7 @@ final class QualityController
             foreach (Supervisor::SCORES as $key) {
                 $result[$key] = (int) round($evaluations->avg(fn ($row) => $row['scores'][$key]));
             }
-            $result['issues'] = $evaluations->flatMap(fn ($row) => $row['issues'])->values()->all();
+            $result['issues'] = $evaluations->flatMap(fn ($row) => collect($row['issues'])->map(fn ($issue) => [...$issue, 'conversation_id' => $row['conversation_id']]))->values()->all();
             $result['comment'] = 'Сводка по сохранённым оценкам диалогов за день.';
             $turnCount = max(1, collect($result['issues'])->max('turn') ?? 1);
             app(SupervisorReportWriter::class)->write($tenant, $day, $result, $turnCount);
