@@ -4,6 +4,7 @@ namespace App\Seller\Scenarios;
 
 use App\Models\User;
 use App\Seller\Evaluation\Jobs\SimulateFakeJob;
+use App\Seller\Evaluation\ScenarioFallbackJudge;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Profile\ProfileAccess;
 use App\Tenancy\TenantContext;
@@ -32,7 +33,7 @@ final class RunsController
         $data = $this->access($request, function (TenantContext $tenant): array {
             $personas = DB::table('seller_personas')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->orderBy('name')->get(['id', 'name']);
             $runs = DB::table('seller_sim_runs')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->orderByDesc('created_at')->limit(100)->get(['id', 'persona_id', 'status', 'turn_count', 'turns', 'metrics', 'created_at']);
-            $evaluations = DB::table('seller_evaluations')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->whereIn('sim_run_id', $runs->pluck('id'))->get(['sim_run_id', 'scores', 'issues', 'average'])->keyBy('sim_run_id');
+            $evaluations = DB::table('seller_evaluations')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->whereIn('sim_run_id', $runs->pluck('id'))->get(['sim_run_id', 'scores', 'issues', 'average', 'comment'])->keyBy('sim_run_id');
             $release = DB::table('brands as b')->join('knowledge_releases as r', function ($join): void {
                 $join->on('r.id', '=', 'b.active_knowledge_release_id')->on('r.organization_id', '=', 'b.organization_id')->on('r.brand_id', '=', 'b.id');
             })->where('b.organization_id', $tenant->organizationId)->where('b.id', $tenant->brandId)->where('r.status', 'published')->value('r.id');
@@ -48,12 +49,12 @@ final class RunsController
                     $average = $groupEvaluations[$item['run_id'] ?? ''] ?? null;
 
                     return ['name' => $item['name'], 'status' => $item['status'], 'run_id' => $item['run_id'] ?? null, 'average' => $average,
-                        'evaluation' => $average === null && ($item['evaluation'] ?? null) === 'unavailable' ? 'unavailable' : null];
+                        'evaluation' => $average === null && ($item['evaluation'] ?? null) === 'unavailable' ? 'unavailable' : (($item['evaluation'] ?? null) === 'fake' ? 'fake' : null)];
                 });
 
                 return ['id' => $group->id, 'status' => $group->status, 'created_at' => $group->created_at, 'items' => $items->all(), 'average' => $items->whereNotNull('average')->avg('average'),
-                    'passed' => $items->filter(fn (array $item) => $item['average'] !== null && (float) $item['average'] >= 4)->count(),
-                    'failed' => $items->filter(fn (array $item) => $item['average'] !== null && (float) $item['average'] < 4)->count()];
+                    'passed' => $items->filter(fn (array $item) => $item['evaluation'] !== 'fake' && $item['average'] !== null && (float) $item['average'] >= 4)->count(),
+                    'failed' => $items->filter(fn (array $item) => $item['evaluation'] !== 'fake' && $item['average'] !== null && (float) $item['average'] < 4)->count()];
             });
 
             return ['groups' => $groupData, 'scenarios' => $personas, 'publishedAvailable' => $release !== null, 'runtimeAvailable' => config('runtime.ai_driver', 'fake') === 'fake' && config('features.E3-06D.defaults.runtime_enabled', true) !== false,
@@ -63,7 +64,8 @@ final class RunsController
 
                     return ['id' => $run->id, 'persona' => $personas->firstWhere('id', $run->persona_id)?->name ?? 'Сценарий', 'status' => $run->status, 'created_at' => $run->created_at,
                         'release_status' => $releaseStatuses[$metrics['knowledge_release_id'] ?? ''] ?? null, 'turns' => json_decode($run->turns, true) ?: [],
-                        'scores' => $evaluation ? (json_decode($evaluation->scores, true) ?: []) : [], 'issues' => $evaluation ? (json_decode($evaluation->issues, true) ?: []) : [], 'average' => $evaluation?->average, 'cost' => null];
+                        'scores' => $evaluation ? (json_decode($evaluation->scores, true) ?: []) : [], 'issues' => $evaluation ? (json_decode($evaluation->issues, true) ?: []) : [], 'average' => $evaluation?->average,
+                        'test_baseline' => $evaluation?->comment === ScenarioFallbackJudge::COMMENT, 'cost' => null];
                 })->all()];
         });
 
