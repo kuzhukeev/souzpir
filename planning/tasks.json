@@ -17663,6 +17663,43 @@
       "promptPath": "docs/tasks/SP-E7-01L.md",
       "wave": 19,
       "description": "# SP-E7-01L · Качество: запуск fake-оценки диалога\n\n**Зачем:** завершить D-7.2 и D-7.3 по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E7-01K, docs/results/SP-E7-01K.md.\n**Зависимости:** SP-E7-01K в done.\n\nПодключить защищённую fake-оценку реального диалога по кнопке; проверить сценарий, права, бренд и ошибки на изолированной БД. Старые связи без подтверждённого источника не угадывать. Общие AI-стадии без решения владельца не менять.\n\nScope: `app/Seller/Quality/`, `app/Seller/Evaluation/`, `app/Seller/Dialogs/`, `resources/js/pages/Seller/Quality/`, `resources/js/pages/Seller/Dialogs/`, `routes/features/E7-01.php`, `tests/Feature/Seller/Quality/`, `tests/Browser/E7-01L/`, `docs/results/SP-E7-01L.md`.\n\nПриёмка: сценарий, права, бренд, ошибки; только fake вызовы. Остаток записать в docs/results/SP-E7-01L.md.\n"
+    },
+    {
+      "taskKey": "SP-E3-06G",
+      "title": "SP-E3-06G · Защищённый job-claim и AI-стадии первого хода",
+      "goal": "Реализовать job-claim с миграцией и авторизацией без поддельной HTTP-сессии; подключить общие extractor, responder, guard и FirstTurnCoordinator к сохранённому job-входу. Сохранить HTTP-права и проверки организации и бренда, проверить полный fake-ход на изолированной PostgreSQL.",
+      "dependsOn": [
+        "SP-E3-06F"
+      ],
+      "scope": [
+        "app/Ai/Protected/",
+        "app/Ai/Gateway.php",
+        "app/ProtectedOperations/",
+        "tests/Feature/ProtectedOperations/",
+        "tests/Feature/Ai/",
+        "tests/Unit/Ai/",
+        "docs/results/SP-E3-06G.md",
+        "app/Shell/Auth/",
+        "database/migrations/E3-06G/",
+        "app/Tenancy/TenantContext.php",
+        "app/Tenancy/TenantContextRunner.php"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Полный fake job-ход и HTTP-права, организация, бренд и ошибки."
+      ],
+      "sourceIds": [
+        "SP-E3-06F"
+      ],
+      "screenIds": [],
+      "notes": "Остаток частичной сдачи SP-E3-06F.",
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E3-06G.md",
+      "wave": 19,
+      "description": "# SP-E3-06G · Защищённый job-claim и AI-стадии первого хода\n\n**Зачем:** разблокировать первый защищённый ход симуляции по решению владельца от 05.11.2026.\n**Часть чего:** остаток SP-E3-06F, docs/results/SP-E3-06F.md.\n**Зависимости:** SP-E3-06F в done.\n\nРеализовать job-claim с миграцией и авторизацией без поддельной HTTP-сессии; подключить общие extractor, responder, guard и FirstTurnCoordinator к сохранённому job-входу. Сохранить HTTP-права и проверки организации и бренда, проверить полный fake-ход на изолированной PostgreSQL.\n\nScope: `app/Ai/Protected/`, `app/Ai/Gateway.php`, `app/ProtectedOperations/`, `tests/Feature/ProtectedOperations/`, `tests/Feature/Ai/`, `tests/Unit/Ai/`, `docs/results/SP-E3-06G.md`, `app/Shell/Auth/`, `database/migrations/E3-06G/`, `app/Tenancy/TenantContext.php`, `app/Tenancy/TenantContextRunner.php`.\n\nПриёмка: job и HTTP сценарии, права, бренд, ошибки и только fake AI. Остаток записать в docs/results/SP-E3-06G.md.\n"
     }
   ],
   "excludedSourceTasks": {
