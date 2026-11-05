@@ -17149,6 +17149,41 @@
       "promptPath": "docs/tasks/SP-E7-02J.md",
       "wave": 19,
       "description": "# SP-E7-02J · Тестовые оценки: остальные потребители\n\n**Зачем:** завершить D-7.6 по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E7-02I, docs/results/SP-E7-02I.md.\n**Зависимости:** SP-E7-02I в done.\n\nИсключить тестовые оценки из Dashboard, проверить Analytics и Calibration; унифицировать признак тестовой оценки и проверить всех потребителей перед включением fake fallback. Не менять golden fixtures.\n\nScope: `app/Seller/Dashboard/`, `app/Seller/Analytics/`, `app/Seller/Calibration/`, `app/Seller/Evaluation/`, `tests/Feature/Seller/Dashboard/`, `tests/Feature/Seller/Analytics/`, `tests/Feature/Seller/Calibration/`, `docs/results/SP-E7-02J.md`.\n\nПриёмка: сценарий, права, бренд и ошибки; только fake вызовы. Остаток записать в docs/results/SP-E7-02J.md.\n"
+    },
+    {
+      "taskKey": "SP-E6-03R",
+      "title": "SP-E6-03R · Поля клиента: запрос в поддержку",
+      "description": "# SP-E6-03R · Поля клиента: запрос в поддержку\n\n**Зачем:** завершить D-5.1 по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E6-03Q, docs/results/SP-E6-03Q.md.\n**Зависимости:** SP-E6-03Q в done.\n\nОтправлять описание изменения поля напрямую через контур поддержки с fake-доставкой, проверить результат и ошибки. Перечни значений и обязательность показывать только при наличии подтверждённого структурированного источника; живую почту не отправлять.\n\nScope: `app/Seller/Settings/Policy/`, `app/Shell/Support/`, `resources/js/pages/Seller/Settings/Policy/`, `routes/features/E6-03.php`, `tests/Feature/Seller/Settings/Policy/`, `tests/Browser/E6-03R/`, `docs/results/SP-E6-03R.md`.\n\nПриёмка: сценарий, права, бренд, ошибки; только fake вызовы. Остаток записать в docs/results/SP-E6-03R.md.\n",
+      "goal": "Отправлять описание изменения поля напрямую через контур поддержки с fake-доставкой, проверить результат и ошибки. Перечни значений и обязательность показывать только при наличии подтверждённого структурированного источника; живую почту не отправлять.",
+      "dependsOn": [
+        "SP-E6-03Q"
+      ],
+      "scope": [
+        "app/Seller/Settings/Policy/",
+        "app/Shell/Support/",
+        "resources/js/pages/Seller/Settings/Policy/",
+        "routes/features/E6-03.php",
+        "tests/Feature/Seller/Settings/Policy/",
+        "tests/Browser/E6-03R/",
+        "docs/results/SP-E6-03R.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Сценарий, права, бренд и ошибки; только fake внешние вызовы."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "D-5.1"
+      ],
+      "wave": 17,
+      "promptPath": "docs/tasks/SP-E6-03R.md",
+      "sourceIds": [
+        "SP-E6-03Q"
+      ],
+      "notes": "Остаток частичной сдачи SP-E6-03Q."
     }
   ],
   "excludedSourceTasks": {
