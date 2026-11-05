@@ -12,3 +12,10 @@
 Проверить права, бренд и ошибки. Остаток записать в отчёт.
 
 Scope: `app/Seller/Engine/`, `app/Seller/Dialogs/`, `app/Seller/Settings/Policy/`, `resources/js/pages/Seller/Dialogs/`, `resources/js/pages/Seller/Settings/Policy/`, `tests/Feature/Seller/Engine/`, `tests/Feature/Seller/Dialogs/`, `tests/Browser/E6-10E/`, `docs/results/SP-E6-10E.md`.
+
+## Остаток SP-E6-10C
+- Остаток SP-E6-10C: обязательные поля до передачи и для стадии, карточка клиента, фильтры, labels.ts и Releases/Run.tsx; сверить экран с макетом.
+
+Дополнительный scope: `app/Seller/Customers/`, `resources/js/pages/Seller/Customers/`, `resources/js/features/Seller/Customers/labels.ts`, `resources/js/pages/Seller/Knowledge/Releases/Run.tsx`, `tests/Feature/Seller/Customers/`.
+
+Для защищённого runtime: pp/ProtectedOperations/, 	ests/Feature/ProtectedOperations/.
