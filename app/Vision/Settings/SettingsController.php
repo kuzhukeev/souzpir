@@ -9,6 +9,7 @@ use App\Shell\Audit\Contracts\AuditWriter;
 use App\Shell\Notifications\ConfigureNotification;
 use App\Shell\Notifications\EventCatalog;
 use App\Shell\Plans\Contracts\PlanLimits;
+use App\Shell\Plans\MonthlyUnits;
 use App\Tenancy\TenantContext;
 use App\Vision\Measurements\MeasurementList;
 use App\Vision\Measurements\MeasurementSchedule;
@@ -45,7 +46,18 @@ final class SettingsController
                 ->map(fn (string $id): array => ['id' => $id, 'provider' => $catalog[$id]['provider'] ?? null, 'status' => $catalog[$id]['status'] ?? 'unavailable', 'approved' => in_array($id, $schedule['available_models'], true)])
                 ->values()->all();
 
-            return Inertia::render('Vision/Settings/Index', ['revision' => $revision, 'schedule' => $schedule, 'modelOptions' => $modelOptions, 'nextRuns' => app(SchedulePreview::class)->nextThree($schedule), 'events' => $events, 'members' => $members, 'canManageRecipients' => Gate::allows('vision.settings.write'), 'limits' => ['questions' => app(PlanLimits::class)->get($tenant, 'vision.questions')->value, 'models' => app(PlanLimits::class)->get($tenant, 'vision.models')->value], 'questionCount' => $questionCount]);
+            $usedSlots = app(MonthlyUnits::class)->usage($tenant)['slots'];
+            $limit = app(PlanLimits::class)->get($tenant, 'vision.slots_month')->value;
+            $history = DB::table('measurements as m')->leftJoin('measurement_answers as a', function ($join): void {
+                $join->on('a.measurement_id', '=', 'm.id')->on('a.organization_id', '=', 'm.organization_id')->on('a.brand_id', '=', 'm.brand_id');
+            })->where('m.organization_id', $tenant->organizationId)->where('m.brand_id', $tenant->brandId)
+                ->where('m.status', 'completed')->whereNotNull('m.finished_at')
+                ->groupBy('m.id', 'm.finished_at')->orderByDesc('m.finished_at')->orderByDesc('m.id')->limit(20)
+                ->get(['m.id', 'm.finished_at', DB::raw('count(a.id) as slots')])
+                ->map(fn ($row) => ['id' => $row->id, 'finished_at' => $row->finished_at, 'slots' => (int) $row->slots])->all();
+            $slotSummary = ['used' => $usedSlots, 'limit' => $limit, 'remaining' => is_numeric($limit) ? max(0, (int) floor((float) $limit) - $usedSlots) : null, 'history' => $history];
+
+            return Inertia::render('Vision/Settings/Index', ['revision' => $revision, 'schedule' => $schedule, 'modelOptions' => $modelOptions, 'nextRuns' => app(SchedulePreview::class)->nextThree($schedule), 'events' => $events, 'members' => $members, 'canManageRecipients' => Gate::allows('vision.settings.write'), 'limits' => ['questions' => app(PlanLimits::class)->get($tenant, 'vision.questions')->value, 'models' => app(PlanLimits::class)->get($tenant, 'vision.models')->value], 'questionCount' => $questionCount, 'slotSummary' => $slotSummary]);
         }, false);
     }
 
