@@ -17435,6 +17435,80 @@
       "promptPath": "docs/tasks/SP-E7-01I.md",
       "wave": 19,
       "description": "# SP-E7-01I · Качество: пагинация и исправление замечаний\n\n**Зачем:** завершить D-7.1–D-7.3 по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E7-01H, docs/results/SP-E7-01H.md.\n**Зависимости:** SP-E7-01H в done.\n\nЗавершить серверную пагинацию докладов и состояния загрузки/ошибки; связать замечание с диалогом для действия «Исправить»; добавить защищённую fake-оценку по кнопке и оставшиеся состояния D-7.3. Общие AI-стадии без решения владельца не менять.\n\nScope: `app/Seller/Quality/`, `app/Seller/Evaluation/`, `app/Seller/Dialogs/`, `resources/js/pages/Seller/Quality/`, `resources/js/pages/Seller/Dialogs/`, `routes/features/E7-01.php`, `tests/Feature/Seller/Quality/`, `tests/Browser/E7-01I/`, `docs/results/SP-E7-01I.md`.\n\nПриёмка: сценарий, права, бренд, ошибки; только fake вызовы. Остаток записать в docs/results/SP-E7-01I.md.\n"
+    },
+    {
+      "taskKey": "SP-E6-03U",
+      "title": "SP-E6-03U · Реакции: действия и состояния runtime",
+      "description": "# SP-E6-03U · Реакции: действия и состояния runtime\n\n**Зачем:** завершить D-5.6 по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E6-03P, docs/results/SP-E6-03P.md.\n**Зависимости:** SP-E6-03P в done.\n\nЗавершить действия и сценарии грубости и отказа с проверкой runtime, редактирование идеи ответа при раздражении, состояние сетевой ошибки и сверку экрана с макетом.\n\nScope: `app/Seller/Settings/Policy/`, `app/Seller/Runtime/`, `resources/js/pages/Seller/Settings/Policy/`, `routes/features/E6-03.php`, `tests/Feature/Seller/Settings/Policy/`, `tests/Browser/E6-03U/`, `docs/results/SP-E6-03U.md`.\n\nПриёмка: сценарий, права, бренд и ошибки; только fake вызовы. Остаток записать в docs/results/SP-E6-03U.md.\n",
+      "goal": "Завершить действия и сценарии грубости и отказа с проверкой runtime, редактирование идеи ответа при раздражении, состояние сетевой ошибки и сверку экрана с макетом.",
+      "dependsOn": [
+        "SP-E6-03P"
+      ],
+      "scope": [
+        "app/Seller/Settings/Policy/",
+        "app/Seller/Runtime/",
+        "resources/js/pages/Seller/Settings/Policy/",
+        "routes/features/E6-03.php",
+        "tests/Feature/Seller/Settings/Policy/",
+        "tests/Browser/E6-03U/",
+        "docs/results/SP-E6-03U.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Сценарий, права, бренд и ошибки; только fake внешние вызовы."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "D-5.6"
+      ],
+      "wave": 10,
+      "promptPath": "docs/tasks/SP-E6-03U.md",
+      "sourceIds": [
+        "SP-E6-03P"
+      ],
+      "notes": "Остаток частичной сдачи SP-E6-03P"
+    },
+    {
+      "taskKey": "SP-E7-01J",
+      "title": "SP-E7-01J · Качество: оценка диалога и старые доклады",
+      "goal": "Завершить состояния drawer и защищённую fake-оценку реального диалога. Старые связи докладов восстанавливать только по подтверждённым данным. Общие AI-стадии без решения владельца не менять.",
+      "dependsOn": [
+        "SP-E7-01I"
+      ],
+      "scope": [
+        "app/Seller/Quality/",
+        "app/Seller/Evaluation/",
+        "app/Seller/Dialogs/",
+        "resources/js/pages/Seller/Quality/",
+        "resources/js/pages/Seller/Dialogs/",
+        "tests/Feature/Seller/Quality/",
+        "tests/Browser/E7-01J/",
+        "docs/results/SP-E7-01J.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Сценарий, права, бренд и ошибки; только fake внешние вызовы."
+      ],
+      "sourceIds": [
+        "SP-E7-01I"
+      ],
+      "screenIds": [
+        "D-7.1",
+        "D-7.2",
+        "D-7.3",
+        "D-2.2"
+      ],
+      "notes": "Остаток частичной сдачи SP-E7-01I",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E7-01J.md",
+      "wave": 19,
+      "description": "# SP-E7-01J · Качество: оценка диалога и старые доклады\n\n**Зачем:** завершить D-7.2, D-7.3 по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E7-01I, docs/results/SP-E7-01I.md.\n**Зависимости:** SP-E7-01I в done.\n\nЗавершить состояния drawer и защищённую fake-оценку реального диалога. Старые связи докладов восстанавливать только по подтверждённым данным. Общие AI-стадии без решения владельца не менять.\n\nScope: `app/Seller/Quality/`, `app/Seller/Evaluation/`, `app/Seller/Dialogs/`, `resources/js/pages/Seller/Quality/`, `resources/js/pages/Seller/Dialogs/`, `tests/Feature/Seller/Quality/`, `tests/Browser/E7-01J/`, `docs/results/SP-E7-01J.md`.\n\nПриёмка: сценарий, права, бренд и ошибки; только fake вызовы. Остаток записать в docs/results/SP-E7-01J.md.\n"
     }
   ],
   "excludedSourceTasks": {
