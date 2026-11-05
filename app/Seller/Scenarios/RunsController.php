@@ -3,6 +3,7 @@
 namespace App\Seller\Scenarios;
 
 use App\Models\User;
+use App\Seller\Evaluation\ClientModel;
 use App\Seller\Evaluation\DraftScenarioPreview;
 use App\Seller\Evaluation\EvaluationVisibility;
 use App\Seller\Evaluation\FakeSimulation;
@@ -46,14 +47,19 @@ final class RunsController
 
             $groups = DB::table('seller_scenario_run_groups')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->orderByDesc('created_at')->limit(50)->get();
             $groupRunIds = $groups->flatMap(fn ($group) => collect(json_decode($group->items, true) ?: [])->pluck('run_id'))->filter()->all();
+            $groupRuns = DB::table('seller_sim_runs')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->whereIn('id', $groupRunIds)->get(['id', 'metrics', 'turns']);
+            $groupReleaseIds = $groupRuns->map(fn ($run) => data_get(json_decode($run->metrics, true), 'knowledge_release_id'))->filter()->unique()->all();
+            $draftIds = DB::table('knowledge_releases')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('status', 'draft')->whereIn('id', $groupReleaseIds)->pluck('id')->all();
+            $draftRunIds = $groupRuns->filter(fn ($run) => in_array(data_get(json_decode($run->metrics, true), 'knowledge_release_id'), $draftIds, true) || collect(json_decode($run->turns, true) ?: [])->contains(fn ($turn) => data_get($turn, 'meta.preview_only') === true))->pluck('id')->all();
             $groupEvaluations = DB::table('seller_evaluations')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->whereIn('sim_run_id', $groupRunIds)->get(['sim_run_id', 'average', 'comment'])->keyBy('sim_run_id');
-            $groupData = $groups->map(function ($group) use ($groupEvaluations): array {
-                $items = collect(json_decode($group->items, true) ?: [])->map(function (array $item) use ($groupEvaluations): array {
-                    $evaluation = $groupEvaluations[$item['run_id'] ?? ''] ?? null;
+            $groupData = $groups->map(function ($group) use ($groupEvaluations, $draftRunIds): array {
+                $items = collect(json_decode($group->items, true) ?: [])->map(function (array $item) use ($groupEvaluations, $draftRunIds): array {
+                    $isDraft = in_array($item['run_id'] ?? null, $draftRunIds, true);
+                    $evaluation = $isDraft ? null : ($groupEvaluations[$item['run_id'] ?? ''] ?? null);
                     $average = $evaluation?->average;
 
                     return ['name' => $item['name'], 'status' => $item['status'], 'run_id' => $item['run_id'] ?? null, 'average' => $average,
-                        'evaluation' => EvaluationVisibility::isTestBaseline($evaluation?->sim_run_id, $evaluation?->comment) ? 'fake' : ($average === null && ($item['evaluation'] ?? null) === 'unavailable' ? 'unavailable' : null)];
+                        'evaluation' => EvaluationVisibility::isTestBaseline($evaluation?->sim_run_id, $evaluation?->comment) ? 'fake' : ($average === null && (($item['evaluation'] ?? null) === 'unavailable' || $isDraft) ? 'unavailable' : null)];
                 });
 
                 return ['id' => $group->id, 'status' => $group->status, 'created_at' => $group->created_at, 'items' => $items->all(), 'average' => $items->filter(fn (array $item) => $item['evaluation'] !== 'fake' && $item['average'] !== null)->avg('average'),
@@ -63,13 +69,14 @@ final class RunsController
 
             $draftAvailable = DB::table('knowledge_releases')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('status', 'draft')->exists();
 
-            return ['groups' => $groupData, 'scenarios' => $personas, 'publishedAvailable' => $release !== null, 'draftAvailable' => $draftAvailable, 'runtimeAvailable' => config('runtime.ai_driver', 'fake') === 'fake' && config('features.E3-06D.defaults.runtime_enabled', true) !== false,
+            return ['clientModels' => collect(ClientModel::options())->map(fn ($model, $key) => ['key' => $key, 'label' => $model['label']])->values()->all(), 'groups' => $groupData, 'scenarios' => $personas, 'publishedAvailable' => $release !== null, 'draftAvailable' => $draftAvailable, 'runtimeAvailable' => config('runtime.ai_driver', 'fake') === 'fake' && config('features.E3-06D.defaults.runtime_enabled', true) !== false,
                 'runs' => $runs->map(function ($run) use ($evaluations, $personas, $releaseStatuses): array {
-                    $evaluation = $evaluations->get($run->id);
                     $metrics = json_decode($run->metrics, true) ?: [];
+                    $preview = collect(json_decode($run->turns, true) ?: [])->contains(fn ($turn) => data_get($turn, 'meta.preview_only') === true);
+                    $evaluation = $preview || ($releaseStatuses[$metrics['knowledge_release_id'] ?? ''] ?? null) === 'draft' ? null : $evaluations->get($run->id);
 
                     return ['id' => $run->id, 'persona' => $personas->firstWhere('id', $run->persona_id)?->name ?? 'Сценарий', 'status' => $run->status, 'created_at' => $run->created_at,
-                        'release_status' => $releaseStatuses[$metrics['knowledge_release_id'] ?? ''] ?? null, 'turns' => json_decode($run->turns, true) ?: [],
+                        'release_status' => $preview ? 'draft' : ($releaseStatuses[$metrics['knowledge_release_id'] ?? ''] ?? null), 'turns' => json_decode($run->turns, true) ?: [],
                         'scores' => $evaluation ? (json_decode($evaluation->scores, true) ?: []) : [], 'issues' => $evaluation ? (json_decode($evaluation->issues, true) ?: []) : [], 'average' => $evaluation?->average,
                         'test_baseline' => EvaluationVisibility::isTestBaseline($evaluation?->sim_run_id, $evaluation?->comment), 'cost' => null];
                 })->all()];
@@ -95,8 +102,12 @@ final class RunsController
             if ($personas->isEmpty()) {
                 throw ValidationException::withMessages(['scenarios' => 'В наборе нет сценариев для запуска.']);
             }
+            $model = array_key_first(ClientModel::options());
+            if ($model === null) {
+                throw ValidationException::withMessages(['model' => 'Тестовая модель клиента недоступна.']);
+            }
             foreach ($personas as $persona) {
-                SimulateFakeJob::dispatch($tenant->organizationId, $tenant->brandId, $persona->key, array_fill(0, (int) $persona->max_turns, []));
+                SimulateFakeJob::dispatch($tenant->organizationId, $tenant->brandId, $persona->key, array_fill(0, (int) $persona->max_turns, []), $model);
             }
         });
 
@@ -105,7 +116,7 @@ final class RunsController
 
     public function store(Request $request): mixed
     {
-        $input = $request->validate(['scenarios' => ['required', 'array', 'min:1', 'max:29'], 'scenarios.*' => ['required', 'ulid', 'distinct'], 'knowledge' => ['required', Rule::in(['published', 'draft'])], 'model' => ['required', Rule::in(['fake'])]]);
+        $input = $request->validate(['scenarios' => ['required', 'array', 'min:1', 'max:29'], 'scenarios.*' => ['required', 'ulid', 'distinct'], 'knowledge' => ['required', Rule::in(['published', 'draft'])], 'model' => ['required', Rule::in(array_keys(ClientModel::options()))]]);
         $this->access($request, function (TenantContext $tenant) use ($input, $request): void {
             if (config('runtime.ai_driver', 'fake') !== 'fake' || config('features.E3-06D.defaults.runtime_enabled', true) === false) {
                 throw ValidationException::withMessages(['model' => 'Защищённый fake runtime недоступен.']);
@@ -124,12 +135,12 @@ final class RunsController
                 throw ValidationException::withMessages(['scenarios' => 'Один из сценариев недоступен.']);
             }
             $groupId = (string) Str::ulid();
-            $items = $personas->map(fn ($persona) => ['id' => $persona->id, 'key' => $persona->key, 'name' => $persona->name, 'max_turns' => (int) $persona->max_turns, 'status' => 'queued'])->all();
+            $items = $personas->map(fn ($persona) => ['id' => $persona->id, 'key' => $persona->key, 'name' => $persona->name, 'max_turns' => (int) $persona->max_turns, 'status' => 'queued', 'client_model' => $input['model']])->all();
             if ($input['knowledge'] === 'draft') {
                 $snapshot = app(KnowledgeRepository::class)->forRelease($tenant, $release, true);
                 foreach ($personas as $index => $persona) {
                     $payload = json_decode($persona->payload, true, flags: JSON_THROW_ON_ERROR);
-                    $turns = app(DraftScenarioPreview::class)->dialogue($snapshot, $payload, (int) $persona->max_turns, $request, $persona->key);
+                    $turns = app(DraftScenarioPreview::class)->dialogue($snapshot, $payload, (int) $persona->max_turns, $request, $persona->key, $input['model']);
                     $items[$index]['run_id'] = app(FakeSimulation::class)->run($tenant, $persona->key, $turns, $release);
                     $items[$index]['status'] = 'completed';
                     $items[$index]['evaluation'] = 'unavailable';
