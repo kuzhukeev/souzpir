@@ -19198,6 +19198,37 @@
       ],
       "wave": 20,
       "promptPath": "docs/tasks/SP-E1-12F.md"
+    },
+    {
+      "taskKey": "SP-E8-21N",
+      "title": "SP-E8-21N · Время и тайм-аут проверки сайта",
+      "goal": "Измерить и ограничить длительность проверки сайта; подтвердить оценку 2–5 минут и настроить общий тайм-аут и очередь. Проверить права, бренд и ошибки, сохранить безопасное ограничение числа запросов.",
+      "description": "# SP-E8-21N · Время и тайм-аут проверки сайта\n\n**Зачем:** завершить V-8.5 по решению владельца.\n**Часть чего:** остаток SP-E8-21M, docs/results/SP-E8-21M.md.\n**Зависимости:** SP-E8-21M.\n\n## Приёмка\n- Измерить и ограничить длительность проверки сайта; подтвердить оценку 2–5 минут и настроить общий тайм-аут и очередь.\n- Проверить права, бренд и ошибки, сохранить безопасное ограничение числа запросов.\n\nОстаток записать в отчёт.\n\nScope: `app/Vision/Site/`, `app/Vision/SiteAudit/`, `resources/js/pages/Vision/Site/`, `tests/Feature/Vision/Site/`, `tests/Browser/E8-21N/`, `docs/results/SP-E8-21N.md`.\n",
+      "dependsOn": [
+        "SP-E8-21M"
+      ],
+      "scope": [
+        "app/Vision/Site/",
+        "app/Vision/SiteAudit/",
+        "resources/js/pages/Vision/Site/",
+        "tests/Feature/Vision/Site/",
+        "tests/Browser/E8-21N/",
+        "docs/results/SP-E8-21N.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Измерить и ограничить длительность проверки сайта; подтвердить оценку 2–5 минут и настроить общий тайм-аут и очередь.",
+        "Проверить права, бренд и ошибки, сохранить безопасное ограничение числа запросов."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "V-8.5"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E8-21N.md"
     }
   ],
   "excludedSourceTasks": {
