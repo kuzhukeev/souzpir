@@ -68,12 +68,16 @@ final class AnswersController
                 return ['id' => $answer->id, 'question_n' => $answer->question_n, 'intent' => is_array($question) && is_string($question['intent'] ?? null) ? $question['intent'] : null, 'question' => is_array($question) ? ($question['text'] ?? '') : (is_string($question) ? $question : ''), 'provider' => $answer->provider, 'model' => $answer->requested_model, 'run_no' => $answer->run_no, 'status' => $answer->status, 'text' => $answer->answer_text, 'error' => $answer->error_code, 'created_at' => $answer->created_at, 'fact' => $verified, 'mentions' => $slot['mentions'] ?? [], 'sources' => $slot['sources'] ?? [], 'candidates' => $candidates];
             })->all();
 
-            return response()->json(['revision' => $revision, 'answers' => $items]);
+            $number = DB::table('measurements')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
+                ->where(fn ($query) => $query->where('created_at', '<', $plan->created_at)
+                    ->orWhere(fn ($same) => $same->where('created_at', $plan->created_at)->where('id', '<=', $plan->id)))->count();
+
+            return response()->json(['revision' => $revision, 'measurement_number' => $number, 'answers' => $items]);
         });
     }
 
     private function measurement(TenantContext $tenant, string $id): object
     {
-        return DB::table('measurements')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('id', $id)->first(['id', 'question_set_id', 'profile_snapshot', 'profile_checksum']) ?? abort(404);
+        return DB::table('measurements')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('id', $id)->first(['id', 'question_set_id', 'profile_snapshot', 'profile_checksum', 'created_at']) ?? abort(404);
     }
 }
