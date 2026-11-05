@@ -17184,6 +17184,78 @@
         "SP-E6-03Q"
       ],
       "notes": "Остаток частичной сдачи SP-E6-03Q."
+    },
+    {
+      "taskKey": "SP-E1-08I",
+      "title": "SP-E1-08I · Уведомления: единая дневная сводка",
+      "description": "# SP-E1-08I · Уведомления: единая дневная сводка\n\n**Зачем:** завершить S-7.1 по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E1-08H, docs/results/SP-E1-08H.md.\n**Зависимости:** SP-E1-08H в done.\n\nОбъединить seller и общую личную сводку одного получателя, бренда и канала в одну доставку в день; проверить доставку после тихих часов. Только fake-драйверы; живые отправки запрещены без разрешения.\n\nScope: `app/Shell/Notifications/`, `app/Seller/Settings/Limits/`, `app/Shell/Profile/`, `resources/js/pages/Shell/Profile/`, `tests/Feature/Shell/Notifications/`, `tests/Browser/E1-08I/`, `docs/results/SP-E1-08I.md`.\n\nПриёмка: сценарий, права, бренд и ошибки; только fake вызовы. Остаток записать в docs/results/SP-E1-08I.md.\n",
+      "goal": "Объединить seller и общую личную сводку одного получателя, бренда и канала в одну доставку в день; проверить доставку после тихих часов. Только fake-драйверы; живые отправки запрещены без разрешения.",
+      "dependsOn": [
+        "SP-E1-08H"
+      ],
+      "scope": [
+        "app/Shell/Notifications/",
+        "app/Seller/Settings/Limits/",
+        "app/Shell/Profile/",
+        "resources/js/pages/Shell/Profile/",
+        "tests/Feature/Shell/Notifications/",
+        "tests/Browser/E1-08I/",
+        "docs/results/SP-E1-08I.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Сценарий, права, бренд и ошибки; только fake внешние вызовы."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "S-7.1",
+        "S-7.2"
+      ],
+      "wave": 10,
+      "promptPath": "docs/tasks/SP-E1-08I.md",
+      "sourceIds": [
+        "SP-E1-08H"
+      ],
+      "notes": "Остаток частичной сдачи SP-E1-08H"
+    },
+    {
+      "taskKey": "SP-E7-02K",
+      "title": "SP-E7-02K · Тестовые оценки: единый признак",
+      "goal": "Подключить единый признак к Quality и Scenarios и проверить Dashboard, Analytics и Calibration на изолированной PostgreSQL; fallback оставить выключенным до прохождения проверок.",
+      "dependsOn": [
+        "SP-E7-02J"
+      ],
+      "scope": [
+        "app/Seller/Evaluation/",
+        "app/Seller/Quality/",
+        "app/Seller/Scenarios/",
+        "tests/Feature/Seller/Dashboard/",
+        "tests/Feature/Seller/Analytics/",
+        "tests/Feature/Seller/Calibration/",
+        "tests/Feature/Seller/Scenarios/",
+        "docs/results/SP-E7-02K.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Сценарий, права, бренд и ошибки; только fake внешние вызовы."
+      ],
+      "sourceIds": [
+        "SP-E7-02J"
+      ],
+      "screenIds": [
+        "D-7.6"
+      ],
+      "notes": "Остаток частичной сдачи SP-E7-02J",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E7-02K.md",
+      "wave": 19,
+      "description": "# SP-E7-02K · Тестовые оценки: единый признак\n\n**Зачем:** завершить D-7.6 по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E7-02J, docs/results/SP-E7-02J.md.\n**Зависимости:** SP-E7-02J в done.\n\nПодключить единый признак к Quality и Scenarios и проверить Dashboard, Analytics и Calibration на изолированной PostgreSQL; fallback оставить выключенным до прохождения проверок.\n\nScope: `app/Seller/Evaluation/`, `app/Seller/Quality/`, `app/Seller/Scenarios/`, `tests/Feature/Seller/Dashboard/`, `tests/Feature/Seller/Analytics/`, `tests/Feature/Seller/Calibration/`, `tests/Feature/Seller/Scenarios/`, `docs/results/SP-E7-02K.md`.\n\nПриёмка: сценарий, права, бренд и ошибки; только fake вызовы. Остаток записать в docs/results/SP-E7-02K.md.\n"
     }
   ],
   "excludedSourceTasks": {
