@@ -1,5 +1,5 @@
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import CabinetLayout from '@/layouts/CabinetLayout';
 import SettingsNavigation from '../Limits/SettingsNavigation';
 type Day={enabled:boolean;start:string;end:string;behavior:string};
@@ -8,7 +8,7 @@ type Settings={mode:string;week:Day[];holidays:string[];assignment:{method:strin
 const days=['Понедельник','Вторник','Среда','Четверг','Пятница','Суббота','Воскресенье'];
 const field='min-h-11 rounded-lg border border-(--color-border) bg-(--color-surface) px-3 text-sm';
 export default function Index({settings,members,timezone,status,outOfHoursPhrase}:{settings:Settings;members:{id:string;name:string}[];timezone:string;status?:string|null;outOfHoursPhrase?:string|null}) {
- const {url}=usePage(); const requestedTab=()=>new URL(url,'http://localhost').searchParams.get('tab')==='assignment'?'assignment':'schedule'; const [tab,setTab]=useState<'schedule'|'assignment'>(requestedTab); useEffect(()=>setTab(requestedTab()),[url]); const [enabled,setEnabled]=useState(settings.week.length>0); const [holiday,setHoliday]=useState('');
+ const {url}=usePage(); const requestedTab=new URL(url,'http://localhost').searchParams.get('tab')==='assignment'?'assignment':'schedule'; const [selection,setSelection]=useState<{url:string;tab:'schedule'|'assignment'}|null>(null); const tab=selection?.url===url?selection.tab:requestedTab; const setTab=(value:'schedule'|'assignment')=>setSelection({url,tab:value}); const [enabled,setEnabled]=useState(settings.week.length>0); const [holiday,setHoliday]=useState('');
  const schedule=useForm({mode:settings.mode,week:settings.week.length?settings.week:days.map(()=>({enabled:true,start:'09:00',end:'18:00',behavior:'bot'})),holidays:settings.holidays});
  const assignment=useForm({method:settings.assignment.method,fixed:settings.assignment.fixed,members:members.map(m=>settings.assignment.members.find(x=>x.id===m.id) ?? {id:m.id,enabled:true,max_active:null})});
  const editDay=(i:number,key:keyof Day,value:string|boolean)=>schedule.setData('week',schedule.data.week.map((day,index)=>index===i?{...day,[key]:value}:day));
