@@ -101,10 +101,13 @@ final class MeasurementList
                         ->orWhere(fn ($q) => $q->where('m.created_at', $row->created_at)->where('m.id', '<', $row->id)))
                     ->orderByDesc('m.created_at')->orderByDesc('m.id')->orderByDesc('r.revision')->value('r.id');
                 $delta = null;
+                $visibilityBefore = null;
                 if ($previous) {
                     try {
                         $comparison = app(ReportSections::class)->compare(app(VisionReportReader::class)->read($previous), $payload);
-                        $delta = collect($comparison['rows'] ?? [])->firstWhere('label', 'Видимость')['delta'] ?? null;
+                        $visibilityRow = collect($comparison['rows'] ?? [])->firstWhere('label', 'Видимость');
+                        $delta = $visibilityRow['delta'] ?? null;
+                        $visibilityBefore = $visibilityRow['before'] ?? null;
                     } catch (\LogicException) {
                         // Do not compare inaccessible reports.
                     }
@@ -113,6 +116,7 @@ final class MeasurementList
                     'visibility' => is_numeric($visibility) ? (float) $visibility : null,
                     'mentions' => is_numeric($mentions) ? (int) $mentions : null,
                     'delta' => $delta,
+                    'visibility_before' => $visibilityBefore,
                 ];
             } catch (\LogicException) {
                 // A missing or inaccessible report has no verified metrics.
@@ -142,6 +146,7 @@ final class MeasurementList
                 'visibility' => $reportMetrics[$row->id]['visibility'] ?? null,
                 'mentions' => $reportMetrics[$row->id]['mentions'] ?? null,
                 'visibility_delta' => $reportMetrics[$row->id]['delta'] ?? null,
+                'visibility_before' => $reportMetrics[$row->id]['visibility_before'] ?? null,
                 'answers' => ($answers[$row->id] ?? collect())->map(fn ($answer) => [
                     'question_n' => $answer->question_n, 'provider' => $answer->provider,
                     'requested_model' => $answer->requested_model, 'run_no' => $answer->run_no,
