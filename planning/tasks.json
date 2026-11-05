@@ -18803,6 +18803,110 @@
       ],
       "wave": 20,
       "promptPath": "docs/tasks/SP-E7-06C.md"
+    },
+    {
+      "taskKey": "SP-E1-13B",
+      "title": "SP-E1-13B · Завершить ограничения тарифов",
+      "goal": "Защитить общий вход первого хода и остальные канальные входы при исчерпании лимита. Обеспечить ограничения числа участников и каналов в соответствующих модулях. Завершить экран Vision и подписи будущих моделей Yandex согласно решению владельца.",
+      "description": "# SP-E1-13B · Завершить ограничения тарифов\n\n**Зачем:** завершить требования по решению владельца.\n**Часть чего:** остаток SP-E1-13, docs/results/SP-E1-13.md.\n**Зависимости:** SP-E1-13.\n\n## Приёмка\n- Защитить общий вход первого хода и остальные канальные входы при исчерпании лимита.\n- Обеспечить ограничения числа участников и каналов в соответствующих модулях.\n- Завершить экран Vision и подписи будущих моделей Yandex согласно решению владельца.\n\nОстаток записать в отчёт.\n\nScope: `app/ProtectedOperations/`, `app/Seller/Channels/`, `app/Shell/Organizations/`, `app/Shell/Plans/`, `app/Vision/`, `resources/js/pages/Vision/`, `tests/Feature/ProtectedOperations/`, `tests/Feature/Shell/`, `tests/Feature/Vision/`, `tests/Browser/E1-13B/`, `docs/results/SP-E1-13B.md`.\n",
+      "dependsOn": [
+        "SP-E1-13"
+      ],
+      "scope": [
+        "app/ProtectedOperations/",
+        "app/Seller/Channels/",
+        "app/Shell/Organizations/",
+        "app/Shell/Plans/",
+        "app/Vision/",
+        "resources/js/pages/Vision/",
+        "tests/Feature/ProtectedOperations/",
+        "tests/Feature/Shell/",
+        "tests/Feature/Vision/",
+        "tests/Browser/E1-13B/",
+        "docs/results/SP-E1-13B.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Защитить общий вход первого хода и остальные канальные входы при исчерпании лимита.",
+        "Обеспечить ограничения числа участников и каналов в соответствующих модулях.",
+        "Завершить экран Vision и подписи будущих моделей Yandex согласно решению владельца."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "S-4.1",
+        "S-4.2",
+        "S-4.3"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E1-13B.md"
+    },
+    {
+      "taskKey": "SP-E3-06H",
+      "title": "SP-E3-06H · Подключить job к защищённым AI-стадиям",
+      "goal": "Подключить job-claim к FirstTurnCoordinator, extractor, responder, guard и финализации без HTTP-сессии. Адаптировать проверки происхождения; восстановление после прерывания, полный fake-ход, HTTP-права и ошибки. До реализации не подключать job-claim к очереди.",
+      "description": "# SP-E3-06H · Подключить job к защищённым AI-стадиям\n\n**Зачем:** завершить требования по решению владельца.\n**Часть чего:** остаток SP-E3-06G, docs/results/SP-E3-06G.md.\n**Зависимости:** SP-E3-06G.\n\n## Приёмка\n- Подключить job-claim к FirstTurnCoordinator, extractor, responder, guard и финализации без HTTP-сессии.\n- Адаптировать проверки происхождения; восстановление после прерывания, полный fake-ход, HTTP-права и ошибки.\n- До реализации не подключать job-claim к очереди.\n\nОстаток записать в отчёт.\n\nScope: `app/Ai/Protected/`, `app/Ai/Gateway.php`, `app/ProtectedOperations/`, `app/Seller/Conversations/`, `tests/Feature/ProtectedOperations/`, `tests/Feature/Ai/`, `tests/Unit/Ai/`, `docs/results/SP-E3-06H.md`.\n",
+      "dependsOn": [
+        "SP-E3-06G"
+      ],
+      "scope": [
+        "app/Ai/Protected/",
+        "app/Ai/Gateway.php",
+        "app/ProtectedOperations/",
+        "app/Seller/Conversations/",
+        "tests/Feature/ProtectedOperations/",
+        "tests/Feature/Ai/",
+        "tests/Unit/Ai/",
+        "docs/results/SP-E3-06H.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Подключить job-claim к FirstTurnCoordinator, extractor, responder, guard и финализации без HTTP-сессии.",
+        "Адаптировать проверки происхождения; восстановление после прерывания, полный fake-ход, HTTP-права и ошибки.",
+        "До реализации не подключать job-claim к очереди."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E3-06H.md"
+    },
+    {
+      "taskKey": "SP-E1-04D",
+      "title": "SP-E1-04D · Модули организации и срок хранения",
+      "goal": "Индикаторы прогресса, использование публичных ссылок и каналов, кнопки перехода в модуль/к тарифу и вкладки по макету. Обеспечить договорённость о сроке хранения 90 дней на уровне данных; проверить права, бренд и ошибки.",
+      "description": "# SP-E1-04D · Модули организации и срок хранения\n\n**Зачем:** завершить требования по решению владельца.\n**Часть чего:** остаток SP-E1-04C, docs/results/SP-E1-04C.md.\n**Зависимости:** SP-E1-04C.\n\n## Приёмка\n- Индикаторы прогресса, использование публичных ссылок и каналов, кнопки перехода в модуль/к тарифу и вкладки по макету.\n- Обеспечить договорённость о сроке хранения 90 дней на уровне данных; проверить права, бренд и ошибки.\n\nОстаток записать в отчёт.\n\nScope: `app/Shell/Organizations/`, `app/Shell/Brands/`, `resources/js/pages/Shell/Organizations/`, `resources/js/features/Shell/Brands/`, `tests/Feature/Shell/Organizations/`, `tests/Feature/Shell/Brands/`, `tests/Browser/E1-04D/`, `docs/results/SP-E1-04D.md`.\n",
+      "dependsOn": [
+        "SP-E1-04C"
+      ],
+      "scope": [
+        "app/Shell/Organizations/",
+        "app/Shell/Brands/",
+        "resources/js/pages/Shell/Organizations/",
+        "resources/js/features/Shell/Brands/",
+        "tests/Feature/Shell/Organizations/",
+        "tests/Feature/Shell/Brands/",
+        "tests/Browser/E1-04D/",
+        "docs/results/SP-E1-04D.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Индикаторы прогресса, использование публичных ссылок и каналов, кнопки перехода в модуль/к тарифу и вкладки по макету.",
+        "Обеспечить договорённость о сроке хранения 90 дней на уровне данных; проверить права, бренд и ошибки."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "S-2.4"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E1-04D.md"
     }
   ],
   "excludedSourceTasks": {
