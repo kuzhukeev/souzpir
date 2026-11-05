@@ -28,9 +28,11 @@ final class PublishedFieldsE610CTest extends TenancyTestCase
         });
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->get('/seller/scenario/fields')->assertOk()
             ->assertInertia(fn ($page) => $page->where('publishedClientFields.0.id', 'outlet')->where('publishedClientFields.0.required', true)->where('publishedClientFields.0.stage', 'handoff'));
-        $this->withSession(['brand_id' => $other->id])->get('/seller/scenario/fields')->assertOk()
+        $this->post('/brand/switch', ['brand_id' => $other->id])->assertRedirect();
+        $this->get('/seller/scenario/fields')->assertOk()
             ->assertInertia(fn ($page) => $page->has('publishedClientFields', 0));
-        $this->withSession(['brand_id' => $brand->id])->post('/seller/scenario/fields/draft', ['version' => 1, 'fields' => [['id' => 'bad code']]])->assertSessionHasErrors();
+        $this->post('/brand/switch', ['brand_id' => $brand->id])->assertRedirect();
+        $this->post('/seller/scenario/fields/draft', ['version' => 1, 'fields' => [['id' => 'bad code']]])->assertSessionHasErrors();
         [$viewer] = $this->member($org, 'viewer', [$brand->id]);
         $this->actingAs($viewer)->withSession(['brand_id' => $brand->id])->post('/seller/scenario/fields/draft', ['version' => 1, 'fields' => []])->assertForbidden();
     }
