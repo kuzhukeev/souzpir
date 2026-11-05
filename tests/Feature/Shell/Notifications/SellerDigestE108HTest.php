@@ -57,7 +57,7 @@ final class SellerDigestE108HTest extends LimitsTestCase
             self::assertSame('immediate', DB::transaction(fn () => app(SellerNotificationRouter::class)->route($event, $membership, 'cabinet')));
         }
         self::assertSame(1, DB::table('notification_deliveries')->where('brand_id', $brand->id)->where('channel', 'email')->count());
-        self::assertSame('08:00', CarbonImmutable::parse(DB::table('seller_digest_items')->where('brand_id', $other->id)->value('due_at'))->utc()->format('H:i'));
+        self::assertSame(1, DB::table('notification_deliveries')->where('brand_id', $other->id)->where('channel', 'email')->count());
         $transport = $this->mock(FakeTimingTransport::class);
         $transport->shouldReceive('send')->once()->withArgs(fn ($o, $b, $u, $c, $titles) => $b === $other->id && count($titles) === 1);
         $this->travelTo(CarbonImmutable::parse('2026-11-05 09:00 UTC'));

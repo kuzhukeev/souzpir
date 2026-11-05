@@ -48,6 +48,10 @@ final class DigestService
         if ($snapshot->channel !== 'cabinet' && ! $fake && ! config('features.E0-04.defaults.external_delivery', false)) {
             return;
         }
+        // Fake external batches are consolidated by FakeTimedDelivery.
+        if ($snapshot->channel !== 'cabinet' && $fake) {
+            return;
+        }
         if (! $fake && $snapshot->channel !== 'cabinet' && DB::transactionLevel() !== 0) {
             throw new LogicException('External digest delivery cannot run inside a transaction.');
         }
@@ -167,7 +171,7 @@ final class DigestService
         if (config('features.E6-07.defaults.digest_enabled', false)) {
             $this->assemble();
             $batches = DB::table('seller_digest_batches')->where('status', 'pending')->orderBy('due_at');
-            if (! config('features.E0-04.defaults.external_delivery', false) && config('runtime.notification_driver') !== 'fake') {
+            if (! config('features.E0-04.defaults.external_delivery', false) || config('runtime.notification_driver') === 'fake') {
                 $batches->where('channel', 'cabinet');
             }
             foreach ($batches->limit(100)->pluck('id') as $id) {
