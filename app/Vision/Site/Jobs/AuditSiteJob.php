@@ -21,6 +21,10 @@ final class AuditSiteJob implements ShouldQueue
 {
     use Queueable;
 
+    public int $timeout = 75;
+
+    public int $tries = 1;
+
     public function __construct(public readonly string $organizationId, public readonly string $brandId, public readonly string $actorId, public readonly string $membershipId, public readonly string $url, private readonly string $sessionHash, private readonly int $authVersion) {}
 
     public static function key(string $organizationId, string $brandId): string
@@ -32,14 +36,14 @@ final class AuditSiteJob implements ShouldQueue
     {
         $key = self::key($this->organizationId, $this->brandId);
         $tenant = new TenantContext($this->organizationId, $this->brandId, $this->actorId, $this->membershipId, 'job');
+        $started = microtime(true);
         try {
-            app(TenantContextRunner::class)->run($tenant, function () use ($inspector, $access, $audit, $tenant, $key): void {
+            app(TenantContextRunner::class)->run($tenant, function () use ($inspector, $access, $audit, $tenant, $key, $started): void {
                 DB::transaction(function () use ($access, $tenant): void {
                     $this->assertSessionActive();
                     $access->lock($tenant, true, 'vision.actions.write');
                 });
                 $this->progress($key, 'inspecting');
-                $started = microtime(true);
                 $result = $inspector->inspect($this->url, 50, function (int $processed, int $total) use ($key, $started): void {
                     $data = Cache::get($key, []);
                     $seconds = microtime(true) - $started;
@@ -66,6 +70,9 @@ final class AuditSiteJob implements ShouldQueue
             });
         } catch (Throwable) {
             $this->progress($key, 'failed');
+        } finally {
+            $data = Cache::get($key, []);
+            Cache::put($key, [...$data, 'elapsed_seconds' => (int) ceil(microtime(true) - $started)], now()->addDay());
         }
     }
 
