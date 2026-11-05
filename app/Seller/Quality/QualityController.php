@@ -3,6 +3,7 @@
 namespace App\Seller\Quality;
 
 use App\Models\User;
+use App\Seller\Evaluation\ScenarioFallbackJudge;
 use App\Seller\Evaluation\Supervisor;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Audit\AuditEntry;
@@ -41,7 +42,7 @@ final class QualityController
 
                 return ['id' => $row->id, 'source' => $row->sim_run_id ? 'simulation' : ($row->conversation_id ? 'dialogue' : 'unknown'),
                     'conversation_id' => $row->conversation_id, 'scores' => json_decode($row->scores, true) ?: [], 'issues' => json_decode($row->issues, true) ?: [],
-                    'average' => (float) $row->average, 'comment' => $row->comment, 'created_at' => $row->created_at,
+                    'average' => (float) $row->average, 'comment' => $row->comment, 'test_baseline' => $row->sim_run_id !== null && $row->comment === ScenarioFallbackJudge::COMMENT, 'created_at' => $row->created_at,
                     'feedback' => $feedback, 'day' => CarbonImmutable::parse($row->created_at)->setTimezone($timezone)->format('Y-m-d')];
             });
     }
@@ -57,7 +58,12 @@ final class QualityController
 
     public function index(Request $request): mixed
     {
-        [$rows, $reports] = $this->access($request, fn (TenantContext $tenant) => [$this->rows($tenant), $this->reports($tenant)]);
+        [$rows, $reports, $missing] = $this->access($request, function (TenantContext $tenant): array {
+            $missing = DB::table('seller_sim_runs as r')->where('r.organization_id', $tenant->organizationId)->where('r.brand_id', $tenant->brandId)->where('r.status', 'completed')
+                ->whereNotExists(fn ($query) => $query->selectRaw('1')->from('seller_evaluations as e')->whereColumn('e.sim_run_id', 'r.id')->whereColumn('e.organization_id', 'r.organization_id')->whereColumn('e.brand_id', 'r.brand_id'))->count();
+
+            return [$this->rows($tenant), $this->reports($tenant), $missing];
+        });
         $group = fn ($data) => $data->groupBy('day')->map(function ($items, $day) {
             $issues = $items->flatMap(fn ($row) => $row['issues']);
 
@@ -69,7 +75,9 @@ final class QualityController
                 'topIssues' => $issues->countBy('type')->sortDesc()->take(3)->keys()->values()->all()];
         })->values();
 
-        return Inertia::render('Seller/Quality/Index', ['days' => $group($rows), 'reportDays' => $group($reports)]);
+        $testDays = $rows->where('test_baseline', true)->groupBy('day')->map(fn ($items, $day) => ['day' => $day, 'count' => $items->count()])->values();
+
+        return Inertia::render('Seller/Quality/Index', ['days' => $group($rows->where('test_baseline', false)), 'reportDays' => $group($reports), 'testDays' => $testDays, 'missingEvaluations' => $missing]);
     }
 
     public function day(Request $request, string $day): mixed

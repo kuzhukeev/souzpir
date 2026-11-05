@@ -9,7 +9,7 @@ type Props = { scenarios: Scenario[]; runs: Run[]; status: string | null; runAll
 const types: Record<string, string> = { newbie: 'Начинающий', experienced: 'Опытный', for_self: 'Для себя', prices_only: 'Только цены', troll: 'Вне темы', edge: 'Особый случай' };
 const expects: Record<string, string> = { full_card: 'Полная карточка', partial_or_full_contact: 'Получен контакт', no_prohibition_violation: 'Не нарушены запреты', no_deferred_promise: 'Не обещал лишнего', no_argument: 'Не спорить с клиентом', one_question_per_turn: 'Не более одного вопроса', score_at_least_4: 'Оценка ≥ 4' };
 const outcomes: Record<string, string> = { contact: 'Контакт получен', handoff: 'Передано менеджеру', refusal: 'Корректный отказ' };
-const results: Record<string, string> = { passed: 'Пройден', failed: 'Не пройден', pending: 'Ожидает оценки' };
+const results: Record<string, string> = { passed: 'Пройден', failed: 'Не пройден', pending: 'Ожидает оценки', test_baseline: 'Тестовая оценка' };
 const field = 'mt-1 block min-h-11 w-full rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm text-(--color-ink)';
 const button = 'min-h-11 cursor-pointer rounded-lg px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50';
 

@@ -23,7 +23,8 @@ final class EvaluationReadController
 
             return ['id' => $row->id, 'sim_run_id' => $row->sim_run_id, 'conversation_id' => $row->conversation_id,
                 'scores' => json_decode($row->scores, true), 'issues' => json_decode($row->issues, true),
-                'average' => (float) $row->average, 'comment' => $row->comment];
+                'average' => (float) $row->average, 'comment' => $row->comment,
+                'test_baseline' => $row->sim_run_id !== null && $row->comment === ScenarioFallbackJudge::COMMENT];
         });
 
         if ($request->expectsJson()) {
