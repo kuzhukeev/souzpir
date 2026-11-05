@@ -26,6 +26,16 @@ final class LimitEnforcer
         }
     }
 
+    public function exhausted(TenantContext $context, string $key, int $used): bool
+    {
+        if ($used < 0) {
+            throw new InvalidArgumentException('Usage must be non-negative.');
+        }
+        $limit = $this->limits->get($context, $key);
+
+        return $limit->configured && $limit->value !== null && $used >= (float) $limit->value;
+    }
+
     private function parts(string $value): array
     {
         if (! preg_match('/^\d+(?:\.\d+)?$/D', $value)) {
