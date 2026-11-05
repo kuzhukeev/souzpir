@@ -120,6 +120,7 @@ final class PolicySettingsController
                 $policy = $snapshot->policy();
                 $orders = $policy['slot_order'] ?? [];
                 $unknownOrder = $orders['unknown'] ?? [];
+                $publishedFields = collect($policy['client_fields'] ?? [])->filter(fn ($field) => is_array($field) && isset($field['id']))->values()->all();
                 $rows = [];
                 $initialSlots = (new LeadState)->data['slots'];
                 foreach (LeadState::SLOTS as $slot) {
@@ -135,12 +136,13 @@ final class PolicySettingsController
                     }
                     $rows[] = ['id' => $slot, 'example' => $example, 'priority' => $position === false ? null : $position + 1,
                         'absent_from_order' => $absent, 'condition' => $policy['conditional_slots'][$slot] ?? null,
-                        'value_kind' => is_array($initialSlots[$slot] ?? null) ? 'list' : 'text'];
+                        'value_kind' => is_array($initialSlots[$slot] ?? null) ? 'list' : 'text',
+                        'required_stage' => (collect($publishedFields)->firstWhere('id', $slot)['required'] ?? false) ? (collect($publishedFields)->firstWhere('id', $slot)['stage'] ?? null) : null];
                 }
 
-                return ['available' => true, 'fields' => $rows, 'editor' => $editor, 'canRequest' => Gate::allows('seller.settings.write')];
+                return ['available' => true, 'fields' => $rows, 'publishedClientFields' => $publishedFields, 'editor' => $editor, 'canRequest' => Gate::allows('seller.settings.write')];
             } catch (KnowledgeNotReady) {
-                return ['available' => false, 'fields' => [], 'editor' => $editor, 'canRequest' => Gate::allows('seller.settings.write')];
+                return ['available' => false, 'fields' => [], 'publishedClientFields' => [], 'editor' => $editor, 'canRequest' => Gate::allows('seller.settings.write')];
             }
         });
 
