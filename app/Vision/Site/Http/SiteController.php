@@ -60,10 +60,17 @@ final class SiteController
             $this->access->lock($tenant, false, 'vision.report.read');
 
             $brandSite = DB::table('brands')->where('organization_id', $tenant->organizationId)->where('id', $tenant->brandId)->value('website');
+            $progress = Cache::get(AuditSiteJob::key($tenant->organizationId, $tenant->brandId));
+            if (is_array($progress)) {
+                if (in_array($progress['stage'] ?? null, ['inspecting', 'analyzing', 'saving'], true) && is_numeric($progress['started_at_epoch'] ?? null)) {
+                    $progress['elapsed_seconds'] = max(0, (int) floor(microtime(true) - (float) $progress['started_at_epoch']));
+                }
+                unset($progress['started_at_epoch']);
+            }
 
             return ['brandSite' => $brandSite, 'domainStatus' => $domainStatus, 'audit' => $current?->result, 'auditDate' => $current?->created_at?->toIso8601String(),
                 'previousAudit' => $previous?->result,
-                'auditProgress' => Cache::get(AuditSiteJob::key($tenant->organizationId, $tenant->brandId)),
+                'auditProgress' => $progress,
                 'actions' => $actions, 'history' => array_values(array_filter($actions, fn (array $a): bool => $a['status'] === 'awaiting_measurement')),
                 'members' => $members, 'canManage' => $this->access->can('vision.actions.write'), ...$history];
         });

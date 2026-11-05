@@ -37,6 +37,7 @@ final class AuditSiteJob implements ShouldQueue
         $key = self::key($this->organizationId, $this->brandId);
         $tenant = new TenantContext($this->organizationId, $this->brandId, $this->actorId, $this->membershipId, 'job');
         $started = microtime(true);
+        Cache::put($key, [...Cache::get($key, []), 'started_at_epoch' => $started], now()->addDay());
         try {
             app(TenantContextRunner::class)->run($tenant, function () use ($inspector, $access, $audit, $tenant, $key, $started): void {
                 DB::transaction(function () use ($access, $tenant): void {
