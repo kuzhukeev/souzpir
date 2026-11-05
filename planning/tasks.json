@@ -20200,6 +20200,175 @@
       "promptPath": "docs/tasks/SP-E5-04S.md",
       "wave": 20,
       "description": "# SP-E5-04S · Защищённая подсказка менеджеру\n\n**Зачем:** завершить экран по принятому результату.\n**Часть чего:** остаток SP-E5-04R, docs/results/SP-E5-04R.md.\n**Зависимости:** SP-E5-04R.\n\n## Приёмка\n- Реализовать защищённое происхождение и сохранение manager-подсказки, подключить extractor/responder/guard и gateway, проверить повторы, ошибки, права, бренд и полный fake-сценарий; без живых вызовов. Изменение общих AI-стадий предварительно согласовать с владельцем.\n- Проверить права, изоляцию брендов и ошибки; незавершённое указать в «Остаток».\n\nScope: `app/Seller/Dialogs/`, `app/Ai/Protected/`, `app/Ai/Gateway.php`, `app/ProtectedOperations/`, `resources/js/pages/Seller/Dialogs/`, `tests/Feature/Seller/Dialogs/`, `tests/Feature/ProtectedOperations/`, `tests/Browser/E5-04S/`, `docs/results/SP-E5-04S.md`.\n"
+    },
+    {
+      "taskKey": "SP-E6-03Y",
+      "title": "SP-E6-03Y · Цели стадий и правило вопросов",
+      "goal": "Подтвердить источники целей и закрывающих полей, согласовать и реализовать правило не более двух вопросов, проверить начальную загрузку и ошибки на Laravel; неизвестные данные не выдумывать.",
+      "dependsOn": [
+        "SP-E6-03X"
+      ],
+      "scope": [
+        "app/Seller/Settings/Policy/",
+        "app/Seller/Runtime/",
+        "resources/js/pages/Seller/Settings/Policy/",
+        "tests/Feature/Seller/Settings/Policy/",
+        "tests/Browser/E6-03Y/",
+        "docs/results/SP-E6-03Y.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Подтвердить источники целей и закрывающих полей, согласовать и реализовать правило не более двух вопросов, проверить начальную загрузку и ошибки на Laravel; неизвестные данные не выдумывать."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "D-5.2"
+      ],
+      "notes": "Остаток SP-E6-03X.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md",
+        "docs/results/SP-E6-03X.md"
+      ],
+      "promptPath": "docs/tasks/SP-E6-03Y.md",
+      "wave": 20,
+      "description": "# SP-E6-03Y · Цели стадий и правило вопросов\n\n**Зачем:** завершить экран по принятому результату.\n**Часть чего:** остаток SP-E6-03X, docs/results/SP-E6-03X.md.\n**Зависимости:** SP-E6-03X.\n\n## Приёмка\n- Подтвердить источники целей и закрывающих полей, согласовать и реализовать правило не более двух вопросов, проверить начальную загрузку и ошибки на Laravel; неизвестные данные не выдумывать.\n- Проверить права, изоляцию брендов, ошибки и состояния; незавершённое указать в «Остаток». Без живых и платных вызовов.\n\nScope: `app/Seller/Settings/Policy/`, `app/Seller/Runtime/`, `resources/js/pages/Seller/Settings/Policy/`, `tests/Feature/Seller/Settings/Policy/`, `tests/Browser/E6-03Y/`, `docs/results/SP-E6-03Y.md`.\n"
+    },
+    {
+      "taskKey": "SP-E4-01AA",
+      "title": "SP-E4-01AA · Контракт отката и показатели версий",
+      "goal": "Согласовать repository rollback с экраном и существующими вызовами Vision; показатели диалогов и качества, автор и время строк diff показывать только при подтверждённых источниках.",
+      "dependsOn": [
+        "SP-E4-01Z"
+      ],
+      "scope": [
+        "app/Seller/Knowledge/",
+        "app/Vision/",
+        "resources/js/pages/Seller/Knowledge/Releases/",
+        "tests/Feature/Seller/Knowledge/",
+        "tests/Browser/E4-01AA/",
+        "docs/results/SP-E4-01AA.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Согласовать repository rollback с экраном и существующими вызовами Vision; показатели диалогов и качества, автор и время строк diff показывать только при подтверждённых источниках."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "D-4.12"
+      ],
+      "notes": "Остаток SP-E4-01Z.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md",
+        "docs/results/SP-E4-01Z.md"
+      ],
+      "promptPath": "docs/tasks/SP-E4-01AA.md",
+      "wave": 20,
+      "description": "# SP-E4-01AA · Контракт отката и показатели версий\n\n**Зачем:** завершить экран по принятому результату.\n**Часть чего:** остаток SP-E4-01Z, docs/results/SP-E4-01Z.md.\n**Зависимости:** SP-E4-01Z.\n\n## Приёмка\n- Согласовать repository rollback с экраном и существующими вызовами Vision; показатели диалогов и качества, автор и время строк diff показывать только при подтверждённых источниках.\n- Проверить права, изоляцию брендов, ошибки и состояния; незавершённое указать в «Остаток». Без живых и платных вызовов.\n\nScope: `app/Seller/Knowledge/`, `app/Vision/`, `resources/js/pages/Seller/Knowledge/Releases/`, `tests/Feature/Seller/Knowledge/`, `tests/Browser/E4-01AA/`, `docs/results/SP-E4-01AA.md`.\n"
+    },
+    {
+      "taskKey": "SP-E6-07D",
+      "title": "SP-E6-07D · Лимиты и режимы каналов",
+      "goal": "Реализовать запасную фразу и автоматическую передачу при исчерпании, применение переопределения режима каналом, сверить состояния загрузки и ошибки с макетом; согласовать runtime-контракт.",
+      "dependsOn": [
+        "SP-E6-07C"
+      ],
+      "scope": [
+        "app/Seller/Settings/Limits/",
+        "app/Seller/Runtime/",
+        "resources/js/pages/Seller/Settings/Limits/",
+        "resources/js/pages/Seller/Settings/Schedule/",
+        "tests/Feature/Seller/",
+        "tests/Browser/E6-07D/",
+        "docs/results/SP-E6-07D.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Реализовать запасную фразу и автоматическую передачу при исчерпании, применение переопределения режима каналом, сверить состояния загрузки и ошибки с макетом; согласовать runtime-контракт."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "D-11.3"
+      ],
+      "notes": "Остаток SP-E6-07C.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md",
+        "docs/results/SP-E6-07C.md"
+      ],
+      "promptPath": "docs/tasks/SP-E6-07D.md",
+      "wave": 20,
+      "description": "# SP-E6-07D · Лимиты и режимы каналов\n\n**Зачем:** завершить экран по принятому результату.\n**Часть чего:** остаток SP-E6-07C, docs/results/SP-E6-07C.md.\n**Зависимости:** SP-E6-07C.\n\n## Приёмка\n- Реализовать запасную фразу и автоматическую передачу при исчерпании, применение переопределения режима каналом, сверить состояния загрузки и ошибки с макетом; согласовать runtime-контракт.\n- Проверить права, изоляцию брендов, ошибки и состояния; незавершённое указать в «Остаток». Без живых и платных вызовов.\n\nScope: `app/Seller/Settings/Limits/`, `app/Seller/Runtime/`, `resources/js/pages/Seller/Settings/Limits/`, `resources/js/pages/Seller/Settings/Schedule/`, `tests/Feature/Seller/`, `tests/Browser/E6-07D/`, `docs/results/SP-E6-07D.md`.\n"
+    },
+    {
+      "taskKey": "SP-E5-01I",
+      "title": "SP-E5-01I · Связь виджета с каналом сайта",
+      "goal": "Определить подтверждённый источник и связать виджет сайта с каналом текущего бренда; показать режим и число диалогов, включая отсутствие записи и права.",
+      "dependsOn": [
+        "SP-E5-01G"
+      ],
+      "scope": [
+        "app/Seller/Channels/",
+        "resources/js/pages/Seller/Channels/",
+        "tests/Feature/Seller/Channels/",
+        "tests/Browser/E5-01I/",
+        "docs/results/SP-E5-01I.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Определить подтверждённый источник и связать виджет сайта с каналом текущего бренда; показать режим и число диалогов, включая отсутствие записи и права."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "D-9.1",
+        "D-9.7"
+      ],
+      "notes": "Остаток SP-E5-01G.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md",
+        "docs/results/SP-E5-01G.md"
+      ],
+      "promptPath": "docs/tasks/SP-E5-01I.md",
+      "wave": 20,
+      "description": "# SP-E5-01I · Связь виджета с каналом сайта\n\n**Зачем:** завершить экран по принятому результату.\n**Часть чего:** остаток SP-E5-01G, docs/results/SP-E5-01G.md.\n**Зависимости:** SP-E5-01G.\n\n## Приёмка\n- Определить подтверждённый источник и связать виджет сайта с каналом текущего бренда; показать режим и число диалогов, включая отсутствие записи и права.\n- Проверить права, изоляцию брендов, ошибки и состояния; незавершённое указать в «Остаток». Без живых и платных вызовов.\n\nScope: `app/Seller/Channels/`, `resources/js/pages/Seller/Channels/`, `tests/Feature/Seller/Channels/`, `tests/Browser/E5-01I/`, `docs/results/SP-E5-01I.md`.\n"
+    },
+    {
+      "taskKey": "SP-E7-04M",
+      "title": "SP-E7-04M · Источники обращений и переходы",
+      "goal": "Записать переходы стадий во всех защищённых путях и действиях менеджера; сохранять источники, UTM и адреса страниц при приёме обращений и показывать в D-8.4, сверив макеты.",
+      "dependsOn": [
+        "SP-E7-04F"
+      ],
+      "scope": [
+        "app/Seller/Analytics/",
+        "app/Seller/Runtime/",
+        "app/Seller/Channels/",
+        "app/ProtectedOperations/",
+        "resources/js/pages/Seller/Analytics/",
+        "tests/Feature/Seller/Analytics/",
+        "tests/Browser/E7-04M/",
+        "docs/results/SP-E7-04M.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Записать переходы стадий во всех защищённых путях и действиях менеджера; сохранять источники, UTM и адреса страниц при приёме обращений и показывать в D-8.4, сверив макеты."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "D-8.1",
+        "D-8.4"
+      ],
+      "notes": "Остаток SP-E7-04F.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md",
+        "docs/results/SP-E7-04F.md"
+      ],
+      "promptPath": "docs/tasks/SP-E7-04M.md",
+      "wave": 20,
+      "description": "# SP-E7-04M · Источники обращений и переходы\n\n**Зачем:** завершить экран по принятому результату.\n**Часть чего:** остаток SP-E7-04F, docs/results/SP-E7-04F.md.\n**Зависимости:** SP-E7-04F.\n\n## Приёмка\n- Записать переходы стадий во всех защищённых путях и действиях менеджера; сохранять источники, UTM и адреса страниц при приёме обращений и показывать в D-8.4, сверив макеты.\n- Проверить права, изоляцию брендов, ошибки и состояния; незавершённое указать в «Остаток». Без живых и платных вызовов.\n\nScope: `app/Seller/Analytics/`, `app/Seller/Runtime/`, `app/Seller/Channels/`, `app/ProtectedOperations/`, `resources/js/pages/Seller/Analytics/`, `tests/Feature/Seller/Analytics/`, `tests/Browser/E7-04M/`, `docs/results/SP-E7-04M.md`.\n"
     }
   ],
   "excludedSourceTasks": {
