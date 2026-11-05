@@ -3,8 +3,11 @@
 namespace App\Seller\Scenarios;
 
 use App\Models\User;
+use App\Seller\Evaluation\DraftScenarioPreview;
 use App\Seller\Evaluation\EvaluationVisibility;
+use App\Seller\Evaluation\FakeSimulation;
 use App\Seller\Evaluation\Jobs\SimulateFakeJob;
+use App\Seller\Knowledge\Contracts\KnowledgeRepository;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Profile\ProfileAccess;
 use App\Tenancy\TenantContext;
@@ -58,7 +61,9 @@ final class RunsController
                     'failed' => $items->filter(fn (array $item) => $item['evaluation'] !== 'fake' && $item['average'] !== null && (float) $item['average'] < 4)->count()];
             });
 
-            return ['groups' => $groupData, 'scenarios' => $personas, 'publishedAvailable' => $release !== null, 'runtimeAvailable' => config('runtime.ai_driver', 'fake') === 'fake' && config('features.E3-06D.defaults.runtime_enabled', true) !== false,
+            $draftAvailable = DB::table('knowledge_releases')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('status', 'draft')->exists();
+
+            return ['groups' => $groupData, 'scenarios' => $personas, 'publishedAvailable' => $release !== null, 'draftAvailable' => $draftAvailable, 'runtimeAvailable' => config('runtime.ai_driver', 'fake') === 'fake' && config('features.E3-06D.defaults.runtime_enabled', true) !== false,
                 'runs' => $runs->map(function ($run) use ($evaluations, $personas, $releaseStatuses): array {
                     $evaluation = $evaluations->get($run->id);
                     $metrics = json_decode($run->metrics, true) ?: [];
@@ -100,23 +105,39 @@ final class RunsController
 
     public function store(Request $request): mixed
     {
-        $input = $request->validate(['scenarios' => ['required', 'array', 'min:1', 'max:29'], 'scenarios.*' => ['required', 'ulid', 'distinct'], 'knowledge' => ['required', Rule::in(['published'])], 'model' => ['required', Rule::in(['fake'])]]);
-        $this->access($request, function (TenantContext $tenant) use ($input): void {
+        $input = $request->validate(['scenarios' => ['required', 'array', 'min:1', 'max:29'], 'scenarios.*' => ['required', 'ulid', 'distinct'], 'knowledge' => ['required', Rule::in(['published', 'draft'])], 'model' => ['required', Rule::in(['fake'])]]);
+        $this->access($request, function (TenantContext $tenant) use ($input, $request): void {
             if (config('runtime.ai_driver', 'fake') !== 'fake' || config('features.E3-06D.defaults.runtime_enabled', true) === false) {
                 throw ValidationException::withMessages(['model' => 'Защищённый fake runtime недоступен.']);
             }
             $release = DB::table('brands as b')->join('knowledge_releases as r', function ($join): void {
                 $join->on('r.id', '=', 'b.active_knowledge_release_id')->on('r.organization_id', '=', 'b.organization_id')->on('r.brand_id', '=', 'b.id');
             })->where('b.organization_id', $tenant->organizationId)->where('b.id', $tenant->brandId)->where('r.status', 'published')->value('r.id');
-            if (! $release) {
-                throw ValidationException::withMessages(['knowledge' => 'Опубликованная версия знаний недоступна.']);
+            if ($input['knowledge'] === 'draft') {
+                $release = DB::table('knowledge_releases')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('status', 'draft')->orderByDesc('updated_at')->value('id');
             }
-            $personas = DB::table('seller_personas')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->whereIn('id', $input['scenarios'])->get(['id', 'key', 'name', 'max_turns']);
+            if (! $release) {
+                throw ValidationException::withMessages(['knowledge' => 'Выбранная версия знаний недоступна.']);
+            }
+            $personas = DB::table('seller_personas')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->whereIn('id', $input['scenarios'])->get(['id', 'key', 'name', 'max_turns', 'payload']);
             if ($personas->count() !== count($input['scenarios'])) {
                 throw ValidationException::withMessages(['scenarios' => 'Один из сценариев недоступен.']);
             }
             $groupId = (string) Str::ulid();
             $items = $personas->map(fn ($persona) => ['id' => $persona->id, 'key' => $persona->key, 'name' => $persona->name, 'max_turns' => (int) $persona->max_turns, 'status' => 'queued'])->all();
+            if ($input['knowledge'] === 'draft') {
+                $snapshot = app(KnowledgeRepository::class)->forRelease($tenant, $release, true);
+                foreach ($personas as $index => $persona) {
+                    $payload = json_decode($persona->payload, true, flags: JSON_THROW_ON_ERROR);
+                    $turns = app(DraftScenarioPreview::class)->dialogue($snapshot, $payload, (int) $persona->max_turns, $request, $persona->key);
+                    $items[$index]['run_id'] = app(FakeSimulation::class)->run($tenant, $persona->key, $turns, $release);
+                    $items[$index]['status'] = 'completed';
+                    $items[$index]['evaluation'] = 'unavailable';
+                }
+                DB::table('seller_scenario_run_groups')->insert(['id' => $groupId, 'organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId, 'status' => 'completed', 'items' => json_encode($items, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE), 'created_at' => now(), 'updated_at' => now()]);
+
+                return;
+            }
             DB::table('seller_scenario_run_groups')->insert(['id' => $groupId, 'organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId, 'status' => 'queued', 'items' => json_encode($items, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE), 'created_at' => now(), 'updated_at' => now()]);
             RunScenarioGroup::dispatch($tenant->organizationId, $tenant->brandId, $groupId)->afterCommit();
         });
