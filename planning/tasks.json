@@ -19037,6 +19037,70 @@
       ],
       "wave": 20,
       "promptPath": "docs/tasks/SP-E1-11D.md"
+    },
+    {
+      "taskKey": "SP-E1-04E",
+      "title": "SP-E1-04E · Модули: лимиты и хранение",
+      "goal": "Показать использование публичных ссылок и каналов, вкладки и полностью сверить S-2.4 с макетом. Обеспечить хранение данных не менее 90 дней после отключения, используя подтверждённые источники и механизм очистки.",
+      "description": "# SP-E1-04E · Модули: лимиты и хранение\n\n**Зачем:** завершить экран по решению владельца от 05.11.2026.\n**Часть чего:** остаток SP-E1-04D, docs/results/SP-E1-04D.md.\n**Зависимости:** SP-E1-04D.\n\n## Приёмка\n- Показать использование публичных ссылок и каналов, вкладки и полностью сверить S-2.4 с макетом.\n- Обеспечить хранение данных не менее 90 дней после отключения, используя подтверждённые источники и механизм очистки.\n\nОстаток записать в отчёт.\n\nScope: `app/Shell/Organizations/`, `app/Shell/Brands/`, `app/Privacy/`, `resources/js/pages/Shell/Organizations/`, `resources/js/features/Shell/Brands/`, `tests/Feature/Shell/Organizations/`, `tests/Browser/E1-04E/`, `docs/results/SP-E1-04E.md`.\n",
+      "dependsOn": [
+        "SP-E1-04D"
+      ],
+      "scope": [
+        "app/Shell/Organizations/",
+        "app/Shell/Brands/",
+        "app/Privacy/",
+        "resources/js/pages/Shell/Organizations/",
+        "resources/js/features/Shell/Brands/",
+        "tests/Feature/Shell/Organizations/",
+        "tests/Browser/E1-04E/",
+        "docs/results/SP-E1-04E.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Показать использование публичных ссылок и каналов, вкладки и полностью сверить S-2.4 с макетом.",
+        "Обеспечить хранение данных не менее 90 дней после отключения, используя подтверждённые источники и механизм очистки."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "S-2.4"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E1-04E.md"
+    },
+    {
+      "taskKey": "SP-E5-09B",
+      "title": "SP-E5-09B · Внимание: канал выключен более суток",
+      "goal": "Показать событие «Канал выключен >24ч» в разделе «Требует внимания», используя подтверждённое время отключения канала. Проверить права и изоляцию брендов.",
+      "description": "# SP-E5-09B · Внимание: канал выключен более суток\n\n**Зачем:** завершить экран по решению владельца от 05.11.2026.\n**Часть чего:** остаток SP-E5-09, docs/results/SP-E5-09.md.\n**Зависимости:** SP-E5-09.\n\n## Приёмка\n- Показать событие «Канал выключен >24ч» в разделе «Требует внимания», используя подтверждённое время отключения канала.\n- Проверить права и изоляцию брендов.\n\nОстаток записать в отчёт.\n\nScope: `app/Seller/Dashboard/`, `app/Seller/Channels/`, `resources/js/pages/Seller/Dashboard/`, `tests/Feature/Seller/Dashboard/`, `tests/Browser/E5-09B/`, `docs/results/SP-E5-09B.md`.\n",
+      "dependsOn": [
+        "SP-E5-09"
+      ],
+      "scope": [
+        "app/Seller/Dashboard/",
+        "app/Seller/Channels/",
+        "resources/js/pages/Seller/Dashboard/",
+        "tests/Feature/Seller/Dashboard/",
+        "tests/Browser/E5-09B/",
+        "docs/results/SP-E5-09B.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Показать событие «Канал выключен >24ч» в разделе «Требует внимания», используя подтверждённое время отключения канала.",
+        "Проверить права и изоляцию брендов."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "D-1.2"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E5-09B.md"
     }
   ],
   "excludedSourceTasks": {
