@@ -192,7 +192,8 @@ final class OrganizationController
                 $measurement = app(TenantContextRunner::class)->run($scoped, fn () => $usage->read($scoped, new UsageQuery($periodStart, CarbonImmutable::now('UTC'), [$metric]))->metrics[$metric]);
             }
             $quota = $limits->get($ctx, $module === 'seller' ? 'seller.dialogs_month' : 'vision.runs_per_week');
-            $items[$module] = ['usage' => $measurement, 'quota' => ['value' => $quota->value, 'configured' => $quota->configured, 'unit' => $quota->unit], 'enabled' => $modules->enabled($scoped, $module), 'configured_enabled' => (bool) (DB::table('brand_modules')->where('brand_id', $target->id)->where('organization_id', $ctx->organizationId)->where('module', $module)->value('enabled') ?? false), 'allowed' => $modules->allowedByPlan($scoped, $module), 'limit' => ['value' => $limit->value, 'configured' => $limit->configured, 'unit' => $limit->unit]];
+            $moduleRow = DB::table('brand_modules')->where('brand_id', $target->id)->where('organization_id', $ctx->organizationId)->where('module', $module)->first();
+            $items[$module] = ['usage' => $measurement, 'quota' => ['value' => $quota->value, 'configured' => $quota->configured, 'unit' => $quota->unit], 'enabled' => $modules->enabled($scoped, $module), 'configured_enabled' => (bool) ($moduleRow->enabled ?? false), 'enabled_at' => ($moduleRow->enabled ?? false) ? $moduleRow->updated_at : null, 'allowed' => $modules->allowedByPlan($scoped, $module), 'limit' => ['value' => $limit->value, 'configured' => $limit->configured, 'unit' => $limit->unit]];
         }
 
         return Inertia::render('Shell/Organizations/Modules', ['targetBrand' => ['id' => $target->id, 'name' => $target->name, 'status' => $target->status], 'items' => $items]);
