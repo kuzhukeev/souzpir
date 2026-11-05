@@ -20472,6 +20472,76 @@
       "promptPath": "docs/tasks/SP-E8-20T.md",
       "wave": 20,
       "description": "# SP-E8-20T · Исторические позиции и модели конкурентов\n\n**Зачем:** завершить экраны конкурентов V-6.2 и V-6.4.\n**Часть чего:** остаток SP-E8-20S, docs/results/SP-E8-20S.md.\n**Зависимости:** SP-E8-20S.\n\n## Приёмка\n- Определить и проверить безопасный пересчёт старых снимков из подтверждённых ответов и сопоставление провайдеров с моделями для разбивки показателей; неизвестные значения не выдумывать и существующие снимки не уничтожать.\n- Проверить права, изоляцию брендов и ошибки; незавершённое указать в «Остаток».\n\nScope: `app/Vision/Competitors/`, `app/Vision/Core/`, `resources/js/pages/Vision/Competitors/`, `tests/Feature/Vision/Competitors/`, `tests/Browser/E8-20T/`, `docs/results/SP-E8-20T.md`.\n"
+    },
+    {
+      "taskKey": "SP-E5-07D",
+      "title": "SP-E5-07D · Почта: защищённая отправка прайса",
+      "goal": "Подключить защищённый send_price к PriceMailSender, создать задачу менеджеру при отказе, обеспечить переход из общей навигации и проверить сквозной сценарий на fake-транспорте. Не использовать живую почту. Общие AI-стадии не изменять до решения владельца.",
+      "dependsOn": [
+        "SP-E5-07B"
+      ],
+      "scope": [
+        "app/Seller/Channels/Email/",
+        "app/Seller/Engine/",
+        "app/ProtectedOperations/",
+        "resources/js/pages/Seller/Channels/Email/",
+        "tests/Feature/Seller/Channels/Email/",
+        "tests/Feature/ProtectedOperations/",
+        "tests/Browser/E5-07D/",
+        "docs/results/SP-E5-07D.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Подключить защищённый send_price к PriceMailSender, создать задачу менеджеру при отказе, обеспечить переход из общей навигации и проверить сквозной сценарий на fake-транспорте. Не использовать живую почту. Общие AI-стадии не изменять до решения владельца."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "D-9.8"
+      ],
+      "notes": "Остаток SP-E5-07B.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md",
+        "docs/results/SP-E5-07B.md"
+      ],
+      "promptPath": "docs/tasks/SP-E5-07D.md",
+      "wave": 20,
+      "description": "# SP-E5-07D · Почта: защищённая отправка прайса\n\n**Зачем:** закрыть остаток по решению владельца 05.11.2026.\n**Часть чего:** SP-E5-07B, docs/results/SP-E5-07B.md.\n**Зависимости:** SP-E5-07B.\n\n## Приёмка\n- Подключить защищённый send_price к PriceMailSender, создать задачу менеджеру при отказе, обеспечить переход из общей навигации и проверить сквозной сценарий на fake-транспорте. Не использовать живую почту. Общие AI-стадии не изменять до решения владельца.\n- Проверить основной сценарий, права и изоляцию брендов, ошибки и состояния; остаток зафиксировать в отчёте.\n\nScope: `app/Seller/Channels/Email/`, `app/Seller/Engine/`, `app/ProtectedOperations/`, `resources/js/pages/Seller/Channels/Email/`, `tests/Feature/Seller/Channels/Email/`, `tests/Feature/ProtectedOperations/`, `tests/Browser/E5-07D/`, `docs/results/SP-E5-07D.md`.\n"
+    },
+    {
+      "taskKey": "SP-E6-08F",
+      "title": "SP-E6-08F · Остаток каталога, импорты и check_stock",
+      "goal": "Завершить сохраняемое разрешение цен со снимком знаний и fake-прогоном, отправку прайса fake-транспортом, скелетон и ошибку списка; сверить D-10.4 и полный runtime check_stock. Добавить колонку «Источник» в истории импортов и описание check_stock с признаком малого остатка, если их нет; URL и 1С остаются «Скоро».",
+      "dependsOn": [
+        "SP-E6-08E"
+      ],
+      "scope": [
+        "app/Seller/Catalog/",
+        "app/Seller/Engine/",
+        "app/Seller/Knowledge/",
+        "resources/js/pages/Seller/Catalog/",
+        "tests/Feature/Seller/Catalog/",
+        "tests/Browser/E6-08F/",
+        "docs/results/SP-E6-08F.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Завершить сохраняемое разрешение цен со снимком знаний и fake-прогоном, отправку прайса fake-транспортом, скелетон и ошибку списка; сверить D-10.4 и полный runtime check_stock. Добавить колонку «Источник» в истории импортов и описание check_stock с признаком малого остатка, если их нет; URL и 1С остаются «Скоро»."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "D-10.1",
+        "D-10.4"
+      ],
+      "notes": "Остаток SP-E6-08E.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md",
+        "docs/results/SP-E6-08E.md"
+      ],
+      "promptPath": "docs/tasks/SP-E6-08F.md",
+      "wave": 20,
+      "description": "# SP-E6-08F · Остаток каталога, импорты и check_stock\n\n**Зачем:** закрыть остаток по решению владельца 05.11.2026.\n**Часть чего:** SP-E6-08E, docs/results/SP-E6-08E.md.\n**Зависимости:** SP-E6-08E.\n\n## Приёмка\n- Завершить сохраняемое разрешение цен со снимком знаний и fake-прогоном, отправку прайса fake-транспортом, скелетон и ошибку списка; сверить D-10.4 и полный runtime check_stock. Добавить колонку «Источник» в истории импортов и описание check_stock с признаком малого остатка, если их нет; URL и 1С остаются «Скоро».\n- Проверить основной сценарий, права и изоляцию брендов, ошибки и состояния; остаток зафиксировать в отчёте.\n\nScope: `app/Seller/Catalog/`, `app/Seller/Engine/`, `app/Seller/Knowledge/`, `resources/js/pages/Seller/Catalog/`, `tests/Feature/Seller/Catalog/`, `tests/Browser/E6-08F/`, `docs/results/SP-E6-08F.md`.\n"
     }
   ],
   "excludedSourceTasks": {
