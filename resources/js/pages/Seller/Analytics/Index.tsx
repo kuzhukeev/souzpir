@@ -1,3 +1,4 @@
+import WorkloadChart from './WorkloadChart';
 import { useState } from 'react';
 import Details from './Details';
 import Channels from './Channels';
@@ -118,10 +119,6 @@ function Rows({
 export default function Index({ analytics: a }: { analytics: Analytics }) {
   const [tab, setTab] = useState('funnel');
   const [compare, setCompare] = useState(true);
-  const workloadMax = Math.max(
-    1,
-    ...a.managers.flatMap((manager) => Object.values(manager.workload ?? {})),
-  );
   const form = useForm({
     from: a.from,
     to: a.to,
@@ -458,26 +455,7 @@ export default function Index({ analytics: a }: { analytics: Analytics }) {
                 </div>
               )}
               <h3 className="mt-4 font-semibold">Загрузка по дням</h3>
-              {a.managers.some((m) => Object.keys(m.workload ?? {}).length) ? (
-                <ul className="mt-2 space-y-2 text-sm">
-                  {a.managers.flatMap((m, i) =>
-                    Object.entries(m.workload ?? {}).map(([day, count]) => (
-                      <li key={`${i}-${day}`}>
-                        <span>
-                          {day} · {m.name}: {count}
-                        </span>
-                        <span
-                          aria-hidden="true"
-                          className="mt-1 block h-2 rounded bg-(--color-link)"
-                          style={{ width: `${(count / workloadMax) * 100}%` }}
-                        />
-                      </li>
-                    )),
-                  )}
-                </ul>
-              ) : (
-                <p className="mt-2 text-sm">Нет данных о принятых диалогах.</p>
-              )}
+              <WorkloadChart managers={a.managers} />
               <p className="mt-2 text-sm text-(--color-ink-muted)">
                 Данные об образцах речи не предоставлены.
               </p>
