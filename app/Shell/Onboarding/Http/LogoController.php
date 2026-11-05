@@ -34,8 +34,8 @@ final class LogoController
             $extension = 'svg';
         } else {
             $info = $bytes === false ? false : @getimagesizefromstring($bytes);
-            if (! $info || ! in_array($info['mime'] ?? null, ['image/png', 'image/jpeg', 'image/webp'], true) || $info[0] < 1 || $info[1] < 1 || $info[0] > 2048 || $info[1] > 2048 || $info[0] * $info[1] > 4194304) {
-                throw ValidationException::withMessages(['logo' => 'Выберите корректное изображение PNG, JPEG, WebP или SVG до 1 МБ.'])->redirectTo(route('onboarding.show'));
+            if (! $info || ($info['mime'] ?? null) !== 'image/png' || $info[0] < 1 || $info[1] < 1 || $info[0] > 2048 || $info[1] > 2048 || $info[0] * $info[1] > 4194304) {
+                throw ValidationException::withMessages(['logo' => 'Выберите корректное изображение PNG или SVG до 1 МБ.'])->redirectTo(route('onboarding.show'));
             }
             $image = @imagecreatefromstring($bytes);
             if ($image === false) {
