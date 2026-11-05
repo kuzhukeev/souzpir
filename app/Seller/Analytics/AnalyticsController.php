@@ -263,7 +263,7 @@ final class AnalyticsController
         $closedRows = $handedRows->filter(fn ($row) => $row->stage === 'done' && $row->assigned_user_id !== null);
         $funnel = [
             ['label' => 'Диалоги', 'count' => $total], ['label' => 'Ответили после бота', 'count' => $replied->count()],
-            ['label' => 'Потребность ясна', 'count' => $need->count()], ['label' => 'Контакт получен', 'count' => $withContact->count()],
+            ['label' => 'Потребность ясна', 'count' => $need->count()], ['label' => 'Контакт получен', 'count' => $withContact->count(), 'full' => $withContact->where('outcome', 'full_contact')->count(), 'partial' => $withContact->where('outcome', 'partial_contact')->count(), 'other' => $withContact->whereNotIn('outcome', ['full_contact', 'partial_contact'])->count()],
             ['label' => 'Передано менеджеру', 'count' => $handedRows->count()], ['label' => 'Закрыто менеджером', 'count' => $closedRows->count()],
         ];
 
