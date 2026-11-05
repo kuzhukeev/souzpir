@@ -35,7 +35,7 @@ final class FollowupSendTest extends TenancyTestCase
         return [$conversation, $candidate, $source];
     }
 
-    public function test_success_marks_agreed_date_creates_stale_task_and_repeat_does_not_send(): void
+    public function test_success_marks_agreed_date_and_repeat_does_not_send(): void
     {
         Carbon::setTestNow('2026-11-02 12:00:00+00');
         Http::preventStrayRequests();
@@ -50,7 +50,7 @@ final class FollowupSendTest extends TenancyTestCase
             $this->assertDatabaseHas('conversations', ['id' => $conversation, 'followups_sent' => 1]);
             $state = json_decode(DB::table('conversations')->where('id', $conversation)->value('state'), true);
             self::assertTrue($state['flags']['_followup_done_'.$source->timestamp]);
-            $this->assertDatabaseHas('seller_tasks', ['conversation_id' => $conversation, 'type' => 'stale', 'status' => 'new']);
+            $this->assertDatabaseMissing('seller_tasks', ['conversation_id' => $conversation, 'type' => 'stale']);
             self::assertSame(2, DB::table('messages')->where('conversation_id', $conversation)->count());
             Http::assertNothingSent();
         } finally {

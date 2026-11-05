@@ -60,12 +60,6 @@ final class FollowupSender
                 DB::table('conversations')->where($scope)->where('id', $conversation->id)->update(['state' => json_encode($state, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE), 'followups_sent' => $count, 'last_bot_message_at' => now(), 'updated_at' => now()]);
                 DB::table('messages')->where($scope)->where('id', $messageId)->update(['delivered_at' => now(), 'updated_at' => now()]);
                 DB::table('seller_followup_candidates')->where($scope)->where('id', $candidate->id)->update(['status' => 'completed', 'updated_at' => now()]);
-                if ($count >= max(0, (int) ($settings['max_auto'] ?? 2))) {
-                    $exists = DB::table('seller_tasks')->where($scope)->where('conversation_id', $conversation->id)->where('type', 'stale')->whereIn('status', ['new', 'in_progress'])->exists();
-                    if (! $exists) {
-                        DB::table('seller_tasks')->insert(['id' => (string) Str::ulid(), ...$scope, 'conversation_id' => $conversation->id, 'type' => 'stale', 'payload' => '{}', 'status' => 'new', 'priority' => 'normal', 'created_at' => now(), 'updated_at' => now()]);
-                    }
-                }
 
                 return true;
             });

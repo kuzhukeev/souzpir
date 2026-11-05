@@ -1,0 +1,148 @@
+<?php
+
+namespace Tests\Feature\Seller\Followups;
+
+use App\Seller\Followups\FollowupPolicy;
+use App\Seller\Followups\FollowupSender;
+use App\Seller\Followups\PrepareFollowups;
+use App\Seller\Followups\ProcessFollowups;
+use App\Seller\Followups\SendFollowup;
+use App\Seller\Runtime\Contracts\ChannelDelivery;
+use App\Seller\Runtime\Contracts\DeliveryCommand;
+use App\Seller\Runtime\Contracts\DeliveryReceipt;
+use App\Seller\Runtime\Delivery\FakeChannelDelivery;
+use App\Tenancy\TenantContext;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Str;
+use Tests\Feature\Tenancy\TenancyTestCase;
+
+final class DelayedManagerTaskE603TTest extends TenancyTestCase
+{
+    public function test_configured_delay_controls_task_creation(): void
+    {
+        Carbon::setTestNow('2026-11-02 12:00:00+00');
+        try {
+            [, $org, $brand] = $this->cabinet();
+            [$conversation, $candidate] = $this->fixture($org, $brand, 'silence', 1);
+            $settings = json_decode(DB::table('brand_seller_settings')->where('brand_id', $brand->id)->value('followup'), true);
+            $settings['task_after_hours'] = 3;
+            DB::table('brand_seller_settings')->where('brand_id', $brand->id)->update(['followup' => json_encode($settings)]);
+            self::assertTrue(app(FollowupSender::class)->send(new TenantContext($org->id, $brand->id, source: 'job'), $candidate, app(FakeChannelDelivery::class), app(FollowupPolicy::class)));
+            Carbon::setTestNow('2026-11-02 15:00:00+00');
+            (new PrepareFollowups($org->id, $brand->id))->handle(app(FollowupPolicy::class));
+            $this->assertDatabaseHas('seller_tasks', ['conversation_id' => $conversation, 'type' => 'stale']);
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
+    public function test_response_after_reminder_prevents_task(): void
+    {
+        Carbon::setTestNow('2026-11-02 12:00:00+00');
+        try {
+            [, $org, $brand] = $this->cabinet();
+            [$conversation, $candidate] = $this->fixture($org, $brand, 'silence', 1);
+            $tenant = new TenantContext($org->id, $brand->id, source: 'job');
+            self::assertTrue(app(FollowupSender::class)->send($tenant, $candidate, app(FakeChannelDelivery::class), app(FollowupPolicy::class)));
+            DB::table('conversations')->where('id', $conversation)->update(['last_client_message_at' => now()->addHour()]);
+            Carbon::setTestNow('2026-11-04 12:00:00+00');
+            (new PrepareFollowups($org->id, $brand->id))->handle(app(FollowupPolicy::class));
+            $this->assertDatabaseMissing('seller_tasks', ['conversation_id' => $conversation, 'type' => 'stale']);
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
+    private function fixture($org, $brand, string $reason = 'silence', int $max = 2): array
+    {
+        DB::table('brand_modules')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $brand->id, 'module' => 'seller', 'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('brand_seller_settings')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $brand->id, 'followup' => json_encode(['first_hours' => 20, 'max_auto' => $max, 'texts' => ['Напоминание']]), 'off_topic' => '{}', 'negative' => '{}', 'tools' => '{}', 'greetings' => '{}', 'phrases' => '{}', 'schedule' => '{}', 'assignment' => '{}', 'created_at' => now(), 'updated_at' => now()]);
+        $conversation = (string) Str::ulid();
+        $candidate = (string) Str::ulid();
+        $source = now()->subHours(21);
+        $state = $reason === 'next_contact_at' ? ['slots' => ['next_contact_at' => $source->toIso8601String()]] : [];
+        DB::table('conversations')->insert(['id' => $conversation, 'organization_id' => $org->id, 'brand_id' => $brand->id, 'stage' => 'need', 'state' => json_encode($state), 'last_client_message_at' => now()->subHours(23), 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('messages')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $brand->id, 'conversation_id' => $conversation, 'role' => 'agent', 'text' => 'Ответ', 'meta' => '{}', 'created_at' => $source, 'updated_at' => $source]);
+        DB::table('seller_followup_candidates')->insert(['id' => $candidate, 'organization_id' => $org->id, 'brand_id' => $brand->id, 'conversation_id' => $conversation, 'reason' => $reason, 'source_at' => $source, 'sequence' => 1, 'text' => 'Напоминание', 'status' => 'pending', 'created_at' => now(), 'updated_at' => now()]);
+
+        return [$conversation, $candidate, $source];
+    }
+
+    public function test_success_marks_agreed_date_creates_stale_task_and_repeat_does_not_send(): void
+    {
+        Carbon::setTestNow('2026-11-02 12:00:00+00');
+        Http::preventStrayRequests();
+        try {
+            [, $org, $brand] = $this->cabinet();
+            [$conversation, $candidate, $source] = $this->fixture($org, $brand, 'next_contact_at', 1);
+            $tenant = new TenantContext($org->id, $brand->id, source: 'job');
+            $sender = app(FollowupSender::class);
+            self::assertTrue($sender->send($tenant, $candidate, app(FakeChannelDelivery::class), app(FollowupPolicy::class)));
+            self::assertFalse($sender->send($tenant, $candidate, app(FakeChannelDelivery::class), app(FollowupPolicy::class)));
+            $this->assertDatabaseHas('seller_followup_candidates', ['id' => $candidate, 'status' => 'completed']);
+            $this->assertDatabaseHas('conversations', ['id' => $conversation, 'followups_sent' => 1]);
+            $state = json_decode(DB::table('conversations')->where('id', $conversation)->value('state'), true);
+            self::assertTrue($state['flags']['_followup_done_'.$source->timestamp]);
+            $this->assertDatabaseMissing('seller_tasks', ['conversation_id' => $conversation, 'type' => 'stale']);
+            Carbon::setTestNow('2026-11-03 11:59:00+00');
+            (new PrepareFollowups($org->id, $brand->id))->handle(app(FollowupPolicy::class));
+            $this->assertDatabaseMissing('seller_tasks', ['conversation_id' => $conversation, 'type' => 'stale']);
+            Carbon::setTestNow('2026-11-03 12:00:00+00');
+            (new PrepareFollowups($org->id, $brand->id))->handle(app(FollowupPolicy::class));
+            (new PrepareFollowups($org->id, $brand->id))->handle(app(FollowupPolicy::class));
+            $this->assertDatabaseHas('seller_tasks', ['conversation_id' => $conversation, 'type' => 'stale', 'status' => 'new']);
+            self::assertSame(1, DB::table('seller_tasks')->where('conversation_id', $conversation)->count());
+            self::assertSame(2, DB::table('messages')->where('conversation_id', $conversation)->count());
+            Http::assertNothingSent();
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
+    public function test_delivery_failure_foreign_brand_and_changed_conversation_do_not_complete(): void
+    {
+        Carbon::setTestNow('2026-11-02 12:00:00+00');
+        Http::preventStrayRequests();
+        try {
+            [, $org, $brand, $other] = $this->cabinet();
+            [$conversation, $candidate] = $this->fixture($org, $brand);
+            $sender = app(FollowupSender::class);
+            $policy = app(FollowupPolicy::class);
+            $tenant = new TenantContext($org->id, $brand->id, source: 'job');
+            $failure = new class implements ChannelDelivery
+            {
+                public function send(DeliveryCommand $command): DeliveryReceipt
+                {
+                    return new DeliveryReceipt('failed', $command->messageId);
+                }
+            };
+            self::assertFalse($sender->send($tenant, $candidate, $failure, $policy));
+            self::assertFalse($sender->send(new TenantContext($org->id, $other->id, source: 'job'), $candidate, app(FakeChannelDelivery::class), $policy));
+            DB::table('conversations')->where('id', $conversation)->update(['last_client_message_at' => now()]);
+            self::assertFalse($sender->send($tenant, $candidate, app(FakeChannelDelivery::class), $policy));
+            $this->assertDatabaseHas('seller_followup_candidates', ['id' => $candidate, 'status' => 'pending']);
+            $this->assertDatabaseHas('conversations', ['id' => $conversation, 'followups_sent' => 0]);
+            self::assertSame(1, DB::table('messages')->where('conversation_id', $conversation)->count());
+            Http::assertNothingSent();
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
+    public function test_scheduled_processing_dispatches_pending_candidate(): void
+    {
+        Carbon::setTestNow('2026-11-02 12:00:00+00');
+        Queue::fake();
+        try {
+            [, $org, $brand] = $this->cabinet();
+            [, $candidate] = $this->fixture($org, $brand);
+            (new ProcessFollowups($org->id, $brand->id))->handle(app(FollowupPolicy::class));
+            Queue::assertPushed(SendFollowup::class, fn ($job) => $job->candidateId === $candidate);
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+}

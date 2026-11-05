@@ -1,0 +1,20 @@
+import {test, expect} from '@playwright/test';
+import {createServer, type ViteDevServer} from 'vite';
+import {mkdir} from 'node:fs/promises';
+let server: ViteDevServer; let url: string;
+test.use({viewport: {width: 1440, height: 900}, launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? {executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH} : {}});
+test.beforeAll(async () => { server = await createServer({configFile: 'tests/Browser/E6-03T/vite.config.ts', cacheDir: '.local/runtime/vite-e603t', server: {host: '127.0.0.1', port: 0, strictPort: false}}); await server.listen(); url = new URL('/tests/Browser/E6-03T/fixture.html', server.resolvedUrls!.local[0]).href; });
+test.afterAll(async () => { await server?.close(); });
+test('интервал задачи доступен в настройках', async ({page}) => {
+  await page.goto(url);
+  const delay = page.getByLabel('Задача менеджеру через, часов');
+  await expect(delay).toHaveValue('24');
+  await delay.fill('12');
+  await expect(page.getByText('Нет ответа — задача менеджеру через 12 ч')).toBeVisible();
+  await mkdir('.local/screenshots/SP-E6-03T', {recursive: true});
+  await page.screenshot({path: '.local/screenshots/SP-E6-03T/settings.png', fullPage: true});
+  let payload: Record<string, unknown> | null = null;
+  await page.route('**/seller/settings/followups', async route => { payload = route.request().postDataJSON(); await route.abort(); });
+  await delay.locator('xpath=ancestor::form').getByRole('button', {name: 'Сохранить', exact: true}).click();
+  await expect.poll(() => payload?.task_after_hours).toBe(12);
+});
