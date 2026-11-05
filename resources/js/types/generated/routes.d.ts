@@ -503,6 +503,7 @@ declare module 'ziggy-js' {
     "api.v1.leads.create": [],
     "api.v1.turn.create": [],
     "seller.dialogs.index": [],
+    "seller.dialogs.templates.update": [],
     "seller.dialogs.mine": [
         {
             "name": "dialog",
