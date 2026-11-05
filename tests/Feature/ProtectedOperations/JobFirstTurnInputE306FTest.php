@@ -6,6 +6,7 @@ use App\ProtectedOperations\DraftSimulation\FixtureRuntime;
 use App\ProtectedOperations\JobFirstTurnInput;
 use App\Seller\Conversations\Models\Conversation;
 use App\Seller\Conversations\Models\Message;
+use App\Seller\Evaluation\DraftScenarioPreview;
 use App\Seller\Knowledge\Contracts\KnowledgeRepository;
 use App\Seller\Knowledge\KnowledgeSnapshot;
 use App\Tenancy\TenantContext;
@@ -75,13 +76,27 @@ final class JobFirstTurnInputE306FTest extends TenancyTestCase
         Route::middleware(['web', 'auth', 'verified', 'tenant'])->get('/e401o-fixture', function (Request $request) use ($draftId) {
             $context = app(TenantContext::class);
             $draft = app(KnowledgeRepository::class)->forRelease($context, $draftId, true);
-            $result = app(FixtureRuntime::class)->check($request, $draft, $request->query('client'), $request->query('answer'), ['compare_offer'], 'experienced_kazan');
+            $runtime = app(FixtureRuntime::class);
+            $result = $request->query('partial')
+                ? $runtime->checkPartial($request, $draft, $request->query('client'), $request->query('answer'), ['compare_offer', 'full_card'], 'experienced_kazan')
+                : $runtime->check($request, $draft, $request->query('client'), $request->query('answer'), ['compare_offer'], 'experienced_kazan');
 
             return response()->json(['result' => $result]);
         });
+        Route::middleware(['web', 'auth', 'verified', 'tenant'])->get('/e401w-dialogue', function (Request $request) use ($draftId) {
+            $context = app(TenantContext::class);
+            $draft = app(KnowledgeRepository::class)->forRelease($context, $draftId, true);
+            $payload = DB::table('seller_personas')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)->where('key', 'experienced_kazan')->value('payload');
+            $persona = json_decode($payload, true, flags: JSON_THROW_ON_ERROR);
+
+            return response()->json(['turns' => app(DraftScenarioPreview::class)->dialogue($draft, $persona, 12, $request, 'experienced_kazan')]);
+        });
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $this->getJson('/e401w-dialogue')->assertOk()->assertJsonPath('turns.0.client', 'Уточню: Казань')->assertJsonFragment(['client' => 'У конкурента скидка 35%.']);
         $query = ['client' => 'У конкурента скидка 35%.', 'answer' => 'Можем сравнить предложения по конкретным позициям.'];
         $this->getJson('/e401o-fixture?'.http_build_query($query))->assertOk()->assertJsonPath('result.compare_offer', true);
+        $partialQuery = $query + ['partial' => '1'];
+        $this->getJson('/e401o-fixture?'.http_build_query($partialQuery))->assertOk()->assertJsonPath('result.compare_offer', true)->assertJsonPath('result.full_card', null);
         $query['answer'] = 'Сравнивать предложения не будем.';
         $this->getJson('/e401o-fixture?'.http_build_query($query))->assertOk()->assertJsonPath('result.compare_offer', false);
         $query['answer'] = 'Можем сравнить предложения по конкретным позициям. Изменено';

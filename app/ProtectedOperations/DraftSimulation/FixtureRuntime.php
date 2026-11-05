@@ -80,18 +80,37 @@ final class FixtureRuntime
         return $result;
     }
 
+    /** Preserve the strict legacy API for callers which require every criterion. */
     public function check(Request $request, KnowledgeSnapshot $draft, string $client, string $answer, array $expectations, ?string $personaKey = null): ?array
     {
+        $checks = $this->checkPartial($request, $draft, $client, $answer, $expectations, $personaKey);
+        if ($checks === null || in_array(null, $checks, true)) {
+            return null;
+        }
+
+        return $checks;
+    }
+
+    /** A null entry means there is no verified evidence for that criterion. */
+    public function checkPartial(Request $request, KnowledgeSnapshot $draft, string $client, string $answer, array $expectations, ?string $personaKey = null): ?array
+    {
+        if (count(array_filter($expectations, 'is_string')) !== count($expectations)) {
+            return null;
+        }
         $data = $this->run($request, $draft, 'judge', ['client' => $client, 'answer' => $answer, 'expectations' => array_values($expectations)], personaKey: $personaKey);
         if (! is_array($data) || ! is_array($data['checks'] ?? null)) {
             return null;
         }
         $checks = [];
         foreach ($expectations as $expectation) {
-            if (! is_string($expectation) || ! is_bool($data['checks'][$expectation] ?? null)) {
+            if (! is_string($expectation)) {
                 return null;
             }
-            $checks[$expectation] = $data['checks'][$expectation];
+            $value = $data['checks'][$expectation] ?? null;
+            if ($value !== null && ! is_bool($value)) {
+                return null;
+            }
+            $checks[$expectation] = $value;
         }
 
         return $checks;
@@ -132,9 +151,6 @@ final class FixtureRuntime
                             'no_html' => ! preg_match('/<[^>]+>/', $answer),
                             default => $this->reviewedPair($tenant, $personaKey, $input['client'], $answer, $expectation),
                         };
-                        if ($checked === null) {
-                            return null;
-                        }
                         $checks[$expectation] = $checked;
                     }
 
