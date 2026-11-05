@@ -118,6 +118,19 @@ final class DialogsController
                 if (! in_array($row->mode, ['bot', 'suggest', 'manager'], true)) {
                     throw ValidationException::withMessages(['action' => 'Этот диалог сейчас нельзя забрать.']);
                 }
+                if ($row->assigned_user_id !== $actor->id) {
+                    $raw = DB::table('seller_schedule_preferences')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)->value('payload');
+                    $settings = is_string($raw) ? json_decode($raw, true) : [];
+                    $entry = collect(data_get($settings, 'assignment.members', []))->firstWhere('id', $actor->id);
+                    $limit = is_array($entry) ? ($entry['max_active'] ?? null) : null;
+                    if ($limit !== null) {
+                        $active = DB::table('conversations')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)
+                            ->where('assigned_user_id', $actor->id)->whereNotIn('stage', ['done', 'lost', 'spam'])->count();
+                        if ($active >= (int) $limit) {
+                            throw ValidationException::withMessages(['action' => 'Достигнут лимит активных диалогов.']);
+                        }
+                    }
+                }
                 $after = ['mode' => 'manager', 'assigned_user_id' => $actor->id, 'taken_at' => now()];
             } else {
                 if ($row->mode !== 'manager' || $row->assigned_user_id === null) {
