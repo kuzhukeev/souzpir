@@ -39,13 +39,13 @@ final class DraftScenarioPreview
         $turns = [];
         foreach (array_slice($clients, 0, max(1, $maxTurns)) as $index => $client) {
             $seed = $personaKey !== null && $client['field'] !== null ? ['persona_key' => $personaKey, 'field' => $client['field']] : null;
-            $turns[] = $this->previewTurn($draft, $client['text'], $expectations, $state, $index === 0, $request, $seed);
+            $turns[] = $this->previewTurn($draft, $client['text'], $expectations, $state, $index === 0, $request, $seed, $personaKey);
         }
 
         return $turns;
     }
 
-    private function previewTurn(KnowledgeSnapshot $draft, string $client, array $expectations, LeadState $state, bool $first, ?Request $request = null, ?array $seed = null): array
+    private function previewTurn(KnowledgeSnapshot $draft, string $client, array $expectations, LeadState $state, bool $first, ?Request $request = null, ?array $seed = null, ?string $personaKey = null): array
     {
         try {
             $policy = new Policy($draft);
@@ -64,7 +64,7 @@ final class DraftScenarioPreview
             $guard = ['verdict' => 'unavailable', 'issues' => ['Недостаточно данных черновика для проверки.']];
             $goalKind = null;
         }
-        $semantic = $request ? app(FixtureRuntime::class)->check($request, $draft, $client, $answer, $expectations) : null;
+        $semantic = $request ? app(FixtureRuntime::class)->check($request, $draft, $client, $answer, $expectations, $personaKey) : null;
         $checks = [];
         foreach ($expectations as $expectation) {
             if (! is_string($expectation)) {
