@@ -48,7 +48,10 @@ final class CustomersController
 
     public function index(Request $request): mixed
     {
-        $filter = $request->validate(['search' => ['nullable', 'string', 'max:120'], 'type' => ['nullable', 'in:newbie,experienced,for_self,prices_only,unknown'], 'stage' => ['nullable', 'string', 'max:32'], 'city' => ['nullable', 'string', 'max:120'], 'outcome' => ['nullable', 'string', 'max:64'], 'manager' => ['nullable', 'string', 'max:120'], 'channel' => ['nullable', 'string', 'max:32'], 'from' => ['nullable', 'date_format:Y-m-d'], 'to' => ['nullable', 'date_format:Y-m-d'], 'page' => ['nullable', 'integer', 'min:1'], 'per_page' => ['nullable', 'integer', 'in:10,20,50']]);
+        $channel = $request->query('channel');
+        abort_if($channel !== null && $channel !== '' && ! in_array($channel, ['telegram', 'vk', 'whatsapp', 'api', 'widget', 'site', 'web', 'email'], true), 422, 'Недопустимый канал.');
+
+        $filter = $request->validate(['search' => ['nullable', 'string', 'max:120'], 'type' => ['nullable', 'in:newbie,experienced,for_self,prices_only,unknown'], 'stage' => ['nullable', 'string', 'max:32'], 'city' => ['nullable', 'string', 'max:120'], 'outcome' => ['nullable', 'string', 'max:64'], 'manager' => ['nullable', 'string', 'max:120'], 'channel' => ['nullable', 'in:telegram,vk,whatsapp,api,widget,site,web,email'], 'from' => ['nullable', 'date_format:Y-m-d'], 'to' => ['nullable', 'date_format:Y-m-d'], 'page' => ['nullable', 'integer', 'min:1'], 'per_page' => ['nullable', 'integer', 'in:10,20,50']]);
         $data = $this->access($request, 'seller.customers.read', function (User $user, TenantContext $tenant) use ($filter): array {
             $contacts = $this->scope('contacts', $tenant)->whereNull('merged_into_id')->orderByDesc('created_at')->orderByDesc('id')->get(['id', 'name', 'phone', 'email', 'city']);
             $conversations = $this->scope('conversations', $tenant)->whereIn('contact_id', $contacts->pluck('id'))->orderByDesc('updated_at')->get();
@@ -79,7 +82,7 @@ final class CustomersController
 
                 return ($search === '' || str_contains(mb_strtolower(implode(' ', [$row['name'], $row['phone'], $row['email']])), $search))
                     && (empty($filter['type']) || $row['type'] === $filter['type']) && (empty($filter['stage']) || $row['stage'] === $filter['stage'])
-                    && (empty($filter['outcome']) || $row['outcome'] === $filter['outcome']) && (empty($filter['channel']) || $row['channel'] === $filter['channel'])
+                    && (empty($filter['outcome']) || $row['outcome'] === $filter['outcome']) && (empty($filter['channel']) || ($filter['channel'] === 'widget' ? in_array($row['channel'], ['widget', 'site', 'web'], true) : $row['channel'] === $filter['channel']))
                     && (empty($filter['city']) || str_contains(mb_strtolower((string) $row['city']), mb_strtolower($filter['city'])))
                     && (empty($filter['manager']) || str_contains(mb_strtolower((string) $row['manager']), mb_strtolower($filter['manager'])))
                     && (empty($filter['from']) || ($row['last_at'] && substr($row['last_at'], 0, 10) >= $filter['from']))

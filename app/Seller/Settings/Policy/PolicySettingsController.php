@@ -61,7 +61,9 @@ final class PolicySettingsController
             $draftPolicy = null;
             $draftReactions = null;
             if (Gate::allows('seller.settings.write')) {
-                $draft = DB::table('knowledge_releases')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('status', 'draft')->first(['id', 'version']);
+                $draft = Gate::allows('seller.knowledge.write') && Gate::allows('seller.settings.write')
+                ? DB::table('knowledge_releases')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('status', 'draft')->first(['id', 'version'])
+                : null;
                 if ($draft) {
                     $draftSnapshot = app(KnowledgeRepository::class)->forRelease($tenant, $draft->id, true);
                     $draftPolicy = ['version' => $draft->version, 'policy' => $draftSnapshot->policy()];
@@ -108,6 +110,11 @@ final class PolicySettingsController
     public function fields(Request $request): mixed
     {
         $data = $this->access($request, 'seller.knowledge.read', function (TenantContext $tenant): array {
+            $draft = Gate::allows('seller.knowledge.write') && Gate::allows('seller.settings.write')
+                ? DB::table('knowledge_releases')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('status', 'draft')->first(['id', 'version'])
+                : null;
+            $draftFields = $draft ? (app(KnowledgeRepository::class)->forRelease($tenant, $draft->id, true)->policy()['client_fields'] ?? []) : [];
+            $editor = ['version' => $draft?->version, 'fields' => is_array($draftFields) ? $draftFields : []];
             try {
                 $snapshot = app(KnowledgeRepository::class)->published($tenant);
                 $policy = $snapshot->policy();
@@ -131,9 +138,9 @@ final class PolicySettingsController
                         'value_kind' => is_array($initialSlots[$slot] ?? null) ? 'list' : 'text'];
                 }
 
-                return ['available' => true, 'fields' => $rows, 'canRequest' => Gate::allows('seller.settings.write')];
+                return ['available' => true, 'fields' => $rows, 'editor' => $editor, 'canRequest' => Gate::allows('seller.settings.write')];
             } catch (KnowledgeNotReady) {
-                return ['available' => false, 'fields' => [], 'canRequest' => Gate::allows('seller.settings.write')];
+                return ['available' => false, 'fields' => [], 'editor' => $editor, 'canRequest' => Gate::allows('seller.settings.write')];
             }
         });
 
