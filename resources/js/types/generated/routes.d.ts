@@ -539,6 +539,16 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "seller.dialogs.tasks.complete": [
+        {
+            "name": "dialog",
+            "required": true
+        },
+        {
+            "name": "task",
+            "required": true
+        }
+    ],
     "seller.dialogs.transfer": [
         {
             "name": "dialog",

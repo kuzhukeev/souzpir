@@ -88,7 +88,7 @@ final class DialogsController
 
     public function mode(Request $request, string $dialog): RedirectResponse
     {
-        $input = $request->validate(['action' => ['required', Rule::in(['take', 'return'])]]);
+        $input = $request->validate(['action' => ['required', Rule::in(['take', 'return', 'close'])]]);
         app(ProfileAccess::class)->run($request, function (User $actor, TenantContext $context, $brand, Membership $member) use ($dialog, $input): void {
             Gate::forUser($actor)->authorize('seller.dialogues.operate');
             abort_unless(app(SellerModuleAccess::class)->enabled($context->organizationId, $context->brandId), 404);
@@ -97,6 +97,19 @@ final class DialogsController
             $manager = $member->role === 'member' && ($member->settings['sales_manager'] ?? false);
             if ($manager && $row->assigned_user_id !== $actor->id && ! ($row->mode === 'manager' && $row->assigned_user_id === null)) {
                 abort(404);
+            }
+            if (in_array($row->stage, ['done', 'lost', 'spam'], true)) {
+                throw ValidationException::withMessages(['action' => 'Диалог уже закрыт.']);
+            }
+            if ($input['action'] === 'close') {
+                $state = json_decode($row->state ?: '{}', true, flags: JSON_THROW_ON_ERROR);
+                $state['stage'] = 'done';
+                DB::table('conversations')->where('id', $row->id)->update(['stage' => 'done', 'mode' => 'paused',
+                    'state' => json_encode($state, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE), 'version' => $row->version + 1, 'updated_at' => now()]);
+                app(AuditWriter::class)->record($context, new AuditEntry('seller.dialog.closed', 'conversation', $row->id,
+                    before: ['stage' => $row->stage, 'mode' => $row->mode], after: ['stage' => 'done', 'mode' => 'paused']));
+
+                return;
             }
             if ($input['action'] === 'take') {
                 if ($row->mode === 'manager' && $row->assigned_user_id !== null && $row->assigned_user_id !== $actor->id) {
