@@ -5,7 +5,7 @@ import { Errors, Notice } from '@/features/Shell/Profile/shared';
 import { useFeedback, useProfileText } from '@/features/Shell/Profile/hooks';
 import type { NotificationTimingDraft } from '@/types/Shell/Profile';
 
-export function NotificationTimingForm({ draft, revision }: { draft: NotificationTimingDraft; revision: string }) {
+export function NotificationTimingForm({ draft, revision, active = false }: { draft: NotificationTimingDraft; revision: string; active?: boolean }) {
   const t = useProfileText();
   const feedback = useFeedback();
   const [transport, setTransport] = useState('');
@@ -18,14 +18,14 @@ export function NotificationTimingForm({ draft, revision }: { draft: Notificatio
     form.put('/profile/notifications/timing', {
       preserveScroll: true,
       headers: { 'X-Brand-Revision': revision },
-      onSuccess: () => feedback.setNotice(t('timing_draft_saved')),
+      onSuccess: () => feedback.setNotice(active ? 'Настройки сохранены для тестовой доставки.' : t('timing_draft_saved')),
       onNetworkError: failed,
       onHttpException: failed,
     });
   };
   return (
     <form onSubmit={save} className="mt-4 space-y-4">
-      <p className="text-sm leading-6 text-(--color-ink-muted)">{t('timing_draft_help')}</p>
+      <p className="text-sm leading-6 text-(--color-ink-muted)">{active ? 'Тихие часы и сводка применяются к тестовой доставке email и Telegram.' : t('timing_draft_help')}</p>
       {feedback.notice && <Notice>{feedback.notice}</Notice>}
       <Errors errors={form.errors} transport={transport} />
       <div className="grid gap-4 sm:grid-cols-2">
@@ -37,7 +37,7 @@ export function NotificationTimingForm({ draft, revision }: { draft: Notificatio
         Сводка вместо каждого события: раз в день
       </label>
       <TimePicker label={t('digest_time')} value={form.data.digest_time ?? ''} onChange={(event) => form.setData('digest_time', event.target.value || null)} error={form.errors.digest_time} />
-      <Button type="submit" variant="secondary" className="cursor-pointer" loading={form.processing} disabled={!form.isDirty}>{t('timing_draft_save')}</Button>
+      <Button type="submit" variant="secondary" className="cursor-pointer" loading={form.processing} disabled={!form.isDirty}>{active ? 'Сохранить настройки' : t('timing_draft_save')}</Button>
     </form>
   );
 }
