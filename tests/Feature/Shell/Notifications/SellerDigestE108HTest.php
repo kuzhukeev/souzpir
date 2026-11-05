@@ -7,6 +7,7 @@ use App\Seller\Settings\Limits\SellerNotificationRouter;
 use App\Shell\Notifications\ConfigureNotification;
 use App\Shell\Notifications\Contracts\NotificationDispatcher;
 use App\Shell\Notifications\DomainEvent;
+use App\Shell\Notifications\FakeTimedDelivery;
 use App\Shell\Notifications\FakeTimingTransport;
 use App\Shell\Notifications\NotificationProcessor;
 use App\Tenancy\TenantContext;
@@ -55,17 +56,18 @@ final class SellerDigestE108HTest extends LimitsTestCase
             app(NotificationProcessor::class)->process($event->envelope['event_id']);
             self::assertSame('immediate', DB::transaction(fn () => app(SellerNotificationRouter::class)->route($event, $membership, 'cabinet')));
         }
-        self::assertSame('09:00', CarbonImmutable::parse(DB::table('seller_digest_items')->where('brand_id', $brand->id)->value('due_at'))->utc()->format('H:i'));
+        self::assertSame(1, DB::table('notification_deliveries')->where('brand_id', $brand->id)->where('channel', 'email')->count());
         self::assertSame('08:00', CarbonImmutable::parse(DB::table('seller_digest_items')->where('brand_id', $other->id)->value('due_at'))->utc()->format('H:i'));
         $transport = $this->mock(FakeTimingTransport::class);
         $transport->shouldReceive('send')->once()->withArgs(fn ($o, $b, $u, $c, $titles) => $b === $other->id && count($titles) === 1);
         $this->travelTo(CarbonImmutable::parse('2026-11-05 09:00 UTC'));
         app(DigestService::class)->run();
-        self::assertSame('pending', DB::table('seller_digest_batches')->where('brand_id', $brand->id)->value('status'));
+        app(FakeTimedDelivery::class)->drain();
+        self::assertSame('pending', DB::table('notification_deliveries')->where('brand_id', $brand->id)->where('channel', 'email')->value('status'));
         $transport->shouldReceive('send')->once()->withArgs(fn ($o, $b, $u, $c, $titles) => $b === $brand->id && count($titles) === 1);
         $this->travelTo(CarbonImmutable::parse('2026-11-05 10:00 UTC'));
-        app(DigestService::class)->run();
-        self::assertSame('sent', DB::table('seller_digest_batches')->where('brand_id', $brand->id)->value('status'));
+        app(FakeTimedDelivery::class)->drain();
+        self::assertSame('sent', DB::table('notification_deliveries')->where('brand_id', $brand->id)->where('channel', 'email')->value('status'));
         Mail::assertNothingSent();
         Http::assertNothingSent();
     }

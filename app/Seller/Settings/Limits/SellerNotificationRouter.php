@@ -54,6 +54,10 @@ final class SellerNotificationRouter implements NotificationRouter
         if (! config('features.E6-07.defaults.digest_enabled', false)) {
             throw new NotificationDeferred('digest_disabled');
         }
+        // Personal fake digests share the shell delivery queue with other modules.
+        if ($this->usesPersonalFakeDigest($e, $member, $channel)) {
+            return 'immediate';
+        }
         $timezone = DB::table('brands')->where('organization_id', $e['organization_id'])->where('id', $e['brand_id'])->where('status', 'active')->value('timezone');
         if (! is_string($timezone)) {
             return 'skip';
@@ -136,8 +140,15 @@ final class SellerNotificationRouter implements NotificationRouter
             }
             $rule = DB::table('seller_notification_rules')->where(['organization_id' => $e['organization_id'], 'brand_id' => $e['brand_id'], 'event_key' => $e['type']])->first();
 
-            return ! $rule || ((bool) $rule->{$channel} && ($rule->timing === 'immediate' || ($channel === 'cabinet' && config('runtime.notification_driver') === 'fake')) && $this->matches($fresh, $rule->recipient));
+            return ! $rule || ((bool) $rule->{$channel} && ($rule->timing === 'immediate' || ($channel === 'cabinet' && config('runtime.notification_driver') === 'fake') || ($rule->timing === 'digest' && config('features.E6-07.defaults.digest_enabled', false) && $this->usesPersonalFakeDigest($e, $fresh, $channel))) && $this->matches($fresh, $rule->recipient));
         });
+    }
+
+    private function usesPersonalFakeDigest(array $event, Membership $member, string $channel): bool
+    {
+        return config('runtime.notification_driver') === 'fake'
+            && in_array($channel, ['email', 'telegram'], true)
+            && DB::table('profile_notification_timing_drafts')->where(['organization_id' => $event['organization_id'], 'brand_id' => $event['brand_id'], 'user_id' => $member->user_id])->whereNotNull('digest_time')->exists();
     }
 
     /** Caller holds a transaction; organization lock serializes module and tenant changes. */
