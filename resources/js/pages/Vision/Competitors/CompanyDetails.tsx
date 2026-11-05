@@ -10,6 +10,7 @@ export type CompanyDetail = {
   models?: string[];
   intents?: string[];
   sources?: string[];
+  source_ranking?: {domain: string; answers: number}[];
   quotes?: { text: string; provider: string }[];
   question_count?: number;
   question_total?: number;
@@ -202,7 +203,8 @@ export default function CompanyDetails({
       ) : (
         <p>Подтверждённые цитаты пока недоступны.</p>
       )}
-      <p>Источники: {company.sources?.join(', ') || 'Нет данных'}</p>
+      <h3 className="font-semibold">Источники</h3>
+      {company.source_ranking?.length ? <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr><th className="p-2">Источник</th><th className="p-2">Ответов</th></tr></thead><tbody>{company.source_ranking.map(source => <tr key={source.domain} className="border-t border-(--color-border)"><td className="p-2">{source.domain}</td><td className="p-2">{source.answers}</td></tr>)}</tbody></table></div> : <p>Нет данных об источниках.</p>}
     </div>
   );
 }

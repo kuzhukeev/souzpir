@@ -17,6 +17,8 @@ final class Trends
         $rows = DB::table('vision_reports')->where('organization_id', $tenant->organizationId)
             ->where('brand_id', $tenant->brandId)->whereIn('measurement_id', $confirmed)
             ->orderByDesc('created_at')->orderByDesc('revision')->get(['id', 'measurement_id', 'created_at']);
+        $tracked = DB::table('vision_competitor_tracking')->where('organization_id', $tenant->organizationId)
+            ->where('brand_id', $tenant->brandId)->orderBy('created_at')->orderBy('id')->limit(5)->pluck('name')->all();
         $seen = [];
         $result = [];
         foreach ($rows as $row) {
@@ -24,7 +26,7 @@ final class Trends
                 continue;
             }
             $seen[$row->measurement_id] = true;
-            $result[] = $this->project(app(VisionReportReader::class)->read($row->id), $row->id, (string) $row->created_at);
+            $result[] = $this->project(app(VisionReportReader::class)->read($row->id), $row->id, (string) $row->created_at, $tracked);
             if (count($result) === 20) {
                 break;
             }
@@ -55,7 +57,7 @@ final class Trends
         return $result;
     }
 
-    public function project(array $snapshot, string $id, string $date): array
+    public function project(array $snapshot, string $id, string $date, array $tracked = []): array
     {
         $metrics = $snapshot['metrics'] ?? [];
 
@@ -67,7 +69,7 @@ final class Trends
                 'visibility' => $row['mention_rate'] ?? null, 'position' => $row['position_average'] ?? null,
             ])->all(),
             'intents' => collect($metrics['intents'] ?? [])->map(fn ($row) => $row['mention_rate'] ?? null)->all(),
-            'entities' => collect($metrics['entities'] ?? [])->mapWithKeys(fn ($row) => [($row['name'] ?? '') => $row['share_of_voice'] ?? null])->all(),
+            'entities' => collect($metrics['entities'] ?? [])->filter(fn ($row) => ! ($row['is_brand'] ?? false) && in_array($row['name'] ?? null, array_slice($tracked, 0, 5), true))->mapWithKeys(fn ($row) => [($row['name'] ?? '') => $row['share_of_voice'] ?? null])->all(),
         ];
     }
 }
