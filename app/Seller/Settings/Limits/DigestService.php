@@ -41,7 +41,7 @@ final class DigestService
         if (! $snapshot || $snapshot->status !== 'pending') {
             return;
         }
-        if ($snapshot->channel !== 'cabinet' && ! config('features.E0-04.defaults.external_delivery', false)) {
+        if ($snapshot->channel !== 'cabinet' && (! config('features.E0-04.defaults.external_delivery', false) || config('runtime.notification_driver') === 'fake')) {
             return;
         }
         if ($snapshot->channel !== 'cabinet' && DB::transactionLevel() !== 0) {
@@ -147,7 +147,7 @@ final class DigestService
         if (config('features.E6-07.defaults.digest_enabled', false)) {
             $this->assemble();
             $batches = DB::table('seller_digest_batches')->where('status', 'pending')->orderBy('due_at');
-            if (! config('features.E0-04.defaults.external_delivery', false)) {
+            if (! config('features.E0-04.defaults.external_delivery', false) || config('runtime.notification_driver') === 'fake') {
                 $batches->where('channel', 'cabinet');
             }
             foreach ($batches->limit(100)->pluck('id') as $id) {
@@ -155,7 +155,7 @@ final class DigestService
             }
         }
         $tests = DB::table('seller_test_deliveries')->where('status', 'pending')->orderBy('created_at');
-        if (! config('features.E0-04.defaults.external_delivery', false)) {
+        if (! config('features.E0-04.defaults.external_delivery', false) || config('runtime.notification_driver') === 'fake') {
             $tests->where('channel', 'cabinet');
         }
         foreach ($tests->limit(100)->pluck('id') as $id) {

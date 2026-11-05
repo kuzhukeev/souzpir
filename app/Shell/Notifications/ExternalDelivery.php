@@ -16,7 +16,7 @@ final class ExternalDelivery
 {
     public function send(string $id): void
     {
-        if (! config('features.E0-04.defaults.external_delivery')) {
+        if (! config('features.E0-04.defaults.external_delivery') || config('runtime.notification_driver') === 'fake') {
             return;
         }
         $claimed = DB::table('notification_deliveries')->where('id', $id)->whereIn('status', ['pending', 'failed'])
