@@ -13,5 +13,5 @@ test('module counts and retention message', async ({ page }) => {
  await mkdir('.local/screenshots/SP-E1-04E', { recursive: true });
  await page.screenshot({ path: '.local/screenshots/SP-E1-04E/modules.png', fullPage: true });
  await page.getByRole('switch', { name: 'Отключить Видение' }).click();
- await expect(page.getByText(/срок хранения уточняется/)).toBeVisible();
+ await expect(page.getByText(/Срок хранения не менее 90 дней пока не подтверждён/)).toBeVisible();
 });
