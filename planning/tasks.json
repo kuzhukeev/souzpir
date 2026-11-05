@@ -17358,6 +17358,43 @@
         "SP-E6-03O"
       ],
       "notes": "Остаток частичной сдачи SP-E6-03O."
+    },
+    {
+      "taskKey": "SP-E4-04F",
+      "title": "SP-E4-04F · Темы: неизвестные вопросы в runtime",
+      "goal": "Подключить log_unknown_question и задачу unknown_question через общий диспетчер, стадии последующих ходов и guard-fallback; проверить аналитику и задачи end-to-end на изолированной тестовой БД. Не менять общие AI-стадии без решения владельца.",
+      "dependsOn": [
+        "SP-E4-04E"
+      ],
+      "scope": [
+        "app/Seller/Knowledge/Topics/",
+        "app/Seller/Runtime/",
+        "app/Seller/Engine/",
+        "resources/js/pages/Seller/Knowledge/Topics/",
+        "tests/Feature/Seller/Knowledge/Topics/",
+        "tests/Feature/Seller/Runtime/",
+        "tests/Browser/E4-04F/",
+        "docs/results/SP-E4-04F.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Сценарий, права, бренд и ошибки; только fake внешние вызовы."
+      ],
+      "sourceIds": [
+        "SP-E4-04E"
+      ],
+      "screenIds": [
+        "D-4.6",
+        "D-4.7"
+      ],
+      "notes": "Остаток частичной сдачи SP-E4-04E.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E4-04F.md",
+      "wave": 18,
+      "description": "# SP-E4-04F · Темы: неизвестные вопросы в runtime\n\n**Зачем:** завершить экран тем знаний по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E4-04E, docs/results/SP-E4-04E.md.\n**Зависимости:** SP-E4-04E в done.\n\nПодключить log_unknown_question и задачу unknown_question через общий диспетчер, стадии последующих ходов и guard-fallback; проверить аналитику и задачи end-to-end на изолированной тестовой БД. Не менять общие AI-стадии без решения владельца.\n\nScope: `app/Seller/Knowledge/Topics/`, `app/Seller/Runtime/`, `app/Seller/Engine/`, `resources/js/pages/Seller/Knowledge/Topics/`, `tests/Feature/Seller/Knowledge/Topics/`, `tests/Feature/Seller/Runtime/`, `tests/Browser/E4-04F/`, `docs/results/SP-E4-04F.md`.\n\nПриёмка: сценарий, права, бренд, ошибки; только fake вызовы. Остаток записать в docs/results/SP-E4-04F.md.\n"
     }
   ],
   "excludedSourceTasks": {
