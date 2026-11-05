@@ -20369,6 +20369,75 @@
       "promptPath": "docs/tasks/SP-E7-04M.md",
       "wave": 20,
       "description": "# SP-E7-04M · Источники обращений и переходы\n\n**Зачем:** завершить экран по принятому результату.\n**Часть чего:** остаток SP-E7-04F, docs/results/SP-E7-04F.md.\n**Зависимости:** SP-E7-04F.\n\n## Приёмка\n- Записать переходы стадий во всех защищённых путях и действиях менеджера; сохранять источники, UTM и адреса страниц при приёме обращений и показывать в D-8.4, сверив макеты.\n- Проверить права, изоляцию брендов, ошибки и состояния; незавершённое указать в «Остаток». Без живых и платных вызовов.\n\nScope: `app/Seller/Analytics/`, `app/Seller/Runtime/`, `app/Seller/Channels/`, `app/ProtectedOperations/`, `resources/js/pages/Seller/Analytics/`, `tests/Feature/Seller/Analytics/`, `tests/Browser/E7-04M/`, `docs/results/SP-E7-04M.md`.\n"
+    },
+    {
+      "taskKey": "SP-E8-20S",
+      "title": "SP-E8-20S · Позиции в карточке конкурента",
+      "goal": "Передать подтверждённые агрегаты средней позиции и числа подтверждений в карточку конкурента; определить безопасный пересчёт старых снимков из подтверждённых ответов и сопоставление провайдеров с моделями, неизвестные значения не выдумывать.",
+      "dependsOn": [
+        "SP-E8-20R"
+      ],
+      "scope": [
+        "app/Vision/Competitors/",
+        "app/Vision/Core/",
+        "resources/js/pages/Vision/Competitors/",
+        "tests/Feature/Vision/Competitors/",
+        "tests/Browser/E8-20S/",
+        "docs/results/SP-E8-20S.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Передать подтверждённые агрегаты средней позиции и числа подтверждений в карточку конкурента; определить безопасный пересчёт старых снимков из подтверждённых ответов и сопоставление провайдеров с моделями, неизвестные значения не выдумывать."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "V-6.2",
+        "V-6.4"
+      ],
+      "notes": "Остаток SP-E8-20R.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md",
+        "docs/results/SP-E8-20R.md"
+      ],
+      "promptPath": "docs/tasks/SP-E8-20S.md",
+      "wave": 20,
+      "description": "# SP-E8-20S · Позиции в карточке конкурента\n\n**Зачем:** завершить экран по принятому результату.\n**Часть чего:** остаток SP-E8-20R, docs/results/SP-E8-20R.md.\n**Зависимости:** SP-E8-20R.\n\n## Приёмка\n- Передать подтверждённые агрегаты средней позиции и числа подтверждений в карточку конкурента; определить безопасный пересчёт старых снимков из подтверждённых ответов и сопоставление провайдеров с моделями, неизвестные значения не выдумывать.\n- Проверить права, изоляцию брендов, ошибки и состояния; незавершённое указать в «Остаток».\n\nScope: `app/Vision/Competitors/`, `app/Vision/Core/`, `resources/js/pages/Vision/Competitors/`, `tests/Feature/Vision/Competitors/`, `tests/Browser/E8-20S/`, `docs/results/SP-E8-20S.md`.\n"
+    },
+    {
+      "taskKey": "SP-E7-04N",
+      "title": "SP-E7-04N · Остаток аналитики и выгрузок",
+      "goal": "Завершить пункты экранов аналитики: точное время до контакта только по подтверждённому событию, серверный PDF, отправку и подписки только через согласованные локальные порты; сверить все пункты с макетами и работающими источниками, без живых платных вызовов.",
+      "dependsOn": [
+        "SP-E7-04H"
+      ],
+      "scope": [
+        "app/Seller/Analytics/",
+        "resources/js/pages/Seller/Analytics/",
+        "tests/Feature/Seller/Analytics/",
+        "tests/Browser/E7-04N/",
+        "docs/results/SP-E7-04N.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Завершить пункты экранов аналитики: точное время до контакта только по подтверждённому событию, серверный PDF, отправку и подписки только через согласованные локальные порты; сверить все пункты с макетами и работающими источниками, без живых платных вызовов."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "D-8.1",
+        "D-8.2",
+        "D-8.3",
+        "D-8.6"
+      ],
+      "notes": "Остаток SP-E7-04H.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md",
+        "docs/results/SP-E7-04H.md"
+      ],
+      "promptPath": "docs/tasks/SP-E7-04N.md",
+      "wave": 20,
+      "description": "# SP-E7-04N · Остаток аналитики и выгрузок\n\n**Зачем:** завершить экран по принятому результату.\n**Часть чего:** остаток SP-E7-04H, docs/results/SP-E7-04H.md.\n**Зависимости:** SP-E7-04H.\n\n## Приёмка\n- Завершить пункты экранов аналитики: точное время до контакта только по подтверждённому событию, серверный PDF, отправку и подписки только через согласованные локальные порты; сверить все пункты с макетами и работающими источниками, без живых платных вызовов.\n- Проверить права, изоляцию брендов, ошибки и состояния; незавершённое указать в «Остаток».\n\nScope: `app/Seller/Analytics/`, `resources/js/pages/Seller/Analytics/`, `tests/Feature/Seller/Analytics/`, `tests/Browser/E7-04N/`, `docs/results/SP-E7-04N.md`.\n"
     }
   ],
   "excludedSourceTasks": {
