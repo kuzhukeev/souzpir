@@ -622,6 +622,7 @@ declare module 'ziggy-js' {
     "seller.settings.greetings.update": [],
     "seller.settings.policy.index": [],
     "seller.scenario.fields": [],
+    "seller.scenario.fields.request": [],
     "seller.settings.slot-order.save": [],
     "seller.settings.off-topic.save": [],
     "seller.settings.followups.update": [],
