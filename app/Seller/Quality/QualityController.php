@@ -84,9 +84,22 @@ final class QualityController
     {
         [$year, $month, $date] = array_map('intval', explode('-', $day));
         abort_unless(checkdate($month, $date, $year), 404);
-        [$rows, $reports] = $this->access($request, fn (TenantContext $tenant) => [$this->rows($tenant)->where('day', $day)->values(), $this->reports($tenant)->where('day', $day)->values()]);
+        [$rows, $reports, $summary] = $this->access($request, function (TenantContext $tenant) use ($day): array {
+            $rows = $this->rows($tenant)->where('day', $day)->values();
+            $ids = $rows->where('source', 'dialogue')->pluck('conversation_id')->filter()->unique()->values()->all();
+            $scope = ['organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId];
+            $outcomes = DB::table('conversations')->where($scope)->whereIn('id', $ids)->pluck('outcome');
+            $timezone = DB::table('brands')->where('organization_id', $tenant->organizationId)->where('id', $tenant->brandId)->value('timezone') ?: 'UTC';
+            $start = CarbonImmutable::parse($day, $timezone)->startOfDay();
+            $turns = DB::table('seller_turns')->where($scope)->whereIn('conversation_id', $ids)->where('status', 'completed')->where('created_at', '>=', $start->utc())->where('created_at', '<', $start->addDay()->utc())->count();
 
-        return Inertia::render('Seller/Quality/Day', ['day' => $day, 'evaluations' => $rows, 'reports' => $reports]);
+            return [$rows, $this->reports($tenant)->where('day', $day)->values(), ['dialogs' => count($ids), 'turns' => $turns,
+                'contact' => $outcomes->filter(fn ($outcome) => in_array($outcome, ['full_contact', 'partial_contact'], true))->count(),
+                'handoff' => $outcomes->filter(fn ($outcome) => $outcome === 'handoff')->count(),
+                'other' => $outcomes->filter(fn ($outcome) => ! in_array($outcome, ['full_contact', 'partial_contact', 'handoff'], true))->count()]];
+        });
+
+        return Inertia::render('Seller/Quality/Day', ['day' => $day, 'evaluations' => $rows, 'reports' => $reports, 'summary' => $summary]);
     }
 
     public function collectToday(Request $request): mixed

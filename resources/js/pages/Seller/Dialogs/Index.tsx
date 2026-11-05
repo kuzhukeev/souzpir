@@ -1,4 +1,4 @@
-import { Head, router, usePage } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import CabinetLayout from '@/layouts/CabinetLayout';
 import { Avatar } from '@/components/ui';
@@ -7,7 +7,7 @@ import TemplatesEditor from './TemplatesEditor';
 type Item = { id: string; name: string; mode: string; stage: string; outcome: string | null; channel: string; last_message: string | null; updated_at: string; assigned_user_id: string | null; waiting_minutes?: number | null; review_count?: number };
 type Message = { id: string; role: string; text: string; created_at: string; attachment_name?: string | null; meta: Record<string, string | null> };
 type Detail = Item & { summary: string | null; email: string | null; phone: string | null; slots: { key: string; label: string; value: string | null }[]; transfers?: { name: string; created_at: string }[]; messages: Message[]; tasks: { id: string; type: string; status: string; due_at: string | null; text?: string | null }[] };
-type Props = { readySuggestion?: string | null; messageTemplates?: {name: string; text: string}[]; transferOptions?: {id: string; name: string}[]; dialogs: Item[]; dialog: Detail | null; mineCounts?: { waiting: number; active: number; closed_today: number }; managerOptions?: {id: string; name: string}[]; pagination?: {page: number; pages: number; total: number}; filters: { mode: string; search: string; sort?: string; channel?: string; stage?: string; manager?: string; outcome?: string; period?: string; reviewed?: string; page?: number }; loadError?: boolean };
+type Props = { evaluationId?: string | null; readySuggestion?: string | null; messageTemplates?: {name: string; text: string}[]; transferOptions?: {id: string; name: string}[]; dialogs: Item[]; dialog: Detail | null; mineCounts?: { waiting: number; active: number; closed_today: number }; managerOptions?: {id: string; name: string}[]; pagination?: {page: number; pages: number; total: number}; filters: { mode: string; search: string; sort?: string; channel?: string; stage?: string; manager?: string; outcome?: string; period?: string; reviewed?: string; page?: number }; loadError?: boolean };
 
 const modeNames: Record<string, string> = { all: 'Все', mine: 'Мои диалоги', bot: 'У бота', suggest: 'Подсказки', manager: 'У менеджера', paused: 'Приостановлены', waiting: 'Ждут менеджера', closed: 'Закрытые' };
 const channelNames: Record<string, string> = { telegram: 'Telegram', widget: 'Виджет', api: 'API', email: 'Почта', whatsapp: 'WhatsApp' };
@@ -16,7 +16,7 @@ const roleNames: Record<string, string> = { client: 'Клиент', agent: 'Бо
 const metaNames: Record<string, string> = { intent: 'Тема', goal: 'Цель', tools: 'Действия', guard: 'Guard', model: 'Модель' };
 const date = (value: string) => new Date(value).toLocaleString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 
-export default function Index({ dialogs, dialog, readySuggestion = null, messageTemplates = [{name: 'Приветствие', text: 'Здравствуйте, {имя}! Чем могу помочь?'}, {name: 'Скоро отвечу', text: 'Спасибо за обращение! Скоро вернусь с ответом.'}], transferOptions = [], mineCounts = { waiting: 0, active: 0, closed_today: 0 }, managerOptions = [], pagination = {page: 1, pages: 1, total: 0}, filters, loadError = false, minePage = false }: Props & { minePage?: boolean }) {
+export default function Index({ dialogs, dialog, evaluationId = null, readySuggestion = null, messageTemplates = [{name: 'Приветствие', text: 'Здравствуйте, {имя}! Чем могу помочь?'}, {name: 'Скоро отвечу', text: 'Спасибо за обращение! Скоро вернусь с ответом.'}], transferOptions = [], mineCounts = { waiting: 0, active: 0, closed_today: 0 }, managerOptions = [], pagination = {page: 1, pages: 1, total: 0}, filters, loadError = false, minePage = false }: Props & { minePage?: boolean }) {
   const { can, brand } = usePage<{ can: Record<string, boolean>; brand: { id: string } | null }>().props;
   const [search, setSearch] = useState(filters.search);
   const [pending, setPending] = useState(false);
@@ -43,7 +43,7 @@ export default function Index({ dialogs, dialog, readySuggestion = null, message
   }
   useEffect(() => {
     const timer = window.setInterval(() => {
-      if (document.visibilityState === 'visible') router.reload({ only: ['dialogs', 'dialog', 'mineCounts', 'pagination', 'managerOptions'] });
+      if (document.visibilityState === 'visible') router.reload({ only: ['dialogs', 'dialog', 'evaluationId', 'mineCounts', 'pagination', 'managerOptions'] });
     }, 15000);
     return () => window.clearInterval(timer);
   }, []);
@@ -112,7 +112,7 @@ export default function Index({ dialogs, dialog, readySuggestion = null, message
         {!dialog ? <div className="p-6 text-sm text-(--color-ink-muted)">Выберите диалог из списка.</div> : <>
           <header className="flex flex-wrap items-center justify-between gap-3 border-b border-(--color-border) p-4">
             <div className="min-w-0"><a href={minePage ? "/seller/dialogs/mine" : "/seller/dialogs"} className="mb-2 inline-block cursor-pointer text-sm text-(--color-action) lg:hidden">← К списку</a><h2 className="truncate text-xl font-semibold">{dialog.name}</h2><p className="mt-1 text-sm text-(--color-ink-muted)">{dialog.channel} · {dialog.stage}{dialog.outcome ? ` · ${dialog.outcome}` : ''}</p></div>
-            <div className="flex flex-wrap gap-2">{can['seller.dialogues.operate'] && <>{dialog.mode !== 'manager' || !dialog.assigned_user_id ? <button type="button" disabled={pending} onClick={() => changeMode('take')} className="cursor-pointer rounded-lg bg-(--color-action) px-3 py-2 text-sm text-white disabled:opacity-50">Забрать себе</button> : <button type="button" disabled={pending} onClick={() => changeMode('return')} className="cursor-pointer rounded-lg border border-(--color-border) px-3 py-2 text-sm disabled:opacity-50">Вернуть боту</button>}</>}<button type="button" onClick={() => setCardOpen(true)} className="cursor-pointer rounded-lg border border-(--color-border) px-3 py-2 text-sm xl:hidden">Карточка клиента</button></div>
+            <div className="flex flex-wrap gap-2">{evaluationId && <Link href={`/seller/evaluations/${evaluationId}`} className="cursor-pointer rounded-lg border border-(--color-border) px-3 py-2 text-sm">Оценка диалога</Link>}{can['seller.dialogues.operate'] && <>{dialog.mode !== 'manager' || !dialog.assigned_user_id ? <button type="button" disabled={pending} onClick={() => changeMode('take')} className="cursor-pointer rounded-lg bg-(--color-action) px-3 py-2 text-sm text-white disabled:opacity-50">Забрать себе</button> : <button type="button" disabled={pending} onClick={() => changeMode('return')} className="cursor-pointer rounded-lg border border-(--color-border) px-3 py-2 text-sm disabled:opacity-50">Вернуть боту</button>}</>}<button type="button" onClick={() => setCardOpen(true)} className="cursor-pointer rounded-lg border border-(--color-border) px-3 py-2 text-sm xl:hidden">Карточка клиента</button></div>
           </header>
           {dialog.mode === 'suggest' && can['seller.dialogues.operate'] && <section className="mx-4 mt-4 rounded-lg border border-(--color-border) p-3 text-sm" aria-label="Подсказка продавца"><h3 className="font-semibold">Подсказка продавца</h3>{readySuggestion ? <><p className="mt-2">{readySuggestion}</p><button type="button" className="mt-2 min-h-11 cursor-pointer text-(--color-link)" onClick={() => setReply(readySuggestion)}>Использовать в ответе</button><p className="text-(--color-ink-muted)">Чтобы отправить ответ, заберите диалог себе.</p></> : <p className="mt-2 text-(--color-ink-muted)">Готовой подсказки пока нет.</p>}</section>}
 {reviewSaved && <p role="status" className="px-4 pt-4 text-sm">Пометка сохранена.</p>}

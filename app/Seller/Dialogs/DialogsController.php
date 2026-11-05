@@ -55,6 +55,9 @@ final class DialogsController
             $data['readySuggestion'] = $dialog && ($data['dialog']['mode'] ?? null) === 'suggest' && Gate::forUser($actor)->allows('seller.dialogues.operate')
                 ? collect(app(ReadySuggestions::class)->read($context, $actor->id, $member))->firstWhere('conversation_id', $dialog)['suggestion'] ?? null
                 : null;
+            $data['evaluationId'] = $dialog && ($data['dialog']['id'] ?? null) === $dialog && Gate::forUser($actor)->allows('seller.knowledge.write')
+                ? DB::table('seller_evaluations')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)->where('conversation_id', $dialog)->orderByDesc('created_at')->orderByDesc('id')->value('id')
+                : null;
             $templates = app()->bound(MessageTemplates::class) ? app(MessageTemplates::class) : app(DefaultMessageTemplates::class);
             $data['messageTemplates'] = $templates->forBrand($context);
 
