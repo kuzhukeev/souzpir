@@ -2,6 +2,7 @@
 
 namespace App\Vision\Publications;
 
+use App\Tenancy\TenantContext;
 use App\Vision\Core\ReportPreparation;
 use App\Vision\Core\VisionReportReader;
 use App\Vision\Reports\SiteCriteria;
@@ -9,7 +10,7 @@ use Illuminate\Validation\ValidationException;
 
 final class PublicationData
 {
-    public function fromReport(string $reportId, ?array $siteAudit = null, ?array $confirmedActions = null): array
+    public function fromReport(string $reportId, ?array $siteAudit = null, ?array $confirmedActions = null, ?TenantContext $tenant = null, ?object $report = null): array
     {
         $source = app(VisionReportReader::class)->read($reportId);
 
@@ -45,7 +46,8 @@ final class PublicationData
         return [...$this->fromPayload($source), 'competitors' => $entities,
             'confirmed_facts' => count(array_filter($facts, fn ($item) => is_array($item) && ($item['confirmed'] ?? false) === true)),
             'reviewed_facts' => count($facts), 'actions' => $actions, 'action_question_ids' => $actionQuestionIds, 'site_readiness' => $site,
-            'site_criteria' => SiteCriteria::project($siteAudit['criteria'] ?? [])];
+            'site_criteria' => SiteCriteria::project($siteAudit['criteria'] ?? []),
+            'history' => $tenant && $report ? app(PublicMetricHistory::class)->build($tenant, $report, $source) : []];
     }
 
     public function candidatesFromPayload(array $source): array
