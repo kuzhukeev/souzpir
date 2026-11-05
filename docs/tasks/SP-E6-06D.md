@@ -22,3 +22,5 @@ Scope: `app/Seller/Settings/Schedule/`, `resources/js/pages/Seller/Settings/Sche
 - После SP-E6-06C проверить лимит активных назначений при ручном «Забрать себе» и подключить распределение к защищённой передаче при появлении такого перехода.
 
 Дополнительный scope: `app/Seller/Dialogs/`, `app/ProtectedOperations/`, `tests/Feature/Seller/Dialogs/`, `tests/Feature/ProtectedOperations/`.
+
+Сданный результат: docs/results/SP-E6-06D.md; продолжение остатка — docs/tasks/SP-E6-06E.md.

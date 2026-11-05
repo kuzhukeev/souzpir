@@ -20060,6 +20060,72 @@
       "promptPath": "docs/tasks/SP-E6-03X.md",
       "wave": 20,
       "description": "# SP-E6-03X · Цели и закрывающие поля воронки\n\n**Зачем:** завершить принятый остаток.\n**Часть чего:** SP-E6-03N, docs/results/SP-E6-03N.md.\n**Зависимости:** SP-E6-03N.\n\n## Приёмка\n- Показать цели и закрывающие поля после подтверждения источников; реализовать не более двух вопросов подряд после согласования контракта и runtime; проверить состояния загрузки и ошибки полного экрана. Неподтверждённые значения не выдумывать.\n- Проверить сценарий, ошибки, права и изоляцию брендов; без платных и живых вызовов.\n- Незавершённое указать в «Остатке».\n\nScope: `app/Seller/Settings/Policy/`, `resources/js/pages/Seller/Settings/Policy/`, `tests/Feature/Seller/Settings/Policy/`, `tests/Browser/E6-03X/`, `docs/results/SP-E6-03X.md`.\n"
+    },
+    {
+      "taskKey": "SP-E4-01Z",
+      "title": "SP-E4-01Z · Откат и показатели истории знаний",
+      "goal": "Выровнять repository rollback и поведение экрана; показатели диалогов и качества, автор и время строк diff показывать только при подтверждённых источниках.",
+      "dependsOn": [
+        "SP-E4-01Y"
+      ],
+      "scope": [
+        "app/Seller/Knowledge/",
+        "resources/js/pages/Seller/Knowledge/Releases/",
+        "tests/Feature/Seller/Knowledge/",
+        "tests/Browser/E4-01Z/",
+        "docs/results/SP-E4-01Z.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Выровнять repository rollback и поведение экрана; показатели диалогов и качества, автор и время строк diff показывать только при подтверждённых источниках."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "D-4.12"
+      ],
+      "notes": "Остаток SP-E4-01Y.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md",
+        "docs/results/SP-E4-01Y.md"
+      ],
+      "promptPath": "docs/tasks/SP-E4-01Z.md",
+      "wave": 20,
+      "description": "# SP-E4-01Z · Откат и показатели истории знаний\n\n**Зачем:** завершить экран по принятому результату.\n**Часть чего:** остаток SP-E4-01Y, docs/results/SP-E4-01Y.md.\n**Зависимости:** SP-E4-01Y.\n\n## Приёмка\n- Выровнять repository rollback и поведение экрана; показатели диалогов и качества, автор и время строк diff показывать только при подтверждённых источниках.\n- Проверить права, изоляцию брендов, ошибки и состояния; незавершённое записать в «Остаток».\n\nScope: `app/Seller/Knowledge/`, `resources/js/pages/Seller/Knowledge/Releases/`, `tests/Feature/Seller/Knowledge/`, `tests/Browser/E4-01Z/`, `docs/results/SP-E4-01Z.md`.\n"
+    },
+    {
+      "taskKey": "SP-E6-06E",
+      "title": "SP-E6-06E · Завершение расписания и распределения",
+      "goal": "Завершить распределение по городу, каналу и источнику, рабочие часы и каналы менеджеров, таймер уведомления, отправку фразы вне часов и защищённую передачу; сверить макет и состояния загрузки/ошибки. Без живых отправок.",
+      "dependsOn": [
+        "SP-E6-06D"
+      ],
+      "scope": [
+        "app/Seller/Settings/Schedule/",
+        "app/Seller/Conversations/",
+        "resources/js/pages/Seller/Settings/Schedule/",
+        "tests/Feature/Seller/",
+        "tests/Browser/E6-06E/",
+        "docs/results/SP-E6-06E.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Завершить распределение по городу, каналу и источнику, рабочие часы и каналы менеджеров, таймер уведомления, отправку фразы вне часов и защищённую передачу; сверить макет и состояния загрузки/ошибки. Без живых отправок."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "D-11.1",
+        "D-11.2"
+      ],
+      "notes": "Остаток SP-E6-06D.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md",
+        "docs/results/SP-E6-06D.md"
+      ],
+      "promptPath": "docs/tasks/SP-E6-06E.md",
+      "wave": 20,
+      "description": "# SP-E6-06E · Завершение расписания и распределения\n\n**Зачем:** завершить экран по принятому результату.\n**Часть чего:** остаток SP-E6-06D, docs/results/SP-E6-06D.md.\n**Зависимости:** SP-E6-06D.\n\n## Приёмка\n- Завершить распределение по городу, каналу и источнику, рабочие часы и каналы менеджеров, таймер уведомления, отправку фразы вне часов и защищённую передачу; сверить макет и состояния загрузки/ошибки. Без живых отправок.\n- Проверить права, изоляцию брендов, ошибки и состояния; незавершённое записать в «Остаток».\n\nScope: `app/Seller/Settings/Schedule/`, `app/Seller/Conversations/`, `resources/js/pages/Seller/Settings/Schedule/`, `tests/Feature/Seller/`, `tests/Browser/E6-06E/`, `docs/results/SP-E6-06E.md`.\n"
     }
   ],
   "excludedSourceTasks": {
