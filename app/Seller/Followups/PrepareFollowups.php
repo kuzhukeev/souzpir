@@ -19,7 +19,7 @@ final class PrepareFollowups implements ShouldQueue
 
     public function handle(FollowupPolicy $policy): void
     {
-        $brand = DB::table('brands')->where('id', $this->brandId)->where('organization_id', $this->organizationId)->where('status', 'active')->first(['id', 'timezone']);
+        $brand = DB::table('brands')->where('id', $this->brandId)->where('organization_id', $this->organizationId)->where('status', 'active')->first(['id', 'name', 'timezone']);
         if (! $brand || ! app(SellerModuleAccess::class)->enabled($this->organizationId, $this->brandId)) {
             return;
         }
@@ -30,16 +30,24 @@ final class PrepareFollowups implements ShouldQueue
             return;
         }
         $texts = array_values(array_filter($settings['texts'] ?? [], fn ($value) => is_string($value) && trim($value) !== ''));
-        if (! $texts) {
+        $personaName = '';
+        if (! $texts || ! is_string($settings['agreed_text'] ?? null) || trim($settings['agreed_text']) === '') {
             try {
                 $knowledge = app(KnowledgeRepository::class)->published(new TenantContext($this->organizationId, $this->brandId, source: 'job'));
-                $texts = collect(data_get($knowledge->all('fewshot'), 'examples', []))->where('tag', 'followup_nudge')->pluck('text')->filter(fn ($value) => is_string($value) && trim($value) !== '')->values()->all();
+                $personaName = trim((string) ($knowledge->persona()['name'] ?? ''));
+                if (! $texts) {
+                    $texts = collect(data_get($knowledge->all('fewshot'), 'examples', []))->where('tag', 'followup_nudge')->pluck('text')->filter(fn ($value) => is_string($value) && trim($value) !== '')->values()->all();
+                }
             } catch (\Throwable) {
                 // The prototype has a fallback if there are no suitable examples.
             }
         }
+        $brandName = trim((string) ($brand->name ?? ''));
+        $introduction = $personaName !== '' && $brandName !== ''
+            ? 'Это '.$personaName.' из «'.$brandName.'». '
+            : ($brandName !== '' ? 'Пишем от «'.$brandName.'». ' : '');
         if (! $texts) {
-            $texts = ['Добрый день. Это Антон из «Союз Пир», на связи по вашей заявке. Если актуально — продолжим, если нет — просто напишите, я не буду беспокоить.'];
+            $texts = ['Добрый день. '.$introduction.'На связи по вашей заявке. Если актуально — продолжим, если нет — просто напишите, я не буду беспокоить.'];
         }
         $now = CarbonImmutable::now();
         $conversations = DB::table('conversations')->where('organization_id', $this->organizationId)->where('brand_id', $this->brandId)->whereNotNull('last_client_message_at')->get();
@@ -55,7 +63,7 @@ final class PrepareFollowups implements ShouldQueue
                 continue;
             }
             $text = $due['reason'] === 'next_contact_at'
-                ? (is_string($settings['agreed_text'] ?? null) && trim($settings['agreed_text']) !== '' ? $settings['agreed_text'] : 'Добрый день. Это Антон из «Союз Пир», договаривались списаться. Успели посмотреть прайс? Если есть вопросы по позициям или условиям — отвечу.')
+                ? (is_string($settings['agreed_text'] ?? null) && trim($settings['agreed_text']) !== '' ? $settings['agreed_text'] : 'Добрый день. '.$introduction.'Договаривались списаться. Успели посмотреть прайс? Если есть вопросы по позициям или условиям — отвечу.')
                 : $texts[($due['sequence'] - 1) % count($texts)];
             DB::table('seller_followup_candidates')->insertOrIgnore(['id' => (string) Str::ulid(), 'organization_id' => $this->organizationId,
                 'brand_id' => $this->brandId, 'conversation_id' => $conversation->id, 'reason' => $due['reason'], 'source_at' => $due['source_at'],
