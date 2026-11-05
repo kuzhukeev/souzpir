@@ -7,6 +7,8 @@ use App\Models\User;
 use App\Seller\Dialogs\DialogReader;
 use App\Seller\Knowledge\Contracts\KnowledgeRepository;
 use App\Seller\Settings\Limits\SellerModuleAccess;
+use App\Shell\Audit\AuditEntry;
+use App\Shell\Audit\Contracts\AuditWriter;
 use App\Shell\Profile\ProfileAccess;
 use App\Tenancy\TenantContext;
 use Illuminate\Http\Request;
@@ -72,7 +74,12 @@ final class FewshotController
                 $fewshot[$destination][] = $item;
             }
             $data['fewshot'] = $fewshot;
-            $repo->saveDraft($tenant, $draft->id, (int) $input['version'], $data);
+            DB::transaction(function () use ($repo, $tenant, $draft, $input, $data): void {
+                $repo->saveDraft($tenant, $draft->id, (int) $input['version'], $data);
+                if (! isset($input['index'])) {
+                    app(AuditWriter::class)->record($tenant, new AuditEntry('knowledge.fewshot.added', 'knowledge_release', $draft->id));
+                }
+            });
         });
 
         return back()->with('status', 'Образец сохранён в черновике.');
@@ -183,7 +190,10 @@ final class FewshotController
             $data['fewshot']['examples'][] = ['tag' => trim($input['tag']), 'text' => $message['text'], 'client_type' => 'all',
                 'confidence' => (float) $input['confidence'], 'source' => 'dialog #'.substr($input['dialog'], -6),
                 'situation' => trim($input['situation'] ?? '')];
-            $repo->saveDraft($tenant, $draft->id, (int) $input['version'], $data);
+            DB::transaction(function () use ($repo, $tenant, $draft, $input, $data): void {
+                $repo->saveDraft($tenant, $draft->id, (int) $input['version'], $data);
+                app(AuditWriter::class)->record($tenant, new AuditEntry('knowledge.fewshot.added', 'knowledge_release', $draft->id));
+            });
         });
 
         return back()->with('status', 'Реплика менеджера добавлена в черновик.');

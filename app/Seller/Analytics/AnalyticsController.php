@@ -144,6 +144,20 @@ final class AnalyticsController
 
             return is_string($payload['question'] ?? null) ? trim($payload['question']) : '';
         })->filter()->countBy()->sortDesc()->all();
+        if ($canManage && $channel === '' && $source === '') {
+            $samples = DB::table('audit_logs as a')->join('users as u', 'u.id', '=', 'a.actor_id')
+                ->where('a.organization_id', $tenant->organizationId)->where('a.brand_id', $tenant->brandId)
+                ->where('a.action', 'knowledge.fewshot.added')->where('a.created_at', '>=', $begin)->where('a.created_at', '<', $end)
+                ->when($manager !== '', fn ($query) => $query->where('a.actor_id', $manager))
+                ->selectRaw('a.actor_id, u.name, count(*) as total')->groupBy('a.actor_id', 'u.name')->get();
+            foreach ($samples as $sample) {
+                $managers[$sample->actor_id] ??= ['name' => $sample->name, 'assigned' => 0, 'taken' => 0, 'closed' => 0, 'contact_closed' => 0, 'reaction_minutes' => [], 'workload' => []];
+                $managers[$sample->actor_id]['samples'] = (int) $sample->total;
+                if (! collect($managerOptions)->contains('id', $sample->actor_id)) {
+                    $managerOptions[] = ['id' => $sample->actor_id, 'name' => $sample->name];
+                }
+            }
+        }
         if ($canManage && $managers) {
             $reviews = DB::table('message_reviews as review')->join('messages as message', function ($join): void {
                 $join->on('message.id', '=', 'review.message_id')->on('message.brand_id', '=', 'review.brand_id')->on('message.organization_id', '=', 'review.organization_id');
@@ -156,6 +170,7 @@ final class AnalyticsController
                 $values = $rows->where('assigned_user_id', $id)->flatMap(fn ($row) => $evaluations[$row->id] ?? collect())->pluck('average')->filter(fn ($value) => is_numeric($value));
                 $managerData['score'] = $values->isNotEmpty() ? round($values->avg(), 1) : null;
                 $managerData['reviews'] = (int) ($reviews[$id] ?? 0);
+                $managerData['samples'] = $channel === '' && $source === '' ? ($managerData['samples'] ?? 0) : null;
                 $managerData['reaction_minutes'] = $managerData['reaction_minutes'] ? round(array_sum($managerData['reaction_minutes']) / count($managerData['reaction_minutes']), 1) : null;
                 ksort($managerData['workload']);
             }
