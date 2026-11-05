@@ -236,6 +236,16 @@ final class VisibilityMetrics
                 $entities[$key]['is_brand'] = $entities[$key]['is_brand'] || ($mention['is_brand'] ?? false);
                 $entities[$key]['answers']++;
                 $entities[$key]['_seen_slots'][$this->key($slot)] = true;
+                $position = $mention['position'] ?? null;
+                if (($slot['mentions_complete'] ?? false) === true && is_int($position) && $position > 0) {
+                    $entities[$key]['_positions'][] = $position;
+                    if (is_string($slot['provider'] ?? null) && $slot['provider'] !== '') {
+                        $entities[$key]['_positions_by_provider'][$slot['provider']][] = $position;
+                    }
+                    if (is_string($slot['intent'] ?? null) && $slot['intent'] !== '') {
+                        $entities[$key]['_positions_by_intent'][$slot['intent']][] = $position;
+                    }
+                }
                 $role = $mention['role'] ?? null;
                 if (in_array($role, ['manufacturer', 'supplier', 'marketplace', 'aggregator', 'other'], true)) {
                     $entities[$key]['role_counts'][$role] = ($entities[$key]['role_counts'][$role] ?? 0) + 1;
@@ -245,6 +255,13 @@ final class VisibilityMetrics
         foreach ($entities as &$entity) {
             $denominator = count(array_filter($slots, fn (array $slot): bool => $slot['valid'] && (($slot['mentions_complete'] ?? false) === true || isset($entity['_seen_slots'][$this->key($slot)]))));
             unset($entity['_seen_slots']);
+            if (! empty($entity['_positions'])) {
+                $average = fn (array $positions): array => ['average' => round(array_sum($positions) / count($positions), 2), 'count' => count($positions)];
+                $entity['position'] = $average($entity['_positions']);
+                $entity['positions_by_provider'] = array_map($average, $entity['_positions_by_provider'] ?? []);
+                $entity['positions_by_intent'] = array_map($average, $entity['_positions_by_intent'] ?? []);
+                unset($entity['_positions'], $entity['_positions_by_provider'], $entity['_positions_by_intent']);
+            }
             $entity['frequency'] = $this->percent($entity['answers'], $denominator);
             $entity['denominator'] = $denominator;
             ksort($entity['role_counts'], SORT_STRING);
