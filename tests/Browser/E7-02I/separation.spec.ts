@@ -1,0 +1,8 @@
+import {test,expect} from '@playwright/test';
+import {createServer,type ViteDevServer} from 'vite';
+import {mkdir} from 'node:fs/promises';
+let server:ViteDevServer;let url:string;
+test.use({viewport:{width:1440,height:900},launchOptions:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH?{executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH}:{}});
+test.beforeAll(async()=>{server=await createServer({configFile:'tests/Browser/E7-02I/vite.config.ts',cacheDir:'.local/runtime/vite-e702i',server:{host:'127.0.0.1',port:0,strictPort:false}});await server.listen();url=new URL('/tests/Browser/E7-02I/fixture.html',server.resolvedUrls!.local[0]).href;});
+test.afterAll(async()=>{await server?.close();});
+test('тестовая оценка отдельно от показателей и отсутствие оценки',async({page})=>{await page.goto(url);await expect(page.getByText('Завершённых прогонов без оценки: 1.')).toBeVisible();await expect(page.getByText('Фиксированные значения не отражают качество и не входят в показатели.')).toBeVisible();await mkdir('.local/screenshots/SP-E7-02I',{recursive:true});await page.screenshot({path:'.local/screenshots/SP-E7-02I/quality.png',fullPage:true});await page.goto(url+'?day');await expect(page.getByText('Тестовая оценка, качество не оценивалось',{exact:false})).toBeVisible();await page.getByRole('button',{name:'Открыть оценку'}).click();await expect(page.getByText('Тестовая оценка, качество не оценивалось',{exact:false})).toHaveCount(2);await expect(page.getByRole('button',{name:'Не согласен с оценкой'})).toHaveCount(0);});

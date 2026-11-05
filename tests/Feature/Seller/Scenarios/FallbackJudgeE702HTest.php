@@ -2,11 +2,13 @@
 
 namespace Tests\Feature\Seller\Scenarios;
 
+use App\Seller\Evaluation\DailySupervisor;
 use App\Seller\Evaluation\FakeSimulation;
 use App\Seller\Evaluation\ScenarioFallbackJudge;
 use App\Seller\Evaluation\SimulationRuntime;
 use App\Seller\Scenarios\RunScenarioGroup;
 use App\Tenancy\TenantContext;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -60,10 +62,21 @@ final class FallbackJudgeE702HTest extends TenancyTestCase
         } catch (HttpException $error) {
             self::assertSame(404, $error->getStatusCode());
         }
-        $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->get('/seller/quality/runs')->assertOk()->assertInertia(fn ($page) => $page->where('groups.0.average', 3)->where('groups.0.passed', 0)->where('groups.0.failed', 0)->where('groups.0.items.0.evaluation', 'fake'));
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->get('/seller/quality/runs')->assertOk()->assertInertia(fn ($page) => $page->where('groups.0.average', null)->where('groups.0.passed', 0)->where('groups.0.failed', 0)->where('groups.0.items.0.evaluation', 'fake'));
+        $missing = (string) Str::ulid();
+        DB::table('seller_sim_runs')->insert(['id' => $missing, 'organization_id' => $org->id, 'brand_id' => $brand->id, 'persona_id' => $items[0]['id'], 'status' => 'completed', 'turn_count' => 1, 'turns' => '[]', 'metrics' => '{}', 'created_at' => now(), 'updated_at' => now()]);
+        $this->get('/seller/quality')->assertOk()->assertInertia(fn ($page) => $page->has('days', 0)->where('testDays.0.count', 2)->where('missingEvaluations', 1));
+        self::assertSame(0, app(DailySupervisor::class)->run(CarbonImmutable::now('Europe/Moscow')));
+        $day = now('Europe/Moscow')->toDateString();
+        $this->get('/seller/quality/'.$day)->assertOk()->assertInertia(fn ($page) => $page->has('evaluations', 2)->where('evaluations.0.test_baseline', true));
+        $evaluationId = DB::table('seller_evaluations')->where('sim_run_id', $items[0]['run_id'])->value('id');
+        $this->get('/seller/evaluations/'.$evaluationId)->assertOk()->assertInertia(fn ($page) => $page->where('evaluation.test_baseline', true));
+        $scenarioPage = $this->get('/seller/quality/scenarios')->assertOk()->viewData('page');
+        self::assertTrue(collect($scenarioPage['props']['runs'])->contains('result', 'test_baseline'));
         [$viewer] = $this->member($org, 'viewer', [$brand->id]);
         $this->actingAs($viewer)->withSession(['brand_id' => $brand->id])->get('/seller/quality/runs')->assertForbidden();
         $this->actingAs($owner)->withSession(['brand_id' => $other->id])->get('/seller/quality/runs')->assertOk()->assertInertia(fn ($page) => $page->has('groups', 0));
+        $this->get('/seller/quality')->assertOk()->assertInertia(fn ($page) => $page->has('testDays', 0)->where('missingEvaluations', 0));
         Http::assertNothingSent();
     }
 

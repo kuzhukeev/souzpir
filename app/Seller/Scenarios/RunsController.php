@@ -43,16 +43,17 @@ final class RunsController
 
             $groups = DB::table('seller_scenario_run_groups')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->orderByDesc('created_at')->limit(50)->get();
             $groupRunIds = $groups->flatMap(fn ($group) => collect(json_decode($group->items, true) ?: [])->pluck('run_id'))->filter()->all();
-            $groupEvaluations = DB::table('seller_evaluations')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->whereIn('sim_run_id', $groupRunIds)->pluck('average', 'sim_run_id');
+            $groupEvaluations = DB::table('seller_evaluations')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->whereIn('sim_run_id', $groupRunIds)->get(['sim_run_id', 'average', 'comment'])->keyBy('sim_run_id');
             $groupData = $groups->map(function ($group) use ($groupEvaluations): array {
                 $items = collect(json_decode($group->items, true) ?: [])->map(function (array $item) use ($groupEvaluations): array {
-                    $average = $groupEvaluations[$item['run_id'] ?? ''] ?? null;
+                    $evaluation = $groupEvaluations[$item['run_id'] ?? ''] ?? null;
+                    $average = $evaluation?->average;
 
                     return ['name' => $item['name'], 'status' => $item['status'], 'run_id' => $item['run_id'] ?? null, 'average' => $average,
-                        'evaluation' => $average === null && ($item['evaluation'] ?? null) === 'unavailable' ? 'unavailable' : (($item['evaluation'] ?? null) === 'fake' ? 'fake' : null)];
+                        'evaluation' => $evaluation?->comment === ScenarioFallbackJudge::COMMENT ? 'fake' : ($average === null && ($item['evaluation'] ?? null) === 'unavailable' ? 'unavailable' : null)];
                 });
 
-                return ['id' => $group->id, 'status' => $group->status, 'created_at' => $group->created_at, 'items' => $items->all(), 'average' => $items->whereNotNull('average')->avg('average'),
+                return ['id' => $group->id, 'status' => $group->status, 'created_at' => $group->created_at, 'items' => $items->all(), 'average' => $items->filter(fn (array $item) => $item['evaluation'] !== 'fake' && $item['average'] !== null)->avg('average'),
                     'passed' => $items->filter(fn (array $item) => $item['evaluation'] !== 'fake' && $item['average'] !== null && (float) $item['average'] >= 4)->count(),
                     'failed' => $items->filter(fn (array $item) => $item['evaluation'] !== 'fake' && $item['average'] !== null && (float) $item['average'] < 4)->count()];
             });
