@@ -141,7 +141,7 @@ export function Criteria({ criteria, canManage }: { criteria: Criterion[]; canMa
     </div>
   );
 }
-export function AuditForm({initialUrl = ''}: {initialUrl?: string}) {
+export function AuditForm({initialUrl = '', fixedUrl = false}: {initialUrl?: string; fixedUrl?: boolean}) {
   const form = useForm({ url: initialUrl });
   const [open, setOpen] = useState(false);
   function prepare(event: FormEvent) {
@@ -163,6 +163,7 @@ export function AuditForm({initialUrl = ''}: {initialUrl?: string}) {
             id="site-url"
             type="url"
             required
+            readOnly={fixedUrl}
             placeholder="https://example.com"
             value={form.data.url}
             onChange={(event) => form.setData('url', event.target.value)}

@@ -59,7 +59,9 @@ final class SiteController
             $history = $request->route('section') === 'history' ? $this->history->read($tenant) : ['achievements' => [], 'comparison' => null];
             $this->access->lock($tenant, false, 'vision.report.read');
 
-            return ['domainStatus' => $domainStatus, 'audit' => $current?->result, 'auditDate' => $current?->created_at?->toIso8601String(),
+            $brandSite = DB::table('brands')->where('organization_id', $tenant->organizationId)->where('id', $tenant->brandId)->value('website');
+
+            return ['brandSite' => $brandSite, 'domainStatus' => $domainStatus, 'audit' => $current?->result, 'auditDate' => $current?->created_at?->toIso8601String(),
                 'previousAudit' => $previous?->result,
                 'auditProgress' => Cache::get(AuditSiteJob::key($tenant->organizationId, $tenant->brandId)),
                 'actions' => $actions, 'history' => array_values(array_filter($actions, fn (array $a): bool => $a['status'] === 'awaiting_measurement')),
