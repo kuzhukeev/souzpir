@@ -99,6 +99,7 @@ final class PolicySettingsController
                 $orders = $policy['slot_order'] ?? [];
                 $unknownOrder = $orders['unknown'] ?? [];
                 $rows = [];
+                $initialSlots = (new LeadState)->data['slots'];
                 foreach (LeadState::SLOTS as $slot) {
                     $tag = $policy['missing_question_tags'][$slot] ?? 'ask_'.$slot;
                     $example = collect($snapshot->fewshot([$tag], null, 6, 0.7))
@@ -111,7 +112,8 @@ final class PolicySettingsController
                         }
                     }
                     $rows[] = ['id' => $slot, 'example' => $example, 'priority' => $position === false ? null : $position + 1,
-                        'absent_from_order' => $absent, 'condition' => $policy['conditional_slots'][$slot] ?? null];
+                        'absent_from_order' => $absent, 'condition' => $policy['conditional_slots'][$slot] ?? null,
+                        'value_kind' => is_array($initialSlots[$slot] ?? null) ? 'list' : 'text'];
                 }
 
                 return ['available' => true, 'fields' => $rows];
