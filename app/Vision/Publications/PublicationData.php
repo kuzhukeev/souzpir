@@ -30,7 +30,7 @@ final class PublicationData
                 throw ValidationException::withMessages(['confirmed_actions' => 'Обновите список рекомендаций и повторите выбор.']);
             }
             $reviewed = collect($confirmedActions)->map(fn ($key) => ['title' => $this->publicText($candidates[$key]['title']),
-                'question_id' => $candidates[$key]['question_id'], 'priority' => $candidates[$key]['priority'], 'steps' => $candidates[$key]['steps']])->filter(fn ($row) => $row['title'] !== null)->take(3)->values();
+                'question_id' => $candidates[$key]['question_id'], 'priority' => $candidates[$key]['priority'] ?? null, 'steps' => $candidates[$key]['steps'] ?? []])->filter(fn ($row) => $row['title'] !== null)->take(3)->values();
             $actions = $reviewed->pluck('title')->all();
             $actionQuestionIds = $reviewed->pluck('question_id')->all();
             $actionDetails = $reviewed->map(fn ($item) => ['priority' => $item['priority'], 'steps' => $item['steps']])->all();
@@ -60,11 +60,17 @@ final class PublicationData
             ->filter(fn ($item) => ($item['kind'] ?? null) === 'action'
                 && in_array($item['action']['question_id'] ?? null, $questionIds, true)
                 && is_string($item['title'] ?? null) && trim($item['title']) !== '')
-            ->map(fn ($item, $key) => ['key' => $key, 'title' => $item['title'],
-                'why' => is_string($item['text'] ?? null) ? $item['text'] : '',
-                'priority' => $this->publicText($item['action']['priority'] ?? null),
-                'steps' => collect(is_array($item['action']['steps'] ?? null) ? $item['action']['steps'] : [])->map(fn ($step) => $this->publicText($step))->filter()->take(3)->values()->all(),
-                'question_id' => $item['action']['question_id']])
+            ->map(function ($item, $key): array {
+                $priority = $this->publicText($item['action']['priority'] ?? null);
+                $steps = collect(is_array($item['action']['steps'] ?? null) ? $item['action']['steps'] : [])
+                    ->map(fn ($step) => $this->publicText($step))->filter()->take(3)->values()->all();
+
+                return ['key' => $key, 'title' => $item['title'],
+                    'why' => is_string($item['text'] ?? null) ? $item['text'] : '',
+                    'question_id' => $item['action']['question_id'],
+                    ...($priority !== null ? ['priority' => $priority] : []),
+                    ...($steps !== [] ? ['steps' => $steps] : [])];
+            })
             ->values()->all();
     }
 
