@@ -1,6 +1,6 @@
 import { criterionGroup } from '@/features/Vision/Site/groups';
 import { Head, Link, router } from '@inertiajs/react';
-import { AuditForm, BotAccess, Criteria, Pages, SpeedUnavailable } from '@/features/Vision/Site/AuditDetails';
+import { AuditForm, BotAccess, Criteria, Pages } from '@/features/Vision/Site/AuditDetails';
 import { Actions } from '@/features/Vision/Site/Actions';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import CabinetLayout from '@/layouts/CabinetLayout';
@@ -219,7 +219,7 @@ export default function Index({
               <>
                 <Score audit={audit} auditDate={auditDate} previousAudit={previousAudit} />
                 <Groups criteria={audit.criteria || []} />
-                <SpeedUnavailable />
+                
               </>
             ) : (
               <Empty>Проверок сайта пока нет.</Empty>
@@ -240,7 +240,7 @@ export default function Index({
         )}
         {section === 'criteria' &&
           (audit ? (
-            <div className="space-y-4"><SpeedUnavailable /><Criteria criteria={audit.criteria || []} canManage={canManage} /></div>
+            <div className="space-y-4"><Criteria criteria={audit.criteria || []} canManage={canManage} /></div>
           ) : (
             <Empty>Сначала проверьте сайт.</Empty>
           ))}

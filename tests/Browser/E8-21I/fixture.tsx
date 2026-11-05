@@ -1,0 +1,10 @@
+import {createInertiaApp} from '@inertiajs/react';
+import {createRoot} from 'react-dom/client';
+import Site from '../../../resources/js/pages/Vision/Site/Index';
+import {ReportSections} from '../../../resources/js/pages/Vision/Reports/ReportSections';
+import '../../../resources/css/app.css';import '../../../resources/css/themes/tokens.css';
+const audit={url:'https://example.test',readiness:{lower:60,upper:80},criteria:[{id:4,title:'Структурированные данные',score:0.5,status:'partial',weight:5}]};
+const data={site:'example.test',site_audit:{readiness:{lower:60,upper:80},date:'2026-11-01T00:00:00Z',criteria:[{title:'Доступ ботов',status:'pass'}]},competitors:[],gaps:[],facts:[],sources:[],actions:[],changes:null};
+const page={component:'Fixture',props:{theme:'neutral',brand:{id:'b',name:'Бренд'},brands:[],organization:{id:'o',name:'Компания'},auth:{user:{id:'u',name:'Иван',email:'ivan@example.test'}},modules:{vision:true},can:{},unread:null,translations:{},ziggy:{routes:{}},errors:{}},url:location.pathname,version:null,clearHistory:false,encryptHistory:false};
+const script=document.createElement('script');script.type='application/json';script.dataset.page='app';script.textContent=JSON.stringify(page);document.body.append(script);
+void createInertiaApp({resolve:()=>()=>location.search.includes('report')?<ReportSections data={data as never}/>:<Site section="overview" audit={audit as never} canManage={false} actions={[]} />,setup:({el,App,props})=>createRoot(el).render(<App {...props}/>)});
