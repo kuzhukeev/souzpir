@@ -20126,6 +20126,80 @@
       "promptPath": "docs/tasks/SP-E6-06E.md",
       "wave": 20,
       "description": "# SP-E6-06E · Завершение расписания и распределения\n\n**Зачем:** завершить экран по принятому результату.\n**Часть чего:** остаток SP-E6-06D, docs/results/SP-E6-06D.md.\n**Зависимости:** SP-E6-06D.\n\n## Приёмка\n- Завершить распределение по городу, каналу и источнику, рабочие часы и каналы менеджеров, таймер уведомления, отправку фразы вне часов и защищённую передачу; сверить макет и состояния загрузки/ошибки. Без живых отправок.\n- Проверить права, изоляцию брендов, ошибки и состояния; незавершённое записать в «Остаток».\n\nScope: `app/Seller/Settings/Schedule/`, `app/Seller/Conversations/`, `resources/js/pages/Seller/Settings/Schedule/`, `tests/Feature/Seller/`, `tests/Browser/E6-06E/`, `docs/results/SP-E6-06E.md`.\n"
+    },
+    {
+      "taskKey": "SP-E8-16L",
+      "title": "SP-E8-16L · Прогресс замера и динамика отчёта",
+      "goal": "Реализовать отдельный маршрут прогресса, оставшееся время, уведомление, ленту и число уточнений на V-3.3; разместить подтверждённую динамику видимости на V-4.4 и сверить с макетами.",
+      "dependsOn": [
+        "SP-E8-16K"
+      ],
+      "scope": [
+        "app/Vision/Measurements/",
+        "app/Vision/Reports/",
+        "routes/features/",
+        "resources/js/pages/Vision/Measurements/",
+        "resources/js/pages/Vision/Reports/",
+        "tests/Feature/Vision/Measurements/",
+        "tests/Feature/Vision/Reports/",
+        "tests/Browser/E8-16L/",
+        "docs/results/SP-E8-16L.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Реализовать отдельный маршрут прогресса, оставшееся время, уведомление, ленту и число уточнений на V-3.3; разместить подтверждённую динамику видимости на V-4.4 и сверить с макетами."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "V-3.3",
+        "V-4.4"
+      ],
+      "notes": "Остаток SP-E8-16K.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md",
+        "docs/results/SP-E8-16K.md"
+      ],
+      "promptPath": "docs/tasks/SP-E8-16L.md",
+      "wave": 20,
+      "description": "# SP-E8-16L · Прогресс замера и динамика отчёта\n\n**Зачем:** завершить экран по принятому результату.\n**Часть чего:** остаток SP-E8-16K, docs/results/SP-E8-16K.md.\n**Зависимости:** SP-E8-16K.\n\n## Приёмка\n- Реализовать отдельный маршрут прогресса, оставшееся время, уведомление, ленту и число уточнений на V-3.3; разместить подтверждённую динамику видимости на V-4.4 и сверить с макетами.\n- Проверить права, изоляцию брендов и ошибки; незавершённое указать в «Остаток».\n\nScope: `app/Vision/Measurements/`, `app/Vision/Reports/`, `routes/features/`, `resources/js/pages/Vision/Measurements/`, `resources/js/pages/Vision/Reports/`, `tests/Feature/Vision/Measurements/`, `tests/Feature/Vision/Reports/`, `tests/Browser/E8-16L/`, `docs/results/SP-E8-16L.md`.\n"
+    },
+    {
+      "taskKey": "SP-E5-04S",
+      "title": "SP-E5-04S · Защищённая подсказка менеджеру",
+      "goal": "Реализовать защищённое происхождение и сохранение manager-подсказки, подключить extractor/responder/guard и gateway, проверить повторы, ошибки, права, бренд и полный fake-сценарий; без живых вызовов. Изменение общих AI-стадий предварительно согласовать с владельцем.",
+      "dependsOn": [
+        "SP-E5-04R"
+      ],
+      "scope": [
+        "app/Seller/Dialogs/",
+        "app/Ai/Protected/",
+        "app/Ai/Gateway.php",
+        "app/ProtectedOperations/",
+        "resources/js/pages/Seller/Dialogs/",
+        "tests/Feature/Seller/Dialogs/",
+        "tests/Feature/ProtectedOperations/",
+        "tests/Browser/E5-04S/",
+        "docs/results/SP-E5-04S.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Реализовать защищённое происхождение и сохранение manager-подсказки, подключить extractor/responder/guard и gateway, проверить повторы, ошибки, права, бренд и полный fake-сценарий; без живых вызовов. Изменение общих AI-стадий предварительно согласовать с владельцем."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "D-2.2",
+        "D-2.3"
+      ],
+      "notes": "Остаток SP-E5-04R.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md",
+        "docs/results/SP-E5-04R.md"
+      ],
+      "promptPath": "docs/tasks/SP-E5-04S.md",
+      "wave": 20,
+      "description": "# SP-E5-04S · Защищённая подсказка менеджеру\n\n**Зачем:** завершить экран по принятому результату.\n**Часть чего:** остаток SP-E5-04R, docs/results/SP-E5-04R.md.\n**Зависимости:** SP-E5-04R.\n\n## Приёмка\n- Реализовать защищённое происхождение и сохранение manager-подсказки, подключить extractor/responder/guard и gateway, проверить повторы, ошибки, права, бренд и полный fake-сценарий; без живых вызовов. Изменение общих AI-стадий предварительно согласовать с владельцем.\n- Проверить права, изоляцию брендов и ошибки; незавершённое указать в «Остаток».\n\nScope: `app/Seller/Dialogs/`, `app/Ai/Protected/`, `app/Ai/Gateway.php`, `app/ProtectedOperations/`, `resources/js/pages/Seller/Dialogs/`, `tests/Feature/Seller/Dialogs/`, `tests/Feature/ProtectedOperations/`, `tests/Browser/E5-04S/`, `docs/results/SP-E5-04S.md`.\n"
     }
   ],
   "excludedSourceTasks": {
