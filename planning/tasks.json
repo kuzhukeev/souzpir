@@ -17395,6 +17395,46 @@
       "promptPath": "docs/tasks/SP-E4-04F.md",
       "wave": 18,
       "description": "# SP-E4-04F · Темы: неизвестные вопросы в runtime\n\n**Зачем:** завершить экран тем знаний по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E4-04E, docs/results/SP-E4-04E.md.\n**Зависимости:** SP-E4-04E в done.\n\nПодключить log_unknown_question и задачу unknown_question через общий диспетчер, стадии последующих ходов и guard-fallback; проверить аналитику и задачи end-to-end на изолированной тестовой БД. Не менять общие AI-стадии без решения владельца.\n\nScope: `app/Seller/Knowledge/Topics/`, `app/Seller/Runtime/`, `app/Seller/Engine/`, `resources/js/pages/Seller/Knowledge/Topics/`, `tests/Feature/Seller/Knowledge/Topics/`, `tests/Feature/Seller/Runtime/`, `tests/Browser/E4-04F/`, `docs/results/SP-E4-04F.md`.\n\nПриёмка: сценарий, права, бренд, ошибки; только fake вызовы. Остаток записать в docs/results/SP-E4-04F.md.\n"
+    },
+    {
+      "taskKey": "SP-E7-01I",
+      "title": "SP-E7-01I · Качество: пагинация и исправление замечаний",
+      "goal": "Завершить серверную пагинацию докладов и состояния загрузки/ошибки; связать замечание с диалогом для действия «Исправить»; добавить защищённую fake-оценку по кнопке и оставшиеся состояния D-7.3. Общие AI-стадии без решения владельца не менять.",
+      "dependsOn": [
+        "SP-E7-01H"
+      ],
+      "scope": [
+        "app/Seller/Quality/",
+        "app/Seller/Evaluation/",
+        "app/Seller/Dialogs/",
+        "resources/js/pages/Seller/Quality/",
+        "resources/js/pages/Seller/Dialogs/",
+        "routes/features/E7-01.php",
+        "tests/Feature/Seller/Quality/",
+        "tests/Browser/E7-01I/",
+        "docs/results/SP-E7-01I.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Сценарий, права, бренд и ошибки; только fake внешние вызовы."
+      ],
+      "sourceIds": [
+        "SP-E7-01H"
+      ],
+      "screenIds": [
+        "D-7.1",
+        "D-7.2",
+        "D-7.3",
+        "D-2.2"
+      ],
+      "notes": "Остаток частичной сдачи SP-E7-01H.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E7-01I.md",
+      "wave": 19,
+      "description": "# SP-E7-01I · Качество: пагинация и исправление замечаний\n\n**Зачем:** завершить D-7.1–D-7.3 по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E7-01H, docs/results/SP-E7-01H.md.\n**Зависимости:** SP-E7-01H в done.\n\nЗавершить серверную пагинацию докладов и состояния загрузки/ошибки; связать замечание с диалогом для действия «Исправить»; добавить защищённую fake-оценку по кнопке и оставшиеся состояния D-7.3. Общие AI-стадии без решения владельца не менять.\n\nScope: `app/Seller/Quality/`, `app/Seller/Evaluation/`, `app/Seller/Dialogs/`, `resources/js/pages/Seller/Quality/`, `resources/js/pages/Seller/Dialogs/`, `routes/features/E7-01.php`, `tests/Feature/Seller/Quality/`, `tests/Browser/E7-01I/`, `docs/results/SP-E7-01I.md`.\n\nПриёмка: сценарий, права, бренд, ошибки; только fake вызовы. Остаток записать в docs/results/SP-E7-01I.md.\n"
     }
   ],
   "excludedSourceTasks": {
