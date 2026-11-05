@@ -38,6 +38,7 @@ final class PolicySettingsController
             $row = BrandSellerSettings::query()->first();
             $followup = array_replace(['enabled' => true, 'first_hours' => 20, 'second_hours' => null, 'task_after_hours' => 24, 'max_auto' => 2, 'window' => null, 'texts' => [], 'agreed_text' => '', 'excluded_stages' => []], $row?->followup ?? []);
             $reactionExamples = [];
+            $reactionActions = [];
             try {
                 $snapshot = app(KnowledgeRepository::class)->published($tenant);
                 $policy = $snapshot->policy();
@@ -49,6 +50,10 @@ final class PolicySettingsController
                 }
                 $reason = collect($snapshot->escalation()['reasons'] ?? [])->firstWhere('id', 'negative_sentiment');
                 $reactionExamples['negative_sentiment'] = is_string($reason['message_idea'] ?? null) ? [$reason['message_idea']] : [];
+                $reactionActions = ['decline_off_topic' => ($policy['off_topic_action'] ?? 'spam') === 'handoff' ? 'Передать менеджеру' : 'Завершить как спам',
+                    'decline_off_topic_second' => ($policy['off_topic_action'] ?? 'spam') === 'handoff' ? 'Передать менеджеру' : 'Завершить как спам',
+                    'negative_sentiment' => ! $reason ? 'Причина передачи не настроена' : (($reason['mode'] ?? 'handoff') === 'notify' ? 'Уведомить менеджера' : 'Передать менеджеру'),
+                    'decline_injection' => 'Отклонить запрос', 'opt_out_ack' => 'Не беспокоить'];
             } catch (KnowledgeNotReady) {
                 $policy = null;
             }
@@ -93,7 +98,7 @@ final class PolicySettingsController
                 }
             }
 
-            return ['followup' => $followup, 'policy' => $policy, 'reactionExamples' => $reactionExamples, 'draftReactions' => $draftReactions, 'canWrite' => Gate::allows('seller.settings.write'), 'draftPolicy' => $draftPolicy,
+            return ['followup' => $followup, 'policy' => $policy, 'reactionExamples' => $reactionExamples, 'reactionActions' => $reactionActions, 'draftReactions' => $draftReactions, 'canWrite' => Gate::allows('seller.settings.write'), 'draftPolicy' => $draftPolicy,
                 'followupTimezone' => $timezone, 'followupSent' => $sent, 'followupReplies' => array_values($replies)];
         });
 
