@@ -29,11 +29,11 @@ final class ClientFieldsE610Test extends TenancyTestCase
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
         $invalid = $field;
         $invalid['id'] = 'email';
-        $this->post('/seller/scenario/fields', ['version' => 1, 'fields' => [$invalid]])->assertSessionHasErrors('fields.0.id');
+        $this->post('/seller/scenario/fields/draft', ['version' => 1, 'fields' => [$invalid]])->assertSessionHasErrors('fields.0.id');
         $invalid = $field;
         $invalid['options'] = [];
-        $this->post('/seller/scenario/fields', ['version' => 1, 'fields' => [$invalid]])->assertSessionHasErrors('fields.0.options');
-        $this->post('/seller/scenario/fields', ['version' => 1, 'fields' => [$field]])->assertRedirect()->assertSessionHasNoErrors();
+        $this->post('/seller/scenario/fields/draft', ['version' => 1, 'fields' => [$invalid]])->assertSessionHasErrors('fields.0.options');
+        $this->post('/seller/scenario/fields/draft', ['version' => 1, 'fields' => [$field]])->assertRedirect()->assertSessionHasNoErrors();
         $this->get('/seller/scenario/fields')->assertOk()->assertInertia(fn ($page) => $page->where('editor.version', 2)->where('editor.fields.0.name', 'Формат точки'));
         app(TenantContextRunner::class)->run($tenant, function () use ($tenant, $draft, $field): void {
             $repo = app(KnowledgeRepository::class);
@@ -47,8 +47,8 @@ final class ClientFieldsE610Test extends TenancyTestCase
         $this->get('/seller/scenario/fields')->assertOk()->assertInertia(fn ($page) => $page->has('fields', 16)->where('fields.0.id', 'name'));
         $this->post('/brand/switch', ['brand_id' => $other->id])->assertRedirect();
         $this->get('/seller/scenario/fields')->assertOk()->assertInertia(fn ($page) => $page->where('editor.version', null)->where('editor.fields', []));
-        $this->post('/seller/scenario/fields', ['version' => 1, 'fields' => [$field]])->assertNotFound();
+        $this->post('/seller/scenario/fields/draft', ['version' => 1, 'fields' => [$field]])->assertNotFound();
         [$viewer] = $this->member($org, 'viewer', [$brand->id]);
-        $this->actingAs($viewer)->withSession(['brand_id' => $brand->id])->post('/seller/scenario/fields', ['version' => 1, 'fields' => [$field]])->assertForbidden();
+        $this->actingAs($viewer)->withSession(['brand_id' => $brand->id])->post('/seller/scenario/fields/draft', ['version' => 1, 'fields' => [$field]])->assertForbidden();
     }
 }
