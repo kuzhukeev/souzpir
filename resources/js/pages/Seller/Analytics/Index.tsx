@@ -51,6 +51,7 @@ type Analytics = {
     contact_closed?: number;
     reaction_minutes?: number | null;
     reviews?: number;
+    samples?: number | null;
     score?: number | null;
     workload?: Record<string, number>;
   }[];
@@ -435,7 +436,7 @@ export default function Index({ analytics: a }: { analytics: Analytics }) {
                         <th>Закрыл с контактом</th>
                         <th>Пометки</th>
                         <th>Оценка</th>
-                        <th>Образцы речи</th>
+                        <th>Образцов речи добавил</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -447,7 +448,7 @@ export default function Index({ analytics: a }: { analytics: Analytics }) {
                           <td>{m.contact_closed ?? 0}</td>
                           <td>{m.reviews ?? 0}</td>
                           <td>{m.score ?? '—'}</td>
-                          <td>—</td>
+                          <td>{m.samples ?? '—'}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -456,9 +457,7 @@ export default function Index({ analytics: a }: { analytics: Analytics }) {
               )}
               <h3 className="mt-4 font-semibold">Загрузка по дням</h3>
               <WorkloadChart managers={a.managers} />
-              <p className="mt-2 text-sm text-(--color-ink-muted)">
-                Данные об образцах речи не предоставлены.
-              </p>
+              <p className="mt-2 text-sm text-(--color-ink-muted)">Учитываются образцы, добавленные после запуска учёта; при фильтре канала показатель недоступен.</p>
             </section>
           )}
         </div>

@@ -19469,6 +19469,168 @@
       ],
       "wave": 20,
       "promptPath": "docs/tasks/SP-E7-02M.md"
+    },
+    {
+      "taskKey": "SP-E1-04F",
+      "title": "SP-E1-04F · Хранение данных отключённых модулей",
+      "goal": "Обеспечить хранение не менее 90 дней после отключения модуля и определить механизм очистки. Полностью сверить S-2.4 с макетом и показать лимиты по подтверждённым источникам; уточнить старые тесты об отсутствии гарантии.",
+      "description": "# SP-E1-04F · Хранение данных отключённых модулей\n\n**Зачем:** завершить экран по решению владельца.\n**Часть чего:** остаток SP-E1-04E, docs/results/SP-E1-04E.md.\n**Зависимости:** SP-E1-04E.\n\n## Приёмка\n- Обеспечить хранение не менее 90 дней после отключения модуля и определить механизм очистки.\n- Полностью сверить S-2.4 с макетом и показать лимиты по подтверждённым источникам; уточнить старые тесты об отсутствии гарантии.\n\nПроверить права, бренд и ошибки; остаток записать в отчёт.\n\nScope: `app/Shell/Organizations/`, `app/Shell/Brands/`, `app/Privacy/`, `resources/js/pages/Shell/Organizations/`, `tests/Feature/Shell/Organizations/`, `tests/Browser/E1-04D/`, `tests/Browser/E1-04F/`, `docs/results/SP-E1-04F.md`.\n",
+      "dependsOn": [
+        "SP-E1-04E"
+      ],
+      "scope": [
+        "app/Shell/Organizations/",
+        "app/Shell/Brands/",
+        "app/Privacy/",
+        "resources/js/pages/Shell/Organizations/",
+        "tests/Feature/Shell/Organizations/",
+        "tests/Browser/E1-04D/",
+        "tests/Browser/E1-04F/",
+        "docs/results/SP-E1-04F.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Обеспечить хранение не менее 90 дней после отключения модуля и определить механизм очистки.",
+        "Полностью сверить S-2.4 с макетом и показать лимиты по подтверждённым источникам; уточнить старые тесты об отсутствии гарантии."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "S-2.4"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E1-04F.md"
+    },
+    {
+      "taskKey": "SP-E6-04G",
+      "title": "SP-E6-04G · Инструменты полного защищённого хода",
+      "goal": "Проверить полный защищённый ход и сохранение результата интеграционным тестом. Подключить реквизиты и оставшиеся реализованные действия с учётом настроек бренда и fake-транспорта.",
+      "description": "# SP-E6-04G · Инструменты полного защищённого хода\n\n**Зачем:** завершить экран по решению владельца.\n**Часть чего:** остаток SP-E6-04E, docs/results/SP-E6-04E.md.\n**Зависимости:** SP-E6-04E.\n\n## Приёмка\n- Проверить полный защищённый ход и сохранение результата интеграционным тестом.\n- Подключить реквизиты и оставшиеся реализованные действия с учётом настроек бренда и fake-транспорта.\n\nПроверить права, бренд и ошибки; остаток записать в отчёт.\n\nScope: `app/ProtectedOperations/`, `app/Seller/Runtime/`, `app/Seller/Engine/Tools/`, `app/Seller/Settings/Tools/`, `tests/Feature/ProtectedOperations/`, `tests/Feature/Seller/Settings/Tools/`, `tests/Browser/E6-04G/`, `docs/results/SP-E6-04G.md`.\n",
+      "dependsOn": [
+        "SP-E6-04E"
+      ],
+      "scope": [
+        "app/ProtectedOperations/",
+        "app/Seller/Runtime/",
+        "app/Seller/Engine/Tools/",
+        "app/Seller/Settings/Tools/",
+        "tests/Feature/ProtectedOperations/",
+        "tests/Feature/Seller/Settings/Tools/",
+        "tests/Browser/E6-04G/",
+        "docs/results/SP-E6-04G.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Проверить полный защищённый ход и сохранение результата интеграционным тестом.",
+        "Подключить реквизиты и оставшиеся реализованные действия с учётом настроек бренда и fake-транспорта."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "D-5.3",
+        "D-5.7"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E6-04G.md"
+    },
+    {
+      "taskKey": "SP-E7-02N",
+      "title": "SP-E7-02N · Модель клиента и оценка сценария",
+      "goal": "Выбрать настроенную модель клиента и применить её в fake-симуляторе через явный конфиг; живые вызовы запрещены. Показывать числовую оценку черновика только при наличии подтверждённого источника критериев; иначе явно показывать недоступность.",
+      "description": "# SP-E7-02N · Модель клиента и оценка сценария\n\n**Зачем:** завершить экран по решению владельца.\n**Часть чего:** остаток SP-E7-02M, docs/results/SP-E7-02M.md.\n**Зависимости:** SP-E7-02M.\n\n## Приёмка\n- Выбрать настроенную модель клиента и применить её в fake-симуляторе через явный конфиг; живые вызовы запрещены.\n- Показывать числовую оценку черновика только при наличии подтверждённого источника критериев; иначе явно показывать недоступность.\n\nПроверить права, бренд и ошибки; остаток записать в отчёт.\n\nScope: `app/Seller/Scenarios/`, `app/Seller/Evaluation/`, `resources/js/pages/Seller/Scenarios/`, `tests/Feature/Seller/Scenarios/`, `tests/Browser/E7-02N/`, `docs/results/SP-E7-02N.md`.\n",
+      "dependsOn": [
+        "SP-E7-02M"
+      ],
+      "scope": [
+        "app/Seller/Scenarios/",
+        "app/Seller/Evaluation/",
+        "resources/js/pages/Seller/Scenarios/",
+        "tests/Feature/Seller/Scenarios/",
+        "tests/Browser/E7-02N/",
+        "docs/results/SP-E7-02N.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Выбрать настроенную модель клиента и применить её в fake-симуляторе через явный конфиг; живые вызовы запрещены.",
+        "Показывать числовую оценку черновика только при наличии подтверждённого источника критериев; иначе явно показывать недоступность."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "D-7.6"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E7-02N.md"
+    },
+    {
+      "taskKey": "SP-E7-04K",
+      "title": "SP-E7-04K · История образцов речи",
+      "goal": "Проверить наличие надёжного источника авторов и даты исторических и импортированных образцов. При наличии источника включить подтверждённые события в аналитический счётчик с изоляцией бренда; неподтверждённые данные не приписывать авторам.",
+      "description": "# SP-E7-04K · История образцов речи\n\n**Зачем:** завершить экран по решению владельца.\n**Часть чего:** остаток SP-E7-04J, docs/results/SP-E7-04J.md.\n**Зависимости:** SP-E7-04J.\n\n## Приёмка\n- Проверить наличие надёжного источника авторов и даты исторических и импортированных образцов.\n- При наличии источника включить подтверждённые события в аналитический счётчик с изоляцией бренда; неподтверждённые данные не приписывать авторам.\n\nПроверить права, бренд и ошибки; остаток записать в отчёт.\n\nScope: `app/Seller/Analytics/`, `app/Seller/Knowledge/`, `resources/js/pages/Seller/Analytics/`, `tests/Feature/Seller/Analytics/`, `tests/Browser/E7-04K/`, `docs/results/SP-E7-04K.md`.\n",
+      "dependsOn": [
+        "SP-E7-04J"
+      ],
+      "scope": [
+        "app/Seller/Analytics/",
+        "app/Seller/Knowledge/",
+        "resources/js/pages/Seller/Analytics/",
+        "tests/Feature/Seller/Analytics/",
+        "tests/Browser/E7-04K/",
+        "docs/results/SP-E7-04K.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Проверить наличие надёжного источника авторов и даты исторических и импортированных образцов.",
+        "При наличии источника включить подтверждённые события в аналитический счётчик с изоляцией бренда; неподтверждённые данные не приписывать авторам."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "D-8.5"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E7-04K.md"
+    },
+    {
+      "taskKey": "SP-E1-04G",
+      "title": "SP-E1-04G · Гарантия хранения модулей",
+      "goal": "Обеспечить сохранность данных не менее 90 дней после отключения модуля; определить владельцев данных и согласованный механизм очистки. Полностью сверить S-2.4 с макетом и показывать лимиты только из подтверждённых источников; уточнить browser-проверки E1-04D.",
+      "description": "# SP-E1-04G · Гарантия хранения модулей\n\n**Зачем:** завершить экран по решению владельца.\n**Часть чего:** остаток SP-E1-04F, docs/results/SP-E1-04F.md.\n**Зависимости:** SP-E1-04F.\n\n## Приёмка\n- Обеспечить сохранность данных не менее 90 дней после отключения модуля; определить владельцев данных и согласованный механизм очистки.\n- Полностью сверить S-2.4 с макетом и показывать лимиты только из подтверждённых источников; уточнить browser-проверки E1-04D.\n\nПроверить права, бренд и ошибки; остаток записать в отчёт.\n\nScope: `app/Shell/Organizations/`, `app/Shell/Brands/`, `app/Privacy/`, `resources/js/pages/Shell/Organizations/`, `tests/Feature/Shell/Organizations/`, `tests/Browser/E1-04D/`, `tests/Browser/E1-04G/`, `docs/results/SP-E1-04G.md`.\n",
+      "dependsOn": [
+        "SP-E1-04F"
+      ],
+      "scope": [
+        "app/Shell/Organizations/",
+        "app/Shell/Brands/",
+        "app/Privacy/",
+        "resources/js/pages/Shell/Organizations/",
+        "tests/Feature/Shell/Organizations/",
+        "tests/Browser/E1-04D/",
+        "tests/Browser/E1-04G/",
+        "docs/results/SP-E1-04G.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Обеспечить сохранность данных не менее 90 дней после отключения модуля; определить владельцев данных и согласованный механизм очистки.",
+        "Полностью сверить S-2.4 с макетом и показывать лимиты только из подтверждённых источников; уточнить browser-проверки E1-04D."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "S-2.4"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E1-04G.md"
     }
   ],
   "excludedSourceTasks": {
