@@ -31,6 +31,7 @@
         </testsuite>
         <testsuite name="CoreTurns">
             <file>tests/Feature/ProtectedOperations/FirstTurnStateTest.php</file>
+            <file>tests/Feature/ProtectedOperations/JobFirstTurnInputE306FTest.php</file>
         </testsuite>
         <testsuite name="Product">
             <directory suffix="Test.php">tests/Feature/Seller</directory>
