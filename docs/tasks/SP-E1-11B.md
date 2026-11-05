@@ -12,3 +12,6 @@
 Scope: `app/Shell/Data/`, `app/Privacy/`, `resources/js/pages/Shell/Data/`, `routes/features/E1-11.php`, `tests/Feature/Shell/Data/`, `tests/Browser/E1-11B/`, `docs/results/SP-E1-11B.md`.
 
 Отчёт: docs/results/SP-E1-11B.md; локальные тесты задачи, submit и зелёный CI.
+
+## Дополнение владельца от 05.11.2026
+- копирование SHA-256 у архива экспорта.

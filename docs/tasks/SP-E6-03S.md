@@ -9,3 +9,5 @@
 Scope: `app/Seller/Settings/Policy/`, `resources/js/pages/Seller/Settings/Policy/`, `tests/Feature/Seller/Settings/Policy/`, `tests/Browser/E6-03S/`, `docs/results/SP-E6-03S.md`.
 
 Приёмка: сценарий, права, бренд и ошибки; только fake вызовы. Остаток записать в docs/results/SP-E6-03S.md.
+
+**Статус:** заменена решением владельца 05.11.2026 на SP-E6-10…10D; повторно не выдавать.

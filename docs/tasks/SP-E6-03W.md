@@ -9,3 +9,6 @@
 Scope: `app/Seller/Settings/Policy/`, `app/Seller/Runtime/`, `app/ProtectedOperations/`, `resources/js/pages/Seller/Settings/Policy/`, `tests/Feature/Seller/Runtime/`, `tests/Browser/E6-03W/`, `docs/results/SP-E6-03W.md`.
 
 Приёмка: сценарий, права, бренд, ошибки; только fake вызовы. Остаток записать в docs/results/SP-E6-03W.md.
+
+## Дополнение владельца от 05.11.2026
+- D-5.6, поле «Коротких ответов N».

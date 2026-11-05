@@ -11,3 +11,6 @@
 Scope: `app/Seller/Analytics/`, `resources/js/pages/Seller/Analytics/`, `routes/features/E7-04.php`, `tests/Feature/Seller/Analytics/`, `tests/Browser/E7-04/`, `docs/results/SP-E7-04H.md`.
 
 Отчёт: docs/results/SP-E7-04H.md.
+
+## Дополнение владельца от 05.11.2026
+- CSV со всеми метриками отчёта, а не с четырьмя.

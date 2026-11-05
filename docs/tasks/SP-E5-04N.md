@@ -9,3 +9,6 @@
 Scope: `app/Seller/Dialogs/`, `app/ProtectedOperations/`, `resources/js/pages/Seller/Dialogs/`, `routes/features/E5-04.php`, `tests/Feature/Seller/Dialogs/`, `tests/Browser/E5-04N/`, `docs/results/SP-E5-04N.md`.
 
 Приёмка: сверка с макетом, сценарий, права, бренд и ошибки; только fake вызовы. Остаток описать в docs/results/SP-E5-04N.md.
+
+## Дополнение владельца от 05.11.2026
+- ReadySuggestions прямым запросом по диалогу вместо лимита 100 и firstWhere (DialogsController.php:58).
