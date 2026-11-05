@@ -108,6 +108,9 @@ final class PolicySettingsController
     public function fields(Request $request): mixed
     {
         $data = $this->access($request, 'seller.knowledge.read', function (TenantContext $tenant): array {
+            $draft = DB::table('knowledge_releases')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('status', 'draft')->first(['id', 'version']);
+            $draftFields = $draft ? (app(KnowledgeRepository::class)->forRelease($tenant, $draft->id, true)->policy()['client_fields'] ?? []) : [];
+            $editor = ['version' => $draft?->version, 'fields' => is_array($draftFields) ? $draftFields : []];
             try {
                 $snapshot = app(KnowledgeRepository::class)->published($tenant);
                 $policy = $snapshot->policy();
@@ -131,9 +134,9 @@ final class PolicySettingsController
                         'value_kind' => is_array($initialSlots[$slot] ?? null) ? 'list' : 'text'];
                 }
 
-                return ['available' => true, 'fields' => $rows, 'canRequest' => Gate::allows('seller.settings.write')];
+                return ['available' => true, 'fields' => $rows, 'editor' => $editor, 'canRequest' => Gate::allows('seller.settings.write')];
             } catch (KnowledgeNotReady) {
-                return ['available' => false, 'fields' => [], 'canRequest' => Gate::allows('seller.settings.write')];
+                return ['available' => false, 'fields' => [], 'editor' => $editor, 'canRequest' => Gate::allows('seller.settings.write')];
             }
         });
 
