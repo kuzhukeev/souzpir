@@ -45,6 +45,7 @@ final class SiteProgressE821ETest extends TenancyTestCase
         });
         $job->handle($inspector, app(SiteAccess::class), app(AuditWriter::class));
         self::assertSame('complete', Cache::get($key)['stage']);
+        self::assertIsInt(Cache::get($key)['elapsed_seconds']);
         self::assertSame(3, Cache::get($key)['pages_processed']);
         self::assertNull(Cache::get($key)['remaining_seconds']);
         Http::assertNothingSent();
