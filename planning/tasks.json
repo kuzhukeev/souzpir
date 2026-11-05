@@ -18907,6 +18907,136 @@
       ],
       "wave": 20,
       "promptPath": "docs/tasks/SP-E1-04D.md"
+    },
+    {
+      "taskKey": "SP-E8-20R",
+      "title": "SP-E8-20R · Позиции и показатели конкурентов",
+      "goal": "Сохранять подтверждённые позиции конкурентов и показывать среднюю позицию, показатели по моделям и намерениям. Проверить права и изоляцию брендов на отдельной тестовой базе.",
+      "description": "# SP-E8-20R · Позиции и показатели конкурентов\n\n**Зачем:** завершить экран по решению владельца от 05.11.2026.\n**Часть чего:** остаток SP-E8-20P, docs/results/SP-E8-20P.md.\n**Зависимости:** SP-E8-20P.\n\n## Приёмка\n- Сохранять подтверждённые позиции конкурентов и показывать среднюю позицию, показатели по моделям и намерениям.\n- Проверить права и изоляцию брендов на отдельной тестовой базе.\n\nПроверить права, изоляцию брендов и ошибки. Остаток записать в отчёт.\n\nScope: `app/Vision/Settings/`, `app/Vision/Measurements/`, `app/Vision/Core/`, `resources/js/pages/Vision/Competitors/`, `database/migrations/E8-20R/`, `tests/Feature/Vision/Competitors/`, `tests/Browser/E8-20R/`, `docs/results/SP-E8-20R.md`.\n",
+      "dependsOn": [
+        "SP-E8-20P"
+      ],
+      "scope": [
+        "app/Vision/Settings/",
+        "app/Vision/Measurements/",
+        "app/Vision/Core/",
+        "resources/js/pages/Vision/Competitors/",
+        "database/migrations/E8-20R/",
+        "tests/Feature/Vision/Competitors/",
+        "tests/Browser/E8-20R/",
+        "docs/results/SP-E8-20R.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Сохранять подтверждённые позиции конкурентов и показывать среднюю позицию, показатели по моделям и намерениям.",
+        "Проверить права и изоляцию брендов на отдельной тестовой базе."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "V-6.2",
+        "V-6.4"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E8-20R.md"
+    },
+    {
+      "taskKey": "SP-E8-19F",
+      "title": "SP-E8-19F · Публичный отчёт: данные и макет",
+      "goal": "Обеспечить подтверждённые публичные поля логотипа, истории метрик, спарклайнов, приоритета и шагов действий. Показать данные в публичном снимке и полностью сверить экран с макетом, сохранив TTL и отзыв доступа.",
+      "description": "# SP-E8-19F · Публичный отчёт: данные и макет\n\n**Зачем:** завершить экран по решению владельца от 05.11.2026.\n**Часть чего:** остаток SP-E8-19E, docs/results/SP-E8-19E.md.\n**Зависимости:** SP-E8-19E.\n\n## Приёмка\n- Обеспечить подтверждённые публичные поля логотипа, истории метрик, спарклайнов, приоритета и шагов действий.\n- Показать данные в публичном снимке и полностью сверить экран с макетом, сохранив TTL и отзыв доступа.\n\nПроверить права, изоляцию брендов и ошибки. Остаток записать в отчёт.\n\nScope: `app/Vision/Publications/`, `app/Vision/Reports/`, `resources/views/public-report/`, `tests/Feature/Vision/Reports/`, `tests/Browser/E8-19F/`, `docs/results/SP-E8-19F.md`.\n",
+      "dependsOn": [
+        "SP-E8-19E"
+      ],
+      "scope": [
+        "app/Vision/Publications/",
+        "app/Vision/Reports/",
+        "resources/views/public-report/",
+        "tests/Feature/Vision/Reports/",
+        "tests/Browser/E8-19F/",
+        "docs/results/SP-E8-19F.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Обеспечить подтверждённые публичные поля логотипа, истории метрик, спарклайнов, приоритета и шагов действий.",
+        "Показать данные в публичном снимке и полностью сверить экран с макетом, сохранив TTL и отзыв доступа."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "V-5.10"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E8-19F.md"
+    },
+    {
+      "taskKey": "SP-E8-21M",
+      "title": "SP-E8-21M · Лимиты и этапы инспектора сайта",
+      "goal": "Реализовать четыре подтверждённых этапа, лимит до 50 страниц и оценку 2–5 минут согласно карточке; расширить инспектор и проверить права, бренд и ошибки.",
+      "description": "# SP-E8-21M · Лимиты и этапы инспектора сайта\n\n**Зачем:** завершить экран по решению владельца от 05.11.2026.\n**Часть чего:** остаток SP-E8-21L, docs/results/SP-E8-21L.md.\n**Зависимости:** SP-E8-21L.\n\n## Приёмка\n- Реализовать четыре подтверждённых этапа, лимит до 50 страниц и оценку 2–5 минут согласно карточке; расширить инспектор и проверить права, бренд и ошибки.\n\nПроверить права, изоляцию брендов и ошибки. Остаток записать в отчёт.\n\nScope: `app/Vision/Site/`, `app/Vision/SiteAudit/`, `resources/js/pages/Vision/Site/`, `resources/js/features/Vision/Site/`, `tests/Feature/Vision/Site/`, `tests/Browser/E8-21M/`, `docs/results/SP-E8-21M.md`.\n",
+      "dependsOn": [
+        "SP-E8-21L"
+      ],
+      "scope": [
+        "app/Vision/Site/",
+        "app/Vision/SiteAudit/",
+        "resources/js/pages/Vision/Site/",
+        "resources/js/features/Vision/Site/",
+        "tests/Feature/Vision/Site/",
+        "tests/Browser/E8-21M/",
+        "docs/results/SP-E8-21M.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Реализовать четыре подтверждённых этапа, лимит до 50 страниц и оценку 2–5 минут согласно карточке; расширить инспектор и проверить права, бренд и ошибки."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "V-8.5"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E8-21M.md"
+    },
+    {
+      "taskKey": "SP-E1-11D",
+      "title": "SP-E1-11D · Хранение и удаление аккаунта",
+      "goal": "Определить и обеспечить подтверждённую политику хранения 365 дней и очистку данных. Реализовать удаление аккаунта с повторным паролем и проверкой прав; определить поведение владельца и связанных данных по решениям владельца. Удаление организации исключено решением владельца.",
+      "description": "# SP-E1-11D · Хранение и удаление аккаунта\n\n**Зачем:** завершить экран по решению владельца от 05.11.2026.\n**Часть чего:** остаток SP-E1-11C, docs/results/SP-E1-11C.md.\n**Зависимости:** SP-E1-11C.\n\n## Приёмка\n- Определить и обеспечить подтверждённую политику хранения 365 дней и очистку данных.\n- Реализовать удаление аккаунта с повторным паролем и проверкой прав; определить поведение владельца и связанных данных по решениям владельца.\n- Удаление организации исключено решением владельца.\n\nПроверить права, изоляцию брендов и ошибки. Остаток записать в отчёт.\n\nScope: `app/Shell/Data/`, `app/Shell/Auth/`, `app/Privacy/`, `routes/features/E1-11.php`, `resources/js/pages/Shell/Data/`, `tests/Feature/Owner/E1-11D/`, `tests/Browser/E1-11D/`, `docs/results/SP-E1-11D.md`.\n",
+      "dependsOn": [
+        "SP-E1-11C"
+      ],
+      "scope": [
+        "app/Shell/Data/",
+        "app/Shell/Auth/",
+        "app/Privacy/",
+        "routes/features/E1-11.php",
+        "resources/js/pages/Shell/Data/",
+        "tests/Feature/Owner/E1-11D/",
+        "tests/Browser/E1-11D/",
+        "docs/results/SP-E1-11D.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Определить и обеспечить подтверждённую политику хранения 365 дней и очистку данных.",
+        "Реализовать удаление аккаунта с повторным паролем и проверкой прав; определить поведение владельца и связанных данных по решениям владельца.",
+        "Удаление организации исключено решением владельца."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "S-7.4"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E1-11D.md"
     }
   ],
   "excludedSourceTasks": {
