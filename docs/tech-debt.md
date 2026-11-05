@@ -423,3 +423,5 @@
 - CustomersController.php:53,244-252: фильтры и пагинация в памяти, N+1.
 - TopicsController.php:62-63: сообщения за 30 дней в памяти.
 - Неиспользуемые дубли features/Vision/Questions/Workspace.tsx и features/Vision/Reports/ReportSections.tsx. Рабочие файлы лежат в pages/Vision, есть риск поправить не тот.
+
+- SP-E3-06F: существующие защищённые стадии связывают выполнение с пользователем и хешем HTTP-сессии; остаток — SP-E3-06G.
