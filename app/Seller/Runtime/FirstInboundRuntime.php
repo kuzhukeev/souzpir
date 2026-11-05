@@ -79,8 +79,17 @@ final class FirstInboundRuntime
 
                     return ['mode' => 'suppressed', 'result' => $this->suppressManagerTurn($tenant, $command, 'manager')];
                 }
-                if (! $schedule->available($tenant, $settings, CarbonImmutable::now())) {
+                $scheduleMode = $schedule->mode($tenant, $settings, CarbonImmutable::now());
+                if ($scheduleMode === 'off') {
                     return ['mode' => 'suppressed', 'result' => $this->suppressManagerTurn($tenant, $command, $conversation->mode)];
+                }
+                if ($scheduleMode === 'suggest' && $conversation->mode === 'bot') {
+                    if ($command->expectedVersion !== (int) $conversation->version) {
+                        throw new \LogicException;
+                    }
+                    DB::table('conversations')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
+                        ->where('id', $conversation->id)->where('mode', 'bot')->update(['mode' => 'suggest', 'updated_at' => now()]);
+                    $conversation->mode = 'suggest';
                 }
 
                 return ['mode' => $conversation->mode, 'version' => (int) $conversation->version, 'stage' => $conversation->stage];

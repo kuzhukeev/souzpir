@@ -18,8 +18,14 @@ final class AssignmentSelector
         if ($method !== 'round_robin') {
             return null;
         }
-        $index = $last === null ? false : array_search($last, $eligible, true);
+        if ($last !== null) {
+            foreach ($eligible as $candidate) {
+                if (strcmp($candidate, $last) > 0) {
+                    return $candidate;
+                }
+            }
+        }
 
-        return $eligible[$index === false ? 0 : (($index + 1) % count($eligible))];
+        return $eligible[0];
     }
 }
