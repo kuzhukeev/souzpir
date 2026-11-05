@@ -4,7 +4,7 @@ import SlotOrder from './SlotOrder';
 import { Head, Link, useForm } from '@inertiajs/react';
 import CabinetLayout from '@/layouts/CabinetLayout';
 type Followup={enabled:boolean;first_hours:number;second_hours:number|null;task_after_hours?:number;max_auto:number;window:{start:string;end:string}|null;texts:string[];agreed_text:string;excluded_stages?:string[]};
-type Policy={off_topic_action?:string;slot_order?:Record<string,string[]>;limits?:Record<string,unknown>;stages?:Record<string,{next?:string|null;when?:string}>;tools_by_stage?:Record<string,string[]>;triggers_by_stage?:Record<string,string[]>};
+type Policy={client_fields?:{id:string;name:string;required:boolean;stage?:string|null}[];off_topic_action?:string;slot_order?:Record<string,string[]>;limits?:Record<string,unknown>;stages?:Record<string,{next?:string|null;when?:string}>;tools_by_stage?:Record<string,string[]>;triggers_by_stage?:Record<string,string[]>};
 const names:Record<string,string>={unknown:'Не определён',newbie:'Начинающий',experienced:'Опытный',for_self:'Для себя',prices_only:'Только цены',city:'Город',purpose:'Цель',experience:'Опыт',outlet_type:'Точка продаж',categories:'Категории',budget_range:'Бюджет',timing:'Сроки',email:'Электронная почта',messenger:'Мессенджер',next_contact_at:'Следующий контакт',current_supplier:'Текущий поставщик',open:'Открытие',qualify:'Квалификация',need:'Потребность',budget:'Бюджет',close_contact:'Завершение контакта',followup:'Напоминание',handoff:'Передача',spam:'Спам',lost:'Отказ',done:'Завершено'};
 const label=(key:string)=>names[key] ?? key;
 const card='rounded-xl border border-(--color-border) bg-(--color-surface) p-5';
