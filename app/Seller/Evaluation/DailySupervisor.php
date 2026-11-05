@@ -17,7 +17,7 @@ final class DailySupervisor
         $from = $day->utc();
         $to = $day->addDay()->utc();
         $rows = DB::table('seller_evaluations')->whereNotNull('sim_run_id')->where('created_at', '>=', $from)->where('created_at', '<', $to)
-            ->where(fn ($query) => $query->whereNull('comment')->orWhere('comment', '!=', ScenarioFallbackJudge::COMMENT))
+            ->where(fn ($query) => EvaluationVisibility::excludeTestBaseline($query))
             ->orderBy('id')->get(['id', 'organization_id', 'brand_id', 'issues', 'average']);
         $created = 0;
         foreach ($rows->groupBy(fn ($row) => $row->organization_id.':'.$row->brand_id) as $group) {

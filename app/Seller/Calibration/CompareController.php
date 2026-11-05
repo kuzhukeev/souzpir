@@ -3,6 +3,7 @@
 namespace App\Seller\Calibration;
 
 use App\Models\User;
+use App\Seller\Evaluation\EvaluationVisibility;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Profile\ProfileAccess;
 use App\Tenancy\TenantContext;
@@ -23,7 +24,7 @@ final class CompareController
                 $join->on('e.sim_run_id', '=', 'r.id')->on('e.organization_id', '=', 'r.organization_id')->on('e.brand_id', '=', 'r.brand_id');
             })->join('seller_personas as p', function ($join): void {
                 $join->on('p.id', '=', 'r.persona_id')->on('p.organization_id', '=', 'r.organization_id')->on('p.brand_id', '=', 'r.brand_id');
-            })->where('r.organization_id', $tenant->organizationId)->where('r.brand_id', $tenant->brandId);
+            })->where(fn ($query) => EvaluationVisibility::excludeTestBaseline($query, 'e.'))->where('r.organization_id', $tenant->organizationId)->where('r.brand_id', $tenant->brandId);
             $rows = (clone $query)->orderByDesc('r.created_at')->limit(100)->get(['r.id', 'r.persona_id', 'r.created_at', 'r.metrics', 'p.name', 'e.average', 'e.scores']);
             $releaseIds = $rows->map(fn ($row) => json_decode($row->metrics, true)['knowledge_release_id'] ?? null)->filter()->unique()->values();
             $versions = $releaseIds->isEmpty() ? collect() : DB::table('knowledge_releases')

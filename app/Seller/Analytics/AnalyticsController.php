@@ -3,6 +3,7 @@
 namespace App\Seller\Analytics;
 
 use App\Models\User;
+use App\Seller\Evaluation\EvaluationVisibility;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Profile\ProfileAccess;
 use App\Tenancy\TenantContext;
@@ -149,7 +150,7 @@ final class AnalyticsController
             })->where('review.organization_id', $tenant->organizationId)->where('review.brand_id', $tenant->brandId)
                 ->whereIn('message.conversation_id', $ids)->where('review.created_at', '>=', $begin)->where('review.created_at', '<', $end)
                 ->selectRaw('review.user_id, count(*) as total')->groupBy('review.user_id')->pluck('total', 'user_id');
-            $evaluations = DB::table('seller_evaluations')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
+            $evaluations = DB::table('seller_evaluations')->where(fn ($query) => EvaluationVisibility::excludeTestBaseline($query))->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
                 ->whereIn('conversation_id', $ids)->get(['conversation_id', 'average'])->groupBy('conversation_id');
             foreach ($managers as $id => &$managerData) {
                 $values = $rows->where('assigned_user_id', $id)->flatMap(fn ($row) => $evaluations[$row->id] ?? collect())->pluck('average')->filter(fn ($value) => is_numeric($value));
@@ -184,7 +185,7 @@ final class AnalyticsController
         }
         arsort($topics);
 
-        $ratings = DB::table('seller_evaluations')->where('organization_id', $tenant->organizationId)
+        $ratings = DB::table('seller_evaluations')->where(fn ($query) => EvaluationVisibility::excludeTestBaseline($query))->where('organization_id', $tenant->organizationId)
             ->where('brand_id', $tenant->brandId)->whereIn('conversation_id', $ids)
             ->orderByDesc('created_at')->orderByDesc('id')->get(['conversation_id', 'average'])
             ->unique('conversation_id')->keyBy('conversation_id');
