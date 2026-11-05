@@ -59,9 +59,12 @@
             @endforeach
         </div>
         <section class="card" style="margin-top: 24px"><h2>Главные выводы</h2>
-            @if (count($report['competitors'] ?? []) || count($report['actions'] ?? []))
-                <ul>@if (count($report['competitors'] ?? []))<li>Чаще всего среди других компаний упоминается {{ $report['competitors'][0]['name'] }}: {{ $report['competitors'][0]['answers'] }} ответов.</li>@endif
-                @if (count($report['actions'] ?? []))<li>Рекомендация: {{ $report['actions'][0] }}.</li>@endif</ul>
+            @if (($report['visibility'] ?? null) !== null || ($report['share_of_voice'] ?? null) !== null || ($report['position'] ?? null) !== null)
+                <ol>
+                    @if (($report['visibility'] ?? null) !== null)<li>Видимость бренда: {{ number_format($report['visibility'], 1, ',', ' ') }}%.</li>@endif
+                    @if (($report['share_of_voice'] ?? null) !== null)<li>Доля голоса: {{ number_format($report['share_of_voice'], 1, ',', ' ') }}%.</li>@endif
+                    @if (($report['position'] ?? null) !== null)<li>Средняя позиция: {{ number_format($report['position'], 1, ',', ' ') }}.</li>@endif
+                </ol>
             @else<p class="muted">Проверенных выводов для этого снимка пока нет.</p>@endif
         </section>
         <section class="card" style="margin-top: 24px"><h2>Кого называют вместо вас</h2>@if (count($report['competitors'] ?? []))<ol>@foreach ($report['competitors'] as $company)<li>{{ $company['name'] }} · упоминаний: {{ $company['answers'] }}</li>@endforeach</ol>@else<p class="muted">Нет подтверждённых упоминаний компаний.</p>@endif</section>
