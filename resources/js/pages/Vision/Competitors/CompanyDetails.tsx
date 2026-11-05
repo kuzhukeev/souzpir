@@ -6,6 +6,7 @@ export type CompanyDetail = {
   answers: number;
   delta?: number | null;
   share: number | null;
+  position?: { average: number; count: number } | null;
   aliases?: string[];
   models?: string[];
   intents?: string[];
@@ -110,7 +111,8 @@ export default function CompanyDetails({
           </strong>
         </div>
         <div className="rounded-lg bg-(--color-surface-muted) p-3">
-          Средняя позиция: <strong>Нет данных</strong>
+          Средняя позиция: <strong>{company.position ? company.position.average.toLocaleString('ru-RU') : 'Нет данных'}</strong>
+          {company.position && <p className="mt-1">Подтверждений: {company.position.count}</p>}
         </div>
         <div className="rounded-lg bg-(--color-surface-muted) p-3">
           В вопросах:{' '}

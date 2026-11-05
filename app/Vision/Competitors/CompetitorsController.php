@@ -121,6 +121,7 @@ final class CompetitorsController
                 }
 
                 return ['name' => $entity['name'], 'answers' => $entity['answers'], 'share' => $entity['share_of_voice'] ?? null,
+                    'position' => $entity['position'] ?? null,
                     'quotes' => $quotes, 'delta' => $deltas === null ? null : ($deltas[$entity['name']] ?? null), 'history_series' => $series,
                     'question_count' => $matched->filter(fn ($slot) => ($slot['mentions_complete'] ?? false) === true)->pluck('qid')->filter()->unique()->count(),
                     'question_total' => count($snapshot['questions'] ?? []), 'questions_without_brand' => $withoutBrand,
