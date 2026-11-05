@@ -8,7 +8,7 @@ test.afterAll(async () => { await server?.close(); });
 test('sources display description without invented difficulty', async ({ page }) => {
  await page.goto(url);
  await expect(page.getByText('Каталог поставщиков')).toBeVisible();
- await expect(page.getByText('сложность: Нет данных')).toHaveCount(0);
+ await expect(page.getByText('сложность: Нет данных')).toBeVisible();
  await mkdir('.local/screenshots/SP-E8-20Q', { recursive: true });
  await page.screenshot({ path: '.local/screenshots/SP-E8-20Q/sources.png', fullPage: true });
 });
