@@ -19803,6 +19803,66 @@
       ],
       "wave": 20,
       "promptPath": "docs/tasks/SP-E1-04I.md"
+    },
+    {
+      "taskKey": "SP-E3-06J",
+      "title": "SP-E3-06J · Сохранение extractor-стадии job",
+      "goal": "Сохранить и восстановить подготовленный extractor-вход и результат для актуального job-claim, проверить ошибки и изоляцию бренда. Вызовы только fake; не подключать job к очереди до полного сценария SP-E3-06K.",
+      "description": "# SP-E3-06J · Сохранение extractor-стадии job\n\n**Зачем:** завершить job-вход по решению владельца.\n**Часть чего:** остаток SP-E3-06I, docs/results/SP-E3-06I.md.\n**Зависимости:** SP-E3-06I.\n\n## Приёмка\n- Сохранить и восстановить подготовленный extractor-вход и результат для актуального job-claim, проверить ошибки и изоляцию бренда.\n- Вызовы только fake; не подключать job к очереди до полного сценария SP-E3-06K.\n\nОстаток записать в отчёт.\n\nScope: `app/Ai/Protected/`, `app/Ai/Gateway.php`, `app/ProtectedOperations/`, `tests/Feature/Ai/`, `tests/Feature/ProtectedOperations/`, `docs/results/SP-E3-06J.md`.\n",
+      "dependsOn": [
+        "SP-E3-06I"
+      ],
+      "scope": [
+        "app/Ai/Protected/",
+        "app/Ai/Gateway.php",
+        "app/ProtectedOperations/",
+        "tests/Feature/Ai/",
+        "tests/Feature/ProtectedOperations/",
+        "docs/results/SP-E3-06J.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Сохранить и восстановить подготовленный extractor-вход и результат для актуального job-claim, проверить ошибки и изоляцию бренда.",
+        "Вызовы только fake; не подключать job к очереди до полного сценария SP-E3-06K."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E3-06J.md"
+    },
+    {
+      "taskKey": "SP-E3-06K",
+      "title": "SP-E3-06K · Полный fake-ход job",
+      "goal": "Подключить coordinator, gateway, extractor, responder, guard и финализацию к сохранённым стадиям job. Проверить полный fake-ход, восстановление, HTTP-права и ошибки; не запускать живые вызовы.",
+      "description": "# SP-E3-06K · Полный fake-ход job\n\n**Зачем:** завершить job-вход по решению владельца.\n**Часть чего:** остаток SP-E3-06I, docs/results/SP-E3-06I.md.\n**Зависимости:** SP-E3-06J.\n\n## Приёмка\n- Подключить coordinator, gateway, extractor, responder, guard и финализацию к сохранённым стадиям job.\n- Проверить полный fake-ход, восстановление, HTTP-права и ошибки; не запускать живые вызовы.\n\nОстаток записать в отчёт.\n\nScope: `app/Ai/Protected/`, `app/Ai/Gateway.php`, `app/ProtectedOperations/`, `app/Seller/Conversations/`, `tests/Feature/Ai/`, `tests/Feature/ProtectedOperations/`, `tests/Unit/Ai/`, `docs/results/SP-E3-06K.md`.\n",
+      "dependsOn": [
+        "SP-E3-06J"
+      ],
+      "scope": [
+        "app/Ai/Protected/",
+        "app/Ai/Gateway.php",
+        "app/ProtectedOperations/",
+        "app/Seller/Conversations/",
+        "tests/Feature/Ai/",
+        "tests/Feature/ProtectedOperations/",
+        "tests/Unit/Ai/",
+        "docs/results/SP-E3-06K.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Подключить coordinator, gateway, extractor, responder, guard и финализацию к сохранённым стадиям job.",
+        "Проверить полный fake-ход, восстановление, HTTP-права и ошибки; не запускать живые вызовы."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E3-06K.md"
     }
   ],
   "excludedSourceTasks": {
