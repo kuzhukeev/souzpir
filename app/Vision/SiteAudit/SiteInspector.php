@@ -31,7 +31,7 @@ class SiteInspector
 
     private function inspectInternal(#[\SensitiveParameter] string $url, ?int $pageLimit, ?callable $progress): array
     {
-        $pageLimit = max(1, min(5, $pageLimit ?? config('features.E8-01B.defaults.crawl_pages', 5)));
+        $pageLimit = max(1, min(50, $pageLimit ?? config('features.E8-01B.defaults.crawl_pages', 5)));
         $this->robotsCache = [];
         $this->requests = 0;
         $issues = [];
@@ -255,7 +255,7 @@ class SiteInspector
 
     private function fetchBounded(string $url): array
     {
-        if ($this->requests >= 10) {
+        if ($this->requests >= 60) {
             throw new \RuntimeException('Per-site request budget reached');
         }$this->requests++;
 
