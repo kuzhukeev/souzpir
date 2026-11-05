@@ -3,7 +3,7 @@
 namespace App\Seller\Scenarios;
 
 use App\Models\User;
-use App\Seller\Evaluation\ScenarioFallbackJudge;
+use App\Seller\Evaluation\EvaluationVisibility;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
@@ -50,7 +50,7 @@ final class ScenariosController
                 $evaluation = $evaluations[$row->id] ?? null;
 
                 return ['id' => $row->id, 'persona_id' => $row->persona_id, 'status' => $row->status,
-                    'result' => $evaluation?->comment === ScenarioFallbackJudge::COMMENT ? 'test_baseline' : ($evaluation ? ((float) $evaluation->average >= 4 ? 'passed' : 'failed') : ($row->status === 'failed' ? 'failed' : 'pending')),
+                    'result' => EvaluationVisibility::isTestBaseline($evaluation?->sim_run_id, $evaluation?->comment) ? 'test_baseline' : ($evaluation ? ((float) $evaluation->average >= 4 ? 'passed' : 'failed') : ($row->status === 'failed' ? 'failed' : 'pending')),
                     'average' => $evaluation?->average, 'comment' => $evaluation?->comment,
                     'turn_count' => $row->turn_count, 'turns' => json_decode($row->turns, true) ?: [],
                     'created_at' => $evaluation?->created_at ?? $row->created_at];
