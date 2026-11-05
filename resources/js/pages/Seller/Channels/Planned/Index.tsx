@@ -68,7 +68,7 @@ function Integrations({ planned }: Pick<PlannedProps, 'planned'>) {
 export default function Index({ section, planned }: PlannedProps) {
   const [title, subtitle] = titles[section];
   const item = planned.items.find((entry) => entry.key === section);
-  return <CabinetLayout brandSwitchReady breadcrumbs={[{ label: 'Продавец' }, { label: section === 'vk' || section === 'whatsapp' ? 'Каналы' : 'Интеграции' }, { label: title }]}>
+  return <CabinetLayout brandSwitchReady breadcrumbs={[{ label: 'Продавец', href: '/seller' }, { label: section === 'vk' || section === 'whatsapp' ? 'Каналы' : 'Интеграции', href: section === 'vk' || section === 'whatsapp' ? '/seller/channels' : '/seller/integrations/planned' }, { label: title }]}>
     <Head title={title} />
     <div className="mx-auto max-w-[1440px] space-y-6"><header><h1 className="text-3xl font-bold leading-tight">{title}</h1><p className="mt-2 text-base text-(--color-ink-muted)">{subtitle}</p></header>
       {(section === 'vk' || section === 'whatsapp') && (item ? <Channel item={item} section={section} canManage={planned.canManage} available={planned.interestAvailable} brandId={planned.brandId} /> : <p role="alert" className={panel}>Не удалось загрузить данные канала.</p>)}
@@ -79,6 +79,7 @@ export default function Index({ section, planned }: PlannedProps) {
         <Link href="/seller/integrations/calendar" className={`inline-flex min-h-10 cursor-pointer items-center rounded-lg bg-(--color-surface) px-4 text-sm font-semibold text-(--color-link) ${focus}`}>Почта и календарь · Скоро</Link>
       </nav>}
       {section === 'planned' && <Integrations planned={planned} />}
+      {section === 'whatsapp' && <Link href="/seller/channels" className={`inline-flex min-h-10 cursor-pointer items-center text-sm font-semibold text-(--color-link) ${focus}`}>Вернуться к каналам</Link>}
       {section !== 'planned' && <Link href="/seller/integrations/planned" className={`inline-flex min-h-10 cursor-pointer items-center text-sm font-semibold text-(--color-link) ${focus}`}>Другие будущие интеграции</Link>}
     </div>
   </CabinetLayout>;
