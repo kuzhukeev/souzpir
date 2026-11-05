@@ -42,10 +42,12 @@ final class BrandSettingsController
                 $measurement = app(TenantContextRunner::class)->run($ctx, fn () => $usage->read($ctx, new UsageQuery($from, CarbonImmutable::now('UTC'), [$metric]))->metrics[$metric]);
             }
             $quota = $limits->get($ctx, $module === 'seller' ? 'seller.dialogs_month' : 'vision.runs_per_week');
+            $moduleRow = DB::table('brand_modules')->where('organization_id', $ctx->organizationId)->where('brand_id', $brand)->where('module', $module)->first();
             $moduleItems[$module] = [
                 'usage' => $measurement, 'quota' => ['value' => $quota->value, 'configured' => $quota->configured, 'unit' => $quota->unit],
                 'enabled' => $entitlements->enabled($ctx, $module),
-                'configured_enabled' => (bool) DB::table('brand_modules')->where('organization_id', $ctx->organizationId)->where('brand_id', $brand)->where('module', $module)->value('enabled'),
+                'configured_enabled' => (bool) ($moduleRow->enabled ?? false),
+                'enabled_at' => ($moduleRow->enabled ?? false) ? $moduleRow->updated_at : null,
                 'allowed' => $entitlements->allowedByPlan($ctx, $module),
                 'limit' => ['value' => $limit->value, 'configured' => $limit->configured, 'unit' => $limit->unit],
             ];
