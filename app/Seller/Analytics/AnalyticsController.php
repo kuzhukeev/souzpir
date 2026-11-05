@@ -157,6 +157,23 @@ final class AnalyticsController
                     $managerOptions[] = ['id' => $sample->actor_id, 'name' => $sample->name];
                 }
             }
+            // Historical accepted reviews retain both the handler in the audit and the applied target on the review.
+            $acceptedReviews = DB::table('audit_logs as a')->join('users as u', 'u.id', '=', 'a.actor_id')
+                ->join('message_reviews as r', function ($join): void {
+                    $join->on('r.id', '=', 'a.subject_id')->on('r.organization_id', '=', 'a.organization_id')->on('r.brand_id', '=', 'a.brand_id');
+                })->where('a.organization_id', $tenant->organizationId)->where('a.brand_id', $tenant->brandId)
+                ->where('a.action', 'knowledge.incoming.handled')->where('a.subject_type', 'review')
+                ->where('a.after->decision', 'accept')->where('r.type', 'wrong_fact')->where('r.status', 'done')->where('r.applied_to', 'example')
+                ->where('a.created_at', '>=', $begin)->where('a.created_at', '<', $end)
+                ->when($manager !== '', fn ($query) => $query->where('a.actor_id', $manager))
+                ->selectRaw('a.actor_id, u.name, count(*) as total')->groupBy('a.actor_id', 'u.name')->get();
+            foreach ($acceptedReviews as $sample) {
+                $managers[$sample->actor_id] ??= ['name' => $sample->name, 'assigned' => 0, 'taken' => 0, 'closed' => 0, 'contact_closed' => 0, 'reaction_minutes' => [], 'workload' => []];
+                $managers[$sample->actor_id]['samples'] = ($managers[$sample->actor_id]['samples'] ?? 0) + (int) $sample->total;
+                if (! collect($managerOptions)->contains('id', $sample->actor_id)) {
+                    $managerOptions[] = ['id' => $sample->actor_id, 'name' => $sample->name];
+                }
+            }
         }
         if ($canManage && $managers) {
             $reviews = DB::table('message_reviews as review')->join('messages as message', function ($join): void {
