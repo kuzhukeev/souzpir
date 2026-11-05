@@ -5,11 +5,13 @@ namespace App\Seller\Dialogs;
 use App\Models\Membership;
 use App\Models\User;
 use App\Seller\Engine\LeadState;
+use App\Seller\Quality\ReportIssueLinks;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
 use App\Shell\Profile\ProfileAccess;
 use App\Tenancy\TenantContext;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -59,9 +61,17 @@ final class DialogsController
             $data['evaluationId'] = $dialog && ($data['dialog']['id'] ?? null) === $dialog && Gate::forUser($actor)->allows('seller.knowledge.write')
                 ? DB::table('seller_evaluations')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)->where('conversation_id', $dialog)->orderByDesc('created_at')->orderByDesc('id')->value('id')
                 : null;
-            $data['reportDay'] = $dialog && isset($input['report_day']) && ($data['dialog']['id'] ?? null) === $dialog && Gate::forUser($actor)->allows('seller.knowledge.write')
-                && DB::table('seller_supervisor_reports')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)->where('report_date', $input['report_day'])->whereJsonContains('issues', [['conversation_id' => $dialog]])->exists()
-                ? $input['report_day'] : null;
+            $data['reportDay'] = null;
+            if ($dialog && isset($input['report_day']) && ($data['dialog']['id'] ?? null) === $dialog && Gate::forUser($actor)->allows('seller.knowledge.write')) {
+                $scope = ['organization_id' => $context->organizationId, 'brand_id' => $context->brandId];
+                $reports = DB::table('seller_supervisor_reports')->where($scope)->where('report_date', $input['report_day'])->get(['issues'])
+                    ->map(fn ($row) => ['issues' => json_decode($row->issues, true) ?: []]);
+                $start = CarbonImmutable::parse($input['report_day'], $brand->timezone)->startOfDay();
+                $evaluations = DB::table('seller_evaluations')->where($scope)->whereNotNull('conversation_id')->where('created_at', '>=', $start->utc())->where('created_at', '<', $start->addDay()->utc())->get(['id', 'conversation_id', 'issues'])
+                    ->map(fn ($row) => ['id' => $row->id, 'conversation_id' => $row->conversation_id, 'issues' => json_decode($row->issues, true) ?: []]);
+                $linked = app(ReportIssueLinks::class)->enrich($reports, $evaluations)->flatMap(fn ($report) => $report['issues'])->contains(fn ($issue) => ($issue['conversation_id'] ?? null) === $dialog);
+                $data['reportDay'] = $linked ? $input['report_day'] : null;
+            }
             $templates = app()->bound(MessageTemplates::class) ? app(MessageTemplates::class) : app(DefaultMessageTemplates::class);
             $data['messageTemplates'] = $templates->forBrand($context);
 
