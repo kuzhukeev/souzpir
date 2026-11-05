@@ -3,8 +3,8 @@
 namespace App\Seller\Scenarios;
 
 use App\Models\User;
+use App\Seller\Evaluation\EvaluationVisibility;
 use App\Seller\Evaluation\Jobs\SimulateFakeJob;
-use App\Seller\Evaluation\ScenarioFallbackJudge;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Profile\ProfileAccess;
 use App\Tenancy\TenantContext;
@@ -50,7 +50,7 @@ final class RunsController
                     $average = $evaluation?->average;
 
                     return ['name' => $item['name'], 'status' => $item['status'], 'run_id' => $item['run_id'] ?? null, 'average' => $average,
-                        'evaluation' => $evaluation?->comment === ScenarioFallbackJudge::COMMENT ? 'fake' : ($average === null && ($item['evaluation'] ?? null) === 'unavailable' ? 'unavailable' : null)];
+                        'evaluation' => EvaluationVisibility::isTestBaseline($evaluation?->sim_run_id, $evaluation?->comment) ? 'fake' : ($average === null && ($item['evaluation'] ?? null) === 'unavailable' ? 'unavailable' : null)];
                 });
 
                 return ['id' => $group->id, 'status' => $group->status, 'created_at' => $group->created_at, 'items' => $items->all(), 'average' => $items->filter(fn (array $item) => $item['evaluation'] !== 'fake' && $item['average'] !== null)->avg('average'),
@@ -66,7 +66,7 @@ final class RunsController
                     return ['id' => $run->id, 'persona' => $personas->firstWhere('id', $run->persona_id)?->name ?? 'Сценарий', 'status' => $run->status, 'created_at' => $run->created_at,
                         'release_status' => $releaseStatuses[$metrics['knowledge_release_id'] ?? ''] ?? null, 'turns' => json_decode($run->turns, true) ?: [],
                         'scores' => $evaluation ? (json_decode($evaluation->scores, true) ?: []) : [], 'issues' => $evaluation ? (json_decode($evaluation->issues, true) ?: []) : [], 'average' => $evaluation?->average,
-                        'test_baseline' => $evaluation?->comment === ScenarioFallbackJudge::COMMENT, 'cost' => null];
+                        'test_baseline' => EvaluationVisibility::isTestBaseline($evaluation?->sim_run_id, $evaluation?->comment), 'cost' => null];
                 })->all()];
         });
 
