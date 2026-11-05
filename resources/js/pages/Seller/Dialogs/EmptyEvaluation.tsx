@@ -1,0 +1,5 @@
+import * as Dialog from '@radix-ui/react-dialog';
+
+export default function EmptyEvaluation() {
+  return <Dialog.Root><Dialog.Trigger asChild><button type="button" className="cursor-pointer rounded-lg border border-(--color-border) px-3 py-2 text-sm">Оценка диалога</button></Dialog.Trigger><Dialog.Portal><Dialog.Overlay className="fixed inset-0 z-40 bg-black/50"/><Dialog.Content className="fixed inset-y-0 right-0 z-50 w-full max-w-xl overflow-y-auto bg-(--color-surface) p-6 text-(--color-ink) shadow-xl"><div className="flex items-start justify-between gap-3"><Dialog.Title className="text-2xl font-bold">Оценка диалога</Dialog.Title><Dialog.Close aria-label="Закрыть" className="min-h-11 min-w-11 cursor-pointer rounded-lg border border-(--color-border)">×</Dialog.Close></div><Dialog.Description className="mt-4 text-sm">Оценки пока нет.</Dialog.Description><p className="mt-2 text-sm text-(--color-ink-muted)">Оценка этого диалога пока недоступна.</p><button type="button" disabled className="mt-5 min-h-11 rounded-lg bg-(--color-link) px-4 text-sm font-semibold text-white opacity-50">Оценить сейчас</button></Dialog.Content></Dialog.Portal></Dialog.Root>;
+}
