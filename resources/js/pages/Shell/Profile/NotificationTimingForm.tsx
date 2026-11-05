@@ -27,7 +27,6 @@ export function NotificationTimingForm({ draft, revision, active = false }: { dr
     <form onSubmit={save} className="mt-4 space-y-4">
       <p className="text-sm leading-6 text-(--color-ink-muted)">{active ? 'Тихие часы и сводка применяются к тестовой доставке email и Telegram.' : t('timing_draft_help')}</p>
       {active && <p className="text-sm leading-6 text-(--color-ink-muted)">Личное время сводки имеет приоритет над временем продавца для этого бренда. Если оно не выбрано, используется время продавца. Уведомления в кабинете приходят сразу.</p>}
-      {active && <p className="text-sm leading-6 text-(--color-ink-muted)">Тестовые сводки продавца и остальных событий пока формируются отдельно.</p>}
       {feedback.notice && <Notice>{feedback.notice}</Notice>}
       <Errors errors={form.errors} transport={transport} />
       <div className="grid gap-4 sm:grid-cols-2">
