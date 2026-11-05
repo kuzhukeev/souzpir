@@ -23,6 +23,7 @@ final class TelegramController
     {
         $this->authorize($context, false);
         $accounts = ChannelAccount::query()->orderBy('name')->get();
+        $widget = DB::table('widget_settings')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)->first(['enabled', 'origins']);
         $counts = DB::table('conversations')->where('organization_id', $context->organizationId)
             ->where('brand_id', $context->brandId)
             ->selectRaw('channel_account_id, sum(case when last_client_message_at >= ? then 1 else 0 end) as total, max(last_client_message_at) as last_activity', [now()->subDays(7)])
@@ -34,6 +35,8 @@ final class TelegramController
                 'status' => $account->status, 'mode' => $account->default_mode,
                 'dialogs7d' => (int) ($counts->get($account->id)?->total ?? 0), 'lastActivity' => $counts->get($account->id)?->last_activity,
             ])->all(),
+            'siteOrigins' => json_decode($widget->origins ?? '[]', true) ?: [],
+            'siteEnabled' => $widget ? (bool) $widget->enabled : false,
             'canManage' => Gate::allows('seller.settings.write'), 'status' => session('status'),
         ]);
     }
