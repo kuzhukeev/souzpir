@@ -112,7 +112,9 @@ final class QualityController
             $start = CarbonImmutable::parse($day, $timezone)->startOfDay();
             $turns = DB::table('seller_turns')->where($scope)->whereIn('conversation_id', $ids)->where('status', 'completed')->where('created_at', '>=', $start->utc())->where('created_at', '<', $start->addDay()->utc())->count();
 
-            return [$rows, $this->reports($tenant, day: $day)->values(), ['dialogs' => count($ids), 'turns' => $turns,
+            $reports = app(ReportIssueLinks::class)->enrich($this->reports($tenant, day: $day)->values(), $rows);
+
+            return [$rows, $reports, ['dialogs' => count($ids), 'turns' => $turns,
                 'contact' => $outcomes->filter(fn ($outcome) => in_array($outcome, ['full_contact', 'partial_contact'], true))->count(),
                 'handoff' => $outcomes->filter(fn ($outcome) => $outcome === 'handoff')->count(),
                 'other' => $outcomes->filter(fn ($outcome) => ! in_array($outcome, ['full_contact', 'partial_contact', 'handoff'], true))->count()]];
