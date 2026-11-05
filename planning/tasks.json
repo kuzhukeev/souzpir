@@ -19863,6 +19863,141 @@
       "screenIds": [],
       "wave": 20,
       "promptPath": "docs/tasks/SP-E3-06K.md"
+    },
+    {
+      "taskKey": "SP-E8-21P",
+      "title": "SP-E8-21P · Подтверждение времени обхода сайта",
+      "goal": "Уточнить лимиты и измерения в целевом окружении, затем подтвердить или пересмотреть ориентир 2–5 минут; до подтверждения показывать фактическое время. Живые запросы только с разрешения владельца.",
+      "dependsOn": [
+        "SP-E8-21O"
+      ],
+      "scope": [
+        "app/Vision/Site/",
+        "resources/js/pages/Vision/Site/",
+        "tests/Feature/Vision/Site/",
+        "tests/Browser/E8-21P/",
+        "docs/results/SP-E8-21P.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Уточнить лимиты и измерения в целевом окружении, затем подтвердить или пересмотреть ориентир 2–5 минут; до подтверждения показывать фактическое время. Живые запросы только с разрешения владельца.",
+        "Проверить сценарии, права и изоляцию брендов."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "V-8.5"
+      ],
+      "notes": "Остаток SP-E8-21O.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md",
+        "docs/results/SP-E8-21O.md"
+      ],
+      "promptPath": "docs/tasks/SP-E8-21P.md",
+      "wave": 20,
+      "description": "# SP-E8-21P · Подтверждение времени обхода сайта\n\n**Зачем:** закрыть оставшиеся пункты экрана V-8.5 по принятому результату.\n**Часть чего:** остаток SP-E8-21O, docs/results/SP-E8-21O.md.\n**Зависимости:** SP-E8-21O.\n\n## Приёмка\n- Уточнить лимиты и измерения в целевом окружении, затем подтвердить или пересмотреть ориентир 2–5 минут; до подтверждения показывать фактическое время. Живые запросы только с разрешения владельца.\n- Проверить основной сценарий, права и изоляцию брендов, состояния и ошибки; без живых платных вызовов.\n- Незавершённое указать в разделе «Остаток» отчёта.\n\nScope: `app/Vision/Site/`, `resources/js/pages/Vision/Site/`, `tests/Feature/Vision/Site/`, `tests/Browser/E8-21P/`, `docs/results/SP-E8-21P.md`.\n"
+    },
+    {
+      "taskKey": "SP-E5-09C",
+      "title": "SP-E5-09C · Время отключения канала",
+      "goal": "Сохранять подтверждённое время перехода канала в disabled и обновлять при повторном включении; событие старше 24 часов, неизвестное время для старых каналов, граничные случаи и изоляция брендов.",
+      "dependsOn": [
+        "SP-E5-09B"
+      ],
+      "scope": [
+        "app/Seller/Channels/",
+        "app/Seller/Dashboard/",
+        "database/migrations/E5-09C/",
+        "tests/Feature/Seller/Channels/",
+        "tests/Feature/Seller/Dashboard/",
+        "tests/Browser/E5-09C/",
+        "docs/results/SP-E5-09C.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Сохранять подтверждённое время перехода канала в disabled и обновлять при повторном включении; событие старше 24 часов, неизвестное время для старых каналов, граничные случаи и изоляция брендов.",
+        "Проверить сценарии, права и изоляцию брендов."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "D-1.2"
+      ],
+      "notes": "Остаток SP-E5-09B.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md",
+        "docs/results/SP-E5-09B.md"
+      ],
+      "promptPath": "docs/tasks/SP-E5-09C.md",
+      "wave": 20,
+      "description": "# SP-E5-09C · Время отключения канала\n\n**Зачем:** закрыть оставшиеся пункты экрана D-1.2 по принятому результату.\n**Часть чего:** остаток SP-E5-09B, docs/results/SP-E5-09B.md.\n**Зависимости:** SP-E5-09B.\n\n## Приёмка\n- Сохранять подтверждённое время перехода канала в disabled и обновлять при повторном включении; событие старше 24 часов, неизвестное время для старых каналов, граничные случаи и изоляция брендов.\n- Проверить основной сценарий, права и изоляцию брендов, состояния и ошибки; без живых платных вызовов.\n- Незавершённое указать в разделе «Остаток» отчёта.\n\nScope: `app/Seller/Channels/`, `app/Seller/Dashboard/`, `database/migrations/E5-09C/`, `tests/Feature/Seller/Channels/`, `tests/Feature/Seller/Dashboard/`, `tests/Browser/E5-09C/`, `docs/results/SP-E5-09C.md`.\n"
+    },
+    {
+      "taskKey": "SP-E8-16K",
+      "title": "SP-E8-16K · Завершение экранов прогресса и видимости",
+      "goal": "V-3.3: отдельный маршрут прогресса, оставшееся время, уведомление, лента и число уточнений. V-4.4: подтверждённое изменение видимости X → Y. Сверить с макетами; не выдумывать данные.",
+      "dependsOn": [
+        "SP-E8-16J"
+      ],
+      "scope": [
+        "app/Vision/Measurements/",
+        "resources/js/pages/Vision/Measurements/",
+        "tests/Feature/Vision/Measurements/",
+        "tests/Browser/E8-16K/",
+        "docs/results/SP-E8-16K.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "V-3.3: отдельный маршрут прогресса, оставшееся время, уведомление, лента и число уточнений. V-4.4: подтверждённое изменение видимости X → Y. Сверить с макетами; не выдумывать данные.",
+        "Проверить сценарии, права и изоляцию брендов."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "V-3.3"
+      ],
+      "notes": "Остаток SP-E8-16J.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md",
+        "docs/results/SP-E8-16J.md"
+      ],
+      "promptPath": "docs/tasks/SP-E8-16K.md",
+      "wave": 20,
+      "description": "# SP-E8-16K · Завершение экранов прогресса и видимости\n\n**Зачем:** закрыть оставшиеся пункты экрана V-3.3 по принятому результату.\n**Часть чего:** остаток SP-E8-16J, docs/results/SP-E8-16J.md.\n**Зависимости:** SP-E8-16J.\n\n## Приёмка\n- V-3.3: отдельный маршрут прогресса, оставшееся время, уведомление, лента и число уточнений. V-4.4: подтверждённое изменение видимости X → Y. Сверить с макетами; не выдумывать данные.\n- Проверить основной сценарий, права и изоляцию брендов, состояния и ошибки; без живых платных вызовов.\n- Незавершённое указать в разделе «Остаток» отчёта.\n\nScope: `app/Vision/Measurements/`, `resources/js/pages/Vision/Measurements/`, `tests/Feature/Vision/Measurements/`, `tests/Browser/E8-16K/`, `docs/results/SP-E8-16K.md`.\n"
+    },
+    {
+      "taskKey": "SP-E4-01Y",
+      "title": "SP-E4-01Y · История и контракт отката знаний",
+      "goal": "Выровнять поведение repository rollback и экрана с существующими вызовами; показатели изменений, диалогов и качества в истории, автор и время строк diff при наличии подтверждённых источников.",
+      "dependsOn": [
+        "SP-E4-01V"
+      ],
+      "scope": [
+        "app/Seller/Knowledge/Contracts/",
+        "app/Seller/Knowledge/Releases/",
+        "resources/js/pages/Seller/Knowledge/Releases/",
+        "tests/Feature/Seller/Knowledge/Releases/",
+        "tests/Browser/E4-01Y/",
+        "docs/results/SP-E4-01Y.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Выровнять поведение repository rollback и экрана с существующими вызовами; показатели изменений, диалогов и качества в истории, автор и время строк diff при наличии подтверждённых источников.",
+        "Проверить сценарии, права и изоляцию брендов."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "D-4.12"
+      ],
+      "notes": "Остаток SP-E4-01V.",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md",
+        "docs/results/SP-E4-01V.md"
+      ],
+      "promptPath": "docs/tasks/SP-E4-01Y.md",
+      "wave": 20,
+      "description": "# SP-E4-01Y · История и контракт отката знаний\n\n**Зачем:** закрыть оставшиеся пункты экрана D-4.12 по принятому результату.\n**Часть чего:** остаток SP-E4-01V, docs/results/SP-E4-01V.md.\n**Зависимости:** SP-E4-01V.\n\n## Приёмка\n- Выровнять поведение repository rollback и экрана с существующими вызовами; показатели изменений, диалогов и качества в истории, автор и время строк diff при наличии подтверждённых источников.\n- Проверить основной сценарий, права и изоляцию брендов, состояния и ошибки; без живых платных вызовов.\n- Незавершённое указать в разделе «Остаток» отчёта.\n\nScope: `app/Seller/Knowledge/Contracts/`, `app/Seller/Knowledge/Releases/`, `resources/js/pages/Seller/Knowledge/Releases/`, `tests/Feature/Seller/Knowledge/Releases/`, `tests/Browser/E4-01Y/`, `docs/results/SP-E4-01Y.md`.\n"
     }
   ],
   "excludedSourceTasks": {
