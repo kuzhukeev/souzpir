@@ -21,20 +21,21 @@ final class DraftScenarioPreview
         return $this->previewTurn($draft, $client, $expectations, $state, true);
     }
 
-    public function dialogue(KnowledgeSnapshot $draft, array $persona, int $maxTurns, ?Request $request = null, ?string $personaKey = null): array
+    public function dialogue(KnowledgeSnapshot $draft, array $persona, int $maxTurns, ?Request $request = null, ?string $personaKey = null, string $clientModel = 'fake'): array
     {
+        $strategy = ClientModel::strategy($clientModel);
         $clients = [];
         $first = trim((string) ($persona['first_message'] ?? ''));
         if ($first !== '') {
             $clients[] = ['text' => $first, 'field' => null];
         }
-        foreach ((array) ($persona['facts'] ?? []) as $field => $fact) {
+        foreach (($strategy === 'facts' ? (array) ($persona['facts'] ?? []) : []) as $field => $fact) {
             if (is_scalar($fact) && trim((string) $fact) !== '') {
                 $clients[] = ['text' => 'Уточню: '.trim((string) $fact), 'field' => is_string($field) ? $field : null];
             }
         }
         if ($clients === []) {
-            $clients[] = ['text' => 'Тестовый вопрос', 'field' => null];
+            $clients[] = ['text' => (string) ($persona['behavior'] ?? 'Тестовый вопрос'), 'field' => null];
         }
         // Add one reviewed synthetic input after the saved persona facts; never replace them.
         if ($request !== null && $personaKey !== null && count($clients) < $maxTurns && config('runtime.ai_driver') === 'fake') {

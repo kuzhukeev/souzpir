@@ -19,7 +19,7 @@ final class SimulateFakeJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public function __construct(public string $organizationId, public string $brandId, public string $personaKey, public array $turns) {}
+    public function __construct(public string $organizationId, public string $brandId, public string $personaKey, public array $turns, public string $clientModel = 'fake') {}
 
     public function handle(FakeSimulation $simulation): string
     {
@@ -33,7 +33,7 @@ final class SimulateFakeJob implements ShouldQueue
 
         return app(TenantContextRunner::class)->run($tenant, fn () => app(RuntimeSimulation::class)->run(
             $tenant, $this->personaKey, count($this->turns), app()->bound(SimulationRuntime::class)
-            ? app(SimulationRuntime::class) : app(ProtectedSimulationRuntime::class)
+            ? app(SimulationRuntime::class) : app(ProtectedSimulationRuntime::class), $this->clientModel
         ));
     }
 }
