@@ -17,3 +17,8 @@ Scope: `app/Seller/Settings/Schedule/`, `resources/js/pages/Seller/Settings/Sche
 - обновить устаревшие ссылки «Где сейчас» в docs/tasks/SP-E6-06D.md.
 
 Проверка 05.11.2026: ссылки на режим и распределение уже присутствуют без метки «Скоро»; остальные пункты сверять по текущим файлам.
+
+## Остаток SP-E6-06C
+- После SP-E6-06C проверить лимит активных назначений при ручном «Забрать себе» и подключить распределение к защищённой передаче при появлении такого перехода.
+
+Дополнительный scope: `app/Seller/Dialogs/`, `app/ProtectedOperations/`, `tests/Feature/Seller/Dialogs/`, `tests/Feature/ProtectedOperations/`.

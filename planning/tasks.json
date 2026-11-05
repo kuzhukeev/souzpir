@@ -10095,8 +10095,8 @@
     {
       "taskKey": "SP-E6-06D",
       "title": "SP-E6-06D · Режим работы и распределение: остаток",
-      "description": "# SP-E6-06D · Режим работы и распределение: остаток\n\n**Зачем:** решение владельца от 03.11.2026 закрыть незапланированные расхождения с макетами по итогам аудита 160 экранов; экраны D-11.1, D-11.2.\n**Часть чего:** SP-E6-06B/06C закрывают только runtime.\n**Зависимости:** SP-E6-06B, SP-E6-06C, SP-E1-12B (дождаться merge).\n\n- Экран D-11.1 «Режим и расписание» соответствует макету из матрицы по пунктам (журнал docs/sources/02b_mockup_journal.md [76]): сообщение вне часов; таймзона не редактируется; применение «позже»; устаревшая метка «Режим работы · Скоро». Где сейчас: resources/js/pages/Seller/Settings/Schedule/Index.tsx:15; resources/js/pages/Seller/Settings/Limits/Index.tsx:62.\n- Экран D-11.2 «Распределение» соответствует макету из матрицы по пунктам (журнал docs/sources/02b_mockup_journal.md [77]): 4-й способ; колонки Рабочие часы/Каналы; «Если никто не взял»; метка «Распределение · Скоро» устарела. Где сейчас: resources/js/pages/Seller/Settings/Schedule/Index.tsx:19; resources/js/pages/Seller/Settings/Limits/Index.tsx:63.\n- Каждый пункт покрыт Feature- или Browser-тестом; данные только текущего бренда, проверены права ролей; состояния пусто / загрузка / ошибка как на макете; в отчёте скриншоты каждого экрана рядом с макетом.\n- Без живых и платных внешних вызовов без разрешения владельца; если пункт макета противоречит ТЗ или требует решения владельца, исполнитель не выдумывает, а записывает вопрос в docs/decisions-pending.md и делает остальное.\n\nScope: `app/Seller/Settings/Schedule/`, `resources/js/pages/Seller/Settings/Schedule/`, `routes/features/E6-06.php`, `tests/Feature/Seller/Settings/Schedule/`, `tests/Browser/E6-06D/`, `docs/results/SP-E6-06D.md`.\n\nОтчёт: docs/results/SP-E6-06D.md; локальные тесты задачи, submit и зелёный CI.\n\n## Дополнение владельца от 05.11.2026\n- обновить устаревшие ссылки «Где сейчас» в docs/tasks/SP-E6-06D.md.\n\nПроверка 05.11.2026: ссылки на режим и распределение уже присутствуют без метки «Скоро»; остальные пункты сверять по текущим файлам.\n",
-      "goal": "Режим работы и распределение: остаток",
+      "description": "# SP-E6-06D · Режим работы и распределение: остаток\n\n**Зачем:** решение владельца от 03.11.2026 закрыть незапланированные расхождения с макетами по итогам аудита 160 экранов; экраны D-11.1, D-11.2.\n**Часть чего:** SP-E6-06B/06C закрывают только runtime.\n**Зависимости:** SP-E6-06B, SP-E6-06C, SP-E1-12B (дождаться merge).\n\n- Экран D-11.1 «Режим и расписание» соответствует макету из матрицы по пунктам (журнал docs/sources/02b_mockup_journal.md [76]): сообщение вне часов; таймзона не редактируется; применение «позже»; устаревшая метка «Режим работы · Скоро». Где сейчас: resources/js/pages/Seller/Settings/Schedule/Index.tsx:15; resources/js/pages/Seller/Settings/Limits/Index.tsx:62.\n- Экран D-11.2 «Распределение» соответствует макету из матрицы по пунктам (журнал docs/sources/02b_mockup_journal.md [77]): 4-й способ; колонки Рабочие часы/Каналы; «Если никто не взял»; метка «Распределение · Скоро» устарела. Где сейчас: resources/js/pages/Seller/Settings/Schedule/Index.tsx:19; resources/js/pages/Seller/Settings/Limits/Index.tsx:63.\n- Каждый пункт покрыт Feature- или Browser-тестом; данные только текущего бренда, проверены права ролей; состояния пусто / загрузка / ошибка как на макете; в отчёте скриншоты каждого экрана рядом с макетом.\n- Без живых и платных внешних вызовов без разрешения владельца; если пункт макета противоречит ТЗ или требует решения владельца, исполнитель не выдумывает, а записывает вопрос в docs/decisions-pending.md и делает остальное.\n\nScope: `app/Seller/Settings/Schedule/`, `resources/js/pages/Seller/Settings/Schedule/`, `routes/features/E6-06.php`, `tests/Feature/Seller/Settings/Schedule/`, `tests/Browser/E6-06D/`, `docs/results/SP-E6-06D.md`.\n\nОтчёт: docs/results/SP-E6-06D.md; локальные тесты задачи, submit и зелёный CI.\n\n## Дополнение владельца от 05.11.2026\n- обновить устаревшие ссылки «Где сейчас» в docs/tasks/SP-E6-06D.md.\n\nПроверка 05.11.2026: ссылки на режим и распределение уже присутствуют без метки «Скоро»; остальные пункты сверять по текущим файлам.\n\n## Остаток SP-E6-06C\n- После SP-E6-06C проверить лимит активных назначений при ручном «Забрать себе» и подключить распределение к защищённой передаче при появлении такого перехода.\n",
+      "goal": "Режим работы и распределение: остаток После SP-E6-06C проверить лимит активных назначений при ручном «Забрать себе» и подключить распределение к защищённой передаче при появлении такого перехода.",
       "dependsOn": [
         "SP-E6-06B",
         "SP-E6-06C",
@@ -10108,7 +10108,11 @@
         "routes/features/E6-06.php",
         "tests/Feature/Seller/Settings/Schedule/",
         "tests/Browser/E6-06D/",
-        "docs/results/SP-E6-06D.md"
+        "docs/results/SP-E6-06D.md",
+        "app/Seller/Dialogs/",
+        "app/ProtectedOperations/",
+        "tests/Feature/Seller/Dialogs/",
+        "tests/Feature/ProtectedOperations/"
       ],
       "exclusiveResources": [],
       "acceptance": [
@@ -10116,7 +10120,8 @@
         "Экран D-11.2 «Распределение» соответствует макету из матрицы по пунктам (журнал docs/sources/02b_mockup_journal.md [77]): 4-й способ; колонки Рабочие часы/Каналы; «Если никто не взял»; метка «Распределение · Скоро» устарела. Где сейчас: Schedule/Index.tsx:276; Limits/Index.tsx:73.",
         "Каждый пункт покрыт Feature- или Browser-тестом; данные только текущего бренда, проверены права ролей; состояния пусто / загрузка / ошибка как на макете; в отчёте скриншоты каждого экрана рядом с макетом.",
         "Без живых и платных внешних вызовов без разрешения владельца; если пункт макета противоречит ТЗ или требует решения владельца, исполнитель не выдумывает, а записывает вопрос в docs/decisions-pending.md и делает остальное.",
-        "обновить устаревшие ссылки «Где сейчас» в docs/tasks/SP-E6-06D.md."
+        "обновить устаревшие ссылки «Где сейчас» в docs/tasks/SP-E6-06D.md.",
+        "После SP-E6-06C проверить лимит активных назначений при ручном «Забрать себе» и подключить распределение к защищённой передаче при появлении такого перехода."
       ],
       "sourceRefs": [
         "docs/sources/02_screens_matrix.md",
@@ -19333,6 +19338,137 @@
       ],
       "wave": 20,
       "promptPath": "docs/tasks/SP-E7-06D.md"
+    },
+    {
+      "taskKey": "SP-E8-19G",
+      "title": "SP-E8-19G · Логотип и действия публичного отчёта",
+      "goal": "Добавить логотип, приоритет и шаги действий в публичный снимок с явным подтверждением при публикации. Полностью сверить V-5.10 с макетом, сохранить TTL и отзыв доступа.",
+      "description": "# SP-E8-19G · Логотип и действия публичного отчёта\n\n**Зачем:** завершить экран по решению владельца.\n**Часть чего:** остаток SP-E8-19F, docs/results/SP-E8-19F.md.\n**Зависимости:** SP-E8-19F.\n\n## Приёмка\n- Добавить логотип, приоритет и шаги действий в публичный снимок с явным подтверждением при публикации.\n- Полностью сверить V-5.10 с макетом, сохранить TTL и отзыв доступа.\n\nПроверить права, бренд и ошибки. Остаток записать в отчёт.\n\nScope: `app/Vision/Publications/`, `app/Vision/Reports/`, `resources/views/public-report/`, `resources/js/pages/Vision/Reports/`, `tests/Feature/Vision/Reports/`, `tests/Browser/E8-19G/`, `docs/results/SP-E8-19G.md`.\n",
+      "dependsOn": [
+        "SP-E8-19F"
+      ],
+      "scope": [
+        "app/Vision/Publications/",
+        "app/Vision/Reports/",
+        "resources/views/public-report/",
+        "resources/js/pages/Vision/Reports/",
+        "tests/Feature/Vision/Reports/",
+        "tests/Browser/E8-19G/",
+        "docs/results/SP-E8-19G.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Добавить логотип, приоритет и шаги действий в публичный снимок с явным подтверждением при публикации.",
+        "Полностью сверить V-5.10 с макетом, сохранить TTL и отзыв доступа."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "V-5.10",
+        "V-5.P"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E8-19G.md"
+    },
+    {
+      "taskKey": "SP-E6-10E",
+      "title": "SP-E6-10E · Поля клиентов в движке и диалогах",
+      "goal": "Применить дополнительные поля в сборе данных и карточке диалога, расширив фиксированные LeadState::SLOTS. Заполнить оптовые поля только для подтверждённого прототип-бренда; остальные начинают с пустого списка. Завершить оформление D-5.1 и просмотр опубликованной схемы.",
+      "description": "# SP-E6-10E · Поля клиентов в движке и диалогах\n\n**Зачем:** завершить экран по решению владельца.\n**Часть чего:** остаток SP-E6-10, docs/results/SP-E6-10.md.\n**Зависимости:** SP-E6-10.\n\n## Приёмка\n- Применить дополнительные поля в сборе данных и карточке диалога, расширив фиксированные LeadState::SLOTS.\n- Заполнить оптовые поля только для подтверждённого прототип-бренда; остальные начинают с пустого списка.\n- Завершить оформление D-5.1 и просмотр опубликованной схемы.\n\nПроверить права, бренд и ошибки. Остаток записать в отчёт.\n\nScope: `app/Seller/Engine/`, `app/Seller/Dialogs/`, `app/Seller/Settings/Policy/`, `resources/js/pages/Seller/Dialogs/`, `resources/js/pages/Seller/Settings/Policy/`, `tests/Feature/Seller/Engine/`, `tests/Feature/Seller/Dialogs/`, `tests/Browser/E6-10E/`, `docs/results/SP-E6-10E.md`.\n",
+      "dependsOn": [
+        "SP-E6-10"
+      ],
+      "scope": [
+        "app/Seller/Engine/",
+        "app/Seller/Dialogs/",
+        "app/Seller/Settings/Policy/",
+        "resources/js/pages/Seller/Dialogs/",
+        "resources/js/pages/Seller/Settings/Policy/",
+        "tests/Feature/Seller/Engine/",
+        "tests/Feature/Seller/Dialogs/",
+        "tests/Browser/E6-10E/",
+        "docs/results/SP-E6-10E.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Применить дополнительные поля в сборе данных и карточке диалога, расширив фиксированные LeadState::SLOTS.",
+        "Заполнить оптовые поля только для подтверждённого прототип-бренда; остальные начинают с пустого списка.",
+        "Завершить оформление D-5.1 и просмотр опубликованной схемы."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "D-5.1"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E6-10E.md"
+    },
+    {
+      "taskKey": "SP-E8-24G",
+      "title": "SP-E8-24G · Внешние получатели отчёта",
+      "goal": "Определить и реализовать контракт внешних получателей и отдельного права просмотра полных ответов. Проверить доступ, отзыв и изоляцию брендов; без живых отправок и платных вызовов.",
+      "description": "# SP-E8-24G · Внешние получатели отчёта\n\n**Зачем:** завершить экран по решению владельца.\n**Часть чего:** остаток SP-E8-24F, docs/results/SP-E8-24F.md.\n**Зависимости:** SP-E8-24F.\n\n## Приёмка\n- Определить и реализовать контракт внешних получателей и отдельного права просмотра полных ответов.\n- Проверить доступ, отзыв и изоляцию брендов; без живых отправок и платных вызовов.\n\nПроверить права, бренд и ошибки. Остаток записать в отчёт.\n\nScope: `app/Vision/Settings/`, `app/Vision/Publications/`, `app/Shell/Notifications/`, `resources/js/pages/Vision/Settings/`, `tests/Feature/Vision/Settings/`, `tests/Browser/E8-24G/`, `docs/results/SP-E8-24G.md`.\n",
+      "dependsOn": [
+        "SP-E8-24F"
+      ],
+      "scope": [
+        "app/Vision/Settings/",
+        "app/Vision/Publications/",
+        "app/Shell/Notifications/",
+        "resources/js/pages/Vision/Settings/",
+        "tests/Feature/Vision/Settings/",
+        "tests/Browser/E8-24G/",
+        "docs/results/SP-E8-24G.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Определить и реализовать контракт внешних получателей и отдельного права просмотра полных ответов.",
+        "Проверить доступ, отзыв и изоляцию брендов; без живых отправок и платных вызовов."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "V-11.5"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E8-24G.md"
+    },
+    {
+      "taskKey": "SP-E7-02M",
+      "title": "SP-E7-02M · Модель клиента и оценки черновика",
+      "goal": "Принимать настроенную модель клиента через fake/runtime контракт, применять её в симуляторе и показывать в выборе. Рассчитывать подтверждённые оценки для черновика; живые вызовы выключены.",
+      "description": "# SP-E7-02M · Модель клиента и оценки черновика\n\n**Зачем:** завершить экран по решению владельца.\n**Часть чего:** остаток SP-E7-02L, docs/results/SP-E7-02L.md.\n**Зависимости:** SP-E7-02L.\n\n## Приёмка\n- Принимать настроенную модель клиента через fake/runtime контракт, применять её в симуляторе и показывать в выборе.\n- Рассчитывать подтверждённые оценки для черновика; живые вызовы выключены.\n\nПроверить права, бренд и ошибки. Остаток записать в отчёт.\n\nScope: `app/Seller/Scenarios/`, `app/Seller/Evaluation/`, `resources/js/pages/Seller/Scenarios/`, `tests/Feature/Seller/Scenarios/`, `tests/Browser/E7-02M/`, `docs/results/SP-E7-02M.md`.\n",
+      "dependsOn": [
+        "SP-E7-02L"
+      ],
+      "scope": [
+        "app/Seller/Scenarios/",
+        "app/Seller/Evaluation/",
+        "resources/js/pages/Seller/Scenarios/",
+        "tests/Feature/Seller/Scenarios/",
+        "tests/Browser/E7-02M/",
+        "docs/results/SP-E7-02M.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Принимать настроенную модель клиента через fake/runtime контракт, применять её в симуляторе и показывать в выборе.",
+        "Рассчитывать подтверждённые оценки для черновика; живые вызовы выключены."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "D-7.6"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E7-02M.md"
     }
   ],
   "excludedSourceTasks": {
