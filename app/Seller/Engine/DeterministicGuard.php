@@ -67,6 +67,9 @@ final class DeterministicGuard
 
         // ---- forbidden promises
         foreach ($rules['forbidden_promises'] ?? [] as $r) {
+            if (($r['enabled'] ?? true) === false) {
+                continue;
+            }
             if ($matchAny($r['patterns'] ?? []) && ! $hasAllow($r)) {
                 $push($r, 'запрещённое обещание: '.$r['description']);
             }
@@ -86,6 +89,9 @@ final class DeterministicGuard
                     $hit = $words > ($persona['length']['max_words'] ?? 90);
                     break;
                 case 'persona_stop_phrases':
+                    if (($persona['stop_phrases_enabled'] ?? true) === false) {
+                        break;
+                    }
                     foreach ($persona['stop_phrases'] ?? [] as $sp) {
                         if (str_contains($low, mb_strtolower($sp))) {
                             $hit = true;

@@ -28,7 +28,7 @@ final class ProhibitionsE405BTest extends TenancyTestCase
         $input = ['version' => 1, 'topics' => [], 'rules' => [['id' => 'one', 'severity' => 'block', 'enabled' => false, 'patterns' => ['кредит']]], 'maxWords' => 80, 'maxQuestions' => 2, 'stopPhrases' => ['канцелярит']];
         $this->post('/seller/knowledge/prohibitions', $input)->assertRedirect()->assertSessionHasNoErrors();
         $this->get('/seller/knowledge/prohibitions')->assertOk()->assertInertia(fn ($page) => $page->where('rules.0.patterns.0', 'кредит')->where('rules.0.enabled', false)->where('maxQuestions', 2)->where('stopPhrases.0', 'канцелярит'));
-        $this->postJson('/seller/knowledge/prohibitions/check', ['text' => 'Мы точно дадим кредит'])->assertOk()->assertJsonFragment(['запрещённое обещание: Отсрочка']);
+        $this->postJson('/seller/knowledge/prohibitions/check', ['text' => 'Мы точно дадим кредит'])->assertOk()->assertJsonPath('issues', []);
         $this->postJson('/seller/knowledge/prohibitions/check', ['text' => ''])->assertUnprocessable();
         $this->post('/seller/knowledge/prohibitions', [...$input, 'version' => 2, 'rules' => [['id' => 'one', 'severity' => 'block', 'patterns' => ['(']]]])->assertSessionHasErrors('rules');
         $this->post('/brand/switch', ['brand_id' => $other->id])->assertRedirect();
