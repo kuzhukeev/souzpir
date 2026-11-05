@@ -16,3 +16,6 @@
 Scope: `app/Seller/Channels/Widget/`, `resources/js/pages/Seller/Channels/Widget/`, `resources/js/pages/Seller/Channels/Planned/Index.tsx`, `resources/js/pages/Seller/Channels/Email/Index.tsx`, `routes/features/E5-02.php`, `tests/Feature/Seller/Channels/Widget/`, `tests/Browser/E5-02E/`, `docs/results/SP-E5-02E.md`.
 
 Отчёт: docs/results/SP-E5-02E.md; локальные тесты задачи, submit и зелёный CI.
+
+## Дополнение владельца от 05.11.2026
+- вкладки виджета Установка/Внешний вид/Поведение и подстраницы.

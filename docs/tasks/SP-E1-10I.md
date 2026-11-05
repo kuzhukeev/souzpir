@@ -13,3 +13,6 @@
 Scope: `app/Shell/Integrations/`, `app/Shell/Notifications/`, `resources/js/pages/Shell/Integrations/`, `routes/features/E1-10.php`, `tests/Feature/Shell/Integrations/`, `tests/Browser/E1-10I/`, `docs/results/SP-E1-10I.md`.
 
 Отчёт: docs/results/SP-E1-10I.md; локальные тесты задачи, submit и зелёный CI.
+
+## Дополнение владельца от 05.11.2026
+- приёмка на fake, боевое подключение за выключенным флагом (решение A3).

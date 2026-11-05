@@ -12,3 +12,6 @@
 Scope: `app/Seller/Channels/Email/`, `resources/js/pages/Seller/Channels/Email/`, `routes/features/E5-07.php`, `tests/Feature/Seller/Channels/Email/`, `tests/Browser/E5-07C/`, `docs/results/SP-E5-07C.md`.
 
 Отчёт: docs/results/SP-E5-07C.md; локальные тесты задачи, submit и зелёный CI.
+
+## Дополнение владельца от 05.11.2026
+- приёмка на fake, боевое подключение за выключенным флагом (решение A3).
