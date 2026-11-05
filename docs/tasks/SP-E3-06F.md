@@ -6,6 +6,6 @@
 
 Адаптировать общие extractor, guard и responder и их вызов из FirstTurnCoordinator для job-входа с явно подтверждённым контекстом организации и бренда. Сохранить действующий HTTP-вход и его проверки сессии и прав. Job-вход должен проверять соответствие контекста ходу и не опираться на клиентские данные без проверки; использовать только fake AI. Разрешены минимальные изменения схемы c02_protected_turn_claims через новую миграцию и общей авторизации для job без поддельной HTTP-сессии; HTTP-путь и проверки доступа сохранить. Не дублировать реализацию общих стадий. Само подключение первого хода симуляции остаётся в SP-E3-06E.
 
-Scope: `app/Ai/Protected/`, `app/Ai/Gateway.php`, `app/ProtectedOperations/`, `app/Shell/Auth/`, `app/Tenancy/`, `database/migrations/E3-06F/`, `tests/Feature/ProtectedOperations/`, `tests/Feature/Ai/`, `tests/Unit/Ai/`, `docs/results/SP-E3-06F.md`.
+Scope: `app/Ai/Protected/`, `app/Ai/Gateway.php`, `app/ProtectedOperations/`, `app/Shell/Auth/`, `app/Tenancy/TenantContext.php`, `app/Tenancy/TenantContextRunner.php`, `database/migrations/E3-06F/`, `tests/Feature/ProtectedOperations/`, `tests/Feature/Ai/`, `tests/Unit/Ai/`, `docs/results/SP-E3-06F.md`.
 
 Приёмка: адресные тесты для job-входа и прежнего HTTP-входа, проверки организации и бренда, неправильного контекста, основных ошибок и работы fake стадий. Сохранить существующие проверки. Остаток и ограничения записать в отчёт.
