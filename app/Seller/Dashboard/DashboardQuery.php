@@ -138,7 +138,7 @@ final class DashboardQuery
         }
         $disabled = collect($channels)->where('status', 'disabled')->count();
         if ($disabled > 0) {
-            $attention[] = ['kind' => 'channels', 'title' => 'Каналы выключены', 'count' => $disabled, 'severity' => 'normal', 'href' => '/seller/channels'];
+            $attention[] = ['kind' => 'channels', 'title' => 'Каналы выключены', 'count' => $disabled, 'detail' => $disabled.' · Время отключения неизвестно', 'severity' => 'normal', 'href' => '/seller/channels'];
         }
 
         $attention = array_merge($attention, app(AttentionEvents::class)->read($tenant, $rows->count(), $contact, $previous->count(), $previousContact));
