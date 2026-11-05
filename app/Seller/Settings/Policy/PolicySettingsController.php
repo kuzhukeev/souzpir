@@ -3,6 +3,7 @@
 namespace App\Seller\Settings\Policy;
 
 use App\Models\User;
+use App\Seller\Engine\LeadState;
 use App\Seller\Knowledge\Contracts\KnowledgeRepository;
 use App\Seller\Knowledge\KnowledgeNotReady;
 use App\Seller\Settings\BrandSellerSettings;
@@ -87,6 +88,39 @@ final class PolicySettingsController
         });
 
         return Inertia::render('Seller/Settings/Policy/Index', [...$data, 'status' => session('status')]);
+    }
+
+    public function fields(Request $request): mixed
+    {
+        $data = $this->access($request, 'seller.knowledge.read', function (TenantContext $tenant): array {
+            try {
+                $snapshot = app(KnowledgeRepository::class)->published($tenant);
+                $policy = $snapshot->policy();
+                $orders = $policy['slot_order'] ?? [];
+                $unknownOrder = $orders['unknown'] ?? [];
+                $rows = [];
+                foreach (LeadState::SLOTS as $slot) {
+                    $tag = $policy['missing_question_tags'][$slot] ?? 'ask_'.$slot;
+                    $example = collect($snapshot->fewshot([$tag], null, 6, 0.7))
+                        ->first(fn ($item) => ($item['client_type'] ?? 'all') === 'all')['text'] ?? null;
+                    $position = array_search($slot, $unknownOrder, true);
+                    $absent = [];
+                    foreach ($orders as $type => $order) {
+                        if (is_array($order) && ! in_array($slot, $order, true)) {
+                            $absent[] = $type;
+                        }
+                    }
+                    $rows[] = ['id' => $slot, 'example' => $example, 'priority' => $position === false ? null : $position + 1,
+                        'absent_from_order' => $absent, 'condition' => $policy['conditional_slots'][$slot] ?? null];
+                }
+
+                return ['available' => true, 'fields' => $rows];
+            } catch (KnowledgeNotReady) {
+                return ['available' => false, 'fields' => []];
+            }
+        });
+
+        return Inertia::render('Seller/Settings/Policy/Fields', $data);
     }
 
     public function update(Request $request): mixed
