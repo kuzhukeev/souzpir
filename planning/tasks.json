@@ -19631,6 +19631,105 @@
       ],
       "wave": 20,
       "promptPath": "docs/tasks/SP-E1-04G.md"
+    },
+    {
+      "taskKey": "SP-E8-16J",
+      "title": "SP-E8-16J · Замеры: прогресс, шапка и видимость",
+      "goal": "V-3.3: отдельный маршрут замера, оставшееся время, уведомление, лента и число уточнений. V-3.4: шапка с номером, моделями и прогонами, цветная легенда. V-4.4: изменение видимости X → Y; сверить перечисленные экраны с макетами.",
+      "description": "# SP-E8-16J · Замеры: прогресс, шапка и видимость\n\n**Зачем:** завершить требования по решению владельца.\n**Часть чего:** остаток SP-E8-16I, docs/results/SP-E8-16I.md.\n**Зависимости:** SP-E8-16I.\n\n## Приёмка\n- V-3.3: отдельный маршрут замера, оставшееся время, уведомление, лента и число уточнений.\n- V-3.4: шапка с номером, моделями и прогонами, цветная легенда.\n- V-4.4: изменение видимости X → Y; сверить перечисленные экраны с макетами.\n\nПроверить права, бренд и ошибки; остаток записать в отчёт.\n\nScope: `app/Vision/Core/`, `app/Vision/Measurements/`, `app/Vision/Clarifications/`, `resources/js/pages/Vision/Measurements/`, `resources/js/pages/Vision/Clarifications/`, `tests/Feature/Vision/Measurements/`, `tests/Browser/E8-16J/`, `docs/results/SP-E8-16J.md`.\n",
+      "dependsOn": [
+        "SP-E8-16I"
+      ],
+      "scope": [
+        "app/Vision/Core/",
+        "app/Vision/Measurements/",
+        "app/Vision/Clarifications/",
+        "resources/js/pages/Vision/Measurements/",
+        "resources/js/pages/Vision/Clarifications/",
+        "tests/Feature/Vision/Measurements/",
+        "tests/Browser/E8-16J/",
+        "docs/results/SP-E8-16J.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "V-3.3: отдельный маршрут замера, оставшееся время, уведомление, лента и число уточнений.",
+        "V-3.4: шапка с номером, моделями и прогонами, цветная легенда.",
+        "V-4.4: изменение видимости X → Y; сверить перечисленные экраны с макетами."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "V-3.3",
+        "V-3.4",
+        "V-4.4"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E8-16J.md"
+    },
+    {
+      "taskKey": "SP-E3-06I",
+      "title": "SP-E3-06I · Полный защищённый fake-ход job",
+      "goal": "Подключить job-claim к coordinator, extractor, responder, guard и финализации без HTTP-сессии. Проверить полный fake-ход, восстановление стадий, HTTP-права, бренд и ошибки. До готовности полного сценария не подключать job-claim к очереди.",
+      "description": "# SP-E3-06I · Полный защищённый fake-ход job\n\n**Зачем:** завершить требования по решению владельца.\n**Часть чего:** остаток SP-E3-06H, docs/results/SP-E3-06H.md.\n**Зависимости:** SP-E3-06H.\n\n## Приёмка\n- Подключить job-claim к coordinator, extractor, responder, guard и финализации без HTTP-сессии.\n- Проверить полный fake-ход, восстановление стадий, HTTP-права, бренд и ошибки.\n- До готовности полного сценария не подключать job-claim к очереди.\n\nПроверить права, бренд и ошибки; остаток записать в отчёт.\n\nScope: `app/Ai/Protected/`, `app/Ai/Gateway.php`, `app/ProtectedOperations/`, `app/Seller/Conversations/`, `tests/Feature/ProtectedOperations/`, `tests/Feature/Ai/`, `tests/Unit/Ai/`, `docs/results/SP-E3-06I.md`.\n",
+      "dependsOn": [
+        "SP-E3-06H"
+      ],
+      "scope": [
+        "app/Ai/Protected/",
+        "app/Ai/Gateway.php",
+        "app/ProtectedOperations/",
+        "app/Seller/Conversations/",
+        "tests/Feature/ProtectedOperations/",
+        "tests/Feature/Ai/",
+        "tests/Unit/Ai/",
+        "docs/results/SP-E3-06I.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Подключить job-claim к coordinator, extractor, responder, guard и финализации без HTTP-сессии.",
+        "Проверить полный fake-ход, восстановление стадий, HTTP-права, бренд и ошибки.",
+        "До готовности полного сценария не подключать job-claim к очереди."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E3-06I.md"
+    },
+    {
+      "taskKey": "SP-E7-04L",
+      "title": "SP-E7-04L · Исторические импортированные образцы",
+      "goal": "Найти подтверждённый источник автора и даты исторических импортов и входящих предложений без целевого типа. При наличии источника учитывать исторические образцы по бренду и периоду; при отсутствии не приписывать их авторам и зафиксировать ограничение.",
+      "description": "# SP-E7-04L · Исторические импортированные образцы\n\n**Зачем:** завершить требования по решению владельца.\n**Часть чего:** остаток SP-E7-04K, docs/results/SP-E7-04K.md.\n**Зависимости:** SP-E7-04K.\n\n## Приёмка\n- Найти подтверждённый источник автора и даты исторических импортов и входящих предложений без целевого типа.\n- При наличии источника учитывать исторические образцы по бренду и периоду; при отсутствии не приписывать их авторам и зафиксировать ограничение.\n\nПроверить права, бренд и ошибки; остаток записать в отчёт.\n\nScope: `app/Seller/Analytics/`, `app/Seller/Knowledge/`, `resources/js/pages/Seller/Analytics/`, `tests/Feature/Seller/Analytics/`, `tests/Browser/E7-04L/`, `docs/results/SP-E7-04L.md`.\n",
+      "dependsOn": [
+        "SP-E7-04K"
+      ],
+      "scope": [
+        "app/Seller/Analytics/",
+        "app/Seller/Knowledge/",
+        "resources/js/pages/Seller/Analytics/",
+        "tests/Feature/Seller/Analytics/",
+        "tests/Browser/E7-04L/",
+        "docs/results/SP-E7-04L.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Найти подтверждённый источник автора и даты исторических импортов и входящих предложений без целевого типа.",
+        "При наличии источника учитывать исторические образцы по бренду и периоду; при отсутствии не приписывать их авторам и зафиксировать ограничение."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "D-8.5"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E7-04L.md"
     }
   ],
   "excludedSourceTasks": {
