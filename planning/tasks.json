@@ -16936,6 +16936,78 @@
         "SP-E6-03F"
       ],
       "notes": "Остаток частичной сдачи SP-E6-03F"
+    },
+    {
+      "taskKey": "SP-E5-04Q",
+      "title": "SP-E5-04Q · Диалог: подсказка manager и хранилище шаблонов",
+      "goal": "Добавить постоянное редактируемое хранилище шаблонов с изоляцией брендов. Генерацию подсказки manager через защищённые общие AI-стадии не менять и не выдавать соответствующую часть до решения владельца; не обходить ограничения suggest.",
+      "dependsOn": [
+        "SP-E5-04P"
+      ],
+      "scope": [
+        "app/Seller/Dialogs/",
+        "resources/js/pages/Seller/Dialogs/",
+        "routes/features/E5-04.php",
+        "tests/Feature/Seller/Dialogs/",
+        "tests/Browser/E5-04Q/",
+        "docs/results/SP-E5-04Q.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Сценарий, права, бренд и ошибки; только fake внешние вызовы."
+      ],
+      "sourceIds": [
+        "SP-E5-04P"
+      ],
+      "screenIds": [
+        "D-2.2",
+        "D-2.3"
+      ],
+      "notes": "Остаток частичной сдачи SP-E5-04P",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E5-04Q.md",
+      "wave": 18,
+      "description": "# SP-E5-04Q · Диалог: подсказка manager и хранилище шаблонов\n\n**Зачем:** завершить D-2.3 по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E5-04P, docs/results/SP-E5-04P.md.\n**Зависимости:** SP-E5-04P в done.\n\nДобавить постоянное редактируемое хранилище шаблонов с изоляцией брендов. Генерацию подсказки manager через защищённые общие AI-стадии не менять и не выдавать соответствующую часть до решения владельца; не обходить ограничения suggest.\n\nScope: `app/Seller/Dialogs/`, `resources/js/pages/Seller/Dialogs/`, `routes/features/E5-04.php`, `tests/Feature/Seller/Dialogs/`, `tests/Browser/E5-04Q/`, `docs/results/SP-E5-04Q.md`.\n\nПриёмка: сценарий, права, бренд и ошибки; только fake вызовы. Остаток записать в docs/results/SP-E5-04Q.md.\n"
+    },
+    {
+      "taskKey": "SP-E7-02I",
+      "title": "SP-E7-02I · Групповые прогоны: учёт тестовых оценок",
+      "goal": "Согласованно отображать тестовые оценки на экранах качества, исключить их из реальных показателей, обновить тест недоступной оценки и только после этого рассмотреть включение fallback. Стоимость и модели — только после утверждения данных.",
+      "dependsOn": [
+        "SP-E7-02H"
+      ],
+      "scope": [
+        "app/Seller/Evaluation/",
+        "app/Seller/Scenarios/",
+        "app/Seller/Quality/",
+        "resources/js/pages/Seller/Scenarios/",
+        "resources/js/pages/Seller/Quality/",
+        "tests/Feature/Seller/Scenarios/",
+        "tests/Feature/Seller/Quality/",
+        "tests/Browser/E7-02I/",
+        "docs/results/SP-E7-02I.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Сценарий, права, бренд и ошибки; только fake внешние вызовы."
+      ],
+      "sourceIds": [
+        "SP-E7-02H"
+      ],
+      "screenIds": [
+        "D-7.6"
+      ],
+      "notes": "Остаток частичной сдачи SP-E7-02H",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E7-02I.md",
+      "wave": 19,
+      "description": "# SP-E7-02I · Групповые прогоны: учёт тестовых оценок\n\n**Зачем:** завершить D-7.6 по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E7-02H, docs/results/SP-E7-02H.md.\n**Зависимости:** SP-E7-02H в done.\n\nСогласованно отображать тестовые оценки на экранах качества, исключить их из реальных показателей, обновить тест недоступной оценки и только после этого рассмотреть включение fallback. Стоимость и модели — только после утверждения данных.\n\nScope: `app/Seller/Evaluation/`, `app/Seller/Scenarios/`, `app/Seller/Quality/`, `resources/js/pages/Seller/Scenarios/`, `resources/js/pages/Seller/Quality/`, `tests/Feature/Seller/Scenarios/`, `tests/Feature/Seller/Quality/`, `tests/Browser/E7-02I/`, `docs/results/SP-E7-02I.md`.\n\nПриёмка: сценарий, права, бренд и ошибки; только fake вызовы. Остаток записать в docs/results/SP-E7-02I.md.\n"
     }
   ],
   "excludedSourceTasks": {
