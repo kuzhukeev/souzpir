@@ -81,6 +81,22 @@ final class SellerExtractorStages
         }
     }
 
+    /** Restore a job input only while it still matches the protected current inputs. */
+    public function loadJobInput(#[SensitiveParameter] TenantContext $tenant, #[SensitiveParameter] TurnClaim $claim): array
+    {
+        try {
+            $saved = $this->prepareJobStoredInput($tenant, $claim);
+            $current = $this->prepareJobInput($tenant, $claim);
+            if (! hash_equals($saved['digest'], $current[2])) {
+                throw new LogicException;
+            }
+
+            return $current;
+        } catch (Throwable) {
+            throw new LogicException('Protected extractor stage rejected.');
+        }
+    }
+
     public function prepare(#[SensitiveParameter] Request $http, #[SensitiveParameter] TurnClaim $claim): string
     {
         try {
