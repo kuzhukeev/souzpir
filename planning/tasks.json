@@ -19375,10 +19375,11 @@
     {
       "taskKey": "SP-E6-10E",
       "title": "SP-E6-10E · Поля клиентов в движке и диалогах",
-      "goal": "Применить дополнительные поля в сборе данных и карточке диалога, расширив фиксированные LeadState::SLOTS. Заполнить оптовые поля только для подтверждённого прототип-бренда; остальные начинают с пустого списка. Завершить оформление D-5.1 и просмотр опубликованной схемы.",
-      "description": "# SP-E6-10E · Поля клиентов в движке и диалогах\n\n**Зачем:** завершить экран по решению владельца.\n**Часть чего:** остаток SP-E6-10, docs/results/SP-E6-10.md.\n**Зависимости:** SP-E6-10.\n\n## Приёмка\n- Применить дополнительные поля в сборе данных и карточке диалога, расширив фиксированные LeadState::SLOTS.\n- Заполнить оптовые поля только для подтверждённого прототип-бренда; остальные начинают с пустого списка.\n- Завершить оформление D-5.1 и просмотр опубликованной схемы.\n\nПроверить права, бренд и ошибки. Остаток записать в отчёт.\n\nScope: `app/Seller/Engine/`, `app/Seller/Dialogs/`, `app/Seller/Settings/Policy/`, `resources/js/pages/Seller/Dialogs/`, `resources/js/pages/Seller/Settings/Policy/`, `tests/Feature/Seller/Engine/`, `tests/Feature/Seller/Dialogs/`, `tests/Browser/E6-10E/`, `docs/results/SP-E6-10E.md`.\n",
+      "goal": "Применить дополнительные поля в сборе данных и карточке диалога, расширив фиксированные LeadState::SLOTS. Заполнить оптовые поля только для подтверждённого прототип-бренда; остальные начинают с пустого списка. Завершить оформление D-5.1 и просмотр опубликованной схемы. Остаток SP-E6-10C: обязательные поля до передачи и для стадии, карточка клиента, фильтры, labels.ts и Releases/Run.tsx; сверить экран с макетом.",
+      "description": "# SP-E6-10E · Поля клиентов в движке и диалогах\n\n**Зачем:** завершить экран по решению владельца.\n**Часть чего:** остаток SP-E6-10, docs/results/SP-E6-10.md.\n**Зависимости:** SP-E6-10.\n\n## Приёмка\n- Применить дополнительные поля в сборе данных и карточке диалога, расширив фиксированные LeadState::SLOTS.\n- Заполнить оптовые поля только для подтверждённого прототип-бренда; остальные начинают с пустого списка.\n- Завершить оформление D-5.1 и просмотр опубликованной схемы.\n\nПроверить права, бренд и ошибки. Остаток записать в отчёт.\n\nScope: `app/Seller/Engine/`, `app/Seller/Dialogs/`, `app/Seller/Settings/Policy/`, `resources/js/pages/Seller/Dialogs/`, `resources/js/pages/Seller/Settings/Policy/`, `tests/Feature/Seller/Engine/`, `tests/Feature/Seller/Dialogs/`, `tests/Browser/E6-10E/`, `docs/results/SP-E6-10E.md`.\n\n## Остаток SP-E6-10C\n- Остаток SP-E6-10C: обязательные поля до передачи и для стадии, карточка клиента, фильтры, labels.ts и Releases/Run.tsx; сверить экран с макетом.\n\nДополнительный scope: `app/Seller/Customers/`, `resources/js/pages/Seller/Customers/`, `resources/js/features/Seller/Customers/labels.ts`, `resources/js/pages/Seller/Knowledge/Releases/Run.tsx`, `tests/Feature/Seller/Customers/`.\n\nДля защищённого runtime: \u0007pp/ProtectedOperations/, \tests/Feature/ProtectedOperations/.\n",
       "dependsOn": [
-        "SP-E6-10"
+        "SP-E6-10",
+        "SP-E6-10C"
       ],
       "scope": [
         "app/Seller/Engine/",
@@ -19389,13 +19390,21 @@
         "tests/Feature/Seller/Engine/",
         "tests/Feature/Seller/Dialogs/",
         "tests/Browser/E6-10E/",
-        "docs/results/SP-E6-10E.md"
+        "docs/results/SP-E6-10E.md",
+        "app/Seller/Customers/",
+        "resources/js/pages/Seller/Customers/",
+        "resources/js/features/Seller/Customers/labels.ts",
+        "resources/js/pages/Seller/Knowledge/Releases/Run.tsx",
+        "tests/Feature/Seller/Customers/",
+        "app/ProtectedOperations/",
+        "tests/Feature/ProtectedOperations/"
       ],
       "exclusiveResources": [],
       "acceptance": [
         "Применить дополнительные поля в сборе данных и карточке диалога, расширив фиксированные LeadState::SLOTS.",
         "Заполнить оптовые поля только для подтверждённого прототип-бренда; остальные начинают с пустого списка.",
-        "Завершить оформление D-5.1 и просмотр опубликованной схемы."
+        "Завершить оформление D-5.1 и просмотр опубликованной схемы.",
+        "Остаток SP-E6-10C: обязательные поля до передачи и для стадии, карточка клиента, фильтры, labels.ts и Releases/Run.tsx; сверить экран с макетом."
       ],
       "sourceRefs": [
         "docs/sources/02_screens_matrix.md",
@@ -19730,6 +19739,70 @@
       ],
       "wave": 20,
       "promptPath": "docs/tasks/SP-E7-04L.md"
+    },
+    {
+      "taskKey": "SP-E1-04H",
+      "title": "SP-E1-04H · Навигация и подключение модулей",
+      "goal": "Завершить навигацию вкладок бренда, иконки возможностей и отдельную кнопку подключения по макету S-2.4. Проверить права, бренд и состояния; не обещать 90 дней без подтверждённого механизма.",
+      "description": "# SP-E1-04H · Навигация и подключение модулей\n\n**Зачем:** завершить экран S-2.4 по решению владельца.\n**Часть чего:** остаток SP-E1-04G, docs/results/SP-E1-04G.md.\n**Зависимости:** SP-E1-04G.\n\n## Приёмка\n- Завершить навигацию вкладок бренда, иконки возможностей и отдельную кнопку подключения по макету S-2.4.\n- Проверить права, бренд и состояния; не обещать 90 дней без подтверждённого механизма.\n\nПроверить права, бренд и ошибки; остаток записать в отчёт.\n\nScope: `app/Shell/Organizations/`, `app/Shell/Brands/`, `resources/js/pages/Shell/Organizations/`, `resources/js/features/Shell/Brands/`, `tests/Feature/Shell/Organizations/`, `tests/Browser/E1-04H/`, `docs/results/SP-E1-04H.md`.\n",
+      "dependsOn": [
+        "SP-E1-04G"
+      ],
+      "scope": [
+        "app/Shell/Organizations/",
+        "app/Shell/Brands/",
+        "resources/js/pages/Shell/Organizations/",
+        "resources/js/features/Shell/Brands/",
+        "tests/Feature/Shell/Organizations/",
+        "tests/Browser/E1-04H/",
+        "docs/results/SP-E1-04H.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Завершить навигацию вкладок бренда, иконки возможностей и отдельную кнопку подключения по макету S-2.4.",
+        "Проверить права, бренд и состояния; не обещать 90 дней без подтверждённого механизма."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "S-2.4"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E1-04H.md"
+    },
+    {
+      "taskKey": "SP-E1-04I",
+      "title": "SP-E1-04I · Гарантия хранения модулей",
+      "goal": "Определить владельцев данных обоих модулей и обеспечить сохранность не менее 90 дней после отключения. Определить согласованный механизм очистки и ограничения; не удалять существующие данные без отдельного решения владельца.",
+      "description": "# SP-E1-04I · Гарантия хранения модулей\n\n**Зачем:** завершить экран S-2.4 по решению владельца.\n**Часть чего:** остаток SP-E1-04G, docs/results/SP-E1-04G.md.\n**Зависимости:** SP-E1-04G.\n\n## Приёмка\n- Определить владельцев данных обоих модулей и обеспечить сохранность не менее 90 дней после отключения.\n- Определить согласованный механизм очистки и ограничения; не удалять существующие данные без отдельного решения владельца.\n\nПроверить права, бренд и ошибки; остаток записать в отчёт.\n\nScope: `app/Shell/Organizations/`, `app/Privacy/`, `app/Seller/`, `app/Vision/`, `tests/Feature/Shell/Organizations/`, `tests/Feature/Privacy/`, `docs/results/SP-E1-04I.md`.\n",
+      "dependsOn": [
+        "SP-E1-04G"
+      ],
+      "scope": [
+        "app/Shell/Organizations/",
+        "app/Privacy/",
+        "app/Seller/",
+        "app/Vision/",
+        "tests/Feature/Shell/Organizations/",
+        "tests/Feature/Privacy/",
+        "docs/results/SP-E1-04I.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Определить владельцев данных обоих модулей и обеспечить сохранность не менее 90 дней после отключения.",
+        "Определить согласованный механизм очистки и ограничения; не удалять существующие данные без отдельного решения владельца."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "S-2.4"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E1-04I.md"
     }
   ],
   "excludedSourceTasks": {
