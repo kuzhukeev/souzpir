@@ -54,7 +54,7 @@ final class SellerNotificationRouter implements NotificationRouter
         if (! config('features.E6-07.defaults.digest_enabled', false)) {
             throw new NotificationDeferred('digest_disabled');
         }
-        // Personal fake digests share the shell delivery queue with other modules.
+        // Fake digests share the shell delivery queue with other modules.
         if ($this->usesPersonalFakeDigest($e, $member, $channel)) {
             return 'immediate';
         }
@@ -147,8 +147,7 @@ final class SellerNotificationRouter implements NotificationRouter
     private function usesPersonalFakeDigest(array $event, Membership $member, string $channel): bool
     {
         return config('runtime.notification_driver') === 'fake'
-            && in_array($channel, ['email', 'telegram'], true)
-            && DB::table('profile_notification_timing_drafts')->where(['organization_id' => $event['organization_id'], 'brand_id' => $event['brand_id'], 'user_id' => $member->user_id])->whereNotNull('digest_time')->exists();
+            && in_array($channel, ['email', 'telegram'], true);
     }
 
     /** Caller holds a transaction; organization lock serializes module and tenant changes. */

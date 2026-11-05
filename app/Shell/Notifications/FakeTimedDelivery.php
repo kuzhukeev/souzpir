@@ -3,8 +3,11 @@
 namespace App\Shell\Notifications;
 
 use App\Models\Membership;
+use App\Seller\Settings\Limits\DigestService;
+use App\Seller\Settings\Limits\SellerNotificationRouter;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 final class FakeTimedDelivery
 {
@@ -32,6 +35,10 @@ final class FakeTimedDelivery
         if (config('runtime.notification_driver') !== 'fake') {
             return;
         }
+        if (config('features.E6-07.defaults.digest_enabled', false)) {
+            app(DigestService::class)->assemble();
+            $this->transferSellerBatches();
+        }
         $deliveries = DB::table('notification_deliveries')->where('status', 'pending')->whereIn('channel', ['email', 'telegram'])->orderBy('created_at')->limit(500)->get();
         $groups = [];
         foreach ($deliveries as $delivery) {
@@ -53,13 +60,14 @@ final class FakeTimedDelivery
                 continue;
             }
             $timing = DB::table('profile_notification_timing_drafts')->where(['organization_id' => $delivery->organization_id, 'brand_id' => $delivery->brand_id, 'user_id' => $delivery->user_id])->first();
-            $due = $this->dueAt(CarbonImmutable::parse($delivery->created_at), $brand->timezone, $timing?->quiet_start, $timing?->quiet_end, $timing?->digest_time);
+            $digest = $timing?->digest_time ?? $this->sellerDigestTime($member, $delivery);
+            $due = $this->dueAt(CarbonImmutable::parse($delivery->created_at), $brand->timezone, $timing?->quiet_start, $timing?->quiet_end, $digest);
             $now = CarbonImmutable::now('UTC');
             $allowed = $this->dueAt($now, $brand->timezone, $timing?->quiet_start, $timing?->quiet_end, null);
             if ($due->greaterThan($now) || $allowed->greaterThan($now)) {
                 continue;
             }
-            $groupKey = implode('|', [$delivery->organization_id, $delivery->brand_id, $delivery->user_id, $delivery->channel, $timing?->digest_time !== null ? $due->toIso8601String() : $delivery->id]);
+            $groupKey = implode('|', [$delivery->organization_id, $delivery->brand_id, $delivery->user_id, $delivery->channel, $digest !== null ? $due->toIso8601String() : $delivery->id]);
             $groups[$groupKey]['delivery'] = $delivery;
             $groups[$groupKey]['ids'][] = $delivery->id;
             $groups[$groupKey]['titles'][] = EventCatalog::TITLES[$key];
@@ -68,6 +76,43 @@ final class FakeTimedDelivery
             $delivery = $group['delivery'];
             app(FakeTimingTransport::class)->send($delivery->organization_id, $delivery->brand_id, $delivery->user_id, $delivery->channel, $group['titles']);
             DB::table('notification_deliveries')->whereIn('id', $group['ids'])->where('status', 'pending')->update(['status' => 'sent', 'sent_at' => now(), 'updated_at' => now()]);
+        }
+    }
+
+    private function sellerDigestTime(Membership $member, object $delivery): ?string
+    {
+        if (! config('features.E6-07.defaults.digest_enabled', false)) {
+            return null;
+        }
+        $rules = DB::table('seller_notification_rules')->where(['organization_id' => $delivery->organization_id, 'brand_id' => $delivery->brand_id, 'timing' => 'digest', $delivery->channel => true])->get();
+        foreach ($rules as $rule) {
+            $setting = DB::table('notification_settings')->where(['organization_id' => $delivery->organization_id, 'brand_id' => $delivery->brand_id, 'user_id' => $delivery->user_id, 'event_key' => $rule->event_key, 'channel' => $delivery->channel])->first();
+            if ($setting?->enabled && app(RecipientPolicy::class)->permits($member, $delivery->brand_id, $rule->event_key) && app(SellerNotificationRouter::class)->matches($member, $rule->recipient)) {
+                return DB::table('seller_digest_preferences')->where(['organization_id' => $delivery->organization_id, 'brand_id' => $delivery->brand_id, 'user_id' => $delivery->user_id])->value('digest_time') ?? '09:00';
+            }
+        }
+
+        return null;
+    }
+
+    private function transferSellerBatches(): void
+    {
+        $batches = DB::table('seller_digest_batches')->where('status', 'pending')->whereIn('channel', ['email', 'telegram'])->where('due_at', '<=', now())->orderBy('due_at')->limit(100)->get();
+        foreach ($batches as $batch) {
+            DB::transaction(function () use ($batch): void {
+                $items = DB::table('seller_digest_items')->where('batch_id', $batch->id)->get();
+                foreach ($items as $item) {
+                    $envelope = DB::table('outbox_events')->where(['id' => $item->event_id, 'organization_id' => $batch->organization_id, 'brand_id' => $batch->brand_id])->value('envelope');
+                    $event = is_string($envelope) ? json_decode($envelope, true) : null;
+                    $type = is_array($event) ? ($event['type'] ?? null) : null;
+                    $rule = DB::table('seller_notification_rules')->where(['organization_id' => $batch->organization_id, 'brand_id' => $batch->brand_id, 'event_key' => $type, 'timing' => 'digest'])->first();
+                    if (! $rule || ! in_array($type, SellerNotificationRouter::EVENTS, true)) {
+                        continue;
+                    }
+                    DB::table('notification_deliveries')->insertOrIgnore(['id' => (string) Str::ulid(), 'organization_id' => $batch->organization_id, 'brand_id' => $batch->brand_id, 'user_id' => $batch->user_id, 'channel' => $batch->channel, 'event_id' => $item->event_id, 'status' => 'pending', 'attempts' => 0, 'created_at' => $item->created_at, 'updated_at' => now()]);
+                }
+                DB::table('seller_digest_batches')->where('id', $batch->id)->where('status', 'pending')->update(['status' => 'cancelled', 'last_error' => 'moved_to_fake_digest', 'updated_at' => now()]);
+            });
         }
     }
 }
