@@ -67,7 +67,7 @@
                 </ol>
             @else<p class="muted">Проверенных выводов для этого снимка пока нет.</p>@endif
         </section>
-        <section class="card" style="margin-top: 24px"><h2>Кого называют вместо вас</h2>@if (count($report['competitors'] ?? []))<ol>@foreach ($report['competitors'] as $company)<li>{{ $company['name'] }} · упоминаний: {{ $company['answers'] }}</li>@endforeach</ol>@else<p class="muted">Нет подтверждённых упоминаний компаний.</p>@endif</section>
+        <section class="card" style="margin-top: 24px"><h2>Кого называют вместо вас</h2>@if (count($report['competitors'] ?? []))<p>Чаще всего среди других компаний упоминается {{ $report['competitors'][0]['name'] }}: {{ $report['competitors'][0]['answers'] }} ответов.</p><ol>@foreach ($report['competitors'] as $company)<li>{{ $company['name'] }} · упоминаний: {{ $company['answers'] }}</li>@endforeach</ol>@else<p class="muted">Нет подтверждённых упоминаний компаний.</p>@endif</section>
         <section class="card" style="margin-top: 24px"><h2>Что о вас говорят</h2>@if (array_key_exists('reviewed_facts', $report))<p>Утверждений в снимке: {{ $report['reviewed_facts'] }}; подтверждено: {{ $report['confirmed_facts'] }}.</p>@else<p class="muted">Счётчики проверенных утверждений в этой публикации недоступны.</p>@endif</section>
         <section class="card" style="margin-top: 24px"><h2>Ваш сайт</h2>
             @php($site = $report['site_readiness'] ?? null)
