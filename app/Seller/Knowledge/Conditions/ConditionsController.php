@@ -10,6 +10,7 @@ use App\Tenancy\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 final class ConditionsController
@@ -53,8 +54,16 @@ final class ConditionsController
             'delivery_methods' => ['sometimes', 'array', 'max:50'], 'delivery_methods.*.name' => ['required', 'string', 'max:255'],
             'delivery_methods.*.time' => ['nullable', 'string', 'max:255'], 'delivery_methods.*.cost' => ['nullable', 'string', 'max:255'],
             'delivery_methods.*.zones' => ['nullable', 'string', 'max:1000'],
+            'promotions' => ['sometimes', 'array', 'max:50'], 'promotions.*.name' => ['required', 'string', 'max:255'],
+            'promotions.*.text' => ['required', 'string', 'max:2000'], 'promotions.*.from' => ['nullable', 'date_format:Y-m-d'],
+            'promotions.*.until' => ['required', 'date_format:Y-m-d'],
             'approved' => ['required', 'array'], 'approved.min_order_rub' => ['required', 'boolean'], 'approved.offseason_min_order_rub' => ['required', 'boolean'],
             'approved.reserve_days' => ['required', 'boolean'], 'approved.new_client_bonus_pct' => ['required', 'boolean']]);
+        foreach ($input['promotions'] ?? [] as $index => $promotion) {
+            if (! empty($promotion['from']) && $promotion['from'] > $promotion['until']) {
+                throw ValidationException::withMessages(["promotions.$index.until" => 'Окончание акции не может быть раньше начала.']);
+            }
+        }
         $this->access($request, function (TenantContext $tenant) use ($input): void {
             $draft = $this->draft($tenant) ?? abort(404, 'Создайте черновик базы знаний.');
             $repo = app(KnowledgeRepository::class);
@@ -76,6 +85,9 @@ final class ConditionsController
             }
             if (array_key_exists('delivery_methods', $input)) {
                 $conditions['delivery_methods'] = $input['delivery_methods'];
+            }
+            if (array_key_exists('promotions', $input)) {
+                $conditions['promotions'] = $input['promotions'];
             }
             $conditions['max_pct_unapproved'] = (int) $input['max_pct_unapproved'];
             $conditions['approvals'] = array_replace($conditions['approvals'] ?? [], $input['approved']);
