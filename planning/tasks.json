@@ -17324,6 +17324,40 @@
         "SP-E1-08I"
       ],
       "notes": "Остаток частичной сдачи SP-E1-08I."
+    },
+    {
+      "taskKey": "SP-E6-03T",
+      "title": "SP-E6-03T · Напоминания: отложенная задача менеджеру",
+      "description": "# SP-E6-03T · Напоминания: отложенная задача менеджеру\n\n**Зачем:** завершить D-5.5 по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E6-03O, docs/results/SP-E6-03O.md.\n**Зависимости:** SP-E6-03O в done.\n\nСоздавать задачу менеджеру после отсутствия ответа в заданное время, сверить условия и экран с макетом; проверить fake-доставку, права, бренд и ошибки на изолированной PostgreSQL.\n\nScope: `app/Seller/Followups/`, `app/Seller/Settings/Policy/`, `resources/js/pages/Seller/Settings/Policy/`, `tests/Feature/Seller/Followups/`, `tests/Browser/E6-03T/`, `docs/results/SP-E6-03T.md`.\n\nПриёмка: сценарий, права, бренд, ошибки; только fake вызовы. Остаток записать в docs/results/SP-E6-03T.md.\n",
+      "goal": "Создавать задачу менеджеру после отсутствия ответа в заданное время, сверить условия и экран с макетом; проверить fake-доставку, права, бренд и ошибки на изолированной PostgreSQL.",
+      "dependsOn": [
+        "SP-E6-03O"
+      ],
+      "scope": [
+        "app/Seller/Followups/",
+        "app/Seller/Settings/Policy/",
+        "resources/js/pages/Seller/Settings/Policy/",
+        "tests/Feature/Seller/Followups/",
+        "tests/Browser/E6-03T/",
+        "docs/results/SP-E6-03T.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Сценарий, права, бренд и ошибки; только fake внешние вызовы."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "D-5.5"
+      ],
+      "wave": 10,
+      "promptPath": "docs/tasks/SP-E6-03T.md",
+      "sourceIds": [
+        "SP-E6-03O"
+      ],
+      "notes": "Остаток частичной сдачи SP-E6-03O."
     }
   ],
   "excludedSourceTasks": {
