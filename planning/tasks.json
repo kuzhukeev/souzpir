@@ -16865,6 +16865,77 @@
       "promptPath": "docs/tasks/SP-E8-14J.md",
       "wave": 19,
       "description": "# SP-E8-14J · Анкета: источники фактов и иконки\n\n**Зачем:** завершить V-0.1, V-1.5 по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E8-14I, docs/results/SP-E8-14I.md.\n**Зависимости:** SP-E8-14I в done.\n\nПодключить иконку бренда и дополнительные типы фактов после подтверждения безопасных источников, семантики и прав; данные и разрешения не выдумывать. До появления подтверждённых источников задачу не выдавать.\n\nScope: `app/Vision/Profile/`, `resources/js/pages/Vision/Profile/`, `tests/Feature/Vision/Profile/`, `tests/Browser/E8-14J/`, `docs/results/SP-E8-14J.md`.\n\nПриёмка: основной сценарий, права, бренд и ошибки; только fake вызовы. Остаток записать в docs/results/SP-E8-14J.md.\n"
+    },
+    {
+      "taskKey": "SP-E4-05D",
+      "title": "SP-E4-05D · Запреты: счётчик срабатываний",
+      "description": "# SP-E4-05D · Запреты: счётчик срабатываний\n\n**Зачем:** завершить D-4.9 по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E4-05C, docs/results/SP-E4-05C.md.\n**Зависимости:** SP-E4-05C в done.\n\nЗаписывать срабатывания Guard по правилам текущего бренда и показывать реальные количества за 30 дней. Сохранить текущую семантику Guard и не менять общие AI-стадии без решения владельца.\n\nScope: `app/ProtectedOperations/`, `app/Seller/Knowledge/Prohibitions/`, `resources/js/pages/Seller/Knowledge/Prohibitions/`, `database/migrations/E4-05D/`, `tests/Feature/Seller/Knowledge/Prohibitions/`, `tests/Feature/ProtectedOperations/`, `tests/Browser/E4-05D/`, `docs/results/SP-E4-05D.md`.\n\nПриёмка: сценарий, права, бренд и ошибки; только fake вызовы. Остаток записать в docs/results/SP-E4-05D.md.\n",
+      "goal": "Записывать срабатывания Guard по правилам текущего бренда и показывать реальные количества за 30 дней. Сохранить текущую семантику Guard и не менять общие AI-стадии без решения владельца.",
+      "dependsOn": [
+        "SP-E4-05C"
+      ],
+      "scope": [
+        "app/ProtectedOperations/",
+        "app/Seller/Knowledge/Prohibitions/",
+        "resources/js/pages/Seller/Knowledge/Prohibitions/",
+        "database/migrations/E4-05D/",
+        "tests/Feature/Seller/Knowledge/Prohibitions/",
+        "tests/Feature/ProtectedOperations/",
+        "tests/Browser/E4-05D/",
+        "docs/results/SP-E4-05D.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Сценарий, права, бренд и ошибки; только fake внешние вызовы."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "D-4.9"
+      ],
+      "wave": 10,
+      "promptPath": "docs/tasks/SP-E4-05D.md",
+      "sourceIds": [
+        "SP-E4-05C"
+      ],
+      "notes": "Остаток частичной сдачи SP-E4-05C"
+    },
+    {
+      "taskKey": "SP-E6-03P",
+      "title": "SP-E6-03P · Реакции: редактирование фраз и runtime",
+      "description": "# SP-E6-03P · Реакции: редактирование фраз и runtime\n\n**Зачем:** завершить D-5.6 по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E6-03F, docs/results/SP-E6-03F.md.\n**Зависимости:** SP-E6-03F в done.\n\nДобавить редактирование списков фраз на экране, действия и сценарии грубости и отказа с проверкой runtime; завершить loading/error и сверку с макетом.\n\nScope: `app/Seller/Settings/Policy/`, `app/Seller/Runtime/`, `resources/js/pages/Seller/Settings/Policy/`, `routes/features/E6-03.php`, `tests/Feature/Seller/Settings/Policy/`, `tests/Browser/E6-03P/`, `docs/results/SP-E6-03P.md`.\n\nПриёмка: сценарий, права, бренд и ошибки; только fake вызовы. Остаток записать в docs/results/SP-E6-03P.md.\n",
+      "goal": "Добавить редактирование списков фраз на экране, действия и сценарии грубости и отказа с проверкой runtime; завершить loading/error и сверку с макетом.",
+      "dependsOn": [
+        "SP-E6-03F"
+      ],
+      "scope": [
+        "app/Seller/Settings/Policy/",
+        "app/Seller/Runtime/",
+        "resources/js/pages/Seller/Settings/Policy/",
+        "routes/features/E6-03.php",
+        "tests/Feature/Seller/Settings/Policy/",
+        "tests/Browser/E6-03P/",
+        "docs/results/SP-E6-03P.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Сценарий, права, бренд и ошибки; только fake внешние вызовы."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "D-5.6"
+      ],
+      "wave": 10,
+      "promptPath": "docs/tasks/SP-E6-03P.md",
+      "sourceIds": [
+        "SP-E6-03F"
+      ],
+      "notes": "Остаток частичной сдачи SP-E6-03F"
     }
   ],
   "excludedSourceTasks": {
