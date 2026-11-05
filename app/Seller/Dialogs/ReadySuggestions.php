@@ -22,7 +22,7 @@ final class ReadySuggestions
                 $join->on('channel.id', '=', 'c.channel_account_id')->on('channel.brand_id', '=', 'c.brand_id')->on('channel.organization_id', '=', 'c.organization_id');
             })->where('t.organization_id', $tenant->organizationId)->where('t.brand_id', $tenant->brandId)
             ->where('t.status', 'suggested')->where('c.mode', 'suggest')
-            ->whereColumn('t.cutoff_sequence', 'c.history_sequence')->whereColumn('t.base_history_revision', 'c.history_revision');
+            ->whereColumn('t.cutoff_sequence', 'c.history_sequence')->whereRaw('c.history_revision = t.base_history_revision + 1');
         if ($member->role === 'member' && ($member->settings['sales_manager'] ?? false)) {
             $query->where('c.assigned_user_id', $actorId);
         }
