@@ -52,6 +52,19 @@ final class ReleasesController
                 $event = $publicationAudit->get($release->id);
                 $release->publication_audit = $event ? ['at' => $event->created_at, 'author' => $publishers->get($event->actor_id)] : null;
             });
+            $published = $releases->where('status', 'published')->values();
+            $repository = app(KnowledgeRepository::class);
+            foreach ($published as $index => $release) {
+                $release->changes_from_previous = null;
+                $previous = $published->get($index + 1);
+                if ($previous) {
+                    $comparison = app(ReleaseComparison::class)->compare(
+                        $repository->forRelease($tenant, $previous->id),
+                        $repository->forRelease($tenant, $release->id),
+                    );
+                    $release->changes_from_previous = array_sum(array_map(fn ($section) => count($section['changes']), $comparison));
+                }
+            }
             $brand = DB::table('brands')->where('organization_id', $tenant->organizationId)->where('id', $tenant->brandId)->first(['active_knowledge_release_id']);
             $draft = $releases->firstWhere('status', 'draft');
             $canWrite = Gate::forUser($user)->allows('seller.knowledge.write');
