@@ -14,6 +14,6 @@
 - Без живых и платных внешних вызовов без разрешения владельца; если пункт противоречит ТЗ или требует решения владельца, исполнитель не выдумывает, а записывает вопрос в docs/decisions-pending.md и делает остальное.
 - Сдача частями: если что-то из пунктов не сделано, в отчёте раздел «Остаток» перечисляет невыполненные пункты по экранам; интегратор принимает такой отчёт только вместе с заведённой карточкой-продолжением на этот остаток (правило в AGENTS.md).
 
-Scope: `app/Seller/Followups/PrepareFollowups.php`, `app/Seller/Customers/`, `resources/js/pages/Seller/Customers/`, `resources/js/pages/Seller/Knowledge/Facts/Show.tsx`, `tests/Feature/Seller/Followups/`, `tests/Feature/Seller/Customers/`, `tests/Feature/Seller/Knowledge/Facts/`, `tests/Browser/E7-06D/`, `docs/results/SP-E7-06D.md`.
+Scope: `app/Seller/Followups/PrepareFollowups.php`, `app/Seller/Customers/`, `resources/js/pages/Seller/Customers/`, `resources/js/pages/Seller/Knowledge/Facts/Show.tsx`, `tests/Feature/Seller/Followups/`, `tests/Feature/Seller/Customers/`, `tests/Browser/E7-06D/`, `docs/results/SP-E7-06D.md`.
 
 Отчёт: docs/results/SP-E7-06D.md; локальные тесты задачи, submit и зелёный CI.
