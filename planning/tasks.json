@@ -17289,6 +17289,41 @@
         "SP-E6-03R"
       ],
       "notes": "Остаток ограничен отсутствием подтверждённого источника."
+    },
+    {
+      "taskKey": "SP-E1-08J",
+      "title": "SP-E1-08J · Сводки: сохранённые пакеты и время по умолчанию",
+      "description": "# SP-E1-08J · Сводки: сохранённые пакеты и время по умолчанию\n\n**Зачем:** завершить S-7.1 по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E1-08I, docs/results/SP-E1-08I.md.\n**Зависимости:** SP-E1-08I в done.\n\nОбъединить уже сформированные seller-пакеты и seller-сводку без персонального времени с общим слотом по умолчанию; проверить отсутствие дублей, права, бренд и тихие часы. Использовать fake-драйверы; живые отправки без разрешения запрещены.\n\nScope: `app/Shell/Notifications/`, `app/Seller/Settings/Limits/`, `app/Shell/Profile/`, `tests/Feature/Shell/Notifications/`, `tests/Browser/E1-08J/`, `docs/results/SP-E1-08J.md`.\n\nПриёмка: сценарий, права, бренд, ошибки; только fake вызовы. Остаток записать в docs/results/SP-E1-08J.md.\n",
+      "goal": "Объединить уже сформированные seller-пакеты и seller-сводку без персонального времени с общим слотом по умолчанию; проверить отсутствие дублей, права, бренд и тихие часы. Использовать fake-драйверы; живые отправки без разрешения запрещены.",
+      "dependsOn": [
+        "SP-E1-08I"
+      ],
+      "scope": [
+        "app/Shell/Notifications/",
+        "app/Seller/Settings/Limits/",
+        "app/Shell/Profile/",
+        "tests/Feature/Shell/Notifications/",
+        "tests/Browser/E1-08J/",
+        "docs/results/SP-E1-08J.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Сценарий, права, бренд и ошибки; только fake внешние вызовы."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "S-7.1",
+        "S-7.2"
+      ],
+      "wave": 10,
+      "promptPath": "docs/tasks/SP-E1-08J.md",
+      "sourceIds": [
+        "SP-E1-08I"
+      ],
+      "notes": "Остаток частичной сдачи SP-E1-08I."
     }
   ],
   "excludedSourceTasks": {
