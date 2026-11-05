@@ -16,6 +16,7 @@ final class TrendsE820PTest extends TestCase
         $tracked = array_map(fn ($i) => 'Компания '.$i, range(1, 6));
         $row = (new Trends)->project(['metrics' => ['entities' => $entities]], 'report', '2026-11-05', $tracked);
         self::assertSame(['Компания 2' => 2, 'Компания 3' => 3, 'Компания 4' => 4, 'Компания 5' => 5], $row['entities']);
-        self::assertSame([], (new Trends)->project(['metrics' => ['entities' => $entities]], 'report', '2026-11-05')['entities']);
+        self::assertSame(2, (new Trends)->project(['metrics' => ['entities' => $entities]], 'report', '2026-11-05')['entities']['Компания 2']);
+        self::assertSame([], (new Trends)->project(['metrics' => ['entities' => $entities]], 'report', '2026-11-05', [])['entities']);
     }
 }

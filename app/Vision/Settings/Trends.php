@@ -57,7 +57,7 @@ final class Trends
         return $result;
     }
 
-    public function project(array $snapshot, string $id, string $date, array $tracked = []): array
+    public function project(array $snapshot, string $id, string $date, ?array $tracked = null): array
     {
         $metrics = $snapshot['metrics'] ?? [];
 
@@ -69,7 +69,7 @@ final class Trends
                 'visibility' => $row['mention_rate'] ?? null, 'position' => $row['position_average'] ?? null,
             ])->all(),
             'intents' => collect($metrics['intents'] ?? [])->map(fn ($row) => $row['mention_rate'] ?? null)->all(),
-            'entities' => collect($metrics['entities'] ?? [])->filter(fn ($row) => ! ($row['is_brand'] ?? false) && in_array($row['name'] ?? null, array_slice($tracked, 0, 5), true))->mapWithKeys(fn ($row) => [($row['name'] ?? '') => $row['share_of_voice'] ?? null])->all(),
+            'entities' => collect($metrics['entities'] ?? [])->filter(fn ($row) => $tracked === null || (! ($row['is_brand'] ?? false) && in_array($row['name'] ?? null, array_slice($tracked, 0, 5), true)))->mapWithKeys(fn ($row) => [($row['name'] ?? '') => $row['share_of_voice'] ?? null])->all(),
         ];
     }
 }
