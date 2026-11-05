@@ -19101,6 +19101,103 @@
       ],
       "wave": 20,
       "promptPath": "docs/tasks/SP-E5-09B.md"
+    },
+    {
+      "taskKey": "SP-E8-18J",
+      "title": "SP-E8-18J · Присутствие в источниках и состояние анкеты",
+      "goal": "Получать подтверждённое присутствие бренда на чужих доменах; при отсутствии данных сохранять «Не знаем». Показать состояние «Откроется после завершения анкеты» по подтверждённому признаку. Проверить права и изоляцию брендов на отдельной тестовой БД.",
+      "description": "# SP-E8-18J · Присутствие в источниках и состояние анкеты\n\n**Зачем:** завершить требования по решению владельца.\n**Часть чего:** остаток SP-E8-18I, docs/results/SP-E8-18I.md.\n**Зависимости:** SP-E8-18I.\n\n## Приёмка\n- Получать подтверждённое присутствие бренда на чужих доменах; при отсутствии данных сохранять «Не знаем».\n- Показать состояние «Откроется после завершения анкеты» по подтверждённому признаку.\n- Проверить права и изоляцию брендов на отдельной тестовой БД.\n\nОстаток записать в отчёт.\n\nScope: `app/Vision/Reports/`, `app/Vision/Measurements/`, `resources/js/pages/Vision/Reports/`, `resources/js/features/Vision/Reports/`, `tests/Feature/Vision/Reports/`, `tests/Browser/E8-18J/`, `docs/results/SP-E8-18J.md`.\n",
+      "dependsOn": [
+        "SP-E8-18I"
+      ],
+      "scope": [
+        "app/Vision/Reports/",
+        "app/Vision/Measurements/",
+        "resources/js/pages/Vision/Reports/",
+        "resources/js/features/Vision/Reports/",
+        "tests/Feature/Vision/Reports/",
+        "tests/Browser/E8-18J/",
+        "docs/results/SP-E8-18J.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Получать подтверждённое присутствие бренда на чужих доменах; при отсутствии данных сохранять «Не знаем».",
+        "Показать состояние «Откроется после завершения анкеты» по подтверждённому признаку.",
+        "Проверить права и изоляцию брендов на отдельной тестовой БД."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "V-5.1",
+        "V-5.5"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E8-18J.md"
+    },
+    {
+      "taskKey": "SP-E4-01W",
+      "title": "SP-E4-01W · Защищённые стадии draft-preview",
+      "goal": "Подключить draft-preview к общим защищённым first-turn стадиям без подмены опубликованного релиза. Применить каталоги SP-E4-01R/S с проверкой полного контекста и событий, обработать частично известные критерии и подключить проверенные сценарии к генерации входов. Сохранить существующий session-bound fallback до готовности protected-адаптера.",
+      "description": "# SP-E4-01W · Защищённые стадии draft-preview\n\n**Зачем:** завершить требования по решению владельца.\n**Часть чего:** остаток SP-E4-01O, docs/results/SP-E4-01O.md.\n**Зависимости:** SP-E4-01O.\n\n## Приёмка\n- Подключить draft-preview к общим защищённым first-turn стадиям без подмены опубликованного релиза.\n- Применить каталоги SP-E4-01R/S с проверкой полного контекста и событий, обработать частично известные критерии и подключить проверенные сценарии к генерации входов.\n- Сохранить существующий session-bound fallback до готовности protected-адаптера.\n\nОстаток записать в отчёт.\n\nScope: `app/ProtectedOperations/`, `app/Ai/Protected/`, `app/Ai/Gateway.php`, `app/Seller/Evaluation/`, `tests/Feature/ProtectedOperations/`, `tests/Feature/Seller/Evaluation/`, `docs/results/SP-E4-01W.md`.\n",
+      "dependsOn": [
+        "SP-E4-01O"
+      ],
+      "scope": [
+        "app/ProtectedOperations/",
+        "app/Ai/Protected/",
+        "app/Ai/Gateway.php",
+        "app/Seller/Evaluation/",
+        "tests/Feature/ProtectedOperations/",
+        "tests/Feature/Seller/Evaluation/",
+        "docs/results/SP-E4-01W.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Подключить draft-preview к общим защищённым first-turn стадиям без подмены опубликованного релиза.",
+        "Применить каталоги SP-E4-01R/S с проверкой полного контекста и событий, обработать частично известные критерии и подключить проверенные сценарии к генерации входов.",
+        "Сохранить существующий session-bound fallback до готовности protected-адаптера."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "D-4.12"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E4-01W.md"
+    },
+    {
+      "taskKey": "SP-E1-12F",
+      "title": "SP-E1-12F · Форматы логотипа при онбординге",
+      "goal": "Привести форматы логотипа в онбординге к единому правилу PNG и проверенный SVG до 1 МБ. Проверить права, изоляцию организации и ошибки загрузки.",
+      "description": "# SP-E1-12F · Форматы логотипа при онбординге\n\n**Зачем:** завершить требования по решению владельца.\n**Часть чего:** остаток SP-E1-12E, docs/results/SP-E1-12E.md.\n**Зависимости:** SP-E1-12E.\n\n## Приёмка\n- Привести форматы логотипа в онбординге к единому правилу PNG и проверенный SVG до 1 МБ.\n- Проверить права, изоляцию организации и ошибки загрузки.\n\nОстаток записать в отчёт.\n\nScope: `app/Shell/Onboarding/`, `resources/js/pages/Shell/Onboarding/`, `tests/Feature/Shell/Onboarding/`, `tests/Browser/E1-12F/`, `docs/results/SP-E1-12F.md`.\n",
+      "dependsOn": [
+        "SP-E1-12E"
+      ],
+      "scope": [
+        "app/Shell/Onboarding/",
+        "resources/js/pages/Shell/Onboarding/",
+        "tests/Feature/Shell/Onboarding/",
+        "tests/Browser/E1-12F/",
+        "docs/results/SP-E1-12F.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Привести форматы логотипа в онбординге к единому правилу PNG и проверенный SVG до 1 МБ.",
+        "Проверить права, изоляцию организации и ошибки загрузки."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "S-2.3"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E1-12F.md"
     }
   ],
   "excludedSourceTasks": {
