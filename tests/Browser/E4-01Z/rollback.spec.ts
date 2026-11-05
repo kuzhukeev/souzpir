@@ -9,7 +9,8 @@ test('rollback action reflects draft and write permission', async ({ page }) => 
  await page.goto(url);
  const old = page.getByRole('row').filter({ hasText: 'v1' });
  await expect(old.getByRole('button', { name: 'Откатить с сохранением' })).toBeEnabled();
- await expect(old.getByRole('button')).toHaveCount(1);
+ await expect(old.getByRole('button', { name: 'Создать черновик' })).toBeDisabled();
+ await expect(old.getByRole('button')).toHaveCount(2);
  await expect(page.getByRole('row').filter({ hasText: 'v2' }).getByRole('button')).toHaveCount(0);
  await mkdir('.local/screenshots/SP-E4-01Z', { recursive: true });
  await page.screenshot({ path: '.local/screenshots/SP-E4-01Z/history.png', fullPage: true });
