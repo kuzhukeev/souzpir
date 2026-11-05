@@ -1,0 +1,21 @@
+import { expect, test } from '@playwright/test';
+import { createServer, type ViteDevServer } from 'vite';
+import { mkdir } from 'node:fs/promises';
+let server: ViteDevServer; let url: string;
+test.use({ viewport: { width: 1440, height: 900 }, launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH } : {} });
+test.beforeAll(async () => { server = await createServer({ configFile: 'tests/Browser/E4-01Z/vite.config.ts', cacheDir: '.local/runtime/vite-e401z', server: { host: '127.0.0.1', port: 0, strictPort: false } }); await server.listen(); url = new URL('/tests/Browser/E4-01Z/fixture.html', server.resolvedUrls!.local[0]).href; });
+test.afterAll(async () => { await server?.close(); });
+test('rollback action reflects draft and write permission', async ({ page }) => {
+ await page.goto(url);
+ const old = page.getByRole('row').filter({ hasText: 'v1' });
+ await expect(old.getByRole('button', { name: 'Откатить с сохранением' })).toBeEnabled();
+ await expect(old.getByRole('button', { name: 'Создать черновик' })).toBeDisabled();
+ await expect(old.getByRole('button')).toHaveCount(2);
+ await expect(page.getByRole('row').filter({ hasText: 'v2' }).getByRole('button')).toHaveCount(0);
+ await mkdir('.local/screenshots/SP-E4-01Z', { recursive: true });
+ await page.screenshot({ path: '.local/screenshots/SP-E4-01Z/history.png', fullPage: true });
+ await page.goto(url + '?noDraft');
+ await expect(page.getByRole('row').filter({ hasText: 'v1' }).getByRole('button', { name: 'Создать черновик' })).toBeEnabled();
+ await page.goto(url + '?viewer');
+ await expect(page.getByRole('row').filter({ hasText: 'v1' }).getByRole('button')).toHaveCount(0);
+});
