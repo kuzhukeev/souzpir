@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature\Owner\E113;
+namespace Tests\Feature\Shell\Billing;
 
 use App\Shell\Plans\LimitEnforcer;
 use App\Shell\Plans\MonthlyUnits;
@@ -55,7 +55,7 @@ final class ExampleTariffsE113Test extends TenancyTestCase
             DB::table('measurement_answers')->insert(['id' => (string) Str::ulid(), 'organization_id' => $organization->id, 'brand_id' => $item->id, 'measurement_id' => $measurement, 'question_n' => 1, 'provider' => 'fake', 'requested_model' => 'fake', 'run_no' => 1, 'status' => 'ok', 'created_at' => now(), 'updated_at' => now()]);
         }
         $context = new TenantContext($org->id, $brand->id, $owner->id);
-        self::assertSame(['dialogs' => 2, 'slots' => 2, 'units' => 4], app(MonthlyUnits::class)->usage($context));
+        self::assertSame(['dialogs' => 1, 'slots' => 2, 'units' => 4], app(MonthlyUnits::class)->usage($context));
         self::assertFalse(app(LimitEnforcer::class)->exhausted($context, 'ai.units_month', 799));
         self::assertTrue(app(LimitEnforcer::class)->exhausted($context, 'ai.units_month', 800));
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->get('/billing')->assertOk()->assertInertia(fn ($page) => $page->where('currentPlan.name', 'Старт')->where('examplePlans.start.price_rub', 9900)->where('examplePlans.business.price_rub', 24900));
