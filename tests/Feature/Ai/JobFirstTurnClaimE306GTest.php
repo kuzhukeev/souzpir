@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature\ProtectedOperations;
+namespace Tests\Feature\Ai;
 
 use App\ProtectedOperations\JobFirstTurnClaim;
 use App\Seller\Conversations\Models\Conversation;
