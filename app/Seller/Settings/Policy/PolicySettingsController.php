@@ -15,6 +15,7 @@ use App\Tenancy\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
@@ -116,13 +117,13 @@ final class PolicySettingsController
                         'value_kind' => is_array($initialSlots[$slot] ?? null) ? 'list' : 'text'];
                 }
 
-                return ['available' => true, 'fields' => $rows];
+                return ['available' => true, 'fields' => $rows, 'canRequest' => Gate::allows('seller.settings.write')];
             } catch (KnowledgeNotReady) {
-                return ['available' => false, 'fields' => []];
+                return ['available' => false, 'fields' => [], 'canRequest' => Gate::allows('seller.settings.write')];
             }
         });
 
-        return Inertia::render('Seller/Settings/Policy/Fields', $data);
+        return Inertia::render('Seller/Settings/Policy/Fields', [...$data, 'requestKey' => (string) Str::ulid()]);
     }
 
     public function update(Request $request): mixed
