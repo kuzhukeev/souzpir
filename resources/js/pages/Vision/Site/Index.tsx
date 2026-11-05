@@ -247,7 +247,7 @@ export default function Index({
         {section === 'bots' &&
           (audit ? <BotAccess audit={audit} domainStatus={domainStatus} /> : <Empty>Сначала проверьте сайт.</Empty>)}
         {section === 'pages' &&
-          (audit ? <Pages audit={audit} /> : <Empty>Сначала проверьте сайт.</Empty>)}
+          (audit ? <div className="space-y-4">{canManage && <AuditForm initialUrl={audit.url} />}<Pages audit={audit} /></div> : <Empty>Сначала проверьте сайт.</Empty>)}
         {section === 'actions' && (
           <Actions actions={actions} canManage={canManage} history={false} members={members} />
         )}
