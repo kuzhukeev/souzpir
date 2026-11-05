@@ -54,10 +54,16 @@ final class PolicySettingsController
             }
 
             $draftPolicy = null;
+            $draftReactions = null;
             if (Gate::allows('seller.settings.write')) {
                 $draft = DB::table('knowledge_releases')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('status', 'draft')->first(['id', 'version']);
                 if ($draft) {
-                    $draftPolicy = ['version' => $draft->version, 'policy' => app(KnowledgeRepository::class)->forRelease($tenant, $draft->id, true)->policy()];
+                    $draftSnapshot = app(KnowledgeRepository::class)->forRelease($tenant, $draft->id, true);
+                    $draftPolicy = ['version' => $draft->version, 'policy' => $draftSnapshot->policy()];
+                    $draftReactions = [];
+                    foreach (['decline_off_topic', 'decline_off_topic_second', 'decline_injection', 'opt_out_ack'] as $tag) {
+                        $draftReactions[$tag] = array_values(array_map(static fn (array $item): string => (string) ($item['text'] ?? ''), array_filter($draftSnapshot->all('fewshot')['examples'] ?? [], static fn ($item): bool => is_array($item) && ($item['tag'] ?? null) === $tag)));
+                    }
                 }
             }
 
@@ -85,7 +91,7 @@ final class PolicySettingsController
                 }
             }
 
-            return ['followup' => $followup, 'policy' => $policy, 'reactionExamples' => $reactionExamples, 'canWrite' => Gate::allows('seller.settings.write'), 'draftPolicy' => $draftPolicy,
+            return ['followup' => $followup, 'policy' => $policy, 'reactionExamples' => $reactionExamples, 'draftReactions' => $draftReactions, 'canWrite' => Gate::allows('seller.settings.write'), 'draftPolicy' => $draftPolicy,
                 'followupTimezone' => $timezone, 'followupSent' => $sent, 'followupReplies' => array_values($replies)];
         });
 
