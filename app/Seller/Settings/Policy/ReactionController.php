@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 final class ReactionController
 {
@@ -18,7 +19,7 @@ final class ReactionController
     {
         $input = $request->validate([
             'version' => ['required', 'integer', 'min:1'],
-            'tag' => ['required', Rule::in(['decline_off_topic', 'decline_off_topic_second', 'decline_injection', 'opt_out_ack'])],
+            'tag' => ['required', Rule::in(['decline_off_topic', 'decline_off_topic_second', 'decline_injection', 'opt_out_ack', 'negative_sentiment'])],
             'phrases' => ['present', 'array', 'max:20'],
             'phrases.*' => ['required', 'string', 'max:2000'],
         ]);
@@ -28,6 +29,25 @@ final class ReactionController
             $id = DB::table('knowledge_releases')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('status', 'draft')->value('id') ?? abort(404);
             $repo = app(KnowledgeRepository::class);
             $data = $repo->forRelease($tenant, $id, true)->toArray();
+            if ($input['tag'] === 'negative_sentiment') {
+                if (count($input['phrases']) !== 1 || trim($input['phrases'][0]) === '') {
+                    throw ValidationException::withMessages(['phrases' => 'Укажите одну идею ответа.']);
+                }
+                $found = false;
+                foreach ($data['escalation']['reasons'] ?? [] as $index => $reason) {
+                    if (($reason['id'] ?? null) === 'negative_sentiment') {
+                        $data['escalation']['reasons'][$index]['message_idea'] = trim($input['phrases'][0]);
+                        $found = true;
+                        break;
+                    }
+                }
+                if (! $found) {
+                    throw ValidationException::withMessages(['tag' => 'Сначала добавьте причину раздражения в базе знаний.']);
+                }
+                $repo->saveDraft($tenant, $id, (int) $input['version'], $data);
+
+                return;
+            }
             $all = $data['fewshot']['examples'] ?? [];
             $old = array_values(array_filter($all, fn ($item) => ($item['tag'] ?? null) === $input['tag']));
             $remaining = array_values(array_filter($all, fn ($item) => ($item['tag'] ?? null) !== $input['tag']));

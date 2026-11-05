@@ -64,6 +64,8 @@ final class PolicySettingsController
                     foreach (['decline_off_topic', 'decline_off_topic_second', 'decline_injection', 'opt_out_ack'] as $tag) {
                         $draftReactions[$tag] = array_values(array_map(static fn (array $item): string => (string) ($item['text'] ?? ''), array_filter($draftSnapshot->all('fewshot')['examples'] ?? [], static fn ($item): bool => is_array($item) && ($item['tag'] ?? null) === $tag)));
                     }
+                    $reason = collect($draftSnapshot->escalation()['reasons'] ?? [])->firstWhere('id', 'negative_sentiment');
+                    $draftReactions['negative_sentiment'] = is_string($reason['message_idea'] ?? null) ? [$reason['message_idea']] : [];
                 }
             }
 
