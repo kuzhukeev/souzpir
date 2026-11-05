@@ -15872,7 +15872,8 @@
       "goal": "Подключить первое входящее сообщение симуляции через job-вход FirstTurnCoordinator и защищённые extractor/guard/responder с tenant/brand и идемпотентностью. Использовать fake AI, проверить чужой бренд и трассу первого хода.",
       "dependsOn": [
         "SP-E3-06D",
-        "SP-E3-06F"
+        "SP-E3-06F",
+        "SP-E3-06G"
       ],
       "scope": [
         "app/ProtectedOperations/",
@@ -15889,14 +15890,14 @@
         "SP-E3-06D"
       ],
       "screenIds": [],
-      "notes": "Остаток SP-E3-06D; job-адаптация общих AI-стадий выделена в SP-E3-06F.",
+      "notes": "Подключение симуляции после реализации job-claim и общих стадий SP-E3-06G.",
       "sourceRefs": [
         "docs/preparation/decisions.md",
         "docs/sources/02b_mockup_journal.md"
       ],
       "promptPath": "docs/tasks/SP-E3-06E.md",
       "wave": 19,
-      "description": "# SP-E3-06E · Первый защищённый ход симуляции\n\n**Зачем:** завершить остаток по решению владельца 03.11.2026.\n**Часть чего:** частичная сдача SP-E3-06D, отчёт docs/results/SP-E3-06D.md.\n**Зависимости:** SP-E3-06D и SP-E3-06F в done.\n\nПодключить первое входящее сообщение симуляции через job-вход FirstTurnCoordinator и защищённые extractor/guard/responder с tenant/brand и идемпотентностью. Использовать fake AI, проверить чужой бренд и трассу первого хода.\n\nScope: `app/ProtectedOperations/`, `app/Seller/Evaluation/`, `tests/Feature/ProtectedOperations/`, `tests/Feature/Seller/Evaluation/`, `docs/results/SP-E3-06E.md`.\n\nПриёмка: соответствие указанным пунктам, права, бренд и ошибки; только fake внешние вызовы. Остаток и проверки записать в docs/results/SP-E3-06E.md.\n"
+      "description": "# SP-E3-06E · Первый защищённый ход симуляции\n\n**Зачем:** завершить остаток по решению владельца 03.11.2026.\n**Часть чего:** частичная сдача SP-E3-06D, отчёт docs/results/SP-E3-06D.md.\n**Зависимости:** SP-E3-06D, SP-E3-06F и SP-E3-06G в done.\n\nПодключить первое входящее сообщение симуляции через job-вход FirstTurnCoordinator и защищённые extractor/guard/responder с tenant/brand и идемпотентностью. Использовать fake AI, проверить чужой бренд и трассу первого хода.\n\nScope: `app/ProtectedOperations/`, `app/Seller/Evaluation/`, `tests/Feature/ProtectedOperations/`, `tests/Feature/Seller/Evaluation/`, `docs/results/SP-E3-06E.md`.\n\nПриёмка: соответствие указанным пунктам, права, бренд и ошибки; только fake внешние вызовы. Остаток и проверки записать в docs/results/SP-E3-06E.md.\n"
     },
     {
       "taskKey": "SP-E8-24F",
