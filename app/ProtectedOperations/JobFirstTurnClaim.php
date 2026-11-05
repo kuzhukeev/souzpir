@@ -29,15 +29,27 @@ final class JobFirstTurnClaim
                 || (int) $message->history_sequence !== 1) {
                 throw new LogicException('Job claim unavailable.');
             }
-            $claim = app(ConversationRepository::class)->claimTurn($tenant, $command);
-            if ($claim->status !== 'claimed' || ! is_string($claim->token())) {
+            $canonical = json_encode(['conversation' => $conversationId, 'message' => $messageId, 'text' => $command->text, 'external_event' => $command->externalEventId], JSON_THROW_ON_ERROR);
+            $receipt = app(PostgresTransactionalIdempotency::class)->execute($tenant->organizationId, $tenant->brandId, 'seller.job_first_turn_claim', $idempotencyKey, $canonical,
+                function () use ($tenant, $command): array {
+                    $claim = app(ConversationRepository::class)->claimTurn($tenant, $command);
+                    if ($claim->status !== 'claimed' || ! is_string($claim->token())) {
+                        throw new LogicException('Job claim unavailable.');
+                    }
+                    DB::table('e306g_job_turn_claims')->insert([
+                        'id' => (string) Str::ulid(), 'organization_id' => $claim->organizationId,
+                        'brand_id' => $claim->brandId, 'conversation_id' => $claim->conversationId,
+                        'turn_id' => $claim->turnId, 'claim_hash' => hash('sha256', $claim->token()),
+                    ]);
+
+                    return ['turn_id' => $claim->turnId, 'token' => $claim->token()];
+                });
+            if (! is_string($receipt['turn_id'] ?? null) || ! Str::isUlid($receipt['turn_id'])
+                || ! is_string($receipt['token'] ?? null) || ! preg_match('/\A[a-f0-9]{64}\z/D', $receipt['token'])) {
                 throw new LogicException('Job claim unavailable.');
             }
-            DB::table('e306g_job_turn_claims')->insert([
-                'id' => (string) Str::ulid(), 'organization_id' => $claim->organizationId,
-                'brand_id' => $claim->brandId, 'conversation_id' => $claim->conversationId,
-                'turn_id' => $claim->turnId, 'claim_hash' => hash('sha256', $claim->token()),
-            ]);
+            $claim = new TurnClaim('claimed', $receipt['turn_id'], $conversationId, $tenant->organizationId, $tenant->brandId, 0, $receipt['token']);
+            $this->assertCurrent($tenant, $claim);
 
             return $claim;
         }));

@@ -36,6 +36,10 @@ final class JobFirstTurnClaimE306GTest extends TenancyTestCase
         self::assertSame('claimed', $claim->status);
         self::assertDatabaseHas('e306g_job_turn_claims', ['turn_id' => $claim->turnId, 'brand_id' => $brand->id]);
         DB::transaction(fn () => $service->assertCurrent($tenant, $claim));
+        $recovered = $service->claim($tenant, $conversation->id, $message->id, 'first');
+        self::assertSame($claim->turnId, $recovered->turnId);
+        self::assertSame($claim->token(), $recovered->token());
+        DB::transaction(fn () => $service->assertCurrent($tenant, $recovered));
         self::assertSame(1, DB::table('seller_turns')->count());
     }
 
