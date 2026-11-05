@@ -49,6 +49,7 @@ final class PrepareFollowups implements ShouldQueue
             $state = json_decode($conversation->state, true);
             $data = ['stage' => $conversation->stage, 'state' => is_array($state) ? $state : [], 'do_not_disturb' => $conversation->do_not_disturb,
                 'followups_sent' => $conversation->followups_sent, 'last_client_message_at' => $conversation->last_client_message_at];
+            $this->prepareManagerTask($conversation, $settings, $now);
             $due = $policy->due($data, $settings, $last ? CarbonImmutable::parse($last) : null, $now, $brand->timezone);
             if (! $due) {
                 continue;
@@ -59,6 +60,31 @@ final class PrepareFollowups implements ShouldQueue
             DB::table('seller_followup_candidates')->insertOrIgnore(['id' => (string) Str::ulid(), 'organization_id' => $this->organizationId,
                 'brand_id' => $this->brandId, 'conversation_id' => $conversation->id, 'reason' => $due['reason'], 'source_at' => $due['source_at'],
                 'sequence' => $due['sequence'], 'text' => $text, 'status' => 'pending', 'created_at' => now(), 'updated_at' => now()]);
+        }
+    }
+
+    private function prepareManagerTask(object $conversation, array $settings, CarbonImmutable $now): void
+    {
+        $maximum = max(0, (int) ($settings['max_auto'] ?? 2));
+        $state = json_decode($conversation->state, true) ?: [];
+        if ($maximum === 0 || (int) $conversation->followups_sent < $maximum || $conversation->mode !== 'bot'
+            || $conversation->do_not_disturb || data_get($state, 'flags.do_not_disturb', false)
+            || in_array($conversation->stage, array_merge(['handoff', 'lost', 'done', 'spam'], $settings['excluded_stages'] ?? []), true)) {
+            return;
+        }
+        $scope = ['organization_id' => $this->organizationId, 'brand_id' => $this->brandId, 'conversation_id' => $conversation->id];
+        $candidate = DB::table('seller_followup_candidates')->where($scope)->where('status', 'completed')->where('sequence', '>=', $maximum)->orderByDesc('updated_at')->first();
+        $message = DB::table('messages')->where($scope)->where('role', 'agent')->orderByDesc('created_at')->orderByDesc('id')->first(['created_at', 'meta']);
+        if (! $candidate || ! $message || data_get(json_decode($message->meta, true), 'goal.kind') !== 'followup_nudge') {
+            return;
+        }
+        $sent = CarbonImmutable::parse($message->created_at);
+        if (CarbonImmutable::parse($conversation->last_client_message_at)->greaterThanOrEqualTo($sent)
+            || $sent->addHours(max(1, (int) ($settings['task_after_hours'] ?? 24)))->greaterThan($now)) {
+            return;
+        }
+        if (! DB::table('seller_tasks')->where($scope)->where('type', 'stale')->where(fn ($query) => $query->whereIn('status', ['new', 'in_progress'])->orWhere('payload->followup_candidate_id', $candidate->id))->exists()) {
+            DB::table('seller_tasks')->insert(['id' => (string) Str::ulid(), ...$scope, 'type' => 'stale', 'payload' => json_encode(['followup_candidate_id' => $candidate->id], JSON_THROW_ON_ERROR), 'status' => 'new', 'priority' => 'normal', 'created_at' => now(), 'updated_at' => now()]);
         }
     }
 }
