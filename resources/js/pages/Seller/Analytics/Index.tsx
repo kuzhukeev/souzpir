@@ -457,7 +457,7 @@ export default function Index({ analytics: a }: { analytics: Analytics }) {
               )}
               <h3 className="mt-4 font-semibold">Загрузка по дням</h3>
               <WorkloadChart managers={a.managers} />
-              <p className="mt-2 text-sm text-(--color-ink-muted)">Учитываются образцы, добавленные после запуска учёта; при фильтре канала показатель недоступен.</p>
+              <p className="mt-2 text-sm text-(--color-ink-muted)">Учитываются образцы с подтверждённым автором и датой; при фильтре канала или источника показатель недоступен.</p>
             </section>
           )}
         </div>
