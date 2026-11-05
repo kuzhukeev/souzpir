@@ -52,7 +52,6 @@ export default function Index({
   const [mergeSearch, setMergeSearch] = useState('');
   const [openedCompany, setOpenedCompany] = useState<string | null>(null);
   const [pendingPair, setPendingPair] = useState<string[]>([]);
-  const [comparisonCount, setComparisonCount] = useState(2);
   const [left, setLeft] = useState('');
   const [right, setRight] = useState('');
   const [third, setThird] = useState('');
@@ -382,10 +381,11 @@ export default function Index({
                       [third, setThird, 'Третья компания'],
                       [fourth, setFourth, 'Четвёртая компания'],
                     ] as const
-                  ).slice(0, comparisonCount).map(([value, set, label]) => (
+                  ).map(([value, set, label], index) => (
                     <label key={label} className="text-sm">
                       {label}
                       <select
+                        id={`comparison-${index}`}
                         className={`${field} mt-1 block w-full cursor-pointer`}
                         value={value}
                         onChange={(e) => set(e.target.value)}
@@ -395,7 +395,7 @@ export default function Index({
                           <option
                             key={e.name}
                             value={e.name}
-                            disabled={selected.includes(e.name) && e.name !== value && !e.is_brand}
+                            disabled={[left, right, third, fourth].includes(e.name) && e.name !== value}
                           >
                             {e.name}
                           </option>
@@ -404,7 +404,7 @@ export default function Index({
                     </label>
                   ))}
                 </div>
-                {comparisonCount < 4 && <button type="button" className="mt-3 min-h-11 cursor-pointer text-sm font-semibold text-(--color-link)" onClick={() => setComparisonCount(comparisonCount + 1)}>Добавить конкурента</button>}
+                <button type="button" className="mt-3 min-h-11 cursor-pointer text-sm font-semibold text-(--color-link)" disabled={[left, right, third, fourth].every(Boolean)} onClick={() => document.getElementById(`comparison-${[left, right, third, fourth].findIndex(value => !value)}`)?.focus()}>Добавить конкурента</button>
                 {selected.length >= 2 && (
                   <div className="mt-4 overflow-x-auto">
                     <table className="w-full min-w-[500px] text-left text-sm">
