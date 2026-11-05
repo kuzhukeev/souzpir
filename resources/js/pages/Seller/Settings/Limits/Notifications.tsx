@@ -1,3 +1,4 @@
+import SettingsNavigation from './SettingsNavigation';
 import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 import { Bell, MessageCircle, Clock3, BookOpen, FileText, TriangleAlert, Link2, ChartNoAxesCombined } from 'lucide-react';
@@ -47,15 +48,12 @@ export default function Notifications({ rows, canEdit, digestAvailable, testKey:
     });
   };
   return (
-    <CabinetLayout breadcrumbs={[{ label: 'Главная' }, { label: 'Продавец' }, { label: 'Настройки' }, { label: 'Уведомления' }]}>
+    <CabinetLayout breadcrumbs={[{ label: 'Главная', href: '/dashboard' }, { label: 'Продавец', href: '/seller' }, { label: 'Настройки', href: '/seller/settings' }, { label: 'Уведомления' }]}>
       <Head title="Уведомления модуля" />
       <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div><h1 className="text-3xl font-bold tracking-tight">Уведомления модуля</h1><p className="mt-1 text-base text-(--color-ink-muted)">Выберите получателей, каналы и время отправки</p></div>
       </header>
-      <nav aria-label="Настройки продавца" className="mb-6 flex flex-wrap gap-2">
-        <Link href="/seller/settings/limits" className="rounded-lg bg-(--color-surface) px-4 py-3 text-sm text-(--color-link)">Лимиты</Link>
-        <span aria-current="page" className="rounded-lg bg-(--color-success-soft) px-4 py-3 text-sm font-semibold text-(--color-action)">Уведомления</span>
-      </nav>
+      <SettingsNavigation active="notifications" />
       <p className="mb-4 text-sm text-(--color-ink-muted)">Получатели выбираются среди участников с доступом к бренду и событию. Их личные настройки каналов также учитываются. Сводка отправляется раз в день в личное время получателя по часовому поясу бренда.</p>
       <Link href="/seller/settings/notifications/digests" className="mb-4 inline-block text-sm text-(--color-link)">Мои сводки</Link>
       {!digestAvailable && <p role="status" className="mb-4 text-sm text-(--color-ink-muted)">Доставка сводок пока недоступна.</p>}
