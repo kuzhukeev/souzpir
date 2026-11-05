@@ -83,7 +83,7 @@ final class PublicationsController
                 $reportData = app(ReportData::class);
                 $siteAudit = $reportData->siteAudit($context, $reportData->siteFromProfile($measurement), $report->created_at);
                 $public = app(PublicationData::class)->fromReport($report->id, $siteAudit,
-                    $data['confirmed_actions'] ?? []);
+                    $data['confirmed_actions'] ?? [], $context, $report);
                 $public['allow_pdf'] = (bool) ($data['allow_pdf'] ?? false);
             } catch (LogicException) {
                 abort(409, 'Отчёт недоступен.');
