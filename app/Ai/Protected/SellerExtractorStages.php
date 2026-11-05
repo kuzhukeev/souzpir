@@ -11,6 +11,7 @@ use App\Models\Membership;
 use App\Models\User;
 use App\ProtectedOperations\ExtractorEffectReservations;
 use App\ProtectedOperations\FirstTurnProtectedClaim;
+use App\ProtectedOperations\JobFirstTurnClaim;
 use App\ProtectedOperations\SellerTurnFence;
 use App\Seller\Conversations\Data\TurnClaim;
 use App\Seller\Engine\BrandPromptSets;
@@ -22,6 +23,7 @@ use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Auth\SessionBrandSelection;
 use App\Shell\Organizations\ModuleEntitlements;
 use App\Tenancy\TenantContext;
+use App\Tenancy\TenantContextRunner;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
@@ -34,6 +36,23 @@ use Throwable;
 /** Server-owned extractor inputs and call binding; never authorizes a Seller effect. */
 final class SellerExtractorStages
 {
+    /** Build extractor input from the current job claim and persisted first message. */
+    public function prepareJobInput(#[SensitiveParameter] TenantContext $tenant, #[SensitiveParameter] TurnClaim $claim): array
+    {
+        try {
+            return app(TenantContextRunner::class)->run($tenant, fn () => DB::transaction(function () use ($tenant, $claim): array {
+                app(JobFirstTurnClaim::class)->assertCurrent($tenant, $claim);
+                [$request, $state, $message, $engine] = $this->inputs($tenant, $claim);
+                $context = new AiContext($tenant->organizationId, $tenant->brandId, 'extractor', 'seller', 'conversation',
+                    $claim->conversationId, 'job-extractor-'.$claim->turnId, ['conversation_content', 'client_profile', 'knowledge_internal']);
+
+                return [$request, $context, $this->digest($this->inputJson($request, $state, $message)), $state, $message, $engine];
+            }));
+        } catch (Throwable) {
+            throw new LogicException('Protected extractor stage rejected.');
+        }
+    }
+
     public function prepare(#[SensitiveParameter] Request $http, #[SensitiveParameter] TurnClaim $claim): string
     {
         try {
