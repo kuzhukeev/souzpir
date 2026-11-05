@@ -18606,6 +18606,76 @@
       ],
       "wave": 20,
       "promptPath": "docs/tasks/SP-E7-04I.md"
+    },
+    {
+      "taskKey": "SP-E8-21K",
+      "title": "SP-E8-21K · Пять критериев и важность проверки сайта",
+      "goal": "V-5.6: обеспечить пять ключевых критериев в данных отчёта. V-8.1: пять групп и шкала N/20 для фактических критериев инспектора. V-8.2: важность из веса и примеры кода; обновить браузерный тест E8-21H и удалить неиспользуемый SpeedUnavailable.",
+      "description": "# SP-E8-21K · Пять критериев и важность проверки сайта\n\n**Зачем:** полное соответствие экранам по решению владельца 05.11.2026.\n**Часть чего:** остаток частичной сдачи SP-E8-21I, docs/results/SP-E8-21I.md.\n**Зависимости:** SP-E8-21I.\n\n## Приёмка\n- V-5.6: обеспечить пять ключевых критериев в данных отчёта.\n- V-8.1: пять групп и шкала N/20 для фактических критериев инспектора.\n- V-8.2: важность из веса и примеры кода; обновить браузерный тест E8-21H и удалить неиспользуемый SpeedUnavailable.\n\nПроверить права, бренд и ошибки; остаток записать в отчёт.\n\nScope: `app/Vision/Site/`, `app/Vision/SiteAudit/`, `app/Vision/Reports/`, `resources/js/pages/Vision/Site/`, `resources/js/pages/Vision/Reports/`, `resources/js/features/Vision/Site/`, `tests/Browser/E8-21H/`, `tests/Browser/E8-21K/`, `tests/Feature/Vision/Site/`, `docs/results/SP-E8-21K.md`.\n",
+      "dependsOn": [
+        "SP-E8-21I"
+      ],
+      "scope": [
+        "app/Vision/Site/",
+        "app/Vision/SiteAudit/",
+        "app/Vision/Reports/",
+        "resources/js/pages/Vision/Site/",
+        "resources/js/pages/Vision/Reports/",
+        "resources/js/features/Vision/Site/",
+        "tests/Browser/E8-21H/",
+        "tests/Browser/E8-21K/",
+        "tests/Feature/Vision/Site/",
+        "docs/results/SP-E8-21K.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "V-5.6: обеспечить пять ключевых критериев в данных отчёта.",
+        "V-8.1: пять групп и шкала N/20 для фактических критериев инспектора.",
+        "V-8.2: важность из веса и примеры кода; обновить браузерный тест E8-21H и удалить неиспользуемый SpeedUnavailable."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "V-5.6",
+        "V-8.1",
+        "V-8.2"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E8-21K.md"
+    },
+    {
+      "taskKey": "SP-E7-04J",
+      "title": "SP-E7-04J · Образцы речи в аналитике менеджеров",
+      "goal": "Учесть добавленные образцы речи и их авторов через источник событий редактора знаний и аудита. Показать «Образцов речи добавил» в аналитике; проверить права, бренд и ошибки.",
+      "description": "# SP-E7-04J · Образцы речи в аналитике менеджеров\n\n**Зачем:** полное соответствие экранам по решению владельца 05.11.2026.\n**Часть чего:** остаток частичной сдачи SP-E7-04I, docs/results/SP-E7-04I.md.\n**Зависимости:** SP-E7-04I.\n\n## Приёмка\n- Учесть добавленные образцы речи и их авторов через источник событий редактора знаний и аудита.\n- Показать «Образцов речи добавил» в аналитике; проверить права, бренд и ошибки.\n\nПроверить права, бренд и ошибки; остаток записать в отчёт.\n\nScope: `app/Seller/Analytics/`, `app/Seller/Knowledge/`, `resources/js/pages/Seller/Analytics/`, `tests/Feature/Seller/Analytics/`, `tests/Feature/Owner/E7-04J/`, `tests/Browser/E7-04J/`, `docs/results/SP-E7-04J.md`.\n",
+      "dependsOn": [
+        "SP-E7-04I"
+      ],
+      "scope": [
+        "app/Seller/Analytics/",
+        "app/Seller/Knowledge/",
+        "resources/js/pages/Seller/Analytics/",
+        "tests/Feature/Seller/Analytics/",
+        "tests/Feature/Owner/E7-04J/",
+        "tests/Browser/E7-04J/",
+        "docs/results/SP-E7-04J.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Учесть добавленные образцы речи и их авторов через источник событий редактора знаний и аудита.",
+        "Показать «Образцов речи добавил» в аналитике; проверить права, бренд и ошибки."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "D-8.5"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E7-04J.md"
     }
   ],
   "excludedSourceTasks": {
