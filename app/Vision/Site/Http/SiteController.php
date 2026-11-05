@@ -78,7 +78,7 @@ final class SiteController
             $website = DB::table('brands')->where('organization_id', $tenant->organizationId)->where('id', $tenant->brandId)->value('website');
             $progress = Cache::get(AuditSiteJob::key($tenant->organizationId, $tenant->brandId), []);
             $stage = is_string($website) && $website !== '' && is_array($progress) && ($progress['url'] ?? null) === $website ? ($progress['stage'] ?? null) : null;
-            $stage = in_array($stage, ['queued', 'inspecting', 'saving', 'complete', 'failed'], true) ? $stage : null;
+            $stage = in_array($stage, ['queued', 'inspecting', 'analyzing', 'saving', 'complete', 'failed'], true) ? $stage : null;
             $raw = DB::table('audit_runs')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->orderByDesc('created_at')->orderByDesc('id')->value('result');
             $audit = is_string($raw) ? json_decode($raw, true) : null;
             if (! is_string($website) || ! is_array($audit) || ($audit['url'] ?? null) !== $website) {

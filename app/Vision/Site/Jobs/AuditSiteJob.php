@@ -40,7 +40,7 @@ final class AuditSiteJob implements ShouldQueue
                 });
                 $this->progress($key, 'inspecting');
                 $started = microtime(true);
-                $result = $inspector->inspect($this->url, null, function (int $processed, int $total) use ($key, $started): void {
+                $result = $inspector->inspect($this->url, 50, function (int $processed, int $total) use ($key, $started): void {
                     $data = Cache::get($key, []);
                     $seconds = microtime(true) - $started;
                     $data['pages_processed'] = $processed;
@@ -48,6 +48,9 @@ final class AuditSiteJob implements ShouldQueue
                     $data['remaining_seconds'] = $processed >= 2 && $processed < $total && $seconds > 0
                         ? max(1, (int) ceil($seconds / $processed * ($total - $processed))) : null;
                     Cache::put($key, $data, now()->addDay());
+                    if ($processed >= $total) {
+                        $this->progress($key, 'analyzing');
+                    }
                 });
                 $this->progress($key, 'saving');
                 DB::transaction(function () use ($access, $audit, $tenant, $result): void {
