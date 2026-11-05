@@ -17509,6 +17509,42 @@
       "promptPath": "docs/tasks/SP-E7-01J.md",
       "wave": 19,
       "description": "# SP-E7-01J · Качество: оценка диалога и старые доклады\n\n**Зачем:** завершить D-7.2, D-7.3 по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E7-01I, docs/results/SP-E7-01I.md.\n**Зависимости:** SP-E7-01I в done.\n\nЗавершить состояния drawer и защищённую fake-оценку реального диалога. Старые связи докладов восстанавливать только по подтверждённым данным. Общие AI-стадии без решения владельца не менять.\n\nScope: `app/Seller/Quality/`, `app/Seller/Evaluation/`, `app/Seller/Dialogs/`, `resources/js/pages/Seller/Quality/`, `resources/js/pages/Seller/Dialogs/`, `tests/Feature/Seller/Quality/`, `tests/Browser/E7-01J/`, `docs/results/SP-E7-01J.md`.\n\nПриёмка: сценарий, права, бренд и ошибки; только fake вызовы. Остаток записать в docs/results/SP-E7-01J.md.\n"
+    },
+    {
+      "taskKey": "SP-E6-03V",
+      "title": "SP-E6-03V · Реакции: действия грубости и отказа",
+      "description": "# SP-E6-03V · Реакции: действия грубости и отказа\n\n**Зачем:** завершить D-5.6 по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E6-03U, docs/results/SP-E6-03U.md.\n**Зависимости:** SP-E6-03U в done.\n\nЗавершить действия и сценарии грубости и отказа с проверкой runtime, сверить полный экран D-5.6 с макетом. Не менять общие AI-стадии без решения владельца; использовать fake-драйверы.\n\nScope: `app/Seller/Settings/Policy/`, `app/Seller/Engine/Policy.php`, `app/Seller/Runtime/`, `resources/js/pages/Seller/Settings/Policy/`, `tests/Feature/Seller/Settings/Policy/`, `tests/Feature/Seller/Runtime/`, `tests/Browser/E6-03V/`, `docs/results/SP-E6-03V.md`.\n\nПриёмка: сценарий, права, бренд, ошибки; только fake вызовы. Остаток записать в docs/results/SP-E6-03V.md.\n",
+      "goal": "Завершить действия и сценарии грубости и отказа с проверкой runtime, сверить полный экран D-5.6 с макетом. Не менять общие AI-стадии без решения владельца; использовать fake-драйверы.",
+      "dependsOn": [
+        "SP-E6-03U"
+      ],
+      "scope": [
+        "app/Seller/Settings/Policy/",
+        "app/Seller/Engine/Policy.php",
+        "app/Seller/Runtime/",
+        "resources/js/pages/Seller/Settings/Policy/",
+        "tests/Feature/Seller/Settings/Policy/",
+        "tests/Feature/Seller/Runtime/",
+        "tests/Browser/E6-03V/",
+        "docs/results/SP-E6-03V.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Сценарий, права, бренд и ошибки; только fake внешние вызовы."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "D-5.6"
+      ],
+      "wave": 10,
+      "promptPath": "docs/tasks/SP-E6-03V.md",
+      "sourceIds": [
+        "SP-E6-03U"
+      ],
+      "notes": "Остаток частичной сдачи SP-E6-03U."
     }
   ],
   "excludedSourceTasks": {
