@@ -2,6 +2,7 @@
 
 namespace App\Seller\Dashboard;
 
+use App\Seller\Evaluation\EvaluationVisibility;
 use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -52,7 +53,7 @@ final class DashboardQuery
             'handoff' => $handoff - $previous->whereNotNull('handed_off_at')->count(), 'done' => $done - $previous->where('stage', 'done')->count()];
         $scope = fn (string $table) => DB::table($table)->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId);
         $end = $today->addDay()->startOfDay()->utc();
-        $evaluations = $scope('seller_evaluations')->where('created_at', '>=', $start)->where('created_at', '<', $end)->get(['average', 'issues']);
+        $evaluations = $scope('seller_evaluations')->where(fn ($query) => EvaluationVisibility::excludeTestBaseline($query))->where('created_at', '>=', $start)->where('created_at', '<', $end)->get(['average', 'issues']);
         $quality = $evaluations->isEmpty() ? null : round((float) $evaluations->avg('average'), 2);
         $issues = [];
         foreach ($evaluations as $evaluation) {
@@ -65,7 +66,7 @@ final class DashboardQuery
         }
         arsort($issues);
         $issues = array_slice($issues, 0, 5, true);
-        $previousEvaluations = $scope('seller_evaluations')->where('created_at', '>=', $start->subDays($days))->where('created_at', '<', $start)->get(['issues']);
+        $previousEvaluations = $scope('seller_evaluations')->where(fn ($query) => EvaluationVisibility::excludeTestBaseline($query))->where('created_at', '>=', $start->subDays($days))->where('created_at', '<', $start)->get(['issues']);
         $priorIssues = [];
         foreach ($previousEvaluations as $evaluation) {
             $seen = [];
