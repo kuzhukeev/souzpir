@@ -47,6 +47,15 @@ export default function Index({ consents, exports: archives, modules, permission
   return <><Head title={tr('page_title')} /><Page title={tr('page_title')} subtitle={tr('page_subtitle')}>
     <div className="space-y-5">
       <div><Errors errors={{ ...form.errors, ...consent.errors, ...(rangeError ? { from: rangeError } : {}) }} transport={transport} /><p role="status" className="text-sm text-(--color-success)">{notice}</p></div>
+      <section className={panel} aria-labelledby="storage-title">
+        <h2 id="storage-title" className="text-xl font-bold">Хранение данных</h2>
+        <p className="mt-2 text-sm text-(--color-ink-muted)">Срок хранения данных и автоматическая очистка пока не подтверждены. Для выгрузки можно выбрать период до 365 дней.</p>
+      </section>
+      <section className={panel} aria-labelledby="account-title">
+        <h2 id="account-title" className="text-xl font-bold">Удаление аккаунта</h2>
+        <p className="mt-2 text-sm text-(--color-ink-muted)">Самостоятельное удаление аккаунта пока недоступно. Обратитесь в поддержку.</p>
+        <a href="/help/support" className="mt-3 inline-block cursor-pointer text-sm font-semibold text-(--color-link) underline">Открыть поддержку</a>
+      </section>
       <section className={panel} aria-labelledby="consents-title">
         <h2 id="consents-title" className="text-xl font-bold">{tr('consents')}</h2>
         <ul className="mt-2 divide-y divide-(--color-border)">
