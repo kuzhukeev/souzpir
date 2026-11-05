@@ -12,6 +12,7 @@ use App\Models\User;
 use App\ProtectedOperations\ExtractorEffectReservations;
 use App\ProtectedOperations\FirstTurnProtectedClaim;
 use App\ProtectedOperations\JobFirstTurnClaim;
+use App\ProtectedOperations\PostgresTransactionalIdempotency;
 use App\ProtectedOperations\SellerTurnFence;
 use App\Seller\Conversations\Data\TurnClaim;
 use App\Seller\Engine\BrandPromptSets;
@@ -47,6 +48,33 @@ final class SellerExtractorStages
                     $claim->conversationId, 'job-extractor-'.$claim->turnId, ['conversation_content', 'client_profile', 'knowledge_internal']);
 
                 return [$request, $context, $this->digest($this->inputJson($request, $state, $message)), $state, $message, $engine];
+            }));
+        } catch (Throwable) {
+            throw new LogicException('Protected extractor stage rejected.');
+        }
+    }
+
+    /** Persist the prepared job input in the encrypted, tenant-scoped receipt. */
+    public function prepareJobStoredInput(#[SensitiveParameter] TenantContext $tenant, #[SensitiveParameter] TurnClaim $claim): array
+    {
+        try {
+            return app(TenantContextRunner::class)->run($tenant, fn () => DB::transaction(function () use ($tenant, $claim): array {
+                app(JobFirstTurnClaim::class)->assertCurrent($tenant, $claim);
+                $receipt = app(PostgresTransactionalIdempotency::class)->execute(
+                    $tenant->requireOrganizationId(), $tenant->brandId, 'seller.job_extractor_input', $claim->turnId,
+                    json_encode(['turn_id' => $claim->turnId, 'conversation_id' => $claim->conversationId], JSON_THROW_ON_ERROR),
+                    function () use ($tenant, $claim): array {
+                        [$request, , $digest, $state, $message] = $this->prepareJobInput($tenant, $claim);
+
+                        return ['input' => $this->inputJson($request, $state, $message), 'digest' => $digest];
+                    },
+                );
+                if (! is_string($receipt['input'] ?? null) || ! is_string($receipt['digest'] ?? null)
+                    || ! hash_equals($receipt['digest'], $this->digest($receipt['input']))) {
+                    throw new LogicException;
+                }
+
+                return $receipt;
             }));
         } catch (Throwable) {
             throw new LogicException('Protected extractor stage rejected.');
