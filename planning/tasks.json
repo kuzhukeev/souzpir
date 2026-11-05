@@ -17043,6 +17043,112 @@
         "SP-E6-03G"
       ],
       "notes": "Остаток частичной сдачи SP-E6-03G."
+    },
+    {
+      "taskKey": "SP-E1-08H",
+      "title": "SP-E1-08H · Уведомления: личная и seller-сводка",
+      "description": "# SP-E1-08H · Уведомления: личная и seller-сводка\n\n**Зачем:** завершить S-7.1 по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E1-08G, docs/results/SP-E1-08G.md.\n**Зависимости:** SP-E1-08G в done.\n\nОпределить приоритет личных и брендовых настроек, подключить seller digest к fake-доставке и проверить экран по макету. Реальные отправки без разрешения не выполнять.\n\nScope: `app/Shell/Notifications/`, `app/Seller/Settings/Limits/`, `app/Shell/Profile/`, `resources/js/pages/Shell/Profile/`, `tests/Feature/Shell/Notifications/`, `tests/Browser/E1-08H/`, `docs/results/SP-E1-08H.md`.\n\nПриёмка: сценарий, права, бренд и ошибки; только fake вызовы. Остаток записать в docs/results/SP-E1-08H.md.\n",
+      "goal": "Определить приоритет личных и брендовых настроек, подключить seller digest к fake-доставке и проверить экран по макету. Реальные отправки без разрешения не выполнять.",
+      "dependsOn": [
+        "SP-E1-08G"
+      ],
+      "scope": [
+        "app/Shell/Notifications/",
+        "app/Seller/Settings/Limits/",
+        "app/Shell/Profile/",
+        "resources/js/pages/Shell/Profile/",
+        "tests/Feature/Shell/Notifications/",
+        "tests/Browser/E1-08H/",
+        "docs/results/SP-E1-08H.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Сценарий, права, бренд и ошибки; только fake внешние вызовы."
+      ],
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "S-7.1",
+        "S-7.2"
+      ],
+      "wave": 10,
+      "promptPath": "docs/tasks/SP-E1-08H.md",
+      "sourceIds": [
+        "SP-E1-08G"
+      ],
+      "notes": "Остаток частичной сдачи SP-E1-08G"
+    },
+    {
+      "taskKey": "SP-E5-04R",
+      "title": "SP-E5-04R · Диалог: генерация подсказки manager",
+      "goal": "Подключить генерацию подсказки manager через защищённый runtime после решения владельца об изменении общих AI-стадий. До решения карточку не выдавать; fake-вызовы, права и бренд обязательны.",
+      "dependsOn": [
+        "SP-E5-04Q"
+      ],
+      "scope": [
+        "app/Seller/Dialogs/",
+        "resources/js/pages/Seller/Dialogs/",
+        "tests/Feature/Seller/Dialogs/",
+        "tests/Browser/E5-04R/",
+        "docs/results/SP-E5-04R.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Сценарий, права, бренд и ошибки; только fake внешние вызовы."
+      ],
+      "sourceIds": [
+        "SP-E5-04Q"
+      ],
+      "screenIds": [
+        "D-2.2",
+        "D-2.3"
+      ],
+      "notes": "Остаток частичной сдачи SP-E5-04Q",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E5-04R.md",
+      "wave": 18,
+      "description": "# SP-E5-04R · Диалог: генерация подсказки manager\n\n**Зачем:** завершить D-2.3 по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E5-04Q, docs/results/SP-E5-04Q.md.\n**Зависимости:** SP-E5-04Q в done.\n\nПодключить генерацию подсказки manager через защищённый runtime после решения владельца об изменении общих AI-стадий. До решения карточку не выдавать; fake-вызовы, права и бренд обязательны.\n\nScope: `app/Seller/Dialogs/`, `resources/js/pages/Seller/Dialogs/`, `tests/Feature/Seller/Dialogs/`, `tests/Browser/E5-04R/`, `docs/results/SP-E5-04R.md`.\n\nПриёмка: сценарий, права, бренд и ошибки; только fake вызовы. Остаток записать в docs/results/SP-E5-04R.md.\n"
+    },
+    {
+      "taskKey": "SP-E7-02J",
+      "title": "SP-E7-02J · Тестовые оценки: остальные потребители",
+      "goal": "Исключить тестовые оценки из Dashboard, проверить Analytics и Calibration; унифицировать признак тестовой оценки и проверить всех потребителей перед включением fake fallback. Не менять golden fixtures.",
+      "dependsOn": [
+        "SP-E7-02I"
+      ],
+      "scope": [
+        "app/Seller/Dashboard/",
+        "app/Seller/Analytics/",
+        "app/Seller/Calibration/",
+        "app/Seller/Evaluation/",
+        "tests/Feature/Seller/Dashboard/",
+        "tests/Feature/Seller/Analytics/",
+        "tests/Feature/Seller/Calibration/",
+        "docs/results/SP-E7-02J.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Сценарий, права, бренд и ошибки; только fake внешние вызовы."
+      ],
+      "sourceIds": [
+        "SP-E7-02I"
+      ],
+      "screenIds": [
+        "D-7.6"
+      ],
+      "notes": "Остаток частичной сдачи SP-E7-02I",
+      "sourceRefs": [
+        "docs/sources/02_screens_matrix.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "promptPath": "docs/tasks/SP-E7-02J.md",
+      "wave": 19,
+      "description": "# SP-E7-02J · Тестовые оценки: остальные потребители\n\n**Зачем:** завершить D-7.6 по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E7-02I, docs/results/SP-E7-02I.md.\n**Зависимости:** SP-E7-02I в done.\n\nИсключить тестовые оценки из Dashboard, проверить Analytics и Calibration; унифицировать признак тестовой оценки и проверить всех потребителей перед включением fake fallback. Не менять golden fixtures.\n\nScope: `app/Seller/Dashboard/`, `app/Seller/Analytics/`, `app/Seller/Calibration/`, `app/Seller/Evaluation/`, `tests/Feature/Seller/Dashboard/`, `tests/Feature/Seller/Analytics/`, `tests/Feature/Seller/Calibration/`, `docs/results/SP-E7-02J.md`.\n\nПриёмка: сценарий, права, бренд и ошибки; только fake вызовы. Остаток записать в docs/results/SP-E7-02J.md.\n"
     }
   ],
   "excludedSourceTasks": {
