@@ -41,6 +41,10 @@ final class SellerNotificationRouter implements NotificationRouter
         if (! $rule->{$channel} || ! $this->matches($member, $rule->recipient)) {
             return 'skip';
         }
+        // In-app notifications are immediate even when external channels use a digest.
+        if ($channel === 'cabinet' && config('runtime.notification_driver') === 'fake') {
+            return 'immediate';
+        }
         if ($rule->timing === 'immediate') {
             return 'immediate';
         }
@@ -56,6 +60,9 @@ final class SellerNotificationRouter implements NotificationRouter
         }
         $local = CarbonImmutable::now('UTC')->setTimezone($timezone);
         $time = DB::table('seller_digest_preferences')->where(['organization_id' => $e['organization_id'], 'brand_id' => $e['brand_id'], 'user_id' => $member->user_id])->value('digest_time') ?? '09:00';
+        if (config('runtime.notification_driver') === 'fake') {
+            $time = DB::table('profile_notification_timing_drafts')->where(['organization_id' => $e['organization_id'], 'brand_id' => $e['brand_id'], 'user_id' => $member->user_id])->value('digest_time') ?? $time;
+        }
         if (! is_string($time) || ! preg_match('/^([01][0-9]|2[0-3]):([0-5][0-9])$/D', $time, $parts)) {
             throw new LogicException('Invalid digest time.');
         }
@@ -129,7 +136,7 @@ final class SellerNotificationRouter implements NotificationRouter
             }
             $rule = DB::table('seller_notification_rules')->where(['organization_id' => $e['organization_id'], 'brand_id' => $e['brand_id'], 'event_key' => $e['type']])->first();
 
-            return ! $rule || ((bool) $rule->{$channel} && $rule->timing === 'immediate' && $this->matches($fresh, $rule->recipient));
+            return ! $rule || ((bool) $rule->{$channel} && ($rule->timing === 'immediate' || ($channel === 'cabinet' && config('runtime.notification_driver') === 'fake')) && $this->matches($fresh, $rule->recipient));
         });
     }
 

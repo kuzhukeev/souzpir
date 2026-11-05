@@ -6,7 +6,10 @@ use App\Models\Membership;
 use App\Models\User;
 use App\Shell\Notifications\DomainEvent;
 use App\Shell\Notifications\EventCatalog;
+use App\Shell\Notifications\FakeTimedDelivery;
+use App\Shell\Notifications\FakeTimingTransport;
 use App\Shell\Notifications\RecipientPolicy;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -41,13 +44,14 @@ final class DigestService
         if (! $snapshot || $snapshot->status !== 'pending') {
             return;
         }
-        if ($snapshot->channel !== 'cabinet' && (! config('features.E0-04.defaults.external_delivery', false) || config('runtime.notification_driver') === 'fake')) {
+        $fake = config('runtime.notification_driver') === 'fake';
+        if ($snapshot->channel !== 'cabinet' && ! $fake && ! config('features.E0-04.defaults.external_delivery', false)) {
             return;
         }
-        if ($snapshot->channel !== 'cabinet' && DB::transactionLevel() !== 0) {
+        if (! $fake && $snapshot->channel !== 'cabinet' && DB::transactionLevel() !== 0) {
             throw new LogicException('External digest delivery cannot run inside a transaction.');
         }
-        $claimed = DB::transaction(function () use ($id, $snapshot): ?array {
+        $claimed = DB::transaction(function () use ($id, $snapshot, $fake): ?array {
             // Consistent with web actions: user -> organization -> brand -> membership -> batch.
             // FK inserts need KEY SHARE while this delivery waits on the organization.
             $user = User::whereKey($snapshot->user_id)->lock('for no key update')->first();
@@ -63,6 +67,13 @@ final class DigestService
                 $this->update($id, 'cancelled', 'access_revoked');
 
                 return null;
+            }
+            if ($fake && $batch->channel !== 'cabinet') {
+                $timing = DB::table('profile_notification_timing_drafts')->where(['organization_id' => $batch->organization_id, 'brand_id' => $batch->brand_id, 'user_id' => $batch->user_id])->first();
+                $now = CarbonImmutable::now('UTC');
+                if (app(FakeTimedDelivery::class)->dueAt($now, $brand->timezone, $timing?->quiet_start, $timing?->quiet_end, null)->greaterThan($now)) {
+                    return null;
+                }
             }
             $titles = [];
             $eventKeys = [];
@@ -111,6 +122,11 @@ final class DigestService
 
                 return null;
             }
+            if ($fake) {
+                $this->update($id, 'sending', null);
+
+                return ['channel' => $batch->channel, 'titles' => $titles, 'organization' => $batch->organization_id, 'brand' => $batch->brand_id, 'user' => $batch->user_id];
+            }
             if ($batch->channel === 'email') {
                 if (! is_string($user->email) || $user->email === '' || in_array(config('mail.default'), ['log', 'array'], true)) {
                     $this->update($id, 'failed', 'transport_unavailable');
@@ -135,7 +151,11 @@ final class DigestService
             return;
         }
         try {
-            app(DigestTransport::class)->send($claimed['channel'], $claimed['destination'], $claimed['titles']);
+            if ($fake) {
+                app(FakeTimingTransport::class)->send($claimed['organization'], $claimed['brand'], $claimed['user'], $claimed['channel'], $claimed['titles']);
+            } else {
+                app(DigestTransport::class)->send($claimed['channel'], $claimed['destination'], $claimed['titles']);
+            }
             DB::table('seller_digest_batches')->where('id', $id)->where('status', 'sending')->update(['status' => 'sent', 'sent_at' => now(), 'last_error' => null, 'updated_at' => now()]);
         } catch (Throwable) {
             DB::table('seller_digest_batches')->where('id', $id)->where('status', 'sending')->update(['status' => 'uncertain', 'last_error' => 'delivery_uncertain', 'updated_at' => now()]);
@@ -147,7 +167,7 @@ final class DigestService
         if (config('features.E6-07.defaults.digest_enabled', false)) {
             $this->assemble();
             $batches = DB::table('seller_digest_batches')->where('status', 'pending')->orderBy('due_at');
-            if (! config('features.E0-04.defaults.external_delivery', false) || config('runtime.notification_driver') === 'fake') {
+            if (! config('features.E0-04.defaults.external_delivery', false) && config('runtime.notification_driver') !== 'fake') {
                 $batches->where('channel', 'cabinet');
             }
             foreach ($batches->limit(100)->pluck('id') as $id) {
