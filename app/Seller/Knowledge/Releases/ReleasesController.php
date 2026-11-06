@@ -108,9 +108,13 @@ final class ReleasesController
                     return [$row->subject_id => is_array($value) ? ($value['note'] ?? null) : null];
                 })->all();
             $tasks = $this->query('seller_tasks', $tenant)->where('type', 'unknown_question')->where('status', 'new')->orderByDesc('created_at')->limit(50)->get(['id', 'conversation_id', 'payload', 'created_at']);
-            $reviews = $this->query('message_reviews', $tenant)->where('type', 'wrong_fact')->where('status', 'new')->orderByDesc('created_at')->limit(50)->get(['id', 'message_id', 'note', 'better_text', 'created_at']);
-            $reviewDialogs = $this->query('messages', $tenant)->whereIn('id', $reviews->pluck('message_id'))->pluck('conversation_id', 'id');
-            $reviews->each(fn ($review) => $review->conversation_id = $reviewDialogs->get($review->message_id));
+            $reviews = $this->query('message_reviews', $tenant)->where('status', 'new')->orderByDesc('created_at')->limit(50)->get(['id', 'message_id', 'type', 'note', 'better_text', 'created_at']);
+            $reviewMessages = $this->query('messages', $tenant)->whereIn('id', $reviews->pluck('message_id'))->get(['id', 'conversation_id', 'text'])->keyBy('id');
+            $reviews->each(function ($review) use ($reviewMessages): void {
+                $message = $reviewMessages->get($review->message_id);
+                $review->conversation_id = $message?->conversation_id;
+                $review->message_text = $message?->text;
+            });
             $handled = $this->query('audit_logs', $tenant)->where('action', 'knowledge.incoming.handled')->where('subject_type', 'evaluation')->pluck('subject_id');
             $evaluations = $this->query('seller_evaluations', $tenant)->whereNotIn('id', $handled)->whereRaw('jsonb_array_length(issues) > 0')->orderByDesc('created_at')->limit(50)->get(['id', 'issues', 'comment', 'created_at']);
 
