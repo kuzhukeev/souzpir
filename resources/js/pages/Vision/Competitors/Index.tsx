@@ -762,7 +762,7 @@ export default function Index({
               onClose={() => setMergeOpen(false)}
             >
               <p className="text-sm">
-                «{[source, ...extraSources.filter(name=>name !== source && name !== target)].join('», «')}» будут объединены с «{target}». Показатели раздела пересчитаются по
+                «{[source, ...extraSources.filter(name=>name !== source && name !== target)].join('», «')}» {extraSources.filter(name=>name !== source && name !== target).length ? 'будут объединены' : 'будет объединено'} с «{target}». Показатели раздела пересчитаются по
                 сохранённым ответам.
               </p>
               {mergeError && (
