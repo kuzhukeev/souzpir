@@ -21708,6 +21708,39 @@
       "wave": 20,
       "promptPath": "docs/tasks/SP-E8-19H.md",
       "description": "# SP-E8-19H · Логотип в опубликованном отчёте\n\n**Зачем:** завершить публичный экран V-5.10 по макету.\n**Часть чего:** остаток SP-E8-19G, `docs/results/SP-E8-19G.md`.\n**Зависимости:** SP-E8-19G в `done`.\n\n## Приёмка\n- Предложить включить в опубликованный снимок только загруженный пользователем логотип бренда; размещать его в публичном отчёте только после отдельного явного подтверждения.\n- Сохранить копию в данных конкретной публикации; соблюдать срок действия и отзыв ссылки, не раскрывать приватные пути и чужие бренды, не скачивать внешние изображения.\n- Завершить сверку V-5.10 с макетом, проверить права, отсутствие логотипа, отказ подтверждения, отзыв и изоляцию брендов.\n\nScope: `app/Vision/Publications/`, `app/Vision/Reports/`, `resources/views/public-report/`, `resources/js/pages/Vision/Reports/`, `tests/Feature/Vision/Reports/`, `tests/Browser/E8-19H/`, `docs/results/SP-E8-19H.md`.\n"
+    },
+    {
+      "taskKey": "SP-E8-15J",
+      "title": "SP-E8-15J · История расписания для календарной оценки",
+      "goal": "Сохранять версии расписания с момента внедрения для календарной оценки; за более ранние даты показывать отсутствие данных; сверить V-11.2 с макетом.",
+      "dependsOn": [
+        "SP-E8-15I"
+      ],
+      "scope": [
+        "app/Vision/Measurements/",
+        "app/Vision/Settings/",
+        "database/migrations/E8-15J/",
+        "resources/js/pages/Vision/Measurements/",
+        "resources/js/pages/Vision/Settings/",
+        "tests/Feature/Vision/Settings/",
+        "tests/Browser/E8-15J/",
+        "docs/results/SP-E8-15J.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Сохранять версии расписания с момента внедрения для календарной оценки; за более ранние даты показывать отсутствие данных; сверить V-11.2 с макетом."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E8-15I.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "V-11.2"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E8-15J.md",
+      "description": "# SP-E8-15J · История расписания для календарной оценки\n\n**Зачем:** завершить расчёт прошедших периодов и сверку экрана V-11.2.\n**Часть чего:** остаток SP-E8-15I, `docs/results/SP-E8-15I.md`.\n**Зависимости:** SP-E8-15I в `done`.\n\n## Приёмка\n- Сохранять версии расписания с момента внедрения и учитывать их при расчёте запланированных автоматических запусков за выбранный период; за даты до появления истории показывать «Нет данных», не восстанавливать расписание предположениями.\n- Соблюдать подтверждённую формулу: число автоматических запусков × вопросы × выбранные модели; ручные запуски не включать. Сверить расположение расчёта V-11.2 и все состояния с макетом.\n- Проверить границы периодов, смену расписания, отсутствие истории, права и изоляцию брендов; только fake runtime. Миграция допускается при необходимости.\n\nScope: `app/Vision/Measurements/`, `app/Vision/Settings/`, `database/migrations/E8-15J/`, `resources/js/pages/Vision/Measurements/`, `resources/js/pages/Vision/Settings/`, `tests/Feature/Vision/Settings/`, `tests/Browser/E8-15J/`, `docs/results/SP-E8-15J.md`.\n"
     }
   ],
   "excludedSourceTasks": {
