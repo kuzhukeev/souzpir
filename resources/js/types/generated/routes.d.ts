@@ -434,6 +434,12 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "seller.knowledge.facts.example": [
+        {
+            "name": "fact",
+            "required": true
+        }
+    ],
     "seller.knowledge.facts.delete": [
         {
             "name": "fact",

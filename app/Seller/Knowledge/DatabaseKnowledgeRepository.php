@@ -335,14 +335,15 @@ final class DatabaseKnowledgeRepository implements KnowledgeRepository
         foreach ($data['facts'] as $position => $group) {
             $id = (string) Str::ulid();
             $facts = $group['facts'];
-            unset($group['facts']);
+            $factIds = $group['fact_ids'] ?? [];
+            unset($group['facts'], $group['fact_ids']);
             DB::table('kn_fact_groups')->insert(['id' => $id, 'release_id' => $releaseId, 'key' => $group['id'], 'position' => $position, 'data' => json_encode($group, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE)]);
             foreach ($facts as $number => $fact) {
                 $old = null;
                 if (! empty($metadata[$group['id']][$fact])) {
                     $old = array_shift($metadata[$group['id']][$fact]);
                 }
-                DB::table('kn_facts')->insert(['id' => $reuseIds && $old ? $old->id : (string) Str::ulid(), 'logical_id' => $old?->logical_id ?? (string) Str::ulid(), 'group_id' => $id, 'position' => $number, 'text' => $fact, 'source' => $old?->source ?? 'manual', 'status' => $old?->status ?? 'active']);
+                DB::table('kn_facts')->insert(['id' => $reuseIds && $old ? $old->id : (string) Str::ulid(), 'logical_id' => $old?->logical_id ?? ($factIds[$number] ?? (string) Str::ulid()), 'group_id' => $id, 'position' => $number, 'text' => $fact, 'source' => $old?->source ?? 'manual', 'status' => $old?->status ?? 'active']);
             }
         }
     }
@@ -360,6 +361,7 @@ final class DatabaseKnowledgeRepository implements KnowledgeRepository
         foreach (self::LIST as $namespace => $table) {
             $data[$namespace] = DB::table($table)->where('release_id', $id)->orderBy('position')->get()->map(fn ($row) => json_decode($row->data, true, 512, JSON_THROW_ON_ERROR))->all();
         }
+        $hasFactOverrides = collect($data['intents'])->contains(fn ($intent) => ! empty($intent['fact_overrides']));
         $data['facts'] = [];
         foreach (DB::table('kn_fact_groups')->where('release_id', $id)->orderBy('position')->get() as $group) {
             $item = json_decode($group->data, true, 512, JSON_THROW_ON_ERROR);
@@ -367,7 +369,11 @@ final class DatabaseKnowledgeRepository implements KnowledgeRepository
             if (! $includeInactive) {
                 $facts->where('status', 'active');
             }
-            $item['facts'] = $facts->orderBy('position')->pluck('text')->all();
+            $rows = $facts->orderBy('position')->get(['text', 'logical_id']);
+            $item['facts'] = $rows->pluck('text')->all();
+            if ($hasFactOverrides || ! empty($item['fact_examples'])) {
+                $item['fact_ids'] = $rows->pluck('logical_id')->all();
+            }
             $data['facts'][] = $item;
         }
 
@@ -408,7 +414,7 @@ final class DatabaseKnowledgeRepository implements KnowledgeRepository
             }
             DB::table('kn_facts')->where('id', $factId)->update(['text' => $text, 'status' => $status, 'source' => $source]);
             DB::table('knowledge_releases')->where('id', $releaseId)->update(['version' => $expectedVersion + 1, 'updated_at' => now()]);
-            app(AuditWriter::class)->record($context, new AuditEntry('knowledge.fact.updated', 'knowledge_fact', $fact->logical_id, ['status' => $fact->status, 'source' => $fact->source], ['status' => $status, 'source' => $source]));
+            app(AuditWriter::class)->record($context, new AuditEntry('knowledge.fact.updated', 'knowledge_fact', $fact->logical_id, ['status' => $fact->status, 'source' => $fact->source, 'text' => $fact->text], ['status' => $status, 'source' => $source, 'text' => $text]));
 
             return $expectedVersion + 1;
         });
