@@ -23,6 +23,10 @@ export default function RunProgress({ answers, status, createdAt, startedAt, fin
           : group.some(answer => ['in_progress', 'running', 'ok'].includes(answer.status)) ? 'Отвечает' : 'Ожидает';
       return <li key={provider} className="rounded-lg bg-(--color-surface-muted) p-3"><span>{provider}: {label} · {received} из {group.length}</span>{group.some(answer=>answer.requested_model) && <p className="mt-1 text-(--color-ink-muted)">Модели: {Array.from(new Set(group.map(answer=>answer.requested_model).filter(Boolean))).join(', ')}</p>}</li>;
     })}</ul></div>
+    <div><h3 className="font-semibold">Ответы по вопросам</h3><ul className="mt-2 space-y-2">{answers.map((answer, index) => {
+      const label = answer.status === 'ok' ? 'Получен' : answer.status === 'failed' ? 'Ошибка' : answer.status === 'uncertain' ? 'Требует проверки' : ['in_progress', 'running'].includes(answer.status) ? 'Готовится' : 'Ожидается';
+      return <li key={`${answer.question_n}-${answer.provider}-${answer.requested_model ?? ''}-${index}`} className="rounded-lg border border-(--color-border) p-3">Вопрос {answer.question_n} · {answer.requested_model || answer.provider} · {label}</li>;
+    })}</ul></div>
     {eventList}
     {['pending', 'running', 'in_progress'].includes(status) && <a className="inline-flex min-h-11 cursor-pointer items-center font-semibold text-(--color-link)" href="/vision/settings">Настройки уведомлений</a>}
     {status === 'completed' && <p className="rounded-lg bg-(--color-success-soft) p-3">Замер готов. <a className="cursor-pointer font-semibold text-(--color-link)" href="/vision/clarifications">Проверить уточнения</a></p>}
