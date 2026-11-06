@@ -21330,6 +21330,43 @@
       "wave": 20,
       "promptPath": "docs/tasks/SP-E4-09C.md",
       "description": "# SP-E4-09C · Песочница: обычный запуск и последовательные ходы\n\n**Зачем:** завершить сценарий песочницы D-4.11.\n**Часть чего:** остаток SP-E4-09B, `docs/results/SP-E4-09B.md`.\n**Зависимости:** SP-E4-09B и SP-E4-07B в `done`; общие fixture-runtime данные принадлежат этой карточке.\n\n## Приёмка\n- Подготовить проверенные fixture extractor/responder для импортированного прототипа и обычного запуска, чтобы доступный сценарий не зависел от записей, созданных только тестом.\n- Поддержать выбор опубликованной версии и последовательные ходы диалога с сохранением контекста. Не подменять отсутствие подходящей записи универсальным ответом.\n- Сохранить изоляцию брендов, права, Guard и проверку ошибок; проверить черновик, опубликованную версию и последовательные ходы.\n- Только fake AI; без живых вызовов. Существующее поведение и записи replay не менять. Общие AI-стадии изменять только совместимыми добавлениями без рефакторинга; проверить повторный запуск.\n\nScope: `app/Seller/Sandbox/`, `app/Seller/Runtime/`, `app/ProtectedOperations/DraftSimulation/`, `app/Ai/`, `routes/features/E4-07.php`, `resources/js/pages/Seller/Sandbox/`, `tests/fixtures/llm/`, `tests/Feature/Seller/Sandbox/`, `tests/Browser/E4-09C/`, `docs/results/SP-E4-09C.md`.\n"
+    },
+    {
+      "taskKey": "SP-E8-20X",
+      "title": "SP-E8-20X · Объединение названий и пересчёт отчёта",
+      "goal": "Завершить V-6.3: отдельный экран, чипы групп, состояние и пересчёт сохранённого отчёта без перезаписи исходника после решения владельца.",
+      "dependsOn": [
+        "SP-E8-20W"
+      ],
+      "scope": [
+        "app/Vision/Competitors/",
+        "app/Vision/Sources/",
+        "app/Vision/Reports/",
+        "resources/js/pages/Vision/Competitors/",
+        "resources/js/pages/Vision/Sources/",
+        "resources/js/pages/Vision/Reports/",
+        "tests/Feature/Vision/Competitors/",
+        "tests/Feature/Vision/Reports/",
+        "tests/Browser/E8-20X/",
+        "docs/results/SP-E8-20X.md"
+      ],
+      "exclusiveResources": [
+        "vision-competitor-screens"
+      ],
+      "acceptance": [
+        "Завершить V-6.3: отдельный экран, чипы групп, состояние и пересчёт сохранённого отчёта без перезаписи исходника после решения владельца."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E8-20W.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "V-6.3"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E8-20X.md",
+      "description": "# SP-E8-20X · Объединение названий и пересчёт отчёта\n\n**Зачем:** завершить экран V-6.3 по макету и обеспечить пересчёт отчёта после объединения названий.\n**Часть чего:** остаток SP-E8-20W, `docs/results/SP-E8-20W.md`.\n**Зависимости:** SP-E8-20W в `done` и решение владельца о контракте пересчёта.\n\n## Приёмка\n- Сверить оставшиеся пункты V-6.3 с макетом: отдельный экран, чипы групп и состояние пересчёта; реализовать недостающие состояния.\n- После решения владельца реализовать пересчёт сохранённого отчёта без перезаписи исходника в соответствии с утверждённым контрактом. До решения не выдумывать срок и не включать пересчёт.\n- Проверить права, изоляцию брендов, отсутствие данных и ошибки; использовать fake runtime.\n\nScope: `app/Vision/Competitors/`, `app/Vision/Sources/`, `app/Vision/Reports/`, `resources/js/pages/Vision/Competitors/`, `resources/js/pages/Vision/Sources/`, `resources/js/pages/Vision/Reports/`, `tests/Feature/Vision/Competitors/`, `tests/Feature/Vision/Reports/`, `tests/Browser/E8-20X/`, `docs/results/SP-E8-20X.md`.\n"
     }
   ],
   "excludedSourceTasks": {
