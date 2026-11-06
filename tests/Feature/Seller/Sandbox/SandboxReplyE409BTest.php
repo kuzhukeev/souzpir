@@ -56,7 +56,7 @@ final class SandboxReplyE409BTest extends TenancyTestCase
         self::assertStringContainsString($examples[0]['text'], $responderBody['input']['system']);
         file_put_contents($dir.'/'.CanonicalJson::hash($responderBody).'.json', json_encode(['result' => ['content' => $answer]], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
-        $this->postJson('/seller/knowledge/sandbox/reply', ['release' => $draft->releaseId(), 'text' => $client])->assertOk()->assertJsonPath('status', 'completed')->assertJsonPath('answer', $answer)->assertJsonStructure(['guard' => ['verdict', 'issues', 'warnings']]);
+        $this->postJson('/seller/knowledge/sandbox/reply', ['release' => $draft->releaseId(), 'text' => $client])->assertOk()->assertJsonPath('status', 'completed')->assertJsonPath('answer', $answer)->assertJsonPath('goal.kind', $goal->kind)->assertJsonPath('goal.allowed_tools', $goal->allowedTools)->assertJsonStructure(['guard' => ['verdict', 'issues', 'warnings']]);
         $this->postJson('/seller/knowledge/sandbox/reply', ['release' => $draft->releaseId(), 'text' => 'нет записи'])->assertOk()->assertJsonPath('status', 'unavailable');
         $this->postJson('/seller/knowledge/sandbox/reply', ['release' => $draft->releaseId(), 'text' => ''])->assertUnprocessable();
         [$viewer] = $this->member($org, 'viewer', [$brand->id]);

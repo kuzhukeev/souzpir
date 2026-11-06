@@ -39,7 +39,11 @@ final class ProhibitionsController
             $draft = $this->draft($tenant);
             $data = $draft ? app(KnowledgeRepository::class)->forRelease($tenant, $draft->id, true)->toArray() : null;
 
-            return ['draft' => $draft, 'topics' => $data['closed_topics'] ?? [], 'rules' => $data['guard_rules']['forbidden_promises'] ?? [],
+            $counts = DB::table('prohibition_guard_hits')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
+                ->where('created_at', '>=', now()->subDays(30))->selectRaw('rule_id, count(*) as total')->groupBy('rule_id')->pluck('total', 'rule_id');
+            $rules = array_map(fn (array $rule): array => [...$rule, 'hits30Days' => (int) ($counts[$rule['id']] ?? 0)], $data['guard_rules']['forbidden_promises'] ?? []);
+
+            return ['draft' => $draft, 'topics' => $data['closed_topics'] ?? [], 'rules' => $rules,
                 'maxWords' => $data['persona']['length']['max_words'] ?? 90, 'maxQuestions' => $data['persona']['length']['max_questions'] ?? 1,
                 'stopPhrases' => $data['persona']['stop_phrases'] ?? [], 'stopPhrasesEnabled' => $data['persona']['stop_phrases_enabled'] ?? true];
         });
