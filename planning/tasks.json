@@ -21594,6 +21594,88 @@
       "wave": 20,
       "promptPath": "docs/tasks/SP-E4-06E.md",
       "description": "# SP-E4-06E · Импорт знаний: лист XLSX и экран документов\n\n**Зачем:** завершить экран D-4.10 по макету.\n**Часть чего:** остаток SP-E4-06C, `docs/results/SP-E4-06C.md`.\n**Зависимости:** SP-E4-06D в `done`.\n\n## Приёмка\n- Добавить выбор листа XLSX при импорте; точечное изменение общего `app/Seller/Catalog/CatalogReader.php` разрешено с сохранением существующего поведения каталога.\n- Показать список документов и сверить двухколоночную компоновку, источник каждого фрагмента, пустое состояние, загрузку и ошибки с макетом D-4.10.\n- Проверить права, изоляцию брендов, неправильный файл и выбранный лист, а также отсутствие регрессии существующих сценариев каталога; только fake runtime.\n\nScope: `app/Seller/Knowledge/Imports/`, `app/Seller/Catalog/CatalogReader.php`, `routes/features/E4-06.php`, `resources/js/pages/Seller/Knowledge/Imports/`, `tests/Feature/Seller/Knowledge/Imports/`, `tests/Feature/Seller/Catalog/`, `tests/Browser/E4-06E/`, `docs/results/SP-E4-06E.md`.\n"
+    },
+    {
+      "taskKey": "SP-E4-05E",
+      "title": "SP-E4-05E · Проверка защищённого Guard",
+      "goal": "Интеграционная проверка счётчика защищённого первого хода на непривилегированной PostgreSQL, брендов, повторов и исключения черновиков.",
+      "dependsOn": [
+        "SP-E4-05D"
+      ],
+      "scope": [
+        "tests/Feature/ProtectedOperations/",
+        "tests/Feature/Seller/Knowledge/Prohibitions/",
+        "docs/results/SP-E4-05E.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Интеграционная проверка счётчика защищённого первого хода на непривилегированной PostgreSQL, брендов, повторов и исключения черновиков."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E4-05D.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E4-05E.md",
+      "description": "# SP-E4-05E · Проверка счётчика защищённого Guard\n\n**Зачем:** проверить регистрацию срабатываний запретов в защищённом первом ходе.\n**Часть чего:** остаток SP-E4-05D, `docs/results/SP-E4-05D.md`.\n**Зависимости:** SP-E4-05D в `done`.\n\n## Приёмка\n- Выполнить интеграционную проверку защищённого Guard с непривилегированной ролью PostgreSQL: настоящий первый ход записывает срабатывания опубликованных правил только своего бренда, повторная проверка не удваивает счётчик.\n- Проверить отсутствие попадания проверок черновика и песочницы в статистику. Существующее поведение и записанные replay не менять; только fake AI.\n\nScope: `tests/Feature/ProtectedOperations/`, `tests/Feature/Seller/Knowledge/Prohibitions/`, `docs/results/SP-E4-05E.md`.\n"
+    },
+    {
+      "taskKey": "SP-E8-14O",
+      "title": "SP-E8-14O · Skeleton начальной загрузки анкеты",
+      "goal": "Завершить skeleton начальной загрузки V-1.4/V-1.5 и проверить состояния, права и изоляцию брендов.",
+      "dependsOn": [
+        "SP-E8-14N"
+      ],
+      "scope": [
+        "app/Vision/Profile/",
+        "resources/js/pages/Vision/Profile/",
+        "resources/js/features/Vision/Profile/QuestionnaireFields.tsx",
+        "tests/Feature/Vision/Profile/",
+        "tests/Browser/E8-14O/",
+        "docs/results/SP-E8-14O.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Завершить skeleton начальной загрузки V-1.4/V-1.5 и проверить состояния, права и изоляцию брендов."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E8-14N.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E8-14O.md",
+      "description": "# SP-E8-14O · Анкета: skeleton начальной загрузки\n\n**Зачем:** завершить состояния загрузки экранов V-1.4 и V-1.5 по макету.\n**Часть чего:** остаток SP-E8-14N, `docs/results/SP-E8-14N.md`.\n**Зависимости:** SP-E8-14N в `done`.\n\n## Приёмка\n- Реализовать и сверить с макетом skeleton начальной загрузки подсказок; сохранить подтверждение пользователем, права и изоляцию брендов.\n- Проверить загрузку, успешный ответ, пустое состояние и ошибку; только fake AI.\n\nScope: `app/Vision/Profile/`, `resources/js/pages/Vision/Profile/`, `resources/js/features/Vision/Profile/QuestionnaireFields.tsx`, `tests/Feature/Vision/Profile/`, `tests/Browser/E8-14O/`, `docs/results/SP-E8-14O.md`.\n"
+    },
+    {
+      "taskKey": "SP-E8-15I",
+      "title": "SP-E8-15I · Точный календарный расчёт измерений",
+      "goal": "Точный календарный расчёт периода после утверждения формулы владельцем; сохранить оценку до решения.",
+      "dependsOn": [
+        "SP-E8-15H"
+      ],
+      "scope": [
+        "app/Vision/Measurements/",
+        "app/Vision/Settings/",
+        "resources/js/pages/Vision/Measurements/",
+        "resources/js/pages/Vision/Settings/",
+        "tests/Feature/Vision/Settings/",
+        "tests/Browser/E8-15I/",
+        "docs/results/SP-E8-15I.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Точный календарный расчёт периода после утверждения формулы владельцем; сохранить оценку до решения."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E8-15H.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E8-15I.md",
+      "description": "# SP-E8-15I · Точный календарный расчёт измерений\n\n**Зачем:** завершить расчёт периода на экранах V-11.2 и V-11.3.\n**Часть чего:** ограничение SP-E8-15H, `docs/results/SP-E8-15H.md`.\n**Зависимости:** SP-E8-15H в `done`, подтверждённая владельцем формула.\n\n## Приёмка\n- После утверждения формулы реализовать точный расчёт для календарного месяца и выбранного периода; до решения не выдумывать тарифы и сохранять существующую оценку.\n- Проверить границы периодов, отсутствие данных, права и изоляцию брендов; только fake runtime.\n\nScope: `app/Vision/Measurements/`, `app/Vision/Settings/`, `resources/js/pages/Vision/Measurements/`, `resources/js/pages/Vision/Settings/`, `tests/Feature/Vision/Settings/`, `tests/Browser/E8-15I/`, `docs/results/SP-E8-15I.md`.\n"
     }
   ],
   "excludedSourceTasks": {
