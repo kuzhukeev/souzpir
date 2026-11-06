@@ -8,6 +8,7 @@ use App\Tenancy\TenantContext;
 use App\Vision\Clarifications\ClarificationController;
 use App\Vision\Core\ReportPreparation;
 use App\Vision\Measurements\MeasurementList;
+use App\Vision\Publications\PublicationLogo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -29,7 +30,7 @@ final class ReportsController
             $publications = DB::table('report_publications')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)
                 ->whereNull('revoked_at')->where('expires_at', '>', now())->orderByDesc('created_at')->get(['id', 'report_id', 'expires_at']);
 
-            return Inertia::render('Vision/Reports/Index', ['publications' => $publications, 'reportBrandRevision' => $revision, 'status' => session('status'), 'createdUrl' => session('publication_url'), 'ttlDays' => config('features.E8-05C.defaults.publication_ttl_days')]);
+            return Inertia::render('Vision/Reports/Index', ['publications' => $publications, 'reportBrandRevision' => $revision, 'status' => session('status'), 'createdUrl' => session('publication_url'), 'ttlDays' => config('features.E8-05C.defaults.publication_ttl_days'), 'logoAvailable' => app(PublicationLogo::class)->copy($context) !== null]);
         }, false);
     }
 

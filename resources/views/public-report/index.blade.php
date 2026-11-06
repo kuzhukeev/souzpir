@@ -35,7 +35,7 @@
     </style>
 </head>
 <body>
-<header>EYON · Видение</header>
+<header>@if (! $expired && isset($report['logo']) && is_string($report['logo']) && (str_starts_with($report['logo'], 'data:image/png;base64,') || str_starts_with($report['logo'], 'data:image/svg+xml;base64,')))<img src="{{ $report['logo'] }}" alt="Логотип {{ $brandName }}" style="max-width:120px;max-height:48px;vertical-align:middle;margin-right:16px">@endif EYON · Видение</header>
 <main>
     @if ($expired)
         <h1>Ссылка недоступна</h1>

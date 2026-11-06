@@ -11,6 +11,7 @@ use App\Tenancy\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -33,7 +34,12 @@ final class ImportsController
             $id = DB::table('knowledge_releases')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('status', 'draft')->value('id');
 
             $editor = $id ? app(KnowledgeRepository::class)->draftEditor($tenant, $id) : null;
-            $documents = DB::table('seller_knowledge_import_documents')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->orderByDesc('created_at')->get(['id', 'name', 'type', 'pages', 'status', 'fragments_count', 'created_at']);
+            $documents = DB::table('seller_knowledge_import_documents')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->orderByDesc('created_at')->get(['id', 'name', 'type', 'pages', 'status', 'fragments_count', 'created_at', 'source_path'])->map(function ($document) {
+                $document->has_source = is_string($document->source_path) && Storage::disk('local')->exists($document->source_path);
+                unset($document->source_path);
+
+                return $document;
+            });
 
             return [$editor, $documents];
         });
@@ -85,9 +91,25 @@ final class ImportsController
                 DB::table('seller_knowledge_import_documents')->insert(['id' => $documentId, 'organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId, 'name' => $name, 'type' => $extension, 'pages' => $pages, 'status' => 'previewed', 'created_at' => now(), 'updated_at' => now()]);
             }
 
-            DB::table('seller_knowledge_import_documents')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('id', $documentId)->update(['fragments_count' => count($lines), 'updated_at' => now()]);
+            $directory = 'knowledge-imports/'.$tenant->organizationId.'/'.$tenant->brandId.'/'.$documentId;
+            $path = Storage::disk('local')->putFileAs($directory, $file, (string) Str::ulid().'.'.$extension);
+            if (! is_string($path)) {
+                throw ValidationException::withMessages(['file' => 'Не удалось сохранить исходный файл.']);
+            }
+            DB::table('seller_knowledge_import_documents')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('id', $documentId)->update(['fragments_count' => count($lines), 'source_path' => $path, 'updated_at' => now()]);
 
-            return response()->json(['proposals' => $lines, 'document_id' => $documentId, 'sheets' => $sheets, 'document' => ['id' => $documentId, 'name' => $name, 'type' => $extension, 'pages' => $pages, 'status' => 'previewed', 'fragments_count' => count($lines), 'created_at' => now()->toIso8601String()]])->header('Cache-Control', 'private, no-store');
+            return response()->json(['proposals' => $lines, 'document_id' => $documentId, 'sheets' => $sheets, 'document' => ['id' => $documentId, 'name' => $name, 'type' => $extension, 'pages' => $pages, 'status' => 'previewed', 'fragments_count' => count($lines), 'has_source' => true, 'created_at' => now()->toIso8601String()]])->header('Cache-Control', 'private, no-store');
+        });
+    }
+
+    public function download(Request $request, string $document): mixed
+    {
+        return $this->access($request, function (TenantContext $tenant) use ($document) {
+            $row = DB::table('seller_knowledge_import_documents')->where('organization_id', $tenant->organizationId)
+                ->where('brand_id', $tenant->brandId)->where('id', $document)->first(['name', 'source_path']);
+            abort_unless($row && is_string($row->source_path) && Storage::disk('local')->exists($row->source_path), 404);
+
+            return Storage::disk('local')->download($row->source_path, $row->name, ['Cache-Control' => 'private, no-store']);
         });
     }
 

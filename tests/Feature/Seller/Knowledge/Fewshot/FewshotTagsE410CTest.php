@@ -16,16 +16,16 @@ final class FewshotTagsE410CTest extends TenancyTestCase
         }
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
         $this->post('/seller/knowledge/draft')->assertRedirect();
-        $tags = $this->get('/seller/knowledge/fewshot')->assertOk()->inertiaProps('availableTags');
+        $tags = $this->get('/seller/knowledge/fewshot', ['X-Inertia-Partial-Component' => 'Seller/Knowledge/Fewshot/Index', 'X-Inertia-Partial-Data' => 'fewshotData'])->assertOk()->inertiaProps('fewshotData.availableTags');
         self::assertCount(73, $tags);
         self::assertContains('open_greeting', $tags);
         self::assertContains('ask_city', $tags);
         self::assertContains('opt_out_ack', $tags);
         $this->post('/seller/knowledge/fewshot', ['version' => 1, 'bucket' => 'examples', 'tag' => 'ask_city', 'text' => 'Какой город?', 'situation' => 'Знакомство', 'client_type' => 'all', 'confidence' => 0.8, 'source' => 'manual', 'enabled' => true])->assertRedirect()->assertSessionHasNoErrors();
-        self::assertSame('Какой город?', $this->get('/seller/knowledge/fewshot')->assertOk()->inertiaProps('fewshot.examples.0.text'));
+        self::assertSame('Какой город?', $this->get('/seller/knowledge/fewshot', ['X-Inertia-Partial-Component' => 'Seller/Knowledge/Fewshot/Index', 'X-Inertia-Partial-Data' => 'fewshotData'])->assertOk()->inertiaProps('fewshotData.fewshot.examples.0.text'));
         $this->post('/seller/knowledge/fewshot', ['version' => 2, 'bucket' => 'examples', 'tag' => '', 'text' => '', 'client_type' => 'all', 'confidence' => 0.8, 'enabled' => true])->assertSessionHasErrors(['tag', 'text']);
         $this->post('/brand/switch', ['brand_id' => $other->id])->assertRedirect();
-        self::assertNull($this->get('/seller/knowledge/fewshot')->assertOk()->inertiaProps('fewshot'));
+        self::assertNull($this->get('/seller/knowledge/fewshot', ['X-Inertia-Partial-Component' => 'Seller/Knowledge/Fewshot/Index', 'X-Inertia-Partial-Data' => 'fewshotData'])->assertOk()->inertiaProps('fewshotData.fewshot'));
         [$viewer] = $this->member($org, 'viewer', [$brand->id]);
         $this->actingAs($viewer)->withSession(['brand_id' => $brand->id])->get('/seller/knowledge/fewshot')->assertForbidden();
     }

@@ -449,6 +449,12 @@ declare module 'ziggy-js' {
     "seller.knowledge.prohibitions.save": [],
     "seller.knowledge.prohibitions.check": [],
     "seller.knowledge.imports.index": [],
+    "seller.knowledge.imports.documents.download": [
+        {
+            "name": "document",
+            "required": true
+        }
+    ],
     "seller.knowledge.imports.preview": [],
     "seller.knowledge.imports.save": [],
     "seller.knowledge.imports.site.preview": [],
