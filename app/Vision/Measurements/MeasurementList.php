@@ -56,9 +56,12 @@ final class MeasurementList
         return ['data' => $rows->all(), 'page' => $page, 'last_page' => max(1, (int) ceil($count / 25)), 'total' => $count];
     }
 
-    public function readDetailed(TenantContext $context, int $page, ?string $month = null): array
+    public function readDetailed(TenantContext $context, int $page, ?string $month = null, ?string $measurementId = null): array
     {
         $query = DB::table('measurements')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId);
+        if ($measurementId !== null) {
+            $query->where('id', $measurementId);
+        }
         if ($month !== null) {
             $start = CarbonImmutable::createFromFormat('!Y-m', $month, 'UTC');
             $query->where('created_at', '>=', $start)->where('created_at', '<', $start->addMonth());
