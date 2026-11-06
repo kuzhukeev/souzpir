@@ -53,6 +53,7 @@ final class MeasurementSchedule
         } else {
             DB::table('monitoring_schedules')->insert(['id' => $id, ...$where, ...$values, 'created_at' => now()]);
         }
+        $this->recordVersion($context);
         app(AuditWriter::class)->record($context, new AuditEntry('vision.schedule.saved', 'monitoring_schedule', $id,
             after: ['enabled' => $enabled, 'frequency' => $enabled ? $frequency : null]));
     }
@@ -77,8 +78,15 @@ final class MeasurementSchedule
                 'timezone' => $brand->timezone, ...$values, 'created_at' => now(),
             ]);
         }
+        $this->recordVersion($context);
         app(AuditWriter::class)->record($context, new AuditEntry('vision.models.saved', 'monitoring_schedule',
             $id, after: ['models' => $models]));
+    }
+
+    private function recordVersion(TenantContext $context): void
+    {
+        $row = DB::table('monitoring_schedules')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)->first();
+        DB::table('vision_schedule_versions')->insert(['id' => (string) Str::ulid(), 'organization_id' => $context->organizationId, 'brand_id' => $context->brandId, 'effective_at' => now(), 'schedule' => json_encode(['enabled' => (bool) $row->enabled, 'frequency' => $row->frequency, 'weekday' => $row->weekday, 'local_time' => $row->local_time, 'timezone' => $row->timezone, 'models' => $row->models ? json_decode($row->models, true, 32, JSON_THROW_ON_ERROR) : [], 'next_run_at' => $row->next_run_at], JSON_THROW_ON_ERROR)]);
     }
 
     private function approvedModels(TenantContext $context, mixed $selected): array
@@ -138,6 +146,7 @@ final class MeasurementSchedule
                         $available = $approval ? json_decode($approval->providers, true, 32, JSON_THROW_ON_ERROR) : [];
                         if (! $approval || ! is_array($models) || $models === [] || array_intersect_assoc($models, $available) !== $models) {
                             DB::table('monitoring_schedules')->where($where)->where('id', $item->id)->update(['enabled' => false, 'next_run_at' => null, 'updated_at' => now()]);
+                            $this->recordVersion(app(TenantContext::class));
 
                             return;
                         }
