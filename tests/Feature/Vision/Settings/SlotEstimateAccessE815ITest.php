@@ -21,7 +21,7 @@ final class SlotEstimateAccessE815ITest extends TenancyTestCase
         $this->get('/vision/settings?estimate_from=2027-02-01&estimate_to=2027-01-01')->assertSessionHasErrors('estimate_to');
         $this->get('/vision/settings?estimate_from=2027-01-01&estimate_to=2029-01-01')->assertSessionHasErrors('estimate_to');
         $this->post('/brand/switch', ['brand_id' => $other->id])->assertRedirect();
-        $this->get('/vision/settings')->assertOk()->assertInertia(fn ($page) => $page->where('slotEstimate.period.slots', 0));
+        $this->get('/vision/settings')->assertOk()->assertInertia(fn ($page) => $page->where('slotEstimate.period', null));
         Http::assertNothingSent();
     }
 }
