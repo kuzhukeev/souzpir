@@ -71,7 +71,15 @@ final class TelegramController
             throw ValidationException::withMessages(['token' => 'Введите токен бота.']);
         }
 
-        return back()->with('telegram_verification', app(FakeTelegramClient::class)->bot($token));
+        $live = config('features.E5-01H.defaults.live_enabled', false) === true;
+        $result = $live
+            ? app(HttpTelegramClient::class)->bot($token)
+            : app(FakeTelegramClient::class)->bot($token);
+        if ($result === null) {
+            throw ValidationException::withMessages(['token' => 'Не удалось проверить токен бота.']);
+        }
+
+        return back()->with('telegram_verification', [...$result, 'simulated' => ! $live]);
     }
 
     public function linkCode(Request $request, TenantContext $context): RedirectResponse
