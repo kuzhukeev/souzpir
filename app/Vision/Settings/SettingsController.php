@@ -13,6 +13,7 @@ use App\Shell\Plans\MonthlyUnits;
 use App\Tenancy\TenantContext;
 use App\Vision\Measurements\MeasurementList;
 use App\Vision\Measurements\MeasurementSchedule;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -27,7 +28,7 @@ final class SettingsController
 
     public function index(Request $request): mixed
     {
-        return app(MeasurementList::class)->withinCurrent($request, function (TenantContext $tenant, string $revision): mixed {
+        return app(MeasurementList::class)->withinCurrent($request, function (TenantContext $tenant, string $revision) use ($request): mixed {
             Gate::authorize('vision.report.read');
             $rows = DB::table('notification_settings')->where(['organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId, 'user_id' => $tenant->actorId])->whereIn('event_key', self::EVENTS)->get(['event_key', 'channel', 'enabled']);
             $events = collect(self::EVENTS)->map(fn ($key) => ['key' => $key, 'title' => EventCatalog::TITLES[$key], 'channels' => array_replace(['cabinet' => true, 'email' => false, 'telegram' => false], $rows->where('event_key', $key)->mapWithKeys(fn ($row) => [$row->channel => (bool) $row->enabled])->all())])->all();
@@ -40,6 +41,16 @@ final class SettingsController
             $questionCount = $approval ? DB::table('question_sets')->where('id', $approval->question_set_id)->where('brand_id', $tenant->brandId)->value('size') : null;
 
             $schedule = app(MeasurementSchedule::class)->read($tenant);
+            $today = CarbonImmutable::now($schedule['timezone']);
+            $period = $request->validate(['estimate_from' => ['sometimes', 'required', 'date_format:Y-m-d'], 'estimate_to' => ['sometimes', 'required', 'date_format:Y-m-d', 'after_or_equal:estimate_from']]);
+            $from = $period['estimate_from'] ?? $today->startOfMonth()->toDateString();
+            $to = $period['estimate_to'] ?? $today->endOfMonth()->toDateString();
+            if ($from > $to || CarbonImmutable::parse($from)->diffInDays(CarbonImmutable::parse($to)) > 366) {
+                throw ValidationException::withMessages(['estimate_to' => 'Период оценки не может превышать 366 дней.']);
+            }
+            $estimator = app(SchedulePreview::class);
+            $estimate = $estimator->estimate($schedule, $questionCount === null ? null : (int) $questionCount, $from, $to);
+            $monthEstimate = $estimator->estimate($schedule, $questionCount === null ? null : (int) $questionCount, $today->startOfMonth()->toDateString(), $today->endOfMonth()->toDateString());
 
             $catalog = app(ProviderCatalog::class)->models();
             $modelOptions = collect(array_unique([...$schedule['available_models'], ...array_keys(array_filter($catalog, fn (array $model): bool => $model['status'] === 'planned'))]))
@@ -58,7 +69,7 @@ final class SettingsController
                 ->map(fn ($row) => ['id' => $row->id, 'finished_at' => $row->finished_at, 'slots' => (int) $row->slots])->all();
             $slotSummary = ['used' => $usedSlots, 'limit' => $limit, 'remaining' => is_numeric($limit) ? max(0, (int) floor((float) $limit) - $usedSlots) : null, 'history' => $history];
 
-            return Inertia::render('Vision/Settings/Index', ['revision' => $revision, 'schedule' => $schedule, 'modelOptions' => $modelOptions, 'nextRuns' => app(SchedulePreview::class)->nextThree($schedule), 'events' => $events, 'members' => $members, 'canManageRecipients' => Gate::allows('vision.settings.write'), 'limits' => ['questions' => app(PlanLimits::class)->get($tenant, 'vision.questions')->value, 'models' => app(PlanLimits::class)->get($tenant, 'vision.models')->value], 'questionCount' => $questionCount, 'slotSummary' => $slotSummary]);
+            return Inertia::render('Vision/Settings/Index', ['revision' => $revision, 'schedule' => $schedule, 'modelOptions' => $modelOptions, 'nextRuns' => app(SchedulePreview::class)->nextThree($schedule), 'events' => $events, 'members' => $members, 'canManageRecipients' => Gate::allows('vision.settings.write'), 'limits' => ['questions' => app(PlanLimits::class)->get($tenant, 'vision.questions')->value, 'models' => app(PlanLimits::class)->get($tenant, 'vision.models')->value], 'questionCount' => $questionCount, 'slotSummary' => $slotSummary, 'slotEstimate' => ['from' => $from, 'to' => $to, 'period' => $estimate, 'month' => $monthEstimate]]);
         }, false);
     }
 
