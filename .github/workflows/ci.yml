@@ -4,7 +4,7 @@ on:
   push:
     branches: [main, 'codex/**']
   schedule:
-    - cron: '0 1 * * *'   # ночной прогон race-тестов (04:00 МСК)
+    - cron: '0 1 * * *'   # полный ночной прогон (04:00 МСК)
   workflow_dispatch:
 
 concurrency:
@@ -39,7 +39,6 @@ env:
 
 jobs:
   php-lint:
-    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -53,7 +52,6 @@ jobs:
       - run: composer lint
 
   frontend:
-    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -67,7 +65,6 @@ jobs:
       - run: npm run build
 
   php-tests:
-    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     env:
       DB_USERNAME: souzpir_parallel
@@ -110,7 +107,6 @@ jobs:
           fi
 
   equivalence:
-    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -121,8 +117,21 @@ jobs:
       - name: Check recorded fixtures and available policy replay
         run: vendor/bin/phpunit --testsuite=Equivalence --no-coverage
 
+  browser-smoke:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '24', cache: npm }
+      - run: npm ci --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - name: Check dashboard and profile in Chromium
+        run: npx playwright test tests/Browser/E7-06E/summary.spec.ts tests/Browser/E8-14M/hints.spec.ts --workers=1
+
   browser:
-    if: github.event_name != 'schedule'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     strategy:
