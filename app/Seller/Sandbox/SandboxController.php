@@ -40,7 +40,7 @@ final class SandboxController
 
     public function reply(Request $request): mixed
     {
-        $input = $request->validate(['release' => ['required', 'ulid'], 'text' => ['required', 'string', 'max:4000']]);
+        $input = $request->validate(['release' => ['required', 'ulid'], 'text' => ['required', 'string', 'max:4000'], 'history' => ['sometimes', 'array', 'list', 'max:9'], 'history.*' => ['required', 'string', 'max:4000']]);
         $result = $this->access($request, function (TenantContext $tenant) use ($input, $request): array {
             $draft = app(KnowledgeRepository::class)->forRelease($tenant, $input['release'], true);
             $exists = DB::table('knowledge_releases')->where('organization_id', $tenant->organizationId)
@@ -48,14 +48,17 @@ final class SandboxController
             if (! $exists || config('runtime.ai_driver') !== 'fake') {
                 return ['status' => 'unavailable'];
             }
-            $extraction = app(FixtureRuntime::class)->extract($request, $draft, $input['text']);
-            if ($extraction === null) {
-                return ['status' => 'unavailable'];
-            }
             $state = new LeadState;
             $policy = new Policy($draft);
-            $policy->applyExtraction($state, $extraction);
-            $goal = $policy->decide($state, $extraction, true);
+            $questions = [...($input['history'] ?? []), $input['text']];
+            foreach ($questions as $index => $question) {
+                $extraction = app(FixtureRuntime::class)->extract($request, $draft, $question);
+                if ($extraction === null) {
+                    return ['status' => 'unavailable'];
+                }
+                $policy->applyExtraction($state, $extraction);
+                $goal = $policy->decide($state, $extraction, $index === 0);
+            }
             $answer = app(DraftResponder::class)->respond($request, $draft, $state, $goal, $input['text']);
             if ($answer === null) {
                 return ['status' => 'unavailable'];

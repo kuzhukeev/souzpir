@@ -1,0 +1,22 @@
+import { expect, test } from '@playwright/test';
+import { createServer, type ViteDevServer } from 'vite';
+import { mkdir } from 'node:fs/promises';
+let server: ViteDevServer; let url: string;
+test.use({ viewport: { width: 1440, height: 900 }, colorScheme: 'light', launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH } : {} });
+test.beforeAll(async () => { server = await createServer({ configFile: 'tests/Browser/E4-10F/vite.config.ts', cacheDir: '.local/runtime/vite-e410f', server: { host: '127.0.0.1', port: 0, strictPort: false } }); await server.listen(); url = new URL('/tests/Browser/E4-10F/fixture.html', server.resolvedUrls!.local[0]).href; });
+test.afterAll(async () => { await server?.close(); });
+test('история передаётся на следующий ход и очищается со сменой версии', async ({ page }) => {
+ const requests: Record<string, unknown>[] = [];
+ await page.route('**/seller/knowledge/sandbox/reply', async route => { requests.push(route.request().postDataJSON()); await route.fulfill({ json: { status: 'completed', answer: 'Ответ', guard: { verdict: 'ok', issues: [], warnings: [] }, goal: { kind: 'answer_only', slot: null, allowed_tools: [] } } }); });
+ await page.goto(url);
+ const input = page.getByLabel('Сообщение клиента');
+ await input.fill('Первый вопрос'); await page.getByRole('button', { name: 'Получить ответ' }).click();
+ await expect(page.getByLabel('История диалога')).toContainText('Первый вопрос');
+ await input.fill('Второй вопрос'); await page.getByRole('button', { name: 'Получить ответ' }).click();
+ await expect(page.getByLabel('История диалога').locator('li')).toHaveCount(2);
+ expect(requests[1].history).toEqual(['Первый вопрос']);
+ await mkdir('.local/screenshots/SP-E4-10F', { recursive: true });
+ await page.screenshot({ path: '.local/screenshots/SP-E4-10F/sandbox.png', fullPage: true });
+ await page.getByLabel('Версия знаний').selectOption('published');
+ await expect(page.getByLabel('История диалога')).toHaveCount(0);
+});
