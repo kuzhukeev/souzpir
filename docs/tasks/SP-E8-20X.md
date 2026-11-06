@@ -2,11 +2,15 @@
 
 **Зачем:** завершить экран V-6.3 по макету и обеспечить пересчёт отчёта после объединения названий.
 **Часть чего:** остаток SP-E8-20W, `docs/results/SP-E8-20W.md`.
-**Зависимости:** SP-E8-20W в `done`.
+**Зависимости:** SP-E8-20W и SP-E8-21K в `done`.
 
 ## Приёмка
 - Сверить оставшиеся пункты V-6.3 с макетом: отдельный экран, чипы групп и состояние пересчёта; реализовать недостающие состояния.
 - Пересчёт создаёт отдельную новую версию из сохранённых ответов с учётом объединения названий; исходный отчёт сохраняется. Показать состояние пересчёта. Срок действия новой версии совпадает со сроком исходного отчёта.
 - Проверить права, изоляцию брендов, отсутствие данных и ошибки; использовать fake runtime.
 
-Scope: `app/Vision/Competitors/`, `app/Vision/Sources/`, `app/Vision/Reports/`, `resources/js/pages/Vision/Competitors/`, `resources/js/pages/Vision/Sources/`, `resources/js/pages/Vision/Reports/`, `tests/Feature/Vision/Competitors/`, `tests/Feature/Vision/Reports/`, `tests/Browser/E8-20X/`, `docs/results/SP-E8-20X.md`.
+Scope: `app/Vision/Competitors/`, `app/Vision/Sources/`, `app/Vision/Reports/`, `app/Vision/Site/`, `app/Vision/Actions/`, `database/migrations/E8-20X/`, `resources/js/pages/Vision/Competitors/`, `resources/js/pages/Vision/Sources/`, `resources/js/pages/Vision/Reports/`, `tests/Feature/Vision/Competitors/`, `tests/Feature/Vision/Reports/`, `tests/Feature/Vision/Site/`, `tests/Browser/E8-20X/`, `docs/results/SP-E8-20X.md`.
+
+## Остаток SP-E8-21K и SP-E8-22F
+- V-5.7: связать рекомендацию и критерий с сопоставимыми данными конкурента и рассчитать приоритет и шаги по согласованным источникам и правилам; сохранять связь при пересчёте отчёта. Пока источник, формула, пороги и источник шагов не согласованы владельцем, сохранять существующие подтверждённые значения и показывать отсутствие данных; ничего не выдумывать.
+- Проверить сохранение и пересчёт связи, изоляцию брендов, отсутствие данных и ошибки; без новой AI-стадии и живых вызовов.
