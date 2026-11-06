@@ -13,7 +13,7 @@ final class PriceMail extends Mailable
 {
     use Queueable;
 
-    public function __construct(public string $path, public string $filename, public string $senderEmail, public string $senderName) {}
+    public function __construct(public string $path, public string $filename, public string $senderEmail, public string $senderName, public string $signature = '') {}
 
     public function envelope(): Envelope
     {
@@ -22,7 +22,7 @@ final class PriceMail extends Mailable
 
     public function content(): Content
     {
-        return new Content(htmlString: '<p>Здравствуйте! Направляем прайс-лист во вложении.</p>');
+        return new Content(htmlString: '<p>Здравствуйте! Направляем прайс-лист во вложении.</p>'.($this->signature !== '' ? '<p>'.nl2br(e($this->signature)).'</p>' : ''));
     }
 
     public function attachments(): array
