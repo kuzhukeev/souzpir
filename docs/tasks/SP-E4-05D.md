@@ -9,3 +9,7 @@
 Scope: `app/ProtectedOperations/`, `app/Seller/Knowledge/Prohibitions/`, `resources/js/pages/Seller/Knowledge/Prohibitions/`, `database/migrations/E4-05D/`, `tests/Feature/Seller/Knowledge/Prohibitions/`, `tests/Feature/ProtectedOperations/`, `tests/Browser/E4-05D/`, `docs/results/SP-E4-05D.md`.
 
 Приёмка: сценарий, права, бренд и ошибки; только fake вызовы. Остаток записать в docs/results/SP-E4-05D.md.
+
+## Решение владельца 06.11.2026 — общие AI-стадии
+
+Решение владельца 06.11: разрешены только совместимые добавления общих AI-стадий без рефакторинга и без изменения существующего поведения и записанного replay; проверить права, изоляцию брендов и повторы. Только fake AI; живые и платные вызовы выключены. Общий ресурс shared-ai-stages занимает одна карточка до слияния. Прежние ограничения «до решения владельца» считать снятыми в этих границах.

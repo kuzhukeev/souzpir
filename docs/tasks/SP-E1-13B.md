@@ -12,3 +12,7 @@
 Остаток записать в отчёт.
 
 Scope: `app/ProtectedOperations/`, `app/Seller/Channels/`, `app/Shell/Organizations/`, `app/Shell/Plans/`, `app/Vision/`, `resources/js/pages/Vision/`, `tests/Feature/ProtectedOperations/`, `tests/Feature/Shell/`, `tests/Feature/Vision/`, `tests/Browser/E1-13B/`, `docs/results/SP-E1-13B.md`.
+
+## Решение владельца 06.11.2026 — общие AI-стадии
+
+Решение владельца 06.11: разрешены только совместимые добавления общих AI-стадий без рефакторинга и без изменения существующего поведения и записанного replay; проверить права, изоляцию брендов и повторы. Только fake AI; живые и платные вызовы выключены. Общий ресурс shared-ai-stages занимает одна карточка до слияния. Прежние ограничения «до решения владельца» считать снятыми в этих границах.
