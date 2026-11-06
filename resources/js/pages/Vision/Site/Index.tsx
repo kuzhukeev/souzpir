@@ -103,8 +103,9 @@ export function Groups({ criteria }: { criteria: Criterion[] }) {
           ).length;
           const known = available.filter((item) => typeof item.score === 'number' && Number.isFinite(item.score) && item.score >= 0 && item.score <= 1);
           const lower = Math.round(known.reduce((sum, item) => sum + (item.score ?? 0) * 5, 0) * 100) / 100;
-          const upper = Math.round((lower + (available.length - known.length) * 5) * 100) / 100;
-          const maximum = available.length * 5;
+          const inspectorGroup = items.every((item) => Number.isInteger(Number(item.id)) && Number(item.id) >= 1 && Number(item.id) <= 20);
+          const upper = Math.round((lower + (inspectorGroup ? 4 - known.length : available.length - known.length) * 5) * 100) / 100;
+          const maximum = inspectorGroup ? 20 : available.length * 5;
           return (
             <div key={group}>
               <div className="mb-2 flex flex-wrap justify-between gap-2">
