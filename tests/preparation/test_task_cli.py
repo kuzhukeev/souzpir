@@ -143,6 +143,25 @@ class TaskCliTests(unittest.TestCase):
             self.client.claim("SP-001", "new-owner")
         self.assertEqual(self.api.task["status"], "queue")
 
+    def test_reclaim_preserves_unpublished_scoped_commit(self):
+        worktree, original = self.claim()
+        self.commit(worktree)
+        head = task_cli.git(worktree, "rev-parse", "HEAD")
+        self.client.release("SP-001", "Transfer")
+        self.assertEqual(self.client.ready()["tasks"][0]["taskKey"], "SP-001")
+        reclaimed = self.client.claim("SP-001", "new-owner")
+        self.assertEqual(reclaimed["baseCommit"], original["baseCommit"])
+        self.assertEqual(task_cli.git(worktree, "rev-parse", "HEAD"), head)
+        self.assertEqual((worktree / "app/Feature/file.php").read_text(encoding="utf-8"), "sample\n")
+
+    def test_reclaim_rejects_unpublished_out_of_scope_commit_without_remote(self):
+        worktree, _ = self.claim()
+        self.commit(worktree, "app/Common/unapproved.php")
+        self.client.release("SP-001", "Transfer")
+        self.assertEqual(self.client.ready()["tasks"], [])
+        with self.assertRaisesRegex(task_cli.TaskError, "preserved changes"):
+            self.client.claim("SP-001", "new-owner")
+
     def test_reclaim_preserves_published_task_commits_and_original_base(self):
         worktree, original = self.claim()
         target = worktree / "app/Feature/saved.txt"
