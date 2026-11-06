@@ -454,6 +454,7 @@ declare module 'ziggy-js' {
     "seller.knowledge.imports.site.preview": [],
     "seller.knowledge.imports.site.save": [],
     "seller.sandbox.index": [],
+    "seller.sandbox.reply": [],
     "seller.sandbox.check": [],
     "seller.knowledge.yaml.preview": [],
     "seller.knowledge.yaml.publish": [],
