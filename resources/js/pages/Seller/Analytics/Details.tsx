@@ -290,7 +290,13 @@ export default function Details({ data: a, activeTab }: { data: Props; activeTab
         className={card}
       >
         <h2 className="text-xl font-bold">Отчёт</h2>
-        <label className="mt-3 block text-sm print:hidden">
+        <fieldset className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4 print:hidden"><legend className="text-sm font-semibold">Выберите отчёт</legend>{[
+          ['weekly','Сводка владельцу','Ключевые показатели за период'],
+          ['dialogs','Диалоги','Ход и результаты диалогов'],
+          ['topics','Темы и вопросы','Темы обращений и пробелы'],
+          ...(a.canManage ? [['managers','Воронка по менеджерам','Показатели работы команды']] : []),
+        ].map(([value,title,description])=><label key={value} className={`flex min-h-24 cursor-pointer items-start gap-3 rounded-xl border p-4 text-sm ${reportType===value?'border-(--color-link) bg-(--color-brand-primary-soft)':'border-(--color-border) bg-(--color-surface)'}`}><input type="radio" name="report-card" checked={reportType===value} onChange={()=>setReportType(value)} className="mt-1 size-4 cursor-pointer accent-(--color-link)"/><span><span className="block font-semibold">{title}</span><span className="mt-1 block text-(--color-ink-muted)">{description}</span></span></label>)}</fieldset>
+        <label className="sr-only focus-within:not-sr-only print:hidden">
           Тип отчёта
           <select
             value={reportType}

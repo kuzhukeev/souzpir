@@ -8,7 +8,11 @@ test.beforeAll(async()=>{server=await createServer({configFile:'tests/Browser/E7
 test.afterAll(async()=>{await server?.close();});
 test('предпросмотр содержит бренд, имя менеджера и выбранный вид',async({page})=>{
  await page.goto(url);await page.getByRole('button',{name:'Отчёты',exact:true}).click();
- const report=page.locator('#report');await expect(report.getByText('Пример бренда',{exact:true})).toBeVisible();
+ const report=page.locator('#report');
+ await report.getByRole('radio',{name:/Темы и вопросы/}).check();
+ await expect(report.getByRole('link',{name:'Скачать PDF'})).toHaveAttribute('href',/report_type=topics/);
+ await report.getByRole('radio',{name:/Сводка владельцу/}).check();
+ await expect(report.getByText('Пример бренда',{exact:true})).toBeVisible();
  await expect(report.getByText(/менеджер: Ирина Иванова/)).toBeVisible();
  await expect(report.getByRole('region',{name:'Динамика диалогов'})).toContainText('2026-11-01');
  await expect(report.getByRole('link',{name:'Скачать CSV'})).toHaveAttribute('href',/manager=u/);
