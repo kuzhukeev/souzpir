@@ -921,6 +921,18 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "vision.measurements.subscription.show": [
+        {
+            "name": "measurement",
+            "required": true
+        }
+    ],
+    "vision.measurements.subscription.update": [
+        {
+            "name": "measurement",
+            "required": true
+        }
+    ],
     "vision.settings.personal-report-access.create": [],
     "vision.settings.personal-report-access.revoke": [
         {
