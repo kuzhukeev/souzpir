@@ -11,6 +11,7 @@ test('таблица показывает типы, статусы и досту
  const saved = page.getByRole('row').filter({ hasText: 'Ранее.pdf' });
  await expect(saved).toContainText('Импортирован');
  await expect(saved.locator('svg')).toHaveCount(1);
+ await saved.getByLabel('Действия: Ранее.pdf').click();
  await expect(saved.getByRole('button', { name: 'Посмотреть', exact: true })).toBeVisible();
  await expect(saved.getByRole('link', { name: 'Скачать исходник' })).toBeVisible();
  const old = page.getByRole('row').filter({ hasText: 'Старый.txt' });

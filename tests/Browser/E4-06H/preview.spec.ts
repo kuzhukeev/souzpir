@@ -9,6 +9,7 @@ test.afterAll(async () => { await server?.close(); });
 test('сохранённый документ открывается без повторной загрузки', async ({ page }) => {
  await page.route('**/seller/knowledge/imports/documents/saved/preview?*', route => route.fulfill({ json: { proposals: ['Факт из файла'], document_id: 'saved', sheets: [], document: { id: 'saved', name: 'Ранее.pdf', type: 'pdf', pages: 3, status: 'imported', fragments_count: 7, has_source: true, created_at: '2026-11-01' } } }));
  await page.goto(url);
+ await page.getByLabel('Действия: Ранее.pdf').click();
  await page.getByRole('button', { name: 'Посмотреть', exact: true }).click();
  await expect(page.getByRole('heading', { name: 'Сопоставление фактов' })).toBeVisible();
  await expect(page.getByText('Факт из файла', { exact: true })).toBeVisible();
@@ -20,6 +21,7 @@ test('сохранённый документ открывается без по
 test('ошибка повторного просмотра показана пользователю', async ({ page }) => {
  await page.route('**/seller/knowledge/imports/documents/saved/preview?*', route => route.fulfill({ status: 404, json: { message: 'Not found' } }));
  await page.goto(url);
+ await page.getByLabel('Действия: Ранее.pdf').click();
  await page.getByRole('button', { name: 'Посмотреть', exact: true }).click();
  await expect(page.getByRole('alert').filter({ hasText: 'Не удалось открыть сохранённый документ.' })).toBeVisible();
 });
