@@ -915,6 +915,13 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "vision.settings.personal-report-access.create": [],
+    "vision.settings.personal-report-access.revoke": [
+        {
+            "name": "access",
+            "required": true
+        }
+    ],
     "dev.design-system": [],
     "preview.login": [],
     "preview.attention": []

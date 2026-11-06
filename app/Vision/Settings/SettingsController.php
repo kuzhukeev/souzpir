@@ -69,7 +69,33 @@ final class SettingsController
                 ->map(fn ($row) => ['id' => $row->id, 'finished_at' => $row->finished_at, 'slots' => (int) $row->slots])->all();
             $slotSummary = ['used' => $usedSlots, 'limit' => $limit, 'remaining' => is_numeric($limit) ? max(0, (int) floor((float) $limit) - $usedSlots) : null, 'history' => $history];
 
-            return Inertia::render('Vision/Settings/Index', ['revision' => $revision, 'schedule' => $schedule, 'modelOptions' => $modelOptions, 'nextRuns' => app(SchedulePreview::class)->nextThree($schedule), 'events' => $events, 'members' => $members, 'canManageRecipients' => Gate::allows('vision.settings.write'), 'limits' => ['questions' => app(PlanLimits::class)->get($tenant, 'vision.questions')->value, 'models' => app(PlanLimits::class)->get($tenant, 'vision.models')->value], 'questionCount' => $questionCount, 'slotSummary' => $slotSummary, 'slotEstimate' => ['from' => $from, 'to' => $to, 'period' => $estimate, 'month' => $monthEstimate]]);
+            $canManagePersonal = Gate::allows('vision.settings.write');
+            $mayShowPersonalUrl = $canManagePersonal && $request->session()->get('personal_report_brand') === $tenant->brandId;
+            $personalReports = [];
+            $personalAccess = [];
+            if ($canManagePersonal) {
+                $personalReports = DB::table('vision_reports')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
+                    ->whereIn('measurement_id', DB::table('snapshot_confirmations')->where('organization_id', $tenant->organizationId)
+                        ->where('brand_id', $tenant->brandId)->select('measurement_id'))
+                    ->orderByDesc('created_at')->get(['id', 'revision', 'created_at'])->all();
+                $personalAccess = DB::table('vision_personal_report_access as a')->join('report_publications as p', function ($join): void {
+                    $join->on('p.id', '=', 'a.publication_id')->on('p.organization_id', '=', 'a.organization_id')->on('p.brand_id', '=', 'a.brand_id');
+                })->where('a.organization_id', $tenant->organizationId)->where('a.brand_id', $tenant->brandId)
+                    ->orderByDesc('a.created_at')->get(['a.id', 'a.name', 'a.email', 'p.report_id', 'p.expires_at', 'p.revoked_at', 'p.id as publication_id'])
+                    ->map(function ($row) use ($tenant): array {
+                        $opens = DB::table('audit_logs')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
+                            ->where('action', 'vision.report.publication.opened')->where('subject_type', 'report_publication')
+                            ->where('subject_id', $row->publication_id)->orderByDesc('created_at')->pluck('created_at')->all();
+
+                        return ['id' => $row->id, 'name' => $row->name, 'email' => $row->email, 'report_id' => $row->report_id,
+                            'expires_at' => $row->expires_at, 'expired' => now()->greaterThanOrEqualTo($row->expires_at), 'revoked_at' => $row->revoked_at, 'opens' => $opens];
+                    })->all();
+                if ($mayShowPersonalUrl && $request->session()->has('personal_report_url')) {
+                    Inertia::encryptHistory();
+                }
+            }
+
+            return Inertia::render('Vision/Settings/Index', ['revision' => $revision, 'schedule' => $schedule, 'modelOptions' => $modelOptions, 'nextRuns' => app(SchedulePreview::class)->nextThree($schedule), 'events' => $events, 'members' => $members, 'canManageRecipients' => Gate::allows('vision.settings.write'), 'limits' => ['questions' => app(PlanLimits::class)->get($tenant, 'vision.questions')->value, 'models' => app(PlanLimits::class)->get($tenant, 'vision.models')->value], 'questionCount' => $questionCount, 'personalReports' => $personalReports, 'personalAccess' => $personalAccess, 'personalReportUrl' => $mayShowPersonalUrl ? $request->session()->get('personal_report_url') : null, 'slotSummary' => $slotSummary, 'slotEstimate' => ['from' => $from, 'to' => $to, 'period' => $estimate, 'month' => $monthEstimate]]);
         }, false);
     }
 
