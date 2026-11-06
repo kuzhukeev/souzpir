@@ -187,15 +187,19 @@ final class CompetitorsController
 
     public function merge(Request $request): mixed
     {
-        $input = $request->validate(['source' => ['required', 'string', 'max:255', 'different:target'], 'target' => ['required', 'string', 'max:255'], 'distinct' => ['sometimes', 'boolean']]);
-        $this->access($request, 'vision.actions.write', function (User $user, TenantContext $tenant) use ($input): void {
-            DB::transaction(function () use ($tenant, $input): void {
+        $input = $request->validate(['source' => ['required_without:sources', 'nullable', 'string', 'max:255', 'different:target'], 'sources' => ['sometimes', 'array', 'min:1', 'max:20'], 'sources.*' => ['required', 'string', 'max:255', 'distinct', 'different:target'], 'target' => ['required', 'string', 'max:255'], 'distinct' => ['sometimes', 'boolean']]);
+        $sources = $input['sources'] ?? [$input['source']];
+        if (($input['distinct'] ?? false) && count($sources) !== 1) {
+            throw ValidationException::withMessages(['sources' => 'Для разных компаний выберите два названия.']);
+        }
+        $this->access($request, 'vision.actions.write', function (User $user, TenantContext $tenant) use ($input, $sources): void {
+            DB::transaction(function () use ($tenant, $input, $sources): void {
                 $names = $this->validNames($tenant);
-                if (! in_array($input['source'], $names, true) || ! in_array($input['target'], $names, true)) {
+                if (array_diff($sources, $names) || ! in_array($input['target'], $names, true)) {
                     throw ValidationException::withMessages(['source' => 'Выберите названные компании текущего снимка.']);
                 }
                 if ($input['distinct'] ?? false) {
-                    $pair = [$input['source'], $input['target']];
+                    $pair = [$sources[0], $input['target']];
                     sort($pair, SORT_STRING);
                     $row = $this->scope('vision_competitor_distinct', $tenant)->where('first_name', $pair[0])->where('second_name', $pair[1])->first();
                     if (! $row) {
@@ -206,20 +210,22 @@ final class CompetitorsController
 
                     return;
                 }
-                $this->scope('vision_competitor_aliases', $tenant)->where('canonical', $input['source'])->update(['canonical' => $input['target'], 'updated_at' => now()]);
-                $existing = $this->scope('vision_competitor_aliases', $tenant)->where('alias', $input['source'])->first();
-                DB::table('vision_competitor_aliases')->updateOrInsert(['brand_id' => $tenant->brandId, 'alias' => $input['source']],
-                    ['id' => $existing?->id ?? (string) Str::ulid(), 'organization_id' => $tenant->organizationId, 'canonical' => $input['target'], 'created_at' => $existing?->created_at ?? now(), 'updated_at' => now()]);
-                $oldTracking = $this->scope('vision_competitor_tracking', $tenant)->where('name', $input['source'])->first();
-                if ($oldTracking) {
-                    $targetTracking = $this->scope('vision_competitor_tracking', $tenant)->where('name', $input['target'])->first();
-                    if ($targetTracking) {
-                        $this->scope('vision_competitor_tracking', $tenant)->where('id', $oldTracking->id)->delete();
-                    } else {
-                        $this->scope('vision_competitor_tracking', $tenant)->where('id', $oldTracking->id)->update(['name' => $input['target'], 'updated_at' => now()]);
+                foreach ($sources as $source) {
+                    $this->scope('vision_competitor_aliases', $tenant)->where('canonical', $source)->update(['canonical' => $input['target'], 'updated_at' => now()]);
+                    $existing = $this->scope('vision_competitor_aliases', $tenant)->where('alias', $source)->first();
+                    DB::table('vision_competitor_aliases')->updateOrInsert(['brand_id' => $tenant->brandId, 'alias' => $source],
+                        ['id' => $existing?->id ?? (string) Str::ulid(), 'organization_id' => $tenant->organizationId, 'canonical' => $input['target'], 'created_at' => $existing?->created_at ?? now(), 'updated_at' => now()]);
+                    $oldTracking = $this->scope('vision_competitor_tracking', $tenant)->where('name', $source)->first();
+                    if ($oldTracking) {
+                        $targetTracking = $this->scope('vision_competitor_tracking', $tenant)->where('name', $input['target'])->first();
+                        if ($targetTracking) {
+                            $this->scope('vision_competitor_tracking', $tenant)->where('id', $oldTracking->id)->delete();
+                        } else {
+                            $this->scope('vision_competitor_tracking', $tenant)->where('id', $oldTracking->id)->update(['name' => $input['target'], 'updated_at' => now()]);
+                        }
                     }
+                    app(AuditWriter::class)->record($tenant, new AuditEntry('vision.competitor.merged', 'vision_competitor_alias', $existing?->id ?? DB::table('vision_competitor_aliases')->where('brand_id', $tenant->brandId)->where('alias', $source)->value('id')));
                 }
-                app(AuditWriter::class)->record($tenant, new AuditEntry('vision.competitor.merged', 'vision_competitor_alias', $existing?->id ?? DB::table('vision_competitor_aliases')->where('brand_id', $tenant->brandId)->where('alias', $input['source'])->value('id')));
             });
         });
 
