@@ -9,7 +9,7 @@ export default defineConfig({
     host: '127.0.0.1',
     port: Number(process.env.VITE_DEV_PORT || 5238),
     strictPort: true,
-    watch: {
+    watch: process.env.CI ? null : {
       ignored: ['**/.local/**', '**/vendor/**', '**/test-results/**', '**/playwright-report/**'],
     },
   },
