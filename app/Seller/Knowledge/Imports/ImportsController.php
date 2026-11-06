@@ -33,7 +33,7 @@ final class ImportsController
             $id = DB::table('knowledge_releases')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('status', 'draft')->value('id');
 
             $editor = $id ? app(KnowledgeRepository::class)->draftEditor($tenant, $id) : null;
-            $documents = DB::table('seller_knowledge_import_documents')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->orderByDesc('created_at')->get(['id', 'name', 'type', 'pages', 'status', 'created_at']);
+            $documents = DB::table('seller_knowledge_import_documents')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->orderByDesc('created_at')->get(['id', 'name', 'type', 'pages', 'status', 'fragments_count', 'created_at']);
 
             return [$editor, $documents];
         });
@@ -85,7 +85,9 @@ final class ImportsController
                 DB::table('seller_knowledge_import_documents')->insert(['id' => $documentId, 'organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId, 'name' => $name, 'type' => $extension, 'pages' => $pages, 'status' => 'previewed', 'created_at' => now(), 'updated_at' => now()]);
             }
 
-            return response()->json(['proposals' => $lines, 'document_id' => $documentId, 'sheets' => $sheets, 'document' => ['id' => $documentId, 'name' => $name, 'type' => $extension, 'pages' => $pages, 'status' => 'previewed', 'created_at' => now()->toIso8601String()]])->header('Cache-Control', 'private, no-store');
+            DB::table('seller_knowledge_import_documents')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('id', $documentId)->update(['fragments_count' => count($lines), 'updated_at' => now()]);
+
+            return response()->json(['proposals' => $lines, 'document_id' => $documentId, 'sheets' => $sheets, 'document' => ['id' => $documentId, 'name' => $name, 'type' => $extension, 'pages' => $pages, 'status' => 'previewed', 'fragments_count' => count($lines), 'created_at' => now()->toIso8601String()]])->header('Cache-Control', 'private, no-store');
         });
     }
 
