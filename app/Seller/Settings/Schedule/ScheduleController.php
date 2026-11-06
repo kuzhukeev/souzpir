@@ -4,6 +4,9 @@ namespace App\Seller\Settings\Schedule;
 
 use App\Models\Membership;
 use App\Models\User;
+use App\Seller\Knowledge\Contracts\KnowledgeRepository;
+use App\Seller\Knowledge\KnowledgeNotReady;
+use App\Seller\Runtime\ServicePhraseSelector;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
@@ -62,8 +65,14 @@ final class ScheduleController
     {
         $data = $this->access($request, function (User $user, TenantContext $tenant): array {
             $timezone = DB::table('brands')->where('organization_id', $tenant->organizationId)->where('id', $tenant->brandId)->value('timezone');
+            try {
+                $persona = app(KnowledgeRepository::class)->published($tenant)->persona();
+                $outOfHours = app(ServicePhraseSelector::class)->forEvent($persona, 'out_of_hours');
+            } catch (KnowledgeNotReady) {
+                $outOfHours = null;
+            }
 
-            return ['settings' => $this->read($tenant), 'members' => $this->members($tenant), 'timezone' => $timezone];
+            return ['outOfHoursPhrase' => $outOfHours, 'settings' => $this->read($tenant), 'members' => $this->members($tenant), 'timezone' => $timezone];
         });
 
         return Inertia::render('Seller/Settings/Schedule/Index', [...$data, 'status' => $request->session()->get('status')]);

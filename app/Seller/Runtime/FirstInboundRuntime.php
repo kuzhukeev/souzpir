@@ -69,6 +69,7 @@ final class FirstInboundRuntime
                 if ($conversation->mode === 'bot' && (int) $conversation->version === 0 && app(MonthlyUnits::class)->exhausted($tenant, 'dialog', $conversation->id)) {
                     DB::table('conversations')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('id', $conversation->id)
                         ->update(['mode' => 'manager', 'stage' => 'handoff', 'outcome' => 'handoff', 'handed_off_at' => now(), 'updated_at' => now()]);
+                    app(StageTransitions::class)->record($tenant, $conversation->id, $conversation->stage, 'handoff');
                     app(AuditWriter::class)->record($tenant, new AuditEntry('seller.dialog.limit_handoff', 'conversation', $conversation->id));
                     $schedule->assignWaiting($tenant, $command->conversationId, $settings);
 

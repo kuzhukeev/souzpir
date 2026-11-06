@@ -136,9 +136,22 @@ final class DashboardQuery
         if ($overdue > 0) {
             $attention[] = ['kind' => 'tasks', 'title' => 'Обещания просрочены', 'count' => $overdue, 'severity' => 'high', 'href' => '/seller/tasks'];
         }
-        $disabled = collect($channels)->where('status', 'disabled')->count();
-        if ($disabled > 0) {
-            $attention[] = ['kind' => 'channels', 'title' => 'Каналы выключены', 'count' => $disabled, 'severity' => 'normal', 'href' => '/seller/channels'];
+        $disabled = $scope('channel_accounts')->where('status', 'disabled');
+        $overDay = (clone $disabled)->whereNotNull('disabled_at')->where('disabled_at', '<', now()->subDay())->count();
+        $unknown = (clone $disabled)->whereNull('disabled_at')->count();
+        $recent = (clone $disabled)->whereNotNull('disabled_at')->where('disabled_at', '>=', now()->subDay())->count();
+        if ($overDay > 0) {
+            $attention[] = ['kind' => 'channels_over_day', 'title' => 'Канал выключен >24ч', 'count' => $overDay, 'severity' => 'high', 'href' => '/seller/channels'];
+        }
+        if ($unknown + $recent > 0) {
+            $details = [];
+            if ($unknown > 0) {
+                $details[] = $unknown.' · Время отключения неизвестно';
+            }
+            if ($recent > 0) {
+                $details[] = $recent.' · Отключены не более суток';
+            }
+            $attention[] = ['kind' => 'channels', 'title' => 'Каналы выключены', 'count' => $unknown + $recent, 'detail' => implode('; ', $details), 'severity' => 'normal', 'href' => '/seller/channels'];
         }
 
         $attention = array_merge($attention, app(AttentionEvents::class)->read($tenant, $rows->count(), $contact, $previous->count(), $previousContact));

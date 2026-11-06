@@ -9,6 +9,6 @@ export default defineConfig({
     host: '127.0.0.1',
     port: 5248,
     strictPort: true,
-    watch: { ignored: ['**/.local/**', '**/vendor/**', '**/test-results/**'] },
+    watch: process.env.CI ? null : { ignored: ['**/.local/**', '**/vendor/**', '**/test-results/**'] },
   },
 });

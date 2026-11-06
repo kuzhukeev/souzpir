@@ -9,3 +9,7 @@
 Scope: `app/Seller/Quality/`, `app/Seller/Evaluation/`, `app/Seller/Dialogs/`, `resources/js/pages/Seller/Quality/`, `resources/js/pages/Seller/Dialogs/`, `routes/features/E7-01.php`, `tests/Feature/Seller/Quality/`, `tests/Browser/E7-01L/`, `docs/results/SP-E7-01L.md`.
 
 Приёмка: сценарий, права, бренд, ошибки; только fake вызовы. Остаток записать в docs/results/SP-E7-01L.md.
+
+## Решение владельца 06.11.2026 — общие AI-стадии
+
+Решение владельца 06.11: разрешены только совместимые добавления общих AI-стадий без рефакторинга и без изменения существующего поведения и записанного replay; проверить права, изоляцию брендов и повторы. Только fake AI; живые и платные вызовы выключены. Общий ресурс shared-ai-stages занимает одна карточка до слияния. Прежние ограничения «до решения владельца» считать снятыми в этих границах.

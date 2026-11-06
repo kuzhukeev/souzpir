@@ -106,12 +106,15 @@ final class CompetitorsController
                     && trim($slot['fact']['mention_quote']) !== '')
                     ->map(fn ($slot) => ['text' => $slot['fact']['mention_quote'], 'provider' => $slot['provider'] ?? ''])
                     ->values()->all() : [];
+                $providerModels = is_array($snapshot['providers'] ?? null) ? $snapshot['providers'] : [];
                 $withoutBrand = $matched->filter(fn ($slot) => ($slot['mentions_complete'] ?? false) === true
                     && ($slot['fact']['brand_mentioned'] ?? null) === false)
                     ->groupBy('qid')->map(fn ($slots, $id) => [
                         'text' => data_get($questions->get($id), 'text', ''),
                         'intent' => $slots->pluck('intent')->filter()->first(),
                         'models' => $slots->pluck('provider')->filter()->unique()->values()->all(),
+                        'model_names' => $slots->pluck('provider')->map(fn ($provider) => is_string($provider) && is_string($providerModels[$provider] ?? null) && trim($providerModels[$provider]) !== '' ? $providerModels[$provider] : null)->filter()->unique()->values()->all(),
+                        'model_names_unknown' => $slots->pluck('provider')->contains(fn ($provider) => ! is_string($provider) || ! is_string($providerModels[$provider] ?? null) || trim($providerModels[$provider]) === ''),
                     ])->filter(fn ($item) => is_string($item['text']) && $item['text'] !== '')->values()->all();
                 $series = collect(array_reverse($historySeries))->map(fn ($point) => [
                     'date' => $point['date'], 'answers' => max(0, $entity['answers'] - ($point['difference'][$entity['name']] ?? $entity['answers'])),
@@ -120,7 +123,17 @@ final class CompetitorsController
                     $series[] = ['date' => $history[0]->created_at, 'answers' => $entity['answers']];
                 }
 
+                $modelNames = $matched->pluck('provider')->unique()->map(fn ($provider) => is_string($provider) && is_string($providerModels[$provider] ?? null) && trim($providerModels[$provider]) !== '' ? $providerModels[$provider] : null);
+                $knownModels = $modelNames->filter()->unique()->values()->all();
+                $unknownModels = $modelNames->contains(null);
+                $modelPositions = collect($entity['positions_by_provider'] ?? [])->map(function ($position, $provider) use ($providerModels): array {
+                    $model = $providerModels[$provider] ?? null;
+
+                    return ['provider' => $provider, 'model' => is_string($model) && trim($model) !== '' ? $model : null, 'position' => $position];
+                })->values()->all();
+
                 return ['name' => $entity['name'], 'answers' => $entity['answers'], 'share' => $entity['share_of_voice'] ?? null,
+                    'position' => $entity['position'] ?? null, 'model_names' => $knownModels, 'model_names_unknown' => $unknownModels, 'model_positions' => $modelPositions,
                     'quotes' => $quotes, 'delta' => $deltas === null ? null : ($deltas[$entity['name']] ?? null), 'history_series' => $series,
                     'question_count' => $matched->filter(fn ($slot) => ($slot['mentions_complete'] ?? false) === true)->pluck('qid')->filter()->unique()->count(),
                     'question_total' => count($snapshot['questions'] ?? []), 'questions_without_brand' => $withoutBrand,

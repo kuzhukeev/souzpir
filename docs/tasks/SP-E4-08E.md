@@ -9,3 +9,7 @@
 Scope: `app/Seller/Knowledge/Fewshot/`, `app/Seller/Evaluation/`, `app/Ai/Protected/`, `resources/js/pages/Seller/Knowledge/Fewshot/`, `tests/Feature/Seller/Knowledge/Fewshot/`, `tests/Feature/Seller/Evaluation/`, `tests/Browser/E4-08E/`, `docs/results/SP-E4-08E.md`.
 
 Приёмка: сверка с макетом, основной сценарий, права, бренд и ошибки; только fake вызовы. Остаток записать в docs/results/SP-E4-08E.md.
+
+## Решение владельца 06.11.2026 — общие AI-стадии
+
+Решение владельца 06.11: разрешены только совместимые добавления общих AI-стадий без рефакторинга и без изменения существующего поведения и записанного replay; проверить права, изоляцию брендов и повторы. Только fake AI; живые и платные вызовы выключены. Общий ресурс shared-ai-stages занимает одна карточка до слияния. Прежние ограничения «до решения владельца» считать снятыми в этих границах.
