@@ -29,6 +29,12 @@ declare module 'ziggy-js' {
         }
     ],
     "billing.ai-recovery": [],
+    "internal.ai-recovery": [
+        {
+            "name": "brand",
+            "required": true
+        }
+    ],
     "login": [],
     "login.store": [],
     "register": [],
