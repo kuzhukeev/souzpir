@@ -745,6 +745,7 @@ declare module 'ziggy-js' {
     "seller.analytics.index": [],
     "seller.analytics.subscription": [],
     "seller.analytics.send": [],
+    "seller.analytics.pdf": [],
     "seller.analytics.csv": [],
     "seller.dashboard.index": [],
     "seller.dashboard.attention": [],
