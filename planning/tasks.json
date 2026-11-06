@@ -21265,6 +21265,36 @@
       "wave": 20,
       "promptPath": "docs/tasks/SP-E8-15G.md",
       "description": "# SP-E8-15G · Завершить оценки измерений\n\n**Зачем:** завершить соответствующий сценарий и экран по результату SP-E8-15F.\n**Часть чего:** остаток SP-E8-15F, docs/results/SP-E8-15F.md.\n**Зависимости:** SP-E8-15F.\n\n## Приёмка\n- Сверить V-3.2: один контрол прогонов и оценка времени из прошлого замера; V-11.1: описания моделей из конфига провайдера; V-11.2/11.3: точный календарный месяц и период после подтверждения формулы. Не выдумывать цены.\n- Сохранить существующее поведение, проверить права, ошибки и изоляцию брендов; использовать fake runtime.\n\nScope: `app/Vision/Questions/`, `app/Vision/Measurements/`, `app/Vision/Settings/`, `resources/js/pages/Vision/Questions/`, `resources/js/pages/Vision/Measurements/`, `resources/js/pages/Vision/Settings/`, `resources/js/features/Vision/Questions/`, `resources/js/features/Vision/Measurements/`, `tests/Feature/Vision/Questions/`, `tests/Feature/Vision/Settings/`, `tests/Browser/E8-15G/`, `docs/results/SP-E8-15G.md`.\n"
+    },
+    {
+      "taskKey": "SP-E7-06F",
+      "title": "SP-E7-06F · Сводка: завершить D-1.1",
+      "goal": "Завершить сверку D-1.1 с макетами summary и detail: линейный график с группировкой и датами, внимание, проблемы, расположение разделов и воронка; состояния пусто, загрузка и ошибка; сравнение качества за предыдущий период из сохранённых данных.",
+      "dependsOn": [
+        "SP-E7-06E"
+      ],
+      "scope": [
+        "app/Seller/Dashboard/",
+        "resources/js/pages/Seller/Dashboard/",
+        "tests/Feature/Seller/Dashboard/",
+        "tests/Browser/E7-06F/",
+        "docs/results/SP-E7-06F.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Завершить сверку D-1.1 с макетами summary и detail: линейный график с группировкой и датами, внимание, проблемы, расположение разделов и воронка; состояния пусто, загрузка и ошибка; сравнение качества за предыдущий период из сохранённых данных."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E7-06E.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "D-1.1"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E7-06F.md",
+      "description": "# SP-E7-06F · Сводка: завершить D-1.1\n\n**Зачем:** завершить экран D-1.1 по макетам summary и detail в `C:/OSPanel/home/tasks.local/completed/37/`.\n**Часть чего:** остаток частичной сдачи SP-E7-06E, `docs/results/SP-E7-06E.md`.\n**Зависимости:** дождаться слияния SP-E7-06E.\n\n## Приёмка\n- Сверить summary и detail с макетами: линейный график с подписями дат и выбором группировки, карточки внимания и проблем, расположение разделов и графическое представление воронки.\n- Завершить сверку пустого состояния, загрузки и ошибки с макетами.\n- Предоставить сравнение качества с предыдущим периодом из сохранённых данных; при их отсутствии явно показывать отсутствие данных. Сохранить фильтр канала, права и изоляцию брендов.\n- Проверить основной сценарий, выбор периода и канала, права, изоляцию брендов и ошибки; использовать fake runtime.\n\nScope: `app/Seller/Dashboard/`, `resources/js/pages/Seller/Dashboard/`, `tests/Feature/Seller/Dashboard/`, `tests/Browser/E7-06F/`, `docs/results/SP-E7-06F.md`.\n"
     }
   ],
   "excludedSourceTasks": {
