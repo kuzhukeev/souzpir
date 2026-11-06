@@ -53,7 +53,7 @@ final class SessionController
                 RateLimiter::clear($key);
                 throw ValidationException::withMessages(['email' => 'Слишком много попыток. Повторите через 10 минут.']);
             }
-            throw ValidationException::withMessages(['email' => 'Не удалось войти. Проверьте данные.']);
+            throw ValidationException::withMessages(['email' => 'Неверная почта или пароль']);
         }
         RateLimiter::clear($key);
         RateLimiter::clear($lockKey);
