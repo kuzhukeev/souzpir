@@ -52,6 +52,7 @@ export default function Index({
 }) {
   const [tab, setTab] = useState<'all' | 'tracked' | 'declared'>('all');
   const [mergeSearch, setMergeSearch] = useState('');
+  const [extraSources, setExtraSources] = useState<string[]>([]);
   const [openedCompany, setOpenedCompany] = useState<string | null>(null);
   const [pendingPair, setPendingPair] = useState<string[]>([]);
   const [left, setLeft] = useState('');
@@ -739,6 +740,11 @@ export default function Index({
                     </select>
                   </label>
                 </div>
+                <fieldset className="mt-4">
+                  <legend className="text-sm font-semibold">Дополнительные названия</legend>
+                  <div className="mt-2 flex flex-wrap gap-2">{entities.filter(e => !e.is_brand && e.name !== source && e.name !== target).map(e => <label key={e.name} className="flex cursor-pointer items-center gap-2 rounded-lg border border-(--color-border) p-2 text-sm"><input type="checkbox" checked={extraSources.includes(e.name)} onChange={event=>setExtraSources(event.target.checked ? [...extraSources,e.name] : extraSources.filter(name=>name!==e.name))}/>{e.name}</label>)}</div>
+                </fieldset>
+                <div className="mt-4 overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr><th className="p-2">Название</th><th className="p-2">Источники</th></tr></thead><tbody>{entities.filter(e => [source,target,...extraSources].includes(e.name)).map(e=><tr key={e.name} className="border-t border-(--color-border)"><td className="p-2">{e.name}</td><td className="p-2">{e.sources?.join(', ') || 'Нет данных'}</td></tr>)}</tbody></table></div>
                 <button
                   disabled={busy || !source || !target || source === target}
                   className="mt-4 min-h-11 cursor-pointer rounded-lg bg-(--color-link) px-4 text-sm font-semibold text-white disabled:opacity-50"
@@ -746,7 +752,7 @@ export default function Index({
                   Объединить
                 </button>
                 <p className="mt-3 text-sm text-(--color-ink-muted)">
-                  Сохранённый отчёт не изменяется; объединение применяется к этому разделу.
+                  Сохранённый отчёт не изменяется; объединение применяется к этому разделу. Пересчёт отчёта и его срок пока недоступны.
                 </p>
               </form>
             )}
@@ -756,7 +762,7 @@ export default function Index({
               onClose={() => setMergeOpen(false)}
             >
               <p className="text-sm">
-                «{source}» будет объединено с «{target}». Показатели раздела пересчитаются по
+                «{[source, ...extraSources.filter(name=>name !== source && name !== target)].join('», «')}» {extraSources.filter(name=>name !== source && name !== target).length ? 'будут объединены' : 'будет объединено'} с «{target}». Показатели раздела пересчитаются по
                 сохранённым ответам.
               </p>
               {mergeError && (
@@ -779,12 +785,12 @@ export default function Index({
                   onClick={() =>
                     router.post(
                       '/vision/competitors/merge',
-                      { source, target },
+                      { sources: [source, ...extraSources.filter(name=>name !== source && name !== target)], target },
                       {
                         preserveScroll: true,
                         onStart: () => setBusy(true),
                         onFinish: () => setBusy(false),
-                        onSuccess: () => setMergeOpen(false),
+                        onSuccess: () => { setMergeOpen(false); setExtraSources([]); },
                         onError: () =>
                           setMergeError(
                             'Не удалось объединить названия. Проверьте данные и доступ.',
