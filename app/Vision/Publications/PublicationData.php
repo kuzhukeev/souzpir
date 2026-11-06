@@ -47,7 +47,10 @@ final class PublicationData
 
         return [...$this->fromPayload($source), 'competitors' => $entities,
             'confirmed_facts' => count(array_filter($facts, fn ($item) => is_array($item) && ($item['confirmed'] ?? false) === true)),
-            'reviewed_facts' => count($facts), 'actions' => $actions, 'action_details' => $actionDetails, 'action_question_ids' => $actionQuestionIds, 'site_readiness' => $site,
+            'reviewed_facts' => count($facts),
+            'verified_errors' => is_array($source['reviewed_facts'] ?? null)
+                ? count(array_filter($facts, fn ($item) => is_array($item) && ($item['confirmed'] ?? false) === true && ($item['classification'] ?? 'incorrect') !== 'correct')) : null,
+            'actions' => $actions, 'action_details' => $actionDetails, 'action_question_ids' => $actionQuestionIds, 'site_readiness' => $site,
             'site_criteria' => SiteCriteria::project($siteAudit['criteria'] ?? []),
             'history' => $tenant && $report ? app(PublicMetricHistory::class)->build($tenant, $report, $source) : []];
     }
