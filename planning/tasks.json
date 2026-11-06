@@ -21062,6 +21062,209 @@
       "wave": 20,
       "promptPath": "docs/tasks/SP-E8-14M.md",
       "description": "# SP-E8-14M · Анкета: оставшиеся источники и сверка\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E8-14L, docs/results/SP-E8-14L.md.\n**Зависимости:** SP-E8-14L.\n\n## Приёмка\n- Завершить сверку V-1.4–V-1.5 по макету и остальные подтверждённые типы источников; неподтверждённые сведения не показывать. Использовать локальные типовые иконки, fake AI и подтверждение пользователя.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; без живых внешних вызовов. Остаток оформить по AGENTS.md.\n\nScope: `app/Vision/Profile/`, `resources/js/pages/Vision/Profile/`, `tests/Feature/Vision/Profile/`, `tests/Browser/E8-14M/`, `docs/results/SP-E8-14M.md`.\n"
+    },
+    {
+      "taskKey": "SP-E5-10D",
+      "title": "SP-E5-10D · Массовая передача пометок",
+      "goal": "Завершить массовую передачу остальных типов пометок во входящие после определения подтверждённого контракта; сохранить права, изоляцию брендов и обработку ошибок. До подтверждения не выдумывать контракт.",
+      "dependsOn": [
+        "SP-E5-10C"
+      ],
+      "scope": [
+        "app/Seller/Reviews/",
+        "app/Seller/Dialogs/",
+        "resources/js/pages/Seller/Reviews/",
+        "tests/Feature/Seller/Dialogs/",
+        "tests/Browser/E5-10D/",
+        "docs/results/SP-E5-10D.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Завершить массовую передачу остальных типов пометок во входящие после определения подтверждённого контракта; сохранить права, изоляцию брендов и обработку ошибок. До подтверждения не выдумывать контракт."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E5-10C.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E5-10D.md",
+      "description": "# SP-E5-10D · Массовая передача пометок\n\n**Зачем:** завершить соответствующий сценарий и экран по результату SP-E5-10C.\n**Часть чего:** остаток SP-E5-10C, docs/results/SP-E5-10C.md.\n**Зависимости:** SP-E5-10C.\n\n## Приёмка\n- Завершить массовую передачу остальных типов пометок во входящие после определения подтверждённого контракта; сохранить права, изоляцию брендов и обработку ошибок. До подтверждения не выдумывать контракт.\n- Сохранить существующее поведение, проверить права, ошибки и изоляцию брендов; использовать fake runtime.\n\nScope: `app/Seller/Reviews/`, `app/Seller/Dialogs/`, `resources/js/pages/Seller/Reviews/`, `tests/Feature/Seller/Dialogs/`, `tests/Browser/E5-10D/`, `docs/results/SP-E5-10D.md`.\n"
+    },
+    {
+      "taskKey": "SP-E3-07D",
+      "title": "SP-E3-07D · Полный replay runtime",
+      "goal": "Подключить адаптер к новому runtime и сопоставить запросы; выполнить все 41 записанный сценарий без сети и изменения golden fixtures; проверить follow-up, ошибки и изоляцию брендов, включить полный replay в CI и записать подтверждённые расхождения в docs/sources/09. Общие AI-стадии менять только добавлениями, с fake AI и эксклюзивным ресурсом.",
+      "dependsOn": [
+        "SP-E3-07C"
+      ],
+      "scope": [
+        "app/Seller/Runtime/",
+        "app/Seller/Followups/",
+        "app/Ai/",
+        "tests/Feature/Equivalence/",
+        "docs/validation/equivalence.md",
+        "docs/sources/09_questions_assumptions_decisions.md",
+        ".github/workflows/ci.yml",
+        "docs/results/SP-E3-07D.md"
+      ],
+      "exclusiveResources": [
+        "shared-ai-stages"
+      ],
+      "acceptance": [
+        "Подключить адаптер к новому runtime и сопоставить запросы; выполнить все 41 записанный сценарий без сети и изменения golden fixtures; проверить follow-up, ошибки и изоляцию брендов, включить полный replay в CI и записать подтверждённые расхождения в docs/sources/09. Общие AI-стадии менять только добавлениями, с fake AI и эксклюзивным ресурсом."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E3-07C.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E3-07D.md",
+      "description": "# SP-E3-07D · Полный replay runtime\n\n**Зачем:** завершить соответствующий сценарий и экран по результату SP-E3-07C.\n**Часть чего:** остаток SP-E3-07C, docs/results/SP-E3-07C.md.\n**Зависимости:** SP-E3-07C.\n\n## Приёмка\n- Подключить адаптер к новому runtime и сопоставить запросы; выполнить все 41 записанный сценарий без сети и изменения golden fixtures; проверить follow-up, ошибки и изоляцию брендов, включить полный replay в CI и записать подтверждённые расхождения в docs/sources/09. Общие AI-стадии менять только добавлениями, с fake AI и эксклюзивным ресурсом.\n- Сохранить существующее поведение, проверить права, ошибки и изоляцию брендов; использовать fake runtime.\n\nScope: `app/Seller/Runtime/`, `app/Seller/Followups/`, `app/Ai/`, `tests/Feature/Equivalence/`, `docs/validation/equivalence.md`, `docs/sources/09_questions_assumptions_decisions.md`, `.github/workflows/ci.yml`, `docs/results/SP-E3-07D.md`.\n"
+    },
+    {
+      "taskKey": "SP-E8-21R",
+      "title": "SP-E8-21R · Проверка параметров аудита",
+      "goal": "Проверить фактические параметры развёрнутого worker и измерить длительность проверки на живом сайте после получения доступа и отдельного разрешения владельца на внешний запрос; до этого не выполнять внешние запросы.",
+      "dependsOn": [
+        "SP-E8-21Q"
+      ],
+      "scope": [
+        "app/Vision/Site/",
+        "tests/Feature/Vision/Site/",
+        "docs/validation/",
+        "docs/results/SP-E8-21R.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Проверить фактические параметры развёрнутого worker и измерить длительность проверки на живом сайте после получения доступа и отдельного разрешения владельца на внешний запрос; до этого не выполнять внешние запросы."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E8-21Q.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E8-21R.md",
+      "description": "# SP-E8-21R · Проверка параметров аудита\n\n**Зачем:** завершить соответствующий сценарий и экран по результату SP-E8-21Q.\n**Часть чего:** остаток SP-E8-21Q, docs/results/SP-E8-21Q.md.\n**Зависимости:** SP-E8-21Q.\n\n## Приёмка\n- Проверить фактические параметры развёрнутого worker и измерить длительность проверки на живом сайте после получения доступа и отдельного разрешения владельца на внешний запрос; до этого не выполнять внешние запросы.\n- Сохранить существующее поведение, проверить права, ошибки и изоляцию брендов; использовать fake runtime.\n\nScope: `app/Vision/Site/`, `tests/Feature/Vision/Site/`, `docs/validation/`, `docs/results/SP-E8-21R.md`.\n"
+    },
+    {
+      "taskKey": "SP-E8-20W",
+      "title": "SP-E8-20W · Сверка объединения названий",
+      "goal": "Завершить полную сверку V-6.3 с макетом; подключить пересчёт сохранённого отчёта после подтверждения контракта и срока, не придумывая их.",
+      "dependsOn": [
+        "SP-E8-20V"
+      ],
+      "scope": [
+        "app/Vision/Competitors/",
+        "app/Vision/Sources/",
+        "resources/js/pages/Vision/Competitors/",
+        "resources/js/pages/Vision/Sources/",
+        "tests/Feature/Vision/Competitors/",
+        "tests/Browser/E8-20W/",
+        "docs/results/SP-E8-20W.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Завершить полную сверку V-6.3 с макетом; подключить пересчёт сохранённого отчёта после подтверждения контракта и срока, не придумывая их."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E8-20V.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E8-20W.md",
+      "description": "# SP-E8-20W · Сверка объединения названий\n\n**Зачем:** завершить соответствующий сценарий и экран по результату SP-E8-20V.\n**Часть чего:** остаток SP-E8-20V, docs/results/SP-E8-20V.md.\n**Зависимости:** SP-E8-20V.\n\n## Приёмка\n- Завершить полную сверку V-6.3 с макетом; подключить пересчёт сохранённого отчёта после подтверждения контракта и срока, не придумывая их.\n- Сохранить существующее поведение, проверить права, ошибки и изоляцию брендов; использовать fake runtime.\n\nScope: `app/Vision/Competitors/`, `app/Vision/Sources/`, `resources/js/pages/Vision/Competitors/`, `resources/js/pages/Vision/Sources/`, `tests/Feature/Vision/Competitors/`, `tests/Browser/E8-20W/`, `docs/results/SP-E8-20W.md`.\n"
+    },
+    {
+      "taskKey": "SP-E7-06E",
+      "title": "SP-E7-06E · Завершить сверку сводки",
+      "goal": "Запустить серверный тест канала с изолированной PostgreSQL; полностью сверить сводку с макетом и исправить найденные отклонения, проверить права и изоляцию брендов.",
+      "dependsOn": [
+        "SP-E7-06C"
+      ],
+      "scope": [
+        "app/Seller/Dashboard/",
+        "resources/js/pages/Seller/Dashboard/",
+        "tests/Feature/Seller/Dashboard/",
+        "tests/Browser/E7-06E/",
+        "docs/results/SP-E7-06E.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Запустить серверный тест канала с изолированной PostgreSQL; полностью сверить сводку с макетом и исправить найденные отклонения, проверить права и изоляцию брендов."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E7-06C.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E7-06E.md",
+      "description": "# SP-E7-06E · Завершить сверку сводки\n\n**Зачем:** завершить соответствующий сценарий и экран по результату SP-E7-06C.\n**Часть чего:** остаток SP-E7-06C, docs/results/SP-E7-06C.md.\n**Зависимости:** SP-E7-06C.\n\n## Приёмка\n- Запустить серверный тест канала с изолированной PostgreSQL; полностью сверить сводку с макетом и исправить найденные отклонения, проверить права и изоляцию брендов.\n- Сохранить существующее поведение, проверить права, ошибки и изоляцию брендов; использовать fake runtime.\n\nScope: `app/Seller/Dashboard/`, `resources/js/pages/Seller/Dashboard/`, `tests/Feature/Seller/Dashboard/`, `tests/Browser/E7-06E/`, `docs/results/SP-E7-06E.md`.\n"
+    },
+    {
+      "taskKey": "SP-E5-01L",
+      "title": "SP-E5-01L · Доставка ответов в Telegram",
+      "goal": "Подключить доставку ответов кабинета к TelegramSender за выключенным флагом, разрешены необходимые изменения общего ManagerMessageTransport и binding; проверить права и изоляцию брендов на изолированной PostgreSQL, использовать fake HTTP без живых отправок.",
+      "dependsOn": [
+        "SP-E5-01H"
+      ],
+      "scope": [
+        "app/Seller/Channels/",
+        "app/Seller/Conversations/",
+        "tests/Feature/Seller/Channels/",
+        "tests/Browser/E5-01L/",
+        "docs/results/SP-E5-01L.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Подключить доставку ответов кабинета к TelegramSender за выключенным флагом, разрешены необходимые изменения общего ManagerMessageTransport и binding; проверить права и изоляцию брендов на изолированной PostgreSQL, использовать fake HTTP без живых отправок."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E5-01H.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E5-01L.md",
+      "description": "# SP-E5-01L · Доставка ответов в Telegram\n\n**Зачем:** завершить соответствующий сценарий и экран по результату SP-E5-01H.\n**Часть чего:** остаток SP-E5-01H, docs/results/SP-E5-01H.md.\n**Зависимости:** SP-E5-01H.\n\n## Приёмка\n- Подключить доставку ответов кабинета к TelegramSender за выключенным флагом, разрешены необходимые изменения общего ManagerMessageTransport и binding; проверить права и изоляцию брендов на изолированной PostgreSQL, использовать fake HTTP без живых отправок.\n- Сохранить существующее поведение, проверить права, ошибки и изоляцию брендов; использовать fake runtime.\n\nScope: `app/Seller/Channels/`, `app/Seller/Conversations/`, `tests/Feature/Seller/Channels/`, `tests/Browser/E5-01L/`, `docs/results/SP-E5-01L.md`.\n"
+    },
+    {
+      "taskKey": "SP-E8-15G",
+      "title": "SP-E8-15G · Завершить оценки измерений",
+      "goal": "Сверить V-3.2: один контрол прогонов и оценка времени из прошлого замера; V-11.1: описания моделей из конфига провайдера; V-11.2/11.3: точный календарный месяц и период после подтверждения формулы. Не выдумывать цены.",
+      "dependsOn": [
+        "SP-E8-15F"
+      ],
+      "scope": [
+        "app/Vision/Questions/",
+        "app/Vision/Measurements/",
+        "app/Vision/Settings/",
+        "resources/js/pages/Vision/Questions/",
+        "resources/js/pages/Vision/Measurements/",
+        "resources/js/pages/Vision/Settings/",
+        "resources/js/features/Vision/Questions/",
+        "resources/js/features/Vision/Measurements/",
+        "tests/Feature/Vision/Questions/",
+        "tests/Feature/Vision/Settings/",
+        "tests/Browser/E8-15G/",
+        "docs/results/SP-E8-15G.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Сверить V-3.2: один контрол прогонов и оценка времени из прошлого замера; V-11.1: описания моделей из конфига провайдера; V-11.2/11.3: точный календарный месяц и период после подтверждения формулы. Не выдумывать цены."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E8-15F.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E8-15G.md",
+      "description": "# SP-E8-15G · Завершить оценки измерений\n\n**Зачем:** завершить соответствующий сценарий и экран по результату SP-E8-15F.\n**Часть чего:** остаток SP-E8-15F, docs/results/SP-E8-15F.md.\n**Зависимости:** SP-E8-15F.\n\n## Приёмка\n- Сверить V-3.2: один контрол прогонов и оценка времени из прошлого замера; V-11.1: описания моделей из конфига провайдера; V-11.2/11.3: точный календарный месяц и период после подтверждения формулы. Не выдумывать цены.\n- Сохранить существующее поведение, проверить права, ошибки и изоляцию брендов; использовать fake runtime.\n\nScope: `app/Vision/Questions/`, `app/Vision/Measurements/`, `app/Vision/Settings/`, `resources/js/pages/Vision/Questions/`, `resources/js/pages/Vision/Measurements/`, `resources/js/pages/Vision/Settings/`, `resources/js/features/Vision/Questions/`, `resources/js/features/Vision/Measurements/`, `tests/Feature/Vision/Questions/`, `tests/Feature/Vision/Settings/`, `tests/Browser/E8-15G/`, `docs/results/SP-E8-15G.md`.\n"
     }
   ],
   "excludedSourceTasks": {
