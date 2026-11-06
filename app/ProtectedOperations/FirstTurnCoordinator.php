@@ -7,6 +7,7 @@ use App\Ai\Protected\SellerExtractorStages;
 use App\Ai\Protected\SellerGuardStages;
 use App\Ai\Protected\SellerResponderStages;
 use App\Contracts\ProtectedOperations\IdempotencyConflict;
+use App\Seller\Channels\Email\ProtectedPriceSender;
 use App\Seller\Conversations\Data\TurnClaim;
 use App\Seller\Conversations\Data\TurnCommand;
 use App\Seller\Engine\GuardDecision;
@@ -187,9 +188,14 @@ final class FirstTurnCoordinator
                 break;
             }
             $name = $call['name'];
-            $result = $name === 'calc_delivery'
-                ? app(ConfiguredToolHandler::class)->calculateDelivery($tenant, $call['arguments'])
-                : app(ToolRunner::class)->run($name, $call['arguments'], $tenant);
+            if ($name === 'send_price' && app(FirstTurnProtectedClaim::class)->assertOriginLocked($http, $claim) !== 'processing') {
+                throw new LogicException('Protected price delivery unavailable.');
+            }
+            $result = match ($name) {
+                'calc_delivery' => app(ConfiguredToolHandler::class)->calculateDelivery($tenant, $call['arguments']),
+                'send_price' => app(ProtectedPriceSender::class)->send($tenant, $claim, $responder, $call['id'], $call['arguments']),
+                default => app(ToolRunner::class)->run($name, $call['arguments'], $tenant),
+            };
             $results[] = ['id' => $call['id'], 'name' => $name, 'result' => $result];
         }
 
