@@ -9,3 +9,7 @@
 Scope: `app/Seller/Knowledge/Topics/`, `app/Seller/Runtime/`, `app/Seller/Engine/`, `resources/js/pages/Seller/Knowledge/Topics/`, `tests/Feature/Seller/Knowledge/Topics/`, `tests/Feature/Seller/Runtime/`, `tests/Browser/E4-04F/`, `docs/results/SP-E4-04F.md`.
 
 Приёмка: сценарий, права, бренд, ошибки; только fake вызовы. Остаток записать в docs/results/SP-E4-04F.md.
+
+## Решение владельца 06.11.2026 — общие AI-стадии
+
+Решение владельца 06.11: разрешены только совместимые добавления общих AI-стадий без рефакторинга и без изменения существующего поведения и записанного replay; проверить права, изоляцию брендов и повторы. Только fake AI; живые и платные вызовы выключены. Общий ресурс shared-ai-stages занимает одна карточка до слияния. Прежние ограничения «до решения владельца» считать снятыми в этих границах.

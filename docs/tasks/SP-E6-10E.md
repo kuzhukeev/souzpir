@@ -19,3 +19,7 @@ Scope: `app/Seller/Engine/`, `app/Seller/Dialogs/`, `app/Seller/Settings/Policy/
 Дополнительный scope: `app/Seller/Customers/`, `resources/js/pages/Seller/Customers/`, `resources/js/features/Seller/Customers/labels.ts`, `resources/js/pages/Seller/Knowledge/Releases/Run.tsx`, `tests/Feature/Seller/Customers/`.
 
 Для защищённого runtime: pp/ProtectedOperations/, 	ests/Feature/ProtectedOperations/.
+
+## Решение владельца 06.11.2026 — общие AI-стадии
+
+Решение владельца 06.11: разрешены только совместимые добавления общих AI-стадий без рефакторинга и без изменения существующего поведения и записанного replay; проверить права, изоляцию брендов и повторы. Только fake AI; живые и платные вызовы выключены. Общий ресурс shared-ai-stages занимает одна карточка до слияния. Прежние ограничения «до решения владельца» считать снятыми в этих границах.
