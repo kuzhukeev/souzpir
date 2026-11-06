@@ -21295,6 +21295,43 @@
       "wave": 20,
       "promptPath": "docs/tasks/SP-E7-06F.md",
       "description": "# SP-E7-06F · Сводка: завершить D-1.1\n\n**Зачем:** завершить экран D-1.1 по макетам summary и detail в `C:/OSPanel/home/tasks.local/completed/37/`.\n**Часть чего:** остаток частичной сдачи SP-E7-06E, `docs/results/SP-E7-06E.md`.\n**Зависимости:** дождаться слияния SP-E7-06E.\n\n## Приёмка\n- Сверить summary и detail с макетами: линейный график с подписями дат и выбором группировки, карточки внимания и проблем, расположение разделов и графическое представление воронки.\n- Завершить сверку пустого состояния, загрузки и ошибки с макетами.\n- Предоставить сравнение качества с предыдущим периодом из сохранённых данных; при их отсутствии явно показывать отсутствие данных. Сохранить фильтр канала, права и изоляцию брендов.\n- Проверить основной сценарий, выбор периода и канала, права, изоляцию брендов и ошибки; использовать fake runtime.\n\nScope: `app/Seller/Dashboard/`, `resources/js/pages/Seller/Dashboard/`, `tests/Feature/Seller/Dashboard/`, `tests/Browser/E7-06F/`, `docs/results/SP-E7-06F.md`.\n"
+    },
+    {
+      "taskKey": "SP-E4-09C",
+      "title": "SP-E4-09C · Песочница: обычный запуск и последовательные ходы",
+      "goal": "Проверенные fixture для импортированного прототипа и обычного запуска; опубликованная версия и последовательные ходы с сохранением контекста, права, бренд, Guard и fake AI.",
+      "dependsOn": [
+        "SP-E4-09B",
+        "SP-E4-07B"
+      ],
+      "scope": [
+        "app/Seller/Sandbox/",
+        "app/Seller/Runtime/",
+        "app/ProtectedOperations/DraftSimulation/",
+        "app/Ai/",
+        "routes/features/E4-07.php",
+        "resources/js/pages/Seller/Sandbox/",
+        "tests/fixtures/llm/",
+        "tests/Feature/Seller/Sandbox/",
+        "tests/Browser/E4-09C/",
+        "docs/results/SP-E4-09C.md"
+      ],
+      "exclusiveResources": [
+        "shared-ai-stages"
+      ],
+      "acceptance": [
+        "Проверенные fixture для импортированного прототипа и обычного запуска; опубликованная версия и последовательные ходы с сохранением контекста, права, бренд, Guard и fake AI."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E4-09B.md"
+      ],
+      "screenIds": [
+        "D-4.11"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E4-09C.md",
+      "description": "# SP-E4-09C · Песочница: обычный запуск и последовательные ходы\n\n**Зачем:** завершить сценарий песочницы D-4.11.\n**Часть чего:** остаток SP-E4-09B, `docs/results/SP-E4-09B.md`.\n**Зависимости:** SP-E4-09B и SP-E4-07B в `done`; общие fixture-runtime данные принадлежат этой карточке.\n\n## Приёмка\n- Подготовить проверенные fixture extractor/responder для импортированного прототипа и обычного запуска, чтобы доступный сценарий не зависел от записей, созданных только тестом.\n- Поддержать выбор опубликованной версии и последовательные ходы диалога с сохранением контекста. Не подменять отсутствие подходящей записи универсальным ответом.\n- Сохранить изоляцию брендов, права, Guard и проверку ошибок; проверить черновик, опубликованную версию и последовательные ходы.\n- Только fake AI; без живых вызовов. Существующее поведение и записи replay не менять. Общие AI-стадии изменять только совместимыми добавлениями без рефакторинга; проверить повторный запуск.\n\nScope: `app/Seller/Sandbox/`, `app/Seller/Runtime/`, `app/ProtectedOperations/DraftSimulation/`, `app/Ai/`, `routes/features/E4-07.php`, `resources/js/pages/Seller/Sandbox/`, `tests/fixtures/llm/`, `tests/Feature/Seller/Sandbox/`, `tests/Browser/E4-09C/`, `docs/results/SP-E4-09C.md`.\n"
     }
   ],
   "excludedSourceTasks": {
