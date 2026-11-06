@@ -22573,6 +22573,86 @@
       "wave": 20,
       "promptPath": "docs/tasks/SP-E4-06H.md",
       "description": "# SP-E4-06H · Импорт: повторный просмотр документа\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E4-06G, docs/results/SP-E4-06G.md.\n**Зависимости:** SP-E4-06G.\n\n## Приёмка\n- D-4.10: повторный просмотр сохранённого документа без повторной загрузки, оставшиеся действия, расположение и состояния по макету; права, изоляция брендов и недоступные старые файлы.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Seller/Knowledge/Imports/`, `resources/js/pages/Seller/Knowledge/Imports/`, `routes/features/E4-06.php`, `tests/Feature/Seller/Knowledge/Imports/`, `tests/Browser/E4-06H/`, `docs/results/SP-E4-06H.md`.\n"
+    },
+    {
+      "taskKey": "SP-E0-05I",
+      "title": "SP-E0-05I · Внутренний маршрут стоимости AI",
+      "goal": "Подключить отдельный внутренний маршрут стоимости AI к операторскому контроллеру с реальными auth.version и auth.nostore; проверить доступ только платформенного оператора, бренд и отсутствие USD в клиентских ответах.",
+      "dependsOn": [
+        "SP-E0-05G"
+      ],
+      "scope": [
+        "routes/features/E0-05E.php",
+        "app/Shell/Billing/Http/",
+        "resources/js/pages/Shell/Billing/",
+        "tests/Feature/Ai/Recovery/",
+        "tests/Browser/E0-05I/",
+        "docs/results/SP-E0-05I.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Подключить отдельный внутренний маршрут стоимости AI к операторскому контроллеру с реальными auth.version и auth.nostore; проверить доступ только платформенного оператора, бренд и отсутствие USD в клиентских ответах."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E0-05G.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E0-05I.md",
+      "description": "# SP-E0-05I · Внутренний маршрут стоимости AI\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E0-05G, docs/results/SP-E0-05G.md.\n**Зависимости:** SP-E0-05G.\n\n## Приёмка\n- Подключить отдельный внутренний маршрут стоимости AI к операторскому контроллеру с реальными auth.version и auth.nostore; проверить доступ только платформенного оператора, бренд и отсутствие USD в клиентских ответах.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `routes/features/E0-05E.php`, `app/Shell/Billing/Http/`, `resources/js/pages/Shell/Billing/`, `tests/Feature/Ai/Recovery/`, `tests/Browser/E0-05I/`, `docs/results/SP-E0-05I.md`.\n"
+    },
+    {
+      "taskKey": "SP-E4-10M",
+      "title": "SP-E4-10M · Образцы речи: визуальная сверка",
+      "goal": "D-4.8: завершить визуальную сверку карточек, фильтров и пустого состояния, включая иллюстрацию, по макету; сохранить загрузку, права и состояния.",
+      "dependsOn": [
+        "SP-E4-10K"
+      ],
+      "scope": [
+        "resources/js/pages/Seller/Knowledge/Fewshot/",
+        "tests/Browser/E4-10M/",
+        "docs/results/SP-E4-10M.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "D-4.8: завершить визуальную сверку карточек, фильтров и пустого состояния, включая иллюстрацию, по макету; сохранить загрузку, права и состояния."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E4-10K.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E4-10M.md",
+      "description": "# SP-E4-10M · Образцы речи: визуальная сверка\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E4-10K, docs/results/SP-E4-10K.md.\n**Зависимости:** SP-E4-10K.\n\n## Приёмка\n- D-4.8: завершить визуальную сверку карточек, фильтров и пустого состояния, включая иллюстрацию, по макету; сохранить загрузку, права и состояния.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `resources/js/pages/Seller/Knowledge/Fewshot/`, `tests/Browser/E4-10M/`, `docs/results/SP-E4-10M.md`.\n"
+    },
+    {
+      "taskKey": "SP-E4-08I",
+      "title": "SP-E4-08I · Песочница: остальные fake-персоны",
+      "goal": "Довести оставшиеся fake-персоны, обещающие передачу, документы или действия, только при подтверждённом выполнении; сохранить Guard и fallback, проверить права и изоляцию брендов.",
+      "dependsOn": [
+        "SP-E4-08H"
+      ],
+      "scope": [
+        "app/Ai/Protected/",
+        "app/Seller/Evaluation/",
+        "tests/Feature/Seller/Evaluation/",
+        "tests/Browser/E4-08I/",
+        "docs/results/SP-E4-08I.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Довести оставшиеся fake-персоны, обещающие передачу, документы или действия, только при подтверждённом выполнении; сохранить Guard и fallback, проверить права и изоляцию брендов."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E4-08H.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E4-08I.md",
+      "description": "# SP-E4-08I · Песочница: остальные fake-персоны\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E4-08H, docs/results/SP-E4-08H.md.\n**Зависимости:** SP-E4-08H.\n\n## Приёмка\n- Довести оставшиеся fake-персоны, обещающие передачу, документы или действия, только при подтверждённом выполнении; сохранить Guard и fallback, проверить права и изоляцию брендов.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Ai/Protected/`, `app/Seller/Evaluation/`, `tests/Feature/Seller/Evaluation/`, `tests/Browser/E4-08I/`, `docs/results/SP-E4-08I.md`.\n"
     }
   ],
   "excludedSourceTasks": {
