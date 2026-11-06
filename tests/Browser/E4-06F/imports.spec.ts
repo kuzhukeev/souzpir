@@ -12,7 +12,7 @@ test('saved counts and original fragments remain visible during review', async (
   await expect(page.getByRole('row').filter({ hasText: 'Ранее.pdf' })).toContainText('7');
   await page.getByLabel('Файл', { exact: true }).setInputFiles({ name: 'facts.txt', mimeType: 'text/plain', buffer: Buffer.from('facts') });
   await page.getByRole('button', { name: 'Посмотреть предложения' }).click();
-  await expect(page.getByRole('row').filter({ hasText: 'facts.txt' })).toContainText('2');
+  await expect(page.getByText(/facts\.txt · предложено фактов: 2/)).toBeVisible();
   await page.getByText('Фрагменты документа').click();
   await page.getByRole('button', { name: 'Первый текст' }).click();
   await expect(page.getByRole('button', { name: 'Первый текст' })).toHaveAttribute('aria-pressed', 'true');
@@ -25,4 +25,6 @@ test('saved counts and original fragments remain visible during review', async (
   await expect(page.getByRole('listitem').filter({ hasText: 'Второй текст' })).toBeVisible();
   await mkdir('.local/screenshots/SP-E4-06F', { recursive: true });
   await page.screenshot({ path: '.local/screenshots/SP-E4-06F/imports.png', fullPage: true });
+  await page.getByRole('button', { name: 'К документам' }).click();
+  await expect(page.getByRole('row').filter({ hasText: 'facts.txt' })).toContainText('2');
 });
