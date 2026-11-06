@@ -113,9 +113,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
         with: { php-version: '8.4', extensions: 'pdo_pgsql, pgsql, mbstring, intl, bcmath, gd', coverage: none }
+      - run: bash scripts/ci/postgres.sh
       - uses: ramsey/composer-install@v3
       - name: Check recorded fixtures and available policy replay
         run: vendor/bin/phpunit --testsuite=Equivalence --no-coverage
+
+      - name: Check recorded adapter rejection in runtime
+        run: vendor/bin/phpunit tests/Equivalence/RuntimeReplayE307ETest.php --no-coverage
 
   browser-smoke:
     if: github.event_name == 'push'
