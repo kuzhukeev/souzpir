@@ -130,7 +130,13 @@ final class MeasurementList
             ->where('approval.active', true)->first(['questions.size', 'approval.providers']);
         $providers = $approval ? json_decode($approval->providers, true) : [];
 
-        return ['plan' => $approval ? ['questions' => (int) $approval->size, 'models' => is_array($providers) ? count($providers) : 0] : null,
+        $lastCompleted = DB::table('measurements')->where('organization_id', $context->organizationId)
+            ->where('brand_id', $context->brandId)->where('status', 'completed')
+            ->whereNotNull('started_at')->whereNotNull('finished_at')->orderByDesc('finished_at')->first(['started_at', 'finished_at']);
+        $lastDuration = $lastCompleted ? CarbonImmutable::parse($lastCompleted->started_at)->diffInSeconds(CarbonImmutable::parse($lastCompleted->finished_at), false) : null;
+
+        return ['last_duration_minutes' => $lastDuration !== null && $lastDuration > 0 ? max(1, (int) ceil($lastDuration / 60)) : null,
+            'plan' => $approval ? ['questions' => (int) $approval->size, 'models' => is_array($providers) ? count($providers) : 0] : null,
             'data' => $rows->map(fn ($row) => [
                 'id' => $row->id, 'status' => $row->status, 'created_at' => $row->created_at,
                 'started_at' => $row->started_at, 'finished_at' => $row->finished_at,
