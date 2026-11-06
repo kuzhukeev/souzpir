@@ -21496,6 +21496,36 @@
       "wave": 20,
       "promptPath": "docs/tasks/SP-E4-07C.md",
       "description": "# SP-E4-07C · Песочница: история и контрольные сценарии\n\n**Зачем:** завершить экран D-4.11 по макету `C:/OSPanel/home/tasks.local/completed/59/18-D-4.11-sandbox.png`.\n**Часть чего:** остаток SP-E4-07B, `docs/results/SP-E4-07B.md`; общий fixture runtime и последовательные ходы выполняет SP-E4-09C.\n**Зависимости:** SP-E4-07B и SP-E4-09C в `done`.\n\n## Приёмка\n- Подключить полноценный многоповоротный fake-диалог к готовому runtime: выбор клиента и канала, опубликованная версия, сохранение контрольного сценария и сброс.\n- Показать историю ходов и выбранный ход, предыдущий ответ, тему, карточку клиента, стадию, факты и условия, приёмы и фактически выполненные инструменты. Расположить блоки по макету; разрешённые инструменты не выдавать за выполненные.\n- Сверить пустое состояние, загрузку и ошибки с макетом; проверить права, изоляцию брендов, отсутствие fixture и повторный запуск. Никаких живых и платных вызовов.\n\nScope: `app/Seller/Sandbox/`, `resources/js/pages/Seller/Sandbox/`, `routes/features/E4-07.php`, `tests/Feature/Seller/Sandbox/`, `tests/Browser/E4-07C/`, `docs/results/SP-E4-07C.md`.\n"
+    },
+    {
+      "taskKey": "SP-E7-06G",
+      "title": "SP-E7-06G · Сводка: компоновка и состояния D-1.1",
+      "goal": "Завершить D-1.1: компоновка проблем, каналов, воронки, тем и менеджеров по макету, мини-графики карточек и пустое, загрузочное и ошибочное состояния.",
+      "dependsOn": [
+        "SP-E7-06F"
+      ],
+      "scope": [
+        "app/Seller/Dashboard/",
+        "resources/js/pages/Seller/Dashboard/",
+        "tests/Feature/Seller/Dashboard/",
+        "tests/Browser/E7-06G/",
+        "docs/results/SP-E7-06G.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Завершить D-1.1: компоновка проблем, каналов, воронки, тем и менеджеров по макету, мини-графики карточек и пустое, загрузочное и ошибочное состояния."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E7-06F.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "D-1.1"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E7-06G.md",
+      "description": "# SP-E7-06G · Сводка: компоновка и состояния D-1.1\n\n**Зачем:** завершить экран D-1.1 по макетам summary и detail в `C:/OSPanel/home/tasks.local/completed/37/`.\n**Часть чего:** остаток SP-E7-06F, `docs/results/SP-E7-06F.md`.\n**Зависимости:** дождаться слияния SP-E7-06F.\n\n## Приёмка\n- Привести компоновку проблем, каналов, воронки, тем и менеджеров к макетам summary и detail; добавить мини-графики карточек на основе доступных данных, не выдумывая показатели.\n- Завершить сверку пустого состояния, загрузки и ошибок с макетами; сохранить фильтр канала, график и сравнение качества.\n- Проверить основной сценарий, права, изоляцию брендов и ошибки; использовать fake runtime.\n\nScope: `app/Seller/Dashboard/`, `resources/js/pages/Seller/Dashboard/`, `tests/Feature/Seller/Dashboard/`, `tests/Browser/E7-06G/`, `docs/results/SP-E7-06G.md`.\n"
     }
   ],
   "excludedSourceTasks": {
