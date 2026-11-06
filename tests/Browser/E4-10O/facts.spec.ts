@@ -1,0 +1,22 @@
+import { expect, test } from '@playwright/test';
+import { createServer, type ViteDevServer } from 'vite';
+import { mkdir } from 'node:fs/promises';
+let server: ViteDevServer; let url: string;
+test.use({ viewport: { width: 1440, height: 900 }, colorScheme: 'light', launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH } : {} });
+test.beforeAll(async () => { server = await createServer({ configFile: 'tests/Browser/E4-10O/vite.config.ts', cacheDir: '.local/runtime/vite-e410o', server: { host: '127.0.0.1', port: 0, strictPort: false } }); await server.listen(); url = new URL('/tests/Browser/E4-10O/fixture.html', server.resolvedUrls!.local[0]).href; });
+test.afterAll(async () => { await server?.close(); });
+test('форма добавления и меню факта', async ({ page }) => {
+ await page.goto(url);
+ await page.getByText('Добавить факт', { exact: true }).first().click();
+ await page.getByRole('combobox', { name: 'Тема', exact: true }).selectOption('delivery');
+ await page.getByLabel('Текст факта', { exact: true }).fill('Новый факт');
+ await page.getByLabel('Действия: Доставка по России').click();
+ await expect(page.getByRole('button', { name: 'Как бот это скажет' })).toBeVisible();
+ await expect(page.getByTitle('Связь с условиями не указана')).toHaveText('—');
+ await mkdir('.local/screenshots/SP-E4-10O', { recursive: true });
+ await page.screenshot({ path: '.local/screenshots/SP-E4-10O/facts.png', fullPage: true });
+ await page.route('**/seller/knowledge/facts', route => route.abort());
+ const request = page.waitForRequest(req => req.url().endsWith('/seller/knowledge/facts') && req.method() === 'POST');
+ await page.getByRole('button', { name: 'Сохранить новый факт' }).click();
+ expect((await request).postDataJSON()).toMatchObject({ version: 3, group: 'delivery', text: 'Новый факт' });
+});
