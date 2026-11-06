@@ -5,6 +5,7 @@ namespace App\Vision\Site\Http;
 use App\Models\Membership;
 use App\Shell\Brands\BrandDomain;
 use App\Tenancy\TenantContext;
+use App\Vision\Actions\RecommendationLink;
 use App\Vision\Core\Profiles\ProfileAccess;
 use App\Vision\Site\AuditRun;
 use App\Vision\Site\History;
@@ -129,7 +130,13 @@ final class SiteController
     {
         $tenant = app(TenantContext::class);
         $this->operations->authorize($tenant, $request);
-        $this->operations->create($tenant, $request, $this->validated($request, false));
+        $data = $this->validated($request, false);
+        DB::transaction(function () use ($tenant, $request, $data): void {
+            $id = $this->operations->create($tenant, $request, array_diff_key($data, array_flip(['report_id', 'recommendation_index'])));
+            if (isset($data['report_id'], $data['recommendation_index'])) {
+                app(RecommendationLink::class)->attach($tenant, $request, $id, $data['report_id'], (int) $data['recommendation_index']);
+            }
+        });
 
         return redirect()->route('vision.site.actions');
     }
@@ -158,6 +165,8 @@ final class SiteController
         $presence = $update ? 'sometimes' : 'required';
         $data = $request->validate([
             'title' => [$presence, 'required', 'string', 'max:255'],
+            'report_id' => [$update ? 'prohibited' : 'required_with:recommendation_index', 'ulid'],
+            'recommendation_index' => [$update ? 'prohibited' : 'required_with:report_id', 'integer', 'min:0'],
             'description' => ['sometimes', 'nullable', 'string', 'max:10000'],
             'responsible' => ['sometimes', 'nullable', 'ulid'],
             'due_date' => ['sometimes', 'nullable', 'date_format:Y-m-d'],
