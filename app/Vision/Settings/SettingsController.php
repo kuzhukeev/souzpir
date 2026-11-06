@@ -11,6 +11,7 @@ use App\Shell\Notifications\EventCatalog;
 use App\Shell\Plans\Contracts\PlanLimits;
 use App\Shell\Plans\MonthlyUnits;
 use App\Tenancy\TenantContext;
+use App\Tenancy\TenantContextRunner;
 use App\Vision\Measurements\MeasurementList;
 use App\Vision\Measurements\MeasurementSchedule;
 use Carbon\CarbonImmutable;
@@ -35,7 +36,13 @@ final class SettingsController
             $members = Membership::withoutGlobalScopes()->where('organization_id', $tenant->organizationId)->where('status', 'active')->get()->filter(fn ($member) => $member->permitsBrand($tenant->brandId))->map(function ($member) use ($tenant): array {
                 $channels = DB::table('notification_settings')->where(['organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId, 'user_id' => $member->user_id, 'event_key' => 'vision.report.updated'])->pluck('enabled', 'channel');
 
-                return ['id' => $member->user_id, 'name' => DB::table('users')->where('id', $member->user_id)->value('name'), 'role' => $member->role, 'cabinet' => (bool) ($channels['cabinet'] ?? true), 'email' => (bool) ($channels['email'] ?? false)];
+                $user = $member->user;
+                $canReadAnswers = $user !== null && app(TenantContextRunner::class)->run(
+                    new TenantContext($tenant->organizationId, $tenant->brandId, $member->user_id, $member->id, 'session'),
+                    fn (): bool => Gate::forUser($user)->allows('vision.measure.read'),
+                );
+
+                return ['id' => $member->user_id, 'name' => $user?->name, 'role' => $member->role, 'canReadAnswers' => $canReadAnswers, 'cabinet' => (bool) ($channels['cabinet'] ?? true), 'email' => (bool) ($channels['email'] ?? false)];
             })->values();
             $approval = DB::table('vision_question_approvals')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('active', true)->first(['question_set_id']);
             $questionCount = $approval ? DB::table('question_sets')->where('id', $approval->question_set_id)->where('brand_id', $tenant->brandId)->value('size') : null;
