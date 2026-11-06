@@ -7,6 +7,7 @@
 ## Проверки
 - Изолированный PostgreSQL: SourceFilesE406GTest и ImportCountsE406FTest — 2 теста, 42 проверки; существующие ImportsTest, DocumentImportsE406DTest и SheetImportE406ETest — 4 теста, 62 проверки.
 - Playwright E4-06G — 1 сценарий; TypeScript, ESLint, Pint.
+- После возврата CI обновлён routes.d.ts; GeneratedTypesTest — 2 теста, 3 проверки.
 - Скриншот `.local/screenshots/SP-E4-06G/documents.png`, светлая тема, 1440.
 
 ## Остаток
