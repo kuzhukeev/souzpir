@@ -11,6 +11,7 @@ use App\Tenancy\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -38,15 +39,20 @@ final class ToolSettingsController
 
     public function tools(Request $request): mixed
     {
-        [$settings, $callCounts] = $this->access($request, function (User $user, TenantContext $tenant): array {
+        [$settings, $callCounts, $sources] = $this->access($request, function (User $user, TenantContext $tenant): array {
             $count = DB::table('audit_logs')->where('organization_id', $tenant->organizationId)
                 ->where('brand_id', $tenant->brandId)->where('action', 'seller.promise.created')
                 ->where('created_at', '>=', now()->subDays(30))->where('created_at', '<=', now())->count();
 
-            return [app(ToolPreferences::class)->read($tenant), ['create_promise' => $count > 0 ? $count : null]];
+            $scope = ['organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId];
+            $pricePath = DB::table('catalog_settings')->where($scope)->value('price_file_path');
+            $sources = ['price_file_available' => is_string($pricePath) && Storage::disk('local')->exists($pricePath),
+                'catalog_available' => DB::table('catalog_imports')->where($scope)->where('status', 'completed')->exists()];
+
+            return [app(ToolPreferences::class)->read($tenant), ['create_promise' => $count > 0 ? $count : null], $sources];
         });
 
-        return Inertia::render('Seller/Settings/Tools/Tools', ['settings' => $settings, 'callCounts' => $callCounts, 'status' => $request->session()->get('status')]);
+        return Inertia::render('Seller/Settings/Tools/Tools', ['settings' => $settings, 'callCounts' => $callCounts, 'sources' => $sources, 'status' => $request->session()->get('status')]);
     }
 
     public function handoff(Request $request): mixed
