@@ -72,13 +72,23 @@
             ] as [$title, $value, $suffix, $metric])
                 <section class="card"><h2>{{ $title }}</h2><p class="value">{{ $value === null ? 'Нет данных' : ($metric === 'verified_errors' ? (string) $value : number_format($value, 1, ',', ' ').$suffix) }}</p>
                     @php
-                        $series = collect($report['history'] ?? [])->pluck($metric)->filter(fn ($v) => is_numeric($v))->values()->all();
+                        $history = $report['history'] ?? [];
+                        $series = collect($history)->pluck($metric)->all();
+                        $previous = count($history) >= 2 ? ($history[count($history) - 2][$metric] ?? null) : null;
+                        $current = count($history) >= 2 ? ($history[count($history) - 1][$metric] ?? null) : null;
+                        $comparable = is_numeric($previous) && is_numeric($current) && is_numeric($value) && (float) $current === (float) $value;
                         $points = [];
-                        if (count($series) >= 2) {
+                        if (count($series) >= 2 && count(array_filter($series, 'is_numeric')) === count($series) && $comparable) {
                             $min = min($series); $range = max($series) - $min ?: 1;
                             foreach ($series as $i => $v) { $points[] = round($i * 120 / (count($series) - 1), 2).','.round(36 - (($v - $min) / $range * 32), 2); }
                         }
                     @endphp
+                    @if ($comparable)
+                        @php($difference = (float) $current - (float) $previous)
+                        <p class="muted">К предыдущему замеру: {{ $difference > 0 ? '+' : '' }}{{ number_format($difference, $metric === 'verified_errors' ? 0 : 1, ',', ' ') }}{{ in_array($metric, ['visibility', 'share_of_voice'], true) ? ' п.п.' : '' }}</p>
+                    @else
+                        <p class="muted">Нет сопоставимых данных для сравнения.</p>
+                    @endif
                     @if ($points)<svg role="img" aria-label="Динамика: {{ $title }}" viewBox="0 0 120 40" style="width:100%;height:40px;margin-top:8px"><polyline points="{{ implode(' ', $points) }}" fill="none" stroke="#16834b" stroke-width="2" vector-effect="non-scaling-stroke" /></svg>@endif
                 </section>
             @endforeach

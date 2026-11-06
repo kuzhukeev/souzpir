@@ -66,7 +66,11 @@ final class PublicMetricHistory
     {
         $metrics = app(PublicationData::class)->fromPayload($source);
 
+        $facts = $source['reviewed_facts'] ?? null;
+        $errors = is_array($facts) ? count(array_filter($facts, fn ($item) => is_array($item)
+            && ($item['confirmed'] ?? false) === true && ($item['classification'] ?? 'incorrect') !== 'correct')) : null;
+
         return ['date' => substr($date, 0, 10), 'visibility' => $metrics['visibility'], 'coverage' => $metrics['coverage'],
-            'share_of_voice' => $metrics['share_of_voice'], 'position' => $metrics['position']];
+            'share_of_voice' => $metrics['share_of_voice'], 'position' => $metrics['position'], 'verified_errors' => $errors];
     }
 }
