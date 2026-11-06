@@ -23308,6 +23308,115 @@
       "wave": 20,
       "promptPath": "docs/tasks/SP-E7-04S.md",
       "description": "# SP-E7-04S · Аналитика: завершение PDF и отчёта\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E7-04R, docs/results/SP-E7-04R.md.\n**Зависимости:** SP-E7-04R.\n\n## Приёмка\n- D-8.6: графики и недостающие подтверждённые показатели PDF, название выбранного менеджера, брендированный предпросмотр, виды сводки, подписка и действия по макету; сохранить права и изоляцию.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Seller/Analytics/`, `resources/js/pages/Seller/Analytics/`, `resources/views/`, `tests/Feature/Seller/Analytics/`, `tests/Browser/E7-04S/`, `docs/results/SP-E7-04S.md`.\n"
+    },
+    {
+      "taskKey": "SP-E3-07E",
+      "title": "SP-E3-07E · Replay: проверка нового runtime",
+      "goal": "Подключить записанный адаптер к новому runtime и проверить 41 сценарий, follow-up, ошибки и изоляцию; включить runtime replay в CI, задокументировать подтверждённые расхождения без изменения golden fixtures.",
+      "dependsOn": [
+        "SP-E3-07D"
+      ],
+      "scope": [
+        "app/ProtectedOperations/",
+        "app/Seller/Runtime/",
+        "tests/Equivalence/",
+        "docs/validation/",
+        "docs/sources/09_questions_assumptions_decisions.md",
+        ".github/workflows/",
+        "docs/results/SP-E3-07E.md"
+      ],
+      "exclusiveResources": [
+        "shared-ai-stages"
+      ],
+      "acceptance": [
+        "Подключить записанный адаптер к новому runtime и проверить 41 сценарий, follow-up, ошибки и изоляцию; включить runtime replay в CI, задокументировать подтверждённые расхождения без изменения golden fixtures."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E3-07D.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E3-07E.md",
+      "description": "# SP-E3-07E · Replay: проверка нового runtime\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E3-07D, docs/results/SP-E3-07D.md.\n**Зависимости:** SP-E3-07D.\n\n## Приёмка\n- Подключить записанный адаптер к новому runtime и проверить 41 сценарий, follow-up, ошибки и изоляцию; включить runtime replay в CI, задокументировать подтверждённые расхождения без изменения golden fixtures.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/ProtectedOperations/`, `app/Seller/Runtime/`, `tests/Equivalence/`, `docs/validation/`, `docs/sources/09_questions_assumptions_decisions.md`, `.github/workflows/`, `docs/results/SP-E3-07E.md`.\n"
+    },
+    {
+      "taskKey": "SP-E8-16T",
+      "title": "SP-E8-16T · Замер: визуальные состояния",
+      "goal": "V-3.3: сверить таймлайн, состояния загрузки и завершения, баннер числа уточнений и адаптивность по макету, сохранить текущую подписку и права.",
+      "dependsOn": [
+        "SP-E8-16R"
+      ],
+      "scope": [
+        "resources/js/pages/Vision/Measurements/",
+        "tests/Browser/E8-16T/",
+        "docs/results/SP-E8-16T.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "V-3.3: сверить таймлайн, состояния загрузки и завершения, баннер числа уточнений и адаптивность по макету, сохранить текущую подписку и права."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E8-16R.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E8-16T.md",
+      "description": "# SP-E8-16T · Замер: визуальные состояния\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E8-16R, docs/results/SP-E8-16R.md.\n**Зависимости:** SP-E8-16R.\n\n## Приёмка\n- V-3.3: сверить таймлайн, состояния загрузки и завершения, баннер числа уточнений и адаптивность по макету, сохранить текущую подписку и права.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `resources/js/pages/Vision/Measurements/`, `tests/Browser/E8-16T/`, `docs/results/SP-E8-16T.md`.\n"
+    },
+    {
+      "taskKey": "SP-E8-16U",
+      "title": "SP-E8-16U · Отчёт: шапка и меню скачивания",
+      "goal": "V-4.4: данные выбранного замера рядом с заголовком, объединённое меню скачивания, сохранить выбор, печать и публикацию, проверить доступность и состояния.",
+      "dependsOn": [
+        "SP-E8-16S"
+      ],
+      "scope": [
+        "resources/js/pages/Vision/Reports/",
+        "tests/Browser/E8-16U/",
+        "docs/results/SP-E8-16U.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "V-4.4: данные выбранного замера рядом с заголовком, объединённое меню скачивания, сохранить выбор, печать и публикацию, проверить доступность и состояния."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E8-16S.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E8-16U.md",
+      "description": "# SP-E8-16U · Отчёт: шапка и меню скачивания\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E8-16S, docs/results/SP-E8-16S.md.\n**Зависимости:** SP-E8-16S.\n\n## Приёмка\n- V-4.4: данные выбранного замера рядом с заголовком, объединённое меню скачивания, сохранить выбор, печать и публикацию, проверить доступность и состояния.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `resources/js/pages/Vision/Reports/`, `tests/Browser/E8-16U/`, `docs/results/SP-E8-16U.md`.\n"
+    },
+    {
+      "taskKey": "SP-E5-01N",
+      "title": "SP-E5-01N · Telegram: подключить доставку ответа",
+      "goal": "Подключить подготовленный TelegramSender к очереди ответов менеджера за выключенным флагом, сохранить fake для остальных каналов и обработку ошибок, проверить права и изоляцию бренда без живой отправки.",
+      "dependsOn": [
+        "SP-E5-01L"
+      ],
+      "scope": [
+        "app/Seller/Channels/",
+        "app/Seller/Dialogs/DeliverManagerMessage.php",
+        "config/features/E5-01.php",
+        "tests/Feature/Seller/Channels/",
+        "tests/Browser/E5-01N/",
+        "docs/results/SP-E5-01N.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Подключить подготовленный TelegramSender к очереди ответов менеджера за выключенным флагом, сохранить fake для остальных каналов и обработку ошибок, проверить права и изоляцию бренда без живой отправки."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E5-01L.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E5-01N.md",
+      "description": "# SP-E5-01N · Telegram: подключить доставку ответа\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E5-01L, docs/results/SP-E5-01L.md.\n**Зависимости:** SP-E5-01L.\n\n## Приёмка\n- Подключить подготовленный TelegramSender к очереди ответов менеджера за выключенным флагом, сохранить fake для остальных каналов и обработку ошибок, проверить права и изоляцию бренда без живой отправки.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Seller/Channels/`, `app/Seller/Dialogs/DeliverManagerMessage.php`, `config/features/E5-01.php`, `tests/Feature/Seller/Channels/`, `tests/Browser/E5-01N/`, `docs/results/SP-E5-01N.md`.\n"
     }
   ],
   "excludedSourceTasks": {
