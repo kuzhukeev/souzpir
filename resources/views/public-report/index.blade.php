@@ -96,7 +96,7 @@
         <section class="card"><h2>Кого называют вместо вас</h2>
             @if (count($report['competitors'] ?? []))
                 @php($maxMentions = max(1, max(array_column($report['competitors'], 'answers'))))
-                <p class="muted">Подтверждённые упоминания компаний в ответах.</p>
+                <p class="muted">Чаще всего среди других компаний упоминается {{ $report['competitors'][0]['name'] }}: {{ $report['competitors'][0]['answers'] }} ответов.</p>
                 <ol class="competitors">@foreach ($report['competitors'] as $company)<li><span class="name">{{ $company['name'] }}</span><span class="bar" aria-hidden="true"><span style="width:{{ max(0, min(100, $company['answers'] / $maxMentions * 100)) }}%"></span></span><strong>{{ $company['answers'] }}</strong></li>@endforeach</ol>
                 <p class="muted">Полосы сравнивают число упоминаний с лидером списка.</p>
             @else<p class="muted">Нет подтверждённых упоминаний компаний.</p>@endif
@@ -104,7 +104,7 @@
         <section class="card"><h2>Что о вас говорят</h2>
             @if (isset($report['confirmed_facts']) && isset($report['verified_errors']))
                 <div class="fact-counts"><div><span>Верно</span><strong>{{ max(0, $report['confirmed_facts'] - $report['verified_errors']) }}</strong></div><div><span>Требует уточнения</span><strong>{{ $report['verified_errors'] }}</strong></div></div>
-                <p class="muted">Только проверенные утверждения на момент публикации.</p>
+                <p class="muted">Утверждений в снимке: {{ $report['reviewed_facts'] ?? $report['confirmed_facts'] }}; подтверждено: {{ $report['confirmed_facts'] }}.</p>
             @elseif (isset($report['reviewed_facts'], $report['confirmed_facts']))
                 <p>Утверждений в снимке: {{ $report['reviewed_facts'] }}; подтверждено: {{ $report['confirmed_facts'] }}.</p>
             @else<p class="muted">Счётчики проверенных утверждений в этой публикации недоступны.</p>@endif
