@@ -28,7 +28,7 @@ final class ToolPreferences
         }
 
         return ['tools' => array_fill_keys(array_keys(ToolCatalog::definitions()), true), 'reasons' => $reasons,
-            'delivery_rules' => [], 'requisites' => '', 'timeout_minutes' => null,
+            'delivery_rules' => [], 'requisites' => '', 'price_source' => 'file', 'price_url' => '', 'timeout_minutes' => null,
             'timeout_notification' => false, 'timeout_reminder' => false, 'timeout_fallback' => ''];
     }
 
@@ -47,6 +47,8 @@ final class ToolPreferences
         }
         $defaults['delivery_rules'] = $saved['delivery_rules'] ?? [];
         $defaults['requisites'] = $saved['requisites'] ?? '';
+        $defaults['price_source'] = in_array($saved['price_source'] ?? null, ['file', 'catalog', 'link'], true) ? $saved['price_source'] : 'file';
+        $defaults['price_url'] = is_string($saved['price_url'] ?? null) ? $saved['price_url'] : '';
         $defaults['timeout_minutes'] = $saved['timeout_minutes'] ?? null;
         $defaults['timeout_notification'] = $saved['timeout_notification'] ?? false;
         $defaults['timeout_reminder'] = $saved['timeout_reminder'] ?? false;
