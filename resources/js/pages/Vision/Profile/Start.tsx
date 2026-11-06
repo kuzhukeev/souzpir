@@ -1,4 +1,4 @@
-import { Link, router } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import CabinetLayout from '@/layouts/CabinetLayout';
 import { Button } from '@/components/ui/forms';
@@ -23,12 +23,16 @@ export default function Start({
 }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
+  const [failedLogo, setFailedLogo] = useState<string | null>(null);
+  const { brandAppearance, brand, can } = usePage<{brandAppearance?: {logo_url?: string | null}; brand?: {id: string; name: string} | null; can?: Record<string, boolean>}>().props;
+  const logo = brandAppearance?.logo_url;
   const secure =
     secure_context && typeof window !== 'undefined' && (local_http || !!window.crypto?.subtle);
   return (
     <CabinetLayout breadcrumbs={[{ label: 'Видение' }]}>
       <div className="space-y-6">
         <section className="rounded-2xl bg-(--color-surface) p-6 md:p-8">
+          {logo && logo !== failedLogo ? <img src={logo} alt={`Логотип бренда ${brand?.name ?? ''}`} onError={() => setFailedLogo(logo)} className="mb-4 h-14 max-w-40 object-contain object-left" /> : can?.['brand.write'] && brand?.id ? <p className="mb-4 text-sm text-(--color-ink-muted)">{logo ? "Логотип недоступен." : "Логотип не загружен."} <Link href={`/brands/${brand.id}/settings?tab=theme`} className="cursor-pointer text-(--color-link) underline">Добавить в настройках бренда</Link></p> : null}
           <span className="text-sm text-(--color-link)">Модуль «Видение»</span>
           <h1 className="mt-3 max-w-3xl text-3xl font-bold">
             Узнайте, рекомендуют ли вас нейросети
