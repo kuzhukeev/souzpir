@@ -158,7 +158,7 @@ final class OnboardingTest extends TenancyTestCase
     {
         Storage::fake('local');
         [$owner, $org] = $this->emptyCabinet();
-        $first = UploadedFile::fake()->image('logo.jpg', 12, 9);
+        $first = UploadedFile::fake()->image('logo.png', 12, 9);
         $this->actingAs($owner)->post('/start/logo', ['logo' => $first])->assertSessionHasNoErrors();
         $path = DB::table('onboarding_progress')->where('organization_id', $org->id)->value('logo_path');
         self::assertStringStartsWith('organizations/'.$org->id.'/onboarding/logos/', $path);
@@ -175,6 +175,7 @@ final class OnboardingTest extends TenancyTestCase
     {
         Storage::fake('local');
         [$owner, $org] = $this->emptyCabinet();
+        $this->actingAs($owner)->post('/start/logo', ['logo' => UploadedFile::fake()->image('logo.jpg')])->assertSessionHasErrors('logo');
         $svg = UploadedFile::fake()->createWithContent('logo.svg', '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>');
         $this->actingAs($owner)->post('/start/logo', ['logo' => $svg])->assertSessionHasErrors('logo');
         $this->post('/start/logo', ['logo' => UploadedFile::fake()->createWithContent('logo.png', 'not an image')])->assertSessionHasErrors('logo');

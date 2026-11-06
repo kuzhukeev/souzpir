@@ -1,0 +1,8 @@
+import {expect,test} from '@playwright/test';
+import {createServer,type ViteDevServer} from 'vite';
+import {mkdir} from 'node:fs/promises';
+let server:ViteDevServer;let url:string;
+test.use({viewport:{width:1440,height:900},launchOptions:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH?{executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH}:{}});
+test.beforeAll(async()=>{server=await createServer({configFile:'tests/Browser/E8-24F/vite.config.ts',cacheDir:'.local/runtime/vite-e824f',server:{host:'127.0.0.1',port:0,strictPort:false}});await server.listen();url=new URL('/tests/Browser/E8-24F/fixture.html',server.resolvedUrls!.local[0]).href;});
+test.afterAll(async()=>{await server?.close();});
+test('остаток, история и выбор получателей',async({page})=>{await mkdir('.local/screenshots/SP-E8-24F',{recursive:true});await page.goto(url);await page.getByRole('button',{name:'Слоты',exact:true}).click();await expect(page.getByText(/использовано 2 из 300; осталось 298/)).toBeVisible();await expect(page.getByText(/2 слота/)).toBeVisible();await page.screenshot({path:'.local/screenshots/SP-E8-24F/slots.png',fullPage:true});await page.getByRole('button',{name:'Получатели',exact:true}).click();await expect(page.getByText('Получатели пока не выбраны.')).toBeVisible();await page.screenshot({path:'.local/screenshots/SP-E8-24F/empty.png',fullPage:true});await page.getByRole('button',{name:'Выбрать участников'}).click();await expect(page.getByRole('checkbox',{name:'Иван: cabinet'})).toBeVisible();await page.getByRole('checkbox',{name:'Иван: cabinet'}).check();await page.getByRole('checkbox',{name:'Иван: cabinet'}).uncheck();await expect(page.getByRole('button',{name:'Сохранить получателей'})).toBeVisible();});

@@ -39,6 +39,7 @@ final class PolicySettingsController
             $followup = array_replace(['enabled' => true, 'first_hours' => 20, 'second_hours' => null, 'task_after_hours' => 24, 'max_auto' => 2, 'window' => null, 'texts' => [], 'agreed_text' => '', 'excluded_stages' => []], $row?->followup ?? []);
             $reactionExamples = [];
             $reactionActions = [];
+            $policyLoadError = false;
             try {
                 $snapshot = app(KnowledgeRepository::class)->published($tenant);
                 $policy = $snapshot->policy();
@@ -56,12 +57,18 @@ final class PolicySettingsController
                     'decline_injection' => 'Отклонить запрос', 'opt_out_ack' => 'Не беспокоить'];
             } catch (KnowledgeNotReady) {
                 $policy = null;
+            } catch (\Throwable $error) {
+                report($error);
+                $policy = null;
+                $policyLoadError = true;
             }
 
             $draftPolicy = null;
             $draftReactions = null;
             if (Gate::allows('seller.settings.write')) {
-                $draft = DB::table('knowledge_releases')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('status', 'draft')->first(['id', 'version']);
+                $draft = Gate::allows('seller.knowledge.write') && Gate::allows('seller.settings.write')
+                ? DB::table('knowledge_releases')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('status', 'draft')->first(['id', 'version'])
+                : null;
                 if ($draft) {
                     $draftSnapshot = app(KnowledgeRepository::class)->forRelease($tenant, $draft->id, true);
                     $draftPolicy = ['version' => $draft->version, 'policy' => $draftSnapshot->policy()];
@@ -98,7 +105,7 @@ final class PolicySettingsController
                 }
             }
 
-            return ['followup' => $followup, 'policy' => $policy, 'reactionExamples' => $reactionExamples, 'reactionActions' => $reactionActions, 'draftReactions' => $draftReactions, 'canWrite' => Gate::allows('seller.settings.write'), 'draftPolicy' => $draftPolicy,
+            return ['followup' => $followup, 'policy' => $policy, 'policyLoadError' => $policyLoadError, 'reactionExamples' => $reactionExamples, 'reactionActions' => $reactionActions, 'draftReactions' => $draftReactions, 'canWrite' => Gate::allows('seller.settings.write'), 'draftPolicy' => $draftPolicy,
                 'followupTimezone' => $timezone, 'followupSent' => $sent, 'followupReplies' => array_values($replies)];
         });
 
@@ -108,11 +115,17 @@ final class PolicySettingsController
     public function fields(Request $request): mixed
     {
         $data = $this->access($request, 'seller.knowledge.read', function (TenantContext $tenant): array {
+            $draft = Gate::allows('seller.knowledge.write') && Gate::allows('seller.settings.write')
+                ? DB::table('knowledge_releases')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('status', 'draft')->first(['id', 'version'])
+                : null;
+            $draftFields = $draft ? (app(KnowledgeRepository::class)->forRelease($tenant, $draft->id, true)->policy()['client_fields'] ?? []) : [];
+            $editor = ['version' => $draft?->version, 'fields' => is_array($draftFields) ? $draftFields : []];
             try {
                 $snapshot = app(KnowledgeRepository::class)->published($tenant);
                 $policy = $snapshot->policy();
                 $orders = $policy['slot_order'] ?? [];
                 $unknownOrder = $orders['unknown'] ?? [];
+                $publishedFields = collect($policy['client_fields'] ?? [])->filter(fn ($field) => is_array($field) && isset($field['id']))->values()->all();
                 $rows = [];
                 $initialSlots = (new LeadState)->data['slots'];
                 foreach (LeadState::SLOTS as $slot) {
@@ -128,12 +141,13 @@ final class PolicySettingsController
                     }
                     $rows[] = ['id' => $slot, 'example' => $example, 'priority' => $position === false ? null : $position + 1,
                         'absent_from_order' => $absent, 'condition' => $policy['conditional_slots'][$slot] ?? null,
-                        'value_kind' => is_array($initialSlots[$slot] ?? null) ? 'list' : 'text'];
+                        'value_kind' => is_array($initialSlots[$slot] ?? null) ? 'list' : 'text',
+                        'required_stage' => (collect($publishedFields)->firstWhere('id', $slot)['required'] ?? false) ? (collect($publishedFields)->firstWhere('id', $slot)['stage'] ?? null) : null];
                 }
 
-                return ['available' => true, 'fields' => $rows, 'canRequest' => Gate::allows('seller.settings.write')];
+                return ['available' => true, 'fields' => $rows, 'publishedClientFields' => $publishedFields, 'editor' => $editor, 'canRequest' => Gate::allows('seller.settings.write')];
             } catch (KnowledgeNotReady) {
-                return ['available' => false, 'fields' => [], 'canRequest' => Gate::allows('seller.settings.write')];
+                return ['available' => false, 'fields' => [], 'publishedClientFields' => [], 'editor' => $editor, 'canRequest' => Gate::allows('seller.settings.write')];
             }
         });
 

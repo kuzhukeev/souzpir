@@ -78,6 +78,7 @@ final class SourcesController
 
                 return ['domain' => $source['domain'], 'answers' => $source['answers'], 'citations' => $citations,
                     'type' => ReportPreparation::SOURCE_TYPES[$source['type'] ?? 'other'] ?? ReportPreparation::SOURCE_TYPES['other'],
+                    'description' => is_string($source['description'] ?? null) ? $source['description'] : null,
                     'profile_url' => $profiles[$source['domain']] ?? null, 'presence' => $presence[$source['domain']] ?? 'unknown', 'competitors' => array_values(array_unique($competitors)), 'models' => array_values(array_unique($models)), 'examples' => array_slice($examples, 0, 20),
                     'action_id' => $action?->id, 'action_status' => $action ? ($action->completed_at ? 'completed' : $action->status) : null];
             })->values()->all();

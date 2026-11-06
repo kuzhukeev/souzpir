@@ -1,3 +1,4 @@
+import CopyHash from './CopyHash';
 import { Head, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from '@/lib/i18n';
@@ -46,6 +47,15 @@ export default function Index({ consents, exports: archives, modules, permission
   return <><Head title={tr('page_title')} /><Page title={tr('page_title')} subtitle={tr('page_subtitle')}>
     <div className="space-y-5">
       <div><Errors errors={{ ...form.errors, ...consent.errors, ...(rangeError ? { from: rangeError } : {}) }} transport={transport} /><p role="status" className="text-sm text-(--color-success)">{notice}</p></div>
+      <section className={panel} aria-labelledby="storage-title">
+        <h2 id="storage-title" className="text-xl font-bold">Хранение данных</h2>
+        <p className="mt-2 text-sm text-(--color-ink-muted)">Срок хранения данных и автоматическая очистка пока не подтверждены. Для выгрузки можно выбрать период до 365 дней.</p>
+      </section>
+      <section className={panel} aria-labelledby="account-title">
+        <h2 id="account-title" className="text-xl font-bold">Удаление аккаунта</h2>
+        <p className="mt-2 text-sm text-(--color-ink-muted)">Самостоятельное удаление аккаунта пока недоступно. Обратитесь в поддержку.</p>
+        <a href="/help/support" className="mt-3 inline-block cursor-pointer text-sm font-semibold text-(--color-link) underline">Открыть поддержку</a>
+      </section>
       <section className={panel} aria-labelledby="consents-title">
         <h2 id="consents-title" className="text-xl font-bold">{tr('consents')}</h2>
         <ul className="mt-2 divide-y divide-(--color-border)">
@@ -67,7 +77,7 @@ export default function Index({ consents, exports: archives, modules, permission
           <Button type="submit" className="cursor-pointer" loading={form.processing} disabled={!modules.length}><Download aria-hidden="true" size={18} />{tr('prepare')}</Button>
         </form>
         <div className="mt-6" aria-busy={form.processing}>
-          {archives.length === 0 ? <p className="rounded-xl bg-(--color-surface-muted) p-4 text-sm text-(--color-ink-muted)">{tr(modules.length ? 'empty' : 'empty_unavailable')}</p> : <ul className="divide-y divide-(--color-border)">{archives.map((archive) => <li key={archive.id} className="grid gap-3 py-4 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto] lg:items-center"><div><p className="font-semibold">{modules.find((module) => module.value === archive.module)?.label ?? archive.module}</p><p className="text-sm text-(--color-ink-muted)">{tr('archive_dates', { created: date(archive.created_at, tr('unknown_date')), expires: date(archive.expires_at, tr('unknown_date')) })}</p></div><span className="text-sm text-(--color-ink-muted)">SHA-256</span><code className="break-all text-sm">{archive.sha256}</code>{archive.download_url ? <a href={archive.download_url} className="inline-flex min-h-10 cursor-pointer items-center gap-2 font-semibold text-(--color-link) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus)"><Download aria-hidden="true" size={18} />{tr('download')}</a> : <span className="text-sm text-(--color-ink-muted)">{tr('unavailable')}</span>}</li>)}</ul>}
+          {archives.length === 0 ? <p className="rounded-xl bg-(--color-surface-muted) p-4 text-sm text-(--color-ink-muted)">{tr(modules.length ? 'empty' : 'empty_unavailable')}</p> : <ul className="divide-y divide-(--color-border)">{archives.map((archive) => <li key={archive.id} className="grid gap-3 py-4 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto] lg:items-center"><div><p className="font-semibold">{modules.find((module) => module.value === archive.module)?.label ?? archive.module}</p><p className="text-sm text-(--color-ink-muted)">{tr('archive_dates', { created: date(archive.created_at, tr('unknown_date')), expires: date(archive.expires_at, tr('unknown_date')) })}</p></div><span className="text-sm text-(--color-ink-muted)">SHA-256</span><div><code className="block break-all text-sm">{archive.sha256}</code><CopyHash hash={archive.sha256} /></div>{archive.download_url ? <a href={archive.download_url} className="inline-flex min-h-10 cursor-pointer items-center gap-2 font-semibold text-(--color-link) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus)"><Download aria-hidden="true" size={18} />{tr('download')}</a> : <span className="text-sm text-(--color-ink-muted)">{tr('unavailable')}</span>}</li>)}</ul>}
         </div>
       </section>}
     </div>

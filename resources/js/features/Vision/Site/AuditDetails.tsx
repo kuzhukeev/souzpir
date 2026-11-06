@@ -141,8 +141,8 @@ export function Criteria({ criteria, canManage }: { criteria: Criterion[]; canMa
     </div>
   );
 }
-export function AuditForm() {
-  const form = useForm({ url: '' });
+export function AuditForm({initialUrl = '', fixedUrl = false}: {initialUrl?: string; fixedUrl?: boolean}) {
+  const form = useForm({ url: initialUrl });
   const [open, setOpen] = useState(false);
   function prepare(event: FormEvent) {
     event.preventDefault();
@@ -163,6 +163,7 @@ export function AuditForm() {
             id="site-url"
             type="url"
             required
+            readOnly={fixedUrl}
             placeholder="https://example.com"
             value={form.data.url}
             onChange={(event) => form.setData('url', event.target.value)}
@@ -240,7 +241,7 @@ export function BotAccess({ audit, domainStatus }: { audit: Audit; domainStatus?
           <section className={card} key={label}>
             <h2 className="text-lg font-semibold">{label}</h2>
             <p className="mt-2 text-(--color-ink-muted)">
-              {file?.status == null ? 'Нет данных' : `Статус: ${file.status}`}
+              {file?.status == null ? 'Нет данных' : Number(file.status) >= 200 && Number(file.status) < 300 ? 'Найден' : [404, 410].includes(Number(file.status)) ? 'Не найден' : `Нет достоверных данных (HTTP ${file.status})`}
             </p>
           </section>
         ))}
@@ -269,6 +270,7 @@ export function Pages({ audit }: { audit: Audit }) {
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<AuditPage | null>(null);
   const evidenceFor = (page: AuditPage) => (audit.criteria || []).flatMap((criterion) => (criterion.evidence || []).filter((evidence) => evidence.url === page.url).map((evidence) => ({ criterion, evidence })));
+  const problemsFor = (page: AuditPage) => evidenceFor(page).filter(({criterion}) => criterion.status === 'fail' || criterion.status === 'partial');
   const structuredFacts = (page: AuditPage) => (page as AuditPage & {structured_facts?: {label:string; value:string}[]}).structured_facts ?? [];
   const pageType = (page: AuditPage) => {
     if (page.url === (audit.final_url || audit.url)) return 'Главная';
@@ -310,8 +312,8 @@ export function Pages({ audit }: { audit: Audit }) {
       {pages.length ? (
         <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[750px] text-left text-sm">
-            <thead><tr className="border-b border-(--color-border)"><th className="p-3">URL</th><th className="p-3">Заголовок</th><th className="p-3">Тип</th><th className="p-3">Свидетельства</th><th className="p-3">HTTP</th><th className="p-3">Проверено</th><th className="p-3">Подробнее</th></tr></thead>
-            <tbody>{pages.map((page) => <tr key={page.url} className="border-b border-(--color-border)"><td className="break-all p-3">{page.url}</td><td className="p-3">{page.primary_heading || 'Без заголовка'}</td><td className="p-3">{pageType(page)}</td><td className="p-3">{evidenceFor(page).length + structuredFacts(page).length}</td><td className="p-3">{page.status ?? '—'}</td><td className="p-3">{date(page.observed_at)}</td><td className="p-3"><button type="button" className={secondary} onClick={() => setSelected(page)} aria-label={`Подробнее: ${page.primary_heading || page.url}`}>Подробнее</button></td></tr>)}</tbody>
+            <thead><tr className="border-b border-(--color-border)"><th className="p-3">URL</th><th className="p-3">Заголовок</th><th className="p-3">Тип</th><th className="p-3">Свидетельства</th><th className="p-3">HTTP</th><th className="p-3">Проблемы</th><th className="p-3">Проверено</th><th className="p-3">Подробнее</th></tr></thead>
+            <tbody>{pages.map((page) => <tr key={page.url} className="border-b border-(--color-border)"><td className="break-all p-3">{page.url}</td><td className="p-3">{page.primary_heading || 'Без заголовка'}</td><td className="p-3">{pageType(page)}</td><td className="p-3">{evidenceFor(page).length + structuredFacts(page).length}</td><td className="p-3">{page.status ?? '—'}</td><td className="p-3">{problemsFor(page).length || '—'}</td><td className="p-3">{date(page.observed_at)}</td><td className="p-3"><button type="button" className={secondary} onClick={() => setSelected(page)} aria-label={`Подробнее: ${page.primary_heading || page.url}`}>Подробнее</button></td></tr>)}</tbody>
           </table>
         </div>
       ) : (
@@ -361,7 +363,7 @@ export function Pages({ audit }: { audit: Audit }) {
             <div>
               <h3 className="font-semibold">Проблемы страницы</h3>
               <p className="mt-2 text-(--color-ink-muted)">
-                {typeof selected.status === 'number' && selected.status >= 400 ? `Страница вернула HTTP ${selected.status}.` : 'Отдельные данные о проблемах страницы недоступны.'}
+                {problemsFor(selected).length ? problemsFor(selected).map(({criterion}) => criterion.title || 'Критерий').join(' · ') : typeof selected.status === 'number' && selected.status >= 400 ? `Страница вернула HTTP ${selected.status}.` : 'Данные о проблемах страницы недоступны.'}
               </p>
             </div>
             <div>

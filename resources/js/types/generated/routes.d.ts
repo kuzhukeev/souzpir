@@ -539,6 +539,16 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "seller.dialogs.tasks.complete": [
+        {
+            "name": "dialog",
+            "required": true
+        },
+        {
+            "name": "task",
+            "required": true
+        }
+    ],
     "seller.dialogs.transfer": [
         {
             "name": "dialog",
@@ -615,6 +625,8 @@ declare module 'ziggy-js' {
     "seller.customers.io.template": [],
     "seller.customers.io.preview": [],
     "seller.customers.io.import": [],
+    "seller.reviews.index": [],
+    "seller.reviews.dismiss": [],
     "seller.persona.index": [],
     "seller.persona.save": [],
     "seller.persona.phrases.save": [],
@@ -622,6 +634,7 @@ declare module 'ziggy-js' {
     "seller.settings.greetings.update": [],
     "seller.settings.policy.index": [],
     "seller.scenario.fields": [],
+    "seller.scenario.fields.save": [],
     "seller.scenario.fields.request": [],
     "seller.settings.slot-order.save": [],
     "seller.settings.reactions.save": [],
@@ -711,6 +724,7 @@ declare module 'ziggy-js' {
     "seller.quality.calibration": [],
     "seller.quality.calibration.save": [],
     "seller.analytics.index": [],
+    "seller.analytics.subscription": [],
     "seller.analytics.send": [],
     "seller.analytics.csv": [],
     "seller.dashboard.index": [],

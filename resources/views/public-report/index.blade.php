@@ -50,21 +50,34 @@
         @endif
         <div class="grid">
             @foreach ([
-                ['Видимость', $report['visibility'], '%'],
-                ['Покрытие', $report['coverage'], '%'],
-                ['Доля голоса', $report['share_of_voice'], '%'],
-                ['Средняя позиция', $report['position'], ''],
-            ] as [$title, $value, $suffix])
-                <section class="card"><h2>{{ $title }}</h2><p class="value">{{ $value === null ? '—' : number_format($value, 1, ',', ' ').$suffix }}</p></section>
+                ['Видимость', $report['visibility'], '%', 'visibility'],
+                ['Покрытие', $report['coverage'], '%', 'coverage'],
+                ['Доля голоса', $report['share_of_voice'], '%', 'share_of_voice'],
+                ['Средняя позиция', $report['position'], '', 'position'],
+            ] as [$title, $value, $suffix, $metric])
+                <section class="card"><h2>{{ $title }}</h2><p class="value">{{ $value === null ? '—' : number_format($value, 1, ',', ' ').$suffix }}</p>
+                    @php
+                        $series = collect($report['history'] ?? [])->pluck($metric)->filter(fn ($v) => is_numeric($v))->values()->all();
+                        $points = [];
+                        if (count($series) >= 2) {
+                            $min = min($series); $range = max($series) - $min ?: 1;
+                            foreach ($series as $i => $v) { $points[] = round($i * 120 / (count($series) - 1), 2).','.round(36 - (($v - $min) / $range * 32), 2); }
+                        }
+                    @endphp
+                    @if ($points)<svg role="img" aria-label="Динамика: {{ $title }}" viewBox="0 0 120 40" style="width:100%;height:40px;margin-top:8px"><polyline points="{{ implode(' ', $points) }}" fill="none" stroke="#16834b" stroke-width="2" vector-effect="non-scaling-stroke" /></svg>@endif
+                </section>
             @endforeach
         </div>
         <section class="card" style="margin-top: 24px"><h2>Главные выводы</h2>
-            @if (count($report['competitors'] ?? []) || count($report['actions'] ?? []))
-                <ul>@if (count($report['competitors'] ?? []))<li>Чаще всего среди других компаний упоминается {{ $report['competitors'][0]['name'] }}: {{ $report['competitors'][0]['answers'] }} ответов.</li>@endif
-                @if (count($report['actions'] ?? []))<li>Рекомендация: {{ $report['actions'][0] }}.</li>@endif</ul>
+            @if (($report['visibility'] ?? null) !== null || ($report['share_of_voice'] ?? null) !== null || ($report['position'] ?? null) !== null)
+                <ol>
+                    @if (($report['visibility'] ?? null) !== null)<li>Видимость бренда: {{ number_format($report['visibility'], 1, ',', ' ') }}%.</li>@endif
+                    @if (($report['share_of_voice'] ?? null) !== null)<li>Доля голоса: {{ number_format($report['share_of_voice'], 1, ',', ' ') }}%.</li>@endif
+                    @if (($report['position'] ?? null) !== null)<li>Средняя позиция: {{ number_format($report['position'], 1, ',', ' ') }}.</li>@endif
+                </ol>
             @else<p class="muted">Проверенных выводов для этого снимка пока нет.</p>@endif
         </section>
-        <section class="card" style="margin-top: 24px"><h2>Кого называют вместо вас</h2>@if (count($report['competitors'] ?? []))<ol>@foreach ($report['competitors'] as $company)<li>{{ $company['name'] }} · упоминаний: {{ $company['answers'] }}</li>@endforeach</ol>@else<p class="muted">Нет подтверждённых упоминаний компаний.</p>@endif</section>
+        <section class="card" style="margin-top: 24px"><h2>Кого называют вместо вас</h2>@if (count($report['competitors'] ?? []))<p>Чаще всего среди других компаний упоминается {{ $report['competitors'][0]['name'] }}: {{ $report['competitors'][0]['answers'] }} ответов.</p><ol>@foreach ($report['competitors'] as $company)<li>{{ $company['name'] }} · упоминаний: {{ $company['answers'] }}</li>@endforeach</ol>@else<p class="muted">Нет подтверждённых упоминаний компаний.</p>@endif</section>
         <section class="card" style="margin-top: 24px"><h2>Что о вас говорят</h2>@if (array_key_exists('reviewed_facts', $report))<p>Утверждений в снимке: {{ $report['reviewed_facts'] }}; подтверждено: {{ $report['confirmed_facts'] }}.</p>@else<p class="muted">Счётчики проверенных утверждений в этой публикации недоступны.</p>@endif</section>
         <section class="card" style="margin-top: 24px"><h2>Ваш сайт</h2>
             @php($site = $report['site_readiness'] ?? null)
@@ -75,7 +88,7 @@
             @else<p class="muted">Оценка сайта в этой публикации недоступна.</p>@if (count($report['site_criteria'] ?? []))<ul class="criteria">@foreach ($report['site_criteria'] as $criterion)<li><span>{{ $criterion['title'] }}</span><strong>{{ ['pass' => 'Есть', 'fail' => 'Нет', 'partial' => 'Частично', 'unknown' => 'Неизвестно'][$criterion['status']] ?? 'Неизвестно' }}</strong></li>@endforeach</ul>@endif @endif
         </section>
         <section class="card" style="margin-top: 24px"><h2>Три действия</h2>@if (count($report['actions'] ?? []))<ol class="action-grid">@foreach ($report['actions'] as $action)<li><strong>{{ $action }}</strong><p class="muted">Приоритет и шаги не опубликованы.</p></li>@endforeach</ol>@else<p class="muted">Подтверждённых действий пока нет.</p>@endif</section>
-        <section class="card" style="margin-top: 24px"><h2>История изменений</h2><p class="muted">Сопоставимая история не включена в этот снимок.</p></section>
+        <section class="card" style="margin-top: 24px"><h2>История изменений</h2>@if (count($report['history'] ?? []))<p class="muted">Подтверждённые замеры с одинаковым набором вопросов, моделей и повторов на момент публикации.</p><div style="overflow-x:auto"><table style="width:100%;min-width:560px;text-align:left;font-size:14px"><thead><tr><th>Дата</th><th>Видимость, %</th><th>Покрытие, %</th><th>Доля голоса, %</th><th>Позиция</th></tr></thead><tbody>@foreach ($report['history'] as $point)<tr><td>{{ \Illuminate\Support\Carbon::parse($point['date'])->format('d.m.Y') }}</td>@foreach (['visibility','coverage','share_of_voice','position'] as $metric)<td>{{ ($point[$metric] ?? null) === null ? '—' : number_format($point[$metric], 1, ',', ' ') }}</td>@endforeach</tr>@endforeach</tbody></table></div>@else<p class="muted">Сопоставимая история не включена в этот снимок.</p>@endif</section>
         <section class="card" style="margin-top: 24px"><h2>Методика</h2><details><summary>Вопросы</summary><p>В снимке учтено {{ $report['questions'] }} вопросов.</p></details>
             <details><summary>Ответы моделей</summary><p>Пропущенные и непроверенные ответы не считаются отрицательными.</p></details>
             <details><summary>Видимость</summary><p>Показатель рассчитан по доступным проверенным ответам.</p></details>

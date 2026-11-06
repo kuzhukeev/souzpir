@@ -32,7 +32,7 @@ final class RunScenarioGroup implements ShouldQueue
         $query->update(['status' => 'processing', 'updated_at' => now()]);
         foreach ($items as &$item) {
             try {
-                $runId = (new SimulateFakeJob($this->organizationId, $this->brandId, $item['key'], array_fill(0, $item['max_turns'], [])))->handle($simulation);
+                $runId = (new SimulateFakeJob($this->organizationId, $this->brandId, $item['key'], array_fill(0, $item['max_turns'], []), $item['client_model'] ?? 'fake'))->handle($simulation);
                 $item['run_id'] = $runId;
                 $item['status'] = DB::table('seller_sim_runs')->where('id', $runId)->where('organization_id', $this->organizationId)->where('brand_id', $this->brandId)->value('status') ?? 'failed';
                 if ($item['status'] === 'completed') {

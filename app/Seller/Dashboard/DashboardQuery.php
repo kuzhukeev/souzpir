@@ -3,6 +3,8 @@
 namespace App\Seller\Dashboard;
 
 use App\Seller\Evaluation\EvaluationVisibility;
+use App\Seller\Knowledge\Contracts\KnowledgeRepository;
+use App\Seller\Knowledge\KnowledgeNotReady;
 use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -89,11 +91,19 @@ final class DashboardQuery
             $issueDetails[] = ['type' => $type, 'share' => $share, 'delta' => $previousShare === null ? null : round($share - $previousShare, 1), 'href' => '/seller/quality'];
         }
         $topics = [];
+        try {
+            $intentTitles = collect(app(KnowledgeRepository::class)->published($tenant)->intents())
+                ->filter(fn ($intent) => is_array($intent) && is_string($intent['id'] ?? null) && is_string($intent['title'] ?? null) && trim($intent['title']) !== '')
+                ->pluck('title', 'id')->all();
+        } catch (KnowledgeNotReady) {
+            $intentTitles = [];
+        }
         foreach ($scope('messages')->where('created_at', '>=', $start)->where('created_at', '<', $end)->get(['meta']) as $message) {
             $meta = json_decode($message->meta, true) ?: [];
             $intent = $meta['intent'] ?? null;
-            if (is_string($intent) && $intent !== '') {
-                $topics[$intent] = ($topics[$intent] ?? 0) + 1;
+            if (is_string($intent) && isset($intentTitles[$intent])) {
+                $title = $intentTitles[$intent];
+                $topics[$title] = ($topics[$title] ?? 0) + 1;
             }
         }
         arsort($topics);
@@ -126,9 +136,22 @@ final class DashboardQuery
         if ($overdue > 0) {
             $attention[] = ['kind' => 'tasks', 'title' => 'Обещания просрочены', 'count' => $overdue, 'severity' => 'high', 'href' => '/seller/tasks'];
         }
-        $disabled = collect($channels)->where('status', 'disabled')->count();
-        if ($disabled > 0) {
-            $attention[] = ['kind' => 'channels', 'title' => 'Каналы выключены', 'count' => $disabled, 'severity' => 'normal', 'href' => '/seller/channels'];
+        $disabled = $scope('channel_accounts')->where('status', 'disabled');
+        $overDay = (clone $disabled)->whereNotNull('disabled_at')->where('disabled_at', '<', now()->subDay())->count();
+        $unknown = (clone $disabled)->whereNull('disabled_at')->count();
+        $recent = (clone $disabled)->whereNotNull('disabled_at')->where('disabled_at', '>=', now()->subDay())->count();
+        if ($overDay > 0) {
+            $attention[] = ['kind' => 'channels_over_day', 'title' => 'Канал выключен >24ч', 'count' => $overDay, 'severity' => 'high', 'href' => '/seller/channels'];
+        }
+        if ($unknown + $recent > 0) {
+            $details = [];
+            if ($unknown > 0) {
+                $details[] = $unknown.' · Время отключения неизвестно';
+            }
+            if ($recent > 0) {
+                $details[] = $recent.' · Отключены не более суток';
+            }
+            $attention[] = ['kind' => 'channels', 'title' => 'Каналы выключены', 'count' => $unknown + $recent, 'detail' => implode('; ', $details), 'severity' => 'normal', 'href' => '/seller/channels'];
         }
 
         $attention = array_merge($attention, app(AttentionEvents::class)->read($tenant, $rows->count(), $contact, $previous->count(), $previousContact));

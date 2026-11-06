@@ -61,7 +61,7 @@ function StatusBadge({ state }: { state: string }) {
 
 export default function Status({ status }: { status: StatusData }) {
   const c = useSupportCopy();
-  const incidents = status.incidents as unknown as { available: boolean; data: { id: string; title: string; occurred_at: string }[] };
+  const incidents = status.incidents;
   const [loading, setLoading] = useState(false);
   const [failure, setFailure] = useState({ message: '' });
   const refresh = () => {

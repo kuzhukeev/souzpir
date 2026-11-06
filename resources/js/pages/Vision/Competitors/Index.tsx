@@ -16,6 +16,8 @@ type Entity = {
   tracked: boolean;
   aliases?: string[];
   models?: string[];
+  model_names?: string[];
+  model_names_unknown?: boolean;
   intents?: string[];
   questions?: string[];
   sources?: string[];
@@ -62,7 +64,8 @@ export default function Index({
   const [busy, setBusy] = useState(false);
   const [mergeOpen, setMergeOpen] = useState(false);
   const [mergeError, setMergeError] = useState('');
-  const selected = [left, right, third, fourth].filter(Boolean);
+  const own = entities.find((entity) => entity.is_brand);
+  const selected = Array.from(new Set([own?.name, left, right, third, fourth].filter((name): name is string => Boolean(name))));
   const intentKeys = Array.from(
     new Set(
       entities
@@ -286,9 +289,10 @@ export default function Index({
                                 : `${e.delta > 0 ? '+' : ''}${e.delta}`}
                             </td>
                             <td className="p-4">
-                              {e.models?.length ? (
+                              {e.model_names?.length ? (
                                 <div className="flex flex-wrap gap-1">
-                                  {e.models.map((model) => (
+                                  {e.model_names_unknown && <span className="rounded-full bg-(--color-surface-muted) px-2 py-1">Часть моделей не определена</span>}
+                                  {e.model_names.map((model) => (
                                     <span
                                       key={model}
                                       className="rounded-full bg-(--color-surface-muted) px-2 py-1"
@@ -371,6 +375,7 @@ export default function Index({
             {available && entities.length >= 2 && (
               <section className="mt-5 rounded-xl border border-(--color-border) bg-(--color-surface) p-5">
                 <h2 className="text-xl font-bold">Сравнить компании</h2>
+                {own && <p className="mt-3 text-sm font-semibold">Вы: {own.name}</p>}
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   {(
                     [
@@ -379,10 +384,11 @@ export default function Index({
                       [third, setThird, 'Третья компания'],
                       [fourth, setFourth, 'Четвёртая компания'],
                     ] as const
-                  ).map(([value, set, label]) => (
+                  ).map(([value, set, label], index) => (
                     <label key={label} className="text-sm">
                       {label}
                       <select
+                        id={`comparison-${index}`}
                         className={`${field} mt-1 block w-full cursor-pointer`}
                         value={value}
                         onChange={(e) => set(e.target.value)}
@@ -392,7 +398,7 @@ export default function Index({
                           <option
                             key={e.name}
                             value={e.name}
-                            disabled={selected.includes(e.name) && e.name !== value}
+                            disabled={[left, right, third, fourth].includes(e.name) && e.name !== value}
                           >
                             {e.name}
                           </option>
@@ -401,6 +407,7 @@ export default function Index({
                     </label>
                   ))}
                 </div>
+                <button type="button" className="mt-3 min-h-11 cursor-pointer text-sm font-semibold text-(--color-link)" disabled={[left, right, third, fourth].every(Boolean)} onClick={() => document.getElementById(`comparison-${[left, right, third, fourth].findIndex(value => !value)}`)?.focus()}>Добавить конкурента</button>
                 {selected.length >= 2 && (
                   <div className="mt-4 overflow-x-auto">
                     <table className="w-full min-w-[500px] text-left text-sm">

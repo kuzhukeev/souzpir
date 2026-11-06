@@ -18,11 +18,46 @@ class SnapshotView
         return $id ? app(VisionReportReader::class)->read($id) : null;
     }
 
+    /** Recompute missing position aggregates in memory; never mutate the stored report. */
+    private function withHistoricalPositions(array $snapshot, array $original): array
+    {
+        $entities = $original['entities'] ?? null;
+        $slots = $original['slots'] ?? null;
+        $providers = $snapshot['providers'] ?? null;
+        $questions = $snapshot['questions'] ?? null;
+        $runs = $snapshot['runs'] ?? null;
+        if (! is_array($entities) || ! is_array($slots) || ! $slots || ! is_array($providers) || ! $providers
+            || ! is_array($questions) || ! $questions || ! is_int($runs) || $runs < 1) {
+            return $original;
+        }
+        try {
+            $calculated = app(VisibilityMetrics::class)->calculate($slots, array_keys($providers), count($questions), $runs);
+        } catch (\Throwable) {
+            return $original;
+        }
+        foreach ($entities as &$entity) {
+            if (! is_array($entity) || (isset($entity['position']) && isset($entity['positions_by_provider'])) || ! is_string($entity['name'] ?? null)) {
+                continue;
+            }
+            $matches = array_values(array_filter($calculated['entities'] ?? [], fn ($candidate) => is_array($candidate)
+                && ($candidate['name'] ?? null) === $entity['name'] && ($candidate['is_brand'] ?? false) === ($entity['is_brand'] ?? false)));
+            if (count($matches) === 1 && isset($matches[0]['position'])) {
+                $entity['position'] ??= $matches[0]['position'];
+                $entity['positions_by_provider'] ??= $matches[0]['positions_by_provider'] ?? [];
+                $entity['positions_by_intent'] ??= $matches[0]['positions_by_intent'] ?? [];
+            }
+        }
+        unset($entity);
+        $original['entities'] = $entities;
+
+        return $original;
+    }
+
     public function metrics(array $snapshot, array $aliases): array
     {
         $original = $snapshot['metrics'] ?? [];
         if (! $aliases) {
-            return $original;
+            return $this->withHistoricalPositions($snapshot, $original);
         }
         $slots = $original['slots'] ?? [];
         $providers = array_keys($snapshot['providers'] ?? []);

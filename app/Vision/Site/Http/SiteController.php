@@ -59,9 +59,18 @@ final class SiteController
             $history = $request->route('section') === 'history' ? $this->history->read($tenant) : ['achievements' => [], 'comparison' => null];
             $this->access->lock($tenant, false, 'vision.report.read');
 
-            return ['domainStatus' => $domainStatus, 'audit' => $current?->result, 'auditDate' => $current?->created_at?->toIso8601String(),
+            $brandSite = DB::table('brands')->where('organization_id', $tenant->organizationId)->where('id', $tenant->brandId)->value('website');
+            $progress = Cache::get(AuditSiteJob::key($tenant->organizationId, $tenant->brandId));
+            if (is_array($progress)) {
+                if (in_array($progress['stage'] ?? null, ['inspecting', 'analyzing', 'saving'], true) && is_numeric($progress['started_at_epoch'] ?? null)) {
+                    $progress['elapsed_seconds'] = max(0, (int) floor(microtime(true) - (float) $progress['started_at_epoch']));
+                }
+                unset($progress['started_at_epoch']);
+            }
+
+            return ['brandSite' => $brandSite, 'domainStatus' => $domainStatus, 'audit' => $current?->result, 'auditDate' => $current?->created_at?->toIso8601String(),
                 'previousAudit' => $previous?->result,
-                'auditProgress' => Cache::get(AuditSiteJob::key($tenant->organizationId, $tenant->brandId)),
+                'auditProgress' => $progress,
                 'actions' => $actions, 'history' => array_values(array_filter($actions, fn (array $a): bool => $a['status'] === 'awaiting_measurement')),
                 'members' => $members, 'canManage' => $this->access->can('vision.actions.write'), ...$history];
         });
@@ -76,7 +85,7 @@ final class SiteController
             $website = DB::table('brands')->where('organization_id', $tenant->organizationId)->where('id', $tenant->brandId)->value('website');
             $progress = Cache::get(AuditSiteJob::key($tenant->organizationId, $tenant->brandId), []);
             $stage = is_string($website) && $website !== '' && is_array($progress) && ($progress['url'] ?? null) === $website ? ($progress['stage'] ?? null) : null;
-            $stage = in_array($stage, ['queued', 'inspecting', 'saving', 'complete', 'failed'], true) ? $stage : null;
+            $stage = in_array($stage, ['queued', 'inspecting', 'analyzing', 'saving', 'complete', 'failed'], true) ? $stage : null;
             $raw = DB::table('audit_runs')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->orderByDesc('created_at')->orderByDesc('id')->value('result');
             $audit = is_string($raw) ? json_decode($raw, true) : null;
             if (! is_string($website) || ! is_array($audit) || ($audit['url'] ?? null) !== $website) {

@@ -6,6 +6,6 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   publicDir: 'public',
   resolve: { alias: { '@': fileURLToPath(new URL('../../../resources/js', import.meta.url)) } },
-  server: { host: '127.0.0.1', port: 5269, strictPort: true, watch: { ignored: ['**/.local/**'] } },
+  server: { host: '127.0.0.1', port: 5269, strictPort: true, watch: process.env.CI ? null : { ignored: ['**/.local/**'] } },
 });
 

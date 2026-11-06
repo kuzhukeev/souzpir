@@ -27,7 +27,7 @@ export default function OrganizationSelect({ company }: { company: Company }) {
   const visible = company.name.toLocaleLowerCase('ru').includes(search.trim().toLocaleLowerCase('ru'));
   const initials = company.name.trim().split(/\s+/).slice(0, 2).map(part => part[0]?.toLocaleUpperCase('ru')).join('');
   return <CabinetLayout breadcrumbs={[{ label: 'Выбор компании' }]}><Head title="Выберите компанию" /><main className="mx-auto max-w-3xl" data-private-profile>
-    <h1 className="text-3xl font-bold">Выберите компанию</h1><p className="mt-2 text-(--color-ink-muted)">Откройте бренд, с которым хотите работать</p><p className="mt-3 text-sm text-(--color-ink-muted)">Доступно компаний: 1</p>
+    <h1 className="text-3xl font-bold">Выберите компанию</h1><p className="mt-2 text-(--color-ink-muted)">Откройте бренд, с которым хотите работать</p><p className="mt-3 text-sm text-(--color-ink-muted)">Доступно компаний: {[company].length}</p>
     <button type="button" onClick={refresh} disabled={refreshing} className="mt-3 min-h-11 cursor-pointer text-sm font-semibold text-(--color-link) disabled:opacity-50">Обновить данные</button>
     {refreshing && <div role="status" className="mt-4 animate-pulse rounded-xl bg-(--color-surface-muted) p-5 text-sm">Загрузка данных компании…</div>}
     {refreshError && <p role="alert" className="mt-4 text-sm text-(--color-danger-ink)">Не удалось загрузить данные компании. Повторите попытку.</p>}

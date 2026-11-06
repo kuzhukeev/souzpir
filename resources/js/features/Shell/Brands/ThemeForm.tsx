@@ -98,7 +98,7 @@ export function ThemeForm({ brand, editable }: { brand: BrandSettings; editable:
         </Row>
       </div>
       <div className={panel + ' space-y-6'}>
-        <Row label="Логотип бренда" hint="PNG, JPEG или WebP, до 2 МБ">
+        <Row label="Логотип бренда" hint="PNG или SVG, до 1 МБ">
           <div className="flex flex-wrap items-center gap-4">
             {logo && (
               <img
@@ -112,7 +112,7 @@ export function ThemeForm({ brand, editable }: { brand: BrandSettings; editable:
               key={uploadVersion}
               label="Загрузить логотип"
               type="file"
-              accept="image/png,image/jpeg,image/webp"
+              accept="image/png,image/svg+xml"
               error={form.errors.logo}
               disabled={!canEdit}
               onChange={(e) => {

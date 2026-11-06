@@ -81,9 +81,22 @@ final class ReportData
             $metrics = $adjusted['metrics'];
             $panel = $metrics['panel'] ?? [];
             $visibility = $metrics['visibility'] ?? [];
-            $report = [
-                'id' => $selected, 'measurement_id' => $payload['measurement_id'],
-                'sections' => [...app(ReportSections::class)->make([...$payload, 'metrics' => $metrics, 'reviewed_facts' => $reviewed]), 'changes' => $changes, 'site' => $site, 'site_audit' => $siteAudit],
+            $reportDate = $reports->firstWhere('id', $selected)->created_at;
+            $presence = DB::table('vision_source_presence')->where('organization_id', $context->organizationId)
+                ->where('brand_id', $context->brandId)->where('updated_at', '<=', $reportDate)->pluck('presence', 'domain');
+            $sections = app(ReportSections::class)->make([...$payload, 'metrics' => $metrics, 'reviewed_facts' => $reviewed]);
+            foreach ($sections['sources'] as &$source) {
+                if ($source['presence'] === null) {
+                    $source['presence'] = match ($presence[$source['domain']] ?? null) {
+                        'present' => true,
+                        'absent' => false,
+                        default => null,
+                    };
+                }
+            }
+            unset($source);
+            $report = ['id' => $selected, 'measurement_id' => $payload['measurement_id'],
+                'sections' => [...$sections, 'changes' => $changes, 'site' => $site, 'site_audit' => $siteAudit],
                 'visibility' => $visibility['macro_percent'] ?? null,
                 'visibility_before' => $payload['metrics']['visibility']['macro_percent'] ?? null,
                 'clarifications_applied' => $adjusted['applied'],
@@ -104,6 +117,7 @@ final class ReportData
         }
 
         return [
+            'questionnaire_complete' => DB::table('visibility_quizzes')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)->whereIn('status', ['submitted', 'superseded'])->exists(),
             'confirmed' => $confirmed->map(fn ($row) => ['measurement_id' => $row->measurement_id, 'confirmed_at' => $row->created_at])->all(),
             'reports' => $reports->map(fn ($row) => ['id' => $row->id, 'measurement_id' => $row->measurement_id,
                 'revision' => $row->revision, 'created_at' => $row->created_at])->all(),

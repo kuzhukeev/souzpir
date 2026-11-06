@@ -2,6 +2,7 @@
 
 namespace App\ProtectedOperations\DraftSimulation;
 
+use App\Ai\CanonicalJson;
 use App\Ai\Drivers\FakeDriver;
 use App\Models\User;
 use App\Seller\Engine\Extractor;
@@ -15,6 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use LogicException;
+use Symfony\Component\Yaml\Yaml;
 use Throwable;
 
 /** Fixture-only draft runtime bound to an authorized session and immutable draft. */
@@ -78,18 +80,37 @@ final class FixtureRuntime
         return $result;
     }
 
-    public function check(Request $request, KnowledgeSnapshot $draft, string $client, string $answer, array $expectations): ?array
+    /** Preserve the strict legacy API for callers which require every criterion. */
+    public function check(Request $request, KnowledgeSnapshot $draft, string $client, string $answer, array $expectations, ?string $personaKey = null): ?array
     {
-        $data = $this->run($request, $draft, 'judge', ['client' => $client, 'answer' => $answer, 'expectations' => array_values($expectations)]);
+        $checks = $this->checkPartial($request, $draft, $client, $answer, $expectations, $personaKey);
+        if ($checks === null || in_array(null, $checks, true)) {
+            return null;
+        }
+
+        return $checks;
+    }
+
+    /** A null entry means there is no verified evidence for that criterion. */
+    public function checkPartial(Request $request, KnowledgeSnapshot $draft, string $client, string $answer, array $expectations, ?string $personaKey = null): ?array
+    {
+        if (count(array_filter($expectations, 'is_string')) !== count($expectations)) {
+            return null;
+        }
+        $data = $this->run($request, $draft, 'judge', ['client' => $client, 'answer' => $answer, 'expectations' => array_values($expectations)], personaKey: $personaKey);
         if (! is_array($data) || ! is_array($data['checks'] ?? null)) {
             return null;
         }
         $checks = [];
         foreach ($expectations as $expectation) {
-            if (! is_string($expectation) || ! is_bool($data['checks'][$expectation] ?? null)) {
+            if (! is_string($expectation)) {
                 return null;
             }
-            $checks[$expectation] = $data['checks'][$expectation];
+            $value = $data['checks'][$expectation] ?? null;
+            if ($value !== null && ! is_bool($value)) {
+                return null;
+            }
+            $checks[$expectation] = $value;
         }
 
         return $checks;
@@ -100,9 +121,9 @@ final class FixtureRuntime
         return ['model' => 'fake-draft-'.$stage, 'draft' => $draft->releaseId(), 'checksum' => $draft->checksum(), 'input' => $input];
     }
 
-    private function run(Request $request, KnowledgeSnapshot $draft, string $stage, array $input, ?array $seed = null): ?array
+    private function run(Request $request, KnowledgeSnapshot $draft, string $stage, array $input, ?array $seed = null, ?string $personaKey = null): ?array
     {
-        return app(ProfileAccess::class)->run($request, function (User $user, TenantContext $tenant) use ($draft, $stage, $input, $seed): ?array {
+        return app(ProfileAccess::class)->run($request, function (User $user, TenantContext $tenant) use ($draft, $stage, $input, $seed, $personaKey): ?array {
             Gate::forUser($user)->authorize('seller.knowledge.write');
             abort_unless(app(SellerModuleAccess::class)->enabled($tenant->organizationId, $tenant->brandId), 404);
             $exists = DB::table('knowledge_releases')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
@@ -128,11 +149,8 @@ final class FixtureRuntime
                         $checked = match ($expectation) {
                             'one_question_per_turn' => mb_substr_count($answer, '?') <= 1,
                             'no_html' => ! preg_match('/<[^>]+>/', $answer),
-                            default => null,
+                            default => $this->reviewedPair($tenant, $personaKey, $input['client'], $answer, $expectation),
                         };
-                        if ($checked === null) {
-                            return null;
-                        }
                         $checks[$expectation] = $checked;
                     }
 
@@ -163,5 +181,30 @@ final class FixtureRuntime
                 return is_array($fixtures) ? ($fixtures[$input['client']] ?? null) : null;
             }
         });
+    }
+
+    private function reviewedPair(TenantContext $tenant, ?string $personaKey, string $client, string $answer, string $criterion): ?bool
+    {
+        if ($personaKey === null) {
+            return null;
+        }
+        $stored = DB::table('seller_personas')->where('organization_id', $tenant->organizationId)
+            ->where('brand_id', $tenant->brandId)->where('key', $personaKey)->value('payload');
+        $persona = is_string($stored) ? json_decode($stored, true) : null;
+        $originals = Yaml::parseFile(database_path('seeders/Seller/Evaluation/personas.yaml'));
+        $original = collect($originals)->firstWhere('id', $personaKey);
+        if (! is_array($persona) || ! is_array($original) || ! hash_equals(CanonicalJson::hash($original), CanonicalJson::hash($persona))
+            || ! in_array($criterion, $persona['expect'] ?? [], true)) {
+            return null;
+        }
+        $examples = json_decode(file_get_contents(__DIR__.'/fixtures/seeded-judgments-e401q.json'), true, flags: JSON_THROW_ON_ERROR);
+        foreach ($examples as $example) {
+            if ($example['persona'] === $personaKey && $example['criterion'] === $criterion
+                && $example['client'] === $client && $example['answer'] === $answer && is_bool($example['expected'])) {
+                return $example['expected'];
+            }
+        }
+
+        return null;
     }
 }

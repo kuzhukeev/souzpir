@@ -67,8 +67,7 @@ final class UnresolvedCallsTest extends TenancyTestCase
         $this->assertEqualsCanonicalizing([$uncertain, $reserved], $ids);
         $this->assertNotContains($otherBrand, $ids);
         $this->assertNotContains($otherOrg, $ids);
-        $this->assertSame(['id', 'status', 'family', 'reservedMicros', 'createdAt', 'updatedAt'], array_keys($response->json('calls.0')));
-        $this->assertSame('100', $response->json('calls.0.reservedMicros'));
+        $this->assertSame(['id', 'status', 'family', 'createdAt', 'updatedAt'], array_keys($response->json('calls.0')));
         $this->assertNull($response->json('nextCursor'));
         $this->assertStringNotContainsString('PRIVATE_', $response->getContent());
         $this->assertEquals($beforeCalls, DB::table('ai_calls')->orderBy('id')->get()->toArray());
