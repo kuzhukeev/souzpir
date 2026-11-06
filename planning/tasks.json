@@ -22134,6 +22134,35 @@
       "wave": 20,
       "promptPath": "docs/tasks/SP-E8-24H.md",
       "description": "# SP-E8-24H · Отчёт: персональный доступ\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E8-24G, docs/results/SP-E8-24G.md.\n**Зависимости:** SP-E8-24G.\n\n## Приёмка\n- V-11.5: персональный отзываемый доступ к выбранному отчёту на 30 дней, индивидуальная ссылка для копирования, журнал открытий и права. Полные тексты ответов внешним получателям не показывать; доставка только fake.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Vision/Publications/`, `app/Vision/Settings/`, `database/migrations/E8-24H/`, `routes/features/E8-24H.php`, `resources/js/pages/Vision/Settings/`, `tests/Feature/Vision/Settings/`, `tests/Browser/E8-24H/`, `docs/results/SP-E8-24H.md`.\n"
+    },
+    {
+      "taskKey": "SP-E4-06G",
+      "title": "SP-E4-06G · Импорт: сохранённые документы",
+      "goal": "D-4.10: действия над сохранёнными документами, необходимые маршруты и хранение исходных файлов, полная сверка расположения и состояний с макетом; старые счётчики без исходного файла не выдумывать. Удаление данных не выполнять без разрешения владельца.",
+      "dependsOn": [
+        "SP-E4-06F"
+      ],
+      "scope": [
+        "app/Seller/Knowledge/Imports/",
+        "database/migrations/E4-06G/",
+        "routes/features/E4-06.php",
+        "resources/js/pages/Seller/Knowledge/Imports/",
+        "tests/Feature/Seller/Knowledge/Imports/",
+        "tests/Browser/E4-06G/",
+        "docs/results/SP-E4-06G.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "D-4.10: действия над сохранёнными документами, необходимые маршруты и хранение исходных файлов, полная сверка расположения и состояний с макетом; старые счётчики без исходного файла не выдумывать. Удаление данных не выполнять без разрешения владельца."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E4-06F.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E4-06G.md",
+      "description": "# SP-E4-06G · Импорт: сохранённые документы\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E4-06F, docs/results/SP-E4-06F.md.\n**Зависимости:** SP-E4-06F.\n\n## Приёмка\n- D-4.10: действия над сохранёнными документами, необходимые маршруты и хранение исходных файлов, полная сверка расположения и состояний с макетом; старые счётчики без исходного файла не выдумывать. Удаление данных не выполнять без разрешения владельца.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Seller/Knowledge/Imports/`, `database/migrations/E4-06G/`, `routes/features/E4-06.php`, `resources/js/pages/Seller/Knowledge/Imports/`, `tests/Feature/Seller/Knowledge/Imports/`, `tests/Browser/E4-06G/`, `docs/results/SP-E4-06G.md`.\n"
     }
   ],
   "excludedSourceTasks": {
