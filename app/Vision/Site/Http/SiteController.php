@@ -3,6 +3,8 @@
 namespace App\Vision\Site\Http;
 
 use App\Models\Membership;
+use App\Shell\Audit\AuditEntry;
+use App\Shell\Audit\Contracts\AuditWriter;
 use App\Shell\Brands\BrandDomain;
 use App\Tenancy\TenantContext;
 use App\Vision\Actions\RecommendationLink;
@@ -69,7 +71,7 @@ final class SiteController
                 unset($progress['started_at_epoch']);
             }
 
-            return ['brandSite' => $brandSite, 'domainStatus' => $domainStatus, 'audit' => $current?->result, 'auditDate' => $current?->created_at?->toIso8601String(),
+            return ['brandSite' => $brandSite, 'domainStatus' => $domainStatus, 'audit' => $current?->result, 'auditId' => $current?->id, 'auditDate' => $current?->created_at?->toIso8601String(),
                 'previousAudit' => $previous?->result,
                 'auditProgress' => $progress,
                 'actions' => $actions, 'history' => array_values(array_filter($actions, fn (array $a): bool => $a['status'] === 'awaiting_measurement')),
@@ -132,7 +134,16 @@ final class SiteController
         $this->operations->authorize($tenant, $request);
         $data = $this->validated($request, false);
         DB::transaction(function () use ($tenant, $request, $data): void {
-            $id = $this->operations->create($tenant, $request, array_diff_key($data, array_flip(['report_id', 'recommendation_index'])));
+            $id = $this->operations->create($tenant, $request, array_diff_key($data, array_flip(['report_id', 'recommendation_index', 'audit_id', 'criterion_id'])));
+            if (isset($data['audit_id'], $data['criterion_id'])) {
+                $audit = AuditRun::query()->whereKey($data['audit_id'])->firstOrFail();
+                $criterion = collect($audit->result['criteria'] ?? [])->first(fn ($item) => is_array($item) && (string) ($item['id'] ?? '') === $data['criterion_id']);
+                if (! $criterion || ! in_array($criterion['status'] ?? null, ['fail', 'partial'], true) || ($criterion['pending'] ?? false)) {
+                    throw ValidationException::withMessages(['criterion_id' => 'Критерий недоступен для добавления в действия.']);
+                }
+                app(AuditWriter::class)->record($tenant, new AuditEntry('vision.action.created_from_site', 'vision_action', $id,
+                    after: ['audit_id' => $audit->id, 'criterion_id' => $data['criterion_id']]));
+            }
             if (isset($data['report_id'], $data['recommendation_index'])) {
                 app(RecommendationLink::class)->attach($tenant, $request, $id, $data['report_id'], (int) $data['recommendation_index']);
             }
@@ -167,6 +178,8 @@ final class SiteController
             'title' => [$presence, 'required', 'string', 'max:255'],
             'report_id' => [$update ? 'prohibited' : 'required_with:recommendation_index', 'ulid'],
             'recommendation_index' => [$update ? 'prohibited' : 'required_with:report_id', 'integer', 'min:0'],
+            'audit_id' => [$update ? 'prohibited' : 'required_with:criterion_id', 'ulid'],
+            'criterion_id' => [$update ? 'prohibited' : 'required_with:audit_id', 'string', 'max:100'],
             'description' => ['sometimes', 'nullable', 'string', 'max:10000'],
             'responsible' => ['sometimes', 'nullable', 'ulid'],
             'due_date' => ['sometimes', 'nullable', 'date_format:Y-m-d'],

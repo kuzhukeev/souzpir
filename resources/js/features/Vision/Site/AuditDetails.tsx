@@ -32,10 +32,11 @@ function Errors({ errors }: { errors: Record<string, string> }) {
     </div>
   ) : null;
 }
-function CriterionRow({ item, canManage }: { item: Criterion; canManage: boolean }) {
+function CriterionRow({ item, canManage, auditId }: { item: Criterion; canManage: boolean; auditId?: string | null }) {
   const title = item.title || item.name || item.label || 'Критерий';
-  const form = useForm({ title, description: item.explanation || '' });
+  const form = useForm({ title, description: item.explanation || '', audit_id: auditId || '', criterion_id: item.id == null ? '' : String(item.id) });
   const [saved, setSaved] = useState(false);
+  const [failure, setFailure] = useState(false);
   const observedJson = item.evidence?.find((evidence) => {
     if (!evidence.excerpt?.trim().startsWith('{')) return false;
     try { return typeof JSON.parse(evidence.excerpt) === 'object'; } catch { return false; }
@@ -80,7 +81,7 @@ function CriterionRow({ item, canManage }: { item: Criterion; canManage: boolean
           <summary className="cursor-pointer font-semibold">Для разработчика</summary>
           {observedJson ? <><p className="mt-2 text-sm text-(--color-ink-muted)">Найденный фрагмент структурированных данных с проверенной страницы. Используйте как пример исходных данных, не как готовую рекомендацию.</p><pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-all rounded-lg bg-(--color-surface) p-3 text-sm">{observedJson.excerpt}</pre></> : <p className="mt-2 text-sm text-(--color-ink-muted)">Пример кода для этого критерия не предоставлен.</p>}
         </details>
-        {canManage && !item.pending && (item.status === 'fail' || item.status === 'partial') && (
+        {canManage && auditId && item.id != null && !item.pending && (item.status === 'fail' || item.status === 'partial') && (
           <div>
             <button
               type="button"
@@ -89,7 +90,10 @@ function CriterionRow({ item, canManage }: { item: Criterion; canManage: boolean
               onClick={() =>
                 form.post('/vision/actions', {
                   preserveScroll: true,
+                  onStart: () => { setFailure(false); setSaved(false); },
                   onSuccess: () => setSaved(true),
+                  onNetworkError: () => { setFailure(true); return false; },
+                  onHttpException: () => { setFailure(true); return false; },
                 })
               }
             >
@@ -100,6 +104,7 @@ function CriterionRow({ item, canManage }: { item: Criterion; canManage: boolean
                 Действие добавлено.
               </p>
             )}
+            {failure && <p role="alert" className="mt-2 text-sm text-(--color-danger-ink)">Не удалось добавить действие. Попробуйте ещё раз.</p>}
             <Errors errors={form.errors} />
           </div>
         )}
@@ -110,7 +115,7 @@ function CriterionRow({ item, canManage }: { item: Criterion; canManage: boolean
 export function SpeedUnavailable() {
   return <section className={card}><h2 className="text-lg font-semibold">Скорость сайта</h2><p className="mt-2 text-sm text-(--color-ink-muted)">Данные недоступны: аудит не измеряет скорость загрузки страниц.</p></section>;
 }
-export function Criteria({ criteria, canManage }: { criteria: Criterion[]; canManage: boolean }) {
+export function Criteria({ criteria, canManage, auditId }: { criteria: Criterion[]; canManage: boolean; auditId?: string | null }) {
   if (!criteria.length)
     return <div className={`${card} text-(--color-ink-muted)`}>Критерии пока не проверены.</div>;
   const groups = new Map<string, Criterion[]>();
@@ -130,6 +135,7 @@ export function Criteria({ criteria, canManage }: { criteria: Criterion[]; canMa
           <div className="mt-4 divide-y divide-(--color-border)">
             {items.map((item, index) => (
               <CriterionRow
+                auditId={auditId}
                 key={item.id || item.key || item.code || `${group}-${index}`}
                 item={item}
                 canManage={canManage}

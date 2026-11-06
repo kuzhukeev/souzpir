@@ -135,7 +135,7 @@ export function AuditProgress({progress}: {progress?: {stage:string; events?: {s
   const notified = useRef('');
   useEffect(() => {
     if (!['queued','inspecting','analyzing','saving'].includes(stage ?? '')) return;
-    const timer = window.setInterval(() => router.reload({only:['auditProgress','audit','auditDate','previousAudit']}), 2000);
+    const timer = window.setInterval(() => router.reload({only:['auditProgress','audit','auditId','auditDate','previousAudit']}), 2000);
     return () => window.clearInterval(timer);
   }, [stage]);
   useEffect(() => {
@@ -169,11 +169,12 @@ export default function Index({
   canManage,
   members = [],
   auditDate = null,
+  auditId = null,
   previousAudit = null,
   auditProgress = null,
   domainStatus = null,
   brandSite = null,
-}: Props & { brandSite?: string | null; domainStatus?: {host:string;verified:boolean} | null; auditDate?: string | null; previousAudit?: Audit | null; auditProgress?: {stage:string; events?: {stage:string; at:string}[]; pages_processed?:number; pages_total?:number; remaining_seconds?:number|null; elapsed_seconds?:number|null} | null }) {
+}: Props & { brandSite?: string | null; domainStatus?: {host:string;verified:boolean} | null; auditDate?: string | null; auditId?: string | null; previousAudit?: Audit | null; auditProgress?: {stage:string; events?: {stage:string; at:string}[]; pages_processed?:number; pages_total?:number; remaining_seconds?:number|null; elapsed_seconds?:number|null} | null }) {
   const titles: Record<Props['section'], string> = {
     overview: 'Готовность сайта к ИИ-поиску',
     criteria: 'Критерии и как исправить',
@@ -241,7 +242,7 @@ export default function Index({
         )}
         {section === 'criteria' &&
           (audit ? (
-            <div className="space-y-4"><Criteria criteria={audit.criteria || []} canManage={canManage} /></div>
+            <div className="space-y-4"><Criteria criteria={audit.criteria || []} canManage={canManage} auditId={auditId} /></div>
           ) : (
             <Empty>Сначала проверьте сайт.</Empty>
           ))}
