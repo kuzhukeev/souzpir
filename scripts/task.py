@@ -332,11 +332,15 @@ class Coordinator:
             base = record.get("baseCommit", "")
             git(worktree, "merge-base", "--is-ancestor", base, head)
             if head != base:
-                # A released, unchanged task tree may have been fast-forwarded
-                # to the published main to acquire newly added dependencies.
+                # A clean released tree with no commits outside published main
+                # contains no unpublished task work, even if main advanced later.
                 published_main = git(self.root, "rev-parse", "--verify", "refs/remotes/origin/main^{commit}", check=False)
-                if head == published_main:
-                    return True
+                if published_main:
+                    try:
+                        git(worktree, "merge-base", "--is-ancestor", head, published_main)
+                        return True
+                    except TaskError:
+                        pass
                 remote = git(self.root, "rev-parse", "--verify", "refs/remotes/origin/" + record["branch"] + "^{commit}")
                 git(worktree, "merge-base", "--is-ancestor", remote, head)
                 if unapproved_changes(worktree, base, head, [*record["scope"], *CI_SCOPE_EXCEPTIONS.get(key, ())]):

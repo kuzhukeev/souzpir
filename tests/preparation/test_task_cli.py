@@ -107,6 +107,18 @@ class TaskCliTests(unittest.TestCase):
         self.assertEqual(self.client.read_claim("SP-001")["worker"], "another-chat")
         self.assertTrue(worktree.exists())
 
+    def test_reclaim_clean_tree_at_older_published_main_without_task_remote(self):
+        worktree, original = self.claim()
+        self.commit(self.root, "app/Common/published.php")
+        task_cli.git(worktree, "merge", "--ff-only", "main")
+        self.client.release("SP-001", "Transfer")
+        self.commit(self.root, "app/Common/newer.php")
+        published = task_cli.git(self.root, "rev-parse", "main")
+        task_cli.git(self.root, "update-ref", "refs/remotes/origin/main", published)
+        self.assertEqual(self.client.ready()["tasks"][0]["taskKey"], "SP-001")
+        reclaimed = self.client.claim("SP-001", "new-owner")
+        self.assertEqual(reclaimed["baseCommit"], original["baseCommit"])
+
     def test_reclaim_clean_released_tree_with_new_merged_dependency(self):
         worktree, original = self.claim()
         self.client.release("SP-001", "Waiting for new dependency")
