@@ -8,6 +8,7 @@ test.beforeAll(async () => { server = await createServer({ configFile: 'tests/Br
 test.afterAll(async () => { await server?.close(); });
 test('сохранённый исходник доступен, старый отсутствующий обозначен', async ({ page }) => {
  await page.goto(url);
+ await page.getByLabel('Действия: Ранее.pdf').click();
  await expect(page.getByRole('link', { name: 'Скачать исходник' })).toHaveAttribute('href', '/seller/knowledge/imports/documents/saved/download');
  await expect(page.getByRole('row').filter({ hasText: 'Старый.txt' })).toContainText('Исходник недоступен');
  await mkdir('.local/screenshots/SP-E4-06G', { recursive: true });
