@@ -62,7 +62,7 @@ final class SandboxController
             }
             $guard = (new DeterministicGuard($draft))->check($answer, $goal, $state);
 
-            return ['status' => 'completed', 'answer' => $answer, 'guard' => $guard];
+            return ['status' => 'completed', 'answer' => $answer, 'guard' => $guard, 'goal' => ['kind' => $goal->kind, 'slot' => $goal->slot, 'allowed_tools' => $goal->allowedTools]];
         });
 
         return response()->json($result)->header('Cache-Control', 'private, no-store');
