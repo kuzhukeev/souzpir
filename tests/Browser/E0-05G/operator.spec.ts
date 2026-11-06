@@ -6,7 +6,7 @@ let url: string;
 test.use({ viewport: { width: 1440, height: 900 }, launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH } : {} });
 test.beforeAll(async () => { server = await createServer({ configFile: 'tests/Browser/E0-05G/reconcile-vite.config.ts', server: { host: '127.0.0.1', port: 0, strictPort: false } }); await server.listen(); url = new URL('/tests/Browser/E0-05G/reconcile-fixture.html', server.resolvedUrls!.local[0]).href; });
 test.afterAll(async () => { await server?.close(); });
-test('operator sees verified cost while ordinary owner sees none', async ({ page }) => {
+test('operator sees verified cost on a separate screen while ordinary owner sees none', async ({ page }) => {
   await page.route('**/ai/recovery/calls**', route => route.fulfill({ json: { calls: [], nextCursor: null } }));
   await page.goto(url);
   await expect(page.getByText('Подтверждённая стоимость сверки')).toHaveCount(0);
