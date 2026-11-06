@@ -12,7 +12,7 @@ test('правила, стиль и проверка фразы', async ({ page 
   await page.goto(url);
   await page.getByRole('button', { name: 'Запрещённые обещания' }).click();
   await page.getByLabel('Паттерны, по одному на строку').fill('кредит');
-  await expect(page.getByText('Сработок за 30 дней: —')).toBeVisible();
+  await expect(page.getByText('Сработок за 30 дней: 0')).toBeVisible();
   await mkdir('.local/screenshots/SP-E4-05B', { recursive: true });
   await page.screenshot({ path: '.local/screenshots/SP-E4-05B/rules.png', fullPage: true });
   await page.getByRole('button', { name: 'Стиль', exact: true }).click();
