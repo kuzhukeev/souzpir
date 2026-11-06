@@ -48,7 +48,7 @@ final class PublicationLogoE819HTest extends TenancyTestCase
         $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/aWQAAAAASUVORK5CYII=');
         Storage::disk('local')->put($path, $png);
         DB::table('brands')->where('id', $brand->id)->update(['settings' => json_encode(['logo_path' => $path])]);
-        $this->get('/vision/reports')->assertOk()->assertInertia(fn ($page) => $page->where('logoAvailable', true));
+        $this->get('/vision/report')->assertOk()->assertInertia(fn ($page) => $page->where('logoAvailable', true));
         $this->withHeaders($headers)->post('/vision/publications', [...$input, 'include_logo' => false])->assertRedirect()->assertSessionHasNoErrors();
         $first = DB::table('report_publications')->where('report_id', $report)->first();
         self::assertArrayNotHasKey('logo', json_decode($first->public_payload, true));
@@ -60,6 +60,8 @@ final class PublicationLogoE819HTest extends TenancyTestCase
         Storage::disk('local')->delete($path);
         $this->get(parse_url($url, PHP_URL_PATH))->assertOk()->assertSee($logo, false)->assertDontSee($path);
         $this->withHeaders($headers)->delete('/vision/publications/'.$last->id)->assertRedirect();
+        $this->get(parse_url($url, PHP_URL_PATH))->assertStatus(410)->assertDontSee($logo, false);
+        DB::table('report_publications')->where('id', $last->id)->update(['revoked_at' => null, 'expires_at' => now()->subSecond()]);
         $this->get(parse_url($url, PHP_URL_PATH))->assertStatus(410)->assertDontSee($logo, false);
         $this->withHeaders($headers)->post('/vision/publications', [...$input, 'include_logo' => true])->assertSessionHasErrors('include_logo');
         $this->post('/brand/switch', ['brand_id' => $other->id])->assertRedirect();
