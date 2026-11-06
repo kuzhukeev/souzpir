@@ -21741,6 +21741,34 @@
       "wave": 20,
       "promptPath": "docs/tasks/SP-E8-15J.md",
       "description": "# SP-E8-15J · История расписания для календарной оценки\n\n**Зачем:** завершить расчёт прошедших периодов и сверку экрана V-11.2.\n**Часть чего:** остаток SP-E8-15I, `docs/results/SP-E8-15I.md`.\n**Зависимости:** SP-E8-15I в `done`.\n\n## Приёмка\n- Сохранять версии расписания с момента внедрения и учитывать их при расчёте запланированных автоматических запусков за выбранный период; за даты до появления истории показывать «Нет данных», не восстанавливать расписание предположениями.\n- Соблюдать подтверждённую формулу: число автоматических запусков × вопросы × выбранные модели; ручные запуски не включать. Сверить расположение расчёта V-11.2 и все состояния с макетом.\n- Проверить границы периодов, смену расписания, отсутствие истории, права и изоляцию брендов; только fake runtime. Миграция допускается при необходимости.\n\nScope: `app/Vision/Measurements/`, `app/Vision/Settings/`, `database/migrations/E8-15J/`, `resources/js/pages/Vision/Measurements/`, `resources/js/pages/Vision/Settings/`, `tests/Feature/Vision/Settings/`, `tests/Browser/E8-15J/`, `docs/results/SP-E8-15J.md`.\n"
+    },
+    {
+      "taskKey": "SP-E4-06F",
+      "title": "SP-E4-06F · Импорт документов: завершение экрана",
+      "goal": "D-4.10: довести расположение двух колонок сопоставления, выделение исходных фрагментов, действия и статусы документов до макета; сохранять число извлечённых фактов для ранее загруженных документов.",
+      "dependsOn": [
+        "SP-E4-06E"
+      ],
+      "scope": [
+        "app/Seller/Knowledge/Imports/",
+        "database/migrations/E4-06F/",
+        "resources/js/pages/Seller/Knowledge/Imports/",
+        "tests/Feature/Seller/Knowledge/Imports/",
+        "tests/Browser/E4-06F/",
+        "docs/results/SP-E4-06F.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "D-4.10: довести расположение двух колонок сопоставления, выделение исходных фрагментов, действия и статусы документов до макета; сохранять число извлечённых фактов для ранее загруженных документов."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E4-06E.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E4-06F.md",
+      "description": "# SP-E4-06F · Импорт документов: завершение экрана\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E4-06E, docs/results/SP-E4-06E.md.\n**Зависимости:** SP-E4-06E.\n\n## Приёмка\n- D-4.10: довести расположение двух колонок сопоставления, выделение исходных фрагментов, действия и статусы документов до макета; сохранять число извлечённых фактов для ранее загруженных документов.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Seller/Knowledge/Imports/`, `database/migrations/E4-06F/`, `resources/js/pages/Seller/Knowledge/Imports/`, `tests/Feature/Seller/Knowledge/Imports/`, `tests/Browser/E4-06F/`, `docs/results/SP-E4-06F.md`.\n"
     }
   ],
   "excludedSourceTasks": {
