@@ -3,6 +3,7 @@
 namespace App\Seller\Catalog;
 
 use App\Models\User;
+use App\Seller\Engine\ToolRunner;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
@@ -52,7 +53,16 @@ final class CatalogController
 
     public function stock(Request $request): mixed
     {
-        $data = $this->access($request, fn (User $user, TenantContext $tenant) => $this->data($tenant));
+        $data = $this->access($request, function (User $user, TenantContext $tenant): array {
+            $data = $this->data($tenant);
+            $sample = collect($data['items'])->first(fn ($item) => mb_strlen(trim($item->sku ?? '')) >= 2);
+            $data['stockExample'] = $sample ? app(ToolRunner::class)->run('check_stock', ['query' => $sample->sku], $tenant) : null;
+            if (($data['stockExample']['status'] ?? null) === 'completed') {
+                $data['stockExample']['items'] = array_values(array_filter($data['stockExample']['items'], fn ($item) => $item['sku'] === $sample->sku));
+            }
+
+            return $data;
+        });
 
         return Inertia::render('Seller/Catalog/Stock', [...$data, 'status' => $request->session()->get('status')]);
     }
