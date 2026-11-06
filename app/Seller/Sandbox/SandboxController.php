@@ -2,10 +2,13 @@
 
 namespace App\Seller\Sandbox;
 
+use App\Ai\Protected\DraftResponder;
 use App\Models\User;
+use App\ProtectedOperations\DraftSimulation\FixtureRuntime;
 use App\Seller\Engine\DeterministicGuard;
 use App\Seller\Engine\Goal;
 use App\Seller\Engine\LeadState;
+use App\Seller\Engine\Policy;
 use App\Seller\Knowledge\Contracts\KnowledgeRepository;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Profile\ProfileAccess;
@@ -33,6 +36,36 @@ final class SandboxController
             ->where('brand_id', $tenant->brandId)->whereIn('status', ['draft', 'published'])->orderByDesc('created_at')->get(['id', 'status', 'version', 'published_at']));
 
         return Inertia::render('Seller/Sandbox/Index', ['releases' => $releases]);
+    }
+
+    public function reply(Request $request): mixed
+    {
+        $input = $request->validate(['release' => ['required', 'ulid'], 'text' => ['required', 'string', 'max:4000']]);
+        $result = $this->access($request, function (TenantContext $tenant) use ($input, $request): array {
+            $draft = app(KnowledgeRepository::class)->forRelease($tenant, $input['release'], true);
+            $exists = DB::table('knowledge_releases')->where('organization_id', $tenant->organizationId)
+                ->where('brand_id', $tenant->brandId)->where('id', $input['release'])->where('status', 'draft')->exists();
+            if (! $exists || config('runtime.ai_driver') !== 'fake') {
+                return ['status' => 'unavailable'];
+            }
+            $extraction = app(FixtureRuntime::class)->extract($request, $draft, $input['text']);
+            if ($extraction === null) {
+                return ['status' => 'unavailable'];
+            }
+            $state = new LeadState;
+            $policy = new Policy($draft);
+            $policy->applyExtraction($state, $extraction);
+            $goal = $policy->decide($state, $extraction, true);
+            $answer = app(DraftResponder::class)->respond($request, $draft, $state, $goal, $input['text']);
+            if ($answer === null) {
+                return ['status' => 'unavailable'];
+            }
+            $guard = (new DeterministicGuard($draft))->check($answer, $goal, $state);
+
+            return ['status' => 'completed', 'answer' => $answer, 'guard' => $guard];
+        });
+
+        return response()->json($result)->header('Cache-Control', 'private, no-store');
     }
 
     public function check(Request $request): mixed
