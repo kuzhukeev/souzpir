@@ -9,7 +9,8 @@
         :root { color-scheme: light dark; font-family: Manrope, Arial, sans-serif; color: #172c26; background: #f7f7f3; }
         * { box-sizing: border-box; }
         body { margin: 0; min-height: 100vh; }
-        header { background: #245b3e; color: white; padding: 24px max(24px, calc((100vw - 1100px) / 2)); font-size: 16px; font-weight: 700; }
+        header { background: white; color: #172c26; padding: 18px max(24px, calc((100vw - 1100px) / 2)); font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+        .brand-heading { display: flex; align-items: center; gap: 12px; min-width: 0; overflow-wrap: anywhere; } .brand-heading img { max-width: 120px; max-height: 48px; } .credit { color: #5d6c65; font-size: 14px; font-weight: 500; text-align: right; }
         main { max-width: 1100px; margin: 0 auto; padding: 48px 24px 80px; }
         h1 { font-size: clamp(28px, 4vw, 40px); line-height: 1.15; margin: 0 0 16px; }
         h2 { font-size: 20px; margin: 0 0 10px; }
@@ -31,11 +32,11 @@
         @media (max-width: 760px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } main { padding-top: 32px; } }
         @media (max-width: 760px) { .action-grid { grid-template-columns: 1fr; } }
         @media print { .print-button { display: none; } :root { color: #172c26; background: white; } .card { break-inside: avoid; box-shadow: none; } }
-        @media (prefers-color-scheme: dark) { :root { color: #e7f0e9; background: #16231c; } .card { background: #243329; border-color: #3f5948; } .muted { color: #b4c7b9; } .criteria li, .action-grid li { background: #1c2a21; } }
+        @media (prefers-color-scheme: dark) { :root { color: #e7f0e9; background: #16231c; } header { background: #243329; color: #e7f0e9; } .credit { color: #b4c7b9; } .card { background: #243329; border-color: #3f5948; } .muted { color: #b4c7b9; } .criteria li, .action-grid li { background: #1c2a21; } }
     </style>
 </head>
 <body>
-<header>@if (! $expired && isset($report['logo']) && is_string($report['logo']) && (str_starts_with($report['logo'], 'data:image/png;base64,') || str_starts_with($report['logo'], 'data:image/svg+xml;base64,')))<img src="{{ $report['logo'] }}" alt="Логотип {{ $brandName }}" style="max-width:120px;max-height:48px;vertical-align:middle;margin-right:16px">@endif EYON · Видение</header>
+<header><div class="brand-heading">@if (! $expired && isset($report['logo']) && is_string($report['logo']) && (str_starts_with($report['logo'], 'data:image/png;base64,') || str_starts_with($report['logo'], 'data:image/svg+xml;base64,')))<img src="{{ $report['logo'] }}" alt="Логотип {{ $brandName }}" >@endif @if (! $expired)<span>{{ $brandName }}</span>@endif</div> <span class="credit">Отчёт подготовлен <strong>EYON</strong></span></header>
 <main>
     @if ($expired)
         <h1>Ссылка недоступна</h1>
@@ -51,11 +52,11 @@
         <div class="grid">
             @foreach ([
                 ['Видимость', $report['visibility'], '%', 'visibility'],
-                ['Покрытие', $report['coverage'], '%', 'coverage'],
                 ['Доля голоса', $report['share_of_voice'], '%', 'share_of_voice'],
                 ['Средняя позиция', $report['position'], '', 'position'],
+                ['Ошибок о вас', $report['verified_errors'] ?? null, '', 'verified_errors'],
             ] as [$title, $value, $suffix, $metric])
-                <section class="card"><h2>{{ $title }}</h2><p class="value">{{ $value === null ? '—' : number_format($value, 1, ',', ' ').$suffix }}</p>
+                <section class="card"><h2>{{ $title }}</h2><p class="value">{{ $value === null ? 'Нет данных' : ($metric === 'verified_errors' ? (string) $value : number_format($value, 1, ',', ' ').$suffix) }}</p>
                     @php
                         $series = collect($report['history'] ?? [])->pluck($metric)->filter(fn ($v) => is_numeric($v))->values()->all();
                         $points = [];
