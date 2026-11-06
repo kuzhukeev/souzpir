@@ -7,5 +7,5 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   publicDir: 'public',
   resolve: { alias: { '@': fileURLToPath(new URL('../../../resources/js', import.meta.url)) } },
-  server: { host: '127.0.0.1', port: 5216, strictPort: true },
+  server: { host: '127.0.0.1', port: 5216, strictPort: true, watch: process.env.CI ? null : undefined },
 });

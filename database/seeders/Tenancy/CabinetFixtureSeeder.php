@@ -9,6 +9,7 @@ use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use LogicException;
 
 final class CabinetFixtureSeeder extends Seeder
@@ -37,7 +38,14 @@ final class CabinetFixtureSeeder extends Seeder
             // Auth/onboarding later assigns the first owner in its transaction.
             app(TenantContextRunner::class)->run(new TenantContext($organization->id), function (): void {
                 foreach (['confectionery' => 'Кондитерский бренд', 'pyro' => 'Пиротехнический бренд', 'neutral' => 'Нейтральный бренд'] as $theme => $name) {
-                    Brand::create(['name' => $name.' · демо', 'theme' => $theme]);
+                    $brand = Brand::create(['name' => $name.' · демо', 'theme' => $theme]);
+                    foreach (['seller', 'vision'] as $module) {
+                        DB::table('brand_modules')->insert([
+                            'id' => (string) Str::ulid(), 'organization_id' => $brand->organization_id,
+                            'brand_id' => $brand->id, 'module' => $module, 'enabled' => true,
+                            'created_at' => now(), 'updated_at' => now(),
+                        ]);
+                    }
                 }
             });
         });

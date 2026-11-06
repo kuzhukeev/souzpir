@@ -11,3 +11,5 @@
 Без боевых вызовов: каналы за выключенным флагом, тесты на fake. Сверить экран с макетом, проверить права, бренд и ошибки. Остаток записать в отчёт.
 
 Scope: `app/Seller/Channels/Telegram/`, `resources/js/pages/Seller/Channels/Telegram/`, `routes/features/E5-01.php`, `config/features/E5-01H.php`, `tests/Feature/Owner/E5-01H/`, `tests/Browser/E5-01H/`, `docs/results/SP-E5-01H.md`.
+
+Точечное исключение CI: `phpunit.xml` — только добавить `tests/Feature/Owner/E5-01H/TelegramClientTest.php` в Product, не удаляя и не меняя другие проверки.

@@ -312,6 +312,18 @@ class FeatureRegistryTest extends TestCase
         self::assertSame([CountingSeeder::class], $registry->seeders('E1-01'));
     }
 
+    public function test_all_features_seeders_are_deduplicated_for_string_feature_ids(): void
+    {
+        $config = ['seeders' => [CountingSeeder::class]];
+        $this->write('config/features/E1-01.php', '<?php return '.var_export($config, true).';');
+        $this->write('config/features/E1-02.php', '<?php return '.var_export($config, true).';');
+        $registry = new FeatureRegistry($this->fixtureApp);
+        $registry->register();
+        self::assertSame([CountingSeeder::class], $registry->seeders());
+        self::assertSame([CountingSeeder::class], $registry->seeders('E1-01'));
+        self::assertSame(0, CountingSeeder::$runs);
+    }
+
     public function test_explicit_scheduling_flag_registers_contributor_without_running_it(): void
     {
         $this->write('config/features/E1-01.php', '<?php return '.var_export(['schedules' => [CountingSchedule::class]], true).';');

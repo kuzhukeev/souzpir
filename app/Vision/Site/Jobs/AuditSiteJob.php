@@ -37,20 +37,19 @@ final class AuditSiteJob implements ShouldQueue
         $key = self::key($this->organizationId, $this->brandId);
         $tenant = new TenantContext($this->organizationId, $this->brandId, $this->actorId, $this->membershipId, 'job');
         $started = microtime(true);
+        Cache::put($key, [...Cache::get($key, []), 'started_at_epoch' => $started], now()->addDay());
         try {
-            app(TenantContextRunner::class)->run($tenant, function () use ($inspector, $access, $audit, $tenant, $key, $started): void {
+            app(TenantContextRunner::class)->run($tenant, function () use ($inspector, $access, $audit, $tenant, $key): void {
                 DB::transaction(function () use ($access, $tenant): void {
                     $this->assertSessionActive();
                     $access->lock($tenant, true, 'vision.actions.write');
                 });
                 $this->progress($key, 'inspecting');
-                $result = $inspector->inspect($this->url, 50, function (int $processed, int $total) use ($key, $started): void {
+                $result = $inspector->inspect($this->url, 50, function (int $processed, int $total) use ($key): void {
                     $data = Cache::get($key, []);
-                    $seconds = microtime(true) - $started;
                     $data['pages_processed'] = $processed;
                     $data['pages_total'] = $total;
-                    $data['remaining_seconds'] = $processed >= 2 && $processed < $total && $seconds > 0
-                        ? max(1, (int) ceil($seconds / $processed * ($total - $processed))) : null;
+                    $data['remaining_seconds'] = null;
                     Cache::put($key, $data, now()->addDay());
                     if ($processed >= $total) {
                         $this->progress($key, 'analyzing');

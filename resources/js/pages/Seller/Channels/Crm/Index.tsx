@@ -104,7 +104,6 @@ export default function Index({ canManage, webhooks, status }: { canManage: bool
                     </p>
                     <div className="mt-3 flex flex-wrap gap-2">
                       <button type="button" disabled={!!sending} onClick={() => sendTest(hook.id, false)} className="min-h-11 cursor-pointer rounded-lg border border-(--color-border) px-4 text-sm font-semibold text-(--color-link) disabled:cursor-not-allowed disabled:opacity-50">Отправить тестовое событие</button>
-                      <button type="button" disabled={!!sending} onClick={() => sendTest(hook.id, true)} className="min-h-11 cursor-pointer rounded-lg border border-(--color-border) px-4 text-sm font-semibold text-(--color-link) disabled:cursor-not-allowed disabled:opacity-50">Проверить ошибку</button>
                     </div>
                     {hook.deliveries.length === 0 ? (
                       <p className="mt-2">Записей в журнале пока нет.</p>

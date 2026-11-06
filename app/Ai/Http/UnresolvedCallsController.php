@@ -33,13 +33,12 @@ final class UnresolvedCallsController
                     $query->where('id', '>', strtoupper($input['after']));
                 }
                 // Fetch only the fields required for an operator to locate an unresolved call.
-                $calls = $query->orderBy('id')->limit(51)->get(['id', 'status', 'family', 'reserved_micros', 'created_at', 'updated_at']);
+                $calls = $query->orderBy('id')->limit(51)->get(['id', 'status', 'family', 'created_at', 'updated_at']);
                 $hasMore = $calls->count() > 50;
                 $items = $calls->take(50)->map(static fn (object $call): array => [
                     'id' => $call->id,
                     'status' => $call->status,
                     'family' => $call->family,
-                    'reservedMicros' => (string) $call->reserved_micros,
                     'createdAt' => $call->created_at,
                     'updatedAt' => $call->updated_at,
                 ])->values()->all();

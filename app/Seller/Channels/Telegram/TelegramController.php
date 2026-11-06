@@ -22,8 +22,10 @@ final class TelegramController
     public function index(TenantContext $context): Response
     {
         $this->authorize($context, false);
-        $accounts = ChannelAccount::query()->orderBy('name')->get();
-        $widget = DB::table('widget_settings')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)->first(['enabled', 'origins']);
+        $widget = DB::table('widget_settings')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)->first(['id', 'enabled', 'origins']);
+        $accounts = ChannelAccount::query()->orderBy('name')->get()->filter(
+            fn (ChannelAccount $account): bool => $account->type !== 'widget' || ($widget && ($account->settings['widget_id'] ?? null) === $widget->id)
+        );
         $counts = DB::table('conversations')->where('organization_id', $context->organizationId)
             ->where('brand_id', $context->brandId)
             ->selectRaw('channel_account_id, sum(case when last_client_message_at >= ? then 1 else 0 end) as total, max(last_client_message_at) as last_activity', [now()->subDays(7)])
@@ -69,7 +71,15 @@ final class TelegramController
             throw ValidationException::withMessages(['token' => 'Введите токен бота.']);
         }
 
-        return back()->with('telegram_verification', app(FakeTelegramClient::class)->bot($token));
+        $live = config('features.E5-01H.defaults.live_enabled', false) === true;
+        $result = $live
+            ? app(HttpTelegramClient::class)->bot($token)
+            : app(FakeTelegramClient::class)->bot($token);
+        if ($result === null) {
+            throw ValidationException::withMessages(['token' => 'Не удалось проверить токен бота.']);
+        }
+
+        return back()->with('telegram_verification', [...$result, 'simulated' => ! $live]);
     }
 
     public function linkCode(Request $request, TenantContext $context): RedirectResponse

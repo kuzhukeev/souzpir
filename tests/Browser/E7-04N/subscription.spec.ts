@@ -1,0 +1,6 @@
+import {expect,test} from '@playwright/test'; import {createServer,type ViteDevServer} from 'vite'; import {mkdir} from 'node:fs/promises';
+let server:ViteDevServer; let url:string;
+test.use({viewport:{width:1440,height:900},launchOptions:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH?{executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH}:{}});
+test.beforeAll(async()=>{server=await createServer({configFile:'tests/Browser/E7-04N/vite.config.ts',cacheDir:'.local/runtime/vite-e704n',server:{host:'127.0.0.1',port:0,strictPort:false}});await server.listen();url=new URL('/tests/Browser/E7-04N/fixture.html',server.resolvedUrls!.local[0]).href;});
+test.afterAll(async()=>{await server?.close();});
+test('saved schedule and test delivery are clear',async({page})=>{await page.goto(url);await page.getByRole('button',{name:'Отчёты',exact:true}).click();await expect(page.getByLabel('День недели')).toHaveValue('wed');await expect(page.getByLabel('Получатели, по одному адресу в строке')).toHaveValue('test@example.test');await expect(page.getByText('Реальная отправка пока не подключена; доступна тестовая отправка выше.')).toBeVisible();await mkdir('.local/screenshots/SP-E7-04N',{recursive:true});await page.screenshot({path:'.local/screenshots/SP-E7-04N/subscription.png',fullPage:true});});

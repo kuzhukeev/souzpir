@@ -107,6 +107,42 @@ class TaskCliTests(unittest.TestCase):
         self.assertEqual(self.client.read_claim("SP-001")["worker"], "another-chat")
         self.assertTrue(worktree.exists())
 
+    def test_reclaim_clean_tree_at_older_published_main_without_task_remote(self):
+        worktree, original = self.claim()
+        self.commit(self.root, "app/Common/published.php")
+        task_cli.git(worktree, "merge", "--ff-only", "main")
+        self.client.release("SP-001", "Transfer")
+        self.commit(self.root, "app/Common/newer.php")
+        published = task_cli.git(self.root, "rev-parse", "main")
+        task_cli.git(self.root, "update-ref", "refs/remotes/origin/main", published)
+        self.assertEqual(self.client.ready()["tasks"][0]["taskKey"], "SP-001")
+        reclaimed = self.client.claim("SP-001", "new-owner")
+        self.assertEqual(reclaimed["baseCommit"], original["baseCommit"])
+
+    def test_reclaim_clean_released_tree_with_new_merged_dependency(self):
+        worktree, original = self.claim()
+        self.client.release("SP-001", "Waiting for new dependency")
+        dependency = task_cli.git(self.root, "rev-parse", "main")
+        self.dependency(dependency)
+        task_cli.git(self.root, "update-ref", "refs/remotes/origin/main", task_cli.git(self.root, "rev-parse", "main"))
+        task_cli.git(worktree, "merge", "--ff-only", "main")
+        self.assertEqual(self.client.ready()["tasks"][0]["taskKey"], "SP-001")
+        reclaimed = self.client.claim("SP-001", "new-owner")
+        self.assertEqual(reclaimed["baseCommit"], original["baseCommit"])
+        record = self.client.read_claim("SP-001")
+        self.assertEqual(record["dependsOn"], ["SP-000"])
+        self.assertEqual(record["dependencyCommits"], {"SP-000": dependency})
+
+    def test_reclaim_rejects_new_dependency_absent_from_saved_tree(self):
+        self.claim()
+        self.client.release("SP-001", "Waiting for new dependency")
+        self.commit(self.root, "app/Common/dependency.php")
+        dependency = task_cli.git(self.root, "rev-parse", "main")
+        self.dependency(dependency)
+        with self.assertRaisesRegex(task_cli.TaskError, "absent from the selected main base"):
+            self.client.claim("SP-001", "new-owner")
+        self.assertEqual(self.api.task["status"], "queue")
+
     def test_reclaim_preserves_published_task_commits_and_original_base(self):
         worktree, original = self.claim()
         target = worktree / "app/Feature/saved.txt"
@@ -294,6 +330,36 @@ class TaskCliTests(unittest.TestCase):
         self.assertFalse(task_cli.scope_allows(".local/claims/task.json", ["/"]))
         self.assertFalse(task_cli.scope_allows(".LOCAL/claims/task.json", ["/"]))
         self.assertFalse(task_cli.scope_allows("app/../outside.php", ["/"]))
+
+    def test_e507b_ci_exception_allows_only_moved_fixture_files(self):
+        scope = task_cli.CI_SCOPE_EXCEPTIONS["SP-E5-07B"]
+        for name in ("preview-e507b.html", "preview-e507b.spec.ts", "preview-e507b.tsx", "vite-e507b.config.ts"):
+            self.assertTrue(task_cli.scope_allows("tests/Browser/E5-07B/" + name, scope))
+        self.assertFalse(task_cli.scope_allows("tests/Browser/E5-07B/other.spec.ts", scope))
+
+    def test_owner_reserved_tasks_are_not_issued_to_codex(self):
+        with patch.object(task_cli, "CLAUDE_PILOT_TASKS", frozenset(("SP-001",))):
+            self.assertEqual(self.client.ready()["tasks"], [])
+            with self.assertRaisesRegex(task_cli.TaskError, "reserved for claude:pilot"):
+                self.client.claim("SP-001", "codex:executor")
+            self.assertNotIn("claim", self.api.calls)
+            claimed = self.client.claim("SP-001", "claude:pilot")
+            self.assertEqual(claimed["taskKey"], "SP-001")
+
+    def test_e501h_ci_exception_is_limited_to_phpunit_config(self):
+        scope = task_cli.CI_SCOPE_EXCEPTIONS["SP-E5-01H"]
+        self.assertTrue(task_cli.scope_allows("phpunit.xml", scope))
+        self.assertFalse(task_cli.scope_allows("composer.json", scope))
+
+    def test_e815f_ci_exception_is_limited_to_legacy_weekly_spec(self):
+        scope = task_cli.CI_SCOPE_EXCEPTIONS["SP-E8-15F"]
+        self.assertTrue(task_cli.scope_allows("tests/Browser/E8-15E/weekly.spec.ts", scope))
+        self.assertFalse(task_cli.scope_allows("tests/Browser/E8-15E/other.spec.ts", scope))
+
+    def test_e706c_ci_exception_is_limited_to_legacy_crm_spec(self):
+        scope = task_cli.CI_SCOPE_EXCEPTIONS["SP-E7-06C"]
+        self.assertTrue(task_cli.scope_allows("tests/Browser/E6-09/crm.spec.ts", scope))
+        self.assertFalse(task_cli.scope_allows("tests/Browser/E6-09/other.spec.ts", scope))
 
     def test_submit_allows_default_generated_contracts_only(self):
         worktree, _ = self.claim()

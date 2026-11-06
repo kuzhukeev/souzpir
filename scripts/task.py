@@ -18,6 +18,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 
+CLAUDE_PILOT_TASKS = frozenset()
+
+
 class TaskError(RuntimeError):
     pass
 
@@ -94,6 +97,13 @@ GENERATED_CONTRACT_FILES = frozenset(
 # Narrow integrator-approved scope corrections for shared routes, UI and CI
 # regressions. They do not broaden ownership to neighboring modules.
 CI_SCOPE_EXCEPTIONS = {
+    "SP-E0-05G": ("app/Ai/Http/RecoverCallController.php", "app/Ai/Http/OperatorRecoveryController.php", "routes/features/E0-05B.php", "config/platform-operators.php"),
+    "SP-E4-05D": ("tests/Browser/E4-05B/prohibitions.spec.ts",),
+    "SP-E5-07B": ("tests/Browser/E5-07B/preview-e507b.html", "tests/Browser/E5-07B/preview-e507b.spec.ts", "tests/Browser/E5-07B/preview-e507b.tsx", "tests/Browser/E5-07B/vite-e507b.config.ts"),
+    "SP-E5-01H": ("phpunit.xml",),
+    "SP-E8-15F": ("tests/Browser/E8-15E/weekly.spec.ts",),
+    "SP-E7-06C": ("tests/Browser/E6-09/crm.spec.ts",),
+    "SP-E7-04N": ("composer.json", "composer.lock", "database/migrations/E7-04N/", "routes/features/E7-04.php"),
     "SP-E7-04G": ("tests/Browser/E7-04D/analytics.spec.ts", "tests/Browser/E7-04E/channels.spec.ts"),
     "SP-E8-20O": ("scripts/ci/browser-smoke.sh", ".github/workflows/ci.yml"),
     "SP-E1-07D": ("scripts/ci/browser-smoke.sh", ".github/workflows/ci.yml", "config/billing.php",),
@@ -324,6 +334,15 @@ class Coordinator:
             base = record.get("baseCommit", "")
             git(worktree, "merge-base", "--is-ancestor", base, head)
             if head != base:
+                # A clean released tree with no commits outside published main
+                # contains no unpublished task work, even if main advanced later.
+                published_main = git(self.root, "rev-parse", "--verify", "refs/remotes/origin/main^{commit}", check=False)
+                if published_main:
+                    try:
+                        git(worktree, "merge-base", "--is-ancestor", head, published_main)
+                        return True
+                    except TaskError:
+                        pass
                 remote = git(self.root, "rev-parse", "--verify", "refs/remotes/origin/" + record["branch"] + "^{commit}")
                 git(worktree, "merge-base", "--is-ancestor", remote, head)
                 if unapproved_changes(worktree, base, head, [*record["scope"], *CI_SCOPE_EXCEPTIONS.get(key, ())]):
@@ -337,6 +356,9 @@ class Coordinator:
         available, blocked = [], []
         for task in response.get("tasks", []):
             key = task["taskKey"]
+            if key in CLAUDE_PILOT_TASKS:
+                blocked.append({"taskKey": key, "localBlockers": ["reserved_for_claude"]})
+                continue
             branch = "codex/" + key.lower()
             reasons = []
             if self.local_path(key).exists():
@@ -353,7 +375,7 @@ class Coordinator:
                             and record.get("project") == self.project and record.get("branch") == branch
                             and Path(record.get("worktree", "")).resolve() == worktree.resolve()
                             and scope_signature(record.get("scope", [])) == scope_signature(task.get("scope", []))
-                            and sorted(record.get("dependsOn", [])) == sorted(task.get("dependsOn", []))
+                            and set(record.get("dependsOn", [])) <= set(task.get("dependsOn", []))
                             and git(worktree, "branch", "--show-current") == branch
                             and not git(worktree, "status", "--porcelain=v1", "--untracked-files=all")
                             and self.preserved_head_is_safe(key, record, worktree)):
@@ -403,6 +425,8 @@ class Coordinator:
         key_name(key)
         if not worker.strip():
             raise TaskError("A nonempty worker/chat identifier is required")
+        if key in CLAUDE_PILOT_TASKS and worker != "claude:pilot":
+            raise TaskError("Task is reserved for claude:pilot by the owner")
         plan = self.plan(key)
         tasks = self.api.call("list").get("tasks", [])
         task = self.task(key, tasks)
@@ -418,7 +442,7 @@ class Coordinator:
                     or record.get("project") != self.project or record.get("branch") != branch
                     or Path(record.get("worktree", "")).resolve() != worktree.resolve()
                     or scope_signature(record.get("scope", [])) != scope_signature(task.get("scope", []))
-                    or sorted(record.get("dependsOn", [])) != sorted(task.get("dependsOn", []))):
+                    or not set(record.get("dependsOn", [])) <= set(task.get("dependsOn", []))):
                 raise TaskError("Existing worktree is not safely released; inspect it without overwriting")
             base = self.integration_base()
             head = git(worktree, "rev-parse", "HEAD^{commit}")
@@ -435,7 +459,7 @@ class Coordinator:
             try:
                 self.validate_plan(key, plan, response["task"])
                 record.update(claimToken=token, worker=worker, dependencyCommits=dependencies,
-                              status="progress", revision=response["task"]["revision"])
+                              dependsOn=task.get("dependsOn", []), status="progress", revision=response["task"]["revision"])
                 self.save_claim(record)
             except (OSError, TaskError) as error:
                 try:

@@ -16,3 +16,5 @@
 Без боевых вызовов: каналы за выключенным флагом, тесты на fake. Сверить экран с макетом, проверить права, бренд и ошибки. Остаток записать в отчёт.
 
 Scope: `app/Vision/Questions/`, `app/Vision/Measurements/`, `app/Vision/Settings/`, `resources/js/pages/Vision/Questions/`, `resources/js/pages/Vision/Measurements/`, `resources/js/pages/Vision/Settings/`, `tests/Feature/Owner/E8-15F/`, `tests/Browser/E8-15F/`, `docs/results/SP-E8-15F.md`, `resources/js/features/Vision/Questions/`, `resources/js/features/Vision/Measurements/`, `tests/Feature/Vision/Questions/`, `tests/Feature/Vision/Settings/`.
+
+Дополнительный точечный scope для CI: `tests/Browser/E8-15E/weekly.spec.ts` — актуализировать ожидания по расчёту слотов, сохраняя смысл проверок.

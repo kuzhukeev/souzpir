@@ -11,3 +11,5 @@
 Остаток записать в отчёт.
 
 Scope: `app/Seller/Dashboard/`, `resources/js/pages/Seller/Dashboard/`, `resources/js/pages/Seller/Channels/Crm/`, `resources/js/pages/Seller/Analytics/`, `tests/Feature/Seller/Dashboard/`, `tests/Browser/E7-06C/`, `docs/results/SP-E7-06C.md`.
+
+Дополнительный точечный scope для CI: `tests/Browser/E6-09/crm.spec.ts` — привести ожидания скрытой кнопки к принятому поведению без ослабления остальных проверок.
