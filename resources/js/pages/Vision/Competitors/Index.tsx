@@ -580,6 +580,7 @@ export default function Index({
                       onClick={() => {
                         setSource(a);
                         setTarget(b);
+                        setExtraSources([]);
                         setMergeOpen(true);
                       }}
                     >
@@ -636,7 +637,7 @@ export default function Index({
               >
                 <h2 className="text-xl font-bold">Объединить названия</h2>
                 <p className="mt-2 text-sm">
-                  Выберите два названия одной компании. Показатели раздела пересчитаются по ответам
+                  Выберите названия одной компании. Показатели раздела пересчитаются по ответам
                   снимка.
                 </p>
                 <label className="mt-4 block text-sm">
@@ -649,41 +650,15 @@ export default function Index({
                   />
                 </label>
                 <fieldset className="mt-4">
-                  <legend className="text-sm font-semibold">Выберите два дубля</legend>
-                  <div className="mt-2 flex flex-wrap gap-3">
-                    {candidates
-                      .filter(
-                        (e) =>
-                          e.name
-                            .toLocaleLowerCase('ru')
-                            .includes(mergeSearch.toLocaleLowerCase('ru')) ||
-                          e.name === source ||
-                          e.name === target,
-                      )
-                      .map((e) => (
-                        <label
-                          key={e.name}
-                          className="flex cursor-pointer items-center gap-2 rounded-lg border border-(--color-border) p-3 text-sm"
-                        >
-                          <input
-                            type="checkbox"
-                            aria-label={`Дубль: ${e.name}`}
-                            checked={source === e.name || target === e.name}
-                            disabled={
-                              !!source && !!target && source !== e.name && target !== e.name
-                            }
-                            onChange={(event) => {
-                              if (event.target.checked) {
-                                if (!source) setSource(e.name);
-                                else setTarget(e.name);
-                              } else if (source === e.name) setSource('');
-                              else setTarget('');
-                            }}
-                          />
-                          {e.name}
-                        </label>
-                      ))}
-                  </div>
+                  <legend className="text-sm font-semibold">Объединить вручную</legend>
+                  <div className="mt-2 overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr><th className="p-2">Выбрать</th><th className="p-2">Название</th><th className="p-2">Источник</th></tr></thead><tbody>
+                    {candidates.filter(e => e.name.toLocaleLowerCase('ru').includes(mergeSearch.toLocaleLowerCase('ru')) || e.name === source || e.name === target || extraSources.includes(e.name)).map(e => (
+                      <tr key={e.name} className="border-t border-(--color-border)"><td className="p-2"><input type="checkbox" className="cursor-pointer" aria-label={`Дубль: ${e.name}`} checked={source === e.name || target === e.name || extraSources.includes(e.name)} onChange={event => {
+                        if (event.target.checked) { if (!source) setSource(e.name); else if (!target) setTarget(e.name); else setExtraSources([...extraSources, e.name]); }
+                        else if (source === e.name) setSource(''); else if (target === e.name) setTarget(''); else setExtraSources(extraSources.filter(name => name !== e.name));
+                      }}/></td><td className="p-2">{e.name}{!!e.aliases?.length && <p className="text-(--color-ink-muted)">Объединено: {e.aliases.join(', ')}</p>}</td><td className="p-2">{e.sources?.join(', ') || 'Нет данных'}</td></tr>
+                    ))}
+                  </tbody></table></div>
                 </fieldset>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   <label className="text-sm">
@@ -744,7 +719,6 @@ export default function Index({
                   <legend className="text-sm font-semibold">Дополнительные названия</legend>
                   <div className="mt-2 flex flex-wrap gap-2">{entities.filter(e => !e.is_brand && e.name !== source && e.name !== target).map(e => <label key={e.name} className="flex cursor-pointer items-center gap-2 rounded-lg border border-(--color-border) p-2 text-sm"><input type="checkbox" checked={extraSources.includes(e.name)} onChange={event=>setExtraSources(event.target.checked ? [...extraSources,e.name] : extraSources.filter(name=>name!==e.name))}/>{e.name}</label>)}</div>
                 </fieldset>
-                <div className="mt-4 overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr><th className="p-2">Название</th><th className="p-2">Источники</th></tr></thead><tbody>{entities.filter(e => [source,target,...extraSources].includes(e.name)).map(e=><tr key={e.name} className="border-t border-(--color-border)"><td className="p-2">{e.name}</td><td className="p-2">{e.sources?.join(', ') || 'Нет данных'}</td></tr>)}</tbody></table></div>
                 <button
                   disabled={busy || !source || !target || source === target}
                   className="mt-4 min-h-11 cursor-pointer rounded-lg bg-(--color-link) px-4 text-sm font-semibold text-white disabled:opacity-50"
@@ -761,6 +735,9 @@ export default function Index({
               title="Объединить названия?"
               onClose={() => setMergeOpen(false)}
             >
+              <p className="mb-3 text-sm text-(--color-ink-muted)">Выбрано: {new Set([source, target, ...extraSources].filter(Boolean)).size}</p>
+              <ul className="mb-3 rounded-lg bg-(--color-surface-muted) p-3 text-sm">{Array.from(new Set([source, target, ...extraSources].filter(Boolean))).map(name => <li key={name} className="py-1">{name}</li>)}</ul>
+              <label className="mb-3 block text-sm">Основное название в подтверждении<select className={`${field} mt-1 block w-full cursor-pointer`} value={target} onChange={event => {const next=event.target.value;const others=Array.from(new Set([source,target,...extraSources].filter(name => name && name !== next)));setSource(others[0] ?? '');setExtraSources(others.slice(1));setTarget(next);}}>{Array.from(new Set([source,target,...extraSources].filter(Boolean))).map(name => <option key={name} value={name}>{name}</option>)}</select></label>
               <p className="text-sm">
                 «{[source, ...extraSources.filter(name=>name !== source && name !== target)].join('», «')}» {extraSources.filter(name=>name !== source && name !== target).length ? 'будут объединены' : 'будет объединено'} с «{target}». Показатели раздела пересчитаются по
                 сохранённым ответам.
