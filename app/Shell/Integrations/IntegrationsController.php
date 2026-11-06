@@ -3,6 +3,7 @@
 namespace App\Shell\Integrations;
 
 use App\Models\Brand;
+use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Brands\BrandAccess;
 use App\Shell\Integrations\CompanyNotifications\CompanyNotificationSettings;
 use App\Shell\Integrations\Keys\KeysController;
@@ -50,7 +51,16 @@ final class IntegrationsController
             $connections[] = ['id' => strtolower($title), 'title' => $title, 'description' => 'Интеграция появится позже.', 'status' => 'soon', 'connected_at' => null, 'href' => null];
         }
 
-        return Inertia::render('Shell/Integrations/Index', compact('connections'));
+        $priceMail = DB::table('seller_email_price_settings')->where('organization_id', $ctx->organizationId)->where('brand_id', $ctx->brandId)->first();
+        $sellerEnabled = app(SellerModuleAccess::class)->enabled($ctx->organizationId, $ctx->brandId);
+        $canConfigurePriceMail = Gate::allows('seller.settings.write') && $sellerEnabled;
+        $connections[] = ['id' => 'price_email', 'title' => 'Почта для прайса', 'description' => 'Отправка прайс-листа клиентам по почте.',
+            'status' => ! $sellerEnabled ? 'disabled' : ($priceMail?->enabled ? 'configured' : 'disconnected'), 'connected_at' => null,
+            'settings_restricted' => ! Gate::allows('seller.settings.write'), 'href' => $canConfigurePriceMail && Route::has('seller.channels.email.index') ? route('seller.channels.email.index') : null];
+
+        $crmHref = $sellerEnabled && Gate::allows('seller.settings.read') && Route::has('seller.integrations.crm') ? route('seller.integrations.crm') : null;
+
+        return Inertia::render('Shell/Integrations/Index', compact('connections', 'crmHref'));
     }
 
     public function api(Request $request, WebhookService $webhooks, BrandReadApiAvailability $brandReadApi): Response
