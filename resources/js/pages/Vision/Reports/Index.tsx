@@ -31,6 +31,8 @@ export default function Index({ reportBrandRevision, status, createdUrl, ttlDays
   const key = JSON.stringify([brandId, reportBrandRevision, selected, epoch]);
   const view = state.key === key ? state : { data: null, error: '' };
   const activeReport = view.data?.report;
+  const activeMeasurement = view.data?.reports.find((item) => item.id === activeReport?.id);
+  const measurementDate = activeMeasurement?.measurement_at;
   const confirmedActions = review.reportId === activeReport?.id ? review.keys : [];
   const includeLogo = logoAvailable && logoConsent.brandId === brandId && logoConsent.reportId === activeReport?.id && logoConsent.checked;
   const toggleAction = (key: string) => {
@@ -73,7 +75,7 @@ export default function Index({ reportBrandRevision, status, createdUrl, ttlDays
   return <CabinetLayout breadcrumbs={[{ label: 'Видение', href: '/vision' }, { label: 'Внутренний отчёт' }]}>
     <Head title="Внутренний отчёт Видения" />
     <div className="mx-auto max-w-[1500px]">
-      <header className="mb-6"><h1 className="text-3xl font-bold">Отчёт о видимости в нейросетях</h1><Link href="/vision/clarifications" className="mt-2 inline-flex min-h-11 cursor-pointer items-center text-sm font-semibold text-(--color-link)">Уточнения</Link><p className="mt-2 text-sm text-(--color-ink-muted)">Расчёты по подтверждённым замерам текущего бренда</p></header>
+      <header className="mb-6"><h1 className="text-3xl font-bold">Отчёт о видимости в нейросетях</h1>{activeReport && <p className="mt-2 text-sm text-(--color-ink-muted)">{measurementDate ? `Замер от ${new Date(measurementDate).toLocaleDateString('ru-RU')}` : 'Дата замера недоступна'} · Вопросов: {activeReport.questions} · Моделей: {activeReport.providers.length}</p>}<Link href="/vision/clarifications" className="mt-2 inline-flex min-h-11 cursor-pointer items-center text-sm font-semibold text-(--color-link)">Уточнения</Link><p className="mt-2 text-sm text-(--color-ink-muted)">Расчёты по подтверждённым замерам текущего бренда</p></header>
       {status && <p role="status" className="mb-4 rounded-lg bg-(--color-success-soft) p-3 text-sm">{status}</p>}
       {createError && <p role="alert" className="mb-4 rounded-lg bg-(--color-danger-soft) p-3 text-sm text-(--color-danger-ink)">{createError}</p>}
       {view.error && <div role="alert" className="mb-4 rounded-lg bg-(--color-danger-soft) p-4 text-sm text-(--color-danger-ink)">{view.error} <button type="button" className={button} onClick={() => setEpoch((value) => value + 1)}>Повторить</button></div>}
