@@ -21076,7 +21076,9 @@
         "resources/js/pages/Seller/Reviews/",
         "tests/Feature/Seller/Dialogs/",
         "tests/Browser/E5-10D/",
-        "docs/results/SP-E5-10D.md"
+        "docs/results/SP-E5-10D.md",
+        "app/Seller/Knowledge/Releases/",
+        "routes/features/E5-10.php"
       ],
       "exclusiveResources": [],
       "acceptance": [
@@ -21089,7 +21091,7 @@
       "screenIds": [],
       "wave": 20,
       "promptPath": "docs/tasks/SP-E5-10D.md",
-      "description": "# SP-E5-10D · Массовая передача пометок\n\n**Зачем:** завершить соответствующий сценарий и экран по результату SP-E5-10C.\n**Часть чего:** остаток SP-E5-10C, docs/results/SP-E5-10C.md.\n**Зависимости:** SP-E5-10C.\n\n## Приёмка\n- Массово передавать остальные типы пометок («Непонятно», «Канцелярит», «Слишком длинно», «Неверный тон», «Другое») во входящие знаний как замечания с текстом исходного сообщения и комментарием; не изменять базу знаний автоматически. Сохранить права, изоляцию брендов и обработку ошибок.\n- Сохранить существующее поведение, проверить права, ошибки и изоляцию брендов; использовать fake runtime.\n\nScope: `app/Seller/Reviews/`, `app/Seller/Dialogs/`, `resources/js/pages/Seller/Reviews/`, `tests/Feature/Seller/Dialogs/`, `tests/Browser/E5-10D/`, `docs/results/SP-E5-10D.md`.\n"
+      "description": "# SP-E5-10D · Массовая передача пометок\n\n**Зачем:** завершить соответствующий сценарий и экран по результату SP-E5-10C.\n**Часть чего:** остаток SP-E5-10C, docs/results/SP-E5-10C.md.\n**Зависимости:** SP-E5-10C.\n\n## Приёмка\n- Массово передавать остальные типы пометок («Непонятно», «Канцелярит», «Слишком длинно», «Неверный тон», «Другое») во входящие знаний как замечания с текстом исходного сообщения и комментарием; не изменять базу знаний автоматически. Сохранить права, изоляцию брендов и обработку ошибок.\n- Сохранить существующее поведение, проверить права, ошибки и изоляцию брендов; использовать fake runtime.\n\nScope: `app/Seller/Reviews/`, `app/Seller/Dialogs/`, `resources/js/pages/Seller/Reviews/`, `tests/Feature/Seller/Dialogs/`, `tests/Browser/E5-10D/`, `docs/results/SP-E5-10D.md`.\n\n## Расширение scope 07.11.2026\n- Для законченного пути пометка → входящие знаний разрешены `app/Seller/Knowledge/Releases/` и `routes/features/E5-10.php`. Существующая база знаний автоматически не изменяется.\n"
     },
     {
       "taskKey": "SP-E3-07D",

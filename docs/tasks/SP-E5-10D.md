@@ -9,3 +9,6 @@
 - Сохранить существующее поведение, проверить права, ошибки и изоляцию брендов; использовать fake runtime.
 
 Scope: `app/Seller/Reviews/`, `app/Seller/Dialogs/`, `resources/js/pages/Seller/Reviews/`, `tests/Feature/Seller/Dialogs/`, `tests/Browser/E5-10D/`, `docs/results/SP-E5-10D.md`.
+
+## Расширение scope 07.11.2026
+- Для законченного пути пометка → входящие знаний разрешены `app/Seller/Knowledge/Releases/` и `routes/features/E5-10.php`. Существующая база знаний автоматически не изменяется.
