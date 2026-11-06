@@ -42,6 +42,7 @@ final class RecommendationCreateE822ETest extends TenancyTestCase
         self::assertDatabaseHas('vision_action_recommendation_links', ['action_id' => $id, 'report_id' => $report, 'recommendation_index' => 0]);
         $this->patch('/vision/actions/'.$id, ['status' => 'awaiting_measurement', 'completed_at' => now()->toDateString(), 'comment' => 'Готово'])->assertRedirect()->assertSessionHasNoErrors();
         self::assertDatabaseHas('vision_action_recommendation_links', ['action_id' => $id, 'report_id' => $report, 'recommendation_index' => 0]);
+        $this->getJson('/vision/actions/effect')->assertOk()->assertJsonPath('recommendations.'.$id.'.question_ids.0', 'q1');
         [$viewer] = $this->member($org, 'viewer', [$brand->id]);
         $this->actingAs($viewer)->withSession(['brand_id' => $brand->id])->post('/vision/actions', $input)->assertForbidden();
         $this->actingAs($owner)->withSession(['brand_id' => $other->id])->post('/vision/actions', $input)->assertNotFound();
