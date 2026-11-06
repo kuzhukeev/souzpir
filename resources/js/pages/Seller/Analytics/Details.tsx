@@ -16,6 +16,9 @@ type Props = {
   from: string;
   to: string;
   total: number;
+  contact?: number;
+  handed?: number;
+  closed?: number;
   messageCount?: number;
   botCompleted?: number;
   dialogs?: Dialog[];
@@ -314,6 +317,15 @@ export default function Details({ data: a, activeTab }: { data: Props; activeTab
         <p className="mt-2 text-sm">
           Диалогов: {a.total}; сообщений: {a.messageCount ?? 0}.
         </p>
+        {reportType === 'weekly' && (
+          <dl className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3" aria-label="Показатели сводки">
+            {[['С контактом', a.contact], ['Передано менеджеру', a.handed], ['Завершено', a.closed]].map(([label, value]) => (
+              <div key={label} className="rounded-lg bg-(--color-surface-muted) p-3 text-sm">
+                <dt>{label}</dt><dd className="mt-1 text-lg font-semibold">{value ?? 'Нет данных'}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
         {reportType === 'topics' && (
           <p className="mt-2 text-sm">
             Сохранённых тем: {Object.keys(a.topics).length}; неизвестных вопросов:{' '}
