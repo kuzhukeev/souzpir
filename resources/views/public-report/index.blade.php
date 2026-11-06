@@ -17,6 +17,8 @@
         p { font-size: 15px; line-height: 1.55; }
         .muted { color: #5d6c65; }
         .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-top: 36px; }
+        .insights-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 24px; }
+        .insights-grid > .card { min-width: 0; }
         .card { border: 1px solid #dce5dc; border-radius: 16px; background: white; padding: 22px; box-shadow: 0 4px 18px #1f3c2710; }
         .value { font-size: 28px; font-weight: 750; margin: 12px 0 0; }
         .site-layout { display: flex; flex-wrap: wrap; align-items: center; gap: 24px; margin-top: 16px; }
@@ -29,7 +31,7 @@
         details { border-top: 1px solid #dce5dc; padding: 12px 0; } summary { cursor: pointer; font-weight: 600; }
         .print-button[type="button"] { min-height: 44px; padding: 10px 16px; border: 0; border-radius: 8px; background: #245b3e; color: white; font-size: 15px; font-weight: 600; cursor: pointer; }
         .print-button[type="button"]:focus-visible { outline: 3px solid #246dcc; outline-offset: 3px; }
-        @media (max-width: 760px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } main { padding-top: 32px; } }
+        @media (max-width: 760px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .insights-grid { grid-template-columns: 1fr; } main { padding-top: 32px; } }
         @media (max-width: 760px) { .action-grid { grid-template-columns: 1fr; } }
         @media print { .print-button { display: none; } :root { color: #172c26; background: white; } .card { break-inside: avoid; box-shadow: none; } }
         @media (prefers-color-scheme: dark) { :root { color: #e7f0e9; background: #16231c; } header { background: #243329; color: #e7f0e9; } .credit { color: #b4c7b9; } .card { background: #243329; border-color: #3f5948; } .muted { color: #b4c7b9; } .criteria li, .action-grid li { background: #1c2a21; } }
@@ -69,7 +71,8 @@
                 </section>
             @endforeach
         </div>
-        <section class="card" style="margin-top: 24px"><h2>Главные выводы</h2>
+        <div class="insights-grid">
+        <section class="card"><h2>Главные выводы</h2>
             @if (($report['visibility'] ?? null) !== null || ($report['share_of_voice'] ?? null) !== null || ($report['position'] ?? null) !== null)
                 <ol>
                     @if (($report['visibility'] ?? null) !== null)<li>Видимость бренда: {{ number_format($report['visibility'], 1, ',', ' ') }}%.</li>@endif
@@ -78,9 +81,9 @@
                 </ol>
             @else<p class="muted">Проверенных выводов для этого снимка пока нет.</p>@endif
         </section>
-        <section class="card" style="margin-top: 24px"><h2>Кого называют вместо вас</h2>@if (count($report['competitors'] ?? []))<p>Чаще всего среди других компаний упоминается {{ $report['competitors'][0]['name'] }}: {{ $report['competitors'][0]['answers'] }} ответов.</p><ol>@foreach ($report['competitors'] as $company)<li>{{ $company['name'] }} · упоминаний: {{ $company['answers'] }}</li>@endforeach</ol>@else<p class="muted">Нет подтверждённых упоминаний компаний.</p>@endif</section>
-        <section class="card" style="margin-top: 24px"><h2>Что о вас говорят</h2>@if (array_key_exists('reviewed_facts', $report))<p>Утверждений в снимке: {{ $report['reviewed_facts'] }}; подтверждено: {{ $report['confirmed_facts'] }}.</p>@else<p class="muted">Счётчики проверенных утверждений в этой публикации недоступны.</p>@endif</section>
-        <section class="card" style="margin-top: 24px"><h2>Ваш сайт</h2>
+        <section class="card"><h2>Кого называют вместо вас</h2>@if (count($report['competitors'] ?? []))<p>Чаще всего среди других компаний упоминается {{ $report['competitors'][0]['name'] }}: {{ $report['competitors'][0]['answers'] }} ответов.</p><ol>@foreach ($report['competitors'] as $company)<li>{{ $company['name'] }} · упоминаний: {{ $company['answers'] }}</li>@endforeach</ol>@else<p class="muted">Нет подтверждённых упоминаний компаний.</p>@endif</section>
+        <section class="card"><h2>Что о вас говорят</h2>@if (array_key_exists('reviewed_facts', $report))<p>Утверждений в снимке: {{ $report['reviewed_facts'] }}; подтверждено: {{ $report['confirmed_facts'] }}.</p>@else<p class="muted">Счётчики проверенных утверждений в этой публикации недоступны.</p>@endif</section>
+        <section class="card"><h2>Ваш сайт</h2>
             @php($site = $report['site_readiness'] ?? null)
             @if ($site !== null)
                 <div class="site-layout"><div class="site-score" aria-label="Оценка сайта на момент публикации"><div><strong>{{ is_array($site) ? $site['lower'].'–'.$site['upper'] : $site }}</strong><span>из 100</span></div></div>
@@ -88,6 +91,7 @@
                 <p class="muted">Оценка на момент публикации; диапазон отражает неопределённость.</p>
             @else<p class="muted">Оценка сайта в этой публикации недоступна.</p>@if (count($report['site_criteria'] ?? []))<ul class="criteria">@foreach ($report['site_criteria'] as $criterion)<li><span>{{ $criterion['title'] }}</span><strong>{{ ['pass' => 'Есть', 'fail' => 'Нет', 'partial' => 'Частично', 'unknown' => 'Неизвестно'][$criterion['status']] ?? 'Неизвестно' }}</strong></li>@endforeach</ul>@endif @endif
         </section>
+        </div>
         <section class="card" style="margin-top: 24px"><h2>Три действия</h2>@if (count($report['actions'] ?? []))<ol class="action-grid">@foreach ($report['actions'] as $action)<li><strong>{{ $action }}</strong>@php($details = $report['action_details'][$loop->index] ?? null) @if ($details && (!empty($details['priority']) || !empty($details['steps']))) @if (!empty($details['priority']))<p>Приоритет: {{ $details['priority'] }}</p>@endif @if (!empty($details['steps']))<ol>@foreach ($details['steps'] as $step)<li>{{ $step }}</li>@endforeach</ol>@endif @else<p class="muted">Приоритет и шаги не опубликованы.</p>@endif</li>@endforeach</ol>@else<p class="muted">Подтверждённых действий пока нет.</p>@endif</section>
         <section class="card" style="margin-top: 24px"><h2>История изменений</h2>@if (count($report['history'] ?? []))<p class="muted">Подтверждённые замеры с одинаковым набором вопросов, моделей и повторов на момент публикации.</p><div style="overflow-x:auto"><table style="width:100%;min-width:560px;text-align:left;font-size:14px"><thead><tr><th>Дата</th><th>Видимость, %</th><th>Покрытие, %</th><th>Доля голоса, %</th><th>Позиция</th></tr></thead><tbody>@foreach ($report['history'] as $point)<tr><td>{{ \Illuminate\Support\Carbon::parse($point['date'])->format('d.m.Y') }}</td>@foreach (['visibility','coverage','share_of_voice','position'] as $metric)<td>{{ ($point[$metric] ?? null) === null ? '—' : number_format($point[$metric], 1, ',', ' ') }}</td>@endforeach</tr>@endforeach</tbody></table></div>@else<p class="muted">Сопоставимая история не включена в этот снимок.</p>@endif</section>
         <section class="card" style="margin-top: 24px"><h2>Методика</h2><details><summary>Вопросы</summary><p>В снимке учтено {{ $report['questions'] }} вопросов.</p></details>
