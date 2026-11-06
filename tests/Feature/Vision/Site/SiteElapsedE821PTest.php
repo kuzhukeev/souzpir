@@ -39,7 +39,7 @@ final class SiteElapsedE821PTest extends TenancyTestCase
             self::assertNull(Cache::get($foreignKey));
             $callback(2, 3);
             self::assertSame(3, Cache::get($key)['pages_total']);
-            self::assertIsInt(Cache::get($key)['remaining_seconds']);
+            self::assertNull(Cache::get($key)['remaining_seconds']);
             $callback(3, 3);
             self::assertSame('analyzing', Cache::get($key)['stage']);
 
