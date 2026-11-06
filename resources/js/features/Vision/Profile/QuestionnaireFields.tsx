@@ -450,11 +450,25 @@ export function QuestionnaireFields({
         </section>
       )}
       {step === 5 && (
-        <>
+        <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
           <section className="space-y-3">
             <h3 className="font-semibold">Данные с сайта</h3>
-            {hints.length > 0 && <div className="flex flex-wrap gap-2">{hints.map((hint, index) => <button key={`${hint.value}-${index}`} type="button" className={button} disabled={data.site_facts.some(item => item.value === hint.value)} onClick={() => set('site_facts', [...data.site_facts, { label: hint.label, value: hint.value, decision: 'pending' }])}>Добавить факт: {hint.value}</button>)}</div>}
-            {data.site_facts.length === 0 && (
+            {hints.map((hint, index) => {
+              const added = data.site_facts.some(item => item.value === hint.value && item.label === hint.label);
+              const add = (decision: 'pending' | 'confirmed' | 'rejected') => {
+                set('site_facts', [...data.site_facts, { label: hint.label, value: hint.value, decision }]);
+                if (decision === 'pending') setEditingFact(data.site_facts.length);
+              };
+              return <div key={`${hint.label}-${hint.value}-${index}`} className="space-y-2 rounded-lg border border-(--color-border) p-3">
+                <p className="text-sm font-semibold">{hint.label}</p><p className="text-sm">{hint.value}</p>
+                <div className="flex flex-wrap gap-2">
+                  {!added && <button type="button" className={button} aria-label={`Подтвердить факт: ${hint.value}`} onClick={() => add('confirmed')}>Верно</button>}
+                  <button type="button" className={button} aria-label={`Добавить факт: ${hint.value}`} disabled={added} onClick={() => add('pending')}>Исправить</button>
+                  {!added && <button type="button" className={button} aria-label={`Не про нас: ${hint.value}`} onClick={() => add('rejected')}>Не про нас</button>}
+                </div>
+              </div>;
+            })}
+            {data.site_facts.length === 0 && hints.length === 0 && (
               <p className="text-sm text-(--color-ink-muted)">
                 Подсказок с сайта пока нет. Добавьте факты самостоятельно.
               </p>
@@ -502,7 +516,7 @@ export function QuestionnaireFields({
             onChange={(v) => set('facts', v)}
             maximum={limits.facts}
           />
-        </>
+        </div>
       )}
       {step === 6 && (
         <section className="space-y-3">
