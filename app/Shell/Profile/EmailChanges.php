@@ -32,8 +32,16 @@ final class EmailChanges
             return false;
         }
 
-        // Keep live mail disabled until an operator explicitly enables delivery.
-        return app()->environment('testing') && ! (app(EmailChangeSender::class) instanceof MailEmailChangeSender);
+        if (app()->environment('testing')) {
+            return ! (app(EmailChangeSender::class) instanceof MailEmailChangeSender);
+        }
+
+        $mailer = (string) config('mail.default');
+        $transport = config('mail.mailers.'.$mailer.'.transport');
+
+        return in_array($transport, ['smtp', 'sendmail', 'mailgun', 'ses', 'ses-v2', 'postmark', 'resend'], true)
+            && ($transport !== 'smtp' || (string) config('mail.mailers.'.$mailer.'.host') !== '' || (string) config('mail.mailers.'.$mailer.'.url') !== '')
+            && (string) config('mail.from.address') !== '';
     }
 
     public function pending(User $user): ?string

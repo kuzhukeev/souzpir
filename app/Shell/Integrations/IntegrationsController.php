@@ -31,15 +31,15 @@ final class IntegrationsController
         $accounts = DB::table('channel_accounts')->where('organization_id', $ctx->organizationId)->where('brand_id', $ctx->brandId)->orderByDesc('updated_at')->get();
         $items = [
             ['telegram', 'Telegram', 'Переписка с клиентами в Telegram.', 'seller.channels.telegram'],
-            ['widget', 'Виджет', 'Общение с клиентами на сайте.', 'seller.channels.widget'],
+            ['widget', 'Виджет', 'Общение с клиентами на сайте.', 'seller.widget.index'],
             ['api', 'API и вебхуки', 'Ключи доступа и события для интеграций.', 'integrations.api'],
         ];
         $connections = [];
         foreach ($items as [$type, $title, $description, $route]) {
             $account = $accounts->firstWhere('type', $type);
-            $restricted = $type === 'api' && ! $canManage;
+            $restricted = ($type === 'api' && ! $canManage) || ($type === 'widget' && ! Gate::allows('seller.settings.write'));
             $connections[] = ['id' => $type, 'title' => $title, 'description' => $description,
-                'status' => $account?->status ?? 'disconnected', 'connected_at' => null,
+                'status' => $account?->status ?? 'disconnected', 'connected_at' => $account?->connected_at,
                 'settings_restricted' => $restricted, 'href' => ! $restricted && Route::has($route) ? route($route) : null];
         }
         $brand = Brand::query()->findOrFail($ctx->brandId);

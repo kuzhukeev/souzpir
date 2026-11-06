@@ -93,6 +93,9 @@ final class WidgetSettingsController
                 $channel->default_mode = 'manager';
                 $channel->settings = ['widget_id' => $row->id];
             }
+            if ($input['enabled'] && $channel->status !== 'active' && $channel->connected_at === null) {
+                $channel->connected_at = now();
+            }
             $channel->status = $input['enabled'] ? 'active' : 'disabled';
             $channel->save();
             app(AuditWriter::class)->record($tenant, new AuditEntry('seller.widget.settings.updated', 'widget_settings', $row->id));
