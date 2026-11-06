@@ -40,7 +40,10 @@ final class RecordedGateway implements Driver
             throw new Rejected('Recorded request does not match.');
         }
         $response = $record['response'];
-        if (($response['error'] ?? null) !== null || ! is_string($response['content'] ?? null) || ! is_string($response['model'] ?? null)) {
+        $content = $response['content'] ?? null;
+        $toolCalls = $response['toolCalls'] ?? [];
+        if (($response['error'] ?? null) !== null || (! is_string($content) && $content !== null)
+            || ! is_array($toolCalls) || ($content === null && $toolCalls === []) || ! is_string($response['model'] ?? null)) {
             throw new Rejected('Recorded provider returned an error.');
         }
         $this->cursor++;
