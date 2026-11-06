@@ -21824,6 +21824,116 @@
       "wave": 20,
       "promptPath": "docs/tasks/SP-E5-01M.md",
       "description": "# SP-E5-01M · Виджет: режимы и запуск ответов\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E5-01K, docs/results/SP-E5-01K.md.\n**Зависимости:** SP-E5-01K.\n\n## Приёмка\n- Режимы виджета «Автономно» и «Подсказки», запуск runtime через безопасный публичный канал без сессии менеджера, автоматические ответы и сверка макета; проверять права, изоляцию брендов и fake runtime, без живых отправок.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Seller/Channels/`, `app/Seller/Runtime/`, `resources/js/pages/Seller/Channels/`, `tests/Feature/Seller/Channels/`, `tests/Browser/E5-01M/`, `docs/results/SP-E5-01M.md`.\n"
+    },
+    {
+      "taskKey": "SP-E4-10B",
+      "title": "SP-E4-10B · Факты: дерево и состояния",
+      "goal": "D-4.3: завершить дерево тем, колонку «Условия», статусы публикации, компоновку и состояния; сверить экран с макетом.",
+      "dependsOn": [
+        "SP-E4-10"
+      ],
+      "scope": [
+        "app/Seller/Knowledge/Facts/",
+        "resources/js/pages/Seller/Knowledge/Facts/",
+        "tests/Feature/Seller/Knowledge/Facts/",
+        "tests/Browser/E4-10B/",
+        "docs/results/SP-E4-10B.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "D-4.3: завершить дерево тем, колонку «Условия», статусы публикации, компоновку и состояния; сверить экран с макетом."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E4-10.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E4-10B.md",
+      "description": "# SP-E4-10B · Факты: дерево и состояния\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E4-10, docs/results/SP-E4-10.md.\n**Зависимости:** SP-E4-10.\n\n## Приёмка\n- D-4.3: завершить дерево тем, колонку «Условия», статусы публикации, компоновку и состояния; сверить экран с макетом.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Seller/Knowledge/Facts/`, `resources/js/pages/Seller/Knowledge/Facts/`, `tests/Feature/Seller/Knowledge/Facts/`, `tests/Browser/E4-10B/`, `docs/results/SP-E4-10B.md`.\n"
+    },
+    {
+      "taskKey": "SP-E4-10C",
+      "title": "SP-E4-10C · Примеры: теги и состояния",
+      "goal": "D-4.8: выбор тега из полного списка, сверка состояний и экрана с макетом.",
+      "dependsOn": [
+        "SP-E4-10"
+      ],
+      "scope": [
+        "app/Seller/Knowledge/Fewshot/",
+        "resources/js/pages/Seller/Knowledge/Fewshot/",
+        "tests/Feature/Seller/Knowledge/Fewshot/",
+        "tests/Browser/E4-10C/",
+        "docs/results/SP-E4-10C.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "D-4.8: выбор тега из полного списка, сверка состояний и экрана с макетом."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E4-10.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E4-10C.md",
+      "description": "# SP-E4-10C · Примеры: теги и состояния\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E4-10, docs/results/SP-E4-10.md.\n**Зависимости:** SP-E4-10.\n\n## Приёмка\n- D-4.8: выбор тега из полного списка, сверка состояний и экрана с макетом.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Seller/Knowledge/Fewshot/`, `resources/js/pages/Seller/Knowledge/Fewshot/`, `tests/Feature/Seller/Knowledge/Fewshot/`, `tests/Browser/E4-10C/`, `docs/results/SP-E4-10C.md`.\n"
+    },
+    {
+      "taskKey": "SP-E4-10D",
+      "title": "SP-E4-10D · Закрытые темы и следующие шаги",
+      "goal": "D-4.9: вкладки, добавление и снятие закрытых тем, действие «Что дальше» в runtime и сверка с макетом.",
+      "dependsOn": [
+        "SP-E4-10"
+      ],
+      "scope": [
+        "app/Seller/Knowledge/Prohibitions/",
+        "app/Seller/Runtime/",
+        "resources/js/pages/Seller/Knowledge/Prohibitions/",
+        "tests/Feature/Seller/Knowledge/Prohibitions/",
+        "tests/Feature/Seller/Runtime/",
+        "tests/Browser/E4-10D/",
+        "docs/results/SP-E4-10D.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "D-4.9: вкладки, добавление и снятие закрытых тем, действие «Что дальше» в runtime и сверка с макетом."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E4-10.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E4-10D.md",
+      "description": "# SP-E4-10D · Закрытые темы и следующие шаги\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E4-10, docs/results/SP-E4-10.md.\n**Зависимости:** SP-E4-10.\n\n## Приёмка\n- D-4.9: вкладки, добавление и снятие закрытых тем, действие «Что дальше» в runtime и сверка с макетом.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Seller/Knowledge/Prohibitions/`, `app/Seller/Runtime/`, `resources/js/pages/Seller/Knowledge/Prohibitions/`, `tests/Feature/Seller/Knowledge/Prohibitions/`, `tests/Feature/Seller/Runtime/`, `tests/Browser/E4-10D/`, `docs/results/SP-E4-10D.md`.\n"
+    },
+    {
+      "taskKey": "SP-E4-10E",
+      "title": "SP-E4-10E · Песочница: сверка экрана",
+      "goal": "D-4.11: сверить песочницу с макетом, состояниями и тестами; пометка о статистике уже отображается.",
+      "dependsOn": [
+        "SP-E4-10"
+      ],
+      "scope": [
+        "app/Seller/Sandbox/",
+        "resources/js/pages/Seller/Sandbox/",
+        "tests/Feature/Seller/Sandbox/",
+        "tests/Browser/E4-10E/",
+        "docs/results/SP-E4-10E.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "D-4.11: сверить песочницу с макетом, состояниями и тестами; пометка о статистике уже отображается."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E4-10.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E4-10E.md",
+      "description": "# SP-E4-10E · Песочница: сверка экрана\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E4-10, docs/results/SP-E4-10.md.\n**Зависимости:** SP-E4-10.\n\n## Приёмка\n- D-4.11: сверить песочницу с макетом, состояниями и тестами; пометка о статистике уже отображается.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Seller/Sandbox/`, `resources/js/pages/Seller/Sandbox/`, `tests/Feature/Seller/Sandbox/`, `tests/Browser/E4-10E/`, `docs/results/SP-E4-10E.md`.\n"
     }
   ],
   "excludedSourceTasks": {
