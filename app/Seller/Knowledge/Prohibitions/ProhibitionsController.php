@@ -13,6 +13,7 @@ use App\Tenancy\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
@@ -53,7 +54,7 @@ final class ProhibitionsController
 
     public function save(Request $request): mixed
     {
-        $input = $request->validate(['version' => ['required', 'integer', 'min:1'], 'topics' => ['present', 'array', 'max:100'], 'topics.*.id' => ['required', 'string', 'max:100'],
+        $input = $request->validate(['version' => ['required', 'integer', 'min:1'], 'topics' => ['present', 'array', 'max:100'], 'topics.*.id' => ['nullable', 'string', 'max:100'],
             'topics.*.category' => ['required', 'string', 'max:100'], 'topics.*.idea' => ['required', 'string', 'max:300'], 'topics.*.next' => ['required', 'in:return,handoff'],
             'rules' => ['present', 'array', 'max:100'], 'rules.*.id' => ['required', 'string', 'max:100'], 'rules.*.severity' => ['required', 'in:block,warn'],
             'rules.*.patterns' => ['sometimes', 'array', 'max:50'], 'rules.*.patterns.*' => ['required', 'string', 'max:500'],
@@ -67,19 +68,22 @@ final class ProhibitionsController
             $data = $repo->forRelease($tenant, $draft->id, true)->toArray();
             $topics = collect($data['closed_topics'])->keyBy('id');
             $rules = collect($data['guard_rules']['forbidden_promises'] ?? [])->keyBy('id');
-            if (count($input['topics']) !== $topics->count() || count($input['rules']) !== $rules->count()
-                || count(array_unique(array_column($input['topics'], 'id'))) !== count($input['topics']) || count(array_unique(array_column($input['rules'], 'id'))) !== count($input['rules'])) {
+            $existingTopicIds = array_values(array_filter(array_column($input['topics'], 'id'), fn ($id) => $id !== null));
+            if (count($input['rules']) !== $rules->count()
+                || count(array_unique($existingTopicIds)) !== count($existingTopicIds) || count(array_unique(array_column($input['rules'], 'id'))) !== count($input['rules'])) {
                 throw ValidationException::withMessages(['topics' => 'Список правил изменился; обновите страницу.']);
             }
+            $updatedTopics = [];
             foreach ($input['topics'] as $item) {
-                if (! $topics->has($item['id'])) {
+                $id = $item['id'] ?? null;
+                if ($id !== null && ! $topics->has($id)) {
                     throw ValidationException::withMessages(['topics' => 'Неизвестная тема.']);
                 }
-                $original = $topics[$item['id']];
+                $original = $id !== null ? $topics[$id] : ['id' => (string) Str::ulid(), 'client_examples' => []];
                 $original['category'] = $item['category'];
                 $original['idea'] = $item['idea'];
                 $original['next'] = $item['next'];
-                $topics[$item['id']] = $original;
+                $updatedTopics[] = $original;
             }
             foreach ($input['rules'] as $item) {
                 if (! $rules->has($item['id'])) {
@@ -100,7 +104,7 @@ final class ProhibitionsController
                 }
                 $rules[$item['id']] = $original;
             }
-            $data['closed_topics'] = $topics->values()->all();
+            $data['closed_topics'] = $updatedTopics;
             $data['guard_rules']['forbidden_promises'] = $rules->values()->all();
             $data['persona']['length'] ??= [];
             $data['persona']['length']['max_words'] = (int) $input['maxWords'];
