@@ -21593,7 +21593,7 @@
       ],
       "wave": 20,
       "promptPath": "docs/tasks/SP-E4-06E.md",
-      "description": "# SP-E4-06E · Импорт знаний: лист XLSX и экран документов\n\n**Зачем:** завершить экран D-4.10 по макету.\n**Часть чего:** остаток SP-E4-06C, `docs/results/SP-E4-06C.md`.\n**Зависимости:** SP-E4-06D в `done`.\n\n## Приёмка\n- Добавить выбор листа XLSX при импорте; точечное изменение общего `app/Seller/Catalog/CatalogReader.php` разрешено с сохранением существующего поведения каталога.\n- Показать список документов и сверить двухколоночную компоновку, источник каждого фрагмента, пустое состояние, загрузку и ошибки с макетом D-4.10.\n- Проверить права, изоляцию брендов, неправильный файл и выбранный лист, а также отсутствие регрессии существующих сценариев каталога; только fake runtime.\n\nScope: `app/Seller/Knowledge/Imports/`, `app/Seller/Catalog/CatalogReader.php`, `routes/features/E4-06.php`, `resources/js/pages/Seller/Knowledge/Imports/`, `tests/Feature/Seller/Knowledge/Imports/`, `tests/Feature/Seller/Catalog/`, `tests/Browser/E4-06E/`, `docs/results/SP-E4-06E.md`.\n"
+      "description": "# SP-E4-06E · Импорт знаний: лист XLSX и экран документов\n\n**Зачем:** завершить экран D-4.10 по макету.\n**Часть чего:** остаток SP-E4-06C, `docs/results/SP-E4-06C.md`.\n**Зависимости:** SP-E4-06D в `done`.\n\n## Приёмка\n- Добавить выбор листа XLSX при импорте; точечное изменение общего `app/Seller/Catalog/CatalogReader.php` разрешено с сохранением существующего поведения каталога.\n- Показать список документов и сверить двухколоночную компоновку, источник каждого фрагмента, пустое состояние, загрузку и ошибки с макетом D-4.10.\n- Подключить документы из props, передавать `document_id` из preview при сохранении, чтобы сервер отметил нужный документ импортированным.\n- Проверить права, изоляцию брендов, неправильный файл и выбранный лист, а также отсутствие регрессии существующих сценариев каталога; только fake runtime.\n\nScope: `app/Seller/Knowledge/Imports/`, `app/Seller/Catalog/CatalogReader.php`, `routes/features/E4-06.php`, `resources/js/pages/Seller/Knowledge/Imports/`, `tests/Feature/Seller/Knowledge/Imports/`, `tests/Feature/Seller/Catalog/`, `tests/Browser/E4-06E/`, `docs/results/SP-E4-06E.md`.\n"
     },
     {
       "taskKey": "SP-E4-05E",
@@ -21676,6 +21676,38 @@
       "wave": 20,
       "promptPath": "docs/tasks/SP-E8-15I.md",
       "description": "# SP-E8-15I · Точный календарный расчёт измерений\n\n**Зачем:** завершить расчёт периода на экранах V-11.2 и V-11.3.\n**Часть чего:** ограничение SP-E8-15H, `docs/results/SP-E8-15H.md`.\n**Зависимости:** SP-E8-15H в `done`.\n\n## Приёмка\n- Для календарного месяца и выбранного периода рассчитывать оценку как число запланированных автоматических запусков в этом периоде × число вопросов × число выбранных моделей. Ручные запуски в оценку не включать; тарифы не выдумывать.\n- Проверить границы периодов, отсутствие данных, права и изоляцию брендов; только fake runtime.\n\nScope: `app/Vision/Measurements/`, `app/Vision/Settings/`, `resources/js/pages/Vision/Measurements/`, `resources/js/pages/Vision/Settings/`, `tests/Feature/Vision/Settings/`, `tests/Browser/E8-15I/`, `docs/results/SP-E8-15I.md`.\n"
+    },
+    {
+      "taskKey": "SP-E8-19H",
+      "title": "SP-E8-19H · Логотип в опубликованном отчёте",
+      "goal": "По отдельному подтверждению включать в публичный снимок только загруженный пользователем логотип; сохранить ограничения доступа, TTL и отзыва; завершить сверку V-5.10 с макетом.",
+      "dependsOn": [
+        "SP-E8-19G"
+      ],
+      "scope": [
+        "app/Vision/Publications/",
+        "app/Vision/Reports/",
+        "resources/views/public-report/",
+        "resources/js/pages/Vision/Reports/",
+        "tests/Feature/Vision/Reports/",
+        "tests/Browser/E8-19H/",
+        "docs/results/SP-E8-19H.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "По отдельному подтверждению включать в публичный снимок только загруженный пользователем логотип; сохранить ограничения доступа, TTL и отзыва; завершить сверку V-5.10 с макетом."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E8-19G.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "V-5.10"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E8-19H.md",
+      "description": "# SP-E8-19H · Логотип в опубликованном отчёте\n\n**Зачем:** завершить публичный экран V-5.10 по макету.\n**Часть чего:** остаток SP-E8-19G, `docs/results/SP-E8-19G.md`.\n**Зависимости:** SP-E8-19G в `done`.\n\n## Приёмка\n- Предложить включить в опубликованный снимок только загруженный пользователем логотип бренда; размещать его в публичном отчёте только после отдельного явного подтверждения.\n- Сохранить копию в данных конкретной публикации; соблюдать срок действия и отзыв ссылки, не раскрывать приватные пути и чужие бренды, не скачивать внешние изображения.\n- Завершить сверку V-5.10 с макетом, проверить права, отсутствие логотипа, отказ подтверждения, отзыв и изоляцию брендов.\n\nScope: `app/Vision/Publications/`, `app/Vision/Reports/`, `resources/views/public-report/`, `resources/js/pages/Vision/Reports/`, `tests/Feature/Vision/Reports/`, `tests/Browser/E8-19H/`, `docs/results/SP-E8-19H.md`.\n"
     }
   ],
   "excludedSourceTasks": {
