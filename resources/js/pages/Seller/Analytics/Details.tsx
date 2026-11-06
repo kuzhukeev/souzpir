@@ -1,4 +1,4 @@
-import { Link, router } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 
 type Dialog = {
@@ -28,9 +28,11 @@ type Props = {
   triggerStats?: Record<string, { dialogs: number; with_contact: number }>;
   triggers?: Record<string, number>;
   topics: Record<string, number>;
+  daily?: Record<string, number>;
   channel?: string;
   source?: string;
   manager?: string;
+  managerOptions?: {id:string;name:string}[];
   canManage?: boolean;
   subscription?: {day:string; recipients:string[]} | null;
   managers?: { name: string; assigned: number; taken: number; closed: number }[];
@@ -58,6 +60,7 @@ const names: Record<string, string> = {
 };
 const days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 export default function Details({ data: a, activeTab }: { data: Props; activeTab?: string }) {
+  const {brand} = usePage<{brand:{name:string}|null}>().props;
   const [reportType, setReportType] = useState('weekly');
   const [email, setEmail] = useState('');
   const [sending, setSending] = useState(false);
@@ -300,7 +303,8 @@ export default function Details({ data: a, activeTab }: { data: Props; activeTab
             <option value="topics">Темы и вопросы</option>
           </select>
         </label>
-        <h3 className="mt-4 font-semibold">
+        <div className="mt-4 grid gap-5 xl:grid-cols-[minmax(0,3fr)_minmax(18rem,2fr)]"><div className="min-w-0">
+        <div className="mt-4 rounded-xl border border-(--color-border) bg-(--color-surface-muted) p-4"><p className="text-sm font-semibold text-(--color-link)">{brand?.name ?? 'Бренд'}</p><h3 className="mt-2 font-semibold">
           Предпросмотр:{' '}
           {reportType === 'weekly'
             ? 'Сводка владельцу'
@@ -312,7 +316,7 @@ export default function Details({ data: a, activeTab }: { data: Props; activeTab
         </h3>
         <p className="mt-2 text-sm">
           Период: {a.from} — {a.to}. Канал: {a.channel || 'все'}; источник:{' '}
-          {a.source === 'unknown' ? 'неизвестен' : 'все'}.
+          {a.source === 'unknown' ? 'неизвестен' : 'все'}{a.manager ? `; менеджер: ${a.managerOptions?.find(item=>item.id===a.manager)?.name ?? 'не найден'}` : ''}.
         </p>
         <p className="mt-2 text-sm">
           Диалогов: {a.total}; сообщений: {a.messageCount ?? 0}.
@@ -326,6 +330,7 @@ export default function Details({ data: a, activeTab }: { data: Props; activeTab
             ))}
           </dl>
         )}
+        {reportType === 'weekly' && <section className="mt-4" aria-label="Динамика диалогов"><h4 className="text-sm font-semibold">Диалоги за период</h4>{Object.entries(a.daily ?? {}).length ? <ul className="mt-2 space-y-2">{Object.entries(a.daily ?? {}).slice(-7).map(([date,count])=><li key={date} className="flex items-center gap-3 text-sm"><time dateTime={date} className="w-24 shrink-0">{date}</time><span aria-hidden="true" className="h-2 flex-1 overflow-hidden rounded-full bg-(--color-border)"><span className="block h-full rounded-full bg-(--color-action)" style={{width:`${Math.max(0,Math.min(100,count/Math.max(1,...Object.values(a.daily ?? {}))*100))}%`}}/></span><span>{count}</span></li>)}</ul> : <p className="mt-2 text-sm text-(--color-ink-muted)">Данных за период пока нет.</p>}</section>}
         {reportType === 'topics' && (
           <p className="mt-2 text-sm">
             Сохранённых тем: {Object.keys(a.topics).length}; неизвестных вопросов:{' '}
@@ -347,6 +352,7 @@ export default function Details({ data: a, activeTab }: { data: Props; activeTab
             ))}
           </ul>
         )}
+        </div>
         {a.canManage && (
           <form
             className="mt-4 flex flex-wrap items-end gap-2 print:hidden"
@@ -409,13 +415,16 @@ export default function Details({ data: a, activeTab }: { data: Props; activeTab
             {sendStatus}
           </p>
         )}
-        {a.canManage && <form className="mt-5 space-y-3 print:hidden" onSubmit={event=>{event.preventDefault();setSubStatus('');router.post('/seller/analytics/subscription',{day,recipients:recipients.split(/[,\n]/).map(value=>value.trim()).filter(Boolean)},{preserveScroll:true,onStart:()=>setSubBusy(true),onFinish:()=>setSubBusy(false),onSuccess:()=>setSubStatus('Расписание сохранено. Реальная отправка пока не подключена.'),onError:()=>setSubStatus('Проверьте список получателей и день недели.'),onNetworkError:()=>{setSubStatus('Нет связи. Повторите попытку.');return false;}});}}><h3 className="text-lg font-semibold">Подписка на отчёт</h3><label className="block text-sm">День недели<select value={day} onChange={event=>setDay(event.target.value)} className="mt-1 block min-h-11 cursor-pointer rounded-lg border border-(--color-border) bg-(--color-surface) px-3">{[['mon','Понедельник'],['tue','Вторник'],['wed','Среда'],['thu','Четверг'],['fri','Пятница'],['sat','Суббота'],['sun','Воскресенье']].map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label><label className="block text-sm">Получатели, по одному адресу в строке<textarea required value={recipients} onChange={event=>setRecipients(event.target.value)} className="mt-1 block min-h-24 w-full max-w-lg rounded-lg border border-(--color-border) bg-(--color-surface) p-3"/></label><button disabled={subBusy} className="min-h-11 cursor-pointer rounded-lg border border-(--color-border) px-4 text-sm disabled:opacity-50">{subBusy?'Сохраняем…':'Сохранить подписку'}</button>{subStatus&&<p role="status" className="text-sm">{subStatus}</p>}<p className="text-sm text-(--color-ink-muted)">Реальная отправка пока не подключена; доступна тестовая отправка выше.</p></form>}
         <a
           href={`/seller/analytics/report.pdf?${new URLSearchParams({ report_type: reportType, from: a.from, to: a.to, channel: a.channel ?? '', source: a.source ?? '', manager: a.manager ?? '' })}`}
           className="mt-3 inline-flex min-h-11 cursor-pointer items-center rounded-lg bg-(--color-link) px-4 text-sm font-semibold text-white print:hidden"
         >
           Скачать PDF
         </a>
+        <a href={`/seller/analytics/export.csv?${new URLSearchParams({from:a.from,to:a.to,channel:a.channel??'',source:a.source??'',manager:a.manager??''})}`} className="ml-2 mt-3 inline-flex min-h-11 cursor-pointer items-center rounded-lg border border-(--color-border) px-4 text-sm font-semibold text-(--color-link) print:hidden">Скачать CSV</a>
+        </div>{a.canManage && <aside className="min-w-0 rounded-xl border border-(--color-border) bg-(--color-surface-muted) p-4">
+        {a.canManage && <form className="mt-5 space-y-3 print:hidden" onSubmit={event=>{event.preventDefault();setSubStatus('');router.post('/seller/analytics/subscription',{day,recipients:recipients.split(/[,\n]/).map(value=>value.trim()).filter(Boolean)},{preserveScroll:true,onStart:()=>setSubBusy(true),onFinish:()=>setSubBusy(false),onSuccess:()=>setSubStatus('Расписание сохранено. Реальная отправка пока не подключена.'),onError:()=>setSubStatus('Проверьте список получателей и день недели.'),onNetworkError:()=>{setSubStatus('Нет связи. Повторите попытку.');return false;}});}}><h3 className="text-lg font-semibold">Подписка на отчёт</h3><label className="block text-sm">День недели<select value={day} onChange={event=>setDay(event.target.value)} className="mt-1 block min-h-11 cursor-pointer rounded-lg border border-(--color-border) bg-(--color-surface) px-3">{[['mon','Понедельник'],['tue','Вторник'],['wed','Среда'],['thu','Четверг'],['fri','Пятница'],['sat','Суббота'],['sun','Воскресенье']].map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label><label className="block text-sm">Получатели, по одному адресу в строке<textarea required value={recipients} onChange={event=>setRecipients(event.target.value)} className="mt-1 block min-h-24 w-full max-w-lg rounded-lg border border-(--color-border) bg-(--color-surface) p-3"/></label><button disabled={subBusy} className="min-h-11 cursor-pointer rounded-lg border border-(--color-border) px-4 text-sm disabled:opacity-50">{subBusy?'Сохраняем…':'Сохранить подписку'}</button>{subStatus&&<p role="status" className="text-sm">{subStatus}</p>}<p className="text-sm text-(--color-ink-muted)">Реальная отправка пока не подключена; доступна тестовая отправка выше.</p></form>}
+        </aside>}</div>
       </section>
     </>
   );
