@@ -19,6 +19,7 @@ final class NotificationProcessor
             $event = new DomainEvent(json_decode($row->envelope, true, 512, JSON_THROW_ON_ERROR));
             if ($event->isNotification()) {
                 $e = $event->envelope;
+                app(MeasurementSubscriptionDelivery::class)->deliver($event);
                 $members = Membership::withoutGlobalScopes()->where('organization_id', $e['organization_id'])->where('status', 'active')->get();
                 foreach ($members as $member) {
                     if (! app(RecipientPolicy::class)->permits($member, $e['brand_id'], $e['type'])) {
