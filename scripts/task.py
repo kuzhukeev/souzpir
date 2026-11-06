@@ -97,7 +97,7 @@ GENERATED_CONTRACT_FILES = frozenset(
 # Narrow integrator-approved scope corrections for shared routes, UI and CI
 # regressions. They do not broaden ownership to neighboring modules.
 CI_SCOPE_EXCEPTIONS = {
-    "SP-E6-04J": ("app/Seller/Engine/ToolRunner.php", "routes/features/E6-04.php", "tests/Feature/Seller/Engine/ToolRunnerE604JTest.php"),
+    "SP-E6-04J": ("app/Seller/Engine/ToolRunner.php", "routes/features/E6-04.php", "tests/Feature/Seller/Engine/ToolRunnerE604JTest.php", "app/Seller/Channels/Email/PriceMailSender.php", "app/Seller/Channels/Email/PriceMail.php", "tests/Feature/Seller/Channels/Email/PriceSourcesE604JTest.php"),
     "SP-E5-10D": ("resources/js/pages/Seller/Knowledge/Releases/Index.tsx",),
     "SP-E8-16W": ("app/Vision/Core/MeasurementRunner.php", "database/migrations/E8-16W/"),
     "SP-E1-12C": ("app/Shell/Profile/", "database/migrations/E1-12C/", "app/Seller/Channels/Core/ChannelAccount.php", "app/Seller/Channels/Telegram/TelegramController.php", "app/Seller/Channels/Widget/WidgetSettingsController.php", "tests/Feature/Seller/Channels/ConnectionDatesE112CTest.php"),
