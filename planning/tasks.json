@@ -20658,7 +20658,11 @@
         "resources/js/features/Shell/Billing/AiRecovery/",
         "tests/Feature/Ai/Recovery/",
         "tests/Browser/E0-05G/",
-        "docs/results/SP-E0-05G.md"
+        "docs/results/SP-E0-05G.md",
+        "app/Ai/Http/RecoverCallController.php",
+        "app/Ai/Http/OperatorRecoveryController.php",
+        "routes/features/E0-05B.php",
+        "config/platform-operators.php"
       ],
       "exclusiveResources": [],
       "acceptance": [
@@ -21064,7 +21068,7 @@
     {
       "taskKey": "SP-E5-10D",
       "title": "SP-E5-10D · Массовая передача пометок",
-      "goal": "Завершить массовую передачу остальных типов пометок во входящие после определения подтверждённого контракта; сохранить права, изоляцию брендов и обработку ошибок. До подтверждения не выдумывать контракт.",
+      "goal": "Массово передавать остальные типы пометок («Непонятно», «Канцелярит», «Слишком длинно», «Неверный тон», «Другое») во входящие знаний как замечания с текстом исходного сообщения и комментарием; не изменять базу знаний автоматически. Сохранить права, изоляцию брендов и обработку ошибок.",
       "dependsOn": [
         "SP-E5-10C"
       ],
@@ -21078,7 +21082,7 @@
       ],
       "exclusiveResources": [],
       "acceptance": [
-        "Завершить массовую передачу остальных типов пометок во входящие после определения подтверждённого контракта; сохранить права, изоляцию брендов и обработку ошибок. До подтверждения не выдумывать контракт."
+        "Массово передавать остальные типы пометок («Непонятно», «Канцелярит», «Слишком длинно», «Неверный тон», «Другое») во входящие знаний как замечания с текстом исходного сообщения и комментарием; не изменять базу знаний автоматически. Сохранить права, изоляцию брендов и обработку ошибок."
       ],
       "sourceRefs": [
         "docs/preparation/decisions.md",
@@ -21087,7 +21091,7 @@
       "screenIds": [],
       "wave": 20,
       "promptPath": "docs/tasks/SP-E5-10D.md",
-      "description": "# SP-E5-10D · Массовая передача пометок\n\n**Зачем:** завершить соответствующий сценарий и экран по результату SP-E5-10C.\n**Часть чего:** остаток SP-E5-10C, docs/results/SP-E5-10C.md.\n**Зависимости:** SP-E5-10C.\n\n## Приёмка\n- Завершить массовую передачу остальных типов пометок во входящие после определения подтверждённого контракта; сохранить права, изоляцию брендов и обработку ошибок. До подтверждения не выдумывать контракт.\n- Сохранить существующее поведение, проверить права, ошибки и изоляцию брендов; использовать fake runtime.\n\nScope: `app/Seller/Reviews/`, `app/Seller/Dialogs/`, `resources/js/pages/Seller/Reviews/`, `tests/Feature/Seller/Dialogs/`, `tests/Browser/E5-10D/`, `docs/results/SP-E5-10D.md`.\n"
+      "description": "# SP-E5-10D · Массовая передача пометок\n\n**Зачем:** завершить соответствующий сценарий и экран по результату SP-E5-10C.\n**Часть чего:** остаток SP-E5-10C, docs/results/SP-E5-10C.md.\n**Зависимости:** SP-E5-10C.\n\n## Приёмка\n- Массово передавать остальные типы пометок («Непонятно», «Канцелярит», «Слишком длинно», «Неверный тон», «Другое») во входящие знаний как замечания с текстом исходного сообщения и комментарием; не изменять базу знаний автоматически. Сохранить права, изоляцию брендов и обработку ошибок.\n- Сохранить существующее поведение, проверить права, ошибки и изоляцию брендов; использовать fake runtime.\n\nScope: `app/Seller/Reviews/`, `app/Seller/Dialogs/`, `resources/js/pages/Seller/Reviews/`, `tests/Feature/Seller/Dialogs/`, `tests/Browser/E5-10D/`, `docs/results/SP-E5-10D.md`.\n"
     },
     {
       "taskKey": "SP-E3-07D",
@@ -21741,6 +21745,753 @@
       "wave": 20,
       "promptPath": "docs/tasks/SP-E8-15J.md",
       "description": "# SP-E8-15J · История расписания для календарной оценки\n\n**Зачем:** завершить расчёт прошедших периодов и сверку экрана V-11.2.\n**Часть чего:** остаток SP-E8-15I, `docs/results/SP-E8-15I.md`.\n**Зависимости:** SP-E8-15I в `done`.\n\n## Приёмка\n- Сохранять версии расписания с момента внедрения и учитывать их при расчёте запланированных автоматических запусков за выбранный период; за даты до появления истории показывать «Нет данных», не восстанавливать расписание предположениями.\n- Соблюдать подтверждённую формулу: число автоматических запусков × вопросы × выбранные модели; ручные запуски не включать. Сверить расположение расчёта V-11.2 и все состояния с макетом.\n- Проверить границы периодов, смену расписания, отсутствие истории, права и изоляцию брендов; только fake runtime. Миграция допускается при необходимости.\n\nScope: `app/Vision/Measurements/`, `app/Vision/Settings/`, `database/migrations/E8-15J/`, `resources/js/pages/Vision/Measurements/`, `resources/js/pages/Vision/Settings/`, `tests/Feature/Vision/Settings/`, `tests/Browser/E8-15J/`, `docs/results/SP-E8-15J.md`.\n"
+    },
+    {
+      "taskKey": "SP-E4-06F",
+      "title": "SP-E4-06F · Импорт документов: завершение экрана",
+      "goal": "D-4.10: довести расположение двух колонок сопоставления, выделение исходных фрагментов, действия и статусы документов до макета; сохранять число извлечённых фактов для ранее загруженных документов.",
+      "dependsOn": [
+        "SP-E4-06E"
+      ],
+      "scope": [
+        "app/Seller/Knowledge/Imports/",
+        "database/migrations/E4-06F/",
+        "resources/js/pages/Seller/Knowledge/Imports/",
+        "tests/Feature/Seller/Knowledge/Imports/",
+        "tests/Browser/E4-06F/",
+        "docs/results/SP-E4-06F.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "D-4.10: довести расположение двух колонок сопоставления, выделение исходных фрагментов, действия и статусы документов до макета; сохранять число извлечённых фактов для ранее загруженных документов."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E4-06E.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E4-06F.md",
+      "description": "# SP-E4-06F · Импорт документов: завершение экрана\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E4-06E, docs/results/SP-E4-06E.md.\n**Зависимости:** SP-E4-06E.\n\n## Приёмка\n- D-4.10: довести расположение двух колонок сопоставления, выделение исходных фрагментов, действия и статусы документов до макета; сохранять число извлечённых фактов для ранее загруженных документов.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Seller/Knowledge/Imports/`, `database/migrations/E4-06F/`, `resources/js/pages/Seller/Knowledge/Imports/`, `tests/Feature/Seller/Knowledge/Imports/`, `tests/Browser/E4-06F/`, `docs/results/SP-E4-06F.md`.\n"
+    },
+    {
+      "taskKey": "SP-E4-08G",
+      "title": "SP-E4-08G · Песочница: оставшиеся фикстуры",
+      "goal": "Добавить проверенные fake-ответы для остальных штатных сценариев с учётом полного контекста черновика; сохранить replay, прежний fallback, права, изоляцию брендов и повторный запуск. Живые AI-вызовы выключены, общие стадии не рефакторить.",
+      "dependsOn": [
+        "SP-E4-08F"
+      ],
+      "scope": [
+        "app/Ai/Protected/",
+        "app/Seller/Evaluation/",
+        "tests/Feature/Seller/Evaluation/",
+        "tests/Browser/E4-08G/",
+        "docs/results/SP-E4-08G.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Добавить проверенные fake-ответы для остальных штатных сценариев с учётом полного контекста черновика; сохранить replay, прежний fallback, права, изоляцию брендов и повторный запуск. Живые AI-вызовы выключены, общие стадии не рефакторить."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E4-08F.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E4-08G.md",
+      "description": "# SP-E4-08G · Песочница: оставшиеся фикстуры\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E4-08F, docs/results/SP-E4-08F.md.\n**Зависимости:** SP-E4-08F.\n\n## Приёмка\n- Добавить проверенные fake-ответы для остальных штатных сценариев с учётом полного контекста черновика; сохранить replay, прежний fallback, права, изоляцию брендов и повторный запуск. Живые AI-вызовы выключены, общие стадии не рефакторить.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Ai/Protected/`, `app/Seller/Evaluation/`, `tests/Feature/Seller/Evaluation/`, `tests/Browser/E4-08G/`, `docs/results/SP-E4-08G.md`.\n"
+    },
+    {
+      "taskKey": "SP-E5-01M",
+      "title": "SP-E5-01M · Виджет: режимы и запуск ответов",
+      "goal": "Режимы виджета «Автономно» и «Подсказки», запуск runtime через безопасный публичный канал без сессии менеджера, автоматические ответы и сверка макета; проверять права, изоляцию брендов и fake runtime, без живых отправок.",
+      "dependsOn": [
+        "SP-E5-01K"
+      ],
+      "scope": [
+        "app/Seller/Channels/",
+        "app/Seller/Runtime/",
+        "resources/js/pages/Seller/Channels/",
+        "tests/Feature/Seller/Channels/",
+        "tests/Browser/E5-01M/",
+        "docs/results/SP-E5-01M.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Режимы виджета «Автономно» и «Подсказки», запуск runtime через безопасный публичный канал без сессии менеджера, автоматические ответы и сверка макета; проверять права, изоляцию брендов и fake runtime, без живых отправок."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E5-01K.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E5-01M.md",
+      "description": "# SP-E5-01M · Виджет: режимы и запуск ответов\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E5-01K, docs/results/SP-E5-01K.md.\n**Зависимости:** SP-E5-01K.\n\n## Приёмка\n- Режимы виджета «Автономно» и «Подсказки», запуск runtime через безопасный публичный канал без сессии менеджера, автоматические ответы и сверка макета; проверять права, изоляцию брендов и fake runtime, без живых отправок.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Seller/Channels/`, `app/Seller/Runtime/`, `resources/js/pages/Seller/Channels/`, `tests/Feature/Seller/Channels/`, `tests/Browser/E5-01M/`, `docs/results/SP-E5-01M.md`.\n"
+    },
+    {
+      "taskKey": "SP-E4-10B",
+      "title": "SP-E4-10B · Факты: дерево и состояния",
+      "goal": "D-4.3: завершить дерево тем, колонку «Условия», статусы публикации, компоновку и состояния; сверить экран с макетом.",
+      "dependsOn": [
+        "SP-E4-10"
+      ],
+      "scope": [
+        "app/Seller/Knowledge/Facts/",
+        "resources/js/pages/Seller/Knowledge/Facts/",
+        "tests/Feature/Seller/Knowledge/Facts/",
+        "tests/Browser/E4-10B/",
+        "docs/results/SP-E4-10B.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "D-4.3: завершить дерево тем, колонку «Условия», статусы публикации, компоновку и состояния; сверить экран с макетом."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E4-10.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E4-10B.md",
+      "description": "# SP-E4-10B · Факты: дерево и состояния\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E4-10, docs/results/SP-E4-10.md.\n**Зависимости:** SP-E4-10.\n\n## Приёмка\n- D-4.3: завершить дерево тем, колонку «Условия», статусы публикации, компоновку и состояния; сверить экран с макетом.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Seller/Knowledge/Facts/`, `resources/js/pages/Seller/Knowledge/Facts/`, `tests/Feature/Seller/Knowledge/Facts/`, `tests/Browser/E4-10B/`, `docs/results/SP-E4-10B.md`.\n"
+    },
+    {
+      "taskKey": "SP-E4-10C",
+      "title": "SP-E4-10C · Примеры: теги и состояния",
+      "goal": "D-4.8: выбор тега из полного списка, сверка состояний и экрана с макетом.",
+      "dependsOn": [
+        "SP-E4-10"
+      ],
+      "scope": [
+        "app/Seller/Knowledge/Fewshot/",
+        "resources/js/pages/Seller/Knowledge/Fewshot/",
+        "tests/Feature/Seller/Knowledge/Fewshot/",
+        "tests/Browser/E4-10C/",
+        "docs/results/SP-E4-10C.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "D-4.8: выбор тега из полного списка, сверка состояний и экрана с макетом."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E4-10.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E4-10C.md",
+      "description": "# SP-E4-10C · Примеры: теги и состояния\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E4-10, docs/results/SP-E4-10.md.\n**Зависимости:** SP-E4-10.\n\n## Приёмка\n- D-4.8: выбор тега из полного списка, сверка состояний и экрана с макетом.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Seller/Knowledge/Fewshot/`, `resources/js/pages/Seller/Knowledge/Fewshot/`, `tests/Feature/Seller/Knowledge/Fewshot/`, `tests/Browser/E4-10C/`, `docs/results/SP-E4-10C.md`.\n"
+    },
+    {
+      "taskKey": "SP-E4-10D",
+      "title": "SP-E4-10D · Закрытые темы и следующие шаги",
+      "goal": "D-4.9: вкладки, добавление и снятие закрытых тем, действие «Что дальше» в runtime и сверка с макетом.",
+      "dependsOn": [
+        "SP-E4-10"
+      ],
+      "scope": [
+        "app/Seller/Knowledge/Prohibitions/",
+        "app/Seller/Runtime/",
+        "resources/js/pages/Seller/Knowledge/Prohibitions/",
+        "tests/Feature/Seller/Knowledge/Prohibitions/",
+        "tests/Feature/Seller/Runtime/",
+        "tests/Browser/E4-10D/",
+        "docs/results/SP-E4-10D.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "D-4.9: вкладки, добавление и снятие закрытых тем, действие «Что дальше» в runtime и сверка с макетом."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E4-10.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E4-10D.md",
+      "description": "# SP-E4-10D · Закрытые темы и следующие шаги\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E4-10, docs/results/SP-E4-10.md.\n**Зависимости:** SP-E4-10.\n\n## Приёмка\n- D-4.9: вкладки, добавление и снятие закрытых тем, действие «Что дальше» в runtime и сверка с макетом.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Seller/Knowledge/Prohibitions/`, `app/Seller/Runtime/`, `resources/js/pages/Seller/Knowledge/Prohibitions/`, `tests/Feature/Seller/Knowledge/Prohibitions/`, `tests/Feature/Seller/Runtime/`, `tests/Browser/E4-10D/`, `docs/results/SP-E4-10D.md`.\n"
+    },
+    {
+      "taskKey": "SP-E4-10E",
+      "title": "SP-E4-10E · Песочница: сверка экрана",
+      "goal": "D-4.11: сверить песочницу с макетом, состояниями и тестами; пометка о статистике уже отображается.",
+      "dependsOn": [
+        "SP-E4-10"
+      ],
+      "scope": [
+        "app/Seller/Sandbox/",
+        "resources/js/pages/Seller/Sandbox/",
+        "tests/Feature/Seller/Sandbox/",
+        "tests/Browser/E4-10E/",
+        "docs/results/SP-E4-10E.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "D-4.11: сверить песочницу с макетом, состояниями и тестами; пометка о статистике уже отображается."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E4-10.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E4-10E.md",
+      "description": "# SP-E4-10E · Песочница: сверка экрана\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E4-10, docs/results/SP-E4-10.md.\n**Зависимости:** SP-E4-10.\n\n## Приёмка\n- D-4.11: сверить песочницу с макетом, состояниями и тестами; пометка о статистике уже отображается.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Seller/Sandbox/`, `resources/js/pages/Seller/Sandbox/`, `tests/Feature/Seller/Sandbox/`, `tests/Browser/E4-10E/`, `docs/results/SP-E4-10E.md`.\n"
+    },
+    {
+      "taskKey": "SP-E4-10F",
+      "title": "SP-E4-10F · Песочница: история и версии",
+      "goal": "D-4.11: многоходовый диалог с историей, выбор клиента и канала, работа с опубликованной версией; сверить экран и состояния с макетом, только fake AI.",
+      "dependsOn": [
+        "SP-E4-10E"
+      ],
+      "scope": [
+        "app/Seller/Sandbox/",
+        "app/ProtectedOperations/",
+        "resources/js/pages/Seller/Sandbox/",
+        "tests/Feature/Seller/Sandbox/",
+        "tests/Browser/E4-10F/",
+        "docs/results/SP-E4-10F.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "D-4.11: многоходовый диалог с историей, выбор клиента и канала, работа с опубликованной версией; сверить экран и состояния с макетом, только fake AI."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E4-10E.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E4-10F.md",
+      "description": "# SP-E4-10F · Песочница: история и версии\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E4-10E, docs/results/SP-E4-10E.md.\n**Зависимости:** SP-E4-10E.\n\n## Приёмка\n- D-4.11: многоходовый диалог с историей, выбор клиента и канала, работа с опубликованной версией; сверить экран и состояния с макетом, только fake AI.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Seller/Sandbox/`, `app/ProtectedOperations/`, `resources/js/pages/Seller/Sandbox/`, `tests/Feature/Seller/Sandbox/`, `tests/Browser/E4-10F/`, `docs/results/SP-E4-10F.md`.\n"
+    },
+    {
+      "taskKey": "SP-E4-10G",
+      "title": "SP-E4-10G · Примеры: компоновка и состояния",
+      "goal": "D-4.8: привести карточки к редактируемой компоновке макета, проверить пустое состояние, skeleton и ошибку первой загрузки.",
+      "dependsOn": [
+        "SP-E4-10C"
+      ],
+      "scope": [
+        "app/Seller/Knowledge/Fewshot/",
+        "resources/js/pages/Seller/Knowledge/Fewshot/",
+        "tests/Feature/Seller/Knowledge/Fewshot/",
+        "tests/Browser/E4-10G/",
+        "docs/results/SP-E4-10G.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "D-4.8: привести карточки к редактируемой компоновке макета, проверить пустое состояние, skeleton и ошибку первой загрузки."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E4-10C.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E4-10G.md",
+      "description": "# SP-E4-10G · Примеры: компоновка и состояния\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E4-10C, docs/results/SP-E4-10C.md.\n**Зависимости:** SP-E4-10C.\n\n## Приёмка\n- D-4.8: привести карточки к редактируемой компоновке макета, проверить пустое состояние, skeleton и ошибку первой загрузки.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Seller/Knowledge/Fewshot/`, `resources/js/pages/Seller/Knowledge/Fewshot/`, `tests/Feature/Seller/Knowledge/Fewshot/`, `tests/Browser/E4-10G/`, `docs/results/SP-E4-10G.md`.\n"
+    },
+    {
+      "taskKey": "SP-E4-10H",
+      "title": "SP-E4-10H · Песочница: внутренности хода",
+      "goal": "D-4.11: выбор хода и отображение доступных реальных данных: предыдущий ответ, тема, карточка, стадия, факты, условия, приёмы, действия и footer; не выдумывать отсутствующие данные.",
+      "dependsOn": [
+        "SP-E4-10F"
+      ],
+      "scope": [
+        "app/Seller/Sandbox/",
+        "app/ProtectedOperations/",
+        "resources/js/pages/Seller/Sandbox/",
+        "tests/Feature/Seller/Sandbox/",
+        "tests/Browser/E4-10H/",
+        "docs/results/SP-E4-10H.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "D-4.11: выбор хода и отображение доступных реальных данных: предыдущий ответ, тема, карточка, стадия, факты, условия, приёмы, действия и footer; не выдумывать отсутствующие данные."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E4-10F.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E4-10H.md",
+      "description": "# SP-E4-10H · Песочница: внутренности хода\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E4-10F, docs/results/SP-E4-10F.md.\n**Зависимости:** SP-E4-10F.\n\n## Приёмка\n- D-4.11: выбор хода и отображение доступных реальных данных: предыдущий ответ, тема, карточка, стадия, факты, условия, приёмы, действия и footer; не выдумывать отсутствующие данные.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Seller/Sandbox/`, `app/ProtectedOperations/`, `resources/js/pages/Seller/Sandbox/`, `tests/Feature/Seller/Sandbox/`, `tests/Browser/E4-10H/`, `docs/results/SP-E4-10H.md`.\n"
+    },
+    {
+      "taskKey": "SP-E4-10I",
+      "title": "SP-E4-10I · Песочница: контрольные сценарии",
+      "goal": "D-4.11: сохранение контрольного сценария, проверка всех состояний, расположения и сценариев по макету; fake AI и изоляция брендов.",
+      "dependsOn": [
+        "SP-E4-10H"
+      ],
+      "scope": [
+        "app/Seller/Sandbox/",
+        "app/ProtectedOperations/",
+        "resources/js/pages/Seller/Sandbox/",
+        "tests/Feature/Seller/Sandbox/",
+        "tests/Browser/E4-10I/",
+        "docs/results/SP-E4-10I.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "D-4.11: сохранение контрольного сценария, проверка всех состояний, расположения и сценариев по макету; fake AI и изоляция брендов."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E4-10H.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E4-10I.md",
+      "description": "# SP-E4-10I · Песочница: контрольные сценарии\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E4-10H, docs/results/SP-E4-10H.md.\n**Зависимости:** SP-E4-10H.\n\n## Приёмка\n- D-4.11: сохранение контрольного сценария, проверка всех состояний, расположения и сценариев по макету; fake AI и изоляция брендов.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Seller/Sandbox/`, `app/ProtectedOperations/`, `resources/js/pages/Seller/Sandbox/`, `tests/Feature/Seller/Sandbox/`, `tests/Browser/E4-10I/`, `docs/results/SP-E4-10I.md`.\n"
+    },
+    {
+      "taskKey": "SP-E8-16M",
+      "title": "SP-E8-16M · Замер: готовность и уведомления",
+      "goal": "V-3.3: персональная подписка уведомить о готовности через существующий fake-транспорт, лента отдельных ответов, баннер и число уточнений до подтверждения, полная сверка с макетом.",
+      "dependsOn": [
+        "SP-E8-16L"
+      ],
+      "scope": [
+        "app/Vision/Measurements/",
+        "app/Shell/Notifications/",
+        "resources/js/pages/Vision/Measurements/",
+        "tests/Feature/Vision/Measurements/",
+        "tests/Browser/E8-16M/",
+        "docs/results/SP-E8-16M.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "V-3.3: персональная подписка уведомить о готовности через существующий fake-транспорт, лента отдельных ответов, баннер и число уточнений до подтверждения, полная сверка с макетом."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E8-16L.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E8-16M.md",
+      "description": "# SP-E8-16M · Замер: готовность и уведомления\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E8-16L, docs/results/SP-E8-16L.md.\n**Зависимости:** SP-E8-16L.\n\n## Приёмка\n- V-3.3: персональная подписка уведомить о готовности через существующий fake-транспорт, лента отдельных ответов, баннер и число уточнений до подтверждения, полная сверка с макетом.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Vision/Measurements/`, `app/Shell/Notifications/`, `resources/js/pages/Vision/Measurements/`, `tests/Feature/Vision/Measurements/`, `tests/Browser/E8-16M/`, `docs/results/SP-E8-16M.md`.\n"
+    },
+    {
+      "taskKey": "SP-E8-16N",
+      "title": "SP-E8-16N · История динамики замеров",
+      "goal": "V-4.4: график истории более двух подтверждённых замеров с датами, порядок повторных версий отчёта и сверка с макетом.",
+      "dependsOn": [
+        "SP-E8-16L"
+      ],
+      "scope": [
+        "app/Vision/Reports/",
+        "resources/js/pages/Vision/Reports/",
+        "tests/Feature/Vision/Reports/",
+        "tests/Browser/E8-16N/",
+        "docs/results/SP-E8-16N.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "V-4.4: график истории более двух подтверждённых замеров с датами, порядок повторных версий отчёта и сверка с макетом."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E8-16L.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E8-16N.md",
+      "description": "# SP-E8-16N · История динамики замеров\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E8-16L, docs/results/SP-E8-16L.md.\n**Зависимости:** SP-E8-16L.\n\n## Приёмка\n- V-4.4: график истории более двух подтверждённых замеров с датами, порядок повторных версий отчёта и сверка с макетом.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Vision/Reports/`, `resources/js/pages/Vision/Reports/`, `tests/Feature/Vision/Reports/`, `tests/Browser/E8-16N/`, `docs/results/SP-E8-16N.md`.\n"
+    },
+    {
+      "taskKey": "SP-E8-24H",
+      "title": "SP-E8-24H · Отчёт: персональный доступ",
+      "goal": "V-11.5: персональный отзываемый доступ к выбранному отчёту на 30 дней, индивидуальная ссылка для копирования, журнал открытий и права. Полные тексты ответов внешним получателям не показывать; доставка только fake.",
+      "dependsOn": [
+        "SP-E8-24G"
+      ],
+      "scope": [
+        "app/Vision/Publications/",
+        "app/Vision/Settings/",
+        "database/migrations/E8-24H/",
+        "routes/features/E8-24H.php",
+        "resources/js/pages/Vision/Settings/",
+        "tests/Feature/Vision/Settings/",
+        "tests/Browser/E8-24H/",
+        "docs/results/SP-E8-24H.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "V-11.5: персональный отзываемый доступ к выбранному отчёту на 30 дней, индивидуальная ссылка для копирования, журнал открытий и права. Полные тексты ответов внешним получателям не показывать; доставка только fake."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E8-24G.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E8-24H.md",
+      "description": "# SP-E8-24H · Отчёт: персональный доступ\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E8-24G, docs/results/SP-E8-24G.md.\n**Зависимости:** SP-E8-24G.\n\n## Приёмка\n- V-11.5: персональный отзываемый доступ к выбранному отчёту на 30 дней, индивидуальная ссылка для копирования, журнал открытий и права. Полные тексты ответов внешним получателям не показывать; доставка только fake.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Vision/Publications/`, `app/Vision/Settings/`, `database/migrations/E8-24H/`, `routes/features/E8-24H.php`, `resources/js/pages/Vision/Settings/`, `tests/Feature/Vision/Settings/`, `tests/Browser/E8-24H/`, `docs/results/SP-E8-24H.md`.\n"
+    },
+    {
+      "taskKey": "SP-E4-06G",
+      "title": "SP-E4-06G · Импорт: сохранённые документы",
+      "goal": "D-4.10: действия над сохранёнными документами, необходимые маршруты и хранение исходных файлов, полная сверка расположения и состояний с макетом; старые счётчики без исходного файла не выдумывать. Удаление данных не выполнять без разрешения владельца.",
+      "dependsOn": [
+        "SP-E4-06F"
+      ],
+      "scope": [
+        "app/Seller/Knowledge/Imports/",
+        "database/migrations/E4-06G/",
+        "routes/features/E4-06.php",
+        "resources/js/pages/Seller/Knowledge/Imports/",
+        "tests/Feature/Seller/Knowledge/Imports/",
+        "tests/Browser/E4-06G/",
+        "docs/results/SP-E4-06G.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "D-4.10: действия над сохранёнными документами, необходимые маршруты и хранение исходных файлов, полная сверка расположения и состояний с макетом; старые счётчики без исходного файла не выдумывать. Удаление данных не выполнять без разрешения владельца."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E4-06F.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E4-06G.md",
+      "description": "# SP-E4-06G · Импорт: сохранённые документы\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E4-06F, docs/results/SP-E4-06F.md.\n**Зависимости:** SP-E4-06F.\n\n## Приёмка\n- D-4.10: действия над сохранёнными документами, необходимые маршруты и хранение исходных файлов, полная сверка расположения и состояний с макетом; старые счётчики без исходного файла не выдумывать. Удаление данных не выполнять без разрешения владельца.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Seller/Knowledge/Imports/`, `database/migrations/E4-06G/`, `routes/features/E4-06.php`, `resources/js/pages/Seller/Knowledge/Imports/`, `tests/Feature/Seller/Knowledge/Imports/`, `tests/Browser/E4-06G/`, `docs/results/SP-E4-06G.md`.\n"
+    },
+    {
+      "taskKey": "SP-E5-07E",
+      "title": "SP-E5-07E · Почта: переход к настройке",
+      "goal": "D-9.8: доступный переход из общей навигации к настройке почты с учётом прав и модулей; проверить браузером и сверить с макетом, не включать живую почту.",
+      "dependsOn": [
+        "SP-E5-07D"
+      ],
+      "scope": [
+        "resources/js/components/navigation/",
+        "resources/js/pages/Seller/Channels/Email/",
+        "tests/Browser/E5-07E/",
+        "docs/results/SP-E5-07E.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "D-9.8: доступный переход из общей навигации к настройке почты с учётом прав и модулей; проверить браузером и сверить с макетом, не включать живую почту."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E5-07D.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E5-07E.md",
+      "description": "# SP-E5-07E · Почта: переход к настройке\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E5-07D, docs/results/SP-E5-07D.md.\n**Зависимости:** SP-E5-07D.\n\n## Приёмка\n- D-9.8: доступный переход из общей навигации к настройке почты с учётом прав и модулей; проверить браузером и сверить с макетом, не включать живую почту.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `resources/js/components/navigation/`, `resources/js/pages/Seller/Channels/Email/`, `tests/Browser/E5-07E/`, `docs/results/SP-E5-07E.md`.\n"
+    },
+    {
+      "taskKey": "SP-E4-10J",
+      "title": "SP-E4-10J · Факты: завершить дерево и состояния",
+      "goal": "D-4.3: завершить дерево тем, компоновку, оставшиеся состояния и сверку с макетом; при отсутствии достоверной связи факта и условия показывать отсутствие данных и не придумывать её.",
+      "dependsOn": [
+        "SP-E4-10B"
+      ],
+      "scope": [
+        "app/Seller/Knowledge/Facts/",
+        "resources/js/pages/Seller/Knowledge/Facts/",
+        "tests/Feature/Seller/Knowledge/Facts/",
+        "tests/Browser/E4-10J/",
+        "docs/results/SP-E4-10J.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "D-4.3: завершить дерево тем, компоновку, оставшиеся состояния и сверку с макетом; при отсутствии достоверной связи факта и условия показывать отсутствие данных и не придумывать её."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E4-10B.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E4-10J.md",
+      "description": "# SP-E4-10J · Факты: завершить дерево и состояния\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E4-10B, docs/results/SP-E4-10B.md.\n**Зависимости:** SP-E4-10B.\n\n## Приёмка\n- D-4.3: завершить дерево тем, компоновку, оставшиеся состояния и сверку с макетом; при отсутствии достоверной связи факта и условия показывать отсутствие данных и не придумывать её.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Seller/Knowledge/Facts/`, `resources/js/pages/Seller/Knowledge/Facts/`, `tests/Feature/Seller/Knowledge/Facts/`, `tests/Browser/E4-10J/`, `docs/results/SP-E4-10J.md`.\n"
+    },
+    {
+      "taskKey": "SP-E8-19I",
+      "title": "SP-E8-19I · Публичный отчёт: шапка и показатели",
+      "goal": "V-5.10: сверить шапку, четыре показателя и состояния публичного отчёта с макетом; персональный доступ и срок действия сохраняются, полные тексты ответов не показывать.",
+      "dependsOn": [
+        "SP-E8-19H"
+      ],
+      "scope": [
+        "app/Vision/Publications/",
+        "resources/views/public-report/",
+        "tests/Feature/Vision/Reports/",
+        "tests/Browser/E8-19I/",
+        "docs/results/SP-E8-19I.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "V-5.10: сверить шапку, четыре показателя и состояния публичного отчёта с макетом; персональный доступ и срок действия сохраняются, полные тексты ответов не показывать."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E8-19H.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E8-19I.md",
+      "description": "# SP-E8-19I · Публичный отчёт: шапка и показатели\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E8-19H, docs/results/SP-E8-19H.md.\n**Зависимости:** SP-E8-19H.\n\n## Приёмка\n- V-5.10: сверить шапку, четыре показателя и состояния публичного отчёта с макетом; персональный доступ и срок действия сохраняются, полные тексты ответов не показывать.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Vision/Publications/`, `resources/views/public-report/`, `tests/Feature/Vision/Reports/`, `tests/Browser/E8-19I/`, `docs/results/SP-E8-19I.md`.\n"
+    },
+    {
+      "taskKey": "SP-E8-19J",
+      "title": "SP-E8-19J · Публичный отчёт: блоки выводов",
+      "goal": "V-5.10: довести двухколоночные блоки выводов, конкурентов, фактов и сайта, состояния и скриншот до макета; полные тексты ответов не показывать, логотип только с отдельным согласием.",
+      "dependsOn": [
+        "SP-E8-19I"
+      ],
+      "scope": [
+        "app/Vision/Publications/",
+        "resources/views/public-report/",
+        "tests/Feature/Vision/Reports/",
+        "tests/Browser/E8-19J/",
+        "docs/results/SP-E8-19J.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "V-5.10: довести двухколоночные блоки выводов, конкурентов, фактов и сайта, состояния и скриншот до макета; полные тексты ответов не показывать, логотип только с отдельным согласием."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E8-19I.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E8-19J.md",
+      "description": "# SP-E8-19J · Публичный отчёт: блоки выводов\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E8-19I, docs/results/SP-E8-19I.md.\n**Зависимости:** SP-E8-19I.\n\n## Приёмка\n- V-5.10: довести двухколоночные блоки выводов, конкурентов, фактов и сайта, состояния и скриншот до макета; полные тексты ответов не показывать, логотип только с отдельным согласием.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Vision/Publications/`, `resources/views/public-report/`, `tests/Feature/Vision/Reports/`, `tests/Browser/E8-19J/`, `docs/results/SP-E8-19J.md`.\n"
+    },
+    {
+      "taskKey": "SP-E8-16O",
+      "title": "SP-E8-16O · Замер: уведомление о готовности",
+      "goal": "V-3.3: персональная подписка на уведомление о готовности через fake-транспорт, список и число значений по соответствию и полная сверка экрана с макетом; без живых отправок.",
+      "dependsOn": [
+        "SP-E8-16M"
+      ],
+      "scope": [
+        "app/Vision/Measurements/",
+        "app/Shell/Notifications/",
+        "resources/js/pages/Vision/Measurements/",
+        "tests/Feature/Vision/Measurements/",
+        "tests/Browser/E8-16O/",
+        "docs/results/SP-E8-16O.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "V-3.3: персональная подписка на уведомление о готовности через fake-транспорт, список и число значений по соответствию и полная сверка экрана с макетом; без живых отправок."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E8-16M.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E8-16O.md",
+      "description": "# SP-E8-16O · Замер: уведомление о готовности\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E8-16M, docs/results/SP-E8-16M.md.\n**Зависимости:** SP-E8-16M.\n\n## Приёмка\n- V-3.3: персональная подписка на уведомление о готовности через fake-транспорт, список и число значений по соответствию и полная сверка экрана с макетом; без живых отправок.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Vision/Measurements/`, `app/Shell/Notifications/`, `resources/js/pages/Vision/Measurements/`, `tests/Feature/Vision/Measurements/`, `tests/Browser/E8-16O/`, `docs/results/SP-E8-16O.md`.\n"
+    },
+    {
+      "taskKey": "SP-E4-08H",
+      "title": "SP-E4-08H · Песочница: оставшиеся fake-сценарии",
+      "goal": "Проверить и подключить остальные штатные fake-сценарии только при применимости к текущему черновику и Guard; не выдумывать условия или действия, для неподходящих сохранить прежний fallback, повтор, права и изоляцию брендов.",
+      "dependsOn": [
+        "SP-E4-08G"
+      ],
+      "scope": [
+        "app/Ai/Protected/",
+        "app/Seller/Evaluation/",
+        "tests/Feature/Seller/Evaluation/",
+        "tests/Browser/E4-08H/",
+        "docs/results/SP-E4-08H.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Проверить и подключить остальные штатные fake-сценарии только при применимости к текущему черновику и Guard; не выдумывать условия или действия, для неподходящих сохранить прежний fallback, повтор, права и изоляцию брендов."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E4-08G.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E4-08H.md",
+      "description": "# SP-E4-08H · Песочница: оставшиеся fake-сценарии\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E4-08G, docs/results/SP-E4-08G.md.\n**Зависимости:** SP-E4-08G.\n\n## Приёмка\n- Проверить и подключить остальные штатные fake-сценарии только при применимости к текущему черновику и Guard; не выдумывать условия или действия, для неподходящих сохранить прежний fallback, повтор, права и изоляцию брендов.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Ai/Protected/`, `app/Seller/Evaluation/`, `tests/Feature/Seller/Evaluation/`, `tests/Browser/E4-08H/`, `docs/results/SP-E4-08H.md`.\n"
+    },
+    {
+      "taskKey": "SP-E6-04H",
+      "title": "SP-E6-04H · Действия: статистика вызовов",
+      "goal": "D-5.7: счётчики вызовов за 30 дней только по сохранённым событиям текущего бренда; при отсутствии данных показывать «Нет данных», проверить права и состояния по макету.",
+      "dependsOn": [
+        "SP-E6-04D"
+      ],
+      "scope": [
+        "app/Seller/Settings/Tools/",
+        "resources/js/pages/Seller/Settings/Tools/",
+        "tests/Feature/Seller/Settings/Tools/",
+        "tests/Browser/E6-04H/",
+        "docs/results/SP-E6-04H.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "D-5.7: счётчики вызовов за 30 дней только по сохранённым событиям текущего бренда; при отсутствии данных показывать «Нет данных», проверить права и состояния по макету."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E6-04D.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E6-04H.md",
+      "description": "# SP-E6-04H · Действия: статистика вызовов\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E6-04D, docs/results/SP-E6-04D.md.\n**Зависимости:** SP-E6-04D.\n\n## Приёмка\n- D-5.7: счётчики вызовов за 30 дней только по сохранённым событиям текущего бренда; при отсутствии данных показывать «Нет данных», проверить права и состояния по макету.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Seller/Settings/Tools/`, `resources/js/pages/Seller/Settings/Tools/`, `tests/Feature/Seller/Settings/Tools/`, `tests/Browser/E6-04H/`, `docs/results/SP-E6-04H.md`.\n"
+    },
+    {
+      "taskKey": "SP-E6-04I",
+      "title": "SP-E6-04I · Действия: источники и настройки",
+      "goal": "D-5.7: настройки оставшихся действий, источники прайса и наличия и запрос действия v2 по существующим контрактам; состояния загрузки, пусто и ошибки, полная сверка с макетом и изоляция брендов.",
+      "dependsOn": [
+        "SP-E6-04H"
+      ],
+      "scope": [
+        "app/Seller/Settings/Tools/",
+        "resources/js/pages/Seller/Settings/Tools/",
+        "tests/Feature/Seller/Settings/Tools/",
+        "tests/Browser/E6-04I/",
+        "docs/results/SP-E6-04I.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "D-5.7: настройки оставшихся действий, источники прайса и наличия и запрос действия v2 по существующим контрактам; состояния загрузки, пусто и ошибки, полная сверка с макетом и изоляция брендов."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E6-04H.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E6-04I.md",
+      "description": "# SP-E6-04I · Действия: источники и настройки\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E6-04H, docs/results/SP-E6-04H.md.\n**Зависимости:** SP-E6-04H.\n\n## Приёмка\n- D-5.7: настройки оставшихся действий, источники прайса и наличия и запрос действия v2 по существующим контрактам; состояния загрузки, пусто и ошибки, полная сверка с макетом и изоляция брендов.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Seller/Settings/Tools/`, `resources/js/pages/Seller/Settings/Tools/`, `tests/Feature/Seller/Settings/Tools/`, `tests/Browser/E6-04I/`, `docs/results/SP-E6-04I.md`.\n"
+    },
+    {
+      "taskKey": "SP-E7-04P",
+      "title": "SP-E7-04P · Аналитика: первый контакт",
+      "goal": "D-8.2: событие первого получения контакта в защищённом финализаторе, расчёт времени; для старых диалогов показывать «Нет данных», проверить права и бренды.",
+      "dependsOn": [
+        "SP-E7-04O"
+      ],
+      "scope": [
+        "app/ProtectedOperations/",
+        "app/Seller/Analytics/",
+        "database/migrations/E7-04P/",
+        "tests/Feature/ProtectedOperations/",
+        "tests/Feature/Seller/Analytics/",
+        "tests/Browser/E7-04P/",
+        "docs/results/SP-E7-04P.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "D-8.2: событие первого получения контакта в защищённом финализаторе, расчёт времени; для старых диалогов показывать «Нет данных», проверить права и бренды."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E7-04O.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E7-04P.md",
+      "description": "# SP-E7-04P · Аналитика: первый контакт\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E7-04O, docs/results/SP-E7-04O.md.\n**Зависимости:** SP-E7-04O.\n\n## Приёмка\n- D-8.2: событие первого получения контакта в защищённом финализаторе, расчёт времени; для старых диалогов показывать «Нет данных», проверить права и бренды.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/ProtectedOperations/`, `app/Seller/Analytics/`, `database/migrations/E7-04P/`, `tests/Feature/ProtectedOperations/`, `tests/Feature/Seller/Analytics/`, `tests/Browser/E7-04P/`, `docs/results/SP-E7-04P.md`.\n"
+    },
+    {
+      "taskKey": "SP-E7-04Q",
+      "title": "SP-E7-04Q · Аналитика: PDF и показатели",
+      "goal": "D-8.6: серверный PDF бесплатной библиотекой с проверкой кириллицы, остальные показатели и сверка экранов с макетом; доставка только fake.",
+      "dependsOn": [
+        "SP-E7-04O"
+      ],
+      "scope": [
+        "app/Seller/Analytics/",
+        "resources/js/pages/Seller/Analytics/",
+        "tests/Feature/Seller/Analytics/",
+        "tests/Browser/E7-04Q/",
+        "docs/results/SP-E7-04Q.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "D-8.6: серверный PDF бесплатной библиотекой с проверкой кириллицы, остальные показатели и сверка экранов с макетом; доставка только fake."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E7-04O.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E7-04Q.md",
+      "description": "# SP-E7-04Q · Аналитика: PDF и показатели\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E7-04O, docs/results/SP-E7-04O.md.\n**Зависимости:** SP-E7-04O.\n\n## Приёмка\n- D-8.6: серверный PDF бесплатной библиотекой с проверкой кириллицы, остальные показатели и сверка экранов с макетом; доставка только fake.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Seller/Analytics/`, `resources/js/pages/Seller/Analytics/`, `tests/Feature/Seller/Analytics/`, `tests/Browser/E7-04Q/`, `docs/results/SP-E7-04Q.md`.\n"
+    },
+    {
+      "taskKey": "SP-E4-10K",
+      "title": "SP-E4-10K · Примеры: загрузка и ошибки",
+      "goal": "D-4.8: skeleton и ошибка первой загрузки с повтором, окончательная сверка пустого состояния и расположения элементов с макетом.",
+      "dependsOn": [
+        "SP-E4-10G"
+      ],
+      "scope": [
+        "app/Seller/Knowledge/Fewshot/",
+        "resources/js/pages/Seller/Knowledge/Fewshot/",
+        "tests/Feature/Seller/Knowledge/Fewshot/",
+        "tests/Browser/E4-10K/",
+        "docs/results/SP-E4-10K.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "D-4.8: skeleton и ошибка первой загрузки с повтором, окончательная сверка пустого состояния и расположения элементов с макетом."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E4-10G.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E4-10K.md",
+      "description": "# SP-E4-10K · Примеры: загрузка и ошибки\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E4-10G, docs/results/SP-E4-10G.md.\n**Зависимости:** SP-E4-10G.\n\n## Приёмка\n- D-4.8: skeleton и ошибка первой загрузки с повтором, окончательная сверка пустого состояния и расположения элементов с макетом.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Seller/Knowledge/Fewshot/`, `resources/js/pages/Seller/Knowledge/Fewshot/`, `tests/Feature/Seller/Knowledge/Fewshot/`, `tests/Browser/E4-10K/`, `docs/results/SP-E4-10K.md`.\n"
+    },
+    {
+      "taskKey": "SP-E4-10L",
+      "title": "SP-E4-10L · Закрытые темы: применение в диалоге",
+      "goal": "D-4.9: применять выбранное для закрытой темы действие в защищённом ходе диалога для обоих вариантов, сохранить существующие проверки и завершить сверку экрана по макету; runtime AI только fake.",
+      "dependsOn": [
+        "SP-E4-10D"
+      ],
+      "scope": [
+        "app/Seller/Engine/Policy.php",
+        "app/ProtectedOperations/",
+        "tests/Feature/Seller/Engine/",
+        "tests/Feature/ProtectedOperations/",
+        "tests/Browser/E4-10L/",
+        "docs/results/SP-E4-10L.md"
+      ],
+      "exclusiveResources": [
+        "shared-ai-stages"
+      ],
+      "acceptance": [
+        "D-4.9: применять выбранное для закрытой темы действие в защищённом ходе диалога для обоих вариантов, сохранить существующие проверки и завершить сверку экрана по макету; runtime AI только fake."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E4-10D.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E4-10L.md",
+      "description": "# SP-E4-10L · Закрытые темы: применение в диалоге\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E4-10D, docs/results/SP-E4-10D.md.\n**Зависимости:** SP-E4-10D.\n\n## Приёмка\n- D-4.9: применять выбранное для закрытой темы действие в защищённом ходе диалога для обоих вариантов, сохранить существующие проверки и завершить сверку экрана по макету; runtime AI только fake.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Seller/Engine/Policy.php`, `app/ProtectedOperations/`, `tests/Feature/Seller/Engine/`, `tests/Feature/ProtectedOperations/`, `tests/Browser/E4-10L/`, `docs/results/SP-E4-10L.md`.\n"
     }
   ],
   "excludedSourceTasks": {

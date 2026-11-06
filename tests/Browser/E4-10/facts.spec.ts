@@ -1,0 +1,20 @@
+import { expect, test } from '@playwright/test';
+import { createServer, type ViteDevServer } from 'vite';
+import { mkdir } from 'node:fs/promises';
+let server: ViteDevServer;
+let url: string;
+test.use({ viewport: { width: 1440, height: 900 }, launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH } : {} });
+test.beforeAll(async () => { server = await createServer({ configFile: 'tests/Browser/E4-10/vite.config.ts', server: { host: '127.0.0.1', port: 0, strictPort: false } }); await server.listen(); url = new URL('/tests/Browser/E4-10/fixture.html', server.resolvedUrls!.local[0]).href; });
+test.afterAll(async () => { await server?.close(); });
+test('темы фильтруют факты и показывают изменения', async ({ page }) => {
+  await page.goto(url);
+  const list = page.getByRole('heading', { name: 'Список фактов' }).locator('..');
+  await expect(list.getByText('Изменён', { exact: true })).toBeVisible();
+  await expect(list.getByRole('button', { name: 'Все темы (1)' })).toBeVisible();
+  await list.getByRole('button', { name: 'Оплата · payment (0)' }).click();
+  await expect(list.getByText('По запросу факты не найдены.')).toBeVisible();
+  await list.getByRole('button', { name: 'Доставка · delivery (1)' }).click();
+  await expect(list.getByText('Изменён', { exact: true })).toBeVisible();
+  await mkdir('.local/screenshots/SP-E4-10', { recursive: true });
+  await page.screenshot({ path: '.local/screenshots/SP-E4-10/facts.png', fullPage: true });
+});

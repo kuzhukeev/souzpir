@@ -45,6 +45,17 @@ final class FactsController
                 $group['metadata'] = $metadata[$group['key']] ?? [];
             }
             unset($group);
+            $publishedId = DB::table('brands')->where('organization_id', $tenant->organizationId)->where('id', $tenant->brandId)->value('active_knowledge_release_id');
+            $published = $publishedId ? DB::table('kn_facts as fact')->join('kn_fact_groups as groups', 'groups.id', '=', 'fact.group_id')
+                ->where('groups.release_id', $publishedId)->get(['fact.logical_id', 'fact.text', 'fact.status', 'fact.source', 'groups.key'])->keyBy('logical_id') : collect();
+            foreach ($editor['groups'] as &$group) {
+                foreach ($group['facts'] as &$fact) {
+                    $old = $published[$fact['logical_id']] ?? null;
+                    $fact['change_status'] = ! $old ? 'new' : (($old->text !== $fact['text'] || $old->status !== $fact['status'] || $old->source !== $fact['source'] || $old->key !== $group['key']) ? 'changed' : null);
+                }
+                unset($fact);
+            }
+            unset($group);
             $logicalIds = collect($editor['groups'])->flatMap(fn (array $group) => array_column($group['facts'], 'logical_id'))->all();
             $changed = $logicalIds ? DB::table('audit_logs')->where('organization_id', $tenant->organizationId)
                 ->where('brand_id', $tenant->brandId)->where('subject_type', 'knowledge_fact')

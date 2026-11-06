@@ -48,9 +48,9 @@ final class SettingsController
             if ($from > $to || CarbonImmutable::parse($from)->diffInDays(CarbonImmutable::parse($to)) > 366) {
                 throw ValidationException::withMessages(['estimate_to' => 'Период оценки не может превышать 366 дней.']);
             }
-            $estimator = app(SchedulePreview::class);
-            $estimate = $estimator->estimate($schedule, $questionCount === null ? null : (int) $questionCount, $from, $to);
-            $monthEstimate = $estimator->estimate($schedule, $questionCount === null ? null : (int) $questionCount, $today->startOfMonth()->toDateString(), $today->endOfMonth()->toDateString());
+            $estimator = app(ScheduleHistoryEstimate::class);
+            $estimate = $estimator->estimate($tenant, $schedule, $questionCount === null ? null : (int) $questionCount, $from, $to);
+            $monthEstimate = $estimator->estimate($tenant, $schedule, $questionCount === null ? null : (int) $questionCount, $today->startOfMonth()->toDateString(), $today->endOfMonth()->toDateString());
 
             $catalog = app(ProviderCatalog::class)->models();
             $modelOptions = collect(array_unique([...$schedule['available_models'], ...array_keys(array_filter($catalog, fn (array $model): bool => $model['status'] === 'planned'))]))

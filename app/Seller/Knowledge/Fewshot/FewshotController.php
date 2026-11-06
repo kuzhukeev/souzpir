@@ -43,7 +43,7 @@ final class FewshotController
             $persona = $snapshot?->all('persona');
             $maxWords = $persona['length']['max_words'] ?? null;
 
-            return ['draft' => $draft, 'fewshot' => $snapshot?->all('fewshot'), 'maxWords' => is_int($maxWords) && $maxWords > 0 ? $maxWords : null];
+            return ['draft' => $draft, 'fewshot' => $snapshot?->all('fewshot'), 'availableTags' => FewshotTags::ALL, 'maxWords' => is_int($maxWords) && $maxWords > 0 ? $maxWords : null];
         });
 
         return Inertia::render('Seller/Knowledge/Fewshot/Index', [...$data, 'status' => session('status')]);

@@ -74,7 +74,7 @@ final class DraftScenarioPreview
             $policy->applyExtraction($state, $extraction);
             $goal = $policy->decide($state, $extraction, $first);
             $examples = $draft->fewshot($goal->fewshotTags, $state->clientType(), 1);
-            $answer = $request ? app(DraftResponder::class)->respond($request, $draft, $state, $goal, $client) : null;
+            $answer = $request ? app(DraftResponder::class)->respond($request, $draft, $state, $goal, $client, $personaKey) : null;
             $answer ??= trim((string) ($examples[0]['text'] ?? 'Здравствуйте! Чем могу помочь?'));
             $guard = (new DeterministicGuard($draft))->check($answer, $goal, $state);
             $goalKind = $goal->kind;

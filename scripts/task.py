@@ -344,8 +344,11 @@ class Coordinator:
                         return True
                     except TaskError:
                         pass
-                remote = git(self.root, "rev-parse", "--verify", "refs/remotes/origin/" + record["branch"] + "^{commit}")
-                git(worktree, "merge-base", "--is-ancestor", remote, head)
+                remote = git(self.root, "rev-parse", "--verify", "refs/remotes/origin/" + record["branch"] + "^{commit}", check=False)
+                if remote:
+                    git(worktree, "merge-base", "--is-ancestor", remote, head)
+                # A released clean tree may contain local, unpushed scoped commits.
+                # Preserve them; scope and dependency checks still apply on claim.
                 if unapproved_changes(worktree, base, head, [*record["scope"], *CI_SCOPE_EXCEPTIONS.get(key, ())]):
                     return False
             return True

@@ -33,7 +33,7 @@ final class ImportsController
             $id = DB::table('knowledge_releases')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('status', 'draft')->value('id');
 
             $editor = $id ? app(KnowledgeRepository::class)->draftEditor($tenant, $id) : null;
-            $documents = DB::table('seller_knowledge_import_documents')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->orderByDesc('created_at')->get(['id', 'name', 'type', 'pages', 'status', 'created_at']);
+            $documents = DB::table('seller_knowledge_import_documents')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->orderByDesc('created_at')->get(['id', 'name', 'type', 'pages', 'status', 'fragments_count', 'created_at']);
 
             return [$editor, $documents];
         });
@@ -44,10 +44,11 @@ final class ImportsController
     public function preview(Request $request): mixed
     {
         return $this->access($request, function (TenantContext $tenant) use ($request) {
-            $input = $request->validate(['file' => ['required', 'file', 'max:10240']]);
+            $input = $request->validate(['file' => ['required', 'file', 'max:10240'], 'sheet' => ['nullable', 'integer', 'min:0', 'max:99'], 'document_id' => ['nullable', 'ulid']]);
             $file = $input['file'];
             $extension = strtolower($file->getClientOriginalExtension());
             $pages = null;
+            $sheets = [];
             if (in_array($extension, ['pdf', 'docx'], true)) {
                 $document = app(DocumentReader::class)->read($file->getRealPath(), $extension);
                 $pages = $document['pages'];
@@ -59,7 +60,8 @@ final class ImportsController
                 }
                 $lines = preg_split('/\R/u', $text);
             } elseif (in_array($extension, ['csv', 'xlsx'], true)) {
-                $data = app(CatalogReader::class)->read($file->getRealPath(), $extension);
+                $data = app(CatalogReader::class)->read($file->getRealPath(), $extension, (int) ($input['sheet'] ?? 0));
+                $sheets = $extension === 'xlsx' ? $data['sheets'] : [];
                 $lines = array_map(fn (array $row) => implode(' · ', array_filter(array_map(fn ($cell) => trim((string) $cell), $row), fn ($cell) => $cell !== '')), $data['rows']);
             } else {
                 throw ValidationException::withMessages(['file' => 'Поддерживаются TXT, CSV, XLSX, PDF и DOCX.']);
@@ -69,13 +71,23 @@ final class ImportsController
                 throw ValidationException::withMessages(['file' => 'Не более 100 строк по 500 символов.']);
             }
 
-            if ($lines === []) {
+            if ($lines === [] && $extension !== 'xlsx') {
                 throw ValidationException::withMessages(['file' => 'В документе не найден текст.']);
             }
-            $documentId = (string) Str::ulid();
-            DB::table('seller_knowledge_import_documents')->insert(['id' => $documentId, 'organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId, 'name' => mb_substr($file->getClientOriginalName(), 0, 255), 'type' => $extension, 'pages' => $pages, 'status' => 'previewed', 'created_at' => now(), 'updated_at' => now()]);
+            $name = mb_substr($file->getClientOriginalName(), 0, 255);
+            $documentId = $input['document_id'] ?? null;
+            if ($documentId !== null) {
+                abort_unless(DB::table('seller_knowledge_import_documents')->where('organization_id', $tenant->organizationId)
+                    ->where('brand_id', $tenant->brandId)->where('id', $documentId)->where('name', $name)
+                    ->where('type', $extension)->where('status', 'previewed')->exists(), 404);
+            } else {
+                $documentId = (string) Str::ulid();
+                DB::table('seller_knowledge_import_documents')->insert(['id' => $documentId, 'organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId, 'name' => $name, 'type' => $extension, 'pages' => $pages, 'status' => 'previewed', 'created_at' => now(), 'updated_at' => now()]);
+            }
 
-            return response()->json(['proposals' => $lines, 'document_id' => $documentId])->header('Cache-Control', 'private, no-store');
+            DB::table('seller_knowledge_import_documents')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('id', $documentId)->update(['fragments_count' => count($lines), 'updated_at' => now()]);
+
+            return response()->json(['proposals' => $lines, 'document_id' => $documentId, 'sheets' => $sheets, 'document' => ['id' => $documentId, 'name' => $name, 'type' => $extension, 'pages' => $pages, 'status' => 'previewed', 'fragments_count' => count($lines), 'created_at' => now()->toIso8601String()]])->header('Cache-Control', 'private, no-store');
         });
     }
 

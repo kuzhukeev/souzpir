@@ -23,6 +23,29 @@ final class MeasurementsController
             ]), false);
     }
 
+    public function progress(Request $request, string $measurement): mixed
+    {
+        return app(MeasurementList::class)->withinCurrent($request, function (TenantContext $context, string $revision) use ($measurement) {
+            abort_unless(DB::table('measurements')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)->where('id', $measurement)->exists(), 404);
+
+            return Inertia::render('Vision/Measurements/Progress', ['measurement' => $measurement, 'measurementBrandRevision' => $revision]);
+        }, false);
+    }
+
+    public function progressData(Request $request, string $measurement): mixed
+    {
+        return app(MeasurementList::class)->withinCurrent($request, function (TenantContext $context, string $revision) use ($measurement) {
+            $data = app(MeasurementList::class)->readDetailed($context, 1, null, $measurement);
+            abort_if(empty($data['data']), 404);
+
+            $row = $data['data'][0];
+            $row['answers'] = array_map(fn (array $answer) => array_intersect_key($answer, array_flip(['question_n', 'provider', 'requested_model', 'status'])), $row['answers']);
+            $row = array_intersect_key($row, array_flip(['status', 'created_at', 'started_at', 'finished_at', 'estimated_minutes', 'pending_clarifications', 'answers']));
+
+            return response()->json(['revision' => $revision, 'measurement' => $row]);
+        });
+    }
+
     public function data(Request $request): mixed
     {
         $page = filter_var($request->query('page', 1), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 100000]]);
