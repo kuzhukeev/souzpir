@@ -18,7 +18,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 
-CLAUDE_PILOT_TASKS = frozenset(("SP-E4-09B", "SP-E4-07B"))
+CLAUDE_PILOT_TASKS = frozenset()
 
 
 class TaskError(RuntimeError):
