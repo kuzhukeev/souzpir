@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
@@ -309,9 +310,29 @@ final class AnalyticsController
 
     public function index(Request $request): mixed
     {
-        $data = $this->access($request, fn (User $user, TenantContext $tenant) => $this->data($request, $user, $tenant));
+        $data = $this->access($request, function (User $user, TenantContext $tenant) use ($request): array {
+            $data = $this->data($request, $user, $tenant);
+            $subscription = $data['canManage'] ? DB::table('seller_analytics_subscriptions')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->first(['day', 'recipients']) : null;
+            $data['subscription'] = $subscription ? ['day' => $subscription->day, 'recipients' => json_decode($subscription->recipients, true) ?: []] : null;
+
+            return $data;
+        });
 
         return Inertia::render('Seller/Analytics/Index', ['analytics' => $data]);
+    }
+
+    public function subscription(Request $request): mixed
+    {
+        $input = $request->validate(['day' => ['required', 'in:mon,tue,wed,thu,fri,sat,sun'], 'recipients' => ['required', 'array', 'min:1', 'max:10'], 'recipients.*' => ['required', 'email:rfc', 'max:255', 'distinct']]);
+        $this->access($request, function (User $user, TenantContext $tenant) use ($input): void {
+            Gate::forUser($user)->authorize('seller.settings.write');
+            DB::table('seller_analytics_subscriptions')->updateOrInsert(
+                ['organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId],
+                fn (bool $exists): array => ['day' => $input['day'], 'recipients' => json_encode($input['recipients'], JSON_THROW_ON_ERROR), 'updated_at' => now()] + ($exists ? [] : ['id' => (string) Str::ulid(), 'created_at' => now()])
+            );
+        });
+
+        return back()->with('status', 'Расписание сохранено. Реальная отправка пока не подключена.');
     }
 
     public function send(Request $request): mixed

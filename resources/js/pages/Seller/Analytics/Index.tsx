@@ -56,6 +56,7 @@ type Analytics = {
     workload?: Record<string, number>;
   }[];
   canManage: boolean;
+  subscription?: {day:string; recipients:string[]} | null;
 };
 const labels: Record<string, string> = {
   unknown: 'Не определён',
