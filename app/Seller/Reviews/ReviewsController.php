@@ -45,22 +45,28 @@ final class ReviewsController
     public function index(Request $request): mixed
     {
         $filter = $request->validate(['type' => ['nullable', Rule::enum(ReviewType::class)], 'status' => ['nullable', Rule::in(['new', 'done', 'dismissed'])], 'period' => ['nullable', Rule::in(['7', '30', '90'])], 'page' => ['nullable', 'integer', 'min:1', 'max:100000']]);
-        try {
-            $data = $this->access($request, 'seller.dialogs.read', function (User $user, TenantContext $tenant, bool $manager) use ($filter): array {
-                $base = $this->rows($tenant, $user, $manager)->when($filter['period'] ?? null, fn ($query, $days) => $query->where('r.created_at', '>=', now()->subDays((int) $days)));
-                $counts = (clone $base)->selectRaw('r.type, count(*) as total')->groupBy('r.type')->pluck('total', 'type');
-                $items = $base->when($filter['type'] ?? null, fn ($query, $value) => $query->where('r.type', $value))
-                    ->when($filter['status'] ?? null, fn ($query, $value) => $query->where('r.status', $value))
-                    ->orderByDesc('r.created_at')->orderByDesc('r.id')->paginate(25, ['r.id', 'r.type', 'r.status', 'r.note', 'r.applied_to', 'r.created_at', 'm.text', 'c.id as conversation_id', 'u.name as author'], 'page', (int) ($filter['page'] ?? 1));
+        $this->access($request, 'seller.dialogs.read', fn () => null);
 
-                return ['items' => $items->items(), 'pagination' => ['current' => $items->currentPage(), 'last' => $items->lastPage(), 'total' => $items->total()], 'counts' => $counts, 'filters' => $filter, 'canOperate' => Gate::forUser($user)->allows('seller.dialogues.operate')];
-            });
-        } catch (QueryException $exception) {
-            report($exception);
-            $data = ['items' => [], 'pagination' => ['current' => 1, 'last' => 1, 'total' => 0], 'counts' => [], 'filters' => $filter, 'canOperate' => false, 'loadError' => true];
-        }
+        return Inertia::render('Seller/Reviews/Index', [
+            'reviews' => Inertia::defer(function () use ($request, $filter): array {
+                try {
+                    return $this->access($request, 'seller.dialogs.read', function (User $user, TenantContext $tenant, bool $manager) use ($filter): array {
+                        $base = $this->rows($tenant, $user, $manager)->when($filter['period'] ?? null, fn ($query, $days) => $query->where('r.created_at', '>=', now()->subDays((int) $days)));
+                        $counts = (clone $base)->selectRaw('r.type, count(*) as total')->groupBy('r.type')->pluck('total', 'type');
+                        $items = $base->when($filter['type'] ?? null, fn ($query, $value) => $query->where('r.type', $value))
+                            ->when($filter['status'] ?? null, fn ($query, $value) => $query->where('r.status', $value))
+                            ->orderByDesc('r.created_at')->orderByDesc('r.id')->paginate(25, ['r.id', 'r.type', 'r.status', 'r.note', 'r.applied_to', 'r.created_at', 'm.text', 'c.id as conversation_id', 'u.name as author'], 'page', (int) ($filter['page'] ?? 1));
 
-        return Inertia::render('Seller/Reviews/Index', [...$data, 'status' => $request->session()->get('status')]);
+                        return ['items' => $items->items(), 'pagination' => ['current' => $items->currentPage(), 'last' => $items->lastPage(), 'total' => $items->total()], 'counts' => $counts, 'filters' => $filter, 'canOperate' => Gate::forUser($user)->allows('seller.dialogues.operate')];
+                    });
+                } catch (QueryException $exception) {
+                    report($exception);
+
+                    return ['items' => [], 'pagination' => ['current' => 1, 'last' => 1, 'total' => 0], 'counts' => [], 'filters' => $filter, 'canOperate' => false, 'loadError' => true];
+                }
+            }),
+            'status' => $request->session()->get('status'),
+        ]);
     }
 
     public function dismiss(Request $request): mixed

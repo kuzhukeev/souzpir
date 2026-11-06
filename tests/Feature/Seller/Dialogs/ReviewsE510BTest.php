@@ -23,13 +23,13 @@ final class ReviewsE510BTest extends TenancyTestCase
         }
         $this->get('/seller/reviews')->assertRedirect();
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
-        $this->get('/seller/reviews?period=30')->assertOk()->assertInertia(fn ($page) => $page->has('items', 25)->where('pagination.total', 26)->where('pagination.last', 2)->where('counts.wrong_fact', 26));
-        $this->get('/seller/reviews?period=30&page=2')->assertOk()->assertInertia(fn ($page) => $page->has('items', 1)->where('pagination.current', 2));
+        $this->withHeaders(['X-Inertia' => 'true', 'X-Inertia-Partial-Component' => 'Seller/Reviews/Index', 'X-Inertia-Partial-Data' => 'reviews'])->get('/seller/reviews?period=30')->assertOk()->assertJsonCount(25, 'props.reviews.items')->assertJsonPath('props.reviews.pagination.total', 26)->assertJsonPath('props.reviews.pagination.last', 2)->assertJsonPath('props.reviews.counts.wrong_fact', 26);
+        $this->withHeaders(['X-Inertia' => 'true', 'X-Inertia-Partial-Component' => 'Seller/Reviews/Index', 'X-Inertia-Partial-Data' => 'reviews'])->get('/seller/reviews?period=30&page=2')->assertOk()->assertJsonCount(1, 'props.reviews.items')->assertJsonPath('props.reviews.pagination.current', 2);
         $this->getJson('/seller/reviews?period=bad')->assertUnprocessable();
         $this->getJson('/seller/reviews?page=0')->assertUnprocessable();
         $this->post('/brand/switch', ['brand_id' => $other->id])->assertRedirect();
-        $this->get('/seller/reviews?period=30')->assertOk()->assertInertia(fn ($page) => $page->has('items', 0)->where('pagination.total', 0));
+        $this->withHeaders(['X-Inertia' => 'true', 'X-Inertia-Partial-Component' => 'Seller/Reviews/Index', 'X-Inertia-Partial-Data' => 'reviews'])->get('/seller/reviews?period=30')->assertOk()->assertJsonCount(0, 'props.reviews.items')->assertJsonPath('props.reviews.pagination.total', 0);
         [$viewer] = $this->member($org, 'viewer', [$brand->id]);
-        $this->actingAs($viewer)->withSession(['brand_id' => $brand->id])->get('/seller/reviews')->assertOk()->assertInertia(fn ($page) => $page->where('canOperate', false));
+        $this->actingAs($viewer)->withSession(['brand_id' => $brand->id])->withHeaders(['X-Inertia' => 'true', 'X-Inertia-Partial-Component' => 'Seller/Reviews/Index', 'X-Inertia-Partial-Data' => 'reviews'])->get('/seller/reviews')->assertOk()->assertJsonPath('props.reviews.canOperate', false);
     }
 }
