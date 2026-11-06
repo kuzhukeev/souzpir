@@ -48,13 +48,13 @@ function CallCard({ call, onSelect, disabled }: { call: RecoveryCall; onSelect: 
   );
 }
 
-export default function AiRecovery({ aiRecoveryRevision }: { aiRecoveryRevision: string }) {
+export default function AiRecovery({ aiRecoveryRevision, confirmedCosts }: { aiRecoveryRevision: string; confirmedCosts?: { id: string; usd: string }[] }) {
   const { brand } = usePage<{ brand: { id: string } | null }>().props;
   const brandId = brand?.id ?? '';
-  return <RecoveryContent key={`${brandId}:${aiRecoveryRevision}`} brandId={brandId} revision={aiRecoveryRevision} />;
+  return <RecoveryContent key={`${brandId}:${aiRecoveryRevision}`} brandId={brandId} revision={aiRecoveryRevision} confirmedCosts={confirmedCosts} />;
 }
 
-function RecoveryContent({ brandId, revision }: { brandId: string; revision: string }) {
+function RecoveryContent({ brandId, revision, confirmedCosts }: { brandId: string; revision: string; confirmedCosts?: { id: string; usd: string }[] }) {
   const { view, page, previous, next, retry } = useRecovery(brandId, revision);
   const action = useReconcile(brandId, revision, retry);
   const button = `inline-flex min-h-11 cursor-pointer items-center justify-center rounded-lg border border-(--color-border) px-4 text-sm font-semibold text-(--color-link) disabled:cursor-not-allowed disabled:opacity-50 ${focus}`;
@@ -80,6 +80,11 @@ function RecoveryContent({ brandId, revision }: { brandId: string; revision: str
           </h1>
           <p className="mt-2 text-base text-(--color-ink-muted)">Вызовы для текущего бренда</p>
         </header>
+        {confirmedCosts && <section className={panel} data-private-profile aria-labelledby="confirmed-costs-title">
+          <h2 id="confirmed-costs-title" className="text-xl font-bold">Подтверждённая стоимость сверки</h2>
+          <p className="mt-2 text-sm">Данные оператора платформы для текущего бренда. После новой сверки обновите страницу.</p>
+          {confirmedCosts.length === 0 ? <p className="mt-3 text-sm">Подтверждённых сумм пока нет.</p> : <ul className="mt-3 space-y-2 text-sm">{confirmedCosts.map((cost) => <li key={cost.id} className="break-all">{cost.id}: {cost.usd} USD</li>)}</ul>}
+        </section>}
         <section className={panel} aria-labelledby="calls-title" aria-busy={view.loading}>
           <h2 id="calls-title" className="text-xl font-bold">
             Список вызовов
