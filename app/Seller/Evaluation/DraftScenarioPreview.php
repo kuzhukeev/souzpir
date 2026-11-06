@@ -76,6 +76,13 @@ final class DraftScenarioPreview
             $examples = $draft->fewshot($goal->fewshotTags, $state->clientType(), 1);
             $answer = $request ? app(DraftResponder::class)->respond($request, $draft, $state, $goal, $client, $personaKey) : null;
             $answer ??= trim((string) ($examples[0]['text'] ?? 'Здравствуйте! Чем могу помочь?'));
+            // A draft preview does not execute a handoff or deliver documents. Do not
+            // present a fixture or few-shot promise as a completed real-world action.
+            if (config('runtime.ai_driver') === 'fake'
+                && in_array($personaKey, ['wants_human', 'requisites', 'big_order'], true)
+                && preg_match('/(?<!\pL)(?:переда(?:м|ю|л[аи]?|но)|отправ(?:лю|ил[аи]?|лено)|высл(?:ал[аи]?|ано|ю)|направ(?:лю|ил[аи]?|лено)|свяж(?:ется|усь)|переключ(?:у|ил[аи]?|ено)|перезвон(?:ю|ит)|напиш(?:у|ет))(?!\pL)/iu', $answer)) {
+                $answer = 'В тестовом сценарии запрос менеджеру не передаётся.';
+            }
             $guard = (new DeterministicGuard($draft))->check($answer, $goal, $state);
             $goalKind = $goal->kind;
             $state->setFlag('introduced', true);
