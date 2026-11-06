@@ -253,7 +253,15 @@ HTML;
             $title = trim((string) ($page['title'] ?? ''));
             $source = (string) ($page['source_url'] ?? $website);
             $items = [];
-            if (in_array($step, [2, 5], true) && $title !== '') {
+            if ($step === 5 && is_array($audit)) {
+                foreach (app(AuditedCompanyFacts::class)->extract($audit, $website) as $hint) {
+                    if (! in_array($hint['value'], array_column($items, 'value'), true) && count($items) < 5) {
+                        $items[] = $hint;
+                    }
+                }
+            }
+
+            if ($step === 2 && $title !== '') {
                 $items[] = ['label' => 'Заголовок сайта', 'value' => mb_substr($title, 0, 180), 'source' => $source];
             }
             if (in_array($step, [3, 4, 7], true)) {
@@ -278,7 +286,7 @@ HTML;
                 preg_match_all('/^(Адрес|Телефон|Год основания|Сертификаты|Доставка):\h*([^\r\n]{1,180})$/umi', $text, $facts, PREG_SET_ORDER);
                 foreach ($facts as $fact) {
                     $value = trim($fact[2]);
-                    if ($value !== '' && ! in_array($value, array_column($items, 'value'), true)) {
+                    if ($value !== '' && count($items) < 5 && ! in_array($value, array_column($items, 'value'), true)) {
                         $items[] = ['label' => 'Данные сайта: '.$fact[1], 'value' => $value, 'source' => $source];
                     }
                     if (count($items) >= 5) {
@@ -327,6 +335,9 @@ HTML;
                         continue;
                     }
                     foreach (is_array($auditedPage['structured_facts'] ?? null) ? $auditedPage['structured_facts'] : [] as $fact) {
+                        if (count($items) >= 5) {
+                            break 2;
+                        }
                         if (! is_array($fact) || ! in_array($fact['label'] ?? null, ['Название', 'Описание'], true) || ! is_string($fact['value'] ?? null) || trim($fact['value']) === '') {
                             continue;
                         }
@@ -365,7 +376,11 @@ HTML;
                         continue;
                     }
                     foreach (($auditedPage['headings'] ?? []) as $heading) {
-                        if (! is_string($heading) || trim($heading) === '' || ($step === 7 && ! str_ends_with(trim($heading), '?'))) {
+                        if (count($items) >= 5) {
+                            break 2;
+                        }
+                        if (! is_string($heading) || trim($heading) === '' || ($step === 7 && ! str_ends_with(trim($heading), '?'))
+                            || ($step === 5 && preg_match('/^(Адрес|Телефон|Год основания|Сертификаты|Доставка):\h*(.+)$/ui', trim($heading)))) {
                             continue;
                         }
                         $value = mb_substr(trim($heading), 0, 180);
