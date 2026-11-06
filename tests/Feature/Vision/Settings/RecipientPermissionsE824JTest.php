@@ -18,13 +18,13 @@ final class RecipientPermissionsE824JTest extends TenancyTestCase
         [$manager] = $this->member($org, 'member', [$brand->id], ['sales_manager' => true]);
         [$otherBrand] = $this->member($org, 'viewer', [$other->id]);
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
-        $members = collect($this->get('/vision/settings')->assertOk()->inertiaProps('members'))->keyBy('id');
+        $members = collect($this->get('/vision/settings', ['X-Inertia-Partial-Component' => 'Vision/Settings/Index', 'X-Inertia-Partial-Data' => 'members'])->assertOk()->inertiaProps('members'))->keyBy('id');
         self::assertTrue($members[$owner->id]['canReadAnswers']);
         self::assertTrue($members[$viewer->id]['canReadAnswers']);
         self::assertFalse($members[$manager->id]['canReadAnswers']);
         self::assertFalse($members->has($otherBrand->id));
         $this->post('/brand/switch', ['brand_id' => $other->id])->assertRedirect();
-        $otherMembers = collect($this->get('/vision/settings')->assertOk()->inertiaProps('members'))->keyBy('id');
+        $otherMembers = collect($this->get('/vision/settings', ['X-Inertia-Partial-Component' => 'Vision/Settings/Index', 'X-Inertia-Partial-Data' => 'members'])->assertOk()->inertiaProps('members'))->keyBy('id');
         self::assertTrue($otherMembers[$otherBrand->id]['canReadAnswers']);
         self::assertFalse($otherMembers->has($viewer->id));
     }
