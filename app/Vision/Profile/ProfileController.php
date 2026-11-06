@@ -110,7 +110,43 @@ HTML;
             $savedAt = $quiz['revision'] > 1 ? app(ProfileAccess::class)->run($request, fn (TenantContext $tenant) => DB::table('visibility_quizzes')
                 ->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('id', $quiz['id'])->value('updated_at')) : null;
 
-            return Inertia::render('Vision/Profile/Quiz', ['quiz' => $quiz, 'step' => $step, 'brand' => $state['brand'], 'savedAt' => $savedAt, 'hints' => $this->hints($request, $step, $state['brand']['website'] ?? null), 'limits' => QuizLimits::configured()->values()]);
+            $deferred = in_array($step, [4, 5], true) && Gate::allows('vision.settings.write');
+            $grant = null;
+            if ($deferred) {
+                $grant = Str::random(48);
+                $request->session()->put('vision.hints_grant', ['hash' => hash('sha256', $grant), 'user' => $request->user()->getAuthIdentifier(),
+                    'session' => $request->session()->getId(), 'version' => $request->session()->get('auth.version'),
+                    'brand' => $state['brand']['id'], 'step' => $step, 'expires' => now()->addMinutes(10)->timestamp]);
+            }
+
+            return Inertia::render('Vision/Profile/Quiz', ['quiz' => $quiz, 'step' => $step, 'brand' => $state['brand'], 'savedAt' => $savedAt,
+                'hints' => $deferred ? ['status' => 'loading', 'items' => []] : $this->hints($request, $step, $state['brand']['website'] ?? null),
+                'hints_grant' => $grant, 'limits' => QuizLimits::configured()->values()]);
+        });
+    }
+
+    public function deferredHints(#[\SensitiveParameter] Request $request, int $step): mixed
+    {
+        return $this->guard($request, function () use ($request, $step) {
+            if (! in_array($step, [4, 5], true) || ! Gate::allows('vision.settings.write')) {
+                abort(403);
+            }
+            $grant = $request->session()->get('vision.hints_grant');
+            $token = $request->header('X-Quiz-Hints-Grant');
+            if (! is_array($grant) || ! is_string($token) || ! is_string($grant['hash'] ?? null)
+                || ! hash_equals($grant['hash'], hash('sha256', $token)) || ($grant['step'] ?? null) !== $step
+                || ($grant['user'] ?? null) !== $request->user()->getAuthIdentifier() || ($grant['session'] ?? null) !== $request->session()->getId()
+                || ($grant['version'] ?? null) !== $request->session()->get('auth.version') || ($grant['brand'] ?? null) !== $request->session()->get('brand_id')
+                || ! is_int($grant['expires'] ?? null) || $grant['expires'] < now()->timestamp) {
+                abort(403);
+            }
+            $website = app(ProfileAccess::class)->run($request, function (TenantContext $tenant) use ($grant) {
+                abort_unless($tenant->brandId === $grant['brand'], 403);
+
+                return DB::table('brands')->where('id', $tenant->brandId)->where('organization_id', $tenant->organizationId)->value('website');
+            });
+
+            return response()->json($this->hints($request, $step, $website))->header('Cache-Control', 'private, no-store');
         });
     }
 

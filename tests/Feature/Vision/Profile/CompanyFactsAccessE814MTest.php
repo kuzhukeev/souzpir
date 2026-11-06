@@ -13,6 +13,8 @@ use Tests\Feature\Tenancy\TenancyTestCase;
 
 final class CompanyFactsAccessE814MTest extends TenancyTestCase
 {
+    use ResolvesDeferredHints;
+
     public function test_audit_facts_are_scoped_to_the_brand_and_need_access(): void
     {
         URL::useOrigin('http://127.0.0.1');
@@ -40,7 +42,7 @@ final class CompanyFactsAccessE814MTest extends TenancyTestCase
         self::assertSame(1, preg_match("/const h='([a-f0-9]{64})'/", $page->getContent(), $matches));
         $this->post('/vision/private-access', ['proof' => hash('sha256', hex2bin($matches[1]))])->assertRedirect($path);
 
-        return $this->get($path);
+        return $this->resolveDeferredHints($this->get($path), $path);
     }
 
     private function signIn(User $user, string $brandId): void

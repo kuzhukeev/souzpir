@@ -178,6 +178,7 @@ export function QuestionnaireFields({
   data,
   onChange,
   hints = [],
+  hintsStatus,
   errors = {},
   limits,
 }: {
@@ -185,6 +186,7 @@ export function QuestionnaireFields({
   data: Questionnaire;
   onChange: (data: Questionnaire) => void;
   hints?: SiteHint[];
+  hintsStatus?: string;
   errors?: Record<string, string>;
   limits: { competitors?: number; facts?: number; questions?: number };
 }) {
@@ -468,7 +470,7 @@ export function QuestionnaireFields({
                 </div>
               </div>;
             })}
-            {data.site_facts.length === 0 && hints.length === 0 && (
+            {data.site_facts.length === 0 && hints.length === 0 && (hintsStatus === undefined || hintsStatus === 'empty') && (
               <p className="text-sm text-(--color-ink-muted)">
                 Подсказок с сайта пока нет. Добавьте факты самостоятельно.
               </p>
