@@ -30,7 +30,7 @@ final class ReviewsE510Test extends TenancyTestCase
         $unassigned = $create($brand->id, null);
         $foreign = $create($other->id, null);
         $this->get('/seller/reviews')->assertRedirect();
-        $this->actingAs($manager)->withSession(['brand_id' => $brand->id])->get('/seller/reviews?type=wrong_fact')->assertOk()->assertInertia(fn ($page) => $page->has('items', 1)->where('items.0.id', $mine));
+        $this->actingAs($manager)->withSession(['brand_id' => $brand->id])->withHeaders(['X-Inertia' => 'true', 'X-Inertia-Partial-Component' => 'Seller/Reviews/Index', 'X-Inertia-Partial-Data' => 'reviews'])->get('/seller/reviews?type=wrong_fact')->assertOk()->assertJsonCount(1, 'props.reviews.items')->assertJsonPath('props.reviews.items.0.id', $mine);
         $this->postJson('/seller/reviews/dismiss', ['ids' => [$unassigned]])->assertNotFound();
         $this->postJson('/seller/reviews/dismiss', ['ids' => [$foreign]])->assertNotFound();
         $this->postJson('/seller/reviews/dismiss', ['ids' => []])->assertUnprocessable();
