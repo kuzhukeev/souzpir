@@ -126,9 +126,12 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: '24', cache: npm }
       - run: npm ci --no-audit --no-fund
-      - run: npx playwright install --with-deps chromium
       - name: Check dashboard and profile in Chromium
-        run: npx playwright test tests/Browser/E7-06E/summary.spec.ts tests/Browser/E8-14M/hints.spec.ts --workers=1
+        env:
+          PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH: /usr/bin/google-chrome
+        run: |
+          test -x "$PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH"
+          npx playwright test tests/Browser/E7-06E/summary.spec.ts tests/Browser/E8-14M/hints.spec.ts --workers=1
 
   browser:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
