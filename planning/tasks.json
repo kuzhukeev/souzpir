@@ -21464,6 +21464,38 @@
       "wave": 20,
       "promptPath": "docs/tasks/SP-E8-15H.md",
       "description": "# SP-E8-15H · Управление прогонами и расчёт периода\n\n**Зачем:** завершить экраны V-3.2, V-11.2 и V-11.3 по макетам.\n**Часть чего:** остаток SP-E8-15G, `docs/results/SP-E8-15G.md`.\n**Зависимости:** SP-E8-15G в `done`.\n\n## Приёмка\n- Сверить V-3.2: единый контрол прогонов и оценка времени по прошлому замеру; при отсутствии замера показывать отсутствие данных.\n- Привести проверки `tests/Browser/E8-16/` и `tests/Browser/E8-16B/` к подтверждённому поведению без потери проверок. Описания моделей брать из конфигурации; отсутствующие тексты не выдумывать.\n- Точный календарный расчёт V-11.2 и V-11.3 внедрять после утверждения формулы; до этого показывать существующую оценку с её ограничениями.\n- Проверить права, изоляцию брендов, ошибки и основной сценарий; только fake runtime.\n\nScope: `app/Vision/Questions/`, `app/Vision/Measurements/`, `app/Vision/Settings/`, `resources/js/pages/Vision/Questions/`, `resources/js/pages/Vision/Measurements/`, `resources/js/pages/Vision/Settings/`, `resources/js/features/Vision/Questions/`, `resources/js/features/Vision/Measurements/`, `tests/Feature/Vision/Questions/`, `tests/Feature/Vision/Settings/`, `tests/Browser/E8-16/`, `tests/Browser/E8-16B/`, `tests/Browser/E8-15H/`, `docs/results/SP-E8-15H.md`.\n"
+    },
+    {
+      "taskKey": "SP-E4-07C",
+      "title": "SP-E4-07C · Песочница: история и контрольные сценарии",
+      "goal": "Завершить D-4.11: многоповоротный fake-чат, клиент и канал, контрольный сценарий, история и внутренности хода, состояния по макету после реализации общего runtime.",
+      "dependsOn": [
+        "SP-E4-07B",
+        "SP-E4-09C"
+      ],
+      "scope": [
+        "app/Seller/Sandbox/",
+        "resources/js/pages/Seller/Sandbox/",
+        "routes/features/E4-07.php",
+        "tests/Feature/Seller/Sandbox/",
+        "tests/Browser/E4-07C/",
+        "docs/results/SP-E4-07C.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Завершить D-4.11: многоповоротный fake-чат, клиент и канал, контрольный сценарий, история и внутренности хода, состояния по макету после реализации общего runtime."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E4-07B.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "D-4.11"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E4-07C.md",
+      "description": "# SP-E4-07C · Песочница: история и контрольные сценарии\n\n**Зачем:** завершить экран D-4.11 по макету `C:/OSPanel/home/tasks.local/completed/59/18-D-4.11-sandbox.png`.\n**Часть чего:** остаток SP-E4-07B, `docs/results/SP-E4-07B.md`; общий fixture runtime и последовательные ходы выполняет SP-E4-09C.\n**Зависимости:** SP-E4-07B и SP-E4-09C в `done`.\n\n## Приёмка\n- Подключить полноценный многоповоротный fake-диалог к готовому runtime: выбор клиента и канала, опубликованная версия, сохранение контрольного сценария и сброс.\n- Показать историю ходов и выбранный ход, предыдущий ответ, тему, карточку клиента, стадию, факты и условия, приёмы и фактически выполненные инструменты. Расположить блоки по макету; разрешённые инструменты не выдавать за выполненные.\n- Сверить пустое состояние, загрузку и ошибки с макетом; проверить права, изоляцию брендов, отсутствие fixture и повторный запуск. Никаких живых и платных вызовов.\n\nScope: `app/Seller/Sandbox/`, `resources/js/pages/Seller/Sandbox/`, `routes/features/E4-07.php`, `tests/Feature/Seller/Sandbox/`, `tests/Browser/E4-07C/`, `docs/results/SP-E4-07C.md`.\n"
     }
   ],
   "excludedSourceTasks": {
