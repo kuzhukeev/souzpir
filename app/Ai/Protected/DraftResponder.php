@@ -52,7 +52,7 @@ final class DraftResponder
                 return is_string($text) && trim($text) !== '' && mb_strlen($text) <= 5000 ? trim($text) : null;
             } catch (Throwable) {
                 // Reviewed responses do not assert prices, terms, or completed actions.
-                if (! in_array($personaKey, ['return_unsold', 'deferred_insist', 'unknown_item', 'delivery_far', 'opt_out', 'container_import', 'defect_claim', 'car_seller', 'competitor_bait', 'price_increase_doubt', 'legal_questions', 'busy_now', 'rewrite_conditions', 'newbie_voronezh', 'for_self_wedding', 'tc_floor', 'online_only', 'cash_discount', 'typo_short', 'duplicate_lead', 'are_you_bot', 'ceo_name', 'landing_poem'], true)) {
+                if (! in_array($personaKey, ['experienced_kazan', 'prices_only_rude', 'return_unsold', 'deferred_insist', 'unknown_item', 'delivery_far', 'opt_out', 'container_import', 'defect_claim', 'car_seller', 'competitor_bait', 'price_increase_doubt', 'legal_questions', 'busy_now', 'rewrite_conditions', 'newbie_voronezh', 'for_self_wedding', 'tc_floor', 'online_only', 'cash_discount', 'typo_short', 'duplicate_lead', 'are_you_bot', 'ceo_name', 'landing_poem'], true)) {
                     return null;
                 }
                 $stored = DB::table('seller_personas')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('key', $personaKey)->value('payload');

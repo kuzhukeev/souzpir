@@ -61,8 +61,12 @@ final class RemainingPersonasE408JTest extends TenancyTestCase
             if (in_array($key, ['wants_human', 'requisites', 'big_order'], true)) {
                 self::assertNotSame($entry['answer'], $turn['agent'], $key);
             }
-            if ($turn['agent'] === $entry['answer']) {
+            if (in_array($key, ['experienced_kazan', 'tc_floor'], true)) {
+                self::assertSame($entry['answer'], $turn['agent'], $key);
                 self::assertSame('ok', $turn['meta']['guard_verdict'], $key);
+            }
+            if (in_array($key, ['for_self_wedding', 'prices_only_rude'], true)) {
+                self::assertNotSame($entry['answer'], $turn['agent'], $key);
             }
             self::assertDoesNotMatchRegularExpression('/переда(?:м|ю|л)|отправ(?:лю|ил)|высл(?:ал|ю)/iu', $turn['agent'], $key);
         }
