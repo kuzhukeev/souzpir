@@ -8,6 +8,7 @@ use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Profile\ProfileAccess;
 use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
+use Dompdf\Dompdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -362,6 +363,25 @@ final class AnalyticsController
         Mail::mailer('array')->raw($body, fn ($message) => $message->to($input['email'])->subject('Тестовый отчёт: '.$title));
 
         return back()->with('status', 'Тестовый отчёт подготовлен.');
+    }
+
+    public function pdf(Request $request): mixed
+    {
+        $input = $request->validate(['report_type' => ['nullable', 'in:weekly,dialogs,topics,managers']]);
+        $type = $input['report_type'] ?? 'weekly';
+        [$data, $brandName] = $this->access($request, function (User $user, TenantContext $tenant) use ($request, $type): array {
+            $data = $this->data($request, $user, $tenant);
+            abort_if($type === 'managers' && ! $data['canManage'], 403);
+            $name = DB::table('brands')->where('organization_id', $tenant->organizationId)->where('id', $tenant->brandId)->value('name');
+
+            return [$data, $name ?? 'Бренд'];
+        });
+        $pdf = new Dompdf(['isRemoteEnabled' => false, 'defaultFont' => 'DejaVu Sans']);
+        $pdf->loadHtml(AnalyticsPdf::html($data, $brandName, $type), 'UTF-8');
+        $pdf->setPaper('A4');
+        $pdf->render();
+
+        return response($pdf->output(), 200, ['Content-Type' => 'application/pdf', 'Content-Disposition' => 'attachment; filename="analytics-report.pdf"', 'Cache-Control' => 'private, no-store']);
     }
 
     public function csv(Request $request): mixed

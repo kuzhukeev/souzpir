@@ -12,6 +12,7 @@
     "php": "^8.4",
     "ext-gd": "*",
     "ext-intl": "*",
+    "dompdf/dompdf": "^3.1",
     "inertiajs/inertia-laravel": "^3.0",
     "laravel/framework": "^13.17",
     "laravel/sanctum": "^4.0",
