@@ -44,7 +44,10 @@ final class EffectController
                     ->where('brand_id', $tenant->brandId)->get(['action_id', 'metadata']);
                 $recommendations = $links->mapWithKeys(fn ($link) => [$link->action_id => json_decode($link->metadata, true) ?: []]);
 
-                return response()->json(['items' => $items, 'recommendations' => $recommendations]);
+                $nextMeasurement = DB::table('monitoring_schedules')->where('organization_id', $tenant->organizationId)
+                    ->where('brand_id', $tenant->brandId)->where('enabled', true)->where('next_run_at', '>', now())->value('next_run_at');
+
+                return response()->json(['items' => $items, 'recommendations' => $recommendations, 'next_measurement_at' => $nextMeasurement]);
             }
 
             return Inertia::render('Vision/Actions/Effect', ['items' => $items]);
