@@ -22462,6 +22462,36 @@
       "wave": 20,
       "promptPath": "docs/tasks/SP-E4-10K.md",
       "description": "# SP-E4-10K · Примеры: загрузка и ошибки\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E4-10G, docs/results/SP-E4-10G.md.\n**Зависимости:** SP-E4-10G.\n\n## Приёмка\n- D-4.8: skeleton и ошибка первой загрузки с повтором, окончательная сверка пустого состояния и расположения элементов с макетом.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Seller/Knowledge/Fewshot/`, `resources/js/pages/Seller/Knowledge/Fewshot/`, `tests/Feature/Seller/Knowledge/Fewshot/`, `tests/Browser/E4-10K/`, `docs/results/SP-E4-10K.md`.\n"
+    },
+    {
+      "taskKey": "SP-E4-10L",
+      "title": "SP-E4-10L · Закрытые темы: применение в диалоге",
+      "goal": "D-4.9: применять выбранное для закрытой темы действие в защищённом ходе диалога для обоих вариантов, сохранить существующие проверки и завершить сверку экрана по макету; runtime AI только fake.",
+      "dependsOn": [
+        "SP-E4-10D"
+      ],
+      "scope": [
+        "app/Seller/Engine/Policy.php",
+        "app/ProtectedOperations/",
+        "tests/Feature/Seller/Engine/",
+        "tests/Feature/ProtectedOperations/",
+        "tests/Browser/E4-10L/",
+        "docs/results/SP-E4-10L.md"
+      ],
+      "exclusiveResources": [
+        "shared-ai-stages"
+      ],
+      "acceptance": [
+        "D-4.9: применять выбранное для закрытой темы действие в защищённом ходе диалога для обоих вариантов, сохранить существующие проверки и завершить сверку экрана по макету; runtime AI только fake."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E4-10D.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E4-10L.md",
+      "description": "# SP-E4-10L · Закрытые темы: применение в диалоге\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E4-10D, docs/results/SP-E4-10D.md.\n**Зависимости:** SP-E4-10D.\n\n## Приёмка\n- D-4.9: применять выбранное для закрытой темы действие в защищённом ходе диалога для обоих вариантов, сохранить существующие проверки и завершить сверку экрана по макету; runtime AI только fake.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Seller/Engine/Policy.php`, `app/ProtectedOperations/`, `tests/Feature/Seller/Engine/`, `tests/Feature/ProtectedOperations/`, `tests/Browser/E4-10L/`, `docs/results/SP-E4-10L.md`.\n"
     }
   ],
   "excludedSourceTasks": {
