@@ -151,4 +151,115 @@ final class RuntimeReplayE307ETest extends TestCase
         Mail::assertNothingOutgoing();
         Queue::assertNothingPushed();
     }
+
+    public function test_recorded_first_client_inputs_expose_runtime_request_mismatches_offline(): void
+    {
+        $root = base_path('tests/fixtures/prototype/recorded-v2');
+        $manifest = json_decode(file_get_contents($root.'/manifest.json'), true, 128, JSON_THROW_ON_ERROR);
+        $counts = ['request_mismatch' => 0, 'other' => 0, 'scheduler' => 0];
+        $details = [];
+        [$context, $request] = $this->fixture();
+        foreach ($manifest['cases'] as $item) {
+            self::assertSame($item['fixture_sha256'], hash_file('sha256', $root.'/'.$item['fixture']));
+            $case = json_decode(file_get_contents($root.'/'.$item['fixture']), true, 128, JSON_THROW_ON_ERROR);
+            $turns = $case['trace']['turns'] ?? [];
+            $client = null;
+            foreach ($turns as $turn) {
+                if (is_string($turn['client'] ?? null) && trim($turn['client']) !== '') {
+                    $client = $turn['client'];
+                    break;
+                }
+            }
+            if ($client === null) {
+                $counts['scheduler']++;
+                $details[$case['case_id']] = 'scheduler_without_client_turn';
+
+                continue;
+            }
+            $extractor = null;
+            foreach ($case['llm_calls'] as $entry) {
+                $record = json_decode(file_get_contents($root.'/'.$entry['path']), true, 128, JSON_THROW_ON_ERROR);
+                if (($record['request']['options']['component'] ?? null) === 'extractor') {
+                    $extractor = $entry;
+                    break;
+                }
+            }
+            if ($extractor === null) {
+                $counts['other']++;
+                $details[$case['case_id']] = 'no_recorded_extractor';
+
+                continue;
+            }
+            $selected = $case;
+            $selected['llm_calls'] = [$extractor];
+            $state = $case['execution']['scenario']['initial'] ?? [];
+            [$conversation, $message] = app(TenantContextRunner::class)->run($context, function () use ($state, $client): array {
+                $conversation = Conversation::create(['state' => $state, 'mode' => 'bot']);
+                $message = Message::create(['conversation_id' => $conversation->id, 'role' => 'client', 'text' => $client, 'meta' => []]);
+
+                return [$conversation, $message];
+            });
+            $command = new TurnCommand($conversation->id, $message->id, $message->text, null, 'replay-'.$case['case_id'], 0);
+            $probe = new class($root, $selected) implements Driver
+            {
+                public int $calls = 0;
+
+                public ?string $rejection = null;
+
+                private RecordedGateway $recorded;
+
+                public function __construct(string $root, array $case)
+                {
+                    $this->recorded = new RecordedGateway($root, $case);
+                }
+
+                public function complete(#[\SensitiveParameter] array $body): array
+                {
+                    $this->calls++;
+                    try {
+                        return $this->recorded->complete($body);
+                    } catch (Rejected $error) {
+                        $this->rejection = $error->getMessage();
+                        throw $error;
+                    }
+                }
+            };
+            app()->instance(FakeDriver::class, $probe);
+            $result = $this->turn($context, $request, $command);
+            $label = $probe->rejection === 'Recorded request does not match.' ? 'request_mismatch' : 'other';
+            $counts[$label]++;
+            $details[$case['case_id']] = ['category' => $label, 'calls' => $probe->calls, 'status' => $result['status'] ?? null];
+        }
+        self::assertCount(41, $details);
+        self::assertSame(2, $counts['scheduler']);
+        self::assertSame(39, $counts['request_mismatch'] + $counts['other']);
+        self::assertSame(['category' => 'other', 'calls' => 0, 'status' => 'unavailable'], $details['manual.no_repeat_filled_slot']);
+        fwrite(STDERR, 'REPLAY_DIAGNOSTIC '.json_encode(['counts' => $counts, 'cases' => $details], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)."\n");
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
+    }
+
+    public function test_runtime_rejects_viewer_and_another_brand_before_ai(): void
+    {
+        $probe = new class implements Driver
+        {
+            public int $calls = 0;
+
+            public function complete(#[\SensitiveParameter] array $body): array
+            {
+                $this->calls++;
+                throw new Rejected('Unexpected provider call.');
+            }
+        };
+        app()->instance(FakeDriver::class, $probe);
+        [$viewerContext, $viewerRequest, $viewerCommand] = $this->fixture(role: 'viewer');
+        self::assertSame('unavailable', $this->turn($viewerContext, $viewerRequest, $viewerCommand)['status']);
+        [$ownerContext, $ownerRequest] = $this->fixture();
+        self::assertSame('unavailable', $this->turn($ownerContext, $ownerRequest, $viewerCommand)['status']);
+        self::assertSame(0, $probe->calls);
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
+    }
 }
