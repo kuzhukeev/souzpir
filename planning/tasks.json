@@ -23076,6 +23076,93 @@
       "wave": 20,
       "promptPath": "docs/tasks/SP-E6-04J.md",
       "description": "# SP-E6-04J · Инструменты: остальные счётчики\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E6-04H, docs/results/SP-E6-04H.md.\n**Зависимости:** SP-E6-04H.\n\n## Приёмка\n- D-5.7: подключить счётчики остальных действий только к достоверным сохранённым событиям; проверить период, права, бренд и состояния, при отсутствии данных не выдумывать значения.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Seller/Settings/Tools/`, `resources/js/pages/Seller/Settings/Tools/`, `tests/Feature/Seller/Settings/Tools/`, `tests/Browser/E6-04J/`, `docs/results/SP-E6-04J.md`.\n"
+    },
+    {
+      "taskKey": "SP-E7-04R",
+      "title": "SP-E7-04R · Аналитика: серверный PDF",
+      "goal": "D-8.6: серверный PDF бесплатной библиотекой с кириллицей, правами, фильтрами и изоляцией бренда; сверить брендированный отчёт и остальные виды сводки с макетом.",
+      "dependsOn": [
+        "SP-E7-04Q"
+      ],
+      "scope": [
+        "composer.json",
+        "composer.lock",
+        "app/Seller/Analytics/",
+        "resources/js/pages/Seller/Analytics/",
+        "routes/features/E7-04.php",
+        "tests/Feature/Seller/Analytics/",
+        "tests/Browser/E7-04R/",
+        "docs/results/SP-E7-04R.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "D-8.6: серверный PDF бесплатной библиотекой с кириллицей, правами, фильтрами и изоляцией бренда; сверить брендированный отчёт и остальные виды сводки с макетом."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E7-04Q.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E7-04R.md",
+      "description": "# SP-E7-04R · Аналитика: серверный PDF\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E7-04Q, docs/results/SP-E7-04Q.md.\n**Зависимости:** SP-E7-04Q.\n\n## Приёмка\n- D-8.6: серверный PDF бесплатной библиотекой с кириллицей, правами, фильтрами и изоляцией бренда; сверить брендированный отчёт и остальные виды сводки с макетом.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `composer.json`, `composer.lock`, `app/Seller/Analytics/`, `resources/js/pages/Seller/Analytics/`, `routes/features/E7-04.php`, `tests/Feature/Seller/Analytics/`, `tests/Browser/E7-04R/`, `docs/results/SP-E7-04R.md`.\n"
+    },
+    {
+      "taskKey": "SP-E4-06M",
+      "title": "SP-E4-06M · Импорт: завершить сверку сопоставления",
+      "goal": "D-4.10: сверить расположение формы сопоставления, кнопок и выбора файла, состояния загрузки и ошибок и доступность; проверить права и изоляцию брендов, сохранить данные.",
+      "dependsOn": [
+        "SP-E4-06L"
+      ],
+      "scope": [
+        "app/Seller/Knowledge/Imports/",
+        "resources/js/pages/Seller/Knowledge/Imports/",
+        "tests/Feature/Seller/Knowledge/Imports/",
+        "tests/Browser/E4-06M/",
+        "docs/results/SP-E4-06M.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "D-4.10: сверить расположение формы сопоставления, кнопок и выбора файла, состояния загрузки и ошибок и доступность; проверить права и изоляцию брендов, сохранить данные."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E4-06L.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E4-06M.md",
+      "description": "# SP-E4-06M · Импорт: завершить сверку сопоставления\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E4-06L, docs/results/SP-E4-06L.md.\n**Зависимости:** SP-E4-06L.\n\n## Приёмка\n- D-4.10: сверить расположение формы сопоставления, кнопок и выбора файла, состояния загрузки и ошибок и доступность; проверить права и изоляцию брендов, сохранить данные.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Seller/Knowledge/Imports/`, `resources/js/pages/Seller/Knowledge/Imports/`, `tests/Feature/Seller/Knowledge/Imports/`, `tests/Browser/E4-06M/`, `docs/results/SP-E4-06M.md`.\n"
+    },
+    {
+      "taskKey": "SP-E8-16R",
+      "title": "SP-E8-16R · Замер: персональная подписка",
+      "goal": "V-3.3: персональная подписка на выбранный замер, хранение, маршрут и уведомление готовности через fake-транспорт; проверить права, срок, изоляцию бренда и состояния по макету.",
+      "dependsOn": [
+        "SP-E8-16O"
+      ],
+      "scope": [
+        "app/Vision/Measurements/",
+        "app/Shell/Notifications/",
+        "database/migrations/E8-16R/",
+        "routes/features/E8-16R.php",
+        "resources/js/pages/Vision/Measurements/",
+        "tests/Feature/Vision/Measurements/",
+        "tests/Browser/E8-16R/",
+        "docs/results/SP-E8-16R.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "V-3.3: персональная подписка на выбранный замер, хранение, маршрут и уведомление готовности через fake-транспорт; проверить права, срок, изоляцию бренда и состояния по макету."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E8-16O.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E8-16R.md",
+      "description": "# SP-E8-16R · Замер: персональная подписка\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E8-16O, docs/results/SP-E8-16O.md.\n**Зависимости:** SP-E8-16O.\n\n## Приёмка\n- V-3.3: персональная подписка на выбранный замер, хранение, маршрут и уведомление готовности через fake-транспорт; проверить права, срок, изоляцию бренда и состояния по макету.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Vision/Measurements/`, `app/Shell/Notifications/`, `database/migrations/E8-16R/`, `routes/features/E8-16R.php`, `resources/js/pages/Vision/Measurements/`, `tests/Feature/Vision/Measurements/`, `tests/Browser/E8-16R/`, `docs/results/SP-E8-16R.md`.\n"
     }
   ],
   "excludedSourceTasks": {
