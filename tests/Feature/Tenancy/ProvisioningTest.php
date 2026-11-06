@@ -31,6 +31,15 @@ final class ProvisioningTest extends TenancyTestCase
         $this->assertSame(0, User::query()->count());
         $this->assertSame(0, Membership::withoutGlobalScopes()->count());
         $this->assertCount(3, $ids);
+        $modules = DB::table('brand_modules')->whereIn('brand_id', $ids)->get();
+        $this->assertCount(6, $modules);
+        foreach ($ids as $id) {
+            $this->assertSame(['seller', 'vision'], $modules->where('brand_id', $id)->sortBy('module')->pluck('module')->values()->all());
+            $this->assertTrue($modules->where('brand_id', $id)->every(fn ($module) => (bool) $module->enabled));
+        }
+        DB::table('brand_modules')->where('brand_id', $ids[0])->where('module', 'seller')->update(['enabled' => false]);
+        $seeder->run();
+        $this->assertFalse((bool) DB::table('brand_modules')->where('brand_id', $ids[0])->where('module', 'seller')->value('enabled'));
         $this->assertSame($ids, Brand::withoutGlobalScopes()->orderBy('id')->pluck('id')->all());
         $this->assertNull(Organization::query()->first()->owner_user_id);
         $this->assertNull(app(TenantContext::class)->organizationId);

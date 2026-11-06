@@ -319,6 +319,26 @@ class TaskCliTests(unittest.TestCase):
         self.assertFalse(task_cli.scope_allows(".LOCAL/claims/task.json", ["/"]))
         self.assertFalse(task_cli.scope_allows("app/../outside.php", ["/"]))
 
+    def test_e507b_ci_exception_allows_only_moved_fixture_files(self):
+        scope = task_cli.CI_SCOPE_EXCEPTIONS["SP-E5-07B"]
+        for name in ("preview-e507b.html", "preview-e507b.spec.ts", "preview-e507b.tsx", "vite-e507b.config.ts"):
+            self.assertTrue(task_cli.scope_allows("tests/Browser/E5-07B/" + name, scope))
+        self.assertFalse(task_cli.scope_allows("tests/Browser/E5-07B/other.spec.ts", scope))
+
+    def test_owner_reserved_tasks_are_not_issued_to_codex(self):
+        with patch.object(task_cli, "CLAUDE_PILOT_TASKS", frozenset(("SP-001",))):
+            self.assertEqual(self.client.ready()["tasks"], [])
+            with self.assertRaisesRegex(task_cli.TaskError, "reserved for claude:pilot"):
+                self.client.claim("SP-001", "codex:executor")
+            self.assertNotIn("claim", self.api.calls)
+            claimed = self.client.claim("SP-001", "claude:pilot")
+            self.assertEqual(claimed["taskKey"], "SP-001")
+
+    def test_e501h_ci_exception_is_limited_to_phpunit_config(self):
+        scope = task_cli.CI_SCOPE_EXCEPTIONS["SP-E5-01H"]
+        self.assertTrue(task_cli.scope_allows("phpunit.xml", scope))
+        self.assertFalse(task_cli.scope_allows("composer.json", scope))
+
     def test_e815f_ci_exception_is_limited_to_legacy_weekly_spec(self):
         scope = task_cli.CI_SCOPE_EXCEPTIONS["SP-E8-15F"]
         self.assertTrue(task_cli.scope_allows("tests/Browser/E8-15E/weekly.spec.ts", scope))

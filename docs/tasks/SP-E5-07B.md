@@ -16,3 +16,5 @@ Scope: `app/Seller/Channels/Email/`, `app/Seller/Runtime/`, `tests/Feature/Selle
 
 ## Дополнение владельца от 05.11.2026
 - приёмка на fake, боевое подключение за выключенным флагом (решение A3).
+
+Точечное исключение CI: четыре файла fixture `tests/Browser/E5-07B/preview-e507b.html`, `preview-e507b.spec.ts`, `preview-e507b.tsx`, `vite-e507b.config.ts` для переноса browser-теста из Vitest; остальные файлы вне scope.

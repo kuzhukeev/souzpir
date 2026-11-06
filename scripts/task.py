@@ -18,6 +18,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 
+CLAUDE_PILOT_TASKS = frozenset(("SP-E4-09B", "SP-E4-07B"))
+
+
 class TaskError(RuntimeError):
     pass
 
@@ -94,6 +97,8 @@ GENERATED_CONTRACT_FILES = frozenset(
 # Narrow integrator-approved scope corrections for shared routes, UI and CI
 # regressions. They do not broaden ownership to neighboring modules.
 CI_SCOPE_EXCEPTIONS = {
+    "SP-E5-07B": ("tests/Browser/E5-07B/preview-e507b.html", "tests/Browser/E5-07B/preview-e507b.spec.ts", "tests/Browser/E5-07B/preview-e507b.tsx", "tests/Browser/E5-07B/vite-e507b.config.ts"),
+    "SP-E5-01H": ("phpunit.xml",),
     "SP-E8-15F": ("tests/Browser/E8-15E/weekly.spec.ts",),
     "SP-E7-06C": ("tests/Browser/E6-09/crm.spec.ts",),
     "SP-E7-04N": ("composer.json", "composer.lock", "database/migrations/E7-04N/", "routes/features/E7-04.php"),
@@ -345,6 +350,9 @@ class Coordinator:
         available, blocked = [], []
         for task in response.get("tasks", []):
             key = task["taskKey"]
+            if key in CLAUDE_PILOT_TASKS:
+                blocked.append({"taskKey": key, "localBlockers": ["reserved_for_claude"]})
+                continue
             branch = "codex/" + key.lower()
             reasons = []
             if self.local_path(key).exists():
@@ -411,6 +419,8 @@ class Coordinator:
         key_name(key)
         if not worker.strip():
             raise TaskError("A nonempty worker/chat identifier is required")
+        if key in CLAUDE_PILOT_TASKS and worker != "claude:pilot":
+            raise TaskError("Task is reserved for claude:pilot by the owner")
         plan = self.plan(key)
         tasks = self.api.call("list").get("tasks", [])
         task = self.task(key, tasks)

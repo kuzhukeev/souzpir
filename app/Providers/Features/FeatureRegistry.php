@@ -238,7 +238,7 @@ class FeatureRegistry
         $selected = $feature === null ? $this->features : [$this->features[$feature]];
 
         return array_values(array_unique(array_merge([], ...array_map(
-            static fn (array $config): array => $config['seeders'] ?? [], $selected,
+            static fn (array $config): array => $config['seeders'] ?? [], array_values($selected),
         ))));
     }
 
