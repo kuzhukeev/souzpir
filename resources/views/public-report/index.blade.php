@@ -21,8 +21,20 @@
         .insights-grid > .card { min-width: 0; }
         .card { border: 1px solid #dce5dc; border-radius: 16px; background: white; padding: 22px; box-shadow: 0 4px 18px #1f3c2710; }
         .value { font-size: 28px; font-weight: 750; margin: 12px 0 0; }
+        .insight-list { list-style: none; padding: 0; margin: 16px 0 0; display: grid; gap: 14px; counter-reset: insight; }
+        .insight-list li { display: flex; gap: 12px; align-items: baseline; line-height: 1.5; counter-increment: insight; }
+        .insight-list li::before { content: counter(insight); display: grid; place-items: center; flex: none; width: 28px; height: 28px; border-radius: 50%; background: #def5e5; color: #126e39; font-weight: 700; }
+        .competitors { list-style: none; padding: 0; margin: 16px 0 0; display: grid; gap: 12px; }
+        .competitors li { display: grid; grid-template-columns: minmax(90px, 1fr) minmax(50px, 2fr) auto; align-items: center; gap: 10px; font-size: 15px; }
+        .competitors .name { overflow-wrap: anywhere; }
+        .bar { height: 10px; border-radius: 99px; background: #e6ebe7; overflow: hidden; }
+        .bar span { display: block; height: 100%; border-radius: inherit; background: #1c9b58; }
+        .fact-counts { display: flex; flex-wrap: wrap; gap: 20px; margin-top: 16px; }
+        .fact-counts div { flex: 1 1 130px; padding: 14px; background: #f4f7f2; border-radius: 10px; }
+        .fact-counts strong { display: block; font-size: 26px; margin-top: 6px; }
         .site-layout { display: flex; flex-wrap: wrap; align-items: center; gap: 24px; margin-top: 16px; }
-        .site-score { width: 132px; height: 132px; flex: none; border: 10px solid #dce5dc; border-radius: 50%; display: grid; place-items: center; text-align: center; }
+        .site-score { width: 132px; height: 132px; flex: none; padding: 10px; border-radius: 50%; background: conic-gradient(#1c9b58 calc(var(--score, 0) * 1%), #dce5dc 0); text-align: center; }
+        .site-score > div { width: 100%; height: 100%; border-radius: 50%; background: white; display: flex; flex-direction: column; justify-content: center; }
         .site-score strong { font-size: 26px; } .site-score span { display: block; font-size: 14px; }
         .criteria { flex: 1 1 340px; list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
         .criteria li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding: 10px 12px; background: #f4f7f2; border-radius: 8px; font-size: 15px; }
@@ -34,7 +46,7 @@
         @media (max-width: 760px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .insights-grid { grid-template-columns: 1fr; } main { padding-top: 32px; } }
         @media (max-width: 760px) { .action-grid { grid-template-columns: 1fr; } }
         @media print { .print-button { display: none; } :root { color: #172c26; background: white; } .card { break-inside: avoid; box-shadow: none; } }
-        @media (prefers-color-scheme: dark) { :root { color: #e7f0e9; background: #16231c; } header { background: #243329; color: #e7f0e9; } .credit { color: #b4c7b9; } .card { background: #243329; border-color: #3f5948; } .muted { color: #b4c7b9; } .criteria li, .action-grid li { background: #1c2a21; } }
+        @media (prefers-color-scheme: dark) { :root { color: #e7f0e9; background: #16231c; } header { background: #243329; color: #e7f0e9; } .credit { color: #b4c7b9; } .card { background: #243329; border-color: #3f5948; } .muted { color: #b4c7b9; } .criteria li, .action-grid li, .fact-counts div { background: #1c2a21; } .site-score > div { background: #243329; } .bar { background: #3f5948; } }
     </style>
 </head>
 <body>
@@ -74,19 +86,33 @@
         <div class="insights-grid">
         <section class="card"><h2>Главные выводы</h2>
             @if (($report['visibility'] ?? null) !== null || ($report['share_of_voice'] ?? null) !== null || ($report['position'] ?? null) !== null)
-                <ol>
+                <ol class="insight-list">
                     @if (($report['visibility'] ?? null) !== null)<li>Видимость бренда: {{ number_format($report['visibility'], 1, ',', ' ') }}%.</li>@endif
                     @if (($report['share_of_voice'] ?? null) !== null)<li>Доля голоса: {{ number_format($report['share_of_voice'], 1, ',', ' ') }}%.</li>@endif
                     @if (($report['position'] ?? null) !== null)<li>Средняя позиция: {{ number_format($report['position'], 1, ',', ' ') }}.</li>@endif
                 </ol>
             @else<p class="muted">Проверенных выводов для этого снимка пока нет.</p>@endif
         </section>
-        <section class="card"><h2>Кого называют вместо вас</h2>@if (count($report['competitors'] ?? []))<p>Чаще всего среди других компаний упоминается {{ $report['competitors'][0]['name'] }}: {{ $report['competitors'][0]['answers'] }} ответов.</p><ol>@foreach ($report['competitors'] as $company)<li>{{ $company['name'] }} · упоминаний: {{ $company['answers'] }}</li>@endforeach</ol>@else<p class="muted">Нет подтверждённых упоминаний компаний.</p>@endif</section>
-        <section class="card"><h2>Что о вас говорят</h2>@if (array_key_exists('reviewed_facts', $report))<p>Утверждений в снимке: {{ $report['reviewed_facts'] }}; подтверждено: {{ $report['confirmed_facts'] }}.</p>@else<p class="muted">Счётчики проверенных утверждений в этой публикации недоступны.</p>@endif</section>
+        <section class="card"><h2>Кого называют вместо вас</h2>
+            @if (count($report['competitors'] ?? []))
+                @php($maxMentions = max(1, max(array_column($report['competitors'], 'answers'))))
+                <p class="muted">Подтверждённые упоминания компаний в ответах.</p>
+                <ol class="competitors">@foreach ($report['competitors'] as $company)<li><span class="name">{{ $company['name'] }}</span><span class="bar" aria-hidden="true"><span style="width:{{ max(0, min(100, $company['answers'] / $maxMentions * 100)) }}%"></span></span><strong>{{ $company['answers'] }}</strong></li>@endforeach</ol>
+                <p class="muted">Полосы сравнивают число упоминаний с лидером списка.</p>
+            @else<p class="muted">Нет подтверждённых упоминаний компаний.</p>@endif
+        </section>
+        <section class="card"><h2>Что о вас говорят</h2>
+            @if (isset($report['confirmed_facts']) && isset($report['verified_errors']))
+                <div class="fact-counts"><div><span>Верно</span><strong>{{ max(0, $report['confirmed_facts'] - $report['verified_errors']) }}</strong></div><div><span>Требует уточнения</span><strong>{{ $report['verified_errors'] }}</strong></div></div>
+                <p class="muted">Только проверенные утверждения на момент публикации.</p>
+            @elseif (isset($report['reviewed_facts'], $report['confirmed_facts']))
+                <p>Утверждений в снимке: {{ $report['reviewed_facts'] }}; подтверждено: {{ $report['confirmed_facts'] }}.</p>
+            @else<p class="muted">Счётчики проверенных утверждений в этой публикации недоступны.</p>@endif
+        </section>
         <section class="card"><h2>Ваш сайт</h2>
             @php($site = $report['site_readiness'] ?? null)
             @if ($site !== null)
-                <div class="site-layout"><div class="site-score" aria-label="Оценка сайта на момент публикации"><div><strong>{{ is_array($site) ? $site['lower'].'–'.$site['upper'] : $site }}</strong><span>из 100</span></div></div>
+                <div class="site-layout"><div class="site-score" role="img" aria-label="Оценка сайта: {{ is_array($site) ? $site['lower'].'–'.$site['upper'] : $site }} из 100" @if (! is_array($site)) style="--score: {{ max(0, min(100, $site)) }}" @endif><div><strong>{{ is_array($site) ? $site['lower'].'–'.$site['upper'] : $site }}</strong><span>из 100</span></div></div>
                 @if (count($report['site_criteria'] ?? []))<ul class="criteria">@foreach ($report['site_criteria'] as $criterion)<li><span>{{ $criterion['title'] }}</span><strong>{{ ['pass' => 'Есть', 'fail' => 'Нет', 'partial' => 'Частично', 'unknown' => 'Неизвестно'][$criterion['status']] ?? 'Неизвестно' }}</strong></li>@endforeach</ul>@endif</div>
                 <p class="muted">Оценка на момент публикации; диапазон отражает неопределённость.</p>
             @else<p class="muted">Оценка сайта в этой публикации недоступна.</p>@if (count($report['site_criteria'] ?? []))<ul class="criteria">@foreach ($report['site_criteria'] as $criterion)<li><span>{{ $criterion['title'] }}</span><strong>{{ ['pass' => 'Есть', 'fail' => 'Нет', 'partial' => 'Частично', 'unknown' => 'Неизвестно'][$criterion['status']] ?? 'Неизвестно' }}</strong></li>@endforeach</ul>@endif @endif
