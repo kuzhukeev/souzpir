@@ -1,7 +1,7 @@
 import { createInertiaApp } from '@inertiajs/react';
 import { createRoot } from 'react-dom/client';
 import { useState } from 'react';
-import { BotAccess, Criteria, Pages, SpeedUnavailable } from '../../../resources/js/features/Vision/Site/AuditDetails';
+import { BotAccess, Criteria, Pages } from '../../../resources/js/features/Vision/Site/AuditDetails';
 import { AuditProgress } from '../../../resources/js/pages/Vision/Site/Index';
 import CabinetLayout from '../../../resources/js/layouts/CabinetLayout';
 import '../../../resources/css/app.css';
@@ -16,7 +16,7 @@ const audit = { ai_access: {captcha: {indicators: [], pages_observed: 2}, bots: 
 export function Fixture() {
   const [stage, setStage] = useState('inspecting');
   const events = [{ stage: 'queued', at: '2026-11-04T06:00:00Z' }, { stage: 'inspecting', at: '2026-11-04T06:01:00Z' }, ...(stage === 'complete' ? [{ stage: 'complete', at: '2026-11-04T06:02:00Z' }] : [])];
-  return <CabinetLayout><main className="mx-auto max-w-[1100px] space-y-6 p-4"><h1 className="text-3xl font-bold">Аудит сайта</h1><AuditProgress progress={{ pages_processed: 2, pages_total: 4, remaining_seconds: 12, stage, events }} /><SpeedUnavailable /><BotAccess audit={audit} /><Criteria criteria={audit.criteria} canManage={false} /><Pages audit={audit} /><button type="button" onClick={() => setStage('complete')} className="cursor-pointer rounded-lg bg-(--color-action) p-3 text-white">Завершить проверку</button></main></CabinetLayout>;
+  return <CabinetLayout><main className="mx-auto max-w-[1100px] space-y-6 p-4"><h1 className="text-3xl font-bold">Аудит сайта</h1><AuditProgress progress={{ pages_processed: 2, pages_total: 4, remaining_seconds: 12, stage, events }} /><BotAccess audit={audit} /><Criteria criteria={audit.criteria} canManage={false} /><Pages audit={audit} /><button type="button" onClick={() => setStage('complete')} className="cursor-pointer rounded-lg bg-(--color-action) p-3 text-white">Завершить проверку</button></main></CabinetLayout>;
 }
 const page = { component: 'Fixture', props: { theme: 'neutral', brand: { id: 'b', name: 'Пример бренда', theme: 'neutral' }, brands: [], organization: { id: 'o', name: 'Компания' }, auth: { user: { id: 'u', name: 'Иван', email: 'ivan@example.test' } }, modules: { seller: false, vision: true }, can: {}, unread: null, translations: {}, ziggy: { routes: {} }, errors: {} }, url: location.pathname, version: null, clearHistory: false, encryptHistory: false };
 const script = document.createElement('script'); script.type = 'application/json'; script.dataset.page = 'app'; script.textContent = JSON.stringify(page); document.body.appendChild(script);

@@ -29,6 +29,6 @@ final class SiteCriteria
         }
         ksort($result);
 
-        return array_values($result);
+        return array_slice(array_values($result), 0, 5);
     }
 }
