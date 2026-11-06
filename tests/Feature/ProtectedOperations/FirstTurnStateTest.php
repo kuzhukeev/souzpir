@@ -29,6 +29,7 @@ use App\ProtectedOperations\RequestSellerTurnReviewController;
 use App\ProtectedOperations\SellerTurnQuarantine;
 use App\Seller\Channels\Core\ChannelAccount;
 use App\Seller\Channels\Core\InboundRecorder;
+use App\Seller\Channels\Email\PriceMail;
 use App\Seller\Conversations\Contracts\ConversationRepository;
 use App\Seller\Conversations\Data\TurnClaim;
 use App\Seller\Conversations\Data\TurnCommand;
@@ -55,6 +56,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use LogicException;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -4878,6 +4880,65 @@ SQL);
         Queue::assertNothingPushed();
     }
 
+    public function test_coordinator_delivers_price_through_fake_transport_e507d(): void
+    {
+        Storage::fake('local');
+        [$tenant, $http, $command] = $this->protectedClaimFixture(false, 'Направьте прайс на buyer@example.test');
+        $selection = app(AuthSessionRegistry::class)->withinActive($http, fn () => app(SessionBrandSelection::class)->current($http));
+        $http->attributes->set('tenant.brand_revision', (string) $selection->brand_revision);
+        config(['runtime.ai_driver' => 'fake', 'seller.email_price_enabled' => true]);
+        $setting = ['followup' => '{}', 'off_topic' => '{}', 'negative' => '{}', 'tools' => '{}', 'greetings' => '{}', 'phrases' => '{}', 'schedule' => '{}', 'assignment' => '{}'];
+        DB::table('brand_seller_settings')->insert(['id' => (string) Str::ulid(), 'organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId, ...$setting, 'catalog_prices_enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('seller_email_price_settings')->insert(['id' => (string) Str::ulid(), 'organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId, 'sender_email' => 'sender@example.test', 'sender_name' => 'Brand', 'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
+        $path = 'seller/catalog/'.$tenant->organizationId.'/'.$tenant->brandId.'/price.csv';
+        Storage::disk('local')->put($path, 'SKU;Price');
+        DB::table('catalog_settings')->insert(['id' => (string) Str::ulid(), 'organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId, 'price_file_path' => $path, 'price_file_name' => 'price.csv', 'created_at' => now(), 'updated_at' => now()]);
+        $fake = new CoordinatorScriptedFakeDriver([
+            ['content' => '{"client_intent":"answer_only","slot_updates":{"email":"[EMAIL]"}}'],
+            ['content' => null, 'toolCalls' => [['id' => 'price-tool', 'name' => 'send_price', 'arguments' => ['email' => 'buyer@example.test']]]],
+            ['content' => 'В каком городе вы работаете?'],
+        ]);
+        app()->instance(FakeDriver::class, $fake);
+        $this->within($tenant, function () use ($http, $command): void {
+            $http->request->set('text', $command->text);
+            $first = app(FirstTurnCoordinator::class)->run($http, $command);
+            self::assertSame('completed', $first['status']);
+            self::assertSame($first, app(FirstTurnCoordinator::class)->run($http, $command));
+            Mail::assertSent(PriceMail::class, 1);
+        });
+        Http::assertNothingSent();
+    }
+
+    public function test_coordinator_records_manager_task_when_fake_price_is_unavailable_e507d(): void
+    {
+        Storage::fake('local');
+        [$tenant, $http, $command] = $this->protectedClaimFixture(false, 'Направьте прайс на buyer@example.test');
+        $selection = app(AuthSessionRegistry::class)->withinActive($http, fn () => app(SessionBrandSelection::class)->current($http));
+        $http->attributes->set('tenant.brand_revision', (string) $selection->brand_revision);
+        config(['runtime.ai_driver' => 'fake', 'seller.email_price_enabled' => false]);
+        $setting = ['followup' => '{}', 'off_topic' => '{}', 'negative' => '{}', 'tools' => '{}', 'greetings' => '{}', 'phrases' => '{}', 'schedule' => '{}', 'assignment' => '{}'];
+        DB::table('brand_seller_settings')->insert(['id' => (string) Str::ulid(), 'organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId, ...$setting, 'catalog_prices_enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('seller_email_price_settings')->insert(['id' => (string) Str::ulid(), 'organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId, 'sender_email' => 'sender@example.test', 'sender_name' => 'Brand', 'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
+        $path = 'seller/catalog/'.$tenant->organizationId.'/'.$tenant->brandId.'/price.csv';
+        Storage::disk('local')->put($path, 'SKU;Price');
+        DB::table('catalog_settings')->insert(['id' => (string) Str::ulid(), 'organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId, 'price_file_path' => $path, 'price_file_name' => 'price.csv', 'created_at' => now(), 'updated_at' => now()]);
+        $fake = new CoordinatorScriptedFakeDriver([
+            ['content' => '{"client_intent":"answer_only","slot_updates":{"email":"[EMAIL]"}}'],
+            ['content' => null, 'toolCalls' => [['id' => 'price-tool', 'name' => 'send_price', 'arguments' => ['email' => 'buyer@example.test']]]],
+            ['content' => 'В каком городе вы работаете?'],
+        ]);
+        app()->instance(FakeDriver::class, $fake);
+        $this->within($tenant, function () use ($http, $command): void {
+            $http->request->set('text', $command->text);
+            $first = app(FirstTurnCoordinator::class)->run($http, $command);
+            self::assertSame('completed', $first['status']);
+            self::assertSame($first, app(FirstTurnCoordinator::class)->run($http, $command));
+            Mail::assertNothingSent();
+            self::assertSame(1, DB::table('seller_tasks')->where('type', 'price_send_failed')->count());
+        });
+        Http::assertNothingSent();
+    }
+
     public function test_coordinator_blocks_tools_and_does_not_retry_unknown_ai(): void
     {
         [$tenant, $http, $command] = $this->protectedClaimFixture();
@@ -5274,7 +5335,7 @@ SQL);
             DB::table('ai_calls')->where('object_id', $claim->conversationId)->orderBy('id')->get()->toArray()];
     }
 
-    private function protectedClaimFixture(bool $withChannel = false): array
+    private function protectedClaimFixture(bool $withChannel = false, string $inputText = 'Private synthetic first input'): array
     {
         app(PromptSetsSeeder::class)->run();
         $user = User::create(['name' => 'Synthetic', 'email' => 'first-claim-'.Str::lower(Str::random(12)).'@example.test', 'password' => 'synthetic-test-password']);
@@ -5296,12 +5357,12 @@ SQL);
         $http->setUserResolver(fn () => $user);
         app(AuthSessionRegistry::class)->issue($http, $user, $user->auth_version);
         app(AuthSessionRegistry::class)->withinActive($http, fn () => app(SessionBrandSelection::class)->initialize($http, $org->id, $brand->id));
-        [$conversation, $input, $channel] = $this->within($tenant, function () use ($tenant, $withChannel): array {
+        [$conversation, $input, $channel] = $this->within($tenant, function () use ($tenant, $withChannel, $inputText): array {
             $channel = $withChannel ? ChannelAccount::create(['type' => 'api']) : null;
             $conversation = Conversation::create(['state' => [], 'mode' => 'bot', 'channel_account_id' => $channel?->id]);
             $input = $channel
-                ? app(InboundRecorder::class)->ingest($tenant, $channel->id, 'c02-initial-input', [], $conversation->id, 'Private synthetic first input')
-                : Message::create(['conversation_id' => $conversation->id, 'role' => 'client', 'text' => 'Private synthetic first input', 'meta' => []]);
+                ? app(InboundRecorder::class)->ingest($tenant, $channel->id, 'c02-initial-input', [], $conversation->id, $inputText)
+                : Message::create(['conversation_id' => $conversation->id, 'role' => 'client', 'text' => $inputText, 'meta' => []]);
 
             return [$conversation, $input, $channel];
         });
