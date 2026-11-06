@@ -23640,6 +23640,36 @@
       "screenIds": [],
       "wave": 20,
       "promptPath": "docs/tasks/SP-E4-08K.md"
+    },
+    {
+      "taskKey": "SP-E6-03AA",
+      "title": "SP-E6-03AA · Напоминания: согласие и план отправки",
+      "description": "# SP-E6-03AA · Напоминания: согласие и план отправки\n\n**Зачем:** закрыть конкретный остаток D-2.5 из SP-E6-03K.\n**Часть чего:** SP-E6-03K, docs/results/SP-E6-03K.md.\n**Зависимости:** SP-E6-03K в done.\n\n## Приёмка\n- D-2.5: массовая fake-отправка только при подтверждённом согласии на рассылку, сохранение планового времени для всех типов и достоверные события отписки и счётчик. Согласие на передачу контактов не считать согласием на рассылку; при отсутствии подтверждённых источников и контрактов функция остаётся отключённой, числа не выдумывать.\n- Проверить права, бренд, ошибки и fake-транспорт. Живые отправки не включать.\n\n## Блокер выдачи\n- Не выдавать до установления источника отдельного согласия на рассылку и событий отписки. Продуктовое поведение не придумывать.\n\nScope: `app/Seller/Followups/`, `resources/js/pages/Seller/Followups/`, `database/migrations/E6-03AA/`, `tests/Feature/Seller/Followups/`, `tests/Browser/E6-03AA/`, `docs/results/SP-E6-03AA.md`.\n",
+      "dependsOn": [
+        "SP-E6-03K"
+      ],
+      "exclusiveResources": [],
+      "scope": [
+        "app/Seller/Followups/",
+        "resources/js/pages/Seller/Followups/",
+        "database/migrations/E6-03AA/",
+        "tests/Feature/Seller/Followups/",
+        "tests/Browser/E6-03AA/",
+        "docs/results/SP-E6-03AA.md"
+      ],
+      "sourceRefs": [
+        "docs/results/SP-E6-03K.md",
+        "docs/preparation/decisions.md"
+      ],
+      "acceptance": [
+        "D-2.5: массовая fake-отправка только при подтверждённом согласии на рассылку, сохранение планового времени для всех типов и достоверные события отписки и счётчик. Согласие на передачу контактов не считать согласием на рассылку; при отсутствии подтверждённых источников и контрактов функция остаётся отключённой, числа не выдумывать.",
+        "Проверить права, бренд, ошибки и fake-транспорт."
+      ],
+      "screenIds": [
+        "D-2.5"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E6-03AA.md"
     }
   ],
   "excludedSourceTasks": {

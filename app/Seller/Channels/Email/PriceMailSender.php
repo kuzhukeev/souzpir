@@ -62,7 +62,13 @@ final class PriceMailSender
             return false;
         }
         try {
-            Mail::to($recipient)->send(new PriceMail($path, $filename, $settings->sender_email, $settings->sender_name, priceUrl: $link, catalogCsv: $csv));
+            $delivery = app(EmailDeliverySettings::class)->read($tenant);
+            $mail = new PriceMail($path, $filename, $settings->sender_email, $settings->sender_name, $delivery['signature'], priceUrl: $link, catalogCsv: $csv);
+            if ($delivery['mode'] === 'smtp') {
+                Mail::build(['transport' => 'smtp', 'host' => $delivery['smtp_host'], 'port' => $delivery['smtp_port'], 'username' => $delivery['smtp_username'] ?: null, 'password' => app(EmailDeliverySettings::class)->password($tenant), 'scheme' => $delivery['smtp_security'] === 'ssl' ? 'smtps' : 'smtp'])->to($recipient)->send($mail);
+            } else {
+                Mail::to($recipient)->send($mail);
+            }
 
             return true;
         } catch (Throwable) {

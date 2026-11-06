@@ -34,7 +34,11 @@ final class FollowupsController
                 ->leftJoin('channel_accounts as a', 'a.id', '=', 'c.channel_account_id')
                 ->where('f.organization_id', $tenant->organizationId)->where('f.brand_id', $tenant->brandId)
                 ->where('f.created_at', '>=', now()->subDays($days))->orderByDesc('f.created_at')
-                ->get(['f.id', 'f.text', 'f.status', 'f.created_at', 'f.updated_at', 'p.name as contact', 'a.type as channel']);
+                ->get(['f.id', 'f.text', 'f.status', 'f.reason', 'f.source_at', 'f.created_at', 'f.updated_at', 'p.name as contact', 'a.type as channel'])
+                ->each(function ($row): void {
+                    $row->scheduled_at = $row->reason === 'next_contact_at' ? $row->source_at : null;
+                    unset($row->reason, $row->source_at);
+                });
 
             $replies = DB::table('seller_followup_candidates as f')
                 ->where('f.organization_id', $tenant->organizationId)->where('f.brand_id', $tenant->brandId)

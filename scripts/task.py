@@ -97,6 +97,7 @@ GENERATED_CONTRACT_FILES = frozenset(
 # Narrow integrator-approved scope corrections for shared routes, UI and CI
 # regressions. They do not broaden ownership to neighboring modules.
 CI_SCOPE_EXCEPTIONS = {
+    "SP-E6-04J": ("app/Seller/Engine/ToolRunner.php", "routes/features/E6-04.php", "tests/Feature/Seller/Engine/ToolRunnerE604JTest.php", "app/Seller/Channels/Email/PriceMailSender.php", "app/Seller/Channels/Email/PriceMail.php", "tests/Feature/Seller/Channels/Email/PriceSourcesE604JTest.php"),
     "SP-E5-10D": ("resources/js/pages/Seller/Knowledge/Releases/Index.tsx",),
     "SP-E8-16W": ("app/Vision/Core/MeasurementRunner.php", "database/migrations/E8-16W/"),
     "SP-E1-12C": ("app/Shell/Profile/", "database/migrations/E1-12C/", "app/Seller/Channels/Core/ChannelAccount.php", "app/Seller/Channels/Telegram/TelegramController.php", "app/Seller/Channels/Widget/WidgetSettingsController.php", "tests/Feature/Seller/Channels/ConnectionDatesE112CTest.php"),
@@ -236,6 +237,27 @@ def scope_signature(scope: list[str]) -> list[str]:
     return sorted({path.replace("\\", "/").casefold().rstrip("/") or "/" for path in scope})
 
 
+def extra_scope_blockers(task: dict, tasks: list[dict]) -> list[str]:
+    """Respect integrator-approved paths not represented in queue ownership."""
+    def overlaps(a: str, b: str) -> bool:
+        a, b = a.replace("\\", "/").casefold().rstrip("/"), b.replace("\\", "/").casefold().rstrip("/")
+        return a == b or a.startswith(b + "/") or b.startswith(a + "/")
+
+    key = task["taskKey"]
+    scope = [*task.get("scope", []), *CI_SCOPE_EXCEPTIONS.get(key, ())]
+    blocked = []
+    for other in tasks:
+        other_key = other.get("taskKey")
+        if (other.get("project") != task.get("project") or other_key == key
+                or other.get("status") not in ("progress", "review")):
+            continue
+        extra = CI_SCOPE_EXCEPTIONS.get(other_key, ())
+        if (any(overlaps(a, b) for a in scope for b in extra)
+                or any(overlaps(a, b) for a in CI_SCOPE_EXCEPTIONS.get(key, ()) for b in other.get("scope", []))):
+            blocked.append(other_key)
+    return sorted(set(blocked))
+
+
 class Api:
     def __init__(self, base: str):
         parsed = urllib.parse.urlsplit(base)
@@ -362,6 +384,7 @@ class Coordinator:
 
     def ready(self) -> dict:
         response = self.api.call("ready", project=self.project)
+        tasks = self.api.call("list").get("tasks", [])
         available, blocked = [], []
         for task in response.get("tasks", []):
             key = task["taskKey"]
@@ -391,6 +414,7 @@ class Coordinator:
                         reasons = []
                 except (OSError, TaskError, ValueError):
                     pass
+            reasons.extend("extra_scope:" + owner for owner in extra_scope_blockers(task, tasks))
             if reasons:
                 blocked.append({"taskKey": key, "localBlockers": reasons})
             else:
@@ -440,6 +464,9 @@ class Coordinator:
         tasks = self.api.call("list").get("tasks", [])
         task = self.task(key, tasks)
         self.validate_plan(key, plan, task)
+        blockers = extra_scope_blockers(task, tasks)
+        if blockers:
+            raise TaskError("Integrator-approved extra scope is owned by: " + ", ".join(blockers))
         branch = "codex/" + key.lower()
         git(self.root, "check-ref-format", "--branch", branch)
         worktree = self.root / ".worktrees" / key.lower()

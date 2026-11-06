@@ -1,4 +1,5 @@
 import { Link, router, usePage } from '@inertiajs/react';
+import { FileDown, FileSpreadsheet, Mail } from 'lucide-react';
 import { useState } from 'react';
 
 type Dialog = {
@@ -65,7 +66,8 @@ export default function Details({ data: a, activeTab }: { data: Props; activeTab
   const [email, setEmail] = useState('');
   const [sending, setSending] = useState(false);
   const [day, setDay] = useState(a.subscription?.day ?? 'mon');
-  const [recipients, setRecipients] = useState(a.subscription?.recipients.join('\n') ?? '');
+  const [recipients, setRecipients] = useState<string[]>(a.subscription?.recipients ?? []);
+  const [recipientInput, setRecipientInput] = useState('');
   const [subBusy, setSubBusy] = useState(false);
   const [subStatus, setSubStatus] = useState('');
   const [sendStatus, setSendStatus] = useState('');
@@ -361,7 +363,8 @@ export default function Details({ data: a, activeTab }: { data: Props; activeTab
         </div>
         {a.canManage && (
           <form
-            className="mt-4 flex flex-wrap items-end gap-2 print:hidden"
+            id="report-send"
+            className="mt-4 print:hidden"
             onSubmit={(event) => {
               event.preventDefault();
               setSendStatus('');
@@ -407,13 +410,6 @@ export default function Details({ data: a, activeTab }: { data: Props; activeTab
                 className="mt-1 block min-h-11 rounded-lg border border-(--color-border) bg-(--color-surface) px-3"
               />
             </label>
-            <button
-              type="submit"
-              disabled={sending}
-              className="min-h-11 cursor-pointer rounded-lg border border-(--color-border) px-3 text-sm disabled:opacity-50"
-            >
-              {sending ? 'Подготавливаем…' : 'Отправить тестовый отчёт'}
-            </button>
           </form>
         )}
         {sendStatus && (
@@ -421,15 +417,35 @@ export default function Details({ data: a, activeTab }: { data: Props; activeTab
             {sendStatus}
           </p>
         )}
+        <div className="mt-3 flex flex-wrap gap-2 print:hidden">
+        {a.canManage && <button type="submit" form="report-send" disabled={sending} className="inline-flex min-h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-(--color-border) px-4 text-sm font-semibold text-(--color-link) disabled:opacity-50"><Mail size={17} aria-hidden="true" />{sending ? 'Подготавливаем…' : 'Отправить тестовый отчёт'}</button>}
         <a
           href={`/seller/analytics/report.pdf?${new URLSearchParams({ report_type: reportType, from: a.from, to: a.to, channel: a.channel ?? '', source: a.source ?? '', manager: a.manager ?? '' })}`}
-          className="mt-3 inline-flex min-h-11 cursor-pointer items-center rounded-lg bg-(--color-link) px-4 text-sm font-semibold text-white print:hidden"
+          className="inline-flex min-h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-(--color-border) px-4 text-sm font-semibold text-(--color-link)"
         >
-          Скачать PDF
+          <FileDown size={17} aria-hidden="true" /> Скачать PDF
         </a>
-        <a href={`/seller/analytics/export.csv?${new URLSearchParams({from:a.from,to:a.to,channel:a.channel??'',source:a.source??'',manager:a.manager??''})}`} className="ml-2 mt-3 inline-flex min-h-11 cursor-pointer items-center rounded-lg border border-(--color-border) px-4 text-sm font-semibold text-(--color-link) print:hidden">Скачать CSV</a>
+        <a href={`/seller/analytics/export.csv?${new URLSearchParams({from:a.from,to:a.to,channel:a.channel??'',source:a.source??'',manager:a.manager??''})}`} className="inline-flex min-h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-(--color-border) px-4 text-sm font-semibold text-(--color-link)"><FileSpreadsheet size={17} aria-hidden="true" /> Скачать CSV</a>
+        </div>
         </div>{a.canManage && <aside className="min-w-0 rounded-xl border border-(--color-border) bg-(--color-surface-muted) p-4">
-        {a.canManage && <form className="mt-5 space-y-3 print:hidden" onSubmit={event=>{event.preventDefault();setSubStatus('');router.post('/seller/analytics/subscription',{day,recipients:recipients.split(/[,\n]/).map(value=>value.trim()).filter(Boolean)},{preserveScroll:true,onStart:()=>setSubBusy(true),onFinish:()=>setSubBusy(false),onSuccess:()=>setSubStatus('Расписание сохранено. Реальная отправка пока не подключена.'),onError:()=>setSubStatus('Проверьте список получателей и день недели.'),onNetworkError:()=>{setSubStatus('Нет связи. Повторите попытку.');return false;}});}}><h3 className="text-lg font-semibold">Подписка на отчёт</h3><label className="block text-sm">День недели<select value={day} onChange={event=>setDay(event.target.value)} className="mt-1 block min-h-11 cursor-pointer rounded-lg border border-(--color-border) bg-(--color-surface) px-3">{[['mon','Понедельник'],['tue','Вторник'],['wed','Среда'],['thu','Четверг'],['fri','Пятница'],['sat','Суббота'],['sun','Воскресенье']].map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label><label className="block text-sm">Получатели, по одному адресу в строке<textarea required value={recipients} onChange={event=>setRecipients(event.target.value)} className="mt-1 block min-h-24 w-full max-w-lg rounded-lg border border-(--color-border) bg-(--color-surface) p-3"/></label><button disabled={subBusy} className="min-h-11 cursor-pointer rounded-lg border border-(--color-border) px-4 text-sm disabled:opacity-50">{subBusy?'Сохраняем…':'Сохранить подписку'}</button>{subStatus&&<p role="status" className="text-sm">{subStatus}</p>}<p className="text-sm text-(--color-ink-muted)">Реальная отправка пока не подключена; доступна тестовая отправка выше.</p></form>}
+        <form className="space-y-4 print:hidden" onSubmit={event=>{
+          event.preventDefault(); setSubStatus('');
+          const pending = recipientInput.split(/[,;\n]/).map(value=>value.trim()).filter(Boolean);
+          const all = [...recipients, ...pending];
+          if (!all.length || all.length > 10 || all.some(value => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) || new Set(all.map(value => value.toLowerCase())).size !== all.length) {
+            setSubStatus('Укажите от 1 до 10 разных корректных адресов.'); return;
+          }
+          setRecipients(all); setRecipientInput('');
+          router.post('/seller/analytics/subscription',{day,recipients:all},{preserveScroll:true,onStart:()=>setSubBusy(true),onFinish:()=>setSubBusy(false),onSuccess:()=>setSubStatus('Расписание сохранено. Реальная отправка пока не подключена.'),onError:()=>setSubStatus('Проверьте список получателей и день недели.'),onNetworkError:()=>{setSubStatus('Нет связи. Повторите попытку.');return false;}});
+        }}>
+          <h3 className="text-lg font-semibold">Подписка на отчёт</h3><p className="text-sm text-(--color-ink-muted)">Настройте расписание для команды.</p>
+          <label className="block text-sm">День недели<select value={day} onChange={event=>setDay(event.target.value)} className="mt-1 block min-h-11 w-full cursor-pointer rounded-lg border border-(--color-border) bg-(--color-surface) px-3">{[['mon','Понедельник'],['tue','Вторник'],['wed','Среда'],['thu','Четверг'],['fri','Пятница'],['sat','Суббота'],['sun','Воскресенье']].map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>
+          <div><label htmlFor="report-recipients" className="block text-sm">Получатели</label><div className="mt-1 flex min-h-16 flex-wrap items-center gap-2 rounded-lg border border-(--color-border) bg-(--color-surface) p-2">
+            {recipients.map(address=><span key={address} className="inline-flex max-w-full items-center gap-1 rounded-full bg-(--color-surface-muted) px-3 py-1 text-sm"><span className="break-all">{address}</span><button type="button" aria-label={`Удалить ${address}`} onClick={()=>{setRecipients(recipients.filter(value=>value!==address));setSubStatus('');}} className="cursor-pointer px-1 text-(--color-link)">×</button></span>)}
+            <input id="report-recipients" type="text" inputMode="email" autoComplete="email" value={recipientInput} onChange={event=>setRecipientInput(event.target.value)} onKeyDown={event=>{if(event.key==='Enter'){event.preventDefault();const address=recipientInput.trim();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address)){setSubStatus('Введите корректный адрес электронной почты.');return;}if(recipients.length>=10 || recipients.some(value=>value.toLowerCase()===address.toLowerCase())){setSubStatus('Адрес уже добавлен или достигнут предел в 10 адресов.');return;}setRecipients([...recipients,address]);setRecipientInput('');setSubStatus('');}}} placeholder="Добавьте email и нажмите Enter" className="min-h-10 min-w-0 flex-1 bg-transparent px-1 text-sm outline-none" />
+          </div></div>
+          <button disabled={subBusy} className="min-h-11 w-full cursor-pointer rounded-lg bg-(--color-link) px-4 text-sm font-semibold text-white disabled:opacity-50">{subBusy?'Сохраняем…':'Сохранить подписку'}</button>{subStatus&&<p role="status" className="text-sm">{subStatus}</p>}<p className="text-sm text-(--color-ink-muted)">Реальная отправка пока не подключена; доступна тестовая отправка выше.</p>
+        </form>
         </aside>}</div>
       </section>
     </>
