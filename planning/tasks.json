@@ -22163,6 +22163,59 @@
       "wave": 20,
       "promptPath": "docs/tasks/SP-E4-06G.md",
       "description": "# SP-E4-06G · Импорт: сохранённые документы\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E4-06F, docs/results/SP-E4-06F.md.\n**Зависимости:** SP-E4-06F.\n\n## Приёмка\n- D-4.10: действия над сохранёнными документами, необходимые маршруты и хранение исходных файлов, полная сверка расположения и состояний с макетом; старые счётчики без исходного файла не выдумывать. Удаление данных не выполнять без разрешения владельца.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Seller/Knowledge/Imports/`, `database/migrations/E4-06G/`, `routes/features/E4-06.php`, `resources/js/pages/Seller/Knowledge/Imports/`, `tests/Feature/Seller/Knowledge/Imports/`, `tests/Browser/E4-06G/`, `docs/results/SP-E4-06G.md`.\n"
+    },
+    {
+      "taskKey": "SP-E5-07E",
+      "title": "SP-E5-07E · Почта: переход к настройке",
+      "goal": "D-9.8: доступный переход из общей навигации к настройке почты с учётом прав и модулей; проверить браузером и сверить с макетом, не включать живую почту.",
+      "dependsOn": [
+        "SP-E5-07D"
+      ],
+      "scope": [
+        "resources/js/components/navigation/",
+        "resources/js/pages/Seller/Channels/Email/",
+        "tests/Browser/E5-07E/",
+        "docs/results/SP-E5-07E.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "D-9.8: доступный переход из общей навигации к настройке почты с учётом прав и модулей; проверить браузером и сверить с макетом, не включать живую почту."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E5-07D.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E5-07E.md",
+      "description": "# SP-E5-07E · Почта: переход к настройке\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E5-07D, docs/results/SP-E5-07D.md.\n**Зависимости:** SP-E5-07D.\n\n## Приёмка\n- D-9.8: доступный переход из общей навигации к настройке почты с учётом прав и модулей; проверить браузером и сверить с макетом, не включать живую почту.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `resources/js/components/navigation/`, `resources/js/pages/Seller/Channels/Email/`, `tests/Browser/E5-07E/`, `docs/results/SP-E5-07E.md`.\n"
+    },
+    {
+      "taskKey": "SP-E4-10J",
+      "title": "SP-E4-10J · Факты: завершить дерево и состояния",
+      "goal": "D-4.3: завершить дерево тем, компоновку, оставшиеся состояния и сверку с макетом; при отсутствии достоверной связи факта и условия показывать отсутствие данных и не придумывать её.",
+      "dependsOn": [
+        "SP-E4-10B"
+      ],
+      "scope": [
+        "app/Seller/Knowledge/Facts/",
+        "resources/js/pages/Seller/Knowledge/Facts/",
+        "tests/Feature/Seller/Knowledge/Facts/",
+        "tests/Browser/E4-10J/",
+        "docs/results/SP-E4-10J.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "D-4.3: завершить дерево тем, компоновку, оставшиеся состояния и сверку с макетом; при отсутствии достоверной связи факта и условия показывать отсутствие данных и не придумывать её."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E4-10B.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E4-10J.md",
+      "description": "# SP-E4-10J · Факты: завершить дерево и состояния\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E4-10B, docs/results/SP-E4-10B.md.\n**Зависимости:** SP-E4-10B.\n\n## Приёмка\n- D-4.3: завершить дерево тем, компоновку, оставшиеся состояния и сверку с макетом; при отсутствии достоверной связи факта и условия показывать отсутствие данных и не придумывать её.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Seller/Knowledge/Facts/`, `resources/js/pages/Seller/Knowledge/Facts/`, `tests/Feature/Seller/Knowledge/Facts/`, `tests/Browser/E4-10J/`, `docs/results/SP-E4-10J.md`.\n"
     }
   ],
   "excludedSourceTasks": {
