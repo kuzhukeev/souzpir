@@ -75,6 +75,18 @@ final class ToolRunner
             $preferences = $raw ? json_decode($raw, true) : [];
             $preferences = is_array($preferences) ? $preferences : [];
             $source = $preferences['price_source'] ?? 'file';
+            if ($source === 'link') {
+                $url = $preferences['price_url'] ?? null;
+
+                return is_string($url) && filter_var($url, FILTER_VALIDATE_URL) && parse_url($url, PHP_URL_SCHEME) === 'https'
+                    ? ['status' => 'fake_sent', 'source' => 'link'] : ['status' => 'unavailable'];
+            }
+            if ($source === 'catalog') {
+                $import = $scope('catalog_imports')->where('status', 'completed')->orderByDesc('created_at')->orderByDesc('id')->value('id');
+                $available = $import && $scope('catalog_items')->where('import_id', $import)->whereNotNull('price')->exists();
+
+                return $available ? ['status' => 'fake_sent', 'source' => 'catalog'] : ['status' => 'unavailable'];
+            }
             if ($source !== 'file') {
                 return ['status' => 'unavailable'];
             }
