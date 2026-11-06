@@ -17,7 +17,7 @@ return [
     'listeners' => [SessionRegistered::class => [CaptureSessionDetails::class]],
     'defaults' => [
         'enabled' => filter_var(env('PROFILE_SETTINGS_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
-        'email_change_enabled' => filter_var(env('PROFILE_EMAIL_CHANGE_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
+        'email_change_enabled' => filter_var(env('PROFILE_EMAIL_CHANGE_ENABLED', false), FILTER_VALIDATE_BOOLEAN),
         'telegram_bot_username' => env('PROFILE_TELEGRAM_BOT_USERNAME'),
         'telegram_webhook_secret' => env('PROFILE_TELEGRAM_WEBHOOK_SECRET'),
     ],
