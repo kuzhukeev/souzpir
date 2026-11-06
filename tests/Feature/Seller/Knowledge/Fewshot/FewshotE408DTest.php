@@ -27,13 +27,13 @@ final class FewshotE408DTest extends TenancyTestCase
             $data['persona']['length']['max_words'] = 2;
             $repo->saveDraft($tenant, $draft->id, (int) $draft->version, $data);
         });
-        $this->get('/seller/knowledge/fewshot')->assertOk()->assertInertia(fn ($page) => $page->where('maxWords', 2)->where('draft.version', 2));
+        $this->get('/seller/knowledge/fewshot', ['X-Inertia-Partial-Component' => 'Seller/Knowledge/Fewshot/Index', 'X-Inertia-Partial-Data' => 'fewshotData'])->assertOk()->assertInertia(fn ($page) => $page->where('fewshotData.maxWords', 2)->where('fewshotData.draft.version', 2));
         $input = ['version' => 2, 'bucket' => 'examples', 'tag' => 'ask_city', 'text' => 'Уточните пожалуйста город доставки', 'client_type' => 'all', 'confidence' => 0.8, 'enabled' => true];
         $this->post('/seller/knowledge/fewshot', $input)->assertRedirect()->assertSessionHasNoErrors();
-        $this->get('/seller/knowledge/fewshot')->assertOk()->assertInertia(fn ($page) => $page->where('fewshot.examples.0.text', $input['text'])->where('maxWords', 2));
+        $this->get('/seller/knowledge/fewshot', ['X-Inertia-Partial-Component' => 'Seller/Knowledge/Fewshot/Index', 'X-Inertia-Partial-Data' => 'fewshotData'])->assertOk()->assertInertia(fn ($page) => $page->where('fewshotData.fewshot.examples.0.text', $input['text'])->where('fewshotData.maxWords', 2));
         $this->post('/seller/knowledge/fewshot', [...$input, 'version' => 3, 'confidence' => 2, 'text' => ''])->assertSessionHasErrors(['confidence', 'text']);
         $this->post('/brand/switch', ['brand_id' => $other->id])->assertRedirect();
-        $this->get('/seller/knowledge/fewshot')->assertOk()->assertInertia(fn ($page) => $page->where('draft', null)->where('maxWords', null));
+        $this->get('/seller/knowledge/fewshot', ['X-Inertia-Partial-Component' => 'Seller/Knowledge/Fewshot/Index', 'X-Inertia-Partial-Data' => 'fewshotData'])->assertOk()->assertInertia(fn ($page) => $page->where('fewshotData.draft', null)->where('fewshotData.maxWords', null));
         [$viewer] = $this->member($org, 'viewer', [$brand->id]);
         $this->actingAs($viewer)->withSession(['brand_id' => $brand->id]);
         $this->get('/seller/knowledge/fewshot')->assertForbidden();

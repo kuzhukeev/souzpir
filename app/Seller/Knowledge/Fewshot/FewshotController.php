@@ -36,17 +36,20 @@ final class FewshotController
 
     public function index(Request $request): mixed
     {
-        $data = $this->access($request, function (TenantContext $tenant): array {
-            $draft = $this->draft($tenant);
-            $snapshot = $draft ? app(KnowledgeRepository::class)->forRelease($tenant, $draft->id, true) : null;
+        // Authorize the shell before rendering, then repeat the check when the data is loaded.
+        $this->access($request, fn (TenantContext $tenant) => null);
 
-            $persona = $snapshot?->all('persona');
-            $maxWords = $persona['length']['max_words'] ?? null;
+        return Inertia::render('Seller/Knowledge/Fewshot/Index', [
+            'fewshotData' => Inertia::defer(fn () => $this->access($request, function (TenantContext $tenant): array {
+                $draft = $this->draft($tenant);
+                $snapshot = $draft ? app(KnowledgeRepository::class)->forRelease($tenant, $draft->id, true) : null;
+                $persona = $snapshot?->all('persona');
+                $maxWords = $persona['length']['max_words'] ?? null;
 
-            return ['draft' => $draft, 'fewshot' => $snapshot?->all('fewshot'), 'availableTags' => FewshotTags::ALL, 'maxWords' => is_int($maxWords) && $maxWords > 0 ? $maxWords : null];
-        });
-
-        return Inertia::render('Seller/Knowledge/Fewshot/Index', [...$data, 'status' => session('status')]);
+                return ['draft' => $draft, 'fewshot' => $snapshot?->all('fewshot'), 'availableTags' => FewshotTags::ALL, 'maxWords' => is_int($maxWords) && $maxWords > 0 ? $maxWords : null];
+            }), rescue: true),
+            'status' => session('status'),
+        ]);
     }
 
     public function save(Request $request): mixed
