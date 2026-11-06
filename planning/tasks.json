@@ -22216,6 +22216,60 @@
       "wave": 20,
       "promptPath": "docs/tasks/SP-E4-10J.md",
       "description": "# SP-E4-10J · Факты: завершить дерево и состояния\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E4-10B, docs/results/SP-E4-10B.md.\n**Зависимости:** SP-E4-10B.\n\n## Приёмка\n- D-4.3: завершить дерево тем, компоновку, оставшиеся состояния и сверку с макетом; при отсутствии достоверной связи факта и условия показывать отсутствие данных и не придумывать её.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Seller/Knowledge/Facts/`, `resources/js/pages/Seller/Knowledge/Facts/`, `tests/Feature/Seller/Knowledge/Facts/`, `tests/Browser/E4-10J/`, `docs/results/SP-E4-10J.md`.\n"
+    },
+    {
+      "taskKey": "SP-E8-19I",
+      "title": "SP-E8-19I · Публичный отчёт: шапка и показатели",
+      "goal": "V-5.10: сверить шапку, четыре показателя и состояния публичного отчёта с макетом; персональный доступ и срок действия сохраняются, полные тексты ответов не показывать.",
+      "dependsOn": [
+        "SP-E8-19H"
+      ],
+      "scope": [
+        "app/Vision/Publications/",
+        "resources/views/public-report/",
+        "tests/Feature/Vision/Reports/",
+        "tests/Browser/E8-19I/",
+        "docs/results/SP-E8-19I.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "V-5.10: сверить шапку, четыре показателя и состояния публичного отчёта с макетом; персональный доступ и срок действия сохраняются, полные тексты ответов не показывать."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E8-19H.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E8-19I.md",
+      "description": "# SP-E8-19I · Публичный отчёт: шапка и показатели\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E8-19H, docs/results/SP-E8-19H.md.\n**Зависимости:** SP-E8-19H.\n\n## Приёмка\n- V-5.10: сверить шапку, четыре показателя и состояния публичного отчёта с макетом; персональный доступ и срок действия сохраняются, полные тексты ответов не показывать.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Vision/Publications/`, `resources/views/public-report/`, `tests/Feature/Vision/Reports/`, `tests/Browser/E8-19I/`, `docs/results/SP-E8-19I.md`.\n"
+    },
+    {
+      "taskKey": "SP-E8-19J",
+      "title": "SP-E8-19J · Публичный отчёт: блоки выводов",
+      "goal": "V-5.10: довести двухколоночные блоки выводов, конкурентов, фактов и сайта, состояния и скриншот до макета; полные тексты ответов не показывать, логотип только с отдельным согласием.",
+      "dependsOn": [
+        "SP-E8-19I"
+      ],
+      "scope": [
+        "app/Vision/Publications/",
+        "resources/views/public-report/",
+        "tests/Feature/Vision/Reports/",
+        "tests/Browser/E8-19J/",
+        "docs/results/SP-E8-19J.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "V-5.10: довести двухколоночные блоки выводов, конкурентов, фактов и сайта, состояния и скриншот до макета; полные тексты ответов не показывать, логотип только с отдельным согласием."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E8-19I.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E8-19J.md",
+      "description": "# SP-E8-19J · Публичный отчёт: блоки выводов\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E8-19I, docs/results/SP-E8-19I.md.\n**Зависимости:** SP-E8-19I.\n\n## Приёмка\n- V-5.10: довести двухколоночные блоки выводов, конкурентов, фактов и сайта, состояния и скриншот до макета; полные тексты ответов не показывать, логотип только с отдельным согласием.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Vision/Publications/`, `resources/views/public-report/`, `tests/Feature/Vision/Reports/`, `tests/Browser/E8-19J/`, `docs/results/SP-E8-19J.md`.\n"
     }
   ],
   "excludedSourceTasks": {
