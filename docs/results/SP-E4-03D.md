@@ -9,6 +9,7 @@
 - Скриншоты: .local/screenshots/SP-E4-03D/conditions.png, confirm.png (светлая тема, 1440).
 
 ## Повторная проверка
+- Для ENOSPC отключён watcher Vite в этой фикстуре; Playwright с локальным Chrome — 1 тест успешно.
 - Playwright E4-03D: 1 тест; PromotionsE403DTest: 1 тест, 31 проверка в отдельной PostgreSQL.
 - Старый CI 41993626578: browser (1) завершился ошибкой; публичная аннотация не содержит названия теста. Нужен повторный CI.
 
