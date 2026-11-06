@@ -717,6 +717,12 @@ declare module 'ziggy-js' {
         }
     ],
     "seller.quality.collect": [],
+    "seller.quality.dialog.evaluate": [
+        {
+            "name": "dialog",
+            "required": true
+        }
+    ],
     "seller.quality.recommendation": [
         {
             "name": "day",
