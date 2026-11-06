@@ -22,6 +22,7 @@ final class PublicationData
             $actions = collect(data_get($source, 'recommendations.items', []))->map(fn ($row) => is_array($row) ? $this->publicText($row['title'] ?? null) : null)
                 ->filter()->take(3)->values()->all();
             $actionQuestionIds = [];
+            $actionDetails = [];
         } else {
             $candidates = collect($this->candidatesFromPayload($source))->keyBy('key');
             if (count($confirmedActions) !== count(array_unique($confirmedActions))
@@ -29,9 +30,10 @@ final class PublicationData
                 throw ValidationException::withMessages(['confirmed_actions' => 'Обновите список рекомендаций и повторите выбор.']);
             }
             $reviewed = collect($confirmedActions)->map(fn ($key) => ['title' => $this->publicText($candidates[$key]['title']),
-                'question_id' => $candidates[$key]['question_id']])->filter(fn ($row) => $row['title'] !== null)->take(3)->values();
+                'question_id' => $candidates[$key]['question_id'], 'priority' => $candidates[$key]['priority'] ?? null, 'steps' => $candidates[$key]['steps'] ?? []])->filter(fn ($row) => $row['title'] !== null)->take(3)->values();
             $actions = $reviewed->pluck('title')->all();
             $actionQuestionIds = $reviewed->pluck('question_id')->all();
+            $actionDetails = $reviewed->map(fn ($item) => ['priority' => $item['priority'], 'steps' => $item['steps']])->all();
         }
         $site = $siteAudit['readiness'] ?? null;
         if (is_array($site)) {
@@ -45,7 +47,7 @@ final class PublicationData
 
         return [...$this->fromPayload($source), 'competitors' => $entities,
             'confirmed_facts' => count(array_filter($facts, fn ($item) => is_array($item) && ($item['confirmed'] ?? false) === true)),
-            'reviewed_facts' => count($facts), 'actions' => $actions, 'action_question_ids' => $actionQuestionIds, 'site_readiness' => $site,
+            'reviewed_facts' => count($facts), 'actions' => $actions, 'action_details' => $actionDetails, 'action_question_ids' => $actionQuestionIds, 'site_readiness' => $site,
             'site_criteria' => SiteCriteria::project($siteAudit['criteria'] ?? []),
             'history' => $tenant && $report ? app(PublicMetricHistory::class)->build($tenant, $report, $source) : []];
     }
@@ -58,9 +60,17 @@ final class PublicationData
             ->filter(fn ($item) => ($item['kind'] ?? null) === 'action'
                 && in_array($item['action']['question_id'] ?? null, $questionIds, true)
                 && is_string($item['title'] ?? null) && trim($item['title']) !== '')
-            ->map(fn ($item, $key) => ['key' => $key, 'title' => $item['title'],
-                'why' => is_string($item['text'] ?? null) ? $item['text'] : '',
-                'question_id' => $item['action']['question_id']])
+            ->map(function ($item, $key): array {
+                $priority = $this->publicText($item['action']['priority'] ?? null);
+                $steps = collect(is_array($item['action']['steps'] ?? null) ? $item['action']['steps'] : [])
+                    ->map(fn ($step) => $this->publicText($step))->filter()->take(3)->values()->all();
+
+                return ['key' => $key, 'title' => $item['title'],
+                    'why' => is_string($item['text'] ?? null) ? $item['text'] : '',
+                    'question_id' => $item['action']['question_id'],
+                    ...($priority !== null ? ['priority' => $priority] : []),
+                    ...($steps !== [] ? ['steps' => $steps] : [])];
+            })
             ->values()->all();
     }
 
