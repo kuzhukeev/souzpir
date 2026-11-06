@@ -18,7 +18,7 @@ export default function RunProgress({ answers, status, createdAt, startedAt, fin
   return <div className="mt-3 space-y-3 text-sm">
     <p>{done} из {answers.length} слотов обработано · вопросов обработано {completeQuestions} из {questions.length}</p>
     <p>Получено ответов: {received} · Ошибок: {errors} · Требуют проверки: {uncertain}</p>
-    <progress className="w-full accent-(--color-action)" aria-label="Полученные ответы" value={done} max={answers.length} />
+    <progress className="w-full accent-(--color-action)" aria-label="Обработанные слоты" value={done} max={answers.length} />
     <div><h3 className="font-semibold">Статусы моделей</h3><ul className="mt-2 grid gap-2 sm:grid-cols-2">{providers.map(provider => {
       const group = answers.filter(answer => answer.provider === provider);
       const received = group.filter(answer => settled(answer.status)).length;
