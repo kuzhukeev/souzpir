@@ -19,5 +19,5 @@ test('темы фильтруют факты и показывают измен�
   await list.getByRole('button', { name: 'Доставка · delivery (1)' }).click();
   await expect(list.getByText('Изменён', { exact: true })).toBeVisible();
   await mkdir('.local/screenshots/SP-E4-10B', { recursive: true });
-  await page.screenshot({ path: '.local/screenshots/SP-E4-10BB/facts.png', fullPage: true });
+  await page.screenshot({ path: '.local/screenshots/SP-E4-10B/facts.png', fullPage: true });
 });
