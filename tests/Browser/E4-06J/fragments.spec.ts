@@ -9,6 +9,7 @@ test.afterAll(async () => { await server?.close(); });
 test('фрагменты открыты сразу после просмотра и связаны с фактами', async ({ page }) => {
  await page.route('**/seller/knowledge/imports/documents/saved/preview?*', route => route.fulfill({ json: { proposals: ['Первый фрагмент'], document_id: 'saved', sheets: [], document: { id: 'saved', name: 'Ранее.pdf', type: 'pdf', pages: 3, status: 'imported', fragments_count: 1, has_source: true, created_at: '2026-11-01' } } }));
  await page.goto(url);
+ await page.getByLabel('Действия: Ранее.pdf').click();
  await page.getByRole('button', { name: 'Посмотреть', exact: true }).click();
  const fragment = page.getByRole('button', { name: 'Первый фрагмент' });
  await expect(fragment).toBeVisible();
