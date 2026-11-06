@@ -3,8 +3,8 @@
 namespace Tests\Feature\Seller\Quality;
 
 use App\Ai\CanonicalJson;
+use App\Seller\Evaluation\ConversationFakeJudge;
 use App\Seller\Evaluation\Judge;
-use App\Seller\Evaluation\ScenarioFallbackJudge;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -30,7 +30,7 @@ final class ConversationFakeEvaluationE701LTest extends TenancyTestCase
         $evaluation = DB::table('seller_evaluations')->where('conversation_id', $dialog)->first();
         self::assertNotNull($evaluation);
         $response->assertRedirect('/seller/evaluations/'.$evaluation->id);
-        self::assertSame(ScenarioFallbackJudge::COMMENT, $evaluation->comment);
+        self::assertSame(ConversationFakeJudge::COMMENT, $evaluation->comment);
         $this->get('/seller/evaluations/'.$evaluation->id)->assertOk()->assertInertia(fn ($page) => $page->where('evaluation.test_baseline', true));
         $this->post('/seller/quality/dialogs/'.$dialog.'/evaluate')->assertRedirect('/seller/evaluations/'.$evaluation->id);
         self::assertSame(1, DB::table('seller_evaluations')->where('conversation_id', $dialog)->count());
@@ -72,6 +72,6 @@ final class ConversationFakeEvaluationE701LTest extends TenancyTestCase
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->post('/seller/quality/dialogs/'.$dialog.'/evaluate')->assertRedirect();
         $evaluation = DB::table('seller_evaluations')->where('conversation_id', $dialog)->first();
         self::assertSame('4.00', $evaluation->average);
-        self::assertSame(ScenarioFallbackJudge::COMMENT, $evaluation->comment);
+        self::assertSame(ConversationFakeJudge::COMMENT, $evaluation->comment);
     }
 }

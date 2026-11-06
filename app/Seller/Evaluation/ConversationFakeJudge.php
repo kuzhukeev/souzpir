@@ -13,6 +13,8 @@ use Illuminate\Validation\ValidationException;
 
 final class ConversationFakeJudge
 {
+    public const COMMENT = 'Тестовая оценка диалога: фиксированное значение, качество не оценивалось.';
+
     public function evaluate(TenantContext $tenant, string $conversationId): string
     {
         if (config('runtime.ai_driver', 'fake') !== 'fake') {
@@ -47,11 +49,11 @@ final class ConversationFakeJudge
             if (! str_starts_with($error->getMessage(), 'AI fixture missing for normalized request ')) {
                 throw $error;
             }
-            $normal = $supervisor->normalize([...array_fill_keys(Supervisor::SCORES, 3), 'comment' => ScenarioFallbackJudge::COMMENT, 'issues' => []], count($turns));
+            $normal = $supervisor->normalize([...array_fill_keys(Supervisor::SCORES, 3), 'comment' => self::COMMENT, 'issues' => []], count($turns));
         }
         $id = (string) Str::ulid();
         DB::transaction(function () use ($tenant, $scope, $conversation, $id, $normal): void {
-            DB::table('seller_evaluations')->insert($scope + ['id' => $id, 'conversation_id' => $conversation->id, 'scores' => json_encode($normal['scores'], JSON_THROW_ON_ERROR), 'issues' => json_encode($normal['issues'], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), 'average' => $normal['average'], 'comment' => ScenarioFallbackJudge::COMMENT, 'created_at' => now(), 'updated_at' => now()]);
+            DB::table('seller_evaluations')->insert($scope + ['id' => $id, 'conversation_id' => $conversation->id, 'scores' => json_encode($normal['scores'], JSON_THROW_ON_ERROR), 'issues' => json_encode($normal['issues'], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), 'average' => $normal['average'], 'comment' => self::COMMENT, 'created_at' => now(), 'updated_at' => now()]);
             app(AuditWriter::class)->record($tenant, new AuditEntry('seller.evaluation.created', 'seller_evaluation', $id, after: ['conversation_id' => $conversation->id, 'test_baseline' => true]));
         });
 
