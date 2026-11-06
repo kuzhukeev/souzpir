@@ -51,7 +51,7 @@ final class DraftResponder
 
                 return is_string($text) && trim($text) !== '' && mb_strlen($text) <= 5000 ? trim($text) : null;
             } catch (Throwable) {
-                if (! in_array($personaKey, ['unknown_item', 'delivery_far', 'opt_out'], true)) {
+                if (! in_array($personaKey, ['unknown_item', 'delivery_far', 'opt_out', 'container_import', 'defect_claim', 'car_seller', 'competitor_bait', 'price_increase_doubt', 'legal_questions', 'busy_now', 'rewrite_conditions'], true)) {
                     return null;
                 }
                 $stored = DB::table('seller_personas')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('key', $personaKey)->value('payload');
