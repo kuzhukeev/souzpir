@@ -38,6 +38,7 @@ use App\Seller\Engine\LeadState;
 use App\Seller\Engine\Policy;
 use App\Seller\Knowledge\Contracts\KnowledgeRepository;
 use App\Seller\Knowledge\Import\YamlKnowledgeImporter;
+use App\Seller\Knowledge\KnowledgeSnapshot;
 use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Auth\SessionBrandSelection;
 use App\Tenancy\TenantContext;
@@ -1765,6 +1766,45 @@ SQL);
         }
         self::assertSame(1, DB::table('c02_responder_stages')->count());
         unlink($file);
+        Http::assertNothingSent();
+    }
+
+    public function test_guard_hits_count_only_published_brand_rules_and_ignore_preview_checks_e405e(): void
+    {
+        [$tenant, $http, $claim, $extractor] = $this->fixture('Synthetic customer input');
+        $other = $this->within($tenant, fn () => Brand::create(['name' => 'Other synthetic brand', 'timezone' => 'Europe/Moscow']));
+        $draft = $this->within($tenant, function () use ($tenant): array {
+            $repo = app(KnowledgeRepository::class);
+            $published = $repo->published($tenant);
+            $data = [];
+            foreach (KnowledgeSnapshot::FILES as $name) {
+                $data[$name] = $published->all($name);
+            }
+            $data['guard_rules']['forbidden_promises'] = [['id' => 'draft_only', 'description' => 'Draft only', 'severity' => 'block', 'patterns' => ['отсрочк']]];
+
+            $existing = DB::table('knowledge_releases')->where('brand_id', $tenant->brandId)->where('status', 'draft')->first();
+            $repo->saveDraft($tenant, $existing->id, $existing->version, $data);
+
+            return ['id' => $existing->id];
+        });
+        [$stage, , , $file] = $this->responderFixture($tenant, $http, $claim, $extractor, ['content' => 'Дадим отсрочку.']);
+        $this->within($tenant, function () use ($tenant, $http, $claim, $stage, $file, $other): void {
+            self::assertSame('completed', app(Gateway::class)->completeProtectedResponder($http, $claim, $stage));
+            $guard = app(FirstTurnDeterministicGuard::class);
+            DB::transaction(function () use ($guard, $http, $claim, $stage): void {
+                $first = $guard->evaluateLocked($http, $claim, $stage);
+                self::assertSame('regenerate', $first['verdict']);
+                self::assertSame($first, $guard->evaluateLocked($http, $claim, $stage));
+            });
+            $hits = DB::table('prohibition_guard_hits')->get();
+            self::assertCount(1, $hits);
+            self::assertSame('promise_deferred', $hits[0]->rule_id);
+            self::assertSame($tenant->brandId, $hits[0]->brand_id);
+            self::assertSame(0, DB::table('prohibition_guard_hits')->where('brand_id', $other->id)->count());
+            unlink($file);
+        });
+        self::assertSame(1, DB::table('prohibition_guard_hits')->count());
+        self::assertSame(0, DB::table('prohibition_guard_hits')->where('rule_id', 'draft_only')->count());
         Http::assertNothingSent();
     }
 
