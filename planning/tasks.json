@@ -22863,6 +22863,88 @@
       "wave": 20,
       "promptPath": "docs/tasks/SP-E8-16Q.md",
       "description": "# SP-E8-16Q · Отчёт: темы и итоговая сверка\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E8-16P, docs/results/SP-E8-16P.md.\n**Зависимости:** SP-E8-16P.\n\n## Приёмка\n- V-4.4: топ тем и динамика только по подтверждённым существующим данным, при отсутствии источника показывать отсутствие данных; сверить KPI, график, модели, уточнения и состояния, права и бренд.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Vision/Reports/`, `resources/js/pages/Vision/Reports/`, `tests/Feature/Vision/Reports/`, `tests/Browser/E8-16Q/`, `docs/results/SP-E8-16Q.md`.\n"
+    },
+    {
+      "taskKey": "SP-E4-10O",
+      "title": "SP-E4-10O · Факты: дерево и состояния",
+      "goal": "D-4.3: дерево тем, добавление факта, статусы, меню строки и состояния по макету; проверить права и изоляцию бренда, недостоверные связи с условиями не показывать.",
+      "dependsOn": [
+        "SP-E4-10J"
+      ],
+      "scope": [
+        "app/Seller/Knowledge/Facts/",
+        "resources/js/pages/Seller/Knowledge/Facts/",
+        "tests/Feature/Seller/Knowledge/Facts/",
+        "tests/Browser/E4-10O/",
+        "docs/results/SP-E4-10O.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "D-4.3: дерево тем, добавление факта, статусы, меню строки и состояния по макету; проверить права и изоляцию бренда, недостоверные связи с условиями не показывать."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E4-10J.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E4-10O.md",
+      "description": "# SP-E4-10O · Факты: дерево и состояния\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E4-10J, docs/results/SP-E4-10J.md.\n**Зависимости:** SP-E4-10J.\n\n## Приёмка\n- D-4.3: дерево тем, добавление факта, статусы, меню строки и состояния по макету; проверить права и изоляцию бренда, недостоверные связи с условиями не показывать.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Seller/Knowledge/Facts/`, `resources/js/pages/Seller/Knowledge/Facts/`, `tests/Feature/Seller/Knowledge/Facts/`, `tests/Browser/E4-10O/`, `docs/results/SP-E4-10O.md`.\n"
+    },
+    {
+      "taskKey": "SP-E4-06K",
+      "title": "SP-E4-06K · Импорт: меню и состояния",
+      "goal": "D-4.10: меню действий таблицы и визуальная сверка всех состояний; адаптировать проверки E4-06G/H/I к открытию меню, сохранив их смысл и сценарии, данные не удалять.",
+      "dependsOn": [
+        "SP-E4-06J"
+      ],
+      "scope": [
+        "resources/js/pages/Seller/Knowledge/Imports/",
+        "tests/Browser/E4-06G/",
+        "tests/Browser/E4-06H/",
+        "tests/Browser/E4-06I/",
+        "tests/Browser/E4-06K/",
+        "docs/results/SP-E4-06K.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "D-4.10: меню действий таблицы и визуальная сверка всех состояний; адаптировать проверки E4-06G/H/I к открытию меню, сохранив их смысл и сценарии, данные не удалять."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E4-06J.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E4-06K.md",
+      "description": "# SP-E4-06K · Импорт: меню и состояния\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E4-06J, docs/results/SP-E4-06J.md.\n**Зависимости:** SP-E4-06J.\n\n## Приёмка\n- D-4.10: меню действий таблицы и визуальная сверка всех состояний; адаптировать проверки E4-06G/H/I к открытию меню, сохранив их смысл и сценарии, данные не удалять.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `resources/js/pages/Seller/Knowledge/Imports/`, `tests/Browser/E4-06G/`, `tests/Browser/E4-06H/`, `tests/Browser/E4-06I/`, `tests/Browser/E4-06K/`, `docs/results/SP-E4-06K.md`.\n"
+    },
+    {
+      "taskKey": "SP-E8-24J",
+      "title": "SP-E8-24J · Персональный доступ: права и состояния",
+      "goal": "V-11.5: фактический статус доступа к полным ответам из действующих прав, права и изоляция брендов; сверить пустое и ошибочное состояния, внешние адреса и темы. Не изменять права наблюдателя без основания.",
+      "dependsOn": [
+        "SP-E8-24I"
+      ],
+      "scope": [
+        "app/Vision/Settings/",
+        "resources/js/pages/Vision/Settings/",
+        "tests/Feature/Vision/Settings/",
+        "tests/Browser/E8-24J/",
+        "docs/results/SP-E8-24J.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "V-11.5: фактический статус доступа к полным ответам из действующих прав, права и изоляция брендов; сверить пустое и ошибочное состояния, внешние адреса и темы. Не изменять права наблюдателя без основания."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E8-24I.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E8-24J.md",
+      "description": "# SP-E8-24J · Персональный доступ: права и состояния\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E8-24I, docs/results/SP-E8-24I.md.\n**Зависимости:** SP-E8-24I.\n\n## Приёмка\n- V-11.5: фактический статус доступа к полным ответам из действующих прав, права и изоляция брендов; сверить пустое и ошибочное состояния, внешние адреса и темы. Не изменять права наблюдателя без основания.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Vision/Settings/`, `resources/js/pages/Vision/Settings/`, `tests/Feature/Vision/Settings/`, `tests/Browser/E8-24J/`, `docs/results/SP-E8-24J.md`.\n"
     }
   ],
   "excludedSourceTasks": {
