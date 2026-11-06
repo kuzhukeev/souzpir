@@ -43,7 +43,8 @@ final class SettingsController
 
             $catalog = app(ProviderCatalog::class)->models();
             $modelOptions = collect(array_unique([...$schedule['available_models'], ...array_keys(array_filter($catalog, fn (array $model): bool => $model['status'] === 'planned'))]))
-                ->map(fn (string $id): array => ['id' => $id, 'provider' => $catalog[$id]['provider'] ?? null, 'status' => $catalog[$id]['status'] ?? 'unavailable', 'approved' => in_array($id, $schedule['available_models'], true)])
+                ->map(fn (string $id): array => ['id' => $id, 'provider' => $catalog[$id]['provider'] ?? null, 'status' => $catalog[$id]['status'] ?? 'unavailable', 'approved' => in_array($id, $schedule['available_models'], true),
+                    'description' => is_string($catalog[$id]['description'] ?? null) && trim($catalog[$id]['description']) !== '' ? trim($catalog[$id]['description']) : null])
                 ->values()->all();
 
             $usedSlots = app(MonthlyUnits::class)->usage($tenant)['slots'];
