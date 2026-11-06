@@ -319,6 +319,16 @@ class TaskCliTests(unittest.TestCase):
         self.assertFalse(task_cli.scope_allows(".LOCAL/claims/task.json", ["/"]))
         self.assertFalse(task_cli.scope_allows("app/../outside.php", ["/"]))
 
+    def test_e815f_ci_exception_is_limited_to_legacy_weekly_spec(self):
+        scope = task_cli.CI_SCOPE_EXCEPTIONS["SP-E8-15F"]
+        self.assertTrue(task_cli.scope_allows("tests/Browser/E8-15E/weekly.spec.ts", scope))
+        self.assertFalse(task_cli.scope_allows("tests/Browser/E8-15E/other.spec.ts", scope))
+
+    def test_e706c_ci_exception_is_limited_to_legacy_crm_spec(self):
+        scope = task_cli.CI_SCOPE_EXCEPTIONS["SP-E7-06C"]
+        self.assertTrue(task_cli.scope_allows("tests/Browser/E6-09/crm.spec.ts", scope))
+        self.assertFalse(task_cli.scope_allows("tests/Browser/E6-09/other.spec.ts", scope))
+
     def test_submit_allows_default_generated_contracts_only(self):
         worktree, _ = self.claim()
         for name in ("data.ts", "translations.ts", "permissions.ts", "routes.d.ts"):
