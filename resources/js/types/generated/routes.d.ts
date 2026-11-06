@@ -455,6 +455,12 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "seller.knowledge.imports.documents.preview": [
+        {
+            "name": "document",
+            "required": true
+        }
+    ],
     "seller.knowledge.imports.preview": [],
     "seller.knowledge.imports.save": [],
     "seller.knowledge.imports.site.preview": [],
