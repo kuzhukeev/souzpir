@@ -23,6 +23,15 @@ final class TelegramController
     {
         $this->authorize($context, false);
         $widget = DB::table('widget_settings')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)->first(['id', 'enabled', 'origins']);
+        if ($widget && Gate::allows('seller.settings.write') && ! ChannelAccount::query()->where('type', 'widget')->where('settings->widget_id', $widget->id)->exists()) {
+            $account = new ChannelAccount;
+            $account->type = 'widget';
+            $account->name = 'Сайт';
+            $account->status = $widget->enabled ? 'active' : 'disabled';
+            $account->default_mode = 'manager';
+            $account->settings = ['widget_id' => $widget->id];
+            $account->save();
+        }
         $accounts = ChannelAccount::query()->orderBy('name')->get()->filter(
             fn (ChannelAccount $account): bool => $account->type !== 'widget' || ($widget && ($account->settings['widget_id'] ?? null) === $widget->id)
         );
