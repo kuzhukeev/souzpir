@@ -2,10 +2,10 @@ import WorkloadChart from './WorkloadChart';
 import { useState } from 'react';
 import Details from './Details';
 import Channels from './Channels';
-import { Head, useForm } from '@inertiajs/react';
+import { Head, Link, useForm } from '@inertiajs/react';
 import CabinetLayout from '@/layouts/CabinetLayout';
 type Analytics = {
-  funnel?: { label: string; count: number }[];
+  funnel?: { label: string; count: number; full?:number; partial?:number; other?:number }[];
   manager?: string;
   managerOptions?: { id: string; name: string }[];
   outcomes?: Record<string, number>;
@@ -51,10 +51,12 @@ type Analytics = {
     contact_closed?: number;
     reaction_minutes?: number | null;
     reviews?: number;
+    samples?: number | null;
     score?: number | null;
     workload?: Record<string, number>;
   }[];
   canManage: boolean;
+  subscription?: {day:string; recipients:string[]} | null;
 };
 const labels: Record<string, string> = {
   unknown: 'Не определён',
@@ -255,7 +257,7 @@ export default function Index({ analytics: a }: { analytics: Analytics }) {
         </form>
         {a.total === 0 && (
           <p className="mt-5 rounded-lg bg-(--color-surface-muted) p-4 text-sm">
-            За выбранный период диалогов нет.
+            За выбранный период диалогов нет. {a.canManage && <Link href="/seller/channels" className="ml-2 cursor-pointer font-semibold text-(--color-link)">Настроить каналы →</Link>}
           </p>
         )}
         <div hidden={tab !== 'funnel'}>
@@ -269,7 +271,7 @@ export default function Index({ analytics: a }: { analytics: Analytics }) {
               {(a.funnel ?? []).map((step, index) => (
                 <li key={step.label} className="rounded-lg bg-(--color-surface-muted) p-3 text-sm">
                   <span>{step.label}</span>
-                  <strong className="mt-1 block text-xl">{step.count}</strong>
+                  <strong className="mt-1 block text-xl">{step.count}</strong>{step.full !== undefined && step.partial !== undefined && <p className="mt-1 text-(--color-ink-muted)">По сохранённому итогу: полный {step.full} · частичный {step.partial}{step.other ? ` · другой или не указан ${step.other}` : ''}</p>}
                   {index > 0 && (
                     <span>
                       {a.funnel?.[index - 1]?.count
@@ -435,7 +437,7 @@ export default function Index({ analytics: a }: { analytics: Analytics }) {
                         <th>Закрыл с контактом</th>
                         <th>Пометки</th>
                         <th>Оценка</th>
-                        <th>Образцы речи</th>
+                        <th>Образцов речи добавил</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -447,7 +449,7 @@ export default function Index({ analytics: a }: { analytics: Analytics }) {
                           <td>{m.contact_closed ?? 0}</td>
                           <td>{m.reviews ?? 0}</td>
                           <td>{m.score ?? '—'}</td>
-                          <td>—</td>
+                          <td>{m.samples ?? '—'}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -456,9 +458,7 @@ export default function Index({ analytics: a }: { analytics: Analytics }) {
               )}
               <h3 className="mt-4 font-semibold">Загрузка по дням</h3>
               <WorkloadChart managers={a.managers} />
-              <p className="mt-2 text-sm text-(--color-ink-muted)">
-                Данные об образцах речи не предоставлены.
-              </p>
+              <p className="mt-2 text-sm text-(--color-ink-muted)">Учитываются образцы с подтверждённым автором и датой. Старые импорты и предложения без указанного типа не учитываются; при фильтре канала или источника показатель недоступен.</p>
             </section>
           )}
         </div>

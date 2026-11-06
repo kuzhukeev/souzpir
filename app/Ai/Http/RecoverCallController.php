@@ -22,6 +22,6 @@ final class RecoverCallController
             return $recover->run($tenant, $data['call_id']);
         });
 
-        return response()->json($result)->header('Cache-Control', 'private, no-store');
+        return response()->json(['status' => $result['status']])->header('Cache-Control', 'private, no-store');
     }
 }

@@ -7,6 +7,7 @@ use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Billing\BillingAccess;
 use App\Shell\Billing\VisionPlanSummary;
 use App\Tenancy\TenantContext;
+use App\Vision\Competitors\SnapshotView;
 use App\Vision\Core\Profiles\ProfileAccess;
 use App\Vision\Core\Profiles\Questionnaire;
 use App\Vision\Core\Profiles\QuizConflict;
@@ -203,11 +204,20 @@ HTML;
     private function hints(#[\SensitiveParameter] Request $request, int $step, ?string $website): array
     {
         $unavailable = ['status' => 'unavailable', 'items' => []];
+        if ($step === 4 && ! $website && Gate::allows('vision.settings.write') && Gate::allows('vision.report.read')) {
+            try {
+                $items = app(ProfileAccess::class)->run($request, fn (TenantContext $context) => $this->aiCompetitorHints($context));
+
+                return ['status' => $items ? 'available' : 'empty', 'items' => $items];
+            } catch (Throwable) {
+                return $unavailable;
+            }
+        }
         if (! in_array($step, [1, 2, 3, 4, 5, 7], true) || ! Gate::allows('vision.settings.write') || ! $website) {
             return $unavailable;
         }
         try {
-            $sources = app(ProfileAccess::class)->run($request, function (TenantContext $context) use ($website) {
+            $sources = app(ProfileAccess::class)->run($request, function (TenantContext $context) use ($website, $step) {
                 $currentWebsite = DB::table('brands')->where('id', $context->brandId)->where('organization_id', $context->organizationId)->value('website');
                 if ($currentWebsite !== $website) {
                     return null;
@@ -221,14 +231,23 @@ HTML;
                     $audit = null;
                 }
 
-                return ['page' => $page, 'audit' => $audit, 'progress' => Cache::get(AuditSiteJob::key($context->organizationId, $context->brandId))];
+                $aiItems = [];
+                if ($step === 4 && Gate::allows('vision.report.read')) {
+                    try {
+                        $aiItems = $this->aiCompetitorHints($context);
+                    } catch (Throwable) {
+                        // An unavailable report must not block the questionnaire.
+                    }
+                }
+
+                return ['page' => $page, 'audit' => $audit, 'aiItems' => $aiItems, 'progress' => Cache::get(AuditSiteJob::key($context->organizationId, $context->brandId))];
             });
             $progress = is_string($website) && $website !== '' && ($sources['progress']['url'] ?? null) === $website ? ($sources['progress']['stage'] ?? null) : null;
             $siteCheck = ['stage' => in_array($progress, ['queued', 'inspecting', 'saving', 'complete', 'failed'], true) ? $progress : null, 'readiness' => $sources['audit']['readiness'] ?? null, 'pages' => $sources['audit']['crawled_pages'] ?? null];
             $page = $sources['page'] ?? null;
             $audit = $sources['audit'] ?? null;
             if (! $page && ! $audit) {
-                return ['status' => 'empty', 'items' => [], 'site_check' => $siteCheck];
+                return ['status' => ! empty($sources['aiItems']) ? 'available' : 'empty', 'items' => $sources['aiItems'] ?? [], 'site_check' => $siteCheck];
             }
             $page ??= [];
             $title = trim((string) ($page['title'] ?? ''));
@@ -360,11 +379,24 @@ HTML;
                 }
             }
 
+            foreach ($sources['aiItems'] ?? [] as $hint) {
+                if (! in_array($hint['value'], array_column($items, 'value'), true) && count($items) < 10) {
+                    $items[] = $hint;
+                }
+            }
+
             return ['status' => $items || ($step === 1 && $page) ? 'available' : 'empty', 'items' => $items, 'site_check' => $siteCheck];
         } catch (Throwable) {
             // Local failure must not block the form or expose private source data in logs.
             return $unavailable;
         }
+    }
+
+    private function aiCompetitorHints(TenantContext $context): array
+    {
+        $snapshot = app(SnapshotView::class)->current($context);
+
+        return is_array($snapshot) ? app(AiCompetitorHints::class)->extract($snapshot) : [];
     }
 
     private function input(#[\SensitiveParameter] Request $request, bool $quiz, bool $needsValues = true): array

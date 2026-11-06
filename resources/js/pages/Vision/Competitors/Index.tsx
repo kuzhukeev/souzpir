@@ -16,6 +16,8 @@ type Entity = {
   tracked: boolean;
   aliases?: string[];
   models?: string[];
+  model_names?: string[];
+  model_names_unknown?: boolean;
   intents?: string[];
   questions?: string[];
   sources?: string[];
@@ -287,9 +289,10 @@ export default function Index({
                                 : `${e.delta > 0 ? '+' : ''}${e.delta}`}
                             </td>
                             <td className="p-4">
-                              {e.models?.length ? (
+                              {e.model_names?.length ? (
                                 <div className="flex flex-wrap gap-1">
-                                  {e.models.map((model) => (
+                                  {e.model_names_unknown && <span className="rounded-full bg-(--color-surface-muted) px-2 py-1">Часть моделей не определена</span>}
+                                  {e.model_names.map((model) => (
                                     <span
                                       key={model}
                                       className="rounded-full bg-(--color-surface-muted) px-2 py-1"

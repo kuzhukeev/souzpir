@@ -26,12 +26,15 @@ final class ClarificationController
 
     public function index(Request $request): mixed
     {
-        return app(MeasurementList::class)->withinCurrent($request, function (TenantContext $tenant): mixed {
+        $input = $request->validate(['page' => ['sometimes', 'integer', 'min:1']]);
+        $page = (int) ($input['page'] ?? 1);
+
+        return app(MeasurementList::class)->withinCurrent($request, function (TenantContext $tenant) use ($page): mixed {
             $items = DB::table('snapshot_confirmations')->where('organization_id', $tenant->organizationId)
-                ->where('brand_id', $tenant->brandId)->orderByDesc('created_at')->limit(50)
+                ->where('brand_id', $tenant->brandId)->orderByDesc('created_at')->orderByDesc('id')->offset(($page - 1) * 50)->limit(51)
                 ->get(['measurement_id', 'created_at']);
 
-            return Inertia::render('Vision/Clarifications/Index', ['measurements' => $items]);
+            return Inertia::render('Vision/Clarifications/Index', ['measurements' => $items->take(50)->values(), 'page' => $page, 'hasMore' => $items->count() > 50]);
         }, false);
     }
 

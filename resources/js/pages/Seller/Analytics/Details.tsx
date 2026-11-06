@@ -29,6 +29,7 @@ type Props = {
   source?: string;
   manager?: string;
   canManage?: boolean;
+  subscription?: {day:string; recipients:string[]} | null;
   managers?: { name: string; assigned: number; taken: number; closed: number }[];
 };
 const card = 'mt-5 rounded-xl border border-(--color-border) bg-(--color-surface) p-5';
@@ -57,6 +58,10 @@ export default function Details({ data: a, activeTab }: { data: Props; activeTab
   const [reportType, setReportType] = useState('weekly');
   const [email, setEmail] = useState('');
   const [sending, setSending] = useState(false);
+  const [day, setDay] = useState(a.subscription?.day ?? 'mon');
+  const [recipients, setRecipients] = useState(a.subscription?.recipients.join('\n') ?? '');
+  const [subBusy, setSubBusy] = useState(false);
+  const [subStatus, setSubStatus] = useState('');
   const [sendStatus, setSendStatus] = useState('');
   const dialogs = a.dialogs ?? [];
   const longDialogs = dialogs.filter((d) => d.messages >= 8 && d.has_contact === false);
@@ -392,7 +397,7 @@ export default function Details({ data: a, activeTab }: { data: Props; activeTab
             {sendStatus}
           </p>
         )}
-        <p className="mt-3 text-sm text-(--color-ink-muted)">Подписка на отчёт пока недоступна.</p>
+        {a.canManage && <form className="mt-5 space-y-3 print:hidden" onSubmit={event=>{event.preventDefault();setSubStatus('');router.post('/seller/analytics/subscription',{day,recipients:recipients.split(/[,\n]/).map(value=>value.trim()).filter(Boolean)},{preserveScroll:true,onStart:()=>setSubBusy(true),onFinish:()=>setSubBusy(false),onSuccess:()=>setSubStatus('Расписание сохранено. Реальная отправка пока не подключена.'),onError:()=>setSubStatus('Проверьте список получателей и день недели.'),onNetworkError:()=>{setSubStatus('Нет связи. Повторите попытку.');return false;}});}}><h3 className="text-lg font-semibold">Подписка на отчёт</h3><label className="block text-sm">День недели<select value={day} onChange={event=>setDay(event.target.value)} className="mt-1 block min-h-11 cursor-pointer rounded-lg border border-(--color-border) bg-(--color-surface) px-3">{[['mon','Понедельник'],['tue','Вторник'],['wed','Среда'],['thu','Четверг'],['fri','Пятница'],['sat','Суббота'],['sun','Воскресенье']].map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label><label className="block text-sm">Получатели, по одному адресу в строке<textarea required value={recipients} onChange={event=>setRecipients(event.target.value)} className="mt-1 block min-h-24 w-full max-w-lg rounded-lg border border-(--color-border) bg-(--color-surface) p-3"/></label><button disabled={subBusy} className="min-h-11 cursor-pointer rounded-lg border border-(--color-border) px-4 text-sm disabled:opacity-50">{subBusy?'Сохраняем…':'Сохранить подписку'}</button>{subStatus&&<p role="status" className="text-sm">{subStatus}</p>}<p className="text-sm text-(--color-ink-muted)">Реальная отправка пока не подключена; доступна тестовая отправка выше.</p></form>}
         <p className="mt-2 text-sm text-(--color-ink-muted)">
           Для PDF выберите «Сохранить как PDF» в окне печати. В отчёт войдут данные и фильтры на
           этой странице.

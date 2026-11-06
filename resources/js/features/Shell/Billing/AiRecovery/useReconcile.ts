@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { profileContextIsStable, subscribeProfileContext } from '@/features/Shell/Profile/contextFence';
 
-type Outcome = { status: 'completed' | 'failed'; costMicros: number };
+type Outcome = { status: 'completed' | 'failed' };
 
 export function useReconcile(brandId: string, revision: string, refresh: () => void) {
   const [selected, setSelected] = useState<string | null>(null);
@@ -32,9 +32,9 @@ export function useReconcile(brandId: string, revision: string, refresh: () => v
       const data: unknown = await response.json();
       if (!data || typeof data !== 'object') throw new Error();
       const value = data as Record<string, unknown>;
-      if ((value.status !== 'completed' && value.status !== 'failed') || typeof value.costMicros !== 'number' || !Number.isSafeInteger(value.costMicros) || value.costMicros < 0) throw new Error();
+      if ((value.status !== 'completed' && value.status !== 'failed')) throw new Error();
       if (controller.signal.aborted || !profileContextIsStable() || document.visibilityState !== 'visible') return;
-      setResult({ status: value.status, costMicros: value.costMicros });
+      setResult({ status: value.status });
       setSelected(null);
       refresh();
     } catch {

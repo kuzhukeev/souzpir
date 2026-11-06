@@ -128,13 +128,13 @@ export function Groups({ criteria }: { criteria: Criterion[] }) {
     </section>
   );
 }
-export function AuditProgress({progress}: {progress?: {stage:string; events?: {stage:string; at:string}[]; pages_processed?:number; pages_total?:number; remaining_seconds?:number|null} | null}) {
+export function AuditProgress({progress}: {progress?: {stage:string; events?: {stage:string; at:string}[]; pages_processed?:number; pages_total?:number; remaining_seconds?:number|null; elapsed_seconds?:number|null} | null}) {
   const stage = progress?.stage;
   const [notify, setNotify] = useState(false);
   const [notifyError, setNotifyError] = useState('');
   const notified = useRef('');
   useEffect(() => {
-    if (!['queued','inspecting','saving'].includes(stage ?? '')) return;
+    if (!['queued','inspecting','analyzing','saving'].includes(stage ?? '')) return;
     const timer = window.setInterval(() => router.reload({only:['auditProgress','audit','auditDate','previousAudit']}), 2000);
     return () => window.clearInterval(timer);
   }, [stage]);
@@ -155,9 +155,9 @@ export function AuditProgress({progress}: {progress?: {stage:string; events?: {s
     } catch { setNotifyError('Не удалось включить уведомления браузера.'); }
   }
   if (!stage) return null;
-  const phases = [{key:'queued',label:'Ожидание'}, {key:'inspecting',label:'Проверка страниц и ботов'}, {key:'saving',label:'Сохранение результатов'}];
+  const phases = [{key:'queued',label:'Ожидание'}, {key:'inspecting',label:'Проверка страниц и ботов'}, {key:'analyzing',label:'Анализ данных'}, {key:'saving',label:'Сохранение результатов'}];
   const active = stage === 'complete' ? phases.length : phases.findIndex(item => item.key === stage);
-  return <section className={card} aria-live="polite"><h2 className="text-lg font-semibold">Проверка сайта</h2><p className="mt-2 text-sm">{({queued:'Ожидает очереди',inspecting:'Проверяем страницы и доступ ботов',saving:'Сохраняем результаты',complete:'Проверка завершена',failed:'Не удалось проверить сайт. Повторите попытку.'} as Record<string,string>)[stage] ?? 'Состояние недоступно'}</p>{active >= 0 && <><progress className="mt-3 w-full accent-(--color-action)" aria-label="Проверка сайта" max={phases.length} value={active} /><ol className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm">{phases.map((phase,index)=><li key={phase.key}>{phase.label} · {index < active ? 'готово' : index === active ? 'выполняется' : 'ожидает'}</li>)}</ol></>}{['queued','inspecting','saving'].includes(stage) && <div className="mt-3">{notify ? <p role="status" className="text-sm text-(--color-success)">Уведомим, когда проверка завершится, пока эта страница открыта.</p> : <button type="button" className={secondary} onClick={() => void enableNotification()}>Уведомить, когда будет готово</button>}<p className="mt-2 text-sm text-(--color-ink-muted)">{progress?.pages_processed != null && progress?.pages_total != null ? `Обработано адресов: ${progress.pages_processed} из ${progress.pages_total} (включая недоступные)` : 'Число страниц пока недоступно.'} {progress?.remaining_seconds != null ? `Ориентир загрузки оставшихся страниц: около ${progress.remaining_seconds} с.` : 'Оценка времени пока недоступна.'} Точное время всей проверки неизвестно; ориентир не включает сохранение результатов.</p></div>}{notifyError && <p role="alert" className="mt-2 text-sm text-(--color-danger-ink)">{notifyError}</p>}{Boolean(progress?.events?.length) && <div className="mt-4"><h3 className="font-semibold">Последние события</h3><ol className="mt-2 space-y-1 text-sm">{progress?.events?.map((event, index) => <li key={`${event.stage}-${index}`}><time dateTime={event.at}>{new Date(event.at).toLocaleString('ru-RU')}</time> · {({queued:'Ожидание',inspecting:'Проверка страниц и ботов',saving:'Сохранение результатов',complete:'Проверка завершена',failed:'Ошибка проверки'} as Record<string,string>)[event.stage] ?? 'Событие'}</li>)}</ol></div>}</section>;
+  return <section className={card} aria-live="polite"><h2 className="text-lg font-semibold">Проверка сайта</h2><p className="mt-2 text-sm">{({queued:'Ожидает очереди',inspecting:'Проверяем страницы и доступ ботов',analyzing:'Анализируем полученные данные',saving:'Сохраняем результаты',complete:'Проверка завершена',failed:'Не удалось проверить сайт. Повторите попытку.'} as Record<string,string>)[stage] ?? 'Состояние недоступно'}</p>{progress?.elapsed_seconds != null && <p className="mt-2 text-sm text-(--color-ink-muted)">Время проверки: {progress.elapsed_seconds} с.</p>}{active >= 0 && <><progress className="mt-3 w-full accent-(--color-action)" aria-label="Проверка сайта" max={phases.length} value={active} /><ol className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm">{phases.map((phase,index)=><li key={phase.key}>{phase.label} · {index < active ? 'готово' : index === active ? 'выполняется' : 'ожидает'}</li>)}</ol></>}{['queued','inspecting','analyzing','saving'].includes(stage) && <div className="mt-3">{notify ? <p role="status" className="text-sm text-(--color-success)">Уведомим, когда проверка завершится, пока эта страница открыта.</p> : <button type="button" className={secondary} onClick={() => void enableNotification()}>Уведомить, когда будет готово</button>}<p className="mt-2 text-sm text-(--color-ink-muted)">{progress?.pages_processed != null && progress?.pages_total != null ? `Обработано адресов: ${progress.pages_processed} из ${progress.pages_total} (включая недоступные)` : 'Число страниц пока недоступно.'} Оценка оставшегося времени пока не подтверждена. Точное время всей проверки неизвестно.</p></div>}{notifyError && <p role="alert" className="mt-2 text-sm text-(--color-danger-ink)">{notifyError}</p>}{Boolean(progress?.events?.length) && <div className="mt-4"><h3 className="font-semibold">Последние события</h3><ol className="mt-2 space-y-1 text-sm">{progress?.events?.map((event, index) => <li key={`${event.stage}-${index}`}><time dateTime={event.at}>{new Date(event.at).toLocaleString('ru-RU')}</time> · {({queued:'Ожидание',inspecting:'Проверка страниц и ботов',analyzing:'Анализ данных',saving:'Сохранение результатов',complete:'Проверка завершена',failed:'Ошибка проверки'} as Record<string,string>)[event.stage] ?? 'Событие'}</li>)}</ol></div>}</section>;
 }
 export default function Index({
   section,
@@ -173,7 +173,7 @@ export default function Index({
   auditProgress = null,
   domainStatus = null,
   brandSite = null,
-}: Props & { brandSite?: string | null; domainStatus?: {host:string;verified:boolean} | null; auditDate?: string | null; previousAudit?: Audit | null; auditProgress?: {stage:string; events?: {stage:string; at:string}[]; pages_processed?:number; pages_total?:number; remaining_seconds?:number|null} | null }) {
+}: Props & { brandSite?: string | null; domainStatus?: {host:string;verified:boolean} | null; auditDate?: string | null; previousAudit?: Audit | null; auditProgress?: {stage:string; events?: {stage:string; at:string}[]; pages_processed?:number; pages_total?:number; remaining_seconds?:number|null; elapsed_seconds?:number|null} | null }) {
   const titles: Record<Props['section'], string> = {
     overview: 'Готовность сайта к ИИ-поиску',
     criteria: 'Критерии и как исправить',

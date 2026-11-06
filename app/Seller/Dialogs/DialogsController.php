@@ -88,7 +88,7 @@ final class DialogsController
 
     public function mode(Request $request, string $dialog): RedirectResponse
     {
-        $input = $request->validate(['action' => ['required', Rule::in(['take', 'return'])]]);
+        $input = $request->validate(['action' => ['required', Rule::in(['take', 'return', 'close'])]]);
         app(ProfileAccess::class)->run($request, function (User $actor, TenantContext $context, $brand, Membership $member) use ($dialog, $input): void {
             Gate::forUser($actor)->authorize('seller.dialogues.operate');
             abort_unless(app(SellerModuleAccess::class)->enabled($context->organizationId, $context->brandId), 404);
@@ -98,12 +98,38 @@ final class DialogsController
             if ($manager && $row->assigned_user_id !== $actor->id && ! ($row->mode === 'manager' && $row->assigned_user_id === null)) {
                 abort(404);
             }
+            if (in_array($row->stage, ['done', 'lost', 'spam'], true)) {
+                throw ValidationException::withMessages(['action' => 'Диалог уже закрыт.']);
+            }
+            if ($input['action'] === 'close') {
+                $state = json_decode($row->state ?: '{}', true, flags: JSON_THROW_ON_ERROR);
+                $state['stage'] = 'done';
+                DB::table('conversations')->where('id', $row->id)->update(['stage' => 'done', 'mode' => 'paused',
+                    'state' => json_encode($state, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE), 'version' => $row->version + 1, 'updated_at' => now()]);
+                app(AuditWriter::class)->record($context, new AuditEntry('seller.dialog.closed', 'conversation', $row->id,
+                    before: ['stage' => $row->stage, 'mode' => $row->mode], after: ['stage' => 'done', 'mode' => 'paused']));
+
+                return;
+            }
             if ($input['action'] === 'take') {
                 if ($row->mode === 'manager' && $row->assigned_user_id !== null && $row->assigned_user_id !== $actor->id) {
                     throw ValidationException::withMessages(['action' => 'Диалог уже ведёт другой сотрудник.']);
                 }
                 if (! in_array($row->mode, ['bot', 'suggest', 'manager'], true)) {
                     throw ValidationException::withMessages(['action' => 'Этот диалог сейчас нельзя забрать.']);
+                }
+                if ($row->assigned_user_id !== $actor->id) {
+                    $raw = DB::table('seller_schedule_preferences')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)->value('payload');
+                    $settings = is_string($raw) ? json_decode($raw, true) : [];
+                    $entry = collect(data_get($settings, 'assignment.members', []))->firstWhere('id', $actor->id);
+                    $limit = is_array($entry) ? ($entry['max_active'] ?? null) : null;
+                    if ($limit !== null) {
+                        $active = DB::table('conversations')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)
+                            ->where('assigned_user_id', $actor->id)->whereNotIn('stage', ['done', 'lost', 'spam'])->count();
+                        if ($active >= (int) $limit) {
+                            throw ValidationException::withMessages(['action' => 'Достигнут лимит активных диалогов.']);
+                        }
+                    }
                 }
                 $after = ['mode' => 'manager', 'assigned_user_id' => $actor->id, 'taken_at' => now()];
             } else {

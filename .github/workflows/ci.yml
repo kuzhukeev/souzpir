@@ -128,9 +128,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
+        shard: [1, 2, 3, 4]
     env:
-      BROWSER_SHARD: '${{ matrix.shard }}/3'
+      BROWSER_SHARD: '${{ matrix.shard }}/4'
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2

@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
@@ -144,6 +145,37 @@ final class AnalyticsController
 
             return is_string($payload['question'] ?? null) ? trim($payload['question']) : '';
         })->filter()->countBy()->sortDesc()->all();
+        if ($canManage && $channel === '' && $source === '') {
+            $samples = DB::table('audit_logs as a')->join('users as u', 'u.id', '=', 'a.actor_id')
+                ->where('a.organization_id', $tenant->organizationId)->where('a.brand_id', $tenant->brandId)
+                ->where('a.action', 'knowledge.fewshot.added')->where('a.created_at', '>=', $begin)->where('a.created_at', '<', $end)
+                ->when($manager !== '', fn ($query) => $query->where('a.actor_id', $manager))
+                ->selectRaw('a.actor_id, u.name, count(*) as total')->groupBy('a.actor_id', 'u.name')->get();
+            foreach ($samples as $sample) {
+                $managers[$sample->actor_id] ??= ['name' => $sample->name, 'assigned' => 0, 'taken' => 0, 'closed' => 0, 'contact_closed' => 0, 'reaction_minutes' => [], 'workload' => []];
+                $managers[$sample->actor_id]['samples'] = (int) $sample->total;
+                if (! collect($managerOptions)->contains('id', $sample->actor_id)) {
+                    $managerOptions[] = ['id' => $sample->actor_id, 'name' => $sample->name];
+                }
+            }
+            // Historical accepted reviews retain both the handler in the audit and the applied target on the review.
+            $acceptedReviews = DB::table('audit_logs as a')->join('users as u', 'u.id', '=', 'a.actor_id')
+                ->join('message_reviews as r', function ($join): void {
+                    $join->on('r.id', '=', 'a.subject_id')->on('r.organization_id', '=', 'a.organization_id')->on('r.brand_id', '=', 'a.brand_id');
+                })->where('a.organization_id', $tenant->organizationId)->where('a.brand_id', $tenant->brandId)
+                ->where('a.action', 'knowledge.incoming.handled')->where('a.subject_type', 'review')
+                ->where('a.after->decision', 'accept')->where('r.type', 'wrong_fact')->where('r.status', 'done')->where('r.applied_to', 'example')
+                ->where('a.created_at', '>=', $begin)->where('a.created_at', '<', $end)
+                ->when($manager !== '', fn ($query) => $query->where('a.actor_id', $manager))
+                ->selectRaw('a.actor_id, u.name, count(*) as total')->groupBy('a.actor_id', 'u.name')->get();
+            foreach ($acceptedReviews as $sample) {
+                $managers[$sample->actor_id] ??= ['name' => $sample->name, 'assigned' => 0, 'taken' => 0, 'closed' => 0, 'contact_closed' => 0, 'reaction_minutes' => [], 'workload' => []];
+                $managers[$sample->actor_id]['samples'] = ($managers[$sample->actor_id]['samples'] ?? 0) + (int) $sample->total;
+                if (! collect($managerOptions)->contains('id', $sample->actor_id)) {
+                    $managerOptions[] = ['id' => $sample->actor_id, 'name' => $sample->name];
+                }
+            }
+        }
         if ($canManage && $managers) {
             $reviews = DB::table('message_reviews as review')->join('messages as message', function ($join): void {
                 $join->on('message.id', '=', 'review.message_id')->on('message.brand_id', '=', 'review.brand_id')->on('message.organization_id', '=', 'review.organization_id');
@@ -156,6 +188,7 @@ final class AnalyticsController
                 $values = $rows->where('assigned_user_id', $id)->flatMap(fn ($row) => $evaluations[$row->id] ?? collect())->pluck('average')->filter(fn ($value) => is_numeric($value));
                 $managerData['score'] = $values->isNotEmpty() ? round($values->avg(), 1) : null;
                 $managerData['reviews'] = (int) ($reviews[$id] ?? 0);
+                $managerData['samples'] = $channel === '' && $source === '' ? ($managerData['samples'] ?? 0) : null;
                 $managerData['reaction_minutes'] = $managerData['reaction_minutes'] ? round(array_sum($managerData['reaction_minutes']) / count($managerData['reaction_minutes']), 1) : null;
                 ksort($managerData['workload']);
             }
@@ -231,7 +264,7 @@ final class AnalyticsController
         $closedRows = $handedRows->filter(fn ($row) => $row->stage === 'done' && $row->assigned_user_id !== null);
         $funnel = [
             ['label' => 'Диалоги', 'count' => $total], ['label' => 'Ответили после бота', 'count' => $replied->count()],
-            ['label' => 'Потребность ясна', 'count' => $need->count()], ['label' => 'Контакт получен', 'count' => $withContact->count()],
+            ['label' => 'Потребность ясна', 'count' => $need->count()], ['label' => 'Контакт получен', 'count' => $withContact->count(), 'full' => $withContact->where('outcome', 'full_contact')->count(), 'partial' => $withContact->where('outcome', 'partial_contact')->count(), 'other' => $withContact->whereNotIn('outcome', ['full_contact', 'partial_contact'])->count()],
             ['label' => 'Передано менеджеру', 'count' => $handedRows->count()], ['label' => 'Закрыто менеджером', 'count' => $closedRows->count()],
         ];
 
@@ -277,9 +310,29 @@ final class AnalyticsController
 
     public function index(Request $request): mixed
     {
-        $data = $this->access($request, fn (User $user, TenantContext $tenant) => $this->data($request, $user, $tenant));
+        $data = $this->access($request, function (User $user, TenantContext $tenant) use ($request): array {
+            $data = $this->data($request, $user, $tenant);
+            $subscription = $data['canManage'] ? DB::table('seller_analytics_subscriptions')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->first(['day', 'recipients']) : null;
+            $data['subscription'] = $subscription ? ['day' => $subscription->day, 'recipients' => json_decode($subscription->recipients, true) ?: []] : null;
+
+            return $data;
+        });
 
         return Inertia::render('Seller/Analytics/Index', ['analytics' => $data]);
+    }
+
+    public function subscription(Request $request): mixed
+    {
+        $input = $request->validate(['day' => ['required', 'in:mon,tue,wed,thu,fri,sat,sun'], 'recipients' => ['required', 'array', 'min:1', 'max:10'], 'recipients.*' => ['required', 'email:rfc', 'max:255', 'distinct']]);
+        $this->access($request, function (User $user, TenantContext $tenant) use ($input): void {
+            Gate::forUser($user)->authorize('seller.settings.write');
+            DB::table('seller_analytics_subscriptions')->updateOrInsert(
+                ['organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId],
+                fn (bool $exists): array => ['day' => $input['day'], 'recipients' => json_encode($input['recipients'], JSON_THROW_ON_ERROR), 'updated_at' => now()] + ($exists ? [] : ['id' => (string) Str::ulid(), 'created_at' => now()])
+            );
+        });
+
+        return back()->with('status', 'Расписание сохранено. Реальная отправка пока не подключена.');
     }
 
     public function send(Request $request): mixed
@@ -318,9 +371,47 @@ final class AnalyticsController
         return response()->streamDownload(function () use ($data): void {
             $file = fopen('php://output', 'w');
             fputcsv($file, ['Показатель', 'Значение'], ';', '"', '');
-            foreach (['Диалоги' => 'total', 'Контакт получен' => 'contact', 'Переданы менеджеру' => 'handed', 'Завершены' => 'closed'] as $label => $key) {
-                fputcsv($file, [$label, $data[$key]], ';', '"', '');
+            $safe = static function (mixed $value): string {
+                $value = $value === null ? 'Нет данных' : (is_bool($value) ? ($value ? 'Да' : 'Нет') : (string) $value);
+
+                return preg_match('/^[\s]*[=+@\-]/u', $value) ? "'".$value : $value;
+            };
+            $write = static function (string $label, mixed $value) use ($file, $safe, &$write): void {
+                if (is_array($value)) {
+                    foreach ($value as $key => $item) {
+                        $write($label.' / '.$key, $item);
+                    }
+
+                    return;
+                }
+                fputcsv($file, [$safe($label), $safe($value)], ';', '"', '');
+            };
+            $labels = ['from' => 'Период с', 'to' => 'Период по', 'channel' => 'Фильтр канала', 'source' => 'Фильтр источника', 'manager' => 'Фильтр менеджера',
+                'total' => 'Диалоги', 'contact' => 'Контакт получен', 'handed' => 'Переданы менеджеру', 'closed' => 'Завершены', 'messageCount' => 'Сообщения',
+                'botCompleted' => 'Бот завершил диалог', 'unknownDialogs' => 'Диалоги с неизвестными вопросами', 'previousTotal' => 'Диалоги за предыдущий период',
+                'previousMetrics' => 'Показатели предыдущего периода', 'funnel' => 'Воронка', 'transitionRates' => 'Конверсия переходов, %', 'transitions' => 'Переходы по стадиям',
+                'outcomes' => 'Исходы', 'types' => 'Типы клиентов', 'stages' => 'Стадии', 'channels' => 'Каналы', 'channelMetrics' => 'Показатели каналов',
+                'sources' => 'Источники', 'daily' => 'Диалоги по дням', 'hours' => 'Диалоги по времени', 'topics' => 'Темы', 'unknownQuestions' => 'Неизвестные вопросы',
+                'triggers' => 'Приёмы', 'triggerStats' => 'Показатели приёмов', 'managers' => 'Менеджеры'];
+            foreach ($labels as $key => $label) {
+                $write($label, $data[$key] ?? null);
             }
+            $total = $data['total'];
+            $write('Среднее число сообщений', $total ? round($data['messageCount'] / $total, 1) : null);
+            $write('Бот ответил до конца, %', $total ? round($data['botCompleted'] / $total * 100) : null);
+            $write('Закрыто без передачи', collect($data['dialogs'])->filter(fn ($dialog) => $dialog['stage'] === 'done' && ! $dialog['handed_off'])->count());
+            $write('Длинные диалоги без контакта', collect($data['dialogs'])->filter(fn ($dialog) => $dialog['messages'] >= 8 && ! $dialog['has_contact'])->count());
+            $write('Диалоги с неизвестными вопросами, %', $total ? round($data['unknownDialogs'] / $total * 100) : null);
+            foreach ($data['funnel'] as $index => $step) {
+                if ($index > 0) {
+                    $previous = $data['funnel'][$index - 1]['count'];
+                    $write('Воронка / '.$step['label'].' / от предыдущего шага, %', $previous ? round($step['count'] / $previous * 100) : null);
+                }
+            }
+            foreach ($data['triggerStats'] as $trigger => $stats) {
+                $write('Приём / '.$trigger.' / конверсия, %', $stats['dialogs'] ? round($stats['with_contact'] / $stats['dialogs'] * 100) : 0);
+            }
+            $write('Среднее время до контакта', null);
             fclose($file);
         }, 'seller-analytics.csv', ['Content-Type' => 'text/csv; charset=UTF-8', 'Cache-Control' => 'private, no-store']);
     }
