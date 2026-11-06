@@ -27,13 +27,12 @@ final class SettingsController
 {
     private const EVENTS = ['vision.measurement.completed', 'vision.clarification.required', 'vision.report.updated', 'vision.action.overdue', 'vision.competitor.top5_added', 'vision.visibility.dropped'];
 
-    public function index(Request $request): mixed
+    private function members(Request $request): array
     {
-        return app(MeasurementList::class)->withinCurrent($request, function (TenantContext $tenant, string $revision) use ($request): mixed {
+        return app(MeasurementList::class)->withinCurrent($request, function (TenantContext $tenant): array {
             Gate::authorize('vision.report.read');
-            $rows = DB::table('notification_settings')->where(['organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId, 'user_id' => $tenant->actorId])->whereIn('event_key', self::EVENTS)->get(['event_key', 'channel', 'enabled']);
-            $events = collect(self::EVENTS)->map(fn ($key) => ['key' => $key, 'title' => EventCatalog::TITLES[$key], 'channels' => array_replace(['cabinet' => true, 'email' => false, 'telegram' => false], $rows->where('event_key', $key)->mapWithKeys(fn ($row) => [$row->channel => (bool) $row->enabled])->all())])->all();
-            $members = Membership::withoutGlobalScopes()->where('organization_id', $tenant->organizationId)->where('status', 'active')->get()->filter(fn ($member) => $member->permitsBrand($tenant->brandId))->map(function ($member) use ($tenant): array {
+
+            return Membership::withoutGlobalScopes()->where('organization_id', $tenant->organizationId)->where('status', 'active')->get()->filter(fn ($member) => $member->permitsBrand($tenant->brandId))->map(function ($member) use ($tenant): array {
                 $channels = DB::table('notification_settings')->where(['organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId, 'user_id' => $member->user_id, 'event_key' => 'vision.report.updated'])->pluck('enabled', 'channel');
 
                 $user = $member->user;
@@ -43,7 +42,16 @@ final class SettingsController
                 );
 
                 return ['id' => $member->user_id, 'name' => $user?->name, 'role' => $member->role, 'canReadAnswers' => $canReadAnswers, 'cabinet' => (bool) ($channels['cabinet'] ?? true), 'email' => (bool) ($channels['email'] ?? false)];
-            })->values();
+            })->values()->all();
+        }, false);
+    }
+
+    public function index(Request $request): mixed
+    {
+        return app(MeasurementList::class)->withinCurrent($request, function (TenantContext $tenant, string $revision) use ($request): mixed {
+            Gate::authorize('vision.report.read');
+            $rows = DB::table('notification_settings')->where(['organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId, 'user_id' => $tenant->actorId])->whereIn('event_key', self::EVENTS)->get(['event_key', 'channel', 'enabled']);
+            $events = collect(self::EVENTS)->map(fn ($key) => ['key' => $key, 'title' => EventCatalog::TITLES[$key], 'channels' => array_replace(['cabinet' => true, 'email' => false, 'telegram' => false], $rows->where('event_key', $key)->mapWithKeys(fn ($row) => [$row->channel => (bool) $row->enabled])->all())])->all();
             $approval = DB::table('vision_question_approvals')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('active', true)->first(['question_set_id']);
             $questionCount = $approval ? DB::table('question_sets')->where('id', $approval->question_set_id)->where('brand_id', $tenant->brandId)->value('size') : null;
 
@@ -102,7 +110,7 @@ final class SettingsController
                 }
             }
 
-            return Inertia::render('Vision/Settings/Index', ['revision' => $revision, 'schedule' => $schedule, 'modelOptions' => $modelOptions, 'nextRuns' => app(SchedulePreview::class)->nextThree($schedule), 'events' => $events, 'members' => $members, 'canManageRecipients' => Gate::allows('vision.settings.write'), 'limits' => ['questions' => app(PlanLimits::class)->get($tenant, 'vision.questions')->value, 'models' => app(PlanLimits::class)->get($tenant, 'vision.models')->value], 'questionCount' => $questionCount, 'personalReports' => $personalReports, 'personalAccess' => $personalAccess, 'personalReportUrl' => $mayShowPersonalUrl ? $request->session()->get('personal_report_url') : null, 'slotSummary' => $slotSummary, 'slotEstimate' => ['from' => $from, 'to' => $to, 'period' => $estimate, 'month' => $monthEstimate]]);
+            return Inertia::render('Vision/Settings/Index', ['revision' => $revision, 'schedule' => $schedule, 'modelOptions' => $modelOptions, 'nextRuns' => app(SchedulePreview::class)->nextThree($schedule), 'events' => $events, 'members' => Inertia::defer(fn () => $this->members($request), rescue: true), 'canManageRecipients' => Gate::allows('vision.settings.write'), 'limits' => ['questions' => app(PlanLimits::class)->get($tenant, 'vision.questions')->value, 'models' => app(PlanLimits::class)->get($tenant, 'vision.models')->value], 'questionCount' => $questionCount, 'personalReports' => $personalReports, 'personalAccess' => $personalAccess, 'personalReportUrl' => $mayShowPersonalUrl ? $request->session()->get('personal_report_url') : null, 'slotSummary' => $slotSummary, 'slotEstimate' => ['from' => $from, 'to' => $to, 'period' => $estimate, 'month' => $monthEstimate]]);
         }, false);
     }
 

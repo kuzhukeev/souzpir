@@ -16,7 +16,7 @@ final class SettingsRolesTest extends TenancyTestCase
         }
         [$local] = $this->member($org, 'viewer', [$brand->id]);
         [$foreign] = $this->member($org, 'viewer', [$other->id]);
-        $response = $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->get('/vision/settings')->assertOk();
+        $response = $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->get('/vision/settings', ['X-Inertia-Partial-Component' => 'Vision/Settings/Index', 'X-Inertia-Partial-Data' => 'members'])->assertOk();
         $members = collect($response->inertiaProps('members'));
         $this->assertSame('viewer', $members->firstWhere('id', $local->id)['role']);
         $this->assertNull($members->firstWhere('id', $foreign->id));
