@@ -21526,6 +21526,74 @@
       "wave": 20,
       "promptPath": "docs/tasks/SP-E7-06G.md",
       "description": "# SP-E7-06G · Сводка: компоновка и состояния D-1.1\n\n**Зачем:** завершить экран D-1.1 по макетам summary и detail в `C:/OSPanel/home/tasks.local/completed/37/`.\n**Часть чего:** остаток SP-E7-06F, `docs/results/SP-E7-06F.md`.\n**Зависимости:** дождаться слияния SP-E7-06F.\n\n## Приёмка\n- Привести компоновку проблем, каналов, воронки, тем и менеджеров к макетам summary и detail; добавить мини-графики карточек на основе доступных данных, не выдумывая показатели.\n- Завершить сверку пустого состояния, загрузки и ошибок с макетами; сохранить фильтр канала, график и сравнение качества.\n- Проверить основной сценарий, права, изоляцию брендов и ошибки; использовать fake runtime.\n\nScope: `app/Seller/Dashboard/`, `resources/js/pages/Seller/Dashboard/`, `tests/Feature/Seller/Dashboard/`, `tests/Browser/E7-06G/`, `docs/results/SP-E7-06G.md`.\n"
+    },
+    {
+      "taskKey": "SP-E4-06D",
+      "title": "SP-E4-06D · Импорт знаний: PDF, DOCX и документы",
+      "goal": "Извлечение PDF/DOCX, список документов и статусов, права и изоляция брендов, бесплатные зависимости и миграция при необходимости.",
+      "dependsOn": [
+        "SP-E4-06C"
+      ],
+      "scope": [
+        "app/Seller/Knowledge/Imports/",
+        "routes/features/E4-06.php",
+        "database/migrations/E4-06D/",
+        "composer.json",
+        "composer.lock",
+        "tests/Feature/Seller/Knowledge/Imports/",
+        "tests/Browser/E4-06D/",
+        "docs/results/SP-E4-06D.md"
+      ],
+      "exclusiveResources": [
+        "composer-lock"
+      ],
+      "acceptance": [
+        "Извлечение PDF/DOCX, список документов и статусов, права и изоляция брендов, бесплатные зависимости и миграция при необходимости."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E4-06C.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "D-4.10"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E4-06D.md",
+      "description": "# SP-E4-06D · Импорт знаний: PDF, DOCX и документы\n\n**Зачем:** завершить серверную часть импорта документов экрана D-4.10.\n**Часть чего:** остаток SP-E4-06C, `docs/results/SP-E4-06C.md`.\n**Зависимости:** SP-E4-06C в `done`.\n\n## Приёмка\n- Добавить извлечение текста PDF и DOCX для импорта фактов; бесплатные поддерживаемые библиотеки и необходимые изменения `composer.json` и `composer.lock` разрешены.\n- Сохранять и возвращать список документов текущего бренда с именем, типом, количеством страниц при наличии достоверных данных и статусом. Не придумывать количество страниц; предусмотреть миграцию, если нужна.\n- Проверить права, изоляцию брендов, неверные и неподдерживаемые файлы, ограничения существующего импорта и успешные PDF/DOCX; внешние и платные вызовы не использовать.\n- Часть с выбором листа и финальной компоновкой выполняется после этой задачи в SP-E4-06E.\n\nScope: `app/Seller/Knowledge/Imports/`, `routes/features/E4-06.php`, `database/migrations/E4-06D/`, `composer.json`, `composer.lock`, `tests/Feature/Seller/Knowledge/Imports/`, `tests/Browser/E4-06D/`, `docs/results/SP-E4-06D.md`.\n"
+    },
+    {
+      "taskKey": "SP-E4-06E",
+      "title": "SP-E4-06E · Импорт знаний: лист XLSX и экран документов",
+      "goal": "Выбор листа XLSX с сохранением поведения общего CatalogReader, список документов и полная сверка D-4.10 по макету и состояниям.",
+      "dependsOn": [
+        "SP-E4-06D"
+      ],
+      "scope": [
+        "app/Seller/Knowledge/Imports/",
+        "app/Seller/Catalog/CatalogReader.php",
+        "routes/features/E4-06.php",
+        "resources/js/pages/Seller/Knowledge/Imports/",
+        "tests/Feature/Seller/Knowledge/Imports/",
+        "tests/Feature/Seller/Catalog/",
+        "tests/Browser/E4-06E/",
+        "docs/results/SP-E4-06E.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Выбор листа XLSX с сохранением поведения общего CatalogReader, список документов и полная сверка D-4.10 по макету и состояниям."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E4-06C.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "D-4.10"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E4-06E.md",
+      "description": "# SP-E4-06E · Импорт знаний: лист XLSX и экран документов\n\n**Зачем:** завершить экран D-4.10 по макету.\n**Часть чего:** остаток SP-E4-06C, `docs/results/SP-E4-06C.md`.\n**Зависимости:** SP-E4-06D в `done`.\n\n## Приёмка\n- Добавить выбор листа XLSX при импорте; точечное изменение общего `app/Seller/Catalog/CatalogReader.php` разрешено с сохранением существующего поведения каталога.\n- Показать список документов и сверить двухколоночную компоновку, источник каждого фрагмента, пустое состояние, загрузку и ошибки с макетом D-4.10.\n- Проверить права, изоляцию брендов, неправильный файл и выбранный лист, а также отсутствие регрессии существующих сценариев каталога; только fake runtime.\n\nScope: `app/Seller/Knowledge/Imports/`, `app/Seller/Catalog/CatalogReader.php`, `routes/features/E4-06.php`, `resources/js/pages/Seller/Knowledge/Imports/`, `tests/Feature/Seller/Knowledge/Imports/`, `tests/Feature/Seller/Catalog/`, `tests/Browser/E4-06E/`, `docs/results/SP-E4-06E.md`.\n"
     }
   ],
   "excludedSourceTasks": {
