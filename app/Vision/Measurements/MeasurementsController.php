@@ -39,8 +39,19 @@ final class MeasurementsController
             abort_if(empty($data['data']), 404);
 
             $row = $data['data'][0];
+            $events = DB::table('measurement_answers')->where('organization_id', $context->organizationId)
+                ->where('brand_id', $context->brandId)->where('measurement_id', $measurement)
+                ->whereNotNull('settled_at')->whereIn('status', ['ok', 'failed', 'uncertain'])
+                ->orderBy('settled_at')->get(['status', 'settled_at']);
+            $row['response_events'] = [];
+            foreach (['first_answer' => ['ok'], 'first_error' => ['failed', 'uncertain']] as $kind => $statuses) {
+                $first = $events->first(fn ($event) => in_array($event->status, $statuses, true));
+                if ($first) {
+                    $row['response_events'][] = ['kind' => $kind, 'at' => $first->settled_at];
+                }
+            }
             $row['answers'] = array_map(fn (array $answer) => array_intersect_key($answer, array_flip(['question_n', 'provider', 'requested_model', 'status'])), $row['answers']);
-            $row = array_intersect_key($row, array_flip(['status', 'created_at', 'started_at', 'finished_at', 'estimated_minutes', 'pending_clarifications', 'answers']));
+            $row = array_intersect_key($row, array_flip(['status', 'created_at', 'started_at', 'finished_at', 'estimated_minutes', 'pending_clarifications', 'answers', 'response_events']));
 
             return response()->json(['revision' => $revision, 'measurement' => $row]);
         });

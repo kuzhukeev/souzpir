@@ -223,8 +223,9 @@ final class MeasurementRunner
                 if (! $measurement) {
                     throw new LogicException('Measurement not found.');
                 }
+                $finishedAt = now();
                 $updated = DB::table('measurement_answers')->where($tenant)->where('id', $answerId)
-                    ->where('status', 'in_progress')->update([...$changes, 'updated_at' => now()]);
+                    ->where('status', 'in_progress')->update([...$changes, 'settled_at' => in_array($changes['status'], ['ok', 'failed', 'uncertain'], true) ? $finishedAt : null, 'updated_at' => $finishedAt]);
                 if ($updated !== 1) {
                     throw new LogicException('Measurement slot changed while processing.');
                 }
