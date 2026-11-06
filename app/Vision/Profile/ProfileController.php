@@ -253,16 +253,16 @@ HTML;
             $title = trim((string) ($page['title'] ?? ''));
             $source = (string) ($page['source_url'] ?? $website);
             $items = [];
+            if (in_array($step, [2, 5], true) && $title !== '') {
+                $items[] = ['label' => 'Заголовок сайта', 'value' => mb_substr($title, 0, 180), 'source' => $source];
+            }
+
             if ($step === 5 && is_array($audit)) {
                 foreach (app(AuditedCompanyFacts::class)->extract($audit, $website) as $hint) {
                     if (! in_array($hint['value'], array_column($items, 'value'), true) && count($items) < 5) {
                         $items[] = $hint;
                     }
                 }
-            }
-
-            if ($step === 2 && $title !== '') {
-                $items[] = ['label' => 'Заголовок сайта', 'value' => mb_substr($title, 0, 180), 'source' => $source];
             }
             if (in_array($step, [3, 4, 7], true)) {
                 $prefix = match ($step) {
