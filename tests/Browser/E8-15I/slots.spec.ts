@@ -9,8 +9,8 @@ test.afterAll(async () => { await server?.close(); });
 test('календарная оценка и выбор периода', async ({ page }) => {
   await page.goto(url);
   await page.getByRole('button', { name: 'Слоты', exact: true }).click();
-  await expect(page.getByText('До конца текущего календарного месяца: запуски: 5 × вопросы: 5 × модели: 1 = 25 слотов.')).toBeVisible();
-  await expect(page.getByText('За выбранный период: запуски: 5 × вопросы: 5 × модели: 1 = 25 слотов.')).toBeVisible();
+  await expect(page.getByText('Текущий календарный месяц: автоматических запусков: 5, слотов: 25.')).toBeVisible();
+  await expect(page.getByText('За выбранный период: автоматических запусков: 5, слотов: 25.')).toBeVisible();
   await expect(page.getByText('Ручные запуски не включены.', { exact: false })).toBeVisible();
   await expect(page.getByLabel('Начало периода оценки')).toHaveValue('2026-11-01');
   await expect(page.getByLabel('Конец периода оценки')).toHaveValue('2026-11-30');
