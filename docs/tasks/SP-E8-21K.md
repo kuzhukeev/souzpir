@@ -12,3 +12,7 @@
 Проверить права, бренд и ошибки; остаток записать в отчёт.
 
 Scope: `app/Vision/Site/`, `app/Vision/SiteAudit/`, `app/Vision/Reports/`, `resources/js/pages/Vision/Site/`, `resources/js/pages/Vision/Reports/`, `resources/js/features/Vision/Site/`, `tests/Browser/E8-21H/`, `tests/Browser/E8-21K/`, `tests/Feature/Vision/Site/`, `docs/results/SP-E8-21K.md`.
+
+## Остаток SP-E8-22F
+- V-5.7: связать приоритет и шаги с достоверными сохранёнными данными отставания конкурентов и важности критерия; при отсутствии утверждённых правил и источника сохранять отсутствие данных и зафиксировать конкретный блокер, значения не выдумывать.
+- Расширение scope: `app/Vision/Actions/`.

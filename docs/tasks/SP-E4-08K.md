@@ -9,3 +9,7 @@
 - Проверить основной сценарий, права, ошибки и изоляцию бренда.
 
 Scope: `app/Ai/Protected/`, `app/Seller/Evaluation/`, `app/Seller/Runtime/FirstInboundRuntime.php`, `app/ProtectedOperations/DraftSimulation/FixtureRuntime.php`, `tests/Feature/Seller/Evaluation/`, `tests/Browser/E4-08K/`, `docs/results/SP-E4-08K.md`.
+
+## Остаток SP-E4-10Q
+- D-4.11: выполнить сохранённый сценарий полностью по всем ходам и проверить изолированные fake-эффекты инструментов без записи в рабочие диалоги; сохранить честный fallback при отсутствии фикстур.
+- Расширение scope: `app/Seller/Scenarios/ScenariosController.php`, `tests/Feature/Seller/Scenarios/`.

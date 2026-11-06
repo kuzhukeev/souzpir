@@ -18650,9 +18650,10 @@
       "taskKey": "SP-E8-21K",
       "title": "SP-E8-21K · Пять критериев и важность проверки сайта",
       "goal": "V-5.6: обеспечить пять ключевых критериев в данных отчёта. V-8.1: пять групп и шкала N/20 для фактических критериев инспектора. V-8.2: важность из веса и примеры кода; обновить браузерный тест E8-21H и удалить неиспользуемый SpeedUnavailable.",
-      "description": "# SP-E8-21K · Пять критериев и важность проверки сайта\n\n**Зачем:** полное соответствие экранам по решению владельца 05.11.2026.\n**Часть чего:** остаток частичной сдачи SP-E8-21I, docs/results/SP-E8-21I.md.\n**Зависимости:** SP-E8-21I.\n\n## Приёмка\n- V-5.6: обеспечить пять ключевых критериев в данных отчёта.\n- V-8.1: пять групп и шкала N/20 для фактических критериев инспектора.\n- V-8.2: важность из веса и примеры кода; обновить браузерный тест E8-21H и удалить неиспользуемый SpeedUnavailable.\n\nПроверить права, бренд и ошибки; остаток записать в отчёт.\n\nScope: `app/Vision/Site/`, `app/Vision/SiteAudit/`, `app/Vision/Reports/`, `resources/js/pages/Vision/Site/`, `resources/js/pages/Vision/Reports/`, `resources/js/features/Vision/Site/`, `tests/Browser/E8-21H/`, `tests/Browser/E8-21K/`, `tests/Feature/Vision/Site/`, `docs/results/SP-E8-21K.md`.\n",
+      "description": "# SP-E8-21K · Пять критериев и важность проверки сайта\n\n**Зачем:** полное соответствие экранам по решению владельца 05.11.2026.\n**Часть чего:** остаток частичной сдачи SP-E8-21I, docs/results/SP-E8-21I.md.\n**Зависимости:** SP-E8-21I.\n\n## Приёмка\n- V-5.6: обеспечить пять ключевых критериев в данных отчёта.\n- V-8.1: пять групп и шкала N/20 для фактических критериев инспектора.\n- V-8.2: важность из веса и примеры кода; обновить браузерный тест E8-21H и удалить неиспользуемый SpeedUnavailable.\n\nПроверить права, бренд и ошибки; остаток записать в отчёт.\n\nScope: `app/Vision/Site/`, `app/Vision/SiteAudit/`, `app/Vision/Reports/`, `resources/js/pages/Vision/Site/`, `resources/js/pages/Vision/Reports/`, `resources/js/features/Vision/Site/`, `tests/Browser/E8-21H/`, `tests/Browser/E8-21K/`, `tests/Feature/Vision/Site/`, `docs/results/SP-E8-21K.md`.\n\n## Остаток SP-E8-22F\n- V-5.7: связать приоритет и шаги с достоверными сохранёнными данными отставания конкурентов и важности критерия; при отсутствии утверждённых правил и источника сохранять отсутствие данных и зафиксировать конкретный блокер, значения не выдумывать.\n- Расширение scope: `app/Vision/Actions/`.\n",
       "dependsOn": [
-        "SP-E8-21I"
+        "SP-E8-21I",
+        "SP-E8-22F"
       ],
       "scope": [
         "app/Vision/Site/",
@@ -18664,17 +18665,20 @@
         "tests/Browser/E8-21H/",
         "tests/Browser/E8-21K/",
         "tests/Feature/Vision/Site/",
-        "docs/results/SP-E8-21K.md"
+        "docs/results/SP-E8-21K.md",
+        "app/Vision/Actions/"
       ],
       "exclusiveResources": [],
       "acceptance": [
         "V-5.6: обеспечить пять ключевых критериев в данных отчёта.",
         "V-8.1: пять групп и шкала N/20 для фактических критериев инспектора.",
-        "V-8.2: важность из веса и примеры кода; обновить браузерный тест E8-21H и удалить неиспользуемый SpeedUnavailable."
+        "V-8.2: важность из веса и примеры кода; обновить браузерный тест E8-21H и удалить неиспользуемый SpeedUnavailable.",
+        "V-5.7: связать приоритет и шаги с достоверными сохранёнными данными отставания конкурентов и важности критерия; при отсутствии утверждённых правил и источника сохранять отсутствие данных и зафиксировать конкретный блокер, значения не выдумывать."
       ],
       "sourceRefs": [
         "docs/sources/02_screens_matrix.md",
-        "docs/sources/02b_mockup_journal.md"
+        "docs/sources/02b_mockup_journal.md",
+        "docs/results/SP-E8-22F.md"
       ],
       "screenIds": [
         "V-5.6",
@@ -23613,9 +23617,10 @@
     {
       "taskKey": "SP-E4-08K",
       "title": "SP-E4-08K · Песочница: неподтверждённая передача и персоны",
-      "description": "# SP-E4-08K · Песочница: неподтверждённая передача и персоны\n\n**Зачем:** закрыть конкретный остаток приёмки SP-E4-08J и исходной функциональной задачи.\n**Часть чего:** SP-E4-08J, docs/results/SP-E4-08J.md.\n**Зависимости:** SP-E4-08J в done.\n\n## Приёмка\n- В песочнице подтвердить результат инструмента до показа передачи для wants_human, requisites и big_order; сохранить fallback и Guard без выдуманных действий. Включить вход requisites в шесть ходов без потери исходных фактов и проверить for_self_wedding и prices_only_rude. Golden fixtures и живые вызовы не менять.\n- Проверить основной сценарий, права, ошибки и изоляцию бренда.\n\nScope: `app/Ai/Protected/`, `app/Seller/Evaluation/`, `app/Seller/Runtime/FirstInboundRuntime.php`, `app/ProtectedOperations/DraftSimulation/FixtureRuntime.php`, `tests/Feature/Seller/Evaluation/`, `tests/Browser/E4-08K/`, `docs/results/SP-E4-08K.md`.\n",
+      "description": "# SP-E4-08K · Песочница: неподтверждённая передача и персоны\n\n**Зачем:** закрыть конкретный остаток приёмки SP-E4-08J и исходной функциональной задачи.\n**Часть чего:** SP-E4-08J, docs/results/SP-E4-08J.md.\n**Зависимости:** SP-E4-08J в done.\n\n## Приёмка\n- В песочнице подтвердить результат инструмента до показа передачи для wants_human, requisites и big_order; сохранить fallback и Guard без выдуманных действий. Включить вход requisites в шесть ходов без потери исходных фактов и проверить for_self_wedding и prices_only_rude. Golden fixtures и живые вызовы не менять.\n- Проверить основной сценарий, права, ошибки и изоляцию бренда.\n\nScope: `app/Ai/Protected/`, `app/Seller/Evaluation/`, `app/Seller/Runtime/FirstInboundRuntime.php`, `app/ProtectedOperations/DraftSimulation/FixtureRuntime.php`, `tests/Feature/Seller/Evaluation/`, `tests/Browser/E4-08K/`, `docs/results/SP-E4-08K.md`.\n\n## Остаток SP-E4-10Q\n- D-4.11: выполнить сохранённый сценарий полностью по всем ходам и проверить изолированные fake-эффекты инструментов без записи в рабочие диалоги; сохранить честный fallback при отсутствии фикстур.\n- Расширение scope: `app/Seller/Scenarios/ScenariosController.php`, `tests/Feature/Seller/Scenarios/`.\n",
       "dependsOn": [
-        "SP-E4-08J"
+        "SP-E4-08J",
+        "SP-E4-10Q"
       ],
       "exclusiveResources": [
         "shared-ai-stages"
@@ -23627,15 +23632,19 @@
         "app/ProtectedOperations/DraftSimulation/FixtureRuntime.php",
         "tests/Feature/Seller/Evaluation/",
         "tests/Browser/E4-08K/",
-        "docs/results/SP-E4-08K.md"
+        "docs/results/SP-E4-08K.md",
+        "app/Seller/Scenarios/ScenariosController.php",
+        "tests/Feature/Seller/Scenarios/"
       ],
       "sourceRefs": [
         "docs/results/SP-E4-08J.md",
-        "docs/preparation/decisions.md"
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E4-10Q.md"
       ],
       "acceptance": [
         "В песочнице подтвердить результат инструмента до показа передачи для wants_human, requisites и big_order; сохранить fallback и Guard без выдуманных действий. Включить вход requisites в шесть ходов без потери исходных фактов и проверить for_self_wedding и prices_only_rude. Golden fixtures и живые вызовы не менять.",
-        "Проверить основной сценарий, права, ошибки и изоляцию бренда."
+        "Проверить основной сценарий, права, ошибки и изоляцию бренда.",
+        "D-4.11: выполнить сохранённый сценарий полностью по всем ходам и проверить изолированные fake-эффекты инструментов без записи в рабочие диалоги; сохранить честный fallback при отсутствии фикстур."
       ],
       "screenIds": [],
       "wave": 20,
