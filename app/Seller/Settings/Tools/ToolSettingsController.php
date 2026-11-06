@@ -38,9 +38,15 @@ final class ToolSettingsController
 
     public function tools(Request $request): mixed
     {
-        $settings = $this->access($request, fn (User $user, TenantContext $tenant) => app(ToolPreferences::class)->read($tenant));
+        [$settings, $callCounts] = $this->access($request, function (User $user, TenantContext $tenant): array {
+            $count = DB::table('audit_logs')->where('organization_id', $tenant->organizationId)
+                ->where('brand_id', $tenant->brandId)->where('action', 'seller.promise.created')
+                ->where('created_at', '>=', now()->subDays(30))->where('created_at', '<=', now())->count();
 
-        return Inertia::render('Seller/Settings/Tools/Tools', ['settings' => $settings, 'status' => $request->session()->get('status')]);
+            return [app(ToolPreferences::class)->read($tenant), ['create_promise' => $count > 0 ? $count : null]];
+        });
+
+        return Inertia::render('Seller/Settings/Tools/Tools', ['settings' => $settings, 'callCounts' => $callCounts, 'status' => $request->session()->get('status')]);
     }
 
     public function handoff(Request $request): mixed
