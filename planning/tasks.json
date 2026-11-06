@@ -21769,6 +21769,33 @@
       "wave": 20,
       "promptPath": "docs/tasks/SP-E4-06F.md",
       "description": "# SP-E4-06F · Импорт документов: завершение экрана\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E4-06E, docs/results/SP-E4-06E.md.\n**Зависимости:** SP-E4-06E.\n\n## Приёмка\n- D-4.10: довести расположение двух колонок сопоставления, выделение исходных фрагментов, действия и статусы документов до макета; сохранять число извлечённых фактов для ранее загруженных документов.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Seller/Knowledge/Imports/`, `database/migrations/E4-06F/`, `resources/js/pages/Seller/Knowledge/Imports/`, `tests/Feature/Seller/Knowledge/Imports/`, `tests/Browser/E4-06F/`, `docs/results/SP-E4-06F.md`.\n"
+    },
+    {
+      "taskKey": "SP-E4-08G",
+      "title": "SP-E4-08G · Песочница: оставшиеся фикстуры",
+      "goal": "Добавить проверенные fake-ответы для остальных штатных сценариев с учётом полного контекста черновика; сохранить replay, прежний fallback, права, изоляцию брендов и повторный запуск. Живые AI-вызовы выключены, общие стадии не рефакторить.",
+      "dependsOn": [
+        "SP-E4-08F"
+      ],
+      "scope": [
+        "app/Ai/Protected/",
+        "app/Seller/Evaluation/",
+        "tests/Feature/Seller/Evaluation/",
+        "tests/Browser/E4-08G/",
+        "docs/results/SP-E4-08G.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Добавить проверенные fake-ответы для остальных штатных сценариев с учётом полного контекста черновика; сохранить replay, прежний fallback, права, изоляцию брендов и повторный запуск. Живые AI-вызовы выключены, общие стадии не рефакторить."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E4-08F.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E4-08G.md",
+      "description": "# SP-E4-08G · Песочница: оставшиеся фикстуры\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E4-08F, docs/results/SP-E4-08F.md.\n**Зависимости:** SP-E4-08F.\n\n## Приёмка\n- Добавить проверенные fake-ответы для остальных штатных сценариев с учётом полного контекста черновика; сохранить replay, прежний fallback, права, изоляцию брендов и повторный запуск. Живые AI-вызовы выключены, общие стадии не рефакторить.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Ai/Protected/`, `app/Seller/Evaluation/`, `tests/Feature/Seller/Evaluation/`, `tests/Browser/E4-08G/`, `docs/results/SP-E4-08G.md`.\n"
     }
   ],
   "excludedSourceTasks": {
