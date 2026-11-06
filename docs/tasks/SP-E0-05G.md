@@ -9,3 +9,6 @@
 - Проверить права, изоляцию брендов, ошибочные и пустые состояния; только fake внешние вызовы.
 
 Scope: `app/Ai/Recovery/`, `app/Shell/Billing/`, `resources/js/pages/Shell/Billing/`, `resources/js/features/Shell/Billing/AiRecovery/`, `tests/Feature/Ai/Recovery/`, `tests/Browser/E0-05G/`, `docs/results/SP-E0-05G.md`.
+
+## Решение владельца 06.11
+- Внутренний оператор — платформенный флаг через консольную команду или конфиг, не роль бренда; без флага USD не видит никто. Утечку в клиентском API устраняет SP-E0-05H.

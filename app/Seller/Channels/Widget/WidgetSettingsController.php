@@ -3,6 +3,7 @@
 namespace App\Seller\Channels\Widget;
 
 use App\Models\User;
+use App\Seller\Channels\Core\ChannelAccount;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
@@ -84,6 +85,16 @@ final class WidgetSettingsController
                 ->update(['enabled' => $input['enabled'], 'origins' => json_encode(array_values(array_unique($origins))),
                     'appearance' => json_encode($input['appearance'], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
                     'behavior' => json_encode($input['behavior'], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), 'updated_at' => now()]);
+            $channel = ChannelAccount::query()->where('type', 'widget')->where('settings->widget_id', $row->id)->first();
+            if (! $channel) {
+                $channel = new ChannelAccount;
+                $channel->type = 'widget';
+                $channel->name = 'Сайт';
+                $channel->default_mode = 'manager';
+                $channel->settings = ['widget_id' => $row->id];
+            }
+            $channel->status = $input['enabled'] ? 'active' : 'disabled';
+            $channel->save();
             app(AuditWriter::class)->record($tenant, new AuditEntry('seller.widget.settings.updated', 'widget_settings', $row->id));
         });
 
