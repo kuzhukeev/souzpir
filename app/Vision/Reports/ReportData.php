@@ -59,6 +59,7 @@ final class ReportData
                 $payload['measurement_id'], $payload['metrics']['slots'] ?? []);
             $changes = null;
             $history = [];
+            $previousIntents = null;
             $selectedRow = $reports->firstWhere('id', $selected);
             $signature = app(ReportHistory::class)->signature($payload);
             $currentPoint = app(ReportHistory::class)->point($selectedRow, $payload);
@@ -82,6 +83,7 @@ final class ReportData
                     $point = app(ReportHistory::class)->point($candidate, $previous);
                     if ($point !== null) {
                         $history[] = $point;
+                        $previousIntents ??= app(ClarificationVisibility::class)->apply($context, $previous)['metrics']['intents'] ?? null;
                         $changes ??= app(ReportSections::class)->compare($previous, $payload);
                     }
                 } catch (\LogicException) {
@@ -117,6 +119,16 @@ final class ReportData
             unset($source);
             $report = ['id' => $selected, 'measurement_id' => $payload['measurement_id'],
                 'sections' => [...$sections, 'changes' => $changes, 'site' => $site, 'site_audit' => $siteAudit],
+                'topics' => collect($metrics['intents'] ?? [])->filter(fn ($item, $key) => is_string($key) && $key !== ''
+                    && is_array($item) && is_numeric($item['mention_rate'] ?? null) && ($item['mention_denominator'] ?? 0) > 0)
+                    ->map(function ($item, $key) use ($previousIntents): array {
+                        $before = $previousIntents[$key] ?? null;
+                        $delta = is_array($before) && is_numeric($before['mention_rate'] ?? null) && ($before['mention_denominator'] ?? 0) > 0
+                            ? round((float) $item['mention_rate'] - (float) $before['mention_rate'], 2) : null;
+
+                        return ['name' => $key, 'visibility' => (float) $item['mention_rate'], 'delta' => $delta];
+                    })
+                    ->sortByDesc('visibility')->take(10)->values()->all(),
                 'visibility_history' => $history,
                 'visibility' => $visibility['macro_percent'] ?? null,
                 'visibility_before' => $payload['metrics']['visibility']['macro_percent'] ?? null,
