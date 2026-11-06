@@ -20,6 +20,7 @@ import { card, link, secondary } from '@/features/Vision/Questions/styles';
 
 type Data = Omit<BaseData, 'history'> & { history: (BaseData['history'][number] & { measurements?: { id: string; number: number; status: string; created_at: string }[] })[] };
 type Screen = 'index' | 'approve' | 'active' | 'history';
+const slotWord = (count: number) => ({one:'слот', few:'слота', many:'слотов', other:'слота'} as Record<string,string>)[new Intl.PluralRules('ru-RU').select(count)];
 const intentKeys = Object.keys(intents) as Intent[];
 function ErrorText(error: unknown): string {
   return error instanceof Error ? error.message : 'Не удалось связаться с сервером.';
@@ -215,8 +216,8 @@ function WorkspaceBody({ screen, brandId, revision, canRun }: { screen: Screen; 
               <>
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <p className="text-sm text-(--color-ink-muted)">
-                    Вопросов в активном наборе: {data.active_set?.size ?? '—'} · слотов по тарифу:{' '}
-                    {limit(data.limits.questions)}
+                    Вопросов в активном наборе: {data.active_set?.size ?? '—'} · лимит вопросов по тарифу:{' '}
+                    {limit(data.limits.questions)}{data.active_set && ` · ${Object.keys(data.active_set.providers ?? {}).length} моделей${data.active_set.frequency === 'weekly' ? ' × 1 прогон/нед' : ''}`}
                   </p>
                   {data.can_edit && (
                     <div className="flex flex-wrap gap-2">
@@ -456,8 +457,7 @@ function WorkspaceBody({ screen, brandId, revision, canRun }: { screen: Screen; 
                   <p className="mt-2 text-sm text-(--color-ink-muted)">{scheduleEnabled ? 'Расписание включится после утверждения набора.' : 'Частота сохраняется в наборе. Автоматический запуск включается отдельно.'}</p>
                   <p className="mt-2 text-sm">План ответов: {chosen.length} × {Object.keys(models).length} × {runs} = {chosen.length * Object.keys(models).length * runs} (вопросы × модели × прогоны)</p><Link href="/vision/questions" className="mt-2 inline-flex min-h-11 cursor-pointer items-center text-sm font-semibold text-(--color-link)">Добавить вопросы</Link>
                   <label className="mt-3 block text-sm">Количество прогонов<select className="ml-3 min-h-11 cursor-pointer rounded-lg border border-(--color-border) bg-(--color-surface) px-3" value={runs} onChange={e=>setRuns(Number(e.target.value))}>{[1,2,3].map(n=><option key={n} value={n}>{n}</option>)}</select></label>
-                  <p className="mt-2 text-sm">План: {chosen.length} вопросов × {Object.keys(models).length} моделей × {runs} = {chosen.length * Object.keys(models).length * runs} ответов. Стоимость в слотах определяется тарифом.</p>
-                  {scheduleEnabled && <p className="mt-2 text-sm" role="status">Недельный расход тарифных слотов: нет данных по тарифу.</p>}
+                  {scheduleEnabled && <p className="mt-2 text-sm" role="status">{frequency === 'weekly' ? `Будет списано ${chosen.length * Object.keys(models).length} ${slotWord(chosen.length * Object.keys(models).length)} в неделю (1 прогон).` : `За один запланированный прогон: ${chosen.length * Object.keys(models).length} ${slotWord(chosen.length * Object.keys(models).length)}.`}</p>}
                   <Link href="/vision/runs" className={link}>Настроить замеры</Link>
                   <p className="mt-2 text-sm text-(--color-ink-muted)">
                     Лимит моделей: {limit(data.limits.models)}
