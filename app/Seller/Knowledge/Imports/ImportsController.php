@@ -53,33 +53,7 @@ final class ImportsController
             $input = $request->validate(['file' => ['required', 'file', 'max:10240'], 'sheet' => ['nullable', 'integer', 'min:0', 'max:99'], 'document_id' => ['nullable', 'ulid']]);
             $file = $input['file'];
             $extension = strtolower($file->getClientOriginalExtension());
-            $pages = null;
-            $sheets = [];
-            if (in_array($extension, ['pdf', 'docx'], true)) {
-                $document = app(DocumentReader::class)->read($file->getRealPath(), $extension);
-                $pages = $document['pages'];
-                $lines = preg_split('/\R/u', $document['text']);
-            } elseif ($extension === 'txt') {
-                $text = file_get_contents($file->getRealPath());
-                if (! mb_check_encoding($text, 'UTF-8')) {
-                    throw ValidationException::withMessages(['file' => 'TXT должен быть в кодировке UTF-8.']);
-                }
-                $lines = preg_split('/\R/u', $text);
-            } elseif (in_array($extension, ['csv', 'xlsx'], true)) {
-                $data = app(CatalogReader::class)->read($file->getRealPath(), $extension, (int) ($input['sheet'] ?? 0));
-                $sheets = $extension === 'xlsx' ? $data['sheets'] : [];
-                $lines = array_map(fn (array $row) => implode(' · ', array_filter(array_map(fn ($cell) => trim((string) $cell), $row), fn ($cell) => $cell !== '')), $data['rows']);
-            } else {
-                throw ValidationException::withMessages(['file' => 'Поддерживаются TXT, CSV, XLSX, PDF и DOCX.']);
-            }
-            $lines = array_values(array_filter(array_map('trim', $lines), fn ($line) => $line !== ''));
-            if (count($lines) > 100 || collect($lines)->contains(fn ($line) => mb_strlen($line) > 500)) {
-                throw ValidationException::withMessages(['file' => 'Не более 100 строк по 500 символов.']);
-            }
-
-            if ($lines === [] && $extension !== 'xlsx') {
-                throw ValidationException::withMessages(['file' => 'В документе не найден текст.']);
-            }
+            [$lines, $sheets, $pages] = $this->readSource($file->getRealPath(), $extension, (int) ($input['sheet'] ?? 0));
             $name = mb_substr($file->getClientOriginalName(), 0, 255);
             $documentId = $input['document_id'] ?? null;
             if ($documentId !== null) {
@@ -99,6 +73,55 @@ final class ImportsController
             DB::table('seller_knowledge_import_documents')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('id', $documentId)->update(['fragments_count' => count($lines), 'source_path' => $path, 'updated_at' => now()]);
 
             return response()->json(['proposals' => $lines, 'document_id' => $documentId, 'sheets' => $sheets, 'document' => ['id' => $documentId, 'name' => $name, 'type' => $extension, 'pages' => $pages, 'status' => 'previewed', 'fragments_count' => count($lines), 'has_source' => true, 'created_at' => now()->toIso8601String()]])->header('Cache-Control', 'private, no-store');
+        });
+    }
+
+    private function readSource(string $path, string $extension, int $sheet): array
+    {
+        $pages = null;
+        $sheets = [];
+        if (in_array($extension, ['pdf', 'docx'], true)) {
+            $document = app(DocumentReader::class)->read($path, $extension);
+            $pages = $document['pages'];
+            $lines = preg_split('/\R/u', $document['text']);
+        } elseif ($extension === 'txt') {
+            $text = file_get_contents($path);
+            if (! mb_check_encoding($text, 'UTF-8')) {
+                throw ValidationException::withMessages(['file' => 'TXT должен быть в кодировке UTF-8.']);
+            }
+            $lines = preg_split('/\R/u', $text);
+        } elseif (in_array($extension, ['csv', 'xlsx'], true)) {
+            $data = app(CatalogReader::class)->read($path, $extension, $sheet);
+            $sheets = $extension === 'xlsx' ? $data['sheets'] : [];
+            $lines = array_map(fn (array $row) => implode(' · ', array_filter(array_map(fn ($cell) => trim((string) $cell), $row), fn ($cell) => $cell !== '')), $data['rows']);
+        } else {
+            throw ValidationException::withMessages(['file' => 'Поддерживаются TXT, CSV, XLSX, PDF и DOCX.']);
+        }
+        $lines = array_values(array_filter(array_map('trim', $lines), fn ($line) => $line !== ''));
+        if (count($lines) > 100 || collect($lines)->contains(fn ($line) => mb_strlen($line) > 500)) {
+            throw ValidationException::withMessages(['file' => 'Не более 100 строк по 500 символов.']);
+        }
+
+        if ($lines === [] && $extension !== 'xlsx') {
+            throw ValidationException::withMessages(['file' => 'В документе не найден текст.']);
+        }
+
+        return [$lines, $sheets, $pages];
+    }
+
+    public function previewSaved(Request $request, string $document): mixed
+    {
+        return $this->access($request, function (TenantContext $tenant) use ($request, $document) {
+            $input = $request->validate(['sheet' => ['nullable', 'integer', 'min:0', 'max:99']]);
+            $row = DB::table('seller_knowledge_import_documents')->where('organization_id', $tenant->organizationId)
+                ->where('brand_id', $tenant->brandId)->where('id', $document)->first();
+            abort_unless($row && is_string($row->source_path) && Storage::disk('local')->exists($row->source_path), 404);
+            [$lines, $sheets, $pages] = $this->readSource(Storage::disk('local')->path($row->source_path), $row->type, (int) ($input['sheet'] ?? 0));
+
+            return response()->json(['proposals' => $lines, 'document_id' => $row->id, 'sheets' => $sheets,
+                'document' => ['id' => $row->id, 'name' => $row->name, 'type' => $row->type, 'pages' => $pages,
+                    'status' => $row->status, 'fragments_count' => $row->fragments_count, 'has_source' => true,
+                    'created_at' => $row->created_at]])->header('Cache-Control', 'private, no-store');
         });
     }
 

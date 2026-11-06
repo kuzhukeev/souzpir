@@ -35,6 +35,7 @@ final class SheetImportE406ETest extends TenancyTestCase
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
         $first = $this->postJson('/seller/knowledge/imports/preview', ['file' => $this->workbook()])->assertOk()->assertJsonPath('sheets.1', 'Второй')->assertJsonPath('proposals.0', 'Первый факт');
         $id = $first->json('document_id');
+        $this->getJson('/seller/knowledge/imports/documents/'.$id.'/preview?sheet=1')->assertOk()->assertJsonPath('sheets.1', 'Второй')->assertJsonPath('proposals.0', 'Второй факт');
         $this->postJson('/seller/knowledge/imports/preview', ['file' => $this->workbook(), 'document_id' => $id, 'sheet' => 1])->assertOk()->assertJsonPath('document_id', $id)->assertJsonPath('proposals.0', 'Второй факт');
         self::assertSame(1, DB::table('seller_knowledge_import_documents')->where('brand_id', $brand->id)->count());
         $this->postJson('/seller/knowledge/imports/preview', ['file' => $this->workbook(), 'sheet' => 8])->assertUnprocessable();
