@@ -85,6 +85,11 @@ final class FactsController
             $group = json_decode($row->group_data, true);
             unset($row->group_data);
             $version = DB::table('knowledge_releases')->where('id', $draft)->value('version');
+            $publishedId = DB::table('brands')->where('organization_id', $tenant->organizationId)->where('id', $tenant->brandId)->value('active_knowledge_release_id');
+            $publishedText = $publishedId ? DB::table('kn_facts as f')->join('kn_fact_groups as g', 'g.id', '=', 'f.group_id')
+                ->join('knowledge_releases as r', 'r.id', '=', 'g.release_id')
+                ->where('r.organization_id', $tenant->organizationId)->where('r.brand_id', $tenant->brandId)
+                ->where('r.id', $publishedId)->where('f.logical_id', $row->logical_id)->value('f.text') : null;
             $history = DB::table('audit_logs as a')->leftJoin('users as u', 'u.id', '=', 'a.actor_id')
                 ->where('a.organization_id', $tenant->organizationId)->where('a.brand_id', $tenant->brandId)
                 ->where('a.subject_type', 'knowledge_fact')->where('a.subject_id', $row->logical_id)
@@ -97,7 +102,33 @@ final class FactsController
                         'before_status' => $before['status'] ?? null, 'after_status' => $after['status'] ?? null];
                 });
 
-            return ['fact' => $row, 'version' => $version, 'history' => $history,
+            $snapshot = app(KnowledgeRepository::class)->forRelease($tenant, $draft, true);
+            $conditions = $snapshot->conditions();
+            $intentLinks = collect($snapshot->intents())->filter(fn ($intent) => is_array($intent) && is_string($intent['id'] ?? null) && is_array($intent['facts'] ?? null))
+                ->map(fn ($intent) => ['id' => $intent['id'], 'label' => is_string($intent['description'] ?? null) && trim($intent['description']) !== '' ? $intent['description'] : $intent['id'], 'groups' => array_slice($intent['facts'], 0, 3)])->values()->all();
+            $conditionLabels = [
+                'min_order_rub' => 'Минимальный заказ',
+                'offseason_min_order_rub' => 'Минимальный заказ вне сезона',
+                'reserve_days' => 'Срок резерва',
+                'new_client_bonus_pct' => 'Бонус новому клиенту',
+                'discount_grid' => 'Сетка скидок',
+                'box_discounts' => 'Скидки по маркам',
+                'promotions' => 'Акции',
+            ];
+            $conditionOptions = [];
+            foreach ($conditionLabels as $key => $label) {
+                if (isset($conditions[$key]) && $conditions[$key] !== []) {
+                    $conditionOptions[] = ['key' => $key, 'label' => $label];
+                }
+            }
+            $topics = DB::table('kn_fact_groups')->where('release_id', $draft)->orderBy('position')->get(['key', 'data'])
+                ->map(function ($item): array {
+                    $data = json_decode($item->data ?? '{}', true) ?: [];
+
+                    return ['key' => $item->key, 'label' => ($data['topic'] ?? null) ?: $item->key];
+                })->all();
+
+            return ['fact' => $row, 'version' => $version, 'history' => $history, 'publishedText' => $publishedText, 'topics' => $topics, 'conditionOptions' => $conditionOptions, 'intentLinks' => $intentLinks,
                 'group' => ['topic' => $group['topic'] ?? null, 'bridge_hint' => $group['bridge_hint'] ?? null, 'must_not' => $group['must_not'] ?? []]];
         });
 
@@ -192,8 +223,24 @@ final class FactsController
 
     public function update(Request $request, string $fact): mixed
     {
-        $input = $request->validate(['version' => ['required', 'integer', 'min:1'], 'text' => ['required', 'string', 'max:500'], 'status' => ['required', 'in:active,inactive'], 'source' => ['required', 'in:manual,import,url']]);
-        $this->access($request, fn (TenantContext $tenant) => app(KnowledgeRepository::class)->setFact($tenant, $this->draft($tenant), $fact, (int) $input['version'], trim($input['text']), $input['status'], $input['source']));
+        $input = $request->validate(['version' => ['required', 'integer', 'min:1'], 'text' => ['required', 'string', 'max:500'], 'status' => ['required', 'in:active,inactive'], 'source' => ['required', 'in:manual,import,url'], 'group' => ['sometimes', 'required', 'string', 'max:64']]);
+        $this->access($request, function (TenantContext $tenant) use ($fact, $input): void {
+            DB::transaction(function () use ($tenant, $fact, $input): void {
+                $draft = $this->draft($tenant);
+                $repository = app(KnowledgeRepository::class);
+                $version = (int) $input['version'];
+                if (isset($input['group'])) {
+                    $current = DB::table('kn_facts as f')->join('kn_fact_groups as g', 'g.id', '=', 'f.group_id')
+                        ->where('g.release_id', $draft)->where('f.id', $fact)->value('g.key') ?? abort(404);
+                    $target = DB::table('kn_fact_groups')->where('release_id', $draft)->where('key', $input['group'])->first(['id']) ?? abort(404);
+                    if ($current !== $input['group']) {
+                        $position = DB::table('kn_facts')->where('group_id', $target->id)->count();
+                        $version = $repository->moveFact($tenant, $draft, $fact, $version, $input['group'], $position);
+                    }
+                }
+                $repository->setFact($tenant, $draft, $fact, $version, trim($input['text']), $input['status'], $input['source']);
+            });
+        });
 
         return back()->with('status', 'Факт сохранён.');
     }
