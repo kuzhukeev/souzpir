@@ -99,13 +99,14 @@ final class FactsController
                     $after = json_decode($change->after ?? '{}', true);
 
                     return ['action' => $change->action, 'created_at' => $change->created_at, 'author' => $change->author,
-                        'before_status' => $before['status'] ?? null, 'after_status' => $after['status'] ?? null];
+                        'before_status' => $before['status'] ?? null, 'after_status' => $after['status'] ?? null, 'before_text' => $before['text'] ?? null, 'after_text' => $after['text'] ?? null];
                 });
 
             $snapshot = app(KnowledgeRepository::class)->forRelease($tenant, $draft, true);
             $conditions = $snapshot->conditions();
             $intentLinks = collect($snapshot->intents())->filter(fn ($intent) => is_array($intent) && is_string($intent['id'] ?? null) && is_array($intent['facts'] ?? null))
-                ->map(fn ($intent) => ['id' => $intent['id'], 'label' => is_string($intent['description'] ?? null) && trim($intent['description']) !== '' ? $intent['description'] : $intent['id'], 'groups' => array_slice($intent['facts'], 0, 3)])->values()->all();
+                ->map(fn ($intent) => ['id' => $intent['id'], 'label' => is_string($intent['description'] ?? null) && trim($intent['description']) !== '' ? $intent['description'] : $intent['id'], 'groups' => array_slice($intent['facts'], 0, 3),
+                    'selected' => in_array($row->group_key, array_slice($intent['facts'], 0, 3), true) && (! array_key_exists($row->group_key, $intent['fact_overrides'] ?? []) || in_array($row->logical_id, $intent['fact_overrides'][$row->group_key], true))])->values()->all();
             $conditionLabels = [
                 'min_order_rub' => 'Минимальный заказ',
                 'offseason_min_order_rub' => 'Минимальный заказ вне сезона',
@@ -114,10 +115,36 @@ final class FactsController
                 'discount_grid' => 'Сетка скидок',
                 'box_discounts' => 'Скидки по маркам',
                 'promotions' => 'Акции',
+                'valid_from' => 'Дата начала действия',
+                'approved_by' => 'Кем утверждено',
+                'max_pct_unapproved' => 'Максимальная скидка без утверждения',
+                'escalation_amount_rub' => 'Сумма для передачи руководителю',
+                'discount_not_tied_to_volume' => 'Скидка не привязана к объёму',
+                'prepayment' => 'Предоплата',
+                'partial_prepayment_allowed' => 'Частичная предоплата',
+                'payment_methods' => 'Способы оплаты',
+                'deferred_payment.new_clients' => 'Отсрочка новым клиентам',
+                'deferred_payment.regular_clients' => 'Отсрочка постоянным клиентам',
+                'consignment.new_clients' => 'Реализация новым клиентам',
+                'consignment.regular_clients' => 'Реализация постоянным клиентам',
+                'returns' => 'Возврат',
+                'delivery.free_to_moscow_terminal' => 'Доставка до терминала Москвы',
+                'delivery.main_carrier' => 'Основной перевозчик',
+                'delivery.carriers' => 'Перевозчики',
+                'delivery.sdek' => 'Доставка СДЭК',
+                'delivery.box_weight_kg' => 'Вес коробки',
+                'delivery.assembly_days' => 'Срок сборки',
+                'price_increase_forecast.month' => 'Месяц повышения цен',
+                'price_increase_forecast.pct_min' => 'Минимальное повышение цен',
+                'price_increase_forecast.pct_max' => 'Максимальное повышение цен',
+                'price_increase_forecast.leader_brand' => 'Марка с повышением цен',
+                'price_increase_forecast.example' => 'Пример повышения цен',
+                'followup_default_days' => 'Срок повторного контакта',
+                'followup_max_auto' => 'Число автоматических контактов',
             ];
             $conditionOptions = [];
             foreach ($conditionLabels as $key => $label) {
-                if (isset($conditions[$key]) && $conditions[$key] !== []) {
+                if (data_get($conditions, $key) !== null && data_get($conditions, $key) !== []) {
                     $conditionOptions[] = ['key' => $key, 'label' => $label];
                 }
             }
@@ -125,11 +152,11 @@ final class FactsController
                 ->map(function ($item): array {
                     $data = json_decode($item->data ?? '{}', true) ?: [];
 
-                    return ['key' => $item->key, 'label' => ($data['topic'] ?? null) ?: $item->key];
+                    return ['key' => $item->key, 'label' => ($data['topic'] ?? null) ?: $item->key, 'bridge_hint' => $data['bridge_hint'] ?? '', 'must_not' => $data['must_not'] ?? []];
                 })->all();
 
             return ['fact' => $row, 'version' => $version, 'history' => $history, 'publishedText' => $publishedText, 'topics' => $topics, 'conditionOptions' => $conditionOptions, 'intentLinks' => $intentLinks,
-                'group' => ['topic' => $group['topic'] ?? null, 'bridge_hint' => $group['bridge_hint'] ?? null, 'must_not' => $group['must_not'] ?? []]];
+                'group' => ['topic' => $group['topic'] ?? null, 'bridge_hint' => $group['bridge_hint'] ?? null, 'must_not' => $group['must_not'] ?? []], 'example' => $group['fact_examples'][$row->logical_id] ?? null];
         });
 
         return Inertia::render('Seller/Knowledge/Facts/Show', [...$data, 'status' => session('status')]);
@@ -223,7 +250,7 @@ final class FactsController
 
     public function update(Request $request, string $fact): mixed
     {
-        $input = $request->validate(['version' => ['required', 'integer', 'min:1'], 'text' => ['required', 'string', 'max:500'], 'status' => ['required', 'in:active,inactive'], 'source' => ['required', 'in:manual,import,url'], 'group' => ['sometimes', 'required', 'string', 'max:64']]);
+        $input = $request->validate(['version' => ['required', 'integer', 'min:1'], 'text' => ['required', 'string', 'max:500'], 'status' => ['required', 'in:active,inactive'], 'source' => ['required', 'in:manual,import,url'], 'group' => ['sometimes', 'required', 'string', 'max:64'], 'bridge_hint' => ['sometimes', 'nullable', 'string', 'max:500'], 'must_not' => ['sometimes', 'nullable', 'string', 'max:2000'], 'intent_ids' => ['sometimes', 'array'], 'intent_ids.*' => ['string', 'distinct', 'max:100']]);
         $this->access($request, function (TenantContext $tenant) use ($fact, $input): void {
             DB::transaction(function () use ($tenant, $fact, $input): void {
                 $draft = $this->draft($tenant);
@@ -238,11 +265,78 @@ final class FactsController
                         $version = $repository->moveFact($tenant, $draft, $fact, $version, $input['group'], $position);
                     }
                 }
-                $repository->setFact($tenant, $draft, $fact, $version, trim($input['text']), $input['status'], $input['source']);
+                $version = $repository->setFact($tenant, $draft, $fact, $version, trim($input['text']), $input['status'], $input['source']);
+                if (array_key_exists('bridge_hint', $input) || array_key_exists('must_not', $input) || array_key_exists('intent_ids', $input)) {
+                    $key = DB::table('kn_facts as f')->join('kn_fact_groups as g', 'g.id', '=', 'f.group_id')
+                        ->where('g.release_id', $draft)->where('f.id', $fact)->value('g.key') ?? abort(404);
+                    $data = $repository->forRelease($tenant, $draft, true)->toArray();
+                    $index = collect($data['facts'])->search(fn ($group) => $group['id'] === $key);
+                    abort_if($index === false, 404);
+                    if (array_key_exists('bridge_hint', $input)) {
+                        $data['facts'][$index]['bridge_hint'] = trim($input['bridge_hint'] ?? '');
+                    }
+                    if (array_key_exists('must_not', $input)) {
+                        $data['facts'][$index]['must_not'] = array_values(array_filter(array_map('trim', preg_split('/\R/u', $input['must_not'] ?? '')), fn ($line) => $line !== ''));
+                    }
+                    if (array_key_exists('intent_ids', $input)) {
+                        $known = array_column($data['intents'], 'id');
+                        if (array_diff($input['intent_ids'], $known)) {
+                            throw ValidationException::withMessages(['intent_ids' => 'Выберите существующие темы вопросов.']);
+                        }
+                        $rows = DB::table('kn_facts as f')->join('kn_fact_groups as g', 'g.id', '=', 'f.group_id')
+                            ->where('g.release_id', $draft)->where('g.key', $key)->orderBy('f.position')->pluck('f.logical_id')->all();
+                        $logicalId = DB::table('kn_facts')->where('id', $fact)->value('logical_id') ?? abort(404);
+                        foreach ($data['intents'] as &$intent) {
+                            $groups = $intent['facts'] ?? [];
+                            $hasGroup = in_array($key, $groups, true);
+                            $selected = in_array($intent['id'], $input['intent_ids'], true);
+                            $overrides = $intent['fact_overrides'] ?? [];
+                            $wasSelected = in_array($key, array_slice($groups, 0, 3), true)
+                                && (! array_key_exists($key, $overrides) || in_array($logicalId, $overrides[$key], true));
+                            if ($selected === $wasSelected) {
+                                continue;
+                            }
+                            if ($selected && ! in_array($key, array_slice($groups, 0, 3), true) && count($groups) >= 3) {
+                                throw ValidationException::withMessages(['intent_ids' => 'В теме вопросов уже выбраны три группы фактов.']);
+                            }
+                            $ids = $overrides[$key] ?? ($hasGroup ? $rows : []);
+                            $ids = array_values(array_filter($ids, fn ($id) => $id !== $logicalId));
+                            if ($selected) {
+                                $ids[] = $logicalId;
+                            }
+                            if (! $hasGroup) {
+                                $intent['facts'][] = $key;
+                            }
+                            $intent['fact_overrides'][$key] = $ids;
+                        }
+                        unset($intent);
+                    }
+                    $repository->saveDraft($tenant, $draft, $version, $data);
+                }
             });
         });
 
         return back()->with('status', 'Факт сохранён.');
+    }
+
+    public function example(Request $request, string $fact): mixed
+    {
+        $input = $request->validate(['version' => ['required', 'integer', 'min:1']]);
+        $this->access($request, function (TenantContext $tenant) use ($fact, $input): void {
+            abort_unless(config('runtime.ai_driver', 'fake') === 'fake', 403);
+            $draft = $this->draft($tenant);
+            $row = DB::table('kn_facts as f')->join('kn_fact_groups as g', 'g.id', '=', 'f.group_id')
+                ->where('g.release_id', $draft)->where('f.id', $fact)->first(['f.text', 'f.logical_id', 'g.key']) ?? abort(404);
+            $repo = app(KnowledgeRepository::class);
+            $data = $repo->forRelease($tenant, $draft, true)->toArray();
+            $index = collect($data['facts'])->search(fn ($group) => $group['id'] === $row->key);
+            abort_if($index === false, 404);
+            $snapshot = $repo->forRelease($tenant, $draft, true);
+            $data['facts'][$index]['fact_examples'][$row->logical_id] = app(FactExampleFakeDriver::class)->generate($snapshot->resolvePlaceholders($row->text));
+            $repo->saveDraft($tenant, $draft, (int) $input['version'], $data);
+        });
+
+        return back()->with('status', 'Тестовый пример сохранён в черновике.');
     }
 
     public function delete(Request $request, string $fact): mixed
