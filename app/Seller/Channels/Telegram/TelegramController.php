@@ -136,6 +136,9 @@ final class TelegramController
             $account->name = $data['name'];
             $account->managers_chat_id = $data['managers_chat'] ?? null;
             $account->default_mode = $data['mode'];
+            if ($account->status !== 'active' && $account->connected_at === null) {
+                $account->connected_at = now();
+            }
             $account->status = 'active';
             $account->save();
             app(AuditWriter::class)->record($context, new AuditEntry('seller.telegram.saved', 'channel_account', $account->id,

@@ -28,8 +28,10 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Testing\TestResponse;
 use Illuminate\Validation\ValidationException;
+use Inertia\Testing\AssertableInertia;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\Support\MfaTestDatabase;
 use Tests\TestCase;
@@ -317,7 +319,7 @@ final class AuthFlowTest extends TestCase
         DB::table('password_reset_tokens')->insert(['email' => $user->email, 'token' => Hash::make('v2:'.hash('sha256', $token)), 'auth_version' => $user->auth_version, 'created_at' => now()]);
         $data = ['email' => $user->email, 'token' => $token, 'password' => 'a-different-strong-password', 'password_confirmation' => 'a-different-strong-password'];
         $this->postJson('https://souzpir.local/reset-password/exchange', ['email' => $user->email, 'token' => $token])->assertOk();
-        $this->post('/reset-password', ['password' => $data['password'], 'password_confirmation' => $data['password_confirmation']])->assertRedirect(route('login'));
+        $this->post('/reset-password', ['password' => $data['password'], 'password_confirmation' => $data['password_confirmation']])->assertRedirect(route('login'))->assertSessionHas('status', 'Пароль изменён. Войдите снова.');
         $this->assertTrue(Hash::check($data['password'], $user->fresh()->password));
         $this->postJson('https://souzpir.local/reset-password/exchange', ['email' => $user->email, 'token' => $token])->assertOk();
         $this->post('/reset-password', ['password' => $data['password'], 'password_confirmation' => $data['password_confirmation']])->assertSessionHasErrors('email');
@@ -521,9 +523,27 @@ final class AuthFlowTest extends TestCase
         $this->assertGuest();
         for ($i = 0; $i < 5; $i++) {
             $this->post('/login', ['email' => 'missing@example.test', 'password' => 'wrong'])->assertSessionHasErrors('email');
+            if ($i === 3) {
+                $this->travel(5)->minutes();
+            }
         }
         $this->post('/login', ['email' => 'missing@example.test', 'password' => 'wrong'])->assertSessionHasErrors('email');
-        $this->assertStringContainsString('15 минут', session('errors')->first('email'));
+        $this->assertStringContainsString('10 минут', session('errors')->first('email'));
+        $this->withSession(['_old_input' => ['email' => 'missing@example.test']])->get('/login')
+            ->assertOk()->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('lockoutEmail', 'missing@example.test')->where('lockoutSeconds', fn ($seconds) => $seconds >= 590 && $seconds <= 600));
+        $this->travel(601)->seconds();
+        $this->withSession(['_old_input' => ['email' => 'missing@example.test']])->get('/login')
+            ->assertOk()->assertInertia(fn (AssertableInertia $page) => $page->where('lockoutSeconds', 0));
+    }
+
+    public function test_login_displays_reset_status_and_password_confirmation_is_russian(): void
+    {
+        $this->withSession(['status' => 'Пароль изменён. Войдите снова.'])->get('/login')
+            ->assertOk()->assertInertia(fn (AssertableInertia $page) => $page->where('status', 'Пароль изменён. Войдите снова.'));
+        $validator = Validator::make(['password' => 'one', 'password_confirmation' => 'two'], ['password' => 'confirmed']);
+        self::assertTrue($validator->fails());
+        self::assertStringContainsString('не совпадает', $validator->errors()->first('password'));
     }
 
     public function test_pending_mfa_cannot_complete_after_account_version_changes(): void

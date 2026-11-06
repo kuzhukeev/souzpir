@@ -188,7 +188,7 @@ HTML;
 
         $request->session()->forget('auth.password_recovery');
 
-        return redirect()->route('login')->with('status', 'Пароль обновлён. Войдите снова.');
+        return redirect()->route('login')->with('status', 'Пароль изменён. Войдите снова.');
     }
 
     /** Never trust Referer when returning a form containing a recovery token. */

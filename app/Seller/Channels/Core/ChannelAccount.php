@@ -11,7 +11,7 @@ final class ChannelAccount extends SellerModel
 
     protected function casts(): array
     {
-        return ['credentials' => 'encrypted:array', 'managers_chat_id' => 'encrypted', 'settings' => 'array', 'disabled_at' => 'immutable_datetime'];
+        return ['credentials' => 'encrypted:array', 'managers_chat_id' => 'encrypted', 'settings' => 'array', 'disabled_at' => 'immutable_datetime', 'connected_at' => 'immutable_datetime'];
     }
 
     protected static function booted(): void

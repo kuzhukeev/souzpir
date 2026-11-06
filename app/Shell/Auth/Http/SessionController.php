@@ -23,9 +23,16 @@ use Throwable;
 
 final class SessionController
 {
-    public function create(): Response
+    public function create(Request $request): Response
     {
-        return Inertia::render('Shell/Auth/Login');
+        $email = mb_strtolower(trim((string) $request->old('email', '')));
+        $key = 'auth.login:'.hash('sha256', $email).':lock';
+
+        return Inertia::render('Shell/Auth/Login', [
+            'status' => $request->session()->get('status'),
+            'lockoutEmail' => $email,
+            'lockoutSeconds' => $email !== '' && RateLimiter::tooManyAttempts($key, 1) ? RateLimiter::availableIn($key) : 0,
+        ]);
     }
 
     public function store(Request $request): RedirectResponse
@@ -33,16 +40,23 @@ final class SessionController
         $request->merge(['email' => mb_strtolower(trim((string) $request->input('email')))]);
         $data = $request->validate(['email' => ['required', 'email', 'max:254'], 'password' => ['required', 'string'], 'remember' => ['boolean']]);
         $key = 'auth.login:'.hash('sha256', $data['email']);
-        if (RateLimiter::tooManyAttempts($key, 5)) {
-            throw ValidationException::withMessages(['email' => 'Слишком много попыток. Повторите через 15 минут.']);
+        $lockKey = $key.':lock';
+        if (RateLimiter::tooManyAttempts($lockKey, 1)) {
+            throw ValidationException::withMessages(['email' => 'Слишком много попыток. Повторите через 10 минут.']);
         }
         $user = User::where('email', $data['email'])->first();
         $hash = $user?->password ?? '$2y$12$C6UzMDM.H6dfI/f/IKcEe.ouXKf.vGPlZ4eV1AJfs8.GvE0lXkz3u';
         if (! Hash::check($data['password'], $hash) || ! $user || ! app(EligibleAccount::class)->includes($data['email'])) {
-            RateLimiter::hit($key, 900);
+            RateLimiter::hit($key, 600);
+            if (RateLimiter::tooManyAttempts($key, 5)) {
+                RateLimiter::hit($lockKey, 600);
+                RateLimiter::clear($key);
+                throw ValidationException::withMessages(['email' => 'Слишком много попыток. Повторите через 10 минут.']);
+            }
             throw ValidationException::withMessages(['email' => 'Не удалось войти. Проверьте данные.']);
         }
         RateLimiter::clear($key);
+        RateLimiter::clear($lockKey);
         DB::transaction(function () use ($request): void {
             $oldId = $request->session()->getId();
             $request->session()->regenerate(true);
