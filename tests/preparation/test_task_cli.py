@@ -107,6 +107,30 @@ class TaskCliTests(unittest.TestCase):
         self.assertEqual(self.client.read_claim("SP-001")["worker"], "another-chat")
         self.assertTrue(worktree.exists())
 
+    def test_reclaim_clean_released_tree_with_new_merged_dependency(self):
+        worktree, original = self.claim()
+        self.client.release("SP-001", "Waiting for new dependency")
+        dependency = task_cli.git(self.root, "rev-parse", "main")
+        self.dependency(dependency)
+        task_cli.git(self.root, "update-ref", "refs/remotes/origin/main", task_cli.git(self.root, "rev-parse", "main"))
+        task_cli.git(worktree, "merge", "--ff-only", "main")
+        self.assertEqual(self.client.ready()["tasks"][0]["taskKey"], "SP-001")
+        reclaimed = self.client.claim("SP-001", "new-owner")
+        self.assertEqual(reclaimed["baseCommit"], original["baseCommit"])
+        record = self.client.read_claim("SP-001")
+        self.assertEqual(record["dependsOn"], ["SP-000"])
+        self.assertEqual(record["dependencyCommits"], {"SP-000": dependency})
+
+    def test_reclaim_rejects_new_dependency_absent_from_saved_tree(self):
+        self.claim()
+        self.client.release("SP-001", "Waiting for new dependency")
+        self.commit(self.root, "app/Common/dependency.php")
+        dependency = task_cli.git(self.root, "rev-parse", "main")
+        self.dependency(dependency)
+        with self.assertRaisesRegex(task_cli.TaskError, "absent from the selected main base"):
+            self.client.claim("SP-001", "new-owner")
+        self.assertEqual(self.api.task["status"], "queue")
+
     def test_reclaim_preserves_published_task_commits_and_original_base(self):
         worktree, original = self.claim()
         target = worktree / "app/Feature/saved.txt"

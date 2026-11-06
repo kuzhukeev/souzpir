@@ -325,6 +325,11 @@ class Coordinator:
             base = record.get("baseCommit", "")
             git(worktree, "merge-base", "--is-ancestor", base, head)
             if head != base:
+                # A released, unchanged task tree may have been fast-forwarded
+                # to the published main to acquire newly added dependencies.
+                published_main = git(self.root, "rev-parse", "--verify", "refs/remotes/origin/main^{commit}", check=False)
+                if head == published_main:
+                    return True
                 remote = git(self.root, "rev-parse", "--verify", "refs/remotes/origin/" + record["branch"] + "^{commit}")
                 git(worktree, "merge-base", "--is-ancestor", remote, head)
                 if unapproved_changes(worktree, base, head, [*record["scope"], *CI_SCOPE_EXCEPTIONS.get(key, ())]):
@@ -354,7 +359,7 @@ class Coordinator:
                             and record.get("project") == self.project and record.get("branch") == branch
                             and Path(record.get("worktree", "")).resolve() == worktree.resolve()
                             and scope_signature(record.get("scope", [])) == scope_signature(task.get("scope", []))
-                            and sorted(record.get("dependsOn", [])) == sorted(task.get("dependsOn", []))
+                            and set(record.get("dependsOn", [])) <= set(task.get("dependsOn", []))
                             and git(worktree, "branch", "--show-current") == branch
                             and not git(worktree, "status", "--porcelain=v1", "--untracked-files=all")
                             and self.preserved_head_is_safe(key, record, worktree)):
@@ -419,7 +424,7 @@ class Coordinator:
                     or record.get("project") != self.project or record.get("branch") != branch
                     or Path(record.get("worktree", "")).resolve() != worktree.resolve()
                     or scope_signature(record.get("scope", [])) != scope_signature(task.get("scope", []))
-                    or sorted(record.get("dependsOn", [])) != sorted(task.get("dependsOn", []))):
+                    or not set(record.get("dependsOn", [])) <= set(task.get("dependsOn", []))):
                 raise TaskError("Existing worktree is not safely released; inspect it without overwriting")
             base = self.integration_base()
             head = git(worktree, "rev-parse", "HEAD^{commit}")
@@ -436,7 +441,7 @@ class Coordinator:
             try:
                 self.validate_plan(key, plan, response["task"])
                 record.update(claimToken=token, worker=worker, dependencyCommits=dependencies,
-                              status="progress", revision=response["task"]["revision"])
+                              dependsOn=task.get("dependsOn", []), status="progress", revision=response["task"]["revision"])
                 self.save_claim(record)
             except (OSError, TaskError) as error:
                 try:
