@@ -24,6 +24,7 @@ use Tests\TestCase;
 final class SiteFactsE814ETest extends TestCase
 {
     use IsolatedDatabaseMigrations;
+    use ResolvesDeferredHints;
 
     protected function beforeRefreshingDatabase(): void
     {
@@ -98,7 +99,7 @@ final class SiteFactsE814ETest extends TestCase
         self::assertSame(1, preg_match("/const h='([a-f0-9]{64})'/", $page->getContent(), $matches));
         $this->post('/vision/private-access', ['proof' => hash('sha256', hex2bin($matches[1]))])->assertRedirect($path);
 
-        return $this->get($path);
+        return $this->resolveDeferredHints($this->get($path), $path);
     }
 
     private function signIn(User $user, string $brandId): void

@@ -734,6 +734,12 @@ declare module 'ziggy-js' {
     "vision.private.access": [],
     "vision.private.verify": [],
     "vision.quiz.start": [],
+    "vision.quiz.hints": [
+        {
+            "name": "step",
+            "required": true
+        }
+    ],
     "vision.quiz.show": [
         {
             "name": "step",

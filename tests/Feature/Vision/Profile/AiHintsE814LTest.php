@@ -16,6 +16,8 @@ use Tests\Feature\Tenancy\TenancyTestCase;
 
 final class AiHintsE814LTest extends TenancyTestCase
 {
+    use ResolvesDeferredHints;
+
     private function snapshot(): array
     {
         return ['providers' => ['fake' => 'fake-model'], 'metrics' => ['entities' => [['name' => 'Сосед', 'is_brand' => false], ['name' => 'Наш бренд', 'is_brand' => true]], 'slots' => [
@@ -72,7 +74,7 @@ final class AiHintsE814LTest extends TenancyTestCase
         self::assertSame(1, preg_match("/const h='([a-f0-9]{64})'/", $page->getContent(), $matches));
         $this->post('/vision/private-access', ['proof' => hash('sha256', hex2bin($matches[1]))])->assertRedirect($path);
 
-        return $this->get($path);
+        return $this->resolveDeferredHints($this->get($path), $path);
     }
 
     private function signIn(User $user, string $brandId): void
