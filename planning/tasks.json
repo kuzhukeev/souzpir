@@ -21394,6 +21394,76 @@
       "wave": 20,
       "promptPath": "docs/tasks/SP-E1-11E.md",
       "description": "# SP-E1-11E · Срок доступности экспортов\n\n**Зачем:** привести срок новых экспортов данных к подтверждённому владельцем сроку 30 дней.\n**Часть чего:** остаток SP-E1-11D, `docs/results/SP-E1-11D.md`.\n**Зависимости:** дождаться слияния SP-E1-11D.\n\n## Приёмка\n- Установить срок по умолчанию для новых экспортов 30 дней в конфигурации и серверном запасном значении; сохранить существующую возможность настройки окружением.\n- Не менять сроки уже созданных архивов и не добавлять новую автоматическую очистку. Экран продолжает показывать фактический срок каждого архива.\n- Проверить срок нового экспорта, существующие архивы, права и изоляцию брендов; без живых вызовов.\n\nScope: `config/features/E1-11.php`, `app/Shell/Data/`, `tests/Feature/Shell/Data/`, `tests/Feature/Owner/E1-11E/`, `docs/results/SP-E1-11E.md`.\n"
+    },
+    {
+      "taskKey": "SP-E8-14N",
+      "title": "SP-E8-14N · Факты и состояния анкеты",
+      "goal": "Завершить V-1.4 и V-1.5: карточки подтверждения фактов у правой колонки, состояния и формы источников, права и изоляция брендов.",
+      "dependsOn": [
+        "SP-E8-14M"
+      ],
+      "scope": [
+        "app/Vision/Profile/",
+        "resources/js/pages/Vision/Profile/",
+        "resources/js/features/Vision/Profile/QuestionnaireFields.tsx",
+        "tests/Feature/Vision/Profile/",
+        "tests/Browser/E8-14N/",
+        "docs/results/SP-E8-14N.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Завершить V-1.4 и V-1.5: карточки подтверждения фактов у правой колонки, состояния и формы источников, права и изоляция брендов."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E8-14M.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "V-1.5"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E8-14N.md",
+      "description": "# SP-E8-14N · Подтверждение фактов и состояния анкеты\n\n**Зачем:** завершить экраны V-1.4 и V-1.5 по макету.\n**Часть чего:** остаток SP-E8-14M, `docs/results/SP-E8-14M.md`.\n**Зависимости:** SP-E8-14M в `done`.\n\n## Приёмка\n- Расположить найденные факты и действия «Верно / Исправить / Не про нас» рядом с правой колонкой добавления фактов согласно макету, используя `QuestionnaireFields.tsx`.\n- Завершить сверку состояний загрузки, skeleton, ошибок и оставшихся подтверждённых форм источников. Данные сайта попадают в анкету только после подтверждения пользователя; источники и типовые иконки сохраняются.\n- Проверить права, изоляцию брендов, ошибки и успешный сценарий; только fake AI. Прогнать интеграционные SiteFactsE814E и SiteHintsHttpTest в подходящем окружении.\n\nScope: `app/Vision/Profile/`, `resources/js/pages/Vision/Profile/`, `resources/js/features/Vision/Profile/QuestionnaireFields.tsx`, `tests/Feature/Vision/Profile/`, `tests/Browser/E8-14N/`, `docs/results/SP-E8-14N.md`.\n"
+    },
+    {
+      "taskKey": "SP-E8-15H",
+      "title": "SP-E8-15H · Управление прогонами и расчёт периода",
+      "goal": "Завершить V-3.2: единый контрол и оценка времени прошлого замера; описания из конфига; точный календарный расчёт V-11.2/V-11.3 после подтверждения формулы.",
+      "dependsOn": [
+        "SP-E8-15G"
+      ],
+      "scope": [
+        "app/Vision/Questions/",
+        "app/Vision/Measurements/",
+        "app/Vision/Settings/",
+        "resources/js/pages/Vision/Questions/",
+        "resources/js/pages/Vision/Measurements/",
+        "resources/js/pages/Vision/Settings/",
+        "resources/js/features/Vision/Questions/",
+        "resources/js/features/Vision/Measurements/",
+        "tests/Feature/Vision/Questions/",
+        "tests/Feature/Vision/Settings/",
+        "tests/Browser/E8-16/",
+        "tests/Browser/E8-16B/",
+        "tests/Browser/E8-15H/",
+        "docs/results/SP-E8-15H.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Завершить V-3.2: единый контрол и оценка времени прошлого замера; описания из конфига; точный календарный расчёт V-11.2/V-11.3 после подтверждения формулы."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E8-15G.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "V-3.2"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E8-15H.md",
+      "description": "# SP-E8-15H · Управление прогонами и расчёт периода\n\n**Зачем:** завершить экраны V-3.2, V-11.2 и V-11.3 по макетам.\n**Часть чего:** остаток SP-E8-15G, `docs/results/SP-E8-15G.md`.\n**Зависимости:** SP-E8-15G в `done`.\n\n## Приёмка\n- Сверить V-3.2: единый контрол прогонов и оценка времени по прошлому замеру; при отсутствии замера показывать отсутствие данных.\n- Привести проверки `tests/Browser/E8-16/` и `tests/Browser/E8-16B/` к подтверждённому поведению без потери проверок. Описания моделей брать из конфигурации; отсутствующие тексты не выдумывать.\n- Точный календарный расчёт V-11.2 и V-11.3 внедрять после утверждения формулы; до этого показывать существующую оценку с её ограничениями.\n- Проверить права, изоляцию брендов, ошибки и основной сценарий; только fake runtime.\n\nScope: `app/Vision/Questions/`, `app/Vision/Measurements/`, `app/Vision/Settings/`, `resources/js/pages/Vision/Questions/`, `resources/js/pages/Vision/Measurements/`, `resources/js/pages/Vision/Settings/`, `resources/js/features/Vision/Questions/`, `resources/js/features/Vision/Measurements/`, `tests/Feature/Vision/Questions/`, `tests/Feature/Vision/Settings/`, `tests/Browser/E8-16/`, `tests/Browser/E8-16B/`, `tests/Browser/E8-15H/`, `docs/results/SP-E8-15H.md`.\n"
     }
   ],
   "excludedSourceTasks": {
