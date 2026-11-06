@@ -23670,6 +23670,41 @@
       ],
       "wave": 20,
       "promptPath": "docs/tasks/SP-E6-03AA.md"
+    },
+    {
+      "taskKey": "SP-E3-07G",
+      "title": "SP-E3-07G · Рабочий runtime replay",
+      "description": "# SP-E3-07G · Рабочий runtime replay\n\n**Зачем:** закрыть конкретный остаток полного replay SP-E3-07F и проверку эквивалентности прототипу.\n**Часть чего:** SP-E3-07F, docs/results/SP-E3-07F.md.\n**Зависимости:** SP-E3-07F в done.\n\n## Приёмка\n- Реализовать воспроизведение 39 диалоговых и 2 таймерных сценариев: сопоставить этапы, историю, запросы и raw tool calls с записанными ответами, включая старт без входящего сообщения и последующие ходы; устранить отказ manual.no_repeat_filled_slot, сравнить итоговые состояния и ошибки. Включить реальный replay в CI; эталонные golden fixtures не менять.\n- Проверить права и изоляцию брендов; только записанный fake, без живых вызовов. Описать реальные расхождения и недоступные сценарии.\n- Нужен работающий прогон, а не ещё один диагностический отчёт о несовпадении хешей.\n\nScope: `app/Ai/Gateway.php`, `app/Seller/Runtime/`, `app/ProtectedOperations/SellerFollowup/FollowupCoordinator.php`, `app/ProtectedOperations/SellerFollowup/FollowupFinalizer.php`, `app/Seller/Followups/PrepareFollowups.php`, `app/Seller/Followups/FollowupSender.php`, `tests/Feature/Equivalence/Support/RecordedGateway.php`, `tests/Equivalence/`, `docs/validation/`, `docs/results/SP-E3-07G.md`.\n",
+      "dependsOn": [
+        "SP-E3-07F"
+      ],
+      "exclusiveResources": [
+        "shared-ai-stages"
+      ],
+      "scope": [
+        "app/Ai/Gateway.php",
+        "app/Seller/Runtime/",
+        "app/ProtectedOperations/SellerFollowup/FollowupCoordinator.php",
+        "app/ProtectedOperations/SellerFollowup/FollowupFinalizer.php",
+        "app/Seller/Followups/PrepareFollowups.php",
+        "app/Seller/Followups/FollowupSender.php",
+        "tests/Feature/Equivalence/Support/RecordedGateway.php",
+        "tests/Equivalence/",
+        "docs/validation/",
+        "docs/results/SP-E3-07G.md"
+      ],
+      "sourceRefs": [
+        "docs/results/SP-E3-07F.md",
+        "docs/validation/SP-E3-07F-runtime-diagnostic.md",
+        "docs/preparation/decisions.md"
+      ],
+      "acceptance": [
+        "Реализовать воспроизведение 39 диалоговых и 2 таймерных сценариев: сопоставить этапы, историю, запросы и raw tool calls с записанными ответами, включая старт без входящего сообщения и последующие ходы; устранить отказ manual.no_repeat_filled_slot, сравнить итоговые состояния и ошибки. Включить реальный replay в CI; эталонные golden fixtures не менять.",
+        "Проверить права и изоляцию брендов; только записанный fake, без живых вызовов."
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E3-07G.md"
     }
   ],
   "excludedSourceTasks": {
