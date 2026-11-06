@@ -5,6 +5,8 @@
 - Проверено: автономный PHPUnit с fake HTTP — 2 теста / 6 проверок; Playwright E5-01H — 1; TypeScript, Pint; ESLint без ошибок (существующее предупреждение useEffect).
 - Скриншот `.local/screenshots/SP-E5-01H/settings.png`: светлая тема, 1440, фикстура.
 
+- При повторной сдаче тест TelegramClientTest включён в suite Product; выборочный запуск и проверка обнаружения теста выполнены.
+
 ## Остаток
 - Подключить доставку ответов из кабинета к TelegramSender за выключенным флагом и проверить права и изоляцию брендов на изолированной PostgreSQL.
 - Общий ManagerMessageTransport и его binding находятся вне scope; существующая fake-доставка сохранена.
