@@ -625,6 +625,8 @@ declare module 'ziggy-js' {
     "seller.customers.io.template": [],
     "seller.customers.io.preview": [],
     "seller.customers.io.import": [],
+    "seller.reviews.index": [],
+    "seller.reviews.dismiss": [],
     "seller.persona.index": [],
     "seller.persona.save": [],
     "seller.persona.phrases.save": [],
