@@ -30,6 +30,8 @@ diagnostics() {
   fi
 }
 trap diagnostics EXIT
+# Each browser fixture starts Vite, whose watcher walks vendor/ and tests/; the default inotify limit overflows (ENOSPC).
+sudo sysctl -q -w fs.inotify.max_user_watches=1048576 fs.inotify.max_user_instances=1024
 # Disposable GitHub runner: Node HTTP clients must resolve the local fixture host.
 printf '127.0.0.1 souzpir.local\n' | sudo tee -a /etc/hosts >/dev/null
 php -S 127.0.0.1:8101 -t public scripts/ci/server.php > .local/runtime/browser-server.log 2>&1 &
