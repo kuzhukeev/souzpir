@@ -3,6 +3,7 @@
 namespace App\Seller\Evaluation;
 
 use App\Ai\CanonicalJson;
+use App\Ai\Protected\DraftResponder;
 use App\ProtectedOperations\DraftSimulation\FixtureRuntime;
 use App\Seller\Engine\DeterministicGuard;
 use App\Seller\Engine\LeadState;
@@ -73,7 +74,8 @@ final class DraftScenarioPreview
             $policy->applyExtraction($state, $extraction);
             $goal = $policy->decide($state, $extraction, $first);
             $examples = $draft->fewshot($goal->fewshotTags, $state->clientType(), 1);
-            $answer = trim((string) ($examples[0]['text'] ?? 'Здравствуйте! Чем могу помочь?'));
+            $answer = $request ? app(DraftResponder::class)->respond($request, $draft, $state, $goal, $client) : null;
+            $answer ??= trim((string) ($examples[0]['text'] ?? 'Здравствуйте! Чем могу помочь?'));
             $guard = (new DeterministicGuard($draft))->check($answer, $goal, $state);
             $goalKind = $goal->kind;
             $state->setFlag('introduced', true);

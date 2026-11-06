@@ -84,8 +84,8 @@ export default function Start({
           </div>
           <div className="mt-8 grid gap-5 sm:grid-cols-3">
             {[
-              [ClipboardList, 'Анкета', 'Расскажите о компании и целях'],
-              [ChartNoAxesCombined, 'Замер', 'Проверка видимости бренда'],
+              [ClipboardList, 'Анкета · около 10 минут', 'Расскажите о компании и целях'],
+              [ChartNoAxesCombined, 'Замер', 'Проверка видимости бренда; сроки зависят от настроек'],
               [FileCheck2, 'Отчёт', 'Результаты и рекомендации'],
             ].map(([Icon, title, text]) => {
               const I = Icon as typeof ClipboardList;
@@ -101,6 +101,7 @@ export default function Start({
               );
             })}
           </div>
+          <section className="mt-8 rounded-xl border border-(--color-border) p-4"><h2 className="font-semibold">Пример отчёта</h2><p className="mt-2 text-sm text-(--color-ink-muted)">Иллюстрация структуры будущего отчёта, без показателей вашего бренда.</p><div aria-hidden="true" className="mt-4 space-y-3 rounded-lg bg-(--color-surface-muted) p-5 blur-[3px]"><div className="h-4 w-1/3 rounded bg-(--color-border)"/><div className="h-14 rounded bg-(--color-border)"/><div className="h-4 w-2/3 rounded bg-(--color-border)"/><div className="h-4 w-1/2 rounded bg-(--color-border)"/></div></section>
           <section className="mt-8 rounded-xl border border-(--color-border) p-4"><h2 className="font-semibold">Что проверяем</h2><p className="mt-2 text-sm text-(--color-ink-muted)">Пример набора моделей; доступные модели определяются настройками замера.</p><ul className="mt-3 flex flex-wrap gap-2 text-sm">{[['ChatGPT','✳'], ['Claude','✺'], ['Gemini','✦'], ['Perplexity','◈']].map(([name, mark]) => <li key={name} className="flex items-center gap-2 rounded-lg bg-(--color-surface-muted) px-3 py-2"><span aria-hidden="true" className="flex h-7 w-7 items-center justify-center rounded-full bg-(--color-brand-primary-soft) text-lg text-(--color-link)">{mark}</span>{name}</li>)}</ul></section>
           <section className="mt-4 rounded-xl border border-(--color-border) p-4"><h2 className="font-semibold">Ваш тариф</h2>{plan && (plan.name || plan.questions !== null || plan.runs_per_week !== null) ? <dl className="mt-2 space-y-1 text-sm text-(--color-ink-muted)"><div><dt className="inline">План: </dt><dd className="inline">{plan.name ?? 'Нет данных'}</dd></div><div><dt className="inline">Вопросы: </dt><dd className="inline">{displayLimit(plan.questions)}</dd></div><div><dt className="inline">Прогоны в неделю: </dt><dd className="inline">{displayLimit(plan.runs_per_week)}</dd></div></dl> : <p className="mt-2 text-sm text-(--color-ink-muted)">Данные о тарифе и лимитах пока недоступны.</p>}</section>
         </section>

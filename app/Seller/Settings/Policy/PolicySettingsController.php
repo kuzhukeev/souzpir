@@ -39,6 +39,7 @@ final class PolicySettingsController
             $followup = array_replace(['enabled' => true, 'first_hours' => 20, 'second_hours' => null, 'task_after_hours' => 24, 'max_auto' => 2, 'window' => null, 'texts' => [], 'agreed_text' => '', 'excluded_stages' => []], $row?->followup ?? []);
             $reactionExamples = [];
             $reactionActions = [];
+            $policyLoadError = false;
             try {
                 $snapshot = app(KnowledgeRepository::class)->published($tenant);
                 $policy = $snapshot->policy();
@@ -56,6 +57,10 @@ final class PolicySettingsController
                     'decline_injection' => 'Отклонить запрос', 'opt_out_ack' => 'Не беспокоить'];
             } catch (KnowledgeNotReady) {
                 $policy = null;
+            } catch (\Throwable $error) {
+                report($error);
+                $policy = null;
+                $policyLoadError = true;
             }
 
             $draftPolicy = null;
@@ -100,7 +105,7 @@ final class PolicySettingsController
                 }
             }
 
-            return ['followup' => $followup, 'policy' => $policy, 'reactionExamples' => $reactionExamples, 'reactionActions' => $reactionActions, 'draftReactions' => $draftReactions, 'canWrite' => Gate::allows('seller.settings.write'), 'draftPolicy' => $draftPolicy,
+            return ['followup' => $followup, 'policy' => $policy, 'policyLoadError' => $policyLoadError, 'reactionExamples' => $reactionExamples, 'reactionActions' => $reactionActions, 'draftReactions' => $draftReactions, 'canWrite' => Gate::allows('seller.settings.write'), 'draftPolicy' => $draftPolicy,
                 'followupTimezone' => $timezone, 'followupSent' => $sent, 'followupReplies' => array_values($replies)];
         });
 

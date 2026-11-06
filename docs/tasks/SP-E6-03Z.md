@@ -10,3 +10,5 @@
 - Решение владельца 06.11: разрешены только совместимые добавления общих AI-стадий без рефакторинга и без изменения существующего поведения и записанного replay; проверить права, изоляцию брендов и повторы. Только fake AI; живые и платные вызовы выключены. Общий ресурс shared-ai-stages занимает одна карточка до слияния.
 
 Scope: `app/Seller/Settings/Policy/`, `app/Seller/Runtime/`, `app/Ai/Protected/`, `app/ProtectedOperations/`, `resources/js/pages/Seller/Settings/Policy/`, `tests/Feature/Seller/Settings/Policy/`, `tests/Feature/ProtectedOperations/`, `tests/Browser/E6-03Z/`, `docs/results/SP-E6-03Z.md`.
+
+- Добавить отдельное состояние ожидания полной первоначальной загрузки и браузерную проверку с работающим Laravel-сервером.
