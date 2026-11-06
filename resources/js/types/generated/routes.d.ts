@@ -636,6 +636,7 @@ declare module 'ziggy-js' {
     "seller.planned.reminders": [],
     "seller.channels.email.index": [],
     "seller.channels.email.update": [],
+    "seller.channels.email.test": [],
     "seller.customers.merge.index": [],
     "seller.customers.merge.distinct": [],
     "seller.customers.merge.store": [],
