@@ -1,0 +1,23 @@
+import { expect, test } from '@playwright/test';
+import { createServer, type ViteDevServer } from 'vite';
+import { mkdir } from 'node:fs/promises';
+let server: ViteDevServer; let url: string;
+test.setTimeout(60000);
+test.use({ viewport: { width: 1440, height: 900 }, launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH } : {} });
+test.beforeAll(async () => { server = await createServer({ configFile: 'tests/Browser/E4-06M/vite.config.ts', server: { host: '127.0.0.1', port: 0 } }); await server.listen(); url = new URL('/tests/Browser/E4-06M/fixture.html?imports', server.resolvedUrls!.local[0]).href; });
+test.afterAll(async () => { await server?.close(); });
+test('после выбора файла сопоставление расположено до импорта YAML', async ({ page }) => {
+ await page.route('**/seller/knowledge/imports/preview', route => route.fulfill({ json: { proposals: ['Условия доставки'], document_id: 'new', sheets: [], document: { id: 'new', name: 'facts.txt', type: 'txt', pages: null, status: 'previewed', fragments_count: 1, has_source: true, created_at: '2026-11-01' } } }));
+ await page.goto(url);
+ await page.getByLabel('Файл', { exact: true }).setInputFiles({name:'facts.txt',mimeType:'text/plain',buffer:Buffer.from('условия')});
+ await page.getByRole('button', { name: 'Посмотреть предложения' }).click();
+ const mapping = page.getByRole('heading', { name: 'Сопоставление фактов' });
+ const yaml = page.getByRole('heading', { name: 'Импорт базы знаний из YAML' });
+ await expect(mapping).toBeVisible();
+ expect((await mapping.boundingBox())!.y).toBeLessThan((await yaml.boundingBox())!.y);
+ await expect(page.getByRole('button', { name: 'Добавить выбранные в черновик' })).toBeDisabled();
+ await page.getByLabel('Принять факт 1').check();
+ await expect(page.getByRole('button', { name: 'Добавить выбранные в черновик' })).toBeEnabled();
+ await mkdir('.local/screenshots/SP-E4-06M', { recursive: true });
+ await page.screenshot({ path: '.local/screenshots/SP-E4-06M/mapping.png', fullPage: true });
+});
