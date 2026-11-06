@@ -1,0 +1,28 @@
+import { expect, test } from '@playwright/test';
+import { createServer, type ViteDevServer } from 'vite';
+import { mkdir } from 'node:fs/promises';
+let server: ViteDevServer; let url: string;
+test.use({ viewport: { width: 1440, height: 900 }, launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH } : {} });
+test.beforeAll(async () => { server = await createServer({ configFile: 'tests/Browser/E8-19H/vite.config.ts', server: { host: '127.0.0.1', port: 0, strictPort: false } }); await server.listen(); url = new URL('/tests/Browser/E8-19H/fixture.html', server.resolvedUrls!.local[0]).href; });
+test.afterAll(async () => { await server?.close(); });
+test('логотип включается только после явного согласия', async ({ page }) => {
+ const revision = 'a'.repeat(64);
+ const report = { id:'r', measurement_id:'m', visibility:25, visibility_kind:'full', coverage:100, share_of_voice:null, position:null, verified_errors:0, providers:[], questions:1, evidence_status:'available', sections:{site:null,competitors:[],gaps:[],facts:[],sources:[],actions:[],changes:null}, publication_candidates:[] };
+ await page.route('**/vision/report/data**', route => route.fulfill({json:{revision,confirmed:[],reports:[],report}}));
+ await page.route('**/vision/runs/revision', route => route.fulfill({json:{revision}}));
+ await page.goto(url);
+ await page.getByRole('button',{name:'Поделиться'}).click();
+ const dialog=page.getByRole('dialog');
+ const consent=dialog.getByLabel(/Включить загруженный логотип/);
+ await expect(consent).not.toBeChecked();
+ await consent.check();
+ await mkdir('.local/screenshots/SP-E8-19H',{recursive:true});
+ await page.screenshot({path:'.local/screenshots/SP-E8-19H/logo-consent.png',fullPage:true});
+ await page.route('**/vision/publications',route=>route.abort());
+ const request=page.waitForRequest(request=>request.url().endsWith('/vision/publications') && request.method()==='POST');
+ await dialog.getByRole('switch',{name:'Публичная ссылка'}).click();
+ expect((await request).postDataJSON().include_logo).toBe(true);
+ await page.goto(url+'?no-logo');
+ await page.getByRole('button',{name:'Поделиться'}).click();
+ await expect(page.getByLabel(/Включить загруженный логотип/)).toHaveCount(0);
+});
