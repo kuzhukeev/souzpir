@@ -23163,6 +23163,33 @@
       "wave": 20,
       "promptPath": "docs/tasks/SP-E8-16R.md",
       "description": "# SP-E8-16R · Замер: персональная подписка\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E8-16O, docs/results/SP-E8-16O.md.\n**Зависимости:** SP-E8-16O.\n\n## Приёмка\n- V-3.3: персональная подписка на выбранный замер, хранение, маршрут и уведомление готовности через fake-транспорт; проверить права, срок, изоляцию бренда и состояния по макету.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Vision/Measurements/`, `app/Shell/Notifications/`, `database/migrations/E8-16R/`, `routes/features/E8-16R.php`, `resources/js/pages/Vision/Measurements/`, `tests/Feature/Vision/Measurements/`, `tests/Browser/E8-16R/`, `docs/results/SP-E8-16R.md`.\n"
+    },
+    {
+      "taskKey": "SP-E8-24L",
+      "title": "SP-E8-24L · Получатели: начальная загрузка",
+      "goal": "V-11.5: состояния начальной загрузки и ошибки списка через отложенную Inertia-загрузку с повтором; проверить серверные права и изоляцию брендов при отдельной загрузке.",
+      "dependsOn": [
+        "SP-E8-24K"
+      ],
+      "scope": [
+        "app/Vision/Settings/",
+        "resources/js/pages/Vision/Settings/",
+        "tests/Feature/Vision/Settings/",
+        "tests/Browser/E8-24L/",
+        "docs/results/SP-E8-24L.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "V-11.5: состояния начальной загрузки и ошибки списка через отложенную Inertia-загрузку с повтором; проверить серверные права и изоляцию брендов при отдельной загрузке."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E8-24K.md"
+      ],
+      "screenIds": [],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E8-24L.md",
+      "description": "# SP-E8-24L · Получатели: начальная загрузка\n\n**Зачем:** завершение экранов по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E8-24K, docs/results/SP-E8-24K.md.\n**Зависимости:** SP-E8-24K.\n\n## Приёмка\n- V-11.5: состояния начальной загрузки и ошибки списка через отложенную Inertia-загрузку с повтором; проверить серверные права и изоляцию брендов при отдельной загрузке.\n- Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.\n\nScope: `app/Vision/Settings/`, `resources/js/pages/Vision/Settings/`, `tests/Feature/Vision/Settings/`, `tests/Browser/E8-24L/`, `docs/results/SP-E8-24L.md`.\n"
     }
   ],
   "excludedSourceTasks": {
