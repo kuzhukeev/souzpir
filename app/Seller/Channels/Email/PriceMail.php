@@ -13,7 +13,7 @@ final class PriceMail extends Mailable
 {
     use Queueable;
 
-    public function __construct(public string $path, public string $filename, public string $senderEmail, public string $senderName, public string $signature = '') {}
+    public function __construct(public string $path, public string $filename, public string $senderEmail, public string $senderName, public string $signature = '', public ?string $priceUrl = null, public ?string $catalogCsv = null) {}
 
     public function envelope(): Envelope
     {
@@ -22,11 +22,22 @@ final class PriceMail extends Mailable
 
     public function content(): Content
     {
-        return new Content(htmlString: '<p>Здравствуйте! Направляем прайс-лист во вложении.</p>'.($this->signature !== '' ? '<p>'.nl2br(e($this->signature)).'</p>' : ''));
+        $body = $this->priceUrl !== null
+            ? '<p>Здравствуйте! Прайс-лист доступен по ссылке: <a href="'.e($this->priceUrl).'">'.e($this->priceUrl).'</a></p>'
+            : '<p>Здравствуйте! Направляем прайс-лист во вложении.</p>';
+
+        return new Content(htmlString: $body.($this->signature !== '' ? '<p>'.nl2br(e($this->signature)).'</p>' : ''));
     }
 
     public function attachments(): array
     {
+        if ($this->priceUrl !== null) {
+            return [];
+        }
+        if ($this->catalogCsv !== null) {
+            return [Attachment::fromData(fn () => $this->catalogCsv, $this->filename)->withMime('text/csv')];
+        }
+
         return [Attachment::fromStorageDisk('local', $this->path)->as($this->filename)];
     }
 }

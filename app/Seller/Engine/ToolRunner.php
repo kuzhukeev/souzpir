@@ -68,9 +68,31 @@ final class ToolRunner
                 return ['status' => 'invalid_arguments'];
             }
             $enabled = $scope('brand_seller_settings')->value('catalog_prices_enabled');
+            if (! $enabled) {
+                return ['status' => 'unavailable'];
+            }
+            $raw = $scope('seller_tool_preferences')->value('payload');
+            $preferences = $raw ? json_decode($raw, true) : [];
+            $preferences = is_array($preferences) ? $preferences : [];
+            $source = $preferences['price_source'] ?? 'file';
+            if ($source === 'link') {
+                $url = $preferences['price_url'] ?? null;
+
+                return is_string($url) && filter_var($url, FILTER_VALIDATE_URL) && parse_url($url, PHP_URL_SCHEME) === 'https'
+                    ? ['status' => 'fake_sent', 'source' => 'link'] : ['status' => 'unavailable'];
+            }
+            if ($source === 'catalog') {
+                $import = $scope('catalog_imports')->where('status', 'completed')->orderByDesc('created_at')->orderByDesc('id')->value('id');
+                $available = $import && $scope('catalog_items')->where('import_id', $import)->whereNotNull('price')->exists();
+
+                return $available ? ['status' => 'fake_sent', 'source' => 'catalog'] : ['status' => 'unavailable'];
+            }
+            if ($source !== 'file') {
+                return ['status' => 'unavailable'];
+            }
             $file = $scope('catalog_settings')->first(['price_file_path', 'price_file_name']);
 
-            return $enabled && $file?->price_file_path ? ['status' => 'fake_sent', 'file' => $file->price_file_name] : ['status' => 'unavailable'];
+            return $file?->price_file_path ? ['status' => 'fake_sent', 'file' => $file->price_file_name] : ['status' => 'unavailable'];
         }
         $query = trim($arguments['query']);
         if (mb_strlen($query) < 2) {

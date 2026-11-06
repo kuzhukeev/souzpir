@@ -675,6 +675,7 @@ declare module 'ziggy-js' {
     ],
     "seller.tools.settings": [],
     "seller.tools.settings.update": [],
+    "seller.tools.request": [],
     "seller.handoff.settings": [],
     "seller.handoff.settings.update": [],
     "seller.techniques.index": [],
