@@ -21,23 +21,20 @@ export default function BadAndDialog({ version, badExamples, maxWords = null, ta
   const selectedWords = selectedText ? selectedText.split(/\s+/u).length : 0;
 
   async function findDialogs() {
-    setLoading(true); setError('');
+    setLoading(true); setError(''); setDialogs([]); setMessages([]);
+    sample.setData(current => ({ ...current, dialog: '', message: '' }));
     try {
       const response = await fetch(`/seller/knowledge/fewshot/dialogs?${new URLSearchParams({ search })}`, { headers: { Accept: 'application/json' } });
       if (!response.ok) throw new Error('Не удалось загрузить диалоги.');
       const data = await response.json() as { dialogs: Dialog[] };
       setDialogs(data.dialogs);
-      setMessages([]);
-      sample.setData('dialog', '');
-      sample.setData('message', '');
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Ошибка загрузки.'); }
     finally { setLoading(false); }
   }
 
   async function chooseDialog(id: string) {
-    sample.setData('dialog', id);
-    sample.setData('message', '');
-    setLoading(true); setError('');
+    sample.setData(current => ({ ...current, dialog: id, message: '' }));
+    setMessages([]); setLoading(true); setError('');
     try {
       const response = await fetch(`/seller/knowledge/fewshot/dialogs/${id}`, { headers: { Accept: 'application/json' } });
       if (!response.ok) throw new Error('Не удалось загрузить реплики.');
@@ -62,7 +59,7 @@ export default function BadAndDialog({ version, badExamples, maxWords = null, ta
         {dialogs.length > 0 && <fieldset className="space-y-2"><legend className="text-sm font-semibold">Диалог</legend>{dialogs.map(dialog => <label className="flex cursor-pointer gap-2 rounded-lg bg-(--color-surface-muted) p-3 text-sm" key={dialog.id}><input type="radio" name="dialog" checked={sample.data.dialog === dialog.id} onChange={() => void chooseDialog(dialog.id)} />{dialog.name} · {dialog.id.slice(-6)}</label>)}</fieldset>}
         {sample.data.dialog && <fieldset className="space-y-2"><legend className="text-sm font-semibold">Реплика менеджера</legend>{messages.length === 0 && !loading ? <p className="text-sm">Реплик менеджера нет.</p> : messages.map(message => <label className="flex cursor-pointer gap-2 rounded-lg bg-(--color-surface-muted) p-3 text-sm" key={message.id}><input type="radio" name="message" checked={sample.data.message === message.id} onChange={() => sample.setData('message', message.id)} />{message.text}</label>)}</fieldset>}
         {maxWords !== null && selectedWords > maxWords && <p role="status" className="text-sm text-(--color-danger-ink)">Текст длиннее лимита персонажа: слов: {selectedWords}, лимит: {maxWords}.</p>}
-        <form className="space-y-3" onSubmit={event => { event.preventDefault(); sample.transform(data => ({ ...data, version })); sample.post('/seller/knowledge/fewshot/from-dialog', { preserveScroll: true, onSuccess: () => { onOpenChange(false); sample.reset(); } }); }}><label className="block text-sm">Тег<select required value={sample.data.tag} onChange={event => sample.setData('tag', event.target.value)} className={`${field} cursor-pointer`}><option value="">Выберите тег</option>{tags.map(tag => <option key={tag} value={tag}>{tag}</option>)}</select></label><label className="block text-sm">Ситуация<input maxLength={500} value={sample.data.situation} onChange={event => sample.setData('situation', event.target.value)} className={field} /></label><label className="block text-sm">Уверенность<input aria-label="Уверенность" type="range" min="0" max="1" step="0.01" value={sample.data.confidence} onChange={event => sample.setData('confidence', Number(event.target.value))} className="mt-2 block w-full cursor-pointer" /><output className="mt-1 block text-sm">{sample.data.confidence.toFixed(2)}</output></label><button disabled={sample.processing || !sample.data.message} className={`${button} bg-(--color-link) text-white`}>Добавить образец</button>{Object.values(sample.errors).map((message, index) => <p role="alert" className="text-sm text-(--color-danger-ink)" key={index}>{message}</p>)}</form>
+        <form className="space-y-3" onSubmit={event => { event.preventDefault(); sample.transform(data => ({ ...data, version })); sample.post('/seller/knowledge/fewshot/from-dialog', { preserveScroll: true, onStart: () => setError(''), onNetworkError: () => { setError('Нет связи. Повторите добавление.'); return false; }, onSuccess: () => { onOpenChange(false); sample.reset(); } }); }}><label className="block text-sm">Тег<select required value={sample.data.tag} onChange={event => sample.setData('tag', event.target.value)} className={`${field} cursor-pointer`}><option value="">Выберите тег</option>{tags.map(tag => <option key={tag} value={tag}>{tag}</option>)}</select></label><label className="block text-sm">Ситуация<input maxLength={500} value={sample.data.situation} onChange={event => sample.setData('situation', event.target.value)} className={field} /></label><label className="block text-sm">Уверенность<input aria-label="Уверенность" type="range" min="0" max="1" step="0.01" value={sample.data.confidence} onChange={event => sample.setData('confidence', Number(event.target.value))} className="mt-2 block w-full cursor-pointer" /><output className="mt-1 block text-sm">{sample.data.confidence.toFixed(2)}</output></label><button disabled={sample.processing || !sample.data.message} className={`${button} bg-(--color-link) text-white`}>Добавить образец</button>{Object.values(sample.errors).map((message, index) => <p role="alert" className="text-sm text-(--color-danger-ink)" key={index}>{message}</p>)}</form>
       </div>{error && <p role="alert" className="mt-3 text-sm text-(--color-danger-ink)">{error}</p>}</DialogPrimitive.Content></DialogPrimitive.Portal></DialogPrimitive.Root>
     </section>
   </div>;
