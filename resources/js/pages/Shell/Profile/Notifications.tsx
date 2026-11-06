@@ -379,7 +379,7 @@ export default function Notifications({
             type="submit"
             className="w-full cursor-pointer sm:w-auto"
             loading={form.processing}
-            disabled={!settings.events.length}
+            disabled={!settings.events.length || !form.isDirty}
           >
             {t('save')}
           </Button>
