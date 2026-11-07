@@ -53,16 +53,7 @@ final class DrainNotifications extends Command
             app(FakeTimedDelivery::class)->drain((bool) $this->option('retry-failed'));
         } elseif (config('features.E0-04.defaults.external_delivery')) {
             try {
-                $statuses = $this->option('retry-failed') ? ['pending', 'failed'] : ['pending'];
-                $ids = DB::table('notification_deliveries')->whereIn('status', $statuses)->whereIn('channel', ['email', 'telegram'])->orderBy('created_at')->orderBy('id')->limit(100)->pluck('id');
-                foreach ($ids as $id) {
-                    try {
-                        $delivery->send($id);
-                    } catch (Throwable) {
-                        $errors++;
-                        Log::error('Notification delivery processing failed.', ['code' => 'delivery_processing_failed']);
-                    }
-                }
+                $delivery->drain($this->option('retry-failed') ? ['pending', 'failed'] : ['pending'], 100);
             } catch (Throwable) {
                 $errors++;
                 Log::error('Notification delivery page could not be loaded.', ['code' => 'delivery_page_failed']);

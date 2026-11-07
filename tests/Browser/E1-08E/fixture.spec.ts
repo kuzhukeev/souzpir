@@ -12,7 +12,9 @@ test('сохранение событий доступно только посл
  const sw=page.getByRole('switch',{name:/Диалог ждёт менеджера: В кабинете/});await sw.click();await expect(save).toBeEnabled();await sw.click();await expect(save).toBeDisabled();
  const timing=page.getByRole('button',{name:'Сохранить настройки'});await expect(timing).toBeDisabled();
  await page.getByLabel('Сводка вместо каждого события: раз в день').check();await expect(timing).toBeEnabled();
- await expect(page.getByText('Тестовая доставка')).toBeVisible();
+ await expect(page.getByText('Сводка вместо каждого события: раз в день в 09:00')).toBeVisible();
+ await expect(page.getByText(/В тихие часы письма и сообщения в Telegram откладываются/)).toBeVisible();
+ await expect(page.getByText('Тестовая доставка')).toHaveCount(0);
  await mkdir('.local/screenshots/SP-E1-08E',{recursive:true});await page.screenshot({path:'.local/screenshots/SP-E1-08E/notifications.png',fullPage:true});
 });
 test('в профиле доступен диалог смены адреса при разрешённом флаге',async({page})=>{
