@@ -100,6 +100,16 @@ test('real pages after creating knowledge through the UI', async ({ page, browse
   await topicDialog.getByRole('button', { name: 'Сохранить', exact: true }).click();
   await expect(topicDialog).toBeHidden();
   await expect(page.getByText('Доставка', { exact: true }).first()).toBeVisible();
+  await page.goto(`${origin}/seller/knowledge/fewshot`);
+  await expect(page.locator('[aria-busy="true"]')).toHaveCount(0, { timeout: 15000 });
+  const sampleForm = page.locator('form').filter({ has: page.getByRole('heading', { name: 'Добавить образец' }) });
+  const tag = await sampleForm.getByLabel('Тег').locator('option').nth(1).getAttribute('value');
+  if (!tag) throw new Error('Synthetic sample tag missing');
+  await sampleForm.getByLabel('Тег').selectOption(tag);
+  await sampleForm.getByLabel('Ситуация').fill('Вопрос о доставке');
+  await sampleForm.getByLabel('Ответ', { exact: true }).fill('Доставляем по России.');
+  await sampleForm.getByRole('button', { name: 'Сохранить', exact: true }).click();
+  await expect(page.getByText('Доставляем по России.', { exact: true }).first()).toBeVisible();
   await page.goto(`${origin}/seller/channels/widget`);
   await page.getByLabel('Адреса сайтов').fill(origin);
   await page.getByLabel('Включить виджет на разрешённых сайтах').check();
@@ -234,6 +244,6 @@ test('real pages after creating knowledge through the UI', async ({ page, browse
   await writeFile('.local/screenshots/SP-E9-01G/populated-status.json', JSON.stringify(results, null, 2));
   await page.goto(`${origin}/seller/dialogs/mine`);
   await page.getByRole('button', { name: /Посетитель виджета/ }).first().click();
-  await expect(page.getByRole('heading', { name: 'Посетитель виджета' })).toBeVisible();
-  expect(findings).toEqual([]);
+  await expect.soft(page.getByRole('heading', { name: 'Посетитель виджета' })).toBeVisible();
+  expect.soft(findings).toEqual([]);
 });
