@@ -43,6 +43,13 @@ test('schema shows published fields and scroll regions are keyboard accessible',
 });
 
 test('customer field labels and dialog stage are readable and semantic', async ({ page }) => {
+  await page.goto(new URL('/tests/Browser/E6-10E/customer.html', base).href);
+  const field = page.getByRole('combobox', { name: 'Дополнительное поле' });
+  const value = page.getByRole('textbox', { name: 'Значение поля' });
+  await expect(value).toBeDisabled();
+  await field.selectOption('car_year');
+  await value.fill('2020');
+  await expect(value).toHaveValue('2020');
   await page.goto(new URL('/tests/Browser/E6-10E/customer.html?show', base).href);
   await expect(page.getByText('Год выпуска', { exact: true })).toBeVisible();
   await expect(page.getByText('2020', { exact: true })).toBeVisible();
