@@ -24,6 +24,7 @@ final class FactCardE402DTest extends TenancyTestCase
         $this->post('/seller/knowledge/facts', ['version' => 2, 'group' => 'delivery', 'text' => 'Before'])->assertRedirect();
         $editor = $this->get('/seller/knowledge/facts')->inertiaProps('editor');
         $id = $editor['groups'][0]['facts'][0]['id'];
+        $this->get('/seller/knowledge/facts/'.$id)->assertOk()->assertInertia(fn ($page) => $page->where('example', null));
         $input = ['version' => 3, 'text' => 'After', 'status' => 'active', 'source' => 'manual', 'group' => 'delivery', 'bridge_hint' => 'Ask city', 'must_not' => "No promise\nNo date"];
         $this->post('/seller/knowledge/facts/'.$id, $input)->assertRedirect()->assertSessionHasNoErrors();
         $this->get('/seller/knowledge/facts/'.$id)->assertInertia(fn ($page) => $page->where('fact.text', 'After')->where('version', 5)->where('group.bridge_hint', 'Ask city')->where('group.must_not', ['No promise', 'No date']));

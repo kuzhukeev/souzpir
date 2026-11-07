@@ -30,9 +30,11 @@ function questionCount(count: number) {
   return `${count} ${ending}`;
 }
 type Recommendation = {priority: string | null; steps: string[]; question_ids: string[]};
-type Effect = {id: string; completed_by_name: string | null; before: {visibility: number; date: string} | null; after: {visibility: number; date: string} | null; delta: number | null};
+type Effect = {id: string; completed_by_name: string | null; before: {visibility: number; date?: string | null} | null; after: {visibility: number; date?: string | null} | null; delta: number | null};
 function effectComparison(effect?: Effect) {
-  return effect?.before && effect.after ? `${formatDate(effect.before.date)}: ${effect.before.visibility} % → ${formatDate(effect.after.date)}: ${effect.after.visibility} %` : 'Нет сопоставимых замеров';
+  if (!effect?.before || !effect.after) return 'Нет сопоставимых замеров';
+  const dates = [effect.before.date ? `до: ${formatDate(effect.before.date)}` : null, effect.after.date ? `после: ${formatDate(effect.after.date)}` : null].filter(Boolean);
+  return `${effect.before.visibility} % → ${effect.after.visibility} %${dates.length ? ` (${dates.join(' · ')})` : ''}`;
 }
 function effectDelta(effect?: Effect) {
   return effect?.delta === null || effect?.delta === undefined ? 'Рано судить' : `${effect.delta > 0 ? '+' : ''}${effect.delta} п.п.`;
