@@ -12,7 +12,7 @@ test('сохранённый документ открывается без по
  await page.getByLabel('Действия: Ранее.pdf').click();
  await page.getByRole('button', { name: 'Посмотреть', exact: true }).click();
  await expect(page.getByRole('heading', { name: 'Сопоставление фактов' })).toBeVisible();
- await expect(page.getByText('Факт из файла', { exact: true })).toBeVisible();
+ await expect(page.getByRole('list', { name: 'Сопоставление фрагментов и фактов' }).locator('p').filter({ hasText: /^Факт из файла$/ })).toBeVisible();
  await page.getByRole('button', { name: 'К документам' }).click();
  await expect(page.getByRole('row').filter({ hasText: 'Старый.txt' })).toContainText('Исходник недоступен');
  await mkdir('.local/screenshots/SP-E4-06L', { recursive: true });
