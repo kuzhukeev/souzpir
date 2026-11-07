@@ -1,0 +1,13 @@
+import {test,expect} from '@playwright/test';
+import {createServer,type ViteDevServer} from 'vite';
+let server:ViteDevServer; let url:string;
+test.setTimeout(60000);
+test.use({viewport:{width:1440,height:900},launchOptions:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH?{executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH}:{}});
+test.beforeAll(async()=>{server=await createServer({configFile:'tests/Browser/E7-04/vite.config.ts',server:{host:'127.0.0.1',port:0}});await server.listen();url=new URL('/tests/Browser/E7-04P/details.html',server.resolvedUrls!.local[0]).href;});
+test.afterAll(async()=>{await server?.close();});
+test('среднее время до контакта на вкладке Диалоги (D-8.2)',async({page})=>{
+ await page.goto(url);
+ await page.getByRole('button',{name:'Диалоги',exact:true}).click();
+ await expect(page.getByText('Среднее время до контакта: 6 мин 20 сек.')).toBeVisible();
+ await page.screenshot({path:'.local/screenshots/SP-E7-04P/dialogs.png'});
+});
