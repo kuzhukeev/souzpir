@@ -5,15 +5,16 @@
 - V-6.3 (очередь queue.md 07.11): пересчёт объединённого отчёта вынесен из синхронного запроса в `RecalculateMergedReportJob` (ShouldQueue). Контроллер синхронно проверяет только дешёвое условие (есть подтверждённый отчёт — иначе откат алиасов и ошибка `source`, как раньше), затем кладёт в кэш `vision:competitors:merge:<org>:<brand>` стадию `queued` и диспатчит job; job переводит стадию в `recalculating`→`complete`/`failed`. Экраны `/vision/competitors` и `/vision/competitors/merge` получают проп `mergeProgress` и показывают баннер «Пересчитываем, 1–2 минуты» (как на макете V-6.3 recalculating) со спиннером, поллинг `router.reload` каждые 2с, пока стадия `queued`/`recalculating`; при `failed` — отдельное сообщение об ошибке.
 - V-5.7: без изменений, остаётся заблокирован решением владельца (вопрос Q2 от 07.11, `docs/decisions-pending.md`); код по-прежнему не придумывает приоритет/шаги.
 
+- V-6.3 (остаток после аудита 07.11, повторное открытие): добавлен Playwright-тест `tests/Browser/E8-20Y/progress.spec.ts` на баннер «Пересчитываем» — опрос `router.reload` раз в 2с до `queued`/`recalculating`→скрытие при завершении, и отдельный сценарий `failed` с остановкой опроса.
+
 ## Проверки
-- `php artisan test tests/Feature/Vision/Competitors/`: 21 тест, 509 проверок (новый `test_merge_shows_recalculating_banner_until_the_queued_job_completes_or_fails` — Queue::fake, проверены стадии queued→complete и queued→failed через `mergeProgress`; остальные тесты модуля — без регрессий).
-- `./vendor/bin/pint --test app/Vision/Competitors tests/Feature/Vision/Competitors` — ок.
-- `npx playwright test tests/Browser/E8-20X tests/Browser/E8-20W tests/Browser/E8-20G tests/Browser/E8-20F` — 8 сценариев, без регрессий.
-- `check lint`, `check frontend` (eslint/tsc/vite build) — ок.
+- `php artisan test tests/Feature/Vision/Competitors/`: 21 тест, 509 проверок — без регрессий.
+- `npx playwright test tests/Browser/E8-20Y`: 2 сценария (баннер queued→recalculating→скрыт; failed без дальнейшего опроса) — зелёные.
+- `check lint`, `check frontend` (pint/eslint/tsc/vite build) — ок.
 - Сверено с макетом `110/1f71e876-V-6.3-recalculating.webp`.
 
 ## Остаток
-- V-5.7: источник сопоставления с конкурентами, формула и пороги приоритета, источник шагов рекомендаций — решение владельца не принято.
+- V-5.7: источник сопоставления с конкурентами, формула и пороги приоритета, источник шагов рекомендаций — решение владельца не принято (вопрос Q2 от 07.11 уже задан, второй раз не спрашиваю).
 
 ## Техдолг
 - В тестовом/dev-окружении `QUEUE_CONNECTION=sync`, поэтому job выполняется синхронно в том же запросе и баннер «Пересчитываем» практически не виден человеку (виден только при реальном асинхронном воркере) — поведение корректно, но визуально не проверяемо в этом окружении.
