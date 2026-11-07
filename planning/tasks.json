@@ -19453,7 +19453,7 @@
       "taskKey": "SP-E6-10E",
       "title": "SP-E6-10E · Поля клиентов в движке и диалогах",
       "goal": "Применить дополнительные поля в сборе данных и карточке диалога, расширив фиксированные LeadState::SLOTS. Заполнить оптовые поля только для подтверждённого прототип-бренда; остальные начинают с пустого списка. Завершить оформление D-5.1 и просмотр опубликованной схемы. Остаток SP-E6-10C: обязательные поля до передачи и для стадии, карточка клиента, фильтры, labels.ts и Releases/Run.tsx; сверить экран с макетом.",
-      "description": "# SP-E6-10E · Поля клиентов в движке и диалогах\n\n**Зачем:** завершить экран по решению владельца.\n**Часть чего:** остаток SP-E6-10, docs/results/SP-E6-10.md.\n**Зависимости:** SP-E6-10.\n\n## Приёмка\n- Применить дополнительные поля в сборе данных и карточке диалога, расширив фиксированные LeadState::SLOTS.\n- Заполнить оптовые поля только для подтверждённого прототип-бренда; остальные начинают с пустого списка.\n- Завершить оформление D-5.1 и просмотр опубликованной схемы.\n\nПроверить права, бренд и ошибки. Остаток записать в отчёт.\n\nScope: `app/Seller/Engine/`, `app/Seller/Dialogs/`, `app/Seller/Settings/Policy/`, `resources/js/pages/Seller/Dialogs/`, `resources/js/pages/Seller/Settings/Policy/`, `tests/Feature/Seller/Engine/`, `tests/Feature/Seller/Dialogs/`, `tests/Browser/E6-10E/`, `docs/results/SP-E6-10E.md`.\n\n## Остаток SP-E6-10C\n- Остаток SP-E6-10C: обязательные поля до передачи и для стадии, карточка клиента, фильтры, labels.ts и Releases/Run.tsx; сверить экран с макетом.\n\nДополнительный scope: `app/Seller/Customers/`, `resources/js/pages/Seller/Customers/`, `resources/js/features/Seller/Customers/labels.ts`, `resources/js/pages/Seller/Knowledge/Releases/Run.tsx`, `tests/Feature/Seller/Customers/`.\n\nДля защищённого runtime: \u0007pp/ProtectedOperations/, \tests/Feature/ProtectedOperations/.\n\n## Решение владельца 06.11.2026 — общие AI-стадии\n\nРешение владельца 06.11: разрешены только совместимые добавления общих AI-стадий без рефакторинга и без изменения существующего поведения и записанного replay; проверить права, изоляцию брендов и повторы. Только fake AI; живые и платные вызовы выключены. Общий ресурс shared-ai-stages занимает одна карточка до слияния. Прежние ограничения «до решения владельца» считать снятыми в этих границах.\n",
+      "description": "# SP-E6-10E · Поля клиентов в движке и диалогах\n\n**Зачем:** завершить экран по решению владельца.\n**Часть чего:** остаток SP-E6-10, docs/results/SP-E6-10.md.\n**Зависимости:** SP-E6-10.\n\n## Приёмка\n- Применить дополнительные поля в сборе данных и карточке диалога, расширив фиксированные LeadState::SLOTS.\n- Заполнить оптовые поля только для подтверждённого прототип-бренда; остальные начинают с пустого списка.\n- Завершить оформление D-5.1 и просмотр опубликованной схемы.\n\nПроверить права, бренд и ошибки. Остаток записать в отчёт.\n\nScope: `app/Seller/Engine/`, `app/Seller/Dialogs/`, `app/Seller/Settings/Policy/`, `resources/js/pages/Seller/Dialogs/`, `resources/js/pages/Seller/Settings/Policy/`, `tests/Feature/Seller/Engine/`, `tests/Feature/Seller/Dialogs/`, `tests/Browser/E6-10E/`, `docs/results/SP-E6-10E.md`.\n\n## Остаток SP-E6-10C\n- Остаток SP-E6-10C: обязательные поля до передачи и для стадии, карточка клиента, фильтры, labels.ts и Releases/Run.tsx; сверить экран с макетом.\n\nДополнительный scope: `app/Seller/Customers/`, `resources/js/pages/Seller/Customers/`, `resources/js/features/Seller/Customers/labels.ts`, `resources/js/pages/Seller/Knowledge/Releases/Run.tsx`, `tests/Feature/Seller/Customers/`.\n\nДля защищённого runtime: `app/ProtectedOperations/DraftSimulation/FixtureRuntime.php`, `tests/Feature/ProtectedOperations/`.\n\n## Решение владельца 06.11.2026 — общие AI-стадии\n\nРешение владельца 06.11: разрешены только совместимые добавления общих AI-стадий без рефакторинга и без изменения существующего поведения и записанного replay; проверить права, изоляцию брендов и повторы. Только fake AI; живые и платные вызовы выключены. Общий ресурс shared-ai-stages занимает одна карточка до слияния. Прежние ограничения «до решения владельца» считать снятыми в этих границах.\n\n## Конкретный остаток SP-E6-10D\n- D-5.1: показать в модальном окне «Схема полей» опубликованные дополнительные поля вместе с системными.\n- Проверить извлечение и сохранение всех девяти значений автосервиса и онлайн-школы, выбор следующего обязательного поля и видимый результат; FixtureRuntime не должен отбрасывать опубликованные дополнительные поля.\n",
       "dependsOn": [
         "SP-E6-10",
         "SP-E6-10C"
@@ -19474,7 +19474,8 @@
         "resources/js/pages/Seller/Knowledge/Releases/Run.tsx",
         "tests/Feature/Seller/Customers/",
         "app/ProtectedOperations/",
-        "tests/Feature/ProtectedOperations/"
+        "tests/Feature/ProtectedOperations/",
+        "app/ProtectedOperations/DraftSimulation/FixtureRuntime.php"
       ],
       "exclusiveResources": [
         "shared-ai-stages"
@@ -19484,11 +19485,14 @@
         "Заполнить оптовые поля только для подтверждённого прототип-бренда; остальные начинают с пустого списка.",
         "Завершить оформление D-5.1 и просмотр опубликованной схемы.",
         "Остаток SP-E6-10C: обязательные поля до передачи и для стадии, карточка клиента, фильтры, labels.ts и Releases/Run.tsx; сверить экран с макетом.",
-        "Решение владельца 06.11: разрешены только совместимые добавления общих AI-стадий без рефакторинга и без изменения существующего поведения и записанного replay; проверить права, изоляцию брендов и повторы. Только fake AI; живые и платные вызовы выключены. Общий ресурс shared-ai-stages занимает одна карточка до слияния."
+        "Решение владельца 06.11: разрешены только совместимые добавления общих AI-стадий без рефакторинга и без изменения существующего поведения и записанного replay; проверить права, изоляцию брендов и повторы. Только fake AI; живые и платные вызовы выключены. Общий ресурс shared-ai-stages занимает одна карточка до слияния.",
+        "D-5.1: показать в модальном окне «Схема полей» опубликованные дополнительные поля вместе с системными.",
+        "Проверить извлечение и сохранение всех девяти значений автосервиса и онлайн-школы, выбор следующего обязательного поля и видимый результат; FixtureRuntime не должен отбрасывать опубликованные дополнительные поля."
       ],
       "sourceRefs": [
         "docs/sources/02_screens_matrix.md",
-        "docs/sources/02b_mockup_journal.md"
+        "docs/sources/02b_mockup_journal.md",
+        "docs/results/SP-E6-10D.md"
       ],
       "screenIds": [
         "D-5.1"
@@ -23968,6 +23972,49 @@
       "wave": 20,
       "promptPath": "docs/tasks/SP-E9-01F.md",
       "description": "# SP-E9-01F · Остаток сквозной приёмки\n\n**Зачем:** конкретные незакрытые сценарии и проверки согласованной приёмки.\n**Часть чего:** остаток SP-E9-01E, docs/results/SP-E9-01E.md.\n**Зависимости:** SP-E9-01E; каждый сценарий запускать по готовности соответствующей функции.\n\n## Приёмка\n- Сценарий 3: Telegram webhook → ответ fake-бота → перехват и возврат в браузере после готовности runtime.\n- Сценарий 4: изменение факта отражается в ответе песочницы; публикация и откат через браузер.\n- Сценарий 5: причины передачи → диалог → задача → fake-уведомление; проверить изоляцию.\n- Сценарий 7: после реализации переписки проверить сообщения виджета и связь с диалогом и клиентом.\n- Сценарий 8: после включения переключателя в диалогах проверить смену бренда и очистку кэша и состояния вкладок.\n- Сравнить предусмотренные ТЗ 20 экранов с макетами на 1440/1024/390; axe для остальных E2E-экранов; фактически выполнить ручной CI.\n- Изолированная тестовая БД и fake; живые и платные вызовы отключены. Доступные пункты выполнять в этой карточке; уже подтверждённые неизменённые проверки не повторять.\n\nScope: `tests/Browser/Acceptance/`, `tests/visual/`, `docs/validation/`, `.github/workflows/`, `docs/results/SP-E9-01F.md`.\n"
+    },
+    {
+      "taskKey": "SP-E5-03E",
+      "title": "SP-E5-03E · Первый защищённый API-ход и журнал",
+      "goal": "Завершить конкретный остаток API-канала SP-E5-03D.",
+      "dependsOn": [
+        "SP-E5-03D"
+      ],
+      "scope": [
+        "app/Seller/Channels/Api/",
+        "app/Seller/Runtime/",
+        "app/ProtectedOperations/",
+        "app/Ai/Protected/",
+        "app/Ai/Gateway.php",
+        "app/Tenancy/TokenApi/",
+        "resources/js/pages/Seller/Channels/Api/",
+        "routes/features/E5-03.php",
+        "tests/Feature/Seller/Channels/Api/",
+        "tests/Feature/ProtectedOperations/",
+        "tests/Feature/SellerRuntime/Turns/",
+        "tests/Feature/Ai/",
+        "tests/Browser/E5-03E/",
+        "docs/results/SP-E5-03E.md"
+      ],
+      "exclusiveResources": [
+        "shared-ai-stages"
+      ],
+      "acceptance": [
+        "D-9.9: реализовать action=open и сохраняемый выбор «Написать первым»: защищённый первый исходящий ход без клиентского сообщения через Policy, Responder и Guard, с хранением, повтором и изоляцией.",
+        "Заменить фиксированные fake-подсказку и ответ FollowupFinalizer защищёнными extractor/responder/guard и Gateway; проверить полный fake-сценарий, ошибки, повторы, права и бренд.",
+        "Сохранить и отобразить источник сайт или CRM по согласованному контракту в журнале D-9.9; проверить экран после подключения выбора.",
+        "Согласовать двухэтапный путь для Gateway вне транзакции ResolveTokenTenant; проверить сквозной результат и обработку ошибок без живых или платных вызовов."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E5-03D.md"
+      ],
+      "screenIds": [
+        "D-9.9"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E5-03E.md",
+      "description": "# SP-E5-03E · Первый защищённый API-ход и журнал\n\n**Зачем:** конкретные незакрытые пункты D-9.9 и защищённого API-хода.\n**Часть чего:** остаток SP-E5-03D, docs/results/SP-E5-03D.md.\n**Зависимости:** SP-E5-03D; общие AI-стадии через shared-ai-stages.\n\n## Приёмка\n- D-9.9: реализовать action=open и сохраняемый выбор «Написать первым»: защищённый первый исходящий ход без клиентского сообщения через Policy, Responder и Guard, с хранением, повтором и изоляцией.\n- Заменить фиксированные fake-подсказку и ответ FollowupFinalizer защищёнными extractor/responder/guard и Gateway; проверить полный fake-сценарий, ошибки, повторы, права и бренд.\n- Сохранить и отобразить источник сайт или CRM по согласованному контракту в журнале D-9.9; проверить экран после подключения выбора.\n- Согласовать двухэтапный путь для Gateway вне транзакции ResolveTokenTenant; проверить сквозной результат и обработку ошибок без живых или платных вызовов.\n- Проверить UI, маршрут, обработчик, хранение и видимый результат, изоляцию брендов, права, 1–2 ошибки и fake; прежние неизменённые проверки не повторять ради карточки.\n\nScope: `app/Seller/Channels/Api/`, `app/Seller/Runtime/`, `app/ProtectedOperations/`, `app/Ai/Protected/`, `app/Ai/Gateway.php`, `app/Tenancy/TokenApi/`, `resources/js/pages/Seller/Channels/Api/`, `routes/features/E5-03.php`, `tests/Feature/Seller/Channels/Api/`, `tests/Feature/ProtectedOperations/`, `tests/Feature/SellerRuntime/Turns/`, `tests/Feature/Ai/`, `tests/Browser/E5-03E/`, `docs/results/SP-E5-03E.md`.\n"
     }
   ],
   "excludedSourceTasks": {
