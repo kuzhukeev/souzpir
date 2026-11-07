@@ -691,6 +691,7 @@ declare module 'ziggy-js' {
     "seller.customers.io.import": [],
     "seller.reviews.index": [],
     "seller.reviews.dismiss": [],
+    "seller.reviews.send": [],
     "seller.persona.index": [],
     "seller.persona.save": [],
     "seller.persona.phrases.save": [],
