@@ -6,6 +6,7 @@ use App\Models\Brand;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\User;
+use App\Privacy\ModuleDataOwnership;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
 use App\Shell\Auth\AuthSessionRegistry;
@@ -193,7 +194,7 @@ final class OrganizationController
             }
             $quota = $limits->get($ctx, $module === 'seller' ? 'seller.dialogs_month' : 'vision.runs_per_week');
             $moduleRow = DB::table('brand_modules')->where('brand_id', $target->id)->where('organization_id', $ctx->organizationId)->where('module', $module)->first();
-            $items[$module] = ['usage' => $measurement, 'quota' => ['value' => $quota->value, 'configured' => $quota->configured, 'unit' => $quota->unit], 'enabled' => $modules->enabled($scoped, $module), 'configured_enabled' => (bool) ($moduleRow->enabled ?? false), 'enabled_at' => ($moduleRow->enabled ?? false) ? $moduleRow->updated_at : null, 'disabled_at' => $moduleRow && ! $moduleRow->enabled ? $moduleRow->updated_at : null, 'retention_review_at' => $moduleRow && ! $moduleRow->enabled ? CarbonImmutable::parse($moduleRow->updated_at)->addDays(90)->toIso8601String() : null, 'allowed' => $modules->allowedByPlan($scoped, $module), 'limit' => ['value' => $limit->value, 'configured' => $limit->configured, 'unit' => $limit->unit]];
+            $items[$module] = ['usage' => $measurement, 'quota' => ['value' => $quota->value, 'configured' => $quota->configured, 'unit' => $quota->unit], 'enabled' => $modules->enabled($scoped, $module), 'configured_enabled' => (bool) ($moduleRow->enabled ?? false), 'enabled_at' => ($moduleRow->enabled ?? false) ? $moduleRow->updated_at : null, 'disabled_at' => $moduleRow && ! $moduleRow->enabled ? $moduleRow->updated_at : null, 'retention_review_at' => $moduleRow && ! $moduleRow->enabled ? ModuleDataOwnership::retentionReviewAt(CarbonImmutable::parse($moduleRow->updated_at))->toIso8601String() : null, 'allowed' => $modules->allowedByPlan($scoped, $module), 'limit' => ['value' => $limit->value, 'configured' => $limit->configured, 'unit' => $limit->unit]];
         }
 
         $counts = [
