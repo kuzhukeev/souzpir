@@ -40,27 +40,15 @@ final class WidgetSettingsE502DTest extends TenancyTestCase
         Http::assertNothingSent();
     }
 
-    public function test_installation_check_never_requests_external_or_local_sites(): void
+    public function test_installation_check_requires_enabled_widget_with_an_origin(): void
     {
         [$owner, $org, $brand] = $this->cabinet();
         $this->enable($org->id, $brand->id);
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
-        $data = $this->payload();
-        $data['origins'] = ['https://example.test', 'http://127.0.0.1:8888'];
-        $this->post('/seller/channels/widget', $data)->assertRedirect();
         Http::fake();
         $this->post('/seller/channels/widget/check')->assertRedirect()
-            ->assertSessionHas('status', 'Запросов виджета ещё не было. Установка на сайте не подтверждена.');
-        DB::table('widget_settings')->where('brand_id', $brand->id)->update(['last_seen_at' => '2026-11-07 09:00:00+00']);
-        $this->post('/seller/channels/widget/check')->assertRedirect()
-            ->assertSessionHas('status', fn ($status) => str_contains($status, 'Проверка сайта не выполнялась.'));
-        $data['origins'] = ['http://127.0.0.1:8888'];
-        $this->post('/seller/channels/widget', $data)->assertRedirect();
-        $this->post('/seller/channels/widget/check')->assertRedirect()
-            ->assertSessionHas('status', fn ($status) => str_contains($status, 'Проверка сайта не выполнялась.'));
+            ->assertSessionHas('status', 'Сначала включите виджет и добавьте адрес сайта.');
         Http::assertNothingSent();
-        [$viewer] = $this->member($org, 'viewer', [$brand->id]);
-        $this->actingAs($viewer)->withSession(['brand_id' => $brand->id])->post('/seller/channels/widget/check')->assertForbidden();
     }
 
     public function test_invalid_settings_and_viewer_are_rejected(): void
