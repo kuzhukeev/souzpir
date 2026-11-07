@@ -1,18 +1,18 @@
 Модель: Sonnet 5
 
-# SP-E6-01E — подключить служебные фразы к ходу продавца
+# SP-E6-01E — служебные фразы reminder/goodbye к напоминаниям клиенту
 
-Сделано: `ServicePhraseSelector::customForEvent()` (только явно сохранённая фраза, без дефолта) подключён к `FirstTurnTextFinalizer` и `FollowupFinalizer` для событий `unknown_fact` (ключ `no_answer`) и `handoff` — если продавец сохранил фразу, финальный текст первого/последующего ответа заменяется на неё независимо от текста fake-AI; если фраза не сохранена — поведение не меняется (совместимо со старыми fixtures).
+Продолжение после приёмки 07.11 (error/handoff/no_answer/out_of_hours/opt_out — влито ранее). В этой части: `ServicePhraseSelector::customForEvent()` подключён к `PrepareFollowups` (`app/Seller/Followups/`) для текста напоминаний клиенту о заявке.
 
-Проверки (fake-прогон настоящего хода через `/seller/turns/first`, оба события): `tests/Feature/Seller/Runtime/ServicePhraseOverrideE601ETest.php` — 2 теста, 12 проверок (связка extractor→responder→guard→finalizer→БД, изоляция в своём org/brand). Регрессия существующих fixtures: `ServicePhraseSelectorTest.php`, `QuotaRuntimeE113Test.php`, `ReactionRuntimeE603VTest.php`, `FirstSellerTurnHttpTest.php` — зелёные без изменений. `phpunit.xml` не трогал (файл вне scope) — тест лежит в уже покрытой wildcard-директории `tests/Feature/Seller`. `check lint` — Pint ok, composer validate ok, покрытие suites ok.
+Сделано: при формировании `seller_followup_candidates` для причины `silence` — если у бренда явно сохранена фраза `reminder`, она заменяет шаблонный текст напоминания (кастомные `texts` настройки / fewshot-фолбэк / дефолтный текст — не трогаются, если фраза не сохранена); на последнем разрешённом по `max_auto` напоминании (sequence === max_auto) та же логика применяется к фразе `goodbye` вместо `reminder` — естественная точка «прощания» перед тем, как бот прекращает напоминать. Причина `next_contact_at` (договорённый контакт, `agreed_text`) не трогается — это отдельная настройка. Только явно сохранённая фраза, без дефолтов — старое поведение без сохранённой фразы не меняется.
 
-`tests/Feature/ProtectedOperations/FirstTurnStateTest.php` (golden, suite CoreTurns) не запускается в слоте exec-9: его `createApplication()` требует роль БД без CREATEDB (у роли слота `rolcreatedb=true`) — ограничение окружения, не связано с диффом; изменённые в нём строки не трогались. Полный прогон — на CI.
+Проверки: новый `tests/Feature/Seller/Followups/ReminderGoodbyePhraseE601ETest.php` — 3 теста, 9 проверок (reminder-override до последнего, goodbye-override на последнем, без сохранённой фразы — шаблон как раньше; через мок `KnowledgeRepository`, brand-scoped `withArgs`). Регрессия модуля: `tests/Feature/Seller/Followups/` — все 25 тестов зелёные (231 проверок), включая изоляцию бренда и прав (`AgreedTimeE603KTest`, `FollowupsScreenTest`). Регрессия runtime: `ServicePhraseSelectorTest`, `ServicePhraseOverrideE601ETest`, `QuotaRuntimeE113Test`, `ReactionRuntimeE603VTest`, `FirstSellerTurnHttpTest` — зелёные без изменений (10 тестов). `check lint` — composer validate ok, покрытие suites ok, Pint ok. Без живых вызовов (`Http::preventStrayRequests`).
 
 ## Остаток
-- `error`, `out_of_hours`, `opt_out`, `reminder`, `goodbye` — не подключены: `opt_out` на первом ходе осознанно отклоняется протектед-финализатором (`ReactionRuntimeE603VTest`, SP-E6-03V) — не трогал; `out_of_hours` уже показывается только в настройках расписания (`ScheduleController`, вне scope) и по факту передаётся фразой `handoff` (`BrandRuntimeSchedule::fallbackPhrase`, подключено ранее); `reminder`/`goodbye` формируются в `app/Seller/Followups/` — вне scope карточки; `error` не имеет в scope детерминированной точки формирования клиентского текста (сбои сейчас завершаются `unavailable`/handoff менеджеру без текста). Нужна отдельная карточка с явным scope на `app/Seller/Followups/` и/или `app/Seller/Engine/`.
+- `error` — не подключена и в этой части: даже в границах `app/Seller/Followups/` у сбоя отправки (`FollowupSender` try/catch) нет клиентского текста — ход просто не завершается, кандидат остаётся `pending` для повтора; детерминированной точки «ход завершился без текста» с видимым клиенту сообщением в scope нет. Нужна отдельная карточка с явным решением, где именно вставлять фразу `error` (кандидат на `app/Seller/Engine/` или новый hook в `FollowupSender`/`FirstTurnCoordinator`).
 
 ## Техдолг
-- Нет новых рисков сверх описанных выше ограничений scope.
+- Нет новых рисков сверх указанного выше ограничения по `error`.
 
 ## Принято по умолчанию
-- Переопределение текста применяется только при явно сохранённой непустой фразе (без дефолтов редактора) — так старые fixtures с AI-текстом остаются рабочими, а дефолтное поведение не трогается.
+- `goodbye` применяется к последнему разрешённому автонапоминанию (`sequence === max_auto`, причина `silence`), а не к отдельному новому триггеру — в коде нет события «диалог завершён после напоминаний», а прототип ТЗ не уточняет момент; это минимальная точка в существующем потоке без нового поведения по умолчанию (используется только при явно сохранённой фразе).
