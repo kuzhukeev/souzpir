@@ -83,10 +83,13 @@ final class SuggestionActionsE504NTest extends TenancyTestCase
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id])
             ->postJson("/seller/dialogs/{$claim->conversationId}/suggestions/{$claim->turnId}/skip")
             ->assertOk()->assertJsonPath('status', 'ok');
-        self::assertSame('skipped', DB::table('seller_turns')->where('id', $claim->turnId)->value('status'));
+        $turn = DB::table('seller_turns')->where('id', $claim->turnId)->first();
+        self::assertSame('suggested', $turn->status);
+        self::assertSame('skipped', json_decode($turn->outcome, true)['resolved']);
         self::assertSame(0, DB::table('messages')->where('conversation_id', $claim->conversationId)->where('role', 'manager')->count());
         $this->postJson("/seller/dialogs/{$claim->conversationId}/suggestions/{$claim->turnId}/skip")->assertOk();
-        self::assertSame('skipped', DB::table('seller_turns')->where('id', $claim->turnId)->value('status'));
+        self::assertSame('skipped', json_decode(DB::table('seller_turns')->where('id', $claim->turnId)->value('outcome'), true)['resolved']);
+        $this->getJson('/seller/dialogs/suggestions')->assertOk()->assertJsonCount(0);
     }
 
     public function test_mark_flags_without_sending(): void
@@ -97,7 +100,11 @@ final class SuggestionActionsE504NTest extends TenancyTestCase
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id])
             ->postJson("/seller/dialogs/{$claim->conversationId}/suggestions/{$claim->turnId}/mark")
             ->assertOk();
-        self::assertSame('flagged', DB::table('seller_turns')->where('id', $claim->turnId)->value('status'));
+        $turn = DB::table('seller_turns')->where('id', $claim->turnId)->first();
+        self::assertSame('suggested', $turn->status);
+        self::assertSame('flagged', json_decode($turn->outcome, true)['resolved']);
+        $this->postJson("/seller/dialogs/{$claim->conversationId}/suggestions/{$claim->turnId}/send", ['text' => 'Что угодно'])
+            ->assertStatus(422)->assertJsonValidationErrors('text');
     }
 
     public function test_sales_manager_is_limited_to_assigned_dialog(): void

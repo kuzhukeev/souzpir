@@ -4,6 +4,7 @@ namespace App\Seller\Dialogs;
 
 use App\Models\Membership;
 use App\Models\User;
+use App\Seller\Conversations\CanonicalJson;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
@@ -92,15 +93,18 @@ final class SendSuggestionController
         }
     }
 
+    /** Leaves the turn status as 'suggested' (no schema change) and marks the cached outcome resolved, so it drops out of the ready queue without being sendable again. */
     private function resolve(TenantContext $context, string $dialog, string $turn, string $status): void
     {
-        $current = DB::table('seller_turns')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)
-            ->where('id', $turn)->where('conversation_id', $dialog)->first(['status']) ?? abort(404);
-        if ($current->status !== 'suggested') {
+        $outcome = app(ReadySuggestions::class)->validate($context, $dialog, $turn);
+        if ($outcome === null) {
             return;
         }
+        $outcome['resolved'] = $status;
         DB::table('seller_turns')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)
-            ->where('id', $turn)->where('conversation_id', $dialog)->where('status', 'suggested')->update(['status' => $status, 'updated_at' => now()]);
+            ->where('id', $turn)->where('conversation_id', $dialog)->where('status', 'suggested')->update([
+                'outcome' => json_encode($outcome, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE), 'outcome_hash' => CanonicalJson::hash($outcome), 'updated_at' => now(),
+            ]);
         app(AuditWriter::class)->record($context, new AuditEntry('seller.dialog.suggestion.'.$status, 'conversation', $dialog));
     }
 
