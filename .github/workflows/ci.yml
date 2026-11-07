@@ -137,6 +137,9 @@ jobs:
       - name: Check recorded adapter rejection in runtime
         run: vendor/bin/phpunit tests/Equivalence/RuntimeReplayE307ETest.php --no-coverage
 
+      - name: Check real protected-pipeline replay of recorded manual and scheduler cases
+        run: vendor/bin/phpunit tests/Equivalence/RuntimeReplayE307GTest.php --no-coverage
+
   browser-smoke:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
