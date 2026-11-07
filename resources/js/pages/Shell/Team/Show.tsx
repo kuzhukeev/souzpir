@@ -113,9 +113,32 @@ export default function Show({
                 <dt className="text-(--color-ink-muted)">Модули общих брендов</dt>
                 <dd className="mt-2">
                   <SharedBrandModules brands={member.brands} />
-                  <p className="mt-3 text-sm text-(--color-ink-muted)">Отдельные разрешения на модули появятся позже.</p>
-                  <label className="mt-2 flex items-center gap-2 text-sm"><input type="checkbox" disabled /> Продавец</label>
-                  <label className="mt-2 flex items-center gap-2 text-sm"><input type="checkbox" disabled /> Видение</label>
+                  <p className="mt-3 text-sm font-semibold">Доступ к модулям</p>
+                  <div className="mt-2 space-y-4">
+                    {([
+                      ['vision', 'Видение'],
+                      ['seller', 'ИИ-продавец'],
+                    ] as const).map(([key, label]) => (
+                      <div key={key}>
+                        <div className="flex items-center gap-2 text-sm">
+                          <button
+                            type="button"
+                            role="switch"
+                            aria-checked="false"
+                            aria-disabled="true"
+                            disabled
+                            aria-label={label}
+                            className="relative h-6 w-11 shrink-0 cursor-not-allowed rounded-full bg-(--color-border)"
+                          >
+                            <span aria-hidden="true" className="absolute top-1 left-1 size-4 rounded-full bg-white" />
+                          </button>
+                          <span className="font-semibold">{label}</span>
+                          <span className="rounded-full bg-(--color-surface-muted) px-2 py-0.5 text-xs text-(--color-ink-muted)">v2</span>
+                        </div>
+                        <p className="mt-1 text-sm text-(--color-ink-muted)">Настройка доступа появится в v2</p>
+                      </div>
+                    ))}
+                  </div>
                 </dd>
               </div>
             </dl>
