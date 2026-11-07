@@ -20,11 +20,16 @@ final class Cabinet
         return $id;
     }
 
-    /** A user belongs to at most one organization: its active membership, or the reserve. */
+    /** A user belongs to one organization: the reserve one when they are a member there, otherwise their active membership, otherwise the reserve. */
     public function organizationIdFor(User $user): string
     {
-        $membership = Membership::withoutGlobalScopes()->where('user_id', $user->id)->where('status', 'active')->first();
+        $organizations = Membership::withoutGlobalScopes()->where('user_id', $user->id)->where('status', 'active')
+            ->orderBy('created_at')->orderBy('id')->pluck('organization_id');
+        $reserve = config('features.E0-02.defaults.organization_id');
+        if (is_string($reserve) && $organizations->contains($reserve)) {
+            return $reserve;
+        }
 
-        return $membership?->organization_id ?? $this->organizationId();
+        return $organizations->first() ?? $this->organizationId();
     }
 }
