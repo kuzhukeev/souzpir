@@ -2,6 +2,7 @@
 
 namespace Tests\Equivalence;
 
+use App\Ai\CanonicalJson;
 use App\Ai\Drivers\Driver;
 use App\Ai\Drivers\FakeDriver;
 use App\Ai\Drivers\Rejected;
@@ -42,10 +43,14 @@ use Tests\TestCase;
 /**
  * Drives the real protected pipeline (extractor -> responder, retries included) turn by turn
  * through FirstInboundRuntime/FollowupCoordinator for the manual.* recorded dialogue cases whose
- * llm_calls are a plain extractor/responder sequence (no `summary`), then compares the resulting
- * reply text and final LeadState to the recorded trace. persona.* cases open with a bot-initiated
- * message (no client turn) that goes through ApiOpeningRuntime, which is out of this task's scope
- * (see docs/results/SP-E3-07G.md); they are not attempted here.
+ * llm_calls are a plain extractor/responder sequence, then compares the resulting reply text and
+ * final LeadState to the recorded trace. `manual.force_close_14` has periodic `summary` calls in
+ * its full trace, but hits the same turn-0 responder blocker as the other cases before the
+ * scheduler could ever reach one, so it is included here too. persona.* cases open with a
+ * bot-initiated message (no client turn) through ApiOpeningRuntime/ApiOpeningInput; they reach the
+ * driver with a byte-identical rendered card but are rejected by a second, unrelated blocker in
+ * `app/Ai/Protected/ApiOpeningInput.php` (out of this task's scope) that drops the goal's allowed
+ * tools — see docs/results/SP-E3-07G.md.
  */
 final class RuntimeReplayE307GTest extends TestCase
 {
@@ -53,7 +58,17 @@ final class RuntimeReplayE307GTest extends TestCase
 
     private const DIALOGUE_CASES = [
         'manual.closed_topic', 'manual.large_order', 'manual.opt_out', 'manual.prompt_injection',
-        'manual.wants_human', 'manual.deferred_twice', 'manual.negative_twice', 'manual.off_topic_three',
+        'manual.wants_human', 'manual.deferred_twice', 'manual.negative_twice', 'manual.off_topic_three', 'manual.force_close_14',
+    ];
+
+    private const PERSONA_CASES = [
+        'persona.are_you_bot', 'persona.big_order', 'persona.busy_now', 'persona.car_seller', 'persona.cash_discount',
+        'persona.ceo_name', 'persona.competitor_bait', 'persona.container_import', 'persona.defect_claim',
+        'persona.deferred_insist', 'persona.delivery_far', 'persona.duplicate_lead', 'persona.experienced_kazan',
+        'persona.for_self_wedding', 'persona.ghost', 'persona.landing_poem', 'persona.legal_questions',
+        'persona.newbie_voronezh', 'persona.online_only', 'persona.opt_out', 'persona.price_increase_doubt',
+        'persona.prices_only_rude', 'persona.requisites', 'persona.return_unsold', 'persona.rewrite_conditions',
+        'persona.tc_floor', 'persona.typo_short', 'persona.unknown_item', 'persona.wants_human',
     ];
 
     public function runDatabaseMigrations(): void
@@ -288,5 +303,111 @@ final class RuntimeReplayE307GTest extends TestCase
         // "Техдолг" note in docs/results/SP-E3-07G.md instead of asserting full step equality here.
         self::assertSame(1, $results['manual.followup_40h']['followups_sent_by_step'][0]);
         self::assertSame(2, end($results['manual.followup_40h']['followups_sent_by_step']));
+    }
+
+    /** @return array{headers: array<string, string>} */
+    private function personaFixture(): array
+    {
+        app(PromptSetsSeeder::class)->run();
+        $owner = User::create(['name' => 'Synthetic', 'email' => Str::random(12).'@example.test', 'password' => 'synthetic-test-password']);
+        $org = Organization::create(['name' => 'Synthetic', 'owner_user_id' => $owner->id]);
+        [$member, $brand] = app(TenantContextRunner::class)->run(new TenantContext($org->id, actorId: $owner->id), fn () => [
+            Membership::create(['user_id' => $owner->id, 'role' => 'owner']), Brand::create(['name' => 'Союз Пир', 'timezone' => 'Europe/Moscow']),
+        ]);
+        DB::table('brand_modules')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $brand->id,
+            'module' => 'seller', 'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
+        $tenant = new TenantContext($org->id, $brand->id, $owner->id, $member->id);
+        app(TenantContextRunner::class)->run($tenant, fn () => app(YamlKnowledgeImporter::class)
+            ->importAndPublish($tenant, base_path('tests/Feature/Seller/Knowledge/Fixtures/data')));
+        $secret = Str::random(64);
+        $tokenId = DB::table('personal_access_tokens')->insertGetId(['tokenable_type' => Brand::class, 'tokenable_id' => $brand->id,
+            'organization_id' => $org->id, 'brand_id' => $brand->id, 'name' => 'e307g-persona', 'token' => hash('sha256', $secret),
+            'token_last_four' => substr($secret, -4), 'abilities' => json_encode(['leads']), 'created_at' => now(), 'updated_at' => now()]);
+
+        return ['headers' => ['Authorization' => 'Bearer '.$tokenId.'|'.$secret, 'Idempotency-Key' => 'e307g-'.Str::random(16)]];
+    }
+
+    /**
+     * Compares the sent AiRequest against the recorded one ignoring `tools`/`tool_choice`: the
+     * known blocker (ApiOpeningInput.php passing an empty allowed-tools list) only affects that
+     * part of the request, so stripping it isolates whether the rest (system/card text, model,
+     * temperature) is byte-identical to the donor.
+     */
+    public static function matchesIgnoringTools(array $sent, array $recordedRequest): bool
+    {
+        $sentOptions = array_filter(['model' => $sent['model'] ?? null, 'temperature' => $sent['temperature'] ?? null,
+            'response_format' => $sent['response_format'] ?? null, 'max_tokens' => $sent['max_tokens'] ?? null], fn ($v) => $v !== null);
+        $recordedOptions = is_array($recordedRequest['options'] ?? null) ? $recordedRequest['options'] : [];
+        unset($recordedOptions['tools'], $recordedOptions['tool_choice'], $recordedOptions['component']);
+        $recordedOptions = array_filter($recordedOptions, fn ($v) => $v !== null);
+
+        return CanonicalJson::hash($sent['messages'] ?? null) === CanonicalJson::hash($recordedRequest['messages'] ?? null)
+            && CanonicalJson::hash($sentOptions) === CanonicalJson::hash($recordedOptions);
+    }
+
+    /** @return array{calls: int, messages_match: bool, rejection: ?string, status: int} */
+    private function replayPersonaOpening(string $caseId, string $root): array
+    {
+        $case = json_decode(file_get_contents($root.'/cases/'.$caseId.'.json'), true, 512, JSON_THROW_ON_ERROR);
+        $fixture = $this->personaFixture();
+        $probe = new class($root, $case) implements Driver
+        {
+            public int $calls = 0;
+
+            public ?string $rejection = null;
+
+            public bool $messagesMatch = false;
+
+            private RecordedGateway $recorded;
+
+            public function __construct(private string $root, private array $case)
+            {
+                $this->recorded = new RecordedGateway($root, $case);
+            }
+
+            public function complete(#[\SensitiveParameter] array $body): array
+            {
+                $this->calls++;
+                $recordedRequest = json_decode(file_get_contents($this->root.'/'.$this->case['llm_calls'][0]['path']), true, 512, JSON_THROW_ON_ERROR)['request'];
+                $this->messagesMatch = RuntimeReplayE307GTest::matchesIgnoringTools($body, $recordedRequest);
+                try {
+                    return $this->recorded->complete($body);
+                } catch (Rejected $error) {
+                    $this->rejection = $error->getMessage();
+                    throw $error;
+                }
+            }
+        };
+        app()->instance(FakeDriver::class, $probe);
+        $this->withServerVariables(['REMOTE_ADDR' => '127.0.0.1', 'SERVER_ADDR' => '127.0.0.1']);
+        $response = $this->withHeaders($fixture['headers'])
+            ->postJson('/api/v1/leads', ['fields' => ['phone' => '+7'.random_int(9000000000, 9999999999)], 'action' => 'open']);
+
+        return ['calls' => $probe->calls, 'messages_match' => $probe->messagesMatch, 'rejection' => $probe->rejection, 'status' => $response->status()];
+    }
+
+    public function test_persona_cases_open_through_the_api_opening_runtime(): void
+    {
+        $root = base_path('tests/fixtures/prototype/recorded-v2');
+        $results = [];
+        foreach (self::PERSONA_CASES as $caseId) {
+            $results[$caseId] = $this->replayPersonaOpening($caseId, $root);
+        }
+        fwrite(STDERR, 'E307G_PERSONA '.json_encode($results, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)."\n");
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+
+        foreach (self::PERSONA_CASES as $caseId) {
+            self::assertSame(1, $results[$caseId]['calls'], "$caseId: opening did not even reach the driver");
+            // Proves prompt equivalence for the opening call itself (system prompt, LeadState
+            // card, model, temperature) — everything except the allowed-tools list below.
+            self::assertTrue($results[$caseId]['messages_match'], "$caseId: rendered opening card diverged from the recorded one");
+            // ApiOpeningInput::buildLocked() calls ResponderRequest::build() with an empty
+            // allowed-tools array instead of $goal->allowedTools (compare
+            // app/Ai/Protected/SellerResponderStages.php:229, which passes it correctly for the
+            // normal turn flow). That file is out of this task's scope; pinned here so a fix
+            // turns this red and is caught. See "Нужно от интегратора" in docs/results/SP-E3-07G.md.
+            self::assertSame('Recorded request does not match.', $results[$caseId]['rejection'], "$caseId: opening blocker changed shape");
+        }
     }
 }
