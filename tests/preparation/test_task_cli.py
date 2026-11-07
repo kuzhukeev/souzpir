@@ -35,6 +35,12 @@ class FakeApi:
             return {"task": copy.deepcopy(self.task), "claimToken": "private-test-token"}
         if payload["expectedRevision"] != self.task["revision"]:
             raise task_cli.TaskError("Revision conflict")
+        if action == "reopen":
+            if self.task["status"] != "done":
+                raise task_cli.TaskError("Only done can be reopened")
+            self.task.update(status="queue", ready=True, previousMerges=[{"mergeCommit": self.task.get("mergeCommit")}])
+            self.task["revision"] += 1
+            return {"task": copy.deepcopy(self.task)}
         if action != "merge" and payload["claimToken"] != "private-test-token":
             raise task_cli.TaskError("Owner mismatch")
         if action == "submit":
@@ -92,6 +98,87 @@ class TaskCliTests(unittest.TestCase):
         path.write_text(json.dumps(plan), encoding="utf-8")
         task_cli.git(self.root, "add", "planning/tasks.json")
         task_cli.git(self.root, "commit", "-m", "Record dependency")
+
+    def test_reopen_preserves_local_record_and_rejects_repeat(self):
+        self.api.task.update(status="done", mergeCommit="a" * 40, ready=False)
+        record = self.client.local_path("SP-001")
+        record.parent.mkdir(parents=True, exist_ok=True)
+        record.write_text('{"taskKey":"SP-001","status":"done"}', encoding="utf-8")
+        before = record.read_bytes()
+        result = self.client.reopen("SP-001", "remaining scenario")
+        self.assertEqual(result["status"], "queue")
+        self.assertEqual(record.read_bytes(), before)
+        self.assertEqual(self.api.calls, ["list", "reopen"])
+        with self.assertRaises(task_cli.TaskError):
+            self.client.reopen("SP-001", "again")
+        self.assertEqual(record.read_bytes(), before)
+
+    def completed_task(self):
+        worktree, _ = self.claim()
+        self.commit(worktree)
+        task_cli.git(self.root, "merge", "--no-ff", "codex/sp-001", "-m", "Integrate")
+        main = task_cli.git(self.root, "rev-parse", "main")
+        task_cli.git(self.root, "update-ref", "refs/remotes/origin/main", main)
+        self.api.task.update(status="done", ready=False, mergeCommit=main)
+        record = self.client.read_claim("SP-001")
+        record.pop("claimToken")
+        record.update(status="done", mergeCommit=main)
+        self.client.save_claim(record)
+        self.client.reopen("SP-001", "remaining scenario")
+        return worktree
+
+    @patch.object(task_cli, "windows_process_commands", return_value="")
+    def test_reopened_card_reuses_clean_completed_tree(self, _processes):
+        worktree = self.completed_task()
+        self.assertEqual(self.client.ready()["tasks"][0]["taskKey"], "SP-001")
+        result = self.client.claim("SP-001", "new-chat")
+        self.assertEqual(Path(result["worktree"]), worktree)
+        self.assertTrue(result["needsDependencyMerge"] is False)
+        self.assertEqual(self.client.read_claim("SP-001")["worker"], "new-chat")
+
+    @patch.object(task_cli, "windows_process_commands", return_value="")
+    def test_reopened_card_recreates_only_previously_removed_tree(self, _processes):
+        worktree = self.completed_task()
+        self.assertTrue(worktree.resolve().is_relative_to(self.root.resolve()))
+        task_cli.git(self.root, "worktree", "remove", str(worktree))
+        self.assertFalse(worktree.exists())
+        self.assertEqual(self.client.ready()["tasks"][0]["taskKey"], "SP-001")
+        result = self.client.claim("SP-001", "new-chat")
+        self.assertEqual(Path(result["worktree"]), worktree)
+        self.assertTrue(worktree.exists())
+
+    @patch.object(task_cli, "windows_process_commands", return_value="")
+    def test_reopened_card_preserves_uncommitted_changes(self, _processes):
+        worktree = self.completed_task()
+        modified = worktree / "app/Feature/file.php"
+        modified.write_text("local work must remain\n", encoding="utf-8")
+        with self.assertRaises(task_cli.TaskError):
+            self.client.claim("SP-001", "new-chat")
+        self.assertEqual(modified.read_text(encoding="utf-8"), "local work must remain\n")
+        self.assertEqual(self.api.task["status"], "queue")
+
+    @patch.object(task_cli, "windows_process_commands", return_value="")
+    def test_reopened_card_rejects_mismatched_completed_history(self, _processes):
+        worktree = self.completed_task()
+        self.api.task["previousMerges"] = [{"mergeCommit": "f" * 40}]
+        with self.assertRaises(task_cli.TaskError):
+            self.client.claim("SP-001", "new-chat")
+        self.assertTrue(worktree.exists())
+        self.assertEqual(self.api.task["status"], "queue")
+
+    def test_reopened_card_preserves_tree_with_running_process(self):
+        worktree = self.completed_task()
+        with patch.object(task_cli, "windows_process_commands", return_value=worktree.as_posix().casefold()):
+            with self.assertRaises(task_cli.TaskError):
+                self.client.claim("SP-001", "new-chat")
+        self.assertTrue(worktree.exists())
+        self.assertEqual(self.api.task["status"], "queue")
+
+    def test_reopen_rejects_active_task_without_mutating_queue(self):
+        self.api.task.update(status="progress", ready=False)
+        with self.assertRaises(task_cli.TaskError):
+            self.client.reopen("SP-001", "remaining scenario")
+        self.assertEqual(self.api.calls, ["list"])
 
     def test_ready_does_not_mutate(self):
         self.assertEqual(len(self.client.ready()["tasks"]), 1)

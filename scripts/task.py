@@ -328,12 +328,12 @@ class Coordinator:
     def local_path(self, key: str) -> Path:
         return self.claims / (key_name(key).lower() + ".json")
 
-    def read_claim(self, key: str, *, allow_released: bool = False) -> dict:
+    def read_claim(self, key: str, *, allow_released: bool = False, allow_done: bool = False) -> dict:
         try:
             claim = json.loads(self.local_path(key).read_text(encoding="utf-8"))
         except (OSError, ValueError) as error:
             raise TaskError("No readable local ownership record for this task") from error
-        if claim.get("taskKey") != key or claim.get("project") != self.project or (not claim.get("claimToken") and not (allow_released and claim.get("status") == "released")):
+        if claim.get("taskKey") != key or claim.get("project") != self.project or (not claim.get("claimToken") and not (allow_released and claim.get("status") == "released") and not (allow_done and claim.get("status") == "done")):
             raise TaskError("Local record has no active ownership token")
         return claim
 
@@ -402,6 +402,37 @@ class Coordinator:
         except (TaskError, KeyError, TypeError):
             return False
 
+    def archive_completed_record(self, record: dict) -> None:
+        if record.get("status") != "done":
+            return
+        directory = self.claims / "history" / key_name(record["taskKey"]).lower()
+        directory.mkdir(parents=True, exist_ok=True)
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+        with (directory / (stamp + ".json")).open("x", encoding="utf-8") as handle:
+            json.dump(record, handle, ensure_ascii=False, indent=2)
+
+    def completed_branch_is_safe(self, key: str, record: dict, task: dict) -> bool:
+        worktree = self.root / ".worktrees" / key.lower()
+        if is_link(worktree.parent) or worktree.is_symlink() or (worktree.exists() and is_link(worktree)):
+            return False
+        if (record.get("status") != "done" or record.get("claimToken") or not task.get("previousMerges")
+                or record.get("project") != self.project or record.get("taskKey") != key
+                or record.get("branch") != "codex/" + key.lower()
+                or Path(record.get("worktree", "")).resolve() != (self.root / ".worktrees" / key.lower()).resolve()
+                or not set(scope_signature(record.get("scope", []))) <= set(scope_signature(task.get("scope", [])))
+                or not set(record.get("dependsOn", [])) <= set(task.get("dependsOn", []))):
+            return False
+        merges = task.get("previousMerges", [])
+        if not any(isinstance(item, dict) and item.get("mergeCommit") == record.get("mergeCommit") for item in merges):
+            return False
+        try:
+            branch = "refs/heads/" + record["branch"]
+            for target in ("refs/heads/main", "refs/remotes/origin/main"):
+                git(self.root, "merge-base", "--is-ancestor", branch, target)
+            return True
+        except TaskError:
+            return False
+
     def ready(self) -> dict:
         response = self.api.call("ready", project=self.project)
         tasks = self.api.call("list").get("tasks", [])
@@ -422,15 +453,23 @@ class Coordinator:
             if reasons and self.local_path(key).exists() and (self.root / ".worktrees" / key.lower()).is_dir():
                 worktree = self.root / ".worktrees" / key.lower()
                 try:
-                    record = self.read_claim(key, allow_released=True)
-                    if (record.get("status") == "released" and not record.get("claimToken")
+                    record = self.read_claim(key, allow_released=True, allow_done=True)
+                    if ((record.get("status") == "released" or self.completed_branch_is_safe(key, record, task)) and not record.get("claimToken")
                             and record.get("project") == self.project and record.get("branch") == branch
                             and Path(record.get("worktree", "")).resolve() == worktree.resolve()
                             and set(scope_signature(record.get("scope", []))) <= set(scope_signature(task.get("scope", [])))
                             and set(record.get("dependsOn", [])) <= set(task.get("dependsOn", []))
                             and git(worktree, "branch", "--show-current") == branch
                             and not git(worktree, "status", "--porcelain=v1", "--untracked-files=all")
+                            and (record.get("status") != "done" or worktree.as_posix().casefold() not in windows_process_commands())
                             and self.preserved_head_is_safe(key, record, worktree)):
+                        reasons = []
+                except (OSError, TaskError, ValueError):
+                    pass
+            if reasons and self.local_path(key).exists() and not (self.root / ".worktrees" / key.lower()).exists():
+                try:
+                    record = self.read_claim(key, allow_done=True)
+                    if self.completed_branch_is_safe(key, record, task):
                         reasons = []
                 except (OSError, TaskError, ValueError):
                     pass
@@ -490,16 +529,53 @@ class Coordinator:
         branch = "codex/" + key.lower()
         git(self.root, "check-ref-format", "--branch", branch)
         worktree = self.root / ".worktrees" / key.lower()
+        if self.local_path(key).exists() and not worktree.exists():
+            record = self.read_claim(key, allow_done=True)
+            if not self.completed_branch_is_safe(key, record, task):
+                raise TaskError("Preserved task branch is not safely reusable; inspect it without overwriting")
+            base = self.integration_base()
+            dependencies = self.dependency_commits(task, tasks, base)
+            head = git(self.root, "rev-parse", "refs/heads/" + branch + "^{commit}")
+            try:
+                self.dependency_commits(task, tasks, head)
+                needs_dependency_merge = False
+            except TaskError:
+                needs_dependency_merge = True
+            response = self.api.call("claim", {"project": self.project, "taskKey": key, "worker": worker})
+            token = response.get("claimToken")
+            if not isinstance(token, str) or not token:
+                raise TaskError("Claim response has no token; inspect the task before retrying")
+            try:
+                self.validate_plan(key, plan, response["task"])
+                worktree.parent.mkdir(parents=True, exist_ok=True)
+                git(self.root, "worktree", "add", str(worktree), branch)
+                self.archive_completed_record(record)
+                record.update(claimToken=token, worker=worker, dependencyCommits=dependencies, scope=task["scope"],
+                              dependsOn=task.get("dependsOn", []), status="progress", revision=response["task"]["revision"])
+                self.save_claim(record)
+            except (OSError, TaskError) as error:
+                try:
+                    self.api.call("release", {"project": self.project, "taskKey": key,
+                        "claimToken": token, "expectedRevision": response["task"]["revision"],
+                        "reason": "Reopened worktree setup failed; inspect preserved local state"})
+                except Exception:
+                    raise TaskError("Reopened claim release could not be confirmed; inspect queue") from None
+                raise TaskError("Reopened worktree setup failed; no existing work was removed: " + str(error)) from None
+            return {"taskKey": key, "status": "progress", "branch": branch, "worktree": str(worktree),
+                    "baseCommit": record["baseCommit"], "promptPath": plan.get("promptPath", ""),
+                    "needsDependencyMerge": needs_dependency_merge}
         if self.local_path(key).exists() or worktree.exists():
             if not self.local_path(key).exists() or not worktree.is_dir():
                 raise TaskError("Local claim or worktree already exists; inspect it, do not overwrite it")
-            record = self.read_claim(key, allow_released=True)
-            if (record.get("status") != "released" or record.get("claimToken") or task.get("status") != "queue"
+            record = self.read_claim(key, allow_released=True, allow_done=True)
+            if ((record.get("status") != "released" and not self.completed_branch_is_safe(key, record, task)) or record.get("claimToken") or task.get("status") != "queue"
                     or record.get("project") != self.project or record.get("branch") != branch
                     or Path(record.get("worktree", "")).resolve() != worktree.resolve()
                     or not set(scope_signature(record.get("scope", []))) <= set(scope_signature(task.get("scope", [])))
                     or not set(record.get("dependsOn", [])) <= set(task.get("dependsOn", []))):
                 raise TaskError("Existing worktree is not safely released; inspect it without overwriting")
+            if record.get("status") == "done" and worktree.as_posix().casefold() in windows_process_commands():
+                raise TaskError("A running process references the preserved completed worktree")
             base = self.integration_base()
             head = git(worktree, "rev-parse", "HEAD^{commit}")
             if (git(worktree, "branch", "--show-current") != branch
@@ -518,6 +594,7 @@ class Coordinator:
                 raise TaskError("Claim response has no token; inspect the task before retrying")
             try:
                 self.validate_plan(key, plan, response["task"])
+                self.archive_completed_record(record)
                 record.update(claimToken=token, worker=worker, dependencyCommits=dependencies, scope=task["scope"],
                               dependsOn=task.get("dependsOn", []), status="progress", revision=response["task"]["revision"])
                 self.save_claim(record)
@@ -624,6 +701,19 @@ class Coordinator:
         if not reason.strip():
             raise TaskError("Review feedback is required")
         return self.owner_action("resume", key, reason=reason)
+
+    def reopen(self, key: str, reason: str) -> dict:
+        if not reason.strip():
+            raise TaskError("Reopen reason is required")
+        task = self.task(key)
+        if task.get("status") != "done":
+            raise TaskError("Only a completed task can be reopened")
+        plan = self.plan(key)
+        self.validate_plan(key, plan, task)
+        result = self.api.call("reopen", {"project": self.project, "taskKey": key,
+            "expectedRevision": task["revision"], "reason": reason, "plan": plan})["task"]
+        return {"taskKey": key, "status": result["status"], "revision": result["revision"],
+                "localWorkPreserved": True, "blockers": result.get("blockers", [])}
 
     def mark_merged(self, key: str) -> dict:
         task = self.task(key)
@@ -753,6 +843,8 @@ def parser() -> argparse.ArgumentParser:
                             ("resume", "Resume your task after review feedback")]:
         action = commands.add_parser(name, help=help_text)
         action.add_argument("task_key"); action.add_argument("--reason", required=True)
+    reopen = commands.add_parser("reopen", help="Reopen a completed task without changing local work or claims")
+    reopen.add_argument("task_key"); reopen.add_argument("--reason", required=True)
     merged = commands.add_parser("mark-merged", help="Mark reviewed task done only after its commit is on main")
     merged.add_argument("task_key")
     return result
@@ -772,7 +864,7 @@ def main(argv: list[str] | None = None) -> int:
             output = coordinator.claim(args.task_key, args.worker)
         elif args.command == "submit":
             output = coordinator.submit(args.task_key, args.summary, args.check)
-        elif args.command in ("release", "resume"):
+        elif args.command in ("release", "resume", "reopen"):
             output = getattr(coordinator, args.command)(args.task_key, args.reason)
         else:
             output = coordinator.mark_merged(args.task_key)
