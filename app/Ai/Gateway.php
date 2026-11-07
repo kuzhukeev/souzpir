@@ -7,6 +7,7 @@ use App\Ai\Drivers\FakeDriver;
 use App\Ai\Drivers\OpenRouterDriver;
 use App\Ai\Drivers\Rejected;
 use App\Ai\Drivers\Uncertain;
+use App\Ai\Protected\ApiFollowupInput;
 use App\Ai\Protected\ApiOpeningInput;
 use App\Ai\Protected\RawToolArguments;
 use App\Ai\Protected\RequestFingerprint;
@@ -551,6 +552,29 @@ final class Gateway implements AiGateway
         }
     }
 
+    /** Complete a server-built API extractor request in fake mode. */
+    public function completeApiFollowupExtractor(#[\SensitiveParameter] Request $http, TenantContext $tenant, TurnClaim $claim): AiResult
+    {
+        if (config('runtime.ai_driver', 'fake') !== 'fake' || DB::transactionLevel() !== 0) {
+            throw new LogicException('API follow-up unavailable.');
+        }
+        try {
+            [$input, $context] = DB::transaction(fn () => app(ApiFollowupInput::class)->extractorLocked($http, $tenant, $claim));
+            $expected = CanonicalJson::hash($input->toArray());
+            $assertSource = function () use ($http, $tenant, $claim, $context, $expected): void {
+                [$current, $currentContext] = app(ApiFollowupInput::class)->extractorLocked($http, $tenant, $claim);
+                if (! hash_equals($expected, CanonicalJson::hash($current->toArray()))
+                    || $currentContext->idempotencyKey !== $context->idempotencyKey) {
+                    throw new LogicException;
+                }
+            };
+
+            return $this->completeInternal($input, $context, $assertSource);
+        } catch (Throwable) {
+            throw new LogicException('API follow-up unavailable.');
+        }
+    }
+
     /** Complete a server-built proactive API request in fake mode. */
     public function completeApiOpening(#[\SensitiveParameter] Request $http, TenantContext $tenant, string $leadId): AiResult
     {
@@ -746,7 +770,8 @@ final class Gateway implements AiGateway
                 $beforeReserve();
             }
             if ($beforeReserve === null && (str_starts_with($context->idempotencyKey, 'manager-suggestion-extractor-')
-                || str_starts_with($context->idempotencyKey, 'api-opening-'))) {
+                || str_starts_with($context->idempotencyKey, 'api-opening-')
+                || str_starts_with($context->idempotencyKey, 'api-followup-extractor-'))) {
                 throw new LogicException('Protected AI call requires protected reading.');
             }
             // Prepared extractor inputs cannot be dispatched through public

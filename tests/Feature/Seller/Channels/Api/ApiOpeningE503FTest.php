@@ -4,11 +4,15 @@ namespace Tests\Feature\Seller\Channels\Api;
 
 use App\Ai\CanonicalJson;
 use App\Ai\ContactMasker;
+use App\Ai\Gateway;
+use App\Ai\Protected\ApiFollowupInput;
 use App\Ai\Protected\ApiOpeningInput;
 use App\Models\Brand;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\User;
+use App\Seller\Conversations\Contracts\ConversationRepository;
+use App\Seller\Conversations\Data\TurnCommand;
 use App\Seller\Knowledge\Import\YamlKnowledgeImporter;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
@@ -55,7 +59,7 @@ final class ApiOpeningE503FTest extends TestCase
         $secret = Str::random(64);
         $tokenId = DB::table('personal_access_tokens')->insertGetId(['tokenable_type' => Brand::class, 'tokenable_id' => $brand->id,
             'organization_id' => $org->id, 'brand_id' => $brand->id, 'name' => 'test', 'token' => hash('sha256', $secret),
-            'token_last_four' => substr($secret, -4), 'abilities' => json_encode(['leads']), 'created_at' => now(), 'updated_at' => now()]);
+            'token_last_four' => substr($secret, -4), 'abilities' => json_encode(['leads', 'turn']), 'created_at' => now(), 'updated_at' => now()]);
         $bearer = $tokenId.'|'.$secret;
         $body = ['fields' => ['name' => 'Тест']];
         $initial = $this->withHeaders(['Authorization' => 'Bearer '.$bearer, 'Idempotency-Key' => 'fixture'])
@@ -83,6 +87,27 @@ final class ApiOpeningE503FTest extends TestCase
         self::assertSame(1, DB::table('messages')->where('conversation_id', $first['conversation_id'])->where('role', 'agent')->count());
         self::assertSame(0, DB::table('messages')->where('conversation_id', $first['conversation_id'])->where('role', 'client')->count());
         self::assertSame(1, DB::table('conversations')->where('id', $first['conversation_id'])->value('version'));
+        $claim = app(TenantContextRunner::class)->run($tenant, function () use ($tenant, $request, $first, $org, $brand) {
+            return DB::transaction(function () use ($tenant, $request, $first, $org, $brand) {
+                $message = (string) Str::ulid();
+                DB::table('messages')->insert(['id' => $message, 'organization_id' => $org->id, 'brand_id' => $brand->id,
+                    'conversation_id' => $first['conversation_id'], 'role' => 'client', 'text' => 'Из Твери', 'meta' => '{}', 'created_at' => now(), 'updated_at' => now()]);
+                $claim = app(ConversationRepository::class)->claimTurn($tenant, new TurnCommand($first['conversation_id'], $message, 'Из Твери', null, 'api:extractor-test', 1));
+                [$input, , , , $text, , $history] = app(ApiFollowupInput::class)->extractorLocked($request, $tenant, $claim);
+                self::assertSame('Из Твери', $text);
+                self::assertSame('agent', $history[0]['role']);
+                self::assertStringContainsString('Из Твери', $input->messages[array_key_last($input->messages)]['content']);
+
+                return $claim;
+            });
+        });
+        [$extractor] = app(TenantContextRunner::class)->run($tenant, fn () => DB::transaction(fn () => app(ApiFollowupInput::class)->extractorLocked($request, $tenant, $claim)));
+        $extractorFixture = $directory.'/'.CanonicalJson::hash(app(ContactMasker::class)->request($extractor->toArray())).'.json';
+        file_put_contents($extractorFixture, json_encode(['result' => ['content' => '{"client_intent":"answer_only"}', 'toolCalls' => [],
+            'usage' => ['promptTokens' => 1, 'completionTokens' => 1], 'model' => $extractor->model, 'latencyMs' => 1, 'costMicros' => 0]], JSON_THROW_ON_ERROR));
+        $extraction = app(TenantContextRunner::class)->run($tenant, fn () => app(Gateway::class)->completeApiFollowupExtractor($request, $tenant, $claim));
+        self::assertTrue($extraction->ok());
+        self::assertSame('answer_only', $extraction->json()['client_intent']);
         DB::table('brands')->where('id', $brand->id)->update(['settings' => json_encode(['seller_api_action' => 'open'])]);
         $this->withHeaders(['Authorization' => 'Bearer '.$bearer, 'Idempotency-Key' => 'default-open'])
             ->postJson('/api/v1/leads', $body)->assertCreated()->assertJsonPath('status', 'opened');
