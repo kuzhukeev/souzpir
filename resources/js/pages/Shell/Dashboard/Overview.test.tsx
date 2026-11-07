@@ -29,4 +29,13 @@ describe('home attention and notification center', () => {
     await user.click(screen.getByRole('button', { name: 'Показать все уведомления' }));
     expect(screen.getByText('Задача')).toBeTruthy();
   });
+
+  it('shows mixed digests in both module filters', async () => {
+    const user = userEvent.setup();
+    render(<Notifications items={[{ id: 'digest', kind: 'digest', group: 'seller', groups: ['seller', 'vision'], title: 'Сводка', read: false, created_at: '2026-11-07T00:00:00Z' }]} unread={1} />);
+    await user.click(screen.getByRole('button', { name: 'Видение' }));
+    expect(screen.getByText('Сводка')).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Продавец' }));
+    expect(screen.getByText('Сводка')).toBeTruthy();
+  });
 });
