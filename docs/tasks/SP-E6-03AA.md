@@ -17,3 +17,6 @@
 
 ## Этап 07.11.2026 20:00 (красные browser-тесты карточки клиента)
 - В полном browser-прогоне на main падают `tests/Browser/E6-10E/customer.spec.ts` (нет «Марка и модель» на карточке клиента), `tests/Browser/E5-05D/customers.spec.ts` (нет кнопки «Скопировать Телефон»), `tests/Browser/E5-05F/customers.spec.ts` (нет «Фейерверк · Тверь» в списке). Починить в этой карточке: проверить, что изменения карточки клиента (согласие/отписка) не сломали вывод доп. полей, телефона и названия компании; тесты не ослаблять.
+
+## Уточнение scope 07.11.2026 20:10
+Остался только этап 20:00 (красные browser-тесты карточки/списка клиента). Scope сужен до `app/Seller/Customers/`, `resources/js/pages/Seller/Customers/`, `tests/Feature/Seller/Customers/`, `tests/Browser/E6-10E/`, `tests/Browser/E5-05D/`, `tests/Browser/E5-05F/`, `tests/Browser/E6-03AA/`, `docs/results/SP-E6-03AA.md`. Виджет, Telegram и дожимы не трогать (сделано и влито).
