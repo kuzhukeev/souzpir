@@ -13,4 +13,7 @@
 - `tests/Feature/Shell/Integrations/SecretSecurityTest.php`, `PruneSecretReceiptsTest`, `SecretSharedSessionRaceTest`, `Webhooks/WebhookCommitTest` по-прежнему не выполняются в этом слоте — нужна непривилегированная роль БД (`IsolatedDatabaseMigrations`), настраивает только `scripts/ci/postgres.sh`; не связано с этой правкой.
 
 ## Принято по умолчанию
-- Реальная доставка общих уведомлений включается отдельным флагом `COMPANY_NOTIFICATION_DELIVERY_ENABLED` (по умолчанию `false`), а не общим `NOTIFICATION_DRIVER` — так же, как вебхуки в S-5.2; владелец подключает боевые адреса и токен бота отдельно.
+- Реальная доставка общих уведомлений включается отдельным флагом `features.E1-10.defaults.company_notification_delivery` (по умолчанию `false`), а не общим `NOTIFICATION_DRIVER` — так же, как вебхуки в S-5.2; владелец подключает боевые адреса и токен бота отдельно.
+
+## Нужно от интегратора
+- `config/features/E1-10.php` вне scope задачи (уже редактировался другой задачей). Добавить одну строку рядом с `webhook_delivery`: `'company_notification_delivery' => env('COMPANY_NOTIFICATION_DELIVERY_ENABLED', false) === true,` — иначе флаг можно включить только через `config()` в рантайме/тестах, не через `.env`.
