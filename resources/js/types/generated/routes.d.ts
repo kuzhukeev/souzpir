@@ -1007,6 +1007,12 @@ declare module 'ziggy-js' {
         }
     ],
     "dev.design-system": [],
+    "brands.settings.ai_policy.update": [
+        {
+            "name": "brand",
+            "required": true
+        }
+    ],
     "preview.login": [],
     "preview.attention": []
 }
