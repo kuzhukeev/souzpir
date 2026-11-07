@@ -12,3 +12,9 @@
 Scope: `app/Seller/Channels/Widget/`, `resources/js/pages/Seller/Channels/Widget/`, `routes/features/E5-02.php`, `tests/Feature/Seller/Channels/Widget/`, `tests/Browser/E5-02D/`, `docs/results/SP-E5-02D.md`.
 
 Отчёт: docs/results/SP-E5-02D.md; локальные тесты задачи, submit и зелёный CI.
+
+## Пункты виджета из SP-E5-02E
+- Экран D-9.3 «Виджет — внешний вид» соответствует макету из матрицы по пунктам (журнал docs/sources/02b_mockup_journal.md [71]): нет отступов сбоку/снизу; нет формы кнопки; нет иконки/аватара; нет заголовка окна (только подпись кнопки); нет ссылки приветствия на D-6.2; нет темы; нет «Скрывать на мобильных»; нет превью десктоп/мобильный (только кнопка). Где сейчас: Channels/Widget/Index.tsx:14.
+- Экран D-9.2 «Виджет — установка» (остаток после SP-E5-02D; журнал docs/sources/02b_mockup_journal.md [70]): кнопка «Проверить снова»; флажок домена бренда. Где сейчас: Channels/Widget/Index.tsx:11-13.
+- Экран D-9.4 «Виджет — поведение» (остаток после SP-E5-02D; журнал docs/sources/02b_mockup_journal.md [72]): режимы контакта «Нет / Мягко / Обязательно»; текст согласия с лимитом 300 символов. Где сейчас: Channels/Widget/Index.tsx:15; WidgetSettingsController.php:65-67.
+- вкладки виджета Установка/Внешний вид/Поведение и подстраницы.
