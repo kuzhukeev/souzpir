@@ -1013,6 +1013,7 @@ declare module 'ziggy-js' {
         }
     ],
     "dev.design-system": [],
+    "health": [],
     "preview.login": [],
     "preview.attention": []
 }
