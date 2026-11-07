@@ -10,7 +10,7 @@ const screen = new URLSearchParams(location.search).get('screen') ?? 'index';
 const components = { index: Index, show: Show, tasks: Tasks };
 const task = { id: 'task', contact_id: 'contact', contact_name: 'Анна Смирнова', conversation_id: 'dialog', type: 'promise', payload: '{"text":"Отправить прайс"}', due_at: '2026-11-04T12:00:00Z', status: 'new', priority: 'normal', assigned_user_id: 'user', assignee_name: 'Иван Петров', overdue: false, can_read_dialog: true, channel: 'telegram', messages: [] };
 const props = {
-  customers: [{ id: 'contact', name: 'Анна Смирнова', company: 'Фейерверк', phone: '+79990000000', email: 'anna@example.test', city: 'Тверь', type: 'experienced', stage: 'contact', outcome: 'full_contact', best_outcome: 'full_contact', conversation_id: 'dialog', manager: 'Иван Петров', channel: 'telegram', tasks: 1, last_at: '2026-11-03T12:00:00Z' }],
+  customers: [{ id: 'contact', name: 'Анна Смирнова', company: 'Фейерверк', phone: '+79990000000', email: 'anna@example.test', city: 'Тверь', type: 'experienced', stage: 'contact', outcome: 'full_contact', best_outcome: 'full_contact', conversation_id: 'dialog', manager: 'Иван Петров', channel: 'telegram', channels: ['widget', 'telegram'], tasks: 1, last_at: '2026-11-03T12:00:00Z' }],
   counts: { total: 1, contact: 1, handoff: 0, stale: 0 }, filters: {}, pagination: { page: 1, perPage: 20, total: 1, lastPage: 1 },
   customer: { id: 'contact', name: 'Анна Смирнова', company: 'Фейерверк', city: 'Тверь', phone: '+79990000000', email: 'anna@example.test', external_ids: { telegram: '12345' } },
   clientType: 'experienced', slots: { city: 'Тверь', purpose: 'Оптовая закупка' }, history: [{ slot: 'city', value: 'Тверь', role: 'client', at: '2026-11-03T12:00:00Z' }],
