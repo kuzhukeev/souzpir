@@ -73,6 +73,14 @@ final class SandboxRuntime
                 $responseSource = 'reviewed_fixture';
             }
         }
+        if ($history !== [] && preg_match('/^повтор(?:и|ите)[\s.!?]*$/ui', trim($text))) {
+            $previous = end($history)['answer'] ?? null;
+            if (is_string($previous) && trim($previous) !== '') {
+                $answer = $previous;
+                $responseSource = 'history';
+                $toolCalls = [];
+            }
+        }
         $tools = [];
         foreach ($toolCalls as $call) {
             $name = $call['name'] ?? null;

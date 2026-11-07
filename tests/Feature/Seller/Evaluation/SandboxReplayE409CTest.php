@@ -4,8 +4,10 @@ namespace Tests\Feature\Seller\Evaluation;
 
 use App\Seller\Evaluation\Jobs\SimulateFakeJob;
 use App\Seller\Knowledge\Contracts\KnowledgeRepository;
+use App\Seller\Sandbox\SandboxRuntime;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -63,6 +65,22 @@ final class SandboxReplayE409CTest extends TenancyTestCase
         $draftTurns = json_decode($draftRun->turns, true, flags: JSON_THROW_ON_ERROR);
         self::assertSame($inputs, array_column($draftTurns, 'client'));
         self::assertContains(['name' => 'escalate', 'status' => 'fake_completed'], $draftTurns[2]['meta']['tool_results']);
+        $this->postJson('/seller/knowledge/sandbox/reply', ['simulation' => true, 'release' => $published, 'start_new' => true, 'text' => 'Уточню: Воронеж'])->assertOk();
+        $beforeRepeat = $this->postJson('/seller/knowledge/sandbox/reply', ['simulation' => true, 'release' => $published, 'start_new' => true, 'text' => 'Уточню: Воронеж'])->assertOk()->json();
+        $repeat = $this->postJson('/seller/knowledge/sandbox/reply', ['simulation' => true, 'release' => $published, 'text' => 'Повторите'])->assertOk()->json();
+        self::assertSame($beforeRepeat['history'][0]['answer'], $repeat['history'][1]['answer']);
+        self::assertSame('history', $repeat['inspector']['response_source']);
+        self::assertSame('ok', $repeat['inspector']['guard']['verdict']);
+        self::assertSame([], $repeat['inspector']['executed_tools']);
+        $blockedRepeat = app(TenantContextRunner::class)->run($tenant, function () use ($tenant, $published, $beforeRepeat): array {
+            $snapshot = app(KnowledgeRepository::class)->forRelease($tenant, $published, true);
+
+            return app(SandboxRuntime::class)->turn(Request::create('/'), $snapshot, 'Повтори', $beforeRepeat['state'], [['question' => 'Привет', 'answer' => 'Кто? Где?']], false, null);
+        });
+        self::assertNotSame('Кто? Где?', $blockedRepeat['answer']);
+        self::assertNotSame('ok', $blockedRepeat['inspector']['guard']['verdict']);
+        self::assertSame('guard_fallback', $blockedRepeat['inspector']['response_source']);
+
         $this->postJson('/seller/knowledge/sandbox/reply', ['simulation' => true, 'release' => $published, 'start_new' => true, 'text' => 'Уточню: Воронеж'])->assertOk();
         $requisites = $this->postJson('/seller/knowledge/sandbox/reply', ['simulation' => true, 'release' => $published, 'text' => 'Пришлите реквизиты и договор.'])->assertOk()->json();
         self::assertSame([['name' => 'send_requisites', 'status' => 'fake_completed']], $requisites['inspector']['executed_tools']);
