@@ -63,7 +63,8 @@ final class TelegramManagerMessageTransport implements ManagerMessageTransport
             $response = Http::withoutRedirecting()->connectTimeout(3)->timeout(10)
                 ->post('https://api.telegram.org/bot'.$token.'/sendMessage', ['chat_id' => $chatId, 'text' => $text]);
         } catch (ConnectionException $e) {
-            return ['ok' => false, 'retryable' => true, 'message_id' => null, 'error' => 'Telegram connection failed: '.$e->getMessage()];
+            // Guzzle includes the request URL (with the bot token) in connection errors: never persist or log it.
+            return ['ok' => false, 'retryable' => true, 'message_id' => null, 'error' => 'Telegram connection failed: '.str_replace($token, '***', $e->getMessage())];
         }
         if ($response->successful() && $response->json('ok') === true) {
             return ['ok' => true, 'retryable' => false, 'message_id' => $response->json('result.message_id'), 'error' => null];
