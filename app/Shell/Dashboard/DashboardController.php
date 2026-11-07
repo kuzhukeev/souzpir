@@ -28,7 +28,7 @@ final class DashboardController
         abort_unless($member && $tenant->brandId && $member->permitsBrand($tenant->brandId), 403);
         $sellerEnabled = app(SellerModuleAccess::class)->enabled($tenant->organizationId, $tenant->brandId);
         $seller = Gate::forUser($user)->allows('seller.dialogs.read') && $sellerEnabled
-            ? app(DashboardQuery::class)->read($tenant, 30) : null;
+            ? app(DashboardQuery::class)->read($tenant, 7) : null;
         $vision = null;
         $visionError = false;
         $canVision = Gate::forUser($user)->allows('vision.report.read') && app(ModuleEntitlements::class)->enabled($tenant, 'vision');
@@ -73,14 +73,14 @@ final class DashboardController
         return ['homeLinks' => $homeLinks, 'seller' => $seller, 'vision' => $vision, 'canVision' => $canVision, 'visionError' => $visionError, 'usage' => $usage, 'usageError' => $usageError, ...$feed];
     }
 
-    private function notifications(User $user, TenantContext $tenant, Membership $member, bool $sellerEnabled): array
+    private function notifications(User $user, TenantContext $tenant, Membership $member, bool $sellerEnabled, bool $all = false): array
     {
         $policy = app(RecipientPolicy::class);
         $permits = fn (string $key) => (! str_starts_with($key, 'seller.') || $sellerEnabled) && $policy->permits($member, $tenant->brandId, $key);
         $scope = fn ($query) => $query->where('n.organization_id', $tenant->organizationId)->where('n.brand_id', $tenant->brandId)->where('n.user_id', $user->id);
         $items = $scope(DB::table('cabinet_notifications as n'))->orderByDesc('n.created_at')->get(['n.id', 'n.event_key', 'n.title', 'n.read_at', 'n.created_at'])
             ->filter(fn ($n) => $permits($n->event_key))
-            ->map(fn ($n) => ['id' => $n->id, 'kind' => 'event', 'title' => $n->title, 'read' => $n->read_at !== null, 'created_at' => $n->created_at]);
+            ->map(fn ($n) => ['id' => $n->id, 'kind' => 'event', 'group' => str_starts_with($n->event_key, 'seller.') ? 'seller' : (str_starts_with($n->event_key, 'vision.') ? 'vision' : 'shell'), 'title' => $n->title, 'read' => $n->read_at !== null, 'created_at' => $n->created_at]);
         $digestReads = DB::table('dashboard_digest_reads as r')->join('seller_digest_batches as b', 'b.id', '=', 'r.batch_id')->where('b.organization_id', $tenant->organizationId)->where('b.brand_id', $tenant->brandId)->where('b.user_id', $user->id)->pluck('r.batch_id')->all();
         $digests = $scope(DB::table('seller_digest_cabinet_notifications as n')->join('seller_digest_batches as b', 'b.id', '=', 'n.batch_id'))
             ->where('b.organization_id', $tenant->organizationId)->where('b.brand_id', $tenant->brandId)->where('b.user_id', $user->id)->where('b.status', 'sent')
@@ -95,10 +95,12 @@ final class DashboardController
                     }
                 }
 
-                return $visible ? ['id' => $n->batch_id, 'kind' => 'digest', 'title' => implode(', ', $visible), 'read' => in_array($n->batch_id, $digestReads, true), 'created_at' => $n->created_at] : null;
+                return $visible ? ['id' => $n->batch_id, 'kind' => 'digest', 'group' => 'seller', 'title' => implode(', ', $visible), 'read' => in_array($n->batch_id, $digestReads, true), 'created_at' => $n->created_at] : null;
             })->filter();
 
-        return ['items' => $items->concat($digests)->sortByDesc('created_at')->take(100)->values(), 'unread' => $items->where('read', false)->count() + $digests->where('read', false)->count()];
+        $combined = $items->concat($digests)->sortByDesc('created_at');
+
+        return ['items' => ($all ? $combined : $combined->take(100))->values(), 'unread' => $items->where('read', false)->count() + $digests->where('read', false)->count()];
     }
 
     public function unread(Request $request): ?int
@@ -130,6 +132,28 @@ final class DashboardController
         return Inertia::render('Shell/Dashboard/Index', $data);
     }
 
+    public function attention(Request $request): mixed
+    {
+        $data = app(ProfileAccess::class)->run($request, function (User $user, TenantContext $tenant): array {
+            Gate::forUser($user)->authorize('profile.own');
+
+            return $this->data($user, $tenant);
+        });
+
+        return Inertia::render('Shell/Dashboard/Attention', ['seller' => $data['seller']]);
+    }
+
+    public function notificationCenter(Request $request): mixed
+    {
+        $data = app(ProfileAccess::class)->run($request, function (User $user, TenantContext $tenant): array {
+            Gate::forUser($user)->authorize('profile.own');
+
+            return $this->data($user, $tenant);
+        });
+
+        return Inertia::render('Shell/Notifications/Index', ['items' => $data['items'], 'unread' => $data['unread']]);
+    }
+
     public function read(Request $request, string $kind, string $id): mixed
     {
         app(ProfileAccess::class)->run($request, function (User $user, TenantContext $tenant) use ($id, $kind): void {
@@ -141,6 +165,28 @@ final class DashboardController
             } else {
                 DB::table('cabinet_notifications')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('user_id', $user->id)->where('id', $id)->update(['read_at' => now()]);
             }
+        });
+
+        return back();
+    }
+
+    public function readAll(Request $request): mixed
+    {
+        app(ProfileAccess::class)->run($request, function (User $user, TenantContext $tenant): void {
+            Gate::forUser($user)->authorize('profile.own');
+            $member = Membership::withoutGlobalScopes()->where('id', $tenant->membershipId)->where('organization_id', $tenant->organizationId)->where('user_id', $user->id)->where('status', 'active')->first();
+            abort_unless($member && $tenant->brandId && $member->permitsBrand($tenant->brandId), 403);
+            $enabled = app(SellerModuleAccess::class)->enabled($tenant->organizationId, $tenant->brandId);
+            $items = collect($this->notifications($user, $tenant, $member, $enabled, true)['items'])->where('read', false);
+            DB::transaction(function () use ($items, $user, $tenant): void {
+                foreach ($items as $item) {
+                    if ($item['kind'] === 'digest') {
+                        DB::table('dashboard_digest_reads')->updateOrInsert(['batch_id' => $item['id']], ['read_at' => now()]);
+                    } else {
+                        DB::table('cabinet_notifications')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('user_id', $user->id)->where('id', $item['id'])->update(['read_at' => now()]);
+                    }
+                }
+            });
         });
 
         return back();

@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import CabinetLayout from '../../../resources/js/layouts/CabinetLayout';
 const routes = {
   dashboard: { uri: 'dashboard', methods: ['GET'] },
+  notificationCenter: { uri: 'notification-center', methods: ['GET'] },
   dialogs: { uri: 'seller/dialogs', methods: ['GET'] },
   switch: { uri: 'brand/switch', methods: ['POST'] },
   journal: { uri: 'journal', methods: ['GET'] },
