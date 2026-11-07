@@ -10,3 +10,7 @@
 - Проверить полный путь событие → снимок/маршрутизация → хранение → очередь → fake-доставка → видимый результат, повтор и ошибки на отдельной тестовой БД; без живых и платных вызовов.
 
 Scope: `app/Shell/Integrations/`, `app/Shell/Notifications/`, `app/Seller/Channels/Crm/`, `resources/js/pages/Shell/Integrations/`, `routes/features/E1-10.php`, `routes/console.php`, `database/migrations/E1-10K/`, `tests/Feature/Shell/Integrations/`, `tests/Feature/Shell/Notifications/`, `tests/Browser/E1-10K/`, `docs/results/SP-E1-10K.md`.
+
+
+## Дополнение 07.11.2026 19:00 (реестр экранов S-7.1, D-10.3)
+- `config/runtime.php`: `notification_driver` без значения по умолчанию → в окружениях без NOTIFICATION_DRIVER тихие часы и сводка S-7.1 всегда «Скоро», напоминания D-10.3 заблокированы (`reminders.available=false`), DrainNotifications не работает. Задать default `fake` (как ai_driver/delivery_driver), проверить, что S-7.1 (тихие часы, сводка, блокировка «Сохранить» без изменений) и D-10.3 (переключатель напоминаний) работают в fake-режиме; поправить тесты, ожидавшие «Скоро». Дополнительный scope: `config/runtime.php`, `app/Shell/Profile/`, `resources/js/pages/Shell/Profile/`, `tests/Feature/Shell/Profile/`, `app/Seller/Channels/Planned/`, `tests/Feature/Seller/Channels/Planned/`.
