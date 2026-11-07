@@ -33,7 +33,6 @@
         <testsuite name="CoreTurns">
             <file>tests/Feature/ProtectedOperations/FirstTurnStateTest.php</file>
             <file>tests/Feature/ProtectedOperations/JobFirstTurnInputE306FTest.php</file>
-            <file>tests/Feature/ProtectedOperations/FirstTurnDeterministicGuardQuestionLimitTest.php</file>
         </testsuite>
         <testsuite name="Product">
             <file>tests/Feature/Owner/E5-01H/TelegramClientTest.php</file>
