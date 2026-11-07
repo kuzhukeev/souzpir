@@ -5,6 +5,7 @@ namespace Tests\Feature\Seller\Channels\Widget;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Tests\Feature\Tenancy\TenancyTestCase;
 
@@ -37,7 +38,6 @@ final class WidgetInstallationCheckTest extends TenancyTestCase
         Http::fake(['203.0.113.10*' => Http::response('<html><body><script src="/widget.js?key='.$key.'"></script></body></html>', 200)]);
         $this->post('/seller/channels/widget/check')->assertRedirect()->assertSessionHas('status', fn ($status) => str_contains($status, 'Код установлен'));
         Http::assertSentCount(1);
-        $this->assertSame('detected', DB::table('widget_settings')->where('brand_id', $brand->id)->value('install_check_status'));
     }
 
     public function test_reports_code_not_found(): void
@@ -93,7 +93,8 @@ final class WidgetInstallationCheckTest extends TenancyTestCase
         Http::assertSentCount(1);
         $this->post('/seller/channels/widget/check')->assertRedirect()->assertSessionHas('status', fn ($status) => str_contains($status, 'не чаще раза в 30 секунд'));
         Http::assertSentCount(1);
-        DB::table('widget_settings')->where('brand_id', $brand->id)->update(['install_checked_at' => now()->subSeconds(31)]);
+        $widgetId = DB::table('widget_settings')->where('brand_id', $brand->id)->value('id');
+        RateLimiter::clear('widget-install-check:'.$widgetId);
         $this->post('/seller/channels/widget/check')->assertRedirect();
         Http::assertSentCount(2);
     }

@@ -13,6 +13,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -56,8 +57,7 @@ final class WidgetSettingsController
 
             return ['brandOrigin' => $origin, 'activeTab' => $request->route('tab') ?? 'install', 'settings' => ['enabled' => $row->enabled, 'origins' => json_decode($row->origins, true),
                 'appearance' => json_decode($row->appearance, true), 'behavior' => json_decode($row->behavior, true),
-                'last_seen_at' => $row->last_seen_at, 'key' => $row->public_key,
-                'install_check_status' => $row->install_check_status, 'install_check_message' => $row->install_check_message, 'install_checked_at' => $row->install_checked_at],
+                'last_seen_at' => $row->last_seen_at, 'key' => $row->public_key],
                 'scriptUrl' => $request->getSchemeAndHttpHost().'/widget.js',
                 'contactRequests' => DB::table('widget_contact_requests')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->orderByDesc('created_at')->limit(100)->get(['id', 'name', 'email', 'phone', 'origin', 'created_at'])];
         });
@@ -78,14 +78,13 @@ final class WidgetSettingsController
                 ? 'Виджет работает, последний сигнал: '.Carbon::parse($widget->last_seen_at)->format('d.m.Y H:i').'.'
                 : 'Сигналов от виджета ещё не было.';
 
-            if ($widget->install_checked_at && Carbon::parse($widget->install_checked_at)->gt(now()->subSeconds(30))) {
-                return self::describe($widget->install_check_status, $widget->install_check_message).' '.$passive.' Активную проверку можно повторить не чаще раза в 30 секунд.';
+            $rateKey = 'widget-install-check:'.$widget->id;
+            if (RateLimiter::tooManyAttempts($rateKey, 1)) {
+                return 'Активную проверку можно повторить не чаще раза в 30 секунд. '.$passive;
             }
+            RateLimiter::hit($rateKey, 30);
 
             $check = app(WidgetInstallationChecker::class)->check($origins[0], $widget->public_key);
-            DB::table('widget_settings')->where('id', $widget->id)->update([
-                'install_check_status' => $check['status'], 'install_check_message' => $check['message'], 'install_checked_at' => now(), 'updated_at' => now(),
-            ]);
 
             return self::describe($check['status'], $check['message']).' '.$passive;
         });
@@ -93,13 +92,12 @@ final class WidgetSettingsController
         return back()->with('status', $result);
     }
 
-    private static function describe(?string $status, ?string $message): string
+    private static function describe(string $status, string $message): string
     {
         return match ($status) {
             'detected' => 'Код установлен.',
             'not_detected' => 'Код не найден на странице.',
-            'unreachable', 'failed' => $message ?: 'Проверка не удалась.',
-            default => 'Проверка ещё не выполнялась.',
+            default => $message,
         };
     }
 
