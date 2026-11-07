@@ -4,6 +4,7 @@ namespace App\Shell\Notifications;
 
 use App\Models\Membership;
 use App\Seller\Channels\Planned\ContactReminderValidity;
+use App\Shell\Integrations\CompanyNotifications\CompanyNotificationDispatcher;
 use App\Shell\Notifications\Jobs\DeliverNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -18,6 +19,7 @@ final class NotificationProcessor
                 return;
             }
             $event = new DomainEvent(json_decode($row->envelope, true, 512, JSON_THROW_ON_ERROR));
+            app(CompanyNotificationDispatcher::class)->enqueue($event);
             if ($event->isNotification()) {
                 $e = $event->envelope;
                 app(MeasurementSubscriptionDelivery::class)->deliver($event);

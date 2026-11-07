@@ -5,7 +5,7 @@ import { Button, Modal } from '@/components/ui';
 import { Page, panel, focus } from '@/features/Shell/Organizations/Shared';
 
 type Matrix = Record<string, Record<string, boolean>>;
-type Props = { telegram_configured: boolean; telegram_mask: string | null; report_emails: string[]; matrix: Matrix; telegram_link?: { code: string | null; pending: boolean; bot: string | null } };
+type Props = { telegram_configured: boolean; telegram_mask: string | null; report_emails: string[]; matrix: Matrix; telegram_link?: { code: string | null; pending: boolean; bot: string | null }; company_deliveries?: { id: string; event_key: string; channel: string; status: string }[] };
 const events = [
   { key: 'handoff', label: 'Диалог ждёт менеджера' },
   { key: 'unknown_question', label: 'Неизвестный вопрос' },
@@ -18,7 +18,7 @@ const channels = [
   { key: 'telegram', label: 'Telegram' },
 ];
 
-export default function Notifications({ telegram_configured, telegram_mask, report_emails, matrix: initialMatrix = {}, telegram_link }: Props) {
+export default function Notifications({ telegram_configured, telegram_mask, report_emails, matrix: initialMatrix = {}, telegram_link, company_deliveries = [] }: Props) {
   const [linkOpen, setLinkOpen] = useState(false);
   const [linkBusy, setLinkBusy] = useState(false);
   const [emails, setEmails] = useState(report_emails);
@@ -110,6 +110,7 @@ export default function Notifications({ telegram_configured, telegram_mask, repo
           </section>
           <div className="mt-5 flex justify-end"><Button type="submit" loading={saving}>Сохранить</Button></div>
         </form>
+        <section className={`${panel} mt-5`} aria-labelledby="company-deliveries-title"><h2 id="company-deliveries-title" className="text-xl font-bold">Последние проверки доставки</h2>{company_deliveries.length === 0 ? <p className="mt-3 text-sm text-(--color-ink-muted)">Доставок пока нет.</p> : <ul className="mt-3 divide-y divide-(--color-border)">{company_deliveries.map((delivery) => <li key={delivery.id} className="flex flex-wrap justify-between gap-2 py-3 text-sm"><span>{({ 'seller.conversation.handed_off': 'Диалог ждёт менеджера', 'seller.unknown_question.logged': 'Неизвестный вопрос', 'vision.report.published': 'Отчёт опубликован', 'seller.quota.threshold_reached': 'Лимит тарифа 80%' } as Record<string, string>)[delivery.event_key] ?? 'Уведомление'} · {delivery.channel === 'email' ? 'Почта' : 'Telegram'}</span><span>{({ pending: 'В очереди', simulated: 'Проверено без отправки', cancelled: 'Отменено', failed: 'Ошибка' } as Record<string, string>)[delivery.status] ?? 'Неизвестно'}</span></li>)}</ul>}</section>
         <Modal open={linkOpen} title="Подключение Telegram" onClose={() => setLinkOpen(false)}>
           <p>1. Получите одноразовый код. 2. Отправьте боту команду с кодом. 3. Проверьте и подтвердите подключение.</p>
           {error && <p role="alert" className="mt-3 text-(--color-danger-ink)">{error}</p>}
