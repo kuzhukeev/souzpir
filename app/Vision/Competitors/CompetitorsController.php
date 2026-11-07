@@ -8,10 +8,12 @@ use App\Shell\Audit\Contracts\AuditWriter;
 use App\Shell\Organizations\ModuleEntitlements;
 use App\Shell\Profile\ProfileAccess;
 use App\Tenancy\TenantContext;
+use App\Vision\Competitors\Jobs\RecalculateMergedReportJob;
 use App\Vision\Core\VisionReportReader;
 use App\Vision\KnowledgeBridge\SelfDeclaredProfile;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
@@ -35,6 +37,13 @@ final class CompetitorsController
         return DB::table($table)->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId);
     }
 
+    private function mergeProgress(TenantContext $tenant): ?array
+    {
+        $progress = Cache::get(RecalculateMergedReportJob::key($tenant->organizationId, $tenant->brandId));
+
+        return is_array($progress) && in_array($progress['stage'] ?? null, ['queued', 'recalculating', 'failed'], true) ? $progress : null;
+    }
+
     public function index(Request $request): mixed
     {
         $data = $this->access($request, 'vision.report.read', function (User $user, TenantContext $tenant) use ($request): array {
@@ -52,9 +61,10 @@ final class CompetitorsController
             $distinctPairs = $this->scope('vision_competitor_distinct', $tenant)->get(['first_name', 'second_name'])->map(fn ($row) => [$row->first_name, $row->second_name])->all();
             $confirmed = $this->scope('snapshot_confirmations', $tenant)->pluck('measurement_id');
             $history = $this->scope('vision_reports', $tenant)->whereIn('measurement_id', $confirmed)->orderByDesc('created_at')->limit(20)->get(['id', 'measurement_id', 'created_at'])->toArray();
+            $mergeProgress = $this->mergeProgress($tenant);
             $snapshot = app(SnapshotView::class)->current($tenant);
             if (! $snapshot) {
-                return ['distinctPairs' => $distinctPairs, 'declared' => $declared, 'history' => $history, 'entities' => [], 'available' => false, 'canEdit' => Gate::forUser($user)->allows('vision.actions.write')];
+                return ['distinctPairs' => $distinctPairs, 'declared' => $declared, 'history' => $history, 'entities' => [], 'available' => false, 'canEdit' => Gate::forUser($user)->allows('vision.actions.write'), 'mergeProgress' => $mergeProgress];
             }
             $aliases = $this->scope('vision_competitor_aliases', $tenant)->pluck('canonical', 'alias')->all();
             $tracked = $this->scope('vision_competitor_tracking', $tenant)->pluck('name')->all();
@@ -147,7 +157,7 @@ final class CompetitorsController
                     'sources' => $matched->flatMap(fn ($slot) => array_column($slot['sources'] ?? [], 'domain'))->filter()->unique()->values()->all()];
             })->values()->all();
 
-            return ['distinctPairs' => $distinctPairs, 'declared' => $declared, 'history' => $history, 'entities' => $entities, 'available' => true, 'canEdit' => Gate::forUser($user)->allows('vision.actions.write')];
+            return ['distinctPairs' => $distinctPairs, 'declared' => $declared, 'history' => $history, 'entities' => $entities, 'available' => true, 'canEdit' => Gate::forUser($user)->allows('vision.actions.write'), 'mergeProgress' => $mergeProgress];
         });
 
         return Inertia::render($request->routeIs('vision.competitors.merge.page') ? 'Vision/Competitors/Merge' : 'Vision/Competitors/Index', [...$data, 'status' => $request->session()->get('status')]);
@@ -193,7 +203,7 @@ final class CompetitorsController
             throw ValidationException::withMessages(['sources' => 'Для разных компаний выберите два названия.']);
         }
         $this->access($request, 'vision.actions.write', function (User $user, TenantContext $tenant) use ($input, $sources): void {
-            DB::transaction(function () use ($tenant, $input, $sources): void {
+            $recalculate = DB::transaction(function () use ($tenant, $input, $sources): bool {
                 $names = $this->validNames($tenant);
                 if (array_diff($sources, $names) || ! in_array($input['target'], $names, true)) {
                     throw ValidationException::withMessages(['source' => 'Выберите названные компании текущего снимка.']);
@@ -208,7 +218,7 @@ final class CompetitorsController
                         app(AuditWriter::class)->record($tenant, new AuditEntry('vision.competitor.distinct', 'vision_competitor_distinct', $id));
                     }
 
-                    return;
+                    return false;
                 }
                 foreach ($sources as $source) {
                     $this->scope('vision_competitor_aliases', $tenant)->where('canonical', $source)->update(['canonical' => $input['target'], 'updated_at' => now()]);
@@ -226,11 +236,17 @@ final class CompetitorsController
                     }
                     app(AuditWriter::class)->record($tenant, new AuditEntry('vision.competitor.merged', 'vision_competitor_alias', $existing?->id ?? DB::table('vision_competitor_aliases')->where('brand_id', $tenant->brandId)->where('alias', $source)->value('id')));
                 }
-                app(RecalculateMergedReport::class)->create($tenant);
+                app(RecalculateMergedReport::class)->assertRecalculable($tenant);
+
+                return true;
             });
+            if ($recalculate) {
+                Cache::put(RecalculateMergedReportJob::key($tenant->organizationId, $tenant->brandId), ['stage' => 'queued'], now()->addHour());
+                RecalculateMergedReportJob::dispatch($tenant->organizationId, $tenant->brandId);
+            }
         });
 
-        return back()->with('status', ($input['distinct'] ?? false) ? 'Отмечено: это разные компании.' : 'Названия объединены, новая версия отчёта подготовлена.');
+        return back()->with('status', ($input['distinct'] ?? false) ? 'Отмечено: это разные компании.' : 'Названия объединены, пересчитываем отчёт.');
     }
 
     public function track(Request $request): mixed

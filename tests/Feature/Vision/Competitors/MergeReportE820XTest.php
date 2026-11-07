@@ -4,14 +4,18 @@ namespace Tests\Feature\Vision\Competitors;
 
 use App\Ai\CanonicalJson;
 use App\Tenancy\TenantContext;
+use App\Tenancy\TenantContextRunner;
+use App\Vision\Competitors\Jobs\RecalculateMergedReportJob;
 use App\Vision\Competitors\SnapshotView;
 use App\Vision\Core\ReportSeal;
 use App\Vision\Core\VisibilityMetrics;
 use App\Vision\Core\VisionReportReader;
 use App\Vision\Evidence\Contracts\KnowledgeGate;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use Mockery;
 use Tests\Feature\Tenancy\TenancyTestCase;
@@ -109,6 +113,46 @@ final class MergeReportE820XTest extends TenancyTestCase
         }
         self::assertSame(3, DB::table('report_publications')->where($scope)->count());
         self::assertSame(0, DB::table('report_publications')->where('report_id', $new)->count());
+    }
+
+    public function test_merge_shows_recalculating_banner_until_the_queued_job_completes_or_fails(): void
+    {
+        [$owner, $org, $brand] = $this->cabinet();
+        DB::table('brand_modules')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $brand->id, 'module' => 'vision', 'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
+        $scope = ['organization_id' => $org->id, 'brand_id' => $brand->id];
+        $set = (string) Str::ulid();
+        $measurement = (string) Str::ulid();
+        $report = (string) Str::ulid();
+        DB::table('question_sets')->insert(['id' => $set, ...$scope, 'version' => 1, 'questions' => '[{"id":"q1"}]', 'size' => 1, 'checksum' => str_repeat('0', 64), 'created_at' => now(), 'updated_at' => now()]);
+        $questions = [['id' => 'q1']];
+        $plan = ['questions' => $questions, 'question_set_checksum' => CanonicalJson::hash($questions), 'providers' => ['a' => 'model'], 'runs' => 1];
+        DB::table('measurements')->insert(['id' => $measurement, ...$scope, 'question_set_id' => $set, 'status' => 'completed', 'configuration' => json_encode($plan), 'profile_snapshot' => '{}', 'profile_checksum' => CanonicalJson::hash([]), 'created_at' => now(), 'updated_at' => now()]);
+        $slot = ['provider' => 'a', 'question_n' => 1, 'run_no' => 1, 'qid' => 'q1', 'intent' => 'choose', 'status' => 'ok', 'protocol_valid' => true, 'mentions_complete' => true, 'fact' => ['brand_mentioned' => false, 'brand_recommended' => false], 'mentions' => [['name' => 'Альфа', 'role' => null], ['name' => 'Альфа ООО', 'role' => null]], 'sources' => []];
+        $snapshot = ['measurement_id' => $measurement, 'question_set_checksum' => CanonicalJson::hash($questions), 'providers' => ['a' => 'model'], 'questions' => [['id' => 'q1']], 'runs' => 1, 'metrics' => app(VisibilityMetrics::class)->calculate([$slot], ['a'], 1, 1), 'recommendations' => ['items' => []]];
+        DB::table('vision_reports')->insert(['id' => $report, ...$scope, 'measurement_id' => $measurement, 'revision' => 1, 'payload' => json_encode($snapshot, JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION), 'checksum' => CanonicalJson::hash($snapshot), 'snapshot_mac' => ReportSeal::mac($org->id, $brand->id, $report, $measurement, 1, CanonicalJson::hash($snapshot)), 'created_at' => now()->subMinute(), 'updated_at' => now()->subMinute()]);
+        DB::table('snapshot_confirmations')->insert(['id' => (string) Str::ulid(), ...$scope, 'measurement_id' => $measurement, 'confirmed_by' => $owner->id, 'created_at' => now(), 'updated_at' => now()]);
+        $gate = Mockery::mock(KnowledgeGate::class);
+        $gate->shouldReceive('assertAllowed')->zeroOrMoreTimes();
+        app()->instance(KnowledgeGate::class, $gate);
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+
+        Queue::fake();
+        $this->post('/vision/competitors/merge', ['sources' => ['Альфа ООО'], 'target' => 'Альфа'])->assertRedirect()->assertSessionHasNoErrors();
+        self::assertSame(1, DB::table('vision_reports')->where($scope)->count());
+        Queue::assertPushed(RecalculateMergedReportJob::class, fn ($job) => $job->organizationId === $org->id && $job->brandId === $brand->id);
+        $this->get('/vision/competitors')->assertOk()->assertInertia(fn ($page) => $page->where('mergeProgress.stage', 'queued'));
+
+        $job = Queue::pushed(RecalculateMergedReportJob::class)->sole();
+        $job->handle(app(TenantContextRunner::class));
+        self::assertSame('complete', Cache::get(RecalculateMergedReportJob::key($org->id, $brand->id))['stage']);
+        self::assertSame(2, DB::table('vision_reports')->where($scope)->count());
+        $this->get('/vision/competitors')->assertOk()->assertInertia(fn ($page) => $page->where('mergeProgress', null));
+
+        DB::table('snapshot_confirmations')->where($scope)->delete();
+        $job->handle(app(TenantContextRunner::class));
+        self::assertSame('failed', Cache::get(RecalculateMergedReportJob::key($org->id, $brand->id))['stage']);
+        $this->get('/vision/competitors')->assertOk()->assertInertia(fn ($page) => $page->where('mergeProgress.stage', 'failed'));
+        Http::assertNothingSent();
     }
 
     public function test_missing_confirmed_report_rolls_back_alias(): void
