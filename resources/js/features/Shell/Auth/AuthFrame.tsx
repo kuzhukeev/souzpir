@@ -6,10 +6,14 @@ export function AuthFrame({
   title,
   subtitle,
   children,
+  centered = false,
+  leading,
 }: {
   title: string;
   subtitle?: string;
   children: ReactNode;
+  centered?: boolean;
+  leading?: ReactNode;
 }) {
   return (
     <div className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-(--color-bg) px-4 py-8 font-(family-name:--font-sans) text-(--color-ink)">
@@ -41,9 +45,10 @@ export function AuthFrame({
         </span>
       </div>
       <main className="relative w-full max-w-[530px] rounded-(--radius-card) bg-(--color-surface) p-6 shadow-(--shadow-card) sm:p-11">
-        <h1 className="text-[30px] font-extrabold leading-tight sm:text-[34px]">{title}</h1>
+        {leading}
+        <h1 className={`text-[30px] font-extrabold leading-tight sm:text-[34px] ${centered ? 'text-center' : ''}`}>{title}</h1>
         {subtitle && (
-          <p className="mt-2 text-base leading-6 text-(--color-ink-muted)">{subtitle}</p>
+          <p className={`mt-2 text-base leading-6 text-(--color-ink-muted) ${centered ? 'text-center' : ''}`}>{subtitle}</p>
         )}
         <div className="mt-7">{children}</div>
       </main>

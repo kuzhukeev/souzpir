@@ -80,8 +80,7 @@ final class InvitationController
             if(!response.ok){
                 const data=await response.json().catch(()=>({}));
                 if(['expired','revoked','accepted','email_mismatch'].includes(data.state)){
-                    const labels={expired:'Срок приглашения истёк.',revoked:'Приглашение отозвано.',accepted:'Приглашение уже принято.',email_mismatch:'Почта не совпадает.'};
-                    status.textContent=failed+' '+labels[data.state];
+                    location.replace('/invitations/state?state='+encodeURIComponent(data.state));
                     return;
                 }
                 throw 0;
