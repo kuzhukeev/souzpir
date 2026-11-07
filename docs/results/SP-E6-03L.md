@@ -5,9 +5,9 @@
 - Проверено: явный запрос «хочу живого человека» (intent `want_human`) доходит до handoff и на первом ходе (FirstTurnTextFinalizer), и на защищённом follow-up (FollowupFinalizer/job-путь симуляции).
 
 ## Тесты
-- `tests/Feature/ProtectedOperations/HandoffFinalizersE603LTest.php` — 2 теста: follow-up доходит до handoff (mode/stage/outcome/handed_off_at, идемпотентный повтор), изоляция бренда (чужой бренд — IdempotencyFailure, conversation не тронута). Прогнано: проверено.
+- `tests/Feature/Seller/Engine/HandoffFinalizersE603LTest.php` — 2 теста: follow-up доходит до handoff (mode/stage/outcome/handed_off_at, идемпотентный повтор), изоляция бренда (чужой бренд — IdempotencyFailure, conversation не тронута). Прогнано: проверено.
 - Новый тест в `FirstTurnStateTest.php` (`test_first_text_hands_off_conversation_on_explicit_want_human_request`) — первый ход через `FirstTurnTextFinalizer`. Не прогнан локально: роль БД слота exec-1 имеет `CREATEDB` (проверено `tinker`), а файл требует изолированную роль без этой привилегии (`createApplication()` в файле бросает `RuntimeException`) — падают и старые тесты этого файла без моих правок. Проверено через смежные production-тесты (`FirstInboundRuntimeTest`, `GreetingFirstTurnTest` — 5 тестов, зелёные), которые реально вызывают изменённый `FirstTurnTextFinalizer::write`.
-- Регрессия: `ProtectedSimulationRuntimeTest` (7 тестов), `OffTopicPolicyE603CTest`+`PolicyTest` (13 тестов) — зелёные. Pint, `check-test-suite-coverage.py` — зелёные; новый файл зарегистрирован в `phpunit.xml` (ShellCore).
+- Регрессия: `ProtectedSimulationRuntimeTest` (7 тестов), `OffTopicPolicyE603CTest`+`PolicyTest` (13 тестов) — зелёные. Pint, `check-test-suite-coverage.py` — зелёные; новый файл в `tests/Feature/Seller/Engine/` покрыт существующей директорией в `phpunit.xml`, сам файл не трогал (общий файл не в scope).
 
 ## Остаток
 - Tool `escalate` из `allowedTools` handoff-цели не реализован в `ToolRunner` (вернёт `unavailable`, если модель его вызовет); в тестах fake-driver не вызывает tool, текст идёт прямым ответом. Полноценный обработчик — вне scope этой карточки.
