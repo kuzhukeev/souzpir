@@ -24341,6 +24341,40 @@
       ],
       "promptPath": "docs/tasks/SP-E5-02F.md",
       "wave": 20
+    },
+    {
+      "taskKey": "SP-E4-10R",
+      "title": "SP-E4-10R · Тема и применённые приёмы",
+      "goal": "Показать реальные тему и применённые приёмы выбранного хода",
+      "description": "# SP-E4-10R · Песочница: тема и применённые приёмы\n\nОстаток SP-E4-10H, D-4.11: показать распознанную тему и фактически выбранные и применённые приёмы выбранного хода, используя реальные данные защищённого runtime. Не подменять применённые приёмы рекомендованными тегами. Проверить несколько ходов и отсутствие данных; fake AI, изоляция брендов и права.\n\nScope: app/Seller/Sandbox/SandboxRuntime.php, app/Seller/Sandbox/SandboxController.php, resources/js/pages/Seller/Sandbox/Index.tsx, tests/Browser/E4-10H/inspector.spec.ts, tests/Browser/E4-10H/fixture.tsx, docs/results/SP-E4-10R.md. Перед выдачей уточнить точные файлы источника данных и ownership shared-ai-stages.\n",
+      "dependsOn": [
+        "SP-E4-10H",
+        "SP-E6-03Z"
+      ],
+      "scope": [
+        "app/Seller/Sandbox/SandboxRuntime.php",
+        "app/Seller/Sandbox/SandboxController.php",
+        "resources/js/pages/Seller/Sandbox/Index.tsx",
+        "tests/Browser/E4-10H/inspector.spec.ts",
+        "tests/Browser/E4-10H/fixture.tsx",
+        "docs/results/SP-E4-10R.md"
+      ],
+      "exclusiveResources": [
+        "shared-ai-stages"
+      ],
+      "acceptance": [
+        "Тема и реально применённые приёмы показаны для выбранного хода без имитации."
+      ],
+      "sourceIds": [],
+      "screenIds": [
+        "D-4.11"
+      ],
+      "notes": "Остаток SP-E4-10H по решению владельца 07.11.",
+      "sourceRefs": [
+        "docs/tasks/SP-E4-10H.md"
+      ],
+      "promptPath": "docs/tasks/SP-E4-10R.md",
+      "wave": 20
     }
   ],
   "excludedSourceTasks": {
