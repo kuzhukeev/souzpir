@@ -31,6 +31,7 @@ final class KpiTrendE704PTest extends TenancyTestCase
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
         $this->get('/seller/analytics?from=2026-11-02&to=2026-11-02')->assertOk()->assertInertia(fn ($page) => $page
             ->where('analytics.total', 2)->where('analytics.messageCount', 2)->where('analytics.botCompleted', 2)->where('analytics.avgMinutesToContact', 10)
-            ->where('analytics.previousTotal', 1)->where('analytics.previousMessageCount', 2)->where('analytics.previousBotCompleted', 1)->where('analytics.previousAvgMinutesToContact', 5));
+            ->where('analytics.previousTotal', 1)->where('analytics.previousMessageCount', 2)->where('analytics.previousBotCompleted', 1)->where('analytics.previousAvgMinutesToContact', 5)
+            ->where('analytics.avgMessagesTrendSeries', [1])->where('analytics.botRateTrendSeries', [100])->where('analytics.avgMinutesToContactTrendSeries', [10]));
     }
 }

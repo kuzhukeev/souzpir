@@ -64,6 +64,9 @@ type Analytics = {
   previousMessageCount?: number;
   previousBotCompleted?: number;
   previousAvgMinutesToContact?: number | null;
+  avgMessagesTrendSeries?: (number | null)[];
+  botRateTrendSeries?: (number | null)[];
+  avgMinutesToContactTrendSeries?: (number | null)[];
 };
 function formatMinutesToContact(value: number | null | undefined) {
   if (value == null) return 'Нет данных';
@@ -75,7 +78,17 @@ function trendPercent(current: number | null, previous: number | null): number |
   if (current == null || previous == null || previous === 0) return null;
   return Math.round(((current - previous) / previous) * 100);
 }
-function TrendBadge({ value, lowerIsBetter = false }: { value: number | null; lowerIsBetter?: boolean }) {
+function trendGood(value: number | null, lowerIsBetter: boolean): boolean | null {
+  if (value == null || value === 0) return null;
+  const good = lowerIsBetter ? -value : value;
+  return good > 0;
+}
+function periodDays(from: string, to: string): number {
+  const begin = new Date(`${from}T00:00:00Z`).getTime();
+  const end = new Date(`${to}T00:00:00Z`).getTime();
+  return Math.round((end - begin) / 86400000) + 1;
+}
+function TrendBadge({ value, days, lowerIsBetter = false }: { value: number | null; days: number; lowerIsBetter?: boolean }) {
   if (value == null) return null;
   const sign = value > 0 ? '+' : value < 0 ? '−' : '';
   const good = lowerIsBetter ? -value : value;
@@ -86,10 +99,30 @@ function TrendBadge({ value, lowerIsBetter = false }: { value: number | null; lo
         ? 'text-(--color-danger-ink)'
         : 'text-(--color-ink-muted)';
   return (
-    <p className={`mt-1 text-xs font-medium ${color}`}>
-      {value > 0 ? '↑' : value < 0 ? '↓' : '→'} {sign}
-      {Math.abs(value)}% к предыдущему периоду
-    </p>
+    <div className="mt-1 text-xs font-medium">
+      <p className={color}>
+        {value > 0 ? '↑' : value < 0 ? '↓' : '→'} {sign}
+        {Math.abs(value)}%
+      </p>
+      <p className="text-(--color-ink-muted)">К предыдущим {days} дням</p>
+    </div>
+  );
+}
+function Sparkline({ values, good }: { values: (number | null)[]; good: boolean | null }) {
+  const points = values.map((v, i) => (v == null ? null : { i, v })).filter((p): p is { i: number; v: number } => p !== null);
+  if (points.length < 2) return null;
+  const vs = points.map((p) => p.v);
+  const min = Math.min(...vs);
+  const max = Math.max(...vs);
+  const range = max - min || 1;
+  const stepX = values.length > 1 ? 100 / (values.length - 1) : 0;
+  const coords = points.map((p) => `${(p.i * stepX).toFixed(1)},${(26 - ((p.v - min) / range) * 22).toFixed(1)}`).join(' ');
+  const color =
+    good === null ? 'var(--color-ink-muted)' : good ? 'var(--color-success-ink)' : 'var(--color-danger-ink)';
+  return (
+    <svg viewBox="0 0 100 26" preserveAspectRatio="none" className="h-8 w-20 shrink-0" aria-hidden="true">
+      <polyline points={coords} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
 const labels: Record<string, string> = {
@@ -157,6 +190,7 @@ function Rows({
 export default function Index({ analytics: a }: { analytics: Analytics }) {
   const [tab, setTab] = useState('funnel');
   const [compare, setCompare] = useState(true);
+  const days = periodDays(a.from, a.to);
   const avgMessages = a.total ? (a.messageCount ?? 0) / a.total : null;
   const botRate = a.total && a.botCompleted != null ? Math.round((a.botCompleted / a.total) * 100) : null;
   const previousAvgMessages = a.previousTotal ? (a.previousMessageCount ?? 0) / a.previousTotal : null;
@@ -507,23 +541,38 @@ export default function Index({ analytics: a }: { analytics: Analytics }) {
         <div hidden={tab !== 'dialogs'}>
           <section className="mt-5 grid gap-4 md:grid-cols-3" aria-label="Ключевые показатели диалогов">
             <div className={card}>
-              <h2 className="text-sm font-semibold">Средняя длина диалога</h2>
-              <p className="mt-2 text-2xl font-bold">
-                {avgMessages == null
-                  ? 'Нет данных'
-                  : `${avgMessages.toLocaleString('ru-RU', { maximumFractionDigits: 1 })} сообщений`}
-              </p>
-              <TrendBadge value={avgMessagesTrend} />
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-sm font-semibold">Средняя длина диалога</h2>
+                  <p className="mt-2 text-2xl font-bold">
+                    {avgMessages == null
+                      ? 'Нет данных'
+                      : `${avgMessages.toLocaleString('ru-RU', { maximumFractionDigits: 1 })} сообщений`}
+                  </p>
+                  <TrendBadge value={avgMessagesTrend} days={days} />
+                </div>
+                <Sparkline values={a.avgMessagesTrendSeries ?? []} good={trendGood(avgMessagesTrend, false)} />
+              </div>
             </div>
             <div className={card}>
-              <h2 className="text-sm font-semibold">Бот ответил сам до конца</h2>
-              <p className="mt-2 text-2xl font-bold">{botRate == null ? 'Нет данных' : `${botRate}%`}</p>
-              <TrendBadge value={botRateTrend} />
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-sm font-semibold">Бот ответил сам до конца</h2>
+                  <p className="mt-2 text-2xl font-bold">{botRate == null ? 'Нет данных' : `${botRate}%`}</p>
+                  <TrendBadge value={botRateTrend} days={days} />
+                </div>
+                <Sparkline values={a.botRateTrendSeries ?? []} good={trendGood(botRateTrend, false)} />
+              </div>
             </div>
             <div className={card}>
-              <h2 className="text-sm font-semibold">Среднее время до контакта</h2>
-              <p className="mt-2 text-2xl font-bold">{formatMinutesToContact(a.avgMinutesToContact)}</p>
-              <TrendBadge value={avgMinutesToContactTrend} lowerIsBetter />
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-sm font-semibold">Среднее время до контакта</h2>
+                  <p className="mt-2 text-2xl font-bold">{formatMinutesToContact(a.avgMinutesToContact)}</p>
+                  <TrendBadge value={avgMinutesToContactTrend} days={days} lowerIsBetter />
+                </div>
+                <Sparkline values={a.avgMinutesToContactTrendSeries ?? []} good={trendGood(avgMinutesToContactTrend, true)} />
+              </div>
             </div>
           </section>
           <p className="mt-2 text-sm text-(--color-ink-muted)">

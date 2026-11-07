@@ -150,6 +150,37 @@ final class AnalyticsController
                 'messages' => $messageCounts[$row->id] ?? 0, 'has_contact' => ! empty($slots['email']) || ! empty($slots['messenger']),
                 'handed_off' => $row->handed_off_at !== null, 'last_activity' => $row->updated_at, 'created_at' => $row->created_at];
         })->values()->all();
+        $dailyMessageSum = [];
+        $dailyDialogCount = [];
+        $dailyDoneCount = [];
+        $dailyBotDoneCount = [];
+        $dailyContactMinutesSum = [];
+        $dailyContactMinutesCount = [];
+        foreach ($rows as $row) {
+            $day = CarbonImmutable::parse($row->created_at)->setTimezone($timezone)->format('Y-m-d');
+            $dailyMessageSum[$day] = ($dailyMessageSum[$day] ?? 0) + ($messageCounts[$row->id] ?? 0);
+            $dailyDialogCount[$day] = ($dailyDialogCount[$day] ?? 0) + 1;
+            if ($row->stage === 'done') {
+                $dailyDoneCount[$day] = ($dailyDoneCount[$day] ?? 0) + 1;
+                if (! $row->handed_off_at && ($messageRoles[$row->id] ?? collect())->contains('role', 'agent')
+                    && ! ($messageRoles[$row->id] ?? collect())->contains('role', 'manager')) {
+                    $dailyBotDoneCount[$day] = ($dailyBotDoneCount[$day] ?? 0) + 1;
+                }
+            }
+            if ($row->contact_received_at) {
+                $minutes = CarbonImmutable::parse($row->created_at)->diffInMinutes(CarbonImmutable::parse($row->contact_received_at));
+                $dailyContactMinutesSum[$day] = ($dailyContactMinutesSum[$day] ?? 0) + $minutes;
+                $dailyContactMinutesCount[$day] = ($dailyContactMinutesCount[$day] ?? 0) + 1;
+            }
+        }
+        $avgMessagesTrendSeries = [];
+        $botRateTrendSeries = [];
+        $avgMinutesToContactTrendSeries = [];
+        foreach (array_keys($daily) as $day) {
+            $avgMessagesTrendSeries[] = ($dailyDialogCount[$day] ?? 0) ? round($dailyMessageSum[$day] / $dailyDialogCount[$day], 1) : null;
+            $botRateTrendSeries[] = ($dailyDoneCount[$day] ?? 0) ? round(($dailyBotDoneCount[$day] ?? 0) / $dailyDoneCount[$day] * 100) : null;
+            $avgMinutesToContactTrendSeries[] = ($dailyContactMinutesCount[$day] ?? 0) ? round($dailyContactMinutesSum[$day] / $dailyContactMinutesCount[$day], 1) : null;
+        }
         $hours = [];
         foreach ($rows as $row) {
             $date = CarbonImmutable::parse($row->created_at)->setTimezone($timezone);
@@ -363,7 +394,8 @@ final class AnalyticsController
         return ['from' => $from, 'to' => $to, 'channel' => $channel, 'source' => $source, 'manager' => $manager, 'managerOptions' => $managerOptions, 'funnel' => $funnel, 'outcomes' => $outcomes, 'previousTotal' => $previousTotal, 'previousMetrics' => $previousMetrics, 'previousMessageCount' => $previousMessageCount, 'previousBotCompleted' => $previousBotCompleted, 'previousAvgMinutesToContact' => $previousAvgMinutesToContact, 'transitionRates' => $rates, 'channelOptions' => $channelOptions, 'sources' => $sources, 'channelMetrics' => $channelMetrics, 'sitePages' => $sitePages, 'transitions' => $transitions, 'total' => $total, 'contact' => $contact, 'handed' => $handed, 'closed' => $closed,
             'types' => $types, 'stages' => $stages, 'channels' => $channels, 'daily' => $daily, 'topics' => $topics, 'topicUnknownRates' => $topicUnknownRates,
             'dialogs' => $dialogs, 'hours' => $hours, 'unknownDialogs' => $unknownDialogs, 'unknownQuestions' => $unknownQuestions, 'messageCount' => $messages->count(), 'botCompleted' => $botCompleted, 'triggers' => $triggers, 'triggerStats' => $triggerStats,
-            'managers' => array_values($managers), 'canManage' => Gate::forUser($user)->allows('seller.settings.write'), 'avgMinutesToContact' => $avgMinutesToContact];
+            'managers' => array_values($managers), 'canManage' => Gate::forUser($user)->allows('seller.settings.write'), 'avgMinutesToContact' => $avgMinutesToContact,
+            'avgMessagesTrendSeries' => $avgMessagesTrendSeries, 'botRateTrendSeries' => $botRateTrendSeries, 'avgMinutesToContactTrendSeries' => $avgMinutesToContactTrendSeries];
     }
 
     public function index(Request $request): mixed
