@@ -54,7 +54,16 @@ final class CustomersController
         abort_if($channel !== null && $channel !== '' && ! in_array($channel, ['telegram', 'vk', 'whatsapp', 'api', 'widget', 'site', 'web', 'email'], true), 422, 'Недопустимый канал.');
 
         $filter = $request->validate(['search' => ['nullable', 'string', 'max:120'], 'type' => ['nullable', 'in:newbie,experienced,for_self,prices_only,unknown'], 'stage' => ['nullable', 'string', 'max:32'], 'city' => ['nullable', 'string', 'max:120'], 'outcome' => ['nullable', 'string', 'max:64'], 'manager' => ['nullable', 'string', 'max:120'], 'channel' => ['nullable', 'in:telegram,vk,whatsapp,api,widget,site,web,email'], 'from' => ['nullable', 'date_format:Y-m-d'], 'to' => ['nullable', 'date_format:Y-m-d'], 'page' => ['nullable', 'integer', 'min:1'], 'per_page' => ['nullable', 'integer', 'in:10,20,50']]);
-        $data = $this->access($request, 'seller.customers.read', function (User $user, TenantContext $tenant) use ($filter): array {
+        $data = $this->access($request, 'seller.customers.read', function (User $user, TenantContext $tenant) use ($filter, $request): array {
+            try {
+                $clientFields = app(KnowledgeRepository::class)->published($tenant)->policy()['client_fields'] ?? [];
+            } catch (KnowledgeNotReady) {
+                $clientFields = [];
+            }
+            $clientField = $request->query('client_field') ?? '';
+            $clientValue = $request->query('client_value') ?? '';
+            abort_unless(is_string($clientField) && is_string($clientValue) && mb_strlen($clientValue) <= 120, 422);
+            abort_if($clientField !== '' && ! collect($clientFields)->contains(fn ($field) => ($field['id'] ?? null) === $clientField), 422);
             $contacts = $this->scope('contacts', $tenant)->whereNull('merged_into_id')->orderByDesc('created_at')->orderByDesc('id')->get(['id', 'name', 'phone', 'email', 'city']);
             $conversations = $this->scope('conversations', $tenant)->whereIn('contact_id', $contacts->pluck('id'))->orderByDesc('updated_at')->get();
             $byContact = $conversations->groupBy('contact_id');
@@ -79,10 +88,14 @@ final class CustomersController
                     'type' => $this->clientType($conversation?->state), 'city' => $contact->city ?: data_get($state, 'slots.city'), 'stage' => $conversation?->stage,
                     'outcome' => $conversation?->outcome, 'best_outcome' => $bestOutcome, 'conversation_id' => $conversation?->id, 'manager' => $manager, 'channel' => $channel, 'tasks' => $taskCount, 'last_at' => $conversation?->updated_at];
             });
-            $filtered = $rows->filter(function (array $row) use ($filter): bool {
+            $filtered = $rows->filter(function (array $row) use ($filter, $byContact, $clientField, $clientValue): bool {
                 $search = mb_strtolower($filter['search'] ?? '');
+                $conversation = $byContact->get($row['id'], collect())->first();
+                $state = $conversation ? json_decode($conversation->state, true) : [];
+                $value = data_get($state, 'slots.'.$clientField);
 
                 return ($search === '' || str_contains(mb_strtolower(implode(' ', [$row['name'], $row['phone'], $row['email']])), $search))
+                    && ($clientField === '' || $clientValue === '' || (is_scalar($value) && str_contains(mb_strtolower((string) $value), mb_strtolower($clientValue))))
                     && (empty($filter['type']) || $row['type'] === $filter['type']) && (empty($filter['stage']) || $row['stage'] === $filter['stage'])
                     && (empty($filter['outcome']) || $row['outcome'] === $filter['outcome']) && (empty($filter['channel']) || ($filter['channel'] === 'widget' ? in_array($row['channel'], ['widget', 'site', 'web'], true) : $row['channel'] === $filter['channel']))
                     && (empty($filter['city']) || str_contains(mb_strtolower((string) $row['city']), mb_strtolower($filter['city'])))
@@ -94,7 +107,7 @@ final class CustomersController
             $page = (int) ($filter['page'] ?? 1);
             $perPage = (int) ($filter['per_page'] ?? 20);
 
-            return ['customers' => $filtered->forPage($page, $perPage)->values(), 'pagination' => ['page' => $page, 'perPage' => $perPage, 'total' => $filtered->count(), 'lastPage' => max(1, (int) ceil($filtered->count() / $perPage))], 'filters' => $filter, 'counts' => ['total' => $rows->count(),
+            return ['customers' => $filtered->forPage($page, $perPage)->values(), 'clientFields' => $clientFields, 'pagination' => ['page' => $page, 'perPage' => $perPage, 'total' => $filtered->count(), 'lastPage' => max(1, (int) ceil($filtered->count() / $perPage))], 'filters' => [...$filter, 'client_field' => $clientField, 'client_value' => $clientValue], 'counts' => ['total' => $rows->count(),
                 'contact' => $rows->whereIn('outcome', ['full_contact', 'partial_contact'])->count(),
                 'handoff' => $rows->where('outcome', 'handoff')->count(), 'stale' => $rows->where('outcome', 'stale')->count()]];
         });

@@ -27,6 +27,7 @@ final class ClientFieldsE610ETest extends TenancyTestCase
         $data['policy']['client_fields'] = [
             ['id' => 'car_year', 'name' => 'Год выпуска', 'type' => 'number', 'options' => [], 'required' => true, 'stage' => 'need'],
             ['id' => 'service_kind', 'name' => 'Услуга', 'type' => 'select', 'options' => ['Диагностика', 'Ремонт'], 'required' => false, 'stage' => null],
+            ['id' => 'contact_time', 'name' => 'Время связи', 'type' => 'text', 'options' => [], 'required' => true, 'stage' => 'handoff'],
         ];
         $tenant = new TenantContext($org->id, $brand->id, $owner->id, $member->id);
         app(TenantContextRunner::class)->run($tenant, function () use ($tenant, $data): void {
@@ -50,8 +51,18 @@ final class ClientFieldsE610ETest extends TenancyTestCase
         $state = json_decode(DB::table('conversations')->where('id', $id)->value('state'), true);
         self::assertSame(2022, $state['slots']['car_year']);
         self::assertSame('Ремонт', $state['slots']['service_kind']);
+        $this->get('/seller/customers?client_field=car_year&client_value=2022')->assertOk()->assertInertia(fn ($page) => $page
+            ->has('customers', 1)->where('customers.0.id', $contact)->where('clientFields.0.name', 'Год выпуска'));
+        $this->get('/seller/customers?client_field=car_year&client_value=2020')->assertOk()->assertInertia(fn ($page) => $page->has('customers', 0));
+        $this->get('/seller/customers?client_field=unknown&client_value=x')->assertUnprocessable();
         $this->putJson('/seller/dialogs/'.$id.'/profile', ['slots' => ['car_year' => 'нет']])->assertUnprocessable();
         $this->putJson('/seller/dialogs/'.$id.'/profile', ['slots' => ['service_kind' => 'Другое']])->assertUnprocessable();
+        $this->post('/seller/dialogs/'.$id.'/transfer', ['assigned_user_id' => $owner->id])->assertSessionHasErrors('assigned_user_id');
+        $this->assertDatabaseHas('conversations', ['id' => $id, 'assigned_user_id' => null]);
+        $this->put('/seller/dialogs/'.$id.'/profile', ['slots' => ['contact_time' => 'Вечером']])->assertSessionHasNoErrors();
+        $this->post('/seller/dialogs/'.$id.'/transfer', ['assigned_user_id' => $owner->id])->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('conversations', ['id' => $id, 'assigned_user_id' => $owner->id]);
         $this->actingAs($owner)->withSession(['brand_id' => $other->id])->get('/seller/dialogs/'.$id)->assertNotFound();
+        $this->get('/seller/customers?client_field=car_year&client_value=2022')->assertUnprocessable();
     }
 }

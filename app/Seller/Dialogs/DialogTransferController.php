@@ -4,6 +4,8 @@ namespace App\Seller\Dialogs;
 
 use App\Models\Membership;
 use App\Models\User;
+use App\Seller\Knowledge\Contracts\KnowledgeRepository;
+use App\Seller\Knowledge\KnowledgeNotReady;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
@@ -41,6 +43,23 @@ final class DialogTransferController
             $row = $query->first() ?? abort(404);
             if ($member->role === 'member' && ($member->settings['sales_manager'] ?? false) && $row->assigned_user_id !== $actor->id) {
                 abort(404);
+            }
+            try {
+                $fields = app(KnowledgeRepository::class)->published($context)->policy()['client_fields'] ?? [];
+                $state = json_decode($row->state ?: '{}', true);
+                $slots = is_array($state['slots'] ?? null) ? $state['slots'] : [];
+                $missing = collect($fields)->filter(function ($field) use ($slots): bool {
+                    $id = $field['id'] ?? null;
+                    $value = is_string($id) ? ($slots[$id] ?? null) : null;
+
+                    return ($field['required'] ?? false) && ($field['stage'] ?? null) === 'handoff'
+                        && is_string($id) && ($value === null || $value === '' || $value === []);
+                })->map(fn ($field) => $field['name'] ?? $field['id'])->all();
+                if ($missing !== []) {
+                    throw ValidationException::withMessages(['assigned_user_id' => 'Перед передачей заполните: '.implode(', ', $missing).'.']);
+                }
+            } catch (KnowledgeNotReady) {
+                // Without a published schema, no additional transfer fields apply.
             }
             $recipient = collect($this->candidates($context))->firstWhere('id', $input['assigned_user_id']);
             if (! $recipient) {

@@ -34,6 +34,9 @@ final class ClientFieldsE610ETest extends TenancyTestCase
             $knowledge = new KnowledgeSnapshot($data, $base->releaseId(), $base->checksum());
             $prompt = app(ExtractorPromptLoader::class)->load($tenant);
             $extractor = new Extractor(app(AiGateway::class), $knowledge, $prompt, 'fixture', 0.0, 'Антон');
+            foreach ($profiles[$profile]['fields'] as $field) {
+                self::assertSame($field['name'], $extractor->schema()['properties']['slot_updates']['properties'][$field['id']]['description']);
+            }
             $state = new LeadState;
             $state->setStage('need');
             $policy = new Policy($knowledge);

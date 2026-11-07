@@ -45,6 +45,9 @@ class Extractor
             } elseif ($type === 'text') {
                 $slotProps[$id] = ['type' => ['string', 'null']];
             }
+            if (isset($slotProps[$id]) && is_string($field['name'] ?? null)) {
+                $slotProps[$id]['description'] = $field['name'];
+            }
         }
 
         return [
