@@ -72,6 +72,9 @@ final class InvitationAcceptance implements AcceptsInvitations
             }
             $invitation = $this->find($actor, $column, $identifier, true);
             $organizationId = $invitation->organization_id;
+            // A user belongs to one organization: an invitation from another one is not valid for an existing member.
+            abort_if(Membership::withoutGlobalScopes()->where('user_id', $actor->id)->where('status', 'active')
+                ->where('organization_id', '!=', $organizationId)->exists(), 404);
             $organization = Organization::query()->whereKey($organizationId)->where('status', 'active')->lockForUpdate()->first();
             abort_unless($organization, 404);
 
