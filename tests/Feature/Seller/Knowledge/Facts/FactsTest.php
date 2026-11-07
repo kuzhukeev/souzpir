@@ -95,11 +95,12 @@ final class FactsTest extends TenancyTestCase
         $this->post('/seller/knowledge/facts', ['version' => 2, 'group' => 'delivery', 'text' => 'Бесплатная доставка'])->assertRedirect();
         $fact = DB::table('kn_facts')->first();
 
+        $factHeaders = ['X-Inertia' => 'true', 'X-Inertia-Partial-Component' => 'Seller/Knowledge/Facts/Show', 'X-Inertia-Partial-Data' => 'factData'];
         $this->get('/seller/knowledge/facts')->assertOk()->assertInertia(fn ($page) => $page->where('editor.groups.0.facts.0.text', 'Бесплатная доставка'));
-        $this->get("/seller/knowledge/facts/{$fact->id}")->assertOk()->assertInertia(fn ($page) => $page->where('fact.text', 'Бесплатная доставка')->has('history'));
+        $this->get("/seller/knowledge/facts/{$fact->id}", $factHeaders)->assertOk()->assertJsonPath('props.factData.fact.text', 'Бесплатная доставка')->assertJsonStructure(['props' => ['factData' => ['history']]]);
         $this->post('/seller/knowledge/facts/bulk', ['version' => 3, 'action' => 'deactivate', 'ids' => [$fact->id]])->assertRedirect()->assertSessionHasNoErrors();
         $this->assertSame('inactive', DB::table('kn_facts')->where('id', $fact->id)->value('status'));
-        $this->get("/seller/knowledge/facts/{$fact->id}")->assertInertia(fn ($page) => $page->where('fact.status', 'inactive')->has('history.0'));
+        $this->get("/seller/knowledge/facts/{$fact->id}", $factHeaders)->assertJsonPath('props.factData.fact.status', 'inactive')->assertJsonStructure(['props' => ['factData' => ['history' => [0]]]]);
 
         $this->post('/seller/knowledge/facts/bulk', ['version' => 4, 'action' => 'bogus', 'ids' => [$fact->id]])->assertSessionHasErrors('action');
         $this->post('/seller/knowledge/facts/bulk', ['version' => 4, 'action' => 'delete', 'ids' => []])->assertSessionHasErrors('ids');
@@ -126,13 +127,14 @@ final class FactsTest extends TenancyTestCase
         $this->post('/seller/knowledge/facts', ['version' => 3, 'group' => 'source', 'text' => 'Первый'])->assertRedirect();
         $this->post('/seller/knowledge/facts', ['version' => 4, 'group' => 'source', 'text' => 'Второй'])->assertRedirect();
         $ids = DB::table('kn_facts')->orderBy('position')->pluck('id')->all();
-        $this->get('/seller/knowledge/facts/'.$ids[0])->assertOk()->assertInertia(fn ($page) => $page->where('group.topic', 'Доставка')->where('group.bridge_hint', 'Уточнить город')->where('group.must_not.0', 'Не обещать срок'));
+        $factHeaders = ['X-Inertia' => 'true', 'X-Inertia-Partial-Component' => 'Seller/Knowledge/Facts/Show', 'X-Inertia-Partial-Data' => 'factData'];
+        $this->get('/seller/knowledge/facts/'.$ids[0], $factHeaders)->assertOk()->assertJsonPath('props.factData.group.topic', 'Доставка')->assertJsonPath('props.factData.group.bridge_hint', 'Уточнить город')->assertJsonPath('props.factData.group.must_not.0', 'Не обещать срок');
         $this->post('/seller/knowledge/facts/bulk', ['version' => 5, 'action' => 'move', 'ids' => $ids])->assertSessionHasErrors('group');
         $this->post('/seller/knowledge/facts/bulk', ['version' => 5, 'action' => 'move', 'group' => 'missing', 'ids' => $ids])->assertNotFound();
         $this->post('/seller/knowledge/facts/bulk', ['version' => 4, 'action' => 'move', 'group' => 'target', 'ids' => $ids])->assertStatus(409);
         $this->post('/seller/knowledge/facts/bulk', ['version' => 5, 'action' => 'move', 'group' => 'target', 'ids' => $ids])->assertRedirect()->assertSessionHasNoErrors();
         $target = DB::table('kn_fact_groups')->where('key', 'target')->value('id');
         $this->assertSame($ids, DB::table('kn_facts')->where('group_id', $target)->orderBy('position')->pluck('id')->all());
-        $this->get('/seller/knowledge/facts/'.$ids[0])->assertOk()->assertInertia(fn ($page) => $page->where('fact.group_key', 'target')->has('history'));
+        $this->get('/seller/knowledge/facts/'.$ids[0], $factHeaders)->assertOk()->assertJsonPath('props.factData.fact.group_key', 'target')->assertJsonStructure(['props' => ['factData' => ['history']]]);
     }
 }

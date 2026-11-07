@@ -12,6 +12,8 @@ use Tests\Feature\Tenancy\TenancyTestCase;
 
 final class FactCardE402DTest extends TenancyTestCase
 {
+    private array $factHeaders = ['X-Inertia' => 'true', 'X-Inertia-Partial-Component' => 'Seller/Knowledge/Facts/Show', 'X-Inertia-Partial-Data' => 'factData'];
+
     public function test_group_rules_save_and_reopen_without_affecting_another_brand(): void
     {
         [$owner, $org, $brand, $other] = $this->cabinet();
@@ -24,18 +26,18 @@ final class FactCardE402DTest extends TenancyTestCase
         $this->post('/seller/knowledge/facts', ['version' => 2, 'group' => 'delivery', 'text' => 'Before'])->assertRedirect();
         $editor = $this->get('/seller/knowledge/facts')->inertiaProps('editor');
         $id = $editor['groups'][0]['facts'][0]['id'];
-        $this->get('/seller/knowledge/facts/'.$id)->assertOk()->assertInertia(fn ($page) => $page->where('example', null));
+        $this->get('/seller/knowledge/facts/'.$id, $this->factHeaders)->assertOk()->assertJsonPath('props.factData.example', null);
         $input = ['version' => 3, 'text' => 'After', 'status' => 'active', 'source' => 'manual', 'group' => 'delivery', 'bridge_hint' => 'Ask city', 'must_not' => "No promise\nNo date"];
         $this->post('/seller/knowledge/facts/'.$id, $input)->assertRedirect()->assertSessionHasNoErrors();
-        $this->get('/seller/knowledge/facts/'.$id)->assertInertia(fn ($page) => $page->where('fact.text', 'After')->where('version', 5)->where('group.bridge_hint', 'Ask city')->where('group.must_not', ['No promise', 'No date']));
+        $this->get('/seller/knowledge/facts/'.$id, $this->factHeaders)->assertJsonPath('props.factData.fact.text', 'After')->assertJsonPath('props.factData.version', 5)->assertJsonPath('props.factData.group.bridge_hint', 'Ask city')->assertJsonPath('props.factData.group.must_not', ['No promise', 'No date']);
         Http::preventStrayRequests();
         $this->post('/seller/knowledge/facts/'.$id.'/example', ['version' => 5])->assertRedirect()->assertSessionHasNoErrors();
-        $this->get('/seller/knowledge/facts/'.$id)->assertInertia(fn ($page) => $page->where('example.answer', 'After')->where('history.0.before_text', 'Before')->where('history.0.after_text', 'After')->where('version', 6));
+        $this->get('/seller/knowledge/facts/'.$id, $this->factHeaders)->assertJsonPath('props.factData.example.answer', 'After')->assertJsonPath('props.factData.history.0.before_text', 'Before')->assertJsonPath('props.factData.history.0.after_text', 'After')->assertJsonPath('props.factData.version', 6);
         Http::assertNothingSent();
         $this->post('/seller/knowledge/facts/'.$id, $input)->assertStatus(409);
         $this->post('/seller/knowledge/facts/'.$id, [...$input, 'version' => 6, 'text' => 'Should not persist', 'intent_ids' => ['unknown']])->assertSessionHasErrors('intent_ids');
         $this->post('/seller/knowledge/facts/'.$id, [...$input, 'version' => 6, 'text' => ''])->assertSessionHasErrors('text');
-        $this->get('/seller/knowledge/facts/'.$id)->assertInertia(fn ($page) => $page->where('fact.text', 'After')->where('version', 6));
+        $this->get('/seller/knowledge/facts/'.$id, $this->factHeaders)->assertJsonPath('props.factData.fact.text', 'After')->assertJsonPath('props.factData.version', 6);
 
         [$viewer] = $this->member($org, 'viewer', [$brand->id]);
         $this->actingAs($viewer)->withSession(['brand_id' => $brand->id])->post('/seller/knowledge/facts/'.$id, [...$input, 'version' => 5])->assertForbidden();
@@ -63,7 +65,7 @@ final class FactCardE402DTest extends TenancyTestCase
             self::assertSame(['First', 'Second'], $repo->forRelease($tenant, $editor['id'], true)->factsForIntent('delivery')[0]['facts']);
         });
         $this->post('/seller/knowledge/facts/'.$id, ['version' => 5, 'text' => 'First changed', 'status' => 'active', 'source' => 'manual', 'group' => 'delivery', 'intent_ids' => ['new']])->assertRedirect()->assertSessionHasNoErrors();
-        $this->get('/seller/knowledge/facts/'.$id)->assertInertia(fn ($page) => $page->where('intentLinks.0.selected', false)->where('intentLinks.1.selected', true));
+        $this->get('/seller/knowledge/facts/'.$id, $this->factHeaders)->assertJsonPath('props.factData.intentLinks.0.selected', false)->assertJsonPath('props.factData.intentLinks.1.selected', true);
         app(TenantContextRunner::class)->run($tenant, function () use ($tenant, $editor): void {
             $repo = app(KnowledgeRepository::class);
             $snapshot = $repo->forRelease($tenant, $editor['id'], true);
