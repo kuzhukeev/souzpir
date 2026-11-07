@@ -13,7 +13,7 @@ test('цель стадии и закрывающие поля берутся и
  await expect(stage.getByText('Поля, закрывающие стадию')).toBeVisible();
  await expect(stage.getByText('Данные не подтверждены')).toHaveCount(0);
  await expect(stage.getByText('Не указана в опубликованной политике')).toHaveCount(0);
- await expect(page.getByText('не более двух реплик подряд с вопросом')).toBeVisible();
+ await expect(page.getByText('не более 3 реплик подряд с вопросом')).toBeVisible();
  await mkdir('.local/screenshots/SP-E6-03Z', {recursive: true});
  await page.screenshot({path: '.local/screenshots/SP-E6-03Z/funnel.png', fullPage: true});
 });

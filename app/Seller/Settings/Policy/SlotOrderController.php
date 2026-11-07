@@ -16,7 +16,8 @@ final class SlotOrderController
 {
     public function save(Request $request): mixed
     {
-        $input = $request->validate(['version' => ['required', 'integer', 'min:1'], 'slot_order' => ['required', 'array'], 'slot_order.*' => ['required', 'array'], 'slot_order.*.*' => ['required', 'string', 'max:100']]);
+        $input = $request->validate(['version' => ['required', 'integer', 'min:1'], 'slot_order' => ['required', 'array'], 'slot_order.*' => ['required', 'array'], 'slot_order.*.*' => ['required', 'string', 'max:100'],
+            'max_consecutive_questions' => ['required', 'integer', 'min:1', 'max:5']]);
         app(ProfileAccess::class)->run($request, function (User $user, TenantContext $tenant) use ($input): void {
             Gate::forUser($user)->authorize('seller.settings.write');
             abort_unless(app(SellerModuleAccess::class)->enabled($tenant->organizationId, $tenant->brandId), 404);
@@ -42,6 +43,8 @@ final class SlotOrderController
                 }
             }
             $data['policy']['slot_order'] = $order;
+            $data['policy']['limits'] ??= [];
+            $data['policy']['limits']['max_consecutive_questions'] = (int) $input['max_consecutive_questions'];
             $repo->saveDraft($tenant, $id, (int) $input['version'], $data);
         });
 
