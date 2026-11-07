@@ -9,8 +9,10 @@
 - Скриншоты: `.local/screenshots/SP-E6-03AA/customer-card.png` (светлая тема, 1440), `.local/screenshots/SP-E6-03AA/followups.png` (из прежней сдачи).
 - Сверено с макетом карточки клиента (мокапы D-3.2) и журналом `docs/sources/02b_mockup_journal.md`.
 
-## Остаток
-- Согласие из импорта CRM (`import`) и из переписки виджета (`dialog` через виджет) выполнить в этой же карточке после done SP-E1-10K и SP-E5-02C — `app/Seller/Channels/Crm/` и виджет сейчас не трогать.
+## Этап 19:20 (последний пункт)
+- Импорт CRM: в маппинге CSV (`/seller/customer-io`) новое поле «Согласие на рассылку»; значение «да/yes/1/true» в строке создаёт контакту пустой `conversation` и событие `granted` с `source=import` через `FollowupConsent`. Проверено: `ImportExportTest::test_import_with_consent_column_records_granted_event_with_import_source`.
+- Виджет: после merge main обнаружился готовый `WidgetInboundRuntime`→`InboundRecorder::ingest`, который уже вызывает `FollowupConsent::inbound` для любого канала. Новый тест подтверждает: явное «да» посетителя после вопроса про рассылку в диалоге фиксируется как `source=dialog`, а согласие на передачу данных через форму `consent_url`/`/widget/contact` таким событием не считается. Проверено: `WidgetConsentE603AATest`.
+- Прогон: `php artisan test tests/Feature/Seller/Customers tests/Feature/Seller/Followups tests/Feature/Seller/Channels/Telegram tests/Feature/Seller/Channels/Widget` — 64 теста, 1266 проверок, всё зелено; Pint — passed. После этого остатка по карточке нет.
 
 ## Техдолг
 - Нет новых рисков.
