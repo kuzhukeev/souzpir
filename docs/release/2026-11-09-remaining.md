@@ -92,6 +92,7 @@
 | Карточка | Статус | Экраны / состояния | Оставшаяся приёмка | Блокеры |
 |---|---|---|---|---|
 | [SP-E3-07E](../tasks/SP-E3-07E.md) |  done  | уточнить по карточке / инфраструктура | Подключить записанный адаптер к новому runtime и проверить 41 сценарий, follow-up, ошибки и изоляцию; включить runtime replay в CI, задокументировать подтверждённые расхождения без изменения golden fixtures. | нет серверных; см. локальную очередь |
+| [SP-E3-07G](../tasks/SP-E3-07G.md) |  done (остаток)  | инфраструктура replay | Остаток 08.11: responder-стадия LeadState (9 кейсов), 29 persona.* через ApiOpeningRuntime, manual.force_close_14, followup 40ч. Пересдача без кода: API-scope сужен (без app/Seller/Runtime/). Планировщику: переоткрыть с scope app/Seller/Runtime/ApiOpeningRuntime.php, app/Ai/Protected/SellerResponderStages.php, app/ProtectedOperations/FirstTurnState.php, app/Seller/Engine/Policy.php, app/Seller/Followups/FollowupPolicy.php, когда освободятся. | scope |
 
 ## SP-E3-10
 
