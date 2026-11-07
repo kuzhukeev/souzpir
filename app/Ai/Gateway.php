@@ -7,6 +7,7 @@ use App\Ai\Drivers\FakeDriver;
 use App\Ai\Drivers\OpenRouterDriver;
 use App\Ai\Drivers\Rejected;
 use App\Ai\Drivers\Uncertain;
+use App\Ai\Protected\ApiOpeningInput;
 use App\Ai\Protected\RawToolArguments;
 use App\Ai\Protected\RequestFingerprint;
 use App\Ai\Protected\SellerExtractorStages;
@@ -550,6 +551,29 @@ final class Gateway implements AiGateway
         }
     }
 
+    /** Complete a server-built proactive API request in fake mode. */
+    public function completeApiOpening(#[\SensitiveParameter] Request $http, TenantContext $tenant, string $leadId): AiResult
+    {
+        if (config('runtime.ai_driver', 'fake') !== 'fake' || DB::transactionLevel() !== 0) {
+            throw new LogicException('API opening unavailable.');
+        }
+        try {
+            [$input, $context] = DB::transaction(fn () => app(ApiOpeningInput::class)->buildLocked($http, $tenant, $leadId));
+            $expected = CanonicalJson::hash($input->toArray());
+            $assertSource = function () use ($http, $tenant, $leadId, $context, $expected): void {
+                [$current, $currentContext] = app(ApiOpeningInput::class)->buildLocked($http, $tenant, $leadId);
+                if (! hash_equals($expected, CanonicalJson::hash($current->toArray()))
+                    || $currentContext->idempotencyKey !== $context->idempotencyKey) {
+                    throw new LogicException;
+                }
+            };
+
+            return $this->completeInternal($input, $context, $assertSource);
+        } catch (Throwable) {
+            throw new LogicException('API opening unavailable.');
+        }
+    }
+
     /** Complete the server-built extractor request for an assigned manager in fake mode. */
     public function completeManagerSuggestionExtractor(#[\SensitiveParameter] Request $http, string $dialog, #[\SensitiveParameter] string $key): AiResult
     {
@@ -721,7 +745,8 @@ final class Gateway implements AiGateway
             if ($beforeReserve !== null) {
                 $beforeReserve();
             }
-            if ($beforeReserve === null && str_starts_with($context->idempotencyKey, 'manager-suggestion-extractor-')) {
+            if ($beforeReserve === null && (str_starts_with($context->idempotencyKey, 'manager-suggestion-extractor-')
+                || str_starts_with($context->idempotencyKey, 'api-opening-'))) {
                 throw new LogicException('Protected AI call requires protected reading.');
             }
             // Prepared extractor inputs cannot be dispatched through public

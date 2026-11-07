@@ -18,6 +18,7 @@ use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TokenApi\BrandAccessToken;
+use App\Tenancy\TokenApi\TokenTenantAuthority;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -110,12 +111,11 @@ final class TokenInboundRuntime
             || $token->organization_id !== $tenant->organizationId || $token->brand_id !== $tenant->brandId
             || ! is_array($token->abilities) || ! in_array($ability, $token->abilities, true)
             || config('runtime.ai_driver', 'fake') !== 'fake' || DB::connection()->getDriverName() !== 'pgsql' || DB::transactionLevel() < 1
-            || ! DB::table('personal_access_tokens')->where('id', $token->id)->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('token', $token->token)->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))->exists()
             || ! app(SellerModuleAccess::class)->enabled($tenant->organizationId, $tenant->brandId)) {
             throw new LogicException('API runtime unavailable.');
         }
 
-        return $token;
+        return app(TokenTenantAuthority::class)->revalidateLocked($request, $tenant, $ability);
     }
 
     private function suppress(TenantContext $tenant, TurnClaim $claim, string $mode): array
