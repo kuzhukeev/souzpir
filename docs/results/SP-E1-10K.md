@@ -7,9 +7,9 @@
 - Тесты: проверено — `php artisan test` по scope задачи: 42 теста зелёных (`PlannedTest`, `ContactReminderTest`, `NotificationTimingDraftTest`, `ProfileSettingsTest`, `CrmMappingsE609DTest`, `CrmFakeDeliveryTest`, `NotificationRoutingTest`, `NotificationCoreTest`). Дополнительно прогнаны `tests/Feature/Shell/Notifications`, `tests/Feature/Shell/Integrations`, `tests/Feature/Shell/Profile`, `tests/Feature/Seller/Channels/*` целиком — новых падений нет. `composer lint` (Pint) зелёный.
 - Не менял .tsx/фронтенд — экраны уже управляются серверными флагами `available`/`timingAvailable`.
 
-## Остаток / Нужно от интегратора
-- Смена default `notification_driver` → `fake` ломает 14 тестов вне scope карточки в `tests/Feature/Seller/Settings/Limits/` (`DigestTest`, `NotificationsTest`, `PersonalDigestTimeTest`): `SellerNotificationRouter` трактует `cabinet`-канал как «immediate» именно при `notification_driver === 'fake'`, и эти тесты (без явной настройки драйвера) проверяют «боевой» путь digest-роутинга. Правки подготовлены и проверены локально (были в ветке, затем убраны как вне scope — `task.py submit` блокирует чужие файлы): везде, где тесты намеренно проверяют non-fake/digest-путь для cabinet, нужно добавить `config(['runtime.notification_driver' => null])`. Нужен `CI_SCOPE_EXCEPTIONS` на эти 3 файла либо отдельная задача/правка владельца модуля `Seller/Settings/Limits`, иначе CI на `main` после слияния станет красным.
-- `.env.example` не трогал (строка `NOTIFICATION_DRIVER=fake` вне scope) — для согласованности с `AI_DRIVER`/`DELIVERY_DRIVER` её стоит добавить при слиянии.
+## Доработка 07.11.2026
+- Интегратор добавил `CI_SCOPE_EXCEPTIONS["SP-E1-10K"]` на `tests/Feature/Seller/Settings/Limits/{DigestTest,NotificationsTest,PersonalDigestTimeTest}.php` и `.env.example`. Правки `config(['runtime.notification_driver' => null])` в этих трёх файлах и строка `NOTIFICATION_DRIVER=fake` в `.env.example` возвращены.
+- Проверено: `php artisan test tests/Feature/Seller/Settings/Limits/DigestTest.php tests/Feature/Seller/Settings/Limits/NotificationsTest.php tests/Feature/Seller/Settings/Limits/PersonalDigestTimeTest.php` — 25 тестов зелёных. Дополнительно `tests/Feature/Seller/Channels` целиком — 75 зелёных, без регрессий.
 
 ## Техдолг
 - На слоте exec-2 тесты с `IsolatedDatabaseMigrations` (в т.ч. `ProfileFeatureGateTest`, `OutboxDeferralTest`, race-группа) падают с «A dedicated, nonprivileged test database owner is required» — проблема окружения слота, не связана с этой задачей; воспроизводится и без моих правок.
