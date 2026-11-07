@@ -123,8 +123,23 @@ final class ApiOpeningE503FTest extends TestCase
         self::assertSame(2, $finished['result']['version']);
         self::assertSame('Понял вас, спасибо!', DB::table('messages')->where('id', $finished['result']['message_id'])->value('text'));
         DB::table('brands')->where('id', $brand->id)->update(['settings' => json_encode(['seller_api_action' => 'open'])]);
-        $this->withHeaders(['Authorization' => 'Bearer '.$bearer, 'Idempotency-Key' => 'default-open'])
-            ->postJson('/api/v1/leads', $body)->assertCreated()->assertJsonPath('status', 'opened');
+        $default = $this->withHeaders(['Authorization' => 'Bearer '.$bearer, 'Idempotency-Key' => 'default-open'])
+            ->postJson('/api/v1/leads', $body)->assertCreated()->assertJsonPath('status', 'opened')->json();
+        $turnHeaders = ['Authorization' => 'Bearer '.$bearer, 'Idempotency-Key' => 'followup'];
+        $turn = ['conversation_id' => $default['conversation_id'], 'text' => 'Из Твери'];
+        $reply = $this->withHeaders($turnHeaders)->postJson('/api/v1/turn', $turn)->assertOk()->assertJsonPath('reply', 'Понял вас, спасибо!')->json();
+        $this->withHeaders($turnHeaders)->postJson('/api/v1/turn', $turn)->assertOk()->assertExactJson($reply);
+        $this->withHeaders($turnHeaders)->postJson('/api/v1/turn', [...$turn, 'text' => 'Другой запрос'])->assertConflict();
+        $suggestLead = $this->withHeaders(['Authorization' => 'Bearer '.$bearer, 'Idempotency-Key' => 'suggest-open'])
+            ->postJson('/api/v1/leads', $body)->assertCreated()->json();
+        DB::table('conversations')->where('id', $suggestLead['conversation_id'])->update(['mode' => 'suggest']);
+        $suggestHeaders = ['Authorization' => 'Bearer '.$bearer, 'Idempotency-Key' => 'suggest-followup'];
+        $suggestBody = ['conversation_id' => $suggestLead['conversation_id'], 'text' => 'Из Твери'];
+        $suggestion = $this->withHeaders($suggestHeaders)->postJson('/api/v1/turn', $suggestBody)->assertOk()->assertJsonPath('status', 'suggested')->json();
+        self::assertArrayNotHasKey('suggestion', $suggestion);
+        self::assertArrayNotHasKey('reply', $suggestion);
+        $this->withHeaders($suggestHeaders)->postJson('/api/v1/turn', $suggestBody)->assertOk()->assertExactJson($suggestion);
+        self::assertSame(1, DB::table('messages')->where('conversation_id', $suggestLead['conversation_id'])->where('role', 'agent')->count());
         $this->withHeaders(['Authorization' => 'Bearer '.$bearer, 'Idempotency-Key' => 'override-card'])
             ->postJson('/api/v1/leads', [...$body, 'action' => 'card_only'])->assertCreated()->assertJsonPath('status', 'created');
         file_put_contents($fixture, json_encode(['result' => ['content' => 'Гарантируем скидку 99 процентов!', 'toolCalls' => [],

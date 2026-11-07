@@ -3,10 +3,13 @@
 namespace App\Tenancy\TokenApi;
 
 use App\Models\Brand;
+use App\Seller\Runtime\BrandRuntimeSchedule;
 use App\Tenancy\TenantContextRunner;
+use Carbon\CarbonImmutable;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 final class ResolveTokenTenant
@@ -27,7 +30,21 @@ final class ResolveTokenTenant
         if ($request->routeIs('api.v1.leads.create')) {
             $request->attributes->set('seller.api.action', $action);
         }
-        if ($request->routeIs('api.v1.leads.create') && $action === 'open') {
+        $twoPhaseTurn = false;
+        if ($request->routeIs('api.v1.turn.create') && is_string($request->input('conversation_id'))
+            && Str::isUlid($request->input('conversation_id'))) {
+            $twoPhaseTurn = DB::transaction(function () use ($request, $brand, $token): bool {
+                [, , $context] = app(TokenTenantAuthority::class)->resolveLocked($brand, $token);
+                $mode = DB::table('conversations')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)
+                    ->where('id', $request->input('conversation_id'))->value('mode');
+                $schedule = app(BrandRuntimeSchedule::class);
+
+                return in_array($mode, ['bot', 'suggest'], true)
+                    && $schedule->mode($context, $schedule->settings($context), CarbonImmutable::now()) !== 'off';
+            });
+            $request->attributes->set('seller.api.two_phase_turn', $twoPhaseTurn);
+        }
+        if (($request->routeIs('api.v1.leads.create') && $action === 'open') || $twoPhaseTurn) {
             [$currentToken, $context] = DB::transaction(function () use ($brand, $token): array {
                 [, $currentToken, $context] = app(TokenTenantAuthority::class)->resolveLocked($brand, $token);
                 DB::table('personal_access_tokens')->where('id', $currentToken->id)->update(['last_used_at' => now()]);

@@ -6,6 +6,7 @@ use App\Contracts\ProtectedOperations\IdempotencyConflict;
 use App\Contracts\ProtectedOperations\IdempotencyFailure;
 use App\Seller\Conversations\CanonicalJson;
 use App\Seller\Engine\LeadState;
+use App\Seller\Runtime\ApiFollowupRuntime;
 use App\Seller\Runtime\ApiOpeningRuntime;
 use App\Seller\Runtime\TokenInboundRuntime;
 use App\Seller\Settings\Limits\SellerModuleAccess;
@@ -127,7 +128,9 @@ final class LeadIngressController
             throw ValidationException::withMessages(['text' => 'Введите сообщение.']);
         }
         try {
-            return response()->json(app(TokenInboundRuntime::class)->turn($request, $tenant, $input['conversation_id'], $input['text'], $key, $input['source'] ?? null));
+            $runtime = $request->attributes->get('seller.api.two_phase_turn') ? app(ApiFollowupRuntime::class) : app(TokenInboundRuntime::class);
+
+            return response()->json($runtime->turn($request, $tenant, $input['conversation_id'], $input['text'], $key, $input['source'] ?? null));
         } catch (IdempotencyConflict) {
             return response()->json(['message' => 'Ключ уже использован для другого запроса.'], 409);
         } catch (IdempotencyFailure|\LogicException) {
