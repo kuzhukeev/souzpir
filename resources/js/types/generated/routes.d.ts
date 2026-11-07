@@ -1013,6 +1013,16 @@ declare module 'ziggy-js' {
         }
     ],
     "dev.design-system": [],
+    "seller.dialogs.suggestions.send": [
+        {
+            "name": "dialog",
+            "required": true
+        },
+        {
+            "name": "turn",
+            "required": true
+        }
+    ],
     "preview.login": [],
     "preview.attention": []
 }
