@@ -4,11 +4,17 @@ namespace App\Seller\Runtime;
 
 use App\ProtectedOperations\PostgresTransactionalIdempotency;
 use App\ProtectedOperations\SellerFollowup\FollowupFinalizer;
+use App\ProtectedOperations\SellerTurnFence;
+use App\Seller\Conversations\CanonicalJson;
 use App\Seller\Conversations\Contracts\ConversationRepository;
+use App\Seller\Conversations\Data\TurnClaim;
 use App\Seller\Conversations\Data\TurnCommand;
+use App\Seller\Conversations\Data\TurnOutcome;
 use App\Seller\Runtime\Contracts\DeliveryCommand;
 use App\Seller\Runtime\Delivery\FakeChannelDelivery;
 use App\Seller\Settings\Limits\SellerModuleAccess;
+use App\Shell\Audit\AuditEntry;
+use App\Shell\Audit\Contracts\AuditWriter;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TokenApi\BrandAccessToken;
 use Carbon\CarbonImmutable;
@@ -27,14 +33,27 @@ final class TokenInboundRuntime
         if (! DB::table('seller_api_lead_requests')->where($scope)->where('conversation_id', $conversationId)->exists()) {
             abort(404);
         }
-        $this->assertAutonomous($tenant);
         $payload = json_encode(['conversation_id' => $conversationId, 'text' => $text, 'token_id' => (string) $token->id], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
 
         return app(PostgresTransactionalIdempotency::class)->execute($tenant->organizationId, $tenant->brandId, 'seller.api.turn', $key, $payload,
             function () use ($tenant, $scope, $conversationId, $text, $key): array {
                 $conversation = DB::table('conversations')->where($scope)->where('id', $conversationId)->lockForUpdate()->first();
-                if (! $conversation || $conversation->mode !== 'bot' || (int) $conversation->version < 1 || in_array($conversation->stage, ['done', 'lost', 'spam', 'handoff'], true)) {
+                if (! $conversation || ! in_array($conversation->mode, ['bot', 'manager', 'suggest'], true) || in_array($conversation->stage, ['done', 'lost', 'spam'], true)
+                    || ($conversation->stage === 'handoff' && $conversation->mode !== 'manager')) {
                     throw new LogicException('API turn unavailable.');
+                }
+                $schedule = app(BrandRuntimeSchedule::class);
+                $settings = $schedule->settings($tenant);
+                $scheduleMode = $schedule->mode($tenant, $settings, CarbonImmutable::now());
+                $mode = $conversation->mode;
+                if ($mode === 'manager') {
+                    $schedule->assignWaiting($tenant, $conversationId, $settings);
+                } elseif ($scheduleMode === 'suggest' && $mode === 'bot') {
+                    DB::table('conversations')->where($scope)->where('id', $conversationId)->update(['mode' => 'suggest', 'updated_at' => now()]);
+                    $mode = 'suggest';
+                }
+                if ($mode === 'bot' && $scheduleMode !== 'off' && (int) $conversation->version < 1) {
+                    throw new LogicException('API first turn unavailable.');
                 }
                 $message = (string) Str::ulid();
                 DB::table('messages')->insert(['id' => $message, ...$scope, 'conversation_id' => $conversationId, 'role' => 'client', 'text' => $text,
@@ -44,7 +63,13 @@ final class TokenInboundRuntime
                 if ($claim->status !== 'claimed') {
                     throw new LogicException('API turn unavailable.');
                 }
-                $outcome = app(FollowupFinalizer::class)->finish($tenant, $claim, 'bot');
+                if ($mode === 'manager' || $scheduleMode === 'off') {
+                    return $this->suppress($tenant, $claim, $mode);
+                }
+                $outcome = app(FollowupFinalizer::class)->finish($tenant, $claim, $mode);
+                if ($mode === 'suggest') {
+                    return ['conversation_id' => $conversationId, 'status' => 'suggested', 'version' => $outcome['result']['version']];
+                }
                 $replyId = $outcome['result']['message_id'] ?? null;
                 $reply = is_string($replyId) ? DB::table('messages')->where($scope)->where('conversation_id', $conversationId)->where('id', $replyId)->value('text') : null;
                 if (! is_string($reply)) {
@@ -74,11 +99,27 @@ final class TokenInboundRuntime
         return $token;
     }
 
-    private function assertAutonomous(TenantContext $tenant): void
+    private function suppress(TenantContext $tenant, TurnClaim $claim, string $mode): array
     {
-        $schedule = app(BrandRuntimeSchedule::class);
-        if ($schedule->mode($tenant, $schedule->settings($tenant), CarbonImmutable::now()) !== 'autonomous') {
-            throw new LogicException('API runtime unavailable.');
+        app(SellerTurnFence::class)->assertCurrent($tenant, $claim);
+        $scope = ['organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId];
+        $conversation = DB::table('conversations')->where($scope)->where('id', $claim->conversationId)->lockForUpdate()->first();
+        if (! $conversation || $conversation->mode !== $mode) {
+            throw new LogicException('API turn unavailable.');
         }
+        $state = json_decode($conversation->state, true, 512, JSON_THROW_ON_ERROR);
+        if (! is_array($state)) {
+            throw new LogicException('API turn unavailable.');
+        }
+        $outcome = new TurnOutcome($claim->turnId, $claim->conversationId, 'suppressed', $claim->baseVersion + 1, null, null, null, [], $state);
+        $data = $outcome->toArray();
+        DB::table('seller_turns')->where($scope)->where('id', $claim->turnId)->where('status', 'processing')->update([
+            'status' => 'suppressed', 'outcome' => json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR),
+            'outcome_hash' => CanonicalJson::hash($data), 'updated_at' => now(),
+        ]);
+        DB::table('conversations')->where($scope)->where('id', $claim->conversationId)->update(['version' => $claim->baseVersion + 1, 'updated_at' => now()]);
+        app(AuditWriter::class)->record($tenant, new AuditEntry('seller.turn.suppressed', 'seller_turn', $claim->turnId));
+
+        return ['conversation_id' => $claim->conversationId, 'status' => 'suppressed', 'version' => $claim->baseVersion + 1];
     }
 }

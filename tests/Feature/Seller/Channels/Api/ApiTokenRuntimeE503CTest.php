@@ -73,4 +73,47 @@ final class ApiTokenRuntimeE503CTest extends TenancyTestCase
         Http::assertNothingSent();
         Mail::assertNothingSent();
     }
+
+    public function test_manager_suggest_and_off_modes_follow_runtime_without_delivery(): void
+    {
+        [$owner, $org, $brand] = $this->cabinet();
+        DB::table('brand_modules')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $brand->id,
+            'module' => 'seller', 'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
+        [$token] = $this->token($org->id, $brand, ['leads', 'turn']);
+        $headers = ['Authorization' => 'Bearer '.$token, 'Idempotency-Key' => 'lead-modes'];
+        $lead = $this->withHeaders($headers)->postJson('/api/v1/leads', ['fields' => ['name' => 'Тест']])->assertCreated()->json();
+        $id = $lead['conversation_id'];
+        DB::table('conversations')->where('id', $id)->update(['mode' => 'manager']);
+        $data = ['conversation_id' => $id, 'text' => 'Первое сообщение'];
+        $turnHeaders = ['Authorization' => 'Bearer '.$token, 'Idempotency-Key' => 'manager-mode'];
+        $manager = $this->withHeaders($turnHeaders)->postJson('/api/v1/turn', $data)->assertOk()->assertJsonPath('status', 'suppressed')->json();
+        $this->withHeaders($turnHeaders)->postJson('/api/v1/turn', $data)->assertOk()->assertExactJson($manager);
+        self::assertSame(1, DB::table('messages')->where('conversation_id', $id)->count());
+        DB::table('conversations')->where('id', $id)->update(['mode' => 'suggest']);
+        $suggest = $this->withHeaders(['Authorization' => 'Bearer '.$token, 'Idempotency-Key' => 'suggest-mode'])->postJson('/api/v1/turn', ['conversation_id' => $id, 'text' => 'Второе сообщение'])->assertOk()->assertJsonPath('status', 'suggested')->json();
+        self::assertArrayNotHasKey('suggestion', $suggest);
+        self::assertSame(1, DB::table('seller_turns')->where('conversation_id', $id)->where('status', 'suggested')->count());
+        self::assertSame(2, DB::table('messages')->where('conversation_id', $id)->count());
+        DB::table('conversations')->where('id', $id)->update(['mode' => 'bot']);
+        DB::table('seller_schedule_preferences')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $brand->id,
+            'payload' => json_encode(['mode' => 'off'], JSON_THROW_ON_ERROR), 'created_at' => now(), 'updated_at' => now()]);
+        $this->withHeaders(['Authorization' => 'Bearer '.$token, 'Idempotency-Key' => 'off-mode'])->postJson('/api/v1/turn', ['conversation_id' => $id, 'text' => 'Третье сообщение'])->assertOk()->assertJsonPath('status', 'suppressed');
+        self::assertSame(3, DB::table('messages')->where('conversation_id', $id)->count());
+        DB::table('seller_schedule_preferences')->where('brand_id', $brand->id)->update(['payload' => json_encode(['mode' => 'suggest'], JSON_THROW_ON_ERROR)]);
+        $scheduled = $this->withHeaders(['Authorization' => 'Bearer '.$token, 'Idempotency-Key' => 'schedule-suggest'])->postJson('/api/v1/turn', ['conversation_id' => $id, 'text' => 'Четвёртое сообщение'])->assertOk()->assertJsonPath('status', 'suggested')->json();
+        self::assertArrayNotHasKey('suggestion', $scheduled);
+        $this->assertDatabaseHas('conversations', ['id' => $id, 'mode' => 'suggest']);
+        self::assertSame(4, DB::table('messages')->where('conversation_id', $id)->count());
+        DB::table('seller_schedule_preferences')->where('brand_id', $brand->id)->update(['payload' => json_encode(['mode' => 'autonomous'], JSON_THROW_ON_ERROR)]);
+        DB::table('conversations')->where('id', $id)->update(['mode' => 'bot', 'stage' => 'handoff']);
+        $handoff = ['conversation_id' => $id, 'text' => 'Уже передано'];
+        $this->withHeaders(['Authorization' => 'Bearer '.$token, 'Idempotency-Key' => 'bad-handoff'])->postJson('/api/v1/turn', $handoff)->assertStatus(503);
+        self::assertSame(4, DB::table('messages')->where('conversation_id', $id)->count());
+        DB::table('conversations')->where('id', $id)->update(['mode' => 'manager']);
+        $this->withHeaders(['Authorization' => 'Bearer '.$token, 'Idempotency-Key' => 'manager-handoff'])->postJson('/api/v1/turn', $handoff)->assertOk()->assertJsonPath('status', 'suppressed');
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->get('/seller/channels/api')->assertOk()
+            ->assertInertia(fn ($page) => $page->has('logs', 7));
+        Http::assertNothingSent();
+        Mail::assertNothingSent();
+    }
 }
