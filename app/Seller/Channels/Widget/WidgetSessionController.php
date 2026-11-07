@@ -69,6 +69,8 @@ final class WidgetSessionController
         $body = ['ok' => true];
         if ($result['status'] === 'completed' && is_string($result['reply'] ?? null)) {
             $body['reply'] = $result['reply'];
+        } elseif (is_string($result['notice'] ?? null)) {
+            $body['notice'] = $result['notice'];
         }
 
         return $this->response(response()->json($body), $origin)->setStatusCode(201);
