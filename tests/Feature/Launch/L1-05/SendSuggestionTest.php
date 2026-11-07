@@ -143,12 +143,18 @@ final class SendSuggestionTest extends TenancyTestCase
             ->post("/seller/dialogs/{$draft['conversation_id']}/suggestions/{$draft['turn_id']}/send", ['text' => $draft['suggestion']])
             ->assertRedirect();
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->get('/seller/dialogs/'.$draft['conversation_id'])
-            ->assertOk()->assertInertia(fn ($page) => $page->where('dialog.messages.0.delivery.fake', true)
-            ->where('dialog.messages.0.delivery.delivered_at', null)->where('dialog.messages.0.delivery.error', null));
+            ->assertOk()->assertInertia(fn ($page) => $page->where('dialog.messages', function ($messages): bool {
+                $delivery = collect($messages)->firstWhere('role', 'manager')['delivery'] ?? null;
+
+                return is_array($delivery) && $delivery['fake'] === true && $delivery['delivered_at'] === null && $delivery['error'] === null;
+            }));
         $message = DB::table('messages')->where('conversation_id', $draft['conversation_id'])->where('role', 'manager')->first();
         DB::table('messages')->where('id', $message->id)->update(['delivered_at' => now()]);
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->get('/seller/dialogs/'.$draft['conversation_id'])
-            ->assertOk()->assertInertia(fn ($page) => $page->where('dialog.messages.0.delivery.fake', true)
-            ->where('dialog.messages.0.delivery.delivered_at', fn ($value) => $value !== null));
+            ->assertOk()->assertInertia(fn ($page) => $page->where('dialog.messages', function ($messages): bool {
+                $delivery = collect($messages)->firstWhere('role', 'manager')['delivery'] ?? null;
+
+                return is_array($delivery) && $delivery['fake'] === true && $delivery['delivered_at'] !== null;
+            }));
     }
 }
