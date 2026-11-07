@@ -53,13 +53,22 @@ final class FixtureRuntime
             return null;
         }
 
+        $publishedFields = collect($draft->policy()['client_fields'] ?? [])
+            ->filter(fn ($field) => is_array($field) && is_string($field['id'] ?? null) && trim($field['id']) !== '')
+            ->keyBy('id');
+
         $slots = $data['slot_updates'] ?? [];
-        if (! is_array($slots) || array_is_list($slots) && $slots !== [] || array_diff(array_keys($slots), LeadState::SLOTS)) {
+        if (! is_array($slots) || array_is_list($slots) && $slots !== [] || array_diff(array_keys($slots), [...LeadState::SLOTS, ...$publishedFields->keys()->all()])) {
             return null;
         }
         foreach ($slots as $key => $value) {
+            $field = $publishedFields->get($key);
             if (in_array($key, ['categories', 'brands_interest'], true)) {
                 if ($value !== null && (! is_array($value) || ! array_is_list($value) || count(array_filter($value, 'is_string')) !== count($value))) {
+                    return null;
+                }
+            } elseif ($field !== null && ($field['type'] ?? 'text') === 'select' && ($field['options'] ?? []) !== []) {
+                if ($value !== null && ! in_array($value, $field['options'], true)) {
                     return null;
                 }
             } elseif ($value !== null && ! is_string($value)) {
@@ -79,7 +88,7 @@ final class FixtureRuntime
             if (array_key_exists($field, $data)) {
                 $value = $data[$field];
                 if (! is_array($value) || ! array_is_list($value) || count(array_filter($value, 'is_string')) !== count($value)
-                    || ($field === 'refused_slots' && array_diff($value, LeadState::SLOTS))
+                    || ($field === 'refused_slots' && array_diff($value, [...LeadState::SLOTS, ...$publishedFields->keys()->all()]))
                     || ($field === 'objections' && array_diff($value, Extractor::OBJECTIONS))) {
                     return null;
                 }

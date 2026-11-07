@@ -23,5 +23,15 @@
 - Контактные поля (name, email, messenger, next_contact_at) считаются универсальными, а не «оптовыми», и собираются для любого бренда.
 
 ## Нужно от интегратора
-- Передать доп. поля в `ReleasesController::runScenarios` для `Releases/Run.tsx` (вне scope карточки).
-- `git push origin codex/sp-e6-10e` по-прежнему отклонён (non-fast-forward): на origin всё ещё устаревшая ветка от прежнего исполнителя `codex:01a1979f-...` (66fe8c95). Решение владельца делать не стал — не force push. `task.py submit` отметил задачу status=review с текущим локальным коммитом `d4a34ed4` (поверх `b38cd73d`/`32c69c22`); нужно решение по ветке на origin.
+- Передать доп. поля в `ReleasesController::runScenarios` для `Releases/Run.tsx` (вне scope карточки; SP-E4-01X всё ещё status=queue — названия всё ещё по сырому id).
+- Устаревшая ветка на origin устранена merge-коммитом `3c195095`; `git push origin codex/sp-e6-10e` прошёл (origin указывает на `2bfd9626`).
+
+## Доработка 07.11.2026 (после done SP-E5-03F)
+- `FixtureRuntime::validateExtraction` больше не отбрасывает `slot_updates` с опубликованными доп. полями (ключи вне `LeadState::SLOTS`): собирает их id из `$draft->policy()['client_fields']`, для `select` с непустыми `options` проверяет значение по enum, иначе — строка/null (как в `Extractor::schema()`); `refused_slots` тоже принимает доп. поля.
+- Тест: проверено — `php artisan test tests/Feature/Seller/Engine/PublishedFieldsSandboxReplyE610ETest.php` (1/1, 7 проверок) — валидная и ошибочная `select`-доп. поле через `/seller/knowledge/sandbox/reply` (не simulation); тест красный без фикса (проверено откатом правки). Регрессии: `php artisan test tests/Feature/Seller/Engine tests/Feature/Seller/Dialogs tests/Feature/Seller/Customers tests/Feature/Seller/Settings/Policy tests/Feature/Seller/Sandbox` — 81 зелёных/2 падают (предсуществующие isolated-DB тесты окружения, не связаны с задачей). Pint — чисто.
+- Run.tsx по сырому id — не изменено: SP-E4-01X ещё status=queue, бэкенд пока не передаёт имена доп. полей.
+
+## Повторная проверка 07.11.2026 (exec-3, слот exec_3)
+- Перепроверено: `php artisan test tests/Feature/Seller/Engine/PublishedFieldsSandboxReplyE610ETest.php` — 1/1 (7 проверок), зелёный на коммите `2bfd9626`.
+- Регрессии в слоте exec_3: `php artisan test tests/Feature/Seller/Engine tests/Feature/Seller/Dialogs tests/Feature/Seller/Customers tests/Feature/Seller/Settings/Policy tests/Feature/Seller/Sandbox` — 106 зелёных/8 падают с «An isolated test database is required» (TenancyTestCase/IsolatedDatabaseMigrations) — окружение слота, не связано с FixtureRuntime; не трогал.
+- Изменений кода не вносил, сдаю как подтверждённую «доработку» по `.local/queue.md`.
