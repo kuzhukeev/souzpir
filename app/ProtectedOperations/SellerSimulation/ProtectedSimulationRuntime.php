@@ -54,11 +54,7 @@ final class ProtectedSimulationRuntime implements SimulationRuntime
             throw new InvalidArgumentException('Invalid simulation turn.');
         }
 
-        return app(PostgresTransactionalIdempotency::class)->execute(
-            $context->organizationId, $context->brandId, 'seller.simulation.turn', $key,
-            json_encode([$conversationId, $client], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
-            fn (): array => app(FollowupCoordinator::class)->runJob($context, $conversationId, $client, $key)
-        );
+        return app(FollowupCoordinator::class)->runJob($context, $conversationId, $client, $key);
     }
 
     private function assertContext(TenantContext $context): void

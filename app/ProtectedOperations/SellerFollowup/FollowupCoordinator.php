@@ -33,36 +33,58 @@ final class FollowupCoordinator
             throw new LogicException('Simulation context unavailable.');
         }
 
+        if (DB::transactionLevel() !== 0) {
+            throw new LogicException('Simulation requires an independent transaction.');
+        }
+
         return app(TenantContextRunner::class)->run($tenant, function () use ($tenant, $conversationId, $client, $key): array {
-            $conversation = DB::table('conversations')->where('id', $conversationId)
-                ->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
-                ->where('mode', 'bot')->first(['version']);
-            if (! $conversation || (int) $conversation->version < 1
-                || DB::connection()->transactionLevel() < 1
-                || ! DB::table('messages')->where('conversation_id', $conversationId)
-                    ->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
-                    ->where('role', 'agent')->where('meta->simulation', true)->exists()) {
-                throw new LogicException('Simulation conversation unavailable.');
-            }
-            $messageId = (string) Str::ulid();
-            DB::table('messages')->insert([
-                'id' => $messageId, 'organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId,
-                'conversation_id' => $conversationId, 'role' => 'client', 'text' => $client,
-                'meta' => json_encode(['fake' => true, 'simulation' => true], JSON_THROW_ON_ERROR),
-                'created_at' => now(), 'updated_at' => now(),
-            ]);
-            $claim = app(ConversationRepository::class)->claimTurn(
-                $tenant, new TurnCommand($conversationId, $messageId, $client, null, $key, (int) $conversation->version)
+            $receipt = app(PostgresTransactionalIdempotency::class)->execute(
+                $tenant->organizationId, $tenant->brandId, 'seller.simulation.turn', $key,
+                json_encode([$conversationId, $client], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
+                function () use ($tenant, $conversationId, $client, $key): array {
+                    $conversation = DB::table('conversations')->where('id', $conversationId)
+                        ->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
+                        ->where('mode', 'bot')->lockForUpdate()->first(['version']);
+                    if (! $conversation || (int) $conversation->version < 1
+                        || ! DB::table('messages')->where('conversation_id', $conversationId)
+                            ->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
+                            ->where('role', 'agent')->where('meta->simulation', true)->exists()) {
+                        throw new LogicException('Simulation conversation unavailable.');
+                    }
+                    $messageId = (string) Str::ulid();
+                    DB::table('messages')->insert([
+                        'id' => $messageId, 'organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId,
+                        'conversation_id' => $conversationId, 'role' => 'client', 'text' => $client,
+                        'meta' => json_encode(['fake' => true, 'simulation' => true], JSON_THROW_ON_ERROR),
+                        'created_at' => now(), 'updated_at' => now(),
+                    ]);
+                    $claim = app(ConversationRepository::class)->claimTurn($tenant, new TurnCommand(
+                        $conversationId, $messageId, $client, null, 'sim:'.hash('sha256', $key), (int) $conversation->version
+                    ));
+                    if ($claim->status !== 'claimed' || ! is_string($claim->token())) {
+                        throw new LogicException('Simulation turn unavailable.');
+                    }
+
+                    return ['turn' => $claim->turnId, 'version' => $claim->baseVersion, 'token' => $claim->token()];
+                }
             );
-            if ($claim->status !== 'claimed') {
-                throw new LogicException('Simulation turn unavailable.');
+            $turn = DB::table('seller_turns')->where('id', $receipt['turn'])->where('organization_id', $tenant->organizationId)
+                ->where('brand_id', $tenant->brandId)->where('conversation_id', $conversationId)->first();
+            if ($turn && $turn->status === 'completed') {
+                $outcome = json_decode($turn->outcome, true, 512, JSON_THROW_ON_ERROR);
+                $assistantId = $outcome['assistantMessageId'] ?? null;
+            } else {
+                $claim = new TurnClaim('claimed', $receipt['turn'], $conversationId, $tenant->organizationId,
+                    $tenant->brandId, $receipt['version'], $receipt['token']);
+                $http = Request::create('/internal/simulation', 'POST');
+                app(Gateway::class)->completeApiFollowupExtractor($http, $tenant, $claim);
+                app(Gateway::class)->completeApiFollowupResponder($http, $tenant, $claim);
+                $result = DB::transaction(fn () => app(FollowupFinalizer::class)->finishProtectedApi($http, $tenant, $claim, 'bot'));
+                $assistantId = $result['result']['message_id'] ?? null;
             }
-            $outcome = app(FollowupFinalizer::class)->finish($tenant, $claim, 'bot');
-            $assistantId = $outcome['result']['message_id'] ?? null;
-            $agent = is_string($assistantId)
-                ? DB::table('messages')->where('id', $assistantId)->where('organization_id', $tenant->organizationId)
-                    ->where('brand_id', $tenant->brandId)->where('conversation_id', $conversationId)->value('text')
-                : null;
+            $agent = is_string($assistantId) ? DB::table('messages')->where('id', $assistantId)
+                ->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
+                ->where('conversation_id', $conversationId)->value('text') : null;
             if (! is_string($agent) || $agent === '') {
                 throw new LogicException('Simulation answer unavailable.');
             }

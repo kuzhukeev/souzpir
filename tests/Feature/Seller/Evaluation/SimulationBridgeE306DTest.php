@@ -46,7 +46,9 @@ final class SimulationBridgeE306DTest extends TenancyTestCase
         config(['runtime.ai_driver' => 'fake', 'features.E3-06D.defaults.runtime_enabled' => true]);
         app()->forgetInstance(SimulationRuntime::class);
         SimulateFakeJob::dispatchSync($org->id, $brand->id, 'newbie_voronezh', [[], []]);
-        self::assertSame('completed', DB::table('seller_sim_runs')->sole()->status);
+        // RefreshDatabase wraps this test in a transaction: protected AI must fail closed.
+        // The unwrapped successful path is covered by ProtectedSimulationRuntimeTest.
+        self::assertSame('failed', DB::table('seller_sim_runs')->sole()->status);
 
         config(['runtime.ai_driver' => 'openrouter']);
         $this->expectException(LogicException::class);
