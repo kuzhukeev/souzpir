@@ -24,8 +24,7 @@ test('воронка, темы, менеджеры и отчёт',async({page})=
  await expect(page.getByRole('textbox',{name:'Почта получателя'})).toBeVisible();
  await expect(page.getByRole('button',{name:'Отправить тестовый отчёт'})).toBeVisible();
  await page.screenshot({path:'.local/screenshots/SP-E7-04D/report.png'});
- await page.getByRole('button',{name:'Печать / PDF'}).click();
- await expect(page.locator('body')).toHaveAttribute('data-printed','yes');
+ await expect(page.getByRole('link',{name:'Скачать PDF'})).toHaveAttribute('href',/^\/seller\/analytics\/report\.pdf\?report_type=weekly&from=/);
  expect((await page.pdf({format:'A4'})).subarray(0,5).toString()).toBe('%PDF-');
 });
 

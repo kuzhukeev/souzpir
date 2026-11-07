@@ -105,7 +105,7 @@ function Sandbox({ releases, clients = [], channels = [], sandboxSession = null 
                     <InspectorRow label="Действия">{inspector.executed_tools.map(tool => `${tool.name} (тест)`).join(', ') || 'Нет (тестовый режим)'}</InspectorRow>
                     <InspectorRow label="Проверка">{inspector.guard.verdict === 'ok' ? 'Пройдена' : 'Есть замечания'}{inspector.guard.issues.map((issue, index) => <p key={index}>{issue}</p>)}{inspector.guard.warnings.map((warning, index) => <p key={index}>Предупреждение: {warning}</p>)}</InspectorRow>
                 </dl>
-                <p className="mt-3 text-(--color-ink-muted)">Клиент: {inspector.client || 'Тестовый'} · канал: {inspector.channel || 'Тестовый'}</p><p className="mt-3 break-words text-(--color-ink-muted)">intent: {inspector.intent || '—'} · tools: {inspector.goal.allowed_tools.join(', ') || '—'} · Guard: {inspector.guard.verdict} · триггер: {inspector.goal.trigger || '—'}</p>
+                <p className="mt-3 text-(--color-ink-muted)">Клиент: {inspector.client || 'Тестовый'} · канал: {inspector.channel || 'Тестовый'}</p><p className="mt-3 text-(--color-ink-muted)">Источник ответа: {['fixture', 'reviewed_fixture'].includes(inspector.response_source ?? '') ? 'записанная фикстура' : inspector.response_source === 'history' ? 'предыдущий ответ' : 'упрощённый тестовый ответ'}</p><p className="mt-3 break-words text-(--color-ink-muted)">intent: {inspector.intent || '—'} · tools: {inspector.goal.allowed_tools.join(', ') || '—'} · Guard: {inspector.guard.verdict} · триггер: {inspector.goal.trigger || '—'}</p>
             </div>}
         </section></div></>}
         </main></CabinetLayout>;
