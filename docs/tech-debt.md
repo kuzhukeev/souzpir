@@ -565,3 +565,5 @@
 - SP-L1-04: статус отправки (retryable/терминальный) определяется прямым HTTP-вызовом в TelegramManagerMessageTransport, отдельно от HttpTelegramTransport/TelegramSender (возвращают только bool) — логика запроса к Telegram частично дублируется; delivered_at ставит job после успеха транспорта, при падении между ними возможен повтор отправки.
 
 - SP-E3-10C: стадии judge и responder прототипа не версионируются по бренду (только summary/extractor/guard/simulator); judge.blade.php v1/v2 не подключён к Judge::request().
+
+- SP-L1-07: страница приглашения показывает роль «Администратора» вместо «Владельца» для приглашения из org:create (в БД роль admin + флаг designated_owner).
