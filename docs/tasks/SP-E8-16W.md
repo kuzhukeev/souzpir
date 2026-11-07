@@ -9,3 +9,8 @@
 - Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.
 
 Scope: `app/Vision/Measurements/`, `resources/js/pages/Vision/Measurements/`, `tests/Feature/Vision/Measurements/`, `tests/Browser/E8-16W/`, `docs/results/SP-E8-16W.md`.
+
+## Остаток 07.11.2026 21:40 (аудит экранов, V-3.4 «Ответы замера», `mockups V-3.4`)
+- Подзаголовок «Замер № N · дата · M модели · K прогона» под заголовком «Ответы нейросетей» (`resources/js/pages/Vision/Measurements/Answers.tsx`).
+- Легенда «Упомянуты вы / Только конкуренты / Никого» с цветными маркерами (зелёный/оранжевый/серый); ячейки матрицы с цветным фоном и точкой перед «n/3» по макету вместо текстовых подписей.
+- Feature-тест пропсов (`tests/Feature/Vision/Measurements/`), browser в `tests/Browser/E8-16W/`. Права, бренд, без живых вызовов. Право наблюдателя на полные ответы не менять — вопрос записан в docs/decisions-pending.md.

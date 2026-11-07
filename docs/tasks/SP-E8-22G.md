@@ -17,3 +17,11 @@ Scope: `app/Vision/Actions/`, `resources/js/pages/Vision/Reports/`, `tests/Featu
 - Feature-тесты в `tests/Feature/Vision/Site/`, browser в `tests/Browser/E8-22G/`. Права, бренд.
 
 Scope уточнён: `app/Vision/Actions/`, `resources/js/features/Vision/Site/`, `tests/Feature/Vision/Site/`, `tests/Browser/E8-22G/`, `docs/results/SP-E8-22G.md` (страницы отчётов `resources/js/pages/Vision/Reports/` — у SP-E8-18J).
+
+## Остаток 07.11.2026 21:40 (аудит экранов, V-9.3 «История и эффект», `mockups V-9.3`)
+- Экран `/vision/actions/effect` (`resources/js/pages/Vision/Actions/Effect.tsx`, `resources/js/features/Vision/Site/Actions.tsx`, `app/Vision/Actions/EffectController.php`): заголовок «История и эффект», блок называется «История действий и их эффект» (вместо «Наблюдения по проверенному отчёту») с подписью по макету.
+- Таблица: Действие (название + описание), Выполнено (дата · кто отметил), «Замер до → после» (№ до → № после с датами замеров), «Видимость: было → стало», статус эффекта «Есть рост / Без изменений / Рано судить» (нет замера после — «Рано судить» и «—»).
+- Пустое состояние по `6498fa33-V-9.3-empty`: «Выполненных действий пока нет», пояснение и кнопка «К действиям» (`/vision/actions`); блок достижений — «Достижений пока нет», пока данных нет (новые метрики не выдумывать).
+- Feature-тесты в `tests/Feature/Vision/Site/`, browser в `tests/Browser/E8-22G/`. Права, бренд.
+
+Scope дополнен: `resources/js/pages/Vision/Actions/`.
