@@ -16,3 +16,17 @@
 
 ## Нужно от интегратора
 - Нет.
+
+## Остаток по аудиту 07.11.2026 — закрыт
+- S-0.1: в подвале AuthFrame добавлены ссылки «Условия» и «Конфиденциальность» (ведут на `/help`, отдельного документа «Условия/Конфиденциальность» в кабинете нет — см. «Принято по умолчанию» ниже).
+- S-0.2/регистрация/восстановление/приглашение: добавлен `lang/ru/validation.php` с русскими текстами для используемых правил (required, email, max, min, string, unique, regex, accepted, same, confirmed) и атрибутов полей.
+- S-0.4: при несовпадении паролей `PasswordController::store` теперь возвращает ошибку `password_confirmation` = «Пароли не совпадают» (поле «Повторите пароль», как на макете), вместо английского текста под «Новый пароль».
+- S-0.5: новый Playwright-тест `tests/Browser/E1-01I/invitation-state.spec.ts` поднимает PHP-сервер и Vite на свободных портах и проверяет, что `/invitations/open` реально переходит на `/invitations/state?state=…` для expired/revoked/accepted/email_mismatch (включая реальный логин для email_mismatch).
+- Проверки: PHPUnit `AuthFlowTest`, `AuthStatesE101ITest`, `PasswordResetBoundaryTest` — 30 тестов зелёные; Playwright `E1-01I/auth.spec.ts` (6) и `E1-01I/invitation-state.spec.ts` (4) — зелёные по отдельности (`--workers=1`, как в CI); `composer lint` (Pint), `npm run lint/typecheck/test/build` — зелёные.
+- Скриншот `.local/screenshots/SP-E1-01I/login.png` обновлён — подвал со ссылками «Условия»/«Конфиденциальность» виден и соответствует `completed/1/9e731e5b-S-0.1-login-eyon.png`.
+
+### Принято по умолчанию
+- Ссылки «Условия» и «Конфиденциальность» ведут на `/help` (S-8.1, единственный существующий «документ кабинета»): отдельных текстовых страниц условий/политики в продукте нет, а придумывать внешний адрес запрещено картой задачи.
+
+### Техдолг
+- Тесты модулей `PasswordDelivery`, `InvitationIssuance` и гонок (`*RaceTest`, `*ConcurrencyTest`) в этом окружении падают с «A dedicated, nonprivileged test database owner is required» — роль Postgres слота exec-2 не настроена под их изолированную проверку; не связано с правками этой карты, воспроизводится и на чистом `main`.

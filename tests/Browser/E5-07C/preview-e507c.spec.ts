@@ -10,9 +10,9 @@ test('почта: способ отправки, подпись и безопа�
     await page.goto(url);
     await expect(page.getByLabel('Подпись')).toHaveValue('С уважением');
     await expect(page.getByRole('heading', { name: 'Входящая' })).toBeVisible();
-    await expect(page.getByRole('paragraph').filter({ hasText: 'Скоро' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Входящая почта' }).locator('..').getByText('Скоро', { exact: true })).toBeVisible();
     await expect(page.getByText('без реальной отправки', { exact: false })).toBeVisible();
-    await page.getByLabel('SMTP', { exact: true }).check();
+    await page.getByRole('radio', { name: /^SMTP / }).check();
     await expect(page.getByLabel('Сервер SMTP')).toBeVisible();
     await page.getByLabel('Сервер SMTP').fill('smtp.example.test');
     await page.getByLabel('Пароль SMTP').fill('test-password');

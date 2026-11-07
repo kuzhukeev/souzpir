@@ -23,7 +23,7 @@ test('теги, лимит персонажа и выбор из диалога'
   await expect(page.getByText('0.72', { exact: true })).toBeVisible();
   await mkdir('.local/screenshots/SP-E4-08D', { recursive: true });
   await page.screenshot({ path: '.local/screenshots/SP-E4-08D/main.png', fullPage: true });
-  await page.getByRole('button', { name: 'Добавить из диалога' }).click();
+  await page.locator('button[aria-haspopup="dialog"]').filter({ hasText: 'Добавить из диалога' }).click();
   const modal = page.getByRole('dialog', { name: 'Добавить из диалога' });
   await expect(modal).toBeVisible();
   await modal.getByRole('button', { name: 'Найти' }).click();
@@ -35,14 +35,14 @@ test('теги, лимит персонажа и выбор из диалога'
   await page.keyboard.press('Escape');
   await expect(modal).toHaveCount(0);
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByRole('button', { name: 'Добавить из диалога' }).click();
+  await page.locator('button[aria-haspopup="dialog"]').filter({ hasText: 'Добавить из диалога' }).click();
   await expect(modal).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });
 test('ошибка загрузки диалогов остаётся внутри формы', async ({ page }) => {
   await page.route('**/seller/knowledge/fewshot/dialogs?*', route => route.fulfill({ status: 500, body: 'error' }));
   await page.goto(url);
-  await page.getByRole('button', { name: 'Добавить из диалога' }).click();
+  await page.locator('button[aria-haspopup="dialog"]').filter({ hasText: 'Добавить из диалога' }).click();
   const modal = page.getByRole('dialog', { name: 'Добавить из диалога' });
   await modal.getByRole('button', { name: 'Найти' }).click();
   await expect(modal.getByRole('alert')).toContainText('Не удалось загрузить диалоги.');

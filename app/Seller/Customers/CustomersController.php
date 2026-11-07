@@ -7,6 +7,8 @@ use App\Models\User;
 use App\Seller\Engine\LeadState;
 use App\Seller\Engine\Policy;
 use App\Seller\Followups\FollowupConsent;
+use App\Seller\Knowledge\Contracts\KnowledgeRepository;
+use App\Seller\Knowledge\KnowledgeNotReady;
 use App\Seller\Knowledge\KnowledgeSnapshot;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Audit\AuditEntry;
@@ -148,7 +150,16 @@ final class CustomersController
                 $eligible = collect();
             }
 
-            return ['canReadDialogs' => Gate::forUser($user)->allows('seller.dialogs.read'), 'managers' => $eligible, 'assignedUserId' => $latest?->assigned_user_id, 'canAssign' => $canAssign, 'manager' => $latest?->assigned_user_id ? DB::table('users')->where('id', $latest->assigned_user_id)->value('name') : null, 'customer' => $customer, 'clientType' => $this->clientType($latest?->state), 'slots' => data_get($state, 'slots', []),
+            $customFieldLabels = [];
+            try {
+                $publishedFields = app(KnowledgeRepository::class)->published($tenant)->policy()['client_fields'] ?? [];
+                $customFieldLabels = collect($publishedFields)->filter(fn ($field) => is_array($field) && is_string($field['id'] ?? null))
+                    ->mapWithKeys(fn ($field) => [$field['id'] => $field['name']])->all();
+            } catch (KnowledgeNotReady) {
+                // нет опубликованной версии — дополнительных полей нет
+            }
+
+            return ['canReadDialogs' => Gate::forUser($user)->allows('seller.dialogs.read'), 'managers' => $eligible, 'assignedUserId' => $latest?->assigned_user_id, 'canAssign' => $canAssign, 'manager' => $latest?->assigned_user_id ? DB::table('users')->where('id', $latest->assigned_user_id)->value('name') : null, 'customer' => $customer, 'clientType' => $this->clientType($latest?->state), 'slots' => data_get($state, 'slots', []), 'customFieldLabels' => $customFieldLabels,
                 'consent' => ['status' => $consentStatus, 'unsubscribed' => $consentUnsubscribed, 'canEdit' => $canAssign && $latest !== null],
                 'conversations' => $conversations->map(fn ($row) => ['id' => $row->id, 'stage' => $row->stage, 'outcome' => $row->outcome, 'mode' => $row->mode, 'channel' => $channelNames->get($row->channel_account_id), 'updated_at' => $row->updated_at]),
                 'history' => $history, 'tasks' => $tasks, 'notes' => $notes, 'canWrite' => Gate::forUser($user)->allows('seller.customers.write')];

@@ -4,6 +4,7 @@ use App\Models\Organization;
 use App\Models\User;
 use App\Tenancy\Cabinet;
 use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\URL;
@@ -41,6 +42,35 @@ if (getenv('E901_ACTION') === 'setup') {
     $user = User::where('email', $email)->firstOrFail();
     URL::forceRootUrl((string) getenv('APP_URL'));
     echo URL::temporarySignedRoute('verification.verify', now()->addMinutes(10), ['id' => $user->getKey(), 'hash' => sha1($user->getEmailForVerification())]);
+} elseif (getenv('E901_ACTION') === 'seed-agent-reply') {
+    // The real bot-reply pipeline for inbound channels is not wired yet; the acceptance
+    // flow seeds the single prior agent reply the real UI cannot yet produce, then drives
+    // the actual follow-up command and settings through the browser.
+    $dialog = getenv('E901_DIALOG');
+    $at = getenv('E901_AT');
+    if (! is_string($dialog) || ! Str::isUlid($dialog) || ! is_string($at) || $at === '') {
+        throw new LogicException('Missing seed parameters.');
+    }
+    $conversation = DB::table('conversations')->where('organization_id', $organization)->where('id', $dialog)->first();
+    if (! $conversation) {
+        throw new LogicException('Conversation not found for this organization.');
+    }
+    DB::table('messages')->insert(['id' => (string) Str::ulid(), 'organization_id' => $organization, 'brand_id' => $conversation->brand_id,
+        'conversation_id' => $dialog, 'channel_account_id' => $conversation->channel_account_id, 'role' => 'agent',
+        'text' => 'Исходный ответ бота.', 'meta' => '{}', 'created_at' => $at, 'updated_at' => $at]);
+    echo 'Ready';
+} elseif (getenv('E901_ACTION') === 'advance-followups') {
+    $at = getenv('E901_AT');
+    if (! is_string($at) || $at === '') {
+        throw new LogicException('Missing E901_AT.');
+    }
+    Carbon::setTestNow($at);
+    try {
+        Artisan::call('seller:prepare-followups');
+    } finally {
+        Carbon::setTestNow();
+    }
+    echo 'Ready';
 } else {
     throw new LogicException('Unknown fixture action.');
 }

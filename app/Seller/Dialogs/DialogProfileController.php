@@ -5,6 +5,8 @@ namespace App\Seller\Dialogs;
 use App\Models\Membership;
 use App\Models\User;
 use App\Seller\Engine\LeadState;
+use App\Seller\Knowledge\Contracts\KnowledgeRepository;
+use App\Seller\Knowledge\KnowledgeNotReady;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Profile\ProfileAccess;
 use App\Tenancy\TenantContext;
@@ -17,9 +19,17 @@ final class DialogProfileController
 {
     public function update(Request $request, string $dialog): RedirectResponse
     {
+        $publishedFieldIds = [];
+        try {
+            $publishedFieldIds = collect(app(KnowledgeRepository::class)->published(app(TenantContext::class))->policy()['client_fields'] ?? [])
+                ->pluck('id')->filter(fn ($id) => is_string($id))->all();
+        } catch (KnowledgeNotReady) {
+            // нет опубликованной версии — доступны только системные поля карточки
+        }
+        $allowedSlots = array_values(array_unique([...LeadState::SLOTS, ...$publishedFieldIds]));
         $input = $request->validate([
             'summary' => ['nullable', 'string', 'max:5000'],
-            'slots' => ['required', 'array:'.implode(',', LeadState::SLOTS)],
+            'slots' => ['required', 'array:'.implode(',', $allowedSlots)],
             'slots.*' => ['nullable', 'string', 'max:500'],
         ]);
         app(ProfileAccess::class)->run($request, function (User $actor, TenantContext $context, $brand, Membership $member) use ($dialog, $input): void {

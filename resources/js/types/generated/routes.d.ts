@@ -111,6 +111,7 @@ declare module 'ziggy-js' {
         }
     ],
     "dashboard.notification-center": [],
+    "dashboard.notifications": [],
     "dashboard.notifications.read-all": [],
     "organization.show": [],
     "organization.update": [],
@@ -546,6 +547,10 @@ declare module 'ziggy-js' {
     "widget.loader": [],
     "widget.contact.preflight": [],
     "widget.contact.store": [],
+    "widget.session.preflight": [],
+    "widget.session.start": [],
+    "widget.message.preflight": [],
+    "widget.message.store": [],
     "widget.config": [],
     "seller.api.failures": [],
     "seller.api.settings": [],

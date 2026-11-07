@@ -2,11 +2,10 @@
 
 Команды выполняются из основного checkout с помощью Python и `scripts/task.py`. Проект должен быть включён, зависимости задачи — в `done`, а их merge-коммиты — в истории чистого `main`. `ready` показывает задачи, для которых нет локальных claim, worktree и ветки, а в `blockedLocal` перечисляет оставшиеся локальные препятствия; это подсказка, а не резервирование задачи.
 
-```powershell
-$taskPython = 'C:\Users\eralash\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe'
-$taskCli = 'C:\OSPanel\home\souzpir.local\scripts\task.py'
-& $taskPython $taskCli ready
-& $taskPython $taskCli claim SP-XXX --worker 'codex:<chat-id>'
+```sh
+cd /opt/contour/repo
+python3 scripts/task.py ready
+python3 scripts/task.py claim SP-XXX --worker '<worker>'
 ```
 
 `claim` атомарно получает владение и создаёт ветку и отдельный worktree от проверенного `main`. При конфликте владения выбирайте следующую задачу. Работайте в указанном worktree и scope карточки; token остаётся только в `.local/claims/`. Окружение каждого worktree изолировано, как описано в `AGENTS.md`.

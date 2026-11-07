@@ -13,5 +13,7 @@ test('channels and API log show actual data', async ({ page }) => {
  await mkdir('.local/screenshots/SP-E5-01G', {recursive:true});
  await page.screenshot({path:'.local/screenshots/SP-E5-01G/channels.png',fullPage:true});
  await page.goto(url+'?settings');
- await expect(page.getByText('POST /api/v1/leads · created')).toBeVisible();
+ const logRow = page.getByRole('row').filter({ hasText: 'API · /api/v1/leads' });
+ await expect(logRow).toBeVisible();
+ await expect(logRow).toContainText('Успешно');
 });

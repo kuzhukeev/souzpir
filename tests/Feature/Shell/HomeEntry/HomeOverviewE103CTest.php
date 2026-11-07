@@ -17,6 +17,7 @@ final class HomeOverviewE103CTest extends TenancyTestCase
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
         $this->get('/attention')->assertOk()->assertInertia(fn ($p) => $p->component('Shell/Dashboard/Attention')->where('seller', null));
         $this->get('/notification-center')->assertOk()->assertInertia(fn ($p) => $p->component('Shell/Notifications/Index')->has('items', 0)->where('unread', 0));
+        $this->get('/notifications')->assertOk()->assertInertia(fn ($p) => $p->component('Shell/Notifications/Index')->has('items', 0)->where('unread', 0));
         $this->actingAs($viewer)->withSession(['brand_id' => $brand->id]);
         $this->get('/notification-center', ['X-Brand-Id' => $other->id])->assertNotFound();
     }

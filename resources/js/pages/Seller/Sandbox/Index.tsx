@@ -65,7 +65,7 @@ function Sandbox({ releases, clients = [], channels = [], sandboxSession = null 
         const transcript = session.history.map(turn => `Клиент: ${turn.question}\nБот: ${turn.answer}`).join('\n\n');
         if (transcript.length > 2000 || session.history[0].question.length > 1000) { setScenarioBusy(false); setScenarioStatus('Диалог слишком длинный для сохранения сценария. Начните более короткий диалог.'); return; }
         router.post('/seller/quality/scenarios', { name: 'Тест из песочницы', type: 'edge', behavior: transcript, first_message: session.history[0].question, max_turns: Math.min(session.history.length, 10), expect: [] }, {
-            preserveScroll: true, onSuccess: () => setScenarioStatus('Сценарий сохранён. При запуске используется первый вопрос; история сохранена в описании.'),
+            preserveScroll: true, onSuccess: () => setScenarioStatus('Сценарий сохранён. При запуске воспроизводятся все сохранённые реплики клиента по очереди.'),
             onError: () => setScenarioStatus('Не удалось сохранить сценарий.'), onNetworkError: () => { setScenarioStatus('Нет связи. Сценарий не сохранён.'); return false; },
             onHttpException: () => { setScenarioStatus('Не удалось сохранить сценарий.'); return false; }, onFinish: () => setScenarioBusy(false),
         });
@@ -97,6 +97,7 @@ function Sandbox({ releases, clients = [], channels = [], sandboxSession = null 
                 <div className="rounded-lg bg-(--color-surface-muted) p-3"><strong>Предыдущий ответ бота</strong><p className="mt-1 whitespace-pre-wrap break-words">Предыдущий ответ: {inspector.previous_answer || 'Нет'}</p></div>
                 <dl>
                     <InspectorRow label="Намерение клиента">{inspector.intent || 'Не определена'} <span className="text-(--color-ink-muted)">({inspector.extraction_source === 'fixture' ? 'записанная фикстура' : 'без распознанных данных'})</span></InspectorRow>
+                    <InspectorRow label="Источник ответа">{['fixture', 'reviewed_fixture'].includes(inspector.response_source ?? '') ? 'записанная фикстура' : inspector.response_source === 'history' ? 'предыдущий ответ' : 'упрощённый тестовый ответ'}</InspectorRow>
                     <InspectorRow label="Поля карточки">{Object.entries(inspectedState?.slots ?? {}).length ? <dl className="space-y-1">{Object.entries(inspectedState?.slots ?? {}).map(([key, value]) => <div key={key} className="flex flex-wrap gap-x-2"><dt className="text-(--color-ink-muted)">{slotLabels[key] ?? key}:</dt><dd>{show(value)}</dd></div>)}</dl> : 'Не указаны'}</InspectorRow>
                     <InspectorRow label="Стадия">{inspectedState?.stage ? (stageLabels[inspectedState.stage] ?? inspectedState.stage) : 'Не указана'}</InspectorRow>
                     <InspectorRow label="Цель бота">{inspector.goal.instruction || inspector.goal.kind}{inspector.goal.slot ? ` · поле: ${slotLabels[inspector.goal.slot] ?? inspector.goal.slot}` : ''}</InspectorRow>
@@ -105,7 +106,7 @@ function Sandbox({ releases, clients = [], channels = [], sandboxSession = null 
                     <InspectorRow label="Действия">{inspector.executed_tools.map(tool => `${tool.name} (тест)`).join(', ') || 'Нет (тестовый режим)'}</InspectorRow>
                     <InspectorRow label="Проверка">{inspector.guard.verdict === 'ok' ? 'Пройдена' : 'Есть замечания'}{inspector.guard.issues.map((issue, index) => <p key={index}>{issue}</p>)}{inspector.guard.warnings.map((warning, index) => <p key={index}>Предупреждение: {warning}</p>)}</InspectorRow>
                 </dl>
-                <p className="mt-3 text-(--color-ink-muted)">Клиент: {inspector.client || 'Тестовый'} · канал: {inspector.channel || 'Тестовый'}</p><p className="mt-3 break-words text-(--color-ink-muted)">intent: {inspector.intent || '—'} · tools: {inspector.goal.allowed_tools.join(', ') || '—'} · Guard: {inspector.guard.verdict} · триггер: {inspector.goal.trigger || '—'}</p>
+                <p className="mt-3 text-(--color-ink-muted)">Клиент: {inspector.client || 'Тестовый'} · канал: {inspector.channel || 'Тестовый'}</p><p className="mt-3 text-(--color-ink-muted)">Источник ответа: {['fixture', 'reviewed_fixture'].includes(inspector.response_source ?? '') ? 'записанная фикстура' : inspector.response_source === 'history' ? 'предыдущий ответ' : 'упрощённый тестовый ответ'}</p><p className="mt-3 break-words text-(--color-ink-muted)">intent: {inspector.intent || '—'} · tools: {inspector.goal.allowed_tools.join(', ') || '—'} · Guard: {inspector.guard.verdict} · триггер: {inspector.goal.trigger || '—'}</p>
             </div>}
         </section></div></>}
         </main></CabinetLayout>;

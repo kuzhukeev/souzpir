@@ -147,23 +147,47 @@ class Policy
         if ($ct === 'prices_only') {
             return ($s->has('budget_range') || $s->counter('budget_asks') >= 1) ? 'close_contact' : 'budget';
         }
-        if (! ($s->has('city') && $s->has('purpose'))) {
+        // Оптовые слоты (город, цель, опыт, бюджет, сроки) используются только подтверждённым прототип-брендом;
+        // остальные бренды проходят эти стадии по своим обязательным дополнительным полям (D-5.1).
+        $prototype = LeadState::isPrototypeBrand($this->kb->persona()['company'] ?? null);
+        if ($prototype && ! ($s->has('city') && $s->has('purpose'))) {
             return 'qualify';
         }
-        if ($ct !== 'for_self' && ! ($s->has('experience') || $s->has('outlet_type') || $s->has('categories') || $ct === 'experienced')) {
+        if ($prototype && $ct !== 'for_self' && ! ($s->has('experience') || $s->has('outlet_type') || $s->has('categories') || $ct === 'experienced')) {
             return 'need';
         }
-        if (! $s->has('budget_range') && $s->counter('budget_asks') < $this->limit('budget_asks_max', 2)) {
+        if (! $this->requiredFieldsFilled($s, 'need')) {
+            return 'need';
+        }
+        if ($prototype && ! $s->has('budget_range') && $s->counter('budget_asks') < $this->limit('budget_asks_max', 2)) {
             return 'budget';
         }
-        if ($ct !== 'prices_only' && ! $s->has('timing') && ! $s->wasAsked('timing')) {
+        if ($prototype && $ct !== 'prices_only' && ! $s->has('timing') && ! $s->wasAsked('timing')) {
             return 'budget'; // сроки закупки спрашиваем один раз, следом за бюджетом
+        }
+        if (! $this->requiredFieldsFilled($s, 'budget')) {
+            return 'budget';
         }
         if (! ($s->flag('price_sent') && $s->hasContact() && $s->has('next_contact_at'))) {
             return 'close_contact';
         }
+        if (! $this->requiredFieldsFilled($s, 'close_contact')) {
+            return 'close_contact';
+        }
 
         return 'followup';
+    }
+
+    /** Обязательные дополнительные поля, привязанные к стадии (D-5.1), блокируют переход дальше неё. */
+    private function requiredFieldsFilled(LeadState $s, string $stage): bool
+    {
+        foreach ($this->clientFields() as $field) {
+            if (($field['required'] ?? false) && ($field['stage'] ?? null) === $stage && ! $s->has($field['id'])) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private function advanceStage(LeadState $s): void
@@ -503,10 +527,32 @@ class Policy
 
     // ------------------------------------------------------------------ helpers
 
+    /** Опубликованные дополнительные поля бренда (D-5.1): код, обязательность, стадия. */
+    public function clientFields(): array
+    {
+        return collect($this->p['client_fields'] ?? [])
+            ->filter(fn ($field) => is_array($field) && is_string($field['id'] ?? null) && trim($field['id']) !== '')
+            ->values()->all();
+    }
+
+    /** Слоты, которые реально собирает движок для этого бренда (контактные — всегда; оптовые — только у прототипа). */
+    private function collectibleSlots(): array
+    {
+        if (LeadState::isPrototypeBrand($this->kb->persona()['company'] ?? null)) {
+            return LeadState::SLOTS;
+        }
+
+        return ['name', 'email', 'messenger', 'next_contact_at'];
+    }
+
     public function nextSlot(LeadState $s): ?string
     {
         $order = $this->p['slot_order'][$s->clientType()] ?? $this->p['slot_order']['unknown'];
+        $collectible = $this->collectibleSlots();
         foreach ($order as $slot) {
+            if (! in_array($slot, $collectible, true)) {
+                continue;
+            }
             if ($s->has($slot)) {
                 continue;
             }
@@ -536,6 +582,14 @@ class Policy
             }
 
             return $slot;
+        }
+
+        foreach ($this->clientFields() as $field) {
+            if (! ($field['required'] ?? false) || $s->has($field['id']) || $s->wasAsked($field['id'])) {
+                continue;
+            }
+
+            return $field['id'];
         }
 
         return null;
@@ -818,7 +872,8 @@ class Policy
     public function computeMissing(LeadState $s): array
     {
         $out = [];
-        foreach (LeadState::PRIORITY_SLOTS as $slot) {
+        $collectible = $this->collectibleSlots();
+        foreach (array_intersect(LeadState::PRIORITY_SLOTS, $collectible) as $slot) {
             if ($s->has($slot)) {
                 continue;
             }
@@ -842,6 +897,13 @@ class Policy
                 $reason = 'no_chance';
             }
             $out[] = ['slot' => $slot, 'reason' => $reason, 'suggested_question' => $this->kb->suggestedQuestion($slot, $s->clientType())];
+        }
+        foreach ($this->clientFields() as $field) {
+            if (! ($field['required'] ?? false) || $s->has($field['id'])) {
+                continue;
+            }
+            $reason = $s->wasRefused($field['id']) ? 'declined' : ($s->askCount($field['id']) >= 1 && $s->signal('last_asked_slot') !== $field['id'] ? 'evaded' : 'not_asked');
+            $out[] = ['slot' => $field['id'], 'reason' => $reason, 'suggested_question' => null];
         }
 
         return $out;

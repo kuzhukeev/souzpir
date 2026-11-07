@@ -8,4 +8,4 @@
 - Режимы виджета «Автономно» и «Подсказки», запуск runtime через безопасный публичный канал без сессии менеджера, автоматические ответы и сверка макета; проверять права, изоляцию брендов и fake runtime, без живых отправок.
 - Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.
 
-Scope: `app/Seller/Channels/`, `app/Seller/Runtime/`, `resources/js/pages/Seller/Channels/`, `tests/Feature/Seller/Channels/`, `tests/Browser/E5-01M/`, `docs/results/SP-E5-01M.md`.
+Scope: `app/Seller/Channels/Widget/`, `app/Seller/Runtime/WidgetInboundRuntime.php`, `resources/js/pages/Seller/Channels/Widget/`, `tests/Feature/Seller/Channels/Widget/`, `tests/Browser/E5-01M/`, `docs/results/SP-E5-01M.md` (сужено 07.11.2026 ради параллельности; другие каналы не трогать).

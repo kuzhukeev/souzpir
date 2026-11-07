@@ -20,6 +20,7 @@
             <directory suffix="Test.php">tests/Feature/SharedProps</directory>
             <directory suffix="Test.php">tests/Feature/Smoke</directory>
             <directory suffix="Test.php">tests/Feature/Support</directory>
+            <directory suffix="Test.php">tests/Feature/Shadow</directory>
             <directory suffix="Test.php">tests/Feature/Shell</directory>
             <directory suffix="Test.php">tests/Feature/SP-E1-10C</directory>
             <directory suffix="Test.php">tests/Feature/SP-E1-10D</directory>
@@ -35,6 +36,7 @@
         </testsuite>
         <testsuite name="Product">
             <file>tests/Feature/Owner/E5-01H/TelegramClientTest.php</file>
+            <directory suffix="Test.php">tests/Feature/Launch</directory>
             <directory suffix="Test.php">tests/Feature/Seller</directory>
             <directory suffix="Test.php">tests/Feature/SellerRuntime</directory>
             <directory suffix="Test.php">tests/Feature/SP-UI-04</directory>

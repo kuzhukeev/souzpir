@@ -13,7 +13,7 @@ test('выбор тега из каталога и сохранённого те
   await expect(tag).toHaveValue('opt_out_ack');
   await tag.selectOption('price');
   await expect(tag).toHaveValue('price');
-  await page.getByRole('button', { name: 'Добавить из диалога' }).click();
+  await page.locator('button[aria-haspopup="dialog"]').filter({ hasText: 'Добавить из диалога' }).click();
   const modal = page.getByRole('dialog', { name: 'Добавить из диалога' });
   await modal.getByRole('combobox', { name: 'Тег', exact: true }).selectOption('open_greeting');
   await expect(modal.getByRole('combobox', { name: 'Тег', exact: true })).toHaveValue('open_greeting');

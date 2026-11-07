@@ -1,11 +1,11 @@
 export const roleKeys = ['owner', 'admin', 'editor', 'manager', 'viewer'] as const;
 export type RoleKey = (typeof roleKeys)[number];
 export const roleDescriptions: Record<RoleKey, string> = {
-  owner: 'Управляет компанией и доступом участников.',
-  admin: 'Настраивает доступные бренды и команду.',
-  editor: 'Работает с содержимым и настройками в рамках доступных прав.',
-  manager: 'Работает с диалогами и переданными задачами.',
-  viewer: 'Просматривает доступные данные без изменения настроек.',
+  owner: 'Полный доступ, включая тариф и удаление компании.',
+  admin: 'Управление компанией и командой, тариф только для чтения.',
+  editor: 'Настройка модулей, без команды и интеграций.',
+  manager: 'Диалоги, клиенты и очередь подсказок; отчёт Видения для чтения.',
+  viewer: 'Доступ для чтения.',
 };
 export type MatrixRole = { key: RoleKey; label: string };
 export type MatrixAbility = { ability: string; roles: Record<RoleKey, boolean> };
