@@ -22,5 +22,7 @@ final class EventCatalog
         'shell.member.invited' => 'Участник приглашён',
         'shell.plan_request.created' => 'Заявка на смену тарифа создана',
         'ai.budget.threshold_reached' => 'Достигнут порог бюджета ИИ',
+        'seller.conversation.inbound' => 'Новое сообщение от клиента',
+        'seller.draft.ready' => 'Черновик ответа готов',
     ];
 }
