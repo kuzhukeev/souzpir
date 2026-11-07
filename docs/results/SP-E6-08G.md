@@ -7,7 +7,7 @@
 - Макеты сверял: `150/3dcae91c-D-10.1-settings`, `152/381527a2-D-10.4-stock`.
 
 ## Тесты
-- `tests/Unit/Seller/Engine/DeterministicGuardTest.php` — 3 новых кейса (цена не из check_stock блокируется, совпавшая цена проходит, выключенная настройка не влияет).
+- `tests/Feature/Seller/Engine/CatalogPriceGuardE608GTest.php` — 3 кейса на Guard (цена не из check_stock блокируется, совпавшая цена проходит, выключенная настройка не влияет).
 - `tests/Feature/Seller/Catalog/CatalogToolPricesE608GTest.php` — price/wholesale_price скрыты по умолчанию и видны только при включённых флагах бренда.
 - `tests/Browser/E6-08G/catalog-prices.spec.ts` — клавиатурный фокус на таблице (390px), фраза «мало» в примере ответа; скриншот `.local/runtime/e6-08g-stock.png`.
 - `check artisan test tests/Feature/Seller/Catalog/ tests/Unit/Seller/Engine/` — 136 passed. `check frontend` и `check lint` — зелёные.
