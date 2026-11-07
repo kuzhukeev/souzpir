@@ -7,3 +7,7 @@
 - Согласие из импорта CRM (`import`) и из переписки виджета (`dialog`) выполнять в этой же карточке после done SP-E1-10K и SP-E5-02C; до этого не трогать `app/Seller/Channels/Crm/` и виджет.
 
 Дополнительный scope: `app/Seller/Customers/`, `resources/js/pages/Seller/Customers/`, `tests/Feature/Seller/Customers/`, `app/Seller/Channels/Telegram/TelegramWebhookController.php`, `app/Seller/Channels/Telegram/HttpTelegramTransport.php`, `tests/Feature/Seller/Channels/Telegram/` — брать после done SP-E6-10E.
+
+
+## Этап 07.11.2026 18:30
+- SP-E6-10E влита в main: выполнять сейчас пункты «Карточка клиента D-3.2» (согласие/снятие менеджером с комментарием, счётчик отписок, запрет отправки) и «Блокировка Telegram как отписка» (my_chat_member, fake-транспорт). Пункт «согласие из импорта CRM и виджета» остаётся остатком этой же карточки до done SP-E1-10K и SP-E5-02C — `app/Seller/Channels/Crm/` и виджет не трогать.
