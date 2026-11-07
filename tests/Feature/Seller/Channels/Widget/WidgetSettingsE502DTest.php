@@ -1,0 +1,65 @@
+<?php
+
+namespace Tests\Feature\Seller\Channels\Widget;
+
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
+use Tests\Feature\Tenancy\TenancyTestCase;
+
+final class WidgetSettingsE502DTest extends TenancyTestCase
+{
+    private function enable(string $org, string $brand): void
+    {
+        DB::table('brand_modules')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org, 'brand_id' => $brand, 'module' => 'seller', 'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
+    }
+
+    private function payload(): array
+    {
+        return ['enabled' => true, 'origins' => ['https://example.test'], 'appearance' => ['title' => 'Связаться', 'color' => '#176b42', 'position' => 'left', 'offset_side' => 12, 'offset_bottom' => 18, 'shape' => 'round', 'icon' => 'bot', 'window_title' => 'Чат', 'theme' => 'dark', 'hide_mobile' => true],
+            'behavior' => ['delay_seconds' => 10, 'scroll_percent' => 50, 'invitation' => 'Здравствуйте', 'exit_intent' => true, 'page_mask' => '/catalog/*', 'repeat_hours' => 24, 'collect_contact' => true, 'contact_mode' => 'soft', 'consent_text' => 'Согласен на обработку', 'consent_url' => 'https://example.test/privacy', 'work_days' => [0, 2, 4], 'work_start' => '09:00', 'work_end' => '18:00', 'offhours_text' => 'Ответим позже', 'excluded_paths' => ['/privacy', '/private/*'], 'max_messages' => 20]];
+    }
+
+    public function test_tabs_save_and_isolate_settings_by_brand(): void
+    {
+        [$owner, $org, $brand, $other] = $this->cabinet();
+        foreach ([$brand, $other] as $item) {
+            $this->enable($org->id, $item->id);
+        }
+        DB::table('brands')->where('organization_id', $org->id)->where('id', $brand->id)->update(['website' => 'https://example.test/catalog']);
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        foreach (['install', 'look', 'behavior'] as $tab) {
+            $this->get('/seller/channels/widget/'.$tab)->assertOk()->assertInertia(fn ($page) => $page->where('activeTab', $tab)->where('brandOrigin', 'https://example.test'));
+        }
+        $this->post('/seller/channels/widget', $this->payload())->assertRedirect()->assertSessionHasNoErrors();
+        $this->get('/seller/channels/widget/behavior')->assertOk()->assertInertia(fn ($page) => $page->where('settings.behavior.work_days', [0, 2, 4])->where('settings.behavior.excluded_paths', ['/privacy', '/private/*'])->where('settings.behavior.max_messages', 20)->where('settings.behavior.contact_mode', 'soft')->where('settings.behavior.consent_text', 'Согласен на обработку')->where('settings.appearance.offset_side', 12)->where('settings.appearance.theme', 'dark')->where('settings.appearance.hide_mobile', true));
+        $this->post('/brand/switch', ['brand_id' => $other->id])->assertRedirect();
+        $this->get('/seller/channels/widget/behavior')->assertOk()->assertInertia(fn ($page) => $page->where('settings.enabled', false)->has('settings.origins', 0));
+        Mail::assertNothingSent();
+        Http::assertNothingSent();
+    }
+
+    public function test_invalid_settings_and_viewer_are_rejected(): void
+    {
+        [$owner, $org, $brand] = $this->cabinet();
+        $this->enable($org->id, $brand->id);
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $data = $this->payload();
+        $data['behavior']['consent_text'] = str_repeat('x', 301);
+        $data['behavior']['max_messages'] = 101;
+        $this->post('/seller/channels/widget', $data)->assertSessionHasErrors(['behavior.consent_text', 'behavior.max_messages']);
+        $data = $this->payload();
+        $data['behavior']['excluded_paths'] = ['https://other.test/'];
+        $this->post('/seller/channels/widget', $data)->assertSessionHasErrors('behavior.excluded_paths.0');
+        $data = $this->payload();
+        $data['behavior']['collect_contact'] = false;
+        $this->post('/seller/channels/widget', $data)->assertSessionHasErrors('behavior.contact_mode');
+        $data = $this->payload();
+        $data['behavior']['work_start'] = null;
+        $this->post('/seller/channels/widget', $data)->assertSessionHasErrors('behavior.work_start');
+        [$viewer] = $this->member($org, 'viewer', [$brand->id]);
+        $this->actingAs($viewer)->withSession(['brand_id' => $brand->id])->get('/seller/channels/widget/behavior')->assertForbidden();
+        $this->post('/seller/channels/widget', $this->payload())->assertForbidden();
+    }
+}
