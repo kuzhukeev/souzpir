@@ -535,6 +535,12 @@ declare module 'ziggy-js' {
         }
     ],
     "seller.widget.index": [],
+    "seller.widget.tab": [
+        {
+            "name": "tab",
+            "required": true
+        }
+    ],
     "seller.widget.update": [],
     "widget.loader": [],
     "widget.contact.preflight": [],

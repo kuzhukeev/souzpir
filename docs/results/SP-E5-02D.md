@@ -6,6 +6,7 @@
 ## Проверки
 - PHPUnit: 6 тестов, 165 утверждений — сохранение, ошибки, роли, текущий бренд, существующий контактный сценарий.
 - Playwright: установка, внешний вид и поведение, три темы и ширины; TypeScript, ESLint, Pint.
+- Доработка CI: удалён повторный JSX-атрибут, обновлены типы нового маршрута; typecheck, генератор --check и GeneratedTypesTest (3 assertion, локальные предупреждения отсутствующего .env) прошли.
 - 1440: .local/screenshots/SP-E5-02D/install.png ↔ completed/70/79c7e5d4-D-9.2c-not-detected.png; look.png ↔ completed/71/266e702e-D-9.3-widget-look.png; behavior.png ↔ completed/72/83fadfae-D-9.4-widget-behavior.png.
 
 ## Остаток
