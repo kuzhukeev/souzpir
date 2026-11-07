@@ -32,9 +32,11 @@ final class DraftResponder
             'input' => ['system' => app(ResponderProjection::class)->render($draft, $state, $goal, $name), 'client' => $client]];
     }
 
-    public function respond(Request $request, KnowledgeSnapshot $draft, LeadState $state, Goal $goal, string $client, ?string $personaKey = null): ?string
+    public function respond(Request $request, KnowledgeSnapshot $draft, LeadState $state, Goal $goal, string $client, ?string $personaKey = null, ?array &$toolCalls = null): ?string
     {
-        return app(ProfileAccess::class)->run($request, function (User $user, TenantContext $tenant) use ($draft, $state, $goal, $client, $personaKey): ?string {
+        $toolCalls = [];
+
+        return app(ProfileAccess::class)->run($request, function (User $user, TenantContext $tenant) use ($draft, $state, $goal, $client, $personaKey, &$toolCalls): ?string {
             Gate::forUser($user)->authorize('seller.knowledge.write');
             abort_unless(app(SellerModuleAccess::class)->enabled($tenant->organizationId, $tenant->brandId), 404);
             abort_unless(DB::table('knowledge_releases')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('id', $draft->releaseId())->where('status', 'draft')->exists(), 404);
@@ -48,6 +50,7 @@ final class DraftResponder
             try {
                 $response = app(FakeDriver::class)->complete($this->body($draft, $state, $goal, $client));
                 $text = $response['content'] ?? null;
+                $toolCalls = is_array($response['toolCalls'] ?? null) ? $response['toolCalls'] : [];
 
                 return is_string($text) && trim($text) !== '' && mb_strlen($text) <= 5000 ? trim($text) : null;
             } catch (Throwable) {

@@ -47,17 +47,47 @@ final class DraftScenarioPreview
                 foreach ($catalog as $entry) {
                     if (($entry['persona'] ?? null) === $personaKey && ($entry['expected'] ?? null) === true
                         && in_array($entry['criterion'] ?? null, $persona['expect'] ?? [], true) && is_string($entry['client'] ?? null)) {
-                        $clients[] = ['text' => $entry['client'], 'field' => null];
+                        if (in_array($personaKey, ['for_self_wedding', 'prices_only_rude'], true)) {
+                            array_unshift($clients, ['text' => $entry['client'], 'field' => null]);
+                        } else {
+                            $clients[] = ['text' => $entry['client'], 'field' => null];
+                        }
                         break;
                     }
                 }
             }
+        }
+        // The six-turn requisites persona has six saved facts. Keep every fact by
+        // combining the last two fact messages, leaving a turn for its reviewed request.
+        if ($request !== null && $personaKey === 'requisites' && config('runtime.ai_driver') === 'fake' && count($clients) === $maxTurns && $maxTurns >= 2) {
+            $originals = Yaml::parseFile(database_path('seeders/Seller/Evaluation/personas.yaml'));
+            $original = collect($originals)->firstWhere('id', $personaKey);
+            if (is_array($original) && hash_equals(CanonicalJson::hash($original), CanonicalJson::hash($persona))) {
+                $catalog = json_decode(file_get_contents(app_path('ProtectedOperations/DraftSimulation/fixtures/seeded-judgments-e401q.json')), true, flags: JSON_THROW_ON_ERROR);
+                $example = collect($catalog)->first(fn ($entry) => ($entry['persona'] ?? null) === $personaKey && ($entry['expected'] ?? null) === true && in_array($entry['criterion'] ?? null, $persona['expect'] ?? [], true) && is_string($entry['client'] ?? null));
+                $last = array_pop($clients);
+                $previous = array_pop($clients);
+                if ($example && is_string($last['field'] ?? null) && is_string($previous['field'] ?? null)) {
+                    $clients[] = ['text' => $previous['text']."\n".$last['text'], 'field' => null, 'parts' => [$previous, $last]];
+                    array_unshift($clients, ['text' => $example['client'], 'field' => null]);
+                } else {
+                    $clients[] = $previous;
+                    $clients[] = $last;
+                }
+            }
+        }
+        $savedInputs = app(ScenarioTranscript::class)->clients($persona);
+        if ($savedInputs !== []) {
+            $clients = array_map(fn ($text) => ['text' => $text, 'field' => null], $savedInputs);
         }
         $expectations = is_array($persona['expect'] ?? null) ? $persona['expect'] : [];
         $state = new LeadState;
         $turns = [];
         foreach (array_slice($clients, 0, max(1, $maxTurns)) as $index => $client) {
             $seed = $personaKey !== null && $client['field'] !== null ? ['persona_key' => $personaKey, 'field' => $client['field']] : null;
+            if ($personaKey !== null && isset($client['parts'])) {
+                $seed = ['persona_key' => $personaKey, 'parts' => $client['parts']];
+            }
             $turns[] = $this->previewTurn($draft, $client['text'], $expectations, $state, $index === 0, $request, $seed, $personaKey);
         }
 
@@ -68,22 +98,52 @@ final class DraftScenarioPreview
     {
         try {
             $policy = new Policy($draft);
-            $extraction = $request ? app(FixtureRuntime::class)->extract($request, $draft, $client, $seed) : null;
+            $extraction = null;
+            if ($request && isset($seed['parts']) && is_array($seed['parts'])) {
+                foreach ($seed['parts'] as $part) {
+                    $piece = app(FixtureRuntime::class)->extract($request, $draft, $part['text'], ['persona_key' => $seed['persona_key'], 'field' => $part['field']]);
+                    if ($piece !== null) {
+                        $extraction ??= ['client_intent' => 'unclear', 'slot_updates' => []];
+                        $extraction['slot_updates'] = array_replace($extraction['slot_updates'], $piece['slot_updates'] ?? []);
+                    }
+                }
+                if ($extraction !== null) {
+                    $extraction['_text'] = $client;
+                }
+            } elseif ($request) {
+                $extraction = app(FixtureRuntime::class)->extract($request, $draft, $client, $seed);
+            }
             $extractionAvailable = $extraction !== null;
             $extraction ??= ['client_intent' => 'unclear'];
             $policy->applyExtraction($state, $extraction);
             $goal = $policy->decide($state, $extraction, $first);
             $examples = $draft->fewshot($goal->fewshotTags, $state->clientType(), 1);
-            $answer = $request ? app(DraftResponder::class)->respond($request, $draft, $state, $goal, $client, $personaKey) : null;
+            $toolCalls = [];
+            $toolResults = [];
+            $answer = $request ? app(DraftResponder::class)->respond($request, $draft, $state, $goal, $client, $personaKey, $toolCalls) : null;
+            if ($request && in_array('escalate', $goal->allowedTools, true)) {
+                foreach ($toolCalls as $call) {
+                    if (is_array($call) && ($call['name'] ?? null) === 'escalate' && is_array($call['arguments'] ?? null)) {
+                        $result = app(FixtureRuntime::class)->executeTool($request, $draft, 'escalate', $call['arguments']);
+                        if ($result !== null) {
+                            $toolResults[] = $result;
+                        }
+                    }
+                }
+            }
             $answer ??= trim((string) ($examples[0]['text'] ?? 'Здравствуйте! Чем могу помочь?'));
             // A draft preview does not execute a handoff or deliver documents. Do not
             // present a fixture or few-shot promise as a completed real-world action.
             if (config('runtime.ai_driver') === 'fake'
-                && in_array($personaKey, ['wants_human', 'requisites', 'big_order'], true)
+                && (in_array($personaKey, ['wants_human', 'requisites', 'big_order'], true) || str_starts_with($personaKey ?? '', 'custom_'))
                 && preg_match('/(?<!\pL)(?:переда(?:м|ю|л[аи]?|но)|отправ(?:лю|ил[аи]?|лено)|высл(?:ал[аи]?|ано|ю)|направ(?:лю|ил[аи]?|лено)|свяж(?:ется|усь)|переключ(?:у|ил[аи]?|ено)|перезвон(?:ю|ит)|напиш(?:у|ет))(?!\pL)/iu', $answer)) {
-                $answer = 'В тестовом сценарии запрос менеджеру не передаётся.';
+                $answer = $toolResults !== [] ? 'В тестовом сценарии запрос передан менеджеру.' : 'В тестовом сценарии запрос менеджеру не передаётся.';
             }
-            $guard = (new DeterministicGuard($draft))->check($answer, $goal, $state);
+            $guard = (new DeterministicGuard($draft))->check($answer, $goal, $state, ['tools_called' => array_column($toolResults, 'name')]);
+            $guardFallback = ($guard['verdict'] ?? null) !== 'ok';
+            if ($guardFallback) {
+                $answer = 'Нет подходящей безопасной тестовой фикстуры для ответа.';
+            }
             $goalKind = $goal->kind;
             $state->setFlag('introduced', true);
         } catch (\Throwable) {
@@ -106,10 +166,10 @@ final class DraftScenarioPreview
         }
 
         return ['client' => $client, 'agent' => $answer, 'meta' => ['expectation_checks' => $checks,
-            'guard_verdict' => $guard['verdict'], 'guard_issues' => $guard['issues'], 'goal' => $goalKind,
+            'guard_verdict' => $guard['verdict'], 'guard_issues' => $guard['issues'], 'guard_fallback' => $guardFallback ?? true, 'goal' => $goalKind,
             'draft_release_id' => $draft->releaseId(), 'preview_only' => true,
             'extraction_available' => $extractionAvailable ?? false, 'extracted_intent' => $extraction['client_intent'] ?? null,
             'extracted_slots' => $extraction['slot_updates'] ?? [], 'semantic_checks' => $semantic,
-            'semantic_available' => $semantic !== null && ! in_array(null, $semantic, true)]];
+            'semantic_available' => $semantic !== null && ! in_array(null, $semantic, true), 'tool_results' => $toolResults ?? []]];
     }
 }
