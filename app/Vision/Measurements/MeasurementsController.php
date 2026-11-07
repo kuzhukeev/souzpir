@@ -5,7 +5,9 @@ namespace App\Vision\Measurements;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
 use App\Tenancy\TenantContext;
+use App\Vision\Core\EvidenceStore;
 use App\Vision\Core\MeasurementRunner;
+use App\Vision\Evidence\LiveGate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -142,9 +144,12 @@ final class MeasurementsController
             return redirect()->route('vision.measurements.index')->with('status', 'Ожидающих слотов нет.');
         }
         try {
-            app(MeasurementRunner::class)->measure($answer);
+            $status = app(MeasurementRunner::class)->measure($answer);
         } catch (\LogicException) {
             return redirect()->route('vision.measurements.index')->with('status', 'Слот не удалось выполнить. Проверьте его состояние.');
+        }
+        if ($status === 'ok' && LiveGate::evidenceEnabled()) {
+            app(EvidenceStore::class)->evaluate($answer);
         }
 
         return redirect()->route('vision.measurements.index')->with('status', 'Слот обработан.');
