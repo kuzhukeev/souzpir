@@ -65,14 +65,17 @@ final class BrandRuntimeSchedule
     {
         DB::transaction(function () use ($tenant, $conversationId, $settings): void {
             $row = DB::table('conversations')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
-                ->where('id', $conversationId)->where('mode', 'manager')->whereNull('assigned_user_id')->first(['id']);
+                ->where('id', $conversationId)->where('mode', 'manager')->whereNull('assigned_user_id')->first(['id', 'channel_account_id']);
             if (! $row) {
                 return;
             }
             $assignment = is_array($settings['assignment'] ?? null) ? $settings['assignment'] : [];
             $scope = ['organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId];
             $rotation = DB::table('seller_assignment_rotation')->where($scope)->first(['id', 'last_user_id', 'created_at']);
-            $candidate = app(AssignmentCandidates::class)->select($tenant, $assignment, $rotation?->last_user_id);
+            $channel = $row->channel_account_id ? DB::table('channel_accounts')->where('id', $row->channel_account_id)->value('type') : null;
+            $timezone = DB::table('brands')->where('organization_id', $tenant->organizationId)->where('id', $tenant->brandId)->value('timezone');
+            $candidate = app(AssignmentCandidates::class)->select($tenant, $assignment, $rotation?->last_user_id, is_string($channel) ? $channel : null,
+                CarbonImmutable::now(), is_string($timezone) && $timezone !== '' ? $timezone : 'UTC');
             if ($candidate === null) {
                 return;
             }

@@ -69,6 +69,28 @@ final class AssignmentE606CTest extends TenancyTestCase
         $this->assertDatabaseHas('conversations', ['id' => $waiting, 'assigned_user_id' => null]);
     }
 
+    public function test_assign_waiting_honors_conversation_channel_and_member_hours(): void
+    {
+        [$owner, $org, $brand] = $this->cabinet();
+        $tenant = new TenantContext($org->id, $brand->id, source: 'job');
+        $service = app(BrandRuntimeSchedule::class);
+        $widget = (string) Str::ulid();
+        DB::table('channel_accounts')->insert(['id' => $widget, 'organization_id' => $org->id, 'brand_id' => $brand->id, 'type' => 'widget', 'created_at' => now(), 'updated_at' => now()]);
+        $outOfChannel = ['assignment' => ['method' => 'round_robin', 'members' => [['id' => $owner->id, 'enabled' => true, 'max_active' => null, 'channels' => ['telegram']]]]];
+        $conversation = (string) Str::ulid();
+        DB::table('conversations')->insert(['id' => $conversation, 'organization_id' => $org->id, 'brand_id' => $brand->id, 'mode' => 'manager', 'channel_account_id' => $widget, 'state' => '{}', 'created_at' => now(), 'updated_at' => now()]);
+        $service->assignWaiting($tenant, $conversation, $outOfChannel);
+        $this->assertDatabaseHas('conversations', ['id' => $conversation, 'assigned_user_id' => null]);
+        $matchingChannel = ['assignment' => ['method' => 'round_robin', 'members' => [['id' => $owner->id, 'enabled' => true, 'max_active' => null, 'channels' => ['widget']]]]];
+        $service->assignWaiting($tenant, $conversation, $matchingChannel);
+        $this->assertDatabaseHas('conversations', ['id' => $conversation, 'assigned_user_id' => $owner->id]);
+        $outOfHours = ['assignment' => ['method' => 'round_robin', 'members' => [['id' => $owner->id, 'enabled' => true, 'max_active' => null, 'hours' => ['start' => '00:00', 'end' => '00:01']]]]];
+        $second = (string) Str::ulid();
+        DB::table('conversations')->insert(['id' => $second, 'organization_id' => $org->id, 'brand_id' => $brand->id, 'mode' => 'manager', 'state' => '{}', 'created_at' => now(), 'updated_at' => now()]);
+        $service->assignWaiting($tenant, $second, $outOfHours);
+        $this->assertDatabaseHas('conversations', ['id' => $second, 'assigned_user_id' => null]);
+    }
+
     public function test_global_suggest_applies_to_existing_bot_without_sending(): void
     {
         [$owner, $org, $brand] = $this->cabinet();
