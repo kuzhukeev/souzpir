@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Seller\Dialogs;
 
-use App\Seller\Dialogs\NotifyDialogEvent;
+use App\Seller\Tasks\NotifyDialogEvent;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;

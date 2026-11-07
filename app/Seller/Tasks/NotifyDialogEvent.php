@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Seller\Dialogs;
+namespace App\Seller\Tasks;
 
 use App\Models\Membership;
 use App\Shell\Notifications\EventCatalog;

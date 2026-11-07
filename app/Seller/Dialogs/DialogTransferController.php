@@ -5,6 +5,7 @@ namespace App\Seller\Dialogs;
 use App\Models\Membership;
 use App\Models\User;
 use App\Seller\Settings\Limits\SellerModuleAccess;
+use App\Seller\Tasks\NotifyDialogEvent;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
 use App\Shell\Profile\ProfileAccess;
