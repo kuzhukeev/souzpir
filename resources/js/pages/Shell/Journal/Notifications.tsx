@@ -1,10 +1,12 @@
 import { Head, router } from '@inertiajs/react';
+import { AlertCircle } from 'lucide-react';
 import { useState } from 'react';
-import { Badge, Button, DataTable, Skeleton } from '@/components/ui';
+import { Badge, Button, DataTable, Drawer, Skeleton } from '@/components/ui';
 import CabinetLayout from '@/layouts/CabinetLayout';
 import { formatDate, type Filters, type Page } from '@/features/Shell/Journal/model';
 import { useJournalNavigation } from '@/features/Shell/Journal/navigation';
 import { FiltersForm, JournalHeader, Pages } from '@/features/Shell/Journal/shared';
+import JournalRowMenu from '@/features/Shell/Journal/JournalRowMenu';
 
 type Row = {
   id: string;
@@ -13,11 +15,12 @@ type Row = {
   status: 'pending' | 'sending' | 'sent' | 'failed' | 'uncertain';
   recipient: string | null;
   title: string;
+  attempts: number;
 };
 type Props = { rows: Page<Row>; filters: Filters };
 const channels = { cabinet: 'В кабинете', email: 'Email', telegram: 'Telegram' };
 const statuses = {
-  pending: 'В очереди',
+  pending: 'Отложено',
   sending: 'Отправляется',
   sent: 'Доставлено',
   failed: 'Ошибка',
@@ -27,6 +30,7 @@ export default function Notifications({ rows, filters }: Props) {
   const { loading, failed, retry: retryLoad } = useJournalNavigation();
   const [retrying, setRetrying] = useState<string | null>(null);
   const [notice, setNotice] = useState('');
+  const [selected, setSelected] = useState<Row | null>(null);
   const retry = (id: string) => {
     setNotice('');
     router.post(
@@ -92,10 +96,22 @@ export default function Notifications({ rows, filters }: Props) {
           </p>
         )}
         {failed && (
-          <div role="alert" className="mb-4 rounded-lg bg-(--color-surface-muted) p-4">
-            Не удалось загрузить данные.{' '}
-            <Button variant="ghost" size="sm" onClick={retryLoad}>
-              Попробовать снова
+          <div className="mb-4">
+            <h2 className="text-xl font-bold">Ошибка</h2>
+            <div
+              role="alert"
+              className="mt-4 flex gap-3 rounded-xl border border-(--color-danger) bg-(--color-danger-soft) p-4"
+            >
+              <AlertCircle aria-hidden className="size-6 shrink-0 text-(--color-danger-ink)" />
+              <div>
+                <p className="font-semibold text-(--color-danger-ink)">
+                  Не удалось загрузить историю уведомлений
+                </p>
+                <p className="mt-1 text-sm text-(--color-ink-muted)">Код: ERR_LOAD</p>
+              </div>
+            </div>
+            <Button className="mt-4" onClick={retryLoad}>
+              Повторить
             </Button>
           </div>
         )}
@@ -130,7 +146,7 @@ export default function Notifications({ rows, filters }: Props) {
                           ? 'success'
                           : row.status === 'failed'
                             ? 'danger'
-                            : row.status === 'uncertain'
+                            : row.status === 'uncertain' || row.status === 'pending'
                               ? 'warning'
                               : 'info'
                       }
@@ -142,22 +158,30 @@ export default function Notifications({ rows, filters }: Props) {
                 {
                   key: 'id',
                   label: 'Действие',
-                  render: (row) =>
-                    row.status === 'failed' && row.channel !== 'cabinet' ? (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        disabled={retrying !== null}
-                        loading={retrying === row.id}
-                        onClick={() => retry(row.id)}
-                      >
-                        {retrying === row.id ? 'Повторяем…' : 'Повторить'}
-                      </Button>
-                    ) : row.status === 'uncertain' ? (
-                      'Нужна проверка'
-                    ) : (
-                      '—'
-                    ),
+                  render: (row) => (
+                    <span className="flex items-center justify-end gap-2">
+                      {row.status === 'failed' && row.channel !== 'cabinet' ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={retrying !== null}
+                          loading={retrying === row.id}
+                          onClick={() => retry(row.id)}
+                        >
+                          {retrying === row.id ? 'Повторяем…' : 'Повторить'}
+                        </Button>
+                      ) : row.status === 'uncertain' ? (
+                        'Нужна проверка'
+                      ) : (
+                        '—'
+                      )}
+                      <JournalRowMenu
+                        url={null}
+                        detailsLabel="Детали уведомления"
+                        onDetails={() => setSelected(row)}
+                      />
+                    </span>
+                  ),
                 },
               ]}
             />
@@ -165,6 +189,36 @@ export default function Notifications({ rows, filters }: Props) {
           </>
         )}
       </section>
+      <Drawer open={selected !== null} title="Детали уведомления" onClose={() => setSelected(null)}>
+        {selected && (
+          <dl className="space-y-4">
+            <div>
+              <dt className="text-(--color-ink-muted)">Время</dt>
+              <dd>{formatDate(selected.created_at)}</dd>
+            </div>
+            <div>
+              <dt className="text-(--color-ink-muted)">Событие</dt>
+              <dd>{selected.title}</dd>
+            </div>
+            <div>
+              <dt className="text-(--color-ink-muted)">Получатель</dt>
+              <dd>{selected.recipient || '—'}</dd>
+            </div>
+            <div>
+              <dt className="text-(--color-ink-muted)">Канал</dt>
+              <dd>{channels[selected.channel]}</dd>
+            </div>
+            <div>
+              <dt className="text-(--color-ink-muted)">Статус</dt>
+              <dd>{statuses[selected.status]}</dd>
+            </div>
+            <div>
+              <dt className="text-(--color-ink-muted)">Попыток доставки</dt>
+              <dd>{selected.attempts}</dd>
+            </div>
+          </dl>
+        )}
+      </Drawer>
     </CabinetLayout>
   );
 }
