@@ -14,6 +14,15 @@ test('schema dialog shows published additional fields together with system field
  await mkdir('.local/screenshots/SP-E6-10E', { recursive: true });
  await page.screenshot({ path: '.local/screenshots/SP-E6-10E/fields-schema.png', fullPage: true });
 });
+test('D-5.1: v2 banner, drag handle and real option chips on scenario fields table', async ({ page }) => {
+ await page.goto(url);
+ await expect(page.getByText('Макет v2: редактирование станет доступно после доработки.')).toBeVisible();
+ const row = page.getByRole('row', { name: /Тип точки/ });
+ await expect(row.getByText('Павильон')).toBeVisible();
+ await expect(row.getByText('ТЦ')).toBeVisible();
+ const emptyListRow = page.getByRole('row', { name: /^Этаж точки/ });
+ await expect(emptyListRow.locator('td').nth(2)).toHaveText('—');
+});
 test('D-5.1: no critical/serious axe violations on 1440/1024/390', async ({ page }) => {
  test.setTimeout(90000);
  const findings: Record<number, { id: string; impact: string; nodes: unknown[] }[]> = {};
