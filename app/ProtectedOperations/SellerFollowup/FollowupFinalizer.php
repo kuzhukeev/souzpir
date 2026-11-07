@@ -11,6 +11,7 @@ use App\Seller\Engine\DeterministicGuard;
 use App\Seller\Engine\GuardDecision;
 use App\Seller\Engine\Policy;
 use App\Seller\Engine\ResponderResult;
+use App\Seller\Runtime\ServicePhraseSelector;
 use App\Seller\Settings\Greetings\GreetingResolver;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
@@ -59,6 +60,12 @@ final class FollowupFinalizer
         $state->setOutcome($policy->computeOutcome($state));
         $state->data['missing'] = $policy->computeMissing($state);
         $text = $result['text'];
+        if (in_array($goal->kind, ['unknown_fact', 'handoff'], true)) {
+            $override = app(ServicePhraseSelector::class)->customForEvent($knowledge->persona(), $goal->kind);
+            if ($override !== null) {
+                $text = $override;
+            }
+        }
         if ($tenant->source === 'public' && $mode === 'bot' && $claim->baseVersion === 0) {
             $visitorName = $conversation->contact_id ? DB::table('contacts')->where($scope)->where('id', $conversation->contact_id)->value('name') : null;
             $greeting = app(GreetingResolver::class)->resolve($tenant, 'widget', $page ?? 'home', is_string($visitorName) ? $visitorName : null);

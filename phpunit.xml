@@ -15,6 +15,7 @@
             <file>tests/Feature/ProtectedOperations/PendingSellerTurnsHttpTest.php</file>
             <file>tests/Feature/ProtectedOperations/PostgresIdempotencyTest.php</file>
             <file>tests/Feature/ProtectedOperations/SellerTurnFenceTest.php</file>
+            <file>tests/Feature/ProtectedOperations/ServicePhraseOverrideE601ETest.php</file>
             <file>tests/Feature/ProtectedOperations/SessionIdempotencyTest.php</file>
             <directory suffix="Test.php">tests/Feature/Runtime</directory>
             <directory suffix="Test.php">tests/Feature/SharedProps</directory>
