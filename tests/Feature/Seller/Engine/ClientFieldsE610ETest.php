@@ -88,5 +88,9 @@ final class ClientFieldsE610ETest extends TenancyTestCase
         $state = new LeadState;
         $state->setStage('qualify');
         self::assertSame('city', (new Policy($knowledge))->nextSlot($state));
+        $state->setStage('close_contact');
+        $goal = (new Policy($knowledge))->decide($state, ['client_intent' => 'ask_delivery']);
+        self::assertSame('city', $goal->slot);
+        self::assertStringContainsString('Филиал', $goal->instruction);
     }
 }

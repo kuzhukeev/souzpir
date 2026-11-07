@@ -203,6 +203,12 @@ class Policy
     public function decide(LeadState $s, array $x, bool $isFirstTurn = false): Goal
     {
         $goal = $this->decideBase($s, $x, $isFirstTurn);
+        foreach ($this->p['client_fields'] ?? [] as $field) {
+            if ($goal->slot !== null && $goal->slot === ($field['id'] ?? null) && is_string($field['name'] ?? null)) {
+                $goal->instruction .= "\nНазвание поля для вопроса: ".$field['name'].'.';
+                break;
+            }
+        }
         $intent = $x['client_intent'] ?? null;
         if (! is_string($intent) || ! in_array($goal->kind, ['intro_and_ask', 'answer_and_ask', 'ask_slot', 'handle_objection'], true)) {
             return $goal;
@@ -486,6 +492,10 @@ class Policy
     private function closeContactGoal(LeadState $s, array $x, string $intent, array $tools): Goal
     {
         $facts = $this->factsForIntent($intent);
+        if ($slot = $this->requiredClientSlot($s)) {
+            return new Goal('ask_slot', slot: $slot, facts: $facts, fewshotTags: [$this->tagForSlot($slot)], allowedTools: $tools,
+                instruction: 'При необходимости ответить на вопрос клиента и уточнить обязательное поле одним вопросом.');
+        }
         // 1) нет контакта → спросить почту, затем мессенджер
         if (! $s->has('email') && ! $s->wasAsked('email')) {
             return new Goal('close_contact', slot: 'email', facts: $facts, fewshotTags: array_filter([$this->tagForIntent($intent), 'ask_email']), allowedTools: $tools,
@@ -517,16 +527,8 @@ class Policy
 
     public function nextSlot(LeadState $s): ?string
     {
-        $stages = ['open', 'qualify', 'need', 'budget', 'close_contact', 'followup', 'handoff'];
-        $current = array_search($s->stage(), $stages, true);
-        foreach ($this->p['client_fields'] ?? [] as $field) {
-            $slot = $field['id'] ?? null;
-            $stage = $field['stage'] ?? null;
-            $requiredAt = $stage === null ? 0 : array_search($stage, $stages, true);
-            if (($field['required'] ?? false) && is_string($slot)
-                && $current !== false && $requiredAt !== false && $current >= $requiredAt && ! $s->has($slot) && ! $s->wasRefused($slot)) {
-                return $slot;
-            }
+        if ($slot = $this->requiredClientSlot($s)) {
+            return $slot;
         }
         $order = $this->p['slot_order'][$s->clientType()] ?? $this->p['slot_order']['unknown'];
         foreach ($order as $slot) {
@@ -559,6 +561,23 @@ class Policy
             }
 
             return $slot;
+        }
+
+        return null;
+    }
+
+    private function requiredClientSlot(LeadState $s): ?string
+    {
+        $stages = ['open', 'qualify', 'need', 'budget', 'close_contact', 'followup', 'handoff'];
+        $current = array_search($s->stage(), $stages, true);
+        foreach ($this->p['client_fields'] ?? [] as $field) {
+            $slot = $field['id'] ?? null;
+            $stage = $field['stage'] ?? null;
+            $requiredAt = $stage === null ? 0 : array_search($stage, $stages, true);
+            if (($field['required'] ?? false) && is_string($slot)
+                && $current !== false && $requiredAt !== false && $current >= $requiredAt && ! $s->has($slot) && ! $s->wasRefused($slot)) {
+                return $slot;
+            }
         }
 
         return null;
