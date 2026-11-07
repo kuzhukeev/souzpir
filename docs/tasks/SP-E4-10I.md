@@ -9,3 +9,8 @@
 - Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.
 
 Scope: `app/Seller/Sandbox/`, `app/ProtectedOperations/`, `resources/js/pages/Seller/Sandbox/`, `tests/Feature/Seller/Sandbox/`, `tests/Browser/E4-10I/`, `docs/results/SP-E4-10I.md`.
+
+## Конкретный остаток SP-E4-07C
+- D-4.11: сохранять и полностью воспроизводить все ходы многоходового контрольного сценария, а не только первое сообщение; проверить фактический путь из песочницы через хранение сценария, запуск, обработчик и показ результата в черновике и опубликованной версии. Не менять golden fixtures и не выполнять реальные внешние вызовы.
+
+Дополнительный scope для replay: `app/Seller/Scenarios/`, `app/Seller/Evaluation/`, `routes/features/E7-02.php`, `tests/Feature/Seller/Scenarios/`, `tests/Feature/Seller/Evaluation/`.
