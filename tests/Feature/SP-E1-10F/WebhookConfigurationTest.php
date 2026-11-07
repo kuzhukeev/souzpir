@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\SP_E1_10F;
 
+use App\Shell\Integrations\Webhooks\DeliverFakeWebhook;
+use App\Shell\Integrations\Webhooks\FakeWebhookTransport;
 use Illuminate\Foundation\Http\Events\RequestHandled;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -32,12 +34,16 @@ final class WebhookConfigurationTest extends TenancyTestCase
         $this->assertStringNotContainsString($url, json_encode($observed));
         $this->assertStringNotContainsString($secret, json_encode($observed));
         $this->post('/integrations/api/webhook-settings/'.$hook->id.'/test')->assertRedirect('/integrations/api');
-        $this->assertDatabaseHas('webhook_deliveries', ['webhook_id' => $hook->id, 'status' => 'simulated', 'attempts' => 0, 'status_code' => 200]);
+        $delivery = DB::table('webhook_deliveries')->where('webhook_id', $hook->id)->first();
+        $this->assertSame('pending', $delivery->status);
+        Queue::assertPushed(DeliverFakeWebhook::class, fn ($job) => $job->deliveryId === $delivery->id);
+        (new DeliverFakeWebhook($delivery->id))->handle(app(FakeWebhookTransport::class));
+        $this->assertDatabaseHas('webhook_deliveries', ['id' => $delivery->id, 'status' => 'simulated', 'attempts' => 1, 'status_code' => 200]);
         $this->post('/brand/switch', ['brand_id' => $second->id])->assertRedirect();
         $this->get('/integrations/api')->assertOk();
         $this->post('/integrations/api/webhook-settings/'.$hook->id.'/test')->assertNotFound();
         Http::assertNothingSent();
-        Queue::assertNothingPushed();
+        Queue::assertPushed(DeliverFakeWebhook::class, 1);
     }
 
     public function test_viewer_cannot_configure_or_test_and_bad_input_is_rejected(): void

@@ -8,9 +8,6 @@ use App\Shell\Audit\Contracts\AuditWriter;
 use App\Shell\Brands\BrandAccess;
 use App\Shell\Brands\Network\PublicHost;
 use App\Tenancy\TenantContext;
-use GuzzleHttp\Client;
-use GuzzleHttp\Handler\MockHandler;
-use GuzzleHttp\Psr7\Response;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
@@ -50,13 +47,14 @@ final class WebhookService
         return DB::table('webhooks')->where('organization_id', $ctx->organizationId)->where('brand_id', $ctx->brandId)
             ->orderBy('created_at')->get(['id', 'events'])->map(function ($row) use ($ctx): array {
                 $deliveries = DB::table('webhook_deliveries')->where('organization_id', $ctx->organizationId)->where('brand_id', $ctx->brandId)
-                    ->where('webhook_id', $row->id)->orderByDesc('created_at')->orderByDesc('id')->limit(10)->get(['id', 'event', 'status', 'status_code', 'created_at'])
+                    ->where('webhook_id', $row->id)->orderByDesc('created_at')->orderByDesc('id')->limit(10)->get(['id', 'event', 'status', 'status_code', 'attempts', 'created_at'])
                     ->map(static function ($delivery): array {
                         return [
                             'id' => $delivery->id,
                             'event' => isset(self::EVENTS[$delivery->event]) || $delivery->event === 'webhook.test' ? $delivery->event : 'unknown',
                             'status' => in_array($delivery->status, ['pending', 'sending', 'sent', 'failed', 'simulated'], true) ? $delivery->status : 'unknown',
                             'status_code' => $delivery->status_code,
+                            'attempts' => $delivery->attempts,
                             'created_at' => $delivery->created_at,
                         ];
                     })->all();
@@ -125,15 +123,13 @@ final class WebhookService
             $hook = DB::table('webhooks')->where('id', $id)->where('organization_id', $locked->organizationId)
                 ->where('brand_id', $brand->id)->first();
             abort_unless($hook, 404);
-            // Guzzle's in-memory handler exercises the HTTP request shape without a network socket.
-            $fake = new Client(['handler' => new MockHandler([new Response(200)])]);
-            $url = str_starts_with($hook->url, 'https://') ? $hook->url : Crypt::decryptString($hook->url);
-            $statusCode = $fake->post($url, ['json' => ['event' => 'webhook.test']])->getStatusCode();
+            $deliveryId = (string) Str::ulid();
             DB::table('webhook_deliveries')->insert([
-                'id' => (string) Str::ulid(), 'organization_id' => $locked->organizationId, 'brand_id' => $brand->id,
-                'webhook_id' => $id, 'event' => 'webhook.test', 'payload' => '{}', 'status' => 'simulated',
-                'attempts' => 0, 'status_code' => $statusCode, 'created_at' => now(), 'updated_at' => now(),
+                'id' => $deliveryId, 'organization_id' => $locked->organizationId, 'brand_id' => $brand->id,
+                'webhook_id' => $id, 'event' => 'webhook.test', 'payload' => json_encode(['event' => 'webhook.test'], JSON_THROW_ON_ERROR), 'status' => 'pending',
+                'attempts' => 0, 'created_at' => now(), 'updated_at' => now(),
             ]);
+            DeliverFakeWebhook::dispatch($deliveryId)->afterCommit();
         });
     }
 }

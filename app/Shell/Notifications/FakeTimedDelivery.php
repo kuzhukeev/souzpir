@@ -9,6 +9,7 @@ use App\Seller\Settings\Limits\SellerNotificationRouter;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Throwable;
 
 final class FakeTimedDelivery
 {
@@ -31,7 +32,7 @@ final class FakeTimedDelivery
         return $local->utc();
     }
 
-    public function drain(): void
+    public function drain(bool $retryFailed = false): void
     {
         if (config('runtime.notification_driver') !== 'fake') {
             return;
@@ -40,7 +41,8 @@ final class FakeTimedDelivery
             app(DigestService::class)->assemble();
             $this->transferSellerBatches();
         }
-        $deliveries = DB::table('notification_deliveries')->where('status', 'pending')->whereIn('channel', ['email', 'telegram'])->orderBy('created_at')->limit(500)->get();
+        $statuses = $retryFailed ? ['pending', 'failed'] : ['pending'];
+        $deliveries = DB::table('notification_deliveries')->whereIn('status', $statuses)->whereIn('channel', ['email', 'telegram'])->orderBy('created_at')->limit(500)->get();
         $groups = [];
         foreach ($deliveries as $delivery) {
             $member = Membership::withoutGlobalScopes()->where('organization_id', $delivery->organization_id)->where('user_id', $delivery->user_id)->where('status', 'active')->first();
@@ -79,8 +81,12 @@ final class FakeTimedDelivery
         }
         foreach ($groups as $group) {
             $delivery = $group['delivery'];
-            app(FakeTimingTransport::class)->send($delivery->organization_id, $delivery->brand_id, $delivery->user_id, $delivery->channel, $group['titles']);
-            DB::table('notification_deliveries')->whereIn('id', $group['ids'])->where('status', 'pending')->update(['status' => 'sent', 'sent_at' => now(), 'updated_at' => now()]);
+            try {
+                app(FakeTimingTransport::class)->send($delivery->organization_id, $delivery->brand_id, $delivery->user_id, $delivery->channel, $group['titles']);
+                DB::table('notification_deliveries')->whereIn('id', $group['ids'])->whereIn('status', $statuses)->update(['status' => 'sent', 'last_error' => null, 'sent_at' => now(), 'updated_at' => now()]);
+            } catch (Throwable) {
+                DB::table('notification_deliveries')->whereIn('id', $group['ids'])->whereIn('status', $statuses)->update(['status' => 'failed', 'last_error' => 'delivery_failed', 'updated_at' => now()]);
+            }
         }
     }
 

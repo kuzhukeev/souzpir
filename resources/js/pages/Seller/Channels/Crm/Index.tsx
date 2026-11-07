@@ -152,7 +152,6 @@ export default function Index({ canManage, webhooks, status }: { canManage: bool
                     <div className="mt-3 flex flex-wrap gap-2">
                       <button type="button" disabled={!!sending} onClick={() => sendTest(hook.id, false)} className="min-h-11 cursor-pointer rounded-lg border border-(--color-border) px-4 text-sm font-semibold text-(--color-link) disabled:cursor-not-allowed disabled:opacity-50">Отправить тестовое событие</button>
                     </div>
-                    <MappingForm hook={hook} />
                     {hook.deliveries.length === 0 ? (
                       <p className="mt-2">Записей в журнале пока нет.</p>
                     ) : (
@@ -171,8 +170,14 @@ export default function Index({ canManage, webhooks, status }: { canManage: bool
               )}
             </div>
           )}
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">{['amoCRM', 'Битрикс24'].map((name) => <div key={name} className="rounded-xl border border-(--color-border) p-4"><h3 className="font-semibold">{name}</h3><p className="mt-1 text-sm text-(--color-ink-muted)">Скоро</p></div>)}</div>
         </section>
+        <div className="mt-5 grid items-start gap-5 lg:grid-cols-2">
+          <section className="rounded-2xl border border-(--color-border) bg-(--color-surface) p-6 shadow-(--shadow-card)" aria-labelledby="crm-mappings">
+            <h2 id="crm-mappings" className="text-xl font-bold">Сопоставление полей</h2>
+            {!canManage ? <p className="mt-3 text-sm text-(--color-ink-muted)">Настройки доступны администратору.</p> : webhooks.length === 0 ? <p className="mt-3 text-sm text-(--color-ink-muted)">Сначала настройте вебхук CRM.</p> : webhooks.map((hook, index) => <div key={hook.id}><p className="mt-4 text-sm font-semibold">Вебхук {index + 1}</p><MappingForm hook={hook} /></div>)}
+          </section>
+          <section className="grid gap-3" aria-label="Подключения CRM">{['amoCRM', 'Битрикс24'].map((name) => <div key={name} className="rounded-2xl border border-(--color-border) bg-(--color-surface) p-6 shadow-(--shadow-card)"><h2 className="font-semibold">{name}</h2><p className="mt-1 text-sm text-(--color-ink-muted)">Скоро</p></div>)}</section>
+        </div>
       </div>
     </CabinetLayout>
   );

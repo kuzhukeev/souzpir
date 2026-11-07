@@ -50,7 +50,7 @@ final class DrainNotifications extends Command
             }
         }
         if (config('runtime.notification_driver') === 'fake') {
-            app(FakeTimedDelivery::class)->drain();
+            app(FakeTimedDelivery::class)->drain((bool) $this->option('retry-failed'));
         } elseif (config('features.E0-04.defaults.external_delivery')) {
             try {
                 $statuses = $this->option('retry-failed') ? ['pending', 'failed'] : ['pending'];

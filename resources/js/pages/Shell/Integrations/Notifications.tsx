@@ -1,11 +1,11 @@
 import { useState, type FormEvent } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import { ArrowLeft, Mail, Send } from 'lucide-react';
-import { Button, Input } from '@/components/ui';
+import { Button, Modal } from '@/components/ui';
 import { Page, panel, focus } from '@/features/Shell/Organizations/Shared';
 
 type Matrix = Record<string, Record<string, boolean>>;
-type Props = { telegram_configured: boolean; telegram_mask: string | null; report_emails: string[]; matrix: Matrix };
+type Props = { telegram_configured: boolean; telegram_mask: string | null; report_emails: string[]; matrix: Matrix; telegram_link?: { code: string | null; pending: boolean; bot: string | null } };
 const events = [
   { key: 'handoff', label: 'Диалог ждёт менеджера' },
   { key: 'unknown_question', label: 'Неизвестный вопрос' },
@@ -18,8 +18,9 @@ const channels = [
   { key: 'telegram', label: 'Telegram' },
 ];
 
-export default function Notifications({ telegram_configured, telegram_mask, report_emails, matrix: initialMatrix = {} }: Props) {
-  const [chat, setChat] = useState('');
+export default function Notifications({ telegram_configured, telegram_mask, report_emails, matrix: initialMatrix = {}, telegram_link }: Props) {
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [linkBusy, setLinkBusy] = useState(false);
   const [emails, setEmails] = useState(report_emails);
   const [emailInput, setEmailInput] = useState('');
   const [matrix, setMatrix] = useState(initialMatrix);
@@ -34,13 +35,13 @@ export default function Notifications({ telegram_configured, telegram_mask, repo
     setError('');
     setNotice('');
     router.put('/integrations/notifications', {
-      telegram_chat: chat,
+      telegram_chat: null,
       report_emails: emails,
       matrix,
     }, {
       onStart: () => setSaving(true),
       onFinish: () => setSaving(false),
-      onSuccess: () => { setChat(''); setNotice('Настройки сохранены. Внешняя доставка выключена.'); },
+      onSuccess: () => setNotice('Настройки сохранены. Внешняя доставка выключена.'),
       onError: (errors) => setError(Object.values(errors)[0] ?? 'Не удалось сохранить настройки.'),
       onNetworkError: () => { setError('Не удалось связаться с сервером. Попробуйте ещё раз.'); return false; },
       onHttpException: () => { setError('Не удалось сохранить настройки. Попробуйте ещё раз.'); return false; },
@@ -88,8 +89,8 @@ export default function Notifications({ telegram_configured, telegram_mask, repo
             <section className={panel}>
               <h2 className="flex items-center gap-2 text-xl font-bold"><Send size={22} aria-hidden="true" /> Telegram</h2>
               <p className="mt-2 text-sm text-(--color-ink-muted)">{telegram_configured ? `Чат настроен${telegram_mask ? `: ${telegram_mask}` : ''}` : 'Чат не настроен'}</p>
-              <div className="mt-5"><Input label="ID чата Telegram" value={chat} onChange={(event) => setChat(event.target.value)} hint="Оставьте пустым, чтобы сохранить текущий чат." /></div>
-              <p className="mt-2 text-sm text-(--color-ink-muted)">Подключение чата по коду станет доступно после приёма подтверждения от Telegram-бота. Сейчас можно сохранить известный ID чата; отправка выключена.</p>
+              <p className="mt-3 text-sm text-(--color-ink-muted)">Подключите Telegram с помощью одноразового кода.</p>
+              <Button className="mt-4" type="button" variant="secondary" onClick={() => setLinkOpen(true)}>Подключить Telegram</Button>{' '}
               <Button className="mt-4" type="button" variant="secondary" disabled={!telegram_configured || saving} loading={testing === 'telegram'} onClick={() => test('telegram')}>Проверить без отправки</Button>
             </section>
             <section className={panel}>
@@ -109,6 +110,19 @@ export default function Notifications({ telegram_configured, telegram_mask, repo
           </section>
           <div className="mt-5 flex justify-end"><Button type="submit" loading={saving}>Сохранить</Button></div>
         </form>
+        <Modal open={linkOpen} title="Подключение Telegram" onClose={() => setLinkOpen(false)}>
+          <p>1. Получите одноразовый код. 2. Отправьте боту команду с кодом. 3. Проверьте и подтвердите подключение.</p>
+          {error && <p role="alert" className="mt-3 text-(--color-danger-ink)">{error}</p>}
+          {telegram_link?.code ? <>
+            <p className="mt-4">Откройте бота @{telegram_link.bot} и отправьте ему команду:</p>
+            <p className="mt-2 text-lg font-semibold">/start {telegram_link.code}</p>
+            <p className="mt-2">Код действует 10 минут. {telegram_link.pending ? 'Ответ бота получен.' : 'Ожидаем ответ бота.'}</p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button type="button" variant="secondary" onClick={() => router.reload({ only: ['telegram_link'] })}>Проверить подключение</Button>
+              <Button type="button" disabled={!telegram_link.pending || linkBusy} loading={linkBusy} onClick={() => router.post('/integrations/notifications/telegram/confirm', {}, { onStart: () => setLinkBusy(true), onFinish: () => setLinkBusy(false), onSuccess: () => { setLinkOpen(false); setNotice('Telegram подключён.'); }, onError: (errors) => setError(Object.values(errors)[0] ?? 'Не удалось подтвердить подключение.') })}>Подтвердить</Button>
+            </div>
+          </> : <Button className="mt-4" type="button" loading={linkBusy} onClick={() => router.post('/integrations/notifications/telegram/start', {}, { onStart: () => setLinkBusy(true), onFinish: () => setLinkBusy(false), onError: (errors) => setError(Object.values(errors)[0] ?? 'Не удалось получить код.') })}>Получить код</Button>}
+        </Modal>
       </Page>
     </>
   );
