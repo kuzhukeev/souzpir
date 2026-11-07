@@ -109,6 +109,10 @@ final class FactsController
                     'selected' => in_array($row->group_key, array_slice($intent['facts'], 0, 3), true) && (! array_key_exists($row->group_key, $intent['fact_overrides'] ?? []) || in_array($row->logical_id, $intent['fact_overrides'][$row->group_key], true))])->values()->all();
             $conditionLabels = [
                 'min_order_rub' => 'Минимальный заказ',
+                'min_order_quantity' => 'Минимальное количество',
+                'prepayment_pct' => 'Предоплата, %',
+                'availability' => 'Условия наличия',
+                'other_conditions' => 'Дополнительные условия',
                 'offseason_min_order_rub' => 'Минимальный заказ вне сезона',
                 'reserve_days' => 'Срок резерва',
                 'new_client_bonus_pct' => 'Бонус новому клиенту',
