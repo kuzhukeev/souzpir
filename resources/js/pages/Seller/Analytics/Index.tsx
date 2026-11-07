@@ -59,6 +59,12 @@ type Analytics = {
   subscription?: {day:string; recipients:string[]} | null;
   avgMinutesToContact?: number | null;
 };
+function formatMinutesToContact(value: number | null | undefined) {
+  if (value == null) return 'Нет данных';
+  const minutes = Math.floor(value);
+  const seconds = Math.round((value - minutes) * 60);
+  return `${minutes} мин ${seconds} сек`;
+}
 const labels: Record<string, string> = {
   unknown: 'Не определён',
   newbie: 'Начинающий',
@@ -462,6 +468,16 @@ export default function Index({ analytics: a }: { analytics: Analytics }) {
               <p className="mt-2 text-sm text-(--color-ink-muted)">Учитываются образцы с подтверждённым автором и датой. Старые импорты и предложения без указанного типа не учитываются; при фильтре канала или источника показатель недоступен.</p>
             </section>
           )}
+        </div>
+        <div hidden={tab !== 'dialogs'}>
+          <section className={`${card} mt-5`} aria-label="Среднее время до контакта">
+            <h2 className="text-xl font-bold">Среднее время до контакта</h2>
+            <p className="mt-2 text-2xl font-bold">{formatMinutesToContact(a.avgMinutesToContact)}</p>
+            <p className="mt-2 text-sm text-(--color-ink-muted)">
+              От начала диалога до получения почты или мессенджера клиента; для диалогов без
+              сохранённого контакта не считается.
+            </p>
+          </section>
         </div>
         <Details data={a} activeTab={tab} />
       </main>

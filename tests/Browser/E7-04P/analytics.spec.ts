@@ -8,6 +8,7 @@ test.afterAll(async()=>{await server?.close();});
 test('среднее время до контакта на вкладке Диалоги (D-8.2)',async({page})=>{
  await page.goto(url);
  await page.getByRole('button',{name:'Диалоги',exact:true}).click();
- await expect(page.getByText('Среднее время до контакта: 6 мин 20 сек.')).toBeVisible();
+ await expect(page.getByRole('heading',{name:'Среднее время до контакта'})).toBeVisible();
+ await expect(page.getByText('6 мин 20 сек')).toBeVisible();
  await page.screenshot({path:'.local/screenshots/SP-E7-04P/dialogs.png'});
 });

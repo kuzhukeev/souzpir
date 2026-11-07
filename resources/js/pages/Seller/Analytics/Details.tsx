@@ -37,13 +37,7 @@ type Props = {
   canManage?: boolean;
   subscription?: {day:string; recipients:string[]} | null;
   managers?: { name: string; assigned: number; taken: number; closed: number }[];
-  avgMinutesToContact?: number | null;
 };
-function formatMinutesToContact(value: number): string {
-  const minutes = Math.floor(value);
-  const seconds = Math.round((value - minutes) * 60);
-  return `${minutes} мин ${seconds} сек`;
-}
 const card = 'mt-5 rounded-xl border border-(--color-border) bg-(--color-surface) p-5';
 const names: Record<string, string> = {
   unknown: 'Неизвестен',
@@ -125,11 +119,7 @@ export default function Details({ data: a, activeTab }: { data: Props; activeTab
             ? `${Math.round((a.botCompleted / a.total) * 100)}%`
             : 'Нет данных'}{' '}
           (завершённые с ответом бота, без передачи и сообщений менеджера). Среднее время до
-          контакта:{' '}
-          {a.avgMinutesToContact != null
-            ? formatMinutesToContact(a.avgMinutesToContact)
-            : 'нет данных'}
-          .
+          контакта: нет данных — момент получения контакта не сохраняется.
         </p>
         <p className="mt-2 text-sm text-(--color-ink-muted)">
           Показаны диалоги, созданные за выбранный период, и все сохранённые сообщения этих
