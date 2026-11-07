@@ -12,7 +12,7 @@ test('установка, внешний вид и поведение досту
   if(tab==='install'){
    await page.getByText('WordPress',{exact:true}).click();await expect(page.getByText('В настройках темы или плагина',{exact:false})).toBeVisible();
    await page.getByLabel('Использовать домен бренда: https://example.test').check();await expect(page.getByLabel('Адреса сайтов')).toHaveValue('https://example.test');
-   await expect(page.getByRole('button',{name:'Проверить снова'})).toBeVisible();
+   await expect(page.getByRole('button',{name:'Проверить установку'})).toBeVisible();
   }
   if(tab==='look'){
    await page.getByLabel('Отступ сбоку, px').fill('12');await page.getByLabel('Форма').selectOption('round');await page.getByRole('button',{name:'Мобильный'}).click();
