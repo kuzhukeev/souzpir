@@ -633,3 +633,4 @@
 - SP-E6-06E (08.11): правило распределения по UTM-источнику сайта — после SP-E7-04M, если источник ляжет в данные диалога.
 - SP-E6-08F (08.11): удаление позиции каталога и «Отправить себе» идут через `POST /seller/integrations/catalog/price-file` с полем `action` (без отдельных маршрутов — routes вне scope).
 - SP-E1-10K (08.11): на слотах исполнителей тесты с `IsolatedDatabaseMigrations` падают «A dedicated, nonprivileged test database owner is required» — нет отдельной роли БД в слоте; проверяет только CI.
+- SP-E6-10E (08.11): `Policy::nextSlot` для неоптовых брендов сначала перебирает `slot_order` с оптовыми слотами — лишние вопросы до `wasAsked()`.
