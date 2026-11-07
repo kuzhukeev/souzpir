@@ -13,6 +13,8 @@
 Scope: `app/Seller/Channels/Api/`, `app/Seller/Runtime/`, `app/ProtectedOperations/`, `app/Ai/Protected/`, `app/Ai/Gateway.php`, `app/Tenancy/TokenApi/`, `resources/js/pages/Seller/Channels/Api/`, `routes/features/E5-03.php`, `tests/Feature/Seller/Channels/Api/`, `tests/Feature/ProtectedOperations/`, `tests/Feature/SellerRuntime/Turns/`, `tests/Feature/Ai/`, `tests/Browser/E5-03F/`, `docs/results/SP-E5-03F.md`.
 
 ## Остаток после частичной приёмки
-- Заменить фиксированный ответ simulation job `FollowupCoordinator::runJob` защищёнными extractor/responder/guard и Gateway; адаптировать связанные тесты `tests/Feature/Seller/Evaluation/` после точечного расширения scope интегратором.
+- Заменить фиксированный ответ simulation job `FollowupCoordinator::runJob` защищёнными extractor/responder/guard и Gateway; адаптировать связанные тесты `tests/Feature/Seller/Evaluation/` в разрешённом scope.
 - Реализовать защищённые инструменты, повторную генерацию и модельный guard последующих ходов (сейчас безопасный 503).
 - Добавить явный повтор после ошибки fake Gateway; сохранить идемпотентность завершённого запроса.
+
+Дополнение scope: `tests/Feature/Seller/Evaluation/` для изменяемого simulation job.
