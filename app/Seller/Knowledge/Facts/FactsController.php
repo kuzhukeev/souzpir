@@ -93,7 +93,7 @@ final class FactsController
             $history = DB::table('audit_logs as a')->leftJoin('users as u', 'u.id', '=', 'a.actor_id')
                 ->where('a.organization_id', $tenant->organizationId)->where('a.brand_id', $tenant->brandId)
                 ->where('a.subject_type', 'knowledge_fact')->where('a.subject_id', $row->logical_id)
-                ->orderByDesc('a.created_at')->limit(50)->get(['a.action', 'a.created_at', 'a.before', 'a.after', 'u.name as author'])
+                ->orderByDesc('a.created_at')->orderByDesc('a.id')->limit(50)->get(['a.action', 'a.created_at', 'a.before', 'a.after', 'u.name as author'])
                 ->map(function ($change) {
                     $before = json_decode($change->before ?? '{}', true);
                     $after = json_decode($change->after ?? '{}', true);

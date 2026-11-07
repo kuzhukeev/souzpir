@@ -6,6 +6,8 @@
 - Снимки: `.local/screenshots/SP-E1-01I/login.png` ↔ `completed/1/f038e642-S-0.1-states-eyon.png`; `register.png` ↔ `completed/2/f00690a4-S-0.2-register-eyon.png`.
 - `success.png` ↔ `completed/5/34cd7c95-S-0.4b-states-eyon.png`; `invitation.png` ↔ `completed/6/897c220f-S-0.5-states-eyon.png`.
 
+- Исправление CI: история фактов стабильно сортируется по времени и идентификатору, как в ee1c83ca. PHPUnit FactCardE402DTest: 2 теста, 88 утверждений.
+
 ## Техдолг
 - Нет.
 
