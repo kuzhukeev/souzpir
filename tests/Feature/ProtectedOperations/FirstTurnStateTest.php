@@ -40,6 +40,7 @@ use App\Seller\Engine\Policy;
 use App\Seller\Knowledge\Contracts\KnowledgeRepository;
 use App\Seller\Knowledge\Import\YamlKnowledgeImporter;
 use App\Seller\Knowledge\KnowledgeSnapshot;
+use App\Seller\Tasks\NotifyDialogEvent;
 use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Auth\SessionBrandSelection;
 use App\Tenancy\TenantContext;
@@ -4958,6 +4959,46 @@ SQL);
             self::assertSame(1, DB::table('seller_tasks')->where('type', 'price_send_failed')->count());
         });
         Http::assertNothingSent();
+    }
+
+    /** SP-E6-04G: the escalate tool call hands the dialog to a human through the full protected first turn. */
+    public function test_coordinator_escalates_through_fake_notification_sp_e6_04g(): void
+    {
+        [$tenant, $http, $command] = $this->protectedClaimFixture(false, 'Хочу живого человека');
+        $selection = app(AuthSessionRegistry::class)->withinActive($http, fn () => app(SessionBrandSelection::class)->current($http));
+        $http->attributes->set('tenant.brand_revision', (string) $selection->brand_revision);
+        $fake = new CoordinatorScriptedFakeDriver([
+            ['content' => '{"client_intent":"want_human"}'],
+            ['content' => null, 'toolCalls' => [['id' => 'escalate-tool', 'name' => 'escalate', 'arguments' => ['reason' => 'want_human', 'summary' => 'Клиент просит человека']]]],
+            ['content' => 'Передаю менеджеру, он напишет вам.'],
+        ]);
+        app()->instance(FakeDriver::class, $fake);
+        $this->within($tenant, function () use ($http, $command): void {
+            $http->request->set('text', $command->text);
+            $first = app(FirstTurnCoordinator::class)->run($http, $command);
+            self::assertSame('completed', $first['status']);
+            self::assertSame($first, app(FirstTurnCoordinator::class)->run($http, $command));
+            self::assertSame('Передаю менеджеру, он напишет вам.', DB::table('messages')->where('id', $first['result']['message_id'])->value('text'));
+            $conversation = DB::table('conversations')->where('id', $command->conversationId)->first();
+            self::assertSame('manager', $conversation->mode);
+            self::assertSame('handoff', $conversation->stage);
+            self::assertNotNull($conversation->handed_off_at);
+            $task = DB::table('seller_tasks')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
+                ->where('conversation_id', $command->conversationId)->where('type', 'handoff')->first();
+            self::assertNotNull($task);
+            self::assertSame('urgent', $task->priority);
+            $payload = json_decode($task->payload, true, 512, JSON_THROW_ON_ERROR);
+            self::assertSame('want_human', $payload['reason']);
+            Queue::assertPushed(NotifyDialogEvent::class, fn (NotifyDialogEvent $job): bool => $job->organizationId === $tenant->organizationId
+                && $job->brandId === $tenant->brandId && $job->conversationId === $command->conversationId
+                && $job->eventKey === 'seller.conversation.handed_off' && $job->data['task_id'] === $task->id);
+            // Re-running the already-finished turn must not duplicate the task or the notification.
+            app(FirstTurnCoordinator::class)->run($http, $command);
+            self::assertSame(1, DB::table('seller_tasks')->where('type', 'handoff')->count());
+            Queue::assertPushed(NotifyDialogEvent::class, 1);
+        });
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
     }
 
     public function test_coordinator_blocks_tools_and_does_not_retry_unknown_ai(): void
