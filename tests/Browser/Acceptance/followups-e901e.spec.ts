@@ -106,15 +106,21 @@ test('followup settings and new widget dialogue through the UI', async ({ page, 
   await expect(reminders.getByLabel('Первый интервал, часов')).toHaveValue('20');
   await auditPage(page, 'followup-policy');
   await page.setViewportSize({ width: 1440, height: 900 });
+  // Настройки виджета разнесены по вкладкам (SP-E5-02D): «Установка» и «Поведение» сохраняются по отдельности.
   await page.goto(`${origin}/seller/channels/widget`);
   await page.getByLabel('Адреса сайтов').fill(origin);
   await page.getByLabel('Включить виджет на разрешённых сайтах').check();
-  await page.getByLabel('Через секунд').fill('1');
-  await page.getByLabel('Запрашивать контакт с согласием').check();
-  await page.getByLabel('HTTPS-ссылка на политику обработки данных').fill('https://example.test/privacy');
   const code = await page.locator('pre code').innerText();
   const key = new URL(code.match(/src="([^"]+)"/)![1]).searchParams.get('key');
   expect(key).toMatch(/^[A-Za-z0-9]{64}$/);
+  await page.getByRole('button', { name: 'Сохранить настройки' }).click();
+  await expect(page.getByRole('status')).toContainText('Настройки виджета сохранены');
+  await page.goto(`${origin}/seller/channels/widget/behavior`);
+  await page.getByLabel('Через секунд').fill('1');
+  await page.getByText('Мягко', { exact: true }).click();
+  await expect(page.getByRole('radio', { name: 'Мягко' })).toBeChecked();
+  await page.getByLabel('Текст согласия').fill('Согласен на обработку данных');
+  await page.getByLabel('HTTPS-ссылка на политику').fill('https://example.test/privacy');
   await page.getByRole('button', { name: 'Сохранить настройки' }).click();
   await expect(page.getByRole('status')).toContainText('Настройки виджета сохранены');
   const visitorContext = await browser.newContext();
