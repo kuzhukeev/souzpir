@@ -568,6 +568,27 @@ declare module 'ziggy-js' {
         }
     ],
     "seller.dialogs.pending": [],
+    "seller.dialogs.pending.suggestions": [],
+    "seller.dialogs.suggestions.skip": [
+        {
+            "name": "dialog",
+            "required": true
+        },
+        {
+            "name": "turn",
+            "required": true
+        }
+    ],
+    "seller.dialogs.suggestions.mark": [
+        {
+            "name": "dialog",
+            "required": true
+        },
+        {
+            "name": "turn",
+            "required": true
+        }
+    ],
     "seller.dialogs.show": [
         {
             "name": "dialog",
