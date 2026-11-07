@@ -567,3 +567,7 @@
 - SP-E3-10C: стадии judge и responder прототипа не версионируются по бренду (только summary/extractor/guard/simulator); judge.blade.php v1/v2 не подключён к Judge::request().
 
 - SP-L1-07: страница приглашения показывает роль «Администратора» вместо «Владельца» для приглашения из org:create (в БД роль admin + флаг designated_owner).
+
+- SP-E6-07D: ai_budgets (limit/spent_micros) и тарифные PlanLimits (ai.units_month) — разные механизмы; страница «Лимиты» показывает оба, передачу менеджеру делает только тарифный.
+
+- SP-L1-01: reservation_micros/reservation_request_limits — технический потолок резерва, перед живым запуском сверить с прайсом OpenRouter; глобальный дневной/месячный учёт без блокировок между параллельными резервами; 80 % для global_daily/global_monthly без DomainEvent.
