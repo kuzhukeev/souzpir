@@ -23770,6 +23770,36 @@
       "wave": 20,
       "promptPath": "docs/tasks/SP-E9-01D.md",
       "description": "# SP-E9-01D · Завершение сквозной приёмки\n\n**Зачем:** конкретный остаток сквозной приёмки по ТЗ.\n**Часть чего:** частичная сдача SP-E9-01C, docs/results/SP-E9-01C.md.\n**Зависимости:** SP-E9-01C; сценарии, ожидающие реализации соответствующей функции, выполнять после её готовности.\n\n## Приёмка\n- Сценарий 3: Telegram fake → входящее сообщение → ответ бота → перехват менеджером → возврат боту.\n- Сценарий 4: факты → песочница → публикация → откат.\n- Сценарий 5: причины передачи → диалог → задача → уведомление.\n- Сценарий 6: time travel → два напоминания → остановка.\n- Сценарий 7: после реализации переписки проверить сообщения виджета и их связь с диалогом и клиентом.\n- Сценарий 8: после реализации переключения со списка проверить смену бренда непосредственно из диалогов и очистку кэша и состояния других вкладок.\n- Сверить предусмотренные ТЗ 20 экранов на 1440/1024/390 и выполнить axe на остальных E2E-экранах; настроить отдельный опциональный запуск существующего теста E9-01C в CI.\n- Изолированная тестовая БД и fake-драйверы; живые вызовы не включать. Указать фактический остаток, не выдавать fake за живую интеграцию.\n\nScope: `tests/Browser/Acceptance/`, `tests/visual/`, `docs/validation/`, `.github/workflows/`, `docs/results/SP-E9-01D.md`.\n"
+    },
+    {
+      "taskKey": "SP-E4-03F",
+      "title": "SP-E4-03F · Условия и выбор подстановок",
+      "goal": "Закрыть конкретный остаток D-4.5 после SP-E4-03E.",
+      "dependsOn": [
+        "SP-E4-03E"
+      ],
+      "scope": [
+        "app/Seller/Knowledge/Facts/FactsController.php",
+        "resources/js/pages/Seller/Knowledge/Conditions/",
+        "tests/Feature/Seller/Knowledge/Facts/",
+        "tests/Browser/E4-03F/",
+        "docs/results/SP-E4-03F.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "D-4.5: добавить min_order_quantity, prepayment_pct, availability и other_conditions в выбор подстановок редактора факта; проверить выбор, сохранение, подстановку и показ связанного факта.",
+        "D-4.5: добавить отсутствующие пиктограммы и контекстные меню карточек по макету с доступностью клавиатуры."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E4-03E.md"
+      ],
+      "screenIds": [
+        "D-4.5"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E4-03F.md",
+      "description": "# SP-E4-03F · Условия и выбор подстановок\n\n**Зачем:** конкретные незакрытые пункты экрана D-4.5 по ТЗ.\n**Часть чего:** остаток SP-E4-03E, docs/results/SP-E4-03E.md.\n**Зависимости:** SP-E4-03E.\n\n## Приёмка\n- D-4.5: добавить min_order_quantity, prepayment_pct, availability и other_conditions в выбор подстановок редактора факта; проверить выбор, сохранение, подстановку и показ связанного факта.\n- D-4.5: добавить отсутствующие пиктограммы и контекстные меню карточек по макету с доступностью клавиатуры.\n- Проверить права, изоляцию брендов, ошибки и макет; использовать изолированные тестовые данные.\n\nScope: `app/Seller/Knowledge/Facts/FactsController.php`, `resources/js/pages/Seller/Knowledge/Conditions/`, `tests/Feature/Seller/Knowledge/Facts/`, `tests/Browser/E4-03F/`, `docs/results/SP-E4-03F.md`.\n"
     }
   ],
   "excludedSourceTasks": {
