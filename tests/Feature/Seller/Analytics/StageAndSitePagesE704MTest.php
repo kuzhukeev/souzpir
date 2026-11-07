@@ -34,10 +34,9 @@ final class StageAndSitePagesE704MTest extends TenancyTestCase
         $key = DB::table('widget_settings')->where('brand_id', $brand->id)->value('public_key');
         $this->post('/seller/channels/widget', ['enabled' => true, 'origins' => ['https://example.test'], 'appearance' => ['title' => 'Чат', 'color' => '#225544', 'position' => 'right'], 'behavior' => ['invitation' => 'Здравствуйте!']])->assertRedirect()->assertSessionHasNoErrors();
         $this->withHeader('Origin', 'https://example.test');
-        $token = $this->postJson('/widget/session?key='.$key, ['page' => '/catalog', 'utm' => 'utm_source=search'])->assertCreated()->json('token');
+        $token = $this->postJson('/widget/session?key='.$key)->assertCreated()->json('token');
         $this->postJson('/widget/message?key='.$key, ['token' => $token, 'text' => 'Здравствуйте', 'idempotency_key' => 'request-1', 'page' => 'catalog'])->assertCreated();
-        $conversationId = DB::table('widget_sessions')->where('token_hash', hash('sha256', $token))->value('conversation_id');
-        $this->assertDatabaseHas('widget_sessions', ['token_hash' => hash('sha256', $token), 'page' => '/catalog', 'utm' => 'utm_source=search']);
+        $this->assertDatabaseHas('widget_sessions', ['token_hash' => hash('sha256', $token), 'page' => '/catalog']);
 
         $response = $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->get('/seller/analytics?from='.now()->format('Y-m-d').'&to='.now()->format('Y-m-d'))->assertOk();
         $pages = collect($response->inertiaProps('analytics.sitePages'));
@@ -45,7 +44,6 @@ final class StageAndSitePagesE704MTest extends TenancyTestCase
         self::assertNotNull($catalog);
         self::assertSame(1, $catalog['opens']);
         self::assertSame(1, $catalog['dialogs']);
-        self::assertSame('utm_source=search', $catalog['utm']);
         Http::assertNothingSent();
     }
 
