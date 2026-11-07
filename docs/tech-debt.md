@@ -571,3 +571,5 @@
 - SP-E6-07D: ai_budgets (limit/spent_micros) и тарифные PlanLimits (ai.units_month) — разные механизмы; страница «Лимиты» показывает оба, передачу менеджеру делает только тарифный.
 
 - SP-L1-01: reservation_micros/reservation_request_limits — технический потолок резерва, перед живым запуском сверить с прайсом OpenRouter; глобальный дневной/месячный учёт без блокировок между параллельными резервами; 80 % для global_daily/global_monthly без DomainEvent.
+
+- SP-E1-04I: retention_review_at считается от updated_at строки модуля, отдельной исторической даты отключения нет (унаследовано из SP-E1-04G).
