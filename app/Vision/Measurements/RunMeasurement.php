@@ -4,6 +4,7 @@ namespace App\Vision\Measurements;
 
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
+use App\Vision\Core\EvidenceStore;
 use App\Vision\Core\MeasurementRunner;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -29,7 +30,10 @@ final class RunMeasurement implements ShouldQueue
                 ->orderBy('question_n')->orderBy('provider')->orderBy('run_no')->pluck('id');
             foreach ($answers as $id) {
                 try {
-                    app(MeasurementRunner::class)->measure($id);
+                    $status = app(MeasurementRunner::class)->measure($id);
+                    if ($status === 'ok' && config('runtime.ai_driver', 'fake') !== 'fake' && config('eyon.live_measurements_enabled', false)) {
+                        app(EvidenceStore::class)->evaluate($id);
+                    }
                 } catch (\LogicException) {
                     // The runner records the uncertain or failed slot; continue with remaining slots.
                 }
