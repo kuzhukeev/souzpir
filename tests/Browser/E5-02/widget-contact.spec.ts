@@ -87,3 +87,30 @@ test('weekday settings use Monday zero and overnight shift remains open', async 
   await page.clock.fastForward(1500);
   await expect(host.getByText('Добрый вечер')).toBeVisible();
 });
+
+test('message limit from settings blocks sending at the boundary', async ({ page }) => {
+  const token = 'm'.repeat(64);
+  let messages = 0;
+  await page.route('http://site.test/**', route => route.fulfill({ status: 200, contentType: 'text/html', body: `<html><body><script src="https://widget.example/widget.js?key=${key}"></script></body></html>` }));
+  await page.route('https://widget.example/**', route => {
+    const url = new URL(route.request().url());
+    if (url.pathname === '/widget.js') return route.fulfill({ status: 200, contentType: 'application/javascript; charset=utf-8', body: source });
+    if (url.pathname === '/widget/config') return route.fulfill({ status: 200, headers: { 'Access-Control-Allow-Origin': '*' }, contentType: 'application/json', body: JSON.stringify({ appearance: { title: 'Напишите нам', color: '#245c41', position: 'right' }, behavior: { max_messages: 2 } }) });
+    if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS' } });
+    if (url.pathname === '/widget/session') return route.fulfill({ status: 201, headers: { 'Access-Control-Allow-Origin': '*' }, contentType: 'application/json', body: JSON.stringify({ token }) });
+    messages++;
+    return route.fulfill({ status: 201, headers: { 'Access-Control-Allow-Origin': '*' }, contentType: 'application/json', body: '{"ok":true}' });
+  });
+  await page.goto('http://site.test/catalog');
+  const host = page.locator('#souzpir-widget');
+  await host.getByRole('button', { name: 'Напишите нам' }).click();
+  await host.getByLabel('Ваше сообщение').fill('Первое сообщение');
+  await host.getByRole('button', { name: 'Отправить', exact: true }).click();
+  await expect(host.getByText('Сообщение отправлено.')).toBeVisible();
+  await host.getByLabel('Ваше сообщение').fill('Второе сообщение');
+  await host.getByRole('button', { name: 'Отправить', exact: true }).click();
+  await expect(host.getByText('Лимит сообщений исчерпан. Напишите нам другим способом.')).toBeVisible();
+  await expect(host.getByLabel('Ваше сообщение')).toBeDisabled();
+  await expect(host.getByRole('button', { name: 'Отправить', exact: true })).toBeDisabled();
+  await expect.poll(() => messages).toBe(2);
+});
