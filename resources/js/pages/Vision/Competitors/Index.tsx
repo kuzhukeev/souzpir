@@ -115,6 +115,7 @@ export default function Index({
             Источники →
           </Link>
         </div>
+        {canEdit && <Link href="/vision/competitors/merge" className="mt-4 inline-flex min-h-11 cursor-pointer items-center text-sm font-semibold text-(--color-link)">Объединить дубли →</Link>}
         {status && (
           <p role="status" className="mt-4 rounded-lg bg-(--color-success-soft) p-3 text-sm">
             {status}
@@ -637,7 +638,7 @@ export default function Index({
               >
                 <h2 className="text-xl font-bold">Объединить названия</h2>
                 <p className="mt-2 text-sm">
-                  Выберите названия одной компании. Показатели раздела пересчитаются по ответам
+                  Выберите названия одной компании. Отчёт будет пересчитан по ответам
                   снимка.
                 </p>
                 <label className="mt-4 block text-sm">
@@ -726,7 +727,7 @@ export default function Index({
                   Объединить
                 </button>
                 <p className="mt-3 text-sm text-(--color-ink-muted)">
-                  Сохранённый отчёт не изменяется; объединение применяется к этому разделу. Пересчёт отчёта и его срок пока недоступны.
+                  Сохранённый отчёт останется неизменным; после объединения будет подготовлена новая версия.
                 </p>
               </form>
             )}
@@ -739,7 +740,7 @@ export default function Index({
               <ul className="mb-3 rounded-lg bg-(--color-surface-muted) p-3 text-sm">{Array.from(new Set([source, target, ...extraSources].filter(Boolean))).map(name => <li key={name} className="py-1">{name}</li>)}</ul>
               <label className="mb-3 block text-sm">Основное название в подтверждении<select className={`${field} mt-1 block w-full cursor-pointer`} value={target} onChange={event => {const next=event.target.value;const others=Array.from(new Set([source,target,...extraSources].filter(name => name && name !== next)));setSource(others[0] ?? '');setExtraSources(others.slice(1));setTarget(next);}}>{Array.from(new Set([source,target,...extraSources].filter(Boolean))).map(name => <option key={name} value={name}>{name}</option>)}</select></label>
               <p className="text-sm">
-                «{[source, ...extraSources.filter(name=>name !== source && name !== target)].join('», «')}» {extraSources.filter(name=>name !== source && name !== target).length ? 'будут объединены' : 'будет объединено'} с «{target}». Показатели раздела пересчитаются по
+                «{[source, ...extraSources.filter(name=>name !== source && name !== target)].join('», «')}» {extraSources.filter(name=>name !== source && name !== target).length ? 'будут объединены' : 'будет объединено'} с «{target}». Отчёт будет пересчитан по
                 сохранённым ответам.
               </p>
               {mergeError && (
@@ -772,6 +773,8 @@ export default function Index({
                           setMergeError(
                             'Не удалось объединить названия. Проверьте данные и доступ.',
                           ),
+                        onNetworkError: () => { setMergeError('Нет связи. Повторите попытку.'); return false; },
+                        onHttpException: () => { setMergeError('Не удалось сохранить объединение.'); return false; },
                       },
                     )
                   }

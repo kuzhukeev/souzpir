@@ -3,6 +3,7 @@
 namespace Tests\Feature\Vision\Competitors;
 
 use App\Tenancy\TenantContext;
+use App\Vision\Competitors\RecalculateMergedReport;
 use App\Vision\Competitors\SnapshotView;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -27,6 +28,9 @@ final class MultiMergeE820VTest extends TenancyTestCase
             }
         });
         $this->post('/vision/competitors/merge', [])->assertRedirect();
+        $recalculation = \Mockery::mock(app(RecalculateMergedReport::class));
+        $recalculation->shouldReceive('create')->zeroOrMoreTimes()->andReturn('fixture');
+        app()->instance(RecalculateMergedReport::class, $recalculation);
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
         $this->post('/vision/competitors/merge', ['sources' => ['Альфа', 'Альфа'], 'target' => 'ООО Альфа'])->assertSessionHasErrors();
         $this->post('/vision/competitors/merge', ['sources' => ['Альфа', 'ООО Альфа'], 'target' => 'ООО Альфа'])->assertSessionHasErrors();
