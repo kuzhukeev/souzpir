@@ -1,0 +1,97 @@
+{
+  "service": {
+    "name": "Автосервис",
+    "fields": [
+      {
+        "id": "car_model",
+        "name": "Марка и модель",
+        "type": "text",
+        "options": [],
+        "required": true,
+        "stage": "need"
+      },
+      {
+        "id": "car_year",
+        "name": "Год выпуска",
+        "type": "number",
+        "options": [],
+        "required": true,
+        "stage": "need"
+      },
+      {
+        "id": "service_type",
+        "name": "Услуга",
+        "type": "text",
+        "options": [],
+        "required": true,
+        "stage": "need"
+      },
+      {
+        "id": "preferred_date",
+        "name": "Желаемая дата",
+        "type": "text",
+        "options": [],
+        "required": true,
+        "stage": "need"
+      },
+      {
+        "id": "branch",
+        "name": "Филиал",
+        "type": "text",
+        "options": [],
+        "required": true,
+        "stage": "need"
+      }
+    ],
+    "messages": [
+      "У меня Toyota Camry",
+      "Автомобиль 2020 года",
+      "Нужна замена масла",
+      "Удобно в пятницу",
+      "Хочу записаться в центральный филиал"
+    ]
+  },
+  "school": {
+    "name": "Онлайн-школа",
+    "fields": [
+      {
+        "id": "course",
+        "name": "Курс",
+        "type": "text",
+        "options": [],
+        "required": true,
+        "stage": "need"
+      },
+      {
+        "id": "level",
+        "name": "Уровень",
+        "type": "text",
+        "options": [],
+        "required": true,
+        "stage": "need"
+      },
+      {
+        "id": "format",
+        "name": "Формат",
+        "type": "text",
+        "options": [],
+        "required": true,
+        "stage": "need"
+      },
+      {
+        "id": "preferred_time",
+        "name": "Удобное время",
+        "type": "text",
+        "options": [],
+        "required": true,
+        "stage": "need"
+      }
+    ],
+    "messages": [
+      "Меня интересует английский язык",
+      "Мой уровень начальный",
+      "Нужны групповые занятия",
+      "Удобно вечером"
+    ]
+  }
+}
