@@ -32,7 +32,7 @@ final class ApiSettingsController
         $data = $this->access($request, function (User $user, TenantContext $tenant): array {
             $mapping = DB::table('seller_api_settings')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->value('mapping');
             $scope = ['organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId];
-            $successes = DB::table('seller_api_lead_requests')->where($scope)->orderByDesc('created_at')->limit(20)
+            $successes = DB::table('seller_api_lead_requests')->where($scope)->whereIn('status', ['created', 'opened'])->orderByDesc('created_at')->limit(20)
                 ->get(['id', 'endpoint', 'created_at'])->map(fn ($row) => ['id' => $row->id, 'endpoint' => $row->endpoint,
                     'status' => 'success', 'error' => null, 'created_at' => $row->created_at]);
             $turns = DB::table('protected_operation_receipts')->where($scope)->where('operation', 'seller.api.turn')->whereNotNull('result_ciphertext')
@@ -45,10 +45,29 @@ final class ApiSettingsController
             $sources = app(ApiSourceReceipt::class)->forEvents($tenant->organizationId, $tenant->brandId, $logs->pluck('id')->all());
             $logs = $logs->map(fn ($row) => [...$row, 'source' => $sources[$row['id']] ?? null])->all();
 
-            return ['mapping' => $mapping ? json_decode($mapping, true) : LeadIngressController::DEFAULT_MAPPING, 'logs' => $logs];
+            $settings = DB::table('brands')->where('id', $tenant->brandId)->where('organization_id', $tenant->organizationId)->value('settings');
+            $brandSettings = is_string($settings) ? json_decode($settings, true) : [];
+            $action = ($brandSettings['seller_api_action'] ?? null) === 'open' ? 'open' : 'card_only';
+
+            return ['mapping' => $mapping ? json_decode($mapping, true) : LeadIngressController::DEFAULT_MAPPING, 'logs' => $logs, 'action' => $action];
         });
 
         return Inertia::render('Seller/Channels/Api/Index', [...$data, 'status' => $request->session()->get('status')]);
+    }
+
+    public function updateAction(Request $request): mixed
+    {
+        $input = $request->validate(['action' => ['required', 'in:card_only,open']]);
+        $this->access($request, function (User $user, TenantContext $tenant) use ($input): void {
+            $brand = DB::table('brands')->where('id', $tenant->brandId)->where('organization_id', $tenant->organizationId)->lockForUpdate()->first(['settings']);
+            $settings = json_decode($brand->settings, true, 512, JSON_THROW_ON_ERROR);
+            $settings['seller_api_action'] = $input['action'];
+            DB::table('brands')->where('id', $tenant->brandId)->where('organization_id', $tenant->organizationId)
+                ->update(['settings' => json_encode($settings, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), 'updated_at' => now()]);
+            app(AuditWriter::class)->record($tenant, new AuditEntry('seller.api.action.updated', 'brand', $tenant->brandId));
+        });
+
+        return back()->with('status', 'Действие для нового лида сохранено.');
     }
 
     public function update(Request $request): mixed

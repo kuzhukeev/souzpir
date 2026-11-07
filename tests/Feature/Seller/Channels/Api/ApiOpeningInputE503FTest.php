@@ -17,6 +17,22 @@ use Tests\Feature\Tenancy\TenancyTestCase;
 
 final class ApiOpeningInputE503FTest extends TenancyTestCase
 {
+    public function test_default_action_is_brand_scoped_and_requires_settings_permission(): void
+    {
+        [$owner, $org, $brand, $other] = $this->cabinet();
+        foreach ([$brand, $other] as $item) {
+            DB::table('brand_modules')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $item->id,
+                'module' => 'seller', 'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
+        }
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->post('/seller/channels/api/action', ['action' => 'open'])->assertRedirect();
+        $this->get('/seller/channels/api')->assertOk()->assertInertia(fn ($page) => $page->where('action', 'open'));
+        $this->actingAs($owner)->withSession(['brand_id' => $other->id])->get('/seller/channels/api')->assertOk()
+            ->assertInertia(fn ($page) => $page->where('action', 'card_only'));
+        [$viewer] = $this->member($org, 'viewer', [$brand->id]);
+        $this->actingAs($viewer)->withSession(['brand_id' => $brand->id])->post('/seller/channels/api/action', ['action' => 'open'])->assertForbidden();
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->post('/seller/channels/api/action', ['action' => 'unknown'])->assertSessionHasErrors('action');
+    }
+
     public function test_opening_uses_persisted_state_and_no_fabricated_client_message(): void
     {
         Http::preventStrayRequests();

@@ -7,9 +7,11 @@ use App\Seller\Engine\LeadState;
 use App\Seller\Engine\Policy;
 use App\Seller\Engine\ResponderRequest;
 use App\Seller\Knowledge\Contracts\KnowledgeRepository;
+use App\Seller\Runtime\BrandRuntimeSchedule;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TokenApi\TokenTenantAuthority;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use LogicException;
@@ -25,6 +27,10 @@ final class ApiOpeningInput
         }
         app(TokenTenantAuthority::class)->revalidateLocked($http, $tenant, 'leads');
         if (! app(SellerModuleAccess::class)->enabled($tenant->organizationId, $tenant->brandId)) {
+            throw new LogicException('API opening unavailable.');
+        }
+        $schedule = app(BrandRuntimeSchedule::class);
+        if ($schedule->mode($tenant, $schedule->settings($tenant), CarbonImmutable::now()) !== 'autonomous') {
             throw new LogicException('API opening unavailable.');
         }
         $scope = ['organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId];
