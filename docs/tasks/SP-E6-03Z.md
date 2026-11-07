@@ -12,3 +12,6 @@
 Scope: `app/Seller/Settings/Policy/`, `app/Seller/Runtime/`, `app/Ai/Protected/`, `app/ProtectedOperations/`, `resources/js/pages/Seller/Settings/Policy/`, `tests/Feature/Seller/Settings/Policy/`, `tests/Feature/ProtectedOperations/`, `tests/Browser/E6-03Z/`, `docs/results/SP-E6-03Z.md`.
 
 - Добавить отдельное состояние ожидания полной первоначальной загрузки и браузерную проверку с работающим Laravel-сервером.
+
+## Сужение scope 07.11.2026 23:30 (планировщик)
+- `app/Seller/Runtime/` исключён из scope: правило вопросов и цели живут в `app/Ai/Protected/` и `app/ProtectedOperations/`; напоминания не учитываются. Нужен runtime-файл — пункт в «Нужно от интегратора».

@@ -11,6 +11,7 @@ use App\Seller\Engine\DeterministicGuard;
 use App\Seller\Engine\GuardDecision;
 use App\Seller\Engine\Policy;
 use App\Seller\Engine\ResponderResult;
+use App\Seller\Runtime\ServicePhraseSelector;
 use App\Seller\Runtime\StageTransitions;
 use App\Seller\Settings\Greetings\GreetingResolver;
 use App\Shell\Audit\AuditEntry;
@@ -47,7 +48,7 @@ final class FollowupFinalizer
             ? app(Gateway::class)->readApiFollowupGuardLocked($http, $tenant, $claim, $round, $toolResults, $guardIssues) : null;
         $decision = $decisionEngine->finish($guard, $goal, $enabled, $model);
         if ($decision['status'] !== 'completed' || $decision['verdict'] !== 'ok'
-            || ! in_array($goal->kind, ['intro_and_ask', 'ask_slot', 'answer_and_ask', 'answer_only', 'unknown_fact', 'small_talk', 'unclear', 'closed_topic', 'decline_off_topic', 'decline_injection', 'bot_disclosure', 'handoff'], true)) {
+            || ! in_array($goal->kind, ['intro_and_ask', 'ask_slot', 'answer_and_ask', 'answer_only', 'unknown_fact', 'small_talk', 'unclear', 'closed_topic', 'decline_off_topic', 'decline_injection', 'bot_disclosure', 'handoff', 'opt_out'], true)) {
             throw new LogicException('API follow-up rejected.');
         }
         if ($goal->slot) {
@@ -60,6 +61,12 @@ final class FollowupFinalizer
         $state->setOutcome($policy->computeOutcome($state));
         $state->data['missing'] = $policy->computeMissing($state);
         $text = $result['text'];
+        if (in_array($goal->kind, ['unknown_fact', 'handoff'], true)) {
+            $override = app(ServicePhraseSelector::class)->customForEvent($knowledge->persona(), $goal->kind);
+            if ($override !== null) {
+                $text = $override;
+            }
+        }
         if ($tenant->source === 'public' && $mode === 'bot' && $claim->baseVersion === 0) {
             $visitorName = $conversation->contact_id ? DB::table('contacts')->where($scope)->where('id', $conversation->contact_id)->value('name') : null;
             $greeting = app(GreetingResolver::class)->resolve($tenant, 'widget', $page ?? 'home', is_string($visitorName) ? $visitorName : null);

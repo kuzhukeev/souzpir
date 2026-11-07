@@ -82,6 +82,30 @@ final class ProtectedSimulationRuntimeTest extends TenancyTestCase
         Http::assertNothingSent();
     }
 
+    public function test_job_run_fails_closed_without_crashing_the_screen_on_a_gateway_rejection(): void
+    {
+        Http::preventStrayRequests();
+        [$owner, $org, $brand, $other, $membership] = $this->simulationCabinet();
+        self::assertSame(29, app(SellerPersonaSeeder::class)->seedForBrand(new TenantContext($org->id, $brand->id, $owner->id, $membership->id)));
+        $this->app->instance(FakeDriver::class, new class implements Driver
+        {
+            public function complete(#[\SensitiveParameter] array $body): array
+            {
+                throw new Rejected('Synthetic gateway outage.');
+            }
+        });
+        SimulateFakeJob::dispatchSync($org->id, $brand->id, 'newbie_voronezh', [[], []]);
+        $run = DB::table('seller_sim_runs')->where('brand_id', $brand->id)->sole();
+        self::assertSame('failed', $run->status);
+        self::assertSame(1, $run->turn_count);
+        self::assertSame(LogicException::class, json_decode($run->metrics, true, 512, JSON_THROW_ON_ERROR)['error']);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'seller.simulation.failed', 'subject_id' => $run->id]);
+        self::assertSame(2, DB::table('messages')->where('brand_id', $brand->id)->count());
+        self::assertSame(1, DB::table('messages')->where('brand_id', $brand->id)->where('role', 'agent')->count());
+        self::assertSame(0, DB::table('seller_sim_runs')->where('brand_id', $other->id)->count());
+        Http::assertNothingSent();
+    }
+
     public function test_confirmed_fake_failures_can_be_retried_without_duplicate_messages(): void
     {
         [, $org, $brand, $other] = $this->simulationCabinet();

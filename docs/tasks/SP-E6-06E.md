@@ -19,3 +19,8 @@ Scope: `app/Seller/Settings/Schedule/`, `app/Seller/Conversations/`, `resources/
 
 ## Остаток 07.11.2026 22:10
 - Доставка фразы вне часов клиенту (`FirstInboundRuntime::suppressManagerTurn` → `BrandRuntimeSchedule::fallbackPhrase()`, подпись D-11.1) передана в SP-E6-07D, где та же правка нужна для хендоффа по лимиту. Карточка закрыта.
+
+## Остаток 07.11.2026 (аудит экранов, интегратор)
+- D-11.1: часовой пояс — выбор из списка (select в стиле кабинета), а не текстовое поле.
+- D-11.2: правила распределения по каналу и по источнику обращения (убрать «появятся позже»); «По городу клиента» включить, если поле города клиента уже есть в данных клиента, иначе оставить недоступным с пояснением и записать в остаток.
+- Scope как в плане taskdesk: `app/Seller/Settings/Schedule/`, `app/Seller/Conversations/`, `resources/js/pages/Seller/Settings/Schedule/`, `tests/Feature/Seller/Settings/Schedule/`, `tests/Feature/Seller/Conversations/`, `tests/Browser/E6-06E/`, `docs/results/SP-E6-06E.md`, `app/Seller/Runtime/BrandRuntimeSchedule.php`, `app/Seller/Settings/Tools/MonitorHandoffs.php`, `tests/Browser/E6-06D/`, `tests/Feature/Seller/Runtime/`.
