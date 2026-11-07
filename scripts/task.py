@@ -104,6 +104,7 @@ CI_SCOPE_EXCEPTIONS = {
         "app/Shell/Notifications/RecipientPolicy.php",
         "app/Shell/Notifications/NotificationProcessor.php",
         "app/Shell/Notifications/FakeTimedDelivery.php",
+        "app/Shell/Notifications/ExternalDelivery.php",
     ),
     "SP-E4-03D": ("tests/Browser/E4-03B/conditions.spec.ts",),
     "SP-E8-21K": ("tests/Browser/E8-21J/", "tests/Browser/E8-21L/"),
