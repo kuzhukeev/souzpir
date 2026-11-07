@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature\ProtectedOperations;
+namespace Tests\Feature\Seller\Runtime;
 
 use App\Ai\Drivers\Driver;
 use App\Ai\Drivers\FakeDriver;
