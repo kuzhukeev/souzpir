@@ -127,6 +127,16 @@ test('real pages after creating knowledge through the UI', async ({ page, browse
   await page.goto(`${origin}/seller/customers`);
   const customerLink = await page.getByRole('link', { name: /Посетитель виджета/ }).first().getAttribute('href');
   if (!customerLink) throw new Error('Synthetic customer link missing');
+  await page.goto(`${origin}/seller/integrations/catalog`);
+  await page.getByLabel('Файл каталога').setInputFiles({ name: 'catalog.csv', mimeType: 'text/csv', buffer: Buffer.from('name,sku,stock,price\nТестовый товар,SKU-001,4,100\n') });
+  await page.getByRole('button', { name: 'Посмотреть столбцы' }).click();
+  await expect(page.getByText('Сопоставьте столбцы выбранного листа.', { exact: false })).toBeVisible();
+  await page.getByRole('button', { name: 'Сохранить каталог' }).click();
+  await expect(page.getByText('Тестовый товар').first()).toBeVisible();
+  await page.goto(`${origin}/seller/integrations/stock`);
+  await page.getByLabel('Порог', { exact: true }).fill('5');
+  await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
+  await expect(page.getByText('Мало', { exact: false }).first()).toBeVisible();
   const paths = [
     ['d32', customerLink], ['d44', factLink], ['d41', '/seller/knowledge'], ['d43', '/seller/knowledge/facts'],
     ['d45', '/seller/knowledge/conditions'], ['d46', '/seller/knowledge/topics'],
