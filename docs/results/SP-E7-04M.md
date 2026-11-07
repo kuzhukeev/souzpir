@@ -1,0 +1,11 @@
+Модель: Claude Sonnet 5
+
+# SP-E7-04M — Источники обращений и переходы
+
+- D-8.1 acceptance (переходы стадий во всех защищённых путях и действиях менеджера) — проверено: запись `StageTransitions::record` перенесена в точки фактической записи стадии — `FirstTurnTextFinalizer`, `FollowupFinalizer` (покрывает session/widget/API follow-up, включая suggest-режим, ранее не фиксировавшийся), `ApiOpeningRuntime`, и добавлена для закрытия диалога менеджером в `DialogsController::mode` (action=close). Дублирующая генерик-запись в `FirstInboundRuntime` убрана (писала только при status=completed, пропуская suggest).
+- D-8.4 acceptance (сохранять источники/UTM/адреса страниц при приёме и показывать в D-8.4) — проверено: виджет передаёт `page`(путь) и `utm` при старте сессии (`/widget/session`), хранится в `widget_sessions` (миграция `E7-04M`). `AnalyticsController` агрегирует `sitePages` по `widget_sessions` вместо захардкоженного `[]`; сверено с макетом `147/14bbb5ac-D-8.4-sources-channels.webp` (таблицы «Каналы» и «Страницы сайта» с UTM) через fixture-скриншот.
+- Тесты: `tests/Feature/Seller/Analytics/StageAndSitePagesE704MTest.php` (3 теста: close менеджера → событие стадии; виджет → page/utm в `widget_sessions` и `sitePages`; API opening → реальный переход стадии). `tests/Browser/E7-04M/channels.spec.ts` (данные + пустое состояние страниц). Полный прогон: Analytics (25), Widget (13), Api (11), L1-01 (6), Followups (22), SellerRuntime (29) — 106/106 зелёных, в т.ч. `FirstInboundRuntimeTest` (регрессия на убранный блок).
+- Скриншоты: `.local/screenshots/SP-E7-04M/channels.png` (данные), `channels-empty.png` (пустые страницы сайта), светлая тема, 1440.
+- Остаток: источник API (site/crm, `ApiSourceReceipt`) и фильтр «Источник» в D-8.1 остаются «Неизвестен» — вне scope этой карточки (не упомянуты в её acceptance, затрагивают отдельный gap D-8.1 без привязанной карточки).
+- Техдолг: «Открытий виджета» считается по стартам сессии виджета (первое сообщение/контакт), а не по факту открытия панели — событие открытия панели отдельно не шлётся, чтобы не менять поведение `widget.js` вне scope и не задевать существующие Browser-тесты приглашения.
+- Принято по умолчанию: «источники» для виджета в `AnalyticsController::$sitePages` не учитывают `channel`-фильтр, как и существующая таблица «Каналы» (consistent с уже имеющимся поведением `channelMetrics`).

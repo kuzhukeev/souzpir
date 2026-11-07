@@ -8,6 +8,7 @@ use App\Seller\Engine\LeadState;
 use App\Seller\Knowledge\Contracts\KnowledgeRepository;
 use App\Seller\Knowledge\KnowledgeNotReady;
 use App\Seller\Quality\ReportIssueLinks;
+use App\Seller\Runtime\StageTransitions;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
@@ -116,6 +117,7 @@ final class DialogsController
                 $state['stage'] = 'done';
                 DB::table('conversations')->where('id', $row->id)->update(['stage' => 'done', 'mode' => 'paused',
                     'state' => json_encode($state, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE), 'version' => $row->version + 1, 'updated_at' => now()]);
+                app(StageTransitions::class)->record($context, $row->id, $row->stage, 'done');
                 app(AuditWriter::class)->record($context, new AuditEntry('seller.dialog.closed', 'conversation', $row->id,
                     before: ['stage' => $row->stage, 'mode' => $row->mode], after: ['stage' => 'done', 'mode' => 'paused']));
 

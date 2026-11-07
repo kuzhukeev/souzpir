@@ -11,6 +11,7 @@ use App\Seller\Engine\DeterministicGuard;
 use App\Seller\Engine\GuardDecision;
 use App\Seller\Engine\Policy;
 use App\Seller\Engine\ResponderResult;
+use App\Seller\Runtime\StageTransitions;
 use App\Seller\Settings\Greetings\GreetingResolver;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
@@ -87,6 +88,7 @@ final class FollowupFinalizer
             $conversationUpdate['handed_off_at'] = now();
         }
         DB::table('conversations')->where($scope)->where('id', $claim->conversationId)->update($conversationUpdate);
+        app(StageTransitions::class)->record($tenant, $claim->conversationId, $conversation->stage, $state->stage());
         $data = $outcome->toArray();
         DB::table('seller_turns')->where($scope)->where('id', $claim->turnId)->where('status', 'processing')->update([
             'status' => $status, 'outcome' => json_encode($data, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),

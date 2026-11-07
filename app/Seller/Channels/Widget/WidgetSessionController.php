@@ -42,9 +42,18 @@ final class WidgetSessionController
     public function start(Request $request): mixed
     {
         [$widget, $origin] = self::widget($request);
+        $validator = Validator::make($request->all(), ['page' => ['sometimes', 'nullable', 'string', 'max:2048'], 'utm' => ['sometimes', 'nullable', 'string', 'max:512']]);
+        if ($validator->fails()) {
+            return $this->response(response()->json(['message' => 'Проверьте запрос.'], 422), $origin);
+        }
+        $page = $request->input('page');
+        $page = is_string($page) && str_starts_with($page, '/') ? $page : null;
+        $utm = $request->input('utm');
+        $utm = is_string($utm) && $utm !== '' ? $utm : null;
         $token = Str::random(64);
         DB::table('widget_sessions')->insert(['id' => (string) Str::ulid(), 'organization_id' => $widget->organization_id, 'brand_id' => $widget->brand_id,
-            'widget_id' => $widget->id, 'origin' => $origin, 'token_hash' => hash('sha256', $token), 'expires_at' => now()->addDay(), 'created_at' => now(), 'updated_at' => now()]);
+            'widget_id' => $widget->id, 'origin' => $origin, 'token_hash' => hash('sha256', $token), 'page' => $page, 'utm' => $utm,
+            'expires_at' => now()->addDay(), 'created_at' => now(), 'updated_at' => now()]);
 
         return $this->response(response()->json(['token' => $token], 201), $origin);
     }
