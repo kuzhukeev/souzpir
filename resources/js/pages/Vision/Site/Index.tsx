@@ -180,7 +180,7 @@ export default function Index({
   domainStatus = null,
   brandSite = null,
   pageLimit,
-}: Props & { brandSite?: string | null; domainStatus?: {host:string;verified:boolean} | null; auditDate?: string | null; auditId?: string | null; previousAudit?: Audit | null; auditProgress?: {stage:string; events?: {stage:string; at:string}[]; pages_processed?:number; pages_total?:number; remaining_seconds?:number|null; elapsed_seconds?:number|null} | null }) {
+}: Props & { brandSite?: string | null; domainStatus?: {host:string;verified:boolean} | null; auditDate?: string | null; auditId?: string | null; previousAudit?: Audit | null; auditProgress?: {stage:string; events?: {stage:string; at:string}[]; pages_processed?:number; pages_total?:number; remaining_seconds?:number|null; elapsed_seconds?:number|null} | null; pageLimit?: number }) {
   const titles: Record<Props['section'], string> = {
     overview: 'Готовность сайта к ИИ-поиску',
     criteria: 'Критерии и как исправить',

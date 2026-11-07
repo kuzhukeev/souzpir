@@ -91,5 +91,4 @@ export type Props = {
   comparison?: Comparison | null;
   canManage: boolean;
   members?: Member[];
-  pageLimit?: number;
 };
