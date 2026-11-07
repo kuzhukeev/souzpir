@@ -11,3 +11,7 @@
 - Проверить хранение, маршрут, экран, защищённый runtime, права и изоляцию в отдельной тестовой БД; реальные и платные вызовы не включать.
 
 Scope: `app/Seller/Catalog/`, `app/Seller/Engine/`, `app/Seller/Knowledge/`, `app/ProtectedOperations/`, `resources/js/pages/Seller/Catalog/`, `routes/features/E6-08.php`, `tests/Feature/Seller/Catalog/`, `tests/Feature/Seller/Engine/`, `tests/Feature/ProtectedOperations/`, `tests/Browser/E6-08G/`, `docs/results/SP-E6-08G.md`.
+
+## Конкретные расхождения SP-E9-01F
+- D-10.1: обеспечить клавиатурный доступ к прокрутке таблицы на 390 (axe scrollable-region-focusable).
+- D-10.4: при остатке ниже порога показывать в примере ответа фразу о малом остатке.
