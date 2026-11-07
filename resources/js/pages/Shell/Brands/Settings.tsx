@@ -7,11 +7,12 @@ import { General } from '@/features/Shell/Brands/General';
 import { ThemeForm } from '@/features/Shell/Brands/ThemeForm';
 import { Domains } from '@/features/Shell/Brands/Domains';
 import { Modules } from '@/features/Shell/Brands/Modules';
+import { AiDataPolicy } from '@/features/Shell/Brands/AiDataPolicy';
 import { ArchiveBrand } from '@/features/Shell/Brands/ArchiveBrand';
 import { focus } from '@/features/Shell/Brands/shared';
 import type { BrandSettingsProps } from '@/types/Shell/Brands';
 
-const tabIds = ['general', 'theme', 'domains', 'modules', 'archive'] as const;
+const tabIds = ['general', 'theme', 'domains', 'modules', 'ai_policy', 'archive'] as const;
 type TabId = (typeof tabIds)[number];
 function tabFromUrl(): TabId {
   if (typeof window === 'undefined') return 'general';
@@ -23,6 +24,7 @@ export default function Settings({
   targetBrand,
   domains,
   moduleItems,
+  aiDataPolicy,
   permissions,
   networkChecksEnabled,
 }: BrandSettingsProps) {
@@ -112,6 +114,18 @@ export default function Settings({
                     brand={targetBrand}
                     modules={moduleItems}
                     editable={permissions.manage}
+                  />
+                ),
+              },
+              {
+                id: 'ai_policy',
+                label: 'Передача данных в ИИ',
+                content: (
+                  <AiDataPolicy
+                    key={targetBrand.id}
+                    brand={targetBrand}
+                    policy={aiDataPolicy}
+                    editable={permissions.manageAiPolicy}
                   />
                 ),
               },
