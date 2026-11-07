@@ -132,9 +132,9 @@ final class FixtureRuntime
     }
 
     /** Preserve the strict legacy API for callers which require every criterion. */
-    public function check(Request $request, KnowledgeSnapshot $draft, string $client, string $answer, array $expectations, ?string $personaKey = null): ?array
+    public function check(Request $request, KnowledgeSnapshot $draft, string $client, string $answer, array $expectations, ?string $personaKey = null, array $history = [], array $events = []): ?array
     {
-        $checks = $this->checkPartial($request, $draft, $client, $answer, $expectations, $personaKey);
+        $checks = $this->checkPartial($request, $draft, $client, $answer, $expectations, $personaKey, $history, $events);
         if ($checks === null || in_array(null, $checks, true)) {
             return null;
         }
@@ -143,12 +143,12 @@ final class FixtureRuntime
     }
 
     /** A null entry means there is no verified evidence for that criterion. */
-    public function checkPartial(Request $request, KnowledgeSnapshot $draft, string $client, string $answer, array $expectations, ?string $personaKey = null): ?array
+    public function checkPartial(Request $request, KnowledgeSnapshot $draft, string $client, string $answer, array $expectations, ?string $personaKey = null, array $history = [], array $events = []): ?array
     {
         if (count(array_filter($expectations, 'is_string')) !== count($expectations)) {
             return null;
         }
-        $data = $this->run($request, $draft, 'judge', ['client' => $client, 'answer' => $answer, 'expectations' => array_values($expectations)], personaKey: $personaKey);
+        $data = $this->run($request, $draft, 'judge', ['client' => $client, 'answer' => $answer, 'expectations' => array_values($expectations)], personaKey: $personaKey, history: $history, events: $events);
         if (! is_array($data) || ! is_array($data['checks'] ?? null)) {
             return null;
         }
@@ -172,9 +172,9 @@ final class FixtureRuntime
         return ['model' => 'fake-draft-'.$stage, 'draft' => $draft->releaseId(), 'checksum' => $draft->checksum(), 'input' => $input];
     }
 
-    private function run(Request $request, KnowledgeSnapshot $draft, string $stage, array $input, ?array $seed = null, ?string $personaKey = null): ?array
+    private function run(Request $request, KnowledgeSnapshot $draft, string $stage, array $input, ?array $seed = null, ?string $personaKey = null, array $history = [], array $events = []): ?array
     {
-        return app(ProfileAccess::class)->run($request, function (User $user, TenantContext $tenant) use ($draft, $stage, $input, $seed, $personaKey): ?array {
+        return app(ProfileAccess::class)->run($request, function (User $user, TenantContext $tenant) use ($draft, $stage, $input, $seed, $personaKey, $history, $events): ?array {
             Gate::forUser($user)->authorize('seller.knowledge.write');
             abort_unless(app(SellerModuleAccess::class)->enabled($tenant->organizationId, $tenant->brandId), 404);
             $exists = DB::table('knowledge_releases')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
@@ -200,7 +200,7 @@ final class FixtureRuntime
                         $checked = match ($expectation) {
                             'one_question_per_turn' => mb_substr_count($answer, '?') <= 1,
                             'no_html' => ! preg_match('/<[^>]+>/', $answer),
-                            default => $this->reviewedPair($tenant, $personaKey, $input['client'], $answer, $expectation),
+                            default => $this->reviewedPair($tenant, $personaKey, $input['client'], $answer, $expectation, $history, $events),
                         };
                         $checks[$expectation] = $checked;
                     }
@@ -234,7 +234,7 @@ final class FixtureRuntime
         });
     }
 
-    private function reviewedPair(TenantContext $tenant, ?string $personaKey, string $client, string $answer, string $criterion): ?bool
+    private function reviewedPair(TenantContext $tenant, ?string $personaKey, string $client, string $answer, string $criterion, array $history = [], array $events = []): ?bool
     {
         if ($personaKey === null) {
             return null;
@@ -256,6 +256,72 @@ final class FixtureRuntime
             }
         }
 
+        return $this->matchContext($personaKey, $criterion, $history, $client, $answer, $events);
+    }
+
+    /**
+     * Match the SP-E4-01R/S reviewed context catalogs against the full accumulated
+     * history and events of this preview, not only the current client/agent pair.
+     * The catalog's own `expected` value is returned verbatim, including `null`
+     * for a context the reviewers recorded as not provably verifiable.
+     */
+    private function matchContext(string $personaKey, string $criterion, array $history, string $client, string $answer, array $events): ?bool
+    {
+        $historySignature = $this->turnSignature($history);
+        $eventsSignature = $this->eventSignature($events);
+        foreach ($this->contextCatalog() as $entry) {
+            if (! is_array($entry) || ($entry['persona'] ?? null) !== $personaKey || ($entry['criterion'] ?? null) !== $criterion) {
+                continue;
+            }
+            if ($this->turnSignature(is_array($entry['history'] ?? null) ? $entry['history'] : []) !== $historySignature) {
+                continue;
+            }
+            if (array_key_exists('client', $entry) && $entry['client'] !== $client) {
+                continue;
+            }
+            if (array_key_exists('answer', $entry) && $entry['answer'] !== $answer) {
+                continue;
+            }
+            if ($this->eventSignature(is_array($entry['events'] ?? null) ? $entry['events'] : []) !== $eventsSignature) {
+                continue;
+            }
+
+            return $entry['expected'];
+        }
+
         return null;
+    }
+
+    private function contextCatalog(): array
+    {
+        static $catalog = null;
+        if ($catalog === null) {
+            $catalog = [];
+            foreach (['seeded-context-e401r.json', 'seeded-context-e401s.json', 'seeded-context-e401s-remaining.json'] as $file) {
+                $catalog = [...$catalog, ...json_decode(file_get_contents(__DIR__.'/fixtures/'.$file), true, 512, JSON_THROW_ON_ERROR)];
+            }
+        }
+
+        return $catalog;
+    }
+
+    private function turnSignature(array $turns): array
+    {
+        return array_map(fn ($turn) => [$turn['role'] ?? null, $turn['text'] ?? null], $turns);
+    }
+
+    private function eventSignature(array $events): array
+    {
+        $signatures = array_map(function ($event) {
+            if (! is_array($event)) {
+                return null;
+            }
+            ksort($event);
+
+            return json_encode($event, JSON_THROW_ON_ERROR);
+        }, $events);
+        sort($signatures);
+
+        return $signatures;
     }
 }

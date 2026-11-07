@@ -23,7 +23,7 @@ final class DraftScenarioRunE401ITest extends TenancyTestCase
         self::assertSame($draft->id, json_decode($run->metrics, true)['knowledge_release_id']);
         self::assertSame(3, $run->turn_count);
         self::assertSame('Уточню: Оплата', json_decode($run->turns, true)[2]['client']);
-        self::assertFalse(json_decode($run->turns, true)[0]['meta']['expectation_checks']['full_card']);
+        self::assertNull(json_decode($run->turns, true)[0]['meta']['expectation_checks']['full_card']);
         $this->post('/seller/knowledge/'.Str::ulid().'/scenarios')->assertNotFound();
         [$viewer] = $this->member($org, 'viewer', [$brand->id]);
         $this->actingAs($viewer)->withSession(['brand_id' => $brand->id])->post('/seller/knowledge/'.$draft->id.'/scenarios')->assertForbidden();

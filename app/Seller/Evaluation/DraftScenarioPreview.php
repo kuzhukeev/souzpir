@@ -16,6 +16,18 @@ use Symfony\Component\Yaml\Yaml;
 /** Deterministic draft preview using the seller policy and guard without paid calls. */
 final class DraftScenarioPreview
 {
+    /** Persona key to the extra handoff event fields recorded in the reviewed context catalogs (SP-E4-01R/S). */
+    private const ESCALATE_EVENTS = [
+        'for_self_wedding' => ['reason' => 'retail'],
+        'prices_only_rude' => ['reason' => 'big_order'],
+        'deferred_insist' => ['reason' => 'repeated_deferred_request'],
+        'container_import' => ['reason' => 'container_import'],
+        'defect_claim' => ['reason' => 'defect'],
+        'wants_human' => ['reason' => 'requested_by_client'],
+        'requisites' => ['reason' => 'requisites'],
+        'big_order' => ['recipient' => 'руководитель'],
+    ];
+
     public function turn(KnowledgeSnapshot $draft, string $client, array $expectations): array
     {
         $state = new LeadState;
@@ -84,18 +96,24 @@ final class DraftScenarioPreview
         $expectations = is_array($persona['expect'] ?? null) ? $persona['expect'] : [];
         $state = new LeadState;
         $turns = [];
-        foreach (array_slice($clients, 0, max(1, $maxTurns)) as $index => $client) {
+        $history = [];
+        $slice = array_slice($clients, 0, max(1, $maxTurns));
+        foreach ($slice as $index => $client) {
             $seed = $personaKey !== null && $client['field'] !== null ? ['persona_key' => $personaKey, 'field' => $client['field']] : null;
             if ($personaKey !== null && isset($client['parts'])) {
                 $seed = ['persona_key' => $personaKey, 'parts' => $client['parts']];
             }
-            $turns[] = $this->previewTurn($draft, $client['text'], $expectations, $state, $index === 0, $request, $seed, $personaKey);
+            $isLastTurn = $index === count($slice) - 1;
+            $turn = $this->previewTurn($draft, $client['text'], $expectations, $state, $index === 0, $request, $seed, $personaKey, $history, $isLastTurn);
+            $turns[] = $turn;
+            $history[] = ['role' => 'client', 'text' => $client['text']];
+            $history[] = ['role' => 'agent', 'text' => $turn['agent']];
         }
 
         return $turns;
     }
 
-    private function previewTurn(KnowledgeSnapshot $draft, string $client, array $expectations, LeadState $state, bool $first, ?Request $request = null, ?array $seed = null, ?string $personaKey = null): array
+    private function previewTurn(KnowledgeSnapshot $draft, string $client, array $expectations, LeadState $state, bool $first, ?Request $request = null, ?array $seed = null, ?string $personaKey = null, array $history = [], bool $isLastTurn = false): array
     {
         try {
             $previousNotification = $state->signal('notify_manager');
@@ -160,7 +178,13 @@ final class DraftScenarioPreview
             $guard = ['verdict' => 'unavailable', 'issues' => ['Недостаточно данных черновика для проверки.']];
             $goalKind = null;
         }
-        $semantic = $request ? app(FixtureRuntime::class)->checkPartial($request, $draft, $client, $answer, $expectations, $personaKey) : null;
+        $events = $isLastTurn ? [['type' => 'conversation_end']] : [];
+        foreach ($toolResults ?? [] as $result) {
+            if (($result['name'] ?? null) === 'escalate' && isset(self::ESCALATE_EVENTS[$personaKey])) {
+                $events[] = ['type' => 'handoff', ...self::ESCALATE_EVENTS[$personaKey]];
+            }
+        }
+        $semantic = $request ? app(FixtureRuntime::class)->checkPartial($request, $draft, $client, $answer, $expectations, $personaKey, $history, $events) : null;
         $checks = [];
         foreach ($expectations as $expectation) {
             if (! is_string($expectation)) {
@@ -170,7 +194,8 @@ final class DraftScenarioPreview
                 'one_question_per_turn' => mb_substr_count($answer, '?') <= 1,
                 'no_deferred_promise' => ! preg_match('/(позже|перезвон|напишу вам)/ui', $answer),
                 'no_html' => ! preg_match('/<[^>]+>/', $answer),
-                default => $semantic[$expectation] ?? false,
+                // A missing fixture leaves the criterion unproven; it must not read as a failure.
+                default => is_array($semantic) ? ($semantic[$expectation] ?? null) : null,
             };
         }
 

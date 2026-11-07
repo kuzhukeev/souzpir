@@ -56,7 +56,7 @@ final class DraftFixtureRuntimeE401MTest extends TenancyTestCase
         self::assertSame(['салюты'], $first[0]['meta']['extracted_slots']['categories']);
         self::assertSame('Воронеж', $first[1]['meta']['extracted_slots']['city']);
         self::assertFalse($first[0]['meta']['semantic_available']);
-        self::assertFalse($first[0]['meta']['expectation_checks']['full_card']);
+        self::assertNull($first[0]['meta']['expectation_checks']['full_card']);
         foreach ($first as $turn) {
             $judge = $runtime->body($draft, 'judge', ['client' => $turn['client'], 'answer' => $turn['agent'], 'expectations' => ['full_card']]);
             file_put_contents($dir.'/'.CanonicalJson::hash($judge).'.json', json_encode(['result' => ['content' => json_encode(['checks' => ['full_card' => true]])]], JSON_THROW_ON_ERROR));
