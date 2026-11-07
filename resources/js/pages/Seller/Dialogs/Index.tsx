@@ -6,9 +6,9 @@ import { Avatar } from '@/components/ui';
 import TemplatesEditor from './TemplatesEditor';
 
 type Item = { id: string; name: string; mode: string; stage: string; outcome: string | null; channel: string; last_message: string | null; updated_at: string; assigned_user_id: string | null; waiting_minutes?: number | null; review_count?: number };
-type Message = { id: string; role: string; text: string; created_at: string; attachment_name?: string | null; meta: Record<string, string | null> };
+type Message = { id: string; role: string; text: string; created_at: string; attachment_name?: string | null; delivery?: { fake: boolean; delivered_at: string | null; error: string | null } | null; meta: Record<string, string | null> };
 type Detail = Item & { summary: string | null; email: string | null; phone: string | null; slots: { key: string; label: string; value: string | null }[]; transfers?: { name: string; created_at: string }[]; messages: Message[]; tasks: { id: string; type: string; status: string; due_at: string | null; text?: string | null }[] };
-type Props = { reportDay?: string | null; evaluationId?: string | null; readySuggestion?: string | null; messageTemplates?: {name: string; text: string}[]; transferOptions?: {id: string; name: string}[]; dialogs: Item[]; dialog: Detail | null; mineCounts?: { waiting: number; active: number; closed_today: number }; managerOptions?: {id: string; name: string}[]; pagination?: {page: number; pages: number; total: number}; filters: { mode: string; search: string; sort?: string; channel?: string; stage?: string; manager?: string; outcome?: string; period?: string; reviewed?: string; page?: number }; loadError?: boolean };
+type Props = { reportDay?: string | null; evaluationId?: string | null; readySuggestion?: string | null; readySuggestionTurnId?: string | null; messageTemplates?: {name: string; text: string}[]; transferOptions?: {id: string; name: string}[]; dialogs: Item[]; dialog: Detail | null; mineCounts?: { waiting: number; active: number; closed_today: number }; managerOptions?: {id: string; name: string}[]; pagination?: {page: number; pages: number; total: number}; filters: { mode: string; search: string; sort?: string; channel?: string; stage?: string; manager?: string; outcome?: string; period?: string; reviewed?: string; page?: number }; loadError?: boolean };
 
 const modeNames: Record<string, string> = { all: 'Все', mine: 'Мои диалоги', bot: 'У бота', suggest: 'Подсказки', manager: 'У менеджера', paused: 'Приостановлены', waiting: 'Ждут менеджера', closed: 'Закрытые' };
 const taskNames: Record<string, string> = { new: 'Новая', in_progress: 'В работе', done: 'Выполнена', cancelled: 'Отменена' };
@@ -17,8 +17,15 @@ const stageNames: Record<string, string> = { open: 'Новый', qualify: 'Зн�
 const roleNames: Record<string, string> = { client: 'Клиент', agent: 'Бот', manager: 'Менеджер', system: 'Событие' };
 const metaNames: Record<string, string> = { intent: 'Тема', goal: 'Цель', tools: 'Действия', guard: 'Guard', model: 'Модель' };
 const date = (value: string) => new Date(value).toLocaleString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+const time = (value: string) => new Date(value).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+const deliveryLabel = (delivery?: { fake: boolean; delivered_at: string | null; error: string | null } | null): string | null => {
+  if (!delivery) return null;
+  if (delivery.error) return `Ошибка отправки: ${delivery.error}`;
+  if (delivery.delivered_at) return `Отправлено ${time(delivery.delivered_at)}`;
+  return delivery.fake ? 'Тестовая очередь' : 'В очереди отправки';
+};
 
-export default function Index({ dialogs, dialog, reportDay = null, evaluationId = null, readySuggestion = null, messageTemplates = [{name: 'Приветствие', text: 'Здравствуйте, {имя}! Чем могу помочь?'}, {name: 'Скоро отвечу', text: 'Спасибо за обращение! Скоро вернусь с ответом.'}], transferOptions = [], mineCounts = { waiting: 0, active: 0, closed_today: 0 }, managerOptions = [], pagination = {page: 1, pages: 1, total: 0}, filters, loadError = false, minePage = false }: Props & { minePage?: boolean }) {
+export default function Index({ dialogs, dialog, reportDay = null, evaluationId = null, readySuggestion = null, readySuggestionTurnId = null, messageTemplates = [{name: 'Приветствие', text: 'Здравствуйте, {имя}! Чем могу помочь?'}, {name: 'Скоро отвечу', text: 'Спасибо за обращение! Скоро вернусь с ответом.'}], transferOptions = [], mineCounts = { waiting: 0, active: 0, closed_today: 0 }, managerOptions = [], pagination = {page: 1, pages: 1, total: 0}, filters, loadError = false, minePage = false }: Props & { minePage?: boolean }) {
   const { can, brand, auth } = usePage<{ can: Record<string, boolean>; brand: { id: string } | null; auth: {user:{id:string}|null} }>().props;
   const [search, setSearch] = useState(filters.search);
   const [pending, setPending] = useState(false);
@@ -35,12 +42,27 @@ export default function Index({ dialogs, dialog, reportDay = null, evaluationId 
   const [reviewSaved, setReviewSaved] = useState(false);
   const [suggestBusy, setSuggestBusy] = useState(false);
   const [suggestError, setSuggestError] = useState('');
+  const [draftEditing, setDraftEditing] = useState(false);
+  const [draftText, setDraftText] = useState('');
+  const [sendDraftBusy, setSendDraftBusy] = useState(false);
+  const [sendDraftError, setSendDraftError] = useState('');
   const [previousDialogId, setPreviousDialogId] = useState(dialog?.id);
   const [previousBrandId, setPreviousBrandId] = useState(brand?.id);
   if (previousDialogId !== dialog?.id || previousBrandId !== brand?.id) {
     setPreviousDialogId(dialog?.id);
     setReviewMessage(null); setReviewNote(''); setBetterText(''); setReviewSaved(false); setReply(''); setAttachment(null); setRecipient(''); setSuggestBusy(false); setSuggestError('');
+    setDraftEditing(false); setDraftText(''); setSendDraftBusy(false); setSendDraftError('');
   }
+  const sendDraft = (text: string) => {
+    if (!dialog || !readySuggestionTurnId || !text.trim()) return;
+    setSendDraftBusy(true); setSendDraftError('');
+    router.post(`/seller/dialogs/${dialog.id}/suggestions/${readySuggestionTurnId}/send`, { text }, {
+      preserveScroll: true,
+      onSuccess: () => setDraftEditing(false),
+      onError: (errors) => setSendDraftError(errors.text || 'Не удалось отправить черновик.'),
+      onFinish: () => setSendDraftBusy(false),
+    });
+  };
   const generateSuggestion = async () => {
     if (!dialog) return;
     setSuggestBusy(true); setSuggestError('');
@@ -100,9 +122,9 @@ export default function Index({ dialogs, dialog, reportDay = null, evaluationId 
     router.post(`/seller/dialogs/${dialog.id}/mode`, { action }, { preserveScroll: true, onError: (errors) => setError(errors.action || 'Не удалось изменить режим диалога.'), onFinish: () => setPending(false) });
   };
 
-  if (loadError) return <CabinetLayout breadcrumbs={[{ label: 'Продавец', href: '/seller' }, { label: 'Диалоги' }]}><div role="alert" className="rounded-xl border border-(--color-border) bg-(--color-surface) p-5"><h1 className="text-xl font-bold">Не удалось загрузить диалоги</h1><p className="mt-2 text-sm">Код DIALOGS_LOAD</p><button type="button" className="mt-3 min-h-11 cursor-pointer rounded-lg bg-(--color-action) px-4 text-white" onClick={() => window.location.reload()}>Повторить</button></div></CabinetLayout>;
+  if (loadError) return <CabinetLayout brandSwitchReady breadcrumbs={[{ label: 'Продавец', href: '/seller' }, { label: 'Диалоги' }]}><div role="alert" className="rounded-xl border border-(--color-border) bg-(--color-surface) p-5"><h1 className="text-xl font-bold">Не удалось загрузить диалоги</h1><p className="mt-2 text-sm">Код DIALOGS_LOAD</p><button type="button" className="mt-3 min-h-11 cursor-pointer rounded-lg bg-(--color-action) px-4 text-white" onClick={() => window.location.reload()}>Повторить</button></div></CabinetLayout>;
 
-  return <CabinetLayout breadcrumbs={[{ label: 'Продавец', href: '/seller' }, { label: 'Диалоги' }]}>
+  return <CabinetLayout brandSwitchReady breadcrumbs={[{ label: 'Продавец', href: '/seller' }, { label: 'Диалоги' }]}>
     <Head title={minePage ? 'Мои диалоги' : 'Диалоги'} />
     <div className="mb-6"><a href="/seller/dialogs/pending" className="mb-3 inline-block cursor-pointer text-sm text-(--color-link)">Очередь на одобрение →</a><a href="/seller/reviews" className="mb-3 ml-4 inline-block cursor-pointer text-sm text-(--color-link)">Пометки →</a><h1 className="text-3xl font-bold">{minePage ? 'Мои диалоги' : 'Диалоги'}</h1><p className="mt-2 text-sm text-(--color-ink-muted)">Сохранённые разговоры с клиентами по текущему бренду</p></div>
     {error && <div role="alert" className="mb-4 rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-800 dark:bg-red-950 dark:text-red-200">{error}{error.includes('DIALOGS_LOAD') && <button type="button" className="ml-2 cursor-pointer underline" onClick={() => filter(filters.mode)}>Повторить</button>}</div>}
@@ -138,10 +160,22 @@ export default function Index({ dialogs, dialog, reportDay = null, evaluationId 
             <div className="flex flex-wrap gap-2">{evaluationId ? <Link href={`/seller/evaluations/${evaluationId}`} className="cursor-pointer rounded-lg border border-(--color-border) px-3 py-2 text-sm">Оценка диалога</Link> : can['seller.knowledge.write'] && <EmptyEvaluation dialogId={dialog.id}/>}{can['seller.dialogues.operate'] && !['done','lost','spam'].includes(dialog.stage) && <>{dialog.mode !== 'manager' || !dialog.assigned_user_id ? <button type="button" disabled={pending} onClick={() => changeMode('take')} className="cursor-pointer rounded-lg bg-(--color-action) px-3 py-2 text-sm text-white disabled:opacity-50">Забрать себе</button> : <button type="button" disabled={pending} onClick={() => changeMode('return')} className="cursor-pointer rounded-lg border border-(--color-border) px-3 py-2 text-sm disabled:opacity-50">Вернуть боту</button>}{!['done','lost','spam'].includes(dialog.stage) && <button type="button" disabled={pending} onClick={() => changeMode('close')} className="cursor-pointer rounded-lg border border-(--color-border) px-3 py-2 text-sm disabled:opacity-50">Закрыть диалог</button>}</>}<button type="button" onClick={() => setCardOpen(true)} className="cursor-pointer rounded-lg border border-(--color-border) px-3 py-2 text-sm xl:hidden">Карточка клиента</button></div>
           </header>
           {dialog.mode === 'manager' && dialog.assigned_user_id === auth.user?.id && can['seller.dialogues.operate'] && suggestError && <p role="alert" className="mx-4 mt-4 text-sm text-red-800 dark:text-red-200">{suggestError}</p>}
-          {dialog.mode === 'suggest' && can['seller.dialogues.operate'] && <section className="mx-4 mt-4 rounded-lg border border-(--color-border) p-3 text-sm" aria-label="Подсказка продавца"><h3 className="font-semibold">Подсказка продавца</h3>{readySuggestion ? <><p className="mt-2">{readySuggestion}</p><button type="button" className="mt-2 min-h-11 cursor-pointer text-(--color-link)" onClick={() => setReply(readySuggestion)}>Использовать в ответе</button><p className="text-(--color-ink-muted)">Чтобы отправить ответ, заберите диалог себе.</p></> : <p className="mt-2 text-(--color-ink-muted)">Готовой подсказки пока нет.</p>}</section>}
+          {dialog.mode === 'suggest' && can['seller.dialogues.operate'] && <section className="mx-4 mt-4 rounded-lg border border-(--color-border) p-3 text-sm" aria-label="Подсказка продавца"><h3 className="font-semibold">Подсказка продавца</h3>{readySuggestion ? <>
+            <p className="mt-2">{readySuggestion}</p>
+            {sendDraftError && <p role="alert" className="mt-2 text-red-800 dark:text-red-200">{sendDraftError}</p>}
+            {draftEditing ? <div className="mt-2 space-y-2">
+              <label className="block">Текст ответа<textarea value={draftText} onChange={(event) => setDraftText(event.target.value)} maxLength={5000} className="mt-1 block w-full rounded-lg border border-(--color-border) bg-(--color-surface) p-2" /></label>
+              <div className="flex gap-2"><button type="button" disabled={sendDraftBusy || !draftText.trim()} onClick={() => sendDraft(draftText)} className="min-h-11 cursor-pointer rounded-lg bg-(--color-action) px-3 text-white disabled:opacity-50">Отправить</button><button type="button" disabled={sendDraftBusy} onClick={() => setDraftEditing(false)} className="min-h-11 cursor-pointer px-3 disabled:opacity-50">Отмена</button></div>
+            </div> : <div className="mt-2 flex flex-wrap gap-2">
+              <button type="button" disabled={sendDraftBusy} onClick={() => sendDraft(readySuggestion)} className="min-h-11 cursor-pointer rounded-lg bg-(--color-action) px-3 text-white disabled:opacity-50">Отправить черновик</button>
+              <button type="button" disabled={sendDraftBusy} onClick={() => { setDraftText(readySuggestion); setDraftEditing(true); }} className="min-h-11 cursor-pointer rounded-lg border border-(--color-border) px-3 disabled:opacity-50">Изменить и отправить</button>
+              <button type="button" className="min-h-11 cursor-pointer text-(--color-link)" onClick={() => setReply(readySuggestion)}>Использовать в ответе</button>
+            </div>}
+            <p className="mt-2 text-(--color-ink-muted)">Чтобы отправить без взятия себе, используйте «Отправить черновик». Чтобы отвечать вручную — заберите диалог себе.</p>
+          </> : <p className="mt-2 text-(--color-ink-muted)">Готовой подсказки пока нет.</p>}</section>}
 {reviewSaved && <p role="status" className="px-4 pt-4 text-sm">Пометка сохранена.</p>}
           <ol className="space-y-4 p-4 md:p-6" aria-label="Сообщения">{dialog.messages.length === 0 ? <li className="text-sm text-(--color-ink-muted)">Сообщений пока нет.</li> : dialog.messages.map((message) => <li key={message.id} className={`max-w-[90%] rounded-xl p-4 text-sm ${message.role === 'client' ? 'border border-(--color-border) bg-(--color-surface-muted)' : message.role === 'system' ? 'mx-auto bg-(--color-surface-muted) text-center' : 'ml-auto bg-(--color-action) text-white'}`}>
-            <div className="mb-1 flex flex-wrap gap-2 text-xs opacity-80"><strong>{roleNames[message.role] || message.role}</strong><time>{date(message.created_at)}</time></div><p className="whitespace-pre-wrap break-words">{message.text}</p>{message.attachment_name && <a className="mt-2 block cursor-pointer underline" href={`/seller/dialogs/${dialog.id}/messages/${message.id}/attachment`}>{message.attachment_name}</a>}
+            <div className="mb-1 flex flex-wrap gap-2 text-xs opacity-80"><strong>{roleNames[message.role] || message.role}</strong><time>{date(message.created_at)}</time></div><p className="whitespace-pre-wrap break-words">{message.text}</p>{message.attachment_name && <a className="mt-2 block cursor-pointer underline" href={`/seller/dialogs/${dialog.id}/messages/${message.id}/attachment`}>{message.attachment_name}</a>}{message.role === 'manager' && deliveryLabel(message.delivery) && <p className="mt-1 text-xs opacity-80">{deliveryLabel(message.delivery)}</p>}
             {message.role === 'agent' && can['seller.dialogues.operate'] && <button type="button" onClick={() => { setReviewMessage(message.id); setReviewSaved(false); }} className="mt-2 cursor-pointer underline">Пометить</button>}
             {reviewMessage === message.id && <form onSubmit={saveReview} className="mt-3 space-y-2 rounded-lg bg-(--color-surface) p-3 text-(--color-ink)">
               <label className="block">Причина<select value={reviewType} onChange={(event) => setReviewType(event.target.value)} className="mt-1 block w-full cursor-pointer rounded-lg border border-(--color-border) bg-(--color-surface) p-2"><option value="unclear">Непонятно</option><option value="bureaucratic">Канцелярит</option><option value="too_long">Слишком длинно</option><option value="wrong_fact">Неверный факт</option><option value="wrong_tone">Неверный тон</option><option value="other">Другое</option></select></label>

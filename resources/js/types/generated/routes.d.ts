@@ -1019,6 +1019,16 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "seller.dialogs.suggestions.send": [
+        {
+            "name": "dialog",
+            "required": true
+        },
+        {
+            "name": "turn",
+            "required": true
+        }
+    ],
     "health": [],
     "preview.login": [],
     "preview.attention": []
