@@ -8,6 +8,7 @@ use App\Seller\Conversations\CanonicalJson;
 use App\Seller\Conversations\Data\TurnClaim;
 use App\Seller\Conversations\Data\TurnOutcome;
 use App\Seller\Engine\DeterministicGuard;
+use App\Seller\Engine\Goal;
 use App\Seller\Engine\GuardDecision;
 use App\Seller\Engine\Policy;
 use App\Seller\Engine\ResponderResult;
@@ -15,6 +16,7 @@ use App\Seller\Settings\Greetings\GreetingResolver;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
 use App\Tenancy\TenantContext;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -58,6 +60,9 @@ final class FollowupFinalizer
         $policy = new Policy($knowledge);
         $state->setOutcome($policy->computeOutcome($state));
         $state->data['missing'] = $policy->computeMissing($state);
+        if ($goal->kind === 'unknown_fact') {
+            $this->logUnknownQuestionTask($tenant, $claim, $goal, $scope);
+        }
         $text = $result['text'];
         if ($tenant->source === 'public' && $mode === 'bot' && $claim->baseVersion === 0) {
             $visitorName = $conversation->contact_id ? DB::table('contacts')->where($scope)->where('id', $conversation->contact_id)->value('name') : null;
@@ -99,5 +104,18 @@ final class FollowupFinalizer
         }
 
         return ['status' => $status, 'result' => $output];
+    }
+
+    /** Logs a manager task for the unanswered question, by the pattern of App\Seller\Engine\CreatePromise. */
+    private function logUnknownQuestionTask(TenantContext $tenant, TurnClaim $claim, Goal $goal, array $scope): void
+    {
+        $question = is_string($goal->extras['question'] ?? null) ? trim($goal->extras['question']) : '';
+        $timezone = DB::table('brands')->where('organization_id', $tenant->organizationId)->where('id', $tenant->brandId)->value('timezone');
+        $dueAt = CarbonImmutable::now($timezone ?: 'UTC')->endOfDay();
+        DB::table('seller_tasks')->insert(['id' => (string) Str::ulid(), ...$scope,
+            'conversation_id' => $claim->conversationId, 'type' => 'unknown_question',
+            'payload' => json_encode(['text' => $question, 'question' => $question, 'turn_id' => $claim->turnId],
+                JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
+            'status' => 'new', 'priority' => 'normal', 'due_at' => $dueAt, 'created_at' => now(), 'updated_at' => now()]);
     }
 }

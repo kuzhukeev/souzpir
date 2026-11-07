@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Seller\Conversations\ActiveTenantLock;
 use App\Seller\Conversations\Data\TurnClaim;
 use App\Seller\Conversations\Data\TurnOutcome;
+use App\Seller\Engine\Goal;
 use App\Seller\Engine\GuardDecision;
 use App\Seller\Engine\LeadState;
 use App\Seller\Engine\Policy;
@@ -195,6 +196,9 @@ final class FirstTurnTextFinalizer
         $policy = new Policy($knowledge);
         $state->setOutcome($policy->computeOutcome($state));
         $state->data['missing'] = $policy->computeMissing($state);
+        if ($goal->kind === 'unknown_fact') {
+            $this->logUnknownQuestionTask($tenant, $claim, $goal);
+        }
         $metadata = ['intent' => $extraction['client_intent'] ?? null, 'goal_kind' => $goal->kind, 'guard' => $guard['verdict'] ?? null];
         $inputId = DB::table('seller_turns')->where('id', $claim->turnId)->where('organization_id', $tenant->organizationId)
             ->where('brand_id', $tenant->brandId)->value('input_message_id');
@@ -252,6 +256,20 @@ final class FirstTurnTextFinalizer
 
         return ['turn_id' => $claim->turnId, 'message_id' => $messageId, 'version' => $claim->baseVersion + 1,
             'outcome_seal' => hash_hmac('sha256', 'c02-first-text-outcome:'.$outcomeHash, (string) config('app.key'))];
+    }
+
+    /** Logs a manager task for the unanswered question, by the pattern of App\Seller\Engine\CreatePromise. */
+    private function logUnknownQuestionTask(#[SensitiveParameter] TenantContext $tenant, #[SensitiveParameter] TurnClaim $claim, Goal $goal): void
+    {
+        $question = is_string($goal->extras['question'] ?? null) ? trim($goal->extras['question']) : '';
+        $timezone = DB::table('brands')->where('organization_id', $tenant->organizationId)->where('id', $tenant->brandId)->value('timezone');
+        $dueAt = CarbonImmutable::now($timezone ?: 'UTC')->endOfDay();
+        DB::table('seller_tasks')->insert(['id' => (string) Str::ulid(),
+            'organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId,
+            'conversation_id' => $claim->conversationId, 'type' => 'unknown_question',
+            'payload' => json_encode(['text' => $question, 'question' => $question, 'turn_id' => $claim->turnId],
+                JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
+            'status' => 'new', 'priority' => 'normal', 'due_at' => $dueAt, 'created_at' => now(), 'updated_at' => now()]);
     }
 
     private function verifyReceipt(#[SensitiveParameter] TenantContext $tenant, #[SensitiveParameter] TurnClaim $claim, #[SensitiveParameter] array $result): void
