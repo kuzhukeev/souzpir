@@ -1,16 +1,20 @@
 # SP-E6-03AA
 
-- Добавлены события согласия и отписки, фиксация ответа на вопрос и стоп-фраз входящих сообщений.
-- Массовое планирование требует согласия, сохраняет время и проверяет отписку клиента во всех его диалогах бренда перед fake-доставкой; экран показывает число отписок.
-- Миграция перенесена в поддерживаемый каталог E6-03Z. Браузерная проверка E6-03K сохраняет запрет планирования без согласия.
-- Проверки: PHPUnit FollowupConsentE603AA, FollowupSend и FollowupJob — 9 тестов, 59 проверок; Playwright E6-03AA и E6-03K — 2 теста; Pint и ESLint прошли. Ранее в этой ветке прошли TypeScript, ESLint и generated types --check.
-- Скриншот: `.local/screenshots/SP-E6-03AA/followups.png`.
+Этап после слияния SP-E6-10E (карточка клиента доступна в scope).
+
+- Карточка клиента (D-3.2): блок «Согласие на рассылку» — статус (получено/отозвано/не зафиксировано), счётчик событий отписки, форма менеджера с обязательным основанием и кнопками «Подтвердить согласие»/«Отозвать согласие». Новый маршрут `POST /seller/customers/{contact}/consent`, запись через существующий `FollowupConsent` (источник `manager`), права `seller.dialogues.operate`.
+- Telegram-бот: блокировка/выход клиента из чата (`my_chat_member`, статус `kicked`/`left`) фиксируется как событие отписки (источник `dialog`) идемпотентно по `update_id`; `setWebhook` подписывается на `allowed_updates: [message, my_chat_member]`. Живые вызовы Telegram не включались, только fake/Http::fake в тестах.
+- Отписка по-прежнему учитывается по всем диалогам контакта бренда (проверено: `FollowupSendTest::bulk_delivery_respects_schedule_and_revocation`, `opt_out_applies_to_all_conversations_of_the_contact`), новые события (из карточки и из Telegram) используют тот же механизм и так же блокируют отправку.
+- Проверено: `php artisan test tests/Feature/Seller/Customers/CustomerConsentE603AATest.php tests/Feature/Seller/Channels/Telegram/TelegramUnsubscribeE603AATest.php tests/Feature/Seller/Followups/FollowupConsentE603AATest.php` — 6 тестов, 77 проверок; полный прогон `tests/Feature/Seller/Customers/ tests/Feature/Seller/Channels/Telegram/ tests/Feature/Seller/Followups/` — 51 тест, 984 проверки, всё зелено (регрессий нет). Playwright `tests/Browser/E6-03AA/` и `tests/Browser/E6-03K/` — 3 теста. Pint, ESLint, `tsc --noEmit`, `generate.php --check` (после регенерации `routes.d.ts`) прошли.
+- Скриншоты: `.local/screenshots/SP-E6-03AA/customer-card.png` (светлая тема, 1440), `.local/screenshots/SP-E6-03AA/followups.png` (из прежней сдачи).
+- Сверено с макетом карточки клиента (мокапы D-3.2) и журналом `docs/sources/02b_mockup_journal.md`.
 
 ## Остаток
-- Подключить события согласия и отписки к карточке клиента и импорту CRM, виджету, API и CRM-интеграции после освобождения их владельцами; фиксировать блокировку канала как отписку.
+- Согласие из импорта CRM (`import`) и из переписки виджета (`dialog` через виджет) выполнить в этой же карточке после done SP-E1-10K и SP-E5-02C — `app/Seller/Channels/Crm/` и виджет сейчас не трогать.
 
 ## Техдолг
-- Нет.
+- Нет новых рисков.
 
 ## Принято по умолчанию
-- Доставка остаётся fake; согласие фиксируется менеджером на экране дожимов с обязательным основанием.
+- Форма согласия на карточке клиента записывает событие против последнего диалога контакта (как и у менеджера на экране дожимов); агрегация по контакту уже учитывает это во всех его диалогах бренда.
+- Событие Telegram-отписки формулируется как «клиент заблокировал бота или покинул чат» без различения kicked/left в тексте основания.

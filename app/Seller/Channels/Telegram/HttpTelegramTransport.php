@@ -22,7 +22,7 @@ final class HttpTelegramTransport implements TelegramTransport
 
     public function register(#[\SensitiveParameter] string $token, string $url, #[\SensitiveParameter] string $secret): bool
     {
-        return $this->call($token, 'setWebhook', ['url' => $url, 'secret_token' => $secret, 'allowed_updates' => ['message']]);
+        return $this->call($token, 'setWebhook', ['url' => $url, 'secret_token' => $secret, 'allowed_updates' => ['message', 'my_chat_member']]);
     }
 
     public function send(#[\SensitiveParameter] string $token, string $chatId, #[\SensitiveParameter] string $text): bool

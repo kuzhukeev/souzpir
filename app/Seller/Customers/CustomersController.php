@@ -8,6 +8,7 @@ use App\Seller\Engine\LeadState;
 use App\Seller\Engine\Policy;
 use App\Seller\Knowledge\Contracts\KnowledgeRepository;
 use App\Seller\Knowledge\KnowledgeNotReady;
+use App\Seller\Followups\FollowupConsent;
 use App\Seller\Knowledge\KnowledgeSnapshot;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Audit\AuditEntry;
@@ -128,6 +129,9 @@ final class CustomersController
                 $task->assignee_name = $task->assigned_user_id ? $assignees->get($task->assigned_user_id) : null;
                 $task->channel = $task->conversation_id ? $conversationChannels->get($task->conversation_id) : null;
             });
+            $consentEvents = $this->scope('seller_followup_consents', $tenant)->whereIn('conversation_id', $conversations->pluck('id'))->orderByDesc('sequence')->get(['event']);
+            $consentStatus = $consentEvents->first()?->event ?? 'none';
+            $consentUnsubscribed = $consentEvents->where('event', 'revoked')->count();
             $notes = $this->scope('seller_customer_notes', $tenant)->where('contact_id', $contact)->orderByDesc('created_at')->get(['id', 'body', 'author_id', 'created_at']);
             $authors = DB::table('users')->whereIn('id', $notes->pluck('author_id')->filter()->unique())->pluck('name', 'id');
             $notes->each(fn ($note) => $note->author_name = $authors->get($note->author_id));
@@ -156,6 +160,7 @@ final class CustomersController
             }
 
             return ['canReadDialogs' => Gate::forUser($user)->allows('seller.dialogs.read'), 'managers' => $eligible, 'assignedUserId' => $latest?->assigned_user_id, 'canAssign' => $canAssign, 'manager' => $latest?->assigned_user_id ? DB::table('users')->where('id', $latest->assigned_user_id)->value('name') : null, 'customer' => $customer, 'clientType' => $this->clientType($latest?->state), 'slots' => data_get($state, 'slots', []), 'customFieldLabels' => $customFieldLabels,
+                'consent' => ['status' => $consentStatus, 'unsubscribed' => $consentUnsubscribed, 'canEdit' => $canAssign && $latest !== null],
                 'conversations' => $conversations->map(fn ($row) => ['id' => $row->id, 'stage' => $row->stage, 'outcome' => $row->outcome, 'mode' => $row->mode, 'channel' => $channelNames->get($row->channel_account_id), 'updated_at' => $row->updated_at]),
                 'history' => $history, 'tasks' => $tasks, 'notes' => $notes, 'canWrite' => Gate::forUser($user)->allows('seller.customers.write')];
         });
@@ -217,6 +222,19 @@ final class CustomersController
         });
 
         return back()->with('status', 'Напоминание создано.');
+    }
+
+    public function consent(Request $request, string $contact): mixed
+    {
+        $input = $request->validate(['event' => ['required', 'in:granted,revoked'], 'basis' => ['required', 'string', 'max:1000']]);
+        $this->access($request, 'seller.dialogues.operate', function (User $user, TenantContext $tenant) use ($contact, $input): void {
+            $this->scope('contacts', $tenant)->where('id', $contact)->whereNull('merged_into_id')->first() ?? abort(404);
+            $conversation = $this->scope('conversations', $tenant)->where('contact_id', $contact)->orderByDesc('updated_at')->orderByDesc('id')->first() ?? abort(404);
+            app(FollowupConsent::class)->record($tenant, $conversation->id, $input['event'], 'manager', $input['basis'], actor: $user->id);
+            app(AuditWriter::class)->record($tenant, new AuditEntry('seller.customer.consent.'.$input['event'], 'conversation', $conversation->id));
+        });
+
+        return back()->with('status', 'Согласие обновлено.');
     }
 
     public function note(Request $request, string $contact): mixed
