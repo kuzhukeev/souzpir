@@ -3,6 +3,7 @@
 namespace App\Seller\Catalog;
 
 use App\Models\User;
+use App\Seller\Channels\Email\PriceMailSender;
 use App\Seller\Engine\ToolRunner;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Audit\AuditEntry;
@@ -61,6 +62,13 @@ final class CatalogController
         return Inertia::render('Seller/Catalog/Index', [...$data, 'status' => $request->session()->get('status')]);
     }
 
+    public function settingsPage(Request $request): mixed
+    {
+        $data = $this->access($request, fn (User $user, TenantContext $tenant) => $this->data($tenant));
+
+        return Inertia::render('Seller/Catalog/Settings', [...$data, 'status' => $request->session()->get('status')]);
+    }
+
     public function stock(Request $request): mixed
     {
         $data = $this->access($request, function (User $user, TenantContext $tenant): array {
@@ -112,6 +120,28 @@ final class CatalogController
         });
 
         return $error ? back()->withErrors(['file' => $error]) : back()->with('status', 'Каталог загружен.');
+    }
+
+    public function deleteItem(Request $request, string $item): mixed
+    {
+        $this->access($request, function (User $user, TenantContext $tenant) use ($item): void {
+            $deleted = $this->scope('catalog_items', $tenant)->where('id', $item)->delete();
+            abort_unless($deleted > 0, 404);
+            app(AuditWriter::class)->record($tenant, new AuditEntry('seller.catalog.item.deleted', 'catalog_item', $item));
+        });
+
+        return back()->with('status', 'Товар удалён.');
+    }
+
+    public function sendTestPrice(Request $request): mixed
+    {
+        $sent = $this->access($request, function (User $user, TenantContext $tenant) {
+            return app(PriceMailSender::class)->send($tenant, $user->email, test: true);
+        });
+
+        return $sent
+            ? back()->with('status', "Тестовое письмо отправлено на {$request->user()->email}.")
+            : back()->withErrors(['send' => 'Не удалось отправить: настройте почту, файл или ссылку прайса.']);
     }
 
     private function settings(TenantContext $tenant): object

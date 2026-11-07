@@ -10,8 +10,8 @@ use Throwable;
 
 final class PriceMailSender
 {
-    /** Returns false for the existing manager-task fallback. */
-    public function send(TenantContext $tenant, string $recipient): bool
+    /** Returns false for the existing manager-task fallback. $test always uses the safe array mailer, ignoring the brand's SMTP settings. */
+    public function send(TenantContext $tenant, string $recipient, bool $test = false): bool
     {
         if (! config('seller.email_price_enabled', false) || ! $tenant->organizationId || ! $tenant->brandId || ! filter_var($recipient, FILTER_VALIDATE_EMAIL)) {
             return false;
@@ -64,7 +64,9 @@ final class PriceMailSender
         try {
             $delivery = app(EmailDeliverySettings::class)->read($tenant);
             $mail = new PriceMail($path, $filename, $settings->sender_email, $settings->sender_name, $delivery['signature'], priceUrl: $link, catalogCsv: $csv);
-            if ($delivery['mode'] === 'smtp') {
+            if ($test) {
+                Mail::mailer('array')->to($recipient)->send($mail);
+            } elseif ($delivery['mode'] === 'smtp') {
                 Mail::build(['transport' => 'smtp', 'host' => $delivery['smtp_host'], 'port' => $delivery['smtp_port'], 'username' => $delivery['smtp_username'] ?: null, 'password' => app(EmailDeliverySettings::class)->password($tenant), 'scheme' => $delivery['smtp_security'] === 'ssl' ? 'smtps' : 'smtp'])->to($recipient)->send($mail);
             } else {
                 Mail::to($recipient)->send($mail);

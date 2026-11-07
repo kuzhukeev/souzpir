@@ -748,8 +748,16 @@ declare module 'ziggy-js' {
     "seller.settings.notifications.digests.time": [],
     "seller.settings.notifications.test": [],
     "seller.catalog.index": [],
+    "seller.catalog.settings": [],
     "seller.catalog.import": [],
+    "seller.catalog.items.delete": [
+        {
+            "name": "item",
+            "required": true
+        }
+    ],
     "seller.catalog.price-file": [],
+    "seller.catalog.price-file.send": [],
     "seller.catalog.yml.save": [],
     "seller.catalog.yml.refresh": [],
     "seller.catalog.stock": [],
