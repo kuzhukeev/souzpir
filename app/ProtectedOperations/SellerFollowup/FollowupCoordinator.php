@@ -79,6 +79,7 @@ final class FollowupCoordinator
                 $http = Request::create('/internal/simulation', 'POST');
                 app(Gateway::class)->completeApiFollowupExtractor($http, $tenant, $claim);
                 app(Gateway::class)->completeApiFollowupResponder($http, $tenant, $claim);
+                app(Gateway::class)->completeApiFollowupGuard($http, $tenant, $claim);
                 $result = DB::transaction(fn () => app(FollowupFinalizer::class)->finishProtectedApi($http, $tenant, $claim, 'bot'));
                 $assistantId = $result['result']['message_id'] ?? null;
             }
@@ -173,6 +174,7 @@ final class FollowupCoordinator
             $claim = new TurnClaim('claimed', $receipt['turn'], $command->conversationId, $tenant->organizationId, $tenant->brandId, $receipt['version'], $receipt['token']);
             app(Gateway::class)->completeApiFollowupExtractor($http, $tenant, $claim);
             app(Gateway::class)->completeApiFollowupResponder($http, $tenant, $claim);
+            app(Gateway::class)->completeApiFollowupGuard($http, $tenant, $claim);
 
             return DB::transaction(fn () => app(FollowupFinalizer::class)->finishProtectedApi($http, $tenant, $claim, $mode));
         } catch (HttpExceptionInterface $error) {
