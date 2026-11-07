@@ -10,7 +10,7 @@
 - Реализовать двухэтапный путь Gateway вне транзакции ResolveTokenTenant с повторной проверкой полномочий и сквозным тестом; существующие защищённые стадии требуют входящего сообщения и сессии.
 - Проверить экран, маршрут, обработчик, хранение и видимый результат; ошибки, права и бренд. Только fake, без живых или платных вызовов.
 
-Scope: `app/Seller/Channels/Api/`, `app/Seller/Runtime/`, `app/ProtectedOperations/`, `app/Ai/Protected/`, `app/Ai/Gateway.php`, `app/Tenancy/TokenApi/`, `resources/js/pages/Seller/Channels/Api/`, `routes/features/E5-03.php`, `tests/Feature/Seller/Channels/Api/`, `tests/Feature/ProtectedOperations/`, `tests/Feature/SellerRuntime/Turns/`, `tests/Feature/Ai/`, `tests/Browser/E5-03F/`, `docs/results/SP-E5-03F.md`.
+Scope: `app/Ai/Gateway.php`, `app/Ai/Protected/`, `app/ProtectedOperations/SellerFollowup/FollowupCoordinator.php`, `app/ProtectedOperations/SellerFollowup/FollowupFinalizer.php`, `app/Seller/Runtime/ApiFollowupRuntime.php`, `app/Seller/Runtime/TokenInboundRuntime.php`, `app/Seller/Channels/Api/LeadIngressController.php`, `app/Tenancy/TokenApi/TokenTenantAuthority.php`, `app/Tenancy/TokenApi/ResolveTokenTenant.php`, `routes/features/E5-03.php`, `tests/Feature/Ai/`, `tests/Feature/Seller/Channels/Api/`, `tests/Feature/SellerRuntime/Turns/FollowupHttpTest.php`, `tests/Feature/SellerRuntime/Turns/ProtectedFollowupFixtures.php`, `tests/Feature/Seller/Evaluation/ProtectedSimulationRuntimeTest.php`, `tests/Feature/Seller/Evaluation/SimulationBridgeE306DTest.php`, `docs/results/SP-E5-03F.md`.
 
 ## Остаток после частичной приёмки
 - Simulation job переведён на защищённые extractor/responder/guard и fake Gateway; см. отчёт SP-E5-03F.
@@ -18,4 +18,6 @@ Scope: `app/Seller/Channels/Api/`, `app/Seller/Runtime/`, `app/ProtectedOperatio
 - Добавить явный повтор после ошибки fake Gateway; сохранить идемпотентность завершённого запроса.
 - Проверить входы старого транзакционного `TokenInboundRuntime` и заменить фиксированный fallback там, где он участвует в согласованных сценариях.
 
-Дополнение scope: `tests/Feature/Seller/Evaluation/` для изменяемого simulation job.
+
+## Следующий этап
+Сначала реализовать явный повтор после ошибки fake Gateway в согласованных API/симуляционных ходах и проверить идемпотентность и изоляцию. Инструменты, регенерация, модельный guard и применяемый legacy fallback остаются в этой же карточке; занятый Seller Engine не изменять.
