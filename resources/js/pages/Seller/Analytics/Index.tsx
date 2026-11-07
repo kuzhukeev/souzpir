@@ -68,6 +68,8 @@ function formatMinutesToContact(value: number | null | undefined) {
 }
 const labels: Record<string, string> = {
   unknown: 'Не определён',
+  site: 'Сайт (API)',
+  crm: 'CRM',
   newbie: 'Начинающий',
   experienced: 'Опытный',
   for_self: 'Для себя',
@@ -231,6 +233,8 @@ export default function Index({ analytics: a }: { analytics: Analytics }) {
               className="mt-1 block min-h-11 cursor-pointer rounded-lg border border-(--color-border) bg-(--color-surface) px-3"
             >
               <option value="">Все источники</option>
+              <option value="site">Сайт (API)</option>
+              <option value="crm">CRM</option>
               <option value="unknown">Неизвестен</option>
             </select>
           </label>
@@ -351,7 +355,7 @@ export default function Index({ analytics: a }: { analytics: Analytics }) {
               <h2 className="text-xl font-bold">Источники</h2>
               <Rows values={a.sources ?? {}} />
               <p className="mt-2 text-sm text-(--color-ink-muted)">
-                Источник и UTM пока не сохраняются; данные не подставляются автоматически.
+                Источник сохраняется только для обращений через API (site/crm); остальные каналы показаны как «Не определён».
               </p>
             </section>
             <section className={card}>

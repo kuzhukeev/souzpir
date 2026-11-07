@@ -3,6 +3,7 @@
 namespace App\Seller\Analytics;
 
 use App\Models\User;
+use App\Seller\Channels\Api\ApiSourceReceipt;
 use App\Seller\Evaluation\EvaluationVisibility;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Profile\ProfileAccess;
@@ -31,7 +32,7 @@ final class AnalyticsController
 
     private function data(Request $request, User $user, TenantContext $tenant): array
     {
-        $input = $request->validate(['from' => ['nullable', 'date_format:Y-m-d'], 'to' => ['nullable', 'date_format:Y-m-d'], 'channel' => ['nullable', 'string', 'max:64'], 'source' => ['nullable', 'in:unknown'], 'manager' => ['nullable', 'ulid']]);
+        $input = $request->validate(['from' => ['nullable', 'date_format:Y-m-d'], 'to' => ['nullable', 'date_format:Y-m-d'], 'channel' => ['nullable', 'string', 'max:64'], 'source' => ['nullable', 'in:unknown,site,crm'], 'manager' => ['nullable', 'ulid']]);
         $timezone = DB::table('brands')->where('organization_id', $tenant->organizationId)->where('id', $tenant->brandId)->value('timezone') ?: 'UTC';
         $today = CarbonImmutable::now($timezone);
         $from = $input['from'] ?? $today->subDays(29)->format('Y-m-d');
@@ -44,6 +45,15 @@ final class AnalyticsController
         $rows = DB::table('conversations as c')->leftJoin('channel_accounts as a', 'a.id', '=', 'c.channel_account_id')->leftJoin('users as u', 'u.id', '=', 'c.assigned_user_id')
             ->where('c.organization_id', $tenant->organizationId)->where('c.brand_id', $tenant->brandId)->where('c.created_at', '>=', $begin)->where('c.created_at', '<', $end)
             ->get(['c.id', 'c.contact_id', 'c.stage', 'c.client_type', 'c.outcome', 'c.state', 'c.assigned_user_id', 'c.handed_off_at', 'c.taken_at', 'c.contact_received_at', 'c.created_at', 'c.updated_at', 'a.type as channel', 'u.name as manager']);
+        $leadRequests = DB::table('seller_api_lead_requests')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
+            ->whereIn('conversation_id', $rows->pluck('id'))->get(['id', 'conversation_id']);
+        $sourceByEvent = app(ApiSourceReceipt::class)->forEvents($tenant->organizationId, $tenant->brandId, $leadRequests->pluck('id')->all());
+        $sourceByConversation = $leadRequests->mapWithKeys(fn ($lead) => [$lead->conversation_id => $sourceByEvent[$lead->id] ?? null])->filter();
+        $rows = $rows->map(function ($row) use ($sourceByConversation) {
+            $row->source = $sourceByConversation[$row->id] ?? 'unknown';
+
+            return $row;
+        });
         $canManage = Gate::forUser($user)->allows('seller.settings.write');
         $manager = $input['manager'] ?? '';
         abort_if($manager !== '' && ! $canManage, 403);
@@ -57,12 +67,15 @@ final class AnalyticsController
         if ($manager !== '') {
             $rows = $rows->where('assigned_user_id', $manager)->values();
         }
-        // The current intake does not persist source or UTM fields.
+        if ($source !== '') {
+            $rows = $rows->filter(fn ($row) => $row->source === $source)->values();
+        }
         $total = $rows->count();
         $outcomes = array_fill_keys(['full_contact', 'partial_contact', 'handoff', 'paused', 'declined', 'stale', 'spam'], 0);
         $types = array_fill_keys(['unknown', 'newbie', 'experienced', 'for_self', 'prices_only'], 0);
         $stages = [];
         $channels = [];
+        $sources = [];
         $managers = [];
         $daily = [];
         $contact = 0;
@@ -77,6 +90,7 @@ final class AnalyticsController
             $types[$type]++;
             $stages[$row->stage] = ($stages[$row->stage] ?? 0) + 1;
             $channels[$row->channel ?? 'unknown'] = ($channels[$row->channel ?? 'unknown'] ?? 0) + 1;
+            $sources[$row->source] = ($sources[$row->source] ?? 0) + 1;
             $day = CarbonImmutable::parse($row->created_at)->setTimezone($timezone)->format('Y-m-d');
             $daily[$day] = ($daily[$day] ?? 0) + 1;
             $state = json_decode($row->state, true) ?: [];
@@ -332,7 +346,7 @@ final class AnalyticsController
                 return ['page' => $page, 'opens' => $group->count(), 'dialogs' => $dialogIds->count(), 'contacts' => $contacts->count(), 'utm' => $group->pluck('utm')->filter()->first()];
             })->sortByDesc('opens')->values()->all();
 
-        return ['from' => $from, 'to' => $to, 'channel' => $channel, 'source' => $source, 'manager' => $manager, 'managerOptions' => $managerOptions, 'funnel' => $funnel, 'outcomes' => $outcomes, 'previousTotal' => $previousTotal, 'previousMetrics' => $previousMetrics, 'transitionRates' => $rates, 'channelOptions' => $channelOptions, 'sources' => ['unknown' => $total], 'channelMetrics' => $channelMetrics, 'sitePages' => $sitePages, 'transitions' => $transitions, 'total' => $total, 'contact' => $contact, 'handed' => $handed, 'closed' => $closed,
+        return ['from' => $from, 'to' => $to, 'channel' => $channel, 'source' => $source, 'manager' => $manager, 'managerOptions' => $managerOptions, 'funnel' => $funnel, 'outcomes' => $outcomes, 'previousTotal' => $previousTotal, 'previousMetrics' => $previousMetrics, 'transitionRates' => $rates, 'channelOptions' => $channelOptions, 'sources' => $sources, 'channelMetrics' => $channelMetrics, 'sitePages' => $sitePages, 'transitions' => $transitions, 'total' => $total, 'contact' => $contact, 'handed' => $handed, 'closed' => $closed,
             'types' => $types, 'stages' => $stages, 'channels' => $channels, 'daily' => $daily, 'topics' => $topics, 'topicUnknownRates' => $topicUnknownRates,
             'dialogs' => $dialogs, 'hours' => $hours, 'unknownDialogs' => $unknownDialogs, 'unknownQuestions' => $unknownQuestions, 'messageCount' => $messages->count(), 'botCompleted' => $botCompleted, 'triggers' => $triggers, 'triggerStats' => $triggerStats,
             'managers' => array_values($managers), 'canManage' => Gate::forUser($user)->allows('seller.settings.write'), 'avgMinutesToContact' => $avgMinutesToContact];
