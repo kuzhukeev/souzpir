@@ -4,11 +4,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ReactNode } from 'react';
 import type { PlannedData } from '@/types/Seller/Channels/Planned';
 import Index from '@/pages/Seller/Channels/Planned/Index';
+import EmailIndex from '@/pages/Seller/Channels/Email/Index';
 
-vi.mock('@/layouts/CabinetLayout', () => ({ default: ({ children }: { children: ReactNode }) => <main>{children}</main> }));
+vi.mock('@/layouts/CabinetLayout', () => ({ default: ({ children, breadcrumbs }: { children: ReactNode; breadcrumbs: { label: string; href?: string }[] }) => <main><nav aria-label="Хлебные крошки">{breadcrumbs.map((item) => item.href ? <a key={item.label} href={item.href}>{item.label}</a> : <span key={item.label}>{item.label}</span>)}</nav>{children}</main> }));
 vi.mock('@inertiajs/react', () => ({
   Head: () => null,
   Link: ({ children, href, className }: { children: ReactNode; href: string; className?: string }) => <a href={href} className={className}>{children}</a>,
+  useForm: (data: object) => ({ data, errors: {}, processing: false, setData: vi.fn(), post: vi.fn() }),
 }));
 
 const planned: PlannedData = {
@@ -27,23 +29,48 @@ const planned: PlannedData = {
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 describe('planned channels and integrations', () => {
+  it('keeps the channels link in the email settings breadcrumbs', () => {
+    render(<EmailIndex settings={null} status={null} />);
+    expect(screen.getByRole('navigation', { name: 'Хлебные крошки' }).querySelector('a[href="/seller/channels"]')?.textContent).toBe('Каналы');
+    expect(screen.getByRole('radio', { name: /Через EYON/ })).toBeTruthy();
+    expect(screen.getByRole('radio', { name: /SMTP/ })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Отправить тест' }).getAttribute('href')).toBe('#email-test');
+  });
   it('marks each future channel as unavailable and does not offer an unavailable interest action', () => {
     const view = render(<Index section="vk" planned={planned} />);
     expect(screen.getByText('Скоро')).toBeTruthy();
     expect(screen.getByText('Подключение канала пока недоступно.')).toBeTruthy();
+    expect(screen.getByRole('link', { name: /Вернуться к каналам/ }).getAttribute('href')).toBe('/seller/channels');
+    expect(screen.getByRole('navigation', { name: 'Хлебные крошки' }).querySelector('a[href="/seller/channels"]')?.textContent).toBe('Каналы');
     expect((screen.getByRole('button', { name: 'Сообщить, когда появится' }) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByText('Сохранение интереса пока недоступно.')).toBeTruthy();
     view.rerender(<Index section="whatsapp" planned={planned} />);
     expect(screen.getByText('Скоро')).toBeTruthy();
     expect(screen.getByText(/WhatsApp Business API/)).toBeTruthy();
+    expect(screen.getByRole('link', { name: /Вернуться к каналам/ }).getAttribute('href')).toBe('/seller/channels');
+    expect(screen.getByRole('navigation', { name: 'Хлебные крошки' }).querySelector('a[href="/seller/channels"]')?.textContent).toBe('Каналы');
     expect(screen.queryByText(/подключено/i)).toBeNull();
   });
 
   it('keeps unavailable reminders disabled with an explanation', () => {
     render(<Index section="calendar" planned={planned} />);
-    expect((screen.getByRole('switch', { name: 'Напоминания на почту менеджеру' }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole('switch', { name: 'Напоминания о договорённостях на почту менеджеру' }) as HTMLButtonElement).disabled).toBe(true);
     expect((screen.getByRole('button', { name: 'Сохранить изменения' }) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByText('Источник даты пока недоступен.')).toBeTruthy();
+  });
+
+  it('allows the calendar switch by keyboard and saves the chosen brand setting', async () => {
+    const user = userEvent.setup();
+    const fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({ data: { enabled: true } }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    vi.stubGlobal('fetch', fetch);
+    render(<Index section="calendar" planned={{ ...planned, reminders: { enabled: false, available: true, reason: 'Тестовая доставка.' } }} />);
+    const toggle = screen.getByRole('switch', { name: 'Напоминания о договорённостях на почту менеджеру' });
+    toggle.focus();
+    await user.keyboard(' ');
+    expect(toggle.getAttribute('aria-checked')).toBe('true');
+    await user.click(screen.getByRole('button', { name: 'Сохранить изменения' }));
+    await waitFor(() => expect(screen.getByText('Настройки сохранены.')).toBeTruthy());
+    expect(fetch).toHaveBeenCalledWith('/seller/planned/reminders', expect.objectContaining({ method: 'PUT', body: JSON.stringify({ enabled: true }) }));
   });
 
   it('renders planned integrations as future, never as connected', () => {
