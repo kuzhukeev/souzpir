@@ -44,9 +44,28 @@ final class FirstTurnDeterministicGuard
 
             $continuation = DB::table('e309_responder_continuations')->where('stage_id', $responderId)->first();
             $payload = $continuation ? json_decode(Crypt::decryptString($continuation->payload_encrypted), true, 512, JSON_THROW_ON_ERROR) : [];
-            $called = array_column($payload['tool_results'] ?? [], 'name');
+            $toolResults = $payload['tool_results'] ?? [];
+            $called = array_column($toolResults, 'name');
+            $tenant = app(TenantContext::class);
+            $catalogPricesEnabled = (bool) DB::table('brand_seller_settings')->where('organization_id', $tenant->organizationId)
+                ->where('brand_id', $tenant->brandId)->value('catalog_prices_enabled');
+            $catalogKnownPrices = [];
+            foreach ($toolResults as $toolResult) {
+                if (($toolResult['name'] ?? null) !== 'check_stock') {
+                    continue;
+                }
+                foreach ($toolResult['result']['items'] ?? [] as $item) {
+                    foreach (['price', 'wholesale_price'] as $field) {
+                        if (isset($item[$field]) && is_numeric($item[$field])) {
+                            $catalogKnownPrices[] = (float) $item[$field];
+                        }
+                    }
+                }
+            }
 
-            $result = (new DeterministicGuard($knowledge))->check($candidate['text'], $computed['goal'], new LeadState($computed['state']), ['tools_called' => $called]);
+            $result = (new DeterministicGuard($knowledge))->check($candidate['text'], $computed['goal'], new LeadState($computed['state']), [
+                'tools_called' => $called, 'catalog_prices_enabled' => $catalogPricesEnabled, 'catalog_known_prices' => $catalogKnownPrices,
+            ]);
             app(GuardHitRecorder::class)->record(app(TenantContext::class), $responderId, $knowledge, $candidate['text'], $result);
 
             return $result;
