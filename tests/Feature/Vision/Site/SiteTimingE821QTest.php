@@ -15,7 +15,7 @@ use Tests\Feature\Tenancy\TenancyTestCase;
 
 final class SiteTimingE821QTest extends TenancyTestCase
 {
-    public function test_fake_failure_keeps_elapsed_time_and_never_exposes_an_estimate(): void
+    public function test_fake_failure_keeps_elapsed_time_and_exposes_the_estimate_only_after_a_page_was_checked(): void
     {
         Http::preventStrayRequests();
         Queue::fake();
@@ -31,9 +31,12 @@ final class SiteTimingE821QTest extends TenancyTestCase
         $key = AuditSiteJob::key($org->id, $brand->id);
         $inspector = \Mockery::mock(SiteInspector::class);
         $inspector->shouldReceive('inspect')->once()->andReturnUsing(function ($url, $limit, $callback) use ($key): never {
-            $callback(2, 3);
+            $callback(0, 3);
             self::assertNull(Cache::get($key)['remaining_seconds']);
             $this->get('/vision/site')->assertOk()->assertInertia(fn ($page) => $page->where('auditProgress.remaining_seconds', null));
+            $callback(2, 3);
+            self::assertIsInt(Cache::get($key)['remaining_seconds']);
+            $this->get('/vision/site')->assertOk()->assertInertia(fn ($page) => $page->where('auditProgress.remaining_seconds', fn ($value) => is_int($value) && $value >= 0));
             throw new \RuntimeException('Fake failure');
         });
         $job->handle($inspector, app(SiteAccess::class), app(AuditWriter::class));
