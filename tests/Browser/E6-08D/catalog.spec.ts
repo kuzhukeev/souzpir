@@ -13,7 +13,9 @@ test('источники каталога, цены и все колонки', a
   await page.setViewportSize({width:1440,height:900});
   await page.goto(url);
   await expect(page.getByRole('button',{name:'Google Sheets · Скоро'})).toBeDisabled();
-  await expect(page.getByRole('checkbox',{name:'Бот может называть цены · Скоро'})).toBeDisabled();
+  const prices=page.getByRole('checkbox',{name:'Бот может называть цены',exact:true});
+  await expect(prices).toBeEnabled();
+  await expect(prices).not.toBeChecked();
   await expect(page.getByText('Отправка файла ботом будет подключена позже.')).toBeVisible();
   for(const header of ['Артикул','Название','Категория','Цена опт','Цена розница','Наличие','Обновлено']) await expect(page.getByRole('columnheader',{name:header,exact:true})).toBeVisible();
   await expect(page.getByRole('cell',{name:'Есть',exact:true})).toBeVisible();

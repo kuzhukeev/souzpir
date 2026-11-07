@@ -1,4 +1,5 @@
 import { createInertiaApp } from '@inertiajs/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createRoot } from 'react-dom/client';
 import Profile from '../../../resources/js/pages/Shell/Profile/Profile';
 import Security from '../../../resources/js/pages/Shell/Profile/Security';
@@ -221,7 +222,7 @@ async function mount() {
   await createInertiaApp({
     resolve: () =>
       screen === 'security' ? Security : screen === 'notifications' ? Notifications : screen === 'ready' ? Ready : screen === 'switch' ? SwitchFixture : Profile,
-    setup: ({ el, App, props }) => createRoot(el).render(<App {...props} />),
+    setup: ({ el, App, props }) => createRoot(el).render(<QueryClientProvider client={new QueryClient()}><App {...props} /></QueryClientProvider>),
   });
 }
 void mount();

@@ -52,7 +52,7 @@ test('desktop collapse persists; navigation has icons and real routes only', asy
   await page.goto(url);
   await expect(page.getByRole('button', { name: 'Развернуть меню' })).toBeVisible();
 });
-test('mobile drawer returns focus and brand switch stays inactive', async ({ page }) => {
+test('mobile drawer returns focus and brand switch does not post by itself', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   let posts = 0;
   page.on('request', (request) => {
@@ -64,7 +64,8 @@ test('mobile drawer returns focus and brand switch stays inactive', async ({ pag
   await expect(page.getByRole('dialog', { name: 'Навигация кабинета' })).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(trigger).toBeFocused();
-  await expect(page.getByText('Пиротехника · Скоро')).toBeVisible();
+  // SP-E1-03B: with the dashboard route present the switch is active; opening the drawer must not switch.
+  await expect(page.getByRole('combobox', { name: 'Выбрать бренд' }).filter({ visible: true })).toBeVisible();
   expect(posts).toBe(0);
 });
 
