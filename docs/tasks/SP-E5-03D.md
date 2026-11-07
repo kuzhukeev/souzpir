@@ -11,3 +11,10 @@
 Scope: `app/Seller/Channels/Api/`, `resources/js/pages/Seller/Channels/Api/`, `routes/features/E5-03.php`, `tests/Feature/Seller/Channels/Api/`, `tests/Browser/E5-03D/`, `docs/results/SP-E5-03D.md`.
 
 Отчёт: docs/results/SP-E5-03D.md; локальные тесты задачи, submit и зелёный CI.
+
+## Конкретный остаток SP-E5-03C
+- Реализовать token-вход action=open для первого защищённого хода без клиентского сообщения и подставной сессии: сохранение, Policy, Guard и проверка изоляции.
+- Подключить согласованное поведение API-хода в режимах suggest/manager и при выключенном расписании; сохранять честный отказ для неподдержанных состояний.
+- Вместо фиксированного fake-ответа подключить защищённые AI-стадии и проверить полный fake-сценарий, ошибки, повторы, права и бренд; живые вызовы отдельно не включать.
+
+Дополнительный scope: `app/ProtectedOperations/`, `app/Seller/Runtime/`, `app/Ai/Protected/`, `app/Ai/Gateway.php`, `tests/Feature/ProtectedOperations/`, `tests/Feature/SellerRuntime/Turns/`, `tests/Feature/Ai/`.

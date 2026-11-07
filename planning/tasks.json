@@ -9964,7 +9964,7 @@
     {
       "taskKey": "SP-E5-03D",
       "title": "SP-E5-03D · API-канал: адрес, журнал, «Новый лид»",
-      "description": "# SP-E5-03D · API-канал: адрес, журнал, «Новый лид»\n\n**Зачем:** решение владельца от 03.11.2026 закрыть незапланированные расхождения с макетами по итогам аудита 160 экранов; экраны D-9.9.\n**Часть чего:** SP-E5-03C закрывает только open и turn.\n**Зависимости:** SP-E5-03C, SP-E5-07C (дождаться merge).\n\n- Экран D-9.9 «Входящие формы и API» соответствует макету из матрицы по пунктам (журнал docs/sources/02b_mockup_journal.md [75]): адрес /api/v1/turn + копировать; выбор «Новый лид» (open/turn → 503); колонки Источник/Статус/Ошибка; ссылка на failures. Где сейчас: Channels/Api/Index.tsx:12-16; LeadIngressController.php:47,87.\n- Каждый пункт покрыт Feature- или Browser-тестом; данные только текущего бренда, проверены права ролей; состояния пусто / загрузка / ошибка как на макете; в отчёте скриншоты каждого экрана рядом с макетом.\n- Без живых и платных внешних вызовов без разрешения владельца; если пункт макета противоречит ТЗ или требует решения владельца, исполнитель не выдумывает, а записывает вопрос в docs/decisions-pending.md и делает остальное.\n\nScope: `app/Seller/Channels/Api/`, `resources/js/pages/Seller/Channels/Api/`, `routes/features/E5-03.php`, `tests/Feature/Seller/Channels/Api/`, `tests/Browser/E5-03D/`, `docs/results/SP-E5-03D.md`.\n\nОтчёт: docs/results/SP-E5-03D.md; локальные тесты задачи, submit и зелёный CI.\n",
+      "description": "# SP-E5-03D · API-канал: адрес, журнал, «Новый лид»\n\n**Зачем:** решение владельца от 03.11.2026 закрыть незапланированные расхождения с макетами по итогам аудита 160 экранов; экраны D-9.9.\n**Часть чего:** SP-E5-03C закрывает только open и turn.\n**Зависимости:** SP-E5-03C, SP-E5-07C (дождаться merge).\n\n- Экран D-9.9 «Входящие формы и API» соответствует макету из матрицы по пунктам (журнал docs/sources/02b_mockup_journal.md [75]): адрес /api/v1/turn + копировать; выбор «Новый лид» (open/turn → 503); колонки Источник/Статус/Ошибка; ссылка на failures. Где сейчас: Channels/Api/Index.tsx:12-16; LeadIngressController.php:47,87.\n- Каждый пункт покрыт Feature- или Browser-тестом; данные только текущего бренда, проверены права ролей; состояния пусто / загрузка / ошибка как на макете; в отчёте скриншоты каждого экрана рядом с макетом.\n- Без живых и платных внешних вызовов без разрешения владельца; если пункт макета противоречит ТЗ или требует решения владельца, исполнитель не выдумывает, а записывает вопрос в docs/decisions-pending.md и делает остальное.\n\nScope: `app/Seller/Channels/Api/`, `resources/js/pages/Seller/Channels/Api/`, `routes/features/E5-03.php`, `tests/Feature/Seller/Channels/Api/`, `tests/Browser/E5-03D/`, `docs/results/SP-E5-03D.md`.\n\nОтчёт: docs/results/SP-E5-03D.md; локальные тесты задачи, submit и зелёный CI.\n\n## Конкретный остаток SP-E5-03C\n- Реализовать token-вход action=open для первого защищённого хода без клиентского сообщения и подставной сессии: сохранение, Policy, Guard и проверка изоляции.\n- Подключить согласованное поведение API-хода в режимах suggest/manager и при выключенном расписании; сохранять честный отказ для неподдержанных состояний.\n- Вместо фиксированного fake-ответа подключить защищённые AI-стадии и проверить полный fake-сценарий, ошибки, повторы, права и бренд; живые вызовы отдельно не включать.\n\nДополнительный scope: `app/ProtectedOperations/`, `app/Seller/Runtime/`, `app/Ai/Protected/`, `app/Ai/Gateway.php`, `tests/Feature/ProtectedOperations/`, `tests/Feature/SellerRuntime/Turns/`, `tests/Feature/Ai/`.\n",
       "goal": "API-канал: адрес, журнал, «Новый лид»",
       "dependsOn": [
         "SP-E5-03C",
@@ -9976,17 +9976,27 @@
         "routes/features/E5-03.php",
         "tests/Feature/Seller/Channels/Api/",
         "tests/Browser/E5-03D/",
-        "docs/results/SP-E5-03D.md"
+        "docs/results/SP-E5-03D.md",
+        "app/ProtectedOperations/",
+        "app/Seller/Runtime/",
+        "app/Ai/Protected/",
+        "app/Ai/Gateway.php",
+        "tests/Feature/ProtectedOperations/",
+        "tests/Feature/SellerRuntime/Turns/",
+        "tests/Feature/Ai/"
       ],
       "exclusiveResources": [],
       "acceptance": [
         "Экран D-9.9 «Входящие формы и API» соответствует макету из матрицы по пунктам (журнал docs/sources/02b_mockup_journal.md [75]): адрес /api/v1/turn + копировать; выбор «Новый лид» (open/turn → 503); колонки Источник/Статус/Ошибка; ссылка на failures. Где сейчас: Channels/Api/Index.tsx:12-16; LeadIngressController.php:47,87.",
         "Каждый пункт покрыт Feature- или Browser-тестом; данные только текущего бренда, проверены права ролей; состояния пусто / загрузка / ошибка как на макете; в отчёте скриншоты каждого экрана рядом с макетом.",
-        "Без живых и платных внешних вызовов без разрешения владельца; если пункт макета противоречит ТЗ или требует решения владельца, исполнитель не выдумывает, а записывает вопрос в docs/decisions-pending.md и делает остальное."
+        "Без живых и платных внешних вызовов без разрешения владельца; если пункт макета противоречит ТЗ или требует решения владельца, исполнитель не выдумывает, а записывает вопрос в docs/decisions-pending.md и делает остальное.",
+        "Защищённый token open без подставной сессии, сохранение, Policy и Guard.",
+        "Режимы turn и защищённые AI-стадии в полном fake-сценарии; без живых вызовов."
       ],
       "sourceRefs": [
         "docs/sources/02_screens_matrix.md",
-        "docs/sources/02b_mockup_journal.md"
+        "docs/sources/02b_mockup_journal.md",
+        "docs/results/SP-E5-03C.md"
       ],
       "screenIds": [
         "D-9.9"
@@ -23891,6 +23901,44 @@
       "wave": 20,
       "promptPath": "docs/tasks/SP-E9-01E.md",
       "description": "# SP-E9-01E · Завершение сквозных сценариев\n\n**Зачем:** оставшиеся конкретные пункты сквозной приёмки по ТЗ.\n**Часть чего:** остаток SP-E9-01D, docs/results/SP-E9-01D.md.\n**Зависимости:** SP-E9-01D; каждый незапущенный пользовательский сценарий проверять после готовности его функций.\n\n## Приёмка\n- Сценарий 3: проверить webhook Telegram → ответ fake-бота, затем перехват и возврат в браузере после подключения runtime.\n- Сценарий 4: факты → песочница → публикация → откат после завершения необходимых функций.\n- Сценарий 5: причины передачи → диалог → задача → уведомление с fake-доставкой и изоляцией.\n- Сценарий 6: пройти настройку и создание диалога через UI; временную последовательность fake-напоминаний SP-E9-01D не повторять без изменения поведения.\n- Сценарий 7: после реализации переписки проверить сообщения виджета и их связь с диалогом и клиентом.\n- Сценарий 8: после включения переключателя в диалогах проверить смену бренда и очистку кэша и состояния вкладок.\n- Сравнить предусмотренные ТЗ 20 экранов с макетами на 1440/1024/390, axe для остальных E2E-экранов; фактически выполнить новый ручной CI.\n- Изолированная тестовая БД и fake; живые и платные вызовы отключены. Закрывать все доступные сценарии в этой карточке, не дробить ради отдельных уже проверенных шагов.\n\nScope: `tests/Browser/Acceptance/`, `tests/visual/`, `docs/validation/`, `.github/workflows/`, `docs/results/SP-E9-01E.md`.\n"
+    },
+    {
+      "taskKey": "SP-E6-08G",
+      "title": "SP-E6-08G · Каталог: цены и fake-проверка",
+      "goal": "Закрыть конкретный остаток SP-E6-08F.",
+      "dependsOn": [
+        "SP-E6-08F"
+      ],
+      "scope": [
+        "app/Seller/Catalog/",
+        "app/Seller/Engine/",
+        "app/Seller/Knowledge/",
+        "app/ProtectedOperations/",
+        "resources/js/pages/Seller/Catalog/",
+        "routes/features/E6-08.php",
+        "tests/Feature/Seller/Catalog/",
+        "tests/Feature/Seller/Engine/",
+        "tests/Feature/ProtectedOperations/",
+        "tests/Browser/E6-08G/",
+        "docs/results/SP-E6-08G.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "D-10.1: подключить разрешённые цены и скидки к ответам и Guard, ограничить числовые факты выбранными товарами и проверить fake-ход.",
+        "D-10.1: реализовать проверяемую пользователем fake-отправку прайса без вызова живого транспорта; если гарантию fake нельзя доказать, не включать путь и указать точный блокер.",
+        "D-10.4: проверить полный защищённый check_stock и передачу менеджеру при отсутствии товара, права, бренд и ошибки."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/results/SP-E6-08F.md"
+      ],
+      "screenIds": [
+        "D-10.1",
+        "D-10.4"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E6-08G.md",
+      "description": "# SP-E6-08G · Каталог: цены и fake-проверка\n\n**Зачем:** конкретные незакрытые пункты D-10.1 и D-10.4 по ТЗ.\n**Часть чего:** остаток SP-E6-08F, docs/results/SP-E6-08F.md.\n**Зависимости:** SP-E6-08F.\n\n## Приёмка\n- D-10.1: подключить разрешённые цены и скидки к ответам и Guard, ограничить числовые факты выбранными товарами и проверить fake-ход.\n- D-10.1: реализовать проверяемую пользователем fake-отправку прайса без вызова живого транспорта; если гарантию fake нельзя доказать, не включать путь и указать точный блокер.\n- D-10.4: проверить полный защищённый check_stock и передачу менеджеру при отсутствии товара, права, бренд и ошибки.\n- Проверить хранение, маршрут, экран, защищённый runtime, права и изоляцию в отдельной тестовой БД; реальные и платные вызовы не включать.\n\nScope: `app/Seller/Catalog/`, `app/Seller/Engine/`, `app/Seller/Knowledge/`, `app/ProtectedOperations/`, `resources/js/pages/Seller/Catalog/`, `routes/features/E6-08.php`, `tests/Feature/Seller/Catalog/`, `tests/Feature/Seller/Engine/`, `tests/Feature/ProtectedOperations/`, `tests/Browser/E6-08G/`, `docs/results/SP-E6-08G.md`.\n"
     }
   ],
   "excludedSourceTasks": {

@@ -1,0 +1,13 @@
+# SP-E6-08G · Каталог: цены и fake-проверка
+
+**Зачем:** конкретные незакрытые пункты D-10.1 и D-10.4 по ТЗ.
+**Часть чего:** остаток SP-E6-08F, docs/results/SP-E6-08F.md.
+**Зависимости:** SP-E6-08F.
+
+## Приёмка
+- D-10.1: подключить разрешённые цены и скидки к ответам и Guard, ограничить числовые факты выбранными товарами и проверить fake-ход.
+- D-10.1: реализовать проверяемую пользователем fake-отправку прайса без вызова живого транспорта; если гарантию fake нельзя доказать, не включать путь и указать точный блокер.
+- D-10.4: проверить полный защищённый check_stock и передачу менеджеру при отсутствии товара, права, бренд и ошибки.
+- Проверить хранение, маршрут, экран, защищённый runtime, права и изоляцию в отдельной тестовой БД; реальные и платные вызовы не включать.
+
+Scope: `app/Seller/Catalog/`, `app/Seller/Engine/`, `app/Seller/Knowledge/`, `app/ProtectedOperations/`, `resources/js/pages/Seller/Catalog/`, `routes/features/E6-08.php`, `tests/Feature/Seller/Catalog/`, `tests/Feature/Seller/Engine/`, `tests/Feature/ProtectedOperations/`, `tests/Browser/E6-08G/`, `docs/results/SP-E6-08G.md`.
