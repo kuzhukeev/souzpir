@@ -13,3 +13,7 @@ Scope: `resources/js/pages/Vision/Settings/`, `tests/Browser/E8-24K/`, `docs/res
 ## Остаток 07.11.2026 (аудит экранов, интегратор)
 - V-11.5: по макету у наблюдателя нет доступа к замерам: `config/permissions.php` (строка наблюдателя) и колонка доступа в `resources/js/pages/Vision/Settings/Index.tsx`; feature-тест прав наблюдателя на маршруты замеров.
 - Дополнительный scope: `config/permissions.php`, `app/Vision/Settings/`, `tests/Feature/Vision/Settings/`.
+
+
+## Уточнение 08.11.2026 00:55 (планировщик)
+- По возврату исполнителя добавлены в scope `app/Vision/Measurements/AnswersController.php`, `app/Vision/Measurements/MeasurementsController.php`, `tests/Feature/Vision/Measurements/`: проверка прав наблюдателя (full_access) на маршрутах ответов/замеров V-3.4/V-11.5. Другие файлы замеров не менять.
