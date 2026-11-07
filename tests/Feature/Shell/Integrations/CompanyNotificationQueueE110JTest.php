@@ -72,4 +72,19 @@ final class CompanyNotificationQueueE110JTest extends TenancyTestCase
         $this->withHeader('X-Brand-Id', $other->id)->get('/integrations/notifications')->assertOk()->assertInertia(fn ($page) => $page->has('company_deliveries', 0));
         Http::assertNothingSent();
     }
+
+    public function test_external_delivery_enabled_prop_reflects_driver_and_feature_flag(): void
+    {
+        [$owner, , $brand] = $this->cabinet();
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->withHeader('X-Brand-Id', $brand->id);
+
+        config(['runtime.notification_driver' => 'fake', 'features.E0-04.defaults.external_delivery' => true]);
+        $this->get('/integrations/notifications')->assertOk()->assertInertia(fn ($page) => $page->where('external_delivery_enabled', false));
+
+        config(['runtime.notification_driver' => null, 'features.E0-04.defaults.external_delivery' => false]);
+        $this->get('/integrations/notifications')->assertOk()->assertInertia(fn ($page) => $page->where('external_delivery_enabled', false));
+
+        config(['runtime.notification_driver' => null, 'features.E0-04.defaults.external_delivery' => true]);
+        $this->get('/integrations/notifications')->assertOk()->assertInertia(fn ($page) => $page->where('external_delivery_enabled', true));
+    }
 }

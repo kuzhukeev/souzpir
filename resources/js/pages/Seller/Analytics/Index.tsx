@@ -43,6 +43,7 @@ type Analytics = {
   channels: Record<string, number>;
   daily: Record<string, number>;
   topics: Record<string, number>;
+  topicUnknownRates?: Record<string, number>;
   managers: {
     name: string;
     assigned: number;
@@ -351,10 +352,6 @@ export default function Index({ analytics: a }: { analytics: Analytics }) {
               <Rows values={a.stages} />
             </section>
             <section className={card}>
-              <h2 className="text-xl font-bold">Диалоги по дням</h2>
-              <Rows values={a.daily} />
-            </section>
-            <section className={card}>
               <h2 className="text-xl font-bold">Источники</h2>
               <Rows values={a.sources ?? {}} />
               <p className="mt-2 text-sm text-(--color-ink-muted)">
@@ -481,6 +478,10 @@ export default function Index({ analytics: a }: { analytics: Analytics }) {
               От начала диалога до получения почты или мессенджера клиента; для диалогов без
               сохранённого контакта не считается.
             </p>
+          </section>
+          <section className={`${card} mt-4`} aria-label="Диалоги по дням">
+            <h2 className="text-xl font-bold">Диалоги по дням</h2>
+            <Rows values={a.daily} />
           </section>
         </div>
         <Details data={a} activeTab={tab} />

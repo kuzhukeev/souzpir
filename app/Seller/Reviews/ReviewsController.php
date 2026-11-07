@@ -80,4 +80,17 @@ final class ReviewsController
 
         return back()->with('status', 'Пометки отклонены.');
     }
+
+    public function send(Request $request): mixed
+    {
+        $input = $request->validate(['ids' => ['required', 'array', 'min:1', 'max:100'], 'ids.*' => ['required', 'ulid', 'distinct']]);
+        $count = $this->access($request, 'seller.dialogues.operate', function (User $user, TenantContext $tenant, bool $manager) use ($input): int {
+            $ids = $this->rows($tenant, $user, $manager)->whereIn('r.id', $input['ids'])->where('r.status', 'new')->pluck('r.id');
+            abort_unless($ids->count() === count($input['ids']), 404);
+
+            return DB::table('message_reviews')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->whereIn('id', $ids)->where('status', 'new')->update(['applied_to' => 'inbox', 'updated_at' => now()]);
+        });
+
+        return back()->with('status', "Отправлено во Входящие базы знаний: {$count}.");
+    }
 }

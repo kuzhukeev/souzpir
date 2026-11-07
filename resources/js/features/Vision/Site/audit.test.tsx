@@ -1,6 +1,8 @@
 import { cleanup, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
 import { Groups, Score } from '@/pages/Vision/Site/Index';
+import { AuditForm } from '@/features/Vision/Site/AuditDetails';
 
 afterEach(cleanup);
 
@@ -40,5 +42,13 @@ describe('Представление аудита сайта', () => {
     expect(screen.getByText(/проверено 1 из 2/i)).toBeTruthy();
     expect(screen.getByText('Понимание ИИ')).toBeTruthy();
     expect(screen.getByText('Скоро')).toBeTruthy();
+  });
+
+  it('показывает единый лимит страниц в подтверждении перепроверки', async () => {
+    const user = userEvent.setup();
+    render(<AuditForm initialUrl="https://example.test" fixedUrl pageLimit={5} />);
+    await user.click(screen.getByRole('button', { name: 'Перепроверить' }));
+    expect(screen.getByText('Проверка займёт 2–5 минут, проверим до 5 страниц.')).toBeTruthy();
+    expect(screen.getByText('Сайт: https://example.test')).toBeTruthy();
   });
 });

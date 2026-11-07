@@ -16,11 +16,19 @@ final class FewshotTagsE410CTest extends TenancyTestCase
         }
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
         $this->post('/seller/knowledge/draft')->assertRedirect();
-        $tags = $this->get('/seller/knowledge/fewshot', ['X-Inertia-Partial-Component' => 'Seller/Knowledge/Fewshot/Index', 'X-Inertia-Partial-Data' => 'fewshotData'])->assertOk()->inertiaProps('fewshotData.availableTags');
+        $page = $this->get('/seller/knowledge/fewshot', ['X-Inertia-Partial-Component' => 'Seller/Knowledge/Fewshot/Index', 'X-Inertia-Partial-Data' => 'fewshotData'])->assertOk();
+        $tags = $page->inertiaProps('fewshotData.availableTags');
         self::assertCount(73, $tags);
         self::assertContains('open_greeting', $tags);
         self::assertContains('ask_city', $tags);
         self::assertContains('opt_out_ack', $tags);
+        $tagLabels = $page->inertiaProps('fewshotData.tagLabels');
+        self::assertSame('Приветствие', $tagLabels['open_greeting']);
+        self::assertSame('Уточнение города', $tagLabels['ask_city']);
+        $clientTypeLabels = $page->inertiaProps('fewshotData.clientTypeLabels');
+        self::assertSame(['all', 'newbie', 'experienced', 'for_self', 'prices_only', 'unknown'], $page->inertiaProps('fewshotData.clientTypes'));
+        self::assertSame('Любой тип клиента', $clientTypeLabels['all']);
+        self::assertSame('Новичок', $clientTypeLabels['newbie']);
         $this->post('/seller/knowledge/fewshot', ['version' => 1, 'bucket' => 'examples', 'tag' => 'ask_city', 'text' => 'Какой город?', 'situation' => 'Знакомство', 'client_type' => 'all', 'confidence' => 0.8, 'source' => 'manual', 'enabled' => true])->assertRedirect()->assertSessionHasNoErrors();
         self::assertSame('Какой город?', $this->get('/seller/knowledge/fewshot', ['X-Inertia-Partial-Component' => 'Seller/Knowledge/Fewshot/Index', 'X-Inertia-Partial-Data' => 'fewshotData'])->assertOk()->inertiaProps('fewshotData.fewshot.examples.0.text'));
         $this->post('/seller/knowledge/fewshot', ['version' => 2, 'bucket' => 'examples', 'tag' => '', 'text' => '', 'client_type' => 'all', 'confidence' => 0.8, 'enabled' => true])->assertSessionHasErrors(['tag', 'text']);

@@ -23,6 +23,11 @@ use SensitiveParameter;
 
 final class IntegrationsController
 {
+    private function externalDeliveryEnabled(): bool
+    {
+        return (bool) config('features.E0-04.defaults.external_delivery') && config('runtime.notification_driver') !== 'fake';
+    }
+
     public function index(): Response
     {
         Gate::authorize('integrations.read');
@@ -87,7 +92,6 @@ final class IntegrationsController
             'secretStorageReady' => SecretSessionStore::ready(),
             'webhookDeliveryAvailable' => WebhookDelivery::available(),
             'integration_api_key_available' => $this->keepSecretForPage($request, $context, 'integration_api_key'),
-            'integration_webhook_secret_available' => false,
         ]);
     }
 
@@ -100,9 +104,8 @@ final class IntegrationsController
         Gate::authorize('integrations.write');
         $context = app(TenantContext::class);
         abort_unless($context->organizationId && $context->brandId && $context->actorId, 404);
-        $data = $request->validate(['type' => ['required', Rule::in(['api_key', 'webhook_secret'])]]);
-        abort_if($data['type'] === 'webhook_secret', 503, 'Настройка вебхуков временно недоступна.');
-        $key = $data['type'] === 'api_key' ? 'integration_api_key' : 'webhook_secret';
+        $request->validate(['type' => ['required', Rule::in(['api_key'])]]);
+        $key = 'integration_api_key';
 
         // The shared service locks session, user, organization, membership and brand in order.
         $value = $access->change($request, $context->brandId, function (Brand $brand, TenantContext $locked) use ($request, $key, $envelope): string {
@@ -168,6 +171,7 @@ final class IntegrationsController
             ...$settings->forBrand($brand),
             'telegram_link' => ['code' => $code, 'pending' => (bool) ($code && $link?->pending_chat), 'bot' => $code ? config('features.E1-08.defaults.telegram_bot_username') : null],
             'company_deliveries' => DB::table('company_notification_deliveries')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)->orderByDesc('created_at')->orderByDesc('id')->limit(10)->get(['id', 'event_key', 'channel', 'status', 'created_at']),
+            'external_delivery_enabled' => $this->externalDeliveryEnabled(),
             'permissions' => ['manage' => true],
         ]);
     }
@@ -199,7 +203,7 @@ final class IntegrationsController
             $settings->save($brand, $data['telegram_chat'] ?? null, $data['report_emails'], $data['matrix'] ?? null);
         });
 
-        return redirect()->route('integrations.notifications')->with('success', 'Настройки сохранены. Внешняя доставка пока выключена.');
+        return redirect()->route('integrations.notifications')->with('success', $this->externalDeliveryEnabled() ? 'Настройки сохранены.' : 'Настройки сохранены. Внешняя доставка пока выключена.');
     }
 
     public function testNotifications(Request $request): RedirectResponse

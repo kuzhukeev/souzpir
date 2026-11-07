@@ -6,11 +6,12 @@
 - Проверено: `tests/Feature/Seller/Channels/Widget/WidgetSettingsE502DTest.php` (новый тест `test_correspondence_status_reflects_driver_and_live_draft_flag`, 3 комбинации fake/live/live-без-черновиков через config); `php artisan test tests/Feature/Seller/Channels/Widget/` — 21 passed; `tests/Browser/E5-02D/widget.spec.ts` — зелёный (заодно поправлен устаревший текст кнопки «Проверить снова» → «Проверить установку», расходившийся с кодом после SP-E5-02F); `check frontend`, `check lint` (HOME=/root, Pint автоправка форматирования) — зелёные.
 - Скриншоты: `.local/screenshots/SP-E5-02D/` (install/look/behavior, светлая тема, 1440), сверено с макетами 68–70 (`mockups D-9.2`).
 
-## Остаток
-- D-9.4: лимит сообщений (`max_messages`) сохраняется, но нигде не применяется к переписке — подключить при появлении enforcement в live-черновиках/диалоге.
+## Остаток 07.11.2026 23:10 (эта сдача) — закрыт
+- D-9.4: лимит сообщений `max_messages` подключён к переписке в `WidgetInboundRuntime`: после того как число сообщений посетителя в диалоге превышает лимит, ход принудительно уходит в ручной режим (как off-hours/живой режим), посетителю — текст «Вы отправили максимум сообщений в этом чате. Дальше вам ответит менеджер.» (`notice` в ответе `/widget/message`, показывается в `widget.js`), менеджер получает сообщение как обычно (сохраняется в БД, виден в диалогах). Проверено: `WidgetSettingsE502DTest::test_message_limit_hands_visitor_off_to_manager_while_messages_still_reach_manager` (fake-режим, лимит=1: первое сообщение — бот отвечает, второе — `notice`, оба сообщения клиента в БД); `php artisan test tests/Feature/Seller/Channels/Widget/` — 23 passed; `tests/Feature/Launch/L1-09/` — 5 passed (live-режим не затронут); `npx playwright test tests/Browser/E5-02/widget-contact.spec.ts` (клиентский лимит на границе) и `tests/Browser/E5-02D/widget.spec.ts` — зелёные; `check lint`, `check frontend` — зелёные.
 
 ## Техдолг
 - Нет визуального/браузерного теста на переключение текста статуса переписки между режимами (live/fake/draft-off) — только Feature-тест.
+- Лимит `max_messages` считается по числу сообщений в текущей беседе (conversation); посетитель, открывший новую сессию/беседу на том же сайте, получает лимит заново — приемлемо для MVP, кросс-сессионный учёт не требовался карточкой.
 
 ## Принято по умолчанию
 - Текст статуса переписки формулируется по фактическому поведению `WidgetInboundRuntime`/`QueueLiveDraft` (без зависимости от `default_mode` канала, так как в боевом режиме он не влияет на обработку хода виджета).

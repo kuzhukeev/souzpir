@@ -214,11 +214,13 @@ final class AnalyticsController
             }
             unset($managerData);
         }
+        $topicDialogs = [];
         foreach ($messages as $message) {
             $meta = json_decode($message->meta, true) ?: [];
             $intent = data_get($meta, 'extraction.client_intent') ?? ($meta['intent'] ?? null);
             if (is_string($intent) && $intent !== '') {
                 $topics[$intent] = ($topics[$intent] ?? 0) + 1;
+                $topicDialogs[$intent][$message->conversation_id] = true;
             }
             $trigger = data_get($meta, 'goal.trigger');
             if (is_string($trigger) && $trigger !== '') {
@@ -237,6 +239,14 @@ final class AnalyticsController
             $triggerStats[$trigger] = ['dialogs' => $matching->count(), 'with_contact' => $withContact];
         }
         arsort($topics);
+        $unknownConversationIds = $unknownTasks->pluck('conversation_id')->unique()->all();
+        $topicUnknownRates = [];
+        foreach (array_keys($topics) as $intent) {
+            $dialogIds = array_keys($topicDialogs[$intent] ?? []);
+            $topicUnknownRates[$intent] = $dialogIds
+                ? (int) round(count(array_intersect($dialogIds, $unknownConversationIds)) / count($dialogIds) * 100)
+                : 0;
+        }
 
         $ratings = DB::table('seller_evaluations')->where(fn ($query) => EvaluationVisibility::excludeTestBaseline($query))->where('organization_id', $tenant->organizationId)
             ->where('brand_id', $tenant->brandId)->whereIn('conversation_id', $ids)
@@ -337,7 +347,7 @@ final class AnalyticsController
             })->sortByDesc('opens')->values()->all();
 
         return ['from' => $from, 'to' => $to, 'channel' => $channel, 'source' => $source, 'manager' => $manager, 'managerOptions' => $managerOptions, 'funnel' => $funnel, 'outcomes' => $outcomes, 'previousTotal' => $previousTotal, 'previousMetrics' => $previousMetrics, 'transitionRates' => $rates, 'channelOptions' => $channelOptions, 'sources' => $sources, 'channelMetrics' => $channelMetrics, 'sitePages' => $sitePages, 'transitions' => $transitions, 'total' => $total, 'contact' => $contact, 'handed' => $handed, 'closed' => $closed,
-            'types' => $types, 'stages' => $stages, 'channels' => $channels, 'daily' => $daily, 'topics' => $topics,
+            'types' => $types, 'stages' => $stages, 'channels' => $channels, 'daily' => $daily, 'topics' => $topics, 'topicUnknownRates' => $topicUnknownRates,
             'dialogs' => $dialogs, 'hours' => $hours, 'unknownDialogs' => $unknownDialogs, 'unknownQuestions' => $unknownQuestions, 'messageCount' => $messages->count(), 'botCompleted' => $botCompleted, 'triggers' => $triggers, 'triggerStats' => $triggerStats,
             'managers' => array_values($managers), 'canManage' => Gate::forUser($user)->allows('seller.settings.write'), 'avgMinutesToContact' => $avgMinutesToContact];
     }

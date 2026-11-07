@@ -83,7 +83,7 @@
       startSession().then(token => api('/widget/message', {token, text:sent, idempotency_key:uid(), page:widgetPage})).then(response => { if (!response.ok) throw new Error('unavailable'); return response.json().catch(() => ({})); }).then(result => {
         message.textContent = ''; addBubble('client', sent); text.value = ''; sentCount += 1;
         if (typeof result.reply === 'string' && result.reply) { addBubble('agent', result.reply); waitingForManager = false; }
-        else if (!waitingForManager) { waitingForManager = true; addBubble('agent', 'Менеджер скоро ответит.'); if (!pollTimer) pollTimer = setTimeout(pollMessages, 7000); }
+        else if (!waitingForManager) { waitingForManager = true; addBubble('agent', typeof result.notice === 'string' && result.notice ? result.notice : 'Менеджер скоро ответит.'); if (!pollTimer) pollTimer = setTimeout(pollMessages, 7000); }
         if (limitReached()) { lockChat(); } else { chatStatus.textContent = 'Сообщение отправлено.'; }
       }).catch(() => { chatStatus.textContent = 'Чат временно недоступен. Попробуйте позже.'; }).finally(() => { if (!limitReached()) chatSend.disabled = false; });
     });

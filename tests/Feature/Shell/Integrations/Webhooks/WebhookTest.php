@@ -3,9 +3,12 @@
 namespace Tests\Feature\Shell\Integrations\Webhooks;
 
 use App\Shell\Brands\Contracts\DomainDnsResolver;
+use App\Shell\Integrations\Webhooks\DeliverWebhook;
 use App\Shell\Integrations\Webhooks\WebhookDelivery;
 use App\Shell\Integrations\Webhooks\WebhookOutbox;
 use App\Shell\Integrations\Webhooks\WebhookService;
+use App\Shell\Integrations\Webhooks\WebhookSnapshot;
+use App\Shell\Notifications\DomainEvent;
 use App\Tenancy\TenantContext;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Crypt;
@@ -37,9 +40,12 @@ final class WebhookTest extends TenancyTestCase
         $this->actingAs($owner)->withSession(['brand_id' => $first->id]);
         $id = $this->insertLegacyWebhook($organization->id, $first->id);
         $this->post('/integrations/api/webhooks/'.$id.'/test')->assertStatus(503);
-        config(['features.E1-10.defaults.webhook_delivery' => true]);
-        $this->post('/integrations/api/webhooks/'.$id.'/test')->assertStatus(503);
         $this->get('/integrations/api')->assertOk()->assertInertia(fn ($page) => $page->where('webhookDeliveryAvailable', false));
+        config(['features.E1-10.defaults.webhook_delivery' => true]);
+        // The legacy manual single-webhook test action stays closed regardless of the
+        // automatic delivery flag: it still needs its own authenticated receipt.
+        $this->post('/integrations/api/webhooks/'.$id.'/test')->assertStatus(503);
+        $this->get('/integrations/api')->assertOk()->assertInertia(fn ($page) => $page->where('webhookDeliveryAvailable', true));
         $this->withSession(['brand_id' => $second->id])->post('/integrations/api/webhooks/'.$id.'/test')->assertStatus(503);
         $this->assertDatabaseCount('webhook_deliveries', 0);
         Http::assertNothingSent();
@@ -188,6 +194,37 @@ final class WebhookTest extends TenancyTestCase
         }
         Queue::assertNothingPushed();
         Http::assertNothingSent();
+    }
+
+    public function test_real_delivery_signs_body_retries_and_shows_status_once_flag_enabled(): void
+    {
+        config(['features.E1-10.defaults.webhook_delivery' => true]);
+        [, $org, $brand] = $this->cabinet();
+        $hookId = $this->insertLegacyWebhook($org->id, $brand->id);
+        $secret = Crypt::decryptString(DB::table('webhooks')->where('id', $hookId)->value('secret'));
+        $eventId = (string) Str::ulid();
+        $envelope = ['event_id' => $eventId, 'schema_version' => 1, 'type' => 'seller.lead.created', 'occurred_at' => now()->toIso8601String(),
+            'organization_id' => $org->id, 'brand_id' => $brand->id, 'actor_id' => null,
+            'aggregate' => ['type' => 'conversation', 'id' => (string) Str::ulid(), 'version' => 1], 'data' => ['conversation_id' => (string) Str::ulid()]];
+        DB::table('outbox_events')->insert(['id' => $eventId, 'organization_id' => $org->id, 'brand_id' => $brand->id,
+            'envelope' => json_encode($envelope, JSON_THROW_ON_ERROR), 'created_at' => now()]);
+        app(WebhookSnapshot::class)->record(new DomainEvent($envelope));
+        Queue::fake();
+        app(WebhookOutbox::class)->consume($eventId);
+        Queue::assertPushed(DeliverWebhook::class, 1);
+        $delivery = DB::table('webhook_deliveries')->where('webhook_id', $hookId)->first();
+        self::assertSame($eventId, $delivery->event_id);
+        Http::fake(['*' => Http::sequence()->push('', 500)->push('', 200)]);
+        (new DeliverWebhook($delivery->id))->handle(app(WebhookDelivery::class));
+        Http::assertSentCount(2);
+        Http::assertSent(fn (Request $request) => $request->url() === 'https://public.org/hook'
+            && $request->hasHeader('X-Souzpir-Signature', 'sha256='.hash_hmac('sha256', $request->body(), $secret))
+            && $request->hasHeader('X-Souzpir-Delivery', $delivery->id));
+        $this->assertDatabaseHas('webhook_deliveries', ['id' => $delivery->id, 'status' => 'sent', 'attempts' => 2, 'status_code' => 200]);
+        $table = app(WebhookService::class)->forBrand(new TenantContext($org->id, $brand->id, source: 'job'));
+        self::assertSame('sent', $table[0]['deliveries'][0]['status']);
+        self::assertSame(200, $table[0]['deliveries'][0]['status_code']);
+        self::assertSame(2, $table[0]['deliveries'][0]['attempts']);
     }
 
     private function insertLegacyWebhook(string $organizationId, string $brandId): string
