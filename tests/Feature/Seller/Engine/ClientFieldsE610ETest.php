@@ -54,4 +54,21 @@ final class ClientFieldsE610ETest extends TenancyTestCase
             self::assertNotContains(array_key_first($slots), array_column($policy->computeMissing($state), 'slot'));
         }
     }
+
+    public function test_missing_required_stage_field_is_asked_before_advancing(): void
+    {
+        $data = array_fill_keys(KnowledgeSnapshot::FILES, []);
+        $data['policy'] = ['client_fields' => [['id' => 'course', 'name' => 'Курс', 'type' => 'text', 'required' => true, 'stage' => 'need']], 'slot_order' => ['unknown' => []]];
+        $policy = new Policy(new KnowledgeSnapshot($data, '', ''));
+        $state = new LeadState;
+        $state->setFlag('introduced', true);
+        foreach (['city' => 'Москва', 'purpose' => 'на продажу', 'experience' => 'нет', 'budget_range' => '100', 'timing' => 'сегодня'] as $slot => $value) {
+            $state->setSlot($slot, $value);
+        }
+        $policy->applyExtraction($state, []);
+        self::assertSame('need', $state->stage());
+        self::assertSame('course', $policy->nextSlot($state));
+        $policy->applyExtraction($state, ['slot_updates' => ['course' => 'Английский']]);
+        self::assertSame('close_contact', $state->stage());
+    }
 }

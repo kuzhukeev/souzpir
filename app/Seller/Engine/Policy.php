@@ -173,12 +173,24 @@ class Policy
             return;
         }
         $turns = $s->counter('turns');
-        if ($turns >= $this->limit('max_turns_before_force_close', 14) && ! $s->flag('price_sent')) {
-            $s->setStage('close_contact');
-
-            return;
+        $next = $turns >= $this->limit('max_turns_before_force_close', 14) && ! $s->flag('price_sent')
+            ? 'close_contact' : $this->stageBySlots($s);
+        if ($next !== 'handoff') {
+            $stages = ['open', 'qualify', 'need', 'budget', 'close_contact', 'followup'];
+            $nextIndex = array_search($next, $stages, true);
+            foreach ($this->p['client_fields'] ?? [] as $field) {
+                $slot = $field['id'] ?? null;
+                $requiredAt = array_search($field['stage'] ?? 'qualify', $stages, true);
+                if (($field['required'] ?? false) && is_string($slot) && $nextIndex !== false && $requiredAt !== false
+                    && $requiredAt < $nextIndex && ! $s->has($slot) && ! $s->wasRefused($slot)) {
+                    $nextIndex = $requiredAt;
+                }
+            }
+            if ($nextIndex !== false) {
+                $next = $stages[$nextIndex];
+            }
         }
-        $s->setStage($this->stageBySlots($s));
+        $s->setStage($next);
     }
 
     private function limit(string $k, int $default): int
