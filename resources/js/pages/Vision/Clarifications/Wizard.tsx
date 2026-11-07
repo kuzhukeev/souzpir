@@ -1,10 +1,12 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { CircleCheck } from 'lucide-react';
 import { useState } from 'react';
 import CabinetLayout from '@/layouts/CabinetLayout';
 
 type Step = 'mentions' | 'presence' | 'facts' | 'done';
 type Item = { key: string; value: string; excerpt: string | null; decision: string | null; correction: string | null; profile_url: string | null; add_alias: boolean; from_questionnaire?: boolean; questionnaire_url?: string | null };
-type Props = { measurement: string; step: Step; available: boolean; items: Item[]; total: number; pending: number; status: string | null; alias_available?: boolean };
+type Props = { measurement: string; step: Step; available: boolean; items: Item[]; total: number; pending: number; status: string | null; recalculated: { before: number; after: number } | null; alias_available?: boolean };
+const percent = (value: number) => `${value.toLocaleString('ru-RU')} %`;
 const order: Step[] = ['mentions', 'presence', 'facts', 'done'];
 const titles: Record<Step, string> = { mentions: 'Это про вас?', presence: 'Вы есть на этих площадках?', facts: 'Это ваши утверждения или ошибки нейросети?', done: 'Готово к отчёту' };
 const options: Record<Exclude<Step, 'done'>, [string, string][]> = {
@@ -51,7 +53,7 @@ function DecisionCard({ item, step, measurement, aliasAvailable }: { item: Item;
     </section>;
 }
 
-export default function Wizard({ measurement, step, available, items, total, pending, status, alias_available = false }: Props) {
+export default function Wizard({ measurement, step, available, items, total, pending, status, recalculated, alias_available = false }: Props) {
     const index = order.indexOf(step);
     const next = order[index + 1];
     const title = titles[step];
@@ -61,7 +63,23 @@ export default function Wizard({ measurement, step, available, items, total, pen
             <h1 className="mt-2 text-3xl font-bold">{title}</h1>
             <div className="mt-5 flex gap-2" aria-label={`Прогресс: ${index + 1} из 4`}>{order.map((part, position) => <div key={part} className={`h-2 flex-1 rounded-full ${position <= index ? 'bg-(--color-link)' : 'bg-(--color-surface-muted)'}`} />)}</div>
             {status && <p role="status" className="mt-5 rounded-lg bg-(--color-success-soft) p-3 text-sm">{status}</p>}
-            {!available ? <section className="mt-6 rounded-xl border border-(--color-border) bg-(--color-surface) p-6"><p>Уточнения станут доступны после подтверждения завершённого замера.</p><Link href="/vision/runs" className="mt-4 inline-flex min-h-11 cursor-pointer items-center text-(--color-link)">К замерам</Link></section> : step === 'done' ? <section className="mt-6 rounded-xl border border-(--color-border) bg-(--color-surface) p-6"><h2 className="text-xl font-bold">Ответы сохранены</h2><p className="mt-3 text-sm">Всего уточнений: {total}. Требуют ответа или оставлены на потом: {pending}.</p><p className="mt-3 rounded-lg bg-(--color-success-soft) p-3 text-sm">Подтверждённые названия учитываются при показе видимости во внутреннем отчёте. Сохранённый снимок отчёта не меняется.</p><div className="mt-5 flex flex-wrap gap-4"><Link href={path(measurement, 'mentions')} className="inline-flex min-h-11 cursor-pointer items-center text-(--color-link)">Вернуться к уточнениям</Link><Link href="/vision/report" className={`${action} inline-flex items-center bg-(--color-link) text-white`}>Открыть отчёт</Link></div></section> : <>
+            {!available ? <section className="mt-6 rounded-xl border border-(--color-border) bg-(--color-surface) p-6"><p>Уточнения станут доступны после подтверждения завершённого замера.</p><Link href="/vision/runs" className="mt-4 inline-flex min-h-11 cursor-pointer items-center text-(--color-link)">К замерам</Link></section> : step === 'done' ? <section className="mt-6 rounded-xl border border-(--color-border) bg-(--color-surface) p-8 text-center">
+                {recalculated ? <>
+                    <div className="mx-auto flex size-20 items-center justify-center rounded-full bg-(--color-success-soft) text-(--color-success-ink)" aria-hidden="true"><CircleCheck className="size-10" /></div>
+                    <h2 className="mt-5 text-2xl font-bold">Спасибо. Отчёт пересчитан с учётом ваших уточнений</h2>
+                    <div className="mx-auto mt-6 max-w-sm border-t border-(--color-border) pt-6">
+                        <p className="text-sm font-semibold text-(--color-ink-muted)">Что изменилось</p>
+                        <div className="mt-3 rounded-xl bg-(--color-success-soft) p-4">
+                            <p className="text-lg font-bold">Видимость: {percent(recalculated.before)} <span aria-hidden="true">→</span> <span className="text-(--color-success-ink)">{percent(recalculated.after)}</span></p>
+                            <p className="mt-1 text-sm text-(--color-ink-muted)">После уточнения упоминаний</p>
+                        </div>
+                    </div>
+                </> : <>
+                    <h2 className="text-xl font-bold">Ответы сохранены</h2>
+                    <p className="mt-3 text-sm">Всего уточнений: {total}. Требуют ответа или оставлены на потом: {pending}.</p>
+                </>}
+                <div className="mt-6 flex flex-wrap items-center justify-center gap-4"><Link href={path(measurement, 'mentions')} className="inline-flex min-h-11 cursor-pointer items-center text-(--color-link)">Вернуться к уточнениям</Link><Link href="/vision/report" className={`${action} inline-flex items-center bg-(--color-link) text-white`}>Открыть отчёт</Link></div>
+            </section> : <>
                 <p className="mt-4 text-sm text-(--color-ink-muted)">{total - pending} из {total} уточнений решено. Ответы «Не знаю» и «Решить позже» можно изменить позже.</p>
                 {items.length === 0 ? <section className="mt-6 rounded-xl border border-(--color-border) bg-(--color-surface) p-8 text-center text-sm text-(--color-ink-muted)">{step === 'mentions' ? 'Нет упоминаний для уточнения.' : step === 'presence' ? 'Нет площадок для уточнения.' : 'Нет фактов для уточнения.'}</section> : <div className="mt-6 space-y-4">{items.map((item) => <DecisionCard key={item.key} item={item} step={step} measurement={measurement} aliasAvailable={alias_available} />)}</div>}
                 <div className="mt-6 flex flex-wrap items-center justify-between gap-3"><Link href="/vision/runs" className="inline-flex min-h-11 cursor-pointer items-center text-sm text-(--color-link)">К замерам</Link>{next && <Link href={path(measurement, next)} className={`${action} inline-flex items-center bg-(--color-link) text-white`}>Продолжить</Link>}</div>
