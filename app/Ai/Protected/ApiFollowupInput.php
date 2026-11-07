@@ -2,6 +2,7 @@
 
 namespace App\Ai\Protected;
 
+use App\Ai\Gateway;
 use App\Contracts\Ai\AiContext;
 use App\Contracts\Ai\AiGateway;
 use App\ProtectedOperations\SellerTurnFence;
@@ -10,6 +11,8 @@ use App\Seller\Engine\BrandPromptSets;
 use App\Seller\Engine\Extractor;
 use App\Seller\Engine\ExtractorPromptLoader;
 use App\Seller\Engine\LeadState;
+use App\Seller\Engine\Policy;
+use App\Seller\Engine\ResponderRequest;
 use App\Seller\Knowledge\Contracts\KnowledgeRepository;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Tenancy\TenantContext;
@@ -66,5 +69,39 @@ final class ApiFollowupInput
             $claim->conversationId, 'api-followup-extractor-'.$claim->turnId, ['conversation_content', 'client_profile', 'knowledge_internal']);
 
         return [$request, $context, $engine, $state, $message->text, $knowledge, $history];
+    }
+
+    public function responderLocked(Request $http, TenantContext $tenant, TurnClaim $claim): array
+    {
+        [, , $extractor, $state, $message, $knowledge, $history] = $this->extractorLocked($http, $tenant, $claim);
+        $result = app(Gateway::class)->readApiFollowupExtractorLocked($http, $tenant, $claim);
+        $extraction = $extractor->interpretResult($state, $message, $result);
+        if (($extraction['_meta']['model'] ?? null) === 'fallback') {
+            throw new LogicException('API follow-up unavailable.');
+        }
+        $extraction['_text'] = mb_strtolower($message);
+        $policy = new Policy($knowledge);
+        $policy->applyExtraction($state, $extraction);
+        $goal = $policy->decide($state, $extraction, false);
+        $name = $knowledge->persona()['name'] ?? null;
+        $prompt = DB::table('prompt_sets')->where('name', 'responder')->where('version', 'v1')->where('status', 'published')
+            ->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->first();
+        $prompt ??= DB::table('prompt_sets')->where('name', 'responder')->where('version', 'v1')->where('status', 'published')
+            ->whereNull('organization_id')->whereNull('brand_id')->first();
+        $trusted = file_get_contents(resource_path('views/prompts/responder.blade.php'));
+        $model = config('features.E0-05.defaults.seller_defaults.responder.model');
+        $temperature = config('features.E0-05.defaults.seller_defaults.responder.temperature');
+        if ($goal->kind === 'silent' || ! is_string($name) || trim($name) === '' || ! $prompt
+            || ! is_string($trusted) || ! hash_equals(hash('sha256', $prompt->body), $prompt->checksum)
+            || ! hash_equals(hash('sha256', $trusted), $prompt->checksum) || ! is_string($model) || ! is_numeric($temperature)) {
+            throw new LogicException('API follow-up unavailable.');
+        }
+        $system = app(ResponderProjection::class)->render($knowledge, $state, $goal, $name);
+        $history[] = ['role' => 'client', 'text' => $message];
+        $input = app(ResponderRequest::class)->build($system, $history, [], $model, (float) $temperature, $prompt->version, $prompt->checksum);
+        $context = new AiContext($tenant->organizationId, $tenant->brandId, 'responder', 'seller', 'conversation',
+            $claim->conversationId, 'api-followup-responder-'.$claim->turnId, ['conversation_content', 'client_profile', 'knowledge_internal']);
+
+        return [$input, $context, $state, $goal, $knowledge, $extraction];
     }
 }

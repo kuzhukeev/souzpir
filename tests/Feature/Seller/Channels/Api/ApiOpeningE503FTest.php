@@ -11,6 +11,7 @@ use App\Models\Brand;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\User;
+use App\ProtectedOperations\SellerFollowup\FollowupFinalizer;
 use App\Seller\Conversations\Contracts\ConversationRepository;
 use App\Seller\Conversations\Data\TurnCommand;
 use App\Seller\Knowledge\Import\YamlKnowledgeImporter;
@@ -108,6 +109,19 @@ final class ApiOpeningE503FTest extends TestCase
         $extraction = app(TenantContextRunner::class)->run($tenant, fn () => app(Gateway::class)->completeApiFollowupExtractor($request, $tenant, $claim));
         self::assertTrue($extraction->ok());
         self::assertSame('answer_only', $extraction->json()['client_intent']);
+        [$responder, , $followupState, $followupGoal] = app(TenantContextRunner::class)->run($tenant,
+            fn () => DB::transaction(fn () => app(ApiFollowupInput::class)->responderLocked($request, $tenant, $claim)));
+        self::assertSame(1, $followupState->counter('turns'));
+        self::assertNotSame('intro_and_ask', $followupGoal->kind);
+        $responderFixture = $directory.'/'.CanonicalJson::hash(app(ContactMasker::class)->request($responder->toArray())).'.json';
+        file_put_contents($responderFixture, json_encode(['result' => ['content' => 'Понял вас, спасибо!', 'toolCalls' => [],
+            'usage' => ['promptTokens' => 1, 'completionTokens' => 1], 'model' => $responder->model, 'latencyMs' => 1, 'costMicros' => 0]], JSON_THROW_ON_ERROR));
+        $answer = app(TenantContextRunner::class)->run($tenant, fn () => app(Gateway::class)->completeApiFollowupResponder($request, $tenant, $claim));
+        self::assertSame('Понял вас, спасибо!', $answer->content);
+        $finished = app(TenantContextRunner::class)->run($tenant, fn () => DB::transaction(fn () => app(FollowupFinalizer::class)->finishProtectedApi($request, $tenant, $claim, 'bot')));
+        self::assertSame('completed', $finished['status']);
+        self::assertSame(2, $finished['result']['version']);
+        self::assertSame('Понял вас, спасибо!', DB::table('messages')->where('id', $finished['result']['message_id'])->value('text'));
         DB::table('brands')->where('id', $brand->id)->update(['settings' => json_encode(['seller_api_action' => 'open'])]);
         $this->withHeaders(['Authorization' => 'Bearer '.$bearer, 'Idempotency-Key' => 'default-open'])
             ->postJson('/api/v1/leads', $body)->assertCreated()->assertJsonPath('status', 'opened');
