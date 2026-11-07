@@ -12,3 +12,20 @@ test('шаблон и подготовка архива за период',async
  const request=page.waitForRequest('**/seller/customer-io/export?**');await page.getByRole('button',{name:'Подготовить'}).click();
  const query=new URL((await request).url()).searchParams;expect(query.get('from')).toBe('2026-01-01');expect(query.get('to')).toBe('2026-01-31');expect(query.get('format')).toBe('xlsx');
 });
+test('зона перетаскивания CSV и кнопка выбора файла',async({page})=>{
+ await page.goto('http://127.0.0.1:5290/tests/Browser/E5-08D/fixture.html');
+ await expect(page.getByText('Перетащите CSV-файл сюда или')).toBeVisible();
+ const [chooser]=await Promise.all([page.waitForEvent('filechooser'),page.getByRole('button',{name:'Выбрать файл'}).click()]);
+ await chooser.setFiles({name:'clients.csv',mimeType:'text/csv',buffer:Buffer.from('Имя;Телефон\nАнна;123\n')});
+ await expect(page.getByText('clients.csv')).toBeVisible();
+});
+test('фильтр причины совпадения на странице дублей',async({page})=>{
+ await page.goto('http://127.0.0.1:5290/tests/Browser/E5-08D/duplicates.html');
+ await expect(page.getByText('Совпадения по телефону, почте или имени и городу')).toBeVisible();
+ await expect(page.getByText('Совпадает: Телефон')).toBeVisible();
+ await expect(page.getByText('Совпадает: Почта')).toBeVisible();
+ await page.screenshot({path:'.local/screenshots/e5-08d/duplicates.png',fullPage:true});
+ await page.getByLabel('Причина совпадения').selectOption('Телефон');
+ await expect(page.getByText('Совпадает: Телефон')).toBeVisible();
+ await expect(page.getByText('Совпадает: Почта')).toHaveCount(0);
+});
