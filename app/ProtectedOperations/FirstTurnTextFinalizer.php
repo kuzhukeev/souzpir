@@ -170,7 +170,7 @@ final class FirstTurnTextFinalizer
             $guard = $decisionService->finish($det, $goal, $enabled);
         }
         if (($guard['status'] ?? null) !== 'completed' || ($guard['verdict'] ?? null) !== 'ok'
-            || ! in_array($goal->kind, ['intro_and_ask', 'ask_slot', 'answer_and_ask', 'answer_only', 'unknown_fact', 'small_talk', 'unclear', 'closed_topic', 'decline_off_topic', 'decline_injection', 'bot_disclosure'], true)
+            || ! in_array($goal->kind, ['intro_and_ask', 'ask_slot', 'answer_and_ask', 'answer_only', 'unknown_fact', 'small_talk', 'unclear', 'closed_topic', 'decline_off_topic', 'decline_injection', 'bot_disclosure', 'handoff'], true)
             || ($state->signal('notify_manager') && ! $state->flag('manager_notified'))) {
             throw new LogicException;
         }
@@ -202,7 +202,7 @@ final class FirstTurnTextFinalizer
             ->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('role', 'client')->first() ?? throw new LogicException;
         $previousMeta = json_decode($input->meta ?: '{}', true) ?: [];
         $replyText = $candidate['text'];
-        if (! in_array($goal->kind, ['decline_injection', 'decline_off_topic', 'closed_topic'], true)) {
+        if (! in_array($goal->kind, ['decline_injection', 'decline_off_topic', 'closed_topic', 'handoff'], true)) {
             $conversation = DB::table('conversations')->where('id', $claim->conversationId)->where('organization_id', $tenant->organizationId)
                 ->where('brand_id', $tenant->brandId)->first(['channel_account_id', 'contact_id']) ?? throw new LogicException;
             $channel = $conversation->channel_account_id ? DB::table('channel_accounts')->where('id', $conversation->channel_account_id)
@@ -237,6 +237,10 @@ final class FirstTurnTextFinalizer
         ];
         if ($state->has('email') || $state->has('messenger')) {
             $conversationUpdate['contact_received_at'] = now();
+        }
+        if ($goal->kind === 'handoff') {
+            $conversationUpdate['mode'] = 'manager';
+            $conversationUpdate['handed_off_at'] = now();
         }
         DB::table('conversations')->where('id', $claim->conversationId)->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->update($conversationUpdate);
         $encoded = json_encode($outcome->toArray(), JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
