@@ -46,7 +46,9 @@ final class FewshotController
                 $persona = $snapshot?->all('persona');
                 $maxWords = $persona['length']['max_words'] ?? null;
 
-                return ['draft' => $draft, 'fewshot' => $snapshot?->all('fewshot'), 'availableTags' => FewshotTags::ALL, 'maxWords' => is_int($maxWords) && $maxWords > 0 ? $maxWords : null];
+                return ['draft' => $draft, 'fewshot' => $snapshot?->all('fewshot'), 'availableTags' => FewshotTags::ALL, 'tagLabels' => FewshotTags::LABELS,
+                    'clientTypes' => FewshotClientTypes::ALL, 'clientTypeLabels' => FewshotClientTypes::LABELS,
+                    'maxWords' => is_int($maxWords) && $maxWords > 0 ? $maxWords : null];
             }), rescue: true),
             'status' => session('status'),
         ]);
