@@ -10,11 +10,28 @@ use App\Tenancy\TenantContextRunner;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\Feature\Tenancy\TenancyTestCase;
 
 final class TeamMemberDetailTest extends TenancyTestCase
 {
+    public function test_activity_is_limited_to_twenty_and_excludes_payloads(): void
+    {
+        [$owner, $org, $brand] = $this->cabinet();
+        [$target, $member] = $this->member($org, 'viewer', [$brand->id]);
+        foreach (range(1, 23) as $number) {
+            DB::table('audit_logs')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id,
+                'brand_id' => $brand->id, 'actor_id' => $target->id, 'action' => 'team.activity_test',
+                'subject_type' => 'user', 'subject_id' => 'private-'.$number, 'after' => json_encode(['secret' => 'hidden']), 'created_at' => now()->subMinutes(23 - $number)]);
+        }
+        $response = $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->get('/team/'.$member->id)
+            ->assertOk()->assertInertia(fn (Assert $page) => $page->has('activity', 20));
+        $activity = json_encode($response->inertiaProps('activity'), JSON_THROW_ON_ERROR);
+        $this->assertStringNotContainsString('hidden', $activity);
+        $this->assertStringNotContainsString('private-', $activity);
+    }
+
     public function test_owner_sees_real_member_details_but_not_foreign_or_nonexistent_members(): void
     {
         [$owner, $org, $first, $second] = $this->cabinet();
@@ -92,7 +109,8 @@ final class TeamMemberDetailTest extends TenancyTestCase
         $url = '/journal?actor='.$target->id;
         $this->assertNotSame($target->id, $membership->id);
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
-        $this->get('/team/'.$membership->id)->assertOk()->assertInertia(fn (Assert $page) => $page->where('activityUrl', $url));
+        $detail = $this->get('/team/'.$membership->id)->assertOk()->assertInertia(fn (Assert $page) => $page->where('activityUrl', $url)->has('activity', 2));
+        $this->assertStringNotContainsString('OTHER-BRAND', json_encode($detail->inertiaProps('activity'), JSON_THROW_ON_ERROR));
         $response = $this->get($url)->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('filters.actor', $target->id)->where('rows.total', 2));
         $ids = collect($response->inertiaProps('rows.data'))->pluck('subject_id')->sort()->values()->all();
@@ -102,7 +120,7 @@ final class TeamMemberDetailTest extends TenancyTestCase
         $this->actingAs($admin)->withSession(['brand_id' => $brand->id])->get('/team/'.$membership->id)
             ->assertOk()->assertInertia(fn (Assert $page) => $page->where('activityUrl', $url));
         $viewerPage = $this->actingAs($viewer)->withSession(['brand_id' => $brand->id])->get('/team/'.$membership->id);
-        $viewerPage->assertOk()->assertInertia(fn (Assert $page) => $page->where('activityUrl', null));
+        $viewerPage->assertOk()->assertInertia(fn (Assert $page) => $page->where('activityUrl', null)->where('activity', null));
         $this->assertStringNotContainsString($target->id, json_encode($viewerPage->inertiaProps(), JSON_THROW_ON_ERROR));
         $this->get($url)->assertForbidden();
         $this->actingAs($editor)->withSession(['brand_id' => $brand->id])->get('/team/'.$membership->id)->assertForbidden();

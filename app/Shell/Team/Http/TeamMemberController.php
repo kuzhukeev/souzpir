@@ -6,7 +6,9 @@ use App\Models\Membership;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Auth\SessionBrandSelection;
+use App\Shell\Journal\JournalObjectRegistry;
 use App\Shell\Notifications\RecipientPolicy;
+use App\Shell\Organizations\ModuleEntitlements;
 use App\Shell\Team\TeamMemberProjection;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
@@ -46,6 +48,33 @@ final class TeamMemberController
 
         $context = app(TenantContext::class);
         $sharedBrand = $context->brandId && $member->permitsBrand($context->brandId);
+        $activity = null;
+        if ($sharedBrand && Gate::allows('journal.read')) {
+            $fullJournal = Gate::allows('journal.notifications.read');
+            $query = DB::table('audit_logs')->where('organization_id', $context->organizationId)->where('actor_id', $member->user_id)
+                ->where(function ($q) use ($context, $fullJournal): void {
+                    $q->where('brand_id', $context->brandId);
+                    if ($fullJournal) {
+                        $q->orWhereNull('brand_id');
+                    }
+                });
+            if (! $fullJournal) {
+                $seller = Gate::allows('seller.knowledge.write');
+                $vision = Gate::allows('vision.measure.run');
+                $query->where(function ($q) use ($seller, $vision): void {
+                    $q->whereRaw('1 = 0');
+                    if ($seller) {
+                        $q->orWhere('action', 'like', 'knowledge.%')->orWhere('action', 'like', 'seller.%');
+                    }
+                    if ($vision) {
+                        $q->orWhere('action', 'like', 'vision.%');
+                    }
+                });
+            }
+            $registry = app(JournalObjectRegistry::class);
+            $activity = $query->orderByDesc('created_at')->orderByDesc('id')->limit(20)->get(['id', 'action', 'created_at'])
+                ->map(fn ($row) => ['id' => $row->id, 'label' => $registry->action($row->action), 'created_at' => $row->created_at]);
+        }
         $dialogCount = $sharedBrand && Gate::allows('seller.dialogs.read')
             ? DB::table('conversations')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)
                 ->where('assigned_user_id', $member->user_id)->where('mode', 'manager')->count()
@@ -76,7 +105,10 @@ final class TeamMemberController
             }
         }
 
-        return Inertia::render('Shell/Team/Show', ['member' => $data, 'activityUrl' => $activityUrl, 'dialogCount' => $dialogCount, 'receives' => $receives, 'transferRecipients' => $recipients,
+        return Inertia::render('Shell/Team/Show', ['member' => $data, 'activityUrl' => $activityUrl, 'activity' => $activity, 'dialogCount' => $dialogCount, 'receives' => $receives, 'transferRecipients' => $recipients,
+            'avatarUrl' => $member->user_id === $context->actorId && Route::has('profile.avatar') && DB::table('profile_preferences')->where('user_id', $member->user_id)->whereNotNull('avatar_path')->exists() ? route('profile.avatar', absolute: false) : null,
+            'notificationSettingsUrl' => $member->user_id === $context->actorId && Route::has('profile.notifications') ? route('profile.notifications', absolute: false) : null,
+            'reportSettingsUrl' => $sharedBrand && Gate::allows('vision.settings.write') && app(ModuleEntitlements::class)->enabled($context, 'vision') && Route::has('vision.settings.index') ? route('vision.settings.index', absolute: false) : null,
             'editAccess' => Gate::allows('update', $member) && $controlled && $member->status === 'active'
                 ? ['brands' => TeamMemberProjection::forCurrentActor()->availableBrands(), 'allBrands' => $unrestricted,
                     'memberAllBrands' => $member->role === 'admin' && $member->brand_ids === [], 'revision' => $revision] : null]);

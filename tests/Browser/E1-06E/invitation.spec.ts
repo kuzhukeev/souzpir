@@ -76,8 +76,7 @@ test('роль менеджера и выбранные бренды перед�
   await login(page, 'owner');
   await page.getByRole('button', { name: 'Открыть форму' }).click();
   await page.getByLabel('Электронная почта').fill(email);
-  await page.getByRole('combobox', { name: 'Роль' }).click();
-  await page.getByRole('option', { name: 'Менеджер' }).click();
+  await page.getByRole('radio', { name: /^Менеджер/ }).check();
   const submitted = page.waitForRequest(
     (request) => request.method() === 'POST' && request.url() === `${origin}/team/invitations`,
   );
@@ -377,11 +376,10 @@ for (const sample of [1440, 1024, 390].flatMap((width) =>
     await page.getByRole('button', { name: 'Открыть форму' }).click();
     const dialog = page.getByRole('dialog', { name: 'Пригласить участника' });
     await expect(dialog).toBeVisible();
-    const role = page.getByRole('combobox', { name: 'Роль' });
+    const role = page.getByRole('radio', { name: /^Менеджер/ });
     await role.focus();
-    await page.keyboard.press('Enter');
-    await page.getByRole('option', { name: 'Менеджер' }).click();
-    await expect(role).toContainText('Менеджер');
+    await page.keyboard.press('Space');
+    await expect(role).toBeChecked();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
       true,
     );
