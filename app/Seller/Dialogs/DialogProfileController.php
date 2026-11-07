@@ -32,14 +32,14 @@ final class DialogProfileController
             $custom = [];
             try {
                 foreach (app(KnowledgeRepository::class)->published($context)->policy()['client_fields'] ?? [] as $field) {
-                    if (is_string($field['id'] ?? null) && ! in_array($field['id'], LeadState::SLOTS, true)) {
+                    if (is_string($field['id'] ?? null) && ! in_array($field['id'], ['name', 'email', 'messenger'], true)) {
                         $custom[$field['id']] = $field;
                     }
                 }
             } catch (KnowledgeNotReady) {
                 // System fields remain editable without a published schema.
             }
-            $rules = ['slots' => ['required', 'array:'.implode(',', [...LeadState::SLOTS, ...array_keys($custom)])]];
+            $rules = ['slots' => ['required', 'array:'.implode(',', array_unique([...LeadState::SLOTS, ...array_keys($custom)]))]];
             foreach ($custom as $key => $field) {
                 $rules['slots.'.$key] = match ($field['type'] ?? null) {
                     'number' => ['nullable', 'numeric'],
@@ -58,7 +58,7 @@ final class DialogProfileController
             $state['slots'] = is_array($state['slots'] ?? null) ? $state['slots'] : [];
             foreach ($input['slots'] as $key => $value) {
                 $value = trim($value ?? '');
-                $state['slots'][$key] = in_array($key, ['categories', 'brands_interest'], true)
+                $state['slots'][$key] = ! isset($custom[$key]) && in_array($key, ['categories', 'brands_interest'], true)
                     ? array_values(array_filter(array_map('trim', explode(',', $value))))
                     : ($value === '' ? null : (($custom[$key]['type'] ?? null) === 'number' ? $value + 0 : $value));
             }

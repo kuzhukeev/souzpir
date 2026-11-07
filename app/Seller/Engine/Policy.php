@@ -523,7 +523,7 @@ class Policy
             $slot = $field['id'] ?? null;
             $stage = $field['stage'] ?? null;
             $requiredAt = $stage === null ? 0 : array_search($stage, $stages, true);
-            if (($field['required'] ?? false) && is_string($slot) && ! in_array($slot, LeadState::SLOTS, true)
+            if (($field['required'] ?? false) && is_string($slot)
                 && $current !== false && $requiredAt !== false && $current >= $requiredAt && ! $s->has($slot) && ! $s->wasRefused($slot)) {
                 return $slot;
             }

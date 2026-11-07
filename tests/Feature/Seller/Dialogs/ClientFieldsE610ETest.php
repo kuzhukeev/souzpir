@@ -28,6 +28,7 @@ final class ClientFieldsE610ETest extends TenancyTestCase
             ['id' => 'car_year', 'name' => 'Год выпуска', 'type' => 'number', 'options' => [], 'required' => true, 'stage' => 'need'],
             ['id' => 'service_kind', 'name' => 'Услуга', 'type' => 'select', 'options' => ['Диагностика', 'Ремонт'], 'required' => false, 'stage' => null],
             ['id' => 'contact_time', 'name' => 'Время связи', 'type' => 'text', 'options' => [], 'required' => true, 'stage' => 'handoff'],
+            ['id' => 'city', 'name' => 'Филиал', 'type' => 'select', 'options' => ['Москва', 'Казань'], 'required' => false, 'stage' => null],
         ];
         $tenant = new TenantContext($org->id, $brand->id, $owner->id, $member->id);
         app(TenantContextRunner::class)->run($tenant, function () use ($tenant, $data): void {
@@ -43,6 +44,7 @@ final class ClientFieldsE610ETest extends TenancyTestCase
             'contact_id' => $contact, 'state' => json_encode(['slots' => ['car_year' => 2020]]), 'created_at' => now(), 'updated_at' => now()]);
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
         $this->get('/seller/dialogs/'.$id)->assertOk()->assertInertia(fn ($page) => $page
+            ->where('dialog.slots.1.label', 'Филиал')->where('dialog.slots.1.type', 'select')
             ->where('dialog.slots.16.label', 'Год выпуска')->where('dialog.slots.16.value', '2020')->where('dialog.slots.16.type', 'number')
             ->where('dialog.slots.17.label', 'Услуга')->where('dialog.slots.17.type', 'select')->where('dialog.slots.17.options.1', 'Ремонт'));
         $this->get('/seller/customers/'.$contact)->assertOk()->assertInertia(fn ($page) => $page
@@ -57,6 +59,8 @@ final class ClientFieldsE610ETest extends TenancyTestCase
         $this->get('/seller/customers?client_field=unknown&client_value=x')->assertUnprocessable();
         $this->putJson('/seller/dialogs/'.$id.'/profile', ['slots' => ['car_year' => 'нет']])->assertUnprocessable();
         $this->putJson('/seller/dialogs/'.$id.'/profile', ['slots' => ['service_kind' => 'Другое']])->assertUnprocessable();
+        $this->putJson('/seller/dialogs/'.$id.'/profile', ['slots' => ['city' => 'Другое']])->assertUnprocessable();
+        $this->put('/seller/dialogs/'.$id.'/profile', ['slots' => ['city' => 'Казань']])->assertSessionHasNoErrors();
         $this->post('/seller/dialogs/'.$id.'/transfer', ['assigned_user_id' => $owner->id])->assertSessionHasErrors('assigned_user_id');
         $this->assertDatabaseHas('conversations', ['id' => $id, 'assigned_user_id' => null]);
         $this->put('/seller/dialogs/'.$id.'/profile', ['slots' => ['contact_time' => 'Вечером']])->assertSessionHasNoErrors();

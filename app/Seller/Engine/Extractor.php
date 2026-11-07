@@ -34,7 +34,7 @@ class Extractor
         $slotProps['brands_interest'] = ['type' => ['array', 'null'], 'items' => ['type' => 'string']];
         foreach ($this->kb->policy()['client_fields'] ?? [] as $field) {
             $id = $field['id'] ?? null;
-            if (! is_string($id) || isset($slotProps[$id])) {
+            if (! is_string($id) || in_array($id, ['name', 'email', 'messenger'], true)) {
                 continue;
             }
             $type = $field['type'] ?? null;

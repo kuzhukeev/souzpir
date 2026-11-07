@@ -71,4 +71,22 @@ final class ClientFieldsE610ETest extends TenancyTestCase
         $policy->applyExtraction($state, ['slot_updates' => ['course' => 'Английский']]);
         self::assertSame('close_contact', $state->stage());
     }
+
+    public function test_brand_can_define_existing_non_contact_field(): void
+    {
+        [$owner, $org, $brand, , $membership] = $this->cabinet();
+        $tenant = new TenantContext($org->id, $brand->id, $owner->id, $membership->id);
+        app(PromptSetsSeeder::class)->run();
+        $base = app(TenantContextRunner::class)->run($tenant, fn () => app(YamlKnowledgeImporter::class)
+            ->importAndPublish($tenant, base_path('tests/Feature/Seller/Knowledge/Fixtures/data')));
+        $data = $base->toArray();
+        $data['policy']['client_fields'] = [['id' => 'city', 'name' => 'Филиал', 'type' => 'select', 'options' => ['Москва', 'Казань'], 'required' => true, 'stage' => 'qualify']];
+        $knowledge = new KnowledgeSnapshot($data, $base->releaseId(), $base->checksum());
+        $extractor = new Extractor(app(AiGateway::class), $knowledge, app(ExtractorPromptLoader::class)->load($tenant), 'fixture', 0.0, 'Антон');
+        self::assertSame(['Москва', 'Казань', null], $extractor->schema()['properties']['slot_updates']['properties']['city']['enum']);
+        self::assertSame('Филиал', $extractor->schema()['properties']['slot_updates']['properties']['city']['description']);
+        $state = new LeadState;
+        $state->setStage('qualify');
+        self::assertSame('city', (new Policy($knowledge))->nextSlot($state));
+    }
 }

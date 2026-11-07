@@ -126,7 +126,7 @@ final class DialogReader
             $definitions = [];
             try {
                 foreach (app(KnowledgeRepository::class)->published($context)->policy()['client_fields'] ?? [] as $field) {
-                    if (is_string($field['id'] ?? null) && is_string($field['name'] ?? null) && ! isset($labels[$field['id']])) {
+                    if (is_string($field['id'] ?? null) && is_string($field['name'] ?? null) && ! in_array($field['id'], ['name', 'email', 'messenger'], true)) {
                         $labels[$field['id']] = $field['name'];
                         $definitions[$field['id']] = $field;
                     }
