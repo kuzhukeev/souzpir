@@ -59,6 +59,8 @@ type Analytics = {
   canManage: boolean;
   subscription?: {day:string; recipients:string[]} | null;
   avgMinutesToContact?: number | null;
+  messageCount?: number;
+  botCompleted?: number;
 };
 function formatMinutesToContact(value: number | null | undefined) {
   if (value == null) return 'Нет данных';
@@ -131,6 +133,8 @@ function Rows({
 export default function Index({ analytics: a }: { analytics: Analytics }) {
   const [tab, setTab] = useState('funnel');
   const [compare, setCompare] = useState(true);
+  const avgMessages = a.total ? (a.messageCount ?? 0) / a.total : null;
+  const botRate = a.total && a.botCompleted != null ? Math.round((a.botCompleted / a.total) * 100) : null;
   const form = useForm({
     from: a.from,
     to: a.to,
@@ -471,14 +475,30 @@ export default function Index({ analytics: a }: { analytics: Analytics }) {
           )}
         </div>
         <div hidden={tab !== 'dialogs'}>
-          <section className={`${card} mt-5`} aria-label="Среднее время до контакта">
-            <h2 className="text-xl font-bold">Среднее время до контакта</h2>
-            <p className="mt-2 text-2xl font-bold">{formatMinutesToContact(a.avgMinutesToContact)}</p>
-            <p className="mt-2 text-sm text-(--color-ink-muted)">
-              От начала диалога до получения почты или мессенджера клиента; для диалогов без
-              сохранённого контакта не считается.
-            </p>
+          <section className="mt-5 grid gap-4 md:grid-cols-3" aria-label="Ключевые показатели диалогов">
+            <div className={card}>
+              <h2 className="text-sm font-semibold">Средняя длина диалога</h2>
+              <p className="mt-2 text-2xl font-bold">
+                {avgMessages == null
+                  ? 'Нет данных'
+                  : `${avgMessages.toLocaleString('ru-RU', { maximumFractionDigits: 1 })} хода`}
+              </p>
+            </div>
+            <div className={card}>
+              <h2 className="text-sm font-semibold">Бот ответил сам до конца</h2>
+              <p className="mt-2 text-2xl font-bold">{botRate == null ? 'Нет данных' : `${botRate}%`}</p>
+            </div>
+            <div className={card}>
+              <h2 className="text-sm font-semibold">Среднее время до контакта</h2>
+              <p className="mt-2 text-2xl font-bold">{formatMinutesToContact(a.avgMinutesToContact)}</p>
+            </div>
           </section>
+          <p className="mt-2 text-sm text-(--color-ink-muted)">
+            Длина — число сохранённых сообщений в диалоге. «Бот ответил сам до конца» — завершённые
+            диалоги с ответом бота, без передачи и сообщений менеджера. Время до контакта — от
+            начала диалога до получения почты или мессенджера клиента; для диалогов без
+            сохранённого контакта не считается.
+          </p>
           <section className={`${card} mt-4`} aria-label="Диалоги по дням">
             <h2 className="text-xl font-bold">Диалоги по дням</h2>
             <Rows values={a.daily} />
