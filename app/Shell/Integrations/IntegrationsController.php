@@ -5,6 +5,7 @@ namespace App\Shell\Integrations;
 use App\Models\Brand;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Brands\BrandAccess;
+use App\Shell\Integrations\CompanyNotifications\CompanyNotificationDelivery;
 use App\Shell\Integrations\CompanyNotifications\CompanyNotificationSettings;
 use App\Shell\Integrations\Keys\KeysController;
 use App\Shell\Integrations\Webhooks\WebhookDelivery;
@@ -25,7 +26,7 @@ final class IntegrationsController
 {
     private function externalDeliveryEnabled(): bool
     {
-        return (bool) config('features.E0-04.defaults.external_delivery') && config('runtime.notification_driver') !== 'fake';
+        return CompanyNotificationDelivery::available() || ((bool) config('features.E0-04.defaults.external_delivery') && config('runtime.notification_driver') !== 'fake');
     }
 
     public function index(): Response
