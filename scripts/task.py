@@ -426,7 +426,6 @@ class Coordinator:
                 or record.get("project") != self.project or record.get("taskKey") != key
                 or record.get("branch") != "codex/" + key.lower()
                 or Path(record.get("worktree", "")).resolve() != (self.root / ".worktrees" / key.lower()).resolve()
-                or not set(scope_signature(record.get("scope", []))) <= set(scope_signature(task.get("scope", [])))
                 or not set(record.get("dependsOn", [])) <= set(task.get("dependsOn", []))):
             return False
         merges = task.get("previousMerges", [])
@@ -464,7 +463,7 @@ class Coordinator:
                     if ((record.get("status") == "released" or self.completed_branch_is_safe(key, record, task)) and not record.get("claimToken")
                             and record.get("project") == self.project and record.get("branch") == branch
                             and Path(record.get("worktree", "")).resolve() == worktree.resolve()
-                            and set(scope_signature(record.get("scope", []))) <= set(scope_signature(task.get("scope", [])))
+                            and (record.get("status") == "done" or set(scope_signature(record.get("scope", []))) <= set(scope_signature(task.get("scope", []))))
                             and set(record.get("dependsOn", [])) <= set(task.get("dependsOn", []))
                             and git(worktree, "branch", "--show-current") == branch
                             and not git(worktree, "status", "--porcelain=v1", "--untracked-files=all")
@@ -578,7 +577,7 @@ class Coordinator:
             if ((record.get("status") != "released" and not self.completed_branch_is_safe(key, record, task)) or record.get("claimToken") or task.get("status") != "queue"
                     or record.get("project") != self.project or record.get("branch") != branch
                     or Path(record.get("worktree", "")).resolve() != worktree.resolve()
-                    or not set(scope_signature(record.get("scope", []))) <= set(scope_signature(task.get("scope", [])))
+                    or (record.get("status") != "done" and not set(scope_signature(record.get("scope", []))) <= set(scope_signature(task.get("scope", []))))
                     or not set(record.get("dependsOn", [])) <= set(task.get("dependsOn", []))):
                 raise TaskError("Existing worktree is not safely released; inspect it without overwriting")
             if record.get("status") == "done" and worktree.as_posix().casefold() in windows_process_commands():

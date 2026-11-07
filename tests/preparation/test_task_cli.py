@@ -137,6 +137,21 @@ class TaskCliTests(unittest.TestCase):
         self.assertEqual(self.client.read_claim("SP-001")["worker"], "new-chat")
 
     @patch.object(task_cli, "windows_process_commands", return_value="")
+    def test_reopened_published_task_can_narrow_its_scope(self, _processes):
+        worktree = self.completed_task()
+        self.api.task["scope"] = ["app/Other/"]
+        plan_path = self.root / "planning" / "tasks.json"
+        plan = json.loads(plan_path.read_text(encoding="utf-8"))
+        plan["tasks"][0]["scope"] = self.api.task["scope"]
+        plan_path.write_text(json.dumps(plan), encoding="utf-8")
+        task_cli.git(self.root, "add", "planning/tasks.json")
+        task_cli.git(self.root, "commit", "-m", "Narrow completed task scope")
+        self.assertEqual(self.client.ready()["tasks"][0]["taskKey"], "SP-001")
+        result = self.client.claim("SP-001", "new-chat")
+        self.assertEqual(Path(result["worktree"]), worktree)
+        self.assertEqual(self.client.read_claim("SP-001")["scope"], ["app/Other/"])
+
+    @patch.object(task_cli, "windows_process_commands", return_value="")
     def test_reopened_card_recreates_only_previously_removed_tree(self, _processes):
         worktree = self.completed_task()
         self.assertTrue(worktree.resolve().is_relative_to(self.root.resolve()))
