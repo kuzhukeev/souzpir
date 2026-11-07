@@ -18,4 +18,6 @@
 
 ## Нужно от интегратора
 - До приёмки зарегистрировать продолжение для остатка и выделить scope тестов симуляции.
-- Обновить старый `tests/Browser/E5-03D/api.spec.ts:19`: он требует disabled для теперь доступного выбора; новый E5-03F проверяет выбор и отправляемое значение. Старый тест запущен и падает ровно на этом ожидании; файл вне scope.
+- Красный Product CI требует четырёх файлов вне scope: `tests/Feature/Seller/Settings/Schedule/AssignmentE606CTest.php`, `tests/Feature/SellerRuntime/Delivery/FakeDeliveryTest.php`, `tests/Feature/SellerRuntime/FirstInboundRuntimeTest.php`, `tests/Browser/E5-03D/api.spec.ts`.
+- Подготовлен точный патч `.local/compat/ci-test-adjustments.patch`; `git apply --check --ignore-space-change` проходит. Патч подключает подготовленную в scope fake-фикстуру, сохраняет проверку нуля вызовов для manager и проверяет два вызова для suggest, меняет disabled на enabled.
+- Изолированные копии с патчем: PHPUnit 9 тестов/135 проверок, Playwright 1/1. Оригиналы намеренно не изменены; до применения патча Product CI остаётся красным. Интегратору нужно дать точечный scope либо применить патч самому.
