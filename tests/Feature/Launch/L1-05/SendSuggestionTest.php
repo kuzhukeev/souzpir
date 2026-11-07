@@ -133,4 +133,22 @@ final class SendSuggestionTest extends TenancyTestCase
             ->assertRedirect();
         $this->assertSame(1, DB::table('messages')->where('conversation_id', $draft['conversation_id'])->where('role', 'manager')->count());
     }
+
+    public function test_delivery_status_is_shown_under_manager_message(): void
+    {
+        Queue::fake();
+        [$owner, $org, $brand] = $this->cabinet();
+        $draft = $this->readyDialog($org, $brand);
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id])
+            ->post("/seller/dialogs/{$draft['conversation_id']}/suggestions/{$draft['turn_id']}/send", ['text' => $draft['suggestion']])
+            ->assertRedirect();
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->get('/seller/dialogs/'.$draft['conversation_id'])
+            ->assertOk()->assertInertia(fn ($page) => $page->where('dialog.messages.0.delivery.fake', true)
+            ->where('dialog.messages.0.delivery.delivered_at', null)->where('dialog.messages.0.delivery.error', null));
+        $message = DB::table('messages')->where('conversation_id', $draft['conversation_id'])->where('role', 'manager')->first();
+        DB::table('messages')->where('id', $message->id)->update(['delivered_at' => now()]);
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->get('/seller/dialogs/'.$draft['conversation_id'])
+            ->assertOk()->assertInertia(fn ($page) => $page->where('dialog.messages.0.delivery.fake', true)
+            ->where('dialog.messages.0.delivery.delivered_at', fn ($value) => $value !== null));
+    }
 }

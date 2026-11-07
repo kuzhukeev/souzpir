@@ -6,7 +6,7 @@ import { Avatar } from '@/components/ui';
 import TemplatesEditor from './TemplatesEditor';
 
 type Item = { id: string; name: string; mode: string; stage: string; outcome: string | null; channel: string; last_message: string | null; updated_at: string; assigned_user_id: string | null; waiting_minutes?: number | null; review_count?: number };
-type Message = { id: string; role: string; text: string; created_at: string; attachment_name?: string | null; meta: Record<string, string | null> };
+type Message = { id: string; role: string; text: string; created_at: string; attachment_name?: string | null; delivery?: { fake: boolean; delivered_at: string | null; error: string | null } | null; meta: Record<string, string | null> };
 type Detail = Item & { summary: string | null; email: string | null; phone: string | null; slots: { key: string; label: string; value: string | null }[]; transfers?: { name: string; created_at: string }[]; messages: Message[]; tasks: { id: string; type: string; status: string; due_at: string | null; text?: string | null }[] };
 type Props = { reportDay?: string | null; evaluationId?: string | null; readySuggestion?: string | null; readySuggestionTurnId?: string | null; messageTemplates?: {name: string; text: string}[]; transferOptions?: {id: string; name: string}[]; dialogs: Item[]; dialog: Detail | null; mineCounts?: { waiting: number; active: number; closed_today: number }; managerOptions?: {id: string; name: string}[]; pagination?: {page: number; pages: number; total: number}; filters: { mode: string; search: string; sort?: string; channel?: string; stage?: string; manager?: string; outcome?: string; period?: string; reviewed?: string; page?: number }; loadError?: boolean };
 
@@ -17,6 +17,13 @@ const stageNames: Record<string, string> = { open: 'Новый', qualify: 'Зн�
 const roleNames: Record<string, string> = { client: 'Клиент', agent: 'Бот', manager: 'Менеджер', system: 'Событие' };
 const metaNames: Record<string, string> = { intent: 'Тема', goal: 'Цель', tools: 'Действия', guard: 'Guard', model: 'Модель' };
 const date = (value: string) => new Date(value).toLocaleString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+const time = (value: string) => new Date(value).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+const deliveryLabel = (delivery?: { fake: boolean; delivered_at: string | null; error: string | null } | null): string | null => {
+  if (!delivery) return null;
+  if (delivery.error) return `Ошибка отправки: ${delivery.error}`;
+  if (delivery.delivered_at) return `Отправлено ${time(delivery.delivered_at)}`;
+  return delivery.fake ? 'Тестовая очередь' : 'В очереди отправки';
+};
 
 export default function Index({ dialogs, dialog, reportDay = null, evaluationId = null, readySuggestion = null, readySuggestionTurnId = null, messageTemplates = [{name: 'Приветствие', text: 'Здравствуйте, {имя}! Чем могу помочь?'}, {name: 'Скоро отвечу', text: 'Спасибо за обращение! Скоро вернусь с ответом.'}], transferOptions = [], mineCounts = { waiting: 0, active: 0, closed_today: 0 }, managerOptions = [], pagination = {page: 1, pages: 1, total: 0}, filters, loadError = false, minePage = false }: Props & { minePage?: boolean }) {
   const { can, brand, auth } = usePage<{ can: Record<string, boolean>; brand: { id: string } | null; auth: {user:{id:string}|null} }>().props;
@@ -168,7 +175,7 @@ export default function Index({ dialogs, dialog, reportDay = null, evaluationId 
           </> : <p className="mt-2 text-(--color-ink-muted)">Готовой подсказки пока нет.</p>}</section>}
 {reviewSaved && <p role="status" className="px-4 pt-4 text-sm">Пометка сохранена.</p>}
           <ol className="space-y-4 p-4 md:p-6" aria-label="Сообщения">{dialog.messages.length === 0 ? <li className="text-sm text-(--color-ink-muted)">Сообщений пока нет.</li> : dialog.messages.map((message) => <li key={message.id} className={`max-w-[90%] rounded-xl p-4 text-sm ${message.role === 'client' ? 'border border-(--color-border) bg-(--color-surface-muted)' : message.role === 'system' ? 'mx-auto bg-(--color-surface-muted) text-center' : 'ml-auto bg-(--color-action) text-white'}`}>
-            <div className="mb-1 flex flex-wrap gap-2 text-xs opacity-80"><strong>{roleNames[message.role] || message.role}</strong><time>{date(message.created_at)}</time></div><p className="whitespace-pre-wrap break-words">{message.text}</p>{message.attachment_name && <a className="mt-2 block cursor-pointer underline" href={`/seller/dialogs/${dialog.id}/messages/${message.id}/attachment`}>{message.attachment_name}</a>}
+            <div className="mb-1 flex flex-wrap gap-2 text-xs opacity-80"><strong>{roleNames[message.role] || message.role}</strong><time>{date(message.created_at)}</time></div><p className="whitespace-pre-wrap break-words">{message.text}</p>{message.attachment_name && <a className="mt-2 block cursor-pointer underline" href={`/seller/dialogs/${dialog.id}/messages/${message.id}/attachment`}>{message.attachment_name}</a>}{message.role === 'manager' && deliveryLabel(message.delivery) && <p className="mt-1 text-xs opacity-80">{deliveryLabel(message.delivery)}</p>}
             {message.role === 'agent' && can['seller.dialogues.operate'] && <button type="button" onClick={() => { setReviewMessage(message.id); setReviewSaved(false); }} className="mt-2 cursor-pointer underline">Пометить</button>}
             {reviewMessage === message.id && <form onSubmit={saveReview} className="mt-3 space-y-2 rounded-lg bg-(--color-surface) p-3 text-(--color-ink)">
               <label className="block">Причина<select value={reviewType} onChange={(event) => setReviewType(event.target.value)} className="mt-1 block w-full cursor-pointer rounded-lg border border-(--color-border) bg-(--color-surface) p-2"><option value="unclear">Непонятно</option><option value="bureaucratic">Канцелярит</option><option value="too_long">Слишком длинно</option><option value="wrong_fact">Неверный факт</option><option value="wrong_tone">Неверный тон</option><option value="other">Другое</option></select></label>
