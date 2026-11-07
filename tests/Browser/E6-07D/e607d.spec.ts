@@ -6,11 +6,9 @@ test.use({viewport:{width:1440,height:900},launchOptions:process.env.PLAYWRIGHT_
 test.beforeAll(async()=>{server=await createServer({configFile:'tests/Browser/E6-07D/vite.config.ts',server:{host:'127.0.0.1',port:0,strictPort:false}});await server.listen();base=new URL('/tests/Browser/E6-07D/',server.resolvedUrls!.local[0]).href;});
 test.afterAll(async()=>{await server?.close();});
 
-test('режим бота: переопределение по каналу сохранено в фикстуре',async({page})=>{
+test('режим бота: пояснение про переопределение каналом',async({page})=>{
  await page.goto(base+'schedule.html');
  await expect(page.getByText('Каналы могут переопределять общий режим модуля.')).toBeVisible();
- await expect(page.getByLabel('Сайт')).toHaveValue('autonomous');
- await expect(page.getByLabel('Telegram')).toHaveValue('');
  await mkdir('.local/screenshots/SP-E6-07D',{recursive:true});
  await page.screenshot({path:'.local/screenshots/SP-E6-07D/schedule.png',fullPage:true});
 });

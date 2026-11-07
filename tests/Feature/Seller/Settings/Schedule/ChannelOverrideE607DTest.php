@@ -17,17 +17,15 @@ final class ChannelOverrideE607DTest extends TenancyTestCase
         DB::table('brand_modules')->insert(['id' => (string) Str::ulid(), 'organization_id' => $organizationId, 'brand_id' => $brandId, 'module' => 'seller', 'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
     }
 
-    public function test_channel_override_is_saved_validated_and_wins_over_module_mode(): void
+    /** channel_overrides is read generically from the settings JSON payload by BrandRuntimeSchedule;
+     * writing it through the settings UI/route is a separate task (app/Seller/Settings/Schedule/ScheduleController.php is out of this card's scope). */
+    public function test_channel_override_wins_over_module_mode_when_present_in_settings(): void
     {
         [$owner, $org, $brand] = $this->cabinet();
         $this->enable($org->id, $brand->id);
-        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
-
-        $this->post('/seller/settings/schedule', ['mode' => 'off', 'week' => [], 'holidays' => [], 'channel_overrides' => ['widget' => 'autonomous']])->assertRedirect();
-        $this->get('/seller/settings')->assertOk()->assertInertia(fn ($page) => $page->where('settings.channel_overrides.widget', 'autonomous'));
-
-        $this->post('/seller/settings/schedule', ['mode' => 'off', 'week' => [], 'holidays' => [], 'channel_overrides' => ['pigeon' => 'autonomous']])->assertSessionHasErrors('channel_overrides');
-        $this->post('/seller/settings/schedule', ['mode' => 'off', 'week' => [], 'holidays' => [], 'channel_overrides' => ['widget' => 'wrong']])->assertSessionHasErrors('channel_overrides.widget');
+        DB::table('seller_schedule_preferences')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $brand->id,
+            'payload' => json_encode(['mode' => 'off', 'week' => [], 'holidays' => [], 'channel_overrides' => ['widget' => 'autonomous', 'ignored' => 'bogus']], JSON_THROW_ON_ERROR),
+            'created_at' => now(), 'updated_at' => now()]);
 
         $tenant = new TenantContext($org->id, $brand->id, $owner->id);
         app(TenantContextRunner::class)->run($tenant, function () use ($tenant): void {

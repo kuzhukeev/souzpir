@@ -6,7 +6,6 @@ use App\Models\Membership;
 use App\Models\User;
 use App\Seller\Knowledge\Contracts\KnowledgeRepository;
 use App\Seller\Knowledge\KnowledgeNotReady;
-use App\Seller\Runtime\BrandRuntimeSchedule;
 use App\Seller\Runtime\ServicePhraseSelector;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Audit\AuditEntry;
@@ -38,7 +37,7 @@ final class ScheduleController
         $raw = DB::table('seller_schedule_preferences')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->value('payload');
         $data = $raw ? json_decode($raw, true) : [];
 
-        return array_replace(['mode' => 'autonomous', 'week' => [], 'holidays' => [], 'channel_overrides' => [], 'assignment' => ['method' => 'first_taken', 'fixed' => null, 'members' => [], 'notify_minutes' => null, 'notify_target' => 'all_managers']], is_array($data) ? $data : []);
+        return array_replace(['mode' => 'autonomous', 'week' => [], 'holidays' => [], 'assignment' => ['method' => 'first_taken', 'fixed' => null, 'members' => [], 'notify_minutes' => null, 'notify_target' => 'all_managers']], is_array($data) ? $data : []);
     }
 
     private function save(TenantContext $tenant, array $data): void
@@ -83,8 +82,7 @@ final class ScheduleController
     {
         $input = $request->validate(['mode' => ['required', 'in:autonomous,suggest,off'], 'week' => ['present', 'array'], 'week.*.enabled' => ['required', 'boolean'],
             'week.*.start' => ['required', 'date_format:H:i'], 'week.*.end' => ['required', 'date_format:H:i'], 'week.*.behavior' => ['required', 'in:bot,quiet,off'],
-            'holidays' => ['present', 'array', 'max:100'], 'holidays.*' => ['required', 'date_format:Y-m-d'],
-            'channel_overrides' => ['sometimes', 'array', 'max:'.count(BrandRuntimeSchedule::CHANNELS)], 'channel_overrides.*' => ['nullable', 'in:autonomous,suggest,off']]);
+            'holidays' => ['present', 'array', 'max:100'], 'holidays.*' => ['required', 'date_format:Y-m-d']]);
         if ($input['week'] !== [] && count($input['week']) !== 7) {
             throw ValidationException::withMessages(['week' => 'Нужны настройки для семи дней.']);
         }
@@ -93,11 +91,6 @@ final class ScheduleController
                 throw ValidationException::withMessages(['week' => 'Время окончания должно быть позже начала.']);
             }
         }
-        $input['channel_overrides'] = $input['channel_overrides'] ?? [];
-        if (array_diff(array_keys($input['channel_overrides']), BrandRuntimeSchedule::CHANNELS) !== []) {
-            throw ValidationException::withMessages(['channel_overrides' => 'Недопустимый канал.']);
-        }
-        $input['channel_overrides'] = array_filter($input['channel_overrides'], fn ($mode) => $mode !== null);
         $this->access($request, function (User $user, TenantContext $tenant) use ($input): void {
             $data = array_replace($this->read($tenant), $input);
             $this->save($tenant, $data);
