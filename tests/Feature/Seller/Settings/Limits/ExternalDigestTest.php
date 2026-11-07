@@ -44,7 +44,7 @@ final class ExternalDigestTest extends TestCase
         $batch = (string) Str::ulid();
         DB::table('seller_digest_batches')->insert([...$slot, 'id' => $batch, 'status' => 'pending', 'created_at' => now(), 'updated_at' => now()]);
         DB::table('seller_digest_items')->insert([...$slot, 'id' => (string) Str::ulid(), 'batch_id' => $batch, 'event_id' => $event->envelope['event_id'], 'created_at' => now(), 'updated_at' => now()]);
-        config(['features.E0-04.defaults.external_delivery' => true, 'mail.default' => 'smtp']);
+        config(['features.E0-04.defaults.external_delivery' => true, 'mail.default' => 'smtp', 'runtime.notification_driver' => null]);
 
         return $batch;
     }
