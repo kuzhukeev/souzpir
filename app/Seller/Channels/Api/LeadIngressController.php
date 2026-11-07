@@ -2,8 +2,11 @@
 
 namespace App\Seller\Channels\Api;
 
+use App\Contracts\ProtectedOperations\IdempotencyConflict;
+use App\Contracts\ProtectedOperations\IdempotencyFailure;
 use App\Seller\Conversations\CanonicalJson;
 use App\Seller\Engine\LeadState;
+use App\Seller\Runtime\TokenInboundRuntime;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
@@ -84,6 +87,20 @@ final class LeadIngressController
         abort_unless($tenant->source === 'token' && $tenant->organizationId && $tenant->brandId, 401);
         abort_unless(app(SellerModuleAccess::class)->enabled($tenant->organizationId, $tenant->brandId), 404);
 
-        return response()->json(['message' => 'Обработка хода пока недоступна.'], 503);
+        $key = $request->header('Idempotency-Key');
+        if (! is_string($key) || ! preg_match('/^[A-Za-z0-9_.:-]{1,128}$/D', $key)) {
+            throw ValidationException::withMessages(['Idempotency-Key' => 'Укажите корректный ключ идемпотентности.']);
+        }
+        $input = $request->validate(['conversation_id' => ['required', 'ulid'], 'text' => ['required', 'string', 'max:5000']]);
+        if (trim($input['text']) === '') {
+            throw ValidationException::withMessages(['text' => 'Введите сообщение.']);
+        }
+        try {
+            return response()->json(app(TokenInboundRuntime::class)->turn($request, $tenant, $input['conversation_id'], $input['text'], $key));
+        } catch (IdempotencyConflict) {
+            return response()->json(['message' => 'Ключ уже использован для другого запроса.'], 409);
+        } catch (IdempotencyFailure|\LogicException) {
+            return response()->json(['message' => 'Обработка хода временно недоступна.'], 503);
+        }
     }
 }
