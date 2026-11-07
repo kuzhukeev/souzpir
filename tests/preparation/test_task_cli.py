@@ -203,6 +203,10 @@ class TaskCliTests(unittest.TestCase):
         scope = task_cli.CI_SCOPE_EXCEPTIONS["SP-E5-03F"]
         self.assertTrue(all(task_cli.scope_allows(path, scope) for path in api_tests))
         self.assertFalse(task_cli.scope_allows("tests/Browser/E5-03D/other.spec.ts", scope))
+        self.assertTrue(task_cli.scope_allows("tests/Browser/E1-08/ui-fixture.tsx", task_cli.CI_SCOPE_EXCEPTIONS["SP-E1-03B"]))
+        self.assertTrue(task_cli.scope_allows("tests/Browser/Layout/fixture.tsx", task_cli.CI_SCOPE_EXCEPTIONS["SP-E1-03B"]))
+        self.assertFalse(task_cli.scope_allows("tests/Browser/Layout/layout.spec.ts", task_cli.CI_SCOPE_EXCEPTIONS["SP-E1-03B"]))
+        self.assertFalse(task_cli.scope_allows("tests/Browser/E1-08/context-recovery.spec.ts", task_cli.CI_SCOPE_EXCEPTIONS["SP-E1-03B"]))
         webhook = "tests/Feature/SP-E1-10F/WebhookConfigurationTest.php"
         self.assertTrue(task_cli.scope_allows(webhook, task_cli.CI_SCOPE_EXCEPTIONS["SP-E1-10J"]))
         candidate = {"project": "souzpir", "taskKey": "SP-X", "scope": [webhook]}

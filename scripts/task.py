@@ -97,6 +97,7 @@ GENERATED_CONTRACT_FILES = frozenset(
 # Narrow integrator-approved scope corrections for shared routes, UI and CI
 # regressions. They do not broaden ownership to neighboring modules.
 CI_SCOPE_EXCEPTIONS = {
+    "SP-E1-03B": ("tests/Browser/E1-08/ui-fixture.tsx", "tests/Browser/Layout/fixture.tsx"),
     "SP-E5-03F": (
         "tests/Feature/Seller/Settings/Schedule/AssignmentE606CTest.php",
         "tests/Feature/SellerRuntime/Delivery/FakeDeliveryTest.php",
