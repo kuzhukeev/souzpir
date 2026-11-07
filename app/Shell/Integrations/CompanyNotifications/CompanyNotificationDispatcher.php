@@ -19,7 +19,8 @@ final class CompanyNotificationDispatcher
 
     public function enqueue(DomainEvent $event): void
     {
-        if (config('runtime.notification_driver') !== 'fake') {
+        $liveDelivery = CompanyNotificationDelivery::available();
+        if (! $liveDelivery && config('runtime.notification_driver') !== 'fake') {
             return;
         }
         $e = $event->envelope;
@@ -45,7 +46,7 @@ final class CompanyNotificationDispatcher
             $id = (string) Str::ulid();
             $inserted = DB::table('company_notification_deliveries')->insertOrIgnore(['id' => $id, 'organization_id' => $e['organization_id'], 'brand_id' => $e['brand_id'], 'event_id' => $e['event_id'], 'event_key' => $e['type'], 'channel' => $channel, 'destination' => Crypt::encryptString($destination), 'destination_hash' => hash_hmac('sha256', mb_strtolower($destination), (string) config('app.key')), 'status' => 'pending', 'created_at' => now(), 'updated_at' => now()]);
             if ($inserted) {
-                DeliverFakeCompanyNotification::dispatch($id)->afterCommit();
+                $liveDelivery ? DeliverCompanyNotification::dispatch($id)->afterCommit() : DeliverFakeCompanyNotification::dispatch($id)->afterCommit();
             }
         }
     }

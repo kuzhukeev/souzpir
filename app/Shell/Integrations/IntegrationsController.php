@@ -5,6 +5,7 @@ namespace App\Shell\Integrations;
 use App\Models\Brand;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Brands\BrandAccess;
+use App\Shell\Integrations\CompanyNotifications\CompanyNotificationDelivery;
 use App\Shell\Integrations\CompanyNotifications\CompanyNotificationSettings;
 use App\Shell\Integrations\Keys\KeysController;
 use App\Shell\Integrations\Webhooks\WebhookDelivery;
@@ -165,6 +166,7 @@ final class IntegrationsController
         return Inertia::render('Shell/Integrations/Notifications', [
             ...$settings->forBrand($brand),
             'telegram_link' => ['code' => $code, 'pending' => (bool) ($code && $link?->pending_chat), 'bot' => $code ? config('features.E1-08.defaults.telegram_bot_username') : null],
+            'company_notification_delivery_available' => CompanyNotificationDelivery::available(),
             'company_deliveries' => DB::table('company_notification_deliveries')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)->orderByDesc('created_at')->orderByDesc('id')->limit(10)->get(['id', 'event_key', 'channel', 'status', 'created_at']),
             'permissions' => ['manage' => true],
         ]);
@@ -197,7 +199,7 @@ final class IntegrationsController
             $settings->save($brand, $data['telegram_chat'] ?? null, $data['report_emails'], $data['matrix'] ?? null);
         });
 
-        return redirect()->route('integrations.notifications')->with('success', 'Настройки сохранены. Внешняя доставка пока выключена.');
+        return redirect()->route('integrations.notifications')->with('success', CompanyNotificationDelivery::available() ? 'Настройки сохранены.' : 'Настройки сохранены. Внешняя доставка пока выключена.');
     }
 
     public function testNotifications(Request $request): RedirectResponse
