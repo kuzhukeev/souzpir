@@ -16,3 +16,6 @@ Scope: `app/Seller/Settings/Schedule/`, `app/Seller/Conversations/`, `resources/
 - `tests/Browser/E6-06D/schedule.spec.ts` красный после смены UI (старые заглушки «недоступны», select «По городу») — обновить локаторы по образцу `tests/Browser/E6-06E/schedule.spec.ts`, проверки не ослаблять.
 
 Дополнительный scope: `app/Seller/Runtime/BrandRuntimeSchedule.php`, `app/Seller/Settings/Tools/MonitorHandoffs.php`, `tests/Browser/E6-06D/`, `tests/Feature/Seller/Runtime/`.
+
+## Остаток 07.11.2026 22:10
+- Доставка фразы вне часов клиенту (`FirstInboundRuntime::suppressManagerTurn` → `BrandRuntimeSchedule::fallbackPhrase()`, подпись D-11.1) передана в SP-E6-07D, где та же правка нужна для хендоффа по лимиту. Карточка закрыта.

@@ -14,6 +14,7 @@ use App\Seller\Conversations\Models\Message;
 use App\Seller\Conversations\Models\SellerTurn;
 use App\Seller\Knowledge\Contracts\KnowledgeRepository;
 use App\Seller\Knowledge\KnowledgeNotReady;
+use App\Seller\Notifications\NotifyConversationEvent;
 use App\Seller\Runtime\StageTransitions;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
@@ -118,6 +119,10 @@ final class LiveDraftJob implements ShouldQueue
                 DB::table('conversations')->where('id', $this->conversationId)->update(['mode' => 'manager', 'stage' => 'handoff', 'outcome' => 'handoff', 'handed_off_at' => now(), 'updated_at' => now()]);
                 app(StageTransitions::class)->record($tenant, $this->conversationId, $conversation->stage, 'handoff');
                 app(AuditWriter::class)->record($tenant, new AuditEntry('seller.dialog.budget_handoff', 'conversation', $this->conversationId));
+            }
+            if ($status === 'suggested') {
+                NotifyConversationEvent::dispatch($this->organizationId, $this->brandId, $this->conversationId,
+                    'seller.draft.ready', ['turn_id' => $turnId])->afterCommit();
             }
         });
     }

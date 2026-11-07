@@ -30,7 +30,7 @@ final class DialogsController
     {
         $input = $request->validate([
             'mode' => ['sometimes', 'string', Rule::in(['all', 'mine', 'bot', 'suggest', 'manager', 'paused', 'waiting', 'closed'])],
-            'search' => ['sometimes', 'string', 'max:100'],
+            'search' => ['sometimes', 'nullable', 'string', 'max:100'],
             'sort' => ['sometimes', Rule::in(['newest', 'oldest'])],
             'channel' => ['sometimes', Rule::in(['telegram', 'widget', 'api', 'email', 'whatsapp'])],
             'stage' => ['sometimes', Rule::in(LeadState::STAGES)],
