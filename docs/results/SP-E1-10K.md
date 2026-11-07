@@ -25,3 +25,6 @@
 
 ## Принято по умолчанию
 - `notification_driver` по умолчанию `fake` везде, где явно не задан `NOTIFICATION_DRIVER`; боевой драйвер по-прежнему включается только явной переменной окружения.
+
+## Нужно от интегратора
+- CI ветки (прогон коммита e163b7f5) красный: `Tests\Feature\Seller\Settings\Limits\ExternalDigestTest` (2 теста, `tests/Feature/Seller/Settings/Limits/ExternalDigestTest.php`) — тот же побочный эффект default `notification_driver=fake`, что и у 3 уже исправленных файлов этой папки: `DigestService::deliver` пропускает вызов `DigestTransport` при fake. Файл вне scope задачи (не в `CI_SCOPE_EXCEPTIONS["SP-E1-10K"]`), `submit` блокирует правку как «Changes outside task ownership». Нужна та же одна строка — в `pending()` (строка со `config([...'mail.default' => 'smtp'])`) добавить `'runtime.notification_driver' => null`, плюс добавить файл в `CI_SCOPE_EXCEPTIONS["SP-E1-10K"]` (`scripts/task.py`), как для `DigestTest`/`NotificationsTest`/`PersonalDigestTimeTest`.
