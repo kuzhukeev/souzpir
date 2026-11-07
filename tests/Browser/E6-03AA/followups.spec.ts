@@ -1,0 +1,21 @@
+import { expect, test } from '@playwright/test';
+import { createServer, type ViteDevServer } from 'vite';
+import { mkdir } from 'node:fs/promises';
+let server: ViteDevServer;
+let url: string;
+test.use({ viewport: { width: 1440, height: 900 }, launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH } : {} });
+test.beforeAll(async () => { server = await createServer({ configFile: 'tests/Browser/E6-03AA/vite.config.ts', cacheDir: '.local/runtime/vite-e603aa', server: { host: '127.0.0.1', port: 0 } }); await server.listen(); url = new URL('/tests/Browser/E6-03AA/fixture.html', server.resolvedUrls!.local[0]).href; });
+test.afterAll(async () => { await server?.close(); });
+test('согласие, отписки и планирование доступны на экране', async ({ page }) => {
+    await page.goto(url);
+    await expect(page.getByText('Отписались')).toBeVisible();
+    await expect(page.getByText('Отписались').locator('..')).toContainText('2');
+    await expect(page.getByRole('button', { name: 'Отозвать согласие' })).toBeVisible();
+    const button = page.getByRole('button', { name: /Запланировать/ });
+    await expect(button).toBeDisabled();
+    await page.getByRole('checkbox', { name: /Выбрать/ }).check();
+    await page.getByLabel('Время массовой отправки').fill('2026-11-12T12:00');
+    await expect(button).toBeEnabled();
+    await mkdir('.local/screenshots/SP-E6-03AA', { recursive: true });
+    await page.screenshot({ path: '.local/screenshots/SP-E6-03AA/followups.png', fullPage: true });
+});

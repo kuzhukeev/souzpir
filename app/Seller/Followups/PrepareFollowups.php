@@ -67,7 +67,9 @@ final class PrepareFollowups implements ShouldQueue
                 : $texts[($due['sequence'] - 1) % count($texts)];
             DB::table('seller_followup_candidates')->insertOrIgnore(['id' => (string) Str::ulid(), 'organization_id' => $this->organizationId,
                 'brand_id' => $this->brandId, 'conversation_id' => $conversation->id, 'reason' => $due['reason'], 'source_at' => $due['source_at'],
-                'sequence' => $due['sequence'], 'text' => $text, 'status' => 'pending', 'created_at' => now(), 'updated_at' => now()]);
+                'sequence' => $due['sequence'], 'text' => $text, 'status' => 'pending',
+                'scheduled_at' => $due['reason'] === 'next_contact_at' ? $due['source_at'] : $now,
+                'created_at' => now(), 'updated_at' => now()]);
         }
     }
 

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Seller\Followups;
 
+use App\Seller\Followups\FollowupConsent;
 use App\Seller\Followups\FollowupPolicy;
 use App\Seller\Followups\FollowupSender;
 use App\Seller\Followups\ProcessFollowups;
@@ -83,6 +84,34 @@ final class FollowupSendTest extends TenancyTestCase
             $this->assertDatabaseHas('conversations', ['id' => $conversation, 'followups_sent' => 0]);
             self::assertSame(1, DB::table('messages')->where('conversation_id', $conversation)->count());
             Http::assertNothingSent();
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
+    public function test_bulk_delivery_respects_schedule_and_revocation(): void
+    {
+        Carbon::setTestNow('2026-11-02 12:00:00+00');
+        try {
+            [, $org, $brand] = $this->cabinet();
+            [$conversation, $candidate] = $this->fixture($org, $brand);
+            $tenant = new TenantContext($org->id, $brand->id, source: 'job');
+            $sender = app(FollowupSender::class);
+            $consent = app(FollowupConsent::class);
+            $send = fn () => $sender->send($tenant, $candidate, app(FakeChannelDelivery::class), app(FollowupPolicy::class));
+            DB::table('seller_followup_candidates')->where('id', $candidate)->update(['bulk' => true, 'scheduled_at' => now()->addHour()]);
+            self::assertFalse($send());
+            $consent->record($tenant, $conversation, 'granted', 'manager', 'Explicit consent');
+            self::assertFalse($send());
+            DB::table('seller_followup_candidates')->where('id', $candidate)->update(['scheduled_at' => now()->subMinute()]);
+            $consent->record($tenant, $conversation, 'revoked', 'manager', 'Customer opted out');
+            self::assertFalse($send());
+            DB::table('seller_followup_candidates')->where('id', $candidate)->update(['bulk' => false]);
+            self::assertFalse($send());
+            self::assertSame(1, DB::table('messages')->where('conversation_id', $conversation)->count());
+            DB::table('seller_followup_candidates')->where('id', $candidate)->update(['bulk' => true]);
+            $consent->record($tenant, $conversation, 'granted', 'manager', 'New consent');
+            self::assertTrue($send());
         } finally {
             Carbon::setTestNow();
         }
