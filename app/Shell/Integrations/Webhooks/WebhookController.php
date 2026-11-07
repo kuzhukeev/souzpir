@@ -31,7 +31,7 @@ final class WebhookController
         abort_unless($request->attributes->get('webhook_transport_secure') === true, 403, SecretTransport::MESSAGE);
         $service->configure($request);
 
-        return redirect('/integrations/api');
+        return redirect(($request->attributes->get('webhook_configuration')['return_to'] ?? null) === 'crm' ? '/seller/integrations/crm' : '/integrations/api');
     }
 
     public function fakeTest(Request $request, string $webhook, WebhookService $service): RedirectResponse

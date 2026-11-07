@@ -15,7 +15,7 @@ final class WebhookConfigurationBoundary
     {
         $path = trim($request->decodedPath(), '/');
         if ($path === 'integrations/api/webhook-settings' && $request->getRealMethod() === 'POST') {
-            $payload = ['url' => $request->input('url'), 'events' => $request->input('events'), 'secret' => $request->input('secret')];
+            $payload = ['url' => $request->input('url'), 'events' => $request->input('events'), 'secret' => $request->input('secret'), 'return_to' => $request->input('return_to') === 'crm' ? 'crm' : null];
             $secure = SecretTransport::allows($request);
             $cookies = $request->cookies->all();
             $server = $request->server->all();
