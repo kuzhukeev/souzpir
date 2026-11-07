@@ -98,6 +98,10 @@ GENERATED_CONTRACT_FILES = frozenset(
 # regressions. They do not broaden ownership to neighboring modules.
 CI_SCOPE_EXCEPTIONS = {
     "SP-E8-20X": ("routes/features/E8-05B.php",),
+    "SP-E9-01E": (
+        "tests/Browser/E1-05/brands-e2e.spec.ts",
+        "tests/Browser/E4-02B/facts.spec.ts",
+    ),
     "SP-E5-06B": (
         "docs/contracts/registry.json",
         "app/Shell/Notifications/EventCatalog.php",
