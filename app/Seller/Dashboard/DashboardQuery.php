@@ -22,9 +22,13 @@ final class DashboardQuery
             ->get(['id', 'stage', 'state', 'handed_off_at', 'taken_at', 'created_at', 'channel_account_id']);
         $daily = [];
         $dailyContacts = [];
+        $dailyHandoff = [];
+        $dailyQuality = [];
         for ($day = $days - 1; $day >= 0; $day--) {
             $daily[$today->subDays($day)->format('Y-m-d')] = 0;
             $dailyContacts[$today->subDays($day)->format('Y-m-d')] = 0;
+            $dailyHandoff[$today->subDays($day)->format('Y-m-d')] = 0;
+            $dailyQuality[$today->subDays($day)->format('Y-m-d')] = null;
         }
         $contact = $handoff = $done = $need = 0;
         foreach ($rows as $row) {
@@ -41,6 +45,9 @@ final class DashboardQuery
                 }
             }
             $handoff += (int) ($row->handed_off_at !== null);
+            if ($row->handed_off_at !== null && array_key_exists($date, $dailyHandoff)) {
+                $dailyHandoff[$date]++;
+            }
             $done += (int) ($row->stage === 'done');
             $need += (int) (! in_array($row->stage, ['open', 'spam', 'lost'], true));
         }
@@ -58,7 +65,13 @@ final class DashboardQuery
         $scope = fn (string $table) => DB::table($table)->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId);
         $end = $today->addDay()->startOfDay()->utc();
         $channelDialogs = fn () => DB::table('conversations')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('channel_account_id', $channelId)->select('id');
-        $evaluations = $scope('seller_evaluations')->when($channelId, fn ($query) => $query->whereIn('conversation_id', $channelDialogs()))->where(fn ($query) => EvaluationVisibility::excludeTestBaseline($query))->where('created_at', '>=', $start)->where('created_at', '<', $end)->get(['average', 'issues']);
+        $evaluations = $scope('seller_evaluations')->when($channelId, fn ($query) => $query->whereIn('conversation_id', $channelDialogs()))->where(fn ($query) => EvaluationVisibility::excludeTestBaseline($query))->where('created_at', '>=', $start)->where('created_at', '<', $end)->get(['average', 'issues', 'created_at']);
+        $qualityGroups = $evaluations->filter(fn ($item) => $item->average !== null)->groupBy(fn ($item) => CarbonImmutable::parse($item->created_at)->setTimezone($timezone)->format('Y-m-d'));
+        foreach ($qualityGroups as $date => $items) {
+            if (array_key_exists($date, $dailyQuality)) {
+                $dailyQuality[$date] = round((float) $items->avg('average'), 2);
+            }
+        }
         $average = $evaluations->avg('average');
         $quality = $average === null ? null : round((float) $average, 2);
         $issues = [];
@@ -166,6 +179,6 @@ final class DashboardQuery
         }
 
         return ['days' => $days, 'channel' => $channelId, 'total' => $rows->count(), 'contact' => $contact, 'handoff' => $handoff, 'done' => $done,
-            'need' => $need, 'daily' => $daily, 'daily_contacts' => $dailyContacts, 'channels' => $channels, 'attention' => $attention, 'delta' => $delta, 'quality' => $quality, 'issues' => $issues, 'issue_details' => $issueDetails, 'topics' => $topics, 'managers' => $managers];
+            'need' => $need, 'daily' => $daily, 'daily_contacts' => $dailyContacts, 'daily_handoff' => $dailyHandoff, 'daily_quality' => $dailyQuality, 'channels' => $channels, 'attention' => $attention, 'delta' => $delta, 'quality' => $quality, 'issues' => $issues, 'issue_details' => $issueDetails, 'topics' => $topics, 'managers' => $managers];
     }
 }
