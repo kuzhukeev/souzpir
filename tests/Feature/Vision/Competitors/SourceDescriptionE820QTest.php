@@ -10,13 +10,13 @@ use Tests\Feature\Tenancy\TenancyTestCase;
 
 final class SourceDescriptionE820QTest extends TenancyTestCase
 {
-    public function test_description_is_read_from_the_current_brand_snapshot(): void
+    public function test_description_is_a_static_reference_scoped_to_the_current_brand_snapshot(): void
     {
         [$owner, $org, $brand, $other] = $this->cabinet();
         foreach ([$brand, $other] as $item) {
             DB::table('brand_modules')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $item->id, 'module' => 'vision', 'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
         }
-        $snapshot = ['questions' => [], 'metrics' => ['sources' => [['domain' => 'example.test', 'type' => 'other', 'answers' => 1, 'description' => 'Catalog']], 'slots' => []]];
+        $snapshot = ['questions' => [], 'metrics' => ['sources' => [['domain' => 'example.test', 'type' => 'catalog', 'answers' => 1, 'description' => 'Catalog']], 'slots' => []]];
         app()->instance(SnapshotView::class, new class($brand->id, $snapshot) extends SnapshotView
         {
             public function __construct(private string $brand, private array $snapshot) {}
@@ -27,7 +27,7 @@ final class SourceDescriptionE820QTest extends TenancyTestCase
             }
         });
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->get('/vision/sources')->assertOk()
-            ->assertInertia(fn ($page) => $page->where('sources.0.description', 'Catalog'));
+            ->assertInertia(fn ($page) => $page->where('sources.0.description', 'Каталог компаний и поставщиков.'));
         $this->post('/vision/sources/presence', ['domain' => 'unknown.test', 'presence' => 'absent'])->assertSessionHasErrors('domain');
         $this->post('/brand/switch', ['brand_id' => $other->id])->assertRedirect();
         $this->get('/vision/sources')->assertOk()->assertInertia(fn ($page) => $page->where('available', false)->has('sources', 0));
