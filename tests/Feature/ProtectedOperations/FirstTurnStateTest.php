@@ -4973,7 +4973,7 @@ SQL);
             ['content' => 'Передаю менеджеру, он напишет вам.'],
         ]);
         app()->instance(FakeDriver::class, $fake);
-        $this->within($tenant, function () use ($http, $command): void {
+        $this->within($tenant, function () use ($http, $command, $tenant): void {
             $http->request->set('text', $command->text);
             $first = app(FirstTurnCoordinator::class)->run($http, $command);
             self::assertSame('completed', $first['status']);
