@@ -74,6 +74,7 @@ final class SiteController
             return ['brandSite' => $brandSite, 'domainStatus' => $domainStatus, 'audit' => $current?->result, 'auditId' => $current?->id, 'auditDate' => $current?->created_at?->toIso8601String(),
                 'previousAudit' => $previous?->result,
                 'auditProgress' => $progress,
+                'pageLimit' => config('features.E8-01B.defaults.crawl_pages'),
                 'actions' => $actions, 'history' => array_values(array_filter($actions, fn (array $a): bool => $a['status'] === 'awaiting_measurement')),
                 'members' => $members, 'canManage' => $this->access->can('vision.actions.write'), ...$history];
         });

@@ -179,7 +179,8 @@ export default function Index({
   auditProgress = null,
   domainStatus = null,
   brandSite = null,
-}: Props & { brandSite?: string | null; domainStatus?: {host:string;verified:boolean} | null; auditDate?: string | null; auditId?: string | null; previousAudit?: Audit | null; auditProgress?: {stage:string; events?: {stage:string; at:string}[]; pages_processed?:number; pages_total?:number; remaining_seconds?:number|null; elapsed_seconds?:number|null} | null }) {
+  pageLimit,
+}: Props & { brandSite?: string | null; domainStatus?: {host:string;verified:boolean} | null; auditDate?: string | null; auditId?: string | null; previousAudit?: Audit | null; auditProgress?: {stage:string; events?: {stage:string; at:string}[]; pages_processed?:number; pages_total?:number; remaining_seconds?:number|null; elapsed_seconds?:number|null} | null; pageLimit?: number }) {
   const titles: Record<Props['section'], string> = {
     overview: 'Готовность сайта к ИИ-поиску',
     criteria: 'Критерии и как исправить',
@@ -231,7 +232,7 @@ export default function Index({
             ) : (
               <Empty>Проверок сайта пока нет.</Empty>
             )}
-            {canManage && <AuditForm key={brandSite ?? 'empty'} initialUrl={brandSite ?? ''} fixedUrl={Boolean(brandSite)} />}
+            {canManage && <AuditForm key={brandSite ?? 'empty'} initialUrl={brandSite ?? ''} fixedUrl={Boolean(brandSite)} pageLimit={pageLimit} />}
             <AuditProgress progress={auditProgress} />
             {audit?.issues?.length ? (
               <section className={card}>
@@ -254,7 +255,7 @@ export default function Index({
         {section === 'bots' &&
           (audit ? <BotAccess audit={audit} domainStatus={domainStatus} /> : <Empty>Сначала проверьте сайт.</Empty>)}
         {section === 'pages' &&
-          (audit ? <div className="space-y-4">{canManage && <AuditForm key={brandSite ?? 'empty'} initialUrl={brandSite ?? ''} fixedUrl={Boolean(brandSite)} />}<Pages audit={audit} /></div> : <Empty>Сначала проверьте сайт.</Empty>)}
+          (audit ? <div className="space-y-4">{canManage && <AuditForm key={brandSite ?? 'empty'} initialUrl={brandSite ?? ''} fixedUrl={Boolean(brandSite)} pageLimit={pageLimit} />}<Pages audit={audit} /></div> : <Empty>Сначала проверьте сайт.</Empty>)}
         {section === 'actions' && (
           <Actions actions={actions} canManage={canManage} history={false} members={members} />
         )}

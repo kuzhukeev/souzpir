@@ -45,7 +45,7 @@ final class AuditSiteJob implements ShouldQueue
                     $access->lock($tenant, true, 'vision.actions.write');
                 });
                 $this->progress($key, 'inspecting');
-                $result = $inspector->inspect($this->url, 50, function (int $processed, int $total) use ($key, $started): void {
+                $result = $inspector->inspect($this->url, config('features.E8-01B.defaults.crawl_pages'), function (int $processed, int $total) use ($key, $started): void {
                     $data = Cache::get($key, []);
                     $data['pages_processed'] = $processed;
                     $data['pages_total'] = $total;

@@ -31,7 +31,7 @@ final class SiteElapsedE821PTest extends TenancyTestCase
         $foreignKey = AuditSiteJob::key($org->id, $other->id);
         $inspector = \Mockery::mock(SiteInspector::class);
         $inspector->shouldReceive('inspect')->once()->andReturnUsing(function ($url, $limit, $callback) use ($key, $foreignKey): array {
-            self::assertSame(50, $limit);
+            self::assertSame(config('features.E8-01B.defaults.crawl_pages'), $limit);
             $callback(1, 3);
             self::assertSame(1, Cache::get($key)['pages_processed']);
             self::assertIsFloat(Cache::get($key)['started_at_epoch']);
