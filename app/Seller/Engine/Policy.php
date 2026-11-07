@@ -291,9 +291,8 @@ class Policy
         // не по теме / инъекция
         if (! empty($x['off_topic']) || ! empty($x['prompt_injection']) || in_array($intent, ['off_topic', 'prompt_injection'], true)) {
             $streak = $s->counter('off_topic_streak');
-            $secondAfter = $this->limit('decline_off_topic_second_after', 2);
             $kind = (! empty($x['prompt_injection']) || $intent === 'prompt_injection') ? 'decline_injection' : 'decline_off_topic';
-            $tags = $streak >= $secondAfter ? ['decline_off_topic_second'] : [$kind === 'decline_injection' ? 'decline_injection' : 'decline_off_topic'];
+            $tags = $streak >= 2 ? ['decline_off_topic_second'] : [$kind === 'decline_injection' ? 'decline_injection' : 'decline_off_topic'];
             if (! empty($x['client_claims'])) {
                 $tags[] = 'client_claim_ack';
             }
@@ -302,7 +301,7 @@ class Policy
             if (! is_string($configured) && ($this->kb->persona()['company'] ?? '') === 'Союз Пир' && str_contains(mb_strtolower((string) ($this->kb->persona()['intro'] ?? '')), 'пиротехник')) {
                 $configured = 'Коротко и дружелюбно отказать и вернуть разговор к пиротехнике одним вопросом по текущему слоту.';
             }
-            $instr = $streak >= $secondAfter ? 'Одно предложение: это не по моей части. Без вопроса.' : (is_string($configured) && trim($configured) !== '' ? $configured : 'Коротко и дружелюбно отказать и вернуть разговор к товарам компании одним вопросом по текущему слоту.');
+            $instr = $streak >= 2 ? 'Одно предложение: это не по моей части. Без вопроса.' : (is_string($configured) && trim($configured) !== '' ? $configured : 'Коротко и дружелюбно отказать и вернуть разговор к товарам компании одним вопросом по текущему слоту.');
             $slot = $streak >= 2 ? null : $this->nextSlot($s);
 
             return new Goal($kind, slot: $slot, fewshotTags: $tags, constraints: $constraints, allowedTools: [], instruction: $instr);
