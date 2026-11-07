@@ -624,6 +624,12 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "seller.dialogs.suggestion": [
+        {
+            "name": "dialog",
+            "required": true
+        }
+    ],
     "seller.dialogs.reviews.store": [
         {
             "name": "dialog",
@@ -631,12 +637,6 @@ declare module 'ziggy-js' {
         },
         {
             "name": "message",
-            "required": true
-        }
-    ],
-    "seller.dialogs.suggestion": [
-        {
-            "name": "dialog",
             "required": true
         }
     ],
