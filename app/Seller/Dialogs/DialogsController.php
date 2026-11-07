@@ -5,6 +5,8 @@ namespace App\Seller\Dialogs;
 use App\Models\Membership;
 use App\Models\User;
 use App\Seller\Engine\LeadState;
+use App\Seller\Knowledge\Contracts\KnowledgeRepository;
+use App\Seller\Knowledge\KnowledgeNotReady;
 use App\Seller\Quality\ReportIssueLinks;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Audit\AuditEntry;
@@ -46,9 +48,15 @@ final class DialogsController
             Gate::forUser($actor)->authorize('seller.dialogs.read');
             abort_unless(app(SellerModuleAccess::class)->enabled($context->organizationId, $context->brandId), 404);
             $manager = $member->role === 'member' && ($member->settings['sales_manager'] ?? false);
+            $publishedFields = [];
+            try {
+                $publishedFields = app(KnowledgeRepository::class)->published($context)->policy()['client_fields'] ?? [];
+            } catch (KnowledgeNotReady) {
+                // нет опубликованной версии — показываем только системные поля карточки
+            }
 
             try {
-                $data = $reader->read($context, $actor->id, $manager, ! $manager && $member->role !== 'viewer', $dialog, $input['mode'] ?? 'all', trim($input['search'] ?? ''), $input['sort'] ?? 'newest', $input);
+                $data = $reader->read($context, $actor->id, $manager, ! $manager && $member->role !== 'viewer', $dialog, $input['mode'] ?? 'all', trim($input['search'] ?? ''), $input['sort'] ?? 'newest', $input, is_array($publishedFields) ? $publishedFields : []);
             } catch (QueryException $exception) {
                 report($exception);
 
