@@ -150,7 +150,7 @@ final class CompetitorsController
             return ['distinctPairs' => $distinctPairs, 'declared' => $declared, 'history' => $history, 'entities' => $entities, 'available' => true, 'canEdit' => Gate::forUser($user)->allows('vision.actions.write')];
         });
 
-        return Inertia::render('Vision/Competitors/Index', [...$data, 'status' => $request->session()->get('status')]);
+        return Inertia::render($request->routeIs('vision.competitors.merge.page') ? 'Vision/Competitors/Merge' : 'Vision/Competitors/Index', [...$data, 'status' => $request->session()->get('status')]);
     }
 
     /** A radar is comparable only if each denominator covers the same identified, complete answers. */
@@ -226,10 +226,11 @@ final class CompetitorsController
                     }
                     app(AuditWriter::class)->record($tenant, new AuditEntry('vision.competitor.merged', 'vision_competitor_alias', $existing?->id ?? DB::table('vision_competitor_aliases')->where('brand_id', $tenant->brandId)->where('alias', $source)->value('id')));
                 }
+                app(RecalculateMergedReport::class)->create($tenant);
             });
         });
 
-        return back()->with('status', ($input['distinct'] ?? false) ? 'Отмечено: это разные компании.' : 'Названия объединены в этом разделе.');
+        return back()->with('status', ($input['distinct'] ?? false) ? 'Отмечено: это разные компании.' : 'Названия объединены, новая версия отчёта подготовлена.');
     }
 
     public function track(Request $request): mixed

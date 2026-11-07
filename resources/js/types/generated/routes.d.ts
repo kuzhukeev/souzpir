@@ -877,6 +877,7 @@ declare module 'ziggy-js' {
     "vision.reports.data": [],
     "vision.reports.create": [],
     "vision.competitors.index": [],
+    "vision.competitors.merge.page": [],
     "vision.competitors.merge": [],
     "vision.competitors.track": [],
     "vision.sources.index": [],
