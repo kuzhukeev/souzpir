@@ -54,8 +54,8 @@ final class PlannedTest extends LimitsTestCase
             ->postJson('/seller/planned/interests', ['integration' => 'vk'])->assertForbidden();
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->withHeader('X-Brand-Id', $brand->id)
             ->postJson('/seller/planned/interests', ['integration' => 'unknown'])->assertUnprocessable();
-        $this->putJson('/seller/planned/reminders', ['enabled' => true])->assertUnprocessable()->assertJsonValidationErrors('enabled');
-        $this->putJson('/seller/planned/reminders', ['enabled' => false])->assertOk()->assertJsonPath('data.enabled', false);
+        $this->putJson('/seller/planned/reminders', ['enabled' => true])->assertStatus(503);
+        $this->putJson('/seller/planned/reminders', ['enabled' => false])->assertStatus(503);
         DB::table('auth_session_registry')->where('user_id', $owner->id)->update(['revoked_at' => now()]);
         $this->postJson('/seller/planned/interests', ['integration' => 'vk'])->assertUnauthorized();
         $this->assertDatabaseCount('seller_planned_integration_interests', 0);

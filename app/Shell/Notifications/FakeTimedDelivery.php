@@ -3,6 +3,7 @@
 namespace App\Shell\Notifications;
 
 use App\Models\Membership;
+use App\Seller\Channels\Planned\ContactReminderValidity;
 use App\Seller\Settings\Limits\DigestService;
 use App\Seller\Settings\Limits\SellerNotificationRouter;
 use Carbon\CarbonImmutable;
@@ -51,6 +52,10 @@ final class FakeTimedDelivery
             }
             $event = new DomainEvent(json_decode($outbox->envelope, true, flags: JSON_THROW_ON_ERROR));
             $key = $event->envelope['type'];
+            if ($key === 'seller.contact.reminder' && ($event->envelope['data']['user_id'] !== $delivery->user_id
+                || ! app(ContactReminderValidity::class)->valid($event->envelope['data']['reminder_id'], $delivery->organization_id, $delivery->brand_id, $delivery->user_id))) {
+                continue;
+            }
             if ($event->envelope['event_id'] !== $delivery->event_id || $event->envelope['organization_id'] !== $delivery->organization_id || $event->envelope['brand_id'] !== $delivery->brand_id || ! $event->isNotification()) {
                 continue;
             }
