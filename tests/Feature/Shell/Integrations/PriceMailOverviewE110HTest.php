@@ -25,12 +25,12 @@ final class PriceMailOverviewE110HTest extends TenancyTestCase
         }
         DB::table('seller_email_price_settings')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $brand->id, 'sender_email' => 'sender@example.test', 'sender_name' => 'Бренд', 'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->get('/integrations')->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->where('connections.8.id', 'price_email')->where('connections.8.status', 'configured')->where('connections.8.connected_at', null)->where('connections.8.href', route('seller.channels.email.index'))->where('connections.1.href', route('seller.widget.index'))->where('crmHref', route('seller.integrations.crm')));
+            ->assertInertia(fn (Assert $page) => $page->where('connections.8.id', 'price_email')->where('connections.8.status', 'configured')->where('connections.8.connected_at', null)->where('connections.8.href', route('seller.channels.email.index'))->where('connections.1.href', route('seller.widget.index'))->where('connections.9.id', 'crm_webhook')->where('connections.9.href', route('seller.integrations.crm')));
         $this->post('/brand/switch', ['brand_id' => $other->id])->assertRedirect();
         $this->get('/integrations')->assertOk()->assertInertia(fn (Assert $page) => $page->where('connections.8.status', 'disconnected'));
         [$viewer] = $this->member($org, 'viewer', [$brand->id]);
         $this->actingAs($viewer)->withSession(['brand_id' => $brand->id])->get('/integrations')->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->where('connections.8.status', 'configured')->where('connections.8.href', null)->where('connections.8.settings_restricted', true)->where('crmHref', route('seller.integrations.crm')));
+            ->assertInertia(fn (Assert $page) => $page->where('connections.8.status', 'configured')->where('connections.8.href', null)->where('connections.8.settings_restricted', true)->where('connections.9.href', route('seller.integrations.crm')));
         $this->get('/seller/channels/email')->assertForbidden();
         Http::assertNothingSent();
     }

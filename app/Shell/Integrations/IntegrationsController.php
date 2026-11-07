@@ -58,9 +58,16 @@ final class IntegrationsController
             'status' => ! $sellerEnabled ? 'disabled' : ($priceMail?->enabled ? 'configured' : 'disconnected'), 'connected_at' => null,
             'settings_restricted' => ! Gate::allows('seller.settings.write'), 'href' => $canConfigurePriceMail && Route::has('seller.channels.email.index') ? route('seller.channels.email.index') : null];
 
-        $crmHref = $sellerEnabled && Gate::allows('seller.settings.read') && Route::has('seller.integrations.crm') ? route('seller.integrations.crm') : null;
+        $crmEvents = ['seller.contact.captured', 'seller.conversation.handed_off'];
+        $crmWebhook = $sellerEnabled ? DB::table('webhooks')->where('organization_id', $ctx->organizationId)->where('brand_id', $ctx->brandId)
+            ->get(['events', 'created_at'])
+            ->first(fn ($row): bool => array_intersect($crmEvents, json_decode($row->events, true, 512, JSON_THROW_ON_ERROR)) !== []) : null;
+        $canConfigureCrm = $sellerEnabled && Gate::allows('seller.settings.read');
+        $connections[] = ['id' => 'crm_webhook', 'title' => 'CRM-вебхук', 'description' => 'Передавайте события и контакты из EYON во внешнюю CRM.',
+            'status' => ! $sellerEnabled ? 'disabled' : ($crmWebhook ? 'connected' : 'disconnected'), 'connected_at' => $crmWebhook->created_at ?? null,
+            'settings_restricted' => ! Gate::allows('seller.settings.read'), 'href' => $canConfigureCrm && Route::has('seller.integrations.crm') ? route('seller.integrations.crm') : null];
 
-        return Inertia::render('Shell/Integrations/Index', compact('connections', 'crmHref'));
+        return Inertia::render('Shell/Integrations/Index', compact('connections'));
     }
 
     public function api(Request $request, WebhookService $webhooks, BrandReadApiAvailability $brandReadApi): Response
