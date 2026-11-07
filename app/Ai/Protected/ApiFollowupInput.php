@@ -42,8 +42,15 @@ final class ApiFollowupInput
             throw new LogicException('API follow-up unavailable.');
         }
         $isToken = $tenant->source === 'token';
+        $isWidget = $tenant->source === 'public';
         if ($isToken) {
             app(TokenTenantAuthority::class)->revalidateLocked($http, $tenant, 'turn');
+        } elseif ($isWidget) {
+            $widgetSession = DB::table('widget_sessions')->where('organization_id', $tenant->organizationId)
+                ->where('brand_id', $tenant->brandId)->where('conversation_id', $claim->conversationId)->lockForUpdate()->first();
+            if (! $widgetSession || $widgetSession->expires_at <= now()) {
+                throw new LogicException('API follow-up unavailable.');
+            }
         } elseif ($tenant->source === 'session') {
             app(AuthSessionRegistry::class)->withinActive($http, function (User $user) use ($http, $tenant): void {
                 $selected = app(SessionBrandSelection::class)->current($http);
@@ -75,7 +82,8 @@ final class ApiFollowupInput
                 ->where('role', 'agent')->where('meta->simulation', true)->exists()
             && DB::table('messages')->where($scope)->where('id', $turn->input_message_id)
                 ->where('conversation_id', $claim->conversationId)->where('meta->simulation', true)->exists());
-        if (! $validSimulation || ! $conversation || ! $turn || ($isToken && (! $lead || ! str_starts_with($turn->idempotency_key, 'api:'))) || ! $message || ! in_array($conversation->mode, ['bot', 'suggest'], true)
+        if (! $validSimulation || ! $conversation || ! $turn || ($isToken && (! $lead || ! str_starts_with($turn->idempotency_key, 'api:')))
+            || ($isWidget && ! str_starts_with($turn->idempotency_key, 'widget:')) || ! $message || ! in_array($conversation->mode, ['bot', 'suggest'], true)
             || ! is_string($message->text)) {
             throw new LogicException('API follow-up unavailable.');
         }

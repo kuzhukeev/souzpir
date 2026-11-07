@@ -52,7 +52,8 @@ final class WidgetSessionController
     public function message(Request $request): mixed
     {
         [$widget, $origin] = self::widget($request);
-        $validator = Validator::make($request->all(), ['token' => ['required', 'string', 'size:64'], 'text' => ['required', 'string', 'max:4000'], 'idempotency_key' => ['required', 'string', 'max:128']]);
+        $validator = Validator::make($request->all(), ['token' => ['required', 'string', 'size:64'], 'text' => ['required', 'string', 'max:4000'],
+            'idempotency_key' => ['required', 'string', 'max:128'], 'page' => ['sometimes', 'string', 'in:home,catalog,contacts']]);
         if ($validator->fails()) {
             return $this->response(response()->json(['message' => 'Проверьте сообщение.'], 422), $origin);
         }
@@ -60,11 +61,16 @@ final class WidgetSessionController
         if (! $session) {
             return $this->response(response()->json(['message' => 'Сессия недоступна.'], 404), $origin);
         }
-        $result = app(WidgetInboundRuntime::class)->turn($widget, $session, trim($request->input('text')), $request->input('idempotency_key'));
-        if ($result['status'] !== 'suppressed') {
+        $result = app(WidgetInboundRuntime::class)->turn($request, $widget, $session, trim($request->input('text')),
+            $request->input('idempotency_key'), $request->input('page', 'home'));
+        if (! in_array($result['status'], ['suppressed', 'completed', 'suggested'], true)) {
             return $this->response(response()->json(['message' => 'Чат временно недоступен.'], 503), $origin);
         }
+        $body = ['ok' => true];
+        if ($result['status'] === 'completed' && is_string($result['reply'] ?? null)) {
+            $body['reply'] = $result['reply'];
+        }
 
-        return $this->response(response()->json(['ok' => true]), $origin)->setStatusCode(201);
+        return $this->response(response()->json($body), $origin)->setStatusCode(201);
     }
 }

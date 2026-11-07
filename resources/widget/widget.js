@@ -50,13 +50,22 @@
       return starting;
     };
     const uid = () => globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+    const widgetPage = location.pathname.includes('/catalog') ? 'catalog' : location.pathname.includes('/contact') ? 'contacts' : 'home';
+    const transcript = document.createElement('div'); transcript.setAttribute('aria-live', 'polite'); transcript.style.margin = '8px 0';
+    const addBubble = (role, value) => { const line = document.createElement('p'); line.className = 'message'; line.style.margin = '6px 0';
+      line.textContent = (role === 'agent' ? '' : 'Вы: ') + value; transcript.append(line); };
+    panel.append(transcript);
     const chat = document.createElement('form');
     const text = document.createElement('input'); text.type = 'text'; text.maxLength = 4000; text.placeholder = 'Ваше сообщение'; text.setAttribute('aria-label', 'Ваше сообщение'); text.required = true;
     const chatSend = document.createElement('button'); chatSend.className = 'submit'; chatSend.type = 'submit'; chatSend.textContent = 'Отправить';
     const chatStatus = document.createElement('p'); chatStatus.setAttribute('role', 'status'); chat.append(text, chatSend, chatStatus); panel.append(chat);
     chat.addEventListener('submit', event => {
       event.preventDefault(); chatSend.disabled = true; chatStatus.textContent = 'Отправляем…';
-      startSession().then(token => api('/widget/message', {token, text:text.value, idempotency_key:uid()})).then(response => { if (!response.ok) throw new Error('unavailable'); text.value = ''; chatStatus.textContent = 'Сообщение отправлено.'; }).catch(() => { chatStatus.textContent = 'Чат временно недоступен. Попробуйте позже.'; }).finally(() => { chatSend.disabled = false; });
+      const sent = text.value;
+      startSession().then(token => api('/widget/message', {token, text:sent, idempotency_key:uid(), page:widgetPage})).then(response => { if (!response.ok) throw new Error('unavailable'); return response.json().catch(() => ({})); }).then(result => {
+        message.textContent = ''; addBubble('client', sent); text.value = ''; chatStatus.textContent = 'Сообщение отправлено.';
+        if (typeof result.reply === 'string' && result.reply) addBubble('agent', result.reply);
+      }).catch(() => { chatStatus.textContent = 'Чат временно недоступен. Попробуйте позже.'; }).finally(() => { chatSend.disabled = false; });
     });
     if (contactMode !== 'none' && behavior.collect_contact && behavior.consent_url) {
       const form = document.createElement('form'); const consentLabel = document.createElement('label'); const consent = document.createElement('input');

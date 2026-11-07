@@ -23,7 +23,7 @@ test('сессия, ход, повтор и недоступный runtime', asy
       expect(route.request().postDataJSON().token).toBe(token);
 
       return available
-        ? route.fulfill({ status: 201, headers: { 'Access-Control-Allow-Origin': '*' }, contentType: 'application/json', body: '{"ok":true}' })
+        ? route.fulfill({ status: 201, headers: { 'Access-Control-Allow-Origin': '*' }, contentType: 'application/json', body: JSON.stringify(messages === 2 ? { ok: true, reply: 'Здравствуйте! Чем помочь?' } : { ok: true }) })
         : route.fulfill({ status: 503, headers: { 'Access-Control-Allow-Origin': '*' }, contentType: 'application/json', body: '{"message":"Чат временно недоступен."}' });
     }
     const body = route.request().postDataJSON();
@@ -41,6 +41,7 @@ test('сессия, ход, повтор и недоступный runtime', asy
   available = true;
   await host.getByRole('button', { name: 'Отправить', exact: true }).click();
   await expect(host.getByText('Сообщение отправлено.')).toBeVisible();
+  await expect(host.getByText('Здравствуйте! Чем помочь?')).toBeVisible();
   await page.setViewportSize({ width: 1440, height: 900 });
   await mkdir('.local/screenshots/sp-e5-02c', { recursive: true });
   await page.screenshot({ path: '.local/screenshots/sp-e5-02c/widget-chat-1440.png' });
