@@ -535,3 +535,5 @@
 - SP-E5-03F: регенерация по замечаниям Guard не меняет текст детерминированно (fake-модель может вернуть тот же текст); граница — fake-fixtures.
 
 - SP-E0-08AB: фикстура E8-14B использует фиксированный порт 5379 (strictPort), не самостартует на свободном порту.
+
+- SP-E1-01I: тесты модулей PasswordDelivery, InvitationIssuance и race в слоте exec-2 падают с «A dedicated, nonprivileged test database owner is required» — роль Postgres слота не настроена под изолированную проверку; воспроизводится на чистом main в этом слоте.
