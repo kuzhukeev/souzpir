@@ -635,3 +635,4 @@
 - SP-E1-10K (08.11): на слотах исполнителей тесты с `IsolatedDatabaseMigrations` падают «A dedicated, nonprivileged test database owner is required» — нет отдельной роли БД в слоте; проверяет только CI.
 - SP-E6-10E (08.11): `Policy::nextSlot` для неоптовых брендов сначала перебирает `slot_order` с оптовыми слотами — лишние вопросы до `wasAsked()`.
 - SP-E7-04M (08.11): UTM/page фиксируются один раз при старте сессии виджета, не обновляются при навигации в той же сессии.
+- SP-E4-10R (08.11): нет Feature-assert на inspector.theme/applied_techniques в CI (проверено приёмщиком вручную в SandboxTurnsE407CTest).
