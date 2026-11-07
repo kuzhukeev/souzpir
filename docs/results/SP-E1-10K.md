@@ -16,6 +16,9 @@
 - `ProfileFeatureGateTest::test_migration_record_restoration_enables_profile_without_false_email_or_digest` ожидал `timingAvailable=false` как побочный эффект старого default (без fake); сам `draftReady` в сценарии истинный и не связан с удаляемой в тесте миграцией — ожидание исправлено на `true`.
 - Проверено: `./vendor/bin/pint --test` по обоим файлам — чисто. Прогнать сами тесты на слоте exec-2 не удаётся (см. «Техдолг» — `IsolatedDatabaseMigrations` недоступен); логика проверена по коду `ExternalDelivery::send` и `NotificationTimingDrafts::ready`.
 
+## Доработка 07.11.2026 (подтверждение перед сдачей)
+- Проверено: `./vendor/bin/pint --test` по обоим файлам (`OutboxDeferralTest.php`, `ProfileFeatureGateTest.php`) — чисто. `php artisan test` по широкому scope (`tests/Feature/Shell/Notifications`, `tests/Feature/Shell/Integrations`, `tests/Feature/Shell/Profile`, `tests/Feature/Seller/Channels`) — 268 зелёных, 62 падения — все по единственной причине «A dedicated, nonprivileged test database owner is required» / «Refusing to migrate outside an isolated test database» (IsolatedDatabaseMigrations недоступна на слоте exec-2, см. «Техдолг»), новых падений по логике нет.
+
 ## Техдолг
 - На слоте exec-2 тесты с `IsolatedDatabaseMigrations` (в т.ч. `ProfileFeatureGateTest`, `OutboxDeferralTest`, race-группа) падают с «A dedicated, nonprivileged test database owner is required» — проблема окружения слота, не связана с этой задачей; воспроизводится и без моих правок.
 - Старые outbox-события без снимка подписок по-прежнему не доставляются автоматическим вебхукам (известно по SP-E1-10J).
