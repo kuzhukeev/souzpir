@@ -1,0 +1,24 @@
+import { expect, test } from '@playwright/test';
+import { createServer, type ViteDevServer } from 'vite';
+import { mkdir } from 'node:fs/promises';
+let server: ViteDevServer; let url: string;
+test.setTimeout(60000);
+test.use({ viewport: { width: 1440, height: 900 }, launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH } : {} });
+test.beforeAll(async () => { server = await createServer({ configFile: 'tests/Browser/E8-16W/vite.config.ts', cacheDir: '.local/runtime/vite-e816w-matrix', server: { host: '127.0.0.1', port: 0 } }); await server.listen(); url = new URL('/tests/Browser/E8-16W/answers-fixture.html', server.resolvedUrls!.local[0]).href; });
+test.afterAll(async () => { await server?.close(); });
+test('подзаголовок, легенда и цветные ячейки матрицы по макету V-3.4', async ({ page }) => {
+  await page.goto(url);
+  await expect(page.getByText('Замер № 97 · 1 октября 2026 г. · 2 модели · 2 прогона')).toBeVisible();
+  const legend = page.getByLabel('Легенда матрицы');
+  await expect(legend.getByText('Упомянуты вы', { exact: true })).toBeVisible();
+  await expect(legend.getByText('Только конкуренты', { exact: true })).toBeVisible();
+  await expect(legend.getByText('Никого', { exact: true })).toBeVisible();
+  const mentionedCell = page.locator('td', { hasText: '1/1' });
+  await expect(mentionedCell).toBeVisible();
+  await expect(mentionedCell.locator('span[aria-hidden="true"].rounded-full')).toBeVisible();
+  const noneCell = page.locator('td', { hasText: '0/1' });
+  await expect(noneCell).toBeVisible();
+  await expect(noneCell.locator('span[aria-hidden="true"].rounded-full')).toBeVisible();
+  await mkdir('.local/screenshots/SP-E8-16W', { recursive: true });
+  await page.screenshot({ path: '.local/screenshots/SP-E8-16W/answers-matrix.png', fullPage: true });
+});

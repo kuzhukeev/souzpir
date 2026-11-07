@@ -19,3 +19,11 @@
 
 ## Нужно от интегратора
 - V-5.7: для расчёта приоритета по отставанию нет сохранённого сопоставления конкурентов с критериями сайта и утверждённой формулы; приоритет и шаги остаются отсутствующими там, где их нет в подтверждённых данных.
+
+## Остаток 07.11.2026 21:40 — перепроверено, изменений кода не потребовалось
+Код не менялся с afa686ad/52bab11f (уже в main); аудит gaps от 07.11 оказался устаревшим снимком до этого слияния.
+- V-5.6: `SiteCriteriaE821KTest` зелёный — 5 критериев по id, без свидетельств.
+- V-8.1: `SpeedUnavailable` отсутствует в коде (grep пуст); 5 групп и шкала N/20 — `tests/Browser/E8-21/score.spec.ts` зелёный, сверено со скрином `.local/runtime/e8-21-score.png`.
+- V-8.2: важность — честный числовой вес (не выдумываем Высокое/Среднее/Низкое при одинаковом весе инспектора, см. decisions-pending.md: SP-E8-21G/SP-E8-21H); пример кода и найденный JSON-LD — есть. `tests/Browser/E8-21H` зелёный без правок, сверено со скрином `.local/screenshots/sp-e8-21h/audit.png`.
+- Повторно: `php artisan test tests/Feature/Vision/Site tests/Feature/Vision/Reports` — 73 passed; `tests/Feature/Vision/SiteAudit/SiteInspectorTest.php` — 46 passed; `npx vitest run resources/js/features/Vision/Site` — 8 passed; `npx playwright test tests/Browser/E8-21 tests/Browser/E8-21H tests/Browser/E8-21J tests/Browser/E8-21L` — зелёные; права/бренд — `SiteWorkflowTest`, `BrandSiteE821LTest`.
+- Остаток: V-5.7 вне scope этой карточки (`app/Vision/Actions/` — у SP-E8-22G), см. «Нужно от интегратора» выше.

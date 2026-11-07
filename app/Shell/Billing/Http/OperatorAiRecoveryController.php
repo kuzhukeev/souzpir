@@ -2,6 +2,7 @@
 
 namespace App\Shell\Billing\Http;
 
+use App\Ai\Budget\BudgetGuard;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -10,7 +11,7 @@ use Inertia\Response;
 
 final class OperatorAiRecoveryController
 {
-    public function __invoke(Request $request, string $brand): Response
+    public function __invoke(Request $request, string $brand, BudgetGuard $guard): Response
     {
         $user = $request->user();
         $operatorId = getenv('AI_RECOVERY_OPERATOR_USER_ID');
@@ -30,6 +31,14 @@ final class OperatorAiRecoveryController
             ->map(fn ($call) => ['id' => $call->id, 'usd' => sprintf('%d.%06d', intdiv((int) $call->cost_micros, 1000000), (int) $call->cost_micros % 1000000)])
             ->all();
 
-        return Inertia::render('Shell/Billing/OperatorAiRecovery', ['brandId' => $brandRow->id, 'confirmedCosts' => $costs]);
+        $usd = static fn (int $micros): string => sprintf('%.2f', $micros / 1_000_000);
+        $daily = $guard->dailyUsage();
+        $monthly = $guard->monthlyUsage();
+        $org = $guard->monthlyUsage($brandRow->organization_id);
+        $usage = static fn (array $u) => ['spentUsd' => $usd($u['spentMicros']), 'reservedUsd' => $usd($u['reservedMicros']), 'limitUsd' => $usd($u['limitMicros']),
+            'percent' => $u['limitMicros'] > 0 ? (int) round(($u['spentMicros'] + $u['reservedMicros']) * 100 / $u['limitMicros']) : 0];
+
+        return Inertia::render('Shell/Billing/OperatorAiRecovery', ['brandId' => $brandRow->id, 'confirmedCosts' => $costs,
+            'budget' => ['daily' => $usage($daily), 'monthly' => $usage($monthly), 'organizationMonthly' => $usage($org)]]);
     }
 }

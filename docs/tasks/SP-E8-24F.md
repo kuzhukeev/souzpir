@@ -16,3 +16,9 @@ Scope: `app/Vision/Settings/`, `app/Vision/Measurements/`, `resources/js/pages/V
 **Дополнительная зависимость:** SP-E1-13 в done.
 
 Временные тарифы подтверждены решением владельца; внешних получателей подключать только по подтверждённому контракту.
+
+## Остаток 07.11.2026 22:30 (аудит экранов, V-11.3 «Настройки: слоты», `mockups V-11.3`)
+- Процент использования слотов за период (использовано/лимит) с полосой; история списанием — таблица с колонкой «Вопросы × модели × прогоны» и итогом по замеру; явная формула расчёта слотов текстом под таблицей.
+- Feature-тест данных (`tests/Feature/Vision/Settings/`), browser в `tests/Browser/E8-24F/`. Права, бренд; тарифы не выдумывать.
+
+Scope уточнён: без `app/Vision/Measurements/` (у SP-E8-16H): `app/Vision/Settings/`, `resources/js/pages/Vision/Settings/`, `tests/Feature/Vision/Settings/`, `tests/Browser/E8-24F/`, `docs/results/SP-E8-24F.md`.

@@ -15,6 +15,7 @@ use App\Seller\Conversations\Data\TurnClaim;
 use App\Seller\Conversations\Data\TurnCommand;
 use App\Seller\Conversations\Models\Conversation;
 use App\Seller\Conversations\Models\Message;
+use App\Seller\Knowledge\DatabaseKnowledgeRepository;
 use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Auth\SessionBrandSelection;
 use App\Tenancy\TenantContext;
@@ -32,6 +33,7 @@ use Illuminate\Support\Str;
 use LogicException;
 use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Process\Process;
+use Tests\Feature\Seller\Knowledge\Fixtures\PrototypeKnowledge;
 use Tests\TestCase;
 
 final class ProtectedSummaryStageTest extends TestCase
@@ -93,6 +95,33 @@ final class ProtectedSummaryStageTest extends TestCase
             self::assertSame('Synthetic summary', $read->content);
             self::assertSame($read->aiCallId, DB::table('c02_ai_stages')->where('id', $stage)->value('ai_call_id'));
             Http::assertNothingSent();
+        });
+    }
+
+    public function test_other_brand_with_published_knowledge_gets_v2_summary_without_prototype_industry(): void
+    {
+        [$tenant, $http, $claim] = $this->fixture();
+        $this->within($tenant, function () use ($tenant): void {
+            $knowledge = new PrototypeKnowledge(base_path('tests/Feature/Seller/Knowledge/Fixtures/data'), 0);
+            $source = [];
+            foreach (PrototypeKnowledge::FILES as $file) {
+                $source[$file] = $knowledge->all($file);
+            }
+            $source['persona']['company'] = 'Сад и Дом';
+            $source['persona']['intro'] = 'Садовые инструменты, Казань';
+            $store = app(DatabaseKnowledgeRepository::class);
+            $draft = $store->createDraft($tenant, $source);
+            $store->publish($tenant, $draft['id'], $draft['version']);
+        });
+        $this->within($tenant, function () use ($tenant, $http, $claim): void {
+            $stage = app(SellerSummaryStages::class)->prepare($http, $claim);
+            [$request] = app(SellerSummaryStages::class)->load($http, $claim, $stage);
+            self::assertSame('v2', $request->promptVersion);
+            self::assertSame(hash_file('sha256', resource_path('views/prompts/v2/summary.blade.php')), $request->promptChecksum);
+            self::assertStringNotContainsString('пиротех', mb_strtolower($request->messages[0]['content']));
+            self::assertStringNotContainsString('Союз Пир', $request->messages[0]['content']);
+            self::assertSame(1, DB::table('prompt_sets')->where('organization_id', $tenant->organizationId)
+                ->where('brand_id', $tenant->brandId)->where('name', 'summary')->where('version', 'v2')->count());
         });
     }
 

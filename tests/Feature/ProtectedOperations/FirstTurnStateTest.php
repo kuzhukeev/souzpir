@@ -2770,6 +2770,27 @@ SQL);
         Queue::assertNothingPushed();
     }
 
+    /** D-5.6: an explicit first-message "want a human" request reaches a handoff through the protected finalizer. */
+    public function test_first_text_hands_off_conversation_on_explicit_want_human_request(): void
+    {
+        [$tenant, $http, $claim, $extractor] = $this->fixture('Хочу живого человека', ['protected_claim' => true, 'content' => '{"client_intent":"want_human"}']);
+        [$stage, , , $file] = $this->responderFixture($tenant, $http, $claim, $extractor, ['content' => 'Передаю менеджеру, он напишет вам.']);
+        $this->within($tenant, function () use ($http, $claim, $stage, $file): void {
+            self::assertSame('completed', app(Gateway::class)->completeProtectedResponder($http, $claim, $stage));
+            $result = app(FirstTurnTextFinalizer::class)->finalize($http, $claim, $stage, null, 'handoff-finalize-key');
+            self::assertSame('Передаю менеджеру, он напишет вам.', DB::table('messages')->where('id', $result['message_id'])->value('text'));
+            $conversation = DB::table('conversations')->where('id', $claim->conversationId)->first();
+            self::assertSame('manager', $conversation->mode);
+            self::assertSame('handoff', $conversation->stage);
+            self::assertSame('handoff', $conversation->outcome);
+            self::assertNotNull($conversation->handed_off_at);
+            unlink($file);
+        });
+        Http::assertNothingSent();
+        Mail::assertNothingOutgoing();
+        Queue::assertNothingPushed();
+    }
+
     public function test_first_text_rejects_public_claim_even_when_a_prior_receipt_exists(): void
     {
         [$tenant, $http, $command] = $this->protectedClaimFixture();

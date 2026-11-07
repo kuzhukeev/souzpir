@@ -11,13 +11,21 @@ final class DeliverManagerMessage implements ShouldQueue
 {
     use Queueable;
 
+    public int $tries = 4;
+
     public function __construct(public string $organizationId, public string $brandId, public string $conversationId, public string $messageId) {}
+
+    /** @return array<int> */
+    public function backoff(): array
+    {
+        return [10, 30, 120];
+    }
 
     public function handle(): void
     {
         $message = DB::table('messages')->where('organization_id', $this->organizationId)->where('brand_id', $this->brandId)
             ->where('conversation_id', $this->conversationId)->where('id', $this->messageId)->where('role', 'manager')->first();
-        if (! $message) {
+        if (! $message || $message->delivered_at !== null) {
             return;
         }
         $channel = DB::table('conversations as c')->join('channel_accounts as a', function ($join): void {
@@ -28,8 +36,22 @@ final class DeliverManagerMessage implements ShouldQueue
             ? app(TelegramManagerMessageTransport::class)
             : (app()->bound(ManagerMessageTransport::class) ? app(ManagerMessageTransport::class) : app(FakeManagerMessageTransport::class));
         $transport->send($this->organizationId, $this->brandId, $this->conversationId, $this->messageId);
+        $status = DB::table('messages')->where('organization_id', $this->organizationId)->where('brand_id', $this->brandId)
+            ->where('conversation_id', $this->conversationId)->where('id', $this->messageId)->where('role', 'manager')
+            ->first(['delivered_at', 'delivery_error']);
+        if ($status && $status->delivered_at === null && $status->delivery_error === null) {
+            DB::table('messages')->where('organization_id', $this->organizationId)->where('brand_id', $this->brandId)
+                ->where('conversation_id', $this->conversationId)->where('id', $this->messageId)->where('role', 'manager')
+                ->update(['delivered_at' => now(), 'updated_at' => now()]);
+        }
+    }
+
+    /** Runs once retries (tries/backoff) are exhausted for a transient Telegram failure. */
+    public function failed(\Throwable $e): void
+    {
         DB::table('messages')->where('organization_id', $this->organizationId)->where('brand_id', $this->brandId)
             ->where('conversation_id', $this->conversationId)->where('id', $this->messageId)->where('role', 'manager')
-            ->update(['delivered_at' => now(), 'updated_at' => now()]);
+            ->whereNull('delivered_at')->whereNull('delivery_error')
+            ->update(['delivery_error' => mb_substr($e->getMessage(), 0, 120), 'updated_at' => now()]);
     }
 }

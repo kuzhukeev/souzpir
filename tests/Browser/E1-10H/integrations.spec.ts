@@ -30,7 +30,11 @@ test('ссылки и статус почты на экране подключе
     'href',
     '/seller/channels/email',
   );
-  await expect(page.getByRole('link', { name: /CRM-вебхук/ })).toHaveAttribute(
+  const crmTile = page
+    .locator('article')
+    .filter({ has: page.getByRole('heading', { name: 'CRM-вебхук' }) });
+  await expect(crmTile.getByText('Подключён 20.10.2026')).toBeVisible();
+  await expect(crmTile.getByRole('link', { name: 'Настроить' })).toHaveAttribute(
     'href',
     '/seller/integrations/crm',
   );

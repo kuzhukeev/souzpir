@@ -7,12 +7,14 @@ use App\Seller\Channels\Core\ChannelAccount;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
+use App\Shell\Plans\LimitEnforcer;
 use App\Shell\Profile\ProfileAccess;
 use App\Tenancy\TenantContext;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -57,6 +59,8 @@ final class WidgetSettingsController
             return ['brandOrigin' => $origin, 'activeTab' => $request->route('tab') ?? 'install', 'settings' => ['enabled' => $row->enabled, 'origins' => json_decode($row->origins, true),
                 'appearance' => json_decode($row->appearance, true), 'behavior' => json_decode($row->behavior, true),
                 'last_seen_at' => $row->last_seen_at, 'key' => $row->public_key],
+                'correspondence' => ['live' => config('runtime.ai_driver', 'fake') !== 'fake',
+                    'liveDraftEnabled' => (bool) config('features.LV-01.defaults.enabled', false)],
                 'scriptUrl' => $request->getSchemeAndHttpHost().'/widget.js',
                 'contactRequests' => DB::table('widget_contact_requests')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->orderByDesc('created_at')->limit(100)->get(['id', 'name', 'email', 'phone', 'origin', 'created_at'])];
         });
@@ -68,17 +72,36 @@ final class WidgetSettingsController
     {
         $result = $this->access($request, function (User $user, TenantContext $tenant): string {
             $widget = $this->settings($tenant);
-            if (! $widget->enabled) {
+            $origins = json_decode($widget->origins, true) ?: [];
+            if (! $widget->enabled || $origins === []) {
                 return 'Сначала включите виджет и добавьте адрес сайта.';
             }
-            if (! $widget->last_seen_at) {
-                return 'Запросов виджета ещё не было. Установка на сайте не подтверждена.';
-            }
 
-            return 'Последний запрос виджета: '.Carbon::parse($widget->last_seen_at)->format('d.m.Y H:i').'. Проверка сайта не выполнялась.';
+            $passive = $widget->last_seen_at
+                ? 'Виджет работает, последний сигнал: '.Carbon::parse($widget->last_seen_at)->format('d.m.Y H:i').'.'
+                : 'Сигналов от виджета ещё не было.';
+
+            $rateKey = 'widget-install-check:'.$widget->id;
+            if (RateLimiter::tooManyAttempts($rateKey, 1)) {
+                return 'Активную проверку можно повторить не чаще раза в 30 секунд. '.$passive;
+            }
+            RateLimiter::hit($rateKey, 30);
+
+            $check = app(WidgetInstallationChecker::class)->check($origins[0], $widget->public_key);
+
+            return self::describe($check['status'], $check['message']).' '.$passive;
         });
 
         return back()->with('status', $result);
+    }
+
+    private static function describe(string $status, string $message): string
+    {
+        return match ($status) {
+            'detected' => 'Код установлен.',
+            'not_detected' => 'Код не найден на странице.',
+            default => $message,
+        };
     }
 
     public function update(Request $request): mixed
@@ -127,6 +150,10 @@ final class WidgetSettingsController
                 $channel->name = 'Сайт';
                 $channel->default_mode = 'manager';
                 $channel->settings = ['widget_id' => $row->id];
+            }
+            if ($input['enabled'] && $channel->status !== 'active') {
+                $active = ChannelAccount::query()->where('status', 'active')->count();
+                app(LimitEnforcer::class)->assertWithin($tenant, 'seller.channels_max', (string) ($active + 1));
             }
             if ($input['enabled'] && $channel->status !== 'active' && $channel->connected_at === null) {
                 $channel->connected_at = now();

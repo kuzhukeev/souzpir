@@ -10,14 +10,14 @@ test.beforeAll(async () => { server = await createServer({ configFile: 'tests/Br
 test.afterAll(async () => { await server?.close(); });
 test('настройки ожидания и переход к распределению', async ({ page }) => {
   await page.goto(url);
-  await expect(page.getByRole('link', { name: 'Правила распределения →' })).toHaveAttribute('href', '/seller/settings');
+  await expect(page.getByRole('link', { name: 'Правила распределения →' })).toHaveAttribute('href', '/seller/settings?tab=assignment');
   await page.getByLabel('Через сколько минут').fill('10');
   await page.getByText('Уведомление', { exact: true }).click();
   await page.getByText('Напоминание', { exact: true }).click();
   await expect(page.getByRole('switch', { name: 'Уведомление' })).toBeChecked();
   await expect(page.getByRole('switch', { name: 'Напоминание' })).toBeChecked();
   await page.getByLabel('Запасная фраза клиенту').fill('Менеджер ответит позже');
-  await expect(page.getByText('Эти три настройки сохраняются', { exact: false })).toBeVisible();
+  await expect(page.getByText('«Уведомление» дополнительно оповещает', { exact: false })).toBeVisible();
   await mkdir('.local/screenshots/SP-E6-04C', { recursive: true });
   await page.screenshot({ path: '.local/screenshots/SP-E6-04C/handoff.png', fullPage: true });
   const post = page.waitForRequest(request => request.url().endsWith('/seller/scenario/handoff') && request.method() === 'POST');

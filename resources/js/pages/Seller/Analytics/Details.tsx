@@ -22,6 +22,7 @@ type Props = {
   closed?: number;
   messageCount?: number;
   botCompleted?: number;
+  avgMinutesToContact?: number | null;
   dialogs?: Dialog[];
   hours?: Record<string, number>;
   unknownQuestions?: Record<string, number>;
@@ -38,7 +39,6 @@ type Props = {
   canManage?: boolean;
   subscription?: {day:string; recipients:string[]} | null;
   managers?: { name: string; assigned: number; taken: number; closed: number }[];
-  avgMinutesToContact?: number | null;
 };
 function formatMinutesToContact(value: number | null | undefined) {
   if (value == null) return 'нет данных';

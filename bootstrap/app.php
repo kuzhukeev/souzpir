@@ -65,6 +65,12 @@ $app->booted(function (Application $app): void {
     $kernel->setGlobalMiddleware($middleware);
 });
 
+$app->booted(function (Application $app): void {
+    if ($app->environment('production')) {
+        $app->make('url')->forceScheme('https');
+    }
+});
+
 $app->useStoragePath($runtime['storage']);
 if (preg_match('/^[A-Za-z]:/', $basePath, $drive)) {
     $app->addAbsoluteCachePathPrefix(strtoupper($drive[0]));

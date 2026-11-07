@@ -7,6 +7,7 @@ import Index from '../../../resources/js/pages/Vision/Measurements/Index';
 const brandId = '01J00000000000000000000004';
 const revision = 'a'.repeat(64);
 const pending = window.location.search.includes('pending');
+const insufficient = window.location.search.includes('insufficient');
 const originalFetch = window.fetch.bind(window);
 window.fetch = (input, init) => {
   if (input === '/vision/runs/revision') {
@@ -14,7 +15,9 @@ window.fetch = (input, init) => {
   }
   if (typeof input === 'string' && input.startsWith('/vision/runs/data')) {
     return Promise.resolve(new Response(JSON.stringify({
-      revision, plan: { questions: 2, models: 1 }, data: [{ id: '01J00000000000000000000005', status: pending ? 'pending' : 'partial', launch_source: 'scheduled', pending_clarifications: 2, estimated_minutes: 4, visibility: 48, visibility_delta: -2, mentions: 3, created_at: '2026-10-20T12:30:00Z', answers: pending ? [
+      revision, plan: { questions: 2, models: 1 },
+      slots: insufficient ? { used: 20, limit: 20, available: 0, reset_at: '2026-12-01T00:00:00Z' } : { used: 50, limit: 300, available: 250, reset_at: '2026-12-01T00:00:00Z' },
+      data: [{ id: '01J00000000000000000000005', status: pending ? 'pending' : 'partial', launch_source: 'scheduled', pending_clarifications: 2, estimated_minutes: 4, visibility: 48, visibility_delta: -2, mentions: 3, created_at: '2026-10-20T12:30:00Z', answers: pending ? [
         { question_n: 1, provider: 'gemini', requested_model: 'google/gemini-2.5-flash', run_no: 1, status: 'pending', answer_text: null, error_code: null },
       ] : [
         { question_n: 1, provider: 'gemini', requested_model: 'google/gemini-2.5-flash', run_no: 1, status: 'ok', answer_text: 'Сохранённый ответ бренда', error_code: null },

@@ -38,6 +38,7 @@ final class CompetitorsTest extends TenancyTestCase
             }
         });
         $recalculation = \Mockery::mock(app(RecalculateMergedReport::class));
+        $recalculation->shouldReceive('assertRecalculable')->zeroOrMoreTimes();
         $recalculation->shouldReceive('create')->zeroOrMoreTimes()->andReturn('fixture');
         app()->instance(RecalculateMergedReport::class, $recalculation);
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);

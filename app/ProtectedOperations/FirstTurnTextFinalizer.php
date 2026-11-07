@@ -14,6 +14,8 @@ use App\Seller\Engine\GuardDecision;
 use App\Seller\Engine\LeadState;
 use App\Seller\Engine\Policy;
 use App\Seller\Knowledge\Contracts\KnowledgeRepository;
+use App\Seller\Runtime\ServicePhraseSelector;
+use App\Seller\Runtime\StageTransitions;
 use App\Seller\Settings\Greetings\GreetingResolver;
 use App\Seller\Settings\Schedule\Availability;
 use App\Shell\Audit\AuditEntry;
@@ -170,7 +172,7 @@ final class FirstTurnTextFinalizer
             $guard = $decisionService->finish($det, $goal, $enabled);
         }
         if (($guard['status'] ?? null) !== 'completed' || ($guard['verdict'] ?? null) !== 'ok'
-            || ! in_array($goal->kind, ['intro_and_ask', 'ask_slot', 'answer_and_ask', 'answer_only', 'unknown_fact', 'small_talk', 'unclear', 'closed_topic', 'decline_off_topic', 'decline_injection', 'bot_disclosure'], true)
+            || ! in_array($goal->kind, ['intro_and_ask', 'ask_slot', 'answer_and_ask', 'answer_only', 'unknown_fact', 'small_talk', 'unclear', 'closed_topic', 'decline_off_topic', 'decline_injection', 'bot_disclosure', 'handoff', 'opt_out'], true)
             || ($state->signal('notify_manager') && ! $state->flag('manager_notified'))) {
             throw new LogicException;
         }
@@ -202,7 +204,13 @@ final class FirstTurnTextFinalizer
             ->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('role', 'client')->first() ?? throw new LogicException;
         $previousMeta = json_decode($input->meta ?: '{}', true) ?: [];
         $replyText = $candidate['text'];
-        if (! in_array($goal->kind, ['decline_injection', 'decline_off_topic', 'closed_topic'], true)) {
+        if (in_array($goal->kind, ['unknown_fact', 'handoff'], true)) {
+            $override = app(ServicePhraseSelector::class)->customForEvent($knowledge->persona(), $goal->kind);
+            if ($override !== null) {
+                $replyText = $override;
+            }
+        }
+        if (! in_array($goal->kind, ['decline_injection', 'decline_off_topic', 'closed_topic', 'handoff', 'opt_out'], true)) {
             $conversation = DB::table('conversations')->where('id', $claim->conversationId)->where('organization_id', $tenant->organizationId)
                 ->where('brand_id', $tenant->brandId)->first(['channel_account_id', 'contact_id']) ?? throw new LogicException;
             $channel = $conversation->channel_account_id ? DB::table('channel_accounts')->where('id', $conversation->channel_account_id)
@@ -238,7 +246,13 @@ final class FirstTurnTextFinalizer
         if ($state->has('email') || $state->has('messenger')) {
             $conversationUpdate['contact_received_at'] = now();
         }
+        if ($goal->kind === 'handoff') {
+            $conversationUpdate['mode'] = 'manager';
+            $conversationUpdate['handed_off_at'] = now();
+        }
         DB::table('conversations')->where('id', $claim->conversationId)->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->update($conversationUpdate);
+        // The claim is only ever issued for a freshly created conversation (base version 0), so its stage before this write is always the column default.
+        app(StageTransitions::class)->record($tenant, $claim->conversationId, 'open', $state->stage());
         $encoded = json_encode($outcome->toArray(), JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
         $outcomeHash = \App\Seller\Conversations\CanonicalJson::hash($outcome->toArray());
         DB::table('seller_turns')->where('id', $claim->turnId)->where('status', 'processing')->update([

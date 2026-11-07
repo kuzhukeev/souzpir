@@ -56,7 +56,7 @@ if (getenv('E901_ACTION') === 'setup') {
         throw new LogicException('Conversation not found for this organization.');
     }
     DB::table('messages')->insert(['id' => (string) Str::ulid(), 'organization_id' => $organization, 'brand_id' => $conversation->brand_id,
-        'conversation_id' => $dialog, 'channel_account_id' => $conversation->channel_account_id, 'role' => 'agent',
+        'conversation_id' => $dialog, 'role' => 'agent',
         'text' => 'Исходный ответ бота.', 'meta' => '{}', 'created_at' => $at, 'updated_at' => $at]);
     echo 'Ready';
 } elseif (getenv('E901_ACTION') === 'second-brand') {

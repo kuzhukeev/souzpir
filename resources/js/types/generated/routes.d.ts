@@ -551,6 +551,7 @@ declare module 'ziggy-js' {
     "widget.session.start": [],
     "widget.message.preflight": [],
     "widget.message.store": [],
+    "widget.messages": [],
     "widget.config": [],
     "seller.api.failures": [],
     "seller.api.settings": [],
@@ -567,6 +568,27 @@ declare module 'ziggy-js' {
         }
     ],
     "seller.dialogs.pending": [],
+    "seller.dialogs.pending.suggestions": [],
+    "seller.dialogs.suggestions.skip": [
+        {
+            "name": "dialog",
+            "required": true
+        },
+        {
+            "name": "turn",
+            "required": true
+        }
+    ],
+    "seller.dialogs.suggestions.mark": [
+        {
+            "name": "dialog",
+            "required": true
+        },
+        {
+            "name": "turn",
+            "required": true
+        }
+    ],
     "seller.dialogs.show": [
         {
             "name": "dialog",
@@ -690,6 +712,7 @@ declare module 'ziggy-js' {
     "seller.customers.io.import": [],
     "seller.reviews.index": [],
     "seller.reviews.dismiss": [],
+    "seller.reviews.send": [],
     "seller.persona.index": [],
     "seller.persona.save": [],
     "seller.persona.phrases.save": [],
@@ -1013,6 +1036,23 @@ declare module 'ziggy-js' {
         }
     ],
     "dev.design-system": [],
+    "brands.settings.ai_policy.update": [
+        {
+            "name": "brand",
+            "required": true
+        }
+    ],
+    "seller.dialogs.suggestions.send": [
+        {
+            "name": "dialog",
+            "required": true
+        },
+        {
+            "name": "turn",
+            "required": true
+        }
+    ],
+    "health": [],
     "preview.login": [],
     "preview.attention": []
 }

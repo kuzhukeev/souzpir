@@ -69,7 +69,7 @@ final class MfaChallenge
                     ->whereNull('used_at')->update(['used_at' => now(), 'updated_at' => now()]);
                 $valid = $used === 1;
                 if ($valid) {
-                    app(AuditWriter::class)->record(new TenantContext(app(Cabinet::class)->organizationId(), actorId: $user->id),
+                    app(AuditWriter::class)->record(new TenantContext(app(Cabinet::class)->organizationIdFor($user), actorId: $user->id),
                         new AuditEntry('account.mfa.recovery_code_used', 'user', $user->id));
                 }
             }

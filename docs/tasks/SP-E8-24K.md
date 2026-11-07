@@ -9,3 +9,7 @@
 - Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.
 
 Scope: `resources/js/pages/Vision/Settings/`, `tests/Browser/E8-24K/`, `docs/results/SP-E8-24K.md`.
+
+## Остаток 07.11.2026 (аудит экранов, интегратор)
+- V-11.5: по макету у наблюдателя нет доступа к замерам: `config/permissions.php` (строка наблюдателя) и колонка доступа в `resources/js/pages/Vision/Settings/Index.tsx`; feature-тест прав наблюдателя на маршруты замеров.
+- Дополнительный scope: `config/permissions.php`, `app/Vision/Settings/`, `tests/Feature/Vision/Settings/`.

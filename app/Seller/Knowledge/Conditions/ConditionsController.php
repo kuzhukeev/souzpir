@@ -69,6 +69,10 @@ final class ConditionsController
             'deferred_payment' => ['sometimes', 'array'],
             'deferred_payment.new_clients' => ['nullable', 'string', 'max:255'],
             'deferred_payment.regular_clients' => ['nullable', 'string', 'max:255'],
+            'deferred_payment.available_to' => ['nullable', 'string', 'max:255'],
+            'delivery_by_city' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'delivery_by_country' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'delivery_free_from' => ['sometimes', 'nullable', 'string', 'max:255'],
             'discount_grid' => ['sometimes', 'array', 'max:50'], 'discount_grid.*.from' => ['required', 'numeric', 'min:0', 'max:999999999'],
             'discount_grid.*.pct' => ['required', 'numeric', 'min:0', 'max:100'],
             'payment_options' => ['sometimes', 'array', 'max:50'], 'payment_options.*.name' => ['required', 'string', 'max:255'],
@@ -80,7 +84,9 @@ final class ConditionsController
             'promotions.*.text' => ['required', 'string', 'max:2000'], 'promotions.*.from' => ['nullable', 'date_format:Y-m-d'],
             'promotions.*.until' => ['required', 'date_format:Y-m-d'],
             'approved' => ['required', 'array'], 'approved.min_order_rub' => ['required', 'boolean'], 'approved.offseason_min_order_rub' => ['required', 'boolean'],
-            'approved.reserve_days' => ['required', 'boolean'], 'approved.new_client_bonus_pct' => ['required', 'boolean']]);
+            'approved.reserve_days' => ['required', 'boolean'], 'approved.new_client_bonus_pct' => ['required', 'boolean'],
+            'approved.min_order' => ['sometimes', 'boolean'], 'approved.discounts' => ['sometimes', 'boolean'], 'approved.payment' => ['sometimes', 'boolean'],
+            'approved.delivery' => ['sometimes', 'boolean'], 'approved.promotions' => ['sometimes', 'boolean'], 'approved.other' => ['sometimes', 'boolean']]);
         foreach ($input['promotions'] ?? [] as $index => $promotion) {
             if (! empty($promotion['from']) && $promotion['from'] > $promotion['until']) {
                 throw ValidationException::withMessages(["promotions.$index.until" => 'Окончание акции не может быть раньше начала.']);
@@ -98,7 +104,7 @@ final class ConditionsController
                     unset($conditions[$key]);
                 }
             }
-            foreach (['min_order_quantity', 'prepayment_pct', 'availability', 'other_conditions'] as $key) {
+            foreach (['min_order_quantity', 'prepayment_pct', 'availability', 'other_conditions', 'delivery_by_city', 'delivery_by_country', 'delivery_free_from'] as $key) {
                 if (array_key_exists($key, $input)) {
                     if ($input[$key] === null || $input[$key] === '') {
                         unset($conditions[$key]);
@@ -119,6 +125,14 @@ final class ConditionsController
                                 'yes' => true, 'no' => false, default => $value
                             };
                         }
+                    }
+                }
+                if (array_key_exists('available_to', $input['deferred_payment'])) {
+                    $value = $input['deferred_payment']['available_to'];
+                    if ($value === null || $value === '') {
+                        unset($deferred['available_to']);
+                    } else {
+                        $deferred['available_to'] = $value;
                     }
                 }
                 $conditions['deferred_payment'] = $deferred;

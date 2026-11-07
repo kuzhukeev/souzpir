@@ -3,6 +3,7 @@
 namespace App\Seller\Followups;
 
 use App\Seller\Knowledge\Contracts\KnowledgeRepository;
+use App\Seller\Runtime\ServicePhraseSelector;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
@@ -31,16 +32,16 @@ final class PrepareFollowups implements ShouldQueue
         }
         $texts = array_values(array_filter($settings['texts'] ?? [], fn ($value) => is_string($value) && trim($value) !== ''));
         $personaName = '';
-        if (! $texts || ! is_string($settings['agreed_text'] ?? null) || trim($settings['agreed_text']) === '') {
-            try {
-                $knowledge = app(KnowledgeRepository::class)->published(new TenantContext($this->organizationId, $this->brandId, source: 'job'));
-                $personaName = trim((string) ($knowledge->persona()['name'] ?? ''));
-                if (! $texts) {
-                    $texts = collect(data_get($knowledge->all('fewshot'), 'examples', []))->where('tag', 'followup_nudge')->pluck('text')->filter(fn ($value) => is_string($value) && trim($value) !== '')->values()->all();
-                }
-            } catch (\Throwable) {
-                // The prototype has a fallback if there are no suitable examples.
+        $persona = [];
+        try {
+            $knowledge = app(KnowledgeRepository::class)->published(new TenantContext($this->organizationId, $this->brandId, source: 'job'));
+            $persona = $knowledge->persona();
+            $personaName = trim((string) ($persona['name'] ?? ''));
+            if (! $texts) {
+                $texts = collect(data_get($knowledge->all('fewshot'), 'examples', []))->where('tag', 'followup_nudge')->pluck('text')->filter(fn ($value) => is_string($value) && trim($value) !== '')->values()->all();
             }
+        } catch (\Throwable) {
+            // The prototype has a fallback if there are no suitable examples.
         }
         $brandName = trim((string) ($brand->name ?? ''));
         $introduction = $personaName !== '' && $brandName !== ''
@@ -65,6 +66,13 @@ final class PrepareFollowups implements ShouldQueue
             $text = $due['reason'] === 'next_contact_at'
                 ? (is_string($settings['agreed_text'] ?? null) && trim($settings['agreed_text']) !== '' ? $settings['agreed_text'] : 'Добрый день. '.$introduction.'Договаривались списаться. Успели посмотреть прайс? Если есть вопросы по позициям или условиям — отвечу.')
                 : $texts[($due['sequence'] - 1) % count($texts)];
+            if ($due['reason'] === 'silence') {
+                $event = $due['sequence'] >= max(0, (int) ($settings['max_auto'] ?? 2)) ? 'goodbye' : 'reminder';
+                $override = app(ServicePhraseSelector::class)->customForEvent($persona, $event);
+                if ($override !== null) {
+                    $text = $override;
+                }
+            }
             DB::table('seller_followup_candidates')->insertOrIgnore(['id' => (string) Str::ulid(), 'organization_id' => $this->organizationId,
                 'brand_id' => $this->brandId, 'conversation_id' => $conversation->id, 'reason' => $due['reason'], 'source_at' => $due['source_at'],
                 'sequence' => $due['sequence'], 'text' => $text, 'status' => 'pending',

@@ -14,6 +14,12 @@
 - Виджет: после merge main обнаружился готовый `WidgetInboundRuntime`→`InboundRecorder::ingest`, который уже вызывает `FollowupConsent::inbound` для любого канала. Новый тест подтверждает: явное «да» посетителя после вопроса про рассылку в диалоге фиксируется как `source=dialog`, а согласие на передачу данных через форму `consent_url`/`/widget/contact` таким событием не считается. Проверено: `WidgetConsentE603AATest`.
 - Прогон: `php artisan test tests/Feature/Seller/Customers tests/Feature/Seller/Followups tests/Feature/Seller/Channels/Telegram tests/Feature/Seller/Channels/Widget` — 64 теста, 1266 проверок, всё зелено; Pint — passed. После этого остатка по карточке нет.
 
+## Этап 20:45 (красные browser-тесты карточки клиента — scope сужен до Customers)
+- Причина: `Show.tsx` получил обязательный проп `consent` (блок «Согласие на рассылку»), но фикстуры `tests/Browser/E6-10E/customer-fixture.tsx`, `tests/Browser/E5-05D/fixture.tsx`, `tests/Browser/E5-05F/fixture.tsx` его не передавали — компонент падал при рендере на `consent.status`, и проверки доп. полей/телефона/названия не доходили до текста.
+- Исправление: добавлен `consent:{status:'none',unsubscribed:0,canEdit:…}` во все три фикстуры (значения как у контакта без событий согласия). Сам `Show.tsx` и логика согласия не менялись.
+- Проверено: `npx playwright test tests/Browser/E6-10E/ tests/Browser/E5-05D/customers.spec.ts tests/Browser/E5-05F/customers.spec.ts tests/Browser/E6-03AA/` — 8 тестов, все зелёные (включая прежде красные E6-10E/customer, E5-05D/show, E5-05F/show). `php artisan test tests/Feature/Seller/Customers/` — 20 тестов, 608 проверок, зелёные. `npx tsc --noEmit`, `npx eslint` по изменённым файлам — чисто.
+- После этого остатка по карточке нет.
+
 ## Техдолг
 - Нет новых рисков.
 

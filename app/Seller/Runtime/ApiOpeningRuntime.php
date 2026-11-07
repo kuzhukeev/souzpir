@@ -93,6 +93,8 @@ final class ApiOpeningRuntime
                 'state' => json_encode($state->toArray(), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), 'stage' => $state->stage(),
                 'outcome' => $state->outcome(), 'client_type' => $state->clientType(), 'version' => 1, 'updated_at' => now(),
             ]);
+            // The lead's conversation is created fresh for this opening, so its stage before this write is always the column default.
+            app(StageTransitions::class)->record($tenant, $lead->conversation_id, 'open', $state->stage());
             $delivery = app(FakeChannelDelivery::class)->send(new DeliveryCommand($tenant, $lead->conversation_id, $message, 'fake', 'api-opening:'.$lead->id));
             if ($delivery->status !== 'fake_sent' || $delivery->messageId !== $message) {
                 throw new LogicException('API opening unavailable.');

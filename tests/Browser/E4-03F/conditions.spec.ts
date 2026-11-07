@@ -45,3 +45,25 @@ test('меню карточек работает с клавиатуры и по
     if (width === 1440) { await mkdir('.local/screenshots/SP-E4-03F', { recursive: true }); await page.screenshot({ path: '.local/screenshots/SP-E4-03F/conditions.png', fullPage: true }); }
   }
 });
+
+test('статусы карточек, «Утвердить все» и недостающие поля сохраняются', async ({ page }) => {
+  await page.goto(new URL('/tests/Browser/E4-03F/conditions.html', origin).href);
+  await expect(page.getByText('Не утверждено').first()).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Что бот скажет, если спросят про скидку' })).toBeVisible();
+  await page.getByLabel('Кому доступна').fill('Постоянным клиентам');
+  await page.getByLabel('По городу').fill('от 300 ₽');
+  await page.getByLabel('По стране').fill('от 500 ₽');
+  await page.getByLabel('Бесплатно от').fill('50 000 ₽');
+  await page.getByRole('button', { name: 'Утвердить все' }).click();
+  await expect(page.getByText('До публикации бот использует текущую версию условий.')).toBeVisible();
+  await page.route('**/seller/knowledge/conditions', route => route.abort('failed'));
+  const sent = page.waitForRequest(request => request.method() === 'POST' && request.url().includes('/seller/knowledge/conditions'));
+  await page.getByRole('button', { name: 'Сохранить в черновик' }).click();
+  const body = (await sent).postDataJSON();
+  expect(body.deferred_payment.available_to).toBe('Постоянным клиентам');
+  expect(body.delivery_by_city).toBe('от 300 ₽');
+  expect(body.delivery_by_country).toBe('от 500 ₽');
+  expect(body.delivery_free_from).toBe('50 000 ₽');
+  expect(body.approved.min_order).toBe(true);
+  expect(body.approved.delivery).toBe(true);
+});

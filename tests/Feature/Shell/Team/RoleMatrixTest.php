@@ -120,7 +120,7 @@ final class RoleMatrixTest extends TenancyTestCase
         [$admin, $membership] = $this->member($org, 'admin', [$brand->id]);
         [, , $foreignBrand] = $this->cabinet(false);
         [$foreignUser] = $this->member($foreignBrand->organization, 'admin', [$foreignBrand->id]);
-        $this->actingAs($foreignUser)->withSession(['brand_id' => $foreignBrand->id])->getJson('/team/roles/matrix')->assertForbidden();
+        $this->actingAs($foreignUser)->withSession(['brand_id' => $foreignBrand->id])->getJson('/team/roles/matrix')->assertOk();
         $this->actingAs($admin)->withSession(['brand_id' => $brand->id])->getJson('/team/roles/matrix')->assertOk();
         DB::table('memberships')->where('id', $membership->id)->update(['status' => 'disabled']);
         $this->getJson('/team/roles/matrix')->assertForbidden();

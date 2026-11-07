@@ -14,3 +14,8 @@ Scope: `app/Shell/Integrations/`, `app/Shell/Notifications/`, `app/Seller/Channe
 
 ## Дополнение 07.11.2026 19:00 (реестр экранов S-7.1, D-10.3)
 - `config/runtime.php`: `notification_driver` без значения по умолчанию → в окружениях без NOTIFICATION_DRIVER тихие часы и сводка S-7.1 всегда «Скоро», напоминания D-10.3 заблокированы (`reminders.available=false`), DrainNotifications не работает. Задать default `fake` (как ai_driver/delivery_driver), проверить, что S-7.1 (тихие часы, сводка, блокировка «Сохранить» без изменений) и D-10.3 (переключатель напоминаний) работают в fake-режиме; поправить тесты, ожидавшие «Скоро». Дополнительный scope: `config/runtime.php`, `app/Shell/Profile/`, `resources/js/pages/Shell/Profile/`, `tests/Feature/Shell/Profile/`, `app/Seller/Channels/Planned/`, `tests/Feature/Seller/Channels/Planned/`.
+
+## Остаток 07.11.2026 (аудит экранов, интегратор)
+- S-5.3: внешняя доставка общих уведомлений: драйвер почты через Laravel `Mail` (в тестах `Mail::fake`) и Telegram Bot API через `Http` (в тестах `Http::fake`); включается `NOTIFICATION_DRIVER` без правки кода, по умолчанию fake; текст «Внешняя доставка пока выключена» показывать только при fake-драйвере.
+- S-5.3: подключение Telegram по коду (модалка с кодом → ожидание → подтверждение) вместо поля «ID чата Telegram»; адреса почты чипами «Добавить адрес» с валидацией вместо textarea.
+- Боевой бот и почтовый ящик подключает владелец отдельно; живых отправок в тестах нет.

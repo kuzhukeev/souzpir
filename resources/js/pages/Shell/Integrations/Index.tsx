@@ -11,7 +11,7 @@ type Connection = {
   connected_at: string | null;
   settings_restricted?: boolean;
 };
-type Props = { connections: Connection[]; crmHref?: string | null };
+type Props = { connections: Connection[] };
 const statusLabels: Record<string, string> = {
   configured: 'Настроена',
   connected: 'Подключён',
@@ -31,8 +31,9 @@ const icons: Record<string, typeof Cable> = {
   price_email: Mail,
   notifications: Bell,
   whatsapp: MessageCircle,
+  crm_webhook: Cable,
 };
-export default function Index({ connections, crmHref }: Props) {
+export default function Index({ connections }: Props) {
   return (
     <>
       <Head title="Подключения" />
@@ -87,18 +88,6 @@ export default function Index({ connections, crmHref }: Props) {
               );
             })}
           </div>
-        )}
-        {crmHref && (
-          <Link
-            href={crmHref}
-            className={
-              panel +
-              ' mt-4 flex min-h-11 cursor-pointer items-center justify-between text-sm font-semibold text-(--color-link) ' +
-              focus
-            }
-          >
-            CRM-вебхук <ArrowRight size={16} aria-hidden="true" />
-          </Link>
         )}
       </Page>
     </>

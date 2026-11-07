@@ -72,6 +72,7 @@ final class QuotaRuntimeE113Test extends TestCase
         $this->login($user, $brand);
         $this->postJson('/seller/turns/runtime', [...$input, 'expected_version' => 0])->assertOk()->assertJsonPath('data.status', 'suppressed');
         $this->assertDatabaseHas('conversations', ['id' => $input['conversation_id'], 'mode' => 'manager', 'stage' => 'handoff', 'outcome' => 'handoff']);
+        $this->assertDatabaseHas('messages', ['conversation_id' => $input['conversation_id'], 'role' => 'agent', 'text' => 'Передаю менеджеру, он напишет сегодня до конца дня.']);
         Http::assertNothingSent();
         Mail::assertNothingOutgoing();
     }

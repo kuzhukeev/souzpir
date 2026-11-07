@@ -39,9 +39,11 @@ final class SiteElapsedE821PTest extends TenancyTestCase
             self::assertNull(Cache::get($foreignKey));
             $callback(2, 3);
             self::assertSame(3, Cache::get($key)['pages_total']);
-            self::assertNull(Cache::get($key)['remaining_seconds']);
+            self::assertIsInt(Cache::get($key)['remaining_seconds']);
+            self::assertGreaterThanOrEqual(0, Cache::get($key)['remaining_seconds']);
             $callback(3, 3);
             self::assertSame('analyzing', Cache::get($key)['stage']);
+            self::assertSame(0, Cache::get($key)['remaining_seconds']);
 
             return ['url' => $url, 'pages' => []];
         });
@@ -49,7 +51,7 @@ final class SiteElapsedE821PTest extends TenancyTestCase
         self::assertSame('complete', Cache::get($key)['stage']);
         self::assertIsInt(Cache::get($key)['elapsed_seconds']);
         self::assertSame(3, Cache::get($key)['pages_processed']);
-        self::assertNull(Cache::get($key)['remaining_seconds']);
+        self::assertSame(0, Cache::get($key)['remaining_seconds']);
         $this->post('/brand/switch', ['brand_id' => $other->id])->assertRedirect();
         $this->get('/vision/site')->assertOk()->assertInertia(fn ($page) => $page->where('auditProgress', null));
         [$viewer] = $this->member($org, 'viewer', [$brand->id]);

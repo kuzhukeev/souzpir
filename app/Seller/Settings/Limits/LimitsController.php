@@ -2,6 +2,7 @@
 
 namespace App\Seller\Settings\Limits;
 
+use App\Seller\Runtime\BrandRuntimeSchedule;
 use App\Shell\Plans\Contracts\PlanLimits;
 use App\Shell\Plans\Contracts\UsageQuery;
 use App\Shell\Plans\Contracts\UsageReader;
@@ -43,6 +44,7 @@ final class LimitsController
             'period' => ['from' => $from->toDateString(), 'to' => $to->toDateString(), 'timezone' => 'UTC'],
             'daysRemaining' => (int) CarbonImmutable::now('UTC')->startOfDay()->diffInDays($to),
             'canViewPlans' => Gate::allows('billing.read'),
+            'fallbackPhrase' => app(BrandRuntimeSchedule::class)->fallbackPhrase($context),
         ]);
     }
 }

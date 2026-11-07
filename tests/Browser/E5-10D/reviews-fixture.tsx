@@ -1,0 +1,11 @@
+import {useEffect,useState} from 'react';
+import {createInertiaApp} from '@inertiajs/react'; import {createRoot} from 'react-dom/client';
+import Index from '../../../resources/js/pages/Seller/Reviews/Index'; import '../../../resources/css/app.css'; import '../../../resources/css/themes/tokens.css';
+const params = new URLSearchParams(location.search);
+const row = (n:number,type:string,status:string,text:string,note:string,applied:string|null) => ({id:`01ARZ3NDEKTSV4RRFFQ69G5FA${n}`,type,status,note,applied_to:applied,created_at:`2026-10-2${n}T09:15:00Z`,text,conversation_id:`01ARZ3NDEKTSV4RRFFQ69G51${n}42`,author:'Алексей Смирнов'});
+const items = [row(8,'wrong_fact','new','Доставка доступна каждый день.','Уточнить график доставки.',null),row(7,'too_long','new','У нас большой выбор фейерверков и салютов. Что именно вас интересует?','Слишком много общей информации.',null),row(4,'wrong_tone','dismissed','К сожалению, это не входит в наш ассортимент.','Звучит резко, можно мягче.',null),row(3,'unclear','done','Уточните, пожалуйста.','Непонятно.','example')];
+const reviews={items,counts:{unclear:12,bureaucratic:9,too_long:8,wrong_fact:7,wrong_tone:5,other:2},filters:{period:'30'},canOperate:!params.has('viewer'),pagination:{current:1,last:1,total:4}};
+const shared={theme:'neutral',brand:{id:'b',name:'Пиротехника'},brands:[],organization:{id:'o',name:'Компания'},auth:{user:{id:'u',name:'Иван Петров',email:'a@example.test'}},modules:{seller:true,vision:false},can:{},unread:null,translations:{},ziggy:{routes:{}},errors:{},status:null};
+const script=document.createElement('script');script.type='application/json';script.dataset.page='app';script.textContent=JSON.stringify({component:'Fixture',props:shared,url:location.pathname,version:null,clearHistory:false,encryptHistory:false});document.body.appendChild(script);
+export function Fixture(){const [ready,setReady]=useState(false);useEffect(()=>{const done=()=>setReady(true);window.addEventListener('fixture-ready',done);return()=>window.removeEventListener('fixture-ready',done);},[]);return <Index reviews={ready?reviews:undefined}/>;}
+void createInertiaApp({resolve:()=>Fixture,setup:({el,App,props:pageProps})=>createRoot(el).render(<App {...pageProps}/>)});
