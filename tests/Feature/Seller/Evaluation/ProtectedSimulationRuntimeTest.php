@@ -4,6 +4,8 @@ namespace Tests\Feature\Seller\Evaluation;
 
 use App\Ai\Drivers\Driver;
 use App\Ai\Drivers\FakeDriver;
+use App\Ai\Drivers\Rejected;
+use App\Ai\Drivers\Uncertain;
 use App\Contracts\ProtectedOperations\IdempotencyConflict;
 use App\Contracts\ProtectedOperations\IdempotencyFailure;
 use App\ProtectedOperations\SellerSimulation\ProtectedSimulationRuntime;
@@ -78,6 +80,81 @@ final class ProtectedSimulationRuntimeTest extends TenancyTestCase
         self::assertSame(5, DB::table('messages')->where('brand_id', $brand->id)->count());
         self::assertSame(2, DB::table('seller_turns')->where('brand_id', $brand->id)->count());
         Http::assertNothingSent();
+    }
+
+    public function test_confirmed_fake_failures_can_be_retried_without_duplicate_messages(): void
+    {
+        [, $org, $brand, $other] = $this->simulationCabinet();
+        $driver = new class implements Driver
+        {
+            private array $failed = [];
+
+            public function complete(#[\SensitiveParameter] array $body): array
+            {
+                $stage = isset($body['response_format']) ? 'extractor' : 'responder';
+                if (! isset($this->failed[$stage])) {
+                    $this->failed[$stage] = true;
+                    throw new Rejected('Synthetic unbilled failure.');
+                }
+
+                return ['content' => $stage === 'extractor' ? '{"client_intent":"answer_only"}' : 'Хорошо, спасибо!',
+                    'toolCalls' => [], 'usage' => ['promptTokens' => 1, 'completionTokens' => 1],
+                    'model' => $body['model'], 'latencyMs' => 1, 'costMicros' => 0];
+            }
+        };
+        $this->app->instance(FakeDriver::class, $driver);
+        $runtime = app(ProtectedSimulationRuntime::class);
+        $tenant = new TenantContext($org->id, $brand->id, source: 'job');
+        $opened = $runtime->open($tenant, 'retry-open');
+        for ($i = 0; $i < 2; $i++) {
+            try {
+                $runtime->turn($tenant, $opened['conversation_id'], 'Воронеж', 'retry-turn');
+                self::fail('Failed attempt unexpectedly completed.');
+            } catch (LogicException) {
+                self::assertSame(2, DB::table('messages')->where('conversation_id', $opened['conversation_id'])->count());
+            }
+        }
+        $reply = $runtime->turn($tenant, $opened['conversation_id'], 'Воронеж', 'retry-turn');
+        self::assertSame('Хорошо, спасибо!', $reply['agent']);
+        self::assertSame($reply, $runtime->turn($tenant, $opened['conversation_id'], 'Воронеж', 'retry-turn'));
+        self::assertSame(3, DB::table('messages')->where('conversation_id', $opened['conversation_id'])->count());
+        self::assertSame(2, DB::table('ai_calls')->where('brand_id', $brand->id)->where('status', 'failed')->count());
+        self::assertSame(2, DB::table('ai_calls')->where('brand_id', $brand->id)->where('status', 'completed')->where('attempt', 2)->whereNotNull('parent_call_id')->count());
+        try {
+            $runtime->turn(new TenantContext($org->id, $other->id, source: 'job'), $opened['conversation_id'], 'Воронеж', 'retry-turn');
+            self::fail('Foreign brand accepted.');
+        } catch (IdempotencyFailure) {
+            self::assertSame(3, DB::table('messages')->where('conversation_id', $opened['conversation_id'])->count());
+        }
+    }
+
+    public function test_uncertain_fake_call_is_not_retried(): void
+    {
+        [, $org, $brand] = $this->simulationCabinet();
+        $driver = new class implements Driver
+        {
+            public int $calls = 0;
+
+            public function complete(#[\SensitiveParameter] array $body): array
+            {
+                $this->calls++;
+                throw new Uncertain('Synthetic uncertain result.');
+            }
+        };
+        $this->app->instance(FakeDriver::class, $driver);
+        $runtime = app(ProtectedSimulationRuntime::class);
+        $tenant = new TenantContext($org->id, $brand->id, source: 'job');
+        $opened = $runtime->open($tenant, 'uncertain-open');
+        for ($i = 0; $i < 2; $i++) {
+            try {
+                $runtime->turn($tenant, $opened['conversation_id'], 'Воронеж', 'uncertain-turn');
+                self::fail('Uncertain attempt unexpectedly completed.');
+            } catch (LogicException) {
+                self::assertSame(2, DB::table('messages')->where('conversation_id', $opened['conversation_id'])->count());
+            }
+        }
+        self::assertSame(1, $driver->calls);
+        self::assertSame(1, DB::table('ai_calls')->where('brand_id', $brand->id)->where('status', 'uncertain')->count());
     }
 
     public function test_simulation_does_not_save_unsafe_response(): void

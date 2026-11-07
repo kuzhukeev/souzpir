@@ -14,3 +14,6 @@
 - Если указанные владельцы ещё работают при сдаче, оставить конкретный неработающий путь менеджера, импорта CRM, виджета, API или интеграции в разделе «Остаток» этой карточки; после освобождения интегратор расширяет scope и переоткрывает её. Не считать fake живой доставкой.
 
 Scope: `app/Seller/Followups/`, `resources/js/pages/Seller/Followups/`, `routes/features/E6-03H.php`, `app/Seller/Channels/Core/InboundRecorder.php`, `database/migrations/E6-03AA/`, `tests/Feature/Seller/Followups/`, `tests/Browser/E6-03AA/`, `docs/results/SP-E6-03AA.md`.
+
+## Исправление блокера реестра
+Каталог `database/migrations/E6-03AA/` сохранён в scope только для безопасного переноса уже записанной работы; до сдачи переместить миграцию в свободный поддерживаемый `database/migrations/E6-03Z/`. Реестр допускает не более одной буквы после номера. Точечно разрешён существующий `tests/Browser/E6-03K/agreed.spec.ts` для согласования проверки массовой отправки с решением владельца; смысл проверок не ослаблять.
