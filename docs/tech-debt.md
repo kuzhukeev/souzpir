@@ -589,3 +589,5 @@
 - SP-E6-08G: путь check_stock→Guard с ценами подключён только для первого хода (FirstTurnDeterministicGuard); в follow-up (SellerFollowup/FollowupFinalizer) ctx с catalog_known_prices не передаётся — цены там не называются, как раньше. Полный путь check_stock через FirstTurnCoordinator end-to-end отдельным тестом не покрыт (покрывает сквозная приёмка SP-E9-01). При включённом catalog_prices_enabled Guard блокирует любую сумму в рублях, не совпавшую с ценой из check_stock (в т.ч. доставка, минимальный заказ) — возможны лишние regenerate. Тесты на DatabaseMigrations (FirstTurnStateTest) в exec-слотах падают на «isolated test database is required» из-за rolcreatedb у роли слота.
 
 - SP-E8-22G: публичный отчёт V-5.10 «Три действия» (app/Vision/Publications/PublicationData.php, app/Vision/Reports/ReportSections.php) берёт priority/steps из сырой рекомендации, а не из RecommendationDefaults — при отсутствии полей там пусто.
+
+- SP-E8-24F: история списания слотов на V-11.3 ограничена 20 последними завершёнными замерами текущего бренда.
