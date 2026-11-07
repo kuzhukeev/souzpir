@@ -46,7 +46,8 @@ final class WidgetSessionController
         [$widget, $origin] = self::widget($request);
         $token = Str::random(64);
         DB::table('widget_sessions')->insert(['id' => (string) Str::ulid(), 'organization_id' => $widget->organization_id, 'brand_id' => $widget->brand_id,
-            'widget_id' => $widget->id, 'origin' => $origin, 'token_hash' => hash('sha256', $token), 'expires_at' => now()->addDay(), 'created_at' => now(), 'updated_at' => now()]);
+            'widget_id' => $widget->id, 'origin' => $origin, 'token_hash' => hash('sha256', $token),
+            'expires_at' => now()->addDay(), 'created_at' => now(), 'updated_at' => now()]);
 
         return $this->response(response()->json(['token' => $token], 201), $origin);
     }
@@ -69,8 +70,13 @@ final class WidgetSessionController
                 return $this->response(response()->json(['message' => 'Чат временно недоступен.'], 503), $origin);
             }
         }
+        $page = $request->input('page', 'home');
+        if ($session->page === null) {
+            $paths = ['home' => '/', 'catalog' => '/catalog', 'contacts' => '/contacts'];
+            DB::table('widget_sessions')->where('id', $session->id)->update(['page' => $paths[$page] ?? '/', 'updated_at' => now()]);
+        }
         $result = app(WidgetInboundRuntime::class)->turn($request, $widget, $session, trim($request->input('text')),
-            $request->input('idempotency_key'), $request->input('page', 'home'));
+            $request->input('idempotency_key'), $page);
         if (! in_array($result['status'], ['suppressed', 'completed', 'suggested'], true)) {
             return $this->response(response()->json(['message' => 'Чат временно недоступен.'], 503), $origin);
         }

@@ -15,6 +15,7 @@ use App\Seller\Engine\LeadState;
 use App\Seller\Engine\Policy;
 use App\Seller\Knowledge\Contracts\KnowledgeRepository;
 use App\Seller\Runtime\ServicePhraseSelector;
+use App\Seller\Runtime\StageTransitions;
 use App\Seller\Settings\Greetings\GreetingResolver;
 use App\Seller\Settings\Schedule\Availability;
 use App\Shell\Audit\AuditEntry;
@@ -250,6 +251,8 @@ final class FirstTurnTextFinalizer
             $conversationUpdate['handed_off_at'] = now();
         }
         DB::table('conversations')->where('id', $claim->conversationId)->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->update($conversationUpdate);
+        // The claim is only ever issued for a freshly created conversation (base version 0), so its stage before this write is always the column default.
+        app(StageTransitions::class)->record($tenant, $claim->conversationId, 'open', $state->stage());
         $encoded = json_encode($outcome->toArray(), JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
         $outcomeHash = \App\Seller\Conversations\CanonicalJson::hash($outcome->toArray());
         DB::table('seller_turns')->where('id', $claim->turnId)->where('status', 'processing')->update([
