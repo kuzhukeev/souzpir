@@ -1849,3 +1849,8 @@ SP-E1-08B ожидает SP-E1-08: оба меняют профиль, а исх
 - SP-E5-02D (07.11, вечер): текст статуса переписки виджета формулируется по фактическому поведению `WidgetInboundRuntime`/`QueueLiveDraft` (AI_DRIVER и флаг LV-01), без зависимости от `default_mode` канала.
 - SP-E3-06L: job-первый ход подключён через существующую source-агностичную «Api»-цепочку (`ApiFollowupInput`/`FollowupCoordinator`/`FollowupFinalizer`), без дублирования HTTP-сессионной Protected-инфраструктуры; приветствие (GreetingResolver) для job-источника не добавляется — та же асимметрия, что для `token`.
 - SP-E8-22G: дата-фильтр «Октябрь 2026» в шапке таблицы V-9.3 не делался (не было в пунктах остатка); статус «Без изменений» — для delta ⩽ 0, включая отрицательную динамику.
+
+- SP-E6-01E: переопределение текста ответа служебной фразой применяется только при явно сохранённой непустой фразе (без дефолтов редактора); события `unknown_fact` и `handoff`.
+- SP-E6-10B: код не менялся — карточка закрыта тестом полного защищённого хода для бренда с опубликованными доп. полями (реализация пришла с SP-E6-10C/D/E).
+- SP-E5-09: `seller.contact.reminder`/`seller.conversation.handed_off` публикуются напрямую (`NotifyDialogEvent`, processed_at сразу), минуя общий `NotificationProcessor`, чей gate для `seller.contact.reminder` завязан на `ContactReminderValidity` (SP-E5-06B).
+- SP-E4-10L: для handoff-варианта закрытой темы reason id = `closed_topic`, `message_idea` — текст поля «Как бот закрывает тему»; плейсхолдер `{response_time}` не обязателен.
