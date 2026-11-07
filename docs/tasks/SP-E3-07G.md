@@ -16,3 +16,11 @@ Scope: `app/Ai/Gateway.php`, `app/Seller/Runtime/`, `app/ProtectedOperations/Sel
 
 ## Сужение scope 07.11.2026 23:30 (планировщик)
 - `app/Seller/Runtime/` исключён из scope: каталог занят 6 активными задачами, replay идёт через защищённые стадии и follow-up; если правка runtime-файла нужна — пункт в «Нужно от интегратора».
+
+
+## Остаток 08.11.2026 (планировщик, запуск 20261107-225307)
+- Паритет с прототипом (golden fixtures не менять): 29 кейсов `persona.*` через `ApiOpeningRuntime`, `manual.force_close_14`, followup через 40 ч (`FollowupPolicy`).
+- responder-стадия LeadState (9 кейсов) требует `app/Ai/Protected/SellerResponderStages.php` и `app/ProtectedOperations/FirstTurnState.php`, которые сейчас у SP-E4-01X, — в эту часть не входит; перечислить в «Остаток» отчёта.
+- Нужен ещё файл вне scope — «Нужно от интегратора», остальное делать.
+
+Scope: `app/Seller/Runtime/ApiOpeningRuntime.php`, `app/Seller/Followups/FollowupPolicy.php`, `app/Seller/Engine/Policy.php`, `tests/Feature/Equivalence/Support/RecordedGateway.php`, `tests/Equivalence/`, `docs/validation/equivalence.md`, `docs/results/SP-E3-07G.md`.

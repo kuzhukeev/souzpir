@@ -22,3 +22,12 @@ Scope: `app/ProtectedOperations/`, `app/Seller/Runtime/`, `app/Seller/Engine/Too
 ## Сужение scope 07.11.2026 23:30 (планировщик)
 - `app/Seller/Runtime/` сужен до `app/Seller/Runtime/ConfiguredToolHandler.php` (реквизиты и действия инструментов); остальной runtime занят активными задачами.
 - `app/ProtectedOperations/` сужен до файлов, где вызываются инструменты: `app/ProtectedOperations/FirstTurnCoordinator.php`; `FirstTurnTextFinalizer.php` и `SellerFollowup/` заняты SP-E7-04M и SP-E5-04N.
+
+
+## Остаток 08.11.2026 (планировщик, запуск 20261107-225307)
+- D-5.7 (макет `mockups D-5.7`): колонка/строка описания у каждого действия бота по макету.
+- «Вызовы за 30 дней» для всех действий, а не только `create_promise`: считать из уже существующих журналов вызовов инструментов (audit_logs/записи ToolRunner), где источника нет — «нет данных»; новых журналов не вводить.
+- Состояния загрузки (skeleton) и ошибки сохранения/загрузки на экране; ширины 1440/1024/390, клавиатура, axe.
+- Пункт «настройки применяются не в полном ходе» вне этой части (полный ход у SP-E4-01X).
+
+Scope: `resources/js/pages/Seller/Settings/Tools/Tools.tsx`, `app/Seller/Settings/Tools/ToolSettingsController.php`, `tests/Feature/Seller/Settings/Tools/ToolCallCountsE604GTest.php`, `tests/Browser/E6-04G/`, `docs/results/SP-E6-04G.md`.
