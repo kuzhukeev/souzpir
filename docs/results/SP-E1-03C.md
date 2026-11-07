@@ -4,7 +4,7 @@
 - `/attention`: события текущего бренда, фильтр важности и поиск; `/notification-center`: вкладки, даты, прочтение одного или всех доступных уведомлений.
 - Шапка переносится на узкой ширине, поиск честно обозначен недоступным; календарь подсвечивает «Интеграции».
 - PHPUnit HomeEntry 5 тестов/135 проверок, Vitest 2 теста, typecheck, ESLint и Vite build прошли; браузер: 3 экрана 1440px и отсутствие горизонтальной прокрутки 390px.
-- Старый `tests/Browser/Layout/layout.spec.ts` локально прерван: Vite на Windows отдаёт 404 для существующего `public/build/manifest.json`; реальные страницы проверены отдельно.
+- Интегратор: Layout Playwright 11/11 через собранную статическую фикстуру CI; сгенерированные контракты `--check` и typecheck прошли.
 - Снимки `.local/screenshots/sp-e1-03c/{home,attention,notifications}-1440.png`, макеты `planning/materials-manifest.json`: S-1.1 папка 12, S-1.2 папка 13, S-1.3 папка 14.
 
 ## Остаток
