@@ -27,6 +27,15 @@ if (getenv('E901_ACTION') === 'setup') {
     $org = new Organization;
     $org->forceFill(['id' => $organization, 'name' => 'Acceptance fixture', 'settings' => ['test_fixture' => 'SP-E9-01G']])->save();
     echo 'Ready';
+} elseif (getenv('E901_ACTION') === 'seed-second') {
+    $org = Organization::whereKey($organization)->firstOrFail();
+    if (($org->settings['test_fixture'] ?? null) !== 'SP-E9-01G') {
+        throw new LogicException('Unexpected organization.');
+    }
+    $second = (string) Str::ulid();
+    DB::table('brands')->insert(['id' => $second, 'organization_id' => $organization, 'name' => 'Второй тестовый бренд', 'theme' => 'neutral', 'created_at' => now(), 'updated_at' => now()]);
+    DB::table('brand_modules')->insert(['id' => (string) Str::ulid(), 'organization_id' => $organization, 'brand_id' => $second, 'module' => 'seller', 'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
+    echo $second;
 } elseif (getenv('E901_ACTION') === 'brand-id') {
     $brand = DB::table('brands')->where('organization_id', $organization)->where('name', 'Тестовый бренд')->value('id');
     if (! is_string($brand)) {
