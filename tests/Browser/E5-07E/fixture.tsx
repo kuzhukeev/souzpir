@@ -1,0 +1,12 @@
+import { createInertiaApp } from '@inertiajs/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { createRoot } from 'react-dom/client';
+import Email from '@/pages/Seller/Channels/Email/Index';
+import Planned from '@/pages/Seller/Channels/Planned/Index';
+import '../../../resources/css/app.css';
+import '../../../resources/css/themes/tokens.css';
+const query = new URLSearchParams(location.search); const page = query.get('page') ?? 'email';
+const planned = { brandId:'brand-a', items:[{key:'vk',label:'ВКонтакте',description:'Сообщество',interested:false},{key:'whatsapp',label:'WhatsApp',description:'WABA',interested:false}], canManage:true, interestAvailable:true, reminders:{enabled:false,available:false,reason:''} };
+const props = { settings:{sender_email:'sender@example.test',sender_name:'Пример бренда',enabled:true},status:null,delivery:{mode:'eyon',signature:'С уважением',smtp_host:'',smtp_port:587,smtp_username:'',smtp_security:'tls',password_set:false},section:page,planned,theme:'neutral',brand:{id:'brand-a',name:'Пример бренда'},brands:[],organization:{id:'o',name:'Компания'},auth:{user:{id:'u',name:'Иван',email:'i@example.test'}},modules:{seller:!query.has('nomodule'),vision:false},can:{'seller.settings.write':!query.has('viewer'),'seller.settings.read':true},unread:null,translations:{},ziggy:{routes:{'seller.email':{uri:'seller/channels/email',methods:['GET']},'seller.channels':{uri:'seller/channels',methods:['GET']}}},errors:{} };
+const script=document.createElement('script');script.type='application/json';script.dataset.page='app';script.textContent=JSON.stringify({component:'Fixture',props,url:'/seller/channels/'+page,version:null,clearHistory:false,encryptHistory:false});document.body.appendChild(script);
+const client=new QueryClient();void createInertiaApp({resolve:()=>page==='email'?Email:Planned,setup:({el,App,props:initial})=>createRoot(el).render(<QueryClientProvider client={client}><App {...initial}/></QueryClientProvider>)});
