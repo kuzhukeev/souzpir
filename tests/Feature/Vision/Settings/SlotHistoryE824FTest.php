@@ -27,7 +27,7 @@ final class SlotHistoryE824FTest extends TenancyTestCase
             DB::table('measurement_answers')->insert(['id' => (string) Str::ulid(), 'organization_id' => $organization->id, 'brand_id' => $item->id, 'measurement_id' => $measurement, 'question_n' => 1, 'provider' => 'fake', 'requested_model' => 'fake', 'run_no' => 1, 'status' => 'ok', 'created_at' => now(), 'updated_at' => now()]);
         }
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
-        $page = $this->get('/vision/settings')->assertOk()->assertInertia(fn ($page) => $page->where('slotSummary.used', 2)->where('slotSummary.remaining', 298)->has('slotSummary.history', 1)->where('slotSummary.history.0.id', $ids[0])->where('slotSummary.history.0.slots', 1));
+        $page = $this->get('/vision/settings')->assertOk()->assertInertia(fn ($page) => $page->where('slotSummary.used', 2)->where('slotSummary.remaining', 298)->where('slotSummary.percent', 1)->has('slotSummary.history', 1)->where('slotSummary.history.0.id', $ids[0])->where('slotSummary.history.0.number', 1)->where('slotSummary.history.0.slots', 1)->where('slotSummary.history.0.questions', 1)->where('slotSummary.history.0.models', 1)->where('slotSummary.history.0.runs', 1));
         $headers = ['X-Brand-Id' => $brand->id, 'X-Brand-Revision' => $page->inertiaProps('revision')];
         $this->withHeaders($headers)->put('/vision/settings/recipients', ['members' => [['id' => 'invalid', 'cabinet' => true, 'email' => false]]])->assertSessionHasErrors('members.0.id');
         [$viewer] = $this->member($org, 'viewer', [$brand->id]);
