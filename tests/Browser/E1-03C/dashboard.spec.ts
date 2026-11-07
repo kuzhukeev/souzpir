@@ -18,7 +18,13 @@ test('главная: период, KPI с дельтами, легенды, п�
     await page.setViewportSize({ width, height: 900 });
     await page.goto(`${base}tests/Browser/E1-03C/fixture.html?screen=home`);
     await expect(page.getByLabel('Период')).toHaveValue('7');
-    await expect(page.getByText('+0.3 к предыдущим 7 дням')).toBeVisible();
+    await expect(page.getByText('+0,3', { exact: true })).toBeVisible();
+    await expect(page.getByText('К предыдущим 7 дням').first()).toBeVisible();
+    await expect(page.getByLabel('Группировка графика')).toHaveValue('day');
+    await expect(page.getByText('22 окт', { exact: true })).toBeVisible();
+    await expect(page.getByText('28 окт', { exact: true })).toBeVisible();
+    await expect(page.getByText('+6 п.п.')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Где исправить →' })).toBeVisible();
     await expect(page.getByText('Диалоги', { exact: true }).first()).toBeVisible();
     await expect(page.getByText('Получили контакт', { exact: true }).first()).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Главные проблемы' })).toBeVisible();
@@ -29,6 +35,11 @@ test('главная: период, KPI с дельтами, легенды, п�
     await expect(page.getByText('Открыть отчёт →')).toBeVisible();
     const size = await page.evaluate(() => ({ scroll: document.documentElement.scrollWidth, viewport: innerWidth }));
     expect(size.scroll, `overflow at ${width}px`).toBeLessThanOrEqual(size.viewport);
+    if (width === 1440) {
+      await page.getByLabel('Группировка графика').selectOption('week');
+      await expect(page.getByText('22 окт–28 окт')).toBeVisible();
+      await page.getByLabel('Группировка графика').selectOption('day');
+    }
     if (width === 1440) await page.screenshot({ path: '.local/screenshots/sp-e1-03c/home-1440.png', fullPage: true });
   }
 });
