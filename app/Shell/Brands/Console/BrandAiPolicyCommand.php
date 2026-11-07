@@ -4,8 +4,8 @@ namespace App\Shell\Brands\Console;
 
 use App\Models\Brand;
 use App\Shell\Brands\Actions\BrandAiPolicy;
-use App\Shell\Brands\Actions\BrandAiPolicyLocked;
 use Illuminate\Console\Command;
+use Illuminate\Database\QueryException;
 
 final class BrandAiPolicyCommand extends Command
 {
@@ -44,8 +44,11 @@ final class BrandAiPolicyCommand extends Command
 
         try {
             $updated = $policy->updateFromConsole($brand, $allow, $deny);
-        } catch (BrandAiPolicyLocked $error) {
-            $this->error($error->getMessage());
+        } catch (QueryException $error) {
+            if (! BrandAiPolicy::isLockedByActiveGrant($error)) {
+                throw $error;
+            }
+            $this->error('Публичные знания сейчас переданы в активный доступ Видения. Сначала отзовите действующий доступ и повторите.');
 
             return self::FAILURE;
         }

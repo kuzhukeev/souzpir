@@ -50,18 +50,10 @@ export type BrandModule = {
   usage: { value: string | number | null; unit: string; status: 'ready' | 'unavailable' };
 };
 
-export type AiDataPolicy = {
-  conversation_content: boolean;
-  knowledge_internal: boolean;
-  vision_question: boolean;
-  knowledge_public: boolean;
-};
-
 export type BrandSettingsProps = {
   targetBrand: BrandSettings;
   domains: BrandDomain[];
   moduleItems: Record<BrandModuleKey, BrandModule>;
-  aiDataPolicy: AiDataPolicy;
-  permissions: { manage: boolean; manageAiPolicy: boolean };
+  permissions: { manage: boolean };
   networkChecksEnabled: boolean;
 };

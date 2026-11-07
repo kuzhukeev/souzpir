@@ -3,7 +3,7 @@
 namespace App\Shell\Brands\Http;
 
 use App\Shell\Brands\Actions\BrandAiPolicy;
-use App\Shell\Brands\Actions\BrandAiPolicyLocked;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -26,8 +26,11 @@ final class BrandAiPolicyController
         $allow = array_map(static fn ($value): bool => (bool) $value, $validator->validated());
         try {
             $this->policy->updateFromRequest($request, $brand, $allow);
-        } catch (BrandAiPolicyLocked $error) {
-            throw ValidationException::withMessages(['knowledge_public' => $error->getMessage()])->redirectTo(route('brands.settings.show', $brand));
+        } catch (QueryException $error) {
+            if (! BrandAiPolicy::isLockedByActiveGrant($error)) {
+                throw $error;
+            }
+            throw ValidationException::withMessages(['knowledge_public' => 'Публичные знания сейчас переданы в активный доступ Видения. Сначала отзовите действующий доступ и повторите.'])->redirectTo(route('brands.settings.show', $brand));
         }
 
         return redirect()->route('brands.settings.show', $brand);

@@ -66,6 +66,12 @@ final class BrandAiPolicy
         });
     }
 
+    /** The vision_policy_change_guard trigger raises this (SQLSTATE P0001) while a vision grant is active. */
+    public static function isLockedByActiveGrant(QueryException $error): bool
+    {
+        return (string) $error->getCode() === 'P0001' && str_contains($error->getMessage(), 'policy changes');
+    }
+
     /** @param array<string,bool> $allow */
     private function save(Brand $brand, TenantContext $ctx, array $allow): array
     {
@@ -75,14 +81,7 @@ final class BrandAiPolicy
             $policy[$class] = ($allow[$class] ?? false) ? ['any'] : [];
         }
         $settings['ai_data_policy'] = $policy;
-        try {
-            $brand->forceFill(['settings' => $settings])->save();
-        } catch (QueryException $error) {
-            if ((string) $error->getCode() === 'P0001' && str_contains($error->getMessage(), 'policy changes')) {
-                throw new BrandAiPolicyLocked('Публичные знания сейчас переданы в активный доступ Видения. Сначала отзовите действующий доступ и повторите.');
-            }
-            throw $error;
-        }
+        $brand->forceFill(['settings' => $settings])->save();
         $result = self::fromSettings($settings);
         app(AuditWriter::class)->record($ctx, new AuditEntry('brand.ai_policy.updated', 'brand', $brand->id, after: $result));
 
