@@ -92,6 +92,14 @@ test('real pages after creating knowledge through the UI', async ({ page }) => {
   await expect(page.getByText('Доставляем по России.').first()).toBeVisible();
   const factLink = await page.getByRole('link', { name: 'Карточка', exact: true }).first().getAttribute('href');
   if (!factLink) throw new Error('Fact link is missing');
+  await page.goto(`${origin}/seller/knowledge/topics`);
+  await page.getByRole('button', { name: 'Добавить тему' }).click();
+  const topicDialog = page.getByRole('dialog', { name: 'Новая тема' });
+  await topicDialog.getByLabel('Название').fill('Доставка');
+  await topicDialog.getByLabel('Описание для бота').fill('Вопросы о доставке');
+  await topicDialog.getByRole('button', { name: 'Сохранить', exact: true }).click();
+  await expect(topicDialog).toBeHidden();
+  await expect(page.getByText('Доставка', { exact: true }).first()).toBeVisible();
   const paths = [
     ['d44', factLink], ['d41', '/seller/knowledge'], ['d43', '/seller/knowledge/facts'],
     ['d45', '/seller/knowledge/conditions'], ['d46', '/seller/knowledge/topics'],
@@ -123,6 +131,21 @@ test('real pages after creating knowledge through the UI', async ({ page }) => {
       findings.push(...(violations[width] as unknown[]));
       await page.screenshot({ path: `.local/screenshots/SP-E9-01G/populated-${name}-${width}.png`, fullPage: true, animations: 'disabled' });
     }
+  }
+  await page.goto(`${origin}/seller/knowledge/topics`);
+  await page.getByRole('button', { name: 'Редактировать', exact: true }).first().click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.addScriptTag({ path: 'node_modules/axe-core/axe.min.js' });
+  const topicViolations: Record<number, unknown> = {};
+  results.d47 = { path: '/seller/knowledge/topics (editor)', status: 200, violations: topicViolations };
+  for (const width of [1440, 1024, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    topicViolations[width] = await page.evaluate(async () => {
+      const axe = (window as unknown as { axe: { run: (root: Document, options: object) => Promise<{ violations: { id: string; impact: string; nodes: { target: unknown[] }[] }[] }> } }).axe;
+      return (await axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa'] } })).violations.filter(v => v.impact === 'critical' || v.impact === 'serious').map(v => ({ id: v.id, impact: v.impact, nodes: v.nodes.map(node => node.target) }));
+    });
+    findings.push(...(topicViolations[width] as unknown[]));
+    await page.screenshot({ path: `.local/screenshots/SP-E9-01G/populated-d47-${width}.png`, fullPage: true, animations: 'disabled' });
   }
   await writeFile('.local/screenshots/SP-E9-01G/populated-status.json', JSON.stringify(results, null, 2));
   expect(findings).toEqual([]);
