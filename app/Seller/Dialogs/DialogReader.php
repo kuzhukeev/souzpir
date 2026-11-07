@@ -123,10 +123,12 @@ final class DialogReader
             $state = json_decode($row->state ?: '{}', true);
             $values = is_array($state) && is_array($state['slots'] ?? null) ? $state['slots'] : [];
             $labels = self::SLOTS;
+            $definitions = [];
             try {
                 foreach (app(KnowledgeRepository::class)->published($context)->policy()['client_fields'] ?? [] as $field) {
                     if (is_string($field['id'] ?? null) && is_string($field['name'] ?? null) && ! isset($labels[$field['id']])) {
                         $labels[$field['id']] = $field['name'];
+                        $definitions[$field['id']] = $field;
                     }
                 }
             } catch (KnowledgeNotReady) {
@@ -140,7 +142,9 @@ final class DialogReader
                 'stage' => $row->stage, 'outcome' => $row->outcome, 'mode' => $row->mode,
                 'assigned_user_id' => $row->assigned_user_id, 'summary' => $row->summary,
                 'email' => $row->contact_email, 'phone' => $row->contact_phone,
-                'slots' => collect($labels)->map(fn ($label, $key): array => ['key' => $key, 'label' => $label, 'value' => $this->slot($values[$key] ?? null)])->values()->all(),
+                'slots' => collect($labels)->map(fn ($label, $key): array => ['key' => $key, 'label' => $label,
+                    'value' => $this->slot($values[$key] ?? null), 'type' => $definitions[$key]['type'] ?? 'text',
+                    'options' => $definitions[$key]['options'] ?? []])->values()->all(),
                 'messages' => $items->reverse()->values()->map(function ($message) use ($showMeta): array {
                     $meta = json_decode($message->meta ?: '{}', true);
                     $meta = is_array($meta) ? $meta : [];

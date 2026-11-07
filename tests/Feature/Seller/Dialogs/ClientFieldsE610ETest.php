@@ -42,8 +42,8 @@ final class ClientFieldsE610ETest extends TenancyTestCase
             'contact_id' => $contact, 'state' => json_encode(['slots' => ['car_year' => 2020]]), 'created_at' => now(), 'updated_at' => now()]);
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
         $this->get('/seller/dialogs/'.$id)->assertOk()->assertInertia(fn ($page) => $page
-            ->where('dialog.slots.16.label', 'Год выпуска')->where('dialog.slots.16.value', '2020')
-            ->where('dialog.slots.17.label', 'Услуга'));
+            ->where('dialog.slots.16.label', 'Год выпуска')->where('dialog.slots.16.value', '2020')->where('dialog.slots.16.type', 'number')
+            ->where('dialog.slots.17.label', 'Услуга')->where('dialog.slots.17.type', 'select')->where('dialog.slots.17.options.1', 'Ремонт'));
         $this->get('/seller/customers/'.$contact)->assertOk()->assertInertia(fn ($page) => $page
             ->where('customFieldLabels.car_year', 'Год выпуска')->where('slots.car_year', 2020));
         $this->put('/seller/dialogs/'.$id.'/profile', ['slots' => ['car_year' => '2022', 'service_kind' => 'Ремонт']])->assertRedirect()->assertSessionHasNoErrors();

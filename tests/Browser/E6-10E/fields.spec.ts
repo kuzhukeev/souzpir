@@ -54,4 +54,7 @@ test('customer field labels and dialog stage are readable and semantic', async (
   expect(violations).toEqual([]);
   await page.goto(new URL('/tests/Browser/E6-10E/dialog.html', base).href);
   await expect(page.getByText('Telegram · Потребность')).toBeVisible();
+  await page.getByText('Редактировать карточку', { exact: true }).click();
+  await expect(page.getByRole('spinbutton', { name: 'Год выпуска' })).toHaveValue('2020');
+  await expect(page.getByRole('combobox', { name: 'Услуга' })).toHaveValue('Ремонт');
 });
