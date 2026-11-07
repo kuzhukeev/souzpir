@@ -2,7 +2,7 @@
 
 **Зачем:** завершить сценарий песочницы D-4.11.
 **Часть чего:** остаток SP-E4-09B, `docs/results/SP-E4-09B.md`.
-**Зависимости:** SP-E4-09B и SP-E4-07B в `done`; общие fixture-runtime данные принадлежат этой карточке.
+**Зависимости:** SP-E4-09B, SP-E4-07B и SP-E4-08K в `done`; общие fixture-runtime данные принадлежат этой карточке.
 
 ## Приёмка
 - Подготовить проверенные fixture extractor/responder для импортированного прототипа и обычного запуска, чтобы доступный сценарий не зависел от записей, созданных только тестом.
@@ -10,4 +10,8 @@
 - Сохранить изоляцию брендов, права, Guard и проверку ошибок; проверить черновик, опубликованную версию и последовательные ходы.
 - Только fake AI; без живых вызовов. Существующее поведение и записи replay не менять. Общие AI-стадии изменять только совместимыми добавлениями без рефакторинга; проверить повторный запуск.
 
-Scope: `app/Seller/Sandbox/`, `app/Seller/Runtime/`, `app/ProtectedOperations/DraftSimulation/`, `app/Ai/`, `routes/features/E4-07.php`, `resources/js/pages/Seller/Sandbox/`, `tests/fixtures/llm/`, `tests/Feature/Seller/Sandbox/`, `tests/Browser/E4-09C/`, `docs/results/SP-E4-09C.md`.
+Scope: `app/Seller/Sandbox/`, `app/Seller/Runtime/`, `app/Seller/Evaluation/`, `app/ProtectedOperations/DraftSimulation/`, `app/Ai/`, `routes/features/E4-07.php`, `resources/js/pages/Seller/Sandbox/`, `tests/fixtures/llm/`, `tests/Feature/Seller/Sandbox/`, `tests/Feature/Seller/Evaluation/`, `tests/Browser/E4-09C/`, `docs/results/SP-E4-09C.md`.
+
+## Остаток SP-E4-08K
+- Подготовить штатные fake-фикстуры разрешённого инструмента и его подтверждённого результата для wants_human, requisites и big_order; использовать их при воспроизведении сохранённого сценария по всем ходам. При отсутствии результата сохранять честный fallback; реальные доставки и рабочие диалоги не затрагивать.
+- Проверить положительные и отсутствующие фикстуры, Guard, права и изоляцию бренда без изменения golden fixtures.

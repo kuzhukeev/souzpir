@@ -21321,7 +21321,8 @@
       "goal": "Проверенные fixture для импортированного прототипа и обычного запуска; опубликованная версия и последовательные ходы с сохранением контекста, права, бренд, Guard и fake AI.",
       "dependsOn": [
         "SP-E4-09B",
-        "SP-E4-07B"
+        "SP-E4-07B",
+        "SP-E4-08K"
       ],
       "scope": [
         "app/Seller/Sandbox/",
@@ -21333,24 +21334,28 @@
         "tests/fixtures/llm/",
         "tests/Feature/Seller/Sandbox/",
         "tests/Browser/E4-09C/",
-        "docs/results/SP-E4-09C.md"
+        "docs/results/SP-E4-09C.md",
+        "app/Seller/Evaluation/",
+        "tests/Feature/Seller/Evaluation/"
       ],
       "exclusiveResources": [
         "shared-ai-stages"
       ],
       "acceptance": [
-        "Проверенные fixture для импортированного прототипа и обычного запуска; опубликованная версия и последовательные ходы с сохранением контекста, права, бренд, Guard и fake AI."
+        "Проверенные fixture для импортированного прототипа и обычного запуска; опубликованная версия и последовательные ходы с сохранением контекста, права, бренд, Guard и fake AI.",
+        "Штатные fake-фикстуры подтверждённых инструментов для wants_human, requisites и big_order, включая сохранённые сценарии; честный fallback и без реальных доставок."
       ],
       "sourceRefs": [
         "docs/preparation/decisions.md",
-        "docs/results/SP-E4-09B.md"
+        "docs/results/SP-E4-09B.md",
+        "docs/results/SP-E4-08K.md"
       ],
       "screenIds": [
         "D-4.11"
       ],
       "wave": 20,
       "promptPath": "docs/tasks/SP-E4-09C.md",
-      "description": "# SP-E4-09C · Песочница: обычный запуск и последовательные ходы\n\n**Зачем:** завершить сценарий песочницы D-4.11.\n**Часть чего:** остаток SP-E4-09B, `docs/results/SP-E4-09B.md`.\n**Зависимости:** SP-E4-09B и SP-E4-07B в `done`; общие fixture-runtime данные принадлежат этой карточке.\n\n## Приёмка\n- Подготовить проверенные fixture extractor/responder для импортированного прототипа и обычного запуска, чтобы доступный сценарий не зависел от записей, созданных только тестом.\n- Поддержать выбор опубликованной версии и последовательные ходы диалога с сохранением контекста. Не подменять отсутствие подходящей записи универсальным ответом.\n- Сохранить изоляцию брендов, права, Guard и проверку ошибок; проверить черновик, опубликованную версию и последовательные ходы.\n- Только fake AI; без живых вызовов. Существующее поведение и записи replay не менять. Общие AI-стадии изменять только совместимыми добавлениями без рефакторинга; проверить повторный запуск.\n\nScope: `app/Seller/Sandbox/`, `app/Seller/Runtime/`, `app/ProtectedOperations/DraftSimulation/`, `app/Ai/`, `routes/features/E4-07.php`, `resources/js/pages/Seller/Sandbox/`, `tests/fixtures/llm/`, `tests/Feature/Seller/Sandbox/`, `tests/Browser/E4-09C/`, `docs/results/SP-E4-09C.md`.\n"
+      "description": "# SP-E4-09C · Песочница: обычный запуск и последовательные ходы\n\n**Зачем:** завершить сценарий песочницы D-4.11.\n**Часть чего:** остаток SP-E4-09B, `docs/results/SP-E4-09B.md`.\n**Зависимости:** SP-E4-09B, SP-E4-07B и SP-E4-08K в `done`; общие fixture-runtime данные принадлежат этой карточке.\n\n## Приёмка\n- Подготовить проверенные fixture extractor/responder для импортированного прототипа и обычного запуска, чтобы доступный сценарий не зависел от записей, созданных только тестом.\n- Поддержать выбор опубликованной версии и последовательные ходы диалога с сохранением контекста. Не подменять отсутствие подходящей записи универсальным ответом.\n- Сохранить изоляцию брендов, права, Guard и проверку ошибок; проверить черновик, опубликованную версию и последовательные ходы.\n- Только fake AI; без живых вызовов. Существующее поведение и записи replay не менять. Общие AI-стадии изменять только совместимыми добавлениями без рефакторинга; проверить повторный запуск.\n\nScope: `app/Seller/Sandbox/`, `app/Seller/Runtime/`, `app/Seller/Evaluation/`, `app/ProtectedOperations/DraftSimulation/`, `app/Ai/`, `routes/features/E4-07.php`, `resources/js/pages/Seller/Sandbox/`, `tests/fixtures/llm/`, `tests/Feature/Seller/Sandbox/`, `tests/Feature/Seller/Evaluation/`, `tests/Browser/E4-09C/`, `docs/results/SP-E4-09C.md`.\n\n## Остаток SP-E4-08K\n- Подготовить штатные fake-фикстуры разрешённого инструмента и его подтверждённого результата для wants_human, requisites и big_order; использовать их при воспроизведении сохранённого сценария по всем ходам. При отсутствии результата сохранять честный fallback; реальные доставки и рабочие диалоги не затрагивать.\n- Проверить положительные и отсутствующие фикстуры, Guard, права и изоляцию бренда без изменения golden fixtures.\n"
     },
     {
       "taskKey": "SP-E8-20X",
