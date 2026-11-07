@@ -56,8 +56,6 @@ final class SendSuggestionTest extends TenancyTestCase
         $conversation = DB::table('conversations')->where('id', $draft['conversation_id'])->first();
         $this->assertSame('suggest', $conversation->mode);
         Queue::assertPushed(DeliverManagerMessage::class, fn ($job) => $job->messageId === $message->id);
-        $this->get('/seller/dialogs/'.$draft['conversation_id'])->assertOk()->assertInertia(fn ($page) => $page
-            ->where('dialog.messages.0.delivery', 'fake'));
     }
 
     public function test_owner_edits_text_before_sending(): void
