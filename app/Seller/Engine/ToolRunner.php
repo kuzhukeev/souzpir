@@ -109,7 +109,7 @@ final class ToolRunner
                 ->orderBy('name')->limit(5)->get(['sku', 'name', 'stock']);
         }
 
-        return ['status' => 'completed', 'items' => $items->map(fn ($item) => ['sku' => $item->sku, 'name' => $item->name,
+        return ['status' => 'completed', 'empty' => $items->isEmpty(), 'items' => $items->map(fn ($item) => ['sku' => $item->sku, 'name' => $item->name,
             'stock' => $item->stock === null ? null : (float) $item->stock])->all()];
     }
 }

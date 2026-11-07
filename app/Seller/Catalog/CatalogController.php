@@ -10,6 +10,7 @@ use App\Shell\Audit\Contracts\AuditWriter;
 use App\Shell\Profile\ProfileAccess;
 use App\Tenancy\TenantContext;
 use Illuminate\Database\Query\Builder;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -38,10 +39,19 @@ final class CatalogController
     {
         $imports = $this->scope('catalog_imports', $tenant)->orderByDesc('created_at')->orderByDesc('id')->get(['id', 'filename', 'status', 'item_count', 'error', 'created_at']);
         $active = $imports->firstWhere('status', 'completed');
-        $items = $active ? $this->scope('catalog_items', $tenant)->where('import_id', $active->id)->orderBy('name')->get(['id', 'sku', 'name', 'category', 'price', 'wholesale_price', 'stock', 'updated_at']) : [];
+        $itemsError = false;
+        try {
+            $items = $active ? $this->scope('catalog_items', $tenant)->where('import_id', $active->id)->orderBy('name')->get(['id', 'sku', 'name', 'category', 'price', 'wholesale_price', 'stock', 'updated_at']) : [];
+        } catch (QueryException) {
+            $items = [];
+            $itemsError = true;
+        }
         $settings = $this->scope('catalog_settings', $tenant)->first(['low_stock', 'price_file_name']);
+        $sellerSettings = $this->scope('brand_seller_settings', $tenant)->first(['catalog_prices_enabled', 'tools']);
+        $tools = $sellerSettings ? json_decode($sellerSettings->tools, true) : [];
+        $priceOptions = ['prices_enabled' => (bool) ($sellerSettings?->catalog_prices_enabled ?? false), 'discounts_enabled' => (bool) ($tools['catalog_discounts_enabled'] ?? false)];
 
-        return ['imports' => $imports, 'items' => $items, 'settings' => ['low_stock' => $settings?->low_stock ?? '0', 'price_file_name' => $settings?->price_file_name], 'activeImport' => $active?->id, 'yml' => ($feed = app(YmlFeedStore::class)->read($tenant->organizationId, $tenant->brandId)) ? ['url' => $feed['url'], 'interval_hours' => $feed['interval_hours'], 'last_run_at' => $feed['last_run_at']] : null];
+        return ['itemsError' => $itemsError, 'priceOptions' => $priceOptions, 'imports' => $imports, 'items' => $items, 'settings' => ['low_stock' => $settings?->low_stock ?? '0', 'price_file_name' => $settings?->price_file_name], 'activeImport' => $active?->id, 'yml' => ($feed = app(YmlFeedStore::class)->read($tenant->organizationId, $tenant->brandId)) ? ['url' => $feed['url'], 'interval_hours' => $feed['interval_hours'], 'last_run_at' => $feed['last_run_at']] : null];
     }
 
     public function index(Request $request): mixed
@@ -118,6 +128,26 @@ final class CatalogController
 
     public function stockSettings(Request $request): mixed
     {
+        if ($request->input('catalog_options') === true) {
+            $input = $request->validate(['prices_enabled' => ['required', 'boolean'], 'discounts_enabled' => ['required', 'boolean']]);
+            $this->access($request, function (User $user, TenantContext $tenant) use ($input): void {
+                $scope = $this->scope('brand_seller_settings', $tenant);
+                $settings = $scope->first();
+                $tools = $settings ? json_decode($settings->tools, true) : [];
+                $tools = is_array($tools) ? $tools : [];
+                $tools['catalog_discounts_enabled'] = (bool) $input['discounts_enabled'];
+                $values = ['catalog_prices_enabled' => (bool) $input['prices_enabled'], 'tools' => json_encode($tools, JSON_THROW_ON_ERROR), 'updated_at' => now()];
+                $id = $settings?->id ?? (string) Str::ulid();
+                if ($settings) {
+                    $scope->update($values);
+                } else {
+                    DB::table('brand_seller_settings')->insert(['id' => $id, 'organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId, 'followup' => '{"first_hours":20,"second_hours":null,"max_auto":2,"window":null,"texts":[]}', 'off_topic' => '{"streak":3,"action":"spam"}', 'negative' => '{"streak":2}', 'greetings' => '{}', 'phrases' => '{}', 'schedule' => '{}', 'assignment' => '{}', 'created_at' => now(), ...$values]);
+                }
+                app(AuditWriter::class)->record($tenant, new AuditEntry('seller.catalog.price_options.updated', 'brand_seller_settings', $id));
+            });
+
+            return back()->with('status', 'Настройки цен сохранены.');
+        }
         $input = $request->validate(['low_stock' => ['required', 'numeric', 'min:0', 'max:99999999999']]);
         $this->access($request, function (User $user, TenantContext $tenant) use ($input): void {
             $settings = $this->settings($tenant);
