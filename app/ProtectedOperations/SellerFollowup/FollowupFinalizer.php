@@ -75,10 +75,14 @@ final class FollowupFinalizer
         $status = $mode === 'suggest' ? 'suggested' : 'completed';
         $outcome = new TurnOutcome($claim->turnId, $claim->conversationId, $status, $claim->baseVersion + 1, $messageId,
             $goal->toArray(), $decision, [], $state->toArray(), [['id' => $messageId, 'role' => 'agent', 'text' => $text, 'meta' => $metadata]]);
-        DB::table('conversations')->where($scope)->where('id', $claim->conversationId)->update([
+        $conversationUpdate = [
             'state' => json_encode($state->toArray(), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), 'stage' => $state->stage(),
             'outcome' => $state->outcome(), 'client_type' => $state->clientType(), 'version' => $claim->baseVersion + 1, 'updated_at' => now(),
-        ]);
+        ];
+        if ($conversation->contact_received_at === null && ($state->has('email') || $state->has('messenger'))) {
+            $conversationUpdate['contact_received_at'] = now();
+        }
+        DB::table('conversations')->where($scope)->where('id', $claim->conversationId)->update($conversationUpdate);
         $data = $outcome->toArray();
         DB::table('seller_turns')->where($scope)->where('id', $claim->turnId)->where('status', 'processing')->update([
             'status' => $status, 'outcome' => json_encode($data, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),

@@ -231,10 +231,14 @@ final class FirstTurnTextFinalizer
             $goal->toArray(), $guard, [], $state->toArray(), [$message]);
         DB::table('messages')->insert(['id' => $messageId, 'organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId,
             'conversation_id' => $claim->conversationId, 'role' => 'agent', 'text' => $replyText, 'meta' => json_encode($metadata, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), 'created_at' => now(), 'updated_at' => now()]);
-        DB::table('conversations')->where('id', $claim->conversationId)->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->update([
+        $conversationUpdate = [
             'state' => json_encode($state->toArray(), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), 'stage' => $state->stage(), 'outcome' => $state->outcome(),
             'client_type' => $state->clientType(), 'version' => $claim->baseVersion + 1, 'updated_at' => now(),
-        ]);
+        ];
+        if ($state->has('email') || $state->has('messenger')) {
+            $conversationUpdate['contact_received_at'] = now();
+        }
+        DB::table('conversations')->where('id', $claim->conversationId)->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->update($conversationUpdate);
         $encoded = json_encode($outcome->toArray(), JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
         $outcomeHash = \App\Seller\Conversations\CanonicalJson::hash($outcome->toArray());
         DB::table('seller_turns')->where('id', $claim->turnId)->where('status', 'processing')->update([
