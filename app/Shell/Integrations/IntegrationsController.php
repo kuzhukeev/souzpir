@@ -160,6 +160,7 @@ final class IntegrationsController
         return Inertia::render('Shell/Integrations/Notifications', [
             ...$settings->forBrand($brand),
             'telegram_link' => ['code' => $code, 'pending' => (bool) ($code && $link?->pending_chat), 'bot' => $code ? config('features.E1-08.defaults.telegram_bot_username') : null],
+            'company_deliveries' => DB::table('company_notification_deliveries')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)->orderByDesc('created_at')->orderByDesc('id')->limit(10)->get(['id', 'event_key', 'channel', 'status', 'created_at']),
             'permissions' => ['manage' => true],
         ]);
     }
