@@ -106,15 +106,21 @@ test('followup settings and new widget dialogue through the UI', async ({ page, 
   await expect(reminders.getByLabel('Первый интервал, часов')).toHaveValue('20');
   await auditPage(page, 'followup-policy');
   await page.setViewportSize({ width: 1440, height: 900 });
+  // Настройки виджета разнесены по вкладкам (SP-E5-02D): «Установка» и «Поведение» сохраняются по отдельности.
   await page.goto(`${origin}/seller/channels/widget`);
   await page.getByLabel('Адреса сайтов').fill(origin);
   await page.getByLabel('Включить виджет на разрешённых сайтах').check();
-  await page.getByLabel('Открыть через секунд').fill('1');
-  await page.getByLabel('Запрашивать контакт с согласием').check();
-  await page.getByLabel('HTTPS-ссылка на политику обработки данных').fill('https://example.test/privacy');
   const code = await page.locator('pre code').innerText();
   const key = new URL(code.match(/src="([^"]+)"/)![1]).searchParams.get('key');
   expect(key).toMatch(/^[A-Za-z0-9]{64}$/);
+  await page.getByRole('button', { name: 'Сохранить настройки' }).click();
+  await expect(page.getByRole('status')).toContainText('Настройки виджета сохранены');
+  await page.goto(`${origin}/seller/channels/widget/behavior`);
+  await page.getByLabel('Через секунд').fill('1');
+  await page.getByText('Мягко', { exact: true }).click();
+  await expect(page.getByRole('radio', { name: 'Мягко' })).toBeChecked();
+  await page.getByLabel('Текст согласия').fill('Согласен на обработку данных');
+  await page.getByLabel('HTTPS-ссылка на политику').fill('https://example.test/privacy');
   await page.getByRole('button', { name: 'Сохранить настройки' }).click();
   await expect(page.getByRole('status')).toContainText('Настройки виджета сохранены');
   const visitorContext = await browser.newContext();
@@ -124,6 +130,9 @@ test('followup settings and new widget dialogue through the UI', async ({ page, 
     await visitor.goto(`${origin}/__acceptance/widget?key=${key}`);
     const widget = visitor.locator('#souzpir-widget');
     await expect(widget.getByRole('checkbox')).toBeVisible({ timeout: 10000 });
+    await widget.getByLabel('Ваше сообщение').fill('Здравствуйте! Подскажите цены.');
+    await widget.getByRole('button', { name: 'Отправить', exact: true }).click();
+    await expect(widget.getByText('Сообщение отправлено.')).toBeVisible();
     await widget.getByRole('checkbox').check();
     await widget.getByLabel('Имя', { exact: true }).fill('Посетитель виджета');
     await widget.getByLabel('Электронная почта').fill('widget@example.test');
@@ -138,6 +147,9 @@ test('followup settings and new widget dialogue through the UI', async ({ page, 
   const clientMessageAt = Date.now();
   await page.getByRole('button', { name: /Посетитель виджета/ }).click();
   await expect(page.getByRole('heading', { name: 'Посетитель виджета' })).toBeVisible();
+  await expect(page.getByText('Здравствуйте! Подскажите цены.')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Карточка клиента' })).toBeVisible();
+  await expect(page.getByText('widget@example.test')).toBeVisible();
   const dialogId = new URL(page.url()).pathname.split('/').pop()!;
   await page.getByRole('button', { name: 'Забрать себе' }).click();
   await expect(page.getByRole('button', { name: 'Вернуть боту' })).toBeVisible();
@@ -168,4 +180,16 @@ test('followup settings and new widget dialogue through the UI', async ({ page, 
   await page.reload();
   await expect(messages).toHaveCount(4);
   await auditPage(page, 'followups-stopped');
+
+  execFileSync(php, ['tests/Browser/Acceptance/followups-e901e-fixture.php'], { env: { ...fixtureEnv, E901_ACTION: 'second-brand' }, stdio: 'pipe' });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  // Переключатель на самой странице диалогов пока отрисован как «Скоро» (нет brandSwitchReady);
+  // реальный переход — со страницы настроек бренда, где переключатель включён.
+  await page.goto(`${origin}/brands/${brand}/settings`);
+  await page.getByRole('combobox', { name: 'Выбрать бренд' }).click();
+  await page.getByRole('option', { name: 'Второй бренд' }).click();
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await page.goto(`${origin}/seller/dialogs`);
+  await expect(page.getByText('Клиент второго бренда')).toBeVisible();
+  await expect(page.getByText('Посетитель виджета')).not.toBeVisible();
 });

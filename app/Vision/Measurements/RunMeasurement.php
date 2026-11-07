@@ -6,6 +6,7 @@ use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
 use App\Vision\Core\EvidenceStore;
 use App\Vision\Core\MeasurementRunner;
+use App\Vision\Evidence\LiveGate;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -31,7 +32,7 @@ final class RunMeasurement implements ShouldQueue
             foreach ($answers as $id) {
                 try {
                     $status = app(MeasurementRunner::class)->measure($id);
-                    if ($status === 'ok' && config('runtime.ai_driver', 'fake') !== 'fake' && config('eyon.live_measurements_enabled', false)) {
+                    if ($status === 'ok' && LiveGate::evidenceEnabled()) {
                         app(EvidenceStore::class)->evaluate($id);
                     }
                 } catch (\LogicException) {
