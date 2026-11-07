@@ -35,7 +35,7 @@ export default function Settings({imports,settings,status,yml,priceOptions={pric
      <button disabled={price.processing} className="min-h-11 cursor-pointer rounded-lg border border-(--color-border) px-4 text-sm font-semibold text-(--color-link) disabled:opacity-50">Сохранить файл</button>
     </form>
     {price.errors.file&&<p role="alert" className="mt-2 text-sm text-(--color-danger-ink)">{price.errors.file}</p>}
-    <form className="mt-3" onSubmit={e=>{e.preventDefault();setSendError('');router.post('/seller/integrations/catalog/price-file/send',{},{preserveScroll:true,onError:errors=>setSendError(errors.send ?? '')});}}>
+    <form className="mt-3" onSubmit={e=>{e.preventDefault();setSendError('');router.post('/seller/integrations/catalog/price-file',{action:'send_test'},{preserveScroll:true,onError:errors=>setSendError(errors.send ?? '')});}}>
      <button className="min-h-11 cursor-pointer rounded-lg border border-(--color-border) px-4 text-sm font-semibold">Отправить себе</button>
     </form>
     {sendError&&<p role="alert" className="mt-2 text-sm text-(--color-danger-ink)">{sendError}</p>}

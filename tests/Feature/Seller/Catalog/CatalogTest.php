@@ -46,14 +46,14 @@ final class CatalogTest extends TenancyTestCase
         $this->post('/seller/integrations/catalog/import', ['file' => UploadedFile::fake()->createWithContent('catalog.csv', "Артикул;Название;Категория;Цена;Цена опт;Остаток\nA1;Фейерверк;Праздник;100,50;80;3\n")])->assertRedirect();
         $item = DB::table('catalog_items')->where('brand_id', $brand->id)->first();
         $this->post('/brand/switch', ['brand_id' => $other->id])->assertRedirect();
-        $this->delete("/seller/integrations/catalog/items/{$item->id}")->assertNotFound();
+        $this->post('/seller/integrations/catalog/price-file', ['action' => 'delete_item', 'item_id' => $item->id])->assertNotFound();
         $this->post('/brand/switch', ['brand_id' => $brand->id])->assertRedirect();
-        $this->delete('/seller/integrations/catalog/items/missing')->assertNotFound();
-        $this->delete("/seller/integrations/catalog/items/{$item->id}")->assertRedirect();
+        $this->post('/seller/integrations/catalog/price-file', ['action' => 'delete_item', 'item_id' => 'missing'])->assertNotFound();
+        $this->post('/seller/integrations/catalog/price-file', ['action' => 'delete_item', 'item_id' => $item->id])->assertRedirect();
         $this->assertDatabaseMissing('catalog_items', ['id' => $item->id]);
         [$viewer] = $this->member($org, 'viewer', [$brand->id]);
         $this->actingAs($viewer)->withSession(['brand_id' => $brand->id]);
-        $this->delete("/seller/integrations/catalog/items/{$item->id}")->assertForbidden();
+        $this->post('/seller/integrations/catalog/price-file', ['action' => 'delete_item', 'item_id' => $item->id])->assertForbidden();
     }
 
     public function test_invalid_files_and_access(): void
