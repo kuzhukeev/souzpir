@@ -1,6 +1,9 @@
 <?php
 
+use App\Seller\Channels\Planned\ContactReminderCommand;
+use App\Seller\Channels\Planned\ContactReminderSchedule;
+
 return [
-    'commands' => [App\Seller\Channels\Planned\ContactReminderCommand::class],
-    'schedules' => [App\Seller\Channels\Planned\ContactReminderSchedule::class],
+    'commands' => [ContactReminderCommand::class],
+    'schedules' => [ContactReminderSchedule::class],
 ];
