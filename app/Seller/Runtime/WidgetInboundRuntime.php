@@ -62,18 +62,28 @@ final class WidgetInboundRuntime
                     if (! $conversation || ! in_array($conversation->mode, ['manager', 'bot', 'suggest'], true)) {
                         throw new LogicException('Widget turn unavailable.');
                     }
+                    $schedule = app(BrandRuntimeSchedule::class);
+                    $settings = $schedule->settings($tenant);
+                    $offHoursPhrase = null;
+                    $suppressNow = $conversation->mode === 'manager';
+                    if ($conversation->mode === 'manager') {
+                        $schedule->assignWaiting($tenant, $conversationId, $settings);
+                    } elseif ($schedule->mode($tenant, $settings, CarbonImmutable::now(), 'widget') === 'off') {
+                        $suppressNow = true;
+                        $offHoursPhrase = $schedule->fallbackPhrase($tenant);
+                    }
                     $externalId = hash('sha256', 'widget-session:'.$sessionRow->id.':'.$idempotencyKey);
                     $message = app(InboundRecorder::class)->ingest($tenant, $conversation->channel_account_id, $externalId, ['text' => $text], $conversationId, $text);
                     $claim = app(ConversationRepository::class)->claimTurn($tenant, new TurnCommand(
                         $conversationId, $message->id, $text, $message->external_event_id, 'widget:'.hash('sha256', $idempotencyKey), (int) $conversation->version
                     ));
                     $limitReached = $this->messageLimitReached($widget, $scope, $conversationId);
-                    if ($conversation->mode === 'manager' || $driver !== 'fake' || $limitReached) {
+                    if ($suppressNow || $driver !== 'fake' || $limitReached) {
                         if ($claim->status !== 'claimed') {
                             throw new LogicException('Widget turn unavailable.');
                         }
 
-                        return ['mode' => 'manager', 'result' => $this->suppress($tenant, $scope, $claim, [$conversation->mode], $limitReached)];
+                        return ['mode' => 'manager', 'result' => $this->suppress($tenant, $scope, $claim, [$conversation->mode], $limitReached, $offHoursPhrase)];
                     }
                     if ($claim->status !== 'claimed' || ! is_string($claim->token())) {
                         throw new LogicException('Widget turn unavailable.');
@@ -201,7 +211,7 @@ final class WidgetInboundRuntime
         return DB::table('messages')->where($scope)->where('conversation_id', $conversationId)->where('role', 'client')->count() > $maxMessages;
     }
 
-    private function suppress(TenantContext $tenant, array $scope, TurnClaim $claim, array $allowedModes, bool $limitReached = false): array
+    private function suppress(TenantContext $tenant, array $scope, TurnClaim $claim, array $allowedModes, bool $limitReached = false, ?string $phrase = null): array
     {
         app(SellerTurnFence::class)->assertCurrent($tenant, $claim);
         $conversation = DB::table('conversations')->where($scope)->where('id', $claim->conversationId)->lockForUpdate()->first();
@@ -220,6 +230,10 @@ final class WidgetInboundRuntime
         ]);
         DB::table('conversations')->where($scope)->where('id', $claim->conversationId)->update(['version' => $claim->baseVersion + 1, 'updated_at' => now()]);
         app(AuditWriter::class)->record($tenant, new AuditEntry('seller.turn.suppressed', 'seller_turn', $claim->turnId));
+        if ($phrase !== null) {
+            DB::table('messages')->insert(['id' => (string) Str::ulid(), ...$scope,
+                'conversation_id' => $claim->conversationId, 'role' => 'agent', 'text' => $phrase, 'meta' => '{}', 'created_at' => now(), 'updated_at' => now()]);
+        }
 
         $result = ['status' => 'suppressed', 'version' => $claim->baseVersion + 1];
         if ($limitReached) {

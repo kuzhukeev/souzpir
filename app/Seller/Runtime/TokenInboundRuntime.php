@@ -52,8 +52,11 @@ final class TokenInboundRuntime
                 $settings = $schedule->settings($tenant);
                 $scheduleMode = $schedule->mode($tenant, $settings, CarbonImmutable::now(), 'api');
                 $mode = $conversation->mode;
+                $offHoursPhrase = null;
                 if ($mode === 'manager') {
                     $schedule->assignWaiting($tenant, $conversationId, $settings);
+                } elseif ($scheduleMode === 'off') {
+                    $offHoursPhrase = $schedule->fallbackPhrase($tenant);
                 } elseif ($scheduleMode === 'suggest' && $mode === 'bot') {
                     DB::table('conversations')->where($scope)->where('id', $conversationId)->update(['mode' => 'suggest', 'updated_at' => now()]);
                     $mode = 'suggest';
@@ -70,7 +73,7 @@ final class TokenInboundRuntime
                     throw new LogicException('API turn unavailable.');
                 }
                 if ($mode === 'manager' || $scheduleMode === 'off') {
-                    return $this->suppress($tenant, $claim, $mode);
+                    return $this->suppress($tenant, $claim, $mode, $offHoursPhrase);
                 }
                 // Bot and suggestion turns need the two-phase protected path.
                 throw new LogicException('Protected API follow-up required.');
@@ -102,7 +105,7 @@ final class TokenInboundRuntime
         return app(TokenTenantAuthority::class)->revalidateLocked($request, $tenant, $ability);
     }
 
-    private function suppress(TenantContext $tenant, TurnClaim $claim, string $mode): array
+    private function suppress(TenantContext $tenant, TurnClaim $claim, string $mode, ?string $phrase = null): array
     {
         app(SellerTurnFence::class)->assertCurrent($tenant, $claim);
         $scope = ['organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId];
@@ -122,6 +125,10 @@ final class TokenInboundRuntime
         ]);
         DB::table('conversations')->where($scope)->where('id', $claim->conversationId)->update(['version' => $claim->baseVersion + 1, 'updated_at' => now()]);
         app(AuditWriter::class)->record($tenant, new AuditEntry('seller.turn.suppressed', 'seller_turn', $claim->turnId));
+        if ($phrase !== null) {
+            DB::table('messages')->insert(['id' => (string) Str::ulid(), ...$scope,
+                'conversation_id' => $claim->conversationId, 'role' => 'agent', 'text' => $phrase, 'meta' => '{}', 'created_at' => now(), 'updated_at' => now()]);
+        }
 
         return ['conversation_id' => $claim->conversationId, 'status' => 'suppressed', 'version' => $claim->baseVersion + 1];
     }
