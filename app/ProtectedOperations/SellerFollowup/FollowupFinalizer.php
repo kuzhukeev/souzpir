@@ -33,7 +33,7 @@ final class FollowupFinalizer
         if (! in_array($mode, ['bot', 'suggest'], true)) {
             throw new LogicException('Follow-up mode changed.');
         }
-        [, , $state, $goal, $knowledge] = app(ApiFollowupInput::class)->responderLocked($http, $tenant, $claim, $round, $toolResults, $guardIssues);
+        [, , $state, $goal, $knowledge, $extraction] = app(ApiFollowupInput::class)->responderLocked($http, $tenant, $claim, $round, $toolResults, $guardIssues);
         $result = app(ResponderResult::class)->interpret(app(Gateway::class)->readApiFollowupResponderLocked($http, $tenant, $claim, $round, $toolResults, $guardIssues));
         if ($result['status'] !== 'candidate') {
             throw new LogicException('API follow-up unavailable.');
@@ -65,6 +65,11 @@ final class FollowupFinalizer
         if ($goal->kind === 'unknown_fact') {
             $this->logUnknownQuestionTask($tenant, $claim, $goal, $scope);
         }
+        $intent = $extraction['client_intent'] ?? null;
+        $inputId = DB::table('seller_turns')->where($scope)->where('id', $claim->turnId)->value('input_message_id');
+        $previousMeta = json_decode(DB::table('messages')->where($scope)->where('id', $inputId)->value('meta') ?: '{}', true) ?: [];
+        DB::table('messages')->where($scope)->where('id', $inputId)
+            ->update(['meta' => json_encode([...$previousMeta, 'intent' => $intent], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), 'updated_at' => now()]);
         $text = $result['text'];
         if (in_array($goal->kind, ['unknown_fact', 'handoff'], true)) {
             $override = app(ServicePhraseSelector::class)->customForEvent($knowledge->persona(), $goal->kind);
@@ -80,7 +85,7 @@ final class FollowupFinalizer
             }
         }
         $messageId = $mode === 'bot' ? (string) Str::ulid() : null;
-        $metadata = ['fake' => true, 'suggested' => $mode === 'suggest', 'goal_kind' => $goal->kind, 'guard' => 'ok'];
+        $metadata = ['fake' => true, 'suggested' => $mode === 'suggest', 'goal_kind' => $goal->kind, 'guard' => 'ok', 'intent' => $intent];
         if ($messageId !== null) {
             DB::table('messages')->insert(['id' => $messageId, ...$scope, 'conversation_id' => $claim->conversationId,
                 'role' => 'agent', 'text' => $text, 'meta' => json_encode($metadata, JSON_THROW_ON_ERROR), 'created_at' => now(), 'updated_at' => now()]);

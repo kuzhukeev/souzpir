@@ -12,6 +12,8 @@ use Tests\Feature\Tenancy\TenancyTestCase;
 
 final class ConditionChoicesE403FTest extends TenancyTestCase
 {
+    private array $factHeaders = ['X-Inertia' => 'true', 'X-Inertia-Partial-Component' => 'Seller/Knowledge/Facts/Show', 'X-Inertia-Partial-Data' => 'factData'];
+
     public function test_new_conditions_can_be_selected_saved_resolved_and_linked(): void
     {
         [$owner, $org, $brand, $other, $member] = $this->cabinet();
@@ -28,11 +30,11 @@ final class ConditionChoicesE403FTest extends TenancyTestCase
         });
         $fact = DB::table('kn_facts as f')->join('kn_fact_groups as g', 'g.id', '=', 'f.group_id')->where('g.release_id', $draft['id'])->value('f.id');
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
-        $options = $this->get('/seller/knowledge/facts/'.$fact)->assertOk()->inertiaProps('conditionOptions');
+        $options = $this->get('/seller/knowledge/facts/'.$fact, $this->factHeaders)->assertOk()->json('props.factData.conditionOptions');
         $this->assertEqualsCanonicalizing(['min_order_quantity', 'prepayment_pct', 'availability', 'other_conditions'], array_column($options, 'key'));
         $text = 'Заказ {cond:min_order_quantity}, предоплата {cond:prepayment_pct}, наличие {cond:availability}, прочее {cond:other_conditions}';
         $this->post('/seller/knowledge/facts/'.$fact, ['version' => 1, 'text' => $text, 'status' => 'active', 'source' => 'manual', 'group' => 'order'])->assertRedirect()->assertSessionHasNoErrors();
-        $this->get('/seller/knowledge/facts/'.$fact)->assertOk()->assertInertia(fn ($page) => $page->where('fact.text', $text));
+        $this->get('/seller/knowledge/facts/'.$fact, $this->factHeaders)->assertOk()->assertJsonPath('props.factData.fact.text', $text);
         $this->get('/seller/knowledge/conditions')->assertOk()->assertInertia(fn ($page) => $page->has('factLinks.min_order_quantity', 1)->where('factLinks.min_order_quantity.0.id', $fact)->has('factLinks.prepayment_pct', 1)->has('factLinks.availability', 1)->has('factLinks.other_conditions', 1));
         app(TenantContextRunner::class)->run($tenant, function () use ($tenant, $draft, $text): void {
             $snapshot = app(KnowledgeRepository::class)->forRelease($tenant, $draft['id'], true);

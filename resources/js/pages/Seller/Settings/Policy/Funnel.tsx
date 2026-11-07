@@ -1,10 +1,11 @@
 type Stage = {next?:string|null;when?:string};
-type Policy = {client_fields?:{id:string;name:string;required:boolean;stage?:string|null}[];stages?:Record<string,Stage>;tools_by_stage?:Record<string,string[]>;triggers_by_stage?:Record<string,string[]>};
+type Policy = {client_fields?:{id:string;name:string;required:boolean;stage?:string|null}[];limits?:{max_consecutive_questions?:number};stages?:Record<string,Stage>;tools_by_stage?:Record<string,string[]>;triggers_by_stage?:Record<string,string[]>};
 export default function Funnel({policy,label,loadError=false}:{policy:Policy|null;label:(key:string)=>string;loadError?:boolean}) {
  const stages=Object.entries(policy?.stages??{});
+ const questionLimit=policy?.limits?.max_consecutive_questions??2;
  return <section aria-labelledby="funnel-title" className="mt-4 rounded-xl border border-(--color-border) bg-(--color-surface) p-5">
   <h2 id="funnel-title" className="text-xl font-bold">Воронка</h2><p className="mt-2 text-sm text-(--color-ink-muted)">Переходы и условия опубликованной базы знаний доступны только для чтения.</p>
-  <p className="mt-2 text-sm text-(--color-ink-muted)">Правило вопросов: не более одного вопроса в реплике и не более двух реплик подряд с вопросом — третья отвечает по делу без вопроса.</p>
+  <p className="mt-2 text-sm text-(--color-ink-muted)">Правило вопросов: не более одного вопроса в реплике и не более {questionLimit} реплик подряд с вопросом — следующая отвечает по делу без вопроса.</p>
   {!policy?<p role={loadError ? "alert" : undefined} className="mt-3 text-sm">{loadError ? "Не удалось загрузить воронку. Повторите попытку." : "Нет опубликованной базы знаний."}</p>:stages.length===0?<p className="mt-3 text-sm">Этапы не настроены.</p>:<ol className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{stages.map(([name,stage],index)=>{
    const fields=(policy.client_fields??[]).filter(field=>field.required===true&&field.stage===name&&typeof field.name==='string'&&field.name.trim());const tools=[...new Set([...(policy.tools_by_stage?.always??[]),...(policy.tools_by_stage?.[name]??[])])];const triggers=policy.triggers_by_stage?.[name]??[];
    const fieldNames=fields.map(field=>field.name).join(', ');
