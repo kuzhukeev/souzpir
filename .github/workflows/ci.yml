@@ -7,6 +7,11 @@ on:
     - cron: '0 1 * * *'   # полный ночной прогон (04:00 МСК)
   workflow_dispatch:
     inputs:
+      acceptance_e901c:
+        description: 'Запустить проверку контекста брендов и fake-напоминаний'
+        required: false
+        type: boolean
+        default: false
       acceptance_e901b:
         description: 'Запустить сквозной тест замера и публикации'
         required: false
@@ -209,6 +214,48 @@ jobs:
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npx playwright test tests/Browser/Acceptance/vision-e901b.spec.ts --workers=1
+
+  acceptance-context:
+    if: github.event_name == 'workflow_dispatch' && inputs.acceptance_e901c
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      RUN_ACCEPTANCE_E901C: '1'
+      DB_DATABASE: souzpir_test_e901c
+      DB_TEST_DATABASE: souzpir_test_e901c
+      DB_USERNAME: souzpir_e901c
+      APP_PREVIEW_DATABASE: souzpir_preview_e901c
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with: { php-version: '8.4', extensions: 'pdo_pgsql, pgsql, mbstring, intl, bcmath, gd', coverage: none }
+      - uses: actions/setup-node@v4
+        with: { node-version: '24', cache: npm }
+      - run: bash scripts/ci/postgres.sh
+      - name: Prepare isolated acceptance database
+        env:
+          PGPASSWORD: ci-only-password
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "CREATE ROLE souzpir_e901c LOGIN PASSWORD 'ci-only-password' NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;"
+          psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "CREATE DATABASE souzpir_test_e901c OWNER souzpir_e901c;"
+          psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "REVOKE CONNECT ON DATABASE souzpir_test_e901c FROM PUBLIC;"
+          psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "CREATE ROLE souzpir_e901d LOGIN PASSWORD 'ci-only-password' NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;"
+          psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "CREATE DATABASE souzpir_test_e901d OWNER souzpir_e901d;"
+          psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "REVOKE CONNECT ON DATABASE souzpir_test_e901d FROM PUBLIC;"
+      - uses: ramsey/composer-install@v3
+      - name: Check two fake followups and stop
+        env:
+          DB_DATABASE: souzpir_test_e901d
+          DB_TEST_DATABASE: souzpir_test_e901d
+          DB_USERNAME: souzpir_e901d
+          APP_PREVIEW_DATABASE: souzpir_preview_e901d
+        run: |
+          vendor/bin/phpunit tests/Browser/Acceptance/FollowupsE901DTest.php --no-coverage
+          vendor/bin/phpunit tests/Browser/Acceptance/TelegramE901DTest.php --no-coverage
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test tests/Browser/Acceptance/context-e901c.spec.ts --workers=1
 
   race:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
