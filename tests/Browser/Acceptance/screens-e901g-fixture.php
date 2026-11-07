@@ -27,6 +27,19 @@ if (getenv('E901_ACTION') === 'setup') {
     $org = new Organization;
     $org->forceFill(['id' => $organization, 'name' => 'Acceptance fixture', 'settings' => ['test_fixture' => 'SP-E9-01G']])->save();
     echo 'Ready';
+} elseif (getenv('E901_ACTION') === 'seed-unknown') {
+    $org = Organization::whereKey($organization)->firstOrFail();
+    if (($org->settings['test_fixture'] ?? null) !== 'SP-E9-01G') {
+        throw new LogicException('Unexpected organization.');
+    }
+    $brand = DB::table('brands')->where('organization_id', $organization)->where('name', 'Тестовый бренд')->value('id');
+    $contact = DB::table('contacts')->where('organization_id', $organization)->where('brand_id', $brand)->where('email', 'widget@example.test')->value('id');
+    $dialog = DB::table('conversations')->where('organization_id', $organization)->where('brand_id', $brand)->where('contact_id', $contact)->value('id');
+    if (! is_string($brand) || ! is_string($dialog)) {
+        throw new LogicException('Synthetic dialog missing.');
+    }
+    DB::table('seller_tasks')->insert(['id' => (string) Str::ulid(), 'organization_id' => $organization, 'brand_id' => $brand, 'conversation_id' => $dialog, 'type' => 'unknown_question', 'payload' => json_encode(['question' => 'Когда доставка?'], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE), 'status' => 'new', 'created_at' => now(), 'updated_at' => now()]);
+    echo 'Ready';
 } elseif (getenv('E901_ACTION') === 'seed-second') {
     $org = Organization::whereKey($organization)->firstOrFail();
     if (($org->settings['test_fixture'] ?? null) !== 'SP-E9-01G') {

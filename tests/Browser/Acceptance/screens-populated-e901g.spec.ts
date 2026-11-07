@@ -191,6 +191,7 @@ test('real pages after creating knowledge through the UI', async ({ page, browse
   await page.getByLabel('Порог', { exact: true }).fill('5');
   await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
   await expect(page.getByText('Мало', { exact: false }).first()).toBeVisible();
+  execFileSync(php, ['tests/Browser/Acceptance/screens-e901g-fixture.php'], { env: { ...fixtureEnv, E901_ACTION: 'seed-unknown' }, stdio: 'pipe' });
   const paths = [
     ['d32', customerLink], ['d44', factLink], ['d41', '/seller/knowledge'], ['d43', '/seller/knowledge/facts'],
     ['d45', '/seller/knowledge/conditions'], ['d46', '/seller/knowledge/topics'],
@@ -210,6 +211,7 @@ test('real pages after creating knowledge through the UI', async ({ page, browse
     expect(status, path).toBe(200);
     await expect(page).toHaveURL(`${origin}${path}`);
     await expect(page.locator('h1').first()).toBeVisible();
+    if (name === 'd41') await expect(page.getByText('Когда доставка?').first()).toBeVisible();
     await expect(page.locator('[aria-busy="true"]')).toHaveCount(0, { timeout: 15000 });
     if (name === 'd23') {
       await page.goto(`${origin}/seller/dialogs/mine?search=${encodeURIComponent('Посетитель')}`);
