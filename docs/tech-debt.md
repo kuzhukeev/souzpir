@@ -597,3 +597,7 @@
 - SP-L1-09: первый опрос GET /widget/messages идёт без курсора и вернёт все прежние сообщения manager/agent диалога — если бот уже отвечал в этой сессии, пузырь может продублироваться; browser-теста на опрос и появление пузыря нет.
 
 - SP-E9-01: FollowupsE901DTest создаёт conversations без channel_account_id и потому не ловил нарушение e304_message_inbound_binding в FollowupSender (исправлено в main 07.11); фикстура не соответствует реальным диалогам виджета/Telegram. Ручной CI acceptance_e901e на 08c4d10e красный (сценарий 6 до фикса).
+
+- SP-E6-03L: tool `escalate` из allowedTools handoff-цели не реализован в ToolRunner (вернёт `unavailable`, модель даёт прямой текст); handoff по Policy работает через финализаторы. Роль БД слота исполнителя с CREATEDB не проходит гейт FirstTurnStateTest — локальный прогон этого файла в слотах невозможен (покрыто CI).
+
+- SP-E8-16W: дата в подзаголовке V-3.4 форматируется Intl ru-RU как «1 октября 2026 г.», в макете без «г.».
