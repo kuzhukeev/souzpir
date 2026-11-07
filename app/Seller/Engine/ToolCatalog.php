@@ -33,6 +33,7 @@ final class ToolCatalog
     public static function definitionsFor(#[\SensitiveParameter] array $names): array
     {
         $all = self::definitions();
+        $all['check_stock']['function']['description'] = 'Проверить наличие товара в загруженном каталоге текущего бренда. Если товары не найдены или источник недоступен, не утверждать наличие и предложить уточнить у менеджера.';
 
         return array_values(array_filter(array_map(fn ($n) => is_string($n) ? ($all[$n] ?? null) : null, $names)));
     }
