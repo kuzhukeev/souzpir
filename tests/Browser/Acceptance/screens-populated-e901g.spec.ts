@@ -215,6 +215,22 @@ test('real pages after creating knowledge through the UI', async ({ page, browse
     findings.push(...(publishViolations[width] as unknown[]));
     await page.screenshot({ path: `.local/screenshots/SP-E9-01G/populated-d412-${width}.png`, fullPage: true, animations: 'disabled' });
   }
+  await page.getByRole('dialog', { name: 'Опубликовать версию' }).getByRole('button', { name: 'Опубликовать', exact: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Знания опубликованы.' })).toBeVisible();
+  await page.goto(`${origin}/seller/scenario/fields`);
+  await expect(page.locator('h1')).toBeVisible();
+  await page.addScriptTag({ path: 'node_modules/axe-core/axe.min.js' });
+  const publishedViolations: Record<number, unknown> = {};
+  results.d51published = { path: '/seller/scenario/fields (published)', status: 200, violations: publishedViolations };
+  for (const width of [1440, 1024, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    publishedViolations[width] = await page.evaluate(async () => {
+      const axe = (window as unknown as { axe: { run: (root: Document, options: object) => Promise<{ violations: { id: string; impact: string; nodes: { target: unknown[] }[] }[] }> } }).axe;
+      return (await axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa'] } })).violations.filter(v => v.impact === 'critical' || v.impact === 'serious').map(v => ({ id: v.id, impact: v.impact, nodes: v.nodes.map(node => node.target) }));
+    });
+    findings.push(...(publishedViolations[width] as unknown[]));
+    await page.screenshot({ path: `.local/screenshots/SP-E9-01G/published-d51-${width}.png`, fullPage: true, animations: 'disabled' });
+  }
   await writeFile('.local/screenshots/SP-E9-01G/populated-status.json', JSON.stringify(results, null, 2));
   await page.goto(`${origin}/seller/dialogs/mine`);
   await page.getByRole('button', { name: /Посетитель виджета/ }).first().click();
