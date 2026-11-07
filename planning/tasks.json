@@ -24184,6 +24184,51 @@
       "wave": 20,
       "promptPath": "docs/tasks/SP-E1-03E.md",
       "description": "# SP-E1-03E · Иллюстрация баннера главной\n\n**Зачем:** конкретный незакрытый пункт S-1.1 по матрице экранов и журналу макетов [12].\n**Часть чего:** остаток SP-E1-03D.\n**Зависимости:** SP-E1-03D; проверка переключения бренда относится к существующей SP-E1-03B.\n\n## Приёмка\n- S-1.1: дополнить существующий декоративный баннер иллюстрацией товаров по макету 12/13-S-1.1-home-single-profile.png; сохранить адаптивность 1440/1024/390, три темы и отсутствие горизонтального переполнения.\n- Переход на главную и очистку состояния при смене бренда проверить в уже существующей активной SP-E1-03B; повторную серверную карточку или тест без изменения поведения не создавать.\n- Сохранить существующее поведение, оригиналы изображений только читать; не добавлять декоративную загрузку как живой канал.\n\nScope: `resources/js/pages/Shell/Dashboard/`, `resources/js/assets/Shell/`, `public/images/`, `tests/Browser/E1-03E/`, `docs/results/SP-E1-03E.md`.\n"
+    },
+    {
+      "taskKey": "SP-E1-10J",
+      "title": "SP-E1-10J · Доставка интеграций, Telegram, тихие часы и CRM",
+      "goal": "Закрыть конкретный остаток доставки интеграций, уведомлений и экрана CRM.",
+      "dependsOn": [
+        "SP-E1-10I"
+      ],
+      "scope": [
+        "app/Shell/Integrations/",
+        "app/Shell/Notifications/",
+        "app/Seller/Channels/Crm/",
+        "resources/js/pages/Shell/Integrations/",
+        "resources/js/pages/Seller/Channels/Crm/",
+        "routes/features/E1-10.php",
+        "routes/features/E6-09.php",
+        "routes/console.php",
+        "database/migrations/E1-10J/",
+        "tests/Feature/Shell/Integrations/",
+        "tests/Feature/Shell/Notifications/",
+        "tests/Feature/Seller/Channels/Crm/",
+        "tests/Browser/E1-10J/",
+        "docs/results/SP-E1-10J.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "S-5.2 и D-10.2: поставить вебхуки в очередь с fake HTTP, подписью тела, повторами и видимым статусом последней доставки; проверить полный путь создания, теста и очереди. Реальная доставка остаётся за выключенным флагом.",
+        "S-5.3: реализовать трёхшаговое подключение Telegram по коду с подтверждением, и очередь общих уведомлений с fake-транспортом; живые каналы выключены.",
+        "S-7.1: применить сохранённые тихие часы и ежедневную сводку в основном контуре с группировкой по бренду, пользователю и каналу; проверить планирование и ошибки на fake.",
+        "D-10.2: расположить блок сопоставления полей рядом с карточками amoCRM и Bitrix24 под вебхуком, как на макете 151/cb35a44d-D-10.2-crm.png; сохранить работу трёх строк и настроек."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/sources/02_screens_matrix.md",
+        "docs/results/SP-E1-10I.md"
+      ],
+      "screenIds": [
+        "S-5.2",
+        "S-5.3",
+        "S-7.1",
+        "D-10.2"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E1-10J.md",
+      "description": "# SP-E1-10J · Доставка интеграций, Telegram, тихие часы и CRM\n\n**Зачем:** конкретный остаток экранов S-5.2, S-5.3, S-7.1 и D-10.2 по матрице и журналу макетов [27], [28], [151].\n**Часть чего:** частичная сдача SP-E1-10I и остатки SP-E1-08E, SP-E6-09D.\n**Зависимость:** SP-E1-10I.\n\n## Приёмка\n- S-5.2 и D-10.2: поставить вебхуки в очередь с fake HTTP, подписью тела, повторами и видимым статусом последней доставки; проверить полный путь создания, теста и очереди. Реальная доставка остаётся за выключенным флагом.\n- S-5.3: реализовать трёхшаговое подключение Telegram по коду с подтверждением, и очередь общих уведомлений с fake-транспортом; живые каналы выключены.\n- S-7.1: применить сохранённые тихие часы и ежедневную сводку в основном контуре с группировкой по бренду, пользователю и каналу; проверить планирование и ошибки на fake.\n- D-10.2: расположить блок сопоставления полей рядом с карточками amoCRM и Bitrix24 под вебхуком, как на макете 151/cb35a44d-D-10.2-crm.png; сохранить работу трёх строк и настроек.\n- Проверить маршрут, обработчик, хранение, регистрацию очереди и видимый результат; права, изоляцию брендов и ошибки. Три темы, 1440/1024/390. Только fake, без живых и платных вызовов.\n\nScope: `app/Shell/Integrations/`, `app/Shell/Notifications/`, `app/Seller/Channels/Crm/`, `resources/js/pages/Shell/Integrations/`, `resources/js/pages/Seller/Channels/Crm/`, `routes/features/E1-10.php`, `routes/features/E6-09.php`, `routes/console.php`, `database/migrations/E1-10J/`, `tests/Feature/Shell/Integrations/`, `tests/Feature/Shell/Notifications/`, `tests/Feature/Seller/Channels/Crm/`, `tests/Browser/E1-10J/`, `docs/results/SP-E1-10J.md`.\n"
     }
   ],
   "excludedSourceTasks": {
