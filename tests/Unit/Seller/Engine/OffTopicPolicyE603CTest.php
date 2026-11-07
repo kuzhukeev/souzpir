@@ -39,6 +39,16 @@ final class OffTopicPolicyE603CTest extends TestCase
         self::assertSame('off_topic', $lead->flag('escalate_reason'));
     }
 
+    public function test_decline_off_topic_second_after_threshold_is_configurable(): void
+    {
+        $policy = $this->policy(['limits' => ['decline_off_topic_second_after' => 1]]);
+        $lead = new LeadState;
+        $lead->setFlag('introduced', true);
+        $input = $this->extraction(['client_intent' => 'off_topic', 'off_topic' => true]);
+        $policy->applyExtraction($lead, $input);
+        self::assertSame(['decline_off_topic_second'], $policy->decide($lead, $input)->fewshotTags);
+    }
+
     public function test_default_and_separate_snapshots_keep_their_own_thresholds(): void
     {
         $default = $this->policy([]);
