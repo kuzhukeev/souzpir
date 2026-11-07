@@ -3,6 +3,7 @@
 - D-9.9: сохраняется выбор действия для бренда; action=open создаёт fake-первый ход без сообщения клиента через Policy, Gateway, Responder и Guard. При повторе возвращается тот же результат.
 - API turn и последующие ходы кабинета используют защищённые extractor, responder и детерминированный guard вне транзакции; получатель API не видит подсказку менеджеру. Доступ перепроверяется перед стадиями.
 - Изолированный PostgreSQL и fake; сквозная проверка открытия, ответа, подсказки, повтора и отклонения небезопасной реплики. API и follow-up: 15 тестов/285 проверок; runtime: 4/64; новый Playwright: 1/1.
+- После точечного расширения scope исправлены тестовые фикстуры CI: три PHP-файла 9 тестов/135 проверок; браузерные E5-03D и E5-03F 2/2. Проверка отсутствия вызовов для manager сохранена, для suggest проверены два защищённых вызова.
 - TypeScript, ESLint, Pint, Vite build, generate-types --check прошли. Скриншот: `.local/screenshots/SP-E5-03F/api.png`.
 
 ## Остаток
@@ -18,7 +19,3 @@
 
 ## Нужно от интегратора
 - До приёмки зарегистрировать продолжение для остатка и выделить scope тестов симуляции.
-- Красный Product CI требует четырёх файлов вне scope: `tests/Feature/Seller/Settings/Schedule/AssignmentE606CTest.php`, `tests/Feature/SellerRuntime/Delivery/FakeDeliveryTest.php`, `tests/Feature/SellerRuntime/FirstInboundRuntimeTest.php`, `tests/Browser/E5-03D/api.spec.ts`.
-- Подготовлен точный патч `.local/compat/ci-test-adjustments.patch`; `git apply --check --ignore-space-change` проходит. Патч подключает подготовленную в scope fake-фикстуру, сохраняет проверку нуля вызовов для manager и проверяет два вызова для suggest, меняет disabled на enabled.
-- Изолированные копии с патчем: PHPUnit 9 тестов/135 проверок, Playwright 1/1. Оригиналы намеренно не изменены; до применения патча Product CI остаётся красным. Интегратору нужно дать точечный scope либо применить патч самому.
-- После повторного возврата проверено: активный scope и CI_SCOPE_EXCEPTIONS четырёх файлов по-прежнему не содержат; патч повторно проверен без изменения чужих файлов. Ноль вызовов для manager проверяется до suggest, после suggest проверяются два вызова.

@@ -16,7 +16,7 @@ test('addresses, honest lead state and recent API results', async ({ page, conte
   await page.getByRole('button', { name: 'Копировать /api/v1/turn' }).click();
   await expect(page.getByRole('status')).toContainText('Скопировано');
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(new URL('/api/v1/turn', url).href);
-  await expect(page.getByRole('radio', { name: /Написать первым/ })).toBeDisabled();
+  await expect(page.getByRole('radio', { name: /Написать первым/ })).toBeEnabled();
   await expect(page.getByRole('radio', { name: /Только завести карточку/ })).toBeChecked();
   for (const name of ['Время', 'Источник', 'Статус', 'Ошибка']) await expect(page.getByRole('columnheader', { name })).toBeVisible();
   await expect(page.getByRole('row').filter({ hasText: 'HTTP 422' })).toContainText('/api/v1/turn');

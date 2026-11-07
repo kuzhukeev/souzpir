@@ -14,10 +14,13 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use LogicException;
+use Tests\Feature\SellerRuntime\Turns\ProtectedFollowupFixtures;
 use Tests\Feature\Tenancy\TenancyTestCase;
 
 final class FakeDeliveryTest extends TenancyTestCase
 {
+    use ProtectedFollowupFixtures;
+
     public function test_only_completed_bot_turn_invokes_fake_delivery(): void
     {
         config(['runtime.ai_driver' => 'fake', 'cache.default' => 'array']);
@@ -25,6 +28,7 @@ final class FakeDeliveryTest extends TenancyTestCase
         DB::table('brand_modules')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id,
             'brand_id' => $brand->id, 'module' => 'seller', 'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
         $context = new TenantContext($org->id, $brand->id, $owner->id, $member->id);
+        $this->seedProtected($context);
         $spy = new class implements ChannelDelivery
         {
             public array $commands = [];

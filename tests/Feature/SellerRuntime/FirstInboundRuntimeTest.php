@@ -205,6 +205,7 @@ final class FirstInboundRuntimeTest extends TestCase
             return new TurnCommand($conversation->id, $message->id, $message->text, null, 'foreign', 0);
         });
         self::assertSame(['status' => 'unavailable'], $this->turn($context, $request, $foreign));
+        self::assertSame(0, $fake->calls);
         $suggest = app(TenantContextRunner::class)->run($context, function (): TurnCommand {
             $conversation = Conversation::create(['state' => [], 'mode' => 'suggest']);
             $message = Message::create(['conversation_id' => $conversation->id, 'role' => 'client', 'text' => 'Вопрос', 'meta' => []]);
@@ -223,7 +224,7 @@ final class FirstInboundRuntimeTest extends TestCase
         self::assertSame($suggested, $this->turn($context, $request, $suggest));
         $request->attributes->set('tenant.brand_revision', 'stale');
         self::assertSame(['status' => 'unavailable'], $this->turn($context, $request, $command));
-        self::assertSame(0, $fake->calls);
+        self::assertSame(2, $fake->calls);
         self::assertSame(2, DB::table('seller_turns')->where('status', 'suppressed')->count());
     }
 

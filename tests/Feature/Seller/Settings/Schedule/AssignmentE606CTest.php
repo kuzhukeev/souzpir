@@ -8,10 +8,13 @@ use App\Seller\Runtime\BrandRuntimeSchedule;
 use App\Tenancy\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Tests\Feature\SellerRuntime\Turns\ProtectedFollowupFixtures;
 use Tests\Feature\Tenancy\TenancyTestCase;
 
 final class AssignmentE606CTest extends TenancyTestCase
 {
+    use ProtectedFollowupFixtures;
+
     private function conversation(string $organization, string $brand): string
     {
         $id = (string) Str::ulid();
@@ -77,6 +80,8 @@ final class AssignmentE606CTest extends TenancyTestCase
             return [$conversation, Message::create(['conversation_id' => $conversation->id, 'role' => 'client', 'text' => 'Уточните условия', 'meta' => []])];
         });
         config(['runtime.ai_driver' => 'fake']);
+        $member = DB::table('memberships')->where('organization_id', $org->id)->where('user_id', $owner->id)->value('id');
+        $this->seedProtected(new TenantContext($org->id, $brand->id, $owner->id, $member));
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
         $input = ['conversation_id' => $conversation->id, 'message_id' => $message->id, 'text' => $message->text, 'idempotency_key' => 'suggest-existing', 'expected_version' => 1];
         $this->postJson('/seller/turns/runtime', array_replace($input, ['expected_version' => 0]));
