@@ -16,6 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -105,9 +106,14 @@ final class TeamMemberController
             }
         }
 
+        $avatarPath = $sharedBrand ? DB::table('profile_preferences')->where('user_id', $member->user_id)->value('avatar_path') : null;
+        $hasAvatar = is_string($avatarPath)
+            && preg_match('#^users/'.preg_quote($member->user_id, '#').'/profile/[a-f0-9]{32}\.png$#D', $avatarPath)
+            && Storage::disk('local')->exists($avatarPath);
+
         return Inertia::render('Shell/Team/Show', ['member' => $data, 'activityUrl' => $activityUrl, 'activity' => $activity, 'dialogCount' => $dialogCount, 'receives' => $receives, 'transferRecipients' => $recipients,
-            'avatarUrl' => $member->user_id === $context->actorId && Route::has('profile.avatar') && DB::table('profile_preferences')->where('user_id', $member->user_id)->whereNotNull('avatar_path')->exists() ? route('profile.avatar', absolute: false) : null,
-            'notificationSettingsUrl' => $member->user_id === $context->actorId && Route::has('profile.notifications') ? route('profile.notifications', absolute: false) : null,
+            'avatarUrl' => $hasAvatar && Route::has('team.avatar') ? route('team.avatar', ['membership' => $member->id], false) : null,
+            'notificationSettingsUrl' => $sharedBrand && Gate::allows('seller.settings.read') && app(SellerModuleAccess::class)->enabled($context->organizationId, $context->brandId) && Route::has('seller.settings.notifications') ? route('seller.settings.notifications', absolute: false) : null,
             'reportSettingsUrl' => $sharedBrand && Gate::allows('vision.settings.write') && app(ModuleEntitlements::class)->enabled($context, 'vision') && Route::has('vision.settings.index') ? route('vision.settings.index', absolute: false) : null,
             'editAccess' => Gate::allows('update', $member) && $controlled && $member->status === 'active'
                 ? ['brands' => TeamMemberProjection::forCurrentActor()->availableBrands(), 'allBrands' => $unrestricted,

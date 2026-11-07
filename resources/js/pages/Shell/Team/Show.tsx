@@ -1,5 +1,5 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { ArrowLeft, UserRound } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import CabinetLayout from '@/layouts/CabinetLayout';
 import { SharedBrandModules } from '@/features/Shell/Team/SharedBrandModules';
 import { EditMember } from '@/features/Shell/Team/EditMember';
@@ -38,6 +38,7 @@ export default function Show({
 }) {
   const transfer = useForm({recipient_id:''});
   const name = member.name?.trim() || 'Имя недоступно';
+  const initials = (member.name?.trim().split(/\s+/).slice(0, 2).map(part => part[0]?.toLocaleUpperCase('ru-RU')).join('') || '?');
   const status =
     member.status === 'active'
       ? 'Активен'
@@ -65,7 +66,7 @@ export default function Show({
             aria-hidden="true"
             className="grid size-16 shrink-0 place-items-center rounded-full bg-(--color-info-soft) text-(--color-info-ink)"
           >
-            {avatarUrl ? <img src={avatarUrl} alt="" className="size-full rounded-full object-cover" /> : <UserRound size={30} />}
+            {avatarUrl ? <img src={avatarUrl} alt="" className="size-full rounded-full object-cover" /> : <span className="text-xl font-semibold">{initials}</span>}
           </span>
           <div className="min-w-0">
             <h1 className="break-words text-3xl font-bold leading-tight">{name}</h1>
@@ -141,7 +142,7 @@ export default function Show({
           </section>
         </div>
         {dialogCount !== null && <section className={`${panel} mt-4`}><h2 className="text-xl font-bold">Диалоги в работе</h2><p className="mt-3 text-sm">Назначено активных диалогов: {dialogCount}</p>{transferRecipients.length > 0 && <form className="mt-3 flex flex-wrap items-end gap-3" onSubmit={event=>{event.preventDefault();transfer.post(`/team/${member.id}/transfer-dialogs`,{preserveScroll:true,onSuccess:()=>transfer.reset()});}}><label className="text-sm">Коллега<select required value={transfer.data.recipient_id} onChange={event=>transfer.setData('recipient_id',event.target.value)} className="mt-1 block min-h-11 cursor-pointer rounded-lg border border-(--color-border) bg-(--color-surface) px-3"><option value="">Выберите коллегу</option>{transferRecipients.map(person=><option key={person.id} value={person.id}>{person.name}</option>)}</select></label><button disabled={transfer.processing || !dialogCount} className="min-h-11 cursor-pointer rounded-lg border border-(--color-border) px-4 text-sm disabled:opacity-50">Передать все коллеге</button>{transfer.errors.recipient_id && <p role="alert" className="text-sm">{transfer.errors.recipient_id}</p>}</form>}</section>}
-        {Object.keys(receives).length > 0 && <section className={`${panel} mt-4`}><h2 className="text-xl font-bold">Получает</h2><p className="mt-2 text-sm text-(--color-ink-muted)">Каналы для текущего бренда</p><ul className="mt-3 space-y-2 text-sm">{Object.entries(receives).map(([event,channels])=><li key={event}><strong>{event === 'vision.measurement.completed' ? 'Отчёт после замера' : 'Диалог ждёт менеджера'}</strong>: {channels.length ? channels.map(channel=>({cabinet:'В кабинете',email:'Почта',telegram:'Telegram'}[channel] ?? channel)).join(', ') : 'Не получает'}</li>)}</ul><div className="mt-4 flex flex-wrap gap-4 text-sm">{reportSettingsUrl && <Link className="cursor-pointer text-(--color-link)" href={reportSettingsUrl}>Настроить отчёты</Link>}{notificationSettingsUrl ? <Link className="cursor-pointer text-(--color-link)" href={notificationSettingsUrl}>Настроить уведомления</Link> : <span className="text-(--color-ink-muted)">Личные уведомления участник настраивает в своём профиле.</span>}</div></section>}
+        {(Object.keys(receives).length > 0 || notificationSettingsUrl || reportSettingsUrl) && <section className={`${panel} mt-4`}><h2 className="text-xl font-bold">Получает</h2><p className="mt-2 text-sm text-(--color-ink-muted)">Каналы для текущего бренда</p><ul className="mt-3 space-y-2 text-sm">{Object.entries(receives).map(([event,channels])=><li key={event}><strong>{event === 'vision.measurement.completed' ? 'Отчёт после замера' : 'Диалог ждёт менеджера'}</strong>: {channels.length ? channels.map(channel=>({cabinet:'В кабинете',email:'Почта',telegram:'Telegram'}[channel] ?? channel)).join(', ') : 'Не получает'}</li>)}</ul><div className="mt-4 flex flex-wrap gap-4 text-sm">{reportSettingsUrl && <Link className="cursor-pointer text-(--color-link)" href={reportSettingsUrl}>Настроить отчёты</Link>}{notificationSettingsUrl ? <Link className="cursor-pointer text-(--color-link)" href={notificationSettingsUrl}>Настроить уведомления</Link> : <span className="text-(--color-ink-muted)">Настройки уведомлений продавца недоступны.</span>}</div></section>}
         {activityUrl && (
           <section className={`${panel} mt-4`} aria-labelledby="activity-title">
             <h2 id="activity-title" className="text-xl font-bold">
