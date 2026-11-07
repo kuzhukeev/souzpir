@@ -70,7 +70,7 @@ export function Sidebar({
     { id:'vision_publications', label:'Публикации', icon:'Share2', path:'/vision/publications' },
     ...menu.account,
   ];
-  const current = candidates
+  const current = pathname === '/seller/integrations/calendar' ? 'seller_integrations' : candidates
     .filter(
       (item) =>
         pathname === item.path ||
