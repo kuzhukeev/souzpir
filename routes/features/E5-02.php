@@ -9,6 +9,7 @@ return [
     'web' => static function (): void {
         Route::middleware(['auth.version', 'auth.nostore'])->group(static function (): void {
             Route::get('/seller/channels/widget', [WidgetSettingsController::class, 'index'])->name('seller.widget.index');
+            Route::get('/seller/channels/widget/{tab}', [WidgetSettingsController::class, 'index'])->whereIn('tab', ['install', 'look', 'behavior'])->name('seller.widget.tab');
             Route::post('/seller/channels/widget', [WidgetSettingsController::class, 'update'])->name('seller.widget.update');
         });
     },
