@@ -16,3 +16,6 @@
 - После проверки двух свободных путей сохранить невыполненные пункты в этой карточке и переоткрыть её. Файлы CRM и другие занятые области оставить их текущим владельцам; не трогать чужие claims.
 
 Scope: `resources/js/pages/Seller/Knowledge/Facts/Show.tsx`, `app/Seller/Knowledge/Facts/`, `routes/features/E4-02.php`, `tests/Feature/Seller/Knowledge/Facts/`, `tests/Browser/E7-06D/`, `resources/js/features/Vision/Site/Actions.tsx`, `app/Vision/Actions/`, `app/Vision/Measurements/MeasurementList.php`, `app/Vision/Settings/Trends.php`, `routes/features/E8-06.php`, `tests/Feature/Vision/Actions/`, `tests/Browser/E8-22B/`, `tests/Browser/E8-22C/`, `docs/results/SP-E0-08Z.md`.
+
+## Результат независимого этапа
+- E7-06D и E8-22C исправлены и проверены; оставшиеся пункты четырёх шардов сохраняются в этой карточке для проверки на актуальном main.
