@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useContext, useState } from 'react';
 import { router, usePage } from '@inertiajs/react';
-import { useQueryClient } from '@tanstack/react-query';
+import { QueryClientContext } from '@tanstack/react-query';
 import * as Select from '@radix-ui/react-select';
 import { Check, ChevronDown } from 'lucide-react';
 import type { BrandData, BrandSummaryData, SharedPropsV1 } from '@/types/generated/data';
@@ -19,7 +19,7 @@ function savedRetry(): Retry | null {
 
 export function BrandSwitch({ brand, brands, ready = false }: { brand: BrandData | null; brands: BrandSummaryData[]; ready?: boolean }) {
   const { ziggy } = usePage<SharedPropsV1>().props;
-  const queryClient = useQueryClient();
+  const queryClient = useContext(QueryClientContext);
   const canSwitch = ready || ziggy?.routes?.dashboard?.methods?.includes('GET') === true;
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
@@ -29,6 +29,7 @@ export function BrandSwitch({ brand, brands, ready = false }: { brand: BrandData
   const select = (id: string) => {
     if (!canSwitch || pending || id === brand?.id) return;
     setError('');
+    if (!queryClient) { setError('Не удалось очистить данные прежнего бренда. Обновите страницу.'); return; }
     if (retryHere) { setError('Сначала завершите прежнее переключение.'); return; }
     const contextChange = beginProfileContextChange();
     if (!contextChange) { setError('Не удалось подтвердить сессию. Обновите страницу.'); return; }
@@ -53,6 +54,7 @@ export function BrandSwitch({ brand, brands, ready = false }: { brand: BrandData
   };
   const send = async (id: string, key: string) => {
     setError('');
+    if (!queryClient) { setError('Не удалось очистить данные прежнего бренда. Обновите страницу.'); return; }
     setPending(true);
     router.cancelAll();
     try {

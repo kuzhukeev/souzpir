@@ -25,3 +25,15 @@ test('переключатель доступен и очищает данные
   expect(await page.evaluate(() => (window as Window & { brandCache?: { getQueryCache(): { getAll(): unknown[] } } }).brandCache?.getQueryCache().getAll().length)).toBe(0);
   await expect(page.locator('[data-private-profile]')).toBeHidden();
 });
+
+test('без QueryClient страница открывается, но переключение не отправляется', async ({ page }) => {
+  let switches = 0;
+  await page.route('**/brand/switch', async route => { switches++; await route.abort(); });
+  await page.goto(fixture + '?no-provider');
+  await expect(page.getByRole('heading', { name: 'Главная' })).toBeVisible();
+  await page.getByRole('combobox', { name: 'Выбрать бренд' }).click();
+  await page.getByRole('option', { name: 'Второй бренд' }).click();
+  await expect(page.getByRole('alert')).toContainText('Не удалось очистить данные прежнего бренда');
+  expect(switches).toBe(0);
+  await expect(page.locator('[data-private-profile]')).toBeVisible();
+});

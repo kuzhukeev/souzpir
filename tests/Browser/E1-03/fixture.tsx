@@ -23,6 +23,9 @@ script.dataset.page = 'app';
 script.textContent = JSON.stringify({ component: 'Fixture', props, url: '/dashboard', version: 'fixture', clearHistory: false, encryptHistory: false });
 document.body.append(script);
 void createInertiaApp({
-  resolve: () => () => <QueryClientProvider client={client}><CabinetLayout><main className="mx-auto max-w-5xl p-8" data-private-profile><h1 className="text-3xl font-bold">Главная</h1><p className="mt-8">Данные первого бренда</p></main></CabinetLayout></QueryClientProvider>,
+  resolve: () => () => {
+    const content = <CabinetLayout><main className="mx-auto max-w-5xl p-8" data-private-profile><h1 className="text-3xl font-bold">Главная</h1><p className="mt-8">Данные первого бренда</p></main></CabinetLayout>;
+    return new URLSearchParams(location.search).has('no-provider') ? content : <QueryClientProvider client={client}>{content}</QueryClientProvider>;
+  },
   setup: ({ el, App, props: page }) => createRoot(el).render(<App {...page} />),
 });
