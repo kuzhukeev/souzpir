@@ -38,12 +38,31 @@ final class StageAndSitePagesE704MTest extends TenancyTestCase
         $this->postJson('/widget/message?key='.$key, ['token' => $token, 'text' => 'Здравствуйте', 'idempotency_key' => 'request-1', 'page' => 'catalog'])->assertCreated();
         $this->assertDatabaseHas('widget_sessions', ['token_hash' => hash('sha256', $token), 'page' => '/catalog']);
 
-        $response = $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->get('/seller/analytics?from='.now()->format('Y-m-d').'&to='.now()->format('Y-m-d'))->assertOk();
+        $response = $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->get('/seller/analytics')->assertOk();
         $pages = collect($response->inertiaProps('analytics.sitePages'));
         $catalog = $pages->firstWhere('page', '/catalog');
         self::assertNotNull($catalog);
         self::assertSame(1, $catalog['opens']);
         self::assertSame(1, $catalog['dialogs']);
+        Http::assertNothingSent();
+    }
+
+    public function test_widget_session_start_captures_page_and_utm(): void
+    {
+        Http::fake();
+        [$owner, $org, $brand] = $this->cabinet();
+        DB::table('brand_modules')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $brand->id, 'module' => 'seller', 'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->get('/seller/channels/widget')->assertOk();
+        $key = DB::table('widget_settings')->where('brand_id', $brand->id)->value('public_key');
+        $this->post('/seller/channels/widget', ['enabled' => true, 'origins' => ['https://example.test'], 'appearance' => ['title' => 'Чат', 'color' => '#225544', 'position' => 'right'], 'behavior' => ['invitation' => 'Здравствуйте!']])->assertRedirect()->assertSessionHasNoErrors();
+        $this->withHeader('Origin', 'https://example.test');
+        $token = $this->postJson('/widget/session?key='.$key, ['page' => '/catalog/item-7', 'utm' => 'utm_source=yandex&utm_medium=cpc'])->assertCreated()->json('token');
+        $this->assertDatabaseHas('widget_sessions', ['token_hash' => hash('sha256', $token), 'page' => '/catalog/item-7', 'utm' => 'utm_source=yandex&utm_medium=cpc']);
+        $this->postJson('/widget/session?key='.$key, ['page' => str_repeat('a', 2049)])->assertUnprocessable();
+
+        $response = $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->get('/seller/analytics')->assertOk();
+        $page = collect($response->inertiaProps('analytics.sitePages'))->firstWhere('page', '/catalog/item-7');
+        self::assertSame('utm_source=yandex&utm_medium=cpc', $page['utm']);
         Http::assertNothingSent();
     }
 
