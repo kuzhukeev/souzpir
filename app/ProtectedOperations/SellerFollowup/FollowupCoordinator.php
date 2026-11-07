@@ -102,6 +102,16 @@ final class FollowupCoordinator
                 $digest = hash_hmac('sha256', "protected-operation-key-v1\0".$command->idempotencyKey, (string) config('app.key'));
                 $hasReceipt = DB::table('protected_operation_receipts')->where('organization_id', $tenant->organizationId)
                     ->where('brand_id', $tenant->brandId)->where('operation', 'seller.session.followup.claim')->where('key_digest', $digest)->exists();
+                if (! $hasReceipt && DB::table('seller_turns')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
+                    ->where('idempotency_key', $command->idempotencyKey)->exists()) {
+                    $existing = app(ConversationRepository::class)->claimTurn($tenant, $command);
+                    if ($existing->status === 'finished') {
+                        return ['turn' => $existing->turnId, 'finished' => true];
+                    }
+                    if (in_array($existing->status, ['in_progress', 'uncertain'], true)) {
+                        return ['turn' => $existing->turnId, 'pending' => $existing->status];
+                    }
+                }
                 if (! $hasReceipt && $command->expectedVersion !== (int) $conversation->version) {
                     throw new IdempotencyConflict('Turn key or revision changed.');
                 }
@@ -123,6 +133,9 @@ final class FollowupCoordinator
             });
             $turn = DB::table('seller_turns')->where('id', $receipt['turn'])->where('organization_id', $tenant->organizationId)
                 ->where('brand_id', $tenant->brandId)->where('conversation_id', $command->conversationId)->first();
+            if (isset($receipt['pending'])) {
+                return ['status' => $receipt['pending']];
+            }
             if ($turn && in_array($turn->status, ['completed', 'suggested'], true)) {
                 $outcome = json_decode($turn->outcome, true, 512, JSON_THROW_ON_ERROR);
                 $result = ['turn_id' => $turn->id, 'message_id' => $outcome['assistantMessageId'] ?? null, 'version' => $outcome['version'] ?? null];
