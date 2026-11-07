@@ -58,6 +58,8 @@ final class WidgetSettingsController
             return ['brandOrigin' => $origin, 'activeTab' => $request->route('tab') ?? 'install', 'settings' => ['enabled' => $row->enabled, 'origins' => json_decode($row->origins, true),
                 'appearance' => json_decode($row->appearance, true), 'behavior' => json_decode($row->behavior, true),
                 'last_seen_at' => $row->last_seen_at, 'key' => $row->public_key],
+                'correspondence' => ['live' => config('runtime.ai_driver', 'fake') !== 'fake',
+                    'liveDraftEnabled' => (bool) config('features.LV-01.defaults.enabled', false)],
                 'scriptUrl' => $request->getSchemeAndHttpHost().'/widget.js',
                 'contactRequests' => DB::table('widget_contact_requests')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->orderByDesc('created_at')->limit(100)->get(['id', 'name', 'email', 'phone', 'origin', 'created_at'])];
         });
