@@ -5,6 +5,8 @@ namespace App\Ai\Protected;
 use App\Ai\Gateway;
 use App\Contracts\Ai\AiContext;
 use App\Contracts\Ai\AiGateway;
+use App\Models\Membership;
+use App\Models\User;
 use App\ProtectedOperations\SellerTurnFence;
 use App\Seller\Conversations\Data\TurnClaim;
 use App\Seller\Engine\BrandPromptSets;
@@ -16,11 +18,15 @@ use App\Seller\Engine\ResponderRequest;
 use App\Seller\Knowledge\Contracts\KnowledgeRepository;
 use App\Seller\Runtime\BrandRuntimeSchedule;
 use App\Seller\Settings\Limits\SellerModuleAccess;
+use App\Shell\Auth\AuthSessionRegistry;
+use App\Shell\Auth\SessionBrandSelection;
+use App\Shell\Organizations\ModuleEntitlements;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TokenApi\TokenTenantAuthority;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use LogicException;
 
 /** Build extractor input from an authorized, persisted API turn. */
@@ -32,7 +38,24 @@ final class ApiFollowupInput
             || ! $tenant->organizationId || ! $tenant->brandId) {
             throw new LogicException('API follow-up unavailable.');
         }
-        app(TokenTenantAuthority::class)->revalidateLocked($http, $tenant, 'turn');
+        $isToken = $tenant->source === 'token';
+        if ($isToken) {
+            app(TokenTenantAuthority::class)->revalidateLocked($http, $tenant, 'turn');
+        } elseif ($tenant->source === 'session') {
+            app(AuthSessionRegistry::class)->withinActive($http, function (User $user) use ($http, $tenant): void {
+                $selected = app(SessionBrandSelection::class)->current($http);
+                $member = Membership::withoutGlobalScopes()->whereKey($tenant->membershipId)->where('organization_id', $tenant->organizationId)
+                    ->where('user_id', $user->id)->where('status', 'active')->lockForUpdate()->first();
+                if ($tenant->actorId !== $user->id || ! $user->hasVerifiedEmail() || ! $member || ! $member->permitsBrand($tenant->brandId)
+                    || $selected->selected_organization_id !== $tenant->organizationId || $selected->selected_brand_id !== $tenant->brandId
+                    || (string) $selected->brand_revision !== $http->attributes->get('tenant.brand_revision')
+                    || ! app(ModuleEntitlements::class)->enabled($tenant, 'seller') || ! Gate::forUser($user)->allows('seller.dialogues.operate')) {
+                    throw new LogicException('Seller follow-up unavailable.');
+                }
+            });
+        } else {
+            throw new LogicException('Seller follow-up unavailable.');
+        }
         if (! app(SellerModuleAccess::class)->enabled($tenant->organizationId, $tenant->brandId)) {
             throw new LogicException('API follow-up unavailable.');
         }
@@ -43,7 +66,7 @@ final class ApiFollowupInput
         $turn = DB::table('seller_turns')->where($scope)->where('id', $claim->turnId)->lockForUpdate()->first();
         $message = $turn ? DB::table('messages')->where($scope)->where('conversation_id', $claim->conversationId)
             ->where('id', $turn->input_message_id)->where('role', 'client')->first() : null;
-        if (! $lead || ! $conversation || ! $turn || ! str_starts_with($turn->idempotency_key, 'api:') || ! $message || ! in_array($conversation->mode, ['bot', 'suggest'], true)
+        if (! $conversation || ! $turn || ($isToken && (! $lead || ! str_starts_with($turn->idempotency_key, 'api:'))) || ! $message || ! in_array($conversation->mode, ['bot', 'suggest'], true)
             || ! is_string($message->text)) {
             throw new LogicException('API follow-up unavailable.');
         }

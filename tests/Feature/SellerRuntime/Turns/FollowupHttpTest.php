@@ -2,17 +2,50 @@
 
 namespace Tests\Feature\SellerRuntime\Turns;
 
+use App\Ai\Drivers\Driver;
+use App\Ai\Drivers\FakeDriver;
 use App\Seller\Conversations\Models\Conversation;
 use App\Seller\Conversations\Models\Message;
+use App\Seller\Knowledge\Import\YamlKnowledgeImporter;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
+use Database\Seeders\Ai\PromptSetsSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Tests\Feature\Tenancy\TenancyTestCase;
 
+final class FollowupProtectedFake implements Driver
+{
+    public int $calls = 0;
+
+    public function complete(array $body): array
+    {
+        $this->calls++;
+
+        return ['content' => isset($body['response_format']) ? '{"client_intent":"answer_only"}' : 'Спасибо за сообщение!',
+            'toolCalls' => [], 'usage' => ['promptTokens' => 1, 'completionTokens' => 1],
+            'model' => $body['model'], 'latencyMs' => 1, 'costMicros' => 0];
+    }
+}
+
 final class FollowupHttpTest extends TenancyTestCase
 {
+    public function refreshDatabase()
+    {
+        $this->artisan('migrate:fresh');
+        RefreshDatabaseState::$migrated = false;
+    }
+
+    private function seedKnowledge(TenantContext $context): void
+    {
+        app(PromptSetsSeeder::class)->run();
+        app(TenantContextRunner::class)->run($context, fn () => app(YamlKnowledgeImporter::class)
+            ->importAndPublish($context, base_path('tests/Feature/Seller/Knowledge/Fixtures/data')));
+        app()->instance(FakeDriver::class, new FollowupProtectedFake);
+    }
+
     public function test_fake_followup_and_suggestion_are_saved_and_replayed_without_delivery(): void
     {
         Http::preventStrayRequests();
@@ -22,6 +55,8 @@ final class FollowupHttpTest extends TenancyTestCase
         DB::table('brand_modules')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id,
             'brand_id' => $brand->id, 'module' => 'seller', 'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
         $context = new TenantContext($org->id, $brand->id, $owner->id, $membership->id);
+        $this->seedKnowledge($context);
+        $fake = app(FakeDriver::class);
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
         foreach ([['bot', 1, 'completed'], ['suggest', 0, 'suggested']] as [$mode, $version, $status]) {
             [$dialog, $message] = app(TenantContextRunner::class)->run($context, function () use ($mode, $version): array {
@@ -34,6 +69,7 @@ final class FollowupHttpTest extends TenancyTestCase
                 'idempotency_key' => 'followup-'.$mode, 'expected_version' => $version];
             $this->postJson('/seller/turns/runtime', $input)->assertOk()->assertJsonPath('data.status', $status);
             $this->postJson('/seller/turns/runtime', $input)->assertOk()->assertJsonPath('data.status', $status);
+            $this->assertSame($mode === 'bot' ? 2 : 4, $fake->calls);
             $this->assertSame($version + 1, (int) DB::table('conversations')->where('id', $dialog->id)->value('version'));
             $this->assertSame(1, DB::table('seller_turns')->where('conversation_id', $dialog->id)->count());
             $this->assertSame($mode === 'bot' ? 1 : 0, DB::table('messages')->where('conversation_id', $dialog->id)->where('role', 'agent')->count());
@@ -62,6 +98,7 @@ final class FollowupHttpTest extends TenancyTestCase
 
             return [$dialog, Message::create(['conversation_id' => $dialog->id, 'role' => 'client', 'text' => 'Вопрос', 'meta' => []])];
         });
+        $this->seedKnowledge(new TenantContext($org->id, $brand->id, $owner->id, $membership->id));
         $input = ['conversation_id' => $dialog->id, 'message_id' => $message->id, 'text' => $message->text,
             'idempotency_key' => 'followup-rights', 'expected_version' => 1];
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);

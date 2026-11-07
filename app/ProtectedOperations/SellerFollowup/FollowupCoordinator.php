@@ -2,10 +2,13 @@
 
 namespace App\ProtectedOperations\SellerFollowup;
 
+use App\Ai\Gateway;
 use App\Contracts\ProtectedOperations\IdempotencyConflict;
 use App\Models\Membership;
 use App\Models\User;
+use App\ProtectedOperations\PostgresTransactionalIdempotency;
 use App\Seller\Conversations\Contracts\ConversationRepository;
+use App\Seller\Conversations\Data\TurnClaim;
 use App\Seller\Conversations\Data\TurnCommand;
 use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Auth\SessionBrandSelection;
@@ -71,12 +74,12 @@ final class FollowupCoordinator
     public function run(Request $http, TurnCommand $command, string $mode): array
     {
         if (config('runtime.ai_driver', 'fake') !== 'fake' || ! in_array($mode, ['bot', 'suggest'], true)
-            || DB::connection()->getDriverName() !== 'pgsql') {
+            || DB::connection()->getDriverName() !== 'pgsql' || DB::transactionLevel() !== 0) {
             return ['status' => 'unavailable'];
         }
         try {
-            return app(AuthSessionRegistry::class)->withinActive($http, function (User $user) use ($http, $command, $mode): array {
-                $tenant = app(TenantContext::class);
+            $tenant = app(TenantContext::class);
+            $receipt = app(AuthSessionRegistry::class)->withinActive($http, function (User $user) use ($http, $command, $mode, $tenant): array {
                 $selected = app(SessionBrandSelection::class)->current($http);
                 if ($tenant->source !== 'session' || $tenant->actorId !== $user->id || ! $user->hasVerifiedEmail()
                     || ! $tenant->organizationId || ! $tenant->brandId || ! $tenant->membershipId
@@ -96,30 +99,47 @@ final class FollowupCoordinator
                 if (! $conversation || $conversation->mode !== $mode || ($mode === 'bot' && (int) $conversation->version === 0)) {
                     throw new LogicException('Follow-up unavailable.');
                 }
-                $claim = app(ConversationRepository::class)->claimTurn($tenant, $command);
-                if ($claim->status === 'finished') {
-                    $outcome = $claim->outcome;
-                    if (! is_array($outcome) || ! in_array($outcome['status'] ?? null, ['completed', 'suggested'], true)) {
-                        throw new LogicException('Invalid finished turn.');
-                    }
-
-                    $result = ['turn_id' => $claim->turnId, 'message_id' => $outcome['assistantMessageId'] ?? null,
-                        'version' => $outcome['version'] ?? null];
-                    if ($outcome['status'] === 'suggested') {
-                        $result['suggestion'] = $outcome['messages'][0]['text'] ?? null;
-                    }
-
-                    return ['status' => $outcome['status'], 'result' => $result];
+                $digest = hash_hmac('sha256', "protected-operation-key-v1\0".$command->idempotencyKey, (string) config('app.key'));
+                $hasReceipt = DB::table('protected_operation_receipts')->where('organization_id', $tenant->organizationId)
+                    ->where('brand_id', $tenant->brandId)->where('operation', 'seller.session.followup.claim')->where('key_digest', $digest)->exists();
+                if (! $hasReceipt && $command->expectedVersion !== (int) $conversation->version) {
+                    throw new IdempotencyConflict('Turn key or revision changed.');
                 }
-                if (in_array($claim->status, ['in_progress', 'uncertain'], true)) {
-                    return ['status' => $claim->status];
-                }
-                if ($claim->status !== 'claimed' || $claim->baseVersion !== $command->expectedVersion) {
-                    throw new LogicException('Invalid follow-up claim.');
-                }
+                $payload = json_encode(['conversation' => $command->conversationId, 'input' => $command->inputMessageId,
+                    'text' => $command->text, 'event' => $command->externalEventId, 'version' => $command->expectedVersion, 'mode' => $mode], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
 
-                return app(FollowupFinalizer::class)->finish($tenant, $claim, $mode);
+                return app(PostgresTransactionalIdempotency::class)->execute($tenant->organizationId, $tenant->brandId,
+                    'seller.session.followup.claim', $command->idempotencyKey, $payload, function () use ($tenant, $command): array {
+                        $claim = app(ConversationRepository::class)->claimTurn($tenant, $command);
+                        if ($claim->status === 'finished') {
+                            return ['turn' => $claim->turnId, 'finished' => true];
+                        }
+                        if ($claim->status !== 'claimed' || $claim->baseVersion !== $command->expectedVersion || ! is_string($claim->token())) {
+                            throw new LogicException('Invalid follow-up claim.');
+                        }
+
+                        return ['turn' => $claim->turnId, 'version' => $claim->baseVersion, 'token' => $claim->token()];
+                    });
             });
+            $turn = DB::table('seller_turns')->where('id', $receipt['turn'])->where('organization_id', $tenant->organizationId)
+                ->where('brand_id', $tenant->brandId)->where('conversation_id', $command->conversationId)->first();
+            if ($turn && in_array($turn->status, ['completed', 'suggested'], true)) {
+                $outcome = json_decode($turn->outcome, true, 512, JSON_THROW_ON_ERROR);
+                $result = ['turn_id' => $turn->id, 'message_id' => $outcome['assistantMessageId'] ?? null, 'version' => $outcome['version'] ?? null];
+                if ($turn->status === 'suggested') {
+                    $result['suggestion'] = $outcome['messages'][0]['text'] ?? null;
+                }
+
+                return ['status' => $turn->status, 'result' => $result];
+            }
+            if (! is_string($receipt['token'] ?? null) || ! is_int($receipt['version'] ?? null)) {
+                throw new LogicException('Invalid follow-up claim.');
+            }
+            $claim = new TurnClaim('claimed', $receipt['turn'], $command->conversationId, $tenant->organizationId, $tenant->brandId, $receipt['version'], $receipt['token']);
+            app(Gateway::class)->completeApiFollowupExtractor($http, $tenant, $claim);
+            app(Gateway::class)->completeApiFollowupResponder($http, $tenant, $claim);
+
+            return DB::transaction(fn () => app(FollowupFinalizer::class)->finishProtectedApi($http, $tenant, $claim, $mode));
         } catch (HttpExceptionInterface $error) {
             if ($error->getStatusCode() === 409) {
                 throw new IdempotencyConflict('Turn key or revision changed.');
