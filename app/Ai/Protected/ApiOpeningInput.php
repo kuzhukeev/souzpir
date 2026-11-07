@@ -2,7 +2,6 @@
 
 namespace App\Ai\Protected;
 
-use App\Contracts\Ai\AiContext;
 use App\Seller\Engine\LeadState;
 use App\Seller\Engine\Policy;
 use App\Seller\Engine\ResponderRequest;
@@ -68,8 +67,7 @@ final class ApiOpeningInput
         $system = app(ResponderProjection::class)->render($knowledge, $state, $goal, $name);
         // Proactive opening has no client message; tool execution is not part of this phase.
         $request = app(ResponderRequest::class)->build($system, [], [], $model, (float) $temperature, $prompt->version, $prompt->checksum);
-        $context = new AiContext($tenant->organizationId, $tenant->brandId, 'responder', 'seller', 'conversation',
-            $conversation->id, 'api-opening-'.$lead->id, ['conversation_content', 'client_profile', 'knowledge_internal']);
+        $context = app(ProtectedRetryContext::class)->make($tenant, $conversation->id, 'responder', 'api-opening-'.$lead->id);
 
         return [$request, $context, $state, $goal, $knowledge];
     }
