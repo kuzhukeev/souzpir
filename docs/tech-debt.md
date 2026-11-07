@@ -548,3 +548,6 @@
 - SP-E5-02F: счётчик сообщений виджета (лимит D-9.4) хранится только в памяти вкладки вместе с sessionToken; перезагрузка страницы или новая вкладка сбрасывает счётчик, серверного учёта по widget_sessions нет.
 
 - SP-L1-02: слоты exec-1/exec-2 не проходят тесты с IsolatedDatabaseMigrations («A dedicated, nonprivileged test database owner is required») — роль БД слотов не настроена; часть существующих тестов исполнители проверяют только через CI.
+
+- SP-E5-04S: подсказка менеджеру не предлагает инструменты (calc_delivery/send_price) и не повторяет попытку при отказе Guard — один проход, при отказе общий unavailable. ManagerSuggestionGatewayE504STest (DatabaseMigrations без отката) периодически роняет ReviewsE510*Test при совместном прогоне каталога tests/Feature/Seller/Dialogs/.
+- SP-E5-04S: нет Playwright-теста tests/Browser/E5-04S/ и скриншота — в слоте исполнителя недоступен браузерный драйвер; UI проверен сборкой, типами и feature-тестами.
