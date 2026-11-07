@@ -27,11 +27,22 @@ class Extractor
     {
         $intents = $this->kb->intentIds();
         $slotProps = [];
-        foreach (['city', 'name', 'purpose', 'experience', 'outlet_type', 'outlet_floor', 'current_supplier', 'competitor_discount', 'budget_range', 'timing', 'legal', 'email', 'messenger', 'next_contact_at'] as $s) {
+        // Контактные слоты универсальны для любого бренда; остальные оптовые слоты — только для подтверждённого прототип-бренда.
+        foreach (['name', 'email', 'messenger', 'next_contact_at'] as $s) {
             $slotProps[$s] = ['type' => ['string', 'null']];
         }
-        $slotProps['categories'] = ['type' => ['array', 'null'], 'items' => ['type' => 'string']];
-        $slotProps['brands_interest'] = ['type' => ['array', 'null'], 'items' => ['type' => 'string']];
+        if (LeadState::isPrototypeBrand($this->kb->persona()['company'] ?? null)) {
+            foreach (['city', 'purpose', 'experience', 'outlet_type', 'outlet_floor', 'current_supplier', 'competitor_discount', 'budget_range', 'timing', 'legal'] as $s) {
+                $slotProps[$s] = ['type' => ['string', 'null']];
+            }
+            $slotProps['categories'] = ['type' => ['array', 'null'], 'items' => ['type' => 'string']];
+            $slotProps['brands_interest'] = ['type' => ['array', 'null'], 'items' => ['type' => 'string']];
+        }
+        foreach ($this->clientFields() as $field) {
+            $slotProps[$field['id']] = $field['type'] === 'select' && $field['options'] !== []
+                ? ['type' => ['string', 'null'], 'enum' => [...$field['options'], null]]
+                : ['type' => ['string', 'null']];
+        }
 
         return [
             'type' => 'object',
@@ -218,6 +229,15 @@ class Extractor
         if (! in_array('unclear', $ids, true)) {
             throw new LogicException('Published knowledge requires the unclear intent.');
         }
+    }
+
+    /** Опубликованные дополнительные поля бренда (D-5.1), валидные для сбора данных. */
+    private function clientFields(): array
+    {
+        return collect($this->kb->policy()['client_fields'] ?? [])
+            ->filter(fn ($field) => is_array($field) && is_string($field['id'] ?? null) && trim($field['id']) !== '')
+            ->map(fn ($field) => ['id' => $field['id'], 'type' => $field['type'] ?? 'text', 'options' => array_values(array_filter((array) ($field['options'] ?? []), 'is_string'))])
+            ->values()->all();
     }
 
     private function objections(): array

@@ -21,7 +21,25 @@ class LeadState
 
     public const OUTCOMES = ['full_contact', 'partial_contact', 'handoff', 'paused', 'declined', 'stale', 'spam'];
 
+    /** Опубликованные дополнительные поля (D-5.1) заполняются только для подтверждённого прототип-бренда. */
+    public const PROTOTYPE_BRAND_COMPANY = 'Союз Пир';
+
     public array $data;
+
+    public static function isPrototypeBrand(?string $company): bool
+    {
+        return $company === self::PROTOTYPE_BRAND_COMPANY;
+    }
+
+    public static function slotLabels(): array
+    {
+        return [
+            'name' => 'имя', 'city' => 'город', 'purpose' => 'цель', 'experience' => 'опыт', 'outlet_type' => 'точка',
+            'outlet_floor' => 'этаж', 'categories' => 'категории', 'brands_interest' => 'бренды', 'current_supplier' => 'поставщик',
+            'competitor_discount' => 'скидка конкурента', 'budget_range' => 'бюджет', 'timing' => 'сроки', 'legal' => 'юрстатус',
+            'email' => 'почта', 'messenger' => 'мессенджер', 'next_contact_at' => 'следующий контакт',
+        ];
+    }
 
     public function __construct(?array $data = null)
     {
@@ -241,13 +259,7 @@ class LeadState
     public function cardText(): string
     {
         $lines = [];
-        $labels = [
-            'name' => 'имя', 'city' => 'город', 'purpose' => 'цель', 'experience' => 'опыт', 'outlet_type' => 'точка',
-            'outlet_floor' => 'этаж', 'categories' => 'категории', 'brands_interest' => 'бренды', 'current_supplier' => 'поставщик',
-            'competitor_discount' => 'скидка конкурента', 'budget_range' => 'бюджет', 'timing' => 'сроки', 'legal' => 'юрстатус',
-            'email' => 'почта', 'messenger' => 'мессенджер', 'next_contact_at' => 'следующий контакт',
-        ];
-        foreach ($labels as $k => $label) {
+        foreach (self::slotLabels() as $k => $label) {
             $v = $this->slot($k);
             if ($v === null || $v === '' || $v === []) {
                 continue;

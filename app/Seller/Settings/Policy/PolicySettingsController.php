@@ -118,8 +118,16 @@ final class PolicySettingsController
             $draft = Gate::allows('seller.knowledge.write') && Gate::allows('seller.settings.write')
                 ? DB::table('knowledge_releases')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('status', 'draft')->first(['id', 'version'])
                 : null;
-            $draftFields = $draft ? (app(KnowledgeRepository::class)->forRelease($tenant, $draft->id, true)->policy()['client_fields'] ?? []) : [];
-            $editor = ['version' => $draft?->version, 'fields' => is_array($draftFields) ? $draftFields : []];
+            $draftSnapshot = $draft ? app(KnowledgeRepository::class)->forRelease($tenant, $draft->id, true) : null;
+            $draftFields = $draftSnapshot ? ($draftSnapshot->policy()['client_fields'] ?? []) : [];
+            $draftFields = is_array($draftFields) ? $draftFields : [];
+            if ($draftFields === [] && $draftSnapshot && LeadState::isPrototypeBrand($draftSnapshot->persona()['company'] ?? null)) {
+                // D-5.1: подтверждённый прототип-бренд предзаполняет черновик оптовыми полями; остальные начинают с пустого списка.
+                $draftFields = collect(LeadState::SLOTS)->reject(fn ($slot) => in_array($slot, ['name', 'email', 'messenger'], true))
+                    ->map(fn ($slot) => ['id' => $slot, 'name' => LeadState::slotLabels()[$slot] ?? $slot, 'type' => 'text', 'options' => [], 'required' => false, 'stage' => null])
+                    ->values()->all();
+            }
+            $editor = ['version' => $draft?->version, 'fields' => $draftFields];
             try {
                 $snapshot = app(KnowledgeRepository::class)->published($tenant);
                 $policy = $snapshot->policy();
