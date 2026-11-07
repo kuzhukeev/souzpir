@@ -104,6 +104,12 @@ declare module 'ziggy-js' {
     ],
     "dashboard": [],
     "dashboard.attention": [],
+    "dashboard.attention.snooze": [
+        {
+            "name": "kind",
+            "required": true
+        }
+    ],
     "dashboard.notification-center": [],
     "dashboard.notifications.read-all": [],
     "organization.show": [],
