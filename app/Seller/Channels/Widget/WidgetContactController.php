@@ -60,6 +60,12 @@ final class WidgetContactController
                 'consent_url' => $behavior['consent_url'], 'consented_at' => now(), 'created_at' => now(), 'updated_at' => now()]);
             if ($session) {
                 DB::table('widget_sessions')->where('id', $session->id)->update(['contact_request_id' => $id, 'updated_at' => now()]);
+                // Контакт, оставленный после переписки, попадает в карточку клиента того же диалога.
+                $details = array_filter(['name' => $input['name'] ?? null, 'email' => $input['email'] ?? null, 'phone' => $input['phone'] ?? null], fn ($value) => is_string($value) && $value !== '');
+                if (! empty($session->contact_id) && $details !== []) {
+                    DB::table('contacts')->where('id', $session->contact_id)->where('organization_id', $row->organization_id)->where('brand_id', $row->brand_id)
+                        ->update([...$details, 'updated_at' => now()]);
+                }
             } else {
                 $channel = DB::table('channel_accounts')->where('organization_id', $row->organization_id)->where('brand_id', $row->brand_id)
                     ->where('type', 'widget')->where('settings->widget_id', $row->id)->first();
