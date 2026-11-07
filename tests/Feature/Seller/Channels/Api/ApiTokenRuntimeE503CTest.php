@@ -2,7 +2,22 @@
 
 namespace Tests\Feature\Seller\Channels\Api;
 
+use App\Ai\CanonicalJson;
+use App\Ai\ContactMasker;
+use App\Ai\Gateway;
+use App\Ai\Protected\ApiFollowupInput;
 use App\Models\Brand;
+use App\Seller\Conversations\Contracts\ConversationRepository;
+use App\Seller\Conversations\Data\TurnCommand;
+use App\Seller\Knowledge\Import\YamlKnowledgeImporter;
+use App\Seller\Runtime\BrandRuntimeSchedule;
+use App\Tenancy\TenantContext;
+use App\Tenancy\TenantContextRunner;
+use App\Tenancy\TokenApi\BrandAccessToken;
+use Carbon\CarbonImmutable;
+use Database\Seeders\Ai\PromptSetsSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabaseState;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
@@ -11,6 +26,71 @@ use Tests\Feature\Tenancy\TenancyTestCase;
 
 final class ApiTokenRuntimeE503CTest extends TenancyTestCase
 {
+    public function refreshDatabase()
+    {
+        $this->artisan('migrate:fresh');
+        RefreshDatabaseState::$migrated = false;
+    }
+
+    private function fixtures(string $organization, Brand $brand, string $token, string $conversationId, string $text): void
+    {
+        $tenant = new TenantContext($organization, $brand->id, source: 'token');
+        $runner = app(TenantContextRunner::class);
+        app(PromptSetsSeeder::class)->run();
+        if (! DB::table('knowledge_releases')->where('organization_id', $organization)->where('brand_id', $brand->id)->exists()) {
+            $owner = DB::table('organizations')->where('id', $organization)->value('owner_user_id');
+            $membership = DB::table('memberships')->where('organization_id', $organization)->where('user_id', $owner)->value('id');
+            $editor = new TenantContext($organization, $brand->id, $owner, $membership);
+            $runner->run($editor, fn () => app(YamlKnowledgeImporter::class)->importAndPublish($editor, base_path('tests/Feature/Seller/Knowledge/Fixtures/data')));
+        }
+        $id = explode('|', $token, 2)[0];
+        $http = Request::create('/api/v1/turn', 'POST');
+        $http->setUserResolver(fn () => $brand);
+        $http->attributes->set('tenant.token', BrandAccessToken::query()->findOrFail($id));
+        $original = DB::table('conversations')->where('id', $conversationId)->first();
+        $lead = DB::table('seller_api_lead_requests')->where('conversation_id', $conversationId)->first();
+        $mirror = (string) Str::ulid();
+        $schedule = app(BrandRuntimeSchedule::class);
+        $mode = $original->mode === 'bot' && $schedule->mode($tenant, $schedule->settings($tenant), CarbonImmutable::now()) === 'suggest'
+            ? 'suggest' : $original->mode;
+        DB::table('conversations')->insert(['id' => $mirror, 'organization_id' => $organization, 'brand_id' => $brand->id,
+            'contact_id' => $original->contact_id, 'state' => $original->state, 'mode' => $mode, 'stage' => $original->stage,
+            'version' => $original->version, 'created_at' => now(), 'updated_at' => now()]);
+        foreach (DB::table('messages')->where('conversation_id', $conversationId)->orderBy('history_sequence')->get(['role', 'text']) as $message) {
+            DB::table('messages')->insert(['id' => (string) Str::ulid(), 'organization_id' => $organization, 'brand_id' => $brand->id,
+                'conversation_id' => $mirror, 'role' => $message->role, 'text' => $message->text, 'meta' => '{}', 'created_at' => now(), 'updated_at' => now()]);
+        }
+        DB::table('seller_api_lead_requests')->where('id', $lead->id)->update(['conversation_id' => $mirror]);
+        try {
+            $claim = $runner->run($tenant, fn () => DB::transaction(function () use ($tenant, $mirror, $organization, $brand, $text, $original) {
+                $id = (string) Str::ulid();
+                DB::table('messages')->insert(['id' => $id, 'organization_id' => $organization, 'brand_id' => $brand->id,
+                    'conversation_id' => $mirror, 'role' => 'client', 'text' => $text, 'meta' => '{}', 'created_at' => now(), 'updated_at' => now()]);
+
+                return app(ConversationRepository::class)->claimTurn($tenant, new TurnCommand($mirror, $id, $text, null, 'api:fixture-'.Str::random(12), (int) $original->version));
+            }));
+            $directory = base_path('.local/tmp/turn-fixtures');
+            if (! is_dir($directory)) {
+                mkdir($directory, 0700, true);
+            }
+            config(['features.E0-05.defaults.fixture_directory' => $directory]);
+            [$extractor] = $runner->run($tenant, fn () => DB::transaction(fn () => app(ApiFollowupInput::class)->extractorLocked($http, $tenant, $claim)));
+            $this->writeFake($directory, $extractor, '{"client_intent":"answer_only"}');
+            $runner->run($tenant, fn () => app(Gateway::class)->completeApiFollowupExtractor($http, $tenant, $claim));
+            [$responder] = $runner->run($tenant, fn () => DB::transaction(fn () => app(ApiFollowupInput::class)->responderLocked($http, $tenant, $claim)));
+            $this->writeFake($directory, $responder, 'Спасибо за сообщение. Уточните, пожалуйста, детали запроса?');
+        } finally {
+            DB::table('seller_api_lead_requests')->where('id', $lead->id)->update(['conversation_id' => $conversationId]);
+        }
+    }
+
+    private function writeFake(string $directory, object $request, string $content): void
+    {
+        $path = $directory.'/'.CanonicalJson::hash(app(ContactMasker::class)->request($request->toArray())).'.json';
+        file_put_contents($path, json_encode(['result' => ['content' => $content, 'toolCalls' => [],
+            'usage' => ['promptTokens' => 1, 'completionTokens' => 1], 'model' => $request->model, 'latencyMs' => 1, 'costMicros' => 0]], JSON_THROW_ON_ERROR));
+    }
+
     private function token(string $org, Brand $brand, array $abilities): array
     {
         $secret = Str::random(64);
@@ -55,6 +135,7 @@ final class ApiTokenRuntimeE503CTest extends TenancyTestCase
         $this->post($dialogUrl.'/mode', ['action' => 'return'])->assertRedirect($dialogUrl)->assertSessionHasNoErrors();
         $turn = ['conversation_id' => $first['conversation_id'], 'text' => 'Интересует продукция'];
         $turnHeaders = ['Authorization' => 'Bearer '.$token, 'Idempotency-Key' => 'turn-1'];
+        $this->fixtures($org->id, $brand, $token, $first['conversation_id'], $turn['text']);
         $answer = $this->withHeaders($turnHeaders)->postJson('/api/v1/turn', $turn)->assertOk()->assertJsonPath('version', 3)->json();
         self::assertNotEmpty($answer['reply']);
         $this->withHeaders($turnHeaders)->postJson('/api/v1/turn', $turn)->assertOk()->assertExactJson($answer);
@@ -90,6 +171,7 @@ final class ApiTokenRuntimeE503CTest extends TenancyTestCase
         $this->withHeaders($turnHeaders)->postJson('/api/v1/turn', $data)->assertOk()->assertExactJson($manager);
         self::assertSame(1, DB::table('messages')->where('conversation_id', $id)->count());
         DB::table('conversations')->where('id', $id)->update(['mode' => 'suggest']);
+        $this->fixtures($org->id, $brand, $token, $id, 'Второе сообщение');
         $suggest = $this->withHeaders(['Authorization' => 'Bearer '.$token, 'Idempotency-Key' => 'suggest-mode'])->postJson('/api/v1/turn', ['conversation_id' => $id, 'text' => 'Второе сообщение'])->assertOk()->assertJsonPath('status', 'suggested')->json();
         self::assertArrayNotHasKey('suggestion', $suggest);
         self::assertSame(1, DB::table('seller_turns')->where('conversation_id', $id)->where('status', 'suggested')->count());
@@ -100,6 +182,7 @@ final class ApiTokenRuntimeE503CTest extends TenancyTestCase
         $this->withHeaders(['Authorization' => 'Bearer '.$token, 'Idempotency-Key' => 'off-mode'])->postJson('/api/v1/turn', ['conversation_id' => $id, 'text' => 'Третье сообщение'])->assertOk()->assertJsonPath('status', 'suppressed');
         self::assertSame(3, DB::table('messages')->where('conversation_id', $id)->count());
         DB::table('seller_schedule_preferences')->where('brand_id', $brand->id)->update(['payload' => json_encode(['mode' => 'suggest'], JSON_THROW_ON_ERROR)]);
+        $this->fixtures($org->id, $brand, $token, $id, 'Четвёртое сообщение');
         $scheduled = $this->withHeaders(['Authorization' => 'Bearer '.$token, 'Idempotency-Key' => 'schedule-suggest'])->postJson('/api/v1/turn', ['conversation_id' => $id, 'text' => 'Четвёртое сообщение'])->assertOk()->assertJsonPath('status', 'suggested')->json();
         self::assertArrayNotHasKey('suggestion', $scheduled);
         $this->assertDatabaseHas('conversations', ['id' => $id, 'mode' => 'suggest']);

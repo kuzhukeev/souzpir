@@ -6,6 +6,7 @@ use App\Contracts\ProtectedOperations\IdempotencyConflict;
 use App\Contracts\ProtectedOperations\IdempotencyFailure;
 use App\Seller\Conversations\CanonicalJson;
 use App\Seller\Engine\LeadState;
+use App\Seller\Knowledge\KnowledgeNotReady;
 use App\Seller\Runtime\ApiFollowupRuntime;
 use App\Seller\Runtime\ApiOpeningRuntime;
 use App\Seller\Runtime\TokenInboundRuntime;
@@ -59,7 +60,7 @@ final class LeadIngressController
                 return response()->json($result, $created ? 201 : 200);
             } catch (IdempotencyConflict) {
                 return response()->json(['message' => 'Ключ уже использован для другого запроса.'], 409);
-            } catch (IdempotencyFailure|\LogicException) {
+            } catch (IdempotencyFailure|KnowledgeNotReady|\LogicException) {
                 return response()->json(['message' => 'Открытие диалога временно недоступно.'], 503);
             }
         }
@@ -133,7 +134,7 @@ final class LeadIngressController
             return response()->json($runtime->turn($request, $tenant, $input['conversation_id'], $input['text'], $key, $input['source'] ?? null));
         } catch (IdempotencyConflict) {
             return response()->json(['message' => 'Ключ уже использован для другого запроса.'], 409);
-        } catch (IdempotencyFailure|\LogicException) {
+        } catch (IdempotencyFailure|KnowledgeNotReady|\LogicException) {
             return response()->json(['message' => 'Обработка хода временно недоступна.'], 503);
         }
     }
