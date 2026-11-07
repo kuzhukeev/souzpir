@@ -7,6 +7,7 @@ use App\Seller\Conversations\CanonicalJson;
 use App\Seller\Conversations\Models\Conversation;
 use App\Seller\Conversations\Models\Message;
 use App\Seller\Conversations\PrivateOperation;
+use App\Seller\Followups\FollowupConsent;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
 use Illuminate\Support\Facades\DB;
@@ -56,7 +57,10 @@ final class InboundRecorder
                 return $existing;
             }
 
-            return Message::create(['conversation_id' => $conversation->id, 'channel_account_id' => $channel->id, 'external_event_id' => $event->id, 'role' => 'client', 'text' => $text, 'meta' => []]);
+            $message = Message::create(['conversation_id' => $conversation->id, 'channel_account_id' => $channel->id, 'external_event_id' => $event->id, 'role' => 'client', 'text' => $text, 'meta' => []]);
+            app(FollowupConsent::class)->inbound($context, $conversation->id, $message->id, $text);
+
+            return $message;
         }));
     }
 

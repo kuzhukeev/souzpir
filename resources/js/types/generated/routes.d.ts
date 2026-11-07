@@ -693,6 +693,13 @@ declare module 'ziggy-js' {
     "seller.settings.off-topic.save": [],
     "seller.settings.followups.update": [],
     "seller.followups.index": [],
+    "seller.followups.schedule": [],
+    "seller.followups.consent": [
+        {
+            "name": "conversation",
+            "required": true
+        }
+    ],
     "seller.followups.cancel": [
         {
             "name": "candidate",

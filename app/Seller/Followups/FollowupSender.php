@@ -23,7 +23,10 @@ final class FollowupSender
             return DB::transaction(function () use ($tenant, $candidateId, $delivery, $policy): bool {
                 $scope = ['organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId];
                 $candidate = DB::table('seller_followup_candidates')->where($scope)->where('id', $candidateId)->first();
-                if (! $candidate || $candidate->status !== 'pending') {
+                if (! $candidate || $candidate->status !== 'pending'
+                    || ($candidate->scheduled_at !== null && CarbonImmutable::parse($candidate->scheduled_at)->isFuture())
+                    || app(FollowupConsent::class)->revoked($tenant, $candidate->conversation_id)
+                    || ($candidate->bulk && ! app(FollowupConsent::class)->allowed($tenant, $candidate->conversation_id))) {
                     return false;
                 }
                 $brand = DB::table('brands')->where('organization_id', $tenant->organizationId)->where('id', $tenant->brandId)->where('status', 'active')->first(['timezone']);
