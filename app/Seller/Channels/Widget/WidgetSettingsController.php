@@ -56,7 +56,8 @@ final class WidgetSettingsController
 
             return ['brandOrigin' => $origin, 'activeTab' => $request->route('tab') ?? 'install', 'settings' => ['enabled' => $row->enabled, 'origins' => json_decode($row->origins, true),
                 'appearance' => json_decode($row->appearance, true), 'behavior' => json_decode($row->behavior, true),
-                'last_seen_at' => $row->last_seen_at, 'key' => $row->public_key],
+                'last_seen_at' => $row->last_seen_at, 'key' => $row->public_key,
+                'install_check_status' => $row->install_check_status, 'install_check_message' => $row->install_check_message, 'install_checked_at' => $row->install_checked_at],
                 'scriptUrl' => $request->getSchemeAndHttpHost().'/widget.js',
                 'contactRequests' => DB::table('widget_contact_requests')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->orderByDesc('created_at')->limit(100)->get(['id', 'name', 'email', 'phone', 'origin', 'created_at'])];
         });
@@ -68,17 +69,38 @@ final class WidgetSettingsController
     {
         $result = $this->access($request, function (User $user, TenantContext $tenant): string {
             $widget = $this->settings($tenant);
-            if (! $widget->enabled) {
+            $origins = json_decode($widget->origins, true) ?: [];
+            if (! $widget->enabled || $origins === []) {
                 return 'Сначала включите виджет и добавьте адрес сайта.';
             }
-            if (! $widget->last_seen_at) {
-                return 'Запросов виджета ещё не было. Установка на сайте не подтверждена.';
+
+            $passive = $widget->last_seen_at
+                ? 'Виджет работает, последний сигнал: '.Carbon::parse($widget->last_seen_at)->format('d.m.Y H:i').'.'
+                : 'Сигналов от виджета ещё не было.';
+
+            if ($widget->install_checked_at && Carbon::parse($widget->install_checked_at)->gt(now()->subSeconds(30))) {
+                return self::describe($widget->install_check_status, $widget->install_check_message).' '.$passive.' Активную проверку можно повторить не чаще раза в 30 секунд.';
             }
 
-            return 'Последний запрос виджета: '.Carbon::parse($widget->last_seen_at)->format('d.m.Y H:i').'. Проверка сайта не выполнялась.';
+            $check = app(WidgetInstallationChecker::class)->check($origins[0], $widget->public_key);
+            DB::table('widget_settings')->where('id', $widget->id)->update([
+                'install_check_status' => $check['status'], 'install_check_message' => $check['message'], 'install_checked_at' => now(), 'updated_at' => now(),
+            ]);
+
+            return self::describe($check['status'], $check['message']).' '.$passive;
         });
 
         return back()->with('status', $result);
+    }
+
+    private static function describe(?string $status, ?string $message): string
+    {
+        return match ($status) {
+            'detected' => 'Код установлен.',
+            'not_detected' => 'Код не найден на странице.',
+            'unreachable', 'failed' => $message ?: 'Проверка не удалась.',
+            default => 'Проверка ещё не выполнялась.',
+        };
     }
 
     public function update(Request $request): mixed
