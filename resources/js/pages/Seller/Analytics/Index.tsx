@@ -57,7 +57,6 @@ type Analytics = {
   }[];
   canManage: boolean;
   subscription?: {day:string; recipients:string[]} | null;
-  avgMinutesToContact?: number | null;
 };
 const labels: Record<string, string> = {
   unknown: 'Не определён',
@@ -95,14 +94,6 @@ const labels: Record<string, string> = {
   stale: 'Нет ответа',
 };
 const card = 'rounded-xl border border-(--color-border) bg-(--color-surface) p-5';
-function formatMinutes(minutes: number): string {
-  if (minutes < 60) {
-    return `${Math.round(minutes)} мин`;
-  }
-  const hours = Math.floor(minutes / 60);
-  const rest = Math.round(minutes % 60);
-  return rest ? `${hours} ч ${rest} мин` : `${hours} ч`;
-}
 function Rows({
   values,
   empty = 'Данных пока нет.',
@@ -351,16 +342,6 @@ export default function Index({ analytics: a }: { analytics: Analytics }) {
             <section className={card}>
               <h2 className="text-xl font-bold">Диалоги по дням</h2>
               <Rows values={a.daily} />
-            </section>
-            <section className={card}>
-              <h2 className="text-xl font-bold">Среднее время до контакта</h2>
-              <p className="mt-2 text-2xl font-bold">
-                {a.avgMinutesToContact == null ? 'Нет данных' : formatMinutes(a.avgMinutesToContact)}
-              </p>
-              <p className="mt-2 text-sm text-(--color-ink-muted)">
-                От начала диалога до получения почты или мессенджера клиента. Диалоги без
-                сохранённого момента контакта не учитываются.
-              </p>
             </section>
             <section className={card}>
               <h2 className="text-xl font-bold">Источники</h2>
