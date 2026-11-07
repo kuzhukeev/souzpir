@@ -1877,3 +1877,4 @@ SP-E1-08B ожидает SP-E1-08: оба меняют профиль, а исх
 - SP-E6-06E (D-11.1): часовой пояс бренда — выбор из 11 поясов РФ (как в макете), не произвольный IANA; «Фиксированный менеджер» — менеджер по умолчанию + по каналу (`assignment.fixed_channels`).
 - SP-E6-03Z (D-5.2): «Цель стадии» формулируется как «Узнать: <поля>» по полям из сохранённых настроек, без выдуманных фраз.
 - SP-E4-10 (D-4.8): «Тип клиента» образца — select из 6 значений `Policy::clientType()` (all/newbie/experienced/for_self/prices_only/unknown) с русскими подписями вместо свободного текста.
+- SP-E6-04G: tool `escalate` выполняется отдельным классом `app/Seller/Engine/Tools/EscalateToManager.php` из `FirstTurnCoordinator` (seller_tasks handoff + `NotifyDialogEvent`), `ToolRunner` остаётся без побочных эффектов.
