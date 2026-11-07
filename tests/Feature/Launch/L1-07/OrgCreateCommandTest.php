@@ -29,10 +29,19 @@ final class OrgCreateCommandTest extends TestCase
         $this->assertSame('alpha-owner@example.test', $invitation->email);
         $this->assertSame(hash('sha256', $match[1]), $invitation->token_hash);
         $this->assertTrue($invitation->settings['designated_owner']);
-        $this->assertNull($invitation->invited_by);
+        $this->assertSame('Система', DB::table('users')->where('id', $invitation->invited_by)->value('name'));
         $plan = DB::table('organization_plan')->where('organization_id', $organization->id)->first();
         $this->assertNotNull($plan);
         $this->assertSame(DB::table('plans')->where('code', 'start')->value('id'), $plan->plan_id);
+    }
+
+    public function test_reuses_the_same_system_inviter_across_organizations(): void
+    {
+        Artisan::call('org:create', ['name' => 'Omega One', 'owner_email' => 'omega1@example.test']);
+        Artisan::call('org:create', ['name' => 'Omega Two', 'owner_email' => 'omega2@example.test']);
+        $inviters = Invitation::withoutGlobalScopes()->whereIn('email', ['omega1@example.test', 'omega2@example.test'])->pluck('invited_by');
+        $this->assertCount(1, $inviters->unique());
+        $this->assertSame(1, DB::table('users')->where('email', 'system.org-create@cabinet.internal')->count());
     }
 
     public function test_rejects_unknown_plan_code(): void

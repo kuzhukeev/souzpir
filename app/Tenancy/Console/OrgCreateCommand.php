@@ -5,6 +5,7 @@ namespace App\Tenancy\Console;
 use App\Models\Brand;
 use App\Models\Membership;
 use App\Models\Organization;
+use App\Models\User;
 use App\Shell\Team\Models\Invitation;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
@@ -58,15 +59,16 @@ final class OrgCreateCommand extends Command
         $secret = Str::random(64);
         try {
             $link = DB::transaction(function () use ($name, $email, $plan, $secret): string {
+                $inviterId = $this->systemInviterId();
                 $organization = Organization::create(['name' => $name, 'status' => 'active']);
                 $context = new TenantContext($organization->id);
-                $invitation = app(TenantContextRunner::class)->run($context, function () use ($name, $email, $secret): Invitation {
+                $invitation = app(TenantContextRunner::class)->run($context, function () use ($name, $email, $secret, $inviterId): Invitation {
                     Brand::create(['name' => $name]);
 
                     return Invitation::create([
                         'email' => $email, 'role' => 'admin', 'brand_ids' => [],
                         'settings' => ['designated_owner' => true],
-                        'token_hash' => hash('sha256', $secret), 'invited_by' => null,
+                        'token_hash' => hash('sha256', $secret), 'invited_by' => $inviterId,
                         'expires_at' => now()->addDays(7),
                     ]);
                 });
@@ -91,5 +93,18 @@ final class OrgCreateCommand extends Command
         $this->line($link);
 
         return self::SUCCESS;
+    }
+
+    /** invitations.invited_by is a required FK; org:create has no acting user, so it uses a fixed system account. */
+    private function systemInviterId(): string
+    {
+        $email = 'system.org-create@cabinet.internal';
+        $id = DB::table('users')->where('email', $email)->lockForUpdate()->value('id');
+        if ($id) {
+            return $id;
+        }
+        $user = User::create(['name' => 'Система', 'email' => $email, 'password' => Str::random(64)]);
+
+        return $user->id;
     }
 }
