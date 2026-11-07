@@ -11,6 +11,11 @@
 - Интегратор добавил `CI_SCOPE_EXCEPTIONS["SP-E1-10K"]` на `tests/Feature/Seller/Settings/Limits/{DigestTest,NotificationsTest,PersonalDigestTimeTest}.php` и `.env.example`. Правки `config(['runtime.notification_driver' => null])` в этих трёх файлах и строка `NOTIFICATION_DRIVER=fake` в `.env.example` возвращены.
 - Проверено: `php artisan test tests/Feature/Seller/Settings/Limits/DigestTest.php tests/Feature/Seller/Settings/Limits/NotificationsTest.php tests/Feature/Seller/Settings/Limits/PersonalDigestTimeTest.php` — 25 тестов зелёных. Дополнительно `tests/Feature/Seller/Channels` целиком — 75 зелёных, без регрессий.
 
+## Доработка 07.11.2026 (повторная, по review CI ShellCore)
+- `OutboxDeferralTest::test_deferred_does_not_block_permitted_external_delivery_or_retry_uncertain` явно тестирует внешнюю доставку (`external_delivery=true`), для которой `ExternalDelivery` всегда пропускает отправку при `notification_driver=fake` (пред. поведение, не менялось) — добавлен `config(['runtime.notification_driver' => null])` внутри теста, чтобы вернуть прежний не-fake путь именно для этого сценария.
+- `ProfileFeatureGateTest::test_migration_record_restoration_enables_profile_without_false_email_or_digest` ожидал `timingAvailable=false` как побочный эффект старого default (без fake); сам `draftReady` в сценарии истинный и не связан с удаляемой в тесте миграцией — ожидание исправлено на `true`.
+- Проверено: `./vendor/bin/pint --test` по обоим файлам — чисто. Прогнать сами тесты на слоте exec-2 не удаётся (см. «Техдолг» — `IsolatedDatabaseMigrations` недоступен); логика проверена по коду `ExternalDelivery::send` и `NotificationTimingDrafts::ready`.
+
 ## Техдолг
 - На слоте exec-2 тесты с `IsolatedDatabaseMigrations` (в т.ч. `ProfileFeatureGateTest`, `OutboxDeferralTest`, race-группа) падают с «A dedicated, nonprivileged test database owner is required» — проблема окружения слота, не связана с этой задачей; воспроизводится и без моих правок.
 - Старые outbox-события без снимка подписок по-прежнему не доставляются автоматическим вебхукам (известно по SP-E1-10J).
