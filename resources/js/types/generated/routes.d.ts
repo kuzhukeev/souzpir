@@ -551,6 +551,7 @@ declare module 'ziggy-js' {
     "widget.session.start": [],
     "widget.message.preflight": [],
     "widget.message.store": [],
+    "widget.messages": [],
     "widget.config": [],
     "seller.api.failures": [],
     "seller.api.settings": [],
