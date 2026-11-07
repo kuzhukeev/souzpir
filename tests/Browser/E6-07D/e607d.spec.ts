@@ -9,6 +9,7 @@ test.afterAll(async()=>{await server?.close();});
 test('режим бота: пояснение про переопределение каналом',async({page})=>{
  await page.goto(base+'schedule.html');
  await expect(page.getByText('Каналы могут переопределять общий режим модуля.')).toBeVisible();
+ await expect(page.getByLabel('Telegram')).toHaveValue('autonomous');
  await mkdir('.local/screenshots/SP-E6-07D',{recursive:true});
  await page.screenshot({path:'.local/screenshots/SP-E6-07D/schedule.png',fullPage:true});
 });

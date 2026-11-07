@@ -51,7 +51,7 @@ final class ApiFollowupRuntime
                 throw new LogicException('API follow-up unavailable.');
             }
             $schedule = app(BrandRuntimeSchedule::class);
-            $mode = $schedule->mode($tenant, $schedule->settings($tenant), CarbonImmutable::now());
+            $mode = $schedule->mode($tenant, $schedule->settings($tenant), CarbonImmutable::now(), 'api');
             if ($conversation->mode === 'manager' || $mode === 'off') {
                 return ['legacy' => true];
             }

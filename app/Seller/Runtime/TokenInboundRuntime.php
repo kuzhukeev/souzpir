@@ -50,7 +50,7 @@ final class TokenInboundRuntime
                 }
                 $schedule = app(BrandRuntimeSchedule::class);
                 $settings = $schedule->settings($tenant);
-                $scheduleMode = $schedule->mode($tenant, $settings, CarbonImmutable::now());
+                $scheduleMode = $schedule->mode($tenant, $settings, CarbonImmutable::now(), 'api');
                 $mode = $conversation->mode;
                 if ($mode === 'manager') {
                     $schedule->assignWaiting($tenant, $conversationId, $settings);

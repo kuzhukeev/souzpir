@@ -37,7 +37,7 @@ final class ScheduleController
         $raw = DB::table('seller_schedule_preferences')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->value('payload');
         $data = $raw ? json_decode($raw, true) : [];
 
-        return array_replace(['mode' => 'autonomous', 'week' => [], 'holidays' => [], 'assignment' => ['method' => 'first_taken', 'fixed' => null, 'members' => [], 'notify_minutes' => null, 'notify_target' => 'all_managers']], is_array($data) ? $data : []);
+        return array_replace(['mode' => 'autonomous', 'week' => [], 'holidays' => [], 'channel_overrides' => [], 'assignment' => ['method' => 'first_taken', 'fixed' => null, 'members' => [], 'notify_minutes' => null, 'notify_target' => 'all_managers']], is_array($data) ? $data : []);
     }
 
     private function save(TenantContext $tenant, array $data): void
@@ -82,7 +82,12 @@ final class ScheduleController
     {
         $input = $request->validate(['mode' => ['required', 'in:autonomous,suggest,off'], 'week' => ['present', 'array'], 'week.*.enabled' => ['required', 'boolean'],
             'week.*.start' => ['required', 'date_format:H:i'], 'week.*.end' => ['required', 'date_format:H:i'], 'week.*.behavior' => ['required', 'in:bot,quiet,off'],
-            'holidays' => ['present', 'array', 'max:100'], 'holidays.*' => ['required', 'date_format:Y-m-d']]);
+            'holidays' => ['present', 'array', 'max:100'], 'holidays.*' => ['required', 'date_format:Y-m-d'],
+            'channel_overrides' => ['sometimes', 'array'], 'channel_overrides.telegram' => ['nullable', 'in:autonomous,suggest,off'],
+            'channel_overrides.api' => ['nullable', 'in:autonomous,suggest,off']]);
+        if (array_key_exists('channel_overrides', $input)) {
+            $input['channel_overrides'] = array_filter($input['channel_overrides'], fn ($mode) => $mode !== null);
+        }
         if ($input['week'] !== [] && count($input['week']) !== 7) {
             throw ValidationException::withMessages(['week' => 'Нужны настройки для семи дней.']);
         }
