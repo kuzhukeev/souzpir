@@ -5,6 +5,7 @@ namespace App\Seller\Runtime;
 use App\ProtectedOperations\PostgresTransactionalIdempotency;
 use App\ProtectedOperations\SellerFollowup\FollowupFinalizer;
 use App\ProtectedOperations\SellerTurnFence;
+use App\Seller\Channels\Api\ApiSourceReceipt;
 use App\Seller\Conversations\CanonicalJson;
 use App\Seller\Conversations\Contracts\ConversationRepository;
 use App\Seller\Conversations\Data\TurnClaim;
@@ -26,16 +27,23 @@ use LogicException;
 /** Token-scoped fake-only API entry to the protected seller follow-up runtime. */
 final class TokenInboundRuntime
 {
-    public function turn(Request $request, TenantContext $tenant, string $conversationId, string $text, string $key): array
+    public function turn(Request $request, TenantContext $tenant, string $conversationId, string $text, string $key, ?string $source = null): array
     {
         $token = $this->authorize($request, $tenant, 'turn');
         $scope = ['organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId];
         if (! DB::table('seller_api_lead_requests')->where($scope)->where('conversation_id', $conversationId)->exists()) {
             abort(404);
         }
-        $payload = json_encode(['conversation_id' => $conversationId, 'text' => $text, 'token_id' => (string) $token->id], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+        $input = ['conversation_id' => $conversationId, 'text' => $text, 'token_id' => (string) $token->id];
+        if ($source !== null) {
+            if (! in_array($source, ['site', 'crm'], true)) {
+                throw new LogicException('Invalid API source.');
+            }
+            $input['source'] = $source;
+        }
+        $payload = json_encode($input, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
 
-        return app(PostgresTransactionalIdempotency::class)->execute($tenant->organizationId, $tenant->brandId, 'seller.api.turn', $key, $payload,
+        $result = app(PostgresTransactionalIdempotency::class)->execute($tenant->organizationId, $tenant->brandId, 'seller.api.turn', $key, $payload,
             function () use ($tenant, $scope, $conversationId, $text, $key): array {
                 $conversation = DB::table('conversations')->where($scope)->where('id', $conversationId)->lockForUpdate()->first();
                 if (! $conversation || ! in_array($conversation->mode, ['bot', 'manager', 'suggest'], true) || in_array($conversation->stage, ['done', 'lost', 'spam'], true)
@@ -82,6 +90,17 @@ final class TokenInboundRuntime
 
                 return ['conversation_id' => $conversationId, 'message_id' => $replyId, 'reply' => $reply, 'version' => $outcome['result']['version']];
             });
+        if ($source !== null) {
+            $digest = hash_hmac('sha256', "protected-operation-key-v1\0".$key, (string) config('app.key'));
+            $receiptId = DB::table('protected_operation_receipts')->where($scope)->where('operation', 'seller.api.turn')
+                ->where('key_digest', $digest)->value('id');
+            if (! is_string($receiptId)) {
+                throw new LogicException('API turn receipt unavailable.');
+            }
+            app(ApiSourceReceipt::class)->save($tenant->organizationId, $tenant->brandId, $receiptId, $source);
+        }
+
+        return $result;
     }
 
     private function authorize(Request $request, TenantContext $tenant, string $ability): BrandAccessToken
