@@ -1791,3 +1791,5 @@ SP-E1-08B ожидает SP-E1-08: оба меняют профиль, а исх
 - SP-E1-10K: runtime.notification_driver по умолчанию fake везде, где не задан NOTIFICATION_DRIVER (тихие часы, сводка S-7.1 и напоминания D-10.3 работают в fake-режиме); боевой драйвер включается только явной переменной окружения. Тесты внешней доставки (OutboxDeferralTest, ExternalDigestTest, Limits/*) явно выставляют notification_driver=null.
 
 - SP-L1-08: .env.production.example — AI_DRIVER=fake (карточка просила openrouter): живые драйверы включаются оператором по runbook docs/release/prod-runbook.md; схема Caddy с собственным TLS и php_fastcgi без доверия клиентским forwarding-заголовкам выбрана основной, TRUSTED_PROXIES пусто; SESSION/CACHE/QUEUE=database на проде.
+
+- SP-E6-06E: «Фиксированный менеджер» остаётся единым менеджером на весь бренд (как в SP-E6-06B/C), не per-канал; «Если никто не взял» — поля notify_minutes/notify_target хранятся, реальная отправка уведомления по таймеру и фразы вне часов — остаток карточки (runtime).
