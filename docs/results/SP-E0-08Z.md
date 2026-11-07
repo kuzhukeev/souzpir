@@ -2,16 +2,17 @@
 
 - E7-06D: заголовок «Как бот это скажет» появляется только при сохранённом примере; генерация и состояние без примера сохранены. Селектор поля факта уточнён по доступной подписи.
 - E8-22C: видимость «до → после» отображается вместе; реальные даты показываются отдельно только при их наличии. Проверены сохранённый пример, даты и пустое состояние.
+- E4-02C: при смене темы показано, что новые правила применятся после сохранения; правила выбранной темы загружаются в поля без переноса старых. При возврате восстанавливаются исходные значения.
 - Серверный путь факта проверен до и после создания fake-примера; эффект читает данные текущего бренда, проверяет право и сопоставимость замеров.
 
 ## Проверки
-- Playwright E7-06D и E8-22C: 8 тестов успешно; TypeScript, ESLint.
+- Playwright E7-06D и E8-22C: 8 тестов успешно; E4-02C: 1 тест успешно, включая смену темы, условий и ошибку сети; TypeScript, ESLint.
 - PHPUnit: 12 тестов, 274 утверждения — права, бренд, ошибки и отсутствие внешних запросов.
-- Скриншоты: .local/screenshots/SP-E7-06D/fact.png и .local/screenshots/SP-E8-22C/history-sources.png, 1440.
+- Скриншоты: .local/screenshots/SP-E7-06D/fact.png и .local/screenshots/SP-E8-22C/history-sources.png и .local/screenshots/SP-E4-02C/card.png, 1440.
 
 ## Остаток
 - Шард 1: E1-01/invitation-safety (2), E6-08D/catalog.
-- Шард 2: E4-02C/comparison, E4-06E/imports (2), E4-06H/preview, E4-06L/preview (2), E4-08/fewshot-more, E4-08D/fewshot (2), E4-10C/fewshot, E4-10E/sandbox, E5-01G/channels, E5-01I/channels, E5-07B/preview, E5-07C/preview.
+- Шард 2: E4-06E/imports (2), E4-06H/preview, E4-06L/preview (2), E4-08/fewshot-more, E4-08D/fewshot (2), E4-10C/fewshot, E4-10E/sandbox, E5-01G/channels, E5-01I/channels, E5-07B/preview, E5-07C/preview.
 - Шард 3: E6-09D/crm, E7-04/details, E7-04D/analytics, E7-04N/subscription, E8-05/report, E8-14/quiz, E8-14B/facts.
 - Шард 4: E8-16I/measurements, E8-16U/header, E8-19/report, E8-19C/D/E/public, E8-21D/E/F/G/M/N/site. Статус каждого пункта следует сверить с актуальным main.
 

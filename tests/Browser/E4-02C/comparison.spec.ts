@@ -15,6 +15,11 @@ test('сравнивает опубликованный текст с редак
   await expect(page.getByText('Правила выбранной темы появятся после сохранения.')).toBeVisible();
   await expect(page.getByText('Нельзя говорить: Не обещать срок')).toHaveCount(0);
   await expect(page.getByText('Вопрос об оплате')).toBeVisible();
+  await page.getByLabel('Тема', { exact: true }).selectOption('delivery');
+  await expect(page.getByText('Правила выбранной темы появятся после сохранения.')).toHaveCount(0);
+  await expect(page.getByLabel('Чего нельзя говорить рядом')).toHaveValue('Не обещать срок');
+  await page.getByLabel('Тема', { exact: true }).selectOption('payment');
+  await expect(page.getByLabel('Чего нельзя говорить рядом')).toHaveValue('');
   await page.getByLabel('Добавить условие').selectOption('min_order_rub');
   await expect(field).toHaveValue(/\{cond:min_order_rub\}/);
   await page.getByRole('button', { name: 'Убрать условие Минимальный заказ' }).click();
