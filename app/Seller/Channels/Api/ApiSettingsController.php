@@ -31,8 +31,17 @@ final class ApiSettingsController
     {
         $data = $this->access($request, function (User $user, TenantContext $tenant): array {
             $mapping = DB::table('seller_api_settings')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->value('mapping');
-            $logs = DB::table('seller_api_lead_requests')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
-                ->orderByDesc('created_at')->limit(20)->get(['id', 'endpoint', 'status', 'created_at']);
+            $scope = ['organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId];
+            $successes = DB::table('seller_api_lead_requests')->where($scope)->orderByDesc('created_at')->limit(20)
+                ->get(['id', 'endpoint', 'created_at'])->map(fn ($row) => ['id' => $row->id, 'endpoint' => $row->endpoint,
+                    'status' => 'success', 'error' => null, 'created_at' => $row->created_at]);
+            $turns = DB::table('protected_operation_receipts')->where($scope)->where('operation', 'seller.api.turn')->whereNotNull('result_ciphertext')
+                ->orderByDesc('created_at')->limit(20)->get(['id', 'created_at'])->map(fn ($row) => ['id' => $row->id, 'endpoint' => 'turn',
+                    'status' => 'success', 'error' => null, 'created_at' => $row->created_at]);
+            $failures = DB::table('seller_api_request_failures')->where($scope)->orderByDesc('created_at')->limit(20)
+                ->get(['id', 'endpoint', 'http_status', 'created_at'])->map(fn ($row) => ['id' => $row->id, 'endpoint' => $row->endpoint,
+                    'status' => 'error', 'error' => 'HTTP '.(int) $row->http_status, 'created_at' => $row->created_at]);
+            $logs = $successes->concat($turns)->concat($failures)->sortByDesc('created_at')->take(20)->values()->all();
 
             return ['mapping' => $mapping ? json_decode($mapping, true) : LeadIngressController::DEFAULT_MAPPING, 'logs' => $logs];
         });
