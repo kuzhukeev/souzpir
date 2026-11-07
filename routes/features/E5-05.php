@@ -10,6 +10,7 @@ return ['web' => static function (): void {
         Route::post('/seller/customers/{contact}/manager', [CustomersController::class, 'assign'])->name('seller.customers.manager');
         Route::post('/seller/customers/{contact}/notes', [CustomersController::class, 'note'])->name('seller.customers.notes.store');
         Route::post('/seller/customers/{contact}/reminders', [CustomersController::class, 'remind'])->name('seller.customers.reminders.store');
+        Route::post('/seller/customers/{contact}/consent', [CustomersController::class, 'consent'])->name('seller.customers.consent');
         Route::get('/seller/tasks', [CustomersController::class, 'tasks'])->name('seller.customers.tasks');
         Route::patch('/seller/customer-tasks/{task}', [CustomersController::class, 'updateTask'])->name('seller.customers.tasks.update');
     });

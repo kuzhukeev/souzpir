@@ -653,6 +653,12 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "seller.customers.consent": [
+        {
+            "name": "contact",
+            "required": true
+        }
+    ],
     "seller.customers.tasks": [],
     "seller.customers.tasks.update": [
         {
