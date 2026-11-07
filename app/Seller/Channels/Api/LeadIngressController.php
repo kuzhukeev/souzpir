@@ -32,13 +32,17 @@ final class LeadIngressController
         if (! is_string($key) || ! preg_match('/^[A-Za-z0-9_.:-]{1,128}$/D', $key)) {
             throw ValidationException::withMessages(['Idempotency-Key' => 'Укажите корректный ключ идемпотентности.']);
         }
-        $input = $request->validate(['fields' => ['required', 'array', 'min:1', 'max:50'], 'fields.*' => ['nullable', 'string', 'max:500'], 'action' => ['sometimes', 'in:card_only,open']]);
+        $input = $request->validate(['fields' => ['required', 'array', 'min:1', 'max:50'], 'fields.*' => ['nullable', 'string', 'max:500'], 'action' => ['sometimes', 'in:card_only,open'], 'source' => ['sometimes', 'in:site,crm']]);
         foreach (array_keys($input['fields']) as $field) {
             if (! is_string($field) || ! preg_match('/^[A-Za-z0-9_-]{1,64}$/D', $field)) {
                 throw ValidationException::withMessages(['fields' => 'Недопустимое имя поля.']);
             }
         }
-        $hash = CanonicalJson::hash(['fields' => $input['fields'], 'action' => $input['action'] ?? 'card_only']);
+        $hashInput = ['fields' => $input['fields'], 'action' => $input['action'] ?? 'card_only'];
+        if (isset($input['source'])) {
+            $hashInput['source'] = $input['source'];
+        }
+        $hash = CanonicalJson::hash($hashInput);
         $existing = DB::table('seller_api_lead_requests')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
             ->where('endpoint', 'leads')->where('idempotency_key', $key)->first();
         if ($existing) {
@@ -77,6 +81,9 @@ final class LeadIngressController
         DB::table('seller_api_lead_requests')->insert(['id' => $id, 'organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId,
             'endpoint' => 'leads', 'idempotency_key' => $key, 'request_hash' => $hash, 'contact_id' => $contact, 'conversation_id' => $conversation,
             'status' => 'created', 'created_at' => now(), 'updated_at' => now()]);
+        if (isset($input['source'])) {
+            app(ApiSourceReceipt::class)->save($tenant->organizationId, $tenant->brandId, $id, $input['source']);
+        }
         app(AuditWriter::class)->record($tenant, new AuditEntry('seller.api.lead.created', 'contact', $contact));
 
         return response()->json(['contact_id' => $contact, 'conversation_id' => $conversation, 'status' => 'created'], 201);
@@ -91,12 +98,12 @@ final class LeadIngressController
         if (! is_string($key) || ! preg_match('/^[A-Za-z0-9_.:-]{1,128}$/D', $key)) {
             throw ValidationException::withMessages(['Idempotency-Key' => 'Укажите корректный ключ идемпотентности.']);
         }
-        $input = $request->validate(['conversation_id' => ['required', 'ulid'], 'text' => ['required', 'string', 'max:5000']]);
+        $input = $request->validate(['conversation_id' => ['required', 'ulid'], 'text' => ['required', 'string', 'max:5000'], 'source' => ['sometimes', 'in:site,crm']]);
         if (trim($input['text']) === '') {
             throw ValidationException::withMessages(['text' => 'Введите сообщение.']);
         }
         try {
-            return response()->json(app(TokenInboundRuntime::class)->turn($request, $tenant, $input['conversation_id'], $input['text'], $key));
+            return response()->json(app(TokenInboundRuntime::class)->turn($request, $tenant, $input['conversation_id'], $input['text'], $key, $input['source'] ?? null));
         } catch (IdempotencyConflict) {
             return response()->json(['message' => 'Ключ уже использован для другого запроса.'], 409);
         } catch (IdempotencyFailure|\LogicException) {

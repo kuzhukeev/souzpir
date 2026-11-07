@@ -41,7 +41,9 @@ final class ApiSettingsController
             $failures = DB::table('seller_api_request_failures')->where($scope)->orderByDesc('created_at')->limit(20)
                 ->get(['id', 'endpoint', 'http_status', 'created_at'])->map(fn ($row) => ['id' => $row->id, 'endpoint' => $row->endpoint,
                     'status' => 'error', 'error' => 'HTTP '.(int) $row->http_status, 'created_at' => $row->created_at]);
-            $logs = $successes->concat($turns)->concat($failures)->sortByDesc('created_at')->take(20)->values()->all();
+            $logs = $successes->concat($turns)->concat($failures)->sortByDesc('created_at')->take(20)->values();
+            $sources = app(ApiSourceReceipt::class)->forEvents($tenant->organizationId, $tenant->brandId, $logs->pluck('id')->all());
+            $logs = $logs->map(fn ($row) => [...$row, 'source' => $sources[$row['id']] ?? null])->all();
 
             return ['mapping' => $mapping ? json_decode($mapping, true) : LeadIngressController::DEFAULT_MAPPING, 'logs' => $logs];
         });
