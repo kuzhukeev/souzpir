@@ -133,7 +133,7 @@ export default function Show({
                             <span aria-hidden="true" className="absolute top-1 left-1 size-4 rounded-full bg-white" />
                           </button>
                           <span className="font-semibold">{label}</span>
-                          <span className="rounded-full bg-(--color-surface-muted) px-2 py-0.5 text-xs text-(--color-ink-muted)">v2</span>
+                          <span className="rounded-full bg-(--color-surface-muted) px-2 py-0.5 text-[13px] text-(--color-ink-muted)">v2</span>
                         </div>
                         <p className="mt-1 text-sm text-(--color-ink-muted)">Настройка доступа появится в v2</p>
                       </div>
