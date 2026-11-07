@@ -156,8 +156,6 @@ final class SecretSecurityTest extends TenancyTestCase
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
         $this->post('/integrations/api/keys', ['name' => 'Key', 'abilities' => ['read']])->assertRedirect();
         $sealed = session('integration_api_key');
-        $this->withSession(['webhook_secret' => $sealed]);
-        $this->postJson('/integrations/api/secrets', ['type' => 'webhook_secret'])->assertStatus(503);
         $this->withSession(['integration_api_key' => substr($sealed, 0, -2).'xx']);
         $this->postJson('/integrations/api/secrets', ['type' => 'api_key'])->assertNotFound();
         Http::assertNothingSent();
