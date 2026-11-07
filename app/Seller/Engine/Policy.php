@@ -104,6 +104,7 @@ class Policy
                 $s->resetCounter('unknown_insist');
             }
             $s->setSignal('last_unknown_topic', $topic);
+            $s->addUnknownQuestion($x['unknown_question']);
         }
 
         // снятие spam при возврате к теме
