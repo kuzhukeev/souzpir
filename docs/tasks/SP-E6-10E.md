@@ -17,3 +17,13 @@
 - D-3.2: axe `definition-list` на 1440/1024/390 — в `Show.tsx` внутри `<dl><div>` лежит `<p>` (история заполнения); внутри группы оставить только `dt`/`dd`, пояснение вынести в `dd`.
 - D-5.1: axe `scrollable-region-focusable` на 1024/390 — у контейнеров `overflow-x-auto` в `resources/js/pages/Seller/Settings/Policy/Fields.tsx` нет фокуса: `tabIndex={0}`, `role="region"`, `aria-label`.
 - Проверка: Playwright `tests/Browser/E6-10E/` с axe по трём экранам на 1440/1024/390. Остальные пункты карточки закрыты, scope сужен до этих файлов.
+
+
+
+## Остаток 08.11.2026 (аудит экранов, планировщик)
+- D-5.1 (макет `mockups D-5.1`, fields-v2): в таблице «Поля сценария» колонка «Допустимые значения» — чипы реальных значений поля (для списка), а не текст «Список текстовых значений»; если значений нет — «—».
+- D-5.1: колонка «Обязательно для стадии» — подпись реальной стадии из опубликованных настроек (`required_stage`), проверить на данных, где стадия задана; «—» только при отсутствии.
+- D-5.1: серая ручка перетаскивания слева у строки (только визуально, v2, `aria-hidden`), бейдж «v2» у заголовка и плашка «Макет v2: редактирование станет доступно после доработки» по макету — без включения редактирования.
+- Проверка: Feature-тест значений/стадии в пропсах (права, изоляция бренда), Playwright `tests/Browser/E6-10E/` с axe на 1440/1024/390. Scope сужен до этих файлов.
+
+Scope: `resources/js/pages/Seller/Settings/Policy/Fields.tsx`, `app/Seller/Settings/Policy/PolicySettingsController.php`, `tests/Feature/Seller/Settings/Policy/ClientFieldsE610Test.php`, `tests/Browser/E6-10E/`, `docs/results/SP-E6-10E.md`.
