@@ -5,7 +5,7 @@ import '../../../resources/css/app.css';
 import '../../../resources/css/themes/tokens.css';
 const rows = {
   data: [
-    { id: 'n1', created_at: '2026-11-01T11:00:00Z', channel: 'telegram', status: 'pending', recipient: 'Иван Петров', title: 'Контакт получен', attempts: 0 },
+    { id: 'n1', created_at: '2026-11-01T11:00:00Z', channel: 'telegram', status: 'deferred', recipient: 'Иван Петров', title: 'Контакт получен', attempts: 0 },
     { id: 'n2', created_at: '2026-11-01T12:30:00Z', channel: 'email', status: 'failed', recipient: 'Анна Смирнова', title: 'Замер готов', attempts: 1 },
     { id: 'n3', created_at: '2026-11-01T14:02:00Z', channel: 'cabinet', status: 'sent', recipient: 'Иван Петров', title: 'Передача менеджеру', attempts: 1 },
   ],

@@ -12,7 +12,7 @@ type Row = {
   id: string;
   created_at: string;
   channel: 'cabinet' | 'email' | 'telegram';
-  status: 'pending' | 'sending' | 'sent' | 'failed' | 'uncertain';
+  status: 'pending' | 'deferred' | 'sending' | 'sent' | 'failed' | 'uncertain';
   recipient: string | null;
   title: string;
   attempts: number;
@@ -20,7 +20,8 @@ type Row = {
 type Props = { rows: Page<Row>; filters: Filters };
 const channels = { cabinet: 'В кабинете', email: 'Email', telegram: 'Telegram' };
 const statuses = {
-  pending: 'Отложено',
+  pending: 'В очереди',
+  deferred: 'Отложено',
   sending: 'Отправляется',
   sent: 'Доставлено',
   failed: 'Ошибка',
@@ -146,7 +147,7 @@ export default function Notifications({ rows, filters }: Props) {
                           ? 'success'
                           : row.status === 'failed'
                             ? 'danger'
-                            : row.status === 'uncertain' || row.status === 'pending'
+                            : row.status === 'uncertain' || row.status === 'deferred'
                               ? 'warning'
                               : 'info'
                       }
