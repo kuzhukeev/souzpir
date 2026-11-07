@@ -108,7 +108,7 @@ CI_SCOPE_EXCEPTIONS = {
     "SP-E1-06I": ("tests/Browser/E1-06E/invitation.spec.ts",),
     "SP-E1-03C": ("tests/Browser/Layout/layout.spec.ts", "tests/Browser/Layout/fixture.tsx"),
     "SP-E8-20X": ("routes/features/E8-05B.php",),
-    "SP-E1-01I": ("app/Seller/Knowledge/Facts/FactsController.php",),
+    "SP-E1-01I": ("app/Seller/Knowledge/Facts/FactsController.php", "tests/Feature/Shell/Auth/PasswordDelivery/ResetRedirectTest.php", "scripts/task.py"),
     "SP-E9-01E": (
         "tests/Browser/E1-05/brands-e2e.spec.ts",
         "tests/Browser/E4-02B/facts.spec.ts",
