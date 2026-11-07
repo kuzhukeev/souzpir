@@ -310,6 +310,10 @@ class Policy
         // закрытая тема
         if (! empty($x['closed_topic']) || $intent === 'closed_topic') {
             $entry = $this->closedTopic($x['closed_topic'] ?? null);
+            // D-4.9 «Что дальше»: return — закрыть тему и вести диалог дальше (по умолчанию); handoff — передать менеджеру.
+            if (is_array($entry) && ($entry['next'] ?? 'return') === 'handoff') {
+                return $this->handoffGoal($s, ['id' => 'closed_topic', 'message_idea' => $entry['idea'] ?? '']);
+            }
             $streak = $s->counter('closed_topic_streak');
             $slot = $streak >= 2 ? null : $this->nextSlot($s);
 
