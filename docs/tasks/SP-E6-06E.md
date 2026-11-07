@@ -17,9 +17,5 @@ Scope: `app/Seller/Settings/Schedule/`, `app/Seller/Conversations/`, `resources/
 
 Дополнительный scope: `app/Seller/Runtime/BrandRuntimeSchedule.php`, `app/Seller/Settings/Tools/MonitorHandoffs.php`, `tests/Browser/E6-06D/`, `tests/Feature/Seller/Runtime/`.
 
-## Остаток 07.11.2026 22:10 (после слияния wiring и таймера)
-- Влито: рабочие часы/каналы менеджеров ограничивают `assignWaiting`; таймер «никто не взял» через `MonitorHandoffs::monitorUnassigned()`; browser-тест E6-06D обновлён.
-- Осталось: доставка фразы вне часов клиенту — в `FirstInboundRuntime::suppressManagerTurn` при подавлении хода по расписанию/лимиту вернуть клиенту `BrandRuntimeSchedule::fallbackPhrase()` (текст в outcome/reply подавленного хода, как сообщение бота в диалоге); без живых отправок. Feature-тест в `tests/Feature/Seller/Runtime/`. Подпись на D-11.1 «автоматическая отправка фразы вне часов пока не подключена» заменить на фактическое поведение.
-- `WidgetInboundRuntime.php` занят SP-L1-09 — не трогать.
-
-Scope остатка: `app/Seller/Runtime/FirstInboundRuntime.php`, `app/Seller/Runtime/BrandRuntimeSchedule.php`, `tests/Feature/Seller/Runtime/`, `resources/js/pages/Seller/Settings/Schedule/`, `tests/Browser/E6-06E/`, `docs/results/SP-E6-06E.md`.
+## Остаток 07.11.2026 22:10
+- Доставка фразы вне часов клиенту (`FirstInboundRuntime::suppressManagerTurn` → `BrandRuntimeSchedule::fallbackPhrase()`, подпись D-11.1) передана в SP-E6-07D, где та же правка нужна для хендоффа по лимиту. Карточка закрыта.

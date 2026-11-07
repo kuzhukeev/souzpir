@@ -9,3 +9,11 @@
 - Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.
 
 Scope: `app/Vision/Actions/`, `resources/js/pages/Vision/Reports/`, `tests/Feature/Vision/Site/`, `tests/Browser/E8-22G/`, `docs/results/SP-E8-22G.md`.
+
+## Остаток 07.11.2026 22:30 (аудит экранов, V-9.1 «Действия: список», `mockups V-9.1`)
+- Приоритет и шаги действий нигде не формируются: заполнять `priority` и `steps` при создании действия из рекомендации отчёта (`app/Vision/Actions/`, детерминированно из данных рекомендации: тип/влияние → приоритет, типовые шаги по типу действия; не выдумывать внешние данные).
+- В списке (`resources/js/features/Vision/Site/Actions.tsx`): номер карточки; «Поможет ответить на N вопросов» вместо сырых ID; «Ожидается эффект после следующего замера» с датой следующего замера (если расписание есть) в карточке, а не только тостом.
+- Проверить, что публичный отчёт (V-5.10, «Три действия») начинает показывать приоритет и шаги из тех же полей; если нужна правка `app/Vision/Publications/` — пункт «Нужно от интегратора».
+- Feature-тесты в `tests/Feature/Vision/Site/`, browser в `tests/Browser/E8-22G/`. Права, бренд.
+
+Scope уточнён: `app/Vision/Actions/`, `resources/js/features/Vision/Site/`, `tests/Feature/Vision/Site/`, `tests/Browser/E8-22G/`, `docs/results/SP-E8-22G.md` (страницы отчётов `resources/js/pages/Vision/Reports/` — у SP-E8-18J).
