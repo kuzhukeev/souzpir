@@ -89,4 +89,22 @@ final class ImportExportTest extends TenancyTestCase
         $this->get('/seller/customer-io')->assertForbidden();
         $this->get('/seller/customer-duplicates')->assertForbidden();
     }
+
+    public function test_import_with_consent_column_records_granted_event_with_import_source(): void
+    {
+        Storage::fake('local');
+        [$owner, $org, $brand] = $this->cabinet();
+        $this->enable($org->id, $brand->id);
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $this->post('/seller/customer-io/preview', ['file' => UploadedFile::fake()->createWithContent('clients.csv',
+            "Имя;Почта;Согласие\nБорис;boris@example.test;Да\nВера;vera@example.test;Нет\n")])->assertRedirect();
+        $id = DB::table('seller_contact_imports')->value('id');
+        $this->post('/seller/customer-io/import', ['id' => $id, 'mapping' => ['name' => 0, 'email' => 1, 'consent' => 2]])->assertRedirect();
+        $granted = DB::table('contacts')->where('brand_id', $brand->id)->where('email', 'boris@example.test')->value('id');
+        $declined = DB::table('contacts')->where('brand_id', $brand->id)->where('email', 'vera@example.test')->value('id');
+        $conversation = DB::table('conversations')->where('contact_id', $granted)->value('id');
+        self::assertNotNull($conversation);
+        $this->assertDatabaseHas('seller_followup_consents', ['conversation_id' => $conversation, 'event' => 'granted', 'source' => 'import']);
+        $this->assertDatabaseMissing('conversations', ['contact_id' => $declined]);
+    }
 }
