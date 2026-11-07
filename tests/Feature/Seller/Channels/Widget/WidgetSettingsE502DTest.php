@@ -40,6 +40,26 @@ final class WidgetSettingsE502DTest extends TenancyTestCase
         Http::assertNothingSent();
     }
 
+    public function test_installation_check_uses_first_allowed_site_and_respects_permissions(): void
+    {
+        [$owner, $org, $brand] = $this->cabinet();
+        $this->enable($org->id, $brand->id);
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $this->post('/seller/channels/widget', $this->payload())->assertRedirect();
+        $key = DB::table('widget_settings')->where('brand_id', $brand->id)->value('public_key');
+        Http::fakeSequence('https://example.test')
+            ->push('<script src="http://localhost/widget.js?key='.$key.'&amp;v=1"></script>')
+            ->push('<script src="https://other.test/widget.js?key='.$key.'"></script>')
+            ->push('', 503);
+        $this->post('/seller/channels/widget/check')->assertRedirect()->assertSessionHas('status', 'Код виджета найден на главной странице сайта.');
+        Http::assertSent(fn ($request) => $request->url() === 'https://example.test');
+        self::assertNotNull(DB::table('widget_settings')->where('brand_id', $brand->id)->value('last_seen_at'));
+        $this->post('/seller/channels/widget/check')->assertRedirect()->assertSessionHas('status', 'Код виджета на главной странице не найден.');
+        $this->post('/seller/channels/widget/check')->assertRedirect()->assertSessionHas('status', 'Не удалось проверить сайт: страница недоступна.');
+        [$viewer] = $this->member($org, 'viewer', [$brand->id]);
+        $this->actingAs($viewer)->withSession(['brand_id' => $brand->id])->post('/seller/channels/widget/check')->assertForbidden();
+    }
+
     public function test_invalid_settings_and_viewer_are_rejected(): void
     {
         [$owner, $org, $brand] = $this->cabinet();

@@ -30,7 +30,8 @@ final class WidgetTest extends TenancyTestCase
         $this->post('/seller/channels/widget', $this->input())->assertRedirect();
         $loader = $this->get('/widget.js?key='.$key.'&v=1')->assertOk()->assertHeader('Content-Type', 'application/javascript; charset=utf-8');
         self::assertLessThanOrEqual(20480, strlen(gzencode($loader->getContent(), 9)));
-        $this->withHeader('Origin', 'https://example.test')->getJson('/widget/config?key='.$key)->assertOk()->assertHeader('Access-Control-Allow-Origin', 'https://example.test')->assertJsonPath('appearance.title', 'Связаться');
+        DB::table('brands')->where('id', $brand->id)->update(['timezone' => 'Asia/Vladivostok']);
+        $this->withHeader('Origin', 'https://example.test')->getJson('/widget/config?key='.$key)->assertOk()->assertHeader('Access-Control-Allow-Origin', 'https://example.test')->assertJsonPath('appearance.title', 'Связаться')->assertJsonPath('timezone', 'Asia/Vladivostok');
         $this->assertDatabaseHas('widget_settings', ['brand_id' => $brand->id, 'enabled' => true]);
         self::assertNotNull(DB::table('widget_settings')->where('brand_id', $brand->id)->value('last_seen_at'));
         $this->withHeader('Origin', 'https://wrong.test')->getJson('/widget/config?key='.$key)->assertNotFound();
