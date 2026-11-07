@@ -1,18 +1,5 @@
-# SP-E6-03W · Реакции: сквозные сценарии отказа
 
-**Зачем:** завершить D-5.6 по решению владельца и журналу макетов.
-**Часть чего:** остаток SP-E6-03V, docs/results/SP-E6-03V.md.
-**Зависимости:** SP-E6-03V в done.
 
-Завершить расположение карточек и состояния D-5.6, проверить сквозные fake-сценарии отказа и двух негативных сообщений. Для изменений общих AI-стадий сначала получить решение владельца; не обходить ограничения защищённого runtime.
-
-Scope: `app/Seller/Settings/Policy/`, `app/Seller/Runtime/`, `app/ProtectedOperations/`, `resources/js/pages/Seller/Settings/Policy/`, `tests/Feature/Seller/Runtime/`, `tests/Browser/E6-03W/`, `docs/results/SP-E6-03W.md`.
-
-Приёмка: сценарий, права, бренд, ошибки; только fake вызовы. Остаток записать в docs/results/SP-E6-03W.md.
-
-## Дополнение владельца от 05.11.2026
-- D-5.6, поле «Коротких ответов N».
-
-## Решение владельца 06.11.2026 — общие AI-стадии
-
-Решение владельца 06.11: разрешены только совместимые добавления общих AI-стадий без рефакторинга и без изменения существующего поведения и записанного replay; проверить права, изоляцию брендов и повторы. Только fake AI; живые и платные вызовы выключены. Общий ресурс shared-ai-stages занимает одна карточка до слияния. Прежние ограничения «до решения владельца» считать снятыми в этих границах.
+## Остаток 07.11.2026 23:40 (после приёмки)
+- D-5.6 «Коротких ответов N» (дополнение владельца 05.11): в `app/Seller/Engine/Policy.php` порог `decline_off_topic_second` вынести в `$this->limit('decline_off_topic_second_after', 2)`; поле `decline_off_topic_second_after` в валидацию и сохранение `app/Seller/Settings/Policy/OffTopicController.php` и в форму «Вне темы и негатив» (`resources/js/pages/Seller/Settings/Policy/Index.tsx`); тесты, golden fixtures не менять (дефолт 2).
+- Дополнительный scope: `app/Seller/Engine/Policy.php`, `tests/Unit/Seller/Engine/`.

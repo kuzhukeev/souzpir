@@ -1,15 +1,5 @@
-# SP-E4-04F · Темы: неизвестные вопросы в runtime
 
-**Зачем:** завершить экран тем знаний по решению владельца и журналу макетов.
-**Часть чего:** остаток SP-E4-04E, docs/results/SP-E4-04E.md.
-**Зависимости:** SP-E4-04E в done.
 
-Подключить log_unknown_question и задачу unknown_question через общий диспетчер, стадии последующих ходов и guard-fallback; проверить аналитику и задачи end-to-end на изолированной тестовой БД. Не менять общие AI-стадии без решения владельца.
-
-Scope: `app/Seller/Knowledge/Topics/`, `app/Seller/Runtime/`, `app/Seller/Engine/`, `resources/js/pages/Seller/Knowledge/Topics/`, `tests/Feature/Seller/Knowledge/Topics/`, `tests/Feature/Seller/Runtime/`, `tests/Browser/E4-04F/`, `docs/results/SP-E4-04F.md`.
-
-Приёмка: сценарий, права, бренд, ошибки; только fake вызовы. Остаток записать в docs/results/SP-E4-04F.md.
-
-## Решение владельца 06.11.2026 — общие AI-стадии
-
-Решение владельца 06.11: разрешены только совместимые добавления общих AI-стадий без рефакторинга и без изменения существующего поведения и записанного replay; проверить права, изоляцию брендов и повторы. Только fake AI; живые и платные вызовы выключены. Общий ресурс shared-ai-stages занимает одна карточка до слияния. Прежние ограничения «до решения владельца» считать снятыми в этих границах.
+## Остаток 07.11.2026 23:40 (после приёмки)
+- При `goal->kind === 'unknown_fact'` создавать задачу менеджеру `seller_tasks` (`type='unknown_question'`, `payload.text` с вопросом, `due_at` = конец дня, по образцу `App\Seller\Engine\CreatePromise`) в `FirstTurnTextFinalizer::write()` и `FollowupFinalizer::finishProtectedApi()`; feature-тест, бренд. Файлы финализаторов добавлены в scope; зависимость от SP-E7-04M (она их сейчас правит).
+- Дополнительный scope: `app/ProtectedOperations/FirstTurnTextFinalizer.php`, `app/ProtectedOperations/SellerFollowup/FollowupFinalizer.php`, `tests/Feature/ProtectedOperations/`.

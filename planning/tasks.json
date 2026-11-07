@@ -11735,7 +11735,7 @@
     {
       "taskKey": "SP-E4-10",
       "title": "SP-E4-10 · Знания: остаток фактов, образцов, запретов и песочницы",
-      "description": "# SP-E4-10 · Знания: остаток фактов, образцов, запретов и песочницы\n\n**Зачем:** решение владельца от 03.11.2026 по повторному аудиту 160 экранов закрыть оставшиеся расхождения с макетами; экраны D-4.3, D-4.8, D-4.9, D-4.11.\n**Часть чего:** остаток после открытых задач по этим экранам.\n**Зависимости:** SP-E4-02B, SP-E4-08D, SP-E4-05B, SP-E4-07B, SP-E4-09B, SP-E4-08C (дождаться merge).\n\n- Пути в «Где сейчас» без каталога даны относительно resources/js/pages/Seller/ и app/Seller/.\n- Экран D-4.3 «Факты: список» (остаток после SP-E4-02B; журнал docs/sources/02b_mockup_journal.md [51]): дерево тем со счётчиками; колонки «Условия», «Нельзя», «Мостик». Где сейчас: Knowledge/Facts/Index.tsx:9-17.\n- Экран D-4.8 «Примеры ответов» (остаток после SP-E4-08D; журнал docs/sources/02b_mockup_journal.md [56]): теги-пилюли; лимит длины ползунком, а не выбором; поля «Ситуация» и «Источник». Где сейчас: Knowledge/Fewshot/Index.tsx:15; Knowledge/Fewshot/BadAndDialog.tsx.\n- Экран D-4.9 «Запреты» (остаток после SP-E4-05B; журнал docs/sources/02b_mockup_journal.md [57]): вкладки; добавление и снятие закрытых тем. Где сейчас: Knowledge/Prohibitions/Index.tsx:8.\n- Экран D-4.11 «Песочница» (остаток после SP-E4-07B; журнал docs/sources/02b_mockup_journal.md [59]): пометка «не попадают в статистику» для тестовых диалогов. Где сейчас: Sandbox/Index.tsx:8-9.\n- Каждый пункт покрыт Feature- или Browser-тестом; данные только текущего бренда, проверены права ролей; состояния пусто / загрузка / ошибка как на макете; в отчёте скриншоты каждого экрана рядом с макетом.\n- Без живых и платных внешних вызовов без разрешения владельца; если пункт макета противоречит ТЗ или требует решения владельца, исполнитель не выдумывает, а записывает вопрос в docs/decisions-pending.md и делает остальное.\n\nScope: `app/Seller/Knowledge/Facts/`, `app/Seller/Knowledge/Fewshot/`, `app/Seller/Knowledge/Prohibitions/`, `app/Seller/Sandbox/`, `resources/js/pages/Seller/Knowledge/Facts/`, `resources/js/pages/Seller/Knowledge/Fewshot/`, `resources/js/pages/Seller/Knowledge/Prohibitions/`, `resources/js/pages/Seller/Sandbox/`, `tests/Feature/Seller/Knowledge/Facts/`, `tests/Feature/Seller/Knowledge/Fewshot/`, `tests/Feature/Seller/Knowledge/Prohibitions/`, `tests/Feature/Seller/Sandbox/`, `tests/Browser/E4-10/`, `docs/results/SP-E4-10.md`.\n\nОтчёт: docs/results/SP-E4-10.md; локальные тесты задачи, submit и зелёный CI.\n\n## Дополнение владельца от 05.11.2026\n- D-4.3: статусы «Изменён/Новый»;\n- D-4.8: тег выбором из списка;\n- D-4.9: «Что дальше» работает в runtime.\n",
+      "description": "# SP-E4-10 · Знания: остаток фактов, образцов, запретов и песочницы\n\n**Зачем:** решение владельца от 03.11.2026 по повторному аудиту 160 экранов закрыть оставшиеся расхождения с макетами; экраны D-4.3, D-4.8, D-4.9, D-4.11.\n**Часть чего:** остаток после открытых задач по этим экранам.\n**Зависимости:** SP-E4-02B, SP-E4-08D, SP-E4-05B, SP-E4-07B, SP-E4-09B, SP-E4-08C (дождаться merge).\n\n- Пути в «Где сейчас» без каталога даны относительно resources/js/pages/Seller/ и app/Seller/.\n- Экран D-4.3 «Факты: список» (остаток после SP-E4-02B; журнал docs/sources/02b_mockup_journal.md [51]): дерево тем со счётчиками; колонки «Условия», «Нельзя», «Мостик». Где сейчас: Knowledge/Facts/Index.tsx:9-17.\n- Экран D-4.8 «Примеры ответов» (остаток после SP-E4-08D; журнал docs/sources/02b_mockup_journal.md [56]): теги-пилюли; лимит длины ползунком, а не выбором; поля «Ситуация» и «Источник». Где сейчас: Knowledge/Fewshot/Index.tsx:15; Knowledge/Fewshot/BadAndDialog.tsx.\n- Экран D-4.9 «Запреты» (остаток после SP-E4-05B; журнал docs/sources/02b_mockup_journal.md [57]): вкладки; добавление и снятие закрытых тем. Где сейчас: Knowledge/Prohibitions/Index.tsx:8.\n- Экран D-4.11 «Песочница» (остаток после SP-E4-07B; журнал docs/sources/02b_mockup_journal.md [59]): пометка «не попадают в статистику» для тестовых диалогов. Где сейчас: Sandbox/Index.tsx:8-9.\n- Каждый пункт покрыт Feature- или Browser-тестом; данные только текущего бренда, проверены права ролей; состояния пусто / загрузка / ошибка как на макете; в отчёте скриншоты каждого экрана рядом с макетом.\n- Без живых и платных внешних вызовов без разрешения владельца; если пункт макета противоречит ТЗ или требует решения владельца, исполнитель не выдумывает, а записывает вопрос в docs/decisions-pending.md и делает остальное.\n\nScope: `app/Seller/Knowledge/Facts/`, `app/Seller/Knowledge/Fewshot/`, `app/Seller/Knowledge/Prohibitions/`, `app/Seller/Sandbox/`, `resources/js/pages/Seller/Knowledge/Facts/`, `resources/js/pages/Seller/Knowledge/Fewshot/`, `resources/js/pages/Seller/Knowledge/Prohibitions/`, `resources/js/pages/Seller/Sandbox/`, `tests/Feature/Seller/Knowledge/Facts/`, `tests/Feature/Seller/Knowledge/Fewshot/`, `tests/Feature/Seller/Knowledge/Prohibitions/`, `tests/Feature/Seller/Sandbox/`, `tests/Browser/E4-10/`, `docs/results/SP-E4-10.md`.\n\nОтчёт: docs/results/SP-E4-10.md; локальные тесты задачи, submit и зелёный CI.\n\n## Дополнение владельца от 05.11.2026\n- D-4.3: статусы «Изменён/Новый»;\n- D-4.8: тег выбором из списка;\n- D-4.9: «Что дальше» работает в runtime.\n\n## Остаток 07.11.2026 23:40 (реестр docs/release/2026-11-09-remaining.md, интегратор)\n- D-4.8 Образцы: тег и тип клиента показывать подписями (русские названия), а не внутренними кодами.\n- D-4.7 Темы: при существующем черновике без темы подсказка не должна предлагать создать черновик (ведёт к существующему).\n- Остальные пункты карточки закрыты ранее; тесты, права, бренд.\n- Дополнительный scope: `app/Seller/Knowledge/Topics/`, `resources/js/pages/Seller/Knowledge/Topics/`, `tests/Feature/Seller/Knowledge/Topics/`.\n",
       "goal": "Знания: остаток фактов, образцов, запретов и песочницы",
       "dependsOn": [
         "SP-E4-02B",
@@ -11759,7 +11759,10 @@
         "tests/Feature/Seller/Knowledge/Prohibitions/",
         "tests/Feature/Seller/Sandbox/",
         "tests/Browser/E4-10/",
-        "docs/results/SP-E4-10.md"
+        "docs/results/SP-E4-10.md",
+        "app/Seller/Knowledge/Topics/",
+        "resources/js/pages/Seller/Knowledge/Topics/",
+        "tests/Feature/Seller/Knowledge/Topics/"
       ],
       "exclusiveResources": [],
       "acceptance": [
@@ -17457,7 +17460,8 @@
       "title": "SP-E4-04F · Темы: неизвестные вопросы в runtime",
       "goal": "Подключить log_unknown_question и задачу unknown_question через общий диспетчер, стадии последующих ходов и guard-fallback; проверить аналитику и задачи end-to-end на изолированной тестовой БД. Не менять общие AI-стадии без решения владельца.",
       "dependsOn": [
-        "SP-E4-04E"
+        "SP-E4-04E",
+        "SP-E7-04M"
       ],
       "scope": [
         "app/Seller/Knowledge/Topics/",
@@ -17467,7 +17471,10 @@
         "tests/Feature/Seller/Knowledge/Topics/",
         "tests/Feature/Seller/Runtime/",
         "tests/Browser/E4-04F/",
-        "docs/results/SP-E4-04F.md"
+        "docs/results/SP-E4-04F.md",
+        "app/ProtectedOperations/FirstTurnTextFinalizer.php",
+        "app/ProtectedOperations/SellerFollowup/FollowupFinalizer.php",
+        "tests/Feature/ProtectedOperations/"
       ],
       "exclusiveResources": [],
       "acceptance": [
@@ -17488,7 +17495,7 @@
       ],
       "promptPath": "docs/tasks/SP-E4-04F.md",
       "wave": 18,
-      "description": "# SP-E4-04F · Темы: неизвестные вопросы в runtime\n\n**Зачем:** завершить экран тем знаний по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E4-04E, docs/results/SP-E4-04E.md.\n**Зависимости:** SP-E4-04E в done.\n\nПодключить log_unknown_question и задачу unknown_question через общий диспетчер, стадии последующих ходов и guard-fallback; проверить аналитику и задачи end-to-end на изолированной тестовой БД. Не менять общие AI-стадии без решения владельца.\n\nScope: `app/Seller/Knowledge/Topics/`, `app/Seller/Runtime/`, `app/Seller/Engine/`, `resources/js/pages/Seller/Knowledge/Topics/`, `tests/Feature/Seller/Knowledge/Topics/`, `tests/Feature/Seller/Runtime/`, `tests/Browser/E4-04F/`, `docs/results/SP-E4-04F.md`.\n\nПриёмка: сценарий, права, бренд, ошибки; только fake вызовы. Остаток записать в docs/results/SP-E4-04F.md.\n\n## Решение владельца 06.11.2026 — общие AI-стадии\n\nРешение владельца 06.11: разрешены только совместимые добавления общих AI-стадий без рефакторинга и без изменения существующего поведения и записанного replay; проверить права, изоляцию брендов и повторы. Только fake AI; живые и платные вызовы выключены. Общий ресурс shared-ai-stages занимает одна карточка до слияния. Прежние ограничения «до решения владельца» считать снятыми в этих границах.\n"
+      "description": "# SP-E4-04F · Темы: неизвестные вопросы в runtime\n\n**Зачем:** завершить экран тем знаний по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E4-04E, docs/results/SP-E4-04E.md.\n**Зависимости:** SP-E4-04E в done.\n\nПодключить log_unknown_question и задачу unknown_question через общий диспетчер, стадии последующих ходов и guard-fallback; проверить аналитику и задачи end-to-end на изолированной тестовой БД. Не менять общие AI-стадии без решения владельца.\n\nScope: `app/Seller/Knowledge/Topics/`, `app/Seller/Runtime/`, `app/Seller/Engine/`, `resources/js/pages/Seller/Knowledge/Topics/`, `tests/Feature/Seller/Knowledge/Topics/`, `tests/Feature/Seller/Runtime/`, `tests/Browser/E4-04F/`, `docs/results/SP-E4-04F.md`.\n\nПриёмка: сценарий, права, бренд, ошибки; только fake вызовы. Остаток записать в docs/results/SP-E4-04F.md.\n\n## Решение владельца 06.11.2026 — общие AI-стадии\n\nРешение владельца 06.11: разрешены только совместимые добавления общих AI-стадий без рефакторинга и без изменения существующего поведения и записанного replay; проверить права, изоляцию брендов и повторы. Только fake AI; живые и платные вызовы выключены. Общий ресурс shared-ai-stages занимает одна карточка до слияния. Прежние ограничения «до решения владельца» считать снятыми в этих границах.\n\n## Остаток 07.11.2026 23:40 (после приёмки)\n- При `goal->kind === 'unknown_fact'` создавать задачу менеджеру `seller_tasks` (`type='unknown_question'`, `payload.text` с вопросом, `due_at` = конец дня, по образцу `App\\Seller\\Engine\\CreatePromise`) в `FirstTurnTextFinalizer::write()` и `FollowupFinalizer::finishProtectedApi()`; feature-тест, бренд. Файлы финализаторов добавлены в scope; зависимость от SP-E7-04M (она их сейчас правит).\n- Дополнительный scope: `app/ProtectedOperations/FirstTurnTextFinalizer.php`, `app/ProtectedOperations/SellerFollowup/FollowupFinalizer.php`, `tests/Feature/ProtectedOperations/`.\n"
     },
     {
       "taskKey": "SP-E7-01I",
@@ -17682,7 +17689,7 @@
     {
       "taskKey": "SP-E6-03W",
       "title": "SP-E6-03W · Реакции: сквозные сценарии отказа",
-      "description": "# SP-E6-03W · Реакции: сквозные сценарии отказа\n\n**Зачем:** завершить D-5.6 по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E6-03V, docs/results/SP-E6-03V.md.\n**Зависимости:** SP-E6-03V в done.\n\nЗавершить расположение карточек и состояния D-5.6, проверить сквозные fake-сценарии отказа и двух негативных сообщений. Для изменений общих AI-стадий сначала получить решение владельца; не обходить ограничения защищённого runtime.\n\nScope: `app/Seller/Settings/Policy/`, `app/Seller/Runtime/`, `app/ProtectedOperations/`, `resources/js/pages/Seller/Settings/Policy/`, `tests/Feature/Seller/Runtime/`, `tests/Browser/E6-03W/`, `docs/results/SP-E6-03W.md`.\n\nПриёмка: сценарий, права, бренд, ошибки; только fake вызовы. Остаток записать в docs/results/SP-E6-03W.md.\n\n## Дополнение владельца от 05.11.2026\n- D-5.6, поле «Коротких ответов N».\n\n## Решение владельца 06.11.2026 — общие AI-стадии\n\nРешение владельца 06.11: разрешены только совместимые добавления общих AI-стадий без рефакторинга и без изменения существующего поведения и записанного replay; проверить права, изоляцию брендов и повторы. Только fake AI; живые и платные вызовы выключены. Общий ресурс shared-ai-stages занимает одна карточка до слияния. Прежние ограничения «до решения владельца» считать снятыми в этих границах.\n",
+      "description": "# SP-E6-03W · Реакции: сквозные сценарии отказа\n\n**Зачем:** завершить D-5.6 по решению владельца и журналу макетов.\n**Часть чего:** остаток SP-E6-03V, docs/results/SP-E6-03V.md.\n**Зависимости:** SP-E6-03V в done.\n\nЗавершить расположение карточек и состояния D-5.6, проверить сквозные fake-сценарии отказа и двух негативных сообщений. Для изменений общих AI-стадий сначала получить решение владельца; не обходить ограничения защищённого runtime.\n\nScope: `app/Seller/Settings/Policy/`, `app/Seller/Runtime/`, `app/ProtectedOperations/`, `resources/js/pages/Seller/Settings/Policy/`, `tests/Feature/Seller/Runtime/`, `tests/Browser/E6-03W/`, `docs/results/SP-E6-03W.md`.\n\nПриёмка: сценарий, права, бренд, ошибки; только fake вызовы. Остаток записать в docs/results/SP-E6-03W.md.\n\n## Дополнение владельца от 05.11.2026\n- D-5.6, поле «Коротких ответов N».\n\n## Решение владельца 06.11.2026 — общие AI-стадии\n\nРешение владельца 06.11: разрешены только совместимые добавления общих AI-стадий без рефакторинга и без изменения существующего поведения и записанного replay; проверить права, изоляцию брендов и повторы. Только fake AI; живые и платные вызовы выключены. Общий ресурс shared-ai-stages занимает одна карточка до слияния. Прежние ограничения «до решения владельца» считать снятыми в этих границах.\n\n## Остаток 07.11.2026 23:40 (после приёмки)\n- D-5.6 «Коротких ответов N» (дополнение владельца 05.11): в `app/Seller/Engine/Policy.php` порог `decline_off_topic_second` вынести в `$this->limit('decline_off_topic_second_after', 2)`; поле `decline_off_topic_second_after` в валидацию и сохранение `app/Seller/Settings/Policy/OffTopicController.php` и в форму «Вне темы и негатив» (`resources/js/pages/Seller/Settings/Policy/Index.tsx`); тесты, golden fixtures не менять (дефолт 2).\n- Дополнительный scope: `app/Seller/Engine/Policy.php`, `tests/Unit/Seller/Engine/`.\n",
       "goal": "Завершить расположение карточек и состояния D-5.6, проверить сквозные fake-сценарии отказа и двух негативных сообщений. Для изменений общих AI-стадий сначала получить решение владельца; не обходить ограничения защищённого runtime.",
       "dependsOn": [
         "SP-E6-03V"
@@ -17694,7 +17701,9 @@
         "resources/js/pages/Seller/Settings/Policy/",
         "tests/Feature/Seller/Runtime/",
         "tests/Browser/E6-03W/",
-        "docs/results/SP-E6-03W.md"
+        "docs/results/SP-E6-03W.md",
+        "app/Seller/Engine/Policy.php",
+        "tests/Unit/Seller/Engine/"
       ],
       "exclusiveResources": [],
       "acceptance": [
@@ -18876,7 +18885,7 @@
       "taskKey": "SP-E1-13B",
       "title": "SP-E1-13B · Завершить ограничения тарифов",
       "goal": "Защитить общий вход первого хода и остальные канальные входы при исчерпании лимита. Обеспечить ограничения числа участников и каналов в соответствующих модулях. Завершить экран Vision и подписи будущих моделей Yandex согласно решению владельца.",
-      "description": "# SP-E1-13B · Завершить ограничения тарифов\n\n**Зачем:** завершить требования по решению владельца.\n**Часть чего:** остаток SP-E1-13, docs/results/SP-E1-13.md.\n**Зависимости:** SP-E1-13.\n\n## Приёмка\n- Защитить общий вход первого хода и остальные канальные входы при исчерпании лимита.\n- Обеспечить ограничения числа участников и каналов в соответствующих модулях.\n- Завершить экран Vision и подписи будущих моделей Yandex согласно решению владельца.\n\nОстаток записать в отчёт.\n\nScope: `app/ProtectedOperations/`, `app/Seller/Channels/`, `app/Shell/Organizations/`, `app/Shell/Plans/`, `app/Vision/`, `resources/js/pages/Vision/`, `tests/Feature/ProtectedOperations/`, `tests/Feature/Shell/`, `tests/Feature/Vision/`, `tests/Browser/E1-13B/`, `docs/results/SP-E1-13B.md`.\n\n## Решение владельца 06.11.2026 — общие AI-стадии\n\nРешение владельца 06.11: разрешены только совместимые добавления общих AI-стадий без рефакторинга и без изменения существующего поведения и записанного replay; проверить права, изоляцию брендов и повторы. Только fake AI; живые и платные вызовы выключены. Общий ресурс shared-ai-stages занимает одна карточка до слияния. Прежние ограничения «до решения владельца» считать снятыми в этих границах.\n",
+      "description": "# SP-E1-13B · Завершить ограничения тарифов\n\n**Зачем:** завершить требования по решению владельца.\n**Часть чего:** остаток SP-E1-13, docs/results/SP-E1-13.md.\n**Зависимости:** SP-E1-13.\n\n## Приёмка\n- Защитить общий вход первого хода и остальные канальные входы при исчерпании лимита.\n- Обеспечить ограничения числа участников и каналов в соответствующих модулях.\n- Завершить экран Vision и подписи будущих моделей Yandex согласно решению владельца.\n\nОстаток записать в отчёт.\n\nScope: `app/ProtectedOperations/`, `app/Seller/Channels/`, `app/Shell/Organizations/`, `app/Shell/Plans/`, `app/Vision/`, `resources/js/pages/Vision/`, `tests/Feature/ProtectedOperations/`, `tests/Feature/Shell/`, `tests/Feature/Vision/`, `tests/Browser/E1-13B/`, `docs/results/SP-E1-13B.md`.\n\n## Решение владельца 06.11.2026 — общие AI-стадии\n\nРешение владельца 06.11: разрешены только совместимые добавления общих AI-стадий без рефакторинга и без изменения существующего поведения и записанного replay; проверить права, изоляцию брендов и повторы. Только fake AI; живые и платные вызовы выключены. Общий ресурс shared-ai-stages занимает одна карточка до слияния. Прежние ограничения «до решения владельца» считать снятыми в этих границах.\n\n## Остаток 07.11.2026 23:40 (после приёмки)\n- `users.max` (лимит участников): проверка через `LimitEnforcer` при выдаче приглашения (`app/Shell/InvitationIssuance/InvitationIssuer.php`) и при принятии/создании активного membership (`app/Tenancy/Invitations/InvitationAcceptance.php`, `app/Shell/Auth/Http/InvitationController.php`); понятная ошибка на экране, feature-тест, бренд/организация.\n- Дополнительный scope: `app/Tenancy/Invitations/`, `app/Shell/InvitationIssuance/`, `app/Shell/Auth/Http/InvitationController.php`, `tests/Feature/Shell/InvitationIssuance/`, `tests/Feature/Tenancy/Invitations/`.\n",
       "dependsOn": [
         "SP-E1-13"
       ],
@@ -18893,7 +18902,12 @@
         "tests/Feature/Vision/Settings/",
         "tests/Feature/Vision/Measurements/",
         "tests/Browser/E1-13B/",
-        "docs/results/SP-E1-13B.md"
+        "docs/results/SP-E1-13B.md",
+        "app/Tenancy/Invitations/",
+        "app/Shell/InvitationIssuance/",
+        "app/Shell/Auth/Http/InvitationController.php",
+        "tests/Feature/Shell/InvitationIssuance/",
+        "tests/Feature/Tenancy/Invitations/"
       ],
       "exclusiveResources": [],
       "acceptance": [

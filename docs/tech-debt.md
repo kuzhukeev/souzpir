@@ -609,3 +609,6 @@
 - SP-E6-10B (07.11): унаследовано из SP-E6-10E — `Policy::nextSlot` для неоптовых брендов сначала перебирает `slot_order` и только потом обязательные доп. поля (лишние пропуски до `wasAsked()`).
 - SP-E5-09 (07.11): у «Передать коллеге» нет связанной задачи-сущности; `task_id` в `seller.conversation.handed_off` — синтетический ulid.
 - SP-E4-10L (07.11): роль БД слотов исполнителей имеет CREATEDB — тесты со строгой self-check изоляцией (`FirstTurnStateTest`) локально не запускаются, только в CI.
+- SP-E4-04F (07.11): `FirstTurnGoal::evaluateLocked` пропускает `Policy::applyExtraction` — несимметрично с followup-путём (`ApiFollowupInput`), счётчики/стрики/clientType на первом ходе не применяются.
+- SP-E1-13B (07.11): проверка лимита в виджете и при активации канала — check-then-act без блокировки строки; при параллельных запросах возможен разовый перерасход на 1.
+- SP-E1-01I/SP-E1-10H (07.11): в слотах исполнителей тесты со строгой изоляцией БД (`PasswordDelivery`, `InvitationIssuance`, `Webhooks/WebhookSecret*`, `*RaceTest`) падают «A dedicated, nonprivileged test database owner is required» — инфраструктура слотов, проверяются только в CI.
