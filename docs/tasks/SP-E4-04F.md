@@ -6,3 +6,7 @@
 
 ## Уточнение scope 07.11.2026 23:55 (планировщик)
 - Scope сужен под остаток 23:40: два финализатора и Topics; feature-тесты — в `tests/Feature/Seller/Knowledge/Topics/` (каталог `tests/Feature/ProtectedOperations/` в phpunit.xml перечислен пофайлово, новые файлы там не запустятся). `app/Seller/Runtime/`, `app/Seller/Engine/` и `tests/Feature/Seller/Runtime/` убраны — `CreatePromise` только образец, его не менять.
+
+
+## Уточнение 08.11.2026 00:30 (планировщик)
+- Зависимость от SP-E7-04M снята: его изменения финализаторов влиты (c1f406ac), остаток SP-E7-04M финализаторы не трогает и убран из его scope. В `payload` задачи писать и `text`, и `question` (экран D-3.3 читает оба).
