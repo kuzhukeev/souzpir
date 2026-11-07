@@ -639,3 +639,4 @@
 - SP-E1-10I (08.11): тесты с IsolatedDatabaseMigrations (SecretSecurityTest, PruneSecretReceiptsTest, WebhookCommitTest) на слотах исполнителей не выполняются — нет непривилегированной роли БД; проверяет только CI.
 - SP-E7-04P (08.11): %-тренд KPI «Диалоги» шумный на коротких периодах и малых выборках (без сглаживания).
 - SP-E7-04P (08.11): SourceFilterE704MTest флакует — assertSame по порядку ключей analytics.sources без orderBy в запросе conversations.
+- SP-E6-03Y (08.11): итоги воронки D-5.2 (У менеджера/Закрыт/Потерян/Спам) — статические метки, не из данных переходов; иконки стадий на схеме не нарисованы.
