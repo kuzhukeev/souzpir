@@ -143,7 +143,10 @@ HTML;
             return redirect()->route('password.request')->withErrors(['email' => 'Для восстановления откройте защищённый адрес.']);
         }
         $input = $request->only(['password', 'password_confirmation']);
-        $validator = Validator::make($input, ['password' => ['required', 'confirmed', PasswordRule::min(12)]]);
+        $validator = Validator::make($input, [
+            'password' => ['required', PasswordRule::min(12)],
+            'password_confirmation' => ['required', 'same:password'],
+        ], ['password_confirmation.same' => 'Пароли не совпадают']);
         if ($validator->fails()) {
             return $this->resetErrorRedirect($request)->withErrors($validator);
         }
