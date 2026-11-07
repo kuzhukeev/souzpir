@@ -9,3 +9,7 @@
 - Проверить права, изоляцию брендов и ошибки; незавершённое указать в «Остаток».
 
 Scope: `app/Vision/Competitors/`, `app/Vision/Core/`, `resources/js/pages/Vision/Competitors/`, `tests/Feature/Vision/Competitors/`, `tests/Browser/E8-20T/`, `docs/results/SP-E8-20T.md`.
+
+## Остаток 07.11.2026 22:30 (аудит экранов, V-6.2 «Карточка конкурента», `mockups V-6.2`)
+- Блок «По намерениям»: доля упоминаний и средняя позиция по каждому намерению (`positions_by_intent`, `intent_rates` уже считаются в `CompetitorsController`, но не выводятся в `CompanyDetails.tsx`); «Нет данных» для намерений без упоминаний.
+- Feature-тест пропсов (`tests/Feature/Vision/Competitors/`), browser в `tests/Browser/E8-20T/`. Права, бренд.

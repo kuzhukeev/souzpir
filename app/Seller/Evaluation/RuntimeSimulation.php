@@ -2,9 +2,13 @@
 
 namespace App\Seller\Evaluation;
 
+use App\Seller\Engine\BrandPromptSets;
+use App\Seller\Knowledge\Contracts\KnowledgeRepository;
+use App\Seller\Knowledge\KnowledgeNotReady;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
 use App\Tenancy\TenantContext;
+use App\Tenancy\TenantContextRunner;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
@@ -26,7 +30,8 @@ final class RuntimeSimulation
         }
         $id = (string) Str::ulid();
         $trace = [];
-        $metrics = ['client_model' => $clientModel, 'knowledge_release_id' => app(SimulationKnowledgeRelease::class)->id($context)];
+        $metrics = ['client_model' => $clientModel, 'knowledge_release_id' => app(SimulationKnowledgeRelease::class)->id($context),
+            'prompt_version' => $this->simulatorPromptVersion($context)];
         DB::table('seller_sim_runs')->insert(['id' => $id, 'organization_id' => $context->organizationId,
             'brand_id' => $context->brandId, 'persona_id' => $persona->id, 'status' => 'processing',
             'turn_count' => 0, 'turns' => '[]', 'metrics' => json_encode($metrics, JSON_THROW_ON_ERROR), 'created_at' => now(), 'updated_at' => now()]);
@@ -58,6 +63,20 @@ final class RuntimeSimulation
         });
 
         return $id;
+    }
+
+    /** No live model drives the client side yet; this only verifies the brand-owned simulator prompt version. */
+    private function simulatorPromptVersion(TenantContext $context): string
+    {
+        return app(TenantContextRunner::class)->run($context, function () use ($context): string {
+            try {
+                $release = app(KnowledgeRepository::class)->published($context);
+            } catch (KnowledgeNotReady) {
+                return 'v1';
+            }
+
+            return app(BrandPromptSets::class)->load($context, $release, 'simulator')->version;
+        });
     }
 
     private function agentText(array $reply): string

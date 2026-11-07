@@ -20,8 +20,8 @@ $app = require __DIR__.'/../../../bootstrap/app.php';
 $app->make(Kernel::class)->bootstrap();
 $db = DB::connection();
 $path = str_replace('\\', '/', base_path());
-$dedicatedWorktree = str_ends_with($path, '/.worktrees/sp-invitation-safety') || str_ends_with($path, '/.worktrees/sp-invitation-onetime');
-$testDatabase = getenv('INVITATION_BROWSER_TEST_DATABASE') ?: 'souzpir_test_sp_invitation_safety';
+$dedicatedWorktree = (bool) preg_match('#/\.worktrees/[a-z0-9-]+$#', $path);
+$testDatabase = getenv('INVITATION_BROWSER_TEST_DATABASE') ?: ($dedicatedWorktree ? config('runtime.test_database') : 'souzpir_test_sp_invitation_safety');
 $ciFixture = getenv('INVITATION_BROWSER_CI_FIXTURE') === '1'
     && getenv('CI') === 'true' && realpath(base_path()) === realpath(getcwd())
     && config('database.connections.pgsql.host') === '127.0.0.1'

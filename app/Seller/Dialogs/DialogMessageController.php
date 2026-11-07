@@ -20,7 +20,8 @@ final class DialogMessageController
     {
         $input = $request->validate(['text' => ['nullable', 'required_without:attachment', 'string', 'max:5000'],
             'attachment' => ['nullable', 'file', 'max:10240', 'mimes:jpg,jpeg,png,pdf,txt']]);
-        app(ProfileAccess::class)->run($request, function (User $actor, TenantContext $context, $brand, Membership $member) use ($dialog, $input, $request): void {
+        $live = false;
+        app(ProfileAccess::class)->run($request, function (User $actor, TenantContext $context, $brand, Membership $member) use ($dialog, $input, $request, &$live): void {
             Gate::forUser($actor)->authorize('seller.dialogues.operate');
             abort_unless(app(SellerModuleAccess::class)->enabled($context->organizationId, $context->brandId), 404);
             $conversation = DB::table('conversations')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)->where('id', $dialog)->first() ?? abort(404);
@@ -28,8 +29,11 @@ final class DialogMessageController
                 abort(404);
             }
             abort_unless($conversation->mode === 'manager' && $conversation->assigned_user_id !== null, 422, 'Сначала заберите диалог.');
+            $channel = $conversation->channel_account_id ? DB::table('channel_accounts')->where('organization_id', $context->organizationId)
+                ->where('brand_id', $context->brandId)->where('id', $conversation->channel_account_id)->value('type') : null;
+            $live = config('features.E5-01.defaults.manager_telegram_delivery', false) && $channel === 'telegram';
             $id = (string) Str::ulid();
-            $meta = ['delivery' => 'fake'];
+            $meta = ['delivery' => $live ? 'live' : 'fake'];
             if ($request->hasFile('attachment')) {
                 $file = $request->file('attachment');
                 $meta['attachment_name'] = mb_substr($file->getClientOriginalName(), 0, 255);
@@ -40,7 +44,7 @@ final class DialogMessageController
             DeliverManagerMessage::dispatch($context->organizationId, $context->brandId, $dialog, $id)->afterCommit();
         });
 
-        return redirect('/seller/dialogs/'.$dialog)->with('status', 'Сообщение поставлено в тестовую очередь.');
+        return redirect('/seller/dialogs/'.$dialog)->with('status', $live ? 'Сообщение поставлено в очередь отправки в Telegram.' : 'Сообщение поставлено в тестовую очередь.');
     }
 
     public function attachment(Request $request, string $dialog, string $message): mixed

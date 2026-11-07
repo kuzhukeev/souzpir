@@ -12,3 +12,10 @@
 Остаток записать в отчёт.
 
 Scope: `app/Vision/Reports/`, `app/Vision/Measurements/`, `resources/js/pages/Vision/Reports/`, `resources/js/features/Vision/Reports/`, `tests/Feature/Vision/Reports/`, `tests/Browser/E8-18J/`, `docs/results/SP-E8-18J.md`.
+
+## Остаток 07.11.2026 22:30 (аудит экранов, V-5.1 «Отчёт: обзор», V-5.5 «Отчёт: источники», `mockups V-5.1`, `mockups V-5.5`)
+- V-5.1: у каждого KPI дельта к прошлому замеру в п.п. (сейчас только в «Главных выводах» для Видимости и Доли голоса); заблокированное состояние «Откроется после завершения анкеты» — с кнопкой «Перейти к анкете»; карточки действий показывают приоритет (поле `priority` действий, «Не указан» если пусто).
+- V-5.5: блок «Распределение по типам источников» (диаграмма/полосы по типам из `ReportData` вместо одной строки «Среди показанных: …»); в стиле графиков кабинета, три темы.
+- Feature-тесты данных (`tests/Feature/Vision/Reports/`), browser в `tests/Browser/E8-18J/`. Права, бренд.
+
+Scope уточнён: без `app/Vision/Measurements/` (у SP-E8-16H).

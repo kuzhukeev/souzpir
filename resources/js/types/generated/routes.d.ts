@@ -45,6 +45,7 @@ declare module 'ziggy-js' {
     "password.exchange": [],
     "password.reset": [],
     "password.store": [],
+    "password.changed": [],
     "mfa.challenge": [],
     "mfa.challenge.store": [],
     "logout.recover": [],
@@ -111,6 +112,7 @@ declare module 'ziggy-js' {
         }
     ],
     "dashboard.notification-center": [],
+    "dashboard.notifications": [],
     "dashboard.notifications.read-all": [],
     "organization.show": [],
     "organization.update": [],
@@ -546,6 +548,11 @@ declare module 'ziggy-js' {
     "widget.loader": [],
     "widget.contact.preflight": [],
     "widget.contact.store": [],
+    "widget.session.preflight": [],
+    "widget.session.start": [],
+    "widget.message.preflight": [],
+    "widget.message.store": [],
+    "widget.messages": [],
     "widget.config": [],
     "seller.api.failures": [],
     "seller.api.settings": [],
@@ -562,6 +569,27 @@ declare module 'ziggy-js' {
         }
     ],
     "seller.dialogs.pending": [],
+    "seller.dialogs.pending.suggestions": [],
+    "seller.dialogs.suggestions.skip": [
+        {
+            "name": "dialog",
+            "required": true
+        },
+        {
+            "name": "turn",
+            "required": true
+        }
+    ],
+    "seller.dialogs.suggestions.mark": [
+        {
+            "name": "dialog",
+            "required": true
+        },
+        {
+            "name": "turn",
+            "required": true
+        }
+    ],
     "seller.dialogs.show": [
         {
             "name": "dialog",
@@ -613,6 +641,12 @@ declare module 'ziggy-js' {
         }
     ],
     "seller.dialogs.mode": [
+        {
+            "name": "dialog",
+            "required": true
+        }
+    ],
+    "seller.dialogs.suggestion": [
         {
             "name": "dialog",
             "required": true
@@ -679,6 +713,7 @@ declare module 'ziggy-js' {
     "seller.customers.io.import": [],
     "seller.reviews.index": [],
     "seller.reviews.dismiss": [],
+    "seller.reviews.send": [],
     "seller.persona.index": [],
     "seller.persona.save": [],
     "seller.persona.phrases.save": [],
@@ -693,9 +728,22 @@ declare module 'ziggy-js' {
     "seller.settings.off-topic.save": [],
     "seller.settings.followups.update": [],
     "seller.followups.index": [],
+    "seller.followups.schedule": [],
+    "seller.followups.consent": [
+        {
+            "name": "conversation",
+            "required": true
+        }
+    ],
     "seller.followups.cancel": [
         {
             "name": "candidate",
+            "required": true
+        }
+    ],
+    "seller.customers.consent": [
+        {
+            "name": "contact",
             "required": true
         }
     ],
@@ -989,6 +1037,23 @@ declare module 'ziggy-js' {
         }
     ],
     "dev.design-system": [],
+    "brands.settings.ai_policy.update": [
+        {
+            "name": "brand",
+            "required": true
+        }
+    ],
+    "seller.dialogs.suggestions.send": [
+        {
+            "name": "dialog",
+            "required": true
+        },
+        {
+            "name": "turn",
+            "required": true
+        }
+    ],
+    "health": [],
     "preview.login": [],
     "preview.attention": []
 }

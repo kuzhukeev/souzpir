@@ -14,8 +14,8 @@ test('инспектор показывает выполненный тесто�
     await page.getByLabel('Сообщение клиента').fill('Мне нужен человек, не бот.');
     await page.getByRole('button', { name: 'Получить ответ' }).click();
     await page.getByText('Внутренности хода').click();
-    await expect(page.getByText('Выполненные инструменты: escalate (тест)')).toBeVisible();
-    await expect(page.getByText('Источник ответа: записанная фикстура')).toBeVisible();
+    await expect(page.getByRole('region',{name:'Внутренности хода'}).locator('xpath=.//dt[normalize-space()="Действия"]/following-sibling::dd[1]')).toHaveText('escalate (тест)');
+    await expect(page.getByRole('region',{name:'Внутренности хода'}).locator('xpath=.//dt[normalize-space()="Источник ответа"]/following-sibling::dd[1]')).toHaveText('записанная фикстура');
     await mkdir('.local/screenshots/SP-E4-09C', { recursive: true });
     await page.screenshot({ path: '.local/screenshots/SP-E4-09C/sandbox.png', fullPage: true });
 });

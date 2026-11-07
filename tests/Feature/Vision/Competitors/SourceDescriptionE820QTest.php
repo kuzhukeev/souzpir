@@ -10,7 +10,7 @@ use Tests\Feature\Tenancy\TenancyTestCase;
 
 final class SourceDescriptionE820QTest extends TenancyTestCase
 {
-    public function test_description_is_read_from_the_current_brand_snapshot(): void
+    public function test_description_comes_from_the_source_type_reference(): void
     {
         [$owner, $org, $brand, $other] = $this->cabinet();
         foreach ([$brand, $other] as $item) {
@@ -27,7 +27,7 @@ final class SourceDescriptionE820QTest extends TenancyTestCase
             }
         });
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->get('/vision/sources')->assertOk()
-            ->assertInertia(fn ($page) => $page->where('sources.0.description', 'Catalog'));
+            ->assertInertia(fn ($page) => $page->where('sources.0.description', 'Площадка без определённого типа.'));
         $this->post('/vision/sources/presence', ['domain' => 'unknown.test', 'presence' => 'absent'])->assertSessionHasErrors('domain');
         $this->post('/brand/switch', ['brand_id' => $other->id])->assertRedirect();
         $this->get('/vision/sources')->assertOk()->assertInertia(fn ($page) => $page->where('available', false)->has('sources', 0));

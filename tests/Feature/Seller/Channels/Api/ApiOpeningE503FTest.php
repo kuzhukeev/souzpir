@@ -80,7 +80,14 @@ final class ApiOpeningE503FTest extends TestCase
                     throw new Rejected('Synthetic unbilled failure.');
                 }
 
-                return ['content' => isset($body['response_format']) ? '{"client_intent":"answer_only"}' : 'Хорошо, спасибо!',
+                $schema = $body['response_format']['json_schema']['name'] ?? null;
+                $content = match ($schema) {
+                    'extraction' => '{"client_intent":"unclear","unknown_question":"Есть особый товар?"}',
+                    'guard' => '{"ok":true,"issues":[]}',
+                    default => 'Я уточню эту информацию.',
+                };
+
+                return ['content' => $content,
                     'toolCalls' => [], 'usage' => ['promptTokens' => 1, 'completionTokens' => 1],
                     'model' => $body['model'], 'latencyMs' => 1, 'costMicros' => 0];
             }
@@ -95,14 +102,16 @@ final class ApiOpeningE503FTest extends TestCase
         self::assertSame(1, DB::table('messages')->where('conversation_id', $opening['conversation_id'])->count());
         self::assertSame(1, DB::table('ai_calls')->where('object_id', $opening['conversation_id'])->where('attempt', 2)->whereNotNull('parent_call_id')->count());
         $this->app->instance(FakeDriver::class, $nextDriver);
+        config(['agent.guard_llm' => true]);
         $headers['Idempotency-Key'] = 'retry-turn';
-        $input = ['conversation_id' => $lead['conversation_id'], 'text' => 'Воронеж'];
+        $input = ['conversation_id' => $lead['conversation_id'], 'text' => 'Есть особый товар?'];
         $this->withHeaders($headers)->postJson('/api/v1/turn', $input)->assertStatus(503);
-        $reply = $this->withHeaders($headers)->postJson('/api/v1/turn', $input)->assertOk()->assertJsonPath('reply', 'Хорошо, спасибо!')->json();
+        $reply = $this->withHeaders($headers)->postJson('/api/v1/turn', $input)->assertOk()->assertJsonPath('reply', 'Я уточню эту информацию.')->json();
         $this->withHeaders($headers)->postJson('/api/v1/turn', $input)->assertOk()->assertExactJson($reply);
         $this->withHeaders($headers)->postJson('/api/v1/turn', [...$input, 'text' => 'Другое'])->assertConflict();
         self::assertSame(3, DB::table('messages')->where('conversation_id', $lead['conversation_id'])->count());
         self::assertSame(1, DB::table('ai_calls')->where('object_id', $lead['conversation_id'])->where('status', 'failed')->count());
+        self::assertSame(1, DB::table('ai_calls')->where('object_id', $lead['conversation_id'])->where('purpose', 'guard')->where('status', 'completed')->count());
         self::assertSame(1, DB::table('ai_calls')->where('object_id', $lead['conversation_id'])->where('attempt', 2)->whereNotNull('parent_call_id')->count());
         Http::assertNothingSent();
     }

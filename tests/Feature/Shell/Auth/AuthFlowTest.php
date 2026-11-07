@@ -249,6 +249,23 @@ final class AuthFlowTest extends TestCase
         $this->assertDatabaseCount('users', 1);
     }
 
+    public function test_registration_and_reset_errors_are_in_russian(): void
+    {
+        [$org] = $this->fixture(false);
+        $secret = str_repeat('x', 40);
+        config(['features.E1-01.defaults.bootstrap_token_hash' => hash('sha256', $secret)]);
+        $data = ['name' => 'Owner', 'email' => 'not-an-email', 'password' => 'secure-password-example', 'password_confirmation' => 'secure-password-example', 'terms' => true, 'ai_consent' => true, 'bootstrap_code' => $secret];
+        $this->post('/register', $data)->assertSessionHasErrors(['email' => 'Поле «электронная почта» должно быть корректным адресом электронной почты.']);
+
+        [, $user] = $this->fixture();
+        config(['features.E1-01F.defaults.enabled' => true]);
+        $token = ResetToken::generate();
+        DB::table('password_reset_tokens')->insert(['email' => $user->email, 'token' => Hash::make('v2:'.hash('sha256', $token)), 'auth_version' => $user->auth_version, 'created_at' => now()]);
+        $this->postJson('https://souzpir.local/reset-password/exchange', ['email' => $user->email, 'token' => $token])->assertOk();
+        $this->post('/reset-password', ['password' => 'secure-password-example', 'password_confirmation' => 'another-password-entirely'])
+            ->assertSessionHasErrors(['password_confirmation' => 'Пароли не совпадают']);
+    }
+
     public function test_login_mfa_challenge_replay_and_no_preauth_access(): void
     {
         [$org, $user] = $this->fixture();
@@ -319,7 +336,7 @@ final class AuthFlowTest extends TestCase
         DB::table('password_reset_tokens')->insert(['email' => $user->email, 'token' => Hash::make('v2:'.hash('sha256', $token)), 'auth_version' => $user->auth_version, 'created_at' => now()]);
         $data = ['email' => $user->email, 'token' => $token, 'password' => 'a-different-strong-password', 'password_confirmation' => 'a-different-strong-password'];
         $this->postJson('https://souzpir.local/reset-password/exchange', ['email' => $user->email, 'token' => $token])->assertOk();
-        $this->post('/reset-password', ['password' => $data['password'], 'password_confirmation' => $data['password_confirmation']])->assertRedirect(route('login'))->assertSessionHas('status', 'Пароль изменён. Войдите снова.');
+        $this->post('/reset-password', ['password' => $data['password'], 'password_confirmation' => $data['password_confirmation']])->assertRedirect(route('password.changed'));
         $this->assertTrue(Hash::check($data['password'], $user->fresh()->password));
         $this->postJson('https://souzpir.local/reset-password/exchange', ['email' => $user->email, 'token' => $token])->assertOk();
         $this->post('/reset-password', ['password' => $data['password'], 'password_confirmation' => $data['password_confirmation']])->assertSessionHasErrors('email');
@@ -537,10 +554,10 @@ final class AuthFlowTest extends TestCase
             ->assertOk()->assertInertia(fn (AssertableInertia $page) => $page->where('lockoutSeconds', 0));
     }
 
-    public function test_login_displays_reset_status_and_password_confirmation_is_russian(): void
+    public function test_password_changed_screen_is_separate_from_login(): void
     {
-        $this->withSession(['status' => 'Пароль изменён. Войдите снова.'])->get('/login')
-            ->assertOk()->assertInertia(fn (AssertableInertia $page) => $page->where('status', 'Пароль изменён. Войдите снова.'));
+        $this->get('/password-changed')
+            ->assertOk()->assertInertia(fn (AssertableInertia $page) => $page->component('Shell/Auth/PasswordChanged'));
         $validator = Validator::make(['password' => 'one', 'password_confirmation' => 'two'], ['password' => 'confirmed']);
         self::assertTrue($validator->fails());
         self::assertStringContainsString('не совпадает', $validator->errors()->first('password'));

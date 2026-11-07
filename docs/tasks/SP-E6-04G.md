@@ -15,3 +15,10 @@ Scope: `app/ProtectedOperations/`, `app/Seller/Runtime/`, `app/Seller/Engine/Too
 ## Решение владельца 06.11.2026 — общие AI-стадии
 
 Решение владельца 06.11: разрешены только совместимые добавления общих AI-стадий без рефакторинга и без изменения существующего поведения и записанного replay; проверить права, изоляцию брендов и повторы. Только fake AI; живые и платные вызовы выключены. Общий ресурс shared-ai-stages занимает одна карточка до слияния. Прежние ограничения «до решения владельца» считать снятыми в этих границах.
+
+## Остаток 07.11.2026 (отчёт SP-E6-03L, планировщик)
+- Tool `escalate` из `allowedTools` handoff-цели не реализован в `app/Seller/Engine/ToolRunner.php` (возвращает `unavailable`): реализовать как передачу человеку по настройкам бренда с fake-транспортом; покрыть Feature-тестом. Файл добавлен в scope.
+
+## Сужение scope 07.11.2026 23:30 (планировщик)
+- `app/Seller/Runtime/` сужен до `app/Seller/Runtime/ConfiguredToolHandler.php` (реквизиты и действия инструментов); остальной runtime занят активными задачами.
+- `app/ProtectedOperations/` сужен до файлов, где вызываются инструменты: `app/ProtectedOperations/FirstTurnCoordinator.php`; `FirstTurnTextFinalizer.php` и `SellerFollowup/` заняты SP-E7-04M и SP-E5-04N.

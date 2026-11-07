@@ -47,7 +47,7 @@ final class PasswordDelivery
             }
             $id = (string) Str::ulid();
             DB::table('password_delivery_intents')->insert(['id' => $id, 'user_id' => $user->id, 'email_fingerprint' => $this->emailFingerprint($user), 'auth_version' => $user->auth_version, 'status' => 'pending', 'created_at' => now(), 'updated_at' => now()]);
-            app(AuditWriter::class)->record(new TenantContext(app(Cabinet::class)->organizationId(), actorId: $user->id), new AuditEntry('account.password.requested', 'user', $user->id));
+            app(AuditWriter::class)->record(new TenantContext(app(Cabinet::class)->organizationIdFor($user), actorId: $user->id), new AuditEntry('account.password.requested', 'user', $user->id));
 
             return $id;
         });

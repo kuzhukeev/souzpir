@@ -22,6 +22,7 @@ type Props = {
   closed?: number;
   messageCount?: number;
   botCompleted?: number;
+  avgMinutesToContact?: number | null;
   dialogs?: Dialog[];
   hours?: Record<string, number>;
   unknownQuestions?: Record<string, number>;
@@ -60,6 +61,12 @@ const names: Record<string, string> = {
   product: 'Товар',
 };
 const days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+function formatMinutesToContact(value: number | null | undefined) {
+  if (value == null) return 'нет данных';
+  const minutes = Math.floor(value);
+  const seconds = Math.round((value - minutes) * 60);
+  return `${minutes} мин ${seconds} сек`;
+}
 export default function Details({ data: a, activeTab }: { data: Props; activeTab?: string }) {
   const {brand} = usePage<{brand:{name:string}|null}>().props;
   const [reportType, setReportType] = useState('weekly');
@@ -119,7 +126,7 @@ export default function Details({ data: a, activeTab }: { data: Props; activeTab
             ? `${Math.round((a.botCompleted / a.total) * 100)}%`
             : 'Нет данных'}{' '}
           (завершённые с ответом бота, без передачи и сообщений менеджера). Среднее время до
-          контакта: нет данных — момент получения контакта не сохраняется.
+          контакта: {formatMinutesToContact(a.avgMinutesToContact)}.
         </p>
         <p className="mt-2 text-sm text-(--color-ink-muted)">
           Показаны диалоги, созданные за выбранный период, и все сохранённые сообщения этих

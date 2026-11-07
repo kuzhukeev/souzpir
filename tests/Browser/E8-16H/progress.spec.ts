@@ -35,3 +35,21 @@ test('ожидающий замер предлагает уведомление'
   await expect(page.getByRole('link', { name: 'Уведомить, когда будет готово' })).toHaveAttribute('href', '/vision/settings');
   await expect(page.getByText('gemini: Ожидает · 0 из 1')).toBeVisible();
 });
+
+test('запуск замера показывает доступные и оставшиеся слоты', async ({ page }) => {
+  await page.goto(fixture);
+  await page.getByRole('button', { name: 'Параметры замера' }).click();
+  await expect(page.getByText('Доступно до запуска: 250.')).toBeVisible();
+  await expect(page.getByText('Останется: 248.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Начать замер' }).last()).toBeEnabled();
+});
+
+test('нехватка слотов блокирует запуск', async ({ page }) => {
+  await page.goto(`${fixture}?insufficient`);
+  await page.getByRole('button', { name: 'Параметры замера' }).click();
+  await expect(page.getByText('Доступно до запуска: 0.')).toBeVisible();
+  await expect(page.getByText('Не хватает: 2 слотов.')).toBeVisible();
+  await expect(page.getByText('Недостаточно слотов. Уменьшите число моделей или дождитесь 1 декабря.')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Слоты и тариф →' })).toHaveAttribute('href', '/vision/settings');
+  await expect(page.getByRole('button', { name: 'Начать замер' }).last()).toBeDisabled();
+});

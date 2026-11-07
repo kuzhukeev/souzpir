@@ -44,14 +44,70 @@ final class FirstTurnDeterministicGuard
 
             $continuation = DB::table('e309_responder_continuations')->where('stage_id', $responderId)->first();
             $payload = $continuation ? json_decode(Crypt::decryptString($continuation->payload_encrypted), true, 512, JSON_THROW_ON_ERROR) : [];
-            $called = array_column($payload['tool_results'] ?? [], 'name');
+            $toolResults = $payload['tool_results'] ?? [];
+            $called = array_column($toolResults, 'name');
+            $tenant = app(TenantContext::class);
+            $catalogPricesEnabled = (bool) DB::table('brand_seller_settings')->where('organization_id', $tenant->organizationId)
+                ->where('brand_id', $tenant->brandId)->value('catalog_prices_enabled');
+            $catalogKnownPrices = [];
+            foreach ($toolResults as $toolResult) {
+                if (($toolResult['name'] ?? null) !== 'check_stock') {
+                    continue;
+                }
+                foreach ($toolResult['result']['items'] ?? [] as $item) {
+                    foreach (['price', 'wholesale_price'] as $field) {
+                        if (isset($item[$field]) && is_numeric($item[$field])) {
+                            $catalogKnownPrices[] = (float) $item[$field];
+                        }
+                    }
+                }
+            }
 
-            $result = (new DeterministicGuard($knowledge))->check($candidate['text'], $computed['goal'], new LeadState($computed['state']), ['tools_called' => $called]);
+            $result = (new DeterministicGuard($knowledge))->check($candidate['text'], $computed['goal'], new LeadState($computed['state']), [
+                'tools_called' => $called, 'catalog_prices_enabled' => $catalogPricesEnabled, 'catalog_known_prices' => $catalogKnownPrices,
+            ]);
+            $priorAgentMessages = DB::table('messages')->where('organization_id', $claim->organizationId)->where('brand_id', $claim->brandId)
+                ->where('conversation_id', $claim->conversationId)->where('role', 'agent')
+                ->orderByDesc('created_at')->orderByDesc('id')->limit(10)->get(['text', 'meta'])
+                ->map(fn ($row) => ['text' => (string) $row->text, 'meta' => json_decode($row->meta ?: '{}', true) ?: []])->all();
+            if ($this->exceedsConsecutiveQuestionLimit($priorAgentMessages, $candidate['text'])) {
+                $result['issues'][] = 'третий вопрос подряд — дай пользу без вопроса, новый вопрос задай позже';
+                $result['verdict'] = 'regenerate';
+            }
             app(GuardHitRecorder::class)->record(app(TenantContext::class), $responderId, $knowledge, $candidate['text'], $result);
 
             return $result;
         } catch (Throwable) {
             throw new LogicException('Protected first-turn guard unavailable.');
         }
+    }
+
+    /**
+     * Pure rule: max two consecutive bot replies ending in a question; the
+     * third must give value without asking. Напоминания (followup_nudge) не
+     * считаются и не прерывают цепочку.
+     *
+     * @param  list<array{text:string,meta:array}>  $priorAgentMessagesNewestFirst
+     */
+    public function exceedsConsecutiveQuestionLimit(array $priorAgentMessagesNewestFirst, string $candidateText): bool
+    {
+        if (! str_ends_with(rtrim($candidateText), '?')) {
+            return false;
+        }
+        $streak = 0;
+        foreach ($priorAgentMessagesNewestFirst as $message) {
+            $meta = $message['meta'] ?? [];
+            if (($meta['goal_kind'] ?? null) === 'followup_nudge' || ($meta['goal']['kind'] ?? null) === 'followup_nudge') {
+                continue;
+            }
+            if (! str_ends_with(rtrim((string) ($message['text'] ?? '')), '?')) {
+                break;
+            }
+            if (++$streak >= 2) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

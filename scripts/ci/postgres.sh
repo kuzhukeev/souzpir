@@ -4,7 +4,7 @@ set -euo pipefail
 docker run --detach --name souzpir-ci-postgres --network host \
   -e POSTGRES_DB=souzpir_test_ci -e POSTGRES_USER=postgres \
   -e POSTGRES_PASSWORD=ci-only-password postgres:16 \
-  -c listen_addresses=127.0.0.1
+  -c listen_addresses=127.0.0.1 -c max_locks_per_transaction=512
 for attempt in {1..30}; do
   if docker exec souzpir-ci-postgres pg_isready -h 127.0.0.1 -U postgres -d souzpir_test_ci; then break; fi
   sleep 1

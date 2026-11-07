@@ -8,6 +8,7 @@ use App\Tenancy\TenantContext;
 use App\Vision\Core\Profiles\Questionnaire;
 use App\Vision\Measurements\MeasurementList;
 use App\Vision\Profile\CompletionRules;
+use App\Vision\Reports\RecalculateClarifiedReport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -51,6 +52,8 @@ final class ClarificationController
                     return [...$item, 'from_questionnaire' => $url !== null, 'questionnaire_url' => $url];
                 }, $catalog['presence']);
             }
+            $recalculated = $step === 'done' && $confirmation && Gate::allows('vision.measure.run')
+                ? app(RecalculateClarifiedReport::class)->create($tenant, $measurement) : null;
             $saved = $confirmation ? DB::table('vision_clarification_decisions')->where('organization_id', $tenant->organizationId)
                 ->where('brand_id', $tenant->brandId)->where('snapshot_confirmation_id', $confirmation->id)
                 ->get(['item_key', 'decision', 'correction', 'profile_url', 'add_alias'])->keyBy('item_key') : collect();
@@ -73,7 +76,8 @@ final class ClarificationController
 
             return Inertia::render('Vision/Clarifications/Wizard', ['measurement' => $measurement, 'step' => $step,
                 'available' => (bool) $confirmation, 'items' => $items, 'total' => $total, 'pending' => $pending,
-                'status' => session('status'), 'alias_available' => Gate::allows('vision.quiz.write') && DB::table('brand_profiles')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->exists()]);
+                'status' => session('status'), 'recalculated' => $recalculated,
+                'alias_available' => Gate::allows('vision.quiz.write') && DB::table('brand_profiles')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->exists()]);
         }, false);
     }
 

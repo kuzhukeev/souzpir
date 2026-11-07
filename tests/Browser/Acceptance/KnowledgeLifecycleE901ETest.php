@@ -48,6 +48,8 @@ final class KnowledgeLifecycleE901ETest extends TenancyTestCase
         $this->post('/seller/knowledge/'.$draft['id'].'/publish', ['version' => $editor['version']])->assertRedirect()->assertSessionHasNoErrors();
         $secondRelease = DB::table('brands')->where('id', $brand->id)->value('active_knowledge_release_id');
         self::assertNotSame($firstRelease, $secondRelease);
+        $onNewVersion = $this->postJson('/seller/knowledge/sandbox/reply', ['simulation' => true, 'release' => $secondRelease, 'text' => 'Уточню: Воронеж'])->assertOk()->assertJsonPath('status', 'completed')->assertJsonPath('release', $secondRelease)->assertJsonPath('state.slots.city', 'Воронеж')->json();
+        self::assertNotSame($first['checksum'], $onNewVersion['checksum']);
         $this->post('/seller/knowledge/'.$firstRelease.'/rollback')->assertRedirect()->assertSessionHasNoErrors();
         self::assertSame($secondRelease, DB::table('brands')->where('id', $brand->id)->value('active_knowledge_release_id'));
         $rolledBack = $this->get('/seller/knowledge/facts')->assertOk()->inertiaProps('editor');

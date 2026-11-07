@@ -43,7 +43,7 @@ final class AnalyticsController
         $end = CarbonImmutable::parse($to, $timezone)->addDay()->startOfDay()->utc();
         $rows = DB::table('conversations as c')->leftJoin('channel_accounts as a', 'a.id', '=', 'c.channel_account_id')->leftJoin('users as u', 'u.id', '=', 'c.assigned_user_id')
             ->where('c.organization_id', $tenant->organizationId)->where('c.brand_id', $tenant->brandId)->where('c.created_at', '>=', $begin)->where('c.created_at', '<', $end)
-            ->get(['c.id', 'c.contact_id', 'c.stage', 'c.client_type', 'c.outcome', 'c.state', 'c.assigned_user_id', 'c.handed_off_at', 'c.taken_at', 'c.created_at', 'c.updated_at', 'a.type as channel', 'u.name as manager']);
+            ->get(['c.id', 'c.contact_id', 'c.stage', 'c.client_type', 'c.outcome', 'c.state', 'c.assigned_user_id', 'c.handed_off_at', 'c.taken_at', 'c.contact_received_at', 'c.created_at', 'c.updated_at', 'a.type as channel', 'u.name as manager']);
         $canManage = Gate::forUser($user)->allows('seller.settings.write');
         $manager = $input['manager'] ?? '';
         abort_if($manager !== '' && ! $canManage, 403);
@@ -68,6 +68,7 @@ final class AnalyticsController
         $contact = 0;
         $handed = 0;
         $closed = 0;
+        $contactMinutes = [];
         foreach ($rows as $row) {
             if (array_key_exists($row->outcome ?? '', $outcomes)) {
                 $outcomes[$row->outcome]++;
@@ -82,6 +83,9 @@ final class AnalyticsController
             $slots = $state['slots'] ?? [];
             if (! empty($slots['email']) || ! empty($slots['messenger'])) {
                 $contact++;
+            }
+            if ($row->contact_received_at) {
+                $contactMinutes[] = CarbonImmutable::parse($row->created_at)->diffInMinutes(CarbonImmutable::parse($row->contact_received_at));
             }
             if ($row->handed_off_at) {
                 $handed++;
@@ -111,6 +115,7 @@ final class AnalyticsController
                 }
             }
         }
+        $avgMinutesToContact = $contactMinutes ? round(array_sum($contactMinutes) / count($contactMinutes), 1) : null;
         ksort($daily);
         $ids = $rows->pluck('id');
         $messages = DB::table('messages')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->whereIn('conversation_id', $ids)->get(['meta', 'conversation_id', 'role', 'created_at']);
@@ -303,10 +308,24 @@ final class AnalyticsController
             $rates[$stage] = count($prior) ? round(count(array_intersect($prior, $current)) / count($prior) * 100, 1) : null;
         }
 
-        return ['from' => $from, 'to' => $to, 'channel' => $channel, 'source' => $source, 'manager' => $manager, 'managerOptions' => $managerOptions, 'funnel' => $funnel, 'outcomes' => $outcomes, 'previousTotal' => $previousTotal, 'previousMetrics' => $previousMetrics, 'transitionRates' => $rates, 'channelOptions' => $channelOptions, 'sources' => ['unknown' => $total], 'channelMetrics' => $channelMetrics, 'sitePages' => [], 'transitions' => $transitions, 'total' => $total, 'contact' => $contact, 'handed' => $handed, 'closed' => $closed,
+        $rowsById = $rows->keyBy('id');
+        $sitePages = DB::table('widget_sessions')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
+            ->where('created_at', '>=', $begin)->where('created_at', '<', $end)->whereNotNull('page')
+            ->get(['page', 'utm', 'conversation_id'])->groupBy('page')->map(function ($group, string $page) use ($rowsById): array {
+                $dialogIds = $group->pluck('conversation_id')->filter()->unique()->filter(fn ($id) => $rowsById->has($id));
+                $contacts = $dialogIds->filter(function ($id) use ($rowsById): bool {
+                    $slots = (json_decode($rowsById[$id]->state, true) ?: [])['slots'] ?? [];
+
+                    return ! empty($slots['email']) || ! empty($slots['messenger']);
+                });
+
+                return ['page' => $page, 'opens' => $group->count(), 'dialogs' => $dialogIds->count(), 'contacts' => $contacts->count(), 'utm' => $group->pluck('utm')->filter()->first()];
+            })->sortByDesc('opens')->values()->all();
+
+        return ['from' => $from, 'to' => $to, 'channel' => $channel, 'source' => $source, 'manager' => $manager, 'managerOptions' => $managerOptions, 'funnel' => $funnel, 'outcomes' => $outcomes, 'previousTotal' => $previousTotal, 'previousMetrics' => $previousMetrics, 'transitionRates' => $rates, 'channelOptions' => $channelOptions, 'sources' => ['unknown' => $total], 'channelMetrics' => $channelMetrics, 'sitePages' => $sitePages, 'transitions' => $transitions, 'total' => $total, 'contact' => $contact, 'handed' => $handed, 'closed' => $closed,
             'types' => $types, 'stages' => $stages, 'channels' => $channels, 'daily' => $daily, 'topics' => $topics,
             'dialogs' => $dialogs, 'hours' => $hours, 'unknownDialogs' => $unknownDialogs, 'unknownQuestions' => $unknownQuestions, 'messageCount' => $messages->count(), 'botCompleted' => $botCompleted, 'triggers' => $triggers, 'triggerStats' => $triggerStats,
-            'managers' => array_values($managers), 'canManage' => Gate::forUser($user)->allows('seller.settings.write')];
+            'managers' => array_values($managers), 'canManage' => Gate::forUser($user)->allows('seller.settings.write'), 'avgMinutesToContact' => $avgMinutesToContact];
     }
 
     public function index(Request $request): mixed
@@ -431,7 +450,7 @@ final class AnalyticsController
             foreach ($data['triggerStats'] as $trigger => $stats) {
                 $write('Приём / '.$trigger.' / конверсия, %', $stats['dialogs'] ? round($stats['with_contact'] / $stats['dialogs'] * 100) : 0);
             }
-            $write('Среднее время до контакта', null);
+            $write('Среднее время до контакта, мин', $data['avgMinutesToContact']);
             fclose($file);
         }, 'seller-analytics.csv', ['Content-Type' => 'text/csv; charset=UTF-8', 'Cache-Control' => 'private, no-store']);
     }

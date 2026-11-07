@@ -45,6 +45,7 @@ final class FollowupJobTest extends TenancyTestCase
             (new PrepareFollowups($org->id, $brand->id))->handle(app(FollowupPolicy::class));
             $this->assertDatabaseCount('seller_followup_candidates', 1);
             $this->assertDatabaseHas('seller_followup_candidates', ['conversation_id' => $one, 'brand_id' => $brand->id, 'status' => 'pending', 'reason' => 'silence', 'text' => 'Здравствуйте!']);
+            self::assertTrue(Carbon::parse(DB::table('seller_followup_candidates')->where('conversation_id', $one)->value('scheduled_at'))->equalTo(now()));
             $this->assertDatabaseMissing('seller_followup_candidates', ['conversation_id' => $two]);
             $this->assertDatabaseCount('messages', 2);
             Http::assertNothingSent();

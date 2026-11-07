@@ -72,7 +72,7 @@ final class AnswersController
                 ->where(fn ($query) => $query->where('created_at', '<', $plan->created_at)
                     ->orWhere(fn ($same) => $same->where('created_at', $plan->created_at)->where('id', '<=', $plan->id)))->count();
 
-            return response()->json(['revision' => $revision, 'measurement_number' => $number, 'answers' => $items]);
+            return response()->json(['revision' => $revision, 'measurement_number' => $number, 'measurement_date' => $plan->created_at, 'answers' => $items]);
         });
     }
 

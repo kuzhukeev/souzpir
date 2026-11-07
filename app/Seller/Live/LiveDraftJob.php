@@ -14,6 +14,10 @@ use App\Seller\Conversations\Models\Message;
 use App\Seller\Conversations\Models\SellerTurn;
 use App\Seller\Knowledge\Contracts\KnowledgeRepository;
 use App\Seller\Knowledge\KnowledgeNotReady;
+use App\Seller\Notifications\NotifyConversationEvent;
+use App\Seller\Runtime\StageTransitions;
+use App\Shell\Audit\AuditEntry;
+use App\Shell\Audit\Contracts\AuditWriter;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -75,6 +79,7 @@ final class LiveDraftJob implements ShouldQueue
         }
 
         $text = null;
+        $budgetExhausted = false;
         try {
             $result = app(AiGateway::class)->complete(
                 new AiRequest($messages, (string) $config['model'], (float) $config['temperature'], maxTokens: (int) $config['max_tokens'], promptVersion: DraftPrompt::VERSION, promptChecksum: DraftPrompt::checksum()),
@@ -82,16 +87,18 @@ final class LiveDraftJob implements ShouldQueue
                     'live-draft-ai-'.$this->messageId, ['conversation_content', 'knowledge_internal']));
             $text = $result->ok() ? DraftPrompt::clean((string) $result->content) : null;
         } catch (Throwable $e) {
-            Log::warning('live_draft.gateway_failed', ['conversation_id' => $this->conversationId, 'class' => $e::class]);
+            $budgetExhausted = $e->getMessage() === 'AI budget exhausted.';
+            Log::warning('live_draft.gateway_failed', ['conversation_id' => $this->conversationId, 'class' => $e::class, 'budget_exhausted' => $budgetExhausted]);
         }
 
-        $this->finish($tenant, $claim->turnId, $claim->baseVersion, $text);
+        $this->finish($tenant, $claim->turnId, $claim->baseVersion, $text, $budgetExhausted);
     }
 
-    private function finish(TenantContext $tenant, string $turnId, int $baseVersion, ?string $text): void
+    private function finish(TenantContext $tenant, string $turnId, int $baseVersion, ?string $text, bool $budgetExhausted = false): void
     {
-        $status = $text === null || $text === '' ? 'failed' : 'suggested';
-        DB::transaction(function () use ($tenant, $turnId, $baseVersion, $status, $text): void {
+        $status = $budgetExhausted || $text === null || $text === '' ? 'failed' : 'suggested';
+        $errorCode = $budgetExhausted ? 'budget_exhausted' : null;
+        DB::transaction(function () use ($tenant, $turnId, $baseVersion, $status, $text, $errorCode, $budgetExhausted): void {
             ActiveTenantLock::acquire($tenant);
             $conversation = Conversation::whereKey($this->conversationId)->lockForUpdate()->firstOrFail();
             $turn = SellerTurn::whereKey($turnId)->lockForUpdate()->firstOrFail();
@@ -102,11 +109,21 @@ final class LiveDraftJob implements ShouldQueue
                 return;
             }
             $outcome = ['status' => $status, 'turnId' => $turnId, 'conversationId' => $this->conversationId, 'version' => $baseVersion + 1,
-                'messages' => $status === 'suggested' ? [['text' => $text]] : []];
+                'messages' => $status === 'suggested' ? [['text' => $text]] : [], 'error_code' => $errorCode];
             DB::table('conversations')->where('id', $this->conversationId)->update(['version' => $baseVersion + 1, 'updated_at' => now()]);
             DB::table('seller_turns')->where('id', $turnId)->where('status', 'processing')->update([
                 'status' => $status, 'outcome' => json_encode($outcome, JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR),
                 'outcome_hash' => CanonicalJson::hash($outcome), 'updated_at' => now()]);
+            // Same handoff pattern as the existing monthly-limit stop (FirstInboundRuntime).
+            if ($budgetExhausted && $conversation->handed_off_at === null) {
+                DB::table('conversations')->where('id', $this->conversationId)->update(['mode' => 'manager', 'stage' => 'handoff', 'outcome' => 'handoff', 'handed_off_at' => now(), 'updated_at' => now()]);
+                app(StageTransitions::class)->record($tenant, $this->conversationId, $conversation->stage, 'handoff');
+                app(AuditWriter::class)->record($tenant, new AuditEntry('seller.dialog.budget_handoff', 'conversation', $this->conversationId));
+            }
+            if ($status === 'suggested') {
+                NotifyConversationEvent::dispatch($this->organizationId, $this->brandId, $this->conversationId,
+                    'seller.draft.ready', ['turn_id' => $turnId])->afterCommit();
+            }
         });
     }
 }

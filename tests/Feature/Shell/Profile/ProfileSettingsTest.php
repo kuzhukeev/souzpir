@@ -133,7 +133,7 @@ final class ProfileSettingsTest extends TenancyTestCase
             $this->assertSame(['cabinet' => true, 'email' => false, 'telegram' => false], $event['channels']);
         }
         $this->assertFalse($settings['telegram']['connected']);
-        $this->assertFalse($settings['timingAvailable']);
+        $this->assertTrue($settings['timingAvailable']);
     }
 
     public function test_disabled_modules_are_hidden_and_cannot_be_written(): void

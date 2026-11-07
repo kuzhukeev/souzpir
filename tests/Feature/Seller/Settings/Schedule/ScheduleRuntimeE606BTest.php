@@ -8,6 +8,7 @@ use App\Models\Brand;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\User;
+use App\Seller\Channels\Core\InboundRecorder;
 use App\Seller\Conversations\Data\TurnCommand;
 use App\Seller\Conversations\Models\Conversation;
 use App\Seller\Conversations\Models\Message;
@@ -75,7 +76,7 @@ final class ScheduleRuntimeE606BTest extends TestCase
         config(['runtime.ai_driver' => 'fake']);
     }
 
-    private function fixture(string $mode = 'bot', string $role = 'owner'): array
+    private function fixture(string $mode = 'bot', string $role = 'owner', ?string $channel = null): array
     {
         app(PromptSetsSeeder::class)->run();
         $owner = User::create(['name' => 'Synthetic', 'email' => Str::random(12).'@example.test', 'password' => 'synthetic-test-password']);
@@ -96,10 +97,18 @@ final class ScheduleRuntimeE606BTest extends TestCase
             $member = app(TenantContextRunner::class)->run(new TenantContext($org->id, actorId: $owner->id), fn () => Membership::create(['user_id' => $user->id, 'role' => 'viewer', 'brand_ids' => [$brand->id]]));
         }
         $context = new TenantContext($org->id, $brand->id, $user->id, $member->id);
-        [$conversation, $message] = app(TenantContextRunner::class)->run($ownerContext, function () use ($ownerContext, $mode): array {
+        [$conversation, $message] = app(TenantContextRunner::class)->run($ownerContext, function () use ($ownerContext, $mode, $channel): array {
             app(YamlKnowledgeImporter::class)->importAndPublish($ownerContext, base_path('tests/Feature/Seller/Knowledge/Fixtures/data'));
-            $conversation = Conversation::create(['state' => [], 'mode' => $mode]);
-            $message = Message::create(['conversation_id' => $conversation->id, 'role' => 'client', 'text' => 'Вопрос от synthetic-contact@example.test', 'meta' => []]);
+            $channelAccountId = null;
+            if ($channel !== null) {
+                $channelAccountId = (string) Str::ulid();
+                DB::table('channel_accounts')->insert(['id' => $channelAccountId, 'organization_id' => $ownerContext->organizationId, 'brand_id' => $ownerContext->brandId,
+                    'type' => $channel, 'created_at' => now(), 'updated_at' => now()]);
+            }
+            $conversation = Conversation::create(['state' => [], 'mode' => $mode, 'channel_account_id' => $channelAccountId]);
+            $message = $channelAccountId !== null
+                ? app(InboundRecorder::class)->ingest($ownerContext, $channelAccountId, 'synthetic-event', [], $conversation->id, 'Вопрос от synthetic-contact@example.test')
+                : Message::create(['conversation_id' => $conversation->id, 'role' => 'client', 'text' => 'Вопрос от synthetic-contact@example.test', 'meta' => []]);
 
             return [$conversation, $message];
         });
@@ -114,7 +123,7 @@ final class ScheduleRuntimeE606BTest extends TestCase
         app(AuthSessionRegistry::class)->withinActive($request, fn () => app(SessionBrandSelection::class)->initialize($request, $org->id, $brand->id));
         $selection = app(AuthSessionRegistry::class)->withinActive($request, fn () => app(SessionBrandSelection::class)->current($request));
         $request->attributes->set('tenant.brand_revision', (string) $selection->brand_revision);
-        $command = new TurnCommand($conversation->id, $message->id, $message->text, null, 'runtime-test-key', 0);
+        $command = new TurnCommand($conversation->id, $message->id, $message->text, $message->external_event_id, 'runtime-test-key', 0);
 
         return [$context, $request, $command];
     }
@@ -135,11 +144,25 @@ final class ScheduleRuntimeE606BTest extends TestCase
         $result = $this->turn($tenant, $request, $command);
         self::assertSame('suppressed', $result['status']);
         self::assertSame(0, $fake->calls);
-        self::assertSame(0, DB::table('messages')->where('conversation_id', $command->conversationId)->where('role', 'agent')->count());
+        self::assertSame(1, DB::table('messages')->where('conversation_id', $command->conversationId)->where('role', 'agent')->count());
+        self::assertSame('Передаю менеджеру, он напишет сегодня до конца дня.', DB::table('messages')->where('conversation_id', $command->conversationId)->where('role', 'agent')->value('text'));
         self::assertSame($result, $this->turn($tenant, $request, $command));
+        self::assertSame(1, DB::table('messages')->where('conversation_id', $command->conversationId)->where('role', 'agent')->count());
         CarbonImmutable::setTestNow('2026-11-03 09:00:00+00');
         self::assertFalse(app(BrandRuntimeSchedule::class)->available($tenant, app(BrandRuntimeSchedule::class)->settings($tenant), CarbonImmutable::now()));
         CarbonImmutable::setTestNow();
+    }
+
+    public function test_channel_override_lets_telegram_bypass_module_off(): void
+    {
+        [$tenant, $request, $command] = $this->fixture(channel: 'telegram');
+        DB::table('seller_schedule_preferences')->insert(['id' => (string) Str::ulid(), 'organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId,
+            'payload' => json_encode(['mode' => 'off', 'channel_overrides' => ['telegram' => 'autonomous']]), 'created_at' => now(), 'updated_at' => now()]);
+        $fake = new ScheduleFakeDriverE606B;
+        app()->instance(FakeDriver::class, $fake);
+        $result = $this->turn($tenant, $request, $command);
+        self::assertSame('completed', $result['status']);
+        self::assertSame(2, $fake->calls);
     }
 
     public function test_manager_assignment_uses_only_eligible_brand_members_and_empty_pool_is_safe(): void

@@ -16,7 +16,7 @@ final class ResolveOnboardingOwner
         abort_unless($actor && $actor->hasVerifiedEmail(), 403);
         // A client header must never select another tenant or a brand in this mode.
         abort_if($request->hasHeader('X-Brand-Id'), 404);
-        $org = Organization::whereKey(app(Cabinet::class)->organizationId())->where('status', 'active')->firstOrFail();
+        $org = Organization::whereKey(app(Cabinet::class)->organizationIdFor($actor))->where('status', 'active')->firstOrFail();
         $member = Membership::withoutGlobalScopes()->where('organization_id', $org->id)->where('user_id', $actor->id)->where('status', 'active')->where('role', 'owner')->first();
         abort_unless($member && $org->owner_user_id === $actor->id, 403);
         $request->attributes->set('tenant.organization', $org);

@@ -1,0 +1,21 @@
+import { expect, test } from '@playwright/test';
+import { createServer, type ViteDevServer } from 'vite';
+import { mkdir } from 'node:fs/promises';
+let server: ViteDevServer;
+let url: string;
+test.use({ viewport: { width: 1440, height: 900 }, launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH } : {} });
+test.beforeAll(async () => { server = await createServer({ configFile: 'tests/Browser/E6-03AA/vite.config.ts', cacheDir: '.local/runtime/vite-e603aa-card', server: { host: '127.0.0.1', port: 0 } }); await server.listen(); url = new URL('/tests/Browser/E6-03AA/customer-card.fixture.html', server.resolvedUrls!.local[0]).href; });
+test.afterAll(async () => { await server?.close(); });
+test('карточка клиента показывает согласие на рассылку, отписки и форму менеджера', async ({ page }) => {
+    await page.goto(url);
+    await expect(page.getByText('Согласие на рассылку')).toBeVisible();
+    await expect(page.getByText('Согласие отозвано')).toBeVisible();
+    await expect(page.getByText('Событий отписки: 1')).toBeVisible();
+    const basis = page.getByLabel('Основание');
+    const confirm = page.getByRole('button', { name: 'Подтвердить согласие' });
+    await expect(confirm).toBeDisabled();
+    await basis.fill('Клиент попросил по телефону снова присылать напоминания');
+    await expect(confirm).toBeEnabled();
+    await mkdir('.local/screenshots/SP-E6-03AA', { recursive: true });
+    await page.screenshot({ path: '.local/screenshots/SP-E6-03AA/customer-card.png', fullPage: true });
+});

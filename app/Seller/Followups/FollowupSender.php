@@ -23,7 +23,10 @@ final class FollowupSender
             return DB::transaction(function () use ($tenant, $candidateId, $delivery, $policy): bool {
                 $scope = ['organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId];
                 $candidate = DB::table('seller_followup_candidates')->where($scope)->where('id', $candidateId)->first();
-                if (! $candidate || $candidate->status !== 'pending') {
+                if (! $candidate || $candidate->status !== 'pending'
+                    || ($candidate->scheduled_at !== null && CarbonImmutable::parse($candidate->scheduled_at)->isFuture())
+                    || app(FollowupConsent::class)->revoked($tenant, $candidate->conversation_id)
+                    || ($candidate->bulk && ! app(FollowupConsent::class)->allowed($tenant, $candidate->conversation_id))) {
                     return false;
                 }
                 $brand = DB::table('brands')->where('organization_id', $tenant->organizationId)->where('id', $tenant->brandId)->where('status', 'active')->first(['timezone']);
@@ -46,7 +49,7 @@ final class FollowupSender
                     return false;
                 }
                 $messageId = (string) Str::ulid();
-                DB::table('messages')->insert(['id' => $messageId, ...$scope, 'conversation_id' => $conversation->id, 'channel_account_id' => $conversation->channel_account_id,
+                DB::table('messages')->insert(['id' => $messageId, ...$scope, 'conversation_id' => $conversation->id,
                     'role' => 'agent', 'text' => $candidate->text, 'meta' => json_encode(['goal' => ['kind' => 'followup_nudge'], 'reason' => $candidate->reason], JSON_THROW_ON_ERROR), 'created_at' => now(), 'updated_at' => now()]);
                 $receipt = $delivery->send(new DeliveryCommand($tenant, $conversation->id, $messageId, 'fake', 'followup:'.$candidate->id));
                 if ($receipt->status !== 'fake_sent' || $receipt->messageId !== $messageId) {
