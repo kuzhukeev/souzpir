@@ -44,9 +44,11 @@ final class WidgetSessionTest extends TenancyTestCase
         $this->assertDatabaseCount('messages', 2);
         $this->postJson($url, [...$input, 'token' => str_repeat('x', 64)])->assertNotFound();
         $this->postJson($url, [...$input, 'text' => ''])->assertUnprocessable();
-        $this->postJson('/widget/contact?key='.$key, ['session_token' => $session, 'consent' => true, 'email' => 'client@example.test'])->assertCreated();
+        $this->postJson('/widget/contact?key='.$key, ['session_token' => $session, 'consent' => true, 'name' => 'Посетитель виджета', 'email' => 'client@example.test'])->assertCreated();
         $stored = DB::table('widget_sessions')->where('token_hash', hash('sha256', $session))->first();
         self::assertNotNull($stored->contact_request_id);
+        $this->assertDatabaseHas('contacts', ['id' => $stored->contact_id, 'brand_id' => $brand->id, 'name' => 'Посетитель виджета', 'email' => 'client@example.test']);
+        $this->assertDatabaseCount('contacts', 1);
         $this->assertDatabaseHas('widget_contact_requests', ['id' => $stored->contact_request_id, 'brand_id' => $brand->id, 'email' => 'client@example.test']);
         $this->post('/brand/switch', ['brand_id' => $other->id])->assertRedirect();
         $this->get('/seller/channels/widget')->assertOk();
