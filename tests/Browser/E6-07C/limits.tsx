@@ -12,7 +12,7 @@ const rows = empty ? [] : [
   { key: 'seller.channels_active', label: 'Активные каналы', value: 2, status: 'ready', limit: null, configured: false },
   { key: 'org.members_active', label: 'Участники компании', value: 3, status: 'ready', limit: null, configured: false },
 ];
-const props = { rows, budget: null, period: { from: '2026-11-01', to: '2026-12-01', timezone: 'UTC' }, daysRemaining: 12, canViewPlans: !params.has('restricted'),
+const props = { rows, budget: null, fallbackPhrase: 'Передаю вас менеджеру.', period: { from: '2026-11-01', to: '2026-12-01', timezone: 'UTC' }, daysRemaining: 12, canViewPlans: !params.has('restricted'),
   brand: { id: 'brand', name: 'Союз Пир', theme: 'neutral' }, brands: [], organization: { id: 'org', name: 'Компания' }, auth: { user: { id: 'user', name: 'Иван Петров', email: 'ivan@example.test' } }, modules: { seller: true, vision: false }, can: {}, unread: null, translations: {}, ziggy: { routes: {notifications:{uri:'seller/settings/notifications',methods:['GET']}} }, errors: {} };
 const page = { component: 'Fixture', props, url: '/seller/settings/limits', version: null, clearHistory: false, encryptHistory: false };
 const script = document.createElement('script'); script.type = 'application/json'; script.dataset.page = 'app'; script.textContent = JSON.stringify(page); document.body.appendChild(script);
