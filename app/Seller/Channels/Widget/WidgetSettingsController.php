@@ -9,6 +9,7 @@ use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
 use App\Shell\Profile\ProfileAccess;
 use App\Tenancy\TenantContext;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -61,6 +62,23 @@ final class WidgetSettingsController
         });
 
         return Inertia::render('Seller/Channels/Widget/Index', [...$data, 'status' => $request->session()->get('status')]);
+    }
+
+    public function checkInstallation(Request $request): mixed
+    {
+        $result = $this->access($request, function (User $user, TenantContext $tenant): string {
+            $widget = $this->settings($tenant);
+            if (! $widget->enabled) {
+                return 'Сначала включите виджет и добавьте адрес сайта.';
+            }
+            if (! $widget->last_seen_at) {
+                return 'Запросов виджета ещё не было. Установка на сайте не подтверждена.';
+            }
+
+            return 'Последний запрос виджета: '.Carbon::parse($widget->last_seen_at)->format('d.m.Y H:i').'. Проверка сайта не выполнялась.';
+        });
+
+        return back()->with('status', $result);
     }
 
     public function update(Request $request): mixed

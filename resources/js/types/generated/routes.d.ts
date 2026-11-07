@@ -542,6 +542,7 @@ declare module 'ziggy-js' {
         }
     ],
     "seller.widget.update": [],
+    "seller.widget.check": [],
     "widget.loader": [],
     "widget.contact.preflight": [],
     "widget.contact.store": [],
