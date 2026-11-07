@@ -45,6 +45,18 @@ final class ReportSections
         return ['rows' => $rows, 'new_competitors' => $newCompetitors, 'appeared' => $appeared, 'disappeared' => $disappeared];
     }
 
+    private function sourceDistribution(array $sources): array
+    {
+        $total = collect($sources)->sum('answers');
+        if ($total <= 0) {
+            return [];
+        }
+
+        return collect($sources)->groupBy(fn ($item) => is_string($item['type'] ?? null) ? $item['type'] : 'unknown')
+            ->map(fn ($group, $type) => ['type' => $type, 'answers' => $group->sum('answers'), 'percent' => round($group->sum('answers') / $total * 100, 1)])
+            ->sortByDesc('answers')->values()->all();
+    }
+
     public function make(array $payload): array
     {
         $metrics = $payload['metrics'] ?? [];
@@ -112,6 +124,7 @@ final class ReportSections
                 'type' => is_string($item['type'] ?? null) ? $item['type'] : null,
                 'presence' => is_bool($item['presence'] ?? null) ? $item['presence'] : null,
             ])->values()->all(),
+            'source_distribution' => $this->sourceDistribution($metrics['sources'] ?? []),
             'actions' => collect(data_get($payload, 'recommendations.items', []))->take(3)->map(function ($item, $index) use ($questions) {
                 $ids = $item['question_ids'] ?? (isset($item['question_id']) ? [$item['question_id']] : (isset($item['qid']) ? [$item['qid']] : []));
                 $count = collect(is_array($ids) ? $ids : [])->filter(fn ($id) => is_string($id) && $questions->has($id))->unique()->count();
