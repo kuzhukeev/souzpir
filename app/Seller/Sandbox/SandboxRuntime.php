@@ -12,6 +12,7 @@ use App\Seller\Engine\Policy;
 use App\Seller\Engine\ToolArguments;
 use App\Seller\Knowledge\KnowledgeSnapshot;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 
 /** Offline sandbox: policy, guard and fixture-backed effects run without live delivery. */
 final class SandboxRuntime
@@ -39,6 +40,33 @@ final class SandboxRuntime
             foreach ($group['facts'] ?? [] as $fact) {
                 if (is_string($fact) && trim($fact) !== '') {
                     $facts[] = $fact;
+                }
+            }
+        }
+        // Only conditions explicitly referenced by the selected facts are shown.
+        $conditionKeys = [];
+        foreach ($goal->facts as $selectedGroup) {
+            foreach ($snapshot->all('facts') as $rawGroup) {
+                if (($rawGroup['id'] ?? null) !== ($selectedGroup['id'] ?? null)) {
+                    continue;
+                }
+                $rawByResolved = [];
+                foreach ($rawGroup['facts'] ?? [] as $rawFact) {
+                    if (is_string($rawFact)) {
+                        $rawByResolved[$snapshot->resolvePlaceholders($rawFact)][] = $rawFact;
+                    }
+                }
+                foreach ($selectedGroup['facts'] ?? [] as $selectedFact) {
+                    $matches = array_unique($rawByResolved[$selectedFact] ?? []);
+                    if (count($matches) !== 1) {
+                        continue;
+                    }
+                    preg_match_all('/\{cond:([a-zA-Z0-9_.]+)\}/u', reset($matches), $references);
+                    foreach ($references[1] as $key) {
+                        if (Arr::has($snapshot->conditions(), $key)) {
+                            $conditionKeys[$key] = data_get($snapshot->conditions(), $key);
+                        }
+                    }
                 }
             }
         }
@@ -145,7 +173,7 @@ final class SandboxRuntime
 
         return ['answer' => $answer, 'state' => $state->toArray(), 'inspector' => [
             'intent' => $extraction['client_intent'] ?? 'unclear', 'extraction_source' => $source, 'response_source' => $responseSource, 'slot_updates' => $extraction['slot_updates'] ?? [],
-            'goal' => $goal->toArray(), 'guard' => $guard, 'executed_tools' => $tools, 'previous_answer' => $history === [] ? null : end($history)['answer'],
+            'goal' => $goal->toArray(), 'selected_facts' => $facts, 'selected_conditions' => $conditionKeys, 'guard' => $guard, 'executed_tools' => $tools, 'previous_answer' => $history === [] ? null : end($history)['answer'],
         ]];
     }
 }

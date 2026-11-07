@@ -116,7 +116,7 @@ final class SandboxController
         $result = app(SandboxRuntime::class)->turn($request, $snapshot, $input['text'], $same ? ($session['state'] ?? []) : [], $history, $release->status === 'draft', $client?->name);
         $result['inspector']['client'] = $client?->name;
         $result['inspector']['channel'] = $channel?->name ?: $channel?->type;
-        $history[] = ['question' => $input['text'], 'answer' => $result['answer']];
+        $history[] = ['question' => $input['text'], 'answer' => $result['answer'], 'created_at' => now()->toIso8601String(), 'state' => $result['state'], 'inspector' => $result['inspector']];
         $session = ['release' => $release->id, 'checksum' => $snapshot->checksum(), 'client_id' => $clientId,
             'channel_id' => $channelId, 'state' => $result['state'], 'history' => $history, 'inspector' => $result['inspector']];
         $request->session()->put($key, $session);
