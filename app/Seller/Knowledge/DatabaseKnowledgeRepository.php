@@ -203,6 +203,33 @@ final class DatabaseKnowledgeRepository implements KnowledgeRepository
         });
     }
 
+    /** Restore a published snapshot as a draft; keep the previous draft as a backup. */
+    public function rollbackToDraft(TenantContext $context, string $id): array
+    {
+        $this->assertWrite($context);
+
+        return DB::transaction(function () use ($context, $id): array {
+            $this->brand($context, true);
+            $this->assertWrite($context, true);
+            $this->forRelease($context, $id);
+            $data = $this->readData($id, true);
+            $metadata = $this->factMetadata($id);
+            $draft = DB::table('knowledge_releases')->where('organization_id', $context->organizationId)
+                ->where('brand_id', $context->brandId)->where('status', 'draft')->lockForUpdate()->first(['id', 'version']);
+            if ($draft) {
+                DB::table('knowledge_releases')->where('id', $draft->id)->update(['status' => 'building', 'updated_at' => now()]);
+                app(AuditWriter::class)->record($context, new AuditEntry('knowledge.draft.autosaved', 'knowledge_release', $draft->id, after: ['version' => $draft->version, 'rollback_to' => $id]));
+            }
+
+            $new = (string) Str::ulid();
+            DB::table('knowledge_releases')->insert(['id' => $new, 'organization_id' => $context->organizationId, 'brand_id' => $context->brandId, 'status' => 'draft', 'version' => 1, 'created_by' => $context->actorId, 'created_at' => now(), 'updated_at' => now()]);
+            $this->writeData($new, $data, $metadata);
+            app(AuditWriter::class)->record($context, new AuditEntry('knowledge.draft.created', 'knowledge_release', $new));
+
+            return ['id' => $new, 'version' => 1];
+        });
+    }
+
     /** Called only under the existing organization, brand, membership and release locks. */
     private function revokeVisionGrantsForReleaseChange(TenantContext $context, object $brand, string $nextReleaseId): array
     {
