@@ -135,6 +135,18 @@ final class FirstSellerTurnHttpTest extends TestCase
         self::assertTrue($guard->exceedsConsecutiveQuestionLimit($reminderBetweenTwoQuestions, 'Что у вас по срокам?'));
     }
 
+    public function test_consecutive_question_limit_is_configurable(): void
+    {
+        $guard = new FirstTurnDeterministicGuard;
+        $twoQuestionsThenOne = [
+            ['text' => 'Какой у вас бюджет?', 'meta' => []],
+            ['text' => 'Можем обсудить заказ?', 'meta' => []],
+        ];
+        self::assertFalse($guard->exceedsConsecutiveQuestionLimit($twoQuestionsThenOne, 'Что у вас по срокам?', 3));
+        $oneQuestion = [['text' => 'Можем обсудить заказ?', 'meta' => []]];
+        self::assertTrue($guard->exceedsConsecutiveQuestionLimit($oneQuestion, 'Какой у вас бюджет?', 1));
+    }
+
     private function fixture(): array
     {
         app(PromptSetsSeeder::class)->run();

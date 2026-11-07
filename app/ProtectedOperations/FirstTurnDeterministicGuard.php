@@ -70,8 +70,9 @@ final class FirstTurnDeterministicGuard
                 ->where('conversation_id', $claim->conversationId)->where('role', 'agent')
                 ->orderByDesc('created_at')->orderByDesc('id')->limit(10)->get(['text', 'meta'])
                 ->map(fn ($row) => ['text' => (string) $row->text, 'meta' => json_decode($row->meta ?: '{}', true) ?: []])->all();
-            if ($this->exceedsConsecutiveQuestionLimit($priorAgentMessages, $candidate['text'])) {
-                $result['issues'][] = 'третий вопрос подряд — дай пользу без вопроса, новый вопрос задай позже';
+            $questionLimit = (int) ($knowledge->policy()['limits']['max_consecutive_questions'] ?? 2);
+            if ($this->exceedsConsecutiveQuestionLimit($priorAgentMessages, $candidate['text'], $questionLimit)) {
+                $result['issues'][] = 'слишком много вопросов подряд — дай пользу без вопроса, новый вопрос задай позже';
                 $result['verdict'] = 'regenerate';
             }
             app(GuardHitRecorder::class)->record(app(TenantContext::class), $responderId, $knowledge, $candidate['text'], $result);
@@ -83,13 +84,14 @@ final class FirstTurnDeterministicGuard
     }
 
     /**
-     * Pure rule: max two consecutive bot replies ending in a question; the
-     * third must give value without asking. Напоминания (followup_nudge) не
-     * считаются и не прерывают цепочку.
+     * Pure rule: at most $limit consecutive bot replies ending in a question
+     * (default 2, настраивается в policy.limits.max_consecutive_questions);
+     * the next one must give value without asking. Напоминания
+     * (followup_nudge) не считаются и не прерывают цепочку.
      *
      * @param  list<array{text:string,meta:array}>  $priorAgentMessagesNewestFirst
      */
-    public function exceedsConsecutiveQuestionLimit(array $priorAgentMessagesNewestFirst, string $candidateText): bool
+    public function exceedsConsecutiveQuestionLimit(array $priorAgentMessagesNewestFirst, string $candidateText, int $limit = 2): bool
     {
         if (! str_ends_with(rtrim($candidateText), '?')) {
             return false;
@@ -103,7 +105,7 @@ final class FirstTurnDeterministicGuard
             if (! str_ends_with(rtrim((string) ($message['text'] ?? '')), '?')) {
                 break;
             }
-            if (++$streak >= 2) {
+            if (++$streak >= $limit) {
                 return true;
             }
         }
