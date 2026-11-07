@@ -505,6 +505,17 @@ class Policy
 
     public function nextSlot(LeadState $s): ?string
     {
+        $stages = ['open', 'qualify', 'need', 'budget', 'close_contact', 'followup', 'handoff'];
+        $current = array_search($s->stage(), $stages, true);
+        foreach ($this->p['client_fields'] ?? [] as $field) {
+            $slot = $field['id'] ?? null;
+            $stage = $field['stage'] ?? null;
+            $requiredAt = $stage === null ? 0 : array_search($stage, $stages, true);
+            if (($field['required'] ?? false) && is_string($slot) && ! in_array($slot, LeadState::SLOTS, true)
+                && $current !== false && $requiredAt !== false && $current >= $requiredAt && ! $s->has($slot) && ! $s->wasRefused($slot)) {
+                return $slot;
+            }
+        }
         $order = $this->p['slot_order'][$s->clientType()] ?? $this->p['slot_order']['unknown'];
         foreach ($order as $slot) {
             if ($s->has($slot)) {
@@ -842,6 +853,14 @@ class Policy
                 $reason = 'no_chance';
             }
             $out[] = ['slot' => $slot, 'reason' => $reason, 'suggested_question' => $this->kb->suggestedQuestion($slot, $s->clientType())];
+        }
+
+        foreach ($this->p['client_fields'] ?? [] as $field) {
+            $slot = $field['id'] ?? null;
+            if (($field['required'] ?? false) && is_string($slot) && ! in_array($slot, LeadState::PRIORITY_SLOTS, true) && ! $s->has($slot)) {
+                $out[] = ['slot' => $slot, 'reason' => $s->wasRefused($slot) ? 'declined' : 'not_asked',
+                    'suggested_question' => 'Уточните: '.($field['name'] ?? $slot)];
+            }
         }
 
         return $out;

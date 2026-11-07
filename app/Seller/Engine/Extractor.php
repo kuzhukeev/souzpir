@@ -32,6 +32,20 @@ class Extractor
         }
         $slotProps['categories'] = ['type' => ['array', 'null'], 'items' => ['type' => 'string']];
         $slotProps['brands_interest'] = ['type' => ['array', 'null'], 'items' => ['type' => 'string']];
+        foreach ($this->kb->policy()['client_fields'] ?? [] as $field) {
+            $id = $field['id'] ?? null;
+            if (! is_string($id) || isset($slotProps[$id])) {
+                continue;
+            }
+            $type = $field['type'] ?? null;
+            if ($type === 'number') {
+                $slotProps[$id] = ['type' => ['number', 'null']];
+            } elseif ($type === 'select' && is_array($field['options'] ?? null)) {
+                $slotProps[$id] = ['type' => ['string', 'null'], 'enum' => [...$field['options'], null]];
+            } elseif ($type === 'text') {
+                $slotProps[$id] = ['type' => ['string', 'null']];
+            }
+        }
 
         return [
             'type' => 'object',

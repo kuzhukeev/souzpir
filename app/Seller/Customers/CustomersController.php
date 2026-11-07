@@ -6,6 +6,8 @@ use App\Models\Membership;
 use App\Models\User;
 use App\Seller\Engine\LeadState;
 use App\Seller\Engine\Policy;
+use App\Seller\Knowledge\Contracts\KnowledgeRepository;
+use App\Seller\Knowledge\KnowledgeNotReady;
 use App\Seller\Knowledge\KnowledgeSnapshot;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Audit\AuditEntry;
@@ -108,6 +110,16 @@ final class CustomersController
             $conversations = $this->scope('conversations', $tenant)->where('contact_id', $contact)->orderByDesc('updated_at')->get(['id', 'state', 'stage', 'outcome', 'mode', 'updated_at', 'assigned_user_id', 'channel_account_id']);
             $latest = $conversations->first();
             $state = $latest ? json_decode($latest->state, true) : [];
+            $customFieldLabels = [];
+            try {
+                foreach (app(KnowledgeRepository::class)->published($tenant)->policy()['client_fields'] ?? [] as $field) {
+                    if (is_string($field['id'] ?? null) && is_string($field['name'] ?? null)) {
+                        $customFieldLabels[$field['id']] = $field['name'];
+                    }
+                }
+            } catch (KnowledgeNotReady) {
+                // No published additional fields yet.
+            }
             $customer->company = data_get($state, 'slots.company') ?: data_get($state, 'slots.legal');
             $customer->city = $customer->city ?: data_get($state, 'slots.city');
             $channelNames = $this->scope('channel_accounts', $tenant)->whereIn('id', $conversations->pluck('channel_account_id')->filter()->unique())->pluck('type', 'id');
@@ -146,7 +158,8 @@ final class CustomersController
 
             return ['canReadDialogs' => Gate::forUser($user)->allows('seller.dialogs.read'), 'managers' => $eligible, 'assignedUserId' => $latest?->assigned_user_id, 'canAssign' => $canAssign, 'manager' => $latest?->assigned_user_id ? DB::table('users')->where('id', $latest->assigned_user_id)->value('name') : null, 'customer' => $customer, 'clientType' => $this->clientType($latest?->state), 'slots' => data_get($state, 'slots', []),
                 'conversations' => $conversations->map(fn ($row) => ['id' => $row->id, 'stage' => $row->stage, 'outcome' => $row->outcome, 'mode' => $row->mode, 'channel' => $channelNames->get($row->channel_account_id), 'updated_at' => $row->updated_at]),
-                'history' => $history, 'tasks' => $tasks, 'notes' => $notes, 'canWrite' => Gate::forUser($user)->allows('seller.customers.write')];
+                'history' => $history, 'tasks' => $tasks, 'notes' => $notes, 'customFieldLabels' => $customFieldLabels,
+                'canWrite' => Gate::forUser($user)->allows('seller.customers.write')];
         });
 
         return Inertia::render('Seller/Customers/Show', $data);

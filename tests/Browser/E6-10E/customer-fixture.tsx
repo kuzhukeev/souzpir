@@ -1,0 +1,12 @@
+import { createInertiaApp } from '@inertiajs/react';
+import { createRoot } from 'react-dom/client';
+import '../../../resources/css/app.css';
+import '../../../resources/css/themes/tokens.css';
+import Index from '../../../resources/js/pages/Seller/Customers/Index';
+import Show from '../../../resources/js/pages/Seller/Customers/Show';
+const customer={id:'01ARZ3NDEKTSV4RRFFQ69G5FAV',name:'Анна Соколова',phone:'+79001112233',email:'anna@example.test'};
+const row={...customer,city:'Тверь',type:'experienced',stage:'qualify',outcome:'stale',best_outcome:'full_contact',conversation_id:'01ARZ3NDEKTSV4RRFFQ69G5FAW',manager:'Иван',channel:'site',tasks:1,last_at:'2026-11-02T12:00:00Z'};
+const isShow=location.search.includes('show');
+const props={auth:{user:{id:'u',name:'Иван',email:'ivan@example.test'}},organization:{id:'o',name:'Компания'},brand:{id:'b',name:'Пример бренда'},brands:[],modules:{seller:true,vision:false},can:{'profile.own':true,'seller.customers.read':true,'seller.customers.write':true,'seller.dialogs.read':true},theme:'neutral',translations:{},ziggy:{routes:{}},errors:{},customers:[row],counts:{total:21,contact:1,handoff:0,stale:0},filters:{},pagination:{page:1,perPage:20,total:21,lastPage:2},customer,clientType:'experienced',slots:{city:'Тверь',car_year:2020},customFieldLabels:{car_year:'Год выпуска'},history:[],conversations:[{id:row.conversation_id,stage:'qualify',outcome:'full_contact',mode:'auto',updated_at:row.last_at}],tasks:[{id:'task',type:'promise',status:'new',payload:'{"text":"Отправить прайс"}',due_at:'2026-11-05T12:00:00Z'}],notes:[],canWrite:true,manager:'Иван',managers:[],assignedUserId:null,canAssign:true,canReadDialogs:true};
+const script=document.createElement('script');script.type='application/json';script.dataset.page='app';script.textContent=JSON.stringify({component:'Fixture',props,url:'/seller/customers',version:'fixture',clearHistory:false,encryptHistory:false});document.body.append(script);
+void createInertiaApp({resolve:()=>isShow?Show:Index,setup:({el,App,props})=>createRoot(el).render(<App {...props}/>)});

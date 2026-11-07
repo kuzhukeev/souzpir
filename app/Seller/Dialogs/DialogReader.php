@@ -2,6 +2,8 @@
 
 namespace App\Seller\Dialogs;
 
+use App\Seller\Knowledge\Contracts\KnowledgeRepository;
+use App\Seller\Knowledge\KnowledgeNotReady;
 use App\Tenancy\TenantContext;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -120,6 +122,16 @@ final class DialogReader
             }
             $state = json_decode($row->state ?: '{}', true);
             $values = is_array($state) && is_array($state['slots'] ?? null) ? $state['slots'] : [];
+            $labels = self::SLOTS;
+            try {
+                foreach (app(KnowledgeRepository::class)->published($context)->policy()['client_fields'] ?? [] as $field) {
+                    if (is_string($field['id'] ?? null) && is_string($field['name'] ?? null) && ! isset($labels[$field['id']])) {
+                        $labels[$field['id']] = $field['name'];
+                    }
+                }
+            } catch (KnowledgeNotReady) {
+                // The system fields remain available before publication.
+            }
             $items = $messages->get($row->id) ?? DB::table('messages')->where('organization_id', $context->organizationId)
                 ->where('brand_id', $context->brandId)->where('conversation_id', $row->id)->orderByDesc('created_at')
                 ->orderByDesc('id')->limit(100)->get(['id', 'conversation_id', 'role', 'text', 'meta', 'created_at']);
@@ -128,7 +140,7 @@ final class DialogReader
                 'stage' => $row->stage, 'outcome' => $row->outcome, 'mode' => $row->mode,
                 'assigned_user_id' => $row->assigned_user_id, 'summary' => $row->summary,
                 'email' => $row->contact_email, 'phone' => $row->contact_phone,
-                'slots' => collect(self::SLOTS)->map(fn ($label, $key): array => ['key' => $key, 'label' => $label, 'value' => $this->slot($values[$key] ?? null)])->values()->all(),
+                'slots' => collect($labels)->map(fn ($label, $key): array => ['key' => $key, 'label' => $label, 'value' => $this->slot($values[$key] ?? null)])->values()->all(),
                 'messages' => $items->reverse()->values()->map(function ($message) use ($showMeta): array {
                     $meta = json_decode($message->meta ?: '{}', true);
                     $meta = is_array($meta) ? $meta : [];

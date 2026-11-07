@@ -254,6 +254,11 @@ class LeadState
             }
             $lines[] = $label.': '.(is_array($v) ? implode(', ', $v) : $v);
         }
+        foreach ($this->data['slots'] as $key => $value) {
+            if (! array_key_exists($key, $labels) && $value !== null && $value !== '' && $value !== []) {
+                $lines[] = $key.': '.(is_array($value) ? implode(', ', $value) : $value);
+            }
+        }
         if (! $lines) {
             $lines[] = 'пока ничего не известно';
         }
