@@ -24,14 +24,20 @@
   точки для хода 0 такого диалога.
 - `manual.force_close_14` не прогонялся: содержит периодические `summary`-вызовы вне нашего пути.
 
+## Повторная сдача после reopen (08.11 00:35)
+Карточка переоткрыта с тем же остатком (responder-стадия, 29 persona, force_close_14, followup_40h).
+Все четыре пункта требуют файлов вне текущего scope (`app/Seller/Runtime/`, `app/Ai/Protected/SellerResponderStages.php`,
+`app/ProtectedOperations/FirstTurnState.php`, `app/Seller/Engine/Policy.php`, `app/Seller/Followups/FollowupPolicy.php` —
+scope задачи их не включает, сужен планировщиком 07.11 23:30). Новых правок без расширения scope не делал; перепрогнал
+тесты — зелёные, те же 11/11. Регистрация теста в CI (прошлый пункт «Нужно от интегратора») сделана интегратором
+отдельным коммитом (phpunit.xml, equivalence job) — закрыто.
+
 ## Нужно от интегратора
 - Scope на `SellerResponderStages.php`, `FirstTurnState.php`, `Policy.php` (мутация стадии теряется между целью
   хода и карточкой для responder) — либо отдельная карточка на этот конкретный баг.
 - Scope на `app/Seller/Runtime/ApiOpeningRuntime.php` для 29 persona-сценариев.
-- Добавить в `.github/workflows/ci.yml` (job `equivalence`) шаг `vendor/bin/phpunit
-  tests/Equivalence/RuntimeReplayE307GTest.php --no-coverage` рядом с существующим шагом для
-  `RuntimeReplayE307ETest.php` — токен исполнителя не даёт пушить изменения workflow-файлов
-  (`refusing ... without 'workflow' scope`), правку не включил.
+- Scope на `app/Seller/Followups/FollowupPolicy.php` для второго автонапоминания (см. Техдолг) — если решат чинить,
+  а не оставлять как есть у прототипа-движка.
 
 ## Техдолг
 - `FollowupPolicy::due()` (не в scope): второе автонапоминание отмеряется от последнего напоминания, а не от
