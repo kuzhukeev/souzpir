@@ -581,3 +581,7 @@
 - SP-E7-04P: contact_received_at пишется только в защищённых финализаторах (первый ход, follow-up API); иные пути заполнения слотов контакта не фиксируют момент.
 
 - SP-E6-06E: seller.conversation.handed_off зарегистрирован в registry.json и EventCatalog, но нигде не enqueue-ится — общая очередь уведомлений для диалогов без ответа не используется; таймер «никто не взял» (MonitorHandoffs::monitorUnassigned) создаёт отдельную внутреннюю задачу seller_tasks(assignment_reminder) без живой отправки. Способы «по каналу/источнику» и «по городу» не реализованы (нет поля источника/города у клиента).
+
+- SP-L1-06: уведомление о входящем сообщении срабатывает только на Message::create (InboundRecorder — Telegram, виджет); TokenInboundRuntime/ApiFollowupRuntime/WidgetContactController пишут messages через DB::table — для API-каналов уведомлений нет. Канал события «unknown», если у сообщения нет channel_account_id. События seller.conversation.inbound/seller.draft.ready не в registry.json/EventCatalog (модуль пишет cabinet_notifications напрямую).
+
+- SP-L1-09: нет browser-теста на фразу «Менеджер скоро ответит»; ответ менеджера посетителю не доставляется до реализации опроса /widget/messages (остаток карточки).
