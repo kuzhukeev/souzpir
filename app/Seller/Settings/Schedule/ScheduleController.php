@@ -22,6 +22,8 @@ use Inertia\Inertia;
 
 final class ScheduleController
 {
+    public const TIMEZONES = ['Europe/Kaliningrad', 'Europe/Moscow', 'Europe/Samara', 'Asia/Yekaterinburg', 'Asia/Omsk', 'Asia/Krasnoyarsk', 'Asia/Irkutsk', 'Asia/Yakutsk', 'Asia/Vladivostok', 'Asia/Magadan', 'Asia/Kamchatka'];
+
     private function access(Request $request, callable $callback): mixed
     {
         return app(ProfileAccess::class)->run($request, function (User $user, TenantContext $tenant) use ($callback) {
@@ -37,7 +39,7 @@ final class ScheduleController
         $raw = DB::table('seller_schedule_preferences')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->value('payload');
         $data = $raw ? json_decode($raw, true) : [];
 
-        return array_replace(['mode' => 'autonomous', 'week' => [], 'holidays' => [], 'assignment' => ['method' => 'first_taken', 'fixed' => null, 'members' => [], 'notify_minutes' => null, 'notify_target' => 'all_managers']], is_array($data) ? $data : []);
+        return array_replace(['mode' => 'autonomous', 'week' => [], 'holidays' => [], 'assignment' => ['method' => 'first_taken', 'fixed' => null, 'fixed_channels' => [], 'members' => [], 'notify_minutes' => null, 'notify_target' => 'all_managers']], is_array($data) ? $data : []);
     }
 
     private function save(TenantContext $tenant, array $data): void
@@ -72,7 +74,7 @@ final class ScheduleController
                 $outOfHours = null;
             }
 
-            return ['outOfHoursPhrase' => $outOfHours, 'settings' => $this->read($tenant), 'members' => $this->members($tenant), 'timezone' => $timezone];
+            return ['outOfHoursPhrase' => $outOfHours, 'settings' => $this->read($tenant), 'members' => $this->members($tenant), 'timezone' => $timezone, 'timezones' => self::TIMEZONES];
         });
 
         return Inertia::render('Seller/Settings/Schedule/Index', [...$data, 'status' => $request->session()->get('status')]);
@@ -82,7 +84,8 @@ final class ScheduleController
     {
         $input = $request->validate(['mode' => ['required', 'in:autonomous,suggest,off'], 'week' => ['present', 'array'], 'week.*.enabled' => ['required', 'boolean'],
             'week.*.start' => ['required', 'date_format:H:i'], 'week.*.end' => ['required', 'date_format:H:i'], 'week.*.behavior' => ['required', 'in:bot,quiet,off'],
-            'holidays' => ['present', 'array', 'max:100'], 'holidays.*' => ['required', 'date_format:Y-m-d']]);
+            'holidays' => ['present', 'array', 'max:100'], 'holidays.*' => ['required', 'date_format:Y-m-d'],
+            'timezone' => ['nullable', 'in:'.implode(',', self::TIMEZONES)]]);
         if ($input['week'] !== [] && count($input['week']) !== 7) {
             throw ValidationException::withMessages(['week' => 'Нужны настройки для семи дней.']);
         }
@@ -91,9 +94,14 @@ final class ScheduleController
                 throw ValidationException::withMessages(['week' => 'Время окончания должно быть позже начала.']);
             }
         }
-        $this->access($request, function (User $user, TenantContext $tenant) use ($input): void {
+        $timezone = $input['timezone'] ?? null;
+        unset($input['timezone']);
+        $this->access($request, function (User $user, TenantContext $tenant) use ($input, $timezone): void {
             $data = array_replace($this->read($tenant), $input);
             $this->save($tenant, $data);
+            if ($timezone !== null) {
+                DB::table('brands')->where('organization_id', $tenant->organizationId)->where('id', $tenant->brandId)->update(['timezone' => $timezone, 'updated_at' => now()]);
+            }
         });
 
         return back()->with('status', 'Расписание сохранено.');
@@ -105,20 +113,26 @@ final class ScheduleController
             'members.*.id' => ['required', 'ulid'], 'members.*.enabled' => ['required', 'boolean'], 'members.*.max_active' => ['nullable', 'integer', 'min:1', 'max:1000'],
             'members.*.hours' => ['nullable', 'array'], 'members.*.hours.start' => ['required_with:members.*.hours', 'date_format:H:i'], 'members.*.hours.end' => ['required_with:members.*.hours', 'date_format:H:i'],
             'members.*.channels' => ['nullable', 'array'], 'members.*.channels.*' => ['in:telegram,widget,api,email,whatsapp'],
+            'fixed_channels' => ['nullable', 'array'], 'fixed_channels.*' => ['nullable', 'ulid'],
             'notify_minutes' => ['nullable', 'integer', 'min:1', 'max:10080'], 'notify_target' => ['required', 'in:all_managers,owner']]);
         foreach ($input['members'] as $entry) {
             if (is_array($entry['hours'] ?? null) && $entry['hours']['start'] >= $entry['hours']['end']) {
                 throw ValidationException::withMessages(['members' => 'Время окончания должно быть позже начала.']);
             }
         }
+        if (array_diff(array_keys($input['fixed_channels'] ?? []), ['telegram', 'widget', 'api', 'email', 'whatsapp'])) {
+            throw ValidationException::withMessages(['fixed_channels' => 'Неизвестный канал.']);
+        }
         $this->access($request, function (User $user, TenantContext $tenant) use ($input): void {
             $ids = array_column($this->members($tenant), 'id');
-            if (array_diff(array_column($input['members'], 'id'), $ids) || (! empty($input['fixed']) && ! in_array($input['fixed'], $ids, true))) {
+            $fixedChannelIds = array_filter($input['fixed_channels'] ?? []);
+            if (array_diff(array_column($input['members'], 'id'), $ids) || (! empty($input['fixed']) && ! in_array($input['fixed'], $ids, true)) || array_diff($fixedChannelIds, $ids)) {
                 throw ValidationException::withMessages(['members' => 'Выбран недоступный участник.']);
             }
             if ($input['method'] === 'fixed' && empty($input['fixed'])) {
                 throw ValidationException::withMessages(['fixed' => 'Выберите менеджера.']);
             }
+            $input['fixed_channels'] = $fixedChannelIds;
             $data = $this->read($tenant);
             $data['assignment'] = $input;
             $this->save($tenant, $data);

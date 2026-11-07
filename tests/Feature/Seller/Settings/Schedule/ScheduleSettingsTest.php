@@ -23,13 +23,18 @@ final class ScheduleSettingsTest extends TenancyTestCase
         $this->enable($org->id, $other->id);
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
         $week = array_fill(0, 7, ['enabled' => true, 'start' => '09:00', 'end' => '18:00', 'behavior' => 'quiet']);
-        $this->post('/seller/settings/schedule', ['mode' => 'suggest', 'week' => $week, 'holidays' => ['2026-11-03']])->assertRedirect();
-        $this->get('/seller/settings')->assertOk()->assertInertia(fn ($page) => $page->where('settings.mode', 'suggest')->where('settings.week.0.behavior', 'quiet'));
-        $this->post('/seller/settings/assignment', ['method' => 'fixed', 'fixed' => $owner->id, 'notify_target' => 'owner',
+        $this->post('/seller/settings/schedule', ['mode' => 'suggest', 'week' => $week, 'holidays' => ['2026-11-03'], 'timezone' => 'Asia/Yekaterinburg'])->assertRedirect();
+        $this->get('/seller/settings')->assertOk()->assertInertia(fn ($page) => $page->where('settings.mode', 'suggest')->where('settings.week.0.behavior', 'quiet')->where('timezone', 'Asia/Yekaterinburg'));
+        $this->assertDatabaseHas('brands', ['id' => $brand->id, 'timezone' => 'Asia/Yekaterinburg']);
+        $this->post('/seller/settings/schedule', ['mode' => 'suggest', 'week' => [], 'holidays' => [], 'timezone' => 'not-a-timezone'])->assertSessionHasErrors('timezone');
+        $this->post('/seller/settings/assignment', ['method' => 'fixed', 'fixed' => $owner->id, 'fixed_channels' => ['widget' => $owner->id], 'notify_target' => 'owner',
             'members' => [['id' => $owner->id, 'enabled' => true, 'max_active' => null, 'hours' => ['start' => '09:00', 'end' => '18:00'], 'channels' => ['widget']]]])->assertRedirect();
-        $this->get('/seller/settings?tab=assignment')->assertOk()->assertInertia(fn ($page) => $page->where('settings.assignment.members.0.channels', ['widget'])->where('settings.assignment.members.0.hours.start', '09:00'));
+        $this->get('/seller/settings?tab=assignment')->assertOk()->assertInertia(fn ($page) => $page->where('settings.assignment.members.0.channels', ['widget'])->where('settings.assignment.members.0.hours.start', '09:00')->where('settings.assignment.fixed_channels.widget', $owner->id));
         $this->post('/seller/settings/schedule', ['mode' => 'wrong', 'week' => [], 'holidays' => []])->assertSessionHasErrors('mode');
         $this->post('/seller/settings/assignment', ['method' => 'fixed', 'fixed' => (string) Str::ulid(), 'notify_target' => 'owner', 'members' => []])->assertSessionHasErrors('members');
+        $this->post('/seller/settings/assignment', ['method' => 'fixed', 'fixed' => $owner->id, 'fixed_channels' => ['bogus' => $owner->id], 'notify_target' => 'owner', 'members' => []])->assertSessionHasErrors('fixed_channels');
+        $this->post('/seller/settings/assignment', ['method' => 'fixed', 'fixed' => $owner->id, 'fixed_channels' => ['widget' => (string) Str::ulid()], 'notify_target' => 'owner',
+            'members' => [['id' => $owner->id, 'enabled' => true, 'max_active' => null, 'hours' => null, 'channels' => []]]])->assertSessionHasErrors('members');
         $this->post('/seller/settings/assignment', ['method' => 'fixed', 'fixed' => $owner->id, 'notify_target' => 'owner',
             'members' => [['id' => $owner->id, 'enabled' => true, 'max_active' => null, 'hours' => ['start' => '18:00', 'end' => '09:00'], 'channels' => []]]])->assertSessionHasErrors('members');
         $this->assertDatabaseHas('audit_logs', ['action' => 'seller.schedule.settings.updated']);
