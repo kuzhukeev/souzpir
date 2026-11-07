@@ -4,7 +4,6 @@ namespace App\ProtectedOperations\SellerFollowup;
 
 use App\Ai\Gateway;
 use App\Ai\Protected\ApiFollowupInput;
-use App\ProtectedOperations\SellerTurnFence;
 use App\Seller\Conversations\CanonicalJson;
 use App\Seller\Conversations\Data\TurnClaim;
 use App\Seller\Conversations\Data\TurnOutcome;
@@ -39,7 +38,11 @@ final class FollowupFinalizer
             throw new LogicException('Follow-up mode changed.');
         }
         $guard = (new DeterministicGuard($knowledge))->check($result['text'], $goal, $state);
-        $decision = app(GuardDecision::class)->finish($guard, $goal, (bool) config('agent.guard_llm', false));
+        $decisionEngine = app(GuardDecision::class);
+        $enabled = (bool) config('agent.guard_llm', false);
+        $model = $decisionEngine->requiresModel($guard, $goal, $enabled)
+            ? app(Gateway::class)->readApiFollowupGuardLocked($http, $tenant, $claim) : null;
+        $decision = $decisionEngine->finish($guard, $goal, $enabled, $model);
         if ($decision['status'] !== 'completed' || $decision['verdict'] !== 'ok'
             || ! in_array($goal->kind, ['intro_and_ask', 'ask_slot', 'answer_and_ask', 'answer_only', 'unknown_fact', 'small_talk', 'unclear', 'closed_topic', 'decline_off_topic', 'decline_injection', 'bot_disclosure'], true)) {
             throw new LogicException('API follow-up rejected.');
@@ -78,47 +81,5 @@ final class FollowupFinalizer
         }
 
         return ['status' => $status, 'result' => $output];
-    }
-
-    public function finish(TenantContext $tenant, TurnClaim $claim, string $mode): array
-    {
-        app(SellerTurnFence::class)->assertCurrent($tenant, $claim);
-        $conversation = DB::table('conversations')->where('id', $claim->conversationId)
-            ->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->lockForUpdate()->first();
-        if (! $conversation || $conversation->mode !== $mode || ! in_array($mode, ['bot', 'suggest'], true)
-            || ($mode === 'bot' && $claim->baseVersion === 0)) {
-            throw new LogicException('Follow-up mode changed.');
-        }
-        $state = json_decode($conversation->state, true, 512, JSON_THROW_ON_ERROR);
-        if (! is_array($state)) {
-            throw new LogicException('Invalid conversation state.');
-        }
-        $text = $mode === 'suggest'
-            ? 'Предложите клиенту уточнить детали запроса.'
-            : 'Спасибо за сообщение. Уточните, пожалуйста, детали запроса.';
-        $messageId = $mode === 'bot' ? (string) Str::ulid() : null;
-        $candidate = ['role' => 'agent', 'text' => $text, 'meta' => ['fake' => true, 'suggested' => $mode === 'suggest']];
-        if ($messageId !== null) {
-            DB::table('messages')->insert(['id' => $messageId, 'organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId,
-                'conversation_id' => $claim->conversationId, 'role' => 'agent', 'text' => $text,
-                'meta' => json_encode($candidate['meta'], JSON_THROW_ON_ERROR), 'created_at' => now(), 'updated_at' => now()]);
-        }
-        $status = $mode === 'suggest' ? 'suggested' : 'completed';
-        $outcome = new TurnOutcome($claim->turnId, $claim->conversationId, $status, $claim->baseVersion + 1,
-            $messageId, null, null, [], $state, [$candidate + ['id' => $messageId]]);
-        DB::table('conversations')->where('id', $claim->conversationId)->where('organization_id', $tenant->organizationId)
-            ->where('brand_id', $tenant->brandId)->update(['version' => $claim->baseVersion + 1, 'updated_at' => now()]);
-        DB::table('seller_turns')->where('id', $claim->turnId)->where('status', 'processing')->update([
-            'status' => $status, 'outcome' => json_encode($outcome->toArray(), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
-            'outcome_hash' => CanonicalJson::hash($outcome->toArray()), 'updated_at' => now(),
-        ]);
-        app(AuditWriter::class)->record($tenant, new AuditEntry('seller.turn.'.$status, 'seller_turn', $claim->turnId));
-
-        $result = ['turn_id' => $claim->turnId, 'message_id' => $messageId, 'version' => $claim->baseVersion + 1];
-        if ($mode === 'suggest') {
-            $result['suggestion'] = $text;
-        }
-
-        return ['status' => $status, 'result' => $result];
     }
 }
