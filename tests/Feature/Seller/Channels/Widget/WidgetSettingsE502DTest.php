@@ -40,22 +40,25 @@ final class WidgetSettingsE502DTest extends TenancyTestCase
         Http::assertNothingSent();
     }
 
-    public function test_installation_check_uses_first_allowed_site_and_respects_permissions(): void
+    public function test_installation_check_never_requests_external_or_local_sites(): void
     {
         [$owner, $org, $brand] = $this->cabinet();
         $this->enable($org->id, $brand->id);
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
-        $this->post('/seller/channels/widget', $this->payload())->assertRedirect();
-        $key = DB::table('widget_settings')->where('brand_id', $brand->id)->value('public_key');
-        Http::fakeSequence('https://example.test')
-            ->push('<script src="http://localhost/widget.js?key='.$key.'&amp;v=1"></script>')
-            ->push('<script src="https://other.test/widget.js?key='.$key.'"></script>')
-            ->push('', 503);
-        $this->post('/seller/channels/widget/check')->assertRedirect()->assertSessionHas('status', 'Код виджета найден на главной странице сайта.');
-        Http::assertSent(fn ($request) => $request->url() === 'https://example.test');
-        self::assertNotNull(DB::table('widget_settings')->where('brand_id', $brand->id)->value('last_seen_at'));
-        $this->post('/seller/channels/widget/check')->assertRedirect()->assertSessionHas('status', 'Код виджета на главной странице не найден.');
-        $this->post('/seller/channels/widget/check')->assertRedirect()->assertSessionHas('status', 'Не удалось проверить сайт: страница недоступна.');
+        $data = $this->payload();
+        $data['origins'] = ['https://example.test', 'http://127.0.0.1:8888'];
+        $this->post('/seller/channels/widget', $data)->assertRedirect();
+        Http::fake();
+        $this->post('/seller/channels/widget/check')->assertRedirect()
+            ->assertSessionHas('status', 'Запросов виджета ещё не было. Установка на сайте не подтверждена.');
+        DB::table('widget_settings')->where('brand_id', $brand->id)->update(['last_seen_at' => '2026-11-07 09:00:00+00']);
+        $this->post('/seller/channels/widget/check')->assertRedirect()
+            ->assertSessionHas('status', fn ($status) => str_contains($status, 'Проверка сайта не выполнялась.'));
+        $data['origins'] = ['http://127.0.0.1:8888'];
+        $this->post('/seller/channels/widget', $data)->assertRedirect();
+        $this->post('/seller/channels/widget/check')->assertRedirect()
+            ->assertSessionHas('status', fn ($status) => str_contains($status, 'Проверка сайта не выполнялась.'));
+        Http::assertNothingSent();
         [$viewer] = $this->member($org, 'viewer', [$brand->id]);
         $this->actingAs($viewer)->withSession(['brand_id' => $brand->id])->post('/seller/channels/widget/check')->assertForbidden();
     }

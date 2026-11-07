@@ -9,10 +9,10 @@ use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
 use App\Shell\Profile\ProfileAccess;
 use App\Tenancy\TenantContext;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -66,37 +66,16 @@ final class WidgetSettingsController
 
     public function checkInstallation(Request $request): mixed
     {
-        $result = $this->access($request, function (User $user, TenantContext $tenant) use ($request): string {
+        $result = $this->access($request, function (User $user, TenantContext $tenant): string {
             $widget = $this->settings($tenant);
-            $origins = json_decode($widget->origins, true) ?: [];
-            if (! $widget->enabled || ! isset($origins[0])) {
+            if (! $widget->enabled) {
                 return 'Сначала включите виджет и добавьте адрес сайта.';
             }
-            try {
-                $response = Http::timeout(5)->withoutRedirecting()->get($origins[0]);
-                if (! $response->successful()) {
-                    return 'Не удалось проверить сайт: страница недоступна.';
-                }
-                preg_match_all('~<script\\b[^>]*\\bsrc\\s*=\\s*[\"\']([^\"\']+)[\"\']~i', $response->body(), $matches);
-                foreach ($matches[1] as $src) {
-                    $url = parse_url(html_entity_decode($src, ENT_QUOTES | ENT_HTML5));
-                    if (! is_array($url) || ($url['path'] ?? null) !== '/widget.js'
-                        || strtolower((string) ($url['host'] ?? '')) !== strtolower($request->getHost())) {
-                        continue;
-                    }
-                    parse_str($url['query'] ?? '', $query);
-                    if (($query['key'] ?? null) === $widget->public_key) {
-                        DB::table('widget_settings')->where('id', $widget->id)->where('organization_id', $tenant->organizationId)
-                            ->where('brand_id', $tenant->brandId)->update(['last_seen_at' => now()]);
-
-                        return 'Код виджета найден на главной странице сайта.';
-                    }
-                }
-
-                return 'Код виджета на главной странице не найден.';
-            } catch (\Throwable) {
-                return 'Не удалось проверить сайт: страница недоступна.';
+            if (! $widget->last_seen_at) {
+                return 'Запросов виджета ещё не было. Установка на сайте не подтверждена.';
             }
+
+            return 'Последний запрос виджета: '.Carbon::parse($widget->last_seen_at)->format('d.m.Y H:i').'. Проверка сайта не выполнялась.';
         });
 
         return back()->with('status', $result);
