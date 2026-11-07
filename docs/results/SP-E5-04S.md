@@ -1,26 +1,25 @@
 # SP-E5-04S
 
-Завершён экран «Предложить ответ» для менеджера в диалоге (D-2.1/D-2.2/D-3.3), поверх уже готовой стадии extractor (`ManagerSuggestionSource`, `ManagerSuggestionExtractorInput`, `Gateway::completeManagerSuggestionExtractor`).
+Ранее сдано (влито): экран «Предложить ответ» для менеджера (D-2.1/D-2.2/D-3.3) — extractor→responder→guard через fake Gateway, маршрут `POST /seller/dialogs/{dialog}/suggestion`, кнопка в тулбаре. См. историю коммитов; тесты `ManagerSuggestionControllerE504STest` и соседние не изменялись.
 
-- `app/Seller/Dialogs/ManagerSuggestionResponderInput.php` — строит защищённый responder-запрос из ревалидированного результата extractor (goal/policy, промпт responder); без инструментов (подсказка — только текст).
-- `app/Ai/Gateway.php` — добавлены `readManagerSuggestionExtractorLocked`, `completeManagerSuggestionResponder`, `readManagerSuggestionResponderLocked` по образцу существующих `ApiFollowup*` стадий (fake-only, `ai_calls`-идемпотентность).
-- `app/Seller/Dialogs/ManagerSuggestionController.php` + маршрут `POST /seller/dialogs/{dialog}/suggestion` (`routes/features/E5-04.php`) — запускает extractor → responder → детерминированный Guard (`GuardDecision::finish(..., false)`, LLM-guard выключен по рантайм-конфигу), пишет audit `seller.dialog.suggestion.generated` внутри транзакции, возвращает текст; без сохранения как сообщения.
-- `resources/js/pages/Seller/Dialogs/Index.tsx` — кнопка «Предложить ответ» в панели инструментов рядом с шаблонами (по макету D-2.1, а не отдельная панель, как было в черновике SP-E5-04R); по клику заполняет поле ответа текстом подсказки; ошибки — строкой над формой.
+Эта сдача — остаток аудита: метка «Прочитано» у входящих сообщений (D-2.1/D-2.2).
+
+- `database/migrations/E5-04S/...add_read_sequence_to_conversations.php` — `conversations.read_sequence`/`read_at`. Не трогал `messages`: триггер `c02_message_history_revision` бьёт `conversations.history_revision` на любой UPDATE строки `messages` (в т.ч. только `read_at`), что ломает snapshot-проверки готовых подсказок/ходов (`ReadySuggestions`, `prepareFinalRound`). Поэтому прочитанность — на уровне диалога (`read_sequence` сверяется с `messages.history_sequence`, которая уже вела этот трекинг), новые колонки вне списка, отслеживаемого триггером.
+- `app/Seller/Dialogs/DialogsController.php` — при открытии конкретного диалога (`GET /seller/dialogs/{dialog}` и `.../mine/{dialog}`) продвигает `read_sequence` до текущего `history_sequence`.
+- `app/Seller/Dialogs/DialogReader.php` — в ленте `unread` (последнее сообщение от клиента и `history_sequence` > `read_sequence`); в треде диалога `message.read_at` для сообщений клиента, прочитанных на момент открытия.
+- `resources/js/pages/Seller/Dialogs/Index.tsx` — бейдж «Непрочитано» и полужирное выделение в ленте; под сообщением клиента «✓ Прочитано · ЧЧ:ММ» в треде (как `deliveryLabel` для менеджера).
 
 Проверено:
-- `php artisan test tests/Feature/Seller/Dialogs/ManagerSuggestionControllerE504STest.php` (2 теста, 15 проверок): полный цикл extractor→responder→guard без отправки, идемпотентный повтор (2-й AI-вызов не создаётся повторно), audit-запись, конфликт при смене сообщения, изоляция бренда, отказ менеджеру не из назначенных.
-- `php artisan test tests/Feature/Seller/Dialogs/ManagerSuggestionGatewayE504STest.php tests/Feature/Seller/Dialogs/ManagerSuggestionSourceE504STest.php tests/Feature/Seller/Dialogs/ReadySuggestionE504PTest.php` — старые тесты не сломаны (7/7).
-- `php artisan test tests/Feature/Seller/Dialogs/` — 34/35 (не считая ранее известного флейки, см. Техдолг).
-- `npx tsc --noEmit`, `npx eslint resources/js/pages/Seller/Dialogs/Index.tsx`, `./vendor/bin/pint --test` по изменённым файлам, `npm run build` — все прошли.
-- Сверено с макетом `D-2.1-dialogs.webp` (расположение кнопки в тулбаре рядом с «Шаблоны фраз»/«Отправить»).
+- `php artisan test tests/Feature/Seller/Dialogs/ReadMarkerE504STest.php` (2 теста): открытие помечает входящие прочитанными и это видно в ленте/треде; изоляция бренда (чужой диалог не трогается).
+- `php artisan test tests/Feature/Seller/Dialogs/` — 36/37 (красный только `PendingPageE504HTest`, падает и без моих правок — см. Техдолг).
+- `npm run build`, `composer lint` (pint) — прошли.
+- Сверено с `D-2.1-dialogs.webp`/`D-2.2-dialog.webp`: метка «✓ Прочитано · время» под сообщением по стилю макета.
 
 ## Остаток
-- Согласие из импорта CRM и виджета — не в scope этой карточки (отдельная, SP-E6-03AA).
-- Нет Playwright-теста `tests/Browser/E5-04S/` и скриншота экрана — в этом окружении недоступен браузерный драйвер (`chromium-cli`); фронтенд проверен сборкой/типами/линтом, поведение — feature-тестами выше.
+- Нет Playwright-теста `tests/Browser/E5-04S/` — браузерный драйвер недоступен в окружении; поведение проверено feature-тестами и сборкой.
 
 ## Техдолг
-- Подсказка менеджеру не предлагает инструменты (`calc_delivery`/`send_price`) и не повторяет попытку при отказе Guard — один проход, при отказе возвращается общий `unavailable`. Риск низкий (fake AI, текстовая подсказка).
-- Независимо от задачи: уже влитый `ManagerSuggestionGatewayE504STest` (DatabaseMigrations без отката между тестами) периодически приводит к падению `tests/Feature/Seller/Dialogs/ReviewsE510*Test` при совместном прогоне директории — не вызвано этой карточкой, воспроизводится и без её изменений.
+- `PendingPageE504HTest` красный независимо от этой карточки: `TenancyTestCase` требует «изолированную» тестовую роль БД (`rolsuper`/`rolcreatedb` = false), в этом слоте роль привилегированная — окружение, не код.
 
 ## Принято по умолчанию
-- Кнопка «Предложить ответ» сразу подставляет текст в поле ответа (как в макете), без промежуточной карточки «подтвердить»/«использовать».
+- «Прочитано» — факт открытия диалога сотрудником (любым с правом `seller.dialogs.read`), а не доставка/прочтение клиентом: в мокапе чек-марка похожа на read-receipt клиента, но у нас нет вебхуков прочтения от каналов (fake-драйверы), а карточка прямо требует `read_at` от открытия диалога менеджером.

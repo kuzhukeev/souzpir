@@ -54,6 +54,11 @@ final class DialogsController
             } catch (KnowledgeNotReady) {
                 // нет опубликованной версии — показываем только системные поля карточки
             }
+            if ($dialog !== null) {
+                DB::table('conversations')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)
+                    ->where('id', $dialog)->whereColumn('read_sequence', '<', 'history_sequence')
+                    ->update(['read_sequence' => DB::raw('history_sequence'), 'read_at' => now()]);
+            }
 
             try {
                 $data = $reader->read($context, $actor->id, $manager, ! $manager && $member->role !== 'viewer', $dialog, $input['mode'] ?? 'all', trim($input['search'] ?? ''), $input['sort'] ?? 'newest', $input, is_array($publishedFields) ? $publishedFields : []);
