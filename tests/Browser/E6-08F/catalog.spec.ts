@@ -18,3 +18,9 @@ test('каталог показывает настройки бренда и и�
   await expect(page.getByRole('button', { name: 'Google Sheets · Скоро' })).toBeDisabled();
   await page.screenshot({ path: '.local/runtime/e6-08f-catalog.png', fullPage: true });
 });
+
+test('ошибка каталога позволяет повторить загрузку', async ({ page }) => {
+  await page.goto(`${url}?error`);
+  await expect(page.getByRole('alert')).toContainText('Не удалось загрузить товары.');
+  await expect(page.getByRole('button', { name: 'Повторить' })).toBeVisible();
+});
