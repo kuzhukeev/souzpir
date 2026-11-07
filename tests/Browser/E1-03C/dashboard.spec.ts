@@ -64,3 +64,22 @@ test('уведомления: вкладки, пиктограммы и подп
   await expect(page.getByText('Диалог ждёт менеджера')).toBeVisible();
   await page.screenshot({ path: '.local/screenshots/sp-e1-03c/notifications-1440.png', fullPage: true });
 });
+
+test('S-1.1: главная без критичных нарушений доступности в трёх темах и на трёх ширинах', async ({ page }) => {
+  const findings: string[] = [];
+  for (const theme of ['neutral', 'pyro', 'confectionery']) {
+    for (const width of [1440, 1024, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(`${base}tests/Browser/E1-03C/fixture.html?screen=home`);
+      await expect(page.getByRole('heading', { name: 'Главные проблемы' })).toBeVisible();
+      await page.evaluate((value) => { document.documentElement.dataset.theme = value; }, theme);
+      await page.addScriptTag({ path: 'node_modules/axe-core/axe.min.js' });
+      const violations = await page.evaluate(async () => {
+        const axe = (window as unknown as { axe: { run: (root: Document, options: object) => Promise<{ violations: { id: string; impact: string }[] }> } }).axe;
+        return (await axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa'] } })).violations.filter(v => v.impact === 'critical' || v.impact === 'serious').map(v => v.id);
+      });
+      findings.push(...violations.map(id => `${theme}/${width}: ${id}`));
+    }
+  }
+  expect(findings).toEqual([]);
+});
