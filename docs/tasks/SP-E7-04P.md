@@ -17,3 +17,7 @@ Scope: `app/ProtectedOperations/FirstTurnTextFinalizer.php`, `app/ProtectedOpera
 ## Остаток 07.11.2026 20:20 (после слияния backend)
 - Backend влит: `conversations.contact_received_at`, запись в финализаторах, `analytics.avgMinutesToContact` в Inertia и CSV. Осталось: KPI-карточка «Среднее время до контакта» на `/seller/analytics` рядом с «Диалоги по дням» по макету 145/D-8.2 (`mockups D-8.2`): значение в минутах, `null` → «Нет данных»; состояния loading/empty, три темы, ширины 1440/1024/390. Browser-тест в `tests/Browser/E7-04P/` или проверка Inertia-пропса в `tests/Feature/Seller/Analytics/`.
 - Scope дополнен: `resources/js/pages/Seller/Analytics/Index.tsx`.
+
+## Остаток 07.11.2026 20:20 (после слияния backend)
+- Backend влит: `conversations.contact_received_at`, запись в финализаторах, `analytics.avgMinutesToContact` в Inertia и CSV. Осталось: KPI-карточка «Среднее время до контакта» на `/seller/analytics` рядом с «Диалоги по дням» по макету 145/D-8.2 (`mockups D-8.2`): значение в минутах, `null` → «Нет данных»; состояния loading/empty, три темы, ширины 1440/1024/390. Browser-тест в `tests/Browser/E7-04P/` или проверка Inertia-пропса в `tests/Feature/Seller/Analytics/`.
+- Scope дополнен: `resources/js/pages/Seller/Analytics/Index.tsx`.
