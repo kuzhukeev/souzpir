@@ -167,6 +167,8 @@ CI_SCOPE_EXCEPTIONS = {
         "tests/Browser/E8-21D/fixture.tsx", "tests/Browser/E8-21E/fixture.tsx", "tests/Browser/E8-21F/site.spec.ts", "tests/Browser/E8-21G/site.spec.ts",
         "tests/Browser/E8-21M/fixture.tsx", "tests/Browser/E8-21N/fixture.tsx",
     ),
+    "SP-E1-10K": ("tests/Feature/Seller/Settings/Limits/DigestTest.php", "tests/Feature/Seller/Settings/Limits/NotificationsTest.php", "tests/Feature/Seller/Settings/Limits/PersonalDigestTimeTest.php", ".env.example"),
+    "SP-E9-03": ("phpunit.xml",),
     "SP-E1-09D": ("tests/Browser/E1-09/journal.spec.ts", "tests/Unit/Shell/Journal/actorFilter.test.tsx", "tests/Browser/E1-09/selected-actor.spec.ts"),
     "SP-E8-15C": ("tests/Browser/E8-03/pages.spec.ts", "tests/Browser/E8-03/e2e.spec.ts", "tests/Browser/E8-15B/questions.spec.ts"),
     "SP-E8-24B": ("tests/Browser/E8-24/fixture.tsx",),

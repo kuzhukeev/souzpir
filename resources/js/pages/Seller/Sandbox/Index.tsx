@@ -65,7 +65,7 @@ function Sandbox({ releases, clients = [], channels = [], sandboxSession = null 
         const transcript = session.history.map(turn => `Клиент: ${turn.question}\nБот: ${turn.answer}`).join('\n\n');
         if (transcript.length > 2000 || session.history[0].question.length > 1000) { setScenarioBusy(false); setScenarioStatus('Диалог слишком длинный для сохранения сценария. Начните более короткий диалог.'); return; }
         router.post('/seller/quality/scenarios', { name: 'Тест из песочницы', type: 'edge', behavior: transcript, first_message: session.history[0].question, max_turns: Math.min(session.history.length, 10), expect: [] }, {
-            preserveScroll: true, onSuccess: () => setScenarioStatus('Сценарий сохранён. При запуске используется первый вопрос; история сохранена в описании.'),
+            preserveScroll: true, onSuccess: () => setScenarioStatus('Сценарий сохранён. При запуске воспроизводятся все сохранённые реплики клиента по очереди.'),
             onError: () => setScenarioStatus('Не удалось сохранить сценарий.'), onNetworkError: () => { setScenarioStatus('Нет связи. Сценарий не сохранён.'); return false; },
             onHttpException: () => { setScenarioStatus('Не удалось сохранить сценарий.'); return false; }, onFinish: () => setScenarioBusy(false),
         });

@@ -189,11 +189,11 @@ final class FollowupCoordinator
     }
 
     /** Run extractor and responder rounds, then finalize in its own short transaction. */
-    public function orchestrateTurn(Request $http, TenantContext $tenant, TurnClaim $claim, string $mode): array
+    public function orchestrateTurn(Request $http, TenantContext $tenant, TurnClaim $claim, string $mode, ?string $page = null): array
     {
         [$round, $toolResults, $guardIssues] = $this->prepareFinalRound($http, $tenant, $claim);
 
-        return DB::transaction(fn () => app(FollowupFinalizer::class)->finishProtectedApi($http, $tenant, $claim, $mode, $round, $toolResults, $guardIssues));
+        return DB::transaction(fn () => app(FollowupFinalizer::class)->finishProtectedApi($http, $tenant, $claim, $mode, $round, $toolResults, $guardIssues, $page));
     }
 
     /**

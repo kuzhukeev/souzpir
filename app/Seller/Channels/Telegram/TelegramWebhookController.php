@@ -5,6 +5,7 @@ namespace App\Seller\Channels\Telegram;
 use App\Seller\Channels\Core\ChannelAccount;
 use App\Seller\Channels\Core\InboundRecorder;
 use App\Seller\Conversations\Models\Conversation;
+use App\Seller\Followups\FollowupConsent;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
@@ -26,7 +27,16 @@ final class TelegramWebhookController
         $payload = $request->json()->all();
         abort_unless(is_int($payload['update_id'] ?? null) && $payload['update_id'] >= 0, 422);
         $message = $payload['message'] ?? null;
+        $chatMember = $payload['my_chat_member'] ?? null;
         $context = new TenantContext($account->organization_id, $account->brand_id, source: 'public');
+
+        if (is_array($chatMember)) {
+            app(TenantContextRunner::class)->run($context, function () use ($account, $payload, $chatMember, $recorder, $context): void {
+                $this->handleChatMemberUpdate($account, $payload, $chatMember, $recorder, $context);
+            });
+
+            return response()->json(['ok' => true]);
+        }
 
         app(TenantContextRunner::class)->run($context, function () use ($account, $payload, $message, $recorder, $context): void {
             $settings = $account->settings ?? [];
@@ -75,5 +85,25 @@ final class TelegramWebhookController
         });
 
         return response()->json(['ok' => true]);
+    }
+
+    private function handleChatMemberUpdate(ChannelAccount $account, array $payload, array $chatMember, InboundRecorder $recorder, TenantContext $context): void
+    {
+        $chatId = $chatMember['chat']['id'] ?? null;
+        $status = $chatMember['new_chat_member']['status'] ?? null;
+        if (($chatMember['chat']['type'] ?? null) !== 'private' || ! is_int($chatId)) {
+            $recorder->record($context, $account->id, (string) $payload['update_id'], $payload);
+
+            return;
+        }
+        $seen = DB::table('channel_inbound_events')->where('channel_account_id', $account->id)->where('external_id', (string) $payload['update_id'])->exists();
+        $recorder->record($context, $account->id, (string) $payload['update_id'], $payload);
+        if ($seen || ! in_array($status, ['kicked', 'left'], true)) {
+            return;
+        }
+        $conversation = Conversation::query()->where('channel_account_id', $account->id)->where('state->telegram_chat_id', (string) $chatId)->first();
+        if ($conversation) {
+            app(FollowupConsent::class)->record($context, $conversation->id, 'revoked', 'dialog', 'Telegram: клиент заблокировал бота или покинул чат');
+        }
     }
 }

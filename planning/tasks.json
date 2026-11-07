@@ -4666,7 +4666,7 @@
       ],
       "promptPath": "docs/tasks/SP-E9-01.md",
       "wave": 13,
-      "description": "# SP-E9-01 · E2E-набор\n\nПрочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: 8 сценариев 08 §4 в Playwright + визуальные снапшоты 20 экранов × 3 ширины + axe\n\nЗависимости (нужен done после merge): SP-E1-01, SP-E1-01B, SP-E1-01C, SP-E1-01D, SP-E1-01F, SP-E1-02, SP-E1-03, SP-E1-04, SP-E1-05, SP-E1-06, SP-E1-07, SP-E1-08, SP-E1-09, SP-E1-10, SP-E1-11, SP-E1-12, SP-E3-07, SP-E4-01, SP-E4-02, SP-E4-03, SP-E4-04, SP-E4-05, SP-E4-06, SP-E4-07, SP-E4-08, SP-E5-01, SP-E5-02, SP-E5-03, SP-E5-04, SP-E5-04B, SP-E5-05, SP-E5-06, SP-E5-07, SP-E5-08, SP-E6-01, SP-E6-02, SP-E6-03, SP-E6-04, SP-E6-05, SP-E6-06, SP-E6-07, SP-E6-08, SP-E6-09, SP-E7-01, SP-E7-02, SP-E7-03, SP-E7-04, SP-E7-05, SP-E8-01, SP-E8-01B, SP-E8-01C, SP-E8-01D, SP-E8-01E, SP-E8-02, SP-E8-03, SP-E8-04, SP-E8-05, SP-E8-05B, SP-E8-05C, SP-E8-06, SP-E8-07.\nОбласть записи: docs/validation/acceptance.md, tests/Browser/Acceptance/, tests/visual/, docs/results/SP-E9-01.md.\nЭкраны: инфраструктура/контракты.\nИсточники: E9-01.\n- E9-01: 08\n\nПриёмка:\n- Дополнительные зависимости для финального E2E: SP-E4-01B/C, SP-E5-07B, SP-E6-03B/C, SP-E7-01B/C (см. `planning/tasks.json`).\n- Также SP-E7-04B/C по аналитике D-8.1–8.6 (см. `planning/tasks.json`).\n- зелёные в CI\n\nДополнительно: Сохранять поведение донора; изменения только по принятым решениям.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E9-01.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n\n## Материалы\n\nИсходники только для чтения: C:/OSPanel/home/souzpir.local/.local/references/{eyon-pilot,laravel-prototype}.\nПолный индекс изображений: planning/materials-manifest.json; точный состав по docs/sources/02b_mockup_journal.md.\n\nДополнительная зависимость: SP-E5-08C закрывает CSV/XLSX-экспорт клиентов D-3.5 перед сквозной приёмкой E9-01.\n\nДополнительная зависимость: SP-E3-06D подключает симуляцию к защищённому Seller runtime до сквозной приёмки E9-01.\n\n## Решение владельца 07.11.2026 — единая приёмка\n\nСквозную приёмку E9-01 не делить на новые карточки. Единственный фиксированный список из восьми сценариев и результат каждого «прошёл / не прошёл» вести в `docs/validation/acceptance.md`. Непроверенное и частично проверенное отмечать «не прошёл», с конкретным оставшимся шагом. Существующую работу SP-E9-01G и её claim сохранить; её результаты затем внести в этот же список. Реальные и платные вызовы без отдельного разрешения не выполнять.\n"
+      "description": "# SP-E9-01 · E2E-набор\n\nПрочитать AGENTS.md и docs/preparation/decisions.md. Выполнять только после разрешенного старта проекта и атомарного claim. Отдельный git worktree, не основной checkout.\n\nЦель: 8 сценариев 08 §4 в Playwright + визуальные снапшоты 20 экранов × 3 ширины + axe\n\nЗависимости (нужен done после merge): SP-E1-01, SP-E1-01B, SP-E1-01C, SP-E1-01D, SP-E1-01F, SP-E1-02, SP-E1-03, SP-E1-04, SP-E1-05, SP-E1-06, SP-E1-07, SP-E1-08, SP-E1-09, SP-E1-10, SP-E1-11, SP-E1-12, SP-E3-07, SP-E4-01, SP-E4-02, SP-E4-03, SP-E4-04, SP-E4-05, SP-E4-06, SP-E4-07, SP-E4-08, SP-E5-01, SP-E5-02, SP-E5-03, SP-E5-04, SP-E5-04B, SP-E5-05, SP-E5-06, SP-E5-07, SP-E5-08, SP-E6-01, SP-E6-02, SP-E6-03, SP-E6-04, SP-E6-05, SP-E6-06, SP-E6-07, SP-E6-08, SP-E6-09, SP-E7-01, SP-E7-02, SP-E7-03, SP-E7-04, SP-E7-05, SP-E8-01, SP-E8-01B, SP-E8-01C, SP-E8-01D, SP-E8-01E, SP-E8-02, SP-E8-03, SP-E8-04, SP-E8-05, SP-E8-05B, SP-E8-05C, SP-E8-06, SP-E8-07.\nОбласть записи: docs/validation/acceptance.md, tests/Browser/Acceptance/, tests/visual/, docs/results/SP-E9-01.md.\nЭкраны: инфраструктура/контракты.\nИсточники: E9-01.\n- E9-01: 08\n\nПриёмка:\n- Дополнительные зависимости для финального E2E: SP-E4-01B/C, SP-E5-07B, SP-E6-03B/C, SP-E7-01B/C (см. `planning/tasks.json`).\n- Также SP-E7-04B/C по аналитике D-8.1–8.6 (см. `planning/tasks.json`).\n- зелёные в CI\n\nДополнительно: Сохранять поведение донора; изменения только по принятым решениям.\nНе изменять shared contracts/locks/чужие модели за границами scope. Если требуется расширение scope — передать интегратору точное изменение, не обходить ownership. Доменным задачам использовать loader и регистрацию, созданные фундаментом; новый общий dependency добавляет интегратор отдельно.\nПроверить реальные UI → validation → Action → storage → runtime → policy → audit пути; фиктивный API не считается готовым. UI на русском, три темы, состояния loading/empty/error, 1440/1024/390 и доступность. C/D остаются честными ограничениями/«Скоро». Реальные LLM/mail/Telegram/webhook вызовы в тестах запрещены без отдельного разрешенного live этапа.\nРезультат: commit в ветке, docs/results/SP-E9-01.md с выполненным scope, тестами, ограничениями и screenshots; submit переводит только в review. Done ставит интегратор после merge и проверки ancestry. Не обновлять золотые эталоны ради зеленых тестов.\n\n## Материалы\n\nИсходники только для чтения: C:/OSPanel/home/souzpir.local/.local/references/{eyon-pilot,laravel-prototype}.\nПолный индекс изображений: planning/materials-manifest.json; точный состав по docs/sources/02b_mockup_journal.md.\n\nДополнительная зависимость: SP-E5-08C закрывает CSV/XLSX-экспорт клиентов D-3.5 перед сквозной приёмкой E9-01.\n\nДополнительная зависимость: SP-E3-06D подключает симуляцию к защищённому Seller runtime до сквозной приёмки E9-01.\n\n## Решение владельца 07.11.2026 — единая приёмка\n\nСквозную приёмку E9-01 не делить на новые карточки. Единственный фиксированный список из восьми сценариев и результат каждого «прошёл / не прошёл» вести в `docs/validation/acceptance.md`. Непроверенное и частично проверенное отмечать «не прошёл», с конкретным оставшимся шагом. Существующую работу SP-E9-01G и её claim сохранить; её результаты затем внести в этот же список. Реальные и платные вызовы без отдельного разрешения не выполнять.\n\n\n## Остаток 07.11.2026 19:40 (после прогона acceptance_e901e на main a08d5b42)\n- Сценарий 6: ручной CI `acceptance_e901e` запущен интегратором и упал в `followups-e901e.spec.ts:112` — `getByLabel('Открыть через секунд')` не найден: на странице настроек виджета подпись теперь «Через секунд» (resources/js/pages/Seller/Channels/Widget/Index.tsx). Обновить локаторы под текущий UI, попросить интегратора повторить прогон (gh нет, запуск через API), результат внести в `docs/validation/acceptance.md`.\n- Сценарии 3, 5, 7, 8 — после done SP-E5-02C (ответ бота в виджете) и переключателя бренда на странице диалогов; до этого остаются «не прошёл» с конкретным шагом.\n- Визуальные эталоны 20 экранов × 3 ширины (`tests/visual/`) не собраны.\n"
     },
     {
       "taskKey": "SP-E9-03",
@@ -19318,7 +19318,7 @@
       "taskKey": "SP-E4-01X",
       "title": "SP-E4-01X · Protected-адаптер и частичные результаты",
       "goal": "Подключить draft-preview к общим защищённым first-turn стадиям без подмены опубликованного релиза. Применить каталоги R/S по полному доказанному контексту и событиям; показать частично неизвестные результаты в экране. Сохранить session-bound fallback до готовности protected-адаптера.",
-      "description": "# SP-E4-01X · Protected-адаптер и частичные результаты\n\n**Зачем:** завершить требования по решению владельца.\n**Часть чего:** остаток SP-E4-01W, docs/results/SP-E4-01W.md.\n**Зависимости:** SP-E4-01W.\n\n## Приёмка\n- Подключить draft-preview к общим защищённым first-turn стадиям без подмены опубликованного релиза.\n- Применить каталоги R/S по полному доказанному контексту и событиям; показать частично неизвестные результаты в экране.\n- Сохранить session-bound fallback до готовности protected-адаптера.\n\nОстаток записать в отчёт.\n\nScope: `app/ProtectedOperations/`, `app/Ai/Protected/`, `app/Ai/Gateway.php`, `app/Seller/Evaluation/`, `resources/js/pages/Seller/Knowledge/`, `tests/Feature/ProtectedOperations/`, `tests/Feature/Seller/Evaluation/`, `tests/Browser/E4-01X/`, `docs/results/SP-E4-01X.md`.\n\n## Решение владельца 06.11.2026 — общие AI-стадии\n\nРешение владельца 06.11: разрешены только совместимые добавления общих AI-стадий без рефакторинга и без изменения существующего поведения и записанного replay; проверить права, изоляцию брендов и повторы. Только fake AI; живые и платные вызовы выключены. Общий ресурс shared-ai-stages занимает одна карточка до слияния. Прежние ограничения «до решения владельца» считать снятыми в этих границах.\n\n## Порядок работы 07.11.2026\n- Дождаться SP-E5-10D: обе задачи изменяют `resources/js/pages/Seller/Knowledge/Releases/Index.tsx`; это сохраняет независимое владение файлом. Объём приёмки не сокращён.\n\n## Конкретный остаток SP-E4-01AA\n- D-4.12: показывать число диалогов и качество по версии только по достоверной связи релиза с защищёнными стадиями и оценками; для старых данных без связи сохранять «—», не приписывать их текущей версии.\n- D-4.12: автор и время строк diff — только по однозначной связи с аудитом конкретного изменения; при отсутствии подтверждения сохранять «—», не использовать автора публикации как автора всех изменений.\n\nДополнительный scope: `app/Seller/Knowledge/Releases/`, `tests/Feature/Seller/Knowledge/`.\n\n## Конкретные расхождения SP-E9-01F\n- D-4.1/D-4.2: исправить различимость двух ссылок «Открыть диалог» во входящих (axe link-in-text-block).\n- D-4.12: добавить в окно публикации поясняющую строку и кнопку отмены по макету.\n\n## Дополнение 07.11.2026 (из отчёта SP-E6-10E)\n- `ReleasesController::runScenarios` передаёт в `Releases/Run.tsx` названия опубликованных дополнительных полей (client_fields из опубликованной policy), чтобы страница показывала их вместо сырого id.\n\n\n## Уточнение scope 07.11.2026 18:30\n- Вместо `app/ProtectedOperations/` и `app/Ai/Protected/` целиком в scope только файлы first-turn и DraftSimulation: `app/ProtectedOperations/DraftSimulation/`, `app/ProtectedOperations/FirstSellerTurnController.php`, `app/ProtectedOperations/FirstTurnCoordinator.php`, `app/ProtectedOperations/FirstTurnDeterministicGuard.php`, `app/ProtectedOperations/FirstTurnGoal.php`, `app/ProtectedOperations/FirstTurnProtectedClaim.php`, `app/ProtectedOperations/FirstTurnState.php`, `app/ProtectedOperations/FirstTurnTextFinalizer.php`, `app/ProtectedOperations/JobFirstTurnClaim.php`, `app/ProtectedOperations/JobFirstTurnInput.php`; `app/Ai/Protected/ApiOpeningInput.php`, `app/Ai/Protected/DraftResponder.php`, `app/Ai/Protected/GuardProjection.php`, `app/Ai/Protected/ProtectedRetryContext.php`, `app/Ai/Protected/RawToolArguments.php`, `app/Ai/Protected/RequestFingerprint.php`, `app/Ai/Protected/ResponderProjection.php`, `app/Ai/Protected/SellerExtractorStages.php`, `app/Ai/Protected/SellerGuardStages.php`, `app/Ai/Protected/SellerResponderStages.php`, `app/Ai/Protected/SellerSummaryStages.php`. `ApiFollowupInput.php` и `SellerFollowup/` заняты SP-E5-02C — не трогать. `FixtureRuntime.php` до done SP-E6-10E не менять.\n",
+      "description": "# SP-E4-01X · Protected-адаптер и частичные результаты\n\n**Зачем:** завершить требования по решению владельца.\n**Часть чего:** остаток SP-E4-01W, docs/results/SP-E4-01W.md.\n**Зависимости:** SP-E4-01W.\n\n## Приёмка\n- Подключить draft-preview к общим защищённым first-turn стадиям без подмены опубликованного релиза.\n- Применить каталоги R/S по полному доказанному контексту и событиям; показать частично неизвестные результаты в экране.\n- Сохранить session-bound fallback до готовности protected-адаптера.\n\nОстаток записать в отчёт.\n\nScope: `app/ProtectedOperations/`, `app/Ai/Protected/`, `app/Ai/Gateway.php`, `app/Seller/Evaluation/`, `resources/js/pages/Seller/Knowledge/`, `tests/Feature/ProtectedOperations/`, `tests/Feature/Seller/Evaluation/`, `tests/Browser/E4-01X/`, `docs/results/SP-E4-01X.md`.\n\n## Решение владельца 06.11.2026 — общие AI-стадии\n\nРешение владельца 06.11: разрешены только совместимые добавления общих AI-стадий без рефакторинга и без изменения существующего поведения и записанного replay; проверить права, изоляцию брендов и повторы. Только fake AI; живые и платные вызовы выключены. Общий ресурс shared-ai-stages занимает одна карточка до слияния. Прежние ограничения «до решения владельца» считать снятыми в этих границах.\n\n## Порядок работы 07.11.2026\n- Дождаться SP-E5-10D: обе задачи изменяют `resources/js/pages/Seller/Knowledge/Releases/Index.tsx`; это сохраняет независимое владение файлом. Объём приёмки не сокращён.\n\n## Конкретный остаток SP-E4-01AA\n- D-4.12: показывать число диалогов и качество по версии только по достоверной связи релиза с защищёнными стадиями и оценками; для старых данных без связи сохранять «—», не приписывать их текущей версии.\n- D-4.12: автор и время строк diff — только по однозначной связи с аудитом конкретного изменения; при отсутствии подтверждения сохранять «—», не использовать автора публикации как автора всех изменений.\n\nДополнительный scope: `app/Seller/Knowledge/Releases/`, `tests/Feature/Seller/Knowledge/`.\n\n## Конкретные расхождения SP-E9-01F\n- D-4.1/D-4.2: исправить различимость двух ссылок «Открыть диалог» во входящих (axe link-in-text-block).\n- D-4.12: добавить в окно публикации поясняющую строку и кнопку отмены по макету.\n\n## Дополнение 07.11.2026 (из отчёта SP-E6-10E)\n- `ReleasesController::runScenarios` передаёт в `Releases/Run.tsx` названия опубликованных дополнительных полей (client_fields из опубликованной policy), чтобы страница показывала их вместо сырого id.\n\n\n## Уточнение scope 07.11.2026 18:30\n- Вместо `app/ProtectedOperations/` и `app/Ai/Protected/` целиком в scope только файлы first-turn и DraftSimulation: `app/ProtectedOperations/DraftSimulation/`, `app/ProtectedOperations/FirstSellerTurnController.php`, `app/ProtectedOperations/FirstTurnCoordinator.php`, `app/ProtectedOperations/FirstTurnDeterministicGuard.php`, `app/ProtectedOperations/FirstTurnGoal.php`, `app/ProtectedOperations/FirstTurnProtectedClaim.php`, `app/ProtectedOperations/FirstTurnState.php`, `app/ProtectedOperations/FirstTurnTextFinalizer.php`, `app/ProtectedOperations/JobFirstTurnClaim.php`, `app/ProtectedOperations/JobFirstTurnInput.php`; `app/Ai/Protected/ApiOpeningInput.php`, `app/Ai/Protected/DraftResponder.php`, `app/Ai/Protected/GuardProjection.php`, `app/Ai/Protected/ProtectedRetryContext.php`, `app/Ai/Protected/RawToolArguments.php`, `app/Ai/Protected/RequestFingerprint.php`, `app/Ai/Protected/ResponderProjection.php`, `app/Ai/Protected/SellerExtractorStages.php`, `app/Ai/Protected/SellerGuardStages.php`, `app/Ai/Protected/SellerResponderStages.php`, `app/Ai/Protected/SellerSummaryStages.php`. `ApiFollowupInput.php` и `SellerFollowup/` заняты SP-E5-02C — не трогать. `FixtureRuntime.php` до done SP-E6-10E не менять.\n\n- 07.11 20:00: показ названий доп. полей в `resources/js/pages/Seller/Knowledge/Releases/Run.tsx` (вместо сырого id) выполняется в этой карточке вместе с передачей их из ReleasesController — SP-E6-10E закрыта, Run.tsx входит в scope `resources/js/pages/Seller/Knowledge/`.\n",
       "dependsOn": [
         "SP-E4-01W",
         "SP-E5-10D"
@@ -24478,6 +24478,326 @@
       ],
       "wave": 20,
       "promptPath": "docs/tasks/SP-E1-10K.md"
+    },
+    {
+      "taskKey": "SP-L1-01",
+      "title": "SP-L1-01 · Лимит расходов на ИИ",
+      "description": "# SP-L1-01 · Лимит расходов на ИИ\n\n**Зачем:** запуск на живом OpenRouter без риска перерасхода. Сейчас лимит только в строке ai_budgets на org+brand+family+месяц (app/Ai/Gateway.php:989–1008), исчерпание — нетипизированный LogicException('AI budget exhausted.') (Gateway.php:1032), живой бюджет без reservation_request_limits модели отказывает (Gateway.php:1013–1017), а config/features/E0-05.php:34–36 пуст (reservation_micros [], reservation_request_limits [], budget_threshold_basis_points null). Глобального дневного/месячного потолка нет.\n**Часть чего:** волна «Запуск-1» (planning/QUEUE.md): прод с живыми Продавцом (Telegram, режим черновиков) и Видением; экраны после запуска.\n**Зависимость:** нет; можно брать параллельно с другими SP-L1 без пересечения scope.\n\n## Приёмка\n- Глобальные потолки из env: AI_BUDGET_MONTHLY_USD (по умолчанию 30) и AI_BUDGET_DAILY_USD (по умолчанию 3) в новом config/features/L1-01.php; проверка в Gateway::reserve() до HTTP-запроса. Резерв считается по максимуму запроса; неопределённые вызовы (uncertain/unresolved) учитываются по зарезервированному максимуму до сверки.\n- Месячный лимит организации из тарифа (config) с переопределением командой администратора `ai:budget:set-org {organization} {usd}`; лимит агрегирует все бренды и семейства организации (строки ai_budgets сейчас по brand+family).\n- Границы запросов (reservation_request_limits: max_input_bytes, max_output_tokens; reservation_micros) из config/features/L1-01.php для моделей seller.live_draft (config/features/LV-01.php), vis.measure (config/features/E8-01.php) и разбора/подтверждения доказательств (VISION_EVIDENCE_PARSER_MODEL, по умолчанию google/gemini-2.5-flash); значения по умолчанию проходят проверку Gateway.php:1013–1017.\n- 80 %: одно событие ai.budget.threshold_reached за период (существующий notifyThreshold, Gateway.php:1187), warning в лог и строка на экране оператора OperatorAiRecovery: расход/резерв/лимит сегодня и за месяц, % использования. Повторно в том же периоде не отправляется.\n- 100 %: жёсткий стоп до HTTP-запроса типизированным исключением App\\Ai\\Budget\\BudgetExhausted (extends LogicException, чтобы существующие catch не сломались) с уровнем global_daily / global_monthly / organization.\n- Продавец под стопом: LiveDraftJob не создаёт черновик, ход завершается failed с error_code budget_exhausted, диалог помечается для ручного ответа существующим механизмом передачи менеджеру (handed_off_at / seller.conversation.handed_off), без повторных попыток и без правки экрана диалогов.\n- Видение под стопом: MeasurementRunner не берёт новые слоты (оставшиеся pending → failed, error_code budget_exhausted; сейчас любой Throwable даёт uncertain, MeasurementRunner.php:193), уже идущий слот доводится до конца; замер в списке показывает «Остановлен лимитом» (stateLabel, resources/js/pages/Vision/Measurements/Index.tsx:34). Если нужен отдельный статус — миграция в database/migrations/L1-01/ (CHECK vision_measurement_status_check, database/migrations/E8-01/2026_10_31_080100_create_vision_core_tables.php:84).\n- Команда `ai:budget` печатает расход, резерв и лимит за сегодня и за месяц: глобально и по каждой организации; без секретов.\n- Тесты tests/Feature/Launch/L1-01/ с Http::fake: 79→80 % событие один раз, 100 % стоп до HTTP (Http::assertNothingSent), дневной и месячный потолок, лимит организации через команду, uncertain по максимуму, стоп Продавца и Видения, вывод ai:budget.\n- Feature-тесты только с Http::fake/Queue::fake, без живых и платных вызовов; ключи и токены только из env/config, не в коде и не в логах. Рефакторинг сверх нужного запрещён; чужие модули не менять; итоговый отчёт docs/results/SP-L1-01.md до 30 строк (тесты, долг, решения).\n\nScope: `config/features/L1-01.php`, `app/Ai/Gateway.php`, `app/Ai/Budget/`, `app/Seller/Live/LiveDraftJob.php`, `app/Vision/Core/MeasurementRunner.php`, `resources/js/pages/Vision/Measurements/Index.tsx`, `app/Shell/Billing/Http/OperatorAiRecoveryController.php`, `resources/js/pages/Shell/Billing/OperatorAiRecovery.tsx`, `database/migrations/L1-01/`, `tests/Feature/Launch/L1-01/`, `docs/results/SP-L1-01.md`.\n",
+      "dependsOn": [],
+      "exclusiveResources": [],
+      "scope": [
+        "config/features/L1-01.php",
+        "app/Ai/Gateway.php",
+        "app/Ai/Budget/",
+        "app/Seller/Live/LiveDraftJob.php",
+        "app/Vision/Core/MeasurementRunner.php",
+        "resources/js/pages/Vision/Measurements/Index.tsx",
+        "app/Shell/Billing/Http/OperatorAiRecoveryController.php",
+        "resources/js/pages/Shell/Billing/OperatorAiRecovery.tsx",
+        "database/migrations/L1-01/",
+        "tests/Feature/Launch/L1-01/",
+        "docs/results/SP-L1-01.md"
+      ],
+      "sourceRefs": [
+        "planning/QUEUE.md",
+        "docs/release/2026-11-09-remaining.md"
+      ],
+      "acceptance": [
+        "Глобальные потолки из env: AI_BUDGET_MONTHLY_USD (по умолчанию 30) и AI_BUDGET_DAILY_USD (по умолчанию 3) в новом config/features/L1-01.php; проверка в Gateway::reserve() до HTTP-запроса. Резерв считается по максимуму запроса; неопределённые вызовы (uncertain/unresolved) учитываются по зарезервированному максимуму до сверки.",
+        "Месячный лимит организации из тарифа (config) с переопределением командой администратора `ai:budget:set-org {organization} {usd}`; лимит агрегирует все бренды и семейства организации (строки ai_budgets сейчас по brand+family).",
+        "Границы запросов (reservation_request_limits: max_input_bytes, max_output_tokens; reservation_micros) из config/features/L1-01.php для моделей seller.live_draft (config/features/LV-01.php), vis.measure (config/features/E8-01.php) и разбора/подтверждения доказательств (VISION_EVIDENCE_PARSER_MODEL, по умолчанию google/gemini-2.5-flash); значения по умолчанию проходят проверку Gateway.php:1013–1017.",
+        "80 %: одно событие ai.budget.threshold_reached за период (существующий notifyThreshold, Gateway.php:1187), warning в лог и строка на экране оператора OperatorAiRecovery: расход/резерв/лимит сегодня и за месяц, % использования. Повторно в том же периоде не отправляется.",
+        "100 %: жёсткий стоп до HTTP-запроса типизированным исключением App\\Ai\\Budget\\BudgetExhausted (extends LogicException, чтобы существующие catch не сломались) с уровнем global_daily / global_monthly / organization.",
+        "Продавец под стопом: LiveDraftJob не создаёт черновик, ход завершается failed с error_code budget_exhausted, диалог помечается для ручного ответа существующим механизмом передачи менеджеру (handed_off_at / seller.conversation.handed_off), без повторных попыток и без правки экрана диалогов.",
+        "Видение под стопом: MeasurementRunner не берёт новые слоты (оставшиеся pending → failed, error_code budget_exhausted; сейчас любой Throwable даёт uncertain, MeasurementRunner.php:193), уже идущий слот доводится до конца; замер в списке показывает «Остановлен лимитом» (stateLabel, resources/js/pages/Vision/Measurements/Index.tsx:34). Если нужен отдельный статус — миграция в database/migrations/L1-01/ (CHECK vision_measurement_status_check, database/migrations/E8-01/2026_10_31_080100_create_vision_core_tables.php:84).",
+        "Команда `ai:budget` печатает расход, резерв и лимит за сегодня и за месяц: глобально и по каждой организации; без секретов.",
+        "Тесты tests/Feature/Launch/L1-01/ с Http::fake: 79→80 % событие один раз, 100 % стоп до HTTP (Http::assertNothingSent), дневной и месячный потолок, лимит организации через команду, uncertain по максимуму, стоп Продавца и Видения, вывод ai:budget.",
+        "Feature-тесты только с Http::fake/Queue::fake, без живых и платных вызовов; ключи и токены только из env/config, не в коде и не в логах. Рефакторинг сверх нужного запрещён; чужие модули не менять; итоговый отчёт docs/results/SP-L1-01.md до 30 строк (тесты, долг, решения)."
+      ],
+      "screenIds": [],
+      "wave": 21,
+      "promptPath": "docs/tasks/SP-L1-01.md"
+    },
+    {
+      "taskKey": "SP-L1-02",
+      "title": "SP-L1-02 · Живой замер Видения",
+      "description": "# SP-L1-02 · Живой замер Видения\n\n**Зачем:** живой замер сейчас не стартует и не одинаков с очередью и без неё. config/features/E8-01.php: 'parser' => null → MeasurementRunner.php:57–63 бросает «The trusted evidence parser is not configured.»; MeasurementsController::next() вызывает measure() (MeasurementsController.php:145) без оценки доказательств, а RunMeasurement.php:33–35 оценивает их только в очереди; очередь включается только eyon.measurement_queue_enabled (config/eyon.php:4, MeasurementsController.php:187–194). Живой путь также требует AI_LIVE_ENABLED и VISION_LIVE_MEASUREMENTS_ENABLED (config/eyon.php:6, MeasurementRunner.php:125). Модель google/gemini-2.5-flash уже active в config/features/E0-05.php:13.\n**Часть чего:** волна «Запуск-1» (planning/QUEUE.md): прод с живыми Продавцом (Telegram, режим черновиков) и Видением; экраны после запуска.\n**Зависимость:** нет; можно брать параллельно с другими SP-L1 без пересечения scope.\n\n## Приёмка\n- Парсер доказательств из env VISION_EVIDENCE_PARSER_MODEL (по умолчанию google/gemini-2.5-flash), temperature 0, max_tokens 1200 в config/features/E8-01.php; формат проходит проверку MeasurementRunner.php:57–63. Fake-режим и настройки ответов замера не меняются.\n- Оценка доказательств одинакова с очередью и без неё: после слота со статусом ok next() вызывает EvidenceStore::evaluate при тех же условиях, что RunMeasurement.php:34; общий метод, не копия условия.\n- Отчёт строится из живых доказательств: после всех слотов и подтверждения видимость/упоминания отчёта берутся из результата парсера, а не из fake-артефактов.\n- Ошибка парсера: слот остаётся ok, доказательство помечается неразобранным, повтор не зацикливается; ответы модели и ключи не попадают в лог. Исключение лимита (BudgetExhausted из SP-L1-01, наследник LogicException) обрабатывается так же; MeasurementRunner не менять (scope SP-L1-01).\n- Тест tests/Feature/Launch/L1-02/ с Http::fake на OpenRouter: старт → слоты (через очередь и через next()) → парсер → доказательства → подтверждение → отчёт; Http::assertSent проверяет model google/gemini-2.5-flash, temperature 0, max_tokens 1200 для запроса парсера.\n- Feature-тесты только с Http::fake/Queue::fake, без живых и платных вызовов; ключи и токены только из env/config, не в коде и не в логах. Рефакторинг сверх нужного запрещён; чужие модули не менять; итоговый отчёт docs/results/SP-L1-02.md до 30 строк (тесты, долг, решения).\n\nScope: `config/features/E8-01.php`, `app/Vision/Measurements/MeasurementsController.php`, `app/Vision/Measurements/RunMeasurement.php`, `app/Vision/Core/EvidenceStore.php`, `app/Vision/Evidence/`, `app/Vision/Core/ReportPreparation.php`, `tests/Feature/Launch/L1-02/`, `docs/results/SP-L1-02.md`.\n",
+      "dependsOn": [],
+      "exclusiveResources": [],
+      "scope": [
+        "config/features/E8-01.php",
+        "app/Vision/Measurements/MeasurementsController.php",
+        "app/Vision/Measurements/RunMeasurement.php",
+        "app/Vision/Core/EvidenceStore.php",
+        "app/Vision/Evidence/",
+        "app/Vision/Core/ReportPreparation.php",
+        "tests/Feature/Launch/L1-02/",
+        "docs/results/SP-L1-02.md"
+      ],
+      "sourceRefs": [
+        "planning/QUEUE.md",
+        "docs/release/2026-11-09-remaining.md"
+      ],
+      "acceptance": [
+        "Парсер доказательств из env VISION_EVIDENCE_PARSER_MODEL (по умолчанию google/gemini-2.5-flash), temperature 0, max_tokens 1200 в config/features/E8-01.php; формат проходит проверку MeasurementRunner.php:57–63. Fake-режим и настройки ответов замера не меняются.",
+        "Оценка доказательств одинакова с очередью и без неё: после слота со статусом ok next() вызывает EvidenceStore::evaluate при тех же условиях, что RunMeasurement.php:34; общий метод, не копия условия.",
+        "Отчёт строится из живых доказательств: после всех слотов и подтверждения видимость/упоминания отчёта берутся из результата парсера, а не из fake-артефактов.",
+        "Ошибка парсера: слот остаётся ok, доказательство помечается неразобранным, повтор не зацикливается; ответы модели и ключи не попадают в лог. Исключение лимита (BudgetExhausted из SP-L1-01, наследник LogicException) обрабатывается так же; MeasurementRunner не менять (scope SP-L1-01).",
+        "Тест tests/Feature/Launch/L1-02/ с Http::fake на OpenRouter: старт → слоты (через очередь и через next()) → парсер → доказательства → подтверждение → отчёт; Http::assertSent проверяет model google/gemini-2.5-flash, temperature 0, max_tokens 1200 для запроса парсера.",
+        "Feature-тесты только с Http::fake/Queue::fake, без живых и платных вызовов; ключи и токены только из env/config, не в коде и не в логах. Рефакторинг сверх нужного запрещён; чужие модули не менять; итоговый отчёт docs/results/SP-L1-02.md до 30 строк (тесты, долг, решения)."
+      ],
+      "screenIds": [],
+      "wave": 21,
+      "promptPath": "docs/tasks/SP-L1-02.md"
+    },
+    {
+      "taskKey": "SP-L1-03",
+      "title": "SP-L1-03 · Согласие бренда на передачу данных в ИИ",
+      "description": "# SP-L1-03 · Согласие бренда на передачу данных в ИИ\n\n**Зачем:** без согласия живой шлюз отказывает: Gateway::assertLiveAllowed требует settings.ai_data_policy[класс] с 'any' (app/Ai/Gateway.php:1248–1259, проверка 1254), но задать политику негде — ни в настройках бренда (app/Shell/Brands/Http/BrandSettingsController.php:32, props 60–66), ни командой. Политику также читают PublishedKnowledgeBridge.php:164 и DatabaseGrantAuthority.php:50; триггер vision_policy_change_guard (database/migrations/E8-01E/2026_10_31_080105_create_vision_knowledge_grants.php:66–76) запрещает менять knowledge_public при неотозванных vision_knowledge_grants.\n**Часть чего:** волна «Запуск-1» (planning/QUEUE.md): прод с живыми Продавцом (Telegram, режим черновиков) и Видением; экраны после запуска.\n**Зависимость:** нет; можно брать параллельно с другими SP-L1 без пересечения scope.\n\n## Приёмка\n- В настройках бренда раздел «Передача данных в ИИ» с четырьмя переключателями: conversation_content (переписка с клиентами), knowledge_internal (внутренние знания), vision_question (вопросы замера Видения), knowledge_public (публичные знания). Менять может только владелец (role owner); остальные видят только чтение; серверная проверка, 403 для не-владельца.\n- Сохранение пишет settings.ai_data_policy в формате, который читает Gateway (разрешено → ['any'], запрещено → []); тест через Gateway: разрешено — проходит, запрещено — «Brand data policy does not authorize this external AI transfer.».\n- Команда `brand:ai-policy {brand} --allow=conversation_content,knowledge_internal,vision_question,knowledge_public` (и --deny=…; без опций печатает текущую политику); неизвестный класс — ошибка; по умолчанию deny для новых брендов и отсутствующих ключей.\n- Смена knowledge_public при активных грантах: ошибка триггера показывается понятным сообщением (не 500), команда завершается ненулевым кодом с текстом.\n- Запись в аудит: кто, что, когда, через существующий аудит.\n- Тесты tests/Feature/Launch/L1-03/: права owner/admin/manager, props страницы, команда, deny по умолчанию, триггер, изоляция (бренд другой организации недоступен).\n- Feature-тесты только с Http::fake/Queue::fake, без живых и платных вызовов; ключи и токены только из env/config, не в коде и не в логах. Рефакторинг сверх нужного запрещён; чужие модули не менять; итоговый отчёт docs/results/SP-L1-03.md до 30 строк (тесты, долг, решения).\n\nScope: `app/Shell/Brands/Http/BrandSettingsController.php`, `app/Shell/Brands/Http/BrandAiPolicyController.php`, `app/Shell/Brands/Actions/BrandAiPolicy.php`, `app/Shell/Brands/Console/`, `config/features/L1-03.php`, `routes/features/L1-03.php`, `resources/js/pages/Shell/Brands/Settings.tsx`, `tests/Feature/Launch/L1-03/`, `docs/results/SP-L1-03.md`.\n",
+      "dependsOn": [],
+      "exclusiveResources": [],
+      "scope": [
+        "app/Shell/Brands/Http/BrandSettingsController.php",
+        "app/Shell/Brands/Http/BrandAiPolicyController.php",
+        "app/Shell/Brands/Actions/BrandAiPolicy.php",
+        "app/Shell/Brands/Console/",
+        "config/features/L1-03.php",
+        "routes/features/L1-03.php",
+        "resources/js/pages/Shell/Brands/Settings.tsx",
+        "tests/Feature/Launch/L1-03/",
+        "docs/results/SP-L1-03.md"
+      ],
+      "sourceRefs": [
+        "planning/QUEUE.md",
+        "docs/release/2026-11-09-remaining.md"
+      ],
+      "acceptance": [
+        "В настройках бренда раздел «Передача данных в ИИ» с четырьмя переключателями: conversation_content (переписка с клиентами), knowledge_internal (внутренние знания), vision_question (вопросы замера Видения), knowledge_public (публичные знания). Менять может только владелец (role owner); остальные видят только чтение; серверная проверка, 403 для не-владельца.",
+        "Сохранение пишет settings.ai_data_policy в формате, который читает Gateway (разрешено → ['any'], запрещено → []); тест через Gateway: разрешено — проходит, запрещено — «Brand data policy does not authorize this external AI transfer.».",
+        "Команда `brand:ai-policy {brand} --allow=conversation_content,knowledge_internal,vision_question,knowledge_public` (и --deny=…; без опций печатает текущую политику); неизвестный класс — ошибка; по умолчанию deny для новых брендов и отсутствующих ключей.",
+        "Смена knowledge_public при активных грантах: ошибка триггера показывается понятным сообщением (не 500), команда завершается ненулевым кодом с текстом.",
+        "Запись в аудит: кто, что, когда, через существующий аудит.",
+        "Тесты tests/Feature/Launch/L1-03/: права owner/admin/manager, props страницы, команда, deny по умолчанию, триггер, изоляция (бренд другой организации недоступен).",
+        "Feature-тесты только с Http::fake/Queue::fake, без живых и платных вызовов; ключи и токены только из env/config, не в коде и не в логах. Рефакторинг сверх нужного запрещён; чужие модули не менять; итоговый отчёт docs/results/SP-L1-03.md до 30 строк (тесты, долг, решения)."
+      ],
+      "screenIds": [],
+      "wave": 21,
+      "promptPath": "docs/tasks/SP-L1-03.md"
+    },
+    {
+      "taskKey": "SP-L1-04",
+      "title": "SP-L1-04 · Продавец: живая отправка в Telegram",
+      "description": "# SP-L1-04 · Продавец: живая отправка в Telegram\n\n**Зачем:** ответ менеджера сейчас уходит только в fake. config/features/E5-01.php: TelegramTransport → DisabledTelegramTransport и manager_telegram_delivery false; флаг TELEGRAM_LIVE_ENABLED уже есть в config/features/E5-01H.php, но используется только в TelegramController.php:83. DeliverManagerMessage без tries/backoff, выбор транспорта на строке 27, пишет только delivered_at (31–33), статуса failed нет; DialogMessageController.php:32 meta delivery fake, :43 flash «Сообщение поставлено в тестовую очередь.». HttpTelegramTransport уже есть (влит SP-E6-03AA).\n**Часть чего:** волна «Запуск-1» (planning/QUEUE.md): прод с живыми Продавцом (Telegram, режим черновиков) и Видением; экраны после запуска.\n**Зависимость:** нет; можно брать параллельно с другими SP-L1 без пересечения scope.\n\n## Приёмка\n- TELEGRAM_LIVE_ENABLED=true → привязка TelegramTransport к существующему HttpTelegramTransport через config (сам HttpTelegramTransport не менять); manager_telegram_delivery из env TELEGRAM_MANAGER_DELIVERY_ENABLED (по умолчанию равен TELEGRAM_LIVE_ENABLED).\n- Регистрация вебхука (TelegramRegistrationController.php:38) в живом режиме вызывает setWebhook с secret_token; ошибка Telegram показывается понятным текстом.\n- DeliverManagerMessage: повтор через очередь (tries и backoff), реальный статус сообщения: отправлено (delivered_at, message_id Telegram) или ошибка (failed, error_code) после исчерпания попыток; 429/5xx/таймаут — повтор, 4xx (chat not found, бот заблокирован) — failed без повтора; повтор job не отправляет дважды. Если статус требует колонок — миграция database/migrations/L1-04/.\n- Честный flash: в живом режиме «Сообщение поставлено в очередь отправки в Telegram», meta.delivery = live; в fake прежний текст.\n- Выключено → поведение и существующие тесты без изменений.\n- Тесты tests/Feature/Launch/L1-04/ с Http::fake на api.telegram.org: отправлено, 429 → повтор → отправлено, 403 → failed, регистрация вебхука, выключенный режим.\n- Feature-тесты только с Http::fake/Queue::fake, без живых и платных вызовов; ключи и токены только из env/config, не в коде и не в логах. Рефакторинг сверх нужного запрещён; чужие модули не менять; итоговый отчёт docs/results/SP-L1-04.md до 30 строк (тесты, долг, решения).\n\nScope: `config/features/E5-01.php`, `config/features/E5-01H.php`, `app/Seller/Dialogs/DeliverManagerMessage.php`, `app/Seller/Dialogs/DialogMessageController.php`, `app/Seller/Channels/Telegram/TelegramManagerMessageTransport.php`, `app/Seller/Channels/Telegram/TelegramRegistrationController.php`, `database/migrations/L1-04/`, `tests/Feature/Launch/L1-04/`, `docs/results/SP-L1-04.md`.\n",
+      "dependsOn": [],
+      "exclusiveResources": [],
+      "scope": [
+        "config/features/E5-01.php",
+        "config/features/E5-01H.php",
+        "app/Seller/Dialogs/DeliverManagerMessage.php",
+        "app/Seller/Dialogs/DialogMessageController.php",
+        "app/Seller/Channels/Telegram/TelegramManagerMessageTransport.php",
+        "app/Seller/Channels/Telegram/TelegramRegistrationController.php",
+        "database/migrations/L1-04/",
+        "tests/Feature/Launch/L1-04/",
+        "docs/results/SP-L1-04.md"
+      ],
+      "sourceRefs": [
+        "planning/QUEUE.md",
+        "docs/release/2026-11-09-remaining.md"
+      ],
+      "acceptance": [
+        "TELEGRAM_LIVE_ENABLED=true → привязка TelegramTransport к существующему HttpTelegramTransport через config (сам HttpTelegramTransport не менять); manager_telegram_delivery из env TELEGRAM_MANAGER_DELIVERY_ENABLED (по умолчанию равен TELEGRAM_LIVE_ENABLED).",
+        "Регистрация вебхука (TelegramRegistrationController.php:38) в живом режиме вызывает setWebhook с secret_token; ошибка Telegram показывается понятным текстом.",
+        "DeliverManagerMessage: повтор через очередь (tries и backoff), реальный статус сообщения: отправлено (delivered_at, message_id Telegram) или ошибка (failed, error_code) после исчерпания попыток; 429/5xx/таймаут — повтор, 4xx (chat not found, бот заблокирован) — failed без повтора; повтор job не отправляет дважды. Если статус требует колонок — миграция database/migrations/L1-04/.",
+        "Честный flash: в живом режиме «Сообщение поставлено в очередь отправки в Telegram», meta.delivery = live; в fake прежний текст.",
+        "Выключено → поведение и существующие тесты без изменений.",
+        "Тесты tests/Feature/Launch/L1-04/ с Http::fake на api.telegram.org: отправлено, 429 → повтор → отправлено, 403 → failed, регистрация вебхука, выключенный режим.",
+        "Feature-тесты только с Http::fake/Queue::fake, без живых и платных вызовов; ключи и токены только из env/config, не в коде и не в логах. Рефакторинг сверх нужного запрещён; чужие модули не менять; итоговый отчёт docs/results/SP-L1-04.md до 30 строк (тесты, долг, решения)."
+      ],
+      "screenIds": [],
+      "wave": 21,
+      "promptPath": "docs/tasks/SP-L1-04.md"
+    },
+    {
+      "taskKey": "SP-L1-05",
+      "title": "SP-L1-05 · Отправка черновика ИИ в один клик",
+      "description": "# SP-L1-05 · Отправка черновика ИИ в один клик\n\n**Зачем:** в режиме черновиков менеджер не может отправить готовый черновик. ReadySuggestions::read() (app/Seller/Dialogs/ReadySuggestions.php:12–47) отдаёт черновик, DialogsController.php:66–67 передаёт только текст readySuggestion без id хода; кнопка «Использовать в ответе» (resources/js/pages/Seller/Dialogs/Index.tsx:120) лишь подставляет текст, далее «Чтобы отправить ответ, заберите диалог себе.»; DialogMessageController.php:30 требует mode manager и назначение. CHECK статусов seller_turns (database/migrations/C-02/2026_11_01_040000_c02_uncertain_turn_on_inbound.php:97) не содержит sent/edited.\n**Часть чего:** волна «Запуск-1» (planning/QUEUE.md): прод с живыми Продавцом (Telegram, режим черновиков) и Видением; экраны после запуска.\n**Зависимость:** нет; граница с SP-L1-04 — существующий job DeliverManagerMessage (его не менять). Статусы доставки live появятся после SP-L1-04.\n\n## Приёмка\n- В режиме suggest у готового черновика кнопки «Отправить» и «Изменить и отправить» (правка в поле ответа, затем отправка); перевод диалога в режим manager не требуется; права — как у ответа в диалоге (существующая политика).\n- Новый маршрут POST /seller/dialogs/{dialog}/suggestions/{turn}/send в routes/features/L1-05.php (routes/features/E5-04.php не трогать): ход проверяется по условиям ReadySuggestions (актуальная ревизия, хеш outcome), создаётся сообщение менеджера с исходным или изменённым текстом и ставится существующий DeliverManagerMessage.\n- Статус хода sent или edited (миграция database/migrations/L1-05/ расширяет CHECK), кто и когда отправил; исходный текст черновика остаётся в outcome; двойной клик или повтор — одно сообщение (409 или идемпотентно).\n- Устаревший черновик (после него пришло сообщение клиента) — отказ «Черновик устарел»; следующее сообщение клиента создаёт новый черновик (QueueLiveDraft.php:11–14), блок показывает новый.\n- Под сообщением менеджера виден статус доставки (fake / отправлено / ошибка — после SP-L1-04).\n- Тесты tests/Feature/Launch/L1-05/: отправка, правка и отправка, права, изоляция, устаревший черновик, повтор, новый черновик после сообщения клиента; Queue::fake для DeliverManagerMessage.\n- Feature-тесты только с Http::fake/Queue::fake, без живых и платных вызовов; ключи и токены только из env/config, не в коде и не в логах. Рефакторинг сверх нужного запрещён; чужие модули не менять; итоговый отчёт docs/results/SP-L1-05.md до 30 строк (тесты, долг, решения).\n\nScope: `app/Seller/Dialogs/SendSuggestionController.php`, `app/Seller/Dialogs/ReadySuggestions.php`, `app/Seller/Dialogs/DialogsController.php`, `resources/js/pages/Seller/Dialogs/Index.tsx`, `routes/features/L1-05.php`, `config/features/L1-05.php`, `database/migrations/L1-05/`, `tests/Feature/Launch/L1-05/`, `docs/results/SP-L1-05.md`.\n",
+      "dependsOn": [],
+      "exclusiveResources": [],
+      "scope": [
+        "app/Seller/Dialogs/SendSuggestionController.php",
+        "app/Seller/Dialogs/ReadySuggestions.php",
+        "app/Seller/Dialogs/DialogsController.php",
+        "resources/js/pages/Seller/Dialogs/Index.tsx",
+        "routes/features/L1-05.php",
+        "config/features/L1-05.php",
+        "database/migrations/L1-05/",
+        "tests/Feature/Launch/L1-05/",
+        "docs/results/SP-L1-05.md"
+      ],
+      "sourceRefs": [
+        "planning/QUEUE.md",
+        "docs/release/2026-11-09-remaining.md"
+      ],
+      "acceptance": [
+        "В режиме suggest у готового черновика кнопки «Отправить» и «Изменить и отправить» (правка в поле ответа, затем отправка); перевод диалога в режим manager не требуется; права — как у ответа в диалоге (существующая политика).",
+        "Новый маршрут POST /seller/dialogs/{dialog}/suggestions/{turn}/send в routes/features/L1-05.php (routes/features/E5-04.php не трогать): ход проверяется по условиям ReadySuggestions (актуальная ревизия, хеш outcome), создаётся сообщение менеджера с исходным или изменённым текстом и ставится существующий DeliverManagerMessage.",
+        "Статус хода sent или edited (миграция database/migrations/L1-05/ расширяет CHECK), кто и когда отправил; исходный текст черновика остаётся в outcome; двойной клик или повтор — одно сообщение (409 или идемпотентно).",
+        "Устаревший черновик (после него пришло сообщение клиента) — отказ «Черновик устарел»; следующее сообщение клиента создаёт новый черновик (QueueLiveDraft.php:11–14), блок показывает новый.",
+        "Под сообщением менеджера виден статус доставки (fake / отправлено / ошибка — после SP-L1-04).",
+        "Тесты tests/Feature/Launch/L1-05/: отправка, правка и отправка, права, изоляция, устаревший черновик, повтор, новый черновик после сообщения клиента; Queue::fake для DeliverManagerMessage.",
+        "Feature-тесты только с Http::fake/Queue::fake, без живых и платных вызовов; ключи и токены только из env/config, не в коде и не в логах. Рефакторинг сверх нужного запрещён; чужие модули не менять; итоговый отчёт docs/results/SP-L1-05.md до 30 строк (тесты, долг, решения)."
+      ],
+      "screenIds": [],
+      "wave": 21,
+      "promptPath": "docs/tasks/SP-L1-05.md"
+    },
+    {
+      "taskKey": "SP-L1-06",
+      "title": "SP-L1-06 · Уведомления менеджеров о сообщениях и черновиках",
+      "description": "# SP-L1-06 · Уведомления менеджеров о сообщениях и черновиках\n\n**Зачем:** менеджер не узнаёт о новом сообщении клиента и готовом черновике. В EventCatalog (app/Shell/Notifications/EventCatalog.php) нет событий входящего сообщения и готового черновика; RecipientPolicy.php:23 даёт участникам только handed_off/contact.reminder; DrainNotifications зарегистрирован (config/features/E0-04.php:10), но не в расписании (routes/console.php:9–13); TelegramSender::managers() (TelegramSender.php:29) не используется. Расписание через секцию schedules и ScheduleContributor (app/Providers/Features/FeatureRegistry.php:175–185, флаг runtime.features_scheduling_enabled, :121).\n**Часть чего:** волна «Запуск-1» (planning/QUEUE.md): прод с живыми Продавцом (Telegram, режим черновиков) и Видением; экраны после запуска.\n**Зависимость:** SP-L1-01 (LiveDraftJob). app/Shell/Notifications/ занят SP-E1-10K — брать после его слияния (блокирует пересечение scope).\n\n## Приёмка\n- События seller.conversation.inbound (сообщение клиента) и seller.draft.ready (LiveDraftJob перевёл ход в suggested) в EventCatalog; получатели — менеджеры бренда (RecipientPolicy).\n- Доставка: список в кабинете (cabinet_notifications) и группа менеджеров бренда в Telegram (managers_chat_id канала через TelegramSender::managers или ExternalDelivery); живая отправка только при NOTIFICATIONS_EXTERNAL_ENABLED, иначе fake.\n- Дедупликация: не больше одного уведомления на диалог и тип события за N минут (config, по умолчанию 5).\n- DrainNotifications в расписании через ScheduleContributor из config/features/L1-06.php (каждую минуту, withoutOverlapping), routes/console.php не трогать.\n- Текст без персональных данных сверх имени и канала, со ссылкой на диалог.\n- Тесты tests/Feature/Launch/L1-06/ с Http::fake на Telegram: входящее → кабинет и группа, черновик → уведомление, дедупликация, расписание зарегистрировано, изоляция бренда, выключенный режим.\n- Feature-тесты только с Http::fake/Queue::fake, без живых и платных вызовов; ключи и токены только из env/config, не в коде и не в логах. Рефакторинг сверх нужного запрещён; чужие модули не менять; итоговый отчёт docs/results/SP-L1-06.md до 30 строк (тесты, долг, решения).\n\nScope: `app/Seller/Notifications/`, `config/features/L1-06.php`, `app/Shell/Notifications/EventCatalog.php`, `app/Shell/Notifications/RecipientPolicy.php`, `app/Seller/Live/LiveDraftJob.php`, `tests/Feature/Launch/L1-06/`, `docs/results/SP-L1-06.md`.\n",
+      "dependsOn": [
+        "SP-L1-01"
+      ],
+      "exclusiveResources": [],
+      "scope": [
+        "app/Seller/Notifications/",
+        "config/features/L1-06.php",
+        "app/Shell/Notifications/EventCatalog.php",
+        "app/Shell/Notifications/RecipientPolicy.php",
+        "app/Seller/Live/LiveDraftJob.php",
+        "tests/Feature/Launch/L1-06/",
+        "docs/results/SP-L1-06.md"
+      ],
+      "sourceRefs": [
+        "planning/QUEUE.md",
+        "docs/release/2026-11-09-remaining.md"
+      ],
+      "acceptance": [
+        "События seller.conversation.inbound (сообщение клиента) и seller.draft.ready (LiveDraftJob перевёл ход в suggested) в EventCatalog; получатели — менеджеры бренда (RecipientPolicy).",
+        "Доставка: список в кабинете (cabinet_notifications) и группа менеджеров бренда в Telegram (managers_chat_id канала через TelegramSender::managers или ExternalDelivery); живая отправка только при NOTIFICATIONS_EXTERNAL_ENABLED, иначе fake.",
+        "Дедупликация: не больше одного уведомления на диалог и тип события за N минут (config, по умолчанию 5).",
+        "DrainNotifications в расписании через ScheduleContributor из config/features/L1-06.php (каждую минуту, withoutOverlapping), routes/console.php не трогать.",
+        "Текст без персональных данных сверх имени и канала, со ссылкой на диалог.",
+        "Тесты tests/Feature/Launch/L1-06/ с Http::fake на Telegram: входящее → кабинет и группа, черновик → уведомление, дедупликация, расписание зарегистрировано, изоляция бренда, выключенный режим.",
+        "Feature-тесты только с Http::fake/Queue::fake, без живых и платных вызовов; ключи и токены только из env/config, не в коде и не в логах. Рефакторинг сверх нужного запрещён; чужие модули не менять; итоговый отчёт docs/results/SP-L1-06.md до 30 строк (тесты, долг, решения)."
+      ],
+      "screenIds": [],
+      "wave": 21,
+      "promptPath": "docs/tasks/SP-L1-06.md"
+    },
+    {
+      "taskKey": "SP-L1-07",
+      "title": "SP-L1-07 · Создание клиента администратором",
+      "description": "# SP-L1-07 · Создание клиента администратором\n\n**Зачем:** второго клиента сейчас не завести: кабинет однокомпанийный — App\\Tenancy\\Cabinet::organizationId() возвращает одну организацию из env CABINET_ORGANIZATION_ID (app/Tenancy/Cabinet.php:10–18, config/features/E0-02.php:19), его используют ResolveTenant.php:24 и ещё 14 файлов входа, регистрации и приглашений. InvitationIssuer::issue() требует Request и сессию owner/admin и занят SP-E1-06J.\n**Часть чего:** волна «Запуск-1» (planning/QUEUE.md): прод с живыми Продавцом (Telegram, режим черновиков) и Видением; экраны после запуска.\n**Зависимость:** нет; можно брать параллельно с другими SP-L1 без пересечения scope.\n\n## Приёмка\n- `org:create {name} {owner_email} [--plan=...]` создаёт организацию, первый бренд (имя организации), тариф из config и приглашение владельца; печатает одноразовую ссылку (без SMTP); токен хранится только хешем, в лог не пишется; повтор с той же почтой/организацией — ошибка без дублей.\n- Приглашение создаётся без InvitationIssuer (scope SP-E1-06J), в том же формате строки, который принимает InvitationAcceptance.\n- Владелец по ссылке задаёт пароль и попадает в кабинет своей организации, а не CABINET_ORGANIZATION_ID.\n- Cabinet: организация определяется по активному членству вошедшего пользователя (до входа — по приглашению); CABINET_ORGANIZATION_ID остаётся резервом текущей установки; вызовы Cabinet в перечисленных файлах заменяются только там, где нужно; существующие тесты проходят.\n- Тест изоляции tests/Feature/Launch/L1-07/: две организации, владелец A не видит бренды, диалоги и замеры B; ресурс B по прямому URL → 404/403; вход, сброс пароля и приглашение работают для обеих.\n- Feature-тесты только с Http::fake/Queue::fake, без живых и платных вызовов; ключи и токены только из env/config, не в коде и не в логах. Рефакторинг сверх нужного запрещён; чужие модули не менять; итоговый отчёт docs/results/SP-L1-07.md до 30 строк (тесты, долг, решения).\n\nScope: `app/Tenancy/Cabinet.php`, `app/Tenancy/ResolveTenant.php`, `app/Tenancy/ResolveOnboardingOwner.php`, `app/Tenancy/Invitations/`, `app/Tenancy/Console/`, `app/Shell/Auth/EligibleAccount.php`, `app/Shell/Auth/InvitationExchangeGrants.php`, `app/Shell/Auth/MfaChallenge.php`, `app/Shell/Auth/Http/InvitationController.php`, `app/Shell/Auth/Http/RegisterController.php`, `app/Shell/Auth/Http/PasswordController.php`, `app/Shell/Auth/Http/VerificationController.php`, `app/Shell/Auth/Http/MfaSettingsController.php`, `app/Shell/Auth/PasswordDelivery/PasswordDelivery.php`, `app/Shell/Auth/PasswordDelivery/PasswordEligibility.php`, `app/Shell/Auth/VerificationDelivery/VerificationDelivery.php`, `config/features/L1-07.php`, `tests/Feature/Launch/L1-07/`, `docs/results/SP-L1-07.md`.\n",
+      "dependsOn": [],
+      "exclusiveResources": [],
+      "scope": [
+        "app/Tenancy/Cabinet.php",
+        "app/Tenancy/ResolveTenant.php",
+        "app/Tenancy/ResolveOnboardingOwner.php",
+        "app/Tenancy/Invitations/",
+        "app/Tenancy/Console/",
+        "app/Shell/Auth/EligibleAccount.php",
+        "app/Shell/Auth/InvitationExchangeGrants.php",
+        "app/Shell/Auth/MfaChallenge.php",
+        "app/Shell/Auth/Http/InvitationController.php",
+        "app/Shell/Auth/Http/RegisterController.php",
+        "app/Shell/Auth/Http/PasswordController.php",
+        "app/Shell/Auth/Http/VerificationController.php",
+        "app/Shell/Auth/Http/MfaSettingsController.php",
+        "app/Shell/Auth/PasswordDelivery/PasswordDelivery.php",
+        "app/Shell/Auth/PasswordDelivery/PasswordEligibility.php",
+        "app/Shell/Auth/VerificationDelivery/VerificationDelivery.php",
+        "config/features/L1-07.php",
+        "tests/Feature/Launch/L1-07/",
+        "docs/results/SP-L1-07.md"
+      ],
+      "sourceRefs": [
+        "planning/QUEUE.md",
+        "docs/release/2026-11-09-remaining.md"
+      ],
+      "acceptance": [
+        "`org:create {name} {owner_email} [--plan=...]` создаёт организацию, первый бренд (имя организации), тариф из config и приглашение владельца; печатает одноразовую ссылку (без SMTP); токен хранится только хешем, в лог не пишется; повтор с той же почтой/организацией — ошибка без дублей.",
+        "Приглашение создаётся без InvitationIssuer (scope SP-E1-06J), в том же формате строки, который принимает InvitationAcceptance.",
+        "Владелец по ссылке задаёт пароль и попадает в кабинет своей организации, а не CABINET_ORGANIZATION_ID.",
+        "Cabinet: организация определяется по активному членству вошедшего пользователя (до входа — по приглашению); CABINET_ORGANIZATION_ID остаётся резервом текущей установки; вызовы Cabinet в перечисленных файлах заменяются только там, где нужно; существующие тесты проходят.",
+        "Тест изоляции tests/Feature/Launch/L1-07/: две организации, владелец A не видит бренды, диалоги и замеры B; ресурс B по прямому URL → 404/403; вход, сброс пароля и приглашение работают для обеих.",
+        "Feature-тесты только с Http::fake/Queue::fake, без живых и платных вызовов; ключи и токены только из env/config, не в коде и не в логах. Рефакторинг сверх нужного запрещён; чужие модули не менять; итоговый отчёт docs/results/SP-L1-07.md до 30 строк (тесты, долг, решения)."
+      ],
+      "screenIds": [],
+      "wave": 21,
+      "promptPath": "docs/tasks/SP-L1-07.md"
+    },
+    {
+      "taskKey": "SP-L1-08",
+      "title": "SP-L1-08 · Комплект выкладки в прод",
+      "description": "# SP-L1-08 · Комплект выкладки в прод\n\n**Зачем:** выкладывать нечем: нет deploy/, нет .env.production.example (есть только .env.example), нет config/trustedproxy.php, хотя config('trustedproxy.proxies') читают VerifiedHttps.php:20, SecureAccountContext.php:26, SecretTransport.php:24, SupportController.php:87, BearerBoundary.php:63; health — только стандартный /up (bootstrap/app.php:31) без проверки БД и очереди. docs/runbooks/https-forwarding.md: заголовки пересылки принимаются только от доверенного IP/CIDR и ровно с одним X-Forwarded-Proto: https, Forwarded не поддерживается, ссылка сброса пароля отклоняет любые заголовки пересылки. features:seed уже отказывает вне local/testing (app/Providers/Features/FeatureSeedCommand.php:17).\n**Часть чего:** волна «Запуск-1» (planning/QUEUE.md): прод с живыми Продавцом (Telegram, режим черновиков) и Видением; экраны после запуска.\n**Зависимость:** нет; можно брать параллельно с другими SP-L1 без пересечения scope.\n\n## Приёмка\n- deploy/deploy.sh: fetch → checkout тега/коммита в новый каталог релиза → composer install --no-dev → npm ci и build → migrate --force → кеши config/route/view → перезапуск сервисов; откат на предыдущий релиз одной командой; без секретов в скрипте.\n- systemd-юниты: воркер очереди (queue:work database) и schedule:work; шаблон Caddyfile по docs/runbooks/https-forwarding.md (php_fastcgi с HTTPS=on и удалением клиентских X-Forwarded-*/X-Real-IP/Forwarded или явный доверенный прокси); сброс пароля работает через Caddy.\n- Резервная копия pg_dump с ротацией 14 дней и строка cron.\n- .env.production.example со ВСЕМИ ключами env( из config/ и безопасными значениями: APP_ENV=production, APP_DEBUG=false, LOG_LEVEL=warning, QUEUE_CONNECTION=database, AI_DRIVER=openrouter, AI_BUDGET_MONTHLY_USD=30, AI_BUDGET_DAILY_USD=3, флаги живых каналов выключены; секреты пустые. Тест сверяет список ключей с config/.\n- config/trustedproxy.php (TRUSTED_PROXIES, по умолчанию пусто) и принудительный https в production в bootstrap/app.php.\n- /health: проверка БД и отставания очереди (возраст старейшей задачи jobs, число failed_jobs) → 200/503 JSON без секретов; /up не менять.\n- Тест: features:seed в production отказывает.\n- docs/release/prod-runbook.md: первая установка, выкладка, откат, бэкап и восстановление, включение живых флагов, проверка /health. SP-E9-04 ссылается на этот runbook (docs/tasks/SP-E9-04.md, «Дополнение»).\n- Тесты tests/Feature/Launch/L1-08/: /health 200/503, ключи .env.production.example, trusted proxy, features:seed в production.\n- Feature-тесты только с Http::fake/Queue::fake, без живых и платных вызовов; ключи и токены только из env/config, не в коде и не в логах. Рефакторинг сверх нужного запрещён; чужие модули не менять; итоговый отчёт docs/results/SP-L1-08.md до 30 строк (тесты, долг, решения).\n\nScope: `deploy/`, `.env.production.example`, `config/trustedproxy.php`, `bootstrap/app.php`, `app/Http/HealthController.php`, `routes/features/L1-08.php`, `config/features/L1-08.php`, `docs/release/prod-runbook.md`, `tests/Feature/Launch/L1-08/`, `docs/results/SP-L1-08.md`.\n",
+      "dependsOn": [],
+      "exclusiveResources": [],
+      "scope": [
+        "deploy/",
+        ".env.production.example",
+        "config/trustedproxy.php",
+        "bootstrap/app.php",
+        "app/Http/HealthController.php",
+        "routes/features/L1-08.php",
+        "config/features/L1-08.php",
+        "docs/release/prod-runbook.md",
+        "tests/Feature/Launch/L1-08/",
+        "docs/results/SP-L1-08.md"
+      ],
+      "sourceRefs": [
+        "planning/QUEUE.md",
+        "docs/release/2026-11-09-remaining.md",
+        "docs/runbooks/https-forwarding.md",
+        "docs/tasks/SP-E9-04.md"
+      ],
+      "acceptance": [
+        "deploy/deploy.sh: fetch → checkout тега/коммита в новый каталог релиза → composer install --no-dev → npm ci и build → migrate --force → кеши config/route/view → перезапуск сервисов; откат на предыдущий релиз одной командой; без секретов в скрипте.",
+        "systemd-юниты: воркер очереди (queue:work database) и schedule:work; шаблон Caddyfile по docs/runbooks/https-forwarding.md (php_fastcgi с HTTPS=on и удалением клиентских X-Forwarded-*/X-Real-IP/Forwarded или явный доверенный прокси); сброс пароля работает через Caddy.",
+        "Резервная копия pg_dump с ротацией 14 дней и строка cron.",
+        ".env.production.example со ВСЕМИ ключами env( из config/ и безопасными значениями: APP_ENV=production, APP_DEBUG=false, LOG_LEVEL=warning, QUEUE_CONNECTION=database, AI_DRIVER=openrouter, AI_BUDGET_MONTHLY_USD=30, AI_BUDGET_DAILY_USD=3, флаги живых каналов выключены; секреты пустые. Тест сверяет список ключей с config/.",
+        "config/trustedproxy.php (TRUSTED_PROXIES, по умолчанию пусто) и принудительный https в production в bootstrap/app.php.",
+        "/health: проверка БД и отставания очереди (возраст старейшей задачи jobs, число failed_jobs) → 200/503 JSON без секретов; /up не менять.",
+        "Тест: features:seed в production отказывает.",
+        "docs/release/prod-runbook.md: первая установка, выкладка, откат, бэкап и восстановление, включение живых флагов, проверка /health. SP-E9-04 ссылается на этот runbook (docs/tasks/SP-E9-04.md, «Дополнение»).",
+        "Тесты tests/Feature/Launch/L1-08/: /health 200/503, ключи .env.production.example, trusted proxy, features:seed в production.",
+        "Feature-тесты только с Http::fake/Queue::fake, без живых и платных вызовов; ключи и токены только из env/config, не в коде и не в логах. Рефакторинг сверх нужного запрещён; чужие модули не менять; итоговый отчёт docs/results/SP-L1-08.md до 30 строк (тесты, долг, решения)."
+      ],
+      "screenIds": [],
+      "wave": 21,
+      "promptPath": "docs/tasks/SP-L1-08.md"
+    },
+    {
+      "taskKey": "SP-L1-09",
+      "title": "SP-L1-09 · Виджет: живой режим черновиков",
+      "description": "# SP-L1-09 · Виджет: живой режим черновиков\n\n**Зачем:** в живом режиме виджет мёртв: WidgetInboundRuntime возвращает unavailable при ai_driver ≠ fake (app/Seller/Runtime/WidgetInboundRuntime.php:22, 27), режим manager зашит (45, 71–72, 76); сообщение посетителя уже идёт через InboundRecorder::ingest (49).\n**Часть чего:** волна «Запуск-1» (planning/QUEUE.md): прод с живыми Продавцом (Telegram, режим черновиков) и Видением; экраны после запуска.\n**Зависимость:** SP-L1-05; SP-E5-02C (app/Seller/Runtime/ и resources/widget/ в его scope).\n\n## Приёмка\n- В живом режиме виджет не отвечает unavailable; сообщение посетителя по-прежнему идёт через InboundRecorder::ingest в диалог.\n- Маршрутизация по default_mode канала: suggest → черновик для менеджера через QueueLiveDraft/LiveDraftJob и отправка через SP-L1-05; manager → как сейчас; автономного ответа ИИ посетителю нет ни в одном режиме.\n- Посетитель видит «Менеджер скоро ответит» (один раз на ожидание), ответ менеджера приходит через существующее чтение сообщений сессии.\n- Тесты tests/Feature/Launch/L1-09/ с Http::fake/Queue::fake: live + suggest → черновик поставлен, сообщения ИИ посетителю нет; manager; fake-режим без изменений.\n- Feature-тесты только с Http::fake/Queue::fake, без живых и платных вызовов; ключи и токены только из env/config, не в коде и не в логах. Рефакторинг сверх нужного запрещён; чужие модули не менять; итоговый отчёт docs/results/SP-L1-09.md до 30 строк (тесты, долг, решения).\n\nScope: `app/Seller/Runtime/WidgetInboundRuntime.php`, `resources/widget/`, `tests/Feature/Launch/L1-09/`, `docs/results/SP-L1-09.md`.\n",
+      "dependsOn": [
+        "SP-L1-05",
+        "SP-E5-02C"
+      ],
+      "exclusiveResources": [],
+      "scope": [
+        "app/Seller/Runtime/WidgetInboundRuntime.php",
+        "resources/widget/",
+        "tests/Feature/Launch/L1-09/",
+        "docs/results/SP-L1-09.md"
+      ],
+      "sourceRefs": [
+        "planning/QUEUE.md",
+        "docs/release/2026-11-09-remaining.md"
+      ],
+      "acceptance": [
+        "В живом режиме виджет не отвечает unavailable; сообщение посетителя по-прежнему идёт через InboundRecorder::ingest в диалог.",
+        "Маршрутизация по default_mode канала: suggest → черновик для менеджера через QueueLiveDraft/LiveDraftJob и отправка через SP-L1-05; manager → как сейчас; автономного ответа ИИ посетителю нет ни в одном режиме.",
+        "Посетитель видит «Менеджер скоро ответит» (один раз на ожидание), ответ менеджера приходит через существующее чтение сообщений сессии.",
+        "Тесты tests/Feature/Launch/L1-09/ с Http::fake/Queue::fake: live + suggest → черновик поставлен, сообщения ИИ посетителю нет; manager; fake-режим без изменений.",
+        "Feature-тесты только с Http::fake/Queue::fake, без живых и платных вызовов; ключи и токены только из env/config, не в коде и не в логах. Рефакторинг сверх нужного запрещён; чужие модули не менять; итоговый отчёт docs/results/SP-L1-09.md до 30 строк (тесты, долг, решения)."
+      ],
+      "screenIds": [],
+      "wave": 21,
+      "promptPath": "docs/tasks/SP-L1-09.md"
     }
   ],
   "excludedSourceTasks": {
