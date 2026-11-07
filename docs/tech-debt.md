@@ -579,3 +579,5 @@
 - SP-L1-05: SendSuggestionController всегда пишет meta.delivery=fake (в отличие от DialogMessageController после SP-L1-04), поэтому в живом Telegram-режиме до доставки под черновиком показывается «Тестовая очередь»; tests/Browser/E5-04/dialogs.spec.ts и E5-04R/suggestion.spec.ts красные до этой задачи (фиксированный порт, устаревшие тексты).
 
 - SP-E7-04P: contact_received_at пишется только в защищённых финализаторах (первый ход, follow-up API); иные пути заполнения слотов контакта не фиксируют момент.
+
+- SP-E6-06E: seller.conversation.handed_off зарегистрирован в registry.json и EventCatalog, но нигде не enqueue-ится — общая очередь уведомлений для диалогов без ответа не используется; таймер «никто не взял» (MonitorHandoffs::monitorUnassigned) создаёт отдельную внутреннюю задачу seller_tasks(assignment_reminder) без живой отправки. Способы «по каналу/источнику» и «по городу» не реализованы (нет поля источника/города у клиента).
