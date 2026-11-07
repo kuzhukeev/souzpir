@@ -146,6 +146,11 @@ test('real pages after creating knowledge through the UI', async ({ page, browse
     expect(status, path).toBe(200);
     await expect(page).toHaveURL(`${origin}${path}`);
     await expect(page.locator('h1').first()).toBeVisible();
+    if (name === 'd23') {
+      await page.goto(`${origin}/seller/dialogs/mine?search=${encodeURIComponent('Посетитель')}`);
+      await page.getByRole('button', { name: /Посетитель виджета/ }).first().click();
+      await expect(page.getByRole('heading', { name: 'Посетитель виджета' })).toBeVisible();
+    }
     await page.addScriptTag({ path: 'node_modules/axe-core/axe.min.js' });
     const violations: Record<number, unknown> = {};
     results[name] = { path, status, violations };
