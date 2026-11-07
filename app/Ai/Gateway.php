@@ -23,6 +23,7 @@ use App\Privacy\ContactBoundary;
 use App\Privacy\Secrets\SecretBoundary;
 use App\Seller\Conversations\Data\TurnClaim;
 use App\Seller\Dialogs\ManagerSuggestionExtractorInput;
+use App\Seller\Dialogs\ManagerSuggestionResponderInput;
 use App\Seller\Engine\GuardDecision;
 use App\Seller\Engine\GuardModelResult;
 use App\Seller\Engine\ResponderResult;
@@ -782,6 +783,80 @@ final class Gateway implements AiGateway
         } catch (Throwable) {
             throw new LogicException('Manager suggestion extractor unavailable.');
         }
+    }
+
+    /** Read the stored result of a completed manager-suggestion extractor call. */
+    public function readManagerSuggestionExtractorLocked(#[\SensitiveParameter] Request $http, string $dialog, #[\SensitiveParameter] string $key): AiResult
+    {
+        if (DB::transactionLevel() < 1 || config('runtime.ai_driver', 'fake') !== 'fake') {
+            throw new LogicException('Manager suggestion extractor unavailable.');
+        }
+        [$input, $source] = app(ManagerSuggestionExtractorInput::class)->build($http, $dialog, $key);
+        $tenant = app(TenantContext::class);
+        $context = new AiContext($tenant->organizationId, $tenant->brandId, 'extractor', 'seller', 'conversation', $dialog,
+            'manager-suggestion-extractor-'.hash_hmac('sha256', $key.CanonicalJson::hash($source), (string) config('app.key')),
+            ['conversation_content', 'client_profile', 'knowledge_internal']);
+
+        return $this->readStoredCall($tenant, $context, 'Manager suggestion extractor unavailable.', $input);
+    }
+
+    /** Fake-only manager-suggestion responder; builds reply text from the revalidated extractor result. */
+    public function completeManagerSuggestionResponder(#[\SensitiveParameter] Request $http, string $dialog, #[\SensitiveParameter] string $key): AiResult
+    {
+        if (config('runtime.ai_driver', 'fake') !== 'fake' || DB::transactionLevel() !== 0) {
+            throw new LogicException('Manager suggestion responder unavailable.');
+        }
+        try {
+            [$input, $context] = DB::transaction(fn () => app(ManagerSuggestionResponderInput::class)->build($http, $dialog, $key));
+            $expected = CanonicalJson::hash($input->toArray());
+            $assertSource = function () use ($http, $dialog, $key, $context, $expected): void {
+                [$current, $currentContext] = DB::transaction(fn () => app(ManagerSuggestionResponderInput::class)->build($http, $dialog, $key));
+                if (! hash_equals($expected, CanonicalJson::hash($current->toArray())) || $currentContext->idempotencyKey !== $context->idempotencyKey) {
+                    throw new LogicException;
+                }
+            };
+            $result = $this->completeInternal($input, $context, $assertSource);
+            $assertSource();
+
+            return $result;
+        } catch (Throwable) {
+            throw new LogicException('Manager suggestion responder unavailable.');
+        }
+    }
+
+    /** Read the stored result of a completed manager-suggestion responder call. */
+    public function readManagerSuggestionResponderLocked(#[\SensitiveParameter] Request $http, string $dialog, #[\SensitiveParameter] string $key): AiResult
+    {
+        if (DB::transactionLevel() < 1 || config('runtime.ai_driver', 'fake') !== 'fake') {
+            throw new LogicException('Manager suggestion responder unavailable.');
+        }
+        [$input, $context] = app(ManagerSuggestionResponderInput::class)->build($http, $dialog, $key);
+
+        return $this->readStoredCall(app(TenantContext::class), $context, 'Manager suggestion responder unavailable.', $input);
+    }
+
+    /** Read an already-completed, encrypted AI call result, matching it against the given context's fingerprint. */
+    private function readStoredCall(TenantContext $tenant, AiContext $context, string $error, ?AiRequest $input = null): AiResult
+    {
+        $hashKey = hash_hmac('sha256', $context->idempotencyKey, (string) config('app.key'));
+        $call = DB::table('ai_calls')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
+            ->where('idempotency_key_hash', $hashKey)->lockForUpdate()->first();
+        if (! $call || $call->status !== 'completed' || ! is_string($call->result_encrypted)) {
+            throw new LogicException($error);
+        }
+        if ($input !== null) {
+            $body = app(ContactMasker::class)->request($input->toArray());
+            $expected = app(RequestFingerprint::class)->hash($input, $context, $body, 'fake');
+            if (! hash_equals($expected, $call->request_hash)) {
+                throw new LogicException($error);
+            }
+        }
+        $result = AiResult::fromArray(json_decode(Crypt::decryptString($call->result_encrypted), true, 512, JSON_THROW_ON_ERROR));
+        if ($result->aiCallId !== $call->id || ! $result->ok() || $result->costMicros === null) {
+            throw new LogicException($error);
+        }
+
+        return $result;
     }
 
     public function complete(#[\SensitiveParameter] AiRequest $request, #[\SensitiveParameter] AiContext $context): AiResult

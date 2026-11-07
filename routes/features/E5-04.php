@@ -5,6 +5,7 @@ use App\Seller\Dialogs\DialogProfileController;
 use App\Seller\Dialogs\DialogsController;
 use App\Seller\Dialogs\DialogTaskController;
 use App\Seller\Dialogs\DialogTransferController;
+use App\Seller\Dialogs\ManagerSuggestionController;
 use App\Seller\Dialogs\MessageTemplatesController;
 use App\Seller\Dialogs\PendingPageController;
 use Illuminate\Support\Facades\Route;
@@ -22,4 +23,5 @@ return ['web' => static function (): void {
     Route::post('/seller/dialogs/{dialog}/transfer', [DialogTransferController::class, 'transfer'])->whereUlid('dialog')->middleware(['auth.version', 'auth.nostore'])->name('seller.dialogs.transfer');
     Route::put('/seller/dialogs/{dialog}/profile', [DialogProfileController::class, 'update'])->whereUlid('dialog')->middleware(['auth.version', 'auth.nostore'])->name('seller.dialogs.profile');
     Route::post('/seller/dialogs/{dialog}/mode', [DialogsController::class, 'mode'])->whereUlid('dialog')->middleware(['auth.version', 'auth.nostore'])->name('seller.dialogs.mode');
+    Route::post('/seller/dialogs/{dialog}/suggestion', [ManagerSuggestionController::class, 'generate'])->whereUlid('dialog')->middleware(['auth.version', 'auth.nostore'])->name('seller.dialogs.suggestion');
 }];
