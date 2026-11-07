@@ -180,6 +180,20 @@ class TaskCliTests(unittest.TestCase):
             self.client.reopen("SP-001", "remaining scenario")
         self.assertEqual(self.api.calls, ["list"])
 
+    def test_ci_exceptions_are_precise_and_block_concurrent_ownership(self):
+        api_tests = ["tests/Feature/Seller/Settings/Schedule/AssignmentE606CTest.php",
+                     "tests/Feature/SellerRuntime/Delivery/FakeDeliveryTest.php",
+                     "tests/Feature/SellerRuntime/FirstInboundRuntimeTest.php",
+                     "tests/Browser/E5-03D/api.spec.ts"]
+        scope = task_cli.CI_SCOPE_EXCEPTIONS["SP-E5-03F"]
+        self.assertTrue(all(task_cli.scope_allows(path, scope) for path in api_tests))
+        self.assertFalse(task_cli.scope_allows("tests/Browser/E5-03D/other.spec.ts", scope))
+        webhook = "tests/Feature/SP-E1-10F/WebhookConfigurationTest.php"
+        self.assertTrue(task_cli.scope_allows(webhook, task_cli.CI_SCOPE_EXCEPTIONS["SP-E1-10J"]))
+        candidate = {"project": "souzpir", "taskKey": "SP-X", "scope": [webhook]}
+        active = {"project": "souzpir", "taskKey": "SP-E1-10J", "status": "progress", "scope": []}
+        self.assertEqual(task_cli.extra_scope_blockers(candidate, [active]), ["SP-E1-10J"])
+
     def test_ready_does_not_mutate(self):
         self.assertEqual(len(self.client.ready()["tasks"]), 1)
         self.assertEqual(self.api.calls, ["ready", "list"])

@@ -1,10 +1,18 @@
-# SP-E0-08Z · CI: зависание browser шарда 2
+# SP-E0-08Z · CI: подтверждённые browser-регрессии
 
-**Зачем:** решение владельца 06.11.2026.
-**Часть чего:** сбой CI main, run 42134130785.
+**Зачем:** плановый browser CI 42348786968 для main a5b397fa: 39 падений в четырёх шардах; исправить конкретные причины, сохраняя проверки.
+**Часть чего:** существующая SP-E0-08Z, без новой карточки. Прежнее ENOSPC из run 42134130785 сохранено как отдельная историческая причина; общий ENOSPC для нового прогона не доказан.
 
-## Приёмка
-- Воспроизвести CI browser шард 2/3 в изолированном disposable окружении; установить зависший тест и исправить ожидание/очистку. Лог job 127643879266 показывает ENOSPC watchers; не повышать timeout и не отключать тесты. Проверить исправленный тест и шард, только тестовая БД.
-- Основной сценарий, права и изоляция бренда, ошибки; без живых внешних вызовов. Остаток сдать по AGENTS.md.
+## Приёмка текущего независимого этапа
+- E7-06D: выяснить, почему карточка факта показывает секцию «Как бот это скажет» без подтверждённого примера; проверить реальный путь факт → сервер/хранение → отображение. Сохранить возможность подтверждённого примера и проверку отсутствия выдуманного ответа.
+- E8-22C: выяснить несовпадение истории «31 % → 45 %» с дополнительными «—» датами; проверить путь /vision/actions/effect → данные по бренду → отображение, не выдумывать даты и не ослаблять проверку метрик.
+- Прогнать оба существующих browser-теста и соответствующие проверки изменённого поведения, ролей, бренда и ошибок. Не ослаблять проверки, не отключать тесты и не повышать timeout; внешние вызовы только fake.
 
-Scope: `scripts/ci/`, `.github/workflows/`, `tests/Browser/`, `docs/results/SP-E0-08Z.md`.
+## Остальные подтверждённые падения в этой же карточке
+- Шард 1: E1-01/invitation-safety (2), E6-08D/catalog.
+- Шард 2: E4-02C/comparison, E4-06E/imports (2), E4-06H/preview, E4-06L/preview (2), E4-08/fewshot-more, E4-08D/fewshot (2), E4-10C/fewshot, E4-10E/sandbox, E5-01G/channels, E5-01I/channels, E5-07B/preview, E5-07C/preview.
+- Шард 3: E6-09D/crm, E7-04/details, E7-04D/analytics, E7-04N/subscription, E8-05/report, E8-14/quiz, E8-14B/facts; E7-06D — в текущем этапе.
+- Шард 4: E8-16I/measurements, E8-16U/header, E8-19/report, E8-19C/D/E/public, E8-21D/E/F/G/M/N/site; E8-22C — в текущем этапе.
+- После проверки двух свободных путей сохранить невыполненные пункты в этой карточке и переоткрыть её. Файлы CRM и другие занятые области оставить их текущим владельцам; не трогать чужие claims.
+
+Scope: `resources/js/pages/Seller/Knowledge/Facts/Show.tsx`, `app/Seller/Knowledge/Facts/`, `routes/features/E4-02.php`, `tests/Feature/Seller/Knowledge/Facts/`, `tests/Browser/E7-06D/`, `resources/js/features/Vision/Site/Actions.tsx`, `app/Vision/Actions/`, `app/Vision/Measurements/MeasurementList.php`, `app/Vision/Settings/Trends.php`, `routes/features/E8-06.php`, `tests/Feature/Vision/Actions/`, `tests/Browser/E8-22B/`, `tests/Browser/E8-22C/`, `docs/results/SP-E0-08Z.md`.
