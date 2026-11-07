@@ -28,7 +28,7 @@ test.beforeAll(async () => {
   throw new Error('Local acceptance server did not start.');
 });
 test.afterAll(() => { server?.kill(); });
-test('real pages after creating knowledge through the UI', async ({ page }) => {
+test('real pages after creating knowledge through the UI', async ({ page, browser }) => {
   test.setTimeout(600000);
   await page.route('**/*', route => new URL(route.request().url()).origin === origin ? route.continue() : route.abort('blockedbyclient'));
   page.setDefaultTimeout(12000);
@@ -100,8 +100,35 @@ test('real pages after creating knowledge through the UI', async ({ page }) => {
   await topicDialog.getByRole('button', { name: 'Сохранить', exact: true }).click();
   await expect(topicDialog).toBeHidden();
   await expect(page.getByText('Доставка', { exact: true }).first()).toBeVisible();
+  await page.goto(`${origin}/seller/channels/widget`);
+  await page.getByLabel('Адреса сайтов').fill(origin);
+  await page.getByLabel('Включить виджет на разрешённых сайтах').check();
+  await page.getByLabel('Открыть через секунд').fill('1');
+  await page.getByLabel('Запрашивать контакт с согласием').check();
+  await page.getByLabel('HTTPS-ссылка на политику обработки данных').fill('https://example.test/privacy');
+  const code = await page.locator('pre code').innerText();
+  const key = new URL(code.match(/src="([^"]+)"/)![1]).searchParams.get('key');
+  expect(key).toMatch(/^[A-Za-z0-9]{64}$/);
+  await page.getByRole('button', { name: 'Сохранить настройки' }).click();
+  await expect(page.getByRole('status')).toContainText('Настройки виджета сохранены');
+  const visitorContext = await browser.newContext();
+  try {
+    const visitor = await visitorContext.newPage();
+    await visitor.route('**/*', route => new URL(route.request().url()).origin === origin ? route.continue() : route.abort('blockedbyclient'));
+    await visitor.goto(`${origin}/__acceptance/widget?key=${key}`);
+    const widget = visitor.locator('#souzpir-widget');
+    await expect(widget.getByRole('checkbox')).toBeVisible({ timeout: 10000 });
+    await widget.getByRole('checkbox').check();
+    await widget.getByLabel('Имя', { exact: true }).fill('Посетитель виджета');
+    await widget.getByLabel('Электронная почта').fill('widget@example.test');
+    await widget.getByRole('button', { name: 'Оставить контакт' }).click();
+    await expect(widget.getByText('Спасибо! Контакт сохранён.')).toBeVisible();
+  } finally { await visitorContext.close(); }
+  await page.goto(`${origin}/seller/customers`);
+  const customerLink = await page.getByRole('link', { name: /Посетитель виджета/ }).first().getAttribute('href');
+  if (!customerLink) throw new Error('Synthetic customer link missing');
   const paths = [
-    ['d44', factLink], ['d41', '/seller/knowledge'], ['d43', '/seller/knowledge/facts'],
+    ['d32', customerLink], ['d44', factLink], ['d41', '/seller/knowledge'], ['d43', '/seller/knowledge/facts'],
     ['d45', '/seller/knowledge/conditions'], ['d46', '/seller/knowledge/topics'],
     ['d48', '/seller/knowledge/fewshot'], ['d49', '/seller/knowledge/prohibitions'],
     ['d410', '/seller/knowledge/imports'], ['d411', '/seller/knowledge/sandbox'],
@@ -148,5 +175,8 @@ test('real pages after creating knowledge through the UI', async ({ page }) => {
     await page.screenshot({ path: `.local/screenshots/SP-E9-01G/populated-d47-${width}.png`, fullPage: true, animations: 'disabled' });
   }
   await writeFile('.local/screenshots/SP-E9-01G/populated-status.json', JSON.stringify(results, null, 2));
+  await page.goto(`${origin}/seller/dialogs/mine`);
+  await page.getByRole('button', { name: /Посетитель виджета/ }).first().click();
+  await expect(page.getByRole('heading', { name: 'Посетитель виджета' })).toBeVisible();
   expect(findings).toEqual([]);
 });
