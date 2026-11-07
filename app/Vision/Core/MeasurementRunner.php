@@ -190,6 +190,15 @@ final class MeasurementRunner
             $this->finish($tenant, $answerId, $answer->measurement_id, ['status' => 'failed', 'error_code' => 'provider_rejected']);
 
             return 'failed';
+        } catch (LogicException $e) {
+            if ($e->getMessage() === 'AI budget exhausted.') {
+                $this->finish($tenant, $answerId, $answer->measurement_id, ['status' => 'failed', 'error_code' => 'budget_exhausted']);
+                $this->failPendingForBudget($tenant, $answer->measurement_id);
+
+                return 'failed';
+            }
+            $this->finish($tenant, $answerId, $answer->measurement_id, ['status' => 'uncertain', 'error_code' => 'provider_uncertain']);
+            throw new LogicException('Vision measurement could not be safely completed.');
         } catch (Throwable) {
             $this->finish($tenant, $answerId, $answer->measurement_id, ['status' => 'uncertain', 'error_code' => 'provider_uncertain']);
             throw new LogicException('Vision measurement could not be safely completed.');
@@ -249,6 +258,29 @@ final class MeasurementRunner
             });
         } catch (Throwable) {
             throw new LogicException('Vision measurement could not be safely completed.');
+        }
+    }
+
+    /** Stops the measurement from claiming further slots once the AI budget is exhausted. */
+    private function failPendingForBudget(array $tenant, string $measurementId): void
+    {
+        try {
+            DB::transaction(function () use ($tenant, $measurementId): void {
+                MeasurementLock::acquire($measurementId);
+                $finishedAt = now();
+                DB::table('measurement_answers')->where($tenant)->where('measurement_id', $measurementId)->where('status', 'pending')
+                    ->update(['status' => 'failed', 'error_code' => 'budget_exhausted', 'settled_at' => $finishedAt, 'updated_at' => $finishedAt]);
+                $pending = DB::table('measurement_answers')->where($tenant)->where('measurement_id', $measurementId)
+                    ->whereIn('status', ['pending', 'in_progress'])->exists();
+                if (! $pending) {
+                    $successful = DB::table('measurement_answers')->where($tenant)->where('measurement_id', $measurementId)->where('status', 'ok')->exists();
+                    DB::table('measurements')->where($tenant)->where('id', $measurementId)->update([
+                        'status' => $successful ? 'partial' : 'failed', 'finished_at' => $finishedAt, 'updated_at' => $finishedAt,
+                    ]);
+                }
+            });
+        } catch (Throwable) {
+            // The slot itself already failed; a stop that cannot mark siblings is tech debt, not a crash.
         }
     }
 

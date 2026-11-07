@@ -2,6 +2,7 @@
 
 namespace App\Ai;
 
+use App\Ai\Budget\BudgetGuard;
 use App\Ai\Drivers\Driver;
 use App\Ai\Drivers\FakeDriver;
 use App\Ai\Drivers\OpenRouterDriver;
@@ -1108,9 +1109,29 @@ final class Gateway implements AiGateway
                 }
             }
             $reserved = is_int($bound) && $bound > 0 ? $bound : 0;
+            // Global/org launch ceilings track only live spend, separately from
+            // the legacy per-row budget above (see App\Ai\Budget\BudgetGuard).
+            $liveDriver = config('runtime.ai_driver', 'fake') !== 'fake';
+            $liveReserved = $liveDriver ? (int) (config('features.L1-01.defaults.reservation_micros', [])[$request->model] ?? 0) : 0;
+            if ($liveDriver && $liveReserved > 0) {
+                $liveLimits = config('features.L1-01.defaults.reservation_request_limits', [])[$request->model] ?? null;
+                if (! is_array($liveLimits) || ! is_int($liveLimits['max_input_bytes'] ?? null) || $liveLimits['max_input_bytes'] < 1 || ! is_int($liveLimits['max_output_tokens'] ?? null) || $liveLimits['max_output_tokens'] < 1) {
+                    throw new LogicException('A configured live budget requires bounded request sizes.');
+                }
+                if ($wireBytes === null || $wireBytes > $liveLimits['max_input_bytes'] || ($request->maxTokens ?? 700) > $liveLimits['max_output_tokens']) {
+                    throw new LogicException('AI request exceeds the configured reservation bounds.');
+                }
+            }
+            if ($liveDriver) {
+                app(BudgetGuard::class)->assertReservationAllowed($context, $budget, $liveReserved);
+            }
             $id = (string) Str::ulid();
             DB::table('ai_calls')->insert(['id' => $id, 'organization_id' => $context->organizationId, 'brand_id' => $context->brandId, 'budget_id' => $budget->id, 'idempotency_key_hash' => $keyHash, 'request_hash' => $requestHash, 'family' => $context->family, 'purpose' => $context->purpose, 'provider' => $provider, 'requested_model' => $request->model, 'model' => $request->model, 'object_type' => $context->objectType, 'object_id' => $context->objectId, 'data_classes' => json_encode($context->dataClasses, JSON_THROW_ON_ERROR), 'attempt' => $context->attempt, 'parent_call_id' => $context->parentCallId, 'status' => 'reserved', 'reserved_micros' => $reserved, 'created_at' => now(), 'updated_at' => now()]);
             DB::table('ai_budgets')->where('id', $budget->id)->increment('reserved_micros', $reserved, ['unresolved_count' => (int) $budget->unresolved_count + 1, 'updated_at' => now()]);
+            if ($liveDriver) {
+                DB::table('ai_live_reservations')->insert(['ai_call_id' => $id, 'organization_id' => $context->organizationId,
+                    'reserved_micros' => $liveReserved, 'created_at' => now(), 'updated_at' => now()]);
+            }
 
             $call = DB::table('ai_calls')->where('id', $id)->first();
             if ($afterReserve !== null) {
@@ -1133,6 +1154,7 @@ final class Gateway implements AiGateway
             DB::table('ai_calls')->where('id', $call->id)->update(['status' => 'completed', 'model' => $result->model, 'cost_micros' => $result->costMicros, 'reserve_exceeded' => (int) $current->reserved_micros > 0 && $result->costMicros > (int) $current->reserved_micros, 'prompt_tokens' => $result->usage['promptTokens'], 'completion_tokens' => $result->usage['completionTokens'], 'latency_ms' => $result->latencyMs, 'result_encrypted' => Crypt::encryptString(json_encode($result->toArray(), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)), 'updated_at' => now()]);
             $this->attribute($current, $result);
             $this->notifyThreshold($budget, (int) $budget->spent_micros + $result->costMicros);
+            DB::table('ai_live_reservations')->where('ai_call_id', $call->id)->update(['spent_micros' => $result->costMicros, 'updated_at' => now()]);
         });
     }
 
@@ -1207,6 +1229,7 @@ final class Gateway implements AiGateway
             }
             DB::table('ai_budgets')->where('id', $budget->id)->update(['reserved_micros' => (int) $budget->reserved_micros - (int) $current->reserved_micros, 'unresolved_count' => (int) $budget->unresolved_count - 1, 'updated_at' => now()]);
             DB::table('ai_calls')->where('id', $call->id)->update(['status' => 'failed', 'error_code' => $code, 'updated_at' => now()]);
+            DB::table('ai_live_reservations')->where('ai_call_id', $call->id)->update(['released' => true, 'updated_at' => now()]);
         });
     }
 
