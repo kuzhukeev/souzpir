@@ -77,12 +77,13 @@ final class WidgetInboundRuntime
                     $claim = app(ConversationRepository::class)->claimTurn($tenant, new TurnCommand(
                         $conversationId, $message->id, $text, $message->external_event_id, 'widget:'.hash('sha256', $idempotencyKey), (int) $conversation->version
                     ));
-                    if ($suppressNow || $driver !== 'fake') {
+                    $limitReached = $this->messageLimitReached($widget, $scope, $conversationId);
+                    if ($suppressNow || $driver !== 'fake' || $limitReached) {
                         if ($claim->status !== 'claimed') {
                             throw new LogicException('Widget turn unavailable.');
                         }
 
-                        return ['mode' => 'manager', 'result' => $this->suppress($tenant, $scope, $claim, [$conversation->mode], $offHoursPhrase)];
+                        return ['mode' => 'manager', 'result' => $this->suppress($tenant, $scope, $claim, [$conversation->mode], $limitReached, $offHoursPhrase)];
                     }
                     if ($claim->status !== 'claimed' || ! is_string($claim->token())) {
                         throw new LogicException('Widget turn unavailable.');
@@ -197,7 +198,20 @@ final class WidgetInboundRuntime
         return $conversationId;
     }
 
-    private function suppress(TenantContext $tenant, array $scope, TurnClaim $claim, array $allowedModes, ?string $phrase = null): array
+    /** Antispam limit (D-9.4, widget_settings.behavior.max_messages): counts visitor messages already stored for the
+     * conversation, including the one just ingested for this turn. */
+    private function messageLimitReached(object $widget, array $scope, string $conversationId): bool
+    {
+        $behavior = is_string($widget->behavior ?? null) ? json_decode($widget->behavior, true) : null;
+        $maxMessages = is_array($behavior) && is_int($behavior['max_messages'] ?? null) ? $behavior['max_messages'] : null;
+        if ($maxMessages === null) {
+            return false;
+        }
+
+        return DB::table('messages')->where($scope)->where('conversation_id', $conversationId)->where('role', 'client')->count() > $maxMessages;
+    }
+
+    private function suppress(TenantContext $tenant, array $scope, TurnClaim $claim, array $allowedModes, bool $limitReached = false, ?string $phrase = null): array
     {
         app(SellerTurnFence::class)->assertCurrent($tenant, $claim);
         $conversation = DB::table('conversations')->where($scope)->where('id', $claim->conversationId)->lockForUpdate()->first();
@@ -221,6 +235,11 @@ final class WidgetInboundRuntime
                 'conversation_id' => $claim->conversationId, 'role' => 'agent', 'text' => $phrase, 'meta' => '{}', 'created_at' => now(), 'updated_at' => now()]);
         }
 
-        return ['status' => 'suppressed', 'version' => $claim->baseVersion + 1];
+        $result = ['status' => 'suppressed', 'version' => $claim->baseVersion + 1];
+        if ($limitReached) {
+            $result['notice'] = 'Вы отправили максимум сообщений в этом чате. Дальше вам ответит менеджер.';
+        }
+
+        return $result;
     }
 }

@@ -27,3 +27,8 @@
 
 ## Техдолг (доп.)
 - Нет нового.
+
+## Остаток 08.11.2026 — аудит: блок «Доступ к модулям» по макету S-3.2-user
+- Заменены disabled-чекбоксы «Продавец»/«Видение» в `resources/js/pages/Shell/Team/Show.tsx` на два серых неактивных тумблера (`role="switch"`, `aria-checked="false"`, `aria-disabled="true"`) «Видение» и «ИИ-продавец» с бейджем «v2» и подписью «Настройка доступа появится в v2» под каждым — по макету `20/d8c35dea-S-3.2-user.webp`. Список модулей общих брендов (`SharedBrandModules`) не менялся; права и серверный код не затронуты.
+- Проверено: `tests/Browser/E1-06J/member.spec.ts` (дополнен проверкой двух тумблеров, бейджей и подписей) — зелёный, три темы/ширины; `php artisan test tests/Feature/Shell/Team/` — 42/42 зелёных; `check frontend` (eslint/tsc/vitest/build) и `composer lint` (pint) — зелёные.
+- Скриншот обновлён: `.local/screenshots/SP-E1-06J/member.png`, светлая тема, 1440 — сверено с макетом.

@@ -15,18 +15,21 @@ final class WebhookDelivery
 {
     public function __construct(private readonly DomainDnsResolver $dns) {}
 
-    /** Delivery requires a verified subscription snapshot and a manual-test receipt. */
+    /** Behind an explicit opt-in flag; off by default until the owner connects live receivers. */
     public static function available(): bool
     {
-        return false;
+        return config('features.E1-10.defaults.webhook_delivery', false) === true;
     }
 
     public function send(string $id): void
     {
-        // Neither the legacy automatic rows nor manual test rows have the proof
-        // needed to distinguish their authorization. A config flag must not
-        // enable network delivery until that contract is implemented.
         if (! self::available()) {
+            return;
+        }
+        // Manual-test rows (event_id null) and any row whose event_id is not backed by a
+        // verified subscription snapshot must never leave the fake transport.
+        $row = DB::table('webhook_deliveries')->where('id', $id)->where('status', 'pending')->first();
+        if (! $row || $row->event_id === null || ! $this->isVerifiedEvent($row->event_id, $row->webhook_id)) {
             return;
         }
         $claimed = DB::table('webhook_deliveries')->where('id', $id)->where('status', 'pending')
@@ -34,7 +37,6 @@ final class WebhookDelivery
         if (! $claimed) {
             return;
         }
-        $row = DB::table('webhook_deliveries')->where('id', $id)->first();
         $hook = DB::table('webhooks')->where('id', $row->webhook_id)->where('organization_id', $row->organization_id)->where('brand_id', $row->brand_id)->first();
         if (! $hook) {
             DB::table('webhook_deliveries')->where('id', $id)->update(['status' => 'failed', 'updated_at' => now()]);
@@ -45,7 +47,8 @@ final class WebhookDelivery
         for ($attempt = 1; $attempt <= 5; $attempt++) {
             $statusCode = null;
             try {
-                $parts = parse_url($hook->url);
+                $url = str_starts_with($hook->url, 'https://') ? $hook->url : Crypt::decryptString($hook->url);
+                $parts = parse_url($url);
                 if (! is_array($parts) || ($parts['scheme'] ?? '') !== 'https' || isset($parts['user']) || isset($parts['pass']) || isset($parts['fragment']) || (isset($parts['port']) && $parts['port'] !== 443)) {
                     throw new RuntimeException('unsafe_url');
                 }
@@ -95,5 +98,16 @@ final class WebhookDelivery
             DB::table('webhook_deliveries')->where('id', $id)->where('status', 'sending')->update(['attempts' => $attempt, 'status_code' => $statusCode, 'updated_at' => now()]);
         }
         DB::table('webhook_deliveries')->where('id', $id)->where('status', 'sending')->update(['status' => 'failed', 'updated_at' => now()]);
+    }
+
+    private function isVerifiedEvent(string $eventId, string $webhookId): bool
+    {
+        $subscriptions = DB::table('webhook_event_snapshots')->where('event_id', $eventId)->value('subscriptions');
+        if (! is_string($subscriptions)) {
+            return false;
+        }
+        $ids = json_decode($subscriptions, true, 512, JSON_THROW_ON_ERROR);
+
+        return is_array($ids) && in_array($webhookId, $ids, true);
     }
 }

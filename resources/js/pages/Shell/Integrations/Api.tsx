@@ -32,7 +32,6 @@ type Props = {
   secureSecretTransport: boolean;
   secretStorageReady: boolean;
   integration_api_key_available?: boolean;
-  integration_webhook_secret_available?: boolean;
 };
 const abilities = [
   { value: 'read', label: 'Чтение' },
@@ -58,13 +57,10 @@ export default function Api({
   secureSecretTransport,
   secretStorageReady,
   integration_api_key_available,
-  integration_webhook_secret_available,
 }: Props) {
   const [showCreate, setShowCreate] = useState(false);
   const [token, setToken] = useState<string | null>(null);
-  const [hookSecret, setHookSecret] = useState<string | null>(null);
   const [consumedKey, setConsumedKey] = useState(false);
-  const [consumedHook, setConsumedHook] = useState(false);
   const [revealing, setRevealing] = useState(false);
   const [error, setError] = useState('');
   const [pending, setPending] = useState<string | null>(null);
@@ -85,7 +81,7 @@ export default function Api({
     }
   };
   const form = useForm({ name: '', abilities: [] as string[] });
-  const reveal = async (type: 'api_key' | 'webhook_secret') => {
+  const reveal = async (type: 'api_key') => {
     setError('');
     setRevealing(true);
     try {
@@ -102,22 +98,15 @@ export default function Api({
         body: JSON.stringify({ type }),
       });
       if (!response.ok) {
-        if (response.status === 404 && type === 'api_key') setConsumedKey(true);
+        if (response.status === 404) setConsumedKey(true);
         throw new Error('secret unavailable');
       }
       const result = (await response.json()) as { value?: unknown };
       if (typeof result.value !== 'string' || !result.value) throw new Error('secret unavailable');
-      if (type === 'api_key') {
-        setConsumedKey(true);
-        setToken(result.value);
-      } else {
-        setConsumedHook(true);
-        setHookSecret(result.value);
-      }
+      setConsumedKey(true);
+      setToken(result.value);
     } catch {
-      setError(type === 'api_key'
-        ? 'Не удалось получить ключ. Возможно, он отозван или время показа истекло; создайте новый.'
-        : 'Не удалось получить секрет. Возможно, время показа истекло; создайте новый.');
+      setError('Не удалось получить ключ. Возможно, он отозван или время показа истекло; создайте новый.');
     } finally {
       setRevealing(false);
     }
@@ -255,18 +244,6 @@ export default function Api({
               onClick={() => void reveal('api_key')}
             >
               Показать ключ один раз
-            </Button>
-          </p>
-        )}
-        {integration_webhook_secret_available && !consumedHook && (
-          <p className="mb-4 text-sm">
-            Создан новый вебхук.{' '}
-            <Button
-              variant="secondary"
-              disabled={revealing || !secureSecretTransport || !secretStorageReady}
-              onClick={() => void reveal('webhook_secret')}
-            >
-              Показать секрет один раз
             </Button>
           </p>
         )}
@@ -441,35 +418,6 @@ export default function Api({
             </Button>
           </div>
         </form>
-      </Modal>
-      <Modal
-        open={hookSecret !== null}
-        title="Сохраните секрет вебхука"
-        onClose={() => setHookSecret(null)}
-      >
-        <p>Секрет показывается только один раз. Сохраните его в безопасном месте.</p>
-        <p
-          className="mt-4 break-all rounded-lg bg-(--color-surface-muted) p-3 font-mono"
-          aria-label="Секрет вебхука"
-        >
-          {hookSecret}
-        </p>
-        <p role="status" className="mt-2 text-sm">
-          {copyMessage}
-        </p>
-        <div className="mt-4 flex justify-end gap-2">
-          <Button variant="secondary" onClick={() => hookSecret && void copySecret(hookSecret)}>
-            Копировать
-          </Button>
-          <Button
-            onClick={() => {
-              setHookSecret(null);
-              setCopyMessage('');
-            }}
-          >
-            Готово
-          </Button>
-        </div>
       </Modal>
       <Modal open={showWebhookCreate} title="Добавить вебхук" onClose={() => { setShowWebhookCreate(false); setWebhookSecret(''); }}>
         <form onSubmit={createWebhook} className="space-y-4">

@@ -16,7 +16,7 @@ final class OffTopicController
     public function save(Request $request): mixed
     {
         $input = $request->validate(['version' => ['required', 'integer', 'min:1'], 'off_topic_streak' => ['required', 'integer', 'min:1', 'max:10'],
-            'negative_streak' => ['required', 'integer', 'min:1', 'max:10'], 'action' => ['required', 'in:spam,handoff']]);
+            'negative_streak' => ['required', 'integer', 'min:1', 'max:10'], 'decline_off_topic_second_after' => ['required', 'integer', 'min:1', 'max:10'], 'action' => ['required', 'in:spam,handoff']]);
         app(ProfileAccess::class)->run($request, function (User $user, TenantContext $tenant) use ($input): void {
             Gate::forUser($user)->authorize('seller.settings.write');
             abort_unless(app(SellerModuleAccess::class)->enabled($tenant->organizationId, $tenant->brandId), 404);
@@ -26,6 +26,7 @@ final class OffTopicController
             $data['policy']['limits'] ??= [];
             $data['policy']['limits']['off_topic_streak_silent'] = (int) $input['off_topic_streak'];
             $data['policy']['limits']['negative_streak_escalate'] = (int) $input['negative_streak'];
+            $data['policy']['limits']['decline_off_topic_second_after'] = (int) $input['decline_off_topic_second_after'];
             $data['policy']['off_topic_action'] = $input['action'];
             $repo->saveDraft($tenant, $id, (int) $input['version'], $data);
         });

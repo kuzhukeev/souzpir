@@ -66,11 +66,50 @@ final class FirstTurnDeterministicGuard
             $result = (new DeterministicGuard($knowledge))->check($candidate['text'], $computed['goal'], new LeadState($computed['state']), [
                 'tools_called' => $called, 'catalog_prices_enabled' => $catalogPricesEnabled, 'catalog_known_prices' => $catalogKnownPrices,
             ]);
+            $priorAgentMessages = DB::table('messages')->where('organization_id', $claim->organizationId)->where('brand_id', $claim->brandId)
+                ->where('conversation_id', $claim->conversationId)->where('role', 'agent')
+                ->orderByDesc('created_at')->orderByDesc('id')->limit(10)->get(['text', 'meta'])
+                ->map(fn ($row) => ['text' => (string) $row->text, 'meta' => json_decode($row->meta ?: '{}', true) ?: []])->all();
+            $questionLimit = (int) ($knowledge->policy()['limits']['max_consecutive_questions'] ?? 2);
+            if ($this->exceedsConsecutiveQuestionLimit($priorAgentMessages, $candidate['text'], $questionLimit)) {
+                $result['issues'][] = 'слишком много вопросов подряд — дай пользу без вопроса, новый вопрос задай позже';
+                $result['verdict'] = 'regenerate';
+            }
             app(GuardHitRecorder::class)->record(app(TenantContext::class), $responderId, $knowledge, $candidate['text'], $result);
 
             return $result;
         } catch (Throwable) {
             throw new LogicException('Protected first-turn guard unavailable.');
         }
+    }
+
+    /**
+     * Pure rule: at most $limit consecutive bot replies ending in a question
+     * (default 2, настраивается в policy.limits.max_consecutive_questions);
+     * the next one must give value without asking. Напоминания
+     * (followup_nudge) не считаются и не прерывают цепочку.
+     *
+     * @param  list<array{text:string,meta:array}>  $priorAgentMessagesNewestFirst
+     */
+    public function exceedsConsecutiveQuestionLimit(array $priorAgentMessagesNewestFirst, string $candidateText, int $limit = 2): bool
+    {
+        if (! str_ends_with(rtrim($candidateText), '?')) {
+            return false;
+        }
+        $streak = 0;
+        foreach ($priorAgentMessagesNewestFirst as $message) {
+            $meta = $message['meta'] ?? [];
+            if (($meta['goal_kind'] ?? null) === 'followup_nudge' || ($meta['goal']['kind'] ?? null) === 'followup_nudge') {
+                continue;
+            }
+            if (! str_ends_with(rtrim((string) ($message['text'] ?? '')), '?')) {
+                break;
+            }
+            if (++$streak >= $limit) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

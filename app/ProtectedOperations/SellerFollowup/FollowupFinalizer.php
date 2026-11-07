@@ -8,14 +8,17 @@ use App\Seller\Conversations\CanonicalJson;
 use App\Seller\Conversations\Data\TurnClaim;
 use App\Seller\Conversations\Data\TurnOutcome;
 use App\Seller\Engine\DeterministicGuard;
+use App\Seller\Engine\Goal;
 use App\Seller\Engine\GuardDecision;
 use App\Seller\Engine\Policy;
 use App\Seller\Engine\ResponderResult;
 use App\Seller\Runtime\ServicePhraseSelector;
+use App\Seller\Runtime\StageTransitions;
 use App\Seller\Settings\Greetings\GreetingResolver;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
 use App\Tenancy\TenantContext;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -30,7 +33,7 @@ final class FollowupFinalizer
         if (! in_array($mode, ['bot', 'suggest'], true)) {
             throw new LogicException('Follow-up mode changed.');
         }
-        [, , $state, $goal, $knowledge] = app(ApiFollowupInput::class)->responderLocked($http, $tenant, $claim, $round, $toolResults, $guardIssues);
+        [, , $state, $goal, $knowledge, $extraction] = app(ApiFollowupInput::class)->responderLocked($http, $tenant, $claim, $round, $toolResults, $guardIssues);
         $result = app(ResponderResult::class)->interpret(app(Gateway::class)->readApiFollowupResponderLocked($http, $tenant, $claim, $round, $toolResults, $guardIssues));
         if ($result['status'] !== 'candidate') {
             throw new LogicException('API follow-up unavailable.');
@@ -59,6 +62,14 @@ final class FollowupFinalizer
         $policy = new Policy($knowledge);
         $state->setOutcome($policy->computeOutcome($state));
         $state->data['missing'] = $policy->computeMissing($state);
+        if ($goal->kind === 'unknown_fact') {
+            $this->logUnknownQuestionTask($tenant, $claim, $goal, $scope);
+        }
+        $intent = $extraction['client_intent'] ?? null;
+        $inputId = DB::table('seller_turns')->where($scope)->where('id', $claim->turnId)->value('input_message_id');
+        $previousMeta = json_decode(DB::table('messages')->where($scope)->where('id', $inputId)->value('meta') ?: '{}', true) ?: [];
+        DB::table('messages')->where($scope)->where('id', $inputId)
+            ->update(['meta' => json_encode([...$previousMeta, 'intent' => $intent], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), 'updated_at' => now()]);
         $text = $result['text'];
         if (in_array($goal->kind, ['unknown_fact', 'handoff'], true)) {
             $override = app(ServicePhraseSelector::class)->customForEvent($knowledge->persona(), $goal->kind);
@@ -74,7 +85,7 @@ final class FollowupFinalizer
             }
         }
         $messageId = $mode === 'bot' ? (string) Str::ulid() : null;
-        $metadata = ['fake' => true, 'suggested' => $mode === 'suggest', 'goal_kind' => $goal->kind, 'guard' => 'ok'];
+        $metadata = ['fake' => true, 'suggested' => $mode === 'suggest', 'goal_kind' => $goal->kind, 'guard' => 'ok', 'intent' => $intent];
         if ($messageId !== null) {
             DB::table('messages')->insert(['id' => $messageId, ...$scope, 'conversation_id' => $claim->conversationId,
                 'role' => 'agent', 'text' => $text, 'meta' => json_encode($metadata, JSON_THROW_ON_ERROR), 'created_at' => now(), 'updated_at' => now()]);
@@ -94,6 +105,7 @@ final class FollowupFinalizer
             $conversationUpdate['handed_off_at'] = now();
         }
         DB::table('conversations')->where($scope)->where('id', $claim->conversationId)->update($conversationUpdate);
+        app(StageTransitions::class)->record($tenant, $claim->conversationId, $conversation->stage, $state->stage());
         $data = $outcome->toArray();
         DB::table('seller_turns')->where($scope)->where('id', $claim->turnId)->where('status', 'processing')->update([
             'status' => $status, 'outcome' => json_encode($data, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
@@ -106,5 +118,18 @@ final class FollowupFinalizer
         }
 
         return ['status' => $status, 'result' => $output];
+    }
+
+    /** Logs a manager task for the unanswered question, by the pattern of App\Seller\Engine\CreatePromise. */
+    private function logUnknownQuestionTask(TenantContext $tenant, TurnClaim $claim, Goal $goal, array $scope): void
+    {
+        $question = is_string($goal->extras['question'] ?? null) ? trim($goal->extras['question']) : '';
+        $timezone = DB::table('brands')->where('organization_id', $tenant->organizationId)->where('id', $tenant->brandId)->value('timezone');
+        $dueAt = CarbonImmutable::now($timezone ?: 'UTC')->endOfDay();
+        DB::table('seller_tasks')->insert(['id' => (string) Str::ulid(), ...$scope,
+            'conversation_id' => $claim->conversationId, 'type' => 'unknown_question',
+            'payload' => json_encode(['text' => $question, 'question' => $question, 'turn_id' => $claim->turnId],
+                JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
+            'status' => 'new', 'priority' => 'normal', 'due_at' => $dueAt, 'created_at' => now(), 'updated_at' => now()]);
     }
 }

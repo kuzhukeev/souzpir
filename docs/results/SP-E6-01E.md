@@ -1,18 +1,15 @@
 Модель: Sonnet 5
 
-# SP-E6-01E — служебные фразы reminder/goodbye к напоминаниям клиенту
+# SP-E6-01E — D-6.3: drag-and-drop для «Быстрых ответов менеджера»
 
-Продолжение после приёмки 07.11 (error/handoff/no_answer/out_of_hours/opt_out — влито ранее). В этой части: `ServicePhraseSelector::customForEvent()` подключён к `PrepareFollowups` (`app/Seller/Followups/`) для текста напоминаний клиенту о заявке.
+Остаток аудита 08.11 (служебные фразы reminder/goodbye и error/handoff/unknown_fact влиты ранее, см. историю коммитов). В этой части: `resources/js/pages/Seller/Settings/Persona/Index.tsx` — список «Быстрые ответы менеджера» (D-6.3).
 
-Сделано: при формировании `seller_followup_candidates` для причины `silence` — если у бренда явно сохранена фраза `reminder`, она заменяет шаблонный текст напоминания (кастомные `texts` настройки / fewshot-фолбэк / дефолтный текст — не трогаются, если фраза не сохранена); на последнем разрешённом по `max_auto` напоминании (sequence === max_auto) та же логика применяется к фразе `goodbye` вместо `reminder` — естественная точка «прощания» перед тем, как бот прекращает напоминать. Причина `next_contact_at` (договорённый контакт, `agreed_text`) не трогается — это отдельная настройка. Только явно сохранённая фраза, без дефолтов — старое поведение без сохранённой фразы не меняется.
+Сделано: кнопки ↑/↓ заменены ручкой-грипом (нативный HTML5 drag-and-drop, `draggable` + `onDragStart/onDragOver/onDrop`, без новых npm-зависимостей) по макету `63/b729e1c4-D-6.3-service-phrases.webp`; перетаскивание переставляет шаблон в позицию сброса (`reorderReply`, splice). Для клавиатуры та же ручка: `Alt+↑`/`Alt+↓` двигает шаблон на одну позицию (`moveReply`, прежняя логика). Формат и сохранение `quick_replies` не менялись — `service.setData` тот же массив строк.
 
-Проверки: новый `tests/Feature/Seller/Followups/ReminderGoodbyePhraseE601ETest.php` — 3 теста, 9 проверок (reminder-override до последнего, goodbye-override на последнем, без сохранённой фразы — шаблон как раньше; через мок `KnowledgeRepository`, brand-scoped `withArgs`). Регрессия модуля: `tests/Feature/Seller/Followups/` — все 25 тестов зелёные (231 проверок), включая изоляцию бренда и прав (`AgreedTimeE603KTest`, `FollowupsScreenTest`). Регрессия runtime: `ServicePhraseSelectorTest`, `ServicePhraseOverrideE601ETest`, `QuotaRuntimeE113Test`, `ReactionRuntimeE603VTest`, `FirstSellerTurnHttpTest` — зелёные без изменений (10 тестов). `check lint` — composer validate ok, покрытие suites ok, Pint ok. Без живых вызовов (`Http::preventStrayRequests`).
-
-## Остаток
-- `error` — не подключена и в этой части: даже в границах `app/Seller/Followups/` у сбоя отправки (`FollowupSender` try/catch) нет клиентского текста — ход просто не завершается, кандидат остаётся `pending` для повтора; детерминированной точки «ход завершился без текста» с видимым клиенту сообщением в scope нет. Нужна отдельная карточка с явным решением, где именно вставлять фразу `error` (кандидат на `app/Seller/Engine/` или новый hook в `FollowupSender`/`FirstTurnCoordinator`).
+Проверено: `tests/Browser/E6-01E/reorder.spec.ts` — 3 теста (перетаскивание меняет порядок полей, Alt+стрелка двигает шаблон, кнопок ↑/↓ больше нет) — свой Vite-сервер на свободном порту в beforeAll/afterAll, фикстура переиспользует `tests/Browser/E6-01C/fixture.html`; скриншот 1440 светлая тема: `.local/screenshots/SP-E6-01E/quick-replies-reorder.png`. Регрессия: `tests/Feature/Seller/Settings/Persona/PersonaTest.php` — 3 теста, 90 проверок (права, изоляция брендов, валидация) — без изменений в PHP, формат не трогали. `check lint` (Pint/composer validate/suite coverage) и `check frontend` (eslint/tsc/vitest/build) — зелёные.
 
 ## Техдолг
-- Нет новых рисков сверх указанного выше ограничения по `error`.
+- Нет новых рисков.
 
 ## Принято по умолчанию
-- `goodbye` применяется к последнему разрешённому автонапоминанию (`sequence === max_auto`, причина `silence`), а не к отдельному новому триггеру — в коде нет события «диалог завершён после напоминаний», а прототип ТЗ не уточняет момент; это минимальная точка в существующем потоке без нового поведения по умолчанию (используется только при явно сохранённой фразе).
+- Клавиатурная альтернатива — `Alt+↑/Alt+↓` на самой ручке (а не кнопки внутри меню): так фокус остаётся на одном элементе и не плодит лишние интерактивные узлы в списке; в макете D-6.3 отдельного меню с перемещением нет.

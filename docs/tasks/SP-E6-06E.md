@@ -24,3 +24,12 @@ Scope: `app/Seller/Settings/Schedule/`, `app/Seller/Conversations/`, `resources/
 - D-11.1: часовой пояс — выбор из списка (select в стиле кабинета), а не текстовое поле.
 - D-11.2: правила распределения по каналу и по источнику обращения (убрать «появятся позже»); «По городу клиента» включить, если поле города клиента уже есть в данных клиента, иначе оставить недоступным с пояснением и записать в остаток.
 - Scope как в плане taskdesk: `app/Seller/Settings/Schedule/`, `app/Seller/Conversations/`, `resources/js/pages/Seller/Settings/Schedule/`, `tests/Feature/Seller/Settings/Schedule/`, `tests/Feature/Seller/Conversations/`, `tests/Browser/E6-06E/`, `docs/results/SP-E6-06E.md`, `app/Seller/Runtime/BrandRuntimeSchedule.php`, `app/Seller/Settings/Tools/MonitorHandoffs.php`, `tests/Browser/E6-06D/`, `tests/Feature/Seller/Runtime/`.
+
+
+
+## Остаток 08.11.2026 (планировщик, проверено по коду main)
+- D-11.1/D-11.2: `WidgetInboundRuntime` не обращается к `BrandRuntimeSchedule` — виджет (канал живого пилота) отвечает ботом вне рабочих часов и не отправляет фразу вне часов; подключить расписание так же, как в `FirstInboundRuntime` (mode/assignWaiting/fallbackPhrase), канал `widget`.
+- `TokenInboundRuntime` и `ApiFollowupRuntime` переводят диалог менеджеру по расписанию, но не отправляют клиенту `fallbackPhrase()` — отправить фразу вне часов/лимита по образцу `FirstInboundRuntime::suppressManagerTurn` (один раз на переход, без дублей при повторе).
+- Проверка: `tests/Feature/Seller/Runtime/OutOfHoursPhraseE606ETest.php` — виджет, token и API вне часов: фраза сохранена как сообщение бота, режим manager; в рабочие часы поведение прежнее; изоляция бренда. Только fake AI и fake доставка; существующие тесты Runtime зелёные.
+
+Scope: `app/Seller/Runtime/WidgetInboundRuntime.php`, `app/Seller/Runtime/TokenInboundRuntime.php`, `app/Seller/Runtime/ApiFollowupRuntime.php`, `tests/Feature/Seller/Runtime/OutOfHoursPhraseE606ETest.php`, `docs/results/SP-E6-06E.md`.

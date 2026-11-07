@@ -5,7 +5,7 @@ import CabinetLayout from '@/layouts/CabinetLayout';
 type Task={id:string;contact_id:string|null;contact_name:string|null;conversation_id:string|null;type:string;payload:string;due_at:string|null;status:string;priority:string;assigned_user_id:string|null;assignee_name:string|null;overdue:boolean;can_read_dialog:boolean;messages:{role:string;text:string;created_at:string}[]};
 const types:Record<string,string>={handoff:'Передать',promise:'Обещание',reminder:'Напомнить',unknown_question:'Неизвестный вопрос',note:'Пометка',send_price:'Отправить прайс',send_requisites:'Отправить реквизиты',stale:'Остыл'};
 const statuses:Record<string,string>={new:'Новые',in_progress:'В работе',done:'Сделано',cancelled:'Отменено'};
-function text(payload:string) { try { const data=JSON.parse(payload) as {text?:string}; return data.text || ''; } catch { return ''; } }
+function text(payload:string) { try { const data=JSON.parse(payload) as {text?:string;question?:string}; return data.text || data.question || ''; } catch { return ''; } }
 export default function Tasks({tasks,filters}:{tasks:Task[];filters:{mine?:string;overdue?:string;urgent?:string;type?:string}}) {
  const [view,setView]=useState<'table'|'board'>(()=>{try{return localStorage.getItem('seller-tasks-view')==='board'?'board':'table';}catch{return 'table';}}); const [ascending,setAscending]=useState(true); const [pending,setPending]=useState<string|null>(null); const [loading,setLoading]=useState(false); const [error,setError]=useState('');
  const changeView=(next:'table'|'board')=>{setView(next);try{localStorage.setItem('seller-tasks-view',next);}catch{/* Storage may be unavailable. */}};

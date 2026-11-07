@@ -26,3 +26,11 @@ Scope: `app/Seller/Dialogs/`, `app/Ai/Protected/`, `app/Ai/Gateway.php`, `app/Pr
 
 ## Сужение scope 07.11.2026 23:30 (планировщик)
 - `routes/features/E5-04.php` занят SP-E5-04N; новые маршруты (подсказка менеджеру, метка «Прочитано») — в отдельном файле `routes/features/E5-04S.php` (файлы routes/features/*.php подхватываются FeatureRegistry автоматически).
+
+
+
+## Остаток 08.11.2026 (аудит экранов, планировщик)
+- D-2.3: в шапке открытого диалога (`Index.tsx`, строка `{dialog.channel} · {dialog.stage}`) показываются коды `widget · open` — выводить русские подписи канала (уже есть `channelNames`), стадии и итога (как в списке/фильтрах этого экрана); неизвестный код — как есть.
+- Проверка: Playwright `tests/Browser/E5-04S/` (шапка без кодов). Остальные пункты карточки закрыты; scope сужен до этого файла.
+
+Scope: `resources/js/pages/Seller/Dialogs/Index.tsx`, `tests/Browser/E5-04S/`, `docs/results/SP-E5-04S.md`.

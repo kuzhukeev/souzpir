@@ -8,6 +8,7 @@ use App\Seller\Dialogs\DialogTransferController;
 use App\Seller\Dialogs\ManagerSuggestionController;
 use App\Seller\Dialogs\MessageTemplatesController;
 use App\Seller\Dialogs\PendingPageController;
+use App\Seller\Dialogs\SendSuggestionController;
 use Illuminate\Support\Facades\Route;
 
 return ['web' => static function (): void {
@@ -15,6 +16,9 @@ return ['web' => static function (): void {
     Route::put('/seller/dialogs/templates', [MessageTemplatesController::class, 'update'])->middleware(['auth.version', 'auth.nostore'])->name('seller.dialogs.templates.update');
     Route::get('/seller/dialogs/mine/{dialog?}', [DialogsController::class, 'mine'])->whereUlid('dialog')->middleware(['auth.version', 'auth.nostore'])->name('seller.dialogs.mine');
     Route::get('/seller/dialogs/pending', PendingPageController::class)->middleware(['auth.version', 'auth.nostore'])->name('seller.dialogs.pending');
+    Route::get('/seller/dialogs/suggestions', [PendingPageController::class, 'json'])->middleware(['auth.version', 'auth.nostore'])->name('seller.dialogs.pending.suggestions');
+    Route::post('/seller/dialogs/{dialog}/suggestions/{turn}/skip', [SendSuggestionController::class, 'skip'])->whereUlid(['dialog', 'turn'])->middleware(['auth.version', 'auth.nostore'])->name('seller.dialogs.suggestions.skip');
+    Route::post('/seller/dialogs/{dialog}/suggestions/{turn}/mark', [SendSuggestionController::class, 'mark'])->whereUlid(['dialog', 'turn'])->middleware(['auth.version', 'auth.nostore'])->name('seller.dialogs.suggestions.mark');
     Route::get('/seller/dialogs/{dialog}', [DialogsController::class, 'index'])->whereUlid('dialog')->middleware(['auth.version', 'auth.nostore'])->name('seller.dialogs.show');
     Route::get('/seller/dialogs/{dialog}/messages/{message}/attachment', [DialogMessageController::class, 'attachment'])->whereUlid(['dialog', 'message'])->middleware(['auth.version', 'auth.nostore'])->name('seller.dialogs.messages.attachment');
     Route::post('/seller/dialogs/{dialog}/messages', [DialogMessageController::class, 'store'])->whereUlid('dialog')->middleware(['auth.version', 'auth.nostore'])->name('seller.dialogs.messages.store');

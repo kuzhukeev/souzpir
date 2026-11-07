@@ -175,4 +175,60 @@ final class ClarificationWizardTest extends TenancyTestCase
         $result = app(ClarificationVisibility::class)->apply(new TenantContext($org->id, $brand->id), $payload);
         self::assertSame(0.0, $result['metrics']['visibility']['macro_percent']);
     }
+
+    public function test_done_step_recalculates_and_persists_new_revision_without_mutating_source(): void
+    {
+        [$owner, $org, $brand] = $this->cabinet();
+        $measurement = $this->measurement($org, $brand);
+        $this->confirm($owner, $brand, $measurement);
+        $path = "/vision/runs/{$measurement}/clarify/mentions";
+        $item = $this->get($path)->assertOk()->inertiaProps('items.0');
+        $answerId = DB::table('answer_facts')->where('brand_id', $brand->id)->value('measurement_answer_id');
+        $sourceFact = ['value' => 'Работает с 2009 года', 'identity_candidates' => ['Союз-Пир СПб'],
+            'presence_candidates' => ['2gis.ru'], 'brand_mentioned' => false, 'mention_status' => 'possible', 'companies' => []];
+        DB::table('answer_facts')->where('measurement_answer_id', $answerId)->update(['fact' => json_encode($sourceFact)]);
+        $slotA = ['id' => $answerId, 'provider' => 'fake', 'question_n' => 1, 'run_no' => 1, 'status' => 'ok',
+            'protocol_valid' => true, 'fact' => $sourceFact, 'mentions' => [], 'sources' => []];
+        $slotB = ['id' => (string) Str::ulid(), 'provider' => 'fake2', 'question_n' => 1, 'run_no' => 1, 'status' => 'ok',
+            'protocol_valid' => true, 'fact' => ['brand_mentioned' => false, 'mention_status' => 'not_mentioned'], 'mentions' => [], 'sources' => []];
+        $metrics = app(VisibilityMetrics::class)->calculate([$slotA, $slotB], ['fake', 'fake2'], 1, 1);
+        self::assertSame(0.0, $metrics['visibility']['macro_percent']);
+        $payload = ['measurement_id' => $measurement, 'providers' => ['fake' => 'fake-model', 'fake2' => 'fake2-model'],
+            'questions' => [['id' => 'q1', 'text' => 'Вопрос', 'intent' => 'choose']], 'runs' => 1, 'metrics' => $metrics, 'reviewed_facts' => []];
+
+        $this->post($path, ['item_key' => $item['key'], 'decision' => 'yes'])->assertSessionHasNoErrors();
+
+        $reportId = (string) Str::ulid();
+        DB::table('vision_reports')->insert(['id' => $reportId, 'organization_id' => $org->id, 'brand_id' => $brand->id,
+            'measurement_id' => $measurement, 'revision' => 1, 'payload' => '{}', 'checksum' => str_repeat('0', 64),
+            'created_at' => now(), 'updated_at' => now()]);
+        $reader = Mockery::mock(app(VisionReportReader::class));
+        $reader->shouldReceive('read')->once()->with($reportId)->andReturn($payload);
+        app()->instance(VisionReportReader::class, $reader);
+
+        $this->get("/vision/runs/{$measurement}/clarify/done")->assertOk()->assertInertia(fn ($page) => $page
+            ->where('recalculated.before', 0)->where('recalculated.after', 50));
+
+        $this->assertDatabaseCount('vision_reports', 2);
+        $new = DB::table('vision_reports')->where('measurement_id', $measurement)->orderByDesc('revision')->first();
+        self::assertSame(2, $new->revision);
+        $newPayload = json_decode($new->payload, true);
+        self::assertSame(50.0, $newPayload['metrics']['visibility']['macro_percent']);
+        self::assertSame($reportId, $newPayload['clarified_from']);
+        self::assertSame('{}', DB::table('vision_reports')->where('id', $reportId)->value('payload'));
+        Http::assertNothingSent();
+    }
+
+    public function test_done_step_does_not_recalculate_for_viewer_without_write_right(): void
+    {
+        [$owner, $org, $brand] = $this->cabinet();
+        $measurement = $this->measurement($org, $brand);
+        $this->confirm($owner, $brand, $measurement);
+        [$viewer] = $this->member($org, 'viewer', [$brand->id]);
+        $this->actingAs($viewer)->withSession(['brand_id' => $brand->id]);
+        $this->get("/vision/runs/{$measurement}/clarify/done")->assertOk()
+            ->assertInertia(fn ($page) => $page->where('recalculated', null));
+        $this->assertDatabaseCount('vision_reports', 0);
+        Http::assertNothingSent();
+    }
 }

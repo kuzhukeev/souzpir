@@ -27,12 +27,14 @@ final class SlotOrderE603DTest extends TenancyTestCase
             return app(KnowledgeRepository::class)->createDraft($tenant, $data);
         });
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
-        $this->post('/seller/settings/slot-order', ['version' => 1, 'slot_order' => ['unknown' => ['purpose', 'city']]])->assertRedirect()->assertSessionHasNoErrors();
-        $order = app(TenantContextRunner::class)->run($tenant, fn () => app(KnowledgeRepository::class)->forRelease($tenant, $draft['id'], true)->policy()['slot_order']);
-        self::assertSame(['purpose', 'city'], $order['unknown']);
-        $this->post('/seller/settings/slot-order', ['version' => 2, 'slot_order' => ['unknown' => ['purpose', 'purpose']]])->assertSessionHasErrors('slot_order');
+        $this->post('/seller/settings/slot-order', ['version' => 1, 'slot_order' => ['unknown' => ['purpose', 'city']], 'max_consecutive_questions' => 3])->assertRedirect()->assertSessionHasNoErrors();
+        $policy = app(TenantContextRunner::class)->run($tenant, fn () => app(KnowledgeRepository::class)->forRelease($tenant, $draft['id'], true)->policy());
+        self::assertSame(['purpose', 'city'], $policy['slot_order']['unknown']);
+        self::assertSame(3, $policy['limits']['max_consecutive_questions']);
+        $this->post('/seller/settings/slot-order', ['version' => 2, 'slot_order' => ['unknown' => ['purpose', 'purpose']], 'max_consecutive_questions' => 2])->assertSessionHasErrors('slot_order');
+        $this->post('/seller/settings/slot-order', ['version' => 2, 'slot_order' => ['unknown' => ['city', 'purpose']], 'max_consecutive_questions' => 6])->assertSessionHasErrors('max_consecutive_questions');
         [$viewer] = $this->member($org, 'viewer', [$brand->id]);
-        $this->actingAs($viewer)->withSession(['brand_id' => $brand->id])->post('/seller/settings/slot-order', ['version' => 2, 'slot_order' => ['unknown' => ['city', 'purpose']]])->assertForbidden();
-        $this->actingAs($owner)->withSession(['brand_id' => $other->id])->post('/seller/settings/slot-order', ['version' => 1, 'slot_order' => ['unknown' => ['city', 'purpose']]])->assertNotFound();
+        $this->actingAs($viewer)->withSession(['brand_id' => $brand->id])->post('/seller/settings/slot-order', ['version' => 2, 'slot_order' => ['unknown' => ['city', 'purpose']], 'max_consecutive_questions' => 2])->assertForbidden();
+        $this->actingAs($owner)->withSession(['brand_id' => $other->id])->post('/seller/settings/slot-order', ['version' => 1, 'slot_order' => ['unknown' => ['city', 'purpose']], 'max_consecutive_questions' => 2])->assertNotFound();
     }
 }

@@ -45,6 +45,7 @@ declare module 'ziggy-js' {
     "password.exchange": [],
     "password.reset": [],
     "password.store": [],
+    "password.changed": [],
     "mfa.challenge": [],
     "mfa.challenge.store": [],
     "logout.recover": [],
@@ -568,6 +569,27 @@ declare module 'ziggy-js' {
         }
     ],
     "seller.dialogs.pending": [],
+    "seller.dialogs.pending.suggestions": [],
+    "seller.dialogs.suggestions.skip": [
+        {
+            "name": "dialog",
+            "required": true
+        },
+        {
+            "name": "turn",
+            "required": true
+        }
+    ],
+    "seller.dialogs.suggestions.mark": [
+        {
+            "name": "dialog",
+            "required": true
+        },
+        {
+            "name": "turn",
+            "required": true
+        }
+    ],
     "seller.dialogs.show": [
         {
             "name": "dialog",
@@ -691,6 +713,7 @@ declare module 'ziggy-js' {
     "seller.customers.io.import": [],
     "seller.reviews.index": [],
     "seller.reviews.dismiss": [],
+    "seller.reviews.send": [],
     "seller.persona.index": [],
     "seller.persona.save": [],
     "seller.persona.phrases.save": [],

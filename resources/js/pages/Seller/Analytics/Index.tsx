@@ -43,6 +43,7 @@ type Analytics = {
   channels: Record<string, number>;
   daily: Record<string, number>;
   topics: Record<string, number>;
+  topicUnknownRates?: Record<string, number>;
   managers: {
     name: string;
     assigned: number;
@@ -58,6 +59,11 @@ type Analytics = {
   canManage: boolean;
   subscription?: {day:string; recipients:string[]} | null;
   avgMinutesToContact?: number | null;
+  messageCount?: number;
+  botCompleted?: number;
+  previousMessageCount?: number;
+  previousBotCompleted?: number;
+  previousAvgMinutesToContact?: number | null;
 };
 function formatMinutesToContact(value: number | null | undefined) {
   if (value == null) return 'Нет данных';
@@ -65,8 +71,31 @@ function formatMinutesToContact(value: number | null | undefined) {
   const seconds = Math.round((value - minutes) * 60);
   return `${minutes} мин ${seconds} сек`;
 }
+function trendPercent(current: number | null, previous: number | null): number | null {
+  if (current == null || previous == null || previous === 0) return null;
+  return Math.round(((current - previous) / previous) * 100);
+}
+function TrendBadge({ value, lowerIsBetter = false }: { value: number | null; lowerIsBetter?: boolean }) {
+  if (value == null) return null;
+  const sign = value > 0 ? '+' : value < 0 ? '−' : '';
+  const good = lowerIsBetter ? -value : value;
+  const color =
+    good > 0
+      ? 'text-(--color-success-ink)'
+      : good < 0
+        ? 'text-(--color-danger-ink)'
+        : 'text-(--color-ink-muted)';
+  return (
+    <p className={`mt-1 text-xs font-medium ${color}`}>
+      {value > 0 ? '↑' : value < 0 ? '↓' : '→'} {sign}
+      {Math.abs(value)}% к предыдущему периоду
+    </p>
+  );
+}
 const labels: Record<string, string> = {
   unknown: 'Не определён',
+  site: 'Сайт (API)',
+  crm: 'CRM',
   newbie: 'Начинающий',
   experienced: 'Опытный',
   for_self: 'Для себя',
@@ -128,6 +157,14 @@ function Rows({
 export default function Index({ analytics: a }: { analytics: Analytics }) {
   const [tab, setTab] = useState('funnel');
   const [compare, setCompare] = useState(true);
+  const avgMessages = a.total ? (a.messageCount ?? 0) / a.total : null;
+  const botRate = a.total && a.botCompleted != null ? Math.round((a.botCompleted / a.total) * 100) : null;
+  const previousAvgMessages = a.previousTotal ? (a.previousMessageCount ?? 0) / a.previousTotal : null;
+  const previousBotRate =
+    a.previousTotal && a.previousBotCompleted != null ? Math.round((a.previousBotCompleted / a.previousTotal) * 100) : null;
+  const avgMessagesTrend = trendPercent(avgMessages, previousAvgMessages);
+  const botRateTrend = trendPercent(botRate, previousBotRate);
+  const avgMinutesToContactTrend = trendPercent(a.avgMinutesToContact ?? null, a.previousAvgMinutesToContact ?? null);
   const form = useForm({
     from: a.from,
     to: a.to,
@@ -230,6 +267,8 @@ export default function Index({ analytics: a }: { analytics: Analytics }) {
               className="mt-1 block min-h-11 cursor-pointer rounded-lg border border-(--color-border) bg-(--color-surface) px-3"
             >
               <option value="">Все источники</option>
+              <option value="site">Сайт (API)</option>
+              <option value="crm">CRM</option>
               <option value="unknown">Неизвестен</option>
             </select>
           </label>
@@ -347,14 +386,10 @@ export default function Index({ analytics: a }: { analytics: Analytics }) {
               <Rows values={a.stages} />
             </section>
             <section className={card}>
-              <h2 className="text-xl font-bold">Диалоги по дням</h2>
-              <Rows values={a.daily} />
-            </section>
-            <section className={card}>
               <h2 className="text-xl font-bold">Источники</h2>
               <Rows values={a.sources ?? {}} />
               <p className="mt-2 text-sm text-(--color-ink-muted)">
-                Источник и UTM пока не сохраняются; данные не подставляются автоматически.
+                Источник сохраняется только для обращений через API (site/crm); остальные каналы показаны как «Не определён».
               </p>
             </section>
             <section className={card}>
@@ -470,13 +505,36 @@ export default function Index({ analytics: a }: { analytics: Analytics }) {
           )}
         </div>
         <div hidden={tab !== 'dialogs'}>
-          <section className={`${card} mt-5`} aria-label="Среднее время до контакта">
-            <h2 className="text-xl font-bold">Среднее время до контакта</h2>
-            <p className="mt-2 text-2xl font-bold">{formatMinutesToContact(a.avgMinutesToContact)}</p>
-            <p className="mt-2 text-sm text-(--color-ink-muted)">
-              От начала диалога до получения почты или мессенджера клиента; для диалогов без
-              сохранённого контакта не считается.
-            </p>
+          <section className="mt-5 grid gap-4 md:grid-cols-3" aria-label="Ключевые показатели диалогов">
+            <div className={card}>
+              <h2 className="text-sm font-semibold">Средняя длина диалога</h2>
+              <p className="mt-2 text-2xl font-bold">
+                {avgMessages == null
+                  ? 'Нет данных'
+                  : `${avgMessages.toLocaleString('ru-RU', { maximumFractionDigits: 1 })} сообщений`}
+              </p>
+              <TrendBadge value={avgMessagesTrend} />
+            </div>
+            <div className={card}>
+              <h2 className="text-sm font-semibold">Бот ответил сам до конца</h2>
+              <p className="mt-2 text-2xl font-bold">{botRate == null ? 'Нет данных' : `${botRate}%`}</p>
+              <TrendBadge value={botRateTrend} />
+            </div>
+            <div className={card}>
+              <h2 className="text-sm font-semibold">Среднее время до контакта</h2>
+              <p className="mt-2 text-2xl font-bold">{formatMinutesToContact(a.avgMinutesToContact)}</p>
+              <TrendBadge value={avgMinutesToContactTrend} lowerIsBetter />
+            </div>
+          </section>
+          <p className="mt-2 text-sm text-(--color-ink-muted)">
+            Длина — число сохранённых сообщений в диалоге. «Бот ответил сам до конца» — завершённые
+            диалоги с ответом бота, без передачи и сообщений менеджера. Время до контакта — от
+            начала диалога до получения почты или мессенджера клиента; для диалогов без
+            сохранённого контакта не считается.
+          </p>
+          <section className={`${card} mt-4`} aria-label="Диалоги по дням">
+            <h2 className="text-xl font-bold">Диалоги по дням</h2>
+            <Rows values={a.daily} />
           </section>
         </div>
         <Details data={a} activeTab={tab} />

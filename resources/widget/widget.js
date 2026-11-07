@@ -1,4 +1,4 @@
-/* global document, HTMLScriptElement, URL, fetch, setTimeout, innerHeight, scrollY, removeEventListener, addEventListener, localStorage, location, matchMedia */
+/* global document, HTMLScriptElement, URL, URLSearchParams, fetch, setTimeout, innerHeight, scrollY, removeEventListener, addEventListener, localStorage, location, matchMedia */
 (() => {
   'use strict';
   const script = document.currentScript;
@@ -48,9 +48,10 @@
     let sessionToken = null; let starting = null;
     let lastSeenMessageId = null; let pollTimer = null;
     const api = (path, body) => { const url = new URL(path, source.origin); url.searchParams.set('key', key); return fetch(url.href, {method:'POST', credentials:'omit', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)}); };
+    const utmParams = () => { const pairs = []; new URLSearchParams(location.search).forEach((value, name) => { if (name.startsWith('utm_')) pairs.push(`${name}=${value}`); }); return pairs.length ? pairs.join('&') : null; };
     const startSession = () => {
       if (sessionToken) return Promise.resolve(sessionToken);
-      if (!starting) starting = api('/widget/session', {}).then(response => { if (!response.ok) throw new Error('unavailable'); return response.json(); }).then(result => { sessionToken = result.token; return sessionToken; }).finally(() => { starting = null; });
+      if (!starting) starting = api('/widget/session', {page: location.pathname, utm: utmParams()}).then(response => { if (!response.ok) throw new Error('unavailable'); return response.json(); }).then(result => { sessionToken = result.token; return sessionToken; }).finally(() => { starting = null; });
       return starting;
     };
     const uid = () => globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
@@ -82,7 +83,7 @@
       startSession().then(token => api('/widget/message', {token, text:sent, idempotency_key:uid(), page:widgetPage})).then(response => { if (!response.ok) throw new Error('unavailable'); return response.json().catch(() => ({})); }).then(result => {
         message.textContent = ''; addBubble('client', sent); text.value = ''; sentCount += 1;
         if (typeof result.reply === 'string' && result.reply) { addBubble('agent', result.reply); waitingForManager = false; }
-        else if (!waitingForManager) { waitingForManager = true; addBubble('agent', 'Менеджер скоро ответит.'); if (!pollTimer) pollTimer = setTimeout(pollMessages, 7000); }
+        else if (!waitingForManager) { waitingForManager = true; addBubble('agent', typeof result.notice === 'string' && result.notice ? result.notice : 'Менеджер скоро ответит.'); if (!pollTimer) pollTimer = setTimeout(pollMessages, 7000); }
         if (limitReached()) { lockChat(); } else { chatStatus.textContent = 'Сообщение отправлено.'; }
       }).catch(() => { chatStatus.textContent = 'Чат временно недоступен. Попробуйте позже.'; }).finally(() => { if (!limitReached()) chatSend.disabled = false; });
     });

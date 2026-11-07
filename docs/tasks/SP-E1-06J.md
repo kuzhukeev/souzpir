@@ -18,3 +18,7 @@ Scope: `app/Shell/Team/`, `resources/js/pages/Shell/Team/`, `resources/js/featur
 - S-3.3 Роли: описание каждой из 5 ролей рядом с названием и иконкой.
 - S-3.4 Приглашение: блок «Доступ к модулям»; роль радиокнопками с описанием; кнопка «Готово» на экране результата. Дополнительный scope: `app/Shell/InvitationIssuance/`, `resources/js/features/Shell/InvitationIssuance/`, `tests/Feature/Shell/InvitationIssuance/`, `tests/Browser/E1-06/`.
 - Проверить права (owner/admin/manager), изоляцию брендов, три ширины; без живых отправок.
+
+
+## Остаток 08.11.2026 (аудит 08.11, планировщик)
+- S-3.2: блок «Доступ к модулям» по макету `S-3.2-user` — два серых неактивных тумблера (`role="switch"`, `aria-disabled`) «Видение» и «ИИ-продавец» с бейджем «v2» и подписью «Настройка доступа появится в v2» вместо disabled-чекбоксов в `resources/js/pages/Shell/Team/Show.tsx:113-118`; список модулей общих брендов сохранить. Без изменения прав и серверного кода. Браузерный тест в `tests/Browser/E1-06J/` (1440/390, клавиатура, axe), скриншот 1440.

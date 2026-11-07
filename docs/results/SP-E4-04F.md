@@ -1,19 +1,24 @@
-# SP-E4-04F
+# SP-E4-04F · Темы: неизвестные вопросы в runtime
 
-- `log_unknown_question` подключён к общему диспетчеру `ToolRunner`: валидирует аргументы и возвращает `logged` вместо `unavailable` (раньше модель получала «недоступно» на разрешённый инструмент).
-- `Policy::applyExtraction` теперь вызывает `LeadState::addUnknownQuestion` — счётчик `unknown_facts` и список `unknown_questions` в состоянии диалога больше не мёртвый код, пополняются на последующих ходах (проверено через `/seller/turns/runtime`, followup).
-- Аналитика экрана тем (`unknownRates`, доля «не знаю») не менялась — уже считает по `meta.goal_kind`; подтверждено прогоном `TopicStatisticsTest` без изменений.
-- Проверено: `tests/Unit/Seller/Engine/*`, `tests/Feature/Seller/Runtime/*` (новый `UnknownQuestionTaskE404FTest`: followup-ход пишет вопрос и счётчик в состояние диалога, брендовая изоляция), `tests/Feature/Seller/Knowledge/Topics/*`, `ProtectedSimulationRuntimeTest`, `TaskBoardTest` — все зелёные; pint — passed.
+Остаток закрыт по аудиту 08.11: D-4.6 «Частота за 30 дней» и «Ответы „не знаю“» теперь учитывают и followup-ход, не только первый.
+
+## Что сделано
+- `FollowupFinalizer::finishProtectedApi()` теперь берёт `client_intent` из extraction последующего хода (6-й элемент `ApiFollowupInput::responderLocked()`, ранее отбрасывался) и:
+  - пишет ключ `intent` в meta ответа агента (рядом с уже существующими `fake/suggested/goal_kind/guard`);
+  - обновляет meta клиентского входящего сообщения тем же `intent`, по образцу `FirstTurnTextFinalizer`.
+- Изменение — только добавление ключа meta; текст ответа, guard-решения и `CreatePromise`/`seller_tasks`-логика не трогались.
+- `TopicsController` не менялся: группировка по `meta.intent` в нём уже была ролeнезависимой, после фикса followup-сообщения сами попадают в выборку.
+
+## Тесты
+- Новый `UnknownQuestionManagerTaskTest::test_followup_turn_counts_in_topics_frequency_and_unknown_rate_for_own_brand_only`: followup с unknown_fact → `frequencies.unclear=1`, `unknownRates.unclear=100`, пример вопроса в `frequentQuestions`, чужой бренд (`viewer` без доступа к brandA) видит пустые `frequencies`.
+- Регрессия: `tests/Feature/Seller/Knowledge/Topics/*` (8 passed), `tests/Feature/Seller/Channels/Api/ApiOpeningE503FTest` (2 passed), `tests/Feature/SellerRuntime/Turns/FollowupHttpTest` + `TurnHttpTest` (4 passed), `AssignmentE606CTest`, `QuotaRuntimeE113Test`, `QuotaTransitionE704FTest`, `UnknownQuestionTaskE404FTest`, `FakeDeliveryTest`, `ApiTokenRuntimeE503CTest` — все зелёные (всего 15 тестов, 167 assertions по смежным наборам).
+- `check lint` (pint + composer validate): passed.
 
 ## Остаток
-- Создание задачи менеджеру `seller_tasks` (`type=unknown_question`, «обещание ответить сегодня») при `goal->kind === 'unknown_fact'` — не сделано: единственное корректное место (финализация хода) занято другой задачей, см. «Нужно от интегратора».
-- Первый ход (`FirstTurnCoordinator`/`FirstTurnGoal`) не вызывает `Policy::applyExtraction` вовсе — `addUnknownQuestion` и счётчики там не применяются даже после этой правки; это отдельная, более широкая дыра (стрики/стадия/clientType), не трогал.
+Нет — пункт аудита 08.11 по D-4.6/D-4.7 закрыт полностью в рамках сузженного scope (FollowupFinalizer + TopicsController + tests/Feature/Seller/Knowledge/Topics).
 
 ## Техдолг
-- `FirstTurnGoal::evaluateLocked` пропускает `Policy::applyExtraction` — несимметрично с followup-путём (`ApiFollowupInput`), затрагивает не только unknown-факты.
+Нет новых рисков сверх уже известных по модулю.
 
 ## Принято по умолчанию
-- Текст неизвестного вопроса берётся как есть из `extraction['unknown_question']`, без нормализации (совпадает с существующей обработкой `unknown_insist`).
-
-## Нужно от интегратора
-- `app/ProtectedOperations/FirstTurnTextFinalizer.php` и `app/ProtectedOperations/SellerFollowup/FollowupFinalizer.php` сейчас в scope SP-E7-04M (в работе, exec-3, уточнение 07.11 20:10) — не трогал. После её `done` добавить в обоих `write()`/`finishProtectedApi()` при `$goal->kind === 'unknown_fact'`: вставку в `seller_tasks` (`type='unknown_question'`, `payload.text` с вопросом, `due_at` = конец дня) — по образцу `App\Seller\Engine\CreatePromise`. Тогда же снять этот пункт и пункт «Остаток» выше.
+Не менял `TopicsController` сверх необходимого: его группировка по `meta.intent` уже была общей для ролей/ходов, фикс полностью решается на стороне финализатора — отдельный «учёт в TopicsController» из формулировки аудита оказался следствием фикса меты, а не отдельной правкой контроллера.

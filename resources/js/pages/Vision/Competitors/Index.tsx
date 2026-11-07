@@ -2,9 +2,11 @@ import ComparisonLeaders from './ComparisonLeaders';
 import IntentRadar from './IntentRadar';
 import CompanyDetails from './CompanyDetails';
 import { Head, Link, router } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { LoaderCircle } from 'lucide-react';
 import { Modal } from '@/components/ui';
 import CabinetLayout from '@/layouts/CabinetLayout';
+type MergeProgress = { stage: 'queued' | 'recalculating' | 'failed' } | null;
 type Entity = {
   source_ranking?: { domain: string; answers: number }[];
   quotes?: { text: string; provider: string }[];
@@ -41,6 +43,7 @@ export default function Index({
   history = [],
   declared = [],
   distinctPairs = [],
+  mergeProgress = null,
 }: {
   distinctPairs?: [string, string][];
   declared?: { name: string; site: string | null }[];
@@ -49,6 +52,7 @@ export default function Index({
   canEdit: boolean;
   status?: string | null;
   history?: { id: string; measurement_id: string; created_at: string }[];
+  mergeProgress?: MergeProgress;
 }) {
   const [tab, setTab] = useState<'all' | 'tracked' | 'declared'>('all');
   const [mergeSearch, setMergeSearch] = useState('');
@@ -65,6 +69,14 @@ export default function Index({
   const [busy, setBusy] = useState(false);
   const [mergeOpen, setMergeOpen] = useState(false);
   const [mergeError, setMergeError] = useState('');
+  useEffect(() => {
+    if (mergeProgress?.stage !== 'queued' && mergeProgress?.stage !== 'recalculating') return;
+    const timer = window.setInterval(
+      () => router.reload({ only: ['entities', 'history', 'distinctPairs', 'mergeProgress'] }),
+      2000,
+    );
+    return () => window.clearInterval(timer);
+  }, [mergeProgress?.stage]);
   const own = entities.find((entity) => entity.is_brand);
   const selected = Array.from(new Set([own?.name, left, right, third, fourth].filter((name): name is string => Boolean(name))));
   const intentKeys = Array.from(
@@ -561,6 +573,21 @@ export default function Index({
             {canEdit && (
               <section className="mt-5 rounded-xl border border-(--color-border) bg-(--color-surface) p-5">
                 <h2 className="text-xl font-bold">Предложенные группы</h2>
+                {(mergeProgress?.stage === 'queued' || mergeProgress?.stage === 'recalculating') && (
+                  <p
+                    role="status"
+                    aria-live="polite"
+                    className="mt-2 flex items-center gap-2 rounded-lg bg-(--color-info-soft) p-3 text-sm"
+                  >
+                    <LoaderCircle aria-hidden="true" size={16} className="animate-spin motion-reduce:animate-none" />
+                    Пересчитываем, 1–2 минуты
+                  </p>
+                )}
+                {mergeProgress?.stage === 'failed' && (
+                  <p role="alert" className="mt-2 rounded-lg bg-(--color-danger-soft) p-3 text-sm">
+                    Не удалось пересчитать отчёт. Попробуйте объединить названия ещё раз.
+                  </p>
+                )}
                 {suggestions.length > 0 && <h3 className="mt-2 font-semibold">Возможные дубли</h3>}
                 {suggestions.length === 0 && (
                   <p className="mt-2 text-sm">Предложенных дублей нет.</p>
