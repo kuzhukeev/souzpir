@@ -563,3 +563,5 @@
 - SP-E7-04P: contact_received_at пишется только в защищённых финализаторах (первый ход и follow-up); если контакт появится иным путём (ручной ввод менеджера), время не фиксируется.
 
 - SP-L1-04: статус отправки (retryable/терминальный) определяется прямым HTTP-вызовом в TelegramManagerMessageTransport, отдельно от HttpTelegramTransport/TelegramSender (возвращают только bool) — логика запроса к Telegram частично дублируется; delivered_at ставит job после успеха транспорта, при падении между ними возможен повтор отправки.
+
+- SP-E3-10C: стадии judge и responder прототипа не версионируются по бренду (только summary/extractor/guard/simulator); judge.blade.php v1/v2 не подключён к Judge::request().
