@@ -147,7 +147,7 @@ final class ProfileFeatureGateTest extends TestCase
         DB::table('migrations')->insert((array) $record);
         self::assertTrue(app(ProfileSettingsAvailability::class)->ready());
         $this->get('/profile')->assertOk()->assertInertia(fn (Assert $page) => $page->where('profile.email_change_available', false));
-        $this->get('/profile/notifications')->assertOk()->assertInertia(fn (Assert $page) => $page->where('notificationSettings.timingAvailable', false));
+        $this->get('/profile/notifications')->assertOk()->assertInertia(fn (Assert $page) => $page->where('notificationSettings.timingAvailable', true));
         $this->post('/logout')->assertRedirect(route('login'));
         $this->withCookie(config('session.cookie'), session()->getId());
         $this->post('/login', ['email' => $user->email, 'password' => 'fixture-password-only'])->assertRedirect(route('auth.ready'));

@@ -44,6 +44,14 @@ final class PersonalDigestTimeTest extends LimitsTestCase
         DB::transaction(fn () => app(SellerNotificationRouter::class)->route($event, $member, 'cabinet'));
     }
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // This suite exercises the cabinet digest timing path, which the fake
+        // driver's "cabinet is always immediate" shortcut would bypass.
+        config(['runtime.notification_driver' => null]);
+    }
+
     protected function tearDown(): void
     {
         Carbon::setTestNow();

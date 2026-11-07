@@ -174,7 +174,7 @@ final class OutboxDeferralTest extends TestCase
     public function test_deferred_does_not_block_permitted_external_delivery_or_retry_uncertain(): void
     {
         Queue::fake();
-        config(['features.E0-04.defaults.external_delivery' => true, 'features.E0-04.defaults.telegram_bot_token' => 'synthetic']);
+        config(['features.E0-04.defaults.external_delivery' => true, 'features.E0-04.defaults.telegram_bot_token' => 'synthetic', 'runtime.notification_driver' => null]);
         $event = $this->event();
         $this->insert($event);
         $this->router->deferred[$event->envelope['event_id']] = true;
