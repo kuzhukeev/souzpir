@@ -7,6 +7,7 @@ use App\Seller\Channels\Core\ChannelAccount;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
+use App\Shell\Plans\LimitEnforcer;
 use App\Shell\Profile\ProfileAccess;
 use App\Tenancy\TenantContext;
 use Carbon\Carbon;
@@ -147,6 +148,10 @@ final class WidgetSettingsController
                 $channel->name = 'Сайт';
                 $channel->default_mode = 'manager';
                 $channel->settings = ['widget_id' => $row->id];
+            }
+            if ($input['enabled'] && $channel->status !== 'active') {
+                $active = ChannelAccount::query()->where('status', 'active')->count();
+                app(LimitEnforcer::class)->assertWithin($tenant, 'seller.channels_max', (string) ($active + 1));
             }
             if ($input['enabled'] && $channel->status !== 'active' && $channel->connected_at === null) {
                 $channel->connected_at = now();
