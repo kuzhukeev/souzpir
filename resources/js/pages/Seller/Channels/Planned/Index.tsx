@@ -53,7 +53,7 @@ function Calendar({ planned }: Pick<PlannedProps, 'planned'>) {
     </section>
     <section className={`${panel} flex flex-wrap items-start gap-6`} aria-labelledby="reminders-title">
       <div aria-hidden="true" className={icon}><Mail size={36} /></div>
-      <div className="min-w-0 flex-1"><h2 id="reminders-title" className="text-2xl font-bold">Напоминания о договорённостях</h2><div className="mt-5"><Switch label="Напоминания на почту менеджеру" checked={enabled} onChange={setEnabled} disabled={!planned.canManage || !planned.reminders.available || busy} /></div><p className="mt-3 text-sm text-(--color-ink-muted)">{planned.reminders.available ? 'Напоминать менеджеру о запланированном контакте.' : planned.reminders.reason || 'Напоминания пока недоступны.'}</p></div>
+      <div className="min-w-0 flex-1"><h2 id="reminders-title" className="text-2xl font-bold">Напоминания о договорённостях</h2><div className="mt-5"><Switch label="Напоминания на почту менеджеру" checked={enabled} onChange={setEnabled} disabled={!planned.canManage || !planned.reminders.available || busy} /></div><p className="mt-3 text-sm text-(--color-ink-muted)">{planned.reminders.reason || 'Напоминания пока недоступны.'} Менеджер может настроить уведомления в профиле.</p></div>
     </section>
     <div className="flex flex-wrap items-center justify-end gap-3"><span role="status" className="text-sm text-(--color-success-ink)">{notice}</span>{error && <span role="alert" className="text-sm text-(--color-danger-ink)">{error}</span>}<Button onClick={() => void save()} loading={busy} disabled={!planned.canManage || !planned.reminders.available || enabled === original}>Сохранить изменения</Button></div>
   </div>;

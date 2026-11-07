@@ -1070,6 +1070,12 @@
       ],
       "notificationEvent": false
     },
+    "seller.contact.reminder": {
+      "owner": "SP-E5-06B",
+      "schemaVersion": 1,
+      "requiredData": ["reminder_id", "user_id"],
+      "notificationEvent": true
+    },
     "seller.conversation.handed_off": {
       "owner": "SP-E3-03B",
       "schemaVersion": 1,

@@ -11,5 +11,6 @@ return [
     ),
     'ai_driver' => env('AI_DRIVER', 'fake'),
     'delivery_driver' => env('DELIVERY_DRIVER', 'fake'),
+    'notification_driver' => env('NOTIFICATION_DRIVER'),
     'features_scheduling_enabled' => (bool) env('FEATURES_SCHEDULING_ENABLED', false),
 ];

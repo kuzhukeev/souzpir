@@ -5,6 +5,7 @@ namespace App\Shell\Notifications;
 final class EventCatalog
 {
     public const TITLES = [
+        'seller.contact.reminder' => 'Время связаться с клиентом',
         'seller.conversation.handed_off' => 'Диалог ждёт менеджера',
         'seller.promise.overdue' => 'Обещание просрочено',
         'seller.unknown_question.logged' => 'Неизвестный вопрос',

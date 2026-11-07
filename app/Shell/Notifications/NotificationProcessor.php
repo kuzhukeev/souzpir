@@ -3,6 +3,7 @@
 namespace App\Shell\Notifications;
 
 use App\Models\Membership;
+use App\Seller\Channels\Planned\ContactReminderValidity;
 use App\Shell\Notifications\Jobs\DeliverNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -22,6 +23,10 @@ final class NotificationProcessor
                 app(MeasurementSubscriptionDelivery::class)->deliver($event);
                 $members = Membership::withoutGlobalScopes()->where('organization_id', $e['organization_id'])->where('status', 'active')->get();
                 foreach ($members as $member) {
+                    if ($e['type'] === 'seller.contact.reminder' && (config('runtime.notification_driver') !== 'fake' || $member->user_id !== $e['data']['user_id']
+                        || ! app(ContactReminderValidity::class)->valid($e['data']['reminder_id'], $e['organization_id'], $e['brand_id'], $member->user_id))) {
+                        continue;
+                    }
                     if (! app(RecipientPolicy::class)->permits($member, $e['brand_id'], $e['type'])) {
                         continue;
                     }
