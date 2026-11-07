@@ -18,7 +18,7 @@ test('карточка факта не показывает неподтверж
   await page.setViewportSize({width:1440,height:900}); await page.goto(`${fixture}?fact`);
   await expect(page.getByRole('heading',{name:'Карточка факта'})).toBeVisible();
   await expect(page.getByRole('heading',{name:'Как бот это скажет'})).toHaveCount(0);
-  await expect(page.locator('textarea')).toHaveValue('Доставка по России');
+  await expect(page.getByLabel('Факт', {exact:true})).toHaveValue('Доставка по России');
   await page.screenshot({path:'.local/screenshots/SP-E7-06D/fact.png',fullPage:true});
 });
 
@@ -29,4 +29,10 @@ test('фильтр показывает загрузку и ошибку сет�
   await page.getByRole('button',{name:'Применить'}).click();
   await expect(page.getByText('Загружаем клиентов…')).toBeVisible();
   await expect(page.getByRole('alert')).toContainText('Не удалось связаться с сервером.');
+});
+
+test('сохранённый пример показан без выдуманного ответа', async ({page}) => {
+  await page.goto(`${fixture}?fact&confirmed`);
+  await expect(page.getByRole('heading',{name:'Как бот это скажет'})).toBeVisible();
+  await expect(page.getByText('Доставка по России.', {exact:false})).toBeVisible();
 });
