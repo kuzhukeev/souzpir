@@ -18,6 +18,8 @@ final class QualityDeltaE706FTest extends TenancyTestCase
             DB::table('seller_evaluations')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $item->id, 'scores' => '{}', 'issues' => '[]', 'average' => $average, 'created_at' => $created, 'updated_at' => $created]);
         }
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->get('/seller?days=7')->assertOk()->assertInertia(fn ($page) => $page->where('dashboard.quality', 4.5)->where('dashboard.delta.quality', 1));
+        $series = $this->get('/seller?days=7')->assertOk()->viewData('page')['props']['dashboard']['daily_quality'];
+        self::assertSame([4.5], array_values(array_filter($series, fn ($value) => $value !== null)));
         $this->get('/seller?days=90')->assertOk()->assertInertia(fn ($page) => $page->where('dashboard.delta.quality', null));
         $this->get('/seller?days=0')->assertSessionHasErrors('days');
         $this->actingAs($owner)->withSession(['brand_id' => $other->id])->get('/seller?days=7')->assertOk()->assertInertia(fn ($page) => $page->where('dashboard.quality', null)->where('dashboard.delta.quality', null));

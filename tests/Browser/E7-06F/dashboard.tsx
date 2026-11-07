@@ -15,6 +15,9 @@ const dashboard: Dashboard = { delta:{total:2,contact:1,handoff:0,done:-1,qualit
   channels: empty ? [] : [{ id:'01ARZ3NDEKTSV4RRFFQ69G5FAV', type: 'telegram', name: 'Telegram', mode: 'bot', status: 'active' }, { id:'01ARZ3NDEKTSV4RRFFQ69G5FAW', type: 'widget', name: 'Виджет сайта', mode: 'suggest', status: 'disabled' }],
   attention: empty ? [] : [{ kind: 'manager', title: 'Диалоги ждут менеджера', count: 5, severity: 'high', href: '/seller/dialogs?mode=manager' }, { kind: 'tasks', title: 'Обещания просрочены', count: 3, severity: 'high', href: '/seller/tasks' }, { kind: 'channels', title: 'Каналы выключены', count: 1, severity: 'normal', href: '/seller/channels' }] };
 dashboard.issue_details = empty ? [] : [{type:'unknown_fact',share:50,delta:-10,href:'/seller/quality'}];
+dashboard.daily_handoff = Object.fromEntries(Object.keys(daily).map(day => [day, empty ? 0 : 1]));
+dashboard.daily_quality = Object.fromEntries(Object.keys(daily).map((day, index) => [day, empty || index % 2 ? null : 4.2]));
+if (params.has('alerts')) dashboard.attention = [{ kind: 'tasks', title: 'Обещания просрочены', count: 2, severity: 'high', href: '/seller/tasks' }];
 dashboard.channels = dashboard.channels.map(channel => ({...channel,dialogs:10,contacts:5,conversion:50}));
 const props = { dashboard: params.has('error') ? null : dashboard, initialLoadError: params.has('error'), auth: { user: { id: '1', name: 'Иван Петров', email: 'ivan@example.test' } }, organization: { id: '1', name: 'Союз Пир' },
   brand: { id: brandId, name: 'Пиротехника — Северные огни', theme: 'neutral' }, brands: [{ id: brandId, name: 'Пиротехника — Северные огни' }],

@@ -23,7 +23,7 @@ final class DashboardSeriesTest extends TenancyTestCase
         $this->conversation($org->id, $other->id, null, 'open', ['email' => 'other@example.test'], now()->subMinutes(60));
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
         $this->get('/seller?days=7')->assertOk()->assertInertia(fn ($page) => $page
-            ->where('dashboard.daily.2026-11-04', 3)->where('dashboard.daily_contacts.2026-11-04', 1)
+            ->where('dashboard.daily.2026-11-04', 3)->where('dashboard.daily_contacts.2026-11-04', 1)->where('dashboard.daily_handoff.2026-11-04', 2)->where('dashboard.daily_quality.2026-11-04', null)
             ->where('dashboard.managers.0.handed', 1)->where('dashboard.managers.0.closed', 1)
             ->where('dashboard.attention.0.count', 1)->where('dashboard.attention.0.detail', 'Ожидание до 32 мин · 1'));
         $this->get('/seller?days=0')->assertSessionHasErrors('days');
