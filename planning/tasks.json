@@ -24281,6 +24281,66 @@
       "wave": 20,
       "promptPath": "docs/tasks/SP-E9-01G.md",
       "description": "# SP-E9-01G · Остаток сквозной приёмки\n\n**Зачем:** конкретные незакрытые сценарии и реальные состояния согласованной сквозной приёмки.\n**Часть чего:** частичная сдача SP-E9-01F, docs/results/SP-E9-01F.md.\n**Зависимость:** SP-E9-01F; отдельные сценарии запускать по готовности их функций.\n\n## Приёмка\n- Сценарий 3: Telegram webhook → fake-ответ → перехват и возврат через браузер по готовности runtime.\n- Сценарий 5: причины передачи → диалог → задача → fake-уведомление; проверить изоляцию брендов.\n- Сценарий 7: сообщения виджета, связь с диалогом и клиентом после готовности переписки.\n- Сценарий 8: переключение бренда в диалогах с очисткой кэша и вкладок после готовности функции.\n- Проверить реальные маршруты и непроверенные состояния 20 экранов из отчёта: D-5.1, D-10.1, D-4.11, D-4.3, D-10.4, D-4.5, D-4.4, D-4.6, D-4.9, D-4.8, D-4.7, D-4.1, D-4.2, D-4.12, D-4.10, D-3.1, D-3.2, D-2.3, D-3.5 и D-3.3; axe для ещё не проверенных реальных E2E-экранов. Не считать фикстуры доказательством работающих маршрутов.\n- Ручной CI acceptance_e901e: зафиксировать результат запуска после разрешения, так как автоматическая проверка отклонила предыдущую отправку workflow; не обходить отказ.\n- Изолированная тестовая БД, fake и запрет живых и платных вызовов; подтверждённые неизменённые серверные проверки не повторять.\n\nScope: `tests/Browser/Acceptance/`, `tests/visual/`, `docs/validation/`, `.github/workflows/`, `docs/results/SP-E9-01G.md`.\n"
+    },
+    {
+      "taskKey": "SP-E0-08AA",
+      "title": "SP-E0-08AA · Browser CI: оставшиеся регрессии",
+      "goal": "Browser CI: оставшиеся регрессии",
+      "description": "# SP-E0-08AA · Browser CI: оставшиеся подтверждённые регрессии\n\nЧасть SP-E0-08Z: после принятия E4-06E устранить остальные подтверждённые падения run 42348786968, предварительно сверив каждое с актуальным main. Не ослаблять проверки; внешние вызовы только fake.\n\nПервый независимый этап: E4-06H/preview — сохранённый документ и повторный просмотр. Проверить browser и изменённое поведение. Изменение других файлов только после уточнения точного scope интегратором.\n\nОстаток для последующих этапов: шард 1 — E1-01/invitation-safety (2), E6-08D/catalog; шард 2 — E4-06L/preview (2), E4-08/fewshot-more, E4-08D/fewshot (2), E4-10C/fewshot, E4-10E/sandbox, E5-01G/channels, E5-01I/channels, E5-07B/preview, E5-07C/preview; шард 3 — E6-09D/crm, E7-04/details, E7-04D/analytics, E7-04N/subscription, E8-05/report, E8-14/quiz, E8-14B/facts; шард 4 — E8-16I/measurements, E8-16U/header, E8-19/report, E8-19C/D/E/public, E8-21D/E/F/G/M/N/site. Учитывать ownership.\n\nScope первого этапа: tests/Browser/E4-06H/preview.spec.ts, tests/Browser/E4-06H/fixture.tsx, tests/Browser/E4-06H/fixture.html, tests/Browser/E4-06H/vite.config.ts, resources/js/pages/Seller/Knowledge/Imports/Index.tsx, app/Seller/Knowledge/Imports/ImportsController.php, routes/features/E4-06.php, docs/results/SP-E0-08AA.md.\n",
+      "dependsOn": [
+        "SP-E0-08Z"
+      ],
+      "scope": [
+        "tests/Browser/E4-06H/preview.spec.ts",
+        "tests/Browser/E4-06H/fixture.tsx",
+        "tests/Browser/E4-06H/fixture.html",
+        "tests/Browser/E4-06H/vite.config.ts",
+        "resources/js/pages/Seller/Knowledge/Imports/Index.tsx",
+        "app/Seller/Knowledge/Imports/ImportsController.php",
+        "routes/features/E4-06.php",
+        "docs/results/SP-E0-08AA.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Browser CI: оставшиеся регрессии"
+      ],
+      "sourceIds": [],
+      "screenIds": [],
+      "notes": "Конкретный остаток принятой частичной сдачи по решению владельца 07.11.",
+      "sourceRefs": [
+        "docs/tasks/SP-E0-08Z.md"
+      ],
+      "promptPath": "docs/tasks/SP-E0-08AA.md",
+      "wave": 20
+    },
+    {
+      "taskKey": "SP-E5-02F",
+      "title": "SP-E5-02F · Лимит сообщений и проверка установки виджета",
+      "goal": "Лимит сообщений и проверка установки виджета",
+      "description": "# SP-E5-02F · Остаток настроек виджета\n\nЧасть SP-E5-02D, экраны D-9.2 и D-9.4. После реализации переписки SP-E5-02C применить сохранённый лимит сообщений к отправке виджета и проверить границу. Активная проверка установки на внешнем сайте пока не реализована; решение о внешних сетевых запросах и её безопасный способ нужны отдельно, до разрешения никаких исходящих запросов. Не включать живые или платные вызовы.\n\nScope: resources/widget/widget.js, app/Seller/Channels/Widget/WidgetSettingsController.php, tests/Browser/E5-02/widget-contact.spec.ts, tests/Feature/Seller/Channels/Widget/WidgetSettingsE502DTest.php, docs/results/SP-E5-02F.md. Пересмотреть точные файлы реализации переписки после SP-E5-02C до выдачи.\n",
+      "dependsOn": [
+        "SP-E5-02D",
+        "SP-E5-02C"
+      ],
+      "scope": [
+        "resources/widget/widget.js",
+        "app/Seller/Channels/Widget/WidgetSettingsController.php",
+        "tests/Browser/E5-02/widget-contact.spec.ts",
+        "tests/Feature/Seller/Channels/Widget/WidgetSettingsE502DTest.php",
+        "docs/results/SP-E5-02F.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Лимит сообщений и проверка установки виджета"
+      ],
+      "sourceIds": [],
+      "screenIds": [],
+      "notes": "Конкретный остаток принятой частичной сдачи по решению владельца 07.11.",
+      "sourceRefs": [
+        "docs/tasks/SP-E5-02D.md"
+      ],
+      "promptPath": "docs/tasks/SP-E5-02F.md",
+      "wave": 20
     }
   ],
   "excludedSourceTasks": {
