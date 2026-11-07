@@ -59,6 +59,21 @@ if (getenv('E901_ACTION') === 'setup') {
         'conversation_id' => $dialog, 'channel_account_id' => $conversation->channel_account_id, 'role' => 'agent',
         'text' => 'Исходный ответ бота.', 'meta' => '{}', 'created_at' => $at, 'updated_at' => $at]);
     echo 'Ready';
+} elseif (getenv('E901_ACTION') === 'second-brand') {
+    $brandId = (string) Str::ulid();
+    DB::table('brands')->insert(['id' => $brandId, 'organization_id' => $organization, 'name' => 'Второй бренд', 'created_at' => now(), 'updated_at' => now()]);
+    DB::table('brand_modules')->insert(['id' => (string) Str::ulid(), 'organization_id' => $organization, 'brand_id' => $brandId, 'module' => 'seller', 'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
+    $channelId = (string) Str::ulid();
+    DB::table('channel_accounts')->insert(['id' => $channelId, 'organization_id' => $organization, 'brand_id' => $brandId, 'type' => 'api', 'name' => 'API', 'status' => 'active', 'default_mode' => 'manager', 'settings' => '{}', 'created_at' => now(), 'updated_at' => now()]);
+    $contactId = (string) Str::ulid();
+    DB::table('contacts')->insert(['id' => $contactId, 'organization_id' => $organization, 'brand_id' => $brandId, 'name' => 'Клиент второго бренда', 'created_at' => now(), 'updated_at' => now()]);
+    $dialogId = (string) Str::ulid();
+    DB::table('conversations')->insert(['id' => $dialogId, 'organization_id' => $organization, 'brand_id' => $brandId, 'channel_account_id' => $channelId, 'contact_id' => $contactId, 'mode' => 'manager', 'state' => '{}', 'last_client_message_at' => now(), 'created_at' => now(), 'updated_at' => now()]);
+    $eventId = (string) Str::ulid();
+    DB::table('channel_inbound_events')->insert(['id' => $eventId, 'organization_id' => $organization, 'brand_id' => $brandId, 'channel_account_id' => $channelId, 'external_id' => $eventId, 'payload' => '{}', 'processed_at' => now(), 'created_at' => now(), 'updated_at' => now()]);
+    DB::table('messages')->insert(['id' => (string) Str::ulid(), 'channel_account_id' => $channelId, 'external_event_id' => $eventId, 'organization_id' => $organization, 'brand_id' => $brandId,
+        'conversation_id' => $dialogId, 'role' => 'client', 'text' => 'Здравствуйте от второго бренда.', 'meta' => '{}', 'created_at' => now(), 'updated_at' => now()]);
+    echo $brandId;
 } elseif (getenv('E901_ACTION') === 'advance-followups') {
     $at = getenv('E901_AT');
     if (! is_string($at) || $at === '') {
