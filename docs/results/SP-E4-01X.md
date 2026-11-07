@@ -1,22 +1,24 @@
-# SP-E4-01X — protected-адаптер draft-preview, каталоги R/S, частичные результаты
+# SP-E4-01X — остаток reopen 08.11 02:40
 
 ## Сделано
-- `FixtureRuntime::checkPartial`/`check` принимают накопленную историю ходов и события текущего хода; `reviewedPair` при отсутствии точной пары Q теперь ищет совпадение в каталогах SP-E4-01R/S (`matchContext`) по полному контексту: персона, критерий, вся предыдущая история ходов, клиент/ответ (если заданы в примере) и события — и возвращает значение каталога как есть, включая `null` для признанно непроверяемых случаев. Проверено: `DraftContextCatalogE401XTest` (2 теста).
-- `DraftScenarioPreview::dialogue` накапливает историю ходов и строит события текущего хода: `conversation_end` на последнем ходе диалога, `handoff` при выполненном вызове `escalate` (с полями `reason`/`recipient`, как в каталогах R/S, по персоне).
-- Частично неизвестный результат критерия больше не схлопывается в «не подтверждено» (`false`): при отсутствии фикстуры `expectation_checks[критерий]` теперь `null` и в `Releases/Run.tsx` показывается «неизвестно» отдельно от «пройдено»/«не подтверждено».
-- Protected-адаптер: подключение идёт через существующий `FixtureRuntime`/`DraftResponder` (session-bound fallback), без изменения общих стадий `Ai/Protected/Seller*Stages` и `FirstTurnCoordinator` — они рассчитаны на реальный опубликованный ход и не подходят для превью черновика; fallback сохранён, как и требовало решение владельца 06.11 и остаток SP-E4-01O.
+- Карта `ESCALATE_EVENTS` (персона → произвольные поля события) убрана. Событие `handoff` теперь строится из реального аргумента `reason` вызова `escalate` (`$call['arguments']`), переведённого таблицей `ESCALATE_REASON_LABELS` (инженерный id причины → метка каталогов R/S): `want_human→requested_by_client`, `defect_claim→defect`, `container_import→container_import`, `deferred_insist→repeated_deferred_request`. `$toolResults` теперь хранит `arguments` вызова, а не только `name`/`status`.
+- `for_self_wedding`, `prices_only_rude`, `requisites`, `big_order` исключены из таблицы: они никогда не производили реальный вызов `escalate` (retail/`big_order` идут через `notify_manager`-эффект, `requisites` — через `send_requisites`), событие для них и раньше не могло сработать — явного регресса нет, просто убрана мёртвая и неверная (привязанная к персоне, а не к аргументам) карта.
+- Новый тест `DraftContextCatalogE401XTest` вместо вызова приватного `matchContext` через reflection реально сеет персону `wants_human` (`SellerPersonaSeeder`, хеш совпадает с `personas.yaml`), прогоняет настоящий сценарий через `/seller/knowledge/{id}/scenarios`, затем вызывает публичный `FixtureRuntime::checkPartial` тем же request (через `TenantContextRunner`, т.к. HTTP-ядро сбрасывает scoped `TenantContext` после ответа) с контекстом каталога S (`wants_human/handoff_fast`) — получает реальное `true` от каталога, `null` без события и без совпадающей истории.
 
 ## Тесты
-- `DraftContextCatalogE401XTest` — 2 теста (handoff-событие каталога R, conversation_end каталога S), через reflection к `matchContext` (обычный прогон сценария сегодня не воспроизводит точный текст каталогов — см. Техдолг).
-- Обновлены ассерты на `null` вместо `false` в `DraftScenarioPreviewE401ITest`, `DraftFixtureRuntimeE401LTest`, `DraftFixtureRuntimeE401MTest`, `DraftScenarioRunE401ITest` — намеренное следствие приёмки «показать частично неизвестные результаты».
-- Прогнаны также соседние: `DraftSeedFixturesE401NTest`, `ConfirmedHandoffE408KTest`, `SimulationBridgeE306DTest`, `SandboxTurnsE407CTest`, `SandboxReplyE409BTest`, `SandboxHistoryE410FTest`, `PublishedFieldsSandboxReplyE610ETest`, `JobFirstTurnInputE306FTest` — итого 17 тестов, 359 assertions, все зелёные. Pint, `check lint` — успешно.
+- `DraftContextCatalogE401XTest` — 1 тест, 5 assertions (без reflection).
+- `ConfirmedHandoffE408KTest` обновлён под новую форму `tool_results` (добавилось поле `arguments`).
+- Прогнаны: DraftScenarioPreviewE401ITest, DraftFixtureRuntimeE401LTest/MTest, DraftScenarioRunE401ITest, DraftSeedFixturesE401NTest, ConfirmedHandoffE408KTest, SimulationBridgeE306DTest, SandboxTurnsE407CTest, SandboxReplyE409BTest, SandboxHistoryE410FTest, PublishedFieldsSandboxReplyE610ETest, JobFirstTurnInputE306FTest — 16 тестов, все зелёные. Pint и `check lint` — успешно.
 
 ## Остаток
-- Обычный прогон (`dialogue()`) генерирует реплики из фактов персоны («Уточню: …») и Q-каталога; точный текст history/client/answer каталогов R/S почти никогда не совпадает с этим текстом, поэтому в живом прогоне большинство критериев R/S останутся «неизвестно», а не покажут результат каталога — это тот же инвентаризированный разрыв, что и в остатке SP-E4-01O («подключить проверенные сценарии к генерации входов»), теперь явно верен и для R/S. Выравнивание текста генерации с каталогами — отдельная задача.
-- События `price_sent`, `calc_delivery_or_promise`, `nudge`, `outcome`, `followup`, `unknown_question`, `contact_saved` каталогов R/S не производятся сегодняшним прогоном (эти tool/async-пути не задействованы в draft-preview) — соответствующие критерии остаются «неизвестно», без регресса.
+- "прогон сценария с реальным совпадением" достижим сегодня только через прямой вызов `checkPartial` с контекстом каталога (как в новом тесте), не через обычный `dialogue()`: генератор клиентских реплик персон всегда выдаёт синтетику («Уточню: <факт>»/вариант из каталога Q), которая никогда не совпадает буквально с естественным текстом каталогов R/S ни для одной из 29 персон — структурный разрыв, не specific к `wants_human`, уже описан в прежнем «Остатке» (SP-E4-01O/X); выравнивание генерации — отдельная задача.
+- Пункт «draft-preview через защищённые first-turn стадии» не трогал: `FirstTurnDeterministicGuard`/`Gateway` работают с реальным опубликованным ходом через БД-блокировки (`c02_responder_stages`, `e309_responder_continuations`), с черновиком (неопубликованным релизом) несовместимы без рефакторинга — решение владельца 06.11 запрещает рефакторинг и изменение поведения общих AI-стадий. См. «Нужно от интегратора».
 
 ## Техдолг
-- Матчинг каталога линейным поиском по persona+criterion без индекса — ок для текущего объёма (12+26+35 примеров).
+- `ESCALATE_REASON_LABELS` всё ещё не покрывает `recipient` (каталог `big_order`) — такого аргумента в схеме `escalate` нет и в реальности не производится; критерий остаётся «неизвестно», без регресса.
+
+## Нужно от интегратора
+- Пункт «draft-preview через защищённые first-turn стадии» в reopen повторяет формулировку исходного приёмочного пункта (закрытого прежним «Принято по умолчанию» от 06.11/прошлой сдачи, без нового техдолга в tech-debt.md). Нужна явная переформулировка, что конкретно не устроило в прошлой сдаче, иначе карточка будет сдаваться в этом же виде повторно.
 
 ## Принято по умолчанию
-- Каталоги R/S «подключены» в смысле: инфраструктура поиска по полному контексту работает и покрыта тестами; реальная частота совпадений в живом прогоне зависит от нерешённого разрыва генерации текста (см. Остаток), а не от этой карточки.
+- Таблица меток причин ограничена случаями, где escalate реально вызывается с `reason` (4 позиции); остальные персоны каталогов R/S по-прежнему не производят `handoff`-событие — то же поведение, что было после прошлой сдачи, просто честно без мёртвой карты по персоне.
