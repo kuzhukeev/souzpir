@@ -29,6 +29,7 @@ final class MultiMergeE820VTest extends TenancyTestCase
         });
         $this->post('/vision/competitors/merge', [])->assertRedirect();
         $recalculation = \Mockery::mock(app(RecalculateMergedReport::class));
+        $recalculation->shouldReceive('assertRecalculable')->zeroOrMoreTimes();
         $recalculation->shouldReceive('create')->zeroOrMoreTimes()->andReturn('fixture');
         app()->instance(RecalculateMergedReport::class, $recalculation);
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
