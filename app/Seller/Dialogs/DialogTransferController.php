@@ -14,6 +14,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 final class DialogTransferController
@@ -49,6 +50,8 @@ final class DialogTransferController
             $query->update(['mode' => 'manager', 'assigned_user_id' => $recipient['id'], 'taken_at' => now(), 'version' => $row->version + 1, 'updated_at' => now()]);
             app(AuditWriter::class)->record($context, new AuditEntry('seller.dialog.transferred', 'conversation', $row->id,
                 before: ['assigned_user_id' => $row->assigned_user_id], after: ['assigned_user_id' => $recipient['id'], 'recipient_name' => $recipient['name']]));
+            NotifyDialogEvent::dispatch($context->organizationId, $context->brandId, $row->id,
+                'seller.conversation.handed_off', ['reason' => 'manual_transfer', 'task_id' => (string) Str::ulid()])->afterCommit();
         });
 
         return redirect('/seller/dialogs/'.$dialog)->with('status', 'Диалог передан.');
