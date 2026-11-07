@@ -25,7 +25,7 @@ abstract class TestCase extends BaseTestCase
 
         // Artisan may bootstrap the local environment before spawning PHPUnit.
         // Do not inherit its storage/cache paths into the isolated test runtime.
-        $runtime = str_replace('\\', '/', $expected).'/.local/runtime/testing';
+        $runtime = str_replace('\\', '/', $expected).'/.local/runtime/t';
         $parallelToken = $_SERVER['TEST_TOKEN'] ?? null;
         $parallelWorker = ! empty($_SERVER['LARAVEL_PARALLEL_TESTING'])
             && is_string($parallelToken) && ctype_digit($parallelToken);
