@@ -3,6 +3,8 @@
 namespace App\Seller\Channels\Widget;
 
 use App\Seller\Runtime\WidgetInboundRuntime;
+use App\Shell\Plans\MonthlyUnits;
+use App\Tenancy\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -61,6 +63,12 @@ final class WidgetSessionController
         $session = self::session($widget, $origin, $request->input('token'));
         if (! $session) {
             return $this->response(response()->json(['message' => 'Сессия недоступна.'], 404), $origin);
+        }
+        if (! $session->conversation_id) {
+            $tenant = new TenantContext($widget->organization_id, $widget->brand_id, source: 'public');
+            if (app(MonthlyUnits::class)->exhausted($tenant, 'dialog')) {
+                return $this->response(response()->json(['message' => 'Чат временно недоступен.'], 503), $origin);
+            }
         }
         $page = $request->input('page', 'home');
         if ($session->page === null) {

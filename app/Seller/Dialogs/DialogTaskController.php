@@ -5,6 +5,7 @@ namespace App\Seller\Dialogs;
 use App\Models\Membership;
 use App\Models\User;
 use App\Seller\Settings\Limits\SellerModuleAccess;
+use App\Seller\Tasks\NotifyDialogEvent;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
 use App\Shell\Profile\ProfileAccess;
@@ -34,6 +35,8 @@ final class DialogTaskController
                 'payload' => json_encode(['text' => $input['text']], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE), 'due_at' => $input['due_at'],
                 'status' => 'new', 'priority' => 'normal', 'assigned_user_id' => $actor->id, 'created_at' => now(), 'updated_at' => now()]);
             app(AuditWriter::class)->record($context, new AuditEntry('seller.dialog.reminder.created', 'seller_task', $id));
+            NotifyDialogEvent::dispatch($context->organizationId, $context->brandId, $row->id,
+                'seller.contact.reminder', ['reminder_id' => $id, 'user_id' => $actor->id])->afterCommit();
         });
 
         return back()->with('status', 'Напоминание создано.');
