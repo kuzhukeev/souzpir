@@ -1,20 +1,24 @@
-# SP-E6-04G — инструменты полного защищённого хода
+# SP-E6-04G — остаток экрана D-5.7 «Действия бота»
 
-- Остаток SP-E6-04E/SP-E6-03L: tool `escalate` из `allowedTools` handoff-цели больше не возвращает `unavailable`. Новый `App\Seller\Engine\Tools\EscalateToManager` (идемпотентно, по образцу `ProtectedPriceSender`) создаёт `seller_tasks` (`type=handoff`, `priority=urgent`) и шлёт уже существующее уведомление менеджерам `NotifyDialogEvent` (`seller.conversation.handed_off`, тот же путь, что у ручной передачи диалога) — фейковый, только внутрикабинетный канал, без внешних вызовов.
-- Подключено в `FirstTurnCoordinator::executeTools` отдельным случаем `match`, рядом с `calc_delivery`/`send_price`; `ToolRunner` не трогал (он декларативно side-effect-free dispatcher, остаётся таким).
-- Права и бренд: `EscalateToManager` отбрасывает запрос, если `tenant` не совпадает с брендом/организацией хода (как у `ProtectedPriceSender`); идемпотентность по ключу `responder:tool_id` через `PostgresTransactionalIdempotency`.
+Scope сужен планировщиком 08.11 до Tools.tsx/ToolSettingsController.php; предыдущая часть (tool `escalate`, коммит 7c4e1df0) уже на main — не трогал.
+
+- Описание (строка-подзаголовок под каждым действием): добавлена константа `descriptions` в `Tools.tsx`, тексты по макету `mockups D-5.7-main`. Проверено: **mockups D-5.7-main.webp**.
+- «Вызовы за 30 дней» для всех действий, не только `create_promise`: контроллер теперь считает и `escalate` (из `seller_tasks` `type=handoff` — единственный источник этого типа, пишет только `EscalateToManager`). Для остальных 7 действий источника вызовов в коде нет — остаётся «нет данных», новых журналов не вводил.
+- Состояния загрузки/пусто/ошибки (макет `mockups D-5.7-states`): кнопка «Обновить» делает `router.reload({only:['callCounts','toolsLoadError']})`; skeleton (animate-pulse, `role=status`), ошибка (`role=alert` + «Повторить», `toolsLoadError` из контроллера при `QueryException`), пустое состояние («Данные о вызовах пока недоступны» + «Обновить», когда все счётчики null). Остальная форма (тумблеры, зоны, реквизиты) не блокируется — так проще и не ломает сохранение настроек.
+- Проверено: **mockups D-5.7-settings.webp** — блок уже существовал (per-tool настройки), не трогал, вне диффа.
 
 ## Тесты
-- `tests/Feature/ProtectedOperations/FirstTurnStateTest.php::test_coordinator_escalates_through_fake_notification_sp_e6_04g` — полный защищённый ход (`FirstTurnCoordinator::run`) с реальным tool-call `escalate`: диалог переходит в `mode=manager`/`stage=handoff`, создаётся `seller_tasks` (`handoff`), пушится `NotifyDialogEvent` с нужными полями; повторный вызов хода не дублирует задачу/уведомление.
-- Не прогнан локально: файл защищён самопроверкой изолированной тестовой БД (`rolcreatedb`/`rolsuper` должны быть выключены), у роли БД слота exec-19 `rolcreatedb=1` — тот же известный техдолг среды, что и в отчёте SP-E6-03L. Проверено: `php -l`, Pint (`composer lint`, зелёный), `check-test-suite-coverage.py` (зелёный, новый тест — в уже зарегистрированном файле).
-- Регрессия: `tests/Unit/Seller/Engine/ToolRunnerTest.php`, `tests/Feature/Seller/Engine/ToolRunnerE604JTest.php`, `tests/Feature/Seller/Engine/ClosedTopicNextActionE410LTest.php`, `tests/Unit/Seller/Engine/Tool{Golden,Catalog,Arguments}Test.php`, `tests/Unit/Seller/Settings/Tools/ToolSettingsTest.php` — все зелёные (16+4 теста), `ToolRunner.php` не менялся.
+- `tests/Feature/Seller/Settings/Tools/ToolCallCountsE604GTest.php` (новый, 2 теста): счётчик `escalate` по бренду/30 дням + изоляция от другого бренда; `toolsLoadError=true` и `callCounts=[]` при `QueryException` на `audit_logs` (через `DB::listen`, без моков).
+- `tests/Browser/E6-04G/tools.spec.ts` (новый, Playwright, свой Vite-сервер в beforeAll/afterAll): видимость описаний, skeleton при клике «Обновить» (перехват запроса через `page.route`), ошибка+«Повторить», пустое состояние. 1440/1024/390 — без горизонтального overflow (ad hoc проверка, не в составе набора). Скриншот `.local/screenshots/SP-E6-04G/tools-1440.png`.
+- Регрессия: `tests/Feature/Seller/Settings/Tools/` — 9 прошли (включая существующий `ToolCallCountsE604HTest` для `create_promise`), 2 падают по известному техдолгу среды (`rolcreatedb=1` у роли слота, гейт `IsolatedDatabaseMigrations`, не из-за моих правок).
+- `check lint` (composer validate/Pint, check-test-suite-coverage.py) и `tsc --noEmit` — зелёные.
 
 ## Остаток
-- «Подключить реквизиты» (send_requisites) и автонотификацию `notify_manager`/`manager_notified` (крупный заказ) требуют правок в `FirstTurnTextFinalizer.php` — файл занят SP-E7-04M/SP-E5-04N, вне scope этой карточки.
-- Tool `create_promise` (готовый `App\Seller\Engine\CreatePromise`) всё ещё не подключён к `FirstTurnCoordinator::executeTools` — отдельное действие, не упомянутое в явном остатке этой карточки; не трогал, чтобы не расширять scope.
+- D-5.3/D-5.7 «настройки применяются не в полном ходе» — вне этой части (полный ход в SP-E4-01X), как указано в карточке.
+- Экран не превращён в отдельную read-only таблицу «как на макете» — оставлен как объединённая форма настроек (список + тумблеры), т.к. переделка архитектуры страницы вне узкого scope.
 
 ## Техдолг
-- Среда exec-19: роль БД слота с `rolcreatedb=1` не проходит защитный гейт `FirstTurnStateTest`/аналогичных файлов — не даёт локально гонять этот набор (как и в SP-E6-03L).
+- Среда exec-9: роль БД слота с `rolcreatedb=1` не проходит гейт `IsolatedDatabaseMigrations` — не даёт локально гонять `ToolSourcesE604JTest`/аналоги (тот же техдолг, что в прежних отчётах SP-E6-03L/SP-E6-04G).
 
 ## Принято по умолчанию
-- Side-effect для escalate реализован отдельным классом `app/Seller/Engine/Tools/EscalateToManager.php`, вызываемым из координатора, а не телом `ToolRunner::run` — сохраняет его собственный контракт «side-effect-free dispatcher» (докблок класса) и тот же паттерн, что уже используют `calc_delivery`/`send_price`.
+- Счётчик `escalate` взят из `seller_tasks.type='handoff'` как единственного недвусмысленного источника; остальные типы (`reminder`, `promise`) не использовал для других тулов — они смешаны с нетул-источниками (напоминания о передаче по таймауту, ручные напоминания), что дало бы неверные цифры.
