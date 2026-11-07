@@ -146,6 +146,7 @@ test('real pages after creating knowledge through the UI', async ({ page, browse
     expect(status, path).toBe(200);
     await expect(page).toHaveURL(`${origin}${path}`);
     await expect(page.locator('h1').first()).toBeVisible();
+    await expect(page.locator('[aria-busy="true"]')).toHaveCount(0, { timeout: 15000 });
     if (name === 'd23') {
       await page.goto(`${origin}/seller/dialogs/mine?search=${encodeURIComponent('Посетитель')}`);
       await page.getByRole('button', { name: /Посетитель виджета/ }).first().click();

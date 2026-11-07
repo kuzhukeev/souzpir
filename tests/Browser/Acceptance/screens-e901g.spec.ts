@@ -95,6 +95,7 @@ test('real pages on an isolated test brand', async ({ page }) => {
     expect(status, path).toBe(200);
     await expect(page).toHaveURL(`${origin}${path}`);
     await expect(page.locator('h1').first()).toBeVisible();
+    await expect(page.locator('[aria-busy="true"]')).toHaveCount(0, { timeout: 15000 });
     await page.addScriptTag({ path: 'node_modules/axe-core/axe.min.js' });
     const violations: Record<number, unknown> = {};
     results[name] = { path, status, violations };
