@@ -20,6 +20,28 @@ use Inertia\Inertia;
 
 final class SourcesController
 {
+    /** Static Russian reference by source type; no AI, no live calls. */
+    private const TYPE_DESCRIPTIONS = ['maps' => 'Картографический сервис с карточками компаний.',
+        'marketplace' => 'Торговая площадка с карточками продавцов.', 'rating' => 'Сервис отзывов и оценок компаний.',
+        'forum' => 'Форум с обсуждениями и рекомендациями.', 'media' => 'Отраслевой медиа-ресурс.',
+        'catalog' => 'Каталог компаний и поставщиков.', 'other' => 'Площадка без определённого типа.'];
+
+    /** Base placement effort by source type: 1 просто, 2 средне, 3 сложно. */
+    private const COMPLEXITY_BASE = ['catalog' => 1, 'maps' => 1, 'forum' => 1,
+        'rating' => 2, 'marketplace' => 2, 'other' => 2, 'media' => 3];
+
+    private const COMPLEXITY_LABELS = [1 => 'просто', 2 => 'средне', 3 => 'сложно'];
+
+    /** Simple rule from snapshot data: base by type, harder when type is ambiguous, easier when the site has several indexed pages. */
+    private function complexity(string $type, bool $typeConflict, int $urlCount): string
+    {
+        $level = self::COMPLEXITY_BASE[$type] ?? self::COMPLEXITY_BASE['other'];
+        $level += $typeConflict ? 1 : 0;
+        $level -= $urlCount >= 3 ? 1 : 0;
+
+        return self::COMPLEXITY_LABELS[max(1, min(3, $level))];
+    }
+
     private function access(Request $request, string $permission, callable $callback): mixed
     {
         return app(ProfileAccess::class)->run($request, function (User $user, TenantContext $tenant) use ($permission, $callback) {
@@ -76,9 +98,12 @@ final class SourcesController
 
                 $action = $actions->get("Проверить присутствие бренда на площадке {$source['domain']}.");
 
+                $type = is_string($source['type'] ?? null) ? $source['type'] : 'other';
+
                 return ['domain' => $source['domain'], 'answers' => $source['answers'], 'citations' => $citations,
-                    'type' => ReportPreparation::SOURCE_TYPES[$source['type'] ?? 'other'] ?? ReportPreparation::SOURCE_TYPES['other'],
-                    'description' => is_string($source['description'] ?? null) ? $source['description'] : null,
+                    'type' => ReportPreparation::SOURCE_TYPES[$type] ?? ReportPreparation::SOURCE_TYPES['other'],
+                    'description' => self::TYPE_DESCRIPTIONS[$type] ?? self::TYPE_DESCRIPTIONS['other'],
+                    'complexity' => $this->complexity($type, (bool) ($source['type_conflict'] ?? false), (int) ($source['url_count'] ?? 0)),
                     'profile_url' => $profiles[$source['domain']] ?? null, 'presence' => $presence[$source['domain']] ?? 'unknown', 'competitors' => array_values(array_unique($competitors)), 'models' => array_values(array_unique($models)), 'examples' => array_slice($examples, 0, 20),
                     'action_id' => $action?->id, 'action_status' => $action ? ($action->completed_at ? 'completed' : $action->status) : null];
             })->values()->all();
