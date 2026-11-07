@@ -75,14 +75,18 @@ final class SettingsController
 
             $usedSlots = app(MonthlyUnits::class)->usage($tenant)['slots'];
             $limit = app(PlanLimits::class)->get($tenant, 'vision.slots_month')->value;
+            $completedQuery = DB::table('measurements')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
+                ->where('status', 'completed')->whereNotNull('finished_at');
+            $totalCompleted = (clone $completedQuery)->count();
             $history = DB::table('measurements as m')->leftJoin('measurement_answers as a', function ($join): void {
                 $join->on('a.measurement_id', '=', 'm.id')->on('a.organization_id', '=', 'm.organization_id')->on('a.brand_id', '=', 'm.brand_id');
             })->where('m.organization_id', $tenant->organizationId)->where('m.brand_id', $tenant->brandId)
                 ->where('m.status', 'completed')->whereNotNull('m.finished_at')
                 ->groupBy('m.id', 'm.finished_at')->orderByDesc('m.finished_at')->orderByDesc('m.id')->limit(20)
-                ->get(['m.id', 'm.finished_at', DB::raw('count(a.id) as slots')])
-                ->map(fn ($row) => ['id' => $row->id, 'finished_at' => $row->finished_at, 'slots' => (int) $row->slots])->all();
-            $slotSummary = ['used' => $usedSlots, 'limit' => $limit, 'remaining' => is_numeric($limit) ? max(0, (int) floor((float) $limit) - $usedSlots) : null, 'history' => $history];
+                ->get(['m.id', 'm.finished_at', DB::raw('count(a.id) as slots'), DB::raw('count(distinct a.question_n) as questions'), DB::raw('count(distinct a.provider) as models'), DB::raw('count(distinct a.run_no) as runs')])
+                ->values()->map(fn ($row, int $index) => ['id' => $row->id, 'number' => $totalCompleted - $index, 'finished_at' => $row->finished_at, 'slots' => (int) $row->slots, 'questions' => (int) $row->questions, 'models' => (int) $row->models, 'runs' => (int) $row->runs])->all();
+            $percent = is_numeric($limit) && (float) $limit > 0 ? (int) round($usedSlots / (float) $limit * 100) : null;
+            $slotSummary = ['used' => $usedSlots, 'limit' => $limit, 'percent' => $percent, 'remaining' => is_numeric($limit) ? max(0, (int) floor((float) $limit) - $usedSlots) : null, 'history' => $history];
 
             $canManagePersonal = Gate::allows('vision.settings.write');
             $mayShowPersonalUrl = $canManagePersonal && $request->session()->get('personal_report_brand') === $tenant->brandId;
