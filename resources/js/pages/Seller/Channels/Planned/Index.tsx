@@ -1,6 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import { useState } from 'react';
-import { CalendarDays, Link2, Mail, MessageCircle, Store } from 'lucide-react';
+import { CalendarDays, Link2, Mail, MessageCircle, Phone, Store } from 'lucide-react';
 import { Badge, Button, Switch } from '@/components/ui';
 import CabinetLayout from '@/layouts/CabinetLayout';
 import { focus } from '@/components/ui/styles';
@@ -18,12 +18,13 @@ const titles = {
 } as const;
 
 function Channel({ item, section, canManage, available, brandId }: { item: PlannedItem; section: 'vk' | 'whatsapp'; canManage: boolean; available: boolean; brandId: string }) {
-  return <section aria-labelledby="channel-title" className={`${panel} mx-auto mt-10 max-w-3xl text-center`}>
-    <div aria-hidden="true" className={`${icon} mx-auto`}>{section === 'vk' ? <span className="text-2xl font-bold">VK</span> : <MessageCircle size={38} />}</div>
-    <div className="mt-5 flex flex-wrap items-center justify-center gap-3"><h2 id="channel-title" className="text-2xl font-bold">{section === 'vk' ? 'ВКонтакте' : 'Подключение WhatsApp'}</h2><Badge tone="warning">Скоро</Badge></div>
+  return <section aria-labelledby="channel-title" className={`${panel} mx-auto mt-10 max-w-3xl text-center sm:px-10 sm:py-12`}>
+    {section === 'vk' ? <div aria-hidden="true" className="mx-auto grid size-24 place-items-center rounded-3xl bg-blue-600 text-3xl font-bold text-white">VK</div> : <div aria-hidden="true" className="relative mx-auto grid size-32 place-items-center rounded-full bg-green-50 text-green-600"><MessageCircle size={68} /><Phone size={28} className="absolute" /></div>}
+    <div className={`mt-6 flex flex-wrap items-center justify-center gap-3 ${section === 'whatsapp' ? 'flex-col' : ''}`}><h2 id="channel-title" className="text-2xl font-bold">{section === 'vk' ? 'ВКонтакте' : 'Подключение WhatsApp'}</h2><Badge tone="warning">Скоро</Badge></div>
     <p className="mt-4 text-base text-(--color-ink-muted)">{section === 'vk' ? 'Подключение канала пока недоступно.' : 'Подключение планируется через WhatsApp Business API (WABA) с помощью провайдера.'}</p>
     {section === 'vk' && <div className="my-6 border-t border-(--color-border) pt-6 text-left sm:mx-auto sm:max-w-sm"><h3 className="text-lg font-bold">Что понадобится</h3><p className="mt-3 flex items-center gap-3"><Link2 aria-hidden="true" size={22} className="text-(--color-link)" />Токен сообщества ВКонтакте</p></div>}
     <div className="mt-6"><Interest item={item} canManage={canManage} available={available} brandId={brandId} /></div>
+    {section === 'whatsapp' && <div className="mt-8 border-t border-(--color-border) pt-5"><Link href="/seller/channels" aria-label="Вернуться к каналам" className={`inline-flex min-h-10 cursor-pointer items-center text-sm font-semibold text-(--color-link) ${focus}`}><span aria-hidden="true" className="mr-2">←</span>Вернуться к каналам</Link></div>}
   </section>;
 }
 
@@ -47,13 +48,13 @@ function Calendar({ planned }: Pick<PlannedProps, 'planned'>) {
     } finally { setBusy(false); }
   }
   return <div className="space-y-5">
-    <section className={`${panel} flex flex-wrap items-start gap-6`} aria-labelledby="calendar-title">
-      <div aria-hidden="true" className={icon}><CalendarDays size={36} /></div>
+    <section className={`${panel} flex flex-wrap items-start gap-6 sm:gap-10 sm:p-8`} aria-labelledby="calendar-title">
+      <div aria-hidden="true" className={`${icon} sm:size-28`}><CalendarDays size={48} /></div>
       <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-3"><h2 id="calendar-title" className="text-2xl font-bold">Запись на звонок</h2><Badge tone="warning">Скоро</Badge></div><p className="mt-3 text-base text-(--color-ink-muted)">Бот сможет записывать клиента на звонок в свободный слот менеджера.</p>{calendar && <div className="mt-5"><Interest item={calendar} canManage={planned.canManage} available={planned.interestAvailable} brandId={planned.brandId} /></div>}</div>
     </section>
-    <section className={`${panel} flex flex-wrap items-start gap-6`} aria-labelledby="reminders-title">
-      <div aria-hidden="true" className={icon}><Mail size={36} /></div>
-      <div className="min-w-0 flex-1"><h2 id="reminders-title" className="text-2xl font-bold">Напоминания о договорённостях</h2><div className="mt-5"><Switch label="Напоминания на почту менеджеру" checked={enabled} onChange={setEnabled} disabled={!planned.canManage || !planned.reminders.available || busy} /></div><p className="mt-3 text-sm text-(--color-ink-muted)">{planned.reminders.reason || 'Напоминания пока недоступны.'}</p>{planned.reminders.available && <p className="mt-1 text-sm text-(--color-ink-muted)">Менеджер может настроить уведомления в профиле.</p>}</div>
+    <section className={`${panel} flex flex-wrap items-start gap-6 sm:gap-10 sm:p-8`} aria-labelledby="reminders-title">
+      <div aria-hidden="true" className={`${icon} sm:size-28`}><Mail size={48} /></div>
+      <div className="min-w-0 flex-1"><h2 id="reminders-title" className="text-2xl font-bold">Напоминания о договорённостях</h2><div className="mt-5 max-w-2xl [&>button]:w-full [&>button]:flex-row-reverse [&>button]:justify-between [&>button]:gap-5 [&>button]:text-left"><Switch label="Напоминания о договорённостях на почту менеджеру" checked={enabled} onChange={setEnabled} disabled={!planned.canManage || !planned.reminders.available || busy} /></div><p className="mt-3 text-sm text-(--color-ink-muted)">{planned.reminders.reason || 'Напоминания пока недоступны.'}</p>{planned.reminders.available && <p className="mt-1 text-sm text-(--color-ink-muted)">Менеджер может настроить уведомления в профиле.</p>}</div>
     </section>
     <div className="flex flex-wrap items-center justify-end gap-3"><span role="status" className="text-sm text-(--color-success-ink)">{notice}</span>{error && <span role="alert" className="text-sm text-(--color-danger-ink)">{error}</span>}<Button onClick={() => void save()} loading={busy} disabled={!planned.canManage || !planned.reminders.available || enabled === original}>Сохранить изменения</Button></div>
   </div>;
@@ -79,8 +80,10 @@ export default function Index({ section, planned }: PlannedProps) {
         <Link href="/seller/integrations/calendar" className={`inline-flex min-h-10 cursor-pointer items-center rounded-lg bg-(--color-surface) px-4 text-sm font-semibold text-(--color-link) ${focus}`}>Почта и календарь · Скоро</Link>
       </nav>}
       {section === 'planned' && <Integrations planned={planned} />}
-      {section === 'whatsapp' && <Link href="/seller/channels" className={`inline-flex min-h-10 cursor-pointer items-center text-sm font-semibold text-(--color-link) ${focus}`}>Вернуться к каналам</Link>}
-      {section !== 'planned' && <Link href="/seller/integrations/planned" className={`inline-flex min-h-10 cursor-pointer items-center text-sm font-semibold text-(--color-link) ${focus}`}>Другие будущие интеграции</Link>}
+      {section !== 'planned' && <nav aria-label="Переходы к каналам и интеграциям" className="flex flex-wrap gap-x-6 gap-y-1">
+        {section === 'vk' && <Link href="/seller/channels" className={`inline-flex min-h-10 cursor-pointer items-center text-sm font-semibold text-(--color-link) ${focus}`}>Вернуться к каналам</Link>}
+        <Link href="/seller/integrations/planned" className={`inline-flex min-h-10 cursor-pointer items-center text-sm font-semibold text-(--color-link) ${focus}`}>Другие будущие интеграции</Link>
+      </nav>}
     </div>
   </CabinetLayout>;
 }
