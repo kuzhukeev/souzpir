@@ -37,7 +37,7 @@ final class ScheduleController
         $raw = DB::table('seller_schedule_preferences')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->value('payload');
         $data = $raw ? json_decode($raw, true) : [];
 
-        return array_replace(['mode' => 'autonomous', 'week' => [], 'holidays' => [], 'assignment' => ['method' => 'first_taken', 'fixed' => null, 'members' => []]], is_array($data) ? $data : []);
+        return array_replace(['mode' => 'autonomous', 'week' => [], 'holidays' => [], 'assignment' => ['method' => 'first_taken', 'fixed' => null, 'members' => [], 'notify_minutes' => null, 'notify_target' => 'all_managers']], is_array($data) ? $data : []);
     }
 
     private function save(TenantContext $tenant, array $data): void
@@ -102,7 +102,15 @@ final class ScheduleController
     public function updateAssignment(Request $request): mixed
     {
         $input = $request->validate(['method' => ['required', 'in:first_taken,round_robin,fixed'], 'fixed' => ['nullable', 'ulid'], 'members' => ['present', 'array', 'max:100'],
-            'members.*.id' => ['required', 'ulid'], 'members.*.enabled' => ['required', 'boolean'], 'members.*.max_active' => ['nullable', 'integer', 'min:1', 'max:1000']]);
+            'members.*.id' => ['required', 'ulid'], 'members.*.enabled' => ['required', 'boolean'], 'members.*.max_active' => ['nullable', 'integer', 'min:1', 'max:1000'],
+            'members.*.hours' => ['nullable', 'array'], 'members.*.hours.start' => ['required_with:members.*.hours', 'date_format:H:i'], 'members.*.hours.end' => ['required_with:members.*.hours', 'date_format:H:i'],
+            'members.*.channels' => ['nullable', 'array'], 'members.*.channels.*' => ['in:telegram,widget,api,email,whatsapp'],
+            'notify_minutes' => ['nullable', 'integer', 'min:1', 'max:10080'], 'notify_target' => ['required', 'in:all_managers,owner']]);
+        foreach ($input['members'] as $entry) {
+            if (is_array($entry['hours'] ?? null) && $entry['hours']['start'] >= $entry['hours']['end']) {
+                throw ValidationException::withMessages(['members' => 'Время окончания должно быть позже начала.']);
+            }
+        }
         $this->access($request, function (User $user, TenantContext $tenant) use ($input): void {
             $ids = array_column($this->members($tenant), 'id');
             if (array_diff(array_column($input['members'], 'id'), $ids) || (! empty($input['fixed']) && ! in_array($input['fixed'], $ids, true))) {
