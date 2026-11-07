@@ -11,6 +11,20 @@ test('report waits for incomplete questionnaire', async ({ page }) => {
  await page.route('**/vision/runs/revision', route => route.fulfill({ json: { revision } }));
  await page.goto(url);
  await expect(page.getByText('Откроется после завершения анкеты.')).toBeVisible();
+ await expect(page.getByRole('link', { name: 'Перейти к анкете →' })).toBeVisible();
  await mkdir('.local/screenshots/SP-E8-18J', { recursive: true });
  await page.screenshot({ path: '.local/screenshots/SP-E8-18J/report.png', fullPage: true });
+});
+test('KPI shows delta in п.п. and action card shows priority', async ({ page }) => {
+ const revision = 'a'.repeat(64);
+ const sections = { site: null, competitors: [], gaps: [], facts: [], sources: [], source_distribution: [],
+  actions: [{ title: 'Обновить сайт', why: 'Найден пробел', priority: 'Высокий' }],
+  changes: { rows: [{ label: 'Видимость', before: 20, after: 26, delta: 6 }, { label: 'Доля голоса', before: 30, after: 24, delta: -6 }, { label: 'Средняя позиция', before: 3, after: 2.4, delta: -0.6 }], new_competitors: [], appeared: [], disappeared: [] } };
+ const data = { revision, confirmed: [], reports: [], report: { id: 'r', measurement_id: 'm', visibility: 26, visibility_kind: 'full', coverage: 100, share_of_voice: 24, position: 2.4, verified_errors: 3, providers: [], questions: 2, evidence_status: 'available', sections } };
+ await page.route('**/vision/report/data**', route => route.fulfill({ json: data }));
+ await page.route('**/vision/runs/revision', route => route.fulfill({ json: { revision } }));
+ await page.goto(url);
+ await expect(page.getByText('+6 п.п.', { exact: true })).toBeVisible();
+ await expect(page.getByText('-6 п.п.', { exact: true })).toBeVisible();
+ await expect(page.locator('#actions').getByText('Приоритет: Высокий')).toBeVisible();
 });
