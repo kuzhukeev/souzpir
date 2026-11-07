@@ -36,7 +36,22 @@ final class ConditionsController
             $draft = $this->draft($tenant);
             $conditions = $draft ? app(KnowledgeRepository::class)->forRelease($tenant, $draft->id, true)->conditions() : null;
 
-            return ['draft' => $draft, 'conditions' => $conditions];
+            $factLinks = [];
+            if ($draft) {
+                $facts = DB::table('kn_facts as f')->join('kn_fact_groups as g', 'g.id', '=', 'f.group_id')
+                    ->where('g.release_id', $draft->id)->where('f.status', 'active')->orderBy('g.position')->orderBy('f.position')
+                    ->get(['f.id', 'f.text']);
+                foreach ($facts as $fact) {
+                    preg_match_all('/\{cond:([a-zA-Z0-9_.]+)\}/u', $fact->text, $matches);
+                    foreach (array_unique($matches[1]) as $key) {
+                        if (data_get($conditions, $key) !== null && data_get($conditions, $key) !== []) {
+                            $factLinks[$key][] = ['id' => $fact->id, 'text' => $fact->text];
+                        }
+                    }
+                }
+            }
+
+            return ['draft' => $draft, 'conditions' => $conditions, 'factLinks' => $factLinks];
         });
 
         return Inertia::render('Seller/Knowledge/Conditions/Index', [...$data, 'status' => session('status')]);
@@ -47,6 +62,13 @@ final class ConditionsController
         $input = $request->validate(['version' => ['required', 'integer', 'min:1'], 'min_order_rub' => ['nullable', 'numeric', 'min:0', 'max:999999999'],
             'offseason_min_order_rub' => ['nullable', 'numeric', 'min:0', 'max:999999999'], 'reserve_days' => ['nullable', 'integer', 'min:0', 'max:365'],
             'max_pct_unapproved' => ['required', 'integer', 'min:0', 'max:100'], 'new_client_bonus_pct' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'min_order_quantity' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:999999999'],
+            'prepayment_pct' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:100'],
+            'availability' => ['sometimes', 'nullable', 'string', 'max:2000'],
+            'other_conditions' => ['sometimes', 'nullable', 'string', 'max:2000'],
+            'deferred_payment' => ['sometimes', 'array'],
+            'deferred_payment.new_clients' => ['nullable', 'string', 'max:255'],
+            'deferred_payment.regular_clients' => ['nullable', 'string', 'max:255'],
             'discount_grid' => ['sometimes', 'array', 'max:50'], 'discount_grid.*.from' => ['required', 'numeric', 'min:0', 'max:999999999'],
             'discount_grid.*.pct' => ['required', 'numeric', 'min:0', 'max:100'],
             'payment_options' => ['sometimes', 'array', 'max:50'], 'payment_options.*.name' => ['required', 'string', 'max:255'],
@@ -75,6 +97,31 @@ final class ConditionsController
                 } else {
                     unset($conditions[$key]);
                 }
+            }
+            foreach (['min_order_quantity', 'prepayment_pct', 'availability', 'other_conditions'] as $key) {
+                if (array_key_exists($key, $input)) {
+                    if ($input[$key] === null || $input[$key] === '') {
+                        unset($conditions[$key]);
+                    } else {
+                        $conditions[$key] = in_array($key, ['min_order_quantity', 'prepayment_pct'], true) ? 0 + $input[$key] : $input[$key];
+                    }
+                }
+            }
+            if (array_key_exists('deferred_payment', $input)) {
+                $deferred = $conditions['deferred_payment'] ?? [];
+                foreach (['new_clients', 'regular_clients'] as $key) {
+                    if (array_key_exists($key, $input['deferred_payment'])) {
+                        $value = $input['deferred_payment'][$key];
+                        if ($value === null || $value === '') {
+                            unset($deferred[$key]);
+                        } else {
+                            $deferred[$key] = match ($value) {
+                                'yes' => true, 'no' => false, default => $value
+                            };
+                        }
+                    }
+                }
+                $conditions['deferred_payment'] = $deferred;
             }
             if (array_key_exists('discount_grid', $input)) {
                 $conditions['discount_grid'] = array_map(fn (array $row): array => ['from' => 0 + $row['from'], 'pct' => 0 + $row['pct']], $input['discount_grid']);
