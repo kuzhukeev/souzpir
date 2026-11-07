@@ -11,7 +11,9 @@
 
 Остаток записать в отчёт.
 
-Scope: `app/ProtectedOperations/`, `app/Seller/Channels/`, `app/Shell/Organizations/`, `app/Shell/Plans/`, `app/Vision/`, `resources/js/pages/Vision/`, `tests/Feature/ProtectedOperations/`, `tests/Feature/Shell/`, `tests/Feature/Vision/`, `tests/Browser/E1-13B/`, `docs/results/SP-E1-13B.md`.
+Scope: `routes/features/C-02.php`, `app/Shell/Plans/`, `app/Shell/Organizations/`, `app/Seller/Channels/`, `app/Vision/Settings/`, `app/Vision/Measurements/`, `resources/js/pages/Vision/Settings/`, `resources/js/pages/Vision/Measurements/`, `tests/Feature/Shell/`, `tests/Feature/Vision/Settings/`, `tests/Feature/Vision/Measurements/`, `tests/Browser/E1-13B/`, `docs/results/SP-E1-13B.md`.
+
+Уточнение интегратора 07.11: защиту входа `/seller/turns/first` делать на маршруте (`routes/features/C-02.php`) через `app/Shell/Plans/LimitEnforcer`, `app/ProtectedOperations/` не трогать; shared-ai-stages не нужен.
 
 ## Решение владельца 06.11.2026 — общие AI-стадии
 

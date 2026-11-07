@@ -13582,9 +13582,7 @@
         "tests/Browser/E6-01E/",
         "docs/results/SP-E6-01E.md"
       ],
-      "exclusiveResources": [
-        "shared-ai-stages"
-      ],
+      "exclusiveResources": [],
       "acceptance": [
         "Завершить пункты по макету, проверить права, изоляцию и ошибки; без живых вызовов.",
         "Решение владельца 06.11: разрешены только совместимые добавления общих AI-стадий без рефакторинга и без изменения существующего поведения и записанного replay; проверить права, изоляцию брендов и повторы. Только fake AI; живые и платные вызовы выключены. Общий ресурс shared-ai-stages занимает одна карточка до слияния."
@@ -16227,9 +16225,7 @@
         "tests/Browser/E6-04F/",
         "docs/results/SP-E6-04F.md"
       ],
-      "exclusiveResources": [
-        "shared-ai-stages"
-      ],
+      "exclusiveResources": [],
       "acceptance": [
         "Основной сценарий, права, бренд, ошибки; только fake внешние вызовы.",
         "D-5.3, «Добавить причину».",
@@ -17473,9 +17469,7 @@
         "tests/Browser/E4-04F/",
         "docs/results/SP-E4-04F.md"
       ],
-      "exclusiveResources": [
-        "shared-ai-stages"
-      ],
+      "exclusiveResources": [],
       "acceptance": [
         "Сценарий, права, бренд и ошибки; только fake внешние вызовы.",
         "Решение владельца 06.11: разрешены только совместимые добавления общих AI-стадий без рефакторинга и без изменения существующего поведения и записанного replay; проверить права, изоляцию брендов и повторы. Только fake AI; живые и платные вызовы выключены. Общий ресурс shared-ai-stages занимает одна карточка до слияния."
@@ -17702,9 +17696,7 @@
         "tests/Browser/E6-03W/",
         "docs/results/SP-E6-03W.md"
       ],
-      "exclusiveResources": [
-        "shared-ai-stages"
-      ],
+      "exclusiveResources": [],
       "acceptance": [
         "Сценарий, права, бренд и ошибки; только fake внешние вызовы.",
         "D-5.6, поле «Коротких ответов N».",
@@ -18443,25 +18435,25 @@
       "taskKey": "SP-E5-09",
       "title": "SP-E5-09 · Диалоги: закрытие и задачи.",
       "goal": "D-1.2: «Канал выключен >24ч» в «Требует внимания». D-2.1/2.2/2.3: действие «Закрыть» (DialogsController:91), отметка задачи выполненной из списка и из карточки. redirect back в DialogTaskController.php:38.",
-      "description": "# SP-E5-09 · Диалоги: закрытие и задачи.\n\n**Зачем:** решение владельца от 05.11.2026; переаудит 56 экранов.\n**Часть чего:** остаток требований экрана/задачи, перечисленных ниже.\n**Зависимости:** нет.\n\n## Приёмка\n- D-1.2: «Канал выключен >24ч» в «Требует внимания».\n- D-2.1/2.2/2.3: действие «Закрыть» (DialogsController:91), отметка задачи выполненной из списка и из карточки.\n- redirect back в DialogTaskController.php:38.\n\nБез боевых вызовов: каналы за выключенным флагом, тесты на fake. Сверить экран с макетом, проверить права, бренд и ошибки. Остаток записать в отчёт.\n\nScope: `app/Seller/Dialogs/`, `app/Seller/Tasks/`, `resources/js/pages/Seller/Dialogs/`, `resources/js/pages/Seller/Tasks/`, `tests/Feature/Owner/E5-09/`, `tests/Browser/E5-09/`, `docs/results/SP-E5-09.md`, `app/Seller/Conversations/`, `routes/features/E5-04.php`, `tests/Feature/Seller/Dialogs/`.\n",
+      "description": "# SP-E5-09 · Диалоги: закрытие и задачи.\n\n**Зачем:** решение владельца от 05.11.2026; переаудит 56 экранов.\n**Часть чего:** остаток требований экрана/задачи, перечисленных ниже.\n**Зависимости:** нет.\n\n## Приёмка\n- D-1.2: «Канал выключен >24ч» в «Требует внимания».\n- D-2.1/2.2/2.3: действие «Закрыть» (DialogsController:91), отметка задачи выполненной из списка и из карточки.\n- redirect back в DialogTaskController.php:38.\n\nБез боевых вызовов: каналы за выключенным флагом, тесты на fake. Сверить экран с макетом, проверить права, бренд и ошибки. Остаток записать в отчёт.\n\nScope: `app/Seller/Dialogs/`, `app/Seller/Tasks/`, `resources/js/pages/Seller/Dialogs/`, `resources/js/pages/Seller/Tasks/`, `tests/Feature/Owner/E5-09/`, `tests/Browser/E5-09/`, `docs/results/SP-E5-09.md`, `app/Seller/Conversations/`, `routes/features/E5-04.php`, `tests/Feature/Seller/Dialogs/`.\n\n## Остаток 07.11.2026 (сквозная приёмка SP-E9-01, сценарий 5 «Причины передачи → диалог → задача → уведомление»; аудит экранов D-2.3)\n- `DialogTransferController::transfer` и `DialogTaskController::store` пишут только audit-запись: положить событие в общую очередь уведомлений (`outbox_events`, по образцу `app/Seller/Notifications/NotifyConversationEvent.php`): передача → `seller.conversation.handed_off`, напоминание → `seller.contact.reminder` (получатели по `RecipientPolicy`: назначенный менеджер/менеджеры бренда); видимый результат — запись в `cabinet_notifications` со ссылкой на диалог. `EventCatalog`/`registry.json` не менять — использовать уже существующие ключи.\n- D-2.3 «Мои»: отметка задачи выполненной из списка (`DialogTaskController::complete` уже есть — подключить кнопку в списке, если её нет; проверить browser-тестом).\n- Тесты: Feature в `tests/Feature/Seller/Dialogs/` (событие в outbox, уведомление менеджеру, изоляция бренда, права), только fake/Queue::fake, без живых отправок. Остаток — в отчёт.\n",
       "dependsOn": [],
       "scope": [
-        "app/Seller/Dialogs/",
+        "app/Seller/Dialogs/DialogTaskController.php",
+        "app/Seller/Dialogs/DialogTransferController.php",
         "app/Seller/Tasks/",
         "resources/js/pages/Seller/Dialogs/",
         "resources/js/pages/Seller/Tasks/",
         "tests/Feature/Owner/E5-09/",
+        "tests/Feature/Seller/Dialogs/",
         "tests/Browser/E5-09/",
-        "docs/results/SP-E5-09.md",
-        "app/Seller/Conversations/",
-        "routes/features/E5-04.php",
-        "tests/Feature/Seller/Dialogs/"
+        "docs/results/SP-E5-09.md"
       ],
       "exclusiveResources": [],
       "acceptance": [
         "D-1.2: «Канал выключен >24ч» в «Требует внимания».",
         "D-2.1/2.2/2.3: действие «Закрыть» (DialogsController:91), отметка задачи выполненной из списка и из карточки.",
-        "redirect back в DialogTaskController.php:38."
+        "redirect back в DialogTaskController.php:38.",
+        "Остаток 07.11: передача и напоминание кладут событие в outbox_events, менеджер получает cabinet_notification со ссылкой на диалог; D-2.3 отметка задачи выполненной из списка; fake, права, бренд."
       ],
       "sourceRefs": [
         "docs/sources/02_screens_matrix.md",
@@ -18889,26 +18881,26 @@
         "SP-E1-13"
       ],
       "scope": [
-        "app/ProtectedOperations/",
-        "app/Seller/Channels/",
-        "app/Shell/Organizations/",
+        "routes/features/C-02.php",
         "app/Shell/Plans/",
-        "app/Vision/",
-        "resources/js/pages/Vision/",
-        "tests/Feature/ProtectedOperations/",
+        "app/Shell/Organizations/",
+        "app/Seller/Channels/",
+        "app/Vision/Settings/",
+        "app/Vision/Measurements/",
+        "resources/js/pages/Vision/Settings/",
+        "resources/js/pages/Vision/Measurements/",
         "tests/Feature/Shell/",
-        "tests/Feature/Vision/",
+        "tests/Feature/Vision/Settings/",
+        "tests/Feature/Vision/Measurements/",
         "tests/Browser/E1-13B/",
         "docs/results/SP-E1-13B.md"
       ],
-      "exclusiveResources": [
-        "shared-ai-stages"
-      ],
+      "exclusiveResources": [],
       "acceptance": [
         "Защитить общий вход первого хода и остальные канальные входы при исчерпании лимита.",
         "Обеспечить ограничения числа участников и каналов в соответствующих модулях.",
         "Завершить экран Vision и подписи будущих моделей Yandex согласно решению владельца.",
-        "Решение владельца 06.11: разрешены только совместимые добавления общих AI-стадий без рефакторинга и без изменения существующего поведения и записанного replay; проверить права, изоляцию брендов и повторы. Только fake AI; живые и платные вызовы выключены. Общий ресурс shared-ai-stages занимает одна карточка до слияния."
+        "Защиту входа /seller/turns/first делать на маршруте (routes/features/C-02.php) через app/Shell/Plans/LimitEnforcer, app/ProtectedOperations/ не трогать."
       ],
       "sourceRefs": [
         "docs/sources/02_screens_matrix.md",
@@ -19627,9 +19619,7 @@
         "tests/Browser/E6-04G/",
         "docs/results/SP-E6-04G.md"
       ],
-      "exclusiveResources": [
-        "shared-ai-stages"
-      ],
+      "exclusiveResources": [],
       "acceptance": [
         "Проверить полный защищённый ход и сохранение результата интеграционным тестом.",
         "Подключить реквизиты и оставшиеся реализованные действия с учётом настроек бренда и fake-транспорта.",
@@ -22589,9 +22579,7 @@
         "tests/Browser/E4-10L/",
         "docs/results/SP-E4-10L.md"
       ],
-      "exclusiveResources": [
-        "shared-ai-stages"
-      ],
+      "exclusiveResources": [],
       "acceptance": [
         "D-4.9: применять выбранное для закрытой темы действие в защищённом ходе диалога для обоих вариантов, сохранить существующие проверки и завершить сверку экрана по макету; runtime AI только fake."
       ],
@@ -23867,8 +23855,10 @@
         "SP-E4-03E"
       ],
       "scope": [
+        "app/Seller/Knowledge/Conditions/ConditionsController.php",
         "app/Seller/Knowledge/Facts/FactsController.php",
         "resources/js/pages/Seller/Knowledge/Conditions/",
+        "tests/Feature/Seller/Knowledge/Conditions/",
         "tests/Feature/Seller/Knowledge/Facts/",
         "tests/Browser/E4-03F/",
         "docs/results/SP-E4-03F.md"
@@ -24395,9 +24385,7 @@
         "tests/Browser/E4-10H/fixture.tsx",
         "docs/results/SP-E4-10R.md"
       ],
-      "exclusiveResources": [
-        "shared-ai-stages"
-      ],
+      "exclusiveResources": [],
       "acceptance": [
         "Тема и реально применённые приёмы показаны для выбранного хода без имитации."
       ],
