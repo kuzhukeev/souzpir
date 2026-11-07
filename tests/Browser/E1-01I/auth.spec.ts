@@ -7,7 +7,7 @@ test.use({viewport:{width:1440,height:900},launchOptions:process.env.PLAYWRIGHT_
 test.beforeAll(async()=>{server=await createServer({configFile:'tests/Browser/E1-01I/vite.config.ts',cacheDir:'.local/runtime/vite-e101i',server:{host:'127.0.0.1',port:0}});await server.listen();url=new URL('/tests/Browser/E1-01I/fixture.html',server.resolvedUrls!.local[0]).href;await mkdir('.local/screenshots/SP-E1-01I',{recursive:true});});
 test.afterAll(async()=>{await server?.close();});
 test('сброс пароля и блокировка входа',async({page})=>{
- await page.goto(url+'?success');await expect(page.getByRole('heading',{name:'Пароль изменён'})).toBeVisible();await expect(page.getByRole('link',{name:'Войти в кабинет'})).toHaveAttribute('href','/login');await page.screenshot({path:'.local/screenshots/SP-E1-01I/success.png',fullPage:true});
+ await page.goto(url+'?screen=changed');await expect(page.getByRole('heading',{name:'Пароль изменён'})).toBeVisible();await expect(page.getByRole('link',{name:'Войти в кабинет'})).toHaveAttribute('href','/login');await page.screenshot({path:'.local/screenshots/SP-E1-01I/success.png',fullPage:true});
  await page.goto(url+'?locked');await expect(page.getByRole('alert')).toContainText('Слишком много попыток');await expect(page.getByRole('button',{name:'Войти'})).toBeDisabled();await page.screenshot({path:'.local/screenshots/SP-E1-01I/login.png',fullPage:true});
 });
 test('регистрация сохраняет маску и согласие',async({page})=>{

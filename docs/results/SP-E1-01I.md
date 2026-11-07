@@ -29,4 +29,12 @@
 - Ссылки «Условия» и «Конфиденциальность» ведут на `/help` (S-8.1, единственный существующий «документ кабинета»): отдельных текстовых страниц условий/политики в продукте нет, а придумывать внешний адрес запрещено картой задачи.
 
 ### Техдолг
-- Тесты модулей `PasswordDelivery`, `InvitationIssuance` и гонок (`*RaceTest`, `*ConcurrencyTest`) в этом окружении падают с «A dedicated, nonprivileged test database owner is required» — роль Postgres слота exec-2 не настроена под их изолированную проверку; не связано с правками этой карты, воспроизводится и на чистом `main`.
+- Тесты модулей `PasswordDelivery`, `InvitationIssuance` и гонок (`*RaceTest`, `*ConcurrencyTest`) в этом окружении падают с «A dedicated, nonprivileged test database owner is required» — роль Postgres слота не настроена под их изолированную проверку; не связано с правками этой карты, воспроизводится и на чистом `main` в любом слоте.
+
+## Передача exec-10 07.11.2026
+- Код без изменений; CI ветки на коммите `1880ef47` зелёный (run 42384444466). Локально повторно прогнаны `AuthFlowTest`, `AuthStatesE101ITest`, `PasswordResetBoundaryTest`, `ResetRedirectTest`, `FactCardE402DTest` — 39 тестов, 604 проверки, зелёные; `composer lint` зелёный.
+
+## Остаток S-0.4 (ревью интегратора) — закрыт
+- Экран «Пароль изменён» был только условным рендером внутри `Login.tsx` по совпадению текста флеш-сообщения — заменён отдельной страницей/маршрутом: новая страница `resources/js/pages/Shell/Auth/PasswordChanged.tsx`, маршрут `GET /password-changed` (`password.changed`), `PasswordController::store()` теперь редиректит на него вместо `login` с флешем. `Login.tsx` отдан только форме входа.
+- Снимок `.local/screenshots/SP-E1-01I/success.png` ↔ `mockups/5/34cd7c95-S-0.4b-states-eyon.webp` (проверено визуально — сверено Read-ом).
+- Проверено: PHPUnit `AuthFlowTest` (25 тестов) — редирект `/reset-password` на `route('password.changed')`, `GET /password-changed` рендерит `Shell/Auth/PasswordChanged`; `AuthStatesE101ITest`, `PasswordResetBoundaryTest`, `ResetRedirectTest` — все зелёные (37 тестов, 505 проверок). Playwright `E1-01I/auth.spec.ts` (6 сценариев, `--workers=1`) обновлён на `?screen=changed`, зелёный. `tsc --noEmit`, `eslint .`, `composer lint` (Pint) — зелёные.

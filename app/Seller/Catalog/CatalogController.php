@@ -3,6 +3,7 @@
 namespace App\Seller\Catalog;
 
 use App\Models\User;
+use App\Seller\Channels\Email\PriceMailSender;
 use App\Seller\Engine\ToolRunner;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Audit\AuditEntry;
@@ -57,8 +58,9 @@ final class CatalogController
     public function index(Request $request): mixed
     {
         $data = $this->access($request, fn (User $user, TenantContext $tenant) => $this->data($tenant));
+        $page = $request->query('view') === 'settings' ? 'Seller/Catalog/Settings' : 'Seller/Catalog/Index';
 
-        return Inertia::render('Seller/Catalog/Index', [...$data, 'status' => $request->session()->get('status')]);
+        return Inertia::render($page, [...$data, 'status' => $request->session()->get('status')]);
     }
 
     public function stock(Request $request): mixed
@@ -160,6 +162,24 @@ final class CatalogController
 
     public function priceFile(Request $request): mixed
     {
+        $action = $request->input('action');
+        if ($action === 'delete_item') {
+            $input = $request->validate(['item_id' => ['required', 'string']]);
+            $this->access($request, function (User $user, TenantContext $tenant) use ($input): void {
+                $deleted = $this->scope('catalog_items', $tenant)->where('id', $input['item_id'])->delete();
+                abort_unless($deleted > 0, 404);
+                app(AuditWriter::class)->record($tenant, new AuditEntry('seller.catalog.item.deleted', 'catalog_item', $input['item_id']));
+            });
+
+            return back()->with('status', 'Товар удалён.');
+        }
+        if ($action === 'send_test') {
+            $sent = $this->access($request, fn (User $user, TenantContext $tenant) => app(PriceMailSender::class)->send($tenant, $user->email));
+
+            return $sent
+                ? back()->with('status', "Тестовое письмо отправлено на {$request->user()->email}.")
+                : back()->withErrors(['send' => 'Не удалось отправить: настройте почту, файл или ссылку прайса.']);
+        }
         $input = $request->validate(['file' => ['required', 'file', 'max:10240', 'extensions:csv,xlsx,pdf']]);
         $this->access($request, function (User $user, TenantContext $tenant) use ($input): void {
             $settings = $this->settings($tenant);

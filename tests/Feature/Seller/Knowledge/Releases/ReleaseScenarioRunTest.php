@@ -32,4 +32,22 @@ final class ReleaseScenarioRunTest extends TenancyTestCase
         $this->actingAs($viewer)->withSession(['brand_id' => $brand->id])->post($url.'/scenarios')->assertForbidden();
         $this->actingAs($owner)->withSession(['brand_id' => $other->id])->post($url.'/scenarios')->assertNotFound();
     }
+
+    public function test_run_carries_published_client_field_names_for_display(): void
+    {
+        [$owner, $org, $brand] = $this->cabinet();
+        DB::table('brand_modules')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $brand->id, 'module' => 'seller', 'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('seller_personas')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $brand->id, 'key' => 'good', 'name' => 'good', 'type' => 'edge', 'payload' => json_encode(['first_message' => 'Здравствуйте']), 'max_turns' => 1, 'created_at' => now(), 'updated_at' => now()]);
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $this->post('/seller/knowledge/draft')->assertRedirect();
+        $draft = DB::table('knowledge_releases')->where('brand_id', $brand->id)->where('status', 'draft')->first();
+        $field = ['id' => 'outlet', 'name' => 'Формат точки', 'type' => 'select', 'options' => ['Павильон', 'Онлайн'], 'required' => true, 'stage' => 'need'];
+        $this->post('/seller/scenario/fields/draft', ['version' => 1, 'fields' => [$field]])->assertRedirect()->assertSessionHasNoErrors();
+        $this->post('/seller/knowledge/'.$draft->id.'/scenarios')->assertRedirect();
+        $run = DB::table('seller_sim_runs')->where('brand_id', $brand->id)->first();
+        $turns = json_decode($run->turns, true);
+        self::assertSame('Формат точки', $turns[0]['meta']['field_labels']['outlet']);
+        $this->get('/seller/knowledge/runs/'.$run->id)->assertOk()
+            ->assertInertia(fn ($page) => $page->where('run.turns.0.meta.field_labels.outlet', 'Формат точки'));
+    }
 }

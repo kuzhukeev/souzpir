@@ -2,14 +2,18 @@
 
 namespace Tests\Feature\Seller\Channels\Widget;
 
+use App\Tenancy\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use Tests\Feature\SellerRuntime\Turns\ProtectedFollowupFixtures;
 use Tests\Feature\Tenancy\TenancyTestCase;
 
 final class WidgetSettingsE502DTest extends TenancyTestCase
 {
+    use ProtectedFollowupFixtures;
+
     private function enable(string $org, string $brand): void
     {
         DB::table('brand_modules')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org, 'brand_id' => $brand, 'module' => 'seller', 'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
@@ -38,6 +42,52 @@ final class WidgetSettingsE502DTest extends TenancyTestCase
         $this->get('/seller/channels/widget/behavior')->assertOk()->assertInertia(fn ($page) => $page->where('settings.enabled', false)->has('settings.origins', 0));
         Mail::assertNothingSent();
         Http::assertNothingSent();
+    }
+
+    public function test_correspondence_status_reflects_driver_and_live_draft_flag(): void
+    {
+        [$owner, $org, $brand] = $this->cabinet();
+        $this->enable($org->id, $brand->id);
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $this->get('/seller/channels/widget')->assertOk()
+            ->assertInertia(fn ($page) => $page->where('correspondence.live', false)->where('correspondence.liveDraftEnabled', false));
+
+        config(['runtime.ai_driver' => 'openrouter', 'features.LV-01.defaults.enabled' => true]);
+        $this->get('/seller/channels/widget')->assertOk()
+            ->assertInertia(fn ($page) => $page->where('correspondence.live', true)->where('correspondence.liveDraftEnabled', true));
+
+        config(['features.LV-01.defaults.enabled' => false]);
+        $this->get('/seller/channels/widget')->assertOk()
+            ->assertInertia(fn ($page) => $page->where('correspondence.live', true)->where('correspondence.liveDraftEnabled', false));
+    }
+
+    public function test_message_limit_hands_visitor_off_to_manager_while_messages_still_reach_manager(): void
+    {
+        [$owner, $org, $brand, , $membership] = $this->cabinet();
+        $this->enable($org->id, $brand->id);
+        $this->seedProtected(new TenantContext($org->id, $brand->id, $owner->id, $membership->id));
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $data = $this->payload();
+        $data['behavior']['max_messages'] = 1;
+        $this->post('/seller/channels/widget', $data)->assertRedirect()->assertSessionHasNoErrors();
+        $key = DB::table('widget_settings')->where('brand_id', $brand->id)->value('public_key');
+
+        config(['runtime.ai_driver' => 'fake']);
+        $this->withHeader('Origin', 'https://example.test');
+        $session = $this->postJson('/widget/session?key='.$key)->assertCreated()->json('token');
+        $url = '/widget/message?key='.$key;
+
+        $first = $this->postJson($url, ['token' => $session, 'text' => 'Привет', 'idempotency_key' => 'm1', 'page' => 'home'])->assertCreated();
+        self::assertIsString($first->json('reply'));
+        self::assertArrayNotHasKey('notice', $first->json());
+
+        $second = $this->postJson($url, ['token' => $session, 'text' => 'Ещё вопрос', 'idempotency_key' => 'm2', 'page' => 'home'])->assertCreated();
+        self::assertArrayNotHasKey('reply', $second->json());
+        self::assertSame('Вы отправили максимум сообщений в этом чате. Дальше вам ответит менеджер.', $second->json('notice'));
+
+        self::assertSame(2, DB::table('messages')->where('role', 'client')->count());
+        $this->assertDatabaseHas('messages', ['text' => 'Привет', 'role' => 'client']);
+        $this->assertDatabaseHas('messages', ['text' => 'Ещё вопрос', 'role' => 'client']);
     }
 
     public function test_installation_check_requires_enabled_widget_with_an_origin(): void

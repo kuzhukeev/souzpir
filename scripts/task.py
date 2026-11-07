@@ -108,7 +108,6 @@ CI_SCOPE_EXCEPTIONS = {
     "SP-E1-06I": ("tests/Browser/E1-06E/invitation.spec.ts",),
     "SP-E1-03C": ("tests/Browser/Layout/layout.spec.ts", "tests/Browser/Layout/fixture.tsx"),
     "SP-E8-20X": ("routes/features/E8-05B.php",),
-    "SP-E1-01I": ("app/Seller/Knowledge/Facts/FactsController.php", "tests/Feature/Shell/Auth/PasswordDelivery/ResetRedirectTest.php", "scripts/task.py"),
     "SP-E9-01E": (
         "tests/Browser/E1-05/brands-e2e.spec.ts",
         "tests/Browser/E4-02B/facts.spec.ts",
@@ -167,7 +166,7 @@ CI_SCOPE_EXCEPTIONS = {
         "tests/Browser/E8-21D/fixture.tsx", "tests/Browser/E8-21E/fixture.tsx", "tests/Browser/E8-21F/site.spec.ts", "tests/Browser/E8-21G/site.spec.ts",
         "tests/Browser/E8-21M/fixture.tsx", "tests/Browser/E8-21N/fixture.tsx",
     ),
-    "SP-E1-10K": ("tests/Feature/Seller/Settings/Limits/DigestTest.php", "tests/Feature/Seller/Settings/Limits/NotificationsTest.php", "tests/Feature/Seller/Settings/Limits/PersonalDigestTimeTest.php", ".env.example"),
+    "SP-E1-10K": ("tests/Feature/Seller/Settings/Limits/DigestTest.php", "tests/Feature/Seller/Settings/Limits/NotificationsTest.php", "tests/Feature/Seller/Settings/Limits/PersonalDigestTimeTest.php", "tests/Feature/Seller/Settings/Limits/ExternalDigestTest.php", ".env.example"),
     "SP-E9-03": ("phpunit.xml",),
     "SP-E1-09D": ("tests/Browser/E1-09/journal.spec.ts", "tests/Unit/Shell/Journal/actorFilter.test.tsx", "tests/Browser/E1-09/selected-actor.spec.ts"),
     "SP-E8-15C": ("tests/Browser/E8-03/pages.spec.ts", "tests/Browser/E8-03/e2e.spec.ts", "tests/Browser/E8-15B/questions.spec.ts"),

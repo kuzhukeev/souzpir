@@ -23,3 +23,6 @@ Scope: `app/Seller/Dialogs/`, `app/Ai/Protected/`, `app/Ai/Gateway.php`, `app/Pr
 - D-2.1/D-2.2: метка «Прочитано» у входящих сообщений (read_at при открытии диалога менеджером, миграция `database/migrations/E5-04S/`), показ в ленте и в диалоге по макету; feature-тест, права, бренд.
 - Живая оценка диалога моделью (вместо fake judge) — расход денег, ждёт «да» владельца в docs/decisions-pending.md, в карточку не входит.
 - Scope сужен 07.11: `app/Seller/Dialogs/`, `resources/js/pages/Seller/Dialogs/Index.tsx`, `routes/features/E5-04.php`, `database/migrations/E5-04S/`, `tests/Feature/Seller/Dialogs/`, `tests/Browser/E5-04S/`, `docs/results/SP-E5-04S.md` (`app/Ai/Protected/`, `app/Ai/Gateway.php`, `app/ProtectedOperations/` заняты другими карточками).
+
+## Сужение scope 07.11.2026 23:30 (планировщик)
+- `routes/features/E5-04.php` занят SP-E5-04N; новые маршруты (подсказка менеджеру, метка «Прочитано») — в отдельном файле `routes/features/E5-04S.php` (файлы routes/features/*.php подхватываются FeatureRegistry автоматически).

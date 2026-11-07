@@ -5,6 +5,22 @@ import { Button } from '@/components/ui/forms';
 import { ArrowRight, ClipboardList, ChartNoAxesCombined, FileCheck2 } from 'lucide-react';
 import { labels } from '@/features/Vision/Profile/answers';
 const displayLimit = (value: string | null) => value === null ? 'Нет данных' : value.replace(/\.0+$/, '');
+const modelMonograms: [string, string, string, string][] = [
+  ['ChatGPT', 'GPT', 'var(--color-info-soft)', 'var(--color-info-ink)'],
+  ['Claude', 'CL', 'var(--color-warning-soft)', 'var(--color-warning-ink)'],
+  ['Gemini', 'GM', 'var(--color-brand-primary-soft)', 'var(--color-brand-primary)'],
+  ['Perplexity', 'PX', 'var(--color-success-soft)', 'var(--color-success-ink)'],
+];
+function ModelMonogram({ initials, bg, fg }: { initials: string; bg: string; fg: string }) {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 28 28" width={28} height={28}>
+      <circle cx={14} cy={14} r={14} fill={bg} />
+      <text x={14} y={15} dy=".35em" textAnchor="middle" fontSize={initials.length > 2 ? 8 : 10} fontWeight={700} fill={fg}>
+        {initials}
+      </text>
+    </svg>
+  );
+}
 type Current = { quiz_id: string; revision: number; current_step: number; status: string } | null;
 export default function Start({
   current,
@@ -89,7 +105,7 @@ export default function Start({
           <div className="mt-8 grid gap-5 sm:grid-cols-3">
             {[
               [ClipboardList, 'Анкета · около 10 минут', 'Расскажите о компании и целях'],
-              [ChartNoAxesCombined, 'Замер', 'Проверка видимости бренда; сроки зависят от настроек'],
+              [ChartNoAxesCombined, 'Замер · 1–2 дня', 'Проверка видимости бренда; сроки зависят от настроек'],
               [FileCheck2, 'Отчёт', 'Результаты и рекомендации'],
             ].map(([Icon, title, text]) => {
               const I = Icon as typeof ClipboardList;
@@ -106,7 +122,7 @@ export default function Start({
             })}
           </div>
           <section className="mt-8 rounded-xl border border-(--color-border) p-4"><h2 className="font-semibold">Пример отчёта</h2><p className="mt-2 text-sm text-(--color-ink-muted)">Иллюстрация структуры будущего отчёта, без показателей вашего бренда.</p><div aria-hidden="true" className="mt-4 space-y-3 rounded-lg bg-(--color-surface-muted) p-5 blur-[3px]"><div className="h-4 w-1/3 rounded bg-(--color-border)"/><div className="h-14 rounded bg-(--color-border)"/><div className="h-4 w-2/3 rounded bg-(--color-border)"/><div className="h-4 w-1/2 rounded bg-(--color-border)"/></div></section>
-          <section className="mt-8 rounded-xl border border-(--color-border) p-4"><h2 className="font-semibold">Что проверяем</h2><p className="mt-2 text-sm text-(--color-ink-muted)">Пример набора моделей; доступные модели определяются настройками замера.</p><ul className="mt-3 flex flex-wrap gap-2 text-sm">{[['ChatGPT','✳'], ['Claude','✺'], ['Gemini','✦'], ['Perplexity','◈']].map(([name, mark]) => <li key={name} className="flex items-center gap-2 rounded-lg bg-(--color-surface-muted) px-3 py-2"><span aria-hidden="true" className="flex h-7 w-7 items-center justify-center rounded-full bg-(--color-brand-primary-soft) text-lg text-(--color-link)">{mark}</span>{name}</li>)}</ul></section>
+          <section className="mt-8 rounded-xl border border-(--color-border) p-4"><h2 className="font-semibold">Что проверяем</h2><p className="mt-2 text-sm text-(--color-ink-muted)">Пример набора моделей; доступные модели определяются настройками замера.</p><ul className="mt-3 flex flex-wrap gap-2 text-sm">{modelMonograms.map(([name, initials, bg, fg]) => <li key={name} className="flex items-center gap-2 rounded-lg bg-(--color-surface-muted) px-3 py-2"><ModelMonogram initials={initials} bg={bg} fg={fg} />{name}</li>)}</ul></section>
           <section className="mt-4 rounded-xl border border-(--color-border) p-4"><h2 className="font-semibold">Ваш тариф</h2>{plan && (plan.name || plan.questions !== null || plan.runs_per_week !== null) ? <dl className="mt-2 space-y-1 text-sm text-(--color-ink-muted)"><div><dt className="inline">План: </dt><dd className="inline">{plan.name ?? 'Нет данных'}</dd></div><div><dt className="inline">Вопросы: </dt><dd className="inline">{displayLimit(plan.questions)}</dd></div><div><dt className="inline">Прогоны в неделю: </dt><dd className="inline">{displayLimit(plan.runs_per_week)}</dd></div></dl> : <p className="mt-2 text-sm text-(--color-ink-muted)">Данные о тарифе и лимитах пока недоступны.</p>}</section>
         </section>
       </div>

@@ -200,11 +200,13 @@ final class AnalyticsController
             }
             unset($managerData);
         }
+        $topicDialogs = [];
         foreach ($messages as $message) {
             $meta = json_decode($message->meta, true) ?: [];
             $intent = data_get($meta, 'extraction.client_intent') ?? ($meta['intent'] ?? null);
             if (is_string($intent) && $intent !== '') {
                 $topics[$intent] = ($topics[$intent] ?? 0) + 1;
+                $topicDialogs[$intent][$message->conversation_id] = true;
             }
             $trigger = data_get($meta, 'goal.trigger');
             if (is_string($trigger) && $trigger !== '') {
@@ -223,6 +225,14 @@ final class AnalyticsController
             $triggerStats[$trigger] = ['dialogs' => $matching->count(), 'with_contact' => $withContact];
         }
         arsort($topics);
+        $unknownConversationIds = $unknownTasks->pluck('conversation_id')->unique()->all();
+        $topicUnknownRates = [];
+        foreach (array_keys($topics) as $intent) {
+            $dialogIds = array_keys($topicDialogs[$intent] ?? []);
+            $topicUnknownRates[$intent] = $dialogIds
+                ? (int) round(count(array_intersect($dialogIds, $unknownConversationIds)) / count($dialogIds) * 100)
+                : 0;
+        }
 
         $ratings = DB::table('seller_evaluations')->where(fn ($query) => EvaluationVisibility::excludeTestBaseline($query))->where('organization_id', $tenant->organizationId)
             ->where('brand_id', $tenant->brandId)->whereIn('conversation_id', $ids)
@@ -308,8 +318,22 @@ final class AnalyticsController
             $rates[$stage] = count($prior) ? round(count(array_intersect($prior, $current)) / count($prior) * 100, 1) : null;
         }
 
-        return ['from' => $from, 'to' => $to, 'channel' => $channel, 'source' => $source, 'manager' => $manager, 'managerOptions' => $managerOptions, 'funnel' => $funnel, 'outcomes' => $outcomes, 'previousTotal' => $previousTotal, 'previousMetrics' => $previousMetrics, 'transitionRates' => $rates, 'channelOptions' => $channelOptions, 'sources' => ['unknown' => $total], 'channelMetrics' => $channelMetrics, 'sitePages' => [], 'transitions' => $transitions, 'total' => $total, 'contact' => $contact, 'handed' => $handed, 'closed' => $closed,
-            'types' => $types, 'stages' => $stages, 'channels' => $channels, 'daily' => $daily, 'topics' => $topics,
+        $rowsById = $rows->keyBy('id');
+        $sitePages = DB::table('widget_sessions')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
+            ->where('created_at', '>=', $begin)->where('created_at', '<', $end)->whereNotNull('page')
+            ->get(['page', 'utm', 'conversation_id'])->groupBy('page')->map(function ($group, string $page) use ($rowsById): array {
+                $dialogIds = $group->pluck('conversation_id')->filter()->unique()->filter(fn ($id) => $rowsById->has($id));
+                $contacts = $dialogIds->filter(function ($id) use ($rowsById): bool {
+                    $slots = (json_decode($rowsById[$id]->state, true) ?: [])['slots'] ?? [];
+
+                    return ! empty($slots['email']) || ! empty($slots['messenger']);
+                });
+
+                return ['page' => $page, 'opens' => $group->count(), 'dialogs' => $dialogIds->count(), 'contacts' => $contacts->count(), 'utm' => $group->pluck('utm')->filter()->first()];
+            })->sortByDesc('opens')->values()->all();
+
+        return ['from' => $from, 'to' => $to, 'channel' => $channel, 'source' => $source, 'manager' => $manager, 'managerOptions' => $managerOptions, 'funnel' => $funnel, 'outcomes' => $outcomes, 'previousTotal' => $previousTotal, 'previousMetrics' => $previousMetrics, 'transitionRates' => $rates, 'channelOptions' => $channelOptions, 'sources' => ['unknown' => $total], 'channelMetrics' => $channelMetrics, 'sitePages' => $sitePages, 'transitions' => $transitions, 'total' => $total, 'contact' => $contact, 'handed' => $handed, 'closed' => $closed,
+            'types' => $types, 'stages' => $stages, 'channels' => $channels, 'daily' => $daily, 'topics' => $topics, 'topicUnknownRates' => $topicUnknownRates,
             'dialogs' => $dialogs, 'hours' => $hours, 'unknownDialogs' => $unknownDialogs, 'unknownQuestions' => $unknownQuestions, 'messageCount' => $messages->count(), 'botCompleted' => $botCompleted, 'triggers' => $triggers, 'triggerStats' => $triggerStats,
             'managers' => array_values($managers), 'canManage' => Gate::forUser($user)->allows('seller.settings.write'), 'avgMinutesToContact' => $avgMinutesToContact];
     }

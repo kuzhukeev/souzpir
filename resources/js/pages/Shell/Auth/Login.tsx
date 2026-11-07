@@ -1,5 +1,4 @@
 import { Link, useForm } from '@inertiajs/react';
-import { Check as CheckIcon } from 'lucide-react';
 import { Button } from '@/components/ui';
 import { AuthFrame, Check, Field, linkClass } from '@/features/Shell/Auth/AuthFrame';
 import { useEffect, useState, type FormEvent } from 'react';
@@ -21,9 +20,6 @@ export default function Login({ status, lockoutEmail = '', lockoutSeconds = 0 }:
     event.preventDefault();
     form.post('/login', { onFinish: () => form.reset('password') });
   };
-  if (status === 'Пароль изменён. Войдите снова.') {
-    return <AuthFrame centered leading={<div aria-hidden="true" className="mx-auto mb-5 flex size-20 items-center justify-center rounded-full bg-(--color-success-soft) text-(--color-success-ink)"><CheckIcon className="size-10"/></div>} title="Пароль изменён" subtitle="Теперь вы можете войти с новым паролем."><p role="status" className="text-center text-sm text-(--color-success-ink)">{status}</p><Link href="/login" className="mt-5 inline-flex min-h-12 w-full cursor-pointer items-center justify-center rounded-lg bg-(--color-action) px-4 font-semibold text-white">Войти в кабинет</Link></AuthFrame>;
-  }
   return (
     <AuthFrame title="Вход в кабинет" subtitle="Рады видеть вас снова">
       {status && <p role="status" className="mb-5 rounded-lg bg-(--color-success-soft) p-3 text-sm">{status}</p>}
