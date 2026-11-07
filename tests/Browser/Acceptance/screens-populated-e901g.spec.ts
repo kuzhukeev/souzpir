@@ -192,6 +192,13 @@ test('real pages after creating knowledge through the UI', async ({ page, browse
   await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
   await expect(page.getByText('Мало', { exact: false }).first()).toBeVisible();
   execFileSync(php, ['tests/Browser/Acceptance/screens-e901g-fixture.php'], { env: { ...fixtureEnv, E901_ACTION: 'seed-unknown' }, stdio: 'pipe' });
+  await page.goto(`${origin}/seller/knowledge/imports`);
+  await page.getByLabel('Файл', { exact: true }).setInputFiles({ name: 'synthetic.txt', mimeType: 'text/plain', buffer: Buffer.from('Тестовый фрагмент для импорта.') });
+  const previewResponse = page.waitForResponse(response => response.request().method() === 'POST' && new URL(response.url()).pathname === '/seller/knowledge/imports/preview');
+  await page.getByRole('button', { name: 'Посмотреть предложения' }).click();
+  expect((await previewResponse).status()).toBe(200);
+  await page.goto(`${origin}/seller/knowledge/imports`);
+  await expect(page.getByText('synthetic.txt').first()).toBeVisible();
   const paths = [
     ['d32', customerLink], ['d44', factLink], ['d41', '/seller/knowledge'], ['d43', '/seller/knowledge/facts'],
     ['d45', '/seller/knowledge/conditions'], ['d46', '/seller/knowledge/topics'],
