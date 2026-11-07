@@ -4,6 +4,9 @@ namespace Tests\Feature\Seller\Channels\Api;
 
 use App\Ai\CanonicalJson;
 use App\Ai\ContactMasker;
+use App\Ai\Drivers\Driver;
+use App\Ai\Drivers\FakeDriver;
+use App\Ai\Drivers\Rejected;
 use App\Ai\Gateway;
 use App\Ai\Protected\ApiFollowupInput;
 use App\Ai\Protected\ApiOpeningInput;
@@ -39,6 +42,69 @@ final class ApiOpeningE503FTest extends TestCase
         $this->beforeApplicationDestroyed(static function (): void {
             RefreshDatabaseState::$migrated = false;
         });
+    }
+
+    public function test_token_followup_retries_confirmed_fake_error_without_duplicate_turn(): void
+    {
+        Http::preventStrayRequests();
+        config(['runtime.ai_driver' => 'fake', 'cache.default' => 'array']);
+        $this->withServerVariables(['REMOTE_ADDR' => '127.0.0.1', 'SERVER_ADDR' => '127.0.0.1']);
+        app(PromptSetsSeeder::class)->run();
+        $user = User::create(['name' => 'Test', 'email' => 'retry@example.test', 'password' => 'synthetic-password']);
+        $org = Organization::create(['name' => 'Test', 'owner_user_id' => $user->id]);
+        [$member, $brand] = app(TenantContextRunner::class)->run(new TenantContext($org->id, actorId: $user->id), fn () => [
+            Membership::create(['user_id' => $user->id, 'role' => 'owner']), Brand::create(['name' => 'Test', 'timezone' => 'Europe/Moscow']),
+        ]);
+        DB::table('brand_modules')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $brand->id,
+            'module' => 'seller', 'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
+        $tenant = new TenantContext($org->id, $brand->id, $user->id, $member->id);
+        app(TenantContextRunner::class)->run($tenant, fn () => app(YamlKnowledgeImporter::class)
+            ->importAndPublish($tenant, base_path('tests/Feature/Seller/Knowledge/Fixtures/data')));
+        $secret = Str::random(64);
+        $tokenId = DB::table('personal_access_tokens')->insertGetId(['tokenable_type' => Brand::class, 'tokenable_id' => $brand->id,
+            'organization_id' => $org->id, 'brand_id' => $brand->id, 'name' => 'test', 'token' => hash('sha256', $secret),
+            'token_last_four' => substr($secret, -4), 'abilities' => json_encode(['leads', 'turn']), 'created_at' => now(), 'updated_at' => now()]);
+        $headers = ['Authorization' => 'Bearer '.$tokenId.'|'.$secret, 'Idempotency-Key' => 'retry-lead'];
+        $lead = $this->withHeaders($headers)->postJson('/api/v1/leads', ['fields' => ['name' => 'Тест'], 'action' => 'card_only'])->assertCreated()->json();
+        DB::table('conversations')->where('id', $lead['conversation_id'])->update(['version' => 1]);
+        DB::table('messages')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $brand->id,
+            'conversation_id' => $lead['conversation_id'], 'role' => 'agent', 'text' => 'Здравствуйте!', 'meta' => '{}', 'created_at' => now(), 'updated_at' => now()]);
+        $driver = new class implements Driver
+        {
+            private bool $failed = false;
+
+            public function complete(#[\SensitiveParameter] array $body): array
+            {
+                if (! $this->failed) {
+                    $this->failed = true;
+                    throw new Rejected('Synthetic unbilled failure.');
+                }
+
+                return ['content' => isset($body['response_format']) ? '{"client_intent":"answer_only"}' : 'Хорошо, спасибо!',
+                    'toolCalls' => [], 'usage' => ['promptTokens' => 1, 'completionTokens' => 1],
+                    'model' => $body['model'], 'latencyMs' => 1, 'costMicros' => 0];
+            }
+        };
+        $nextDriver = clone $driver;
+        $this->app->instance(FakeDriver::class, $driver);
+        $openingHeaders = ['Authorization' => $headers['Authorization'], 'Idempotency-Key' => 'retry-opening'];
+        $openingInput = ['fields' => ['name' => 'Открытие'], 'action' => 'open'];
+        $this->withHeaders($openingHeaders)->postJson('/api/v1/leads', $openingInput)->assertStatus(503);
+        $opening = $this->withHeaders($openingHeaders)->postJson('/api/v1/leads', $openingInput)->assertOk()->assertJsonPath('status', 'opened')->json();
+        $this->withHeaders($openingHeaders)->postJson('/api/v1/leads', $openingInput)->assertOk()->assertExactJson($opening);
+        self::assertSame(1, DB::table('messages')->where('conversation_id', $opening['conversation_id'])->count());
+        self::assertSame(1, DB::table('ai_calls')->where('object_id', $opening['conversation_id'])->where('attempt', 2)->whereNotNull('parent_call_id')->count());
+        $this->app->instance(FakeDriver::class, $nextDriver);
+        $headers['Idempotency-Key'] = 'retry-turn';
+        $input = ['conversation_id' => $lead['conversation_id'], 'text' => 'Воронеж'];
+        $this->withHeaders($headers)->postJson('/api/v1/turn', $input)->assertStatus(503);
+        $reply = $this->withHeaders($headers)->postJson('/api/v1/turn', $input)->assertOk()->assertJsonPath('reply', 'Хорошо, спасибо!')->json();
+        $this->withHeaders($headers)->postJson('/api/v1/turn', $input)->assertOk()->assertExactJson($reply);
+        $this->withHeaders($headers)->postJson('/api/v1/turn', [...$input, 'text' => 'Другое'])->assertConflict();
+        self::assertSame(3, DB::table('messages')->where('conversation_id', $lead['conversation_id'])->count());
+        self::assertSame(1, DB::table('ai_calls')->where('object_id', $lead['conversation_id'])->where('status', 'failed')->count());
+        self::assertSame(1, DB::table('ai_calls')->where('object_id', $lead['conversation_id'])->where('attempt', 2)->whereNotNull('parent_call_id')->count());
+        Http::assertNothingSent();
     }
 
     public function test_fake_opening_is_guarded_saved_and_replayed_without_client_message(): void

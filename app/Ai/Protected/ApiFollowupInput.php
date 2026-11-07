@@ -3,7 +3,6 @@
 namespace App\Ai\Protected;
 
 use App\Ai\Gateway;
-use App\Contracts\Ai\AiContext;
 use App\Contracts\Ai\AiGateway;
 use App\Models\Membership;
 use App\Models\User;
@@ -101,8 +100,7 @@ final class ApiFollowupInput
         }
         $engine = new Extractor(app(AiGateway::class), $knowledge, $prompt, $model, (float) $temperature, $name);
         $request = $engine->buildRequest($state, $history, $message->text);
-        $context = new AiContext($tenant->organizationId, $tenant->brandId, 'extractor', 'seller', 'conversation',
-            $claim->conversationId, 'api-followup-extractor-'.$claim->turnId, ['conversation_content', 'client_profile', 'knowledge_internal']);
+        $context = app(ProtectedRetryContext::class)->make($tenant, $claim->conversationId, 'extractor', 'api-followup-extractor-'.$claim->turnId);
 
         return [$request, $context, $engine, $state, $message->text, $knowledge, $history];
     }
@@ -135,8 +133,7 @@ final class ApiFollowupInput
         $system = app(ResponderProjection::class)->render($knowledge, $state, $goal, $name);
         $history[] = ['role' => 'client', 'text' => $message];
         $input = app(ResponderRequest::class)->build($system, $history, [], $model, (float) $temperature, $prompt->version, $prompt->checksum);
-        $context = new AiContext($tenant->organizationId, $tenant->brandId, 'responder', 'seller', 'conversation',
-            $claim->conversationId, 'api-followup-responder-'.$claim->turnId, ['conversation_content', 'client_profile', 'knowledge_internal']);
+        $context = app(ProtectedRetryContext::class)->make($tenant, $claim->conversationId, 'responder', 'api-followup-responder-'.$claim->turnId);
 
         return [$input, $context, $state, $goal, $knowledge, $extraction];
     }
