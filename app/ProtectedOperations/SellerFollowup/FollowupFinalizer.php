@@ -11,6 +11,7 @@ use App\Seller\Engine\DeterministicGuard;
 use App\Seller\Engine\GuardDecision;
 use App\Seller\Engine\Policy;
 use App\Seller\Engine\ResponderResult;
+use App\Seller\Settings\Greetings\GreetingResolver;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
 use App\Tenancy\TenantContext;
@@ -23,7 +24,7 @@ use LogicException;
 final class FollowupFinalizer
 {
     public function finishProtectedApi(Request $http, TenantContext $tenant, TurnClaim $claim, string $mode,
-        int $round = 0, array $toolResults = [], array $guardIssues = []): array
+        int $round = 0, array $toolResults = [], array $guardIssues = [], ?string $page = null): array
     {
         if (! in_array($mode, ['bot', 'suggest'], true)) {
             throw new LogicException('Follow-up mode changed.');
@@ -57,15 +58,23 @@ final class FollowupFinalizer
         $policy = new Policy($knowledge);
         $state->setOutcome($policy->computeOutcome($state));
         $state->data['missing'] = $policy->computeMissing($state);
+        $text = $result['text'];
+        if ($tenant->source === 'public' && $mode === 'bot' && $claim->baseVersion === 0) {
+            $visitorName = $conversation->contact_id ? DB::table('contacts')->where($scope)->where('id', $conversation->contact_id)->value('name') : null;
+            $greeting = app(GreetingResolver::class)->resolve($tenant, 'widget', $page ?? 'home', is_string($visitorName) ? $visitorName : null);
+            if (is_string($greeting)) {
+                $text = $greeting."\n\n".$text;
+            }
+        }
         $messageId = $mode === 'bot' ? (string) Str::ulid() : null;
         $metadata = ['fake' => true, 'suggested' => $mode === 'suggest', 'goal_kind' => $goal->kind, 'guard' => 'ok'];
         if ($messageId !== null) {
             DB::table('messages')->insert(['id' => $messageId, ...$scope, 'conversation_id' => $claim->conversationId,
-                'role' => 'agent', 'text' => $result['text'], 'meta' => json_encode($metadata, JSON_THROW_ON_ERROR), 'created_at' => now(), 'updated_at' => now()]);
+                'role' => 'agent', 'text' => $text, 'meta' => json_encode($metadata, JSON_THROW_ON_ERROR), 'created_at' => now(), 'updated_at' => now()]);
         }
         $status = $mode === 'suggest' ? 'suggested' : 'completed';
         $outcome = new TurnOutcome($claim->turnId, $claim->conversationId, $status, $claim->baseVersion + 1, $messageId,
-            $goal->toArray(), $decision, [], $state->toArray(), [['id' => $messageId, 'role' => 'agent', 'text' => $result['text'], 'meta' => $metadata]]);
+            $goal->toArray(), $decision, [], $state->toArray(), [['id' => $messageId, 'role' => 'agent', 'text' => $text, 'meta' => $metadata]]);
         DB::table('conversations')->where($scope)->where('id', $claim->conversationId)->update([
             'state' => json_encode($state->toArray(), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), 'stage' => $state->stage(),
             'outcome' => $state->outcome(), 'client_type' => $state->clientType(), 'version' => $claim->baseVersion + 1, 'updated_at' => now(),
