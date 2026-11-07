@@ -13,4 +13,6 @@
 - После готовности SP-E1-03B проверить переход на главную и очистку состояния при смене бренда; до этого выполнять независимые пункты карточки.
 - Проверить экран → маршрут → обработчик → хранение и видимый результат, роли, изоляцию бренда, 1–2 ошибки и состояния; повторять прежние неизменённые серверные проверки только при изменении поведения. Только fake, без живых или платных вызовов.
 
-Scope: `app/Shell/HomeEntry/`, `app/Shell/Dashboard/`, `app/Shell/Notifications/`, `app/Seller/Dashboard/`, `resources/js/pages/Shell/HomeEntry/`, `resources/js/pages/Shell/Dashboard/`, `resources/js/pages/Shell/Notifications/`, `routes/features/E1-03A.php`, `routes/features/E1-03C.php`, `routes/features/E1-03D.php`, `database/migrations/E1-03D/`, `tests/Feature/Shell/HomeEntry/`, `tests/Feature/Shell/Dashboard/`, `tests/Feature/Shell/Notifications/`, `tests/Browser/E1-03D/`, `docs/results/SP-E1-03D.md`.
+Scope: `app/Shell/HomeEntry/`, `app/Shell/Dashboard/`, `app/Shell/Notifications/`, `resources/js/pages/Shell/HomeEntry/`, `resources/js/pages/Shell/Dashboard/`, `resources/js/pages/Shell/Notifications/`, `routes/features/E1-03A.php`, `routes/features/E1-03C.php`, `routes/features/E1-03D.php`, `database/migrations/E1-03D/`, `tests/Feature/Shell/HomeEntry/`, `tests/Feature/Shell/Dashboard/`, `tests/Feature/Shell/Notifications/`, `tests/Browser/E1-03D/`, `docs/results/SP-E1-03D.md`.
+
+Запрос DashboardQuery уже отдаёт произвольный период, issue_details и показатели каналов; использовать существующие данные, не изменять модуль Продавца, принадлежащий SP-E7-06F.
