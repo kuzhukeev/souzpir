@@ -53,8 +53,16 @@ final class CustomersController
     {
         $channel = $request->query('channel');
         abort_if($channel !== null && $channel !== '' && ! in_array($channel, ['telegram', 'vk', 'whatsapp', 'api', 'widget', 'site', 'web', 'email'], true), 422, 'Недопустимый канал.');
+        $period = $request->query('period');
+        abort_if($period !== null && $period !== '' && ! in_array($period, ['7', '30', '90', 'all'], true), 422, 'Недопустимый период.');
 
-        $filter = $request->validate(['search' => ['nullable', 'string', 'max:120'], 'type' => ['nullable', 'in:newbie,experienced,for_self,prices_only,unknown'], 'stage' => ['nullable', 'string', 'max:32'], 'city' => ['nullable', 'string', 'max:120'], 'outcome' => ['nullable', 'string', 'max:64'], 'manager' => ['nullable', 'string', 'max:120'], 'channel' => ['nullable', 'in:telegram,vk,whatsapp,api,widget,site,web,email'], 'from' => ['nullable', 'date_format:Y-m-d'], 'to' => ['nullable', 'date_format:Y-m-d'], 'page' => ['nullable', 'integer', 'min:1'], 'per_page' => ['nullable', 'integer', 'in:10,20,50']]);
+        $filter = $request->validate(['search' => ['nullable', 'string', 'max:120'], 'type' => ['nullable', 'in:newbie,experienced,for_self,prices_only,unknown'], 'stage' => ['nullable', 'string', 'max:32'], 'city' => ['nullable', 'string', 'max:120'], 'outcome' => ['nullable', 'string', 'max:64'], 'manager' => ['nullable', 'string', 'max:120'], 'channel' => ['nullable', 'in:telegram,vk,whatsapp,api,widget,site,web,email'], 'period' => ['nullable', 'in:7,30,90,all'], 'from' => ['nullable', 'date_format:Y-m-d'], 'to' => ['nullable', 'date_format:Y-m-d'], 'page' => ['nullable', 'integer', 'min:1'], 'per_page' => ['nullable', 'integer', 'in:10,20,50']]);
+        if (! empty($filter['period']) && $filter['period'] !== 'all') {
+            $filter['from'] = Carbon::now()->subDays((int) $filter['period'])->format('Y-m-d');
+            $filter['to'] = Carbon::now()->format('Y-m-d');
+        } elseif (($filter['period'] ?? null) === 'all') {
+            unset($filter['from'], $filter['to']);
+        }
         $data = $this->access($request, 'seller.customers.read', function (User $user, TenantContext $tenant) use ($filter): array {
             $contacts = $this->scope('contacts', $tenant)->whereNull('merged_into_id')->orderByDesc('created_at')->orderByDesc('id')->get(['id', 'name', 'phone', 'email', 'city']);
             $conversations = $this->scope('conversations', $tenant)->whereIn('contact_id', $contacts->pluck('id'))->orderByDesc('updated_at')->get();
@@ -74,18 +82,19 @@ final class CustomersController
                 $taskCount = $tasks->filter(fn ($task) => $task->contact_id === $contact->id || in_array($task->conversation_id, $dialogIds, true))->count();
                 $manager = $conversation?->assigned_user_id ? $managers->get($conversation->assigned_user_id) : null;
                 $channel = $conversation?->channel_account_id ? $channels->get($conversation->channel_account_id) : null;
+                $channelTypes = $dialogs->pluck('channel_account_id')->filter()->unique()->map(fn ($id) => $channels->get($id))->filter()->unique()->values()->all();
 
                 return ['id' => $contact->id, 'name' => $contact->name, 'phone' => $contact->phone, 'email' => $contact->email,
                     'company' => data_get($state, 'slots.company') ?: data_get($state, 'slots.legal'),
                     'type' => $this->clientType($conversation?->state), 'city' => $contact->city ?: data_get($state, 'slots.city'), 'stage' => $conversation?->stage,
-                    'outcome' => $conversation?->outcome, 'best_outcome' => $bestOutcome, 'conversation_id' => $conversation?->id, 'manager' => $manager, 'channel' => $channel, 'tasks' => $taskCount, 'last_at' => $conversation?->updated_at];
+                    'outcome' => $conversation?->outcome, 'best_outcome' => $bestOutcome, 'conversation_id' => $conversation?->id, 'manager' => $manager, 'channel' => $channel, 'channels' => $channelTypes, 'tasks' => $taskCount, 'last_at' => $conversation?->updated_at];
             });
             $filtered = $rows->filter(function (array $row) use ($filter): bool {
                 $search = mb_strtolower($filter['search'] ?? '');
 
                 return ($search === '' || str_contains(mb_strtolower(implode(' ', [$row['name'], $row['phone'], $row['email']])), $search))
                     && (empty($filter['type']) || $row['type'] === $filter['type']) && (empty($filter['stage']) || $row['stage'] === $filter['stage'])
-                    && (empty($filter['outcome']) || $row['outcome'] === $filter['outcome']) && (empty($filter['channel']) || ($filter['channel'] === 'widget' ? in_array($row['channel'], ['widget', 'site', 'web'], true) : $row['channel'] === $filter['channel']))
+                    && (empty($filter['outcome']) || $row['outcome'] === $filter['outcome']) && (empty($filter['channel']) || ($filter['channel'] === 'widget' ? ! empty(array_intersect($row['channels'], ['widget', 'site', 'web'])) : in_array($filter['channel'], $row['channels'], true)))
                     && (empty($filter['city']) || str_contains(mb_strtolower((string) $row['city']), mb_strtolower($filter['city'])))
                     && (empty($filter['manager']) || str_contains(mb_strtolower((string) $row['manager']), mb_strtolower($filter['manager'])))
                     && (empty($filter['from']) || ($row['last_at'] && substr($row['last_at'], 0, 10) >= $filter['from']))
