@@ -1,4 +1,4 @@
-import { Head } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import { Eye, EyeOff } from 'lucide-react';
 import { useId, useState, type InputHTMLAttributes, type ReactNode } from 'react';
 
@@ -52,7 +52,13 @@ export function AuthFrame({
         )}
         <div className="mt-7">{children}</div>
       </main>
-      <p className="relative mt-7 text-sm text-(--color-ink-muted)">© EYON</p>
+      <p className="relative mt-7 flex items-center gap-2 text-sm text-(--color-ink-muted)">
+        <span>© EYON</span>
+        <span aria-hidden="true">|</span>
+        <Link href="/help" className="cursor-pointer hover:underline">Условия</Link>
+        <span aria-hidden="true">|</span>
+        <Link href="/help" className="cursor-pointer hover:underline">Конфиденциальность</Link>
+      </p>
     </div>
   );
 }
