@@ -32,13 +32,13 @@ final class DigestTest extends LimitsTestCase
         $id = (string) Str::ulid();
         $event = new DomainEvent(['event_id' => $id, 'schema_version' => 1, 'type' => self::EVENT, 'occurred_at' => '2026-10-31T04:00:00Z', 'organization_id' => $org->id, 'brand_id' => $brand->id, 'actor_id' => null, 'aggregate' => ['type' => 'conversation', 'id' => (string) Str::ulid(), 'version' => 1], 'data' => ['reason' => 'want_human', 'task_id' => (string) Str::ulid()]]);
         DB::table('outbox_events')->insert(['id' => $id, 'organization_id' => $org->id, 'brand_id' => $brand->id, 'envelope' => json_encode($event->envelope, JSON_THROW_ON_ERROR), 'created_at' => now()]);
-        config(['features.E6-07.defaults.digest_enabled' => true, 'runtime.notification_driver' => null]);
+        config(['features.E6-07.defaults.digest_enabled' => true]);
         Carbon::setTestNow('2026-10-31T05:00:00Z');
         CarbonImmutable::setTestNow('2026-10-31T05:00:00Z');
         DB::transaction(fn () => app(SellerNotificationRouter::class)->route($event, $membership, $channel));
         Carbon::setTestNow('2026-10-31T06:01:00Z');
         CarbonImmutable::setTestNow('2026-10-31T06:01:00Z');
-        config(['features.E6-07.defaults.digest_enabled' => true, 'runtime.notification_driver' => null]);
+        config(['features.E6-07.defaults.digest_enabled' => true]);
 
         return [$owner, $org, $brand];
     }
