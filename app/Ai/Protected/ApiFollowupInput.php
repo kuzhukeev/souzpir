@@ -53,7 +53,7 @@ final class ApiFollowupInput
                     throw new LogicException('Seller follow-up unavailable.');
                 }
             });
-        } else {
+        } elseif ($tenant->source !== 'job') {
             throw new LogicException('Seller follow-up unavailable.');
         }
         if (! app(SellerModuleAccess::class)->enabled($tenant->organizationId, $tenant->brandId)) {
@@ -66,7 +66,13 @@ final class ApiFollowupInput
         $turn = DB::table('seller_turns')->where($scope)->where('id', $claim->turnId)->lockForUpdate()->first();
         $message = $turn ? DB::table('messages')->where($scope)->where('conversation_id', $claim->conversationId)
             ->where('id', $turn->input_message_id)->where('role', 'client')->first() : null;
-        if (! $conversation || ! $turn || ($isToken && (! $lead || ! str_starts_with($turn->idempotency_key, 'api:'))) || ! $message || ! in_array($conversation->mode, ['bot', 'suggest'], true)
+        $simulation = $tenant->source === 'job';
+        $validSimulation = ! $simulation || ($turn && str_starts_with($turn->idempotency_key, 'sim:')
+            && DB::table('messages')->where($scope)->where('conversation_id', $claim->conversationId)
+                ->where('role', 'agent')->where('meta->simulation', true)->exists()
+            && DB::table('messages')->where($scope)->where('id', $turn->input_message_id)
+                ->where('conversation_id', $claim->conversationId)->where('meta->simulation', true)->exists());
+        if (! $validSimulation || ! $conversation || ! $turn || ($isToken && (! $lead || ! str_starts_with($turn->idempotency_key, 'api:'))) || ! $message || ! in_array($conversation->mode, ['bot', 'suggest'], true)
             || ! is_string($message->text)) {
             throw new LogicException('API follow-up unavailable.');
         }

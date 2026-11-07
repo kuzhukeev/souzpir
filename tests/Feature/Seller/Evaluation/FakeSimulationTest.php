@@ -29,6 +29,7 @@ final class FakeSimulationTest extends TenancyTestCase
             ['client' => 'Нужен прайс', 'agent' => 'Уточните город', 'meta' => ['intent' => 'ask_price']],
             ['client' => 'Воронеж', 'agent' => 'Записал', 'meta' => ['guard' => 'ok']],
         ];
+        config(['features.E3-06D.defaults.runtime_enabled' => false]);
         SimulateFakeJob::dispatchSync($org->id, $brand->id, 'newbie_voronezh', $turns);
         $run = DB::table('seller_sim_runs')->where('brand_id', $brand->id)->first();
         self::assertSame(count($turns), $run->turn_count);
