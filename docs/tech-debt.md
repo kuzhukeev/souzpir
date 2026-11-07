@@ -553,3 +553,5 @@
 - SP-E5-04S: нет Playwright-теста tests/Browser/E5-04S/ и скриншота — в слоте исполнителя недоступен браузерный драйвер; UI проверен сборкой, типами и feature-тестами.
 
 - SP-E1-10K: старые outbox-события без снимка подписок не доставляются автоматическим вебхукам (известно по SP-E1-10J). Слоты exec-1/exec-2/integrator не проходят IsolatedDatabaseMigrations («A dedicated, nonprivileged test database owner is required») — проверка таких тестов только в CI.
+
+- SP-L1-08: AI_BUDGET_MONTHLY_USD/AI_BUDGET_DAILY_USD из карточки нигде не читаются кодом (лимиты только в БД ai_budgets через UI) — в .env.production.example как документация намерения; при SP-L1-01 решить, нужен ли env-источник бюджета.

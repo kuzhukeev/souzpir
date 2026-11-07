@@ -1789,3 +1789,5 @@ SP-E1-08B ожидает SP-E1-08: оба меняют профиль, а исх
 - SP-E5-04S: кнопка «Предложить ответ» сразу подставляет текст в поле ответа (как на макете D-2.1), без промежуточной карточки подтверждения; LLM-guard для подсказки выключен, только детерминированный Guard.
 
 - SP-E1-10K: runtime.notification_driver по умолчанию fake везде, где не задан NOTIFICATION_DRIVER (тихие часы, сводка S-7.1 и напоминания D-10.3 работают в fake-режиме); боевой драйвер включается только явной переменной окружения. Тесты внешней доставки (OutboxDeferralTest, ExternalDigestTest, Limits/*) явно выставляют notification_driver=null.
+
+- SP-L1-08: .env.production.example — AI_DRIVER=fake (карточка просила openrouter): живые драйверы включаются оператором по runbook docs/release/prod-runbook.md; схема Caddy с собственным TLS и php_fastcgi без доверия клиентским forwarding-заголовкам выбрана основной, TRUSTED_PROXIES пусто; SESSION/CACHE/QUEUE=database на проде.
