@@ -30,9 +30,16 @@ final class FollowupConsent
 
     private function latest(TenantContext $tenant, string $conversation): ?string
     {
-        return DB::table('seller_followup_consents')->where('organization_id', $tenant->organizationId)
-            ->where('brand_id', $tenant->brandId)->where('conversation_id', $conversation)
-            ->orderByDesc('sequence')->value('event');
+        $scope = ['organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId];
+        $contact = DB::table('conversations')->where($scope)->where('id', $conversation)->value('contact_id');
+        $events = DB::table('seller_followup_consents')->where($scope);
+        if ($contact) {
+            $events->whereIn('conversation_id', DB::table('conversations')->where($scope)->where('contact_id', $contact)->select('id'));
+        } else {
+            $events->where('conversation_id', $conversation);
+        }
+
+        return $events->orderByDesc('sequence')->value('event');
     }
 
     public function inbound(TenantContext $tenant, string $conversation, string $message, string $text): void

@@ -117,6 +117,32 @@ final class FollowupSendTest extends TenancyTestCase
         }
     }
 
+    public function test_opt_out_applies_to_all_conversations_of_the_contact(): void
+    {
+        Carbon::setTestNow('2026-11-02 12:00:00+00');
+        try {
+            [, $org, $brand] = $this->cabinet();
+            [$conversation, $candidate] = $this->fixture($org, $brand);
+            $contact = (string) Str::ulid();
+            $otherConversation = (string) Str::ulid();
+            DB::table('contacts')->insert(['id' => $contact, 'organization_id' => $org->id, 'brand_id' => $brand->id, 'created_at' => now(), 'updated_at' => now()]);
+            DB::table('conversations')->where('id', $conversation)->update(['contact_id' => $contact]);
+            DB::table('conversations')->insert(['id' => $otherConversation, 'organization_id' => $org->id, 'brand_id' => $brand->id, 'contact_id' => $contact, 'created_at' => now(), 'updated_at' => now()]);
+            $tenant = new TenantContext($org->id, $brand->id, source: 'job');
+            $consent = app(FollowupConsent::class);
+            $consent->record($tenant, $conversation, 'granted', 'manager', 'Consent');
+            $consent->record($tenant, $otherConversation, 'revoked', 'manager', 'Opt out');
+            $send = fn () => app(FollowupSender::class)->send($tenant, $candidate, app(FakeChannelDelivery::class), app(FollowupPolicy::class));
+            self::assertTrue($consent->revoked($tenant, $conversation));
+            self::assertFalse($send());
+            DB::table('seller_followup_candidates')->where('id', $candidate)->update(['bulk' => true]);
+            self::assertFalse($send());
+            self::assertSame(1, DB::table('messages')->where('conversation_id', $conversation)->count());
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
     public function test_scheduled_processing_dispatches_pending_candidate(): void
     {
         Carbon::setTestNow('2026-11-02 12:00:00+00');
