@@ -12,7 +12,7 @@ use Tests\Feature\Seller\Settings\Limits\LimitsTestCase;
 
 final class PlannedTest extends LimitsTestCase
 {
-    public function test_planned_pages_are_honest_and_settings_are_unavailable(): void
+    public function test_planned_pages_are_honest_and_reminders_are_available_in_fake_mode(): void
     {
         [$owner, , $brand] = $this->cabinet();
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->withHeader('X-Brand-Id', $brand->id);
@@ -20,9 +20,26 @@ final class PlannedTest extends LimitsTestCase
             '/seller/integrations/calendar' => 'calendar', '/seller/integrations/planned' => 'planned'] as $path => $section) {
             $this->get($path)->assertOk()->assertInertia(fn (Assert $p) => $p->component('Seller/Channels/Planned/Index', false)
                 ->where('section', $section)->has('planned.items', 8)->where('planned.canManage', true)
-                ->where('planned.interestAvailable', true)->where('planned.reminders.available', false)
+                ->where('planned.interestAvailable', true)->where('planned.reminders.available', true)
                 ->where('planned.reminders.enabled', false));
         }
+    }
+
+    public function test_reminders_toggle_persists_in_fake_mode_and_stays_unavailable_otherwise(): void
+    {
+        [$owner, $org, $brand] = $this->cabinet();
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->withHeader('X-Brand-Id', $brand->id);
+        $this->putJson('/seller/planned/reminders', ['enabled' => true])->assertOk()
+            ->assertJsonPath('data.enabled', true)->assertJsonPath('data.available', true);
+        $this->assertDatabaseHas('seller_contact_reminder_settings', [
+            'organization_id' => $org->id, 'brand_id' => $brand->id, 'enabled' => true,
+        ]);
+        $this->get('/seller/channels/vk')->assertInertia(fn (Assert $p) => $p
+            ->where('planned.reminders.available', true)->where('planned.reminders.enabled', true));
+        config(['runtime.notification_driver' => 'live']);
+        $this->get('/seller/channels/vk')->assertInertia(fn (Assert $p) => $p
+            ->where('planned.reminders.available', false)->where('planned.reminders.enabled', false));
+        $this->putJson('/seller/planned/reminders', ['enabled' => false])->assertStatus(503);
     }
 
     public function test_interest_is_scoped_idempotent_and_audited(): void
@@ -54,8 +71,10 @@ final class PlannedTest extends LimitsTestCase
             ->postJson('/seller/planned/interests', ['integration' => 'vk'])->assertForbidden();
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->withHeader('X-Brand-Id', $brand->id)
             ->postJson('/seller/planned/interests', ['integration' => 'unknown'])->assertUnprocessable();
+        config(['runtime.notification_driver' => null]);
         $this->putJson('/seller/planned/reminders', ['enabled' => true])->assertStatus(503);
         $this->putJson('/seller/planned/reminders', ['enabled' => false])->assertStatus(503);
+        config(['runtime.notification_driver' => 'fake']);
         DB::table('auth_session_registry')->where('user_id', $owner->id)->update(['revoked_at' => now()]);
         $this->postJson('/seller/planned/interests', ['integration' => 'vk'])->assertUnauthorized();
         $this->assertDatabaseCount('seller_planned_integration_interests', 0);

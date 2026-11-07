@@ -1,15 +1,16 @@
-# SP-E4-04F · Темы: неизвестные вопросы в runtime
 
-**Зачем:** завершить экран тем знаний по решению владельца и журналу макетов.
-**Часть чего:** остаток SP-E4-04E, docs/results/SP-E4-04E.md.
-**Зависимости:** SP-E4-04E в done.
 
-Подключить log_unknown_question и задачу unknown_question через общий диспетчер, стадии последующих ходов и guard-fallback; проверить аналитику и задачи end-to-end на изолированной тестовой БД. Не менять общие AI-стадии без решения владельца.
+## Остаток 07.11.2026 23:40 (после приёмки)
+- При `goal->kind === 'unknown_fact'` создавать задачу менеджеру `seller_tasks` (`type='unknown_question'`, `payload.text` с вопросом, `due_at` = конец дня, по образцу `App\Seller\Engine\CreatePromise`) в `FirstTurnTextFinalizer::write()` и `FollowupFinalizer::finishProtectedApi()`; feature-тест, бренд. Файлы финализаторов добавлены в scope; зависимость от SP-E7-04M (она их сейчас правит).
+- Дополнительный scope: `app/ProtectedOperations/FirstTurnTextFinalizer.php`, `app/ProtectedOperations/SellerFollowup/FollowupFinalizer.php`, `tests/Feature/ProtectedOperations/`.
 
-Scope: `app/Seller/Knowledge/Topics/`, `app/Seller/Runtime/`, `app/Seller/Engine/`, `resources/js/pages/Seller/Knowledge/Topics/`, `tests/Feature/Seller/Knowledge/Topics/`, `tests/Feature/Seller/Runtime/`, `tests/Browser/E4-04F/`, `docs/results/SP-E4-04F.md`.
+## Уточнение scope 07.11.2026 23:55 (планировщик)
+- Scope сужен под остаток 23:40: два финализатора и Topics; feature-тесты — в `tests/Feature/Seller/Knowledge/Topics/` (каталог `tests/Feature/ProtectedOperations/` в phpunit.xml перечислен пофайлово, новые файлы там не запустятся). `app/Seller/Runtime/`, `app/Seller/Engine/` и `tests/Feature/Seller/Runtime/` убраны — `CreatePromise` только образец, его не менять.
 
-Приёмка: сценарий, права, бренд, ошибки; только fake вызовы. Остаток записать в docs/results/SP-E4-04F.md.
 
-## Решение владельца 06.11.2026 — общие AI-стадии
+## Уточнение 08.11.2026 00:30 (планировщик)
+- Зависимость от SP-E7-04M снята: его изменения финализаторов влиты (c1f406ac), остаток SP-E7-04M финализаторы не трогает и убран из его scope. В `payload` задачи писать и `text`, и `question` (экран D-3.3 читает оба).
 
-Решение владельца 06.11: разрешены только совместимые добавления общих AI-стадий без рефакторинга и без изменения существующего поведения и записанного replay; проверить права, изоляцию брендов и повторы. Только fake AI; живые и платные вызовы выключены. Общий ресурс shared-ai-stages занимает одна карточка до слияния. Прежние ограничения «до решения владельца» считать снятыми в этих границах.
+
+## Остаток 08.11.2026 (аудит 08.11, планировщик)
+- D-4.6: «Частота за 30 дней» и «Ответы „не знаю“» считаются только по первому ходу: `meta.intent` пишет только `FirstTurnTextFinalizer` (стр. 204), а `FollowupFinalizer` (стр. 83) — нет. Добавить `intent` (из `client_intent` извлечения последующего хода, если оно доступно в финализаторе) в meta ответа агента и учесть клиентское сообщение последующего хода в `TopicsController` (частота и примеры вопросов). Только добавление ключа meta: текст ответа, решения и записанный replay/golden не меняются. Feature-тест: последующий ход попадает в частоту и долю «не знаю» своего бренда, чужой бренд не виден.

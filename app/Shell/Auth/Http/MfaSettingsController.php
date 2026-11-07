@@ -156,7 +156,7 @@ final class MfaSettingsController
 
     private function assertMember(Request $request, bool $lock = false): string
     {
-        $org = app(Cabinet::class)->organizationId();
+        $org = app(Cabinet::class)->organizationIdFor($request->user());
         $organization = Organization::whereKey($org)->where('status', 'active');
         $membership = Membership::withoutGlobalScopes()->where('organization_id', $org)->where('user_id', $request->user()->id)->where('status', 'active');
         if ($lock) {

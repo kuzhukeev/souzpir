@@ -1,4 +1,5 @@
 import { createInertiaApp } from '@inertiajs/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createRoot } from 'react-dom/client';
 import CabinetLayout from '../../../resources/js/layouts/CabinetLayout';
 const routes = {
@@ -99,7 +100,7 @@ async function mountFixture() {
         <h1>Диалоги</h1>
       </CabinetLayout>
     ),
-    setup: ({ el, App, props: appProps }) => createRoot(el).render(<App {...appProps} />),
+    setup: ({ el, App, props: appProps }) => createRoot(el).render(<QueryClientProvider client={new QueryClient()}><App {...appProps} /></QueryClientProvider>),
   });
 }
 void mountFixture();

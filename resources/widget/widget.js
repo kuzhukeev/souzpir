@@ -1,4 +1,4 @@
-/* global document, HTMLScriptElement, URL, fetch, setTimeout, innerHeight, scrollY, removeEventListener, addEventListener, localStorage, location, matchMedia */
+/* global document, HTMLScriptElement, URL, URLSearchParams, fetch, setTimeout, innerHeight, scrollY, removeEventListener, addEventListener, localStorage, location, matchMedia */
 (() => {
   'use strict';
   const script = document.currentScript;
@@ -42,6 +42,51 @@
     panel.append(top, message);
     if (appearance.theme === 'dark' || (appearance.theme === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches)) { panel.style.background = '#17243a'; panel.style.color = '#fff'; close.style.color = '#fff'; }
     const contactMode = behavior.contact_mode || (behavior.collect_contact ? 'soft' : 'none');
+    const maxMessages = Number.isInteger(behavior.max_messages) && behavior.max_messages > 0 ? behavior.max_messages : null;
+    let sentCount = 0; const limitReached = () => maxMessages !== null && sentCount >= maxMessages;
+    let waitingForManager = false;
+    let sessionToken = null; let starting = null;
+    let lastSeenMessageId = null; let pollTimer = null;
+    const api = (path, body) => { const url = new URL(path, source.origin); url.searchParams.set('key', key); return fetch(url.href, {method:'POST', credentials:'omit', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)}); };
+    const utmParams = () => { const pairs = []; new URLSearchParams(location.search).forEach((value, name) => { if (name.startsWith('utm_')) pairs.push(`${name}=${value}`); }); return pairs.length ? pairs.join('&') : null; };
+    const startSession = () => {
+      if (sessionToken) return Promise.resolve(sessionToken);
+      if (!starting) starting = api('/widget/session', {page: location.pathname, utm: utmParams()}).then(response => { if (!response.ok) throw new Error('unavailable'); return response.json(); }).then(result => { sessionToken = result.token; return sessionToken; }).finally(() => { starting = null; });
+      return starting;
+    };
+    const uid = () => globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+    const widgetPage = location.pathname.includes('/catalog') ? 'catalog' : location.pathname.includes('/contact') ? 'contacts' : 'home';
+    const transcript = document.createElement('div'); transcript.setAttribute('aria-live', 'polite'); transcript.style.margin = '8px 0';
+    const addBubble = (role, value) => { const line = document.createElement('p'); line.className = 'message'; line.style.margin = '6px 0';
+      line.textContent = (role === 'agent' ? '' : 'Вы: ') + value; transcript.append(line); };
+    panel.append(transcript);
+    const pollMessages = () => {
+      pollTimer = null;
+      if (!waitingForManager || !sessionToken) return;
+      const url = new URL('/widget/messages', source.origin); url.searchParams.set('key', key); url.searchParams.set('token', sessionToken);
+      if (lastSeenMessageId) url.searchParams.set('after', lastSeenMessageId);
+      fetch(url.href, { credentials: 'omit', cache: 'no-store' }).then(response => response.ok ? response.json() : { messages: [] }).then(data => {
+        const items = Array.isArray(data.messages) ? data.messages : [];
+        if (items.length) { items.forEach(item => { addBubble('agent', item.text); lastSeenMessageId = item.id; }); waitingForManager = false; }
+      }).catch(() => {}).finally(() => { if (waitingForManager && !pollTimer) pollTimer = setTimeout(pollMessages, 7000); });
+    };
+    const chat = document.createElement('form');
+    const text = document.createElement('input'); text.type = 'text'; text.maxLength = 4000; text.placeholder = 'Ваше сообщение'; text.setAttribute('aria-label', 'Ваше сообщение'); text.required = true;
+    const chatSend = document.createElement('button'); chatSend.className = 'submit'; chatSend.type = 'submit'; chatSend.textContent = 'Отправить';
+    const chatStatus = document.createElement('p'); chatStatus.setAttribute('role', 'status'); chat.append(text, chatSend, chatStatus); panel.append(chat);
+    const lockChat = () => { chatSend.disabled = true; text.disabled = true; chatStatus.textContent = 'Лимит сообщений исчерпан. Напишите нам другим способом.'; };
+    chat.addEventListener('submit', event => {
+      event.preventDefault();
+      if (limitReached()) { lockChat(); return; }
+      chatSend.disabled = true; chatStatus.textContent = 'Отправляем…';
+      const sent = text.value;
+      startSession().then(token => api('/widget/message', {token, text:sent, idempotency_key:uid(), page:widgetPage})).then(response => { if (!response.ok) throw new Error('unavailable'); return response.json().catch(() => ({})); }).then(result => {
+        message.textContent = ''; addBubble('client', sent); text.value = ''; sentCount += 1;
+        if (typeof result.reply === 'string' && result.reply) { addBubble('agent', result.reply); waitingForManager = false; }
+        else if (!waitingForManager) { waitingForManager = true; addBubble('agent', typeof result.notice === 'string' && result.notice ? result.notice : 'Менеджер скоро ответит.'); if (!pollTimer) pollTimer = setTimeout(pollMessages, 7000); }
+        if (limitReached()) { lockChat(); } else { chatStatus.textContent = 'Сообщение отправлено.'; }
+      }).catch(() => { chatStatus.textContent = 'Чат временно недоступен. Попробуйте позже.'; }).finally(() => { if (!limitReached()) chatSend.disabled = false; });
+    });
     if (contactMode !== 'none' && behavior.collect_contact && behavior.consent_url) {
       const form = document.createElement('form'); const consentLabel = document.createElement('label'); const consent = document.createElement('input');
       consent.type = 'checkbox'; consent.required = true; consentLabel.append(consent, document.createTextNode(' ' + (behavior.consent_text || 'Согласен на обработку данных по') + ' '));
@@ -61,7 +106,7 @@
         if (phone.value && !/^[+0-9 ()-]{6,32}$/.test(phone.value)) { result.textContent = 'Проверьте номер телефона.'; return; }
         send.disabled = true; result.textContent = 'Отправляем…';
         const target = new URL('/widget/contact', source.origin); target.searchParams.set('key', key);
-        fetch(target.href, {method:'POST', credentials:'omit', headers:{'Content-Type':'application/json'}, body:JSON.stringify({consent:true,name:name.value,email:email.value,phone:phone.value})})
+        startSession().then(token => fetch(target.href, {method:'POST', credentials:'omit', headers:{'Content-Type':'application/json'}, body:JSON.stringify({session_token:token,consent:true,name:name.value,email:email.value,phone:phone.value})}))
           .then(response => { if (!response.ok) throw new Error('unavailable'); fields.replaceChildren(); message.textContent = 'Спасибо! Контакт сохранён.'; consentLabel.remove(); })
           .catch(() => { result.textContent = 'Не удалось отправить контакт. Проверьте данные и попробуйте ещё раз.'; send.disabled = false; });
       });

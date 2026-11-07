@@ -12,3 +12,7 @@ Scope: `app/Seller/Reviews/`, `app/Seller/Dialogs/`, `resources/js/pages/Seller/
 
 ## Расширение scope 07.11.2026
 - Для законченного пути пометка → входящие знаний разрешены `app/Seller/Knowledge/Releases/` и `routes/features/E5-10.php`. Существующая база знаний автоматически не изменяется.
+
+## Остаток 07.11.2026 (аудит экранов, интегратор)
+- D-2.5: массовое действие «Отправить во Входящие БЗ» для выбранных пометок; skeleton загрузки списка пометок.
+- Scope сужен 07.11: `app/Seller/Reviews/`, `resources/js/pages/Seller/Reviews/`, `routes/features/E5-10.php`, `tests/Feature/Seller/Dialogs/`, `tests/Feature/Seller/Reviews/`, `tests/Browser/E5-10D/`, `docs/results/SP-E5-10D.md`.

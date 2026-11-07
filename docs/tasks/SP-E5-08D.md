@@ -11,3 +11,12 @@
 Scope: `app/Seller/Customers/`, `resources/js/pages/Seller/Customers/`, `routes/features/E5-08.php`, `tests/Feature/Seller/Customers/`, `tests/Browser/E5-08D/`, `docs/results/SP-E5-08D.md`.
 
 Отчёт: docs/results/SP-E5-08D.md; локальные тесты задачи, submit и зелёный CI.
+
+
+## Остаток 08.11.2026 (планировщик, запуск 20261107-225307)
+- D-3.4 (макет `mockups D-3.4`, `05da310d-D-3.4-duplicates.webp`): select «Все совпадения» (телефон / почта / имя и город) рядом с поиском, плашка «Совпадения по телефону, почте или имени и городу»; фильтр работает на сервере или по уже переданным данным.
+- D-3.5 (макет `mockups D-3.5`): зона перетаскивания CSV (dropzone) с кнопкой выбора файла; валидация прежняя.
+- `app/Seller/Customers/CustomersController.php` занят SP-E5-05F — не трогать; нужен — «Нужно от интегратора».
+- Права и изоляция брендов, ошибка формата файла; 1440/390, клавиатура, axe.
+
+Scope: `resources/js/pages/Seller/Customers/ImportExport/Duplicates.tsx`, `resources/js/pages/Seller/Customers/ImportExport/Index.tsx`, `app/Seller/Customers/ImportExport/ImportExportController.php`, `tests/Feature/Seller/Customers/ImportExport/DuplicateFilterE508DTest.php`, `tests/Browser/E5-08D/`, `docs/results/SP-E5-08D.md`.

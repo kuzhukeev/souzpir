@@ -11,3 +11,7 @@
 Scope: `app/Vision/Measurements/`, `resources/js/pages/Vision/Measurements/`, `resources/js/features/Vision/Measurements/`, `tests/Feature/Vision/Measurements/`, `tests/Browser/E8-16H/`, `docs/results/SP-E8-16H.md`.
 
 Отчёт: docs/results/SP-E8-16H.md; остаток указать по пунктам.
+
+## Остаток 07.11.2026 22:30 (аудит экранов, V-3.2 «Запуск замера», `mockups V-3.2`)
+- Показать перед запуском «Доступно N / Останется M» слотов (расчёт: вопросы × модели × прогоны, данные слотов уже есть в `app/Vision/Settings`/`Measurements`); при нехватке слотов — состояние «Не хватает слотов» с неактивной кнопкой «Запустить» и ссылкой на V-11.3.
+- Feature-тест расчёта и состояния нехватки; browser-проверка в `tests/Browser/E8-16H/`. Права, бренд, без живых вызовов.

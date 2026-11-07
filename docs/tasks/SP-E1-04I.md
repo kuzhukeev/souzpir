@@ -11,3 +11,6 @@
 Проверить права, бренд и ошибки; остаток записать в отчёт.
 
 Scope: `app/Shell/Organizations/`, `app/Privacy/`, `app/Seller/`, `app/Vision/`, `tests/Feature/Shell/Organizations/`, `tests/Feature/Privacy/`, `docs/results/SP-E1-04I.md`.
+
+## Уточнение scope 07.11.2026 20:10
+Scope сужен до `app/Shell/Organizations/`, `app/Privacy/`, `tests/Feature/Shell/Organizations/`, `tests/Feature/Privacy/`, `docs/results/SP-E1-04I.md`: механизм хранения/очистки и владельцы данных описываются и реализуются в Privacy/Organizations (политика, команда, тесты), данные модулей не удалять. Если нужна правка внутри `app/Seller/` или `app/Vision/` — заглушка и пункт в «Нужно от интегратора».

@@ -34,9 +34,10 @@ final class FollowupsController
                 ->leftJoin('channel_accounts as a', 'a.id', '=', 'c.channel_account_id')
                 ->where('f.organization_id', $tenant->organizationId)->where('f.brand_id', $tenant->brandId)
                 ->where('f.created_at', '>=', now()->subDays($days))->orderByDesc('f.created_at')
-                ->get(['f.id', 'f.text', 'f.status', 'f.reason', 'f.source_at', 'f.created_at', 'f.updated_at', 'p.name as contact', 'a.type as channel'])
-                ->each(function ($row): void {
-                    $row->scheduled_at = $row->reason === 'next_contact_at' ? $row->source_at : null;
+                ->get(['f.id', 'f.conversation_id', 'f.text', 'f.status', 'f.reason', 'f.source_at', 'f.scheduled_at', 'f.bulk', 'f.created_at', 'f.updated_at', 'p.name as contact', 'a.type as channel'])
+                ->each(function ($row) use ($tenant): void {
+                    $row->consent = app(FollowupConsent::class)->allowed($tenant, $row->conversation_id);
+                    $row->scheduled_at ??= $row->reason === 'next_contact_at' ? $row->source_at : null;
                     unset($row->reason, $row->source_at);
                 });
 
@@ -49,7 +50,7 @@ final class FollowupsController
                         ->where('m.role', 'client')->whereColumn('m.created_at', '>', 'f.updated_at');
                 })->distinct()->count('f.conversation_id');
 
-            return ['items' => $rows, 'counts' => ['scheduled' => $rows->where('status', 'pending')->count(), 'sent' => $rows->where('status', 'completed')->count(), 'replies_after_test' => $replies], 'canCancel' => Gate::forUser($user)->allows('seller.dialogues.operate')];
+            return ['items' => $rows, 'counts' => ['scheduled' => $rows->where('status', 'pending')->count(), 'sent' => $rows->where('status', 'completed')->count(), 'replies_after_test' => $replies, 'unsubscribed' => DB::table('seller_followup_consents')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('event', 'revoked')->where('created_at', '>=', now()->subDays($days))->count()], 'canCancel' => Gate::forUser($user)->allows('seller.dialogues.operate')];
         });
 
         return Inertia::render('Seller/Followups/Index', [...$data, 'days' => $days, 'status' => session('status')]);
@@ -66,5 +67,38 @@ final class FollowupsController
         });
 
         return back()->with('status', 'Напоминание отменено.');
+    }
+
+    public function consent(Request $request, string $conversation): mixed
+    {
+        $input = $request->validate(['event' => ['required', 'in:granted,revoked'], 'basis' => ['required', 'string', 'max:1000']]);
+        $this->access($request, 'seller.dialogues.operate', function (User $user, TenantContext $tenant) use ($conversation, $input): void {
+            abort_unless(DB::table('conversations')->where('id', $conversation)->where('organization_id', $tenant->organizationId)
+                ->where('brand_id', $tenant->brandId)->exists(), 404);
+            app(FollowupConsent::class)->record($tenant, $conversation, $input['event'], 'manager', $input['basis'], actor: $user->id);
+        });
+
+        return back()->with('status', 'Согласие обновлено.');
+    }
+
+    public function schedule(Request $request): mixed
+    {
+        $input = $request->validate(['candidates' => ['required', 'array', 'min:1', 'max:200'], 'candidates.*' => ['required', 'ulid', 'distinct'],
+            'scheduled_at' => ['required', 'date', 'after:now']]);
+        $this->access($request, 'seller.dialogues.operate', function (User $user, TenantContext $tenant) use ($input): void {
+            DB::transaction(function () use ($tenant, $input): void {
+                $rows = DB::table('seller_followup_candidates')->where('organization_id', $tenant->organizationId)
+                    ->where('brand_id', $tenant->brandId)->whereIn('id', $input['candidates'])->get();
+                abort_unless($rows->count() === count($input['candidates']), 404);
+                foreach ($rows as $row) {
+                    abort_unless($row->status === 'pending' && app(FollowupConsent::class)->allowed($tenant, $row->conversation_id), 422,
+                        'Для каждого получателя необходимо согласие на рассылку.');
+                }
+                DB::table('seller_followup_candidates')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
+                    ->whereIn('id', $input['candidates'])->update(['scheduled_at' => $input['scheduled_at'], 'bulk' => true, 'updated_at' => now()]);
+            });
+        });
+
+        return back()->with('status', 'Рассылка запланирована.');
     }
 }

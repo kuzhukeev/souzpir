@@ -39,17 +39,19 @@ final class AuditSiteJob implements ShouldQueue
         $started = microtime(true);
         Cache::put($key, [...Cache::get($key, []), 'started_at_epoch' => $started], now()->addDay());
         try {
-            app(TenantContextRunner::class)->run($tenant, function () use ($inspector, $access, $audit, $tenant, $key): void {
+            app(TenantContextRunner::class)->run($tenant, function () use ($inspector, $access, $audit, $tenant, $key, $started): void {
                 DB::transaction(function () use ($access, $tenant): void {
                     $this->assertSessionActive();
                     $access->lock($tenant, true, 'vision.actions.write');
                 });
                 $this->progress($key, 'inspecting');
-                $result = $inspector->inspect($this->url, 50, function (int $processed, int $total) use ($key): void {
+                $result = $inspector->inspect($this->url, config('features.E8-01B.defaults.crawl_pages'), function (int $processed, int $total) use ($key, $started): void {
                     $data = Cache::get($key, []);
                     $data['pages_processed'] = $processed;
                     $data['pages_total'] = $total;
-                    $data['remaining_seconds'] = null;
+                    $data['remaining_seconds'] = $processed > 0
+                        ? (int) ceil(((microtime(true) - $started) / $processed) * max(0, $total - $processed))
+                        : null;
                     Cache::put($key, $data, now()->addDay());
                     if ($processed >= $total) {
                         $this->progress($key, 'analyzing');

@@ -25,7 +25,7 @@ test('подсказки из аудита добавляются на четы�
   await expect(page.getByRole('textbox', { name: 'Название' })).toHaveValue('Магазин Искра');
   await page.goto(base + '?screen=facts');
   await page.getByRole('button', { name: /Добавить факт/ }).click();
-  await expect(page.getByRole('button', { name: 'Исправить' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Готово' })).toBeVisible();
   await page.screenshot({ path: '.local/screenshots/e8-14/facts.png', fullPage: true });
   await page.goto(base + '?screen=questions');
   await page.getByRole('button', { name: /Как выбрать салют/ }).click();

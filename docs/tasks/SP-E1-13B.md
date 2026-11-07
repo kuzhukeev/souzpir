@@ -1,18 +1,5 @@
-# SP-E1-13B · Завершить ограничения тарифов
 
-**Зачем:** завершить требования по решению владельца.
-**Часть чего:** остаток SP-E1-13, docs/results/SP-E1-13.md.
-**Зависимости:** SP-E1-13.
 
-## Приёмка
-- Защитить общий вход первого хода и остальные канальные входы при исчерпании лимита.
-- Обеспечить ограничения числа участников и каналов в соответствующих модулях.
-- Завершить экран Vision и подписи будущих моделей Yandex согласно решению владельца.
-
-Остаток записать в отчёт.
-
-Scope: `app/ProtectedOperations/`, `app/Seller/Channels/`, `app/Shell/Organizations/`, `app/Shell/Plans/`, `app/Vision/`, `resources/js/pages/Vision/`, `tests/Feature/ProtectedOperations/`, `tests/Feature/Shell/`, `tests/Feature/Vision/`, `tests/Browser/E1-13B/`, `docs/results/SP-E1-13B.md`.
-
-## Решение владельца 06.11.2026 — общие AI-стадии
-
-Решение владельца 06.11: разрешены только совместимые добавления общих AI-стадий без рефакторинга и без изменения существующего поведения и записанного replay; проверить права, изоляцию брендов и повторы. Только fake AI; живые и платные вызовы выключены. Общий ресурс shared-ai-stages занимает одна карточка до слияния. Прежние ограничения «до решения владельца» считать снятыми в этих границах.
+## Остаток 07.11.2026 23:40 (после приёмки)
+- `users.max` (лимит участников): проверка через `LimitEnforcer` при выдаче приглашения (`app/Shell/InvitationIssuance/InvitationIssuer.php`) и при принятии/создании активного membership (`app/Tenancy/Invitations/InvitationAcceptance.php`, `app/Shell/Auth/Http/InvitationController.php`); понятная ошибка на экране, feature-тест, бренд/организация.
+- Дополнительный scope: `app/Tenancy/Invitations/`, `app/Shell/InvitationIssuance/`, `app/Shell/Auth/Http/InvitationController.php`, `tests/Feature/Shell/InvitationIssuance/`, `tests/Feature/Tenancy/Invitations/`.

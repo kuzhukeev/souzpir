@@ -77,93 +77,107 @@ final class FactsController
 
     public function show(Request $request, string $fact): mixed
     {
-        $data = $this->access($request, function (TenantContext $tenant) use ($fact): array {
+        // A second access() call within the same request (partial reload for factData) would
+        // re-check the brand-revision snapshot against a now-stale value and abort with 409,
+        // so the tenant is resolved once here and reused by the deferred closure below.
+        $tenant = $this->access($request, function (TenantContext $tenant) use ($fact): TenantContext {
             $draft = $this->draft($tenant);
-            $row = DB::table('kn_facts as f')->join('kn_fact_groups as g', 'g.id', '=', 'f.group_id')
-                ->where('g.release_id', $draft)->where('f.id', $fact)
-                ->first(['f.id', 'f.logical_id', 'f.text', 'f.status', 'f.source', 'g.key as group_key', 'g.data as group_data']) ?? abort(404);
-            $group = json_decode($row->group_data, true);
-            unset($row->group_data);
-            $version = DB::table('knowledge_releases')->where('id', $draft)->value('version');
-            $publishedId = DB::table('brands')->where('organization_id', $tenant->organizationId)->where('id', $tenant->brandId)->value('active_knowledge_release_id');
-            $publishedText = $publishedId ? DB::table('kn_facts as f')->join('kn_fact_groups as g', 'g.id', '=', 'f.group_id')
-                ->join('knowledge_releases as r', 'r.id', '=', 'g.release_id')
-                ->where('r.organization_id', $tenant->organizationId)->where('r.brand_id', $tenant->brandId)
-                ->where('r.id', $publishedId)->where('f.logical_id', $row->logical_id)->value('f.text') : null;
-            $history = DB::table('audit_logs as a')->leftJoin('users as u', 'u.id', '=', 'a.actor_id')
-                ->where('a.organization_id', $tenant->organizationId)->where('a.brand_id', $tenant->brandId)
-                ->where('a.subject_type', 'knowledge_fact')->where('a.subject_id', $row->logical_id)
-                ->orderByDesc('a.created_at')->orderByDesc('a.id')->limit(50)->get(['a.action', 'a.created_at', 'a.before', 'a.after', 'u.name as author'])
-                ->map(function ($change) {
-                    $before = json_decode($change->before ?? '{}', true);
-                    $after = json_decode($change->after ?? '{}', true);
+            DB::table('kn_facts as f')->join('kn_fact_groups as g', 'g.id', '=', 'f.group_id')
+                ->where('g.release_id', $draft)->where('f.id', $fact)->exists() || abort(404);
 
-                    return ['action' => $change->action, 'created_at' => $change->created_at, 'author' => $change->author,
-                        'before_status' => $before['status'] ?? null, 'after_status' => $after['status'] ?? null, 'before_text' => $before['text'] ?? null, 'after_text' => $after['text'] ?? null];
-                });
-
-            $snapshot = app(KnowledgeRepository::class)->forRelease($tenant, $draft, true);
-            $conditions = $snapshot->conditions();
-            $intentLinks = collect($snapshot->intents())->filter(fn ($intent) => is_array($intent) && is_string($intent['id'] ?? null) && is_array($intent['facts'] ?? null))
-                ->map(fn ($intent) => ['id' => $intent['id'], 'label' => is_string($intent['description'] ?? null) && trim($intent['description']) !== '' ? $intent['description'] : $intent['id'], 'groups' => array_slice($intent['facts'], 0, 3),
-                    'selected' => in_array($row->group_key, array_slice($intent['facts'], 0, 3), true) && (! array_key_exists($row->group_key, $intent['fact_overrides'] ?? []) || in_array($row->logical_id, $intent['fact_overrides'][$row->group_key], true))])->values()->all();
-            $conditionLabels = [
-                'min_order_rub' => 'Минимальный заказ',
-                'min_order_quantity' => 'Минимальное количество',
-                'prepayment_pct' => 'Предоплата, %',
-                'availability' => 'Условия наличия',
-                'other_conditions' => 'Дополнительные условия',
-                'offseason_min_order_rub' => 'Минимальный заказ вне сезона',
-                'reserve_days' => 'Срок резерва',
-                'new_client_bonus_pct' => 'Бонус новому клиенту',
-                'discount_grid' => 'Сетка скидок',
-                'box_discounts' => 'Скидки по маркам',
-                'promotions' => 'Акции',
-                'valid_from' => 'Дата начала действия',
-                'approved_by' => 'Кем утверждено',
-                'max_pct_unapproved' => 'Максимальная скидка без утверждения',
-                'escalation_amount_rub' => 'Сумма для передачи руководителю',
-                'discount_not_tied_to_volume' => 'Скидка не привязана к объёму',
-                'prepayment' => 'Предоплата',
-                'partial_prepayment_allowed' => 'Частичная предоплата',
-                'payment_methods' => 'Способы оплаты',
-                'deferred_payment.new_clients' => 'Отсрочка новым клиентам',
-                'deferred_payment.regular_clients' => 'Отсрочка постоянным клиентам',
-                'consignment.new_clients' => 'Реализация новым клиентам',
-                'consignment.regular_clients' => 'Реализация постоянным клиентам',
-                'returns' => 'Возврат',
-                'delivery.free_to_moscow_terminal' => 'Доставка до терминала Москвы',
-                'delivery.main_carrier' => 'Основной перевозчик',
-                'delivery.carriers' => 'Перевозчики',
-                'delivery.sdek' => 'Доставка СДЭК',
-                'delivery.box_weight_kg' => 'Вес коробки',
-                'delivery.assembly_days' => 'Срок сборки',
-                'price_increase_forecast.month' => 'Месяц повышения цен',
-                'price_increase_forecast.pct_min' => 'Минимальное повышение цен',
-                'price_increase_forecast.pct_max' => 'Максимальное повышение цен',
-                'price_increase_forecast.leader_brand' => 'Марка с повышением цен',
-                'price_increase_forecast.example' => 'Пример повышения цен',
-                'followup_default_days' => 'Срок повторного контакта',
-                'followup_max_auto' => 'Число автоматических контактов',
-            ];
-            $conditionOptions = [];
-            foreach ($conditionLabels as $key => $label) {
-                if (data_get($conditions, $key) !== null && data_get($conditions, $key) !== []) {
-                    $conditionOptions[] = ['key' => $key, 'label' => $label];
-                }
-            }
-            $topics = DB::table('kn_fact_groups')->where('release_id', $draft)->orderBy('position')->get(['key', 'data'])
-                ->map(function ($item): array {
-                    $data = json_decode($item->data ?? '{}', true) ?: [];
-
-                    return ['key' => $item->key, 'label' => ($data['topic'] ?? null) ?: $item->key, 'bridge_hint' => $data['bridge_hint'] ?? '', 'must_not' => $data['must_not'] ?? []];
-                })->all();
-
-            return ['fact' => $row, 'version' => $version, 'history' => $history, 'publishedText' => $publishedText, 'topics' => $topics, 'conditionOptions' => $conditionOptions, 'intentLinks' => $intentLinks,
-                'group' => ['topic' => $group['topic'] ?? null, 'bridge_hint' => $group['bridge_hint'] ?? null, 'must_not' => $group['must_not'] ?? []], 'example' => $group['fact_examples'][$row->logical_id] ?? null];
+            return $tenant;
         });
 
-        return Inertia::render('Seller/Knowledge/Facts/Show', [...$data, 'status' => session('status')]);
+        return Inertia::render('Seller/Knowledge/Facts/Show', [
+            'factData' => Inertia::defer(function () use ($tenant, $fact): array {
+                $draft = $this->draft($tenant);
+                $row = DB::table('kn_facts as f')->join('kn_fact_groups as g', 'g.id', '=', 'f.group_id')
+                    ->where('g.release_id', $draft)->where('f.id', $fact)
+                    ->first(['f.id', 'f.logical_id', 'f.text', 'f.status', 'f.source', 'g.key as group_key', 'g.data as group_data']) ?? abort(404);
+                $group = json_decode($row->group_data, true);
+                unset($row->group_data);
+                $version = DB::table('knowledge_releases')->where('id', $draft)->value('version');
+                $publishedId = DB::table('brands')->where('organization_id', $tenant->organizationId)->where('id', $tenant->brandId)->value('active_knowledge_release_id');
+                $publishedRow = $publishedId ? DB::table('kn_facts as f')->join('kn_fact_groups as g', 'g.id', '=', 'f.group_id')
+                    ->join('knowledge_releases as r', 'r.id', '=', 'g.release_id')
+                    ->where('r.organization_id', $tenant->organizationId)->where('r.brand_id', $tenant->brandId)
+                    ->where('r.id', $publishedId)->where('f.logical_id', $row->logical_id)->first(['f.text', 'f.status', 'f.source', 'g.key']) : null;
+                $publishedText = $publishedRow->text ?? null;
+                $row->change_status = ! $publishedRow ? 'new' : (($publishedRow->text !== $row->text || $publishedRow->status !== $row->status || $publishedRow->source !== $row->source || $publishedRow->key !== $row->group_key) ? 'changed' : null);
+                $history = DB::table('audit_logs as a')->leftJoin('users as u', 'u.id', '=', 'a.actor_id')
+                    ->where('a.organization_id', $tenant->organizationId)->where('a.brand_id', $tenant->brandId)
+                    ->where('a.subject_type', 'knowledge_fact')->where('a.subject_id', $row->logical_id)
+                    ->orderByDesc('a.created_at')->orderByDesc('a.id')->limit(50)->get(['a.action', 'a.created_at', 'a.before', 'a.after', 'u.name as author'])
+                    ->map(function ($change) {
+                        $before = json_decode($change->before ?? '{}', true);
+                        $after = json_decode($change->after ?? '{}', true);
+
+                        return ['action' => $change->action, 'created_at' => $change->created_at, 'author' => $change->author,
+                            'before_status' => $before['status'] ?? null, 'after_status' => $after['status'] ?? null, 'before_text' => $before['text'] ?? null, 'after_text' => $after['text'] ?? null];
+                    });
+
+                $snapshot = app(KnowledgeRepository::class)->forRelease($tenant, $draft, true);
+                $conditions = $snapshot->conditions();
+                $intentLinks = collect($snapshot->intents())->filter(fn ($intent) => is_array($intent) && is_string($intent['id'] ?? null) && is_array($intent['facts'] ?? null))
+                    ->map(fn ($intent) => ['id' => $intent['id'], 'label' => is_string($intent['description'] ?? null) && trim($intent['description']) !== '' ? $intent['description'] : $intent['id'], 'groups' => array_slice($intent['facts'], 0, 3),
+                        'selected' => in_array($row->group_key, array_slice($intent['facts'], 0, 3), true) && (! array_key_exists($row->group_key, $intent['fact_overrides'] ?? []) || in_array($row->logical_id, $intent['fact_overrides'][$row->group_key], true))])->values()->all();
+                $conditionLabels = [
+                    'min_order_rub' => 'Минимальный заказ',
+                    'min_order_quantity' => 'Минимальное количество',
+                    'prepayment_pct' => 'Предоплата, %',
+                    'availability' => 'Условия наличия',
+                    'other_conditions' => 'Дополнительные условия',
+                    'offseason_min_order_rub' => 'Минимальный заказ вне сезона',
+                    'reserve_days' => 'Срок резерва',
+                    'new_client_bonus_pct' => 'Бонус новому клиенту',
+                    'discount_grid' => 'Сетка скидок',
+                    'box_discounts' => 'Скидки по маркам',
+                    'promotions' => 'Акции',
+                    'valid_from' => 'Дата начала действия',
+                    'approved_by' => 'Кем утверждено',
+                    'max_pct_unapproved' => 'Максимальная скидка без утверждения',
+                    'escalation_amount_rub' => 'Сумма для передачи руководителю',
+                    'discount_not_tied_to_volume' => 'Скидка не привязана к объёму',
+                    'prepayment' => 'Предоплата',
+                    'partial_prepayment_allowed' => 'Частичная предоплата',
+                    'payment_methods' => 'Способы оплаты',
+                    'deferred_payment.new_clients' => 'Отсрочка новым клиентам',
+                    'deferred_payment.regular_clients' => 'Отсрочка постоянным клиентам',
+                    'consignment.new_clients' => 'Реализация новым клиентам',
+                    'consignment.regular_clients' => 'Реализация постоянным клиентам',
+                    'returns' => 'Возврат',
+                    'delivery.free_to_moscow_terminal' => 'Доставка до терминала Москвы',
+                    'delivery.main_carrier' => 'Основной перевозчик',
+                    'delivery.carriers' => 'Перевозчики',
+                    'delivery.sdek' => 'Доставка СДЭК',
+                    'delivery.box_weight_kg' => 'Вес коробки',
+                    'delivery.assembly_days' => 'Срок сборки',
+                    'price_increase_forecast.month' => 'Месяц повышения цен',
+                    'price_increase_forecast.pct_min' => 'Минимальное повышение цен',
+                    'price_increase_forecast.pct_max' => 'Максимальное повышение цен',
+                    'price_increase_forecast.leader_brand' => 'Марка с повышением цен',
+                    'price_increase_forecast.example' => 'Пример повышения цен',
+                    'followup_default_days' => 'Срок повторного контакта',
+                    'followup_max_auto' => 'Число автоматических контактов',
+                ];
+                $conditionOptions = [];
+                foreach ($conditionLabels as $key => $label) {
+                    if (data_get($conditions, $key) !== null && data_get($conditions, $key) !== []) {
+                        $conditionOptions[] = ['key' => $key, 'label' => $label];
+                    }
+                }
+                $topics = DB::table('kn_fact_groups')->where('release_id', $draft)->orderBy('position')->get(['key', 'data'])
+                    ->map(function ($item): array {
+                        $data = json_decode($item->data ?? '{}', true) ?: [];
+
+                        return ['key' => $item->key, 'label' => ($data['topic'] ?? null) ?: $item->key, 'bridge_hint' => $data['bridge_hint'] ?? '', 'must_not' => $data['must_not'] ?? []];
+                    })->all();
+
+                return ['fact' => $row, 'version' => $version, 'history' => $history, 'publishedText' => $publishedText, 'topics' => $topics, 'conditionOptions' => $conditionOptions, 'intentLinks' => $intentLinks,
+                    'group' => ['topic' => $group['topic'] ?? null, 'bridge_hint' => $group['bridge_hint'] ?? null, 'must_not' => $group['must_not'] ?? []], 'example' => $group['fact_examples'][$row->logical_id] ?? null];
+            }, rescue: true),
+            'status' => session('status'),
+        ]);
     }
 
     public function bulk(Request $request): mixed
@@ -247,9 +261,9 @@ final class FactsController
     public function add(Request $request): mixed
     {
         $input = $request->validate(['version' => ['required', 'integer', 'min:1'], 'group' => ['required', 'string', 'max:64'], 'text' => ['required', 'string', 'max:500']]);
-        $this->access($request, fn (TenantContext $tenant) => app(KnowledgeRepository::class)->addFact($tenant, $this->draft($tenant), (int) $input['version'], $input['group'], trim($input['text'])));
+        $created = $this->access($request, fn (TenantContext $tenant) => app(KnowledgeRepository::class)->addFact($tenant, $this->draft($tenant), (int) $input['version'], $input['group'], trim($input['text'])));
 
-        return back()->with('status', 'Факт добавлен.');
+        return redirect('/seller/knowledge/facts/'.$created['id'])->with('status', 'Факт добавлен. Заполните остальные поля в карточке.');
     }
 
     public function update(Request $request, string $fact): mixed

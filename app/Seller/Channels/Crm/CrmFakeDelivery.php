@@ -37,9 +37,15 @@ final class CrmFakeDelivery
                 ? ['conversation_id' => $conversationId, 'contact_id' => (string) Str::ulid()]
                 : ['reason' => 'test', 'task_id' => (string) Str::ulid()],
         ]);
-        DB::transaction(function () use ($context, $webhookId, $event, $type): void {
+        DB::transaction(function () use ($context, $webhookId, $event, $type, $eventId): void {
             $this->hook($context, $webhookId, $type);
             app(NotificationDispatcher::class)->enqueue($event);
+            // The synthetic test event gets its CRM-mapped delivery below; mark it
+            // consumed so the generic webhook outbox does not also send it raw.
+            DB::table('consumed_events')->insertOrIgnore([
+                'id' => (string) Str::ulid(), 'organization_id' => $context->organizationId,
+                'event_id' => $eventId, 'consumer' => 'integrations.webhooks.v1', 'created_at' => now(),
+            ]);
         });
 
         return $this->consume($context, $webhookId, $eventId, $fail, true);

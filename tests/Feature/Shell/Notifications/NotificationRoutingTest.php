@@ -103,7 +103,7 @@ final class NotificationRoutingTest extends TenancyTestCase
     {
         Queue::fake();
         Mail::fake();
-        config(['features.E0-04.defaults.external_delivery' => true, 'mail.default' => 'smtp']);
+        config(['features.E0-04.defaults.external_delivery' => true, 'mail.default' => 'smtp', 'runtime.notification_driver' => null]);
         [$user, $org, $brand, , $membership] = $this->cabinet();
         $context = new TenantContext($org->id, $brand->id, $user->id, $membership->id);
         app(TenantContextRunner::class)->run($context, fn () => app(ConfigureNotification::class)->execute($context, 'seller.conversation.handed_off', 'email', true));

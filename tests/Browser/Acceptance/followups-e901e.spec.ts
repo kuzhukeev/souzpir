@@ -96,6 +96,9 @@ test('followup settings and new widget dialogue through the UI', async ({ page, 
   await reminders.getByLabel('Первый интервал, часов').fill('20');
   await reminders.getByLabel('Второй интервал, часов').fill('40');
   await reminders.getByLabel('Максимум напоминаний').fill('2');
+  await reminders.getByLabel('Текст 1').fill('Первое напоминание от бота.');
+  await reminders.getByRole('button', { name: 'Добавить текст' }).click();
+  await reminders.getByLabel('Текст 2').fill('Второе напоминание от бота.');
   await reminders.getByRole('button', { name: 'Сохранить', exact: true }).click();
   await expect(page.getByRole('status')).toContainText('сохран');
   await page.reload();
@@ -103,15 +106,21 @@ test('followup settings and new widget dialogue through the UI', async ({ page, 
   await expect(reminders.getByLabel('Первый интервал, часов')).toHaveValue('20');
   await auditPage(page, 'followup-policy');
   await page.setViewportSize({ width: 1440, height: 900 });
+  // Настройки виджета разнесены по вкладкам (SP-E5-02D): «Установка» и «Поведение» сохраняются по отдельности.
   await page.goto(`${origin}/seller/channels/widget`);
   await page.getByLabel('Адреса сайтов').fill(origin);
   await page.getByLabel('Включить виджет на разрешённых сайтах').check();
-  await page.getByLabel('Открыть через секунд').fill('1');
-  await page.getByLabel('Запрашивать контакт с согласием').check();
-  await page.getByLabel('HTTPS-ссылка на политику обработки данных').fill('https://example.test/privacy');
   const code = await page.locator('pre code').innerText();
   const key = new URL(code.match(/src="([^"]+)"/)![1]).searchParams.get('key');
   expect(key).toMatch(/^[A-Za-z0-9]{64}$/);
+  await page.getByRole('button', { name: 'Сохранить настройки' }).click();
+  await expect(page.getByRole('status')).toContainText('Настройки виджета сохранены');
+  await page.goto(`${origin}/seller/channels/widget/behavior`);
+  await page.getByLabel('Через секунд').fill('1');
+  await page.getByText('Мягко', { exact: true }).click();
+  await expect(page.getByRole('radio', { name: 'Мягко' })).toBeChecked();
+  await page.getByLabel('Текст согласия').fill('Согласен на обработку данных');
+  await page.getByLabel('HTTPS-ссылка на политику').fill('https://example.test/privacy');
   await page.getByRole('button', { name: 'Сохранить настройки' }).click();
   await expect(page.getByRole('status')).toContainText('Настройки виджета сохранены');
   const visitorContext = await browser.newContext();
@@ -121,6 +130,9 @@ test('followup settings and new widget dialogue through the UI', async ({ page, 
     await visitor.goto(`${origin}/__acceptance/widget?key=${key}`);
     const widget = visitor.locator('#souzpir-widget');
     await expect(widget.getByRole('checkbox')).toBeVisible({ timeout: 10000 });
+    await widget.getByLabel('Ваше сообщение').fill('Здравствуйте! Подскажите цены.');
+    await widget.getByRole('button', { name: 'Отправить', exact: true }).click();
+    await expect(widget.getByText('Сообщение отправлено.')).toBeVisible();
     await widget.getByRole('checkbox').check();
     await widget.getByLabel('Имя', { exact: true }).fill('Посетитель виджета');
     await widget.getByLabel('Электронная почта').fill('widget@example.test');
@@ -130,4 +142,63 @@ test('followup settings and new widget dialogue through the UI', async ({ page, 
   await page.goto(`${origin}/seller/dialogs`);
   await expect(page.getByText('Посетитель виджета')).toBeVisible();
   await auditPage(page, 'new-dialogue');
+  await page.setViewportSize({ width: 1440, height: 900 });
+
+  const clientMessageAt = Date.now();
+  await page.getByRole('button', { name: /Посетитель виджета/ }).click();
+  await expect(page.getByRole('heading', { name: 'Посетитель виджета' })).toBeVisible();
+  await expect(page.getByRole('list', { name: 'Сообщения' }).getByText('Здравствуйте! Подскажите цены.', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Карточка клиента' })).toBeVisible();
+  await expect(page.getByText('widget@example.test')).toBeVisible();
+  const dialogId = new URL(page.url()).pathname.split('/').pop()!;
+  await page.getByRole('button', { name: 'Забрать себе' }).click();
+  await expect(page.getByRole('button', { name: 'Вернуть боту' })).toBeVisible();
+  const seedAt = new Date(clientMessageAt + 60000);
+  execFileSync(php, ['tests/Browser/Acceptance/followups-e901e-fixture.php'], { env: { ...fixtureEnv, E901_ACTION: 'seed-agent-reply', E901_DIALOG: dialogId, E901_AT: seedAt.toISOString() }, stdio: 'pipe' });
+  await page.getByRole('button', { name: 'Вернуть боту' }).click();
+  await expect(page.getByRole('button', { name: 'Забрать себе' })).toBeVisible();
+  const messageList = page.getByRole('list', { name: 'Сообщения' });
+  const messages = messageList.getByRole('listitem');
+  const advance = (at: Date) => execFileSync(php, ['tests/Browser/Acceptance/followups-e901e-fixture.php'], { env: { ...fixtureEnv, E901_ACTION: 'advance-followups', E901_AT: at.toISOString() }, stdio: 'pipe' });
+
+  // Сценарий 6 (два fake-напоминания и остановка) изолирован в try/catch: известный блокер
+  // в app/Seller/Followups/FollowupSender.php (нарушение e304_message_inbound_binding, вне
+  // scope SP-E9-01) не должен мешать проверить сценарий 8 ниже в этом же прогоне.
+  let scenario6Error: unknown = null;
+  try {
+    advance(new Date(seedAt.getTime() + 19 * 3600000));
+    await page.reload();
+    await expect(messageList.getByText('Исходный ответ бота.')).toBeVisible();
+    await expect(messages).toHaveCount(2);
+
+    const firstReminderAt = new Date(seedAt.getTime() + 20 * 3600000 + 300000);
+    advance(firstReminderAt);
+    await page.reload();
+    await expect(messageList.getByText('Первое напоминание от бота.')).toBeVisible();
+    await expect(messages).toHaveCount(3);
+
+    advance(new Date(firstReminderAt.getTime() + 40 * 3600000 + 300000));
+    await page.reload();
+    await expect(messageList.getByText('Второе напоминание от бота.')).toBeVisible();
+    await expect(messages).toHaveCount(4);
+
+    advance(new Date(firstReminderAt.getTime() + 20 * 24 * 3600000));
+    await page.reload();
+    await expect(messages).toHaveCount(4);
+    await auditPage(page, 'followups-stopped');
+  } catch (error) { scenario6Error = error; }
+
+  execFileSync(php, ['tests/Browser/Acceptance/followups-e901e-fixture.php'], { env: { ...fixtureEnv, E901_ACTION: 'second-brand' }, stdio: 'pipe' });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  // Переключатель на самой странице диалогов пока отрисован как «Скоро» (нет brandSwitchReady);
+  // реальный переход — со страницы настроек бренда, где переключатель включён.
+  await page.goto(`${origin}/brands/${brand}/settings`);
+  await page.getByRole('combobox', { name: 'Выбрать бренд' }).click();
+  await page.getByRole('option', { name: 'Второй бренд' }).click();
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await page.goto(`${origin}/seller/dialogs`);
+  await expect(page.getByText('Клиент второго бренда')).toBeVisible();
+  await expect(page.getByText('Посетитель виджета')).not.toBeVisible();
+
+  if (scenario6Error) throw scenario6Error;
 });

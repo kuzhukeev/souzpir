@@ -4,8 +4,12 @@ namespace App\Vision\Measurements;
 
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
+use App\Shell\Plans\Contracts\PlanLimits;
+use App\Shell\Plans\MonthlyUnits;
 use App\Tenancy\TenantContext;
+use App\Vision\Core\EvidenceStore;
 use App\Vision\Core\MeasurementRunner;
+use App\Vision\Evidence\LiveGate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -65,9 +69,14 @@ final class MeasurementsController
         $month = $request->query('month');
         abort_if($month !== null && (! is_string($month) || ! preg_match('/^[1-9]\d{3}-(0[1-9]|1[0-2])$/D', $month)), 422);
 
-        return app(MeasurementList::class)->withinCurrent($request,
-            fn (TenantContext $context, string $revision) => response()->json(['revision' => $revision,
-                ...($detailed ? app(MeasurementList::class)->readDetailed($context, $page, $month) : app(MeasurementList::class)->read($context, $page))]));
+        return app(MeasurementList::class)->withinCurrent($request, function (TenantContext $context, string $revision) use ($detailed, $page, $month) {
+            $data = $detailed ? app(MeasurementList::class)->readDetailed($context, $page, $month) : app(MeasurementList::class)->read($context, $page);
+            if ($detailed && ! Gate::allows('vision.measure.full_access')) {
+                $data['data'] = array_map(fn (array $row) => [...$row, 'answers' => array_map(fn (array $answer) => [...$answer, 'answer_text' => null], $row['answers'])], $data['data']);
+            }
+
+            return response()->json(['revision' => $revision, ...$data]);
+        });
     }
 
     public function revision(Request $request): mixed
@@ -112,6 +121,16 @@ final class MeasurementsController
             if (! is_array($providers) || $providers === []) {
                 throw ValidationException::withMessages(['runs' => 'Панель моделей недоступна.']);
             }
+            $questionCount = DB::table('question_sets')->where('organization_id', $context->organizationId)
+                ->where('brand_id', $context->brandId)->where('id', $approval->question_set_id)->value('size');
+            $slotLimit = app(PlanLimits::class)->get($context, 'vision.slots_month')->value;
+            if (is_numeric($questionCount) && is_numeric($slotLimit)) {
+                $needed = (int) $questionCount * count($providers) * (int) $data['runs'];
+                $available = max(0, (int) floor((float) $slotLimit) - app(MonthlyUnits::class)->usage($context)['slots']);
+                if ($needed > $available) {
+                    throw ValidationException::withMessages(['runs' => 'Не хватает слотов. Уменьшите число моделей или дождитесь обновления лимита.']);
+                }
+            }
             try {
                 $id = app(MeasurementRunner::class)->start($approval->question_set_id, $providers, (int) $data['runs']);
             } catch (\InvalidArgumentException|\LogicException) {
@@ -142,9 +161,12 @@ final class MeasurementsController
             return redirect()->route('vision.measurements.index')->with('status', 'Ожидающих слотов нет.');
         }
         try {
-            app(MeasurementRunner::class)->measure($answer);
+            $status = app(MeasurementRunner::class)->measure($answer);
         } catch (\LogicException) {
             return redirect()->route('vision.measurements.index')->with('status', 'Слот не удалось выполнить. Проверьте его состояние.');
+        }
+        if ($status === 'ok' && LiveGate::evidenceEnabled()) {
+            app(EvidenceStore::class)->evaluate($answer);
         }
 
         return redirect()->route('vision.measurements.index')->with('status', 'Слот обработан.');

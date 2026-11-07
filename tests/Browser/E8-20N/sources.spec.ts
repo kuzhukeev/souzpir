@@ -11,7 +11,9 @@ test('цитирования и сохранённый статус площад
     await page.goto('http://127.0.0.1:5411/tests/Browser/E8-20N/fixture.html');
     await expect(page.getByRole('columnheader', { name: 'Цитирований' })).toBeVisible();
     await expect(page.getByRole('row', { name: /example.test/ }).getByRole('cell', { name: '5' })).toBeVisible();
-    await expect(page.getByText('сложность: Нет данных')).toBeVisible();
+    await expect(page.getByText('Приоритет учитывает цитирования')).toBeVisible();
+    await expect(page.getByText('сложность:')).toBeVisible();
+    await expect(page.getByText('сложно', { exact: true })).toBeVisible();
     await expect(page.getByText('В работе')).toBeVisible();
     await mkdir('.local/screenshots/sp-e8-20n', { recursive: true });
     await page.screenshot({ path: '.local/screenshots/sp-e8-20n/sources.png', fullPage: true });

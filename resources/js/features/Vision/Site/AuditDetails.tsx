@@ -165,7 +165,7 @@ export function Criteria({ criteria, canManage, auditId }: { criteria: Criterion
     </div>
   );
 }
-export function AuditForm({initialUrl = '', fixedUrl = false}: {initialUrl?: string; fixedUrl?: boolean}) {
+export function AuditForm({initialUrl = '', fixedUrl = false, pageLimit}: {initialUrl?: string; fixedUrl?: boolean; pageLimit?: number}) {
   const form = useForm({ url: initialUrl });
   const [open, setOpen] = useState(false);
   function prepare(event: FormEvent) {
@@ -200,11 +200,12 @@ export function AuditForm({initialUrl = '', fixedUrl = false}: {initialUrl?: str
         <Errors errors={form.errors} />
       </form>
       <Modal open={open} title="Перепроверить сайт?" onClose={() => setOpen(false)}>
-        <p className="break-all">{form.data.url}</p>
-        <p className="mt-3 text-(--color-ink-muted)">
-          Будет проверен доступный публичный HTML. Время проверки зависит от сайта и настроек
-          сервера.
+        <p className="text-(--color-ink-muted)">
+          {pageLimit != null
+            ? `Проверка займёт 2–5 минут, проверим до ${pageLimit} страниц.`
+            : 'Будет проверен доступный публичный HTML. Время проверки зависит от сайта и настроек сервера.'}
         </p>
+        <p className="mt-3 break-all">Сайт: {form.data.url}</p>
         <div className="mt-5 flex flex-wrap gap-3">
           <button type="button" className={secondary} onClick={() => setOpen(false)}>
             Отмена

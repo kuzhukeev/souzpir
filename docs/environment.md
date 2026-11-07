@@ -2,6 +2,10 @@
 
 Проект использует PHP 8.4, Laravel 13, PostgreSQL 16, React 19, TypeScript, Inertia 3, Vite 8 и Tailwind 4. Точные версии зафиксированы в composer.lock/package-lock.json. Установленный Node 24.19.0 совместим; минимальные версии перечислены в package.json. Основа получена из official laravel/laravel v13.11.0, донорские приложения не устанавливались поверх проекта.
 
+## Сервер разработки
+
+Текущая среда — Linux-сервер: основной checkout `/opt/contour/repo`, worktree задач `/opt/contour/repo/.worktrees/<key>`, очередь `.local/queue.md`, макеты `/opt/contour/data/mockups`. Команды: `php artisan ...`, `composer ...`, `npm ...`, `python3 scripts/task.py ...`. Разделы ниже про OSPanel/Windows описывают прежнюю локальную установку и для сервера не применяются.
+
 ## Первый запуск после merge
 
 Основной checkout: C:/OSPanel/home/souzpir.local. OSPanel должен обслуживать только public/; переключение выполняет интегратор до создания main .env. Корневой .htaccess дополнительно закрывает скрытые файлы, исходники, vendor и подготовительные материалы, если временно выбран корень checkout.

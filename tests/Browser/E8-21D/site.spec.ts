@@ -27,7 +27,8 @@ test('проверенные данные и уведомление по зав�
   await expect(page.locator('pre').filter({ hasText: 'Проверенный товар' }).first()).toBeVisible();
   await page.getByText('Контакты', { exact: true }).first().click();
   await page.getByText('Для разработчика').nth(1).click();
-  await expect(page.getByText('Пример кода для этого критерия не предоставлен.')).toBeVisible();
+  await expect(page.getByText('Пример структуры; подставьте реальные сведения вашей компании.').nth(1)).toBeVisible();
+  await expect(page.locator('pre').filter({ hasText: 'Для чего он предназначен' })).toBeVisible();
   await expect(page.getByRole('row', { name: /Связаться с нами Контакты/ })).toBeVisible();
   await expect(page.getByRole('row', { name: /Каталог Не определён/ })).toBeVisible();
   await page.getByRole('button', { name: 'Уведомить, когда будет готово' }).click();

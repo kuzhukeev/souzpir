@@ -22,6 +22,7 @@ type Props = {
   closed?: number;
   messageCount?: number;
   botCompleted?: number;
+  avgMinutesToContact?: number | null;
   dialogs?: Dialog[];
   hours?: Record<string, number>;
   unknownQuestions?: Record<string, number>;
@@ -29,6 +30,7 @@ type Props = {
   triggerStats?: Record<string, { dialogs: number; with_contact: number }>;
   triggers?: Record<string, number>;
   topics: Record<string, number>;
+  topicUnknownRates?: Record<string, number>;
   daily?: Record<string, number>;
   channel?: string;
   source?: string;
@@ -77,6 +79,7 @@ export default function Details({ data: a, activeTab }: { data: Props; activeTab
     (d) => d.stage === 'done' && d.handed_off === false,
   ).length;
   const hours = a.hours ?? {};
+  const hoursMax = Math.max(0, ...Object.values(hours));
   const questions = Object.entries(a.unknownQuestions ?? {});
   return (
     <>
@@ -103,23 +106,8 @@ export default function Details({ data: a, activeTab }: { data: Props; activeTab
       >
         <h2 className="text-xl font-bold">Аналитика диалогов</h2>
         <p className="mt-3 text-sm">
-          Среднее число сообщений:{' '}
-          {a.total
-            ? ((a.messageCount ?? 0) / a.total).toLocaleString('ru-RU', {
-                maximumFractionDigits: 1,
-              })
-            : 'Нет данных'}
-          .
-        </p>
-        <p className="mt-2 text-sm">
           Закрыто без передачи менеджеру:{' '}
-          {a.total ? `${closedWithoutHandoff} из ${a.total}` : 'Нет данных'}. Бот ответил сам до
-          конца:{' '}
-          {a.total && a.botCompleted != null
-            ? `${Math.round((a.botCompleted / a.total) * 100)}%`
-            : 'Нет данных'}{' '}
-          (завершённые с ответом бота, без передачи и сообщений менеджера). Среднее время до
-          контакта: нет данных — момент получения контакта не сохраняется.
+          {a.total ? `${closedWithoutHandoff} из ${a.total}` : 'Нет данных'}.
         </p>
         <p className="mt-2 text-sm text-(--color-ink-muted)">
           Показаны диалоги, созданные за выбранный период, и все сохранённые сообщения этих
@@ -185,18 +173,35 @@ export default function Details({ data: a, activeTab }: { data: Props; activeTab
         ) : (
           <p className="mt-2 text-sm">Таких диалогов нет.</p>
         )}
-        <h3 className="mt-5 font-semibold">Диалоги по дню недели и часу</h3>
+        <h3 className="mt-5 font-semibold">Диалоги по дням и часам</h3>
         <p className="mt-2 text-sm text-(--color-ink-muted)">
           Время создания диалога в часовом поясе бренда.
         </p>
-        <div className="mt-3 overflow-x-auto">
+        <div className="mt-2 flex items-center gap-2 text-sm text-(--color-ink-muted)">
+          <span>Меньше</span>
+          <span aria-hidden="true" className="flex h-3 w-24 overflow-hidden rounded-full">
+            {[10, 30, 50, 70, 90].map((p) => (
+              <span
+                key={p}
+                className="flex-1"
+                style={{ backgroundColor: `color-mix(in srgb, var(--color-brand-primary) ${p}%, transparent)` }}
+              />
+            ))}
+          </span>
+          <span>Больше</span>
+        </div>
+        <div
+          className="mt-3 overflow-x-auto"
+          role="region"
+          aria-label="Диалоги по дням и часам"
+        >
           <table className="min-w-[800px] text-center text-sm">
             <thead>
               <tr>
-                <th>День</th>
+                <th className="p-2 text-left font-normal">День</th>
                 {Array.from({ length: 24 }, (_, h) => (
-                  <th key={h} className="px-2">
-                    {h}
+                  <th key={h} className="px-1 font-normal text-(--color-ink-muted)">
+                    {h % 3 === 0 ? `${String(h).padStart(2, '0')}:00` : ''}
                   </th>
                 ))}
               </tr>
@@ -204,15 +209,23 @@ export default function Details({ data: a, activeTab }: { data: Props; activeTab
             <tbody>
               {days.map((day, i) => (
                 <tr key={day}>
-                  <th className="p-2">{day}</th>
+                  <th className="p-2 text-left font-normal">{day}</th>
                   {Array.from({ length: 24 }, (_, h) => {
                     const n = hours[`${i + 1}:${String(h).padStart(2, '0')}`] ?? 0;
+                    const ratio = hoursMax ? n / hoursMax : 0;
                     return (
-                      <td
-                        key={h}
-                        className={`p-2 ${n ? 'bg-(--color-brand-primary-soft) font-semibold' : ''}`}
-                      >
-                        {n || '—'}
+                      <td key={h} className="p-0.5">
+                        <div
+                          role="img"
+                          aria-label={`${day}, ${String(h).padStart(2, '0')}:00: ${n} диалогов`}
+                          title={`${day}, ${String(h).padStart(2, '0')}:00: ${n}`}
+                          className="h-6 w-6 rounded"
+                          style={{
+                            backgroundColor: n
+                              ? `color-mix(in srgb, var(--color-brand-primary) ${Math.round(ratio * 80 + 15)}%, transparent)`
+                              : 'var(--color-surface-muted)',
+                          }}
+                        />
                       </td>
                     );
                   })}
@@ -228,14 +241,30 @@ export default function Details({ data: a, activeTab }: { data: Props; activeTab
         className={card}
       >
         <h2 className="text-xl font-bold">Темы и вопросы</h2>
-        <h3 className="mt-4 font-semibold">Темы сообщений</h3>
+        <h3 className="mt-4 font-semibold">Топ тем вопросов</h3>
         {Object.keys(a.topics).length ? (
-          <ul className="mt-2 space-y-2 text-sm">
-            {Object.entries(a.topics).map(([topic, count]) => (
-              <li key={topic}>
-                {names[topic] ?? topic}: {count}
-              </li>
-            ))}
+          <ul className="mt-3 space-y-3 text-sm">
+            {(() => {
+              const max = Math.max(...Object.values(a.topics));
+              return Object.entries(a.topics).map(([topic, count]) => (
+                <li key={topic} className="flex items-center gap-3">
+                  <span className="w-32 shrink-0">{names[topic] ?? topic}</span>
+                  <span
+                    aria-hidden="true"
+                    className="h-3 flex-1 overflow-hidden rounded-full bg-(--color-border)"
+                  >
+                    <span
+                      className="block h-full rounded-full bg-(--color-action)"
+                      style={{ width: `${max ? Math.round((count / max) * 100) : 0}%` }}
+                    />
+                  </span>
+                  <strong className="w-10 shrink-0 text-right">{count}</strong>
+                  <span className="w-16 shrink-0 rounded-full bg-(--color-surface-muted) px-2 py-1 text-center">
+                    {a.topicUnknownRates?.[topic] ?? 0}%
+                  </span>
+                </li>
+              ));
+            })()}
           </ul>
         ) : (
           <p className="mt-2 text-sm">Сохранённых тем нет.</p>

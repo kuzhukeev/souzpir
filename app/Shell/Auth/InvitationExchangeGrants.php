@@ -4,7 +4,6 @@ namespace App\Shell\Auth;
 
 use App\Models\Organization;
 use App\Shell\Team\Models\Invitation;
-use App\Tenancy\Cabinet;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -45,14 +44,11 @@ final class InvitationExchangeGrants
             if (! is_string($hash) || ! preg_match('/^[a-f0-9]{64}$/D', $hash)) {
                 return false;
             }
-            $org = app(Cabinet::class)->organizationId();
-            if (! Organization::whereKey($org)->where('status', 'active')->lockForUpdate()->exists()) {
-                return false;
-            }
-            $invite = Invitation::withoutGlobalScopes()->where('organization_id', $org)->where('token_hash', $hash)
+            $invite = Invitation::withoutGlobalScopes()->where('token_hash', $hash)
                 ->whereNull('exchanged_at')->whereNull('accepted_at')->whereNull('revoked_at')
                 ->where('expires_at', '>', now())->lockForUpdate()->first();
-            if (! $invite || ($request->user() && mb_strtolower(trim($request->user()->email)) !== $invite->email)) {
+            if (! $invite || ! Organization::whereKey($invite->organization_id)->where('status', 'active')->lockForUpdate()->exists()
+                || ($request->user() && mb_strtolower(trim($request->user()->email)) !== $invite->email)) {
                 return false;
             }
             // This marker is immutable; the same row lock protects the direct acceptance API.

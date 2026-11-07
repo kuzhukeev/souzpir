@@ -4,13 +4,16 @@ namespace Tests\Feature\Seller\Evaluation;
 
 use App\Seller\Evaluation\RuntimeSimulation;
 use App\Seller\Evaluation\SimulationRuntime;
+use App\Seller\Knowledge\DatabaseKnowledgeRepository;
 use App\Tenancy\TenantContext;
+use App\Tenancy\TenantContextRunner;
 use Database\Seeders\Seller\Evaluation\SellerPersonaSeeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
+use Tests\Feature\Seller\Knowledge\Fixtures\PrototypeKnowledge;
 use Tests\Feature\Tenancy\TenancyTestCase;
 
 final class RuntimeSimulationTest extends TenancyTestCase
@@ -34,6 +37,34 @@ final class RuntimeSimulationTest extends TenancyTestCase
         $this->expectException(HttpException::class);
         app(RuntimeSimulation::class)->run(new TenantContext($org->id, $other->id, $owner->id, $membership->id),
             'newbie_voronezh', 1, $runtime);
+    }
+
+    public function test_simulator_prompt_version_follows_published_knowledge_and_isolates_brands(): void
+    {
+        [$owner, $org, $brand, $other, $membership] = $this->cabinet();
+        $context = new TenantContext($org->id, $brand->id, $owner->id, $membership->id);
+        $otherContext = new TenantContext($org->id, $other->id, $owner->id, $membership->id);
+        foreach ([$context, $otherContext] as $tenant) {
+            app(SellerPersonaSeeder::class)->seedForBrand($tenant);
+        }
+        $runtime = new TestSimulationRuntime;
+        $withoutKnowledge = app(RuntimeSimulation::class)->run($context, 'newbie_voronezh', 1, $runtime);
+        self::assertSame('v1', json_decode(DB::table('seller_sim_runs')->where('id', $withoutKnowledge)->value('metrics'), true)['prompt_version']);
+        app(TenantContextRunner::class)->run($otherContext, function () use ($otherContext): void {
+            $source = [];
+            $data = new PrototypeKnowledge(base_path('tests/Feature/Seller/Knowledge/Fixtures/data'), 0);
+            foreach (PrototypeKnowledge::FILES as $file) {
+                $source[$file] = $data->all($file);
+            }
+            $source['persona']['company'] = 'Сад и Дом';
+            $source['persona']['intro'] = 'Садовые инструменты, Казань';
+            $store = app(DatabaseKnowledgeRepository::class);
+            $draft = $store->createDraft($otherContext, $source);
+            $store->publish($otherContext, $draft['id'], $draft['version']);
+        });
+        $withKnowledge = app(RuntimeSimulation::class)->run($otherContext, 'newbie_voronezh', 1, $runtime);
+        self::assertSame('v2', json_decode(DB::table('seller_sim_runs')->where('id', $withKnowledge)->value('metrics'), true)['prompt_version']);
+        self::assertSame(1, DB::table('prompt_sets')->where('organization_id', $org->id)->where('brand_id', $other->id)->where('name', 'simulator')->where('version', 'v2')->count());
     }
 
     public function test_failed_runtime_turn_is_saved_and_invalid_count_is_rejected(): void

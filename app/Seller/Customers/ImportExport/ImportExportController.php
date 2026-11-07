@@ -3,6 +3,7 @@
 namespace App\Seller\Customers\ImportExport;
 
 use App\Models\User;
+use App\Seller\Followups\FollowupConsent;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
@@ -202,7 +203,8 @@ final class ImportExportController
     public function import(Request $request): mixed
     {
         $input = $request->validate(['id' => ['required', 'ulid'], 'mapping' => ['required', 'array'], 'mapping.name' => ['nullable', 'integer', 'min:0'],
-            'mapping.phone' => ['nullable', 'integer', 'min:0'], 'mapping.email' => ['nullable', 'integer', 'min:0'], 'mapping.city' => ['nullable', 'integer', 'min:0']]);
+            'mapping.phone' => ['nullable', 'integer', 'min:0'], 'mapping.email' => ['nullable', 'integer', 'min:0'], 'mapping.city' => ['nullable', 'integer', 'min:0'],
+            'mapping.consent' => ['nullable', 'integer', 'min:0']]);
         $this->access($request, 'seller.settings.write', function (User $user, TenantContext $tenant) use ($input): void {
             $record = $this->scope('seller_contact_imports', $tenant)->where('id', $input['id'])->where('user_id', $user->id)->where('status', 'preview')->first() ?? abort(404);
             $data = json_decode(Crypt::decryptString($record->data_encrypted), true, 512, JSON_THROW_ON_ERROR);
@@ -224,17 +226,23 @@ final class ImportExportController
                 if (empty($values['name']) && empty($values['phone']) && empty($values['email'])) {
                     throw ValidationException::withMessages(['mapping' => 'Нет контакта в строке '.($index + 2).'.']);
                 }
-                $validation = Validator::make($values, ['name' => ['nullable', 'string', 'max:255'], 'phone' => ['nullable', 'string', 'max:40'], 'email' => ['nullable', 'email', 'max:254'], 'city' => ['nullable', 'string', 'max:120']]);
+                $validation = Validator::make($values, ['name' => ['nullable', 'string', 'max:255'], 'phone' => ['nullable', 'string', 'max:40'], 'email' => ['nullable', 'email', 'max:254'], 'city' => ['nullable', 'string', 'max:120'], 'consent' => ['nullable', 'string', 'max:50']]);
                 if ($validation->fails()) {
                     throw ValidationException::withMessages(['mapping' => 'Проверьте данные в строке '.($index + 2).'.']);
                 }
                 $contacts[] = $values;
             }
-            DB::transaction(function () use ($contacts, $tenant, $record): void {
+            DB::transaction(function () use ($contacts, $tenant, $record, $user): void {
                 foreach ($contacts as $values) {
                     $id = (string) Str::ulid();
                     DB::table('contacts')->insert(['id' => $id, 'organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId,
                         'name' => $values['name'] ?? null, 'phone' => $values['phone'] ?? null, 'email' => $values['email'] ?? null, 'city' => $values['city'] ?? null, 'created_at' => now(), 'updated_at' => now()]);
+                    if (preg_match('/^(да|yes|1|true)$/ui', trim((string) ($values['consent'] ?? '')))) {
+                        $conversation = (string) Str::ulid();
+                        DB::table('conversations')->insert(['id' => $conversation, 'organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId,
+                            'contact_id' => $id, 'state' => '{}', 'created_at' => now(), 'updated_at' => now()]);
+                        app(FollowupConsent::class)->record($tenant, $conversation, 'granted', 'import', 'Согласие указано в файле импорта CRM.', actor: $user->id);
+                    }
                 }
                 $this->scope('seller_contact_imports', $tenant)->where('id', $record->id)->update(['status' => 'imported', 'updated_at' => now()]);
                 app(AuditWriter::class)->record($tenant, new AuditEntry('seller.customer.imported', 'seller_contact_import', $record->id, after: ['count' => count($contacts)]));

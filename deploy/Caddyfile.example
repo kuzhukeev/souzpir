@@ -1,0 +1,22 @@
+# Шаблон для прямого обслуживания Caddy (сам terminates TLS, напрямую к PHP-FPM
+# через php_fastcgi). См. docs/runbooks/https-forwarding.md.
+#
+# Без TRUSTED_PROXIES в .env эта схема — единственная безопасная по умолчанию:
+# Caddy не доверяет forwarding-заголовкам клиента (trusted_proxies не задан) и
+# сам прокидывает HTTPS=on в FastCGI по фактическому TLS-соединению.
+# Ссылка восстановления пароля отклоняет forwarding-заголовки в любом случае —
+# проверить её доставку письма через этот Caddy отдельно до включения живой почты.
+
+{$APP_DOMAIN} {
+	root * {$APP_ROOT:/var/www/souzpir/current}/public
+	encode gzip
+
+	php_fastcgi unix/{$PHP_FPM_SOCK:/run/php/php8.4-fpm.sock}
+
+	file_server
+}
+
+# Если перед Caddy стоит ещё один прокси/балансировщик (например, облачный LB):
+# задайте TRUSTED_PROXIES в .env на конкретный IP/CIDR этого прокси и добавьте
+# здесь `php_fastcgi ... { trusted_proxies <IP/CIDR> }`, иначе заголовки от
+# внешнего прокси будут восприняты как от клиента.

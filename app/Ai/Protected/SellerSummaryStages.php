@@ -10,7 +10,10 @@ use App\Models\Membership;
 use App\Models\User;
 use App\ProtectedOperations\SellerTurnFence;
 use App\Seller\Conversations\Data\TurnClaim;
+use App\Seller\Engine\BrandPromptSets;
 use App\Seller\Engine\SummaryProjection;
+use App\Seller\Knowledge\Contracts\KnowledgeRepository;
+use App\Seller\Knowledge\KnowledgeNotReady;
 use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Auth\SessionBrandSelection;
 use App\Shell\Organizations\ModuleEntitlements;
@@ -44,7 +47,7 @@ final class SellerSummaryStages
                     ->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
                     ->whereIn('role', ['client', 'agent'])->where('history_sequence', '<=', $turn->cutoff_sequence)
                     ->orderBy('history_sequence')->get(['role', 'text'])->map(fn ($m) => ['role' => $m->role, 'text' => $m->text])->all();
-                $prompt = $this->publishedPrompt();
+                $prompt = $this->publishedPrompt($tenant);
                 $state = json_decode($conversation->state, true, 512, JSON_THROW_ON_ERROR);
                 $previous = is_array($state) ? ($state['summary'] ?? null) : null;
                 if ($previous !== null && ! is_string($previous)) {
@@ -175,7 +178,7 @@ final class SellerSummaryStages
             throw new LogicException;
         }
         $value = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
-        $prompt = $this->publishedPrompt();
+        $prompt = $this->publishedPrompt($tenant);
         if (($value['prompt_version'] ?? null) !== $prompt->version || ($value['prompt_checksum'] ?? null) !== $prompt->checksum
             || ($value['model'] ?? null) !== config('features.E0-05.defaults.seller_defaults.summary.model')) {
             throw new LogicException;
@@ -184,16 +187,23 @@ final class SellerSummaryStages
         return new AiRequest($value['messages'], $value['model'], $value['temperature'], maxTokens: $value['max_tokens'], promptVersion: $value['prompt_version'], promptChecksum: $value['prompt_checksum']);
     }
 
-    private function publishedPrompt(): object
+    /** Brands with no published knowledge yet keep the prototype v1 summary. */
+    private function publishedPrompt(#[SensitiveParameter] TenantContext $tenant): object
     {
-        $prompt = DB::table('prompt_sets')->whereNull('organization_id')->whereNull('brand_id')
-            ->where('name', 'summary')->where('version', 'v1')->where('status', 'published')->lockForUpdate()->first();
-        $body = file_get_contents(resource_path('views/prompts/summary.blade.php'));
-        if (! $prompt || ! is_string($body) || ! hash_equals($prompt->checksum, hash('sha256', $body)) || $prompt->body !== $body) {
-            throw new LogicException;
+        try {
+            $knowledge = app(KnowledgeRepository::class)->published($tenant);
+        } catch (KnowledgeNotReady) {
+            $prompt = DB::table('prompt_sets')->whereNull('organization_id')->whereNull('brand_id')
+                ->where('name', 'summary')->where('version', 'v1')->where('status', 'published')->lockForUpdate()->first();
+            $body = file_get_contents(resource_path('views/prompts/summary.blade.php'));
+            if (! $prompt || ! is_string($body) || ! hash_equals($prompt->checksum, hash('sha256', $body)) || $prompt->body !== $body) {
+                throw new LogicException;
+            }
+
+            return $prompt;
         }
 
-        return $prompt;
+        return app(BrandPromptSets::class)->load($tenant, $knowledge, 'summary');
     }
 
     private function sessionHash(#[SensitiveParameter] Request $http): string

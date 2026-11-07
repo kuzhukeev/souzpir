@@ -44,8 +44,9 @@ final class ManagerSuggestionExtractorInput
             $row = app(BrandPromptSets::class)->load($tenant, $knowledge, 'extractor');
             $prompt = app(ExtractorPromptLoader::class)->load($tenant, $row->version);
             $engine = new Extractor(app(AiGateway::class), $knowledge, $prompt, $model, (float) $temperature, $name);
+            $state = new LeadState($stateData);
 
-            return [$engine->buildRequest(new LeadState($stateData), $history, $message->text), $source];
+            return [$engine->buildRequest($state, $history, $message->text), $source, $engine, $state, $message->text, $knowledge, $history];
         });
     }
 }

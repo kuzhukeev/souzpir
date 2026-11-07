@@ -20,6 +20,7 @@ final class RecipientPolicy
         return $member->status === 'active'
             && $member->permitsBrand($brandId)
             && (in_array($member->role, ['owner', 'admin'], true)
-                || ($member->role === 'member' && in_array($eventKey, ['seller.conversation.handed_off', 'seller.contact.reminder'], true)));
+                || ($member->role === 'member' && in_array($eventKey, ['seller.conversation.handed_off', 'seller.contact.reminder',
+                    'seller.conversation.inbound', 'seller.draft.ready'], true)));
     }
 }

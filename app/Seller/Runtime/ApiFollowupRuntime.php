@@ -2,8 +2,8 @@
 
 namespace App\Seller\Runtime;
 
-use App\Ai\Gateway;
 use App\ProtectedOperations\PostgresTransactionalIdempotency;
+use App\ProtectedOperations\SellerFollowup\FollowupCoordinator;
 use App\ProtectedOperations\SellerFollowup\FollowupFinalizer;
 use App\Seller\Channels\Api\ApiSourceReceipt;
 use App\Seller\Conversations\Contracts\ConversationRepository;
@@ -51,7 +51,7 @@ final class ApiFollowupRuntime
                 throw new LogicException('API follow-up unavailable.');
             }
             $schedule = app(BrandRuntimeSchedule::class);
-            $mode = $schedule->mode($tenant, $schedule->settings($tenant), CarbonImmutable::now());
+            $mode = $schedule->mode($tenant, $schedule->settings($tenant), CarbonImmutable::now(), 'api');
             if ($conversation->mode === 'manager' || $mode === 'off') {
                 return ['legacy' => true];
             }
@@ -87,14 +87,13 @@ final class ApiFollowupRuntime
             throw new LogicException('API follow-up unavailable.');
         }
         $claim = new TurnClaim('claimed', $receipt['turn'], $conversationId, $tenant->organizationId, $tenant->brandId, $receipt['version'], $receipt['token']);
-        app(Gateway::class)->completeApiFollowupExtractor($http, $tenant, $claim);
-        app(Gateway::class)->completeApiFollowupResponder($http, $tenant, $claim);
+        [$round, $toolResults, $guardIssues] = app(FollowupCoordinator::class)->prepareFinalRound($http, $tenant, $claim);
 
-        return DB::transaction(function () use ($http, $tenant, $claim, $receipt, $key, $source, $scope, $prepared): array {
+        return DB::transaction(function () use ($http, $tenant, $claim, $receipt, $key, $source, $scope, $prepared, $round, $toolResults, $guardIssues): array {
             app(TokenTenantAuthority::class)->revalidateLocked($http, $tenant, 'turn');
             $result = app(PostgresTransactionalIdempotency::class)->execute($tenant->organizationId, $tenant->brandId,
-                'seller.api.turn', $key, $prepared['payload'], function () use ($http, $tenant, $claim, $receipt, $scope): array {
-                    $outcome = app(FollowupFinalizer::class)->finishProtectedApi($http, $tenant, $claim, $receipt['mode']);
+                'seller.api.turn', $key, $prepared['payload'], function () use ($http, $tenant, $claim, $receipt, $scope, $round, $toolResults, $guardIssues): array {
+                    $outcome = app(FollowupFinalizer::class)->finishProtectedApi($http, $tenant, $claim, $receipt['mode'], $round, $toolResults, $guardIssues);
                     if ($receipt['mode'] === 'suggest') {
                         return ['conversation_id' => $claim->conversationId, 'status' => 'suggested', 'version' => $outcome['result']['version']];
                     }

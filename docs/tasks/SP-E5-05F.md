@@ -14,3 +14,12 @@
 Scope: `app/Seller/Customers/`, `resources/js/pages/Seller/Customers/`, `routes/features/E5-05.php`, `tests/Feature/Seller/Customers/`, `tests/Browser/E5-05F/`, `docs/results/SP-E5-05F.md`.
 
 Отчёт: docs/results/SP-E5-05F.md; локальные тесты задачи, submit и зелёный CI.
+
+
+
+## Остаток 08.11.2026 (аудит экранов, планировщик)
+- D-3.1 (макет `mockups D-3.1`): колонка «Каналы» — все каналы клиента (иконка + подпись, по одному на строку), а не только канал последнего диалога.
+- D-3.1: фильтр «Период» — выпадающий список пресетов (Последние 7 / 30 / 90 дней, Всё время) по умолчанию «Последние 30 дней»; если сейчас фильтр — диапазон дат, пресет подставляет from/to.
+- Проверка: Feature-тест (несколько каналов, изоляция бренда, 422 на неверный период), Playwright `tests/Browser/E5-05F/` с axe на 1440/1024/390. Scope сужен до этих файлов; карточка клиента (Show.tsx) — в SP-E5-05D.
+
+Scope: `resources/js/pages/Seller/Customers/Index.tsx`, `app/Seller/Customers/CustomersController.php`, `tests/Feature/Seller/Customers/CustomerListQueryTest.php`, `tests/Browser/E5-05F/`, `docs/results/SP-E5-05F.md`.

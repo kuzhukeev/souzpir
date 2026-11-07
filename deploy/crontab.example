@@ -1,0 +1,3 @@
+# Ежедневный бэкап БД в 03:00 силами пользователя приложения (souzpir).
+# Пароль берётся из ~/.pgpass этого пользователя, не из crontab.
+0 3 * * * DEPLOY_ROOT=/var/www/souzpir DB_DATABASE=souzpir_prod DB_USERNAME=souzpir_app /var/www/souzpir/current/deploy/backup.sh >> /var/log/souzpir-backup.log 2>&1

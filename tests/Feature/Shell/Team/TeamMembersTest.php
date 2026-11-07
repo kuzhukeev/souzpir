@@ -108,7 +108,8 @@ final class TeamMembersTest extends TenancyTestCase
         foreach ([$editor, $manager] as $user) {
             $this->actingAs($user)->withSession(['brand_id' => $brand->id])->get('/team')->assertForbidden();
         }
-        $this->actingAs($foreign)->withSession(['brand_id' => $foreignBrand->id])->get('/team')->assertForbidden();
+        $this->actingAs($foreign)->withSession(['brand_id' => $foreignBrand->id])->get('/team')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('members.data', fn ($members) => collect($members)->pluck('id')->doesntContain($adminMembership->id)));
         $this->actingAs($admin)->withSession(['brand_id' => $brand->id])->get('/team')->assertOk();
         DB::table('memberships')->where('id', $adminMembership->id)->update(['status' => 'disabled']);
         $this->get('/team')->assertForbidden();

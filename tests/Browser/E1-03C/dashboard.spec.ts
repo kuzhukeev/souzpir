@@ -1,0 +1,55 @@
+import { expect, test } from '@playwright/test';
+import { createServer, type ViteDevServer } from 'vite';
+import { mkdir } from 'node:fs/promises';
+
+let server: ViteDevServer;
+let base: string;
+test.use({ launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH } : {} });
+test.beforeAll(async () => {
+  server = await createServer({ configFile: 'tests/Browser/E1-03C/vite.config.ts', server: { host: '127.0.0.1', port: 0 } });
+  await server.listen();
+  base = server.resolvedUrls!.local[0];
+  await mkdir('.local/screenshots/sp-e1-03c', { recursive: true });
+});
+test.afterAll(async () => { await server?.close(); });
+
+test('главная: период, KPI с дельтами, легенды, проблемы, каналы, видение', async ({ page }) => {
+  for (const width of [1440, 1024, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(`${base}tests/Browser/E1-03C/fixture.html?screen=home`);
+    await expect(page.getByLabel('Период')).toHaveValue('7');
+    await expect(page.getByText('+0.3 к предыдущим 7 дням')).toBeVisible();
+    await expect(page.getByText('Диалоги', { exact: true }).first()).toBeVisible();
+    await expect(page.getByText('Получили контакт', { exact: true }).first()).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Главные проблемы' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Статус каналов' })).toBeVisible();
+    await expect(page.getByText('Сайт', { exact: true }).first()).toBeVisible();
+    await expect(page.getByText('Telegram', { exact: true }).first()).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Видение' })).toBeVisible();
+    await expect(page.getByText('Открыть отчёт →')).toBeVisible();
+    const size = await page.evaluate(() => ({ scroll: document.documentElement.scrollWidth, viewport: innerWidth }));
+    expect(size.scroll, `overflow at ${width}px`).toBeLessThanOrEqual(size.viewport);
+    if (width === 1440) await page.screenshot({ path: '.local/screenshots/sp-e1-03c/home-1440.png', fullPage: true });
+  }
+});
+
+test('требует вашего действия: фильтр модулей и отложение', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`${base}tests/Browser/E1-03C/fixture.html?screen=attention`);
+  await expect(page.getByRole('heading', { name: 'Требует вашего действия' })).toBeVisible();
+  await page.getByLabel('Модуль').selectOption('seller');
+  await expect(page.getByText('Диалоги ждут менеджера')).toBeVisible();
+  await expect(page.getByText('Отложить на 7 дней').first()).toBeVisible();
+  await page.screenshot({ path: '.local/screenshots/sp-e1-03c/attention-1440.png', fullPage: true });
+});
+
+test('уведомления: вкладки, пиктограммы и подписи модулей', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`${base}tests/Browser/E1-03C/fixture.html?screen=notifications`);
+  await expect(page.getByRole('heading', { name: 'Уведомления' })).toBeVisible();
+  const tabs = page.getByRole('navigation', { name: 'Фильтр уведомлений' });
+  await expect(tabs.getByRole('button', { name: 'Видение' })).toBeVisible();
+  await expect(tabs.getByRole('button', { name: 'Продавец' })).toBeVisible();
+  await expect(page.getByText('Диалог ждёт менеджера')).toBeVisible();
+  await page.screenshot({ path: '.local/screenshots/sp-e1-03c/notifications-1440.png', fullPage: true });
+});

@@ -1,17 +1,17 @@
 import { useEffect, useState } from 'react';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { ArrowLeft } from 'lucide-react';
-import { Tabs } from '@/components/ui';
+import { Switch, Tabs } from '@/components/ui';
 import CabinetLayout from '@/layouts/CabinetLayout';
 import { General } from '@/features/Shell/Brands/General';
 import { ThemeForm } from '@/features/Shell/Brands/ThemeForm';
 import { Domains } from '@/features/Shell/Brands/Domains';
 import { Modules } from '@/features/Shell/Brands/Modules';
 import { ArchiveBrand } from '@/features/Shell/Brands/ArchiveBrand';
-import { focus } from '@/features/Shell/Brands/shared';
-import type { BrandSettingsProps } from '@/types/Shell/Brands';
+import { focus, FormErrors, panel, Row, Saved } from '@/features/Shell/Brands/shared';
+import type { BrandSettings, BrandSettingsProps } from '@/types/Shell/Brands';
 
-const tabIds = ['general', 'theme', 'domains', 'modules', 'archive'] as const;
+const tabIds = ['general', 'theme', 'domains', 'modules', 'ai_policy', 'archive'] as const;
 type TabId = (typeof tabIds)[number];
 function tabFromUrl(): TabId {
   if (typeof window === 'undefined') return 'general';
@@ -19,13 +19,118 @@ function tabFromUrl(): TabId {
   return tabIds.find((id) => id === value) ?? 'general';
 }
 
+type AiDataPolicyValue = {
+  conversation_content: boolean;
+  knowledge_internal: boolean;
+  vision_question: boolean;
+  knowledge_public: boolean;
+};
+
+const AI_POLICY_FIELDS: { key: keyof AiDataPolicyValue; label: string; hint: string }[] = [
+  {
+    key: 'conversation_content',
+    label: 'Переписка с клиентами',
+    hint: 'Содержимое диалогов продавца с клиентами передаётся во внешний ИИ.',
+  },
+  {
+    key: 'knowledge_internal',
+    label: 'Внутренние знания',
+    hint: 'Внутренняя база знаний бренда передаётся во внешний ИИ.',
+  },
+  {
+    key: 'vision_question',
+    label: 'Вопросы замера Видения',
+    hint: 'Вопросы и ответы замера видимости передаются во внешний ИИ.',
+  },
+  {
+    key: 'knowledge_public',
+    label: 'Публичные знания',
+    hint: 'Публичная часть базы знаний передаётся во внешний ИИ для замеров Видения.',
+  },
+];
+
+function AiDataPolicy({
+  brand,
+  policy,
+  editable,
+}: {
+  brand: BrandSettings;
+  policy: AiDataPolicyValue;
+  editable: boolean;
+}) {
+  const [values, setValues] = useState(policy);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState('');
+  const [saved, setSaved] = useState(false);
+  const change = (key: keyof AiDataPolicyValue, checked: boolean) => {
+    const next = { ...values, [key]: checked };
+    setValues(next);
+    setError('');
+    setSaved(false);
+    router.patch('/brands/' + brand.id + '/settings/ai-policy', next, {
+      preserveScroll: true,
+      onStart: () => setPending(true),
+      onFinish: () => setPending(false),
+      onSuccess: () => setSaved(true),
+      onError: (errors) => {
+        setValues(policy);
+        setError(Object.values(errors).join(' '));
+      },
+      onNetworkError: () => {
+        setValues(policy);
+        setError('Не удалось связаться с сервером.');
+        return false;
+      },
+      onHttpException: () => {
+        setValues(policy);
+        setError('Не удалось сохранить политику.');
+        return false;
+      },
+    });
+  };
+  return (
+    <div className={panel + ' flex flex-col gap-5'}>
+      <div>
+        <h2 className="text-xl font-bold">Передача данных в ИИ</h2>
+        <p className="mt-1 text-sm leading-6 text-(--color-ink-muted)">
+          Без явного согласия владельца внешние вызовы ИИ для выбранного класса данных
+          отклоняются.
+        </p>
+      </div>
+      <FormErrors errors={{}} transport={error} />
+      <div className="flex flex-col gap-4">
+        {AI_POLICY_FIELDS.map((field) => (
+          <Row key={field.key} label={field.label} hint={field.hint}>
+            <Switch
+              label={field.label + ': ' + (values[field.key] ? 'разрешено' : 'запрещено')}
+              checked={values[field.key]}
+              disabled={!editable || pending}
+              onChange={(checked) => change(field.key, checked)}
+            />
+          </Row>
+        ))}
+      </div>
+      {!editable && (
+        <p className="text-sm text-(--color-ink-muted)">
+          Менять передачу данных в ИИ может только владелец организации.
+        </p>
+      )}
+      <Saved visible={saved} />
+    </div>
+  );
+}
+
 export default function Settings({
   targetBrand,
   domains,
   moduleItems,
+  aiDataPolicy,
   permissions,
   networkChecksEnabled,
-}: BrandSettingsProps) {
+}: BrandSettingsProps & {
+  aiDataPolicy: AiDataPolicyValue;
+  permissions: { manageAiPolicy: boolean };
+}) {
   const [tab, setTab] = useState<TabId>(tabFromUrl);
   useEffect(() => {
     const syncTab = () => setTab(tabFromUrl());
@@ -112,6 +217,18 @@ export default function Settings({
                     brand={targetBrand}
                     modules={moduleItems}
                     editable={permissions.manage}
+                  />
+                ),
+              },
+              {
+                id: 'ai_policy',
+                label: 'Передача данных в ИИ',
+                content: (
+                  <AiDataPolicy
+                    key={targetBrand.id}
+                    brand={targetBrand}
+                    policy={aiDataPolicy}
+                    editable={permissions.manageAiPolicy}
                   />
                 ),
               },

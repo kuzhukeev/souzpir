@@ -8,6 +8,7 @@ use App\Models\Brand;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\User;
+use App\ProtectedOperations\FirstTurnDeterministicGuard;
 use App\Seller\Conversations\Models\Conversation;
 use App\Seller\Conversations\Models\Message;
 use App\Seller\Knowledge\Import\YamlKnowledgeImporter;
@@ -106,6 +107,44 @@ final class FirstSellerTurnHttpTest extends TestCase
         $this->login($viewer, $brand);
         $this->postJson('/seller/turns/first', $input)->assertForbidden();
         self::assertSame(0, DB::table('seller_turns')->count());
+    }
+
+    public function test_third_consecutive_question_is_blocked_reminders_do_not_count(): void
+    {
+        $guard = new FirstTurnDeterministicGuard;
+        $twoQuestionsThenOne = [
+            ['text' => 'Какой у вас бюджет?', 'meta' => []],
+            ['text' => 'Можем обсудить заказ?', 'meta' => []],
+        ];
+        self::assertTrue($guard->exceedsConsecutiveQuestionLimit($twoQuestionsThenOne, 'Что у вас по срокам?'));
+        self::assertFalse($guard->exceedsConsecutiveQuestionLimit($twoQuestionsThenOne, 'Передали ваш запрос менеджеру.'));
+        $oneQuestion = [['text' => 'Можем обсудить заказ?', 'meta' => []]];
+        self::assertFalse($guard->exceedsConsecutiveQuestionLimit($oneQuestion, 'Какой у вас бюджет?'));
+        $answerThenTwoQuestions = [
+            ['text' => 'Какой у вас бюджет?', 'meta' => []],
+            ['text' => 'Отправили на почту прайс.', 'meta' => []],
+            ['text' => 'Можем обсудить заказ?', 'meta' => []],
+        ];
+        self::assertFalse($guard->exceedsConsecutiveQuestionLimit($answerThenTwoQuestions, 'Что у вас по срокам?'));
+        $reminderBetweenTwoQuestions = [
+            ['text' => 'Ждём вашего ответа?', 'meta' => ['goal' => ['kind' => 'followup_nudge']]],
+            ['text' => 'Какой у вас бюджет?', 'meta' => []],
+            ['text' => 'Напоминаем о заказе.', 'meta' => ['goal_kind' => 'followup_nudge']],
+            ['text' => 'Можем обсудить заказ?', 'meta' => []],
+        ];
+        self::assertTrue($guard->exceedsConsecutiveQuestionLimit($reminderBetweenTwoQuestions, 'Что у вас по срокам?'));
+    }
+
+    public function test_consecutive_question_limit_is_configurable(): void
+    {
+        $guard = new FirstTurnDeterministicGuard;
+        $twoQuestionsThenOne = [
+            ['text' => 'Какой у вас бюджет?', 'meta' => []],
+            ['text' => 'Можем обсудить заказ?', 'meta' => []],
+        ];
+        self::assertFalse($guard->exceedsConsecutiveQuestionLimit($twoQuestionsThenOne, 'Что у вас по срокам?', 3));
+        $oneQuestion = [['text' => 'Можем обсудить заказ?', 'meta' => []]];
+        self::assertTrue($guard->exceedsConsecutiveQuestionLimit($oneQuestion, 'Какой у вас бюджет?', 1));
     }
 
     private function fixture(): array

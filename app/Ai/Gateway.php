@@ -2,6 +2,7 @@
 
 namespace App\Ai;
 
+use App\Ai\Budget\BudgetGuard;
 use App\Ai\Drivers\Driver;
 use App\Ai\Drivers\FakeDriver;
 use App\Ai\Drivers\OpenRouterDriver;
@@ -23,6 +24,7 @@ use App\Privacy\ContactBoundary;
 use App\Privacy\Secrets\SecretBoundary;
 use App\Seller\Conversations\Data\TurnClaim;
 use App\Seller\Dialogs\ManagerSuggestionExtractorInput;
+use App\Seller\Dialogs\ManagerSuggestionResponderInput;
 use App\Seller\Engine\GuardDecision;
 use App\Seller\Engine\GuardModelResult;
 use App\Seller\Engine\ResponderResult;
@@ -598,16 +600,17 @@ final class Gateway implements AiGateway
         return $result;
     }
 
-    public function completeApiFollowupResponder(#[\SensitiveParameter] Request $http, TenantContext $tenant, TurnClaim $claim): AiResult
+    public function completeApiFollowupResponder(#[\SensitiveParameter] Request $http, TenantContext $tenant, TurnClaim $claim,
+        int $round = 0, #[\SensitiveParameter] array $toolResults = [], #[\SensitiveParameter] array $guardIssues = []): AiResult
     {
         if (config('runtime.ai_driver', 'fake') !== 'fake' || DB::transactionLevel() !== 0) {
             throw new LogicException('API follow-up unavailable.');
         }
         try {
-            [$input, $context] = DB::transaction(fn () => app(ApiFollowupInput::class)->responderLocked($http, $tenant, $claim));
+            [$input, $context] = DB::transaction(fn () => app(ApiFollowupInput::class)->responderLocked($http, $tenant, $claim, $round, $toolResults, $guardIssues));
             $expected = CanonicalJson::hash($input->toArray());
-            $assertSource = function () use ($http, $tenant, $claim, $context, $expected): void {
-                [$current, $currentContext] = app(ApiFollowupInput::class)->responderLocked($http, $tenant, $claim);
+            $assertSource = function () use ($http, $tenant, $claim, $round, $toolResults, $guardIssues, $context, $expected): void {
+                [$current, $currentContext] = app(ApiFollowupInput::class)->responderLocked($http, $tenant, $claim, $round, $toolResults, $guardIssues);
                 if (! hash_equals($expected, CanonicalJson::hash($current->toArray()))
                     || $currentContext->idempotencyKey !== $context->idempotencyKey) {
                     throw new LogicException;
@@ -620,12 +623,13 @@ final class Gateway implements AiGateway
         }
     }
 
-    public function readApiFollowupResponderLocked(#[\SensitiveParameter] Request $http, TenantContext $tenant, TurnClaim $claim): AiResult
+    public function readApiFollowupResponderLocked(#[\SensitiveParameter] Request $http, TenantContext $tenant, TurnClaim $claim,
+        int $round = 0, #[\SensitiveParameter] array $toolResults = [], #[\SensitiveParameter] array $guardIssues = []): AiResult
     {
         if (DB::transactionLevel() < 1 || config('runtime.ai_driver', 'fake') !== 'fake') {
             throw new LogicException('API follow-up unavailable.');
         }
-        [$input, $context] = app(ApiFollowupInput::class)->responderLocked($http, $tenant, $claim);
+        [$input, $context] = app(ApiFollowupInput::class)->responderLocked($http, $tenant, $claim, $round, $toolResults, $guardIssues);
         $body = app(ContactMasker::class)->request($input->toArray());
         $expected = app(RequestFingerprint::class)->hash($input, $context, $body, 'fake');
         $key = hash_hmac('sha256', $context->idempotencyKey, (string) config('app.key'));
@@ -641,6 +645,94 @@ final class Gateway implements AiGateway
         }
 
         return $result;
+    }
+
+    /** Read the tool call offered by a given API follow-up responder round; never authorizes execution. */
+    public function readApiFollowupToolCallLocked(#[\SensitiveParameter] Request $http, TenantContext $tenant, TurnClaim $claim,
+        int $round, #[\SensitiveParameter] array $toolResults, int $index): array
+    {
+        try {
+            if (DB::transactionLevel() < 1 || config('runtime.ai_driver', 'fake') !== 'fake' || $index < 0) {
+                throw new LogicException;
+            }
+            $result = $this->readApiFollowupResponderLocked($http, $tenant, $claim, $round, $toolResults);
+            if ($result->error !== null || ! isset($result->toolCalls[$index])) {
+                throw new LogicException;
+            }
+            [$input] = app(ApiFollowupInput::class)->responderLocked($http, $tenant, $claim, $round, $toolResults);
+            $selected = $result->toolCalls[$index];
+            $ids = [];
+            foreach ($result->toolCalls as $tool) {
+                if ($tool['id'] === '' || isset($ids[$tool['id']])) {
+                    throw new LogicException;
+                }
+                $ids[$tool['id']] = true;
+            }
+            $offered = array_column(array_column($input->tools, 'function'), 'name');
+            if (! in_array($selected['name'], $offered, true)
+                || ! app(ToolArguments::class)->check($selected['name'], $selected['arguments'])['valid']) {
+                throw new LogicException;
+            }
+
+            return ['id' => $selected['id'], 'name' => $selected['name'], 'arguments' => $selected['arguments']];
+        } catch (Throwable) {
+            throw new LogicException('API follow-up unavailable.');
+        }
+    }
+
+    /** Fake-only model guard for a revalidated follow-up round. */
+    public function completeApiFollowupGuard(#[\SensitiveParameter] Request $http, TenantContext $tenant, TurnClaim $claim,
+        int $round = 0, #[\SensitiveParameter] array $toolResults = [], #[\SensitiveParameter] array $guardIssues = []): void
+    {
+        if (config('runtime.ai_driver', 'fake') !== 'fake' || DB::transactionLevel() !== 0) {
+            throw new LogicException('API follow-up unavailable.');
+        }
+        try {
+            $built = DB::transaction(fn () => app(ApiFollowupInput::class)->guardLocked($http, $tenant, $claim, $round, $toolResults, $guardIssues));
+            if ($built === null) {
+                return;
+            }
+            [$input, $context] = $built;
+            $expected = CanonicalJson::hash($input->toArray());
+            $assertSource = function () use ($http, $tenant, $claim, $round, $toolResults, $guardIssues, $context, $expected): void {
+                $current = app(ApiFollowupInput::class)->guardLocked($http, $tenant, $claim, $round, $toolResults, $guardIssues);
+                if ($current === null || ! hash_equals($expected, CanonicalJson::hash($current[0]->toArray()))
+                    || $current[1]->idempotencyKey !== $context->idempotencyKey) {
+                    throw new LogicException;
+                }
+            };
+            $this->completeInternal($input, $context, $assertSource);
+        } catch (Throwable) {
+            throw new LogicException('API follow-up unavailable.');
+        }
+    }
+
+    public function readApiFollowupGuardLocked(#[\SensitiveParameter] Request $http, TenantContext $tenant, TurnClaim $claim,
+        int $round = 0, #[\SensitiveParameter] array $toolResults = [], #[\SensitiveParameter] array $guardIssues = []): array
+    {
+        if (DB::transactionLevel() < 1 || config('runtime.ai_driver', 'fake') !== 'fake') {
+            throw new LogicException('API follow-up unavailable.');
+        }
+        $built = app(ApiFollowupInput::class)->guardLocked($http, $tenant, $claim, $round, $toolResults, $guardIssues);
+        if ($built === null) {
+            throw new LogicException('API follow-up unavailable.');
+        }
+        [$input, $context] = $built;
+        $body = app(ContactMasker::class)->request($input->toArray());
+        $expected = app(RequestFingerprint::class)->hash($input, $context, $body, 'fake');
+        $key = hash_hmac('sha256', $context->idempotencyKey, (string) config('app.key'));
+        $call = DB::table('ai_calls')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
+            ->where('idempotency_key_hash', $key)->lockForUpdate()->first();
+        if (! $call || $call->status !== 'completed' || ! hash_equals($expected, $call->request_hash)
+            || ! is_string($call->result_encrypted)) {
+            throw new LogicException('API follow-up unavailable.');
+        }
+        $result = AiResult::fromArray(json_decode(Crypt::decryptString($call->result_encrypted), true, 512, JSON_THROW_ON_ERROR));
+        if ($result->aiCallId !== $call->id || ! $result->ok() || $result->costMicros === null) {
+            throw new LogicException('API follow-up unavailable.');
+        }
+
+        return app(GuardModelResult::class)->interpret($result);
     }
 
     /** Complete a server-built proactive API request in fake mode. */
@@ -692,6 +784,80 @@ final class Gateway implements AiGateway
         } catch (Throwable) {
             throw new LogicException('Manager suggestion extractor unavailable.');
         }
+    }
+
+    /** Read the stored result of a completed manager-suggestion extractor call. */
+    public function readManagerSuggestionExtractorLocked(#[\SensitiveParameter] Request $http, string $dialog, #[\SensitiveParameter] string $key): AiResult
+    {
+        if (DB::transactionLevel() < 1 || config('runtime.ai_driver', 'fake') !== 'fake') {
+            throw new LogicException('Manager suggestion extractor unavailable.');
+        }
+        [$input, $source] = app(ManagerSuggestionExtractorInput::class)->build($http, $dialog, $key);
+        $tenant = app(TenantContext::class);
+        $context = new AiContext($tenant->organizationId, $tenant->brandId, 'extractor', 'seller', 'conversation', $dialog,
+            'manager-suggestion-extractor-'.hash_hmac('sha256', $key.CanonicalJson::hash($source), (string) config('app.key')),
+            ['conversation_content', 'client_profile', 'knowledge_internal']);
+
+        return $this->readStoredCall($tenant, $context, 'Manager suggestion extractor unavailable.', $input);
+    }
+
+    /** Fake-only manager-suggestion responder; builds reply text from the revalidated extractor result. */
+    public function completeManagerSuggestionResponder(#[\SensitiveParameter] Request $http, string $dialog, #[\SensitiveParameter] string $key): AiResult
+    {
+        if (config('runtime.ai_driver', 'fake') !== 'fake' || DB::transactionLevel() !== 0) {
+            throw new LogicException('Manager suggestion responder unavailable.');
+        }
+        try {
+            [$input, $context] = DB::transaction(fn () => app(ManagerSuggestionResponderInput::class)->build($http, $dialog, $key));
+            $expected = CanonicalJson::hash($input->toArray());
+            $assertSource = function () use ($http, $dialog, $key, $context, $expected): void {
+                [$current, $currentContext] = DB::transaction(fn () => app(ManagerSuggestionResponderInput::class)->build($http, $dialog, $key));
+                if (! hash_equals($expected, CanonicalJson::hash($current->toArray())) || $currentContext->idempotencyKey !== $context->idempotencyKey) {
+                    throw new LogicException;
+                }
+            };
+            $result = $this->completeInternal($input, $context, $assertSource);
+            $assertSource();
+
+            return $result;
+        } catch (Throwable) {
+            throw new LogicException('Manager suggestion responder unavailable.');
+        }
+    }
+
+    /** Read the stored result of a completed manager-suggestion responder call. */
+    public function readManagerSuggestionResponderLocked(#[\SensitiveParameter] Request $http, string $dialog, #[\SensitiveParameter] string $key): AiResult
+    {
+        if (DB::transactionLevel() < 1 || config('runtime.ai_driver', 'fake') !== 'fake') {
+            throw new LogicException('Manager suggestion responder unavailable.');
+        }
+        [$input, $context] = app(ManagerSuggestionResponderInput::class)->build($http, $dialog, $key);
+
+        return $this->readStoredCall(app(TenantContext::class), $context, 'Manager suggestion responder unavailable.', $input);
+    }
+
+    /** Read an already-completed, encrypted AI call result, matching it against the given context's fingerprint. */
+    private function readStoredCall(TenantContext $tenant, AiContext $context, string $error, ?AiRequest $input = null): AiResult
+    {
+        $hashKey = hash_hmac('sha256', $context->idempotencyKey, (string) config('app.key'));
+        $call = DB::table('ai_calls')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
+            ->where('idempotency_key_hash', $hashKey)->lockForUpdate()->first();
+        if (! $call || $call->status !== 'completed' || ! is_string($call->result_encrypted)) {
+            throw new LogicException($error);
+        }
+        if ($input !== null) {
+            $body = app(ContactMasker::class)->request($input->toArray());
+            $expected = app(RequestFingerprint::class)->hash($input, $context, $body, 'fake');
+            if (! hash_equals($expected, $call->request_hash)) {
+                throw new LogicException($error);
+            }
+        }
+        $result = AiResult::fromArray(json_decode(Crypt::decryptString($call->result_encrypted), true, 512, JSON_THROW_ON_ERROR));
+        if ($result->aiCallId !== $call->id || ! $result->ok() || $result->costMicros === null) {
+            throw new LogicException($error);
+        }
+
+        return $result;
     }
 
     public function complete(#[\SensitiveParameter] AiRequest $request, #[\SensitiveParameter] AiContext $context): AiResult
@@ -840,7 +1006,8 @@ final class Gateway implements AiGateway
             if ($beforeReserve === null && (str_starts_with($context->idempotencyKey, 'manager-suggestion-extractor-')
                 || str_starts_with($context->idempotencyKey, 'api-opening-')
                 || str_starts_with($context->idempotencyKey, 'api-followup-extractor-')
-                || str_starts_with($context->idempotencyKey, 'api-followup-responder-'))) {
+                || str_starts_with($context->idempotencyKey, 'api-followup-responder-')
+                || str_starts_with($context->idempotencyKey, 'api-followup-guard-'))) {
                 throw new LogicException('Protected AI call requires protected reading.');
             }
             // Prepared extractor inputs cannot be dispatched through public
@@ -942,9 +1109,29 @@ final class Gateway implements AiGateway
                 }
             }
             $reserved = is_int($bound) && $bound > 0 ? $bound : 0;
+            // Global/org launch ceilings track only live spend, separately from
+            // the legacy per-row budget above (see App\Ai\Budget\BudgetGuard).
+            $liveDriver = config('runtime.ai_driver', 'fake') !== 'fake';
+            $liveReserved = $liveDriver ? (int) (config('features.L1-01.defaults.reservation_micros', [])[$request->model] ?? 0) : 0;
+            if ($liveDriver && $liveReserved > 0) {
+                $liveLimits = config('features.L1-01.defaults.reservation_request_limits', [])[$request->model] ?? null;
+                if (! is_array($liveLimits) || ! is_int($liveLimits['max_input_bytes'] ?? null) || $liveLimits['max_input_bytes'] < 1 || ! is_int($liveLimits['max_output_tokens'] ?? null) || $liveLimits['max_output_tokens'] < 1) {
+                    throw new LogicException('A configured live budget requires bounded request sizes.');
+                }
+                if ($wireBytes === null || $wireBytes > $liveLimits['max_input_bytes'] || ($request->maxTokens ?? 700) > $liveLimits['max_output_tokens']) {
+                    throw new LogicException('AI request exceeds the configured reservation bounds.');
+                }
+            }
+            if ($liveDriver) {
+                app(BudgetGuard::class)->assertReservationAllowed($context, $budget, $liveReserved);
+            }
             $id = (string) Str::ulid();
             DB::table('ai_calls')->insert(['id' => $id, 'organization_id' => $context->organizationId, 'brand_id' => $context->brandId, 'budget_id' => $budget->id, 'idempotency_key_hash' => $keyHash, 'request_hash' => $requestHash, 'family' => $context->family, 'purpose' => $context->purpose, 'provider' => $provider, 'requested_model' => $request->model, 'model' => $request->model, 'object_type' => $context->objectType, 'object_id' => $context->objectId, 'data_classes' => json_encode($context->dataClasses, JSON_THROW_ON_ERROR), 'attempt' => $context->attempt, 'parent_call_id' => $context->parentCallId, 'status' => 'reserved', 'reserved_micros' => $reserved, 'created_at' => now(), 'updated_at' => now()]);
             DB::table('ai_budgets')->where('id', $budget->id)->increment('reserved_micros', $reserved, ['unresolved_count' => (int) $budget->unresolved_count + 1, 'updated_at' => now()]);
+            if ($liveDriver) {
+                DB::table('ai_live_reservations')->insert(['ai_call_id' => $id, 'organization_id' => $context->organizationId,
+                    'reserved_micros' => $liveReserved, 'created_at' => now(), 'updated_at' => now()]);
+            }
 
             $call = DB::table('ai_calls')->where('id', $id)->first();
             if ($afterReserve !== null) {
@@ -967,6 +1154,7 @@ final class Gateway implements AiGateway
             DB::table('ai_calls')->where('id', $call->id)->update(['status' => 'completed', 'model' => $result->model, 'cost_micros' => $result->costMicros, 'reserve_exceeded' => (int) $current->reserved_micros > 0 && $result->costMicros > (int) $current->reserved_micros, 'prompt_tokens' => $result->usage['promptTokens'], 'completion_tokens' => $result->usage['completionTokens'], 'latency_ms' => $result->latencyMs, 'result_encrypted' => Crypt::encryptString(json_encode($result->toArray(), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)), 'updated_at' => now()]);
             $this->attribute($current, $result);
             $this->notifyThreshold($budget, (int) $budget->spent_micros + $result->costMicros);
+            DB::table('ai_live_reservations')->where('ai_call_id', $call->id)->update(['spent_micros' => $result->costMicros, 'updated_at' => now()]);
         });
     }
 
@@ -1041,6 +1229,7 @@ final class Gateway implements AiGateway
             }
             DB::table('ai_budgets')->where('id', $budget->id)->update(['reserved_micros' => (int) $budget->reserved_micros - (int) $current->reserved_micros, 'unresolved_count' => (int) $budget->unresolved_count - 1, 'updated_at' => now()]);
             DB::table('ai_calls')->where('id', $call->id)->update(['status' => 'failed', 'error_code' => $code, 'updated_at' => now()]);
+            DB::table('ai_live_reservations')->where('ai_call_id', $call->id)->update(['released' => true, 'updated_at' => now()]);
         });
     }
 

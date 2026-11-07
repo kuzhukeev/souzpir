@@ -123,7 +123,7 @@ final class NotificationCoreTest extends TenancyTestCase
         Queue::fake();
         Mail::fake();
         Http::fake(['api.telegram.org/*' => Http::response(['ok' => true], 200)]);
-        config(['features.E0-04.defaults.external_delivery' => true, 'features.E0-04.defaults.telegram_bot_token' => 'test-token', 'mail.default' => 'smtp']);
+        config(['features.E0-04.defaults.external_delivery' => true, 'features.E0-04.defaults.telegram_bot_token' => 'test-token', 'mail.default' => 'smtp', 'runtime.notification_driver' => null]);
         [$user, $org, $brand, , $membership] = $this->cabinet();
         $context = new TenantContext($org->id, $brand->id, $user->id, $membership->id);
         app(TenantContextRunner::class)->run($context, function () use ($context): void {
@@ -233,7 +233,7 @@ final class NotificationCoreTest extends TenancyTestCase
             $calls++;
             throw new ConnectionException('transport timeout with sensitive detail');
         });
-        config(['features.E0-04.defaults.external_delivery' => true, 'features.E0-04.defaults.telegram_bot_token' => 'test-token', 'mail.default' => 'smtp']);
+        config(['features.E0-04.defaults.external_delivery' => true, 'features.E0-04.defaults.telegram_bot_token' => 'test-token', 'mail.default' => 'smtp', 'runtime.notification_driver' => null]);
         [$user, $org, $brand, , $membership] = $this->cabinet();
         $context = new TenantContext($org->id, $brand->id, $user->id, $membership->id);
         app(TenantContextRunner::class)->run($context, function () use ($context): void {
@@ -268,7 +268,7 @@ final class NotificationCoreTest extends TenancyTestCase
     {
         Queue::fake();
         Http::fake(['api.telegram.org/*' => Http::response(['ok' => false], 200)]);
-        config(['features.E0-04.defaults.external_delivery' => true, 'features.E0-04.defaults.telegram_bot_token' => 'test-token']);
+        config(['features.E0-04.defaults.external_delivery' => true, 'features.E0-04.defaults.telegram_bot_token' => 'test-token', 'runtime.notification_driver' => null]);
         [$user, $org, $brand, , $membership] = $this->cabinet();
         $context = new TenantContext($org->id, $brand->id, $user->id, $membership->id);
         app(TenantContextRunner::class)->run($context, fn () => app(ConfigureNotification::class)->execute($context, 'seller.conversation.handed_off', 'telegram', true, '123456'));
@@ -284,7 +284,7 @@ final class NotificationCoreTest extends TenancyTestCase
     public function test_mail_transport_exception_is_uncertain_and_does_not_retry(): void
     {
         Queue::fake();
-        config(['features.E0-04.defaults.external_delivery' => true, 'mail.default' => 'smtp']);
+        config(['features.E0-04.defaults.external_delivery' => true, 'mail.default' => 'smtp', 'runtime.notification_driver' => null]);
         [$user, $org, $brand, , $membership] = $this->cabinet();
         $context = new TenantContext($org->id, $brand->id, $user->id, $membership->id);
         app(TenantContextRunner::class)->run($context, fn () => app(ConfigureNotification::class)->execute($context, 'seller.conversation.handed_off', 'email', true));

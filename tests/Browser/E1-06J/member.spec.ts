@@ -15,6 +15,15 @@ test('инициалы, фото и ссылка уведомлений', async 
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
   if (width === 1440 && theme === 'neutral') { await mkdir('.local/screenshots/SP-E1-06J',{recursive:true}); await page.screenshot({path:'.local/screenshots/SP-E1-06J/member.png',fullPage:true}); }
  }
+ const switches = page.getByRole('switch');
+ await expect(switches).toHaveCount(2);
+ for (const name of ['Видение','ИИ-продавец']) {
+  const toggle = page.getByRole('switch',{name});
+  await expect(toggle).toBeDisabled();
+  await expect(toggle).toHaveAttribute('aria-checked','false');
+ }
+ await expect(page.getByText('v2',{exact:true})).toHaveCount(2);
+ await expect(page.getByText('Настройка доступа появится в v2').first()).toBeVisible();
  await page.goto(`${url}?photo`);
  await expect(page.locator('img[src="/team/01J00000000000000000000003/avatar"]')).toHaveCount(1);
  await expect(page.getByText('АИ', {exact:true})).toHaveCount(0);

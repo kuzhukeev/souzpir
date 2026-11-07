@@ -1,14 +1,29 @@
-import { Head, Link, useForm } from '@inertiajs/react';
-import { useState } from 'react';
+import { Deferred, Head, Link, router, useForm } from '@inertiajs/react';
+import { useEffect, useState } from 'react';
 import CabinetLayout from '@/layouts/CabinetLayout';
 
-type Fact = { id: string; text: string; status: 'active' | 'inactive'; source: string; group_key: string };
+type Fact = { id: string; text: string; status: 'active' | 'inactive'; source: string; group_key: string; change_status?: 'new' | 'changed' | null };
 type Change = { action: string; created_at: string; author: string | null; before_status?: string | null; after_status?: string | null; before_text?: string | null; after_text?: string | null };
 const actionNames: Record<string, string> = {'knowledge.fact.created':'Создан', 'knowledge.fact.updated':'Изменён', 'knowledge.fact.moved':'Перенесён', 'knowledge.fact.deleted':'Удалён'};
 const statusName = (value: string | null | undefined) => value === 'active' ? 'Включён' : value === 'inactive' ? 'Отключён' : '—';
 const sourceNames: Record<string, string> = { manual: 'Вручную', import: 'Импорт', url: 'Сайт' };
 
-export default function Show({ fact, version, history, status, publishedText = null, topics = [], conditionOptions = [], intentLinks = [], group = {}, example = null }: { fact: Fact; version: number; history: Change[]; status: string | null; publishedText?: string | null; topics?: {key: string; label: string; bridge_hint?: string; must_not?: string[]}[]; conditionOptions?: {key: string; label: string}[]; intentLinks?: {id: string; label: string; groups: string[]; selected?: boolean}[]; group?: {topic?: string | null; bridge_hint?: string | null; must_not?: string[]}; example?: {question: string; answer: string} | null }) {
+type ShowData = { fact: Fact; version: number; history: Change[]; publishedText?: string | null; topics?: {key: string; label: string; bridge_hint?: string; must_not?: string[]}[]; conditionOptions?: {key: string; label: string}[]; intentLinks?: {id: string; label: string; groups: string[]; selected?: boolean}[]; group?: {topic?: string | null; bridge_hint?: string | null; must_not?: string[]}; example?: {question: string; answer: string} | null };
+
+function Pending({ failed = false, onRetry }: { failed?: boolean; onRetry?: () => void }) {
+    return <CabinetLayout breadcrumbs={[{ label: 'Продавец', href: '/seller' }, { label: 'База знаний', href: '/seller/knowledge' }, { label: 'Факты', href: '/seller/knowledge/facts' }, { label: 'Карточка факта' }]}>
+        <Head title="Карточка факта" />
+        <main className="mx-auto max-w-[1500px]" data-private-profile>
+            <Link href="/seller/knowledge/facts" className="cursor-pointer text-sm text-(--color-link)">← К списку фактов</Link>
+            <div className="mt-3 flex flex-wrap items-center gap-3"><h1 className="text-3xl font-bold">Факт</h1><span className="rounded-full bg-(--color-warning-soft) px-2 py-1 text-sm">Черновик</span></div>
+            <p className="mt-2 text-sm text-(--color-ink-muted)">Короткое утверждение, на которое опирается ИИ-продавец</p>
+            {failed ? <section role="alert" className="mt-6 rounded-xl border border-(--color-border) bg-(--color-surface) p-5"><h2 className="text-xl font-bold">Ошибка</h2><p className="mt-2 text-sm">Не удалось загрузить факт. Код: ERR_LOAD</p><button type="button" onClick={() => { onRetry?.(); router.reload({ only: ['factData'] }); }} className="mt-3 min-h-11 cursor-pointer rounded-lg bg-(--color-link) px-5 text-sm font-semibold text-white">Повторить</button></section>
+            : <section role="status" aria-busy="true" className="mt-6 rounded-xl border border-(--color-border) bg-(--color-surface) p-5"><span className="sr-only">Загружаем карточку факта</span><h2 className="text-xl font-bold">Загрузка</h2><div aria-hidden="true" className="mt-4 animate-pulse space-y-3"><div className="h-6 w-2/3 rounded bg-(--color-surface-muted)" /><div className="h-24 rounded bg-(--color-surface-muted)" /><div className="h-6 w-1/3 rounded bg-(--color-surface-muted)" /><div className="h-11 rounded bg-(--color-surface-muted)" /><div className="h-11 w-1/2 rounded bg-(--color-surface-muted)" /></div></section>}
+        </main>
+    </CabinetLayout>;
+}
+
+function Loaded({ fact, version, history, status = null, publishedText = null, topics = [], conditionOptions = [], intentLinks = [], group = {}, example = null }: ShowData & { status?: string | null }) {
     const form = useForm({ version, text: fact.text, status: fact.status, source: fact.source, group: fact.group_key, bridge_hint: group.bridge_hint ?? '', must_not: (group.must_not ?? []).join('\n'), intent_ids: intentLinks.filter(intent => intent.selected).map(intent => intent.id) });
     const [saveError, setSaveError] = useState('');
     const exampleForm = useForm({ version });
@@ -18,7 +33,7 @@ export default function Show({ fact, version, history, status, publishedText = n
         <Head title="Карточка факта" />
         <main className="mx-auto max-w-[1500px]" data-private-profile>
             <Link href="/seller/knowledge/facts" className="cursor-pointer text-sm text-(--color-link)">← К списку фактов</Link>
-            <h1 className="mt-3 text-3xl font-bold">Карточка факта</h1>
+            <div className="mt-3 flex flex-wrap items-center gap-3"><h1 className="text-3xl font-bold">Карточка факта</h1>{fact.change_status === 'new' && <span className="rounded-full bg-(--color-warning-soft) px-2 py-1 text-sm">Черновик</span>}</div>
             <p className="mt-2 text-sm text-(--color-ink-muted)">Группа: {group.topic || fact.group_key} · Источник: {sourceNames[fact.source] ?? 'Не указан'}</p>
             {status && <p role="status" className="mt-4 rounded-lg bg-(--color-success-soft) p-3 text-sm">{status}</p>}
             <div className="mt-6 grid gap-5 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]"><div className="space-y-5">
@@ -45,4 +60,20 @@ export default function Show({ fact, version, history, status, publishedText = n
             </div></div>
         </main>
     </CabinetLayout>;
+}
+
+export default function Show(props: Partial<ShowData> & { factData?: ShowData; status?: string | null }) {
+    const [networkError, setNetworkError] = useState(false);
+    const hasDirect = 'fact' in props;
+    const loadedData = props.factData;
+    useEffect(() => {
+        if (loadedData || hasDirect) return;
+        const network = router.on('networkError', event => { event.preventDefault(); setNetworkError(true); });
+        const http = router.on('httpException', event => { event.preventDefault(); setNetworkError(true); });
+        return () => { network(); http(); };
+    }, [loadedData, hasDirect]);
+    if (props.factData) return <Loaded {...props.factData} status={props.status} />;
+    if (hasDirect) return <Loaded {...(props as ShowData)} status={props.status} />;
+    if (networkError) return <Pending failed onRetry={() => setNetworkError(false)} />;
+    return <Deferred data="factData" fallback={<Pending />} rescue={<Pending failed onRetry={() => setNetworkError(false)} />}>{() => <Pending />}</Deferred>;
 }

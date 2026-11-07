@@ -8,6 +8,7 @@ use App\Seller\Engine\LeadState;
 use App\Seller\Knowledge\Contracts\KnowledgeRepository;
 use App\Seller\Knowledge\KnowledgeNotReady;
 use App\Seller\Quality\ReportIssueLinks;
+use App\Seller\Runtime\StageTransitions;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
@@ -30,7 +31,7 @@ final class DialogsController
     {
         $input = $request->validate([
             'mode' => ['sometimes', 'string', Rule::in(['all', 'mine', 'bot', 'suggest', 'manager', 'paused', 'waiting', 'closed'])],
-            'search' => ['sometimes', 'string', 'max:100'],
+            'search' => ['sometimes', 'nullable', 'string', 'max:100'],
             'sort' => ['sometimes', Rule::in(['newest', 'oldest'])],
             'channel' => ['sometimes', Rule::in(['telegram', 'widget', 'api', 'email', 'whatsapp'])],
             'stage' => ['sometimes', Rule::in(LeadState::STAGES)],
@@ -54,6 +55,11 @@ final class DialogsController
             } catch (KnowledgeNotReady) {
                 // нет опубликованной версии — показываем только системные поля карточки
             }
+            if ($dialog !== null) {
+                DB::table('conversations')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)
+                    ->where('id', $dialog)->whereColumn('read_sequence', '<', 'history_sequence')
+                    ->update(['read_sequence' => DB::raw('history_sequence'), 'read_at' => now()]);
+            }
 
             try {
                 $data = $reader->read($context, $actor->id, $manager, ! $manager && $member->role !== 'viewer', $dialog, $input['mode'] ?? 'all', trim($input['search'] ?? ''), $input['sort'] ?? 'newest', $input, is_array($publishedFields) ? $publishedFields : []);
@@ -63,9 +69,11 @@ final class DialogsController
                 return ['dialogs' => [], 'dialog' => null, 'loadError' => true];
             }
             $data['transferOptions'] = $dialog && Gate::forUser($actor)->allows('seller.dialogues.operate') ? app(DialogTransferController::class)->candidates($context) : [];
-            $data['readySuggestion'] = $dialog && ($data['dialog']['mode'] ?? null) === 'suggest' && Gate::forUser($actor)->allows('seller.dialogues.operate')
-                ? collect(app(ReadySuggestions::class)->read($context, $actor->id, $member))->firstWhere('conversation_id', $dialog)['suggestion'] ?? null
+            $suggestion = $dialog && ($data['dialog']['mode'] ?? null) === 'suggest' && Gate::forUser($actor)->allows('seller.dialogues.operate')
+                ? collect(app(ReadySuggestions::class)->read($context, $actor->id, $member))->firstWhere('conversation_id', $dialog)
                 : null;
+            $data['readySuggestion'] = $suggestion['suggestion'] ?? null;
+            $data['readySuggestionTurnId'] = $suggestion['id'] ?? null;
             $data['evaluationId'] = $dialog && ($data['dialog']['id'] ?? null) === $dialog && Gate::forUser($actor)->allows('seller.knowledge.write')
                 ? DB::table('seller_evaluations')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)->where('conversation_id', $dialog)->orderByDesc('created_at')->orderByDesc('id')->value('id')
                 : null;
@@ -114,6 +122,7 @@ final class DialogsController
                 $state['stage'] = 'done';
                 DB::table('conversations')->where('id', $row->id)->update(['stage' => 'done', 'mode' => 'paused',
                     'state' => json_encode($state, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE), 'version' => $row->version + 1, 'updated_at' => now()]);
+                app(StageTransitions::class)->record($context, $row->id, $row->stage, 'done');
                 app(AuditWriter::class)->record($context, new AuditEntry('seller.dialog.closed', 'conversation', $row->id,
                     before: ['stage' => $row->stage, 'mode' => $row->mode], after: ['stage' => 'done', 'mode' => 'paused']));
 

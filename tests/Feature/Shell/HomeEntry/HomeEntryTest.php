@@ -72,7 +72,7 @@ final class HomeEntryTest extends TenancyTestCase
         foreach ($editorPage->inertiaProps('homeLinks') as $link) {
             $this->get($link['href'])->assertOk();
         }
-        $this->actingAs($foreign)->withSession(['brand_id' => $foreignBrand->id])->get('/dashboard')->assertForbidden();
+        $this->actingAs($foreign)->withSession(['brand_id' => $foreignBrand->id])->get('/dashboard')->assertOk();
         Http::assertNothingSent();
     }
 

@@ -82,6 +82,30 @@ final class ProtectedSimulationRuntimeTest extends TenancyTestCase
         Http::assertNothingSent();
     }
 
+    public function test_job_run_fails_closed_without_crashing_the_screen_on_a_gateway_rejection(): void
+    {
+        Http::preventStrayRequests();
+        [$owner, $org, $brand, $other, $membership] = $this->simulationCabinet();
+        self::assertSame(29, app(SellerPersonaSeeder::class)->seedForBrand(new TenantContext($org->id, $brand->id, $owner->id, $membership->id)));
+        $this->app->instance(FakeDriver::class, new class implements Driver
+        {
+            public function complete(#[\SensitiveParameter] array $body): array
+            {
+                throw new Rejected('Synthetic gateway outage.');
+            }
+        });
+        SimulateFakeJob::dispatchSync($org->id, $brand->id, 'newbie_voronezh', [[], []]);
+        $run = DB::table('seller_sim_runs')->where('brand_id', $brand->id)->sole();
+        self::assertSame('failed', $run->status);
+        self::assertSame(1, $run->turn_count);
+        self::assertSame(LogicException::class, json_decode($run->metrics, true, 512, JSON_THROW_ON_ERROR)['error']);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'seller.simulation.failed', 'subject_id' => $run->id]);
+        self::assertSame(2, DB::table('messages')->where('brand_id', $brand->id)->count());
+        self::assertSame(1, DB::table('messages')->where('brand_id', $brand->id)->where('role', 'agent')->count());
+        self::assertSame(0, DB::table('seller_sim_runs')->where('brand_id', $other->id)->count());
+        Http::assertNothingSent();
+    }
+
     public function test_confirmed_fake_failures_can_be_retried_without_duplicate_messages(): void
     {
         [, $org, $brand, $other] = $this->simulationCabinet();
@@ -155,6 +179,82 @@ final class ProtectedSimulationRuntimeTest extends TenancyTestCase
         }
         self::assertSame(1, $driver->calls);
         self::assertSame(1, DB::table('ai_calls')->where('brand_id', $brand->id)->where('status', 'uncertain')->count());
+    }
+
+    public function test_model_guard_must_approve_protected_followup(): void
+    {
+        [, $org, $brand] = $this->simulationCabinet();
+        config(['agent.guard_llm' => true]);
+        $driver = new class implements Driver
+        {
+            public bool $allow = true;
+
+            public function complete(#[\SensitiveParameter] array $body): array
+            {
+                $schema = $body['response_format']['json_schema']['name'] ?? null;
+                $content = match ($schema) {
+                    'extraction' => '{"client_intent":"unclear","unknown_question":"Есть особый товар?"}',
+                    'guard' => json_encode(['ok' => $this->allow, 'issues' => $this->allow ? [] : ['Неподтверждённый факт']], JSON_UNESCAPED_UNICODE),
+                    default => 'Я уточню эту информацию.',
+                };
+
+                return ['content' => $content, 'toolCalls' => [], 'usage' => ['promptTokens' => 1, 'completionTokens' => 1],
+                    'model' => $body['model'], 'latencyMs' => 1, 'costMicros' => 0];
+            }
+        };
+        $this->app->instance(FakeDriver::class, $driver);
+        $runtime = app(ProtectedSimulationRuntime::class);
+        $tenant = new TenantContext($org->id, $brand->id, source: 'job');
+        $accepted = $runtime->open($tenant, 'guard-open-ok');
+        $answer = $runtime->turn($tenant, $accepted['conversation_id'], 'Есть особый товар?', 'guard-turn-ok');
+        self::assertSame('Я уточню эту информацию.', $answer['agent']);
+        self::assertSame(1, DB::table('ai_calls')->where('object_id', $accepted['conversation_id'])->where('purpose', 'guard')->where('status', 'completed')->count());
+        $driver->allow = false;
+        $rejected = $runtime->open($tenant, 'guard-open-no');
+        try {
+            $runtime->turn($tenant, $rejected['conversation_id'], 'Есть особый товар?', 'guard-turn-no');
+            self::fail('Model guard rejection was ignored.');
+        } catch (LogicException) {
+            self::assertSame(1, DB::table('messages')->where('conversation_id', $rejected['conversation_id'])->where('role', 'agent')->count());
+            // Bounded regeneration retries the model guard across rounds before safely failing closed.
+            self::assertSame(3, DB::table('ai_calls')->where('object_id', $rejected['conversation_id'])->where('purpose', 'guard')->count());
+        }
+    }
+
+    public function test_model_guard_regenerates_and_recovers_after_a_rejection(): void
+    {
+        [, $org, $brand] = $this->simulationCabinet();
+        config(['agent.guard_llm' => true]);
+        $driver = new class implements Driver
+        {
+            public int $guardCalls = 0;
+
+            public function complete(#[\SensitiveParameter] array $body): array
+            {
+                $schema = $body['response_format']['json_schema']['name'] ?? null;
+                if ($schema === 'guard') {
+                    $this->guardCalls++;
+                    $ok = $this->guardCalls >= 2;
+
+                    return ['content' => json_encode(['ok' => $ok, 'issues' => $ok ? [] : ['Неподтверждённый факт']], JSON_UNESCAPED_UNICODE),
+                        'toolCalls' => [], 'usage' => ['promptTokens' => 1, 'completionTokens' => 1],
+                        'model' => $body['model'], 'latencyMs' => 1, 'costMicros' => 0];
+                }
+                $content = $schema === 'extraction' ? '{"client_intent":"unclear","unknown_question":"Есть особый товар?"}' : 'Я уточню эту информацию.';
+
+                return ['content' => $content, 'toolCalls' => [], 'usage' => ['promptTokens' => 1, 'completionTokens' => 1],
+                    'model' => $body['model'], 'latencyMs' => 1, 'costMicros' => 0];
+            }
+        };
+        $this->app->instance(FakeDriver::class, $driver);
+        $runtime = app(ProtectedSimulationRuntime::class);
+        $tenant = new TenantContext($org->id, $brand->id, source: 'job');
+        $opened = $runtime->open($tenant, 'guard-recover-open');
+        $answer = $runtime->turn($tenant, $opened['conversation_id'], 'Есть особый товар?', 'guard-recover-turn');
+        self::assertSame('Я уточню эту информацию.', $answer['agent']);
+        self::assertSame(2, $driver->guardCalls);
+        self::assertSame(2, DB::table('messages')->where('conversation_id', $opened['conversation_id'])->where('role', 'agent')->count());
+        self::assertSame(2, DB::table('conversations')->where('id', $opened['conversation_id'])->value('version'));
     }
 
     public function test_simulation_does_not_save_unsafe_response(): void

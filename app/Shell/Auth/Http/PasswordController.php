@@ -143,7 +143,10 @@ HTML;
             return redirect()->route('password.request')->withErrors(['email' => 'Для восстановления откройте защищённый адрес.']);
         }
         $input = $request->only(['password', 'password_confirmation']);
-        $validator = Validator::make($input, ['password' => ['required', 'confirmed', PasswordRule::min(12)]]);
+        $validator = Validator::make($input, [
+            'password' => ['required', PasswordRule::min(12)],
+            'password_confirmation' => ['required', 'same:password'],
+        ], ['password_confirmation.same' => 'Пароли не совпадают']);
         if ($validator->fails()) {
             return $this->resetErrorRedirect($request)->withErrors($validator);
         }
@@ -171,7 +174,7 @@ HTML;
                     return false;
                 }
                 $user->forceFill(['password' => $data['password'], 'remember_token' => Str::random(60), 'auth_version' => $user->auth_version + 1])->save();
-                app(AuditWriter::class)->record(new TenantContext(app(Cabinet::class)->organizationId(), actorId: $user->id), new AuditEntry('account.password.reset', 'user', $user->id));
+                app(AuditWriter::class)->record(new TenantContext(app(Cabinet::class)->organizationIdFor($user), actorId: $user->id), new AuditEntry('account.password.reset', 'user', $user->id));
                 DB::table('password_reset_tokens')->where('email', $data['email'])->delete();
                 DB::table('sessions')->where('user_id', $user->id)->delete();
                 event(new PasswordReset($user));
@@ -188,7 +191,12 @@ HTML;
 
         $request->session()->forget('auth.password_recovery');
 
-        return redirect()->route('login')->with('status', 'Пароль изменён. Войдите снова.');
+        return redirect()->route('password.changed');
+    }
+
+    public function changed(): Response
+    {
+        return Inertia::render('Shell/Auth/PasswordChanged');
     }
 
     /** Never trust Referer when returning a form containing a recovery token. */

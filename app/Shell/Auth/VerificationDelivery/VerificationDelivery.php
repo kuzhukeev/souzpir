@@ -55,7 +55,7 @@ final class VerificationDelivery
             if (! $intent) {
                 $id = (string) Str::ulid();
                 DB::table('verification_delivery_intents')->insert(['id' => $id, 'user_id' => $user->id, 'session_hash' => $session, 'auth_version' => $user->auth_version, 'email_fingerprint' => $this->emailFingerprint($user), 'status' => 'pending', 'created_at' => now(), 'updated_at' => now()]);
-                app(AuditWriter::class)->record(new TenantContext(app(Cabinet::class)->organizationId(), actorId: $user->id), new AuditEntry('account.verification.requested', 'user', $user->id));
+                app(AuditWriter::class)->record(new TenantContext(app(Cabinet::class)->organizationIdFor($user), actorId: $user->id), new AuditEntry('account.verification.requested', 'user', $user->id));
                 $intent = DB::table('verification_delivery_intents')->where('id', $id)->first();
             }
             DB::table('verification_delivery_keys')->insert(['user_id' => $user->id, 'key_hash' => $keyHash, 'session_hash' => $session, 'intent_id' => $intent->id, 'created_at' => now(), 'updated_at' => now()]);
@@ -170,7 +170,7 @@ final class VerificationDelivery
         if (! $user) {
             return false;
         }
-        $orgId = app(Cabinet::class)->organizationId();
+        $orgId = app(Cabinet::class)->organizationIdFor($user);
         $org = Organization::whereKey($orgId)->lockForUpdate()->first();
         if (! $org || $org->status !== 'active') {
             return false;

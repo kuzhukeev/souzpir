@@ -13,11 +13,26 @@ use Illuminate\Validation\ValidationException;
 
 final class RecalculateMergedReport
 {
-    public function create(TenantContext $tenant): string
+    /** Cheap precondition, checked synchronously before the merge is committed. */
+    public function assertRecalculable(TenantContext $tenant): void
+    {
+        if (! $this->source($tenant)) {
+            throw ValidationException::withMessages(['source' => 'Нет подтверждённого отчёта для пересчёта.']);
+        }
+    }
+
+    private function source(TenantContext $tenant): ?object
     {
         $scope = ['organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId];
         $confirmed = DB::table('snapshot_confirmations')->where($scope)->pluck('measurement_id');
-        $source = DB::table('vision_reports')->where($scope)->whereIn('measurement_id', $confirmed)->orderByDesc('created_at')->orderByDesc('id')->first();
+
+        return DB::table('vision_reports')->where($scope)->whereIn('measurement_id', $confirmed)->orderByDesc('created_at')->orderByDesc('id')->first();
+    }
+
+    public function create(TenantContext $tenant): string
+    {
+        $scope = ['organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId];
+        $source = $this->source($tenant);
         if (! $source) {
             throw ValidationException::withMessages(['source' => 'Нет подтверждённого отчёта для пересчёта.']);
         }

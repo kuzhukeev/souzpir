@@ -82,7 +82,7 @@ final class WebhookConfigurationClosedTest extends TenancyTestCase
         self::assertSame(['seller.lead.created'], $props['webhooks'][0]['events']);
         self::assertSame('unknown', $props['webhooks'][0]['deliveries'][0]['event']);
         self::assertSame('unknown', $props['webhooks'][0]['deliveries'][0]['status']);
-        self::assertFalse($props['integration_webhook_secret_available']);
+        self::assertArrayNotHasKey('integration_webhook_secret_available', $props);
         self::assertStringNotContainsString($url, $response->getContent());
         self::assertStringNotContainsString('fixture-query-secret', json_encode($props, JSON_THROW_ON_ERROR));
         self::assertStringNotContainsString('private-fixture-path', json_encode($props, JSON_THROW_ON_ERROR));
@@ -93,7 +93,7 @@ final class WebhookConfigurationClosedTest extends TenancyTestCase
         $inertia = $this->get('/integrations/api', ['X-Inertia' => 'true', 'X-Inertia-Version' => $version, 'X-Requested-With' => 'XMLHttpRequest'])->assertOk();
         self::assertStringNotContainsString($url, $inertia->getContent());
         self::assertStringNotContainsString('fixture-query-secret', $inertia->getContent());
-        $this->postJson('/integrations/api/secrets', ['type' => 'webhook_secret'])->assertStatus(503);
+        $this->postJson('/integrations/api/secrets', ['type' => 'webhook_secret'])->assertStatus(422);
     }
 
     public function test_service_cannot_bypass_closed_http_boundary(): void

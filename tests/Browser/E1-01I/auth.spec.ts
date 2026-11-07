@@ -7,7 +7,7 @@ test.use({viewport:{width:1440,height:900},launchOptions:process.env.PLAYWRIGHT_
 test.beforeAll(async()=>{server=await createServer({configFile:'tests/Browser/E1-01I/vite.config.ts',cacheDir:'.local/runtime/vite-e101i',server:{host:'127.0.0.1',port:0}});await server.listen();url=new URL('/tests/Browser/E1-01I/fixture.html',server.resolvedUrls!.local[0]).href;await mkdir('.local/screenshots/SP-E1-01I',{recursive:true});});
 test.afterAll(async()=>{await server?.close();});
 test('сброс пароля и блокировка входа',async({page})=>{
- await page.goto(url+'?success');await expect(page.getByRole('heading',{name:'Пароль изменён'})).toBeVisible();await expect(page.getByRole('link',{name:'Войти в кабинет'})).toHaveAttribute('href','/login');await page.screenshot({path:'.local/screenshots/SP-E1-01I/success.png',fullPage:true});
+ await page.goto(url+'?screen=changed');await expect(page.getByRole('heading',{name:'Пароль изменён'})).toBeVisible();await expect(page.getByRole('link',{name:'Войти в кабинет'})).toHaveAttribute('href','/login');await page.screenshot({path:'.local/screenshots/SP-E1-01I/success.png',fullPage:true});
  await page.goto(url+'?locked');await expect(page.getByRole('alert')).toContainText('Слишком много попыток');await expect(page.getByRole('button',{name:'Войти'})).toBeDisabled();await page.screenshot({path:'.local/screenshots/SP-E1-01I/login.png',fullPage:true});
 });
 test('регистрация сохраняет маску и согласие',async({page})=>{
@@ -17,6 +17,9 @@ test('состояние приглашения предлагает выйти 
  await page.goto(url+'?screen=invitation&state=email_mismatch');await expect(page.getByRole('heading',{name:'Почта не совпадает'})).toBeVisible();await expect(page.getByRole('button',{name:'Выйти из аккаунта'})).toBeVisible();await page.screenshot({path:'.local/screenshots/SP-E1-01I/invitation.png',fullPage:true});
 });
 
+test('подвал входа содержит ссылки Условия и Конфиденциальность',async({page})=>{
+ await page.goto(url);await expect(page.getByRole('link',{name:'Условия'})).toHaveAttribute('href','/help');await expect(page.getByRole('link',{name:'Конфиденциальность'})).toHaveAttribute('href','/help');
+});
 test('ошибки входа и регистрации показаны общим сообщением',async({page})=>{
  await page.goto(url); await page.route('**/login', route => route.fulfill({status:200,headers:{'x-inertia':'true','content-type':'application/json'},body:JSON.stringify({component:'Fixture',props:{errors:{email:'Неверная почта или пароль'},status:null,lockoutEmail:'',lockoutSeconds:0,theme:'neutral'},url:'/login',version:'fixture',clearHistory:false,encryptHistory:false})}));
  await page.getByLabel('Рабочая почта').fill('user@example.test');await page.getByLabel('Пароль',{exact:true}).fill('wrong');await page.getByRole('button',{name:'Войти',exact:true}).click();await expect(page.getByRole('alert')).toContainText('Неверная почта или пароль');

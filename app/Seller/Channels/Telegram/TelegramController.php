@@ -6,6 +6,7 @@ use App\Seller\Channels\Core\ChannelAccount;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
+use App\Shell\Plans\LimitEnforcer;
 use App\Tenancy\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -136,6 +137,14 @@ final class TelegramController
             $account->name = $data['name'];
             $account->managers_chat_id = $data['managers_chat'] ?? null;
             $account->default_mode = $data['mode'];
+            if (($before['status'] ?? null) !== 'active') {
+                $active = ChannelAccount::query()->where('status', 'active')->count();
+                try {
+                    app(LimitEnforcer::class)->assertWithin($context, 'seller.channels_max', (string) ($active + 1));
+                } catch (ValidationException $error) {
+                    throw $error->redirectTo(route('seller.channels.telegram'));
+                }
+            }
             if ($account->status !== 'active' && $account->connected_at === null) {
                 $account->connected_at = now();
             }

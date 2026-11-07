@@ -12,7 +12,9 @@ test('шапка показывает данные выбранного заме
  await expect(header).toContainText('Замер от 27.10.2026');
  await expect(header).toContainText('Вопросов: 20');
  await expect(header).toContainText('Моделей: 2');
- await expect(page.getByRole('button', { name: 'Печать / PDF' })).toBeVisible();
+ await page.getByRole('button', { name: 'Скачать отчёт' }).click();
+ await expect(page.getByRole('menuitem', { name: 'Печать / PDF' })).toBeVisible();
+ await page.keyboard.press('Escape');
  await expect(page.getByRole('button', { name: 'Поделиться отчётом' })).toBeVisible();
  await mkdir('.local/screenshots/SP-E8-16U', { recursive: true });
  await page.screenshot({ path: '.local/screenshots/SP-E8-16U/report.png', fullPage: true });

@@ -10,6 +10,7 @@ use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
 use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Auth\SessionBrandSelection;
+use App\Shell\Plans\LimitEnforcer;
 use App\Shell\Team\Models\Invitation;
 use App\Tenancy\TenantContext;
 use Illuminate\Http\Request;
@@ -61,6 +62,8 @@ final class InvitationIssuer
                 $active = Brand::withoutGlobalScopes()->where('organization_id', $context->organizationId)
                     ->where('status', 'active')->whereIn('id', $allIds)->orderBy('id')->lockForUpdate()->get(['id'])->count();
                 abort_unless($active === count($allIds), 404);
+                $activeMembers = Membership::withoutGlobalScopes()->where('organization_id', $context->organizationId)->where('status', 'active')->count();
+                app(LimitEnforcer::class)->assertWithin($context, 'users.max', (string) ($activeMembers + 1));
                 $attempt = DB::table('invitation_issuance_attempts')->where('organization_id', $context->organizationId)
                     ->where('actor_user_id', $user->id)->where('attempt_hash', $attemptHash)->exists();
                 abort_if($attempt, 409);

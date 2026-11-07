@@ -24,6 +24,7 @@ type Props = {
   period: { from: string; to: string; timezone: string };
   daysRemaining: number;
   canViewPlans: boolean;
+  fallbackPhrase: string;
 };
 const icons = [MessageCircle, MessagesSquare, Share2, Users];
 function display(value: string | number | null) {
@@ -39,7 +40,7 @@ function date(value: string) {
     timeZone: 'UTC',
   }).format(new Date(value + 'T00:00:00Z'));
 }
-export default function Index({ rows, budget, period, daysRemaining, canViewPlans }: Props) {
+export default function Index({ rows, budget, period, daysRemaining, canViewPlans, fallbackPhrase }: Props) {
   return (
     <CabinetLayout
       breadcrumbs={[
@@ -121,8 +122,8 @@ export default function Index({ rows, budget, period, daysRemaining, canViewPlan
       </section>
       <section aria-labelledby="exhaustion-heading" className="mt-5 rounded-2xl bg-(--color-surface) p-5 shadow-(--shadow-card)">
         <h2 id="exhaustion-heading" className="text-lg font-bold">Что произойдёт при исчерпании</h2>
-        <p className="mt-2 text-sm">Если настроенный бюджет ИИ закончится, новые вызовы ИИ будут остановлены до обновления бюджета. Запасная фраза и автоматическая передача диалога менеджеру при этом пока не настроены.</p>
-        <p className="mt-2 text-sm text-(--color-ink-muted)">Не заданные тарифные лимиты не означают нулевой остаток.</p>
+        <p className="mt-2 text-sm">При исчерпании лимита диалогов тарифа диалог автоматически передаётся менеджеру. Запасная фраза для клиента на этот случай — «{fallbackPhrase}» (изменить: Персонаж → Служебные фразы).</p>
+        <p className="mt-2 text-sm text-(--color-ink-muted)">Бюджет ИИ (ниже) и не заданные тарифные лимиты — другой случай: новые вызовы ИИ останавливаются, но передача менеджеру с этим бюджетом пока не связана.</p>
         {canViewPlans ? <Link href="/billing/plans" className="mt-4 inline-block cursor-pointer text-sm font-semibold text-(--color-link)">Открыть тариф и лимиты</Link> : <p className="mt-4 text-sm text-(--color-ink-muted)">Тариф доступен владельцу компании.</p>}
       </section>
       <section
