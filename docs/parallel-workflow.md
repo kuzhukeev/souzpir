@@ -11,6 +11,8 @@ $taskCli = 'C:\OSPanel\home\souzpir.local\scripts\task.py'
 
 `claim` атомарно получает владение и создаёт ветку и отдельный worktree от проверенного `main`. При конфликте владения выбирайте следующую задачу. Работайте в указанном worktree и scope карточки; token остаётся только в `.local/claims/`. Окружение каждого worktree изолировано, как описано в `AGENTS.md`.
 
+Для чистого освобождённого дерева с сохранёнными коммитами `claim` проверяет прежний scope и не заменяет работу. Если возвращён `needsDependencyMerge: true`, владелец сначала включает актуальные обязательные зависимости из проверенного main; `submit` проверяет их наличие. Расширенный утверждённый scope применяется после получения нового владения.
+
 ```powershell
 & $taskPython $taskCli submit SP-XXX --summary 'Что сделано' --check 'Выполненная проверка'
 & $taskPython $taskCli resume SP-XXX --reason 'Замечание review'

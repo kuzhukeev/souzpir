@@ -95,7 +95,7 @@ class TaskCliTests(unittest.TestCase):
 
     def test_ready_does_not_mutate(self):
         self.assertEqual(len(self.client.ready()["tasks"]), 1)
-        self.assertEqual(self.api.calls, ["ready"])
+        self.assertEqual(self.api.calls, ["ready", "list"])
 
     def test_released_clean_worktree_can_be_claimed_without_replacing_it(self):
         worktree, original = self.claim()
@@ -133,13 +133,50 @@ class TaskCliTests(unittest.TestCase):
         self.assertEqual(record["dependsOn"], ["SP-000"])
         self.assertEqual(record["dependencyCommits"], {"SP-000": dependency})
 
-    def test_reclaim_rejects_new_dependency_absent_from_saved_tree(self):
-        self.claim()
+    def test_reclaim_reserves_saved_tree_but_submit_requires_new_dependency(self):
+        worktree, _ = self.claim()
+        self.commit(worktree)
+        saved = task_cli.git(worktree, "rev-parse", "HEAD")
         self.client.release("SP-001", "Waiting for new dependency")
         self.commit(self.root, "app/Common/dependency.php")
         dependency = task_cli.git(self.root, "rev-parse", "main")
         self.dependency(dependency)
+        reclaimed = self.client.claim("SP-001", "new-owner")
+        self.assertTrue(reclaimed["needsDependencyMerge"])
+        self.assertEqual(task_cli.git(worktree, "rev-parse", "HEAD"), saved)
         with self.assertRaisesRegex(task_cli.TaskError, "absent from the selected main base"):
+            self.client.submit("SP-001", "Scoped work", ["Checked"])
+        self.assertEqual(self.api.task["status"], "progress")
+        task_cli.git(worktree, "merge", "--no-ff", "main", "-m", "Integrate dependency")
+        self.assertEqual(self.client.submit("SP-001", "Scoped work", ["Checked"])["status"], "review")
+
+    def test_reclaim_allows_scope_expansion_but_checks_saved_work_against_original_scope(self):
+        worktree, _ = self.claim()
+        self.commit(worktree)
+        self.client.release("SP-001", "Scope expanded")
+        self.api.task["scope"].append("app/Additional/")
+        path = self.root / "planning" / "tasks.json"
+        plan = json.loads(path.read_text(encoding="utf-8"))
+        plan["tasks"][0]["scope"] = self.api.task["scope"]
+        path.write_text(json.dumps(plan), encoding="utf-8")
+        task_cli.git(self.root, "add", "planning/tasks.json")
+        task_cli.git(self.root, "commit", "-m", "Approve expanded scope")
+        self.assertEqual(self.client.ready()["tasks"][0]["taskKey"], "SP-001")
+        self.client.claim("SP-001", "new-owner")
+        self.assertEqual(self.client.read_claim("SP-001")["scope"], self.api.task["scope"])
+
+    def test_reclaim_does_not_use_expanded_scope_to_authorize_old_changes(self):
+        worktree, _ = self.claim()
+        self.commit(worktree, "app/Additional/unapproved.php")
+        self.client.release("SP-001", "Scope expanded")
+        self.api.task["scope"].append("app/Additional/")
+        path = self.root / "planning" / "tasks.json"
+        plan = json.loads(path.read_text(encoding="utf-8"))
+        plan["tasks"][0]["scope"] = self.api.task["scope"]
+        path.write_text(json.dumps(plan), encoding="utf-8")
+        task_cli.git(self.root, "add", "planning/tasks.json")
+        task_cli.git(self.root, "commit", "-m", "Approve expanded scope")
+        with self.assertRaisesRegex(task_cli.TaskError, "preserved changes"):
             self.client.claim("SP-001", "new-owner")
         self.assertEqual(self.api.task["status"], "queue")
 

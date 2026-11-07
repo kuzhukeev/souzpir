@@ -419,7 +419,7 @@ class Coordinator:
                     if (record.get("status") == "released" and not record.get("claimToken")
                             and record.get("project") == self.project and record.get("branch") == branch
                             and Path(record.get("worktree", "")).resolve() == worktree.resolve()
-                            and scope_signature(record.get("scope", [])) == scope_signature(task.get("scope", []))
+                            and set(scope_signature(record.get("scope", []))) <= set(scope_signature(task.get("scope", [])))
                             and set(record.get("dependsOn", [])) <= set(task.get("dependsOn", []))
                             and git(worktree, "branch", "--show-current") == branch
                             and not git(worktree, "status", "--porcelain=v1", "--untracked-files=all")
@@ -490,7 +490,7 @@ class Coordinator:
             if (record.get("status") != "released" or record.get("claimToken") or task.get("status") != "queue"
                     or record.get("project") != self.project or record.get("branch") != branch
                     or Path(record.get("worktree", "")).resolve() != worktree.resolve()
-                    or scope_signature(record.get("scope", [])) != scope_signature(task.get("scope", []))
+                    or not set(scope_signature(record.get("scope", []))) <= set(scope_signature(task.get("scope", [])))
                     or not set(record.get("dependsOn", [])) <= set(task.get("dependsOn", []))):
                 raise TaskError("Existing worktree is not safely released; inspect it without overwriting")
             base = self.integration_base()
@@ -500,14 +500,18 @@ class Coordinator:
                     or not self.preserved_head_is_safe(key, record, worktree)):
                 raise TaskError("Released worktree has preserved changes; inspect it without overwriting")
             dependencies = self.dependency_commits(task, tasks, base)
-            self.dependency_commits(task, tasks, head)
+            try:
+                self.dependency_commits(task, tasks, head)
+                needs_dependency_merge = False
+            except TaskError:
+                needs_dependency_merge = True
             response = self.api.call("claim", {"project": self.project, "taskKey": key, "worker": worker})
             token = response.get("claimToken")
             if not isinstance(token, str) or not token:
                 raise TaskError("Claim response has no token; inspect the task before retrying")
             try:
                 self.validate_plan(key, plan, response["task"])
-                record.update(claimToken=token, worker=worker, dependencyCommits=dependencies,
+                record.update(claimToken=token, worker=worker, dependencyCommits=dependencies, scope=task["scope"],
                               dependsOn=task.get("dependsOn", []), status="progress", revision=response["task"]["revision"])
                 self.save_claim(record)
             except (OSError, TaskError) as error:
@@ -519,7 +523,8 @@ class Coordinator:
                     raise TaskError("Worktree reclaim failed and release could not be confirmed; inspect queue") from None
                 raise TaskError("Worktree reclaim failed; preserved worktree was not modified: " + str(error)) from None
             return {"taskKey": key, "status": "progress", "branch": branch, "worktree": str(worktree),
-                    "baseCommit": record["baseCommit"], "promptPath": plan.get("promptPath", "")}
+                    "baseCommit": record["baseCommit"], "promptPath": plan.get("promptPath", ""),
+                    "needsDependencyMerge": needs_dependency_merge}
         if git(self.root, "rev-parse", "--verify", "refs/heads/" + branch, check=False):
             raise TaskError("Task branch already exists; inspect it, do not overwrite it")
         base = self.integration_base()
@@ -592,6 +597,7 @@ class Coordinator:
             raise TaskError("Commit changes and remove unintended untracked files before submitting")
         git(worktree, "merge-base", "--is-ancestor", record["baseCommit"], "HEAD")
         commit = git(worktree, "rev-parse", "HEAD^{commit}")
+        self.dependency_commits(task, self.api.call("list").get("tasks", []), commit)
         if commit == record["baseCommit"]:
             raise TaskError("No task commit exists after the saved base")
         scope = [*record["scope"], *CI_SCOPE_EXCEPTIONS.get(key, ())]
