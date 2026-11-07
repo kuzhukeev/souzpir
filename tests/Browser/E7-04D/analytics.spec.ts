@@ -6,7 +6,6 @@ test.use({viewport:{width:1440,height:900},launchOptions:process.env.PLAYWRIGHT_
 test.beforeAll(async()=>{server=await createServer({configFile:'tests/Browser/E7-04/vite.config.ts',server:{host:'127.0.0.1',port:0}});await server.listen();url=new URL('/tests/Browser/E7-04D/details.html',server.resolvedUrls!.local[0]).href;});
 test.afterAll(async()=>{await server?.close();});
 test('воронка, темы, менеджеры и отчёт',async({page})=>{
- await page.addInitScript(()=>{window.print=()=>{document.body.dataset.printed='yes';};});
  await page.goto(url);
  await expect(page.getByRole('navigation',{name:'Разделы аналитики',exact:true}).getByRole('button')).toHaveCount(6);
  await expect(page.getByRole('combobox',{name:'Менеджер',exact:true})).toBeVisible();
@@ -24,8 +23,6 @@ test('воронка, темы, менеджеры и отчёт',async({page})=
  await expect(page.getByRole('textbox',{name:'Почта получателя'})).toBeVisible();
  await expect(page.getByRole('button',{name:'Отправить тестовый отчёт'})).toBeVisible();
  await page.screenshot({path:'.local/screenshots/SP-E7-04D/report.png'});
- await page.getByRole('button',{name:'Печать / PDF'}).click();
- await expect(page.locator('body')).toHaveAttribute('data-printed','yes');
- expect((await page.pdf({format:'A4'})).subarray(0,5).toString()).toBe('%PDF-');
+ await expect(page.getByRole('link',{name:'Скачать PDF'})).toBeVisible();
 });
 

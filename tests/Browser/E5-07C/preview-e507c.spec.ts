@@ -9,10 +9,11 @@ test.afterAll(async () => { await server?.close(); });
 test('почта: способ отправки, подпись и безопасный тест', async ({ page }) => {
     await page.goto(url);
     await expect(page.getByLabel('Подпись')).toHaveValue('С уважением');
-    await expect(page.getByRole('heading', { name: 'Входящая' })).toBeVisible();
-    await expect(page.getByRole('paragraph').filter({ hasText: 'Скоро' })).toBeVisible();
+    const incoming = page.locator('section', { has: page.getByRole('heading', { name: 'Входящая' }) });
+    await expect(incoming.getByRole('heading', { name: 'Входящая' })).toBeVisible();
+    await expect(incoming.getByText('Скоро', { exact: true })).toBeVisible();
     await expect(page.getByText('без реальной отправки', { exact: false })).toBeVisible();
-    await page.getByLabel('SMTP', { exact: true }).check();
+    await page.locator('label').filter({ hasText: 'SMTP' }).locator('input[type="radio"]').check();
     await expect(page.getByLabel('Сервер SMTP')).toBeVisible();
     await page.getByLabel('Сервер SMTP').fill('smtp.example.test');
     await page.getByLabel('Пароль SMTP').fill('test-password');

@@ -10,7 +10,7 @@ import '../../../resources/css/themes/tokens.css';
 const json = '{"@type":"Product","name":"Проверенный товар"}';
 const audit = { ai_access: {captcha: {indicators: ['reCAPTCHA'], pages_observed: 2}, bots: []}, url: 'https://example.test', final_url: 'https://example.test', criteria: [
   { id: 4, title: 'Структурированные данные', group: 'Содержание страниц', status: 'partial', explanation: 'Найден JSON-LD.', evidence: [{ url: 'https://example.test/catalog', excerpt: json }] },
-  { id: 5, title: 'Контакты', group: 'Содержание страниц', status: 'unknown', explanation: 'Данных недостаточно.', evidence: [] },
+  { id: 99, title: 'Контакты', group: 'Содержание страниц', status: 'unknown', explanation: 'Данных недостаточно.', evidence: [] },
   { id: 6, title: 'Контактная страница', group: 'Содержание страниц', status: 'partial', explanation: 'Тип найден в разметке.', evidence: [{ url: 'https://example.test/contact', excerpt: '{"@type":"ContactPage"}' }] },
 ], pages: [{ url: 'https://example.test/catalog', primary_heading: 'Каталог', structured_types: ['Product'], structured_facts: [{label:'Название',value:'Товар'}], status: 200, observed_at: '2026-11-04T06:00:00Z' }, { url: 'https://example.test/contact', primary_heading: 'Связаться с нами', status: 200, observed_at: '2026-11-04T06:00:00Z' }] };
 export function Fixture() {

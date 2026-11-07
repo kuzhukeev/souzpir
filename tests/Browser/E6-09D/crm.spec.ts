@@ -22,9 +22,10 @@ test('форма вебхука и три сопоставления досту�
     await page.getByLabel('Секрет (64 шестнадцатеричных символа)').fill('a'.repeat(64));
     await page.getByRole('checkbox', { name: 'Контакт получен' }).check();
     await expect(page.getByRole('button', { name: 'Сохранить вебхук' })).toBeEnabled();
-    await expect(page.getByRole('heading', { name: 'Сопоставление полей' })).toBeVisible();
-    await expect(page.getByLabel('Поле EYON: Имя → Поле CRM')).toHaveValue('name');
-    await page.getByLabel('Поле EYON: Имя → Поле CRM').fill('customer');
+    await expect(page.getByRole('heading', { name: 'Сопоставление полей', level: 2 })).toBeVisible();
+    await expect(page.getByLabel('Поле EYON 1')).toHaveValue('name');
+    await expect(page.getByLabel('Поле CRM').first()).toHaveValue('name');
+    await page.getByLabel('Поле CRM').first().fill('customer');
     await expect(page.getByRole('button', { name: 'Сохранить сопоставление' })).toBeEnabled();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
     if (width === 1440) {

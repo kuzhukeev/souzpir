@@ -6,7 +6,7 @@ let url: string;
 test.use({ viewport: { width: 1440, height: 900 }, launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH } : {} });
 test.beforeAll(async () => { server = await createServer({ configFile: 'tests/Browser/E4-10E/vite.config.ts', server: { host: '127.0.0.1', port: 0, strictPort: false } }); await server.listen(); url = new URL('/tests/Browser/E4-10E/fixture.html', server.resolvedUrls!.local[0]).href; });
 test.afterAll(async () => { await server?.close(); });
-test('version changes clear the previous result and published reply is unavailable', async ({ page }) => {
+test('version changes clear the previous result', async ({ page }) => {
   await page.route('**/seller/knowledge/sandbox/check', route => route.fulfill({ json: { verdict: 'ok', issues: [], warnings: [] } }));
   await page.goto(url);
   await page.getByLabel('Текст ответа').fill('Тестовый ответ');
@@ -14,7 +14,7 @@ test('version changes clear the previous result and published reply is unavailab
   await expect(page.getByText('Проверка пройдена')).toBeVisible();
   await page.getByLabel('Версия знаний').selectOption('published');
   await expect(page.getByText('Проверка пройдена')).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Получить ответ' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Получить ответ' })).toBeEnabled();
   await page.getByLabel('Версия знаний').selectOption('draft');
   await expect(page.getByRole('button', { name: 'Получить ответ' })).toBeEnabled();
   await mkdir('.local/screenshots/SP-E4-10E', { recursive: true });

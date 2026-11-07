@@ -84,7 +84,7 @@ test('a new invitation works in the same tab after a revoked link', async ({ pag
   page.on('request', request => urls.push(request.url()));
   await page.route('**/*', route => new URL(route.request().url()).origin === new URL(base).origin ? route.continue() : route.abort());
   await page.goto(`/invitations/open#${revoked}`);
-  await expect(page.getByText('Не удалось открыть приглашение. Запросите новую ссылку.')).toBeVisible();
+  await expect(page.getByText('Приглашение отозвано')).toBeVisible();
   expect(await page.evaluate(() => location.hash)).toBe('');
   await page.evaluate(token => { location.hash = token; }, valid);
   await expect(page).toHaveURL(/\/invitations\/show$/);
@@ -102,7 +102,7 @@ test('two rapid fragment navigations do not create intermediate history entries 
   const oldToken = 'D'.repeat(64);
   const newToken = 'E'.repeat(64);
   await page.goto(`/invitations/open#${'R'.repeat(64)}`);
-  await expect(page.getByText('Не удалось открыть приглашение. Запросите новую ссылку.')).toBeVisible();
+  await expect(page.getByText('Приглашение отозвано')).toBeVisible();
   const entries = await page.evaluate(([oldValue, newValue]) => {
     location.hash = oldValue;
     location.hash = newValue;
