@@ -4,7 +4,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 
 let server: ViteDevServer;
 let url: string;
-test.skip(process.env.RUN_ACCEPTANCE_E901F_VISUAL !== '1', 'Manual visual audit; known accessibility findings are documented.');
+test.skip(process.env.RUN_ACCEPTANCE_E901F_VISUAL !== '1', 'Manual visual audit; run explicitly.');
 test.use({ viewport: { width: 1440, height: 900 }, launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH } : {} });
 test.beforeAll(async () => {
   server = await createServer({ configFile: 'tests/Browser/E6-08E/vite.config.ts', cacheDir: '.local/runtime/vite-e901f-catalog', server: { host: '127.0.0.1', port: 0, strictPort: false } });
