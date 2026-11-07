@@ -3,12 +3,13 @@
 namespace App\Tenancy\TokenApi;
 
 use App\Models\Brand;
-use App\Models\Organization;
-use App\Tenancy\TenantContext;
+use App\Seller\Runtime\BrandRuntimeSchedule;
 use App\Tenancy\TenantContextRunner;
+use Carbon\CarbonImmutable;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 final class ResolveTokenTenant
@@ -22,27 +23,50 @@ final class ResolveTokenTenant
             abort_unless($request->header('X-Brand-Id') === $brand->id, 404);
         }
 
+        // The proactive API path has a model call between two short database
+        // transactions. Its controller revalidates the bearer before each write.
+        $defaultAction = data_get($brand->settings, 'seller_api_action', 'card_only');
+        $action = $request->input('action', $defaultAction);
+        if ($request->routeIs('api.v1.leads.create')) {
+            $request->attributes->set('seller.api.action', $action);
+        }
+        $twoPhaseTurn = false;
+        if ($request->routeIs('api.v1.turn.create') && is_string($request->input('conversation_id'))
+            && Str::isUlid($request->input('conversation_id'))) {
+            $twoPhaseTurn = DB::transaction(function () use ($request, $brand, $token): bool {
+                [, , $context] = app(TokenTenantAuthority::class)->resolveLocked($brand, $token);
+                $mode = DB::table('conversations')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)
+                    ->where('id', $request->input('conversation_id'))->value('mode');
+                $schedule = app(BrandRuntimeSchedule::class);
+
+                return in_array($mode, ['bot', 'suggest'], true)
+                    && $schedule->mode($context, $schedule->settings($context), CarbonImmutable::now()) !== 'off';
+            });
+            $request->attributes->set('seller.api.two_phase_turn', $twoPhaseTurn);
+        }
+        if (($request->routeIs('api.v1.leads.create') && $action === 'open') || $twoPhaseTurn) {
+            [$currentToken, $context] = DB::transaction(function () use ($brand, $token): array {
+                [, $currentToken, $context] = app(TokenTenantAuthority::class)->resolveLocked($brand, $token);
+                DB::table('personal_access_tokens')->where('id', $currentToken->id)->update(['last_used_at' => now()]);
+
+                return [$currentToken, $context];
+            });
+            $brand->withAccessToken($currentToken);
+            $request->attributes->set('tenant.token', $currentToken);
+
+            return app(TenantContextRunner::class)->run($context, fn () => $next($request));
+        }
+
         // Laravel's routing pipeline renders downstream exceptions into responses before
         // this middleware regains control. Force a rollback for those responses too.
         $rollback = new RuntimeException('Token API transaction rolled back.');
         $response = null;
         try {
             return DB::transaction(function () use ($request, $next, $brand, $token, $rollback, &$response) {
-                $organization = Organization::whereKey($token->organization_id)->where('status', 'active')->lockForUpdate()->first();
-                abort_unless($organization, 404);
-                $currentBrand = Brand::withoutGlobalScopes()->whereKey($token->brand_id)
-                    ->where('organization_id', $organization->id)->where('status', 'active')->lockForUpdate()->first();
-                abort_unless($currentBrand && $currentBrand->id === $brand->id, 404);
-                $currentToken = BrandAccessToken::query()->whereKey($token->id)->where('organization_id', $organization->id)
-                    ->where('brand_id', $currentBrand->id)->where('tokenable_type', Brand::class)
-                    ->where('tokenable_id', $currentBrand->id)->lockForUpdate()->first();
-                abort_unless($currentToken && hash_equals($currentToken->token, $token->token)
-                    && (! $currentToken->expires_at || $currentToken->expires_at->isFuture()), 401);
+                [, $currentToken, $context] = app(TokenTenantAuthority::class)->resolveLocked($brand, $token);
                 DB::table('personal_access_tokens')->where('id', $currentToken->id)->update(['last_used_at' => now()]);
                 $brand->withAccessToken($currentToken);
                 $request->attributes->set('tenant.token', $currentToken);
-                $context = new TenantContext($organization->id, $currentBrand->id, source: 'token');
-
                 $response = app(TenantContextRunner::class)->run($context, fn () => $next($request));
                 if ($response->getStatusCode() >= 400 || isset($response->exception)) {
                     throw $rollback;

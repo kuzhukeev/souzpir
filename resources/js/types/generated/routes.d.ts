@@ -540,6 +540,7 @@ declare module 'ziggy-js' {
     "seller.api.failures": [],
     "seller.api.settings": [],
     "seller.api.settings.update": [],
+    "seller.api.settings.action": [],
     "api.v1.leads.create": [],
     "api.v1.turn.create": [],
     "seller.dialogs.index": [],

@@ -6,6 +6,9 @@ use App\Contracts\ProtectedOperations\IdempotencyConflict;
 use App\Contracts\ProtectedOperations\IdempotencyFailure;
 use App\Seller\Conversations\CanonicalJson;
 use App\Seller\Engine\LeadState;
+use App\Seller\Knowledge\KnowledgeNotReady;
+use App\Seller\Runtime\ApiFollowupRuntime;
+use App\Seller\Runtime\ApiOpeningRuntime;
 use App\Seller\Runtime\TokenInboundRuntime;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Audit\AuditEntry;
@@ -33,6 +36,10 @@ final class LeadIngressController
             throw ValidationException::withMessages(['Idempotency-Key' => 'Укажите корректный ключ идемпотентности.']);
         }
         $input = $request->validate(['fields' => ['required', 'array', 'min:1', 'max:50'], 'fields.*' => ['nullable', 'string', 'max:500'], 'action' => ['sometimes', 'in:card_only,open'], 'source' => ['sometimes', 'in:site,crm']]);
+        $input['action'] ??= $request->attributes->get('seller.api.action', 'card_only');
+        if (! in_array($input['action'], ['card_only', 'open'], true)) {
+            throw new \LogicException('Invalid saved API action.');
+        }
         foreach (array_keys($input['fields']) as $field) {
             if (! is_string($field) || ! preg_match('/^[A-Za-z0-9_-]{1,64}$/D', $field)) {
                 throw ValidationException::withMessages(['fields' => 'Недопустимое имя поля.']);
@@ -43,6 +50,20 @@ final class LeadIngressController
             $hashInput['source'] = $input['source'];
         }
         $hash = CanonicalJson::hash($hashInput);
+        if (($input['action'] ?? 'card_only') === 'open') {
+            if (config('runtime.ai_driver', 'fake') !== 'fake') {
+                return response()->json(['message' => 'Открытие диалога пока недоступно.'], 503);
+            }
+            try {
+                [$result, $created] = app(ApiOpeningRuntime::class)->open($request, $tenant, $input, $key, $hash);
+
+                return response()->json($result, $created ? 201 : 200);
+            } catch (IdempotencyConflict) {
+                return response()->json(['message' => 'Ключ уже использован для другого запроса.'], 409);
+            } catch (IdempotencyFailure|KnowledgeNotReady|\LogicException) {
+                return response()->json(['message' => 'Открытие диалога временно недоступно.'], 503);
+            }
+        }
         $existing = DB::table('seller_api_lead_requests')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
             ->where('endpoint', 'leads')->where('idempotency_key', $key)->first();
         if ($existing) {
@@ -50,9 +71,14 @@ final class LeadIngressController
 
             return response()->json(['contact_id' => $existing->contact_id, 'conversation_id' => $existing->conversation_id, 'status' => $existing->status], 200);
         }
-        if (($input['action'] ?? 'card_only') === 'open') {
-            return response()->json(['message' => 'Открытие диалога пока недоступно.'], 503);
-        }
+        $lead = $this->createMappedLead($tenant, $input, $key, $hash, 'created');
+
+        return response()->json(['contact_id' => $lead['contact_id'], 'conversation_id' => $lead['conversation_id'], 'status' => 'created'], 201);
+    }
+
+    /** The caller owns the transaction and must validate token authority. */
+    public function createMappedLead(TenantContext $tenant, array $input, string $key, string $hash, string $status): array
+    {
         $raw = DB::table('seller_api_settings')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->value('mapping');
         $mapping = $raw ? json_decode($raw, true) : self::DEFAULT_MAPPING;
         $mapped = [];
@@ -80,13 +106,13 @@ final class LeadIngressController
             'state' => json_encode($state->toArray(), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), 'created_at' => now(), 'updated_at' => now()]);
         DB::table('seller_api_lead_requests')->insert(['id' => $id, 'organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId,
             'endpoint' => 'leads', 'idempotency_key' => $key, 'request_hash' => $hash, 'contact_id' => $contact, 'conversation_id' => $conversation,
-            'status' => 'created', 'created_at' => now(), 'updated_at' => now()]);
+            'status' => $status, 'created_at' => now(), 'updated_at' => now()]);
         if (isset($input['source'])) {
             app(ApiSourceReceipt::class)->save($tenant->organizationId, $tenant->brandId, $id, $input['source']);
         }
         app(AuditWriter::class)->record($tenant, new AuditEntry('seller.api.lead.created', 'contact', $contact));
 
-        return response()->json(['contact_id' => $contact, 'conversation_id' => $conversation, 'status' => 'created'], 201);
+        return ['id' => $id, 'contact_id' => $contact, 'conversation_id' => $conversation];
     }
 
     public function turn(#[SensitiveParameter] Request $request, TenantContext $tenant): mixed
@@ -103,10 +129,12 @@ final class LeadIngressController
             throw ValidationException::withMessages(['text' => 'Введите сообщение.']);
         }
         try {
-            return response()->json(app(TokenInboundRuntime::class)->turn($request, $tenant, $input['conversation_id'], $input['text'], $key, $input['source'] ?? null));
+            $runtime = $request->attributes->get('seller.api.two_phase_turn') ? app(ApiFollowupRuntime::class) : app(TokenInboundRuntime::class);
+
+            return response()->json($runtime->turn($request, $tenant, $input['conversation_id'], $input['text'], $key, $input['source'] ?? null));
         } catch (IdempotencyConflict) {
             return response()->json(['message' => 'Ключ уже использован для другого запроса.'], 409);
-        } catch (IdempotencyFailure|\LogicException) {
+        } catch (IdempotencyFailure|KnowledgeNotReady|\LogicException) {
             return response()->json(['message' => 'Обработка хода временно недоступна.'], 503);
         }
     }

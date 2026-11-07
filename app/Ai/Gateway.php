@@ -7,6 +7,8 @@ use App\Ai\Drivers\FakeDriver;
 use App\Ai\Drivers\OpenRouterDriver;
 use App\Ai\Drivers\Rejected;
 use App\Ai\Drivers\Uncertain;
+use App\Ai\Protected\ApiFollowupInput;
+use App\Ai\Protected\ApiOpeningInput;
 use App\Ai\Protected\RawToolArguments;
 use App\Ai\Protected\RequestFingerprint;
 use App\Ai\Protected\SellerExtractorStages;
@@ -550,6 +552,120 @@ final class Gateway implements AiGateway
         }
     }
 
+    /** Complete a server-built API extractor request in fake mode. */
+    public function completeApiFollowupExtractor(#[\SensitiveParameter] Request $http, TenantContext $tenant, TurnClaim $claim): AiResult
+    {
+        if (config('runtime.ai_driver', 'fake') !== 'fake' || DB::transactionLevel() !== 0) {
+            throw new LogicException('API follow-up unavailable.');
+        }
+        try {
+            [$input, $context] = DB::transaction(fn () => app(ApiFollowupInput::class)->extractorLocked($http, $tenant, $claim));
+            $expected = CanonicalJson::hash($input->toArray());
+            $assertSource = function () use ($http, $tenant, $claim, $context, $expected): void {
+                [$current, $currentContext] = app(ApiFollowupInput::class)->extractorLocked($http, $tenant, $claim);
+                if (! hash_equals($expected, CanonicalJson::hash($current->toArray()))
+                    || $currentContext->idempotencyKey !== $context->idempotencyKey) {
+                    throw new LogicException;
+                }
+            };
+
+            return $this->completeInternal($input, $context, $assertSource);
+        } catch (Throwable) {
+            throw new LogicException('API follow-up unavailable.');
+        }
+    }
+
+    public function readApiFollowupExtractorLocked(#[\SensitiveParameter] Request $http, TenantContext $tenant, TurnClaim $claim): AiResult
+    {
+        if (DB::transactionLevel() < 1 || config('runtime.ai_driver', 'fake') !== 'fake') {
+            throw new LogicException('API follow-up unavailable.');
+        }
+        [$input, $context] = app(ApiFollowupInput::class)->extractorLocked($http, $tenant, $claim);
+        $body = app(ContactMasker::class)->request($input->toArray());
+        $expected = app(RequestFingerprint::class)->hash($input, $context, $body, 'fake');
+        $key = hash_hmac('sha256', $context->idempotencyKey, (string) config('app.key'));
+        $call = DB::table('ai_calls')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
+            ->where('idempotency_key_hash', $key)->lockForUpdate()->first();
+        if (! $call || $call->status !== 'completed' || ! hash_equals($expected, $call->request_hash)
+            || ! is_string($call->result_encrypted)) {
+            throw new LogicException('API follow-up unavailable.');
+        }
+        $result = AiResult::fromArray(json_decode(Crypt::decryptString($call->result_encrypted), true, 512, JSON_THROW_ON_ERROR));
+        if ($result->aiCallId !== $call->id || ! $result->ok() || $result->costMicros === null) {
+            throw new LogicException('API follow-up unavailable.');
+        }
+
+        return $result;
+    }
+
+    public function completeApiFollowupResponder(#[\SensitiveParameter] Request $http, TenantContext $tenant, TurnClaim $claim): AiResult
+    {
+        if (config('runtime.ai_driver', 'fake') !== 'fake' || DB::transactionLevel() !== 0) {
+            throw new LogicException('API follow-up unavailable.');
+        }
+        try {
+            [$input, $context] = DB::transaction(fn () => app(ApiFollowupInput::class)->responderLocked($http, $tenant, $claim));
+            $expected = CanonicalJson::hash($input->toArray());
+            $assertSource = function () use ($http, $tenant, $claim, $context, $expected): void {
+                [$current, $currentContext] = app(ApiFollowupInput::class)->responderLocked($http, $tenant, $claim);
+                if (! hash_equals($expected, CanonicalJson::hash($current->toArray()))
+                    || $currentContext->idempotencyKey !== $context->idempotencyKey) {
+                    throw new LogicException;
+                }
+            };
+
+            return $this->completeInternal($input, $context, $assertSource);
+        } catch (Throwable) {
+            throw new LogicException('API follow-up unavailable.');
+        }
+    }
+
+    public function readApiFollowupResponderLocked(#[\SensitiveParameter] Request $http, TenantContext $tenant, TurnClaim $claim): AiResult
+    {
+        if (DB::transactionLevel() < 1 || config('runtime.ai_driver', 'fake') !== 'fake') {
+            throw new LogicException('API follow-up unavailable.');
+        }
+        [$input, $context] = app(ApiFollowupInput::class)->responderLocked($http, $tenant, $claim);
+        $body = app(ContactMasker::class)->request($input->toArray());
+        $expected = app(RequestFingerprint::class)->hash($input, $context, $body, 'fake');
+        $key = hash_hmac('sha256', $context->idempotencyKey, (string) config('app.key'));
+        $call = DB::table('ai_calls')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
+            ->where('idempotency_key_hash', $key)->lockForUpdate()->first();
+        if (! $call || $call->status !== 'completed' || ! hash_equals($expected, $call->request_hash)
+            || ! is_string($call->result_encrypted)) {
+            throw new LogicException('API follow-up unavailable.');
+        }
+        $result = AiResult::fromArray(json_decode(Crypt::decryptString($call->result_encrypted), true, 512, JSON_THROW_ON_ERROR));
+        if ($result->aiCallId !== $call->id || ! $result->ok() || $result->costMicros === null) {
+            throw new LogicException('API follow-up unavailable.');
+        }
+
+        return $result;
+    }
+
+    /** Complete a server-built proactive API request in fake mode. */
+    public function completeApiOpening(#[\SensitiveParameter] Request $http, TenantContext $tenant, string $leadId): AiResult
+    {
+        if (config('runtime.ai_driver', 'fake') !== 'fake' || DB::transactionLevel() !== 0) {
+            throw new LogicException('API opening unavailable.');
+        }
+        try {
+            [$input, $context] = DB::transaction(fn () => app(ApiOpeningInput::class)->buildLocked($http, $tenant, $leadId));
+            $expected = CanonicalJson::hash($input->toArray());
+            $assertSource = function () use ($http, $tenant, $leadId, $context, $expected): void {
+                [$current, $currentContext] = app(ApiOpeningInput::class)->buildLocked($http, $tenant, $leadId);
+                if (! hash_equals($expected, CanonicalJson::hash($current->toArray()))
+                    || $currentContext->idempotencyKey !== $context->idempotencyKey) {
+                    throw new LogicException;
+                }
+            };
+
+            return $this->completeInternal($input, $context, $assertSource);
+        } catch (Throwable) {
+            throw new LogicException('API opening unavailable.');
+        }
+    }
+
     /** Complete the server-built extractor request for an assigned manager in fake mode. */
     public function completeManagerSuggestionExtractor(#[\SensitiveParameter] Request $http, string $dialog, #[\SensitiveParameter] string $key): AiResult
     {
@@ -721,7 +837,10 @@ final class Gateway implements AiGateway
             if ($beforeReserve !== null) {
                 $beforeReserve();
             }
-            if ($beforeReserve === null && str_starts_with($context->idempotencyKey, 'manager-suggestion-extractor-')) {
+            if ($beforeReserve === null && (str_starts_with($context->idempotencyKey, 'manager-suggestion-extractor-')
+                || str_starts_with($context->idempotencyKey, 'api-opening-')
+                || str_starts_with($context->idempotencyKey, 'api-followup-extractor-')
+                || str_starts_with($context->idempotencyKey, 'api-followup-responder-'))) {
                 throw new LogicException('Protected AI call requires protected reading.');
             }
             // Prepared extractor inputs cannot be dispatched through public
