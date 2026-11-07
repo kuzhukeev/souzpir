@@ -4,6 +4,8 @@ namespace App\Vision\Measurements;
 
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
+use App\Shell\Plans\Contracts\PlanLimits;
+use App\Shell\Plans\MonthlyUnits;
 use App\Tenancy\TenantContext;
 use App\Vision\Core\EvidenceStore;
 use App\Vision\Core\MeasurementRunner;
@@ -113,6 +115,16 @@ final class MeasurementsController
             $providers = json_decode($approval->providers, true, 32, JSON_THROW_ON_ERROR);
             if (! is_array($providers) || $providers === []) {
                 throw ValidationException::withMessages(['runs' => 'Панель моделей недоступна.']);
+            }
+            $questionCount = DB::table('question_sets')->where('organization_id', $context->organizationId)
+                ->where('brand_id', $context->brandId)->where('id', $approval->question_set_id)->value('size');
+            $slotLimit = app(PlanLimits::class)->get($context, 'vision.slots_month')->value;
+            if (is_numeric($questionCount) && is_numeric($slotLimit)) {
+                $needed = (int) $questionCount * count($providers) * (int) $data['runs'];
+                $available = max(0, (int) floor((float) $slotLimit) - app(MonthlyUnits::class)->usage($context)['slots']);
+                if ($needed > $available) {
+                    throw ValidationException::withMessages(['runs' => 'Не хватает слотов. Уменьшите число моделей или дождитесь обновления лимита.']);
+                }
             }
             try {
                 $id = app(MeasurementRunner::class)->start($approval->question_set_id, $providers, (int) $data['runs']);
