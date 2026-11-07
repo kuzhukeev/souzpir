@@ -20,7 +20,7 @@ final class ConversationNotificationsTest extends LimitsTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        config(['runtime.notification_driver' => 'fake', 'features.E0-04.defaults.external_delivery' => false]);
+        config(['runtime.notification_driver' => 'fake', 'features.E0-04.defaults.external_delivery' => false, 'features.L1-06.defaults.enabled' => true]);
         Queue::fake();
         Http::preventStrayRequests();
         Http::fake();

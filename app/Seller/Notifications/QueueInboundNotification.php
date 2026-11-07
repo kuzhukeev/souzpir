@@ -9,7 +9,7 @@ final class QueueInboundNotification
 {
     public function handle(Message $message): void
     {
-        if ($message->role !== 'client') {
+        if ($message->role !== 'client' || ! config('features.L1-06.defaults.enabled', false)) {
             return;
         }
         $channel = $message->channel_account_id ? DB::table('channel_accounts')->where('id', $message->channel_account_id)->value('type') : null;
