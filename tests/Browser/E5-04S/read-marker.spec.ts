@@ -7,6 +7,7 @@ test.beforeAll(async()=>{server=await createServer({configFile:'tests/Browser/E5
 test.afterAll(async()=>{await server?.close();});
 test('метка «Прочитано» у входящего и «Непрочитано» в ленте',async({page})=>{
   await page.goto(url);
+  await expect(page.getByText('Виджет · Новый',{exact:true})).toHaveCount(1);
   await expect(page.getByText(/✓ Прочитано · \d\d:\d\d/)).toHaveCount(1);
   await expect(page.getByText('Непрочитано',{exact:true})).toHaveCount(1);
   await expect(page.getByRole('button',{name:'Предложить ответ'})).toBeEnabled();
