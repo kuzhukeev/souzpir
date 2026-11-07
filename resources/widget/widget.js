@@ -46,6 +46,7 @@
     let sentCount = 0; const limitReached = () => maxMessages !== null && sentCount >= maxMessages;
     let waitingForManager = false;
     let sessionToken = null; let starting = null;
+    let lastSeenMessageId = null; let pollTimer = null;
     const api = (path, body) => { const url = new URL(path, source.origin); url.searchParams.set('key', key); return fetch(url.href, {method:'POST', credentials:'omit', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)}); };
     const startSession = () => {
       if (sessionToken) return Promise.resolve(sessionToken);
@@ -58,6 +59,16 @@
     const addBubble = (role, value) => { const line = document.createElement('p'); line.className = 'message'; line.style.margin = '6px 0';
       line.textContent = (role === 'agent' ? '' : 'Вы: ') + value; transcript.append(line); };
     panel.append(transcript);
+    const pollMessages = () => {
+      pollTimer = null;
+      if (!waitingForManager || !sessionToken) return;
+      const url = new URL('/widget/messages', source.origin); url.searchParams.set('key', key); url.searchParams.set('token', sessionToken);
+      if (lastSeenMessageId) url.searchParams.set('after', lastSeenMessageId);
+      fetch(url.href, { credentials: 'omit', cache: 'no-store' }).then(response => response.ok ? response.json() : { messages: [] }).then(data => {
+        const items = Array.isArray(data.messages) ? data.messages : [];
+        if (items.length) { items.forEach(item => { addBubble('agent', item.text); lastSeenMessageId = item.id; }); waitingForManager = false; }
+      }).catch(() => {}).finally(() => { if (waitingForManager && !pollTimer) pollTimer = setTimeout(pollMessages, 7000); });
+    };
     const chat = document.createElement('form');
     const text = document.createElement('input'); text.type = 'text'; text.maxLength = 4000; text.placeholder = 'Ваше сообщение'; text.setAttribute('aria-label', 'Ваше сообщение'); text.required = true;
     const chatSend = document.createElement('button'); chatSend.className = 'submit'; chatSend.type = 'submit'; chatSend.textContent = 'Отправить';
@@ -71,7 +82,7 @@
       startSession().then(token => api('/widget/message', {token, text:sent, idempotency_key:uid(), page:widgetPage})).then(response => { if (!response.ok) throw new Error('unavailable'); return response.json().catch(() => ({})); }).then(result => {
         message.textContent = ''; addBubble('client', sent); text.value = ''; sentCount += 1;
         if (typeof result.reply === 'string' && result.reply) { addBubble('agent', result.reply); waitingForManager = false; }
-        else if (!waitingForManager) { waitingForManager = true; addBubble('agent', 'Менеджер скоро ответит.'); }
+        else if (!waitingForManager) { waitingForManager = true; addBubble('agent', 'Менеджер скоро ответит.'); if (!pollTimer) pollTimer = setTimeout(pollMessages, 7000); }
         if (limitReached()) { lockChat(); } else { chatStatus.textContent = 'Сообщение отправлено.'; }
       }).catch(() => { chatStatus.textContent = 'Чат временно недоступен. Попробуйте позже.'; }).finally(() => { if (!limitReached()) chatSend.disabled = false; });
     });

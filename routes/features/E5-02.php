@@ -23,6 +23,7 @@ return [
         Route::post('/widget/session', [WidgetSessionController::class, 'start'])->name('widget.session.start');
         Route::options('/widget/message', [WidgetSessionController::class, 'preflight'])->name('widget.message.preflight');
         Route::post('/widget/message', [WidgetSessionController::class, 'message'])->name('widget.message.store');
+        Route::get('/widget/messages', [WidgetSessionController::class, 'messages'])->name('widget.messages');
         Route::get('/widget/config', [PublicWidgetController::class, 'config'])->name('widget.config');
     },
 ];

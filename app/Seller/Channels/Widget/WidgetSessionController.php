@@ -73,4 +73,37 @@ final class WidgetSessionController
 
         return $this->response(response()->json($body), $origin)->setStatusCode(201);
     }
+
+    public function messages(Request $request): mixed
+    {
+        [$widget, $origin] = self::widget($request);
+        $validator = Validator::make($request->all(), ['token' => ['required', 'string', 'size:64'], 'after' => ['nullable', 'string', 'size:26']]);
+        if ($validator->fails()) {
+            return $this->response(response()->json(['message' => 'Проверьте запрос.'], 422), $origin);
+        }
+        $session = self::session($widget, $origin, $request->input('token'));
+        if (! $session) {
+            return $this->response(response()->json(['message' => 'Сессия недоступна.'], 404), $origin);
+        }
+        if (! $session->conversation_id) {
+            return $this->response(response()->json(['messages' => []]), $origin);
+        }
+        $query = DB::table('messages')->where('organization_id', $widget->organization_id)->where('brand_id', $widget->brand_id)
+            ->where('conversation_id', $session->conversation_id)->whereIn('role', ['manager', 'agent']);
+        $after = $request->input('after');
+        if (is_string($after) && $after !== '') {
+            $cursor = DB::table('messages')->where('conversation_id', $session->conversation_id)->where('id', $after)->first(['created_at']);
+            if ($cursor) {
+                $query->where(function ($q) use ($cursor, $after): void {
+                    $q->where('created_at', '>', $cursor->created_at)
+                        ->orWhere(function ($q2) use ($cursor, $after): void {
+                            $q2->where('created_at', $cursor->created_at)->where('id', '>', $after);
+                        });
+                });
+            }
+        }
+        $messages = $query->orderBy('created_at')->orderBy('id')->limit(20)->get(['id', 'text']);
+
+        return $this->response(response()->json(['messages' => $messages->map(fn ($m) => ['id' => $m->id, 'text' => $m->text])->all()]), $origin);
+    }
 }
