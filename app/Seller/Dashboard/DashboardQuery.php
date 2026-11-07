@@ -59,7 +59,8 @@ final class DashboardQuery
         $end = $today->addDay()->startOfDay()->utc();
         $channelDialogs = fn () => DB::table('conversations')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('channel_account_id', $channelId)->select('id');
         $evaluations = $scope('seller_evaluations')->when($channelId, fn ($query) => $query->whereIn('conversation_id', $channelDialogs()))->where(fn ($query) => EvaluationVisibility::excludeTestBaseline($query))->where('created_at', '>=', $start)->where('created_at', '<', $end)->get(['average', 'issues']);
-        $quality = $evaluations->isEmpty() ? null : round((float) $evaluations->avg('average'), 2);
+        $average = $evaluations->avg('average');
+        $quality = $average === null ? null : round((float) $average, 2);
         $issues = [];
         foreach ($evaluations as $evaluation) {
             foreach (json_decode($evaluation->issues, true) ?: [] as $issue) {
@@ -71,7 +72,10 @@ final class DashboardQuery
         }
         arsort($issues);
         $issues = array_slice($issues, 0, 5, true);
-        $previousEvaluations = $scope('seller_evaluations')->when($channelId, fn ($query) => $query->whereIn('conversation_id', $channelDialogs()))->where(fn ($query) => EvaluationVisibility::excludeTestBaseline($query))->where('created_at', '>=', $start->subDays($days))->where('created_at', '<', $start)->get(['issues']);
+        $previousEvaluations = $scope('seller_evaluations')->when($channelId, fn ($query) => $query->whereIn('conversation_id', $channelDialogs()))->where(fn ($query) => EvaluationVisibility::excludeTestBaseline($query))->where('created_at', '>=', $start->subDays($days))->where('created_at', '<', $start)->get(['issues', 'average']);
+        $previousAverage = $previousEvaluations->avg('average');
+        $previousQuality = $previousAverage === null ? null : round((float) $previousAverage, 2);
+        $delta['quality'] = $quality === null || $previousQuality === null ? null : round($quality - $previousQuality, 2);
         $priorIssues = [];
         foreach ($previousEvaluations as $evaluation) {
             $seen = [];
