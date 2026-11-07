@@ -286,6 +286,9 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "CREATE ROLE souzpir_e901e LOGIN PASSWORD 'ci-only-password' NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;"
           psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "CREATE DATABASE souzpir_test_e901e OWNER souzpir_e901e;"
           psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "REVOKE CONNECT ON DATABASE souzpir_test_e901e FROM PUBLIC;"
+          psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "CREATE ROLE e901f_app LOGIN PASSWORD 'ci-only-password' NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;"
+          psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "CREATE DATABASE souzpir_test_e901f OWNER e901f_app;"
+          psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "REVOKE CONNECT ON DATABASE souzpir_test_e901f FROM PUBLIC;"
       - uses: ramsey/composer-install@v3
       - run: vendor/bin/phpunit tests/Browser/Acceptance/KnowledgeLifecycleE901ETest.php --no-coverage
       - run: vendor/bin/phpunit tests/Browser/Acceptance/FactAnswerE901FTest.php --no-coverage
@@ -293,6 +296,14 @@ jobs:
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npx playwright test tests/Browser/Acceptance/followups-e901e.spec.ts --workers=1
+      - name: Browser publication and rollback
+        env:
+          RUN_ACCEPTANCE_E901F: '1'
+          DB_DATABASE: souzpir_test_e901f
+          DB_TEST_DATABASE: souzpir_test_e901f
+          DB_USERNAME: e901f_app
+          APP_PREVIEW_DATABASE: souzpir_preview_e901f
+        run: npx playwright test tests/Browser/Acceptance/release-e901f.spec.ts --workers=1
 
   race:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
