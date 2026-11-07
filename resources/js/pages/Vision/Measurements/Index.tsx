@@ -32,7 +32,7 @@ const button =
   'min-h-11 cursor-pointer rounded-lg border border-(--color-border) px-4 text-sm font-semibold text-(--color-link) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus) disabled:cursor-not-allowed disabled:opacity-50';
 const isPageVisible = () => document.visibilityState !== 'hidden';
 const stateLabel: Record<string, string> = { pending: 'Ожидает', in_progress: 'Выполняется', running: 'Выполняется', ok: 'Готов', completed: 'Завершён', partial: 'Частично готов', failed: 'Ошибка', uncertain: 'Неизвестный исход' };
-const errorLabel: Record<string, string> = { provider_rejected: 'Провайдер отклонил запрос', provider_uncertain: 'Исход запроса неизвестен', knowledge_unavailable: 'Данные бренда недоступны', empty_response: 'Пустой ответ' };
+const errorLabel: Record<string, string> = { provider_rejected: 'Провайдер отклонил запрос', provider_uncertain: 'Исход запроса неизвестен', knowledge_unavailable: 'Данные бренда недоступны', empty_response: 'Пустой ответ', budget_exhausted: 'Остановлен лимитом' };
 function date(value: string | null): string {
   if (!value) return '—';
   const parsed = new Date(value);
