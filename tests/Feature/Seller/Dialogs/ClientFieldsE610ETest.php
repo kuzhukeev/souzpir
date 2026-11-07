@@ -64,6 +64,9 @@ final class ClientFieldsE610ETest extends TenancyTestCase
         $this->post('/seller/dialogs/'.$id.'/transfer', ['assigned_user_id' => $owner->id])->assertSessionHasErrors('assigned_user_id');
         $this->assertDatabaseHas('conversations', ['id' => $id, 'assigned_user_id' => null]);
         $this->put('/seller/dialogs/'.$id.'/profile', ['slots' => ['contact_time' => 'Вечером']])->assertSessionHasNoErrors();
+        $this->put('/seller/dialogs/'.$id.'/profile', ['slots' => ['car_year' => null]])->assertSessionHasNoErrors();
+        $this->post('/seller/dialogs/'.$id.'/transfer', ['assigned_user_id' => $owner->id])->assertSessionHasErrors('assigned_user_id');
+        $this->put('/seller/dialogs/'.$id.'/profile', ['slots' => ['car_year' => '2022']])->assertSessionHasNoErrors();
         $this->post('/seller/dialogs/'.$id.'/transfer', ['assigned_user_id' => $owner->id])->assertSessionHasNoErrors();
         $this->assertDatabaseHas('conversations', ['id' => $id, 'assigned_user_id' => $owner->id]);
         $this->actingAs($owner)->withSession(['brand_id' => $other->id])->get('/seller/dialogs/'.$id)->assertNotFound();

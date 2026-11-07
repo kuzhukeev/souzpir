@@ -52,7 +52,7 @@ final class DialogTransferController
                     $id = $field['id'] ?? null;
                     $value = is_string($id) ? ($slots[$id] ?? null) : null;
 
-                    return ($field['required'] ?? false) && ($field['stage'] ?? null) === 'handoff'
+                    return ($field['required'] ?? false) && in_array($field['stage'] ?? null, [null, 'open', 'qualify', 'need', 'budget', 'close_contact', 'followup', 'handoff'], true)
                         && is_string($id) && ($value === null || $value === '' || $value === []);
                 })->map(fn ($field) => $field['name'] ?? $field['id'])->all();
                 if ($missing !== []) {
