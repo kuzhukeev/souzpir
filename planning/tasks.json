@@ -20209,17 +20209,12 @@
         "SP-E6-06D"
       ],
       "scope": [
-        "app/Seller/Settings/Schedule/",
-        "app/Seller/Conversations/",
-        "resources/js/pages/Seller/Settings/Schedule/",
-        "tests/Feature/Seller/Settings/Schedule/",
-        "tests/Feature/Seller/Conversations/",
-        "tests/Browser/E6-06E/",
-        "docs/results/SP-E6-06E.md",
+        "app/Seller/Runtime/FirstInboundRuntime.php",
         "app/Seller/Runtime/BrandRuntimeSchedule.php",
-        "app/Seller/Settings/Tools/MonitorHandoffs.php",
-        "tests/Browser/E6-06D/",
-        "tests/Feature/Seller/Runtime/"
+        "tests/Feature/Seller/Runtime/",
+        "resources/js/pages/Seller/Settings/Schedule/",
+        "tests/Browser/E6-06E/",
+        "docs/results/SP-E6-06E.md"
       ],
       "exclusiveResources": [],
       "acceptance": [
@@ -20238,7 +20233,7 @@
       ],
       "promptPath": "docs/tasks/SP-E6-06E.md",
       "wave": 20,
-      "description": "# SP-E6-06E · Завершение расписания и распределения\n\n**Зачем:** завершить экран по принятому результату.\n**Часть чего:** остаток SP-E6-06D, docs/results/SP-E6-06D.md.\n**Зависимости:** SP-E6-06D.\n\n## Приёмка\n- Завершить распределение по городу, каналу и источнику, рабочие часы и каналы менеджеров, таймер уведомления, отправку фразы вне часов и защищённую передачу; сверить макет и состояния загрузки/ошибки. Без живых отправок.\n- Проверить права, изоляцию брендов, ошибки и состояния; незавершённое записать в «Остаток».\n\nScope: `app/Seller/Settings/Schedule/`, `app/Seller/Conversations/`, `resources/js/pages/Seller/Settings/Schedule/`, `tests/Feature/Seller/`, `tests/Browser/E6-06E/`, `docs/results/SP-E6-06E.md`.\n\n## Остаток 07.11.2026 21:10 (после частичной сдачи)\n- `app/Seller/Runtime/BrandRuntimeSchedule.php::assignWaiting`: передавать канал диалога, `now` и таймзону в `AssignmentCandidates::select`, чтобы рабочие часы и каналы менеджеров реально ограничивали назначение; feature-тест.\n- Отправка фразы вне часов и уведомление по таймеру «никто не взял» (`notify_minutes`/`notify_target`) через fake-доставку и общую очередь уведомлений; таймер — в `app/Seller/Settings/Tools/MonitorHandoffs.php` (не дублировать).\n- `tests/Browser/E6-06D/schedule.spec.ts` красный после смены UI (старые заглушки «недоступны», select «По городу») — обновить локаторы по образцу `tests/Browser/E6-06E/schedule.spec.ts`, проверки не ослаблять.\n"
+      "description": "# SP-E6-06E · Завершение расписания и распределения\n\n**Зачем:** завершить экран по принятому результату.\n**Часть чего:** остаток SP-E6-06D, docs/results/SP-E6-06D.md.\n**Зависимости:** SP-E6-06D.\n\n## Приёмка\n- Завершить распределение по городу, каналу и источнику, рабочие часы и каналы менеджеров, таймер уведомления, отправку фразы вне часов и защищённую передачу; сверить макет и состояния загрузки/ошибки. Без живых отправок.\n- Проверить права, изоляцию брендов, ошибки и состояния; незавершённое записать в «Остаток».\n\nScope: `app/Seller/Settings/Schedule/`, `app/Seller/Conversations/`, `resources/js/pages/Seller/Settings/Schedule/`, `tests/Feature/Seller/`, `tests/Browser/E6-06E/`, `docs/results/SP-E6-06E.md`.\n\n## Остаток 07.11.2026 21:10 (после частичной сдачи)\n- `app/Seller/Runtime/BrandRuntimeSchedule.php::assignWaiting`: передавать канал диалога, `now` и таймзону в `AssignmentCandidates::select`, чтобы рабочие часы и каналы менеджеров реально ограничивали назначение; feature-тест.\n- Отправка фразы вне часов и уведомление по таймеру «никто не взял» (`notify_minutes`/`notify_target`) через fake-доставку и общую очередь уведомлений; таймер — в `app/Seller/Settings/Tools/MonitorHandoffs.php` (не дублировать).\n- `tests/Browser/E6-06D/schedule.spec.ts` красный после смены UI (старые заглушки «недоступны», select «По городу») — обновить локаторы по образцу `tests/Browser/E6-06E/schedule.spec.ts`, проверки не ослаблять.\n\n\nОстаток 07.11.2026 22:10: доставка фразы вне часов клиенту — в FirstInboundRuntime::suppressManagerTurn при подавлении хода по расписанию/лимиту вернуть BrandRuntimeSchedule::fallbackPhrase() как ответ бота; feature-тест в tests/Feature/Seller/Runtime/; подпись D-11.1 «пока не подключена» заменить. WidgetInboundRuntime.php занят SP-L1-09 — не трогать."
     },
     {
       "taskKey": "SP-E8-16L",
