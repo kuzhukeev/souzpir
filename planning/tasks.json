@@ -24795,7 +24795,8 @@
       ],
       "exclusiveResources": [],
       "scope": [
-        "app/Seller/Runtime/WidgetInboundRuntime.php",
+        "app/Seller/Channels/Widget/WidgetSessionController.php",
+        "routes/features/E5-02.php",
         "resources/widget/",
         "tests/Feature/Launch/L1-09/",
         "docs/results/SP-L1-09.md"
