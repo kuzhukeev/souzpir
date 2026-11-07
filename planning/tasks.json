@@ -19491,20 +19491,11 @@
         "SP-E6-10C"
       ],
       "scope": [
-        "app/Seller/Engine/",
-        "app/Seller/Dialogs/",
-        "app/Seller/Settings/Policy/",
-        "resources/js/pages/Seller/Dialogs/",
-        "resources/js/pages/Seller/Settings/Policy/",
+        "app/ProtectedOperations/DraftSimulation/FixtureRuntime.php",
         "tests/Feature/Seller/Engine/",
-        "tests/Feature/Seller/Dialogs/",
         "tests/Browser/E6-10E/",
-        "docs/results/SP-E6-10E.md",
-        "app/Seller/Customers/",
-        "resources/js/pages/Seller/Customers/",
-        "resources/js/features/Seller/Customers/labels.ts",
         "resources/js/pages/Seller/Knowledge/Releases/Run.tsx",
-        "tests/Feature/Seller/Customers/"
+        "docs/results/SP-E6-10E.md"
       ],
       "exclusiveResources": [],
       "acceptance": [
@@ -20294,12 +20285,13 @@
         "app/Seller/Dialogs/",
         "app/Ai/Protected/",
         "app/Ai/Gateway.php",
-        "app/ProtectedOperations/",
         "resources/js/pages/Seller/Dialogs/",
         "tests/Feature/Seller/Dialogs/",
         "tests/Feature/ProtectedOperations/",
         "tests/Browser/E5-04S/",
-        "docs/results/SP-E5-04S.md"
+        "docs/results/SP-E5-04S.md",
+        "app/ProtectedOperations/SellerFollowup/",
+        "routes/features/E5-04.php"
       ],
       "exclusiveResources": [
         "shared-ai-stages"
@@ -24181,7 +24173,11 @@
         "routes/features/E1-06.php",
         "tests/Feature/Shell/Team/",
         "tests/Browser/E1-06J/",
-        "docs/results/SP-E1-06J.md"
+        "docs/results/SP-E1-06J.md",
+        "app/Shell/InvitationIssuance/",
+        "resources/js/features/Shell/InvitationIssuance/",
+        "tests/Feature/Shell/InvitationIssuance/",
+        "tests/Browser/E1-06/"
       ],
       "exclusiveResources": [],
       "acceptance": [
