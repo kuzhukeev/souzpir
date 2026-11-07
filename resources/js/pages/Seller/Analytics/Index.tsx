@@ -61,12 +61,36 @@ type Analytics = {
   avgMinutesToContact?: number | null;
   messageCount?: number;
   botCompleted?: number;
+  previousMessageCount?: number;
+  previousBotCompleted?: number;
+  previousAvgMinutesToContact?: number | null;
 };
 function formatMinutesToContact(value: number | null | undefined) {
   if (value == null) return 'Нет данных';
   const minutes = Math.floor(value);
   const seconds = Math.round((value - minutes) * 60);
   return `${minutes} мин ${seconds} сек`;
+}
+function trendPercent(current: number | null, previous: number | null): number | null {
+  if (current == null || previous == null || previous === 0) return null;
+  return Math.round(((current - previous) / previous) * 100);
+}
+function TrendBadge({ value, lowerIsBetter = false }: { value: number | null; lowerIsBetter?: boolean }) {
+  if (value == null) return null;
+  const sign = value > 0 ? '+' : value < 0 ? '−' : '';
+  const good = lowerIsBetter ? -value : value;
+  const color =
+    good > 0
+      ? 'text-(--color-success-ink)'
+      : good < 0
+        ? 'text-(--color-danger-ink)'
+        : 'text-(--color-ink-muted)';
+  return (
+    <p className={`mt-1 text-xs font-medium ${color}`}>
+      {value > 0 ? '↑' : value < 0 ? '↓' : '→'} {sign}
+      {Math.abs(value)}% к предыдущему периоду
+    </p>
+  );
 }
 const labels: Record<string, string> = {
   unknown: 'Не определён',
@@ -135,6 +159,12 @@ export default function Index({ analytics: a }: { analytics: Analytics }) {
   const [compare, setCompare] = useState(true);
   const avgMessages = a.total ? (a.messageCount ?? 0) / a.total : null;
   const botRate = a.total && a.botCompleted != null ? Math.round((a.botCompleted / a.total) * 100) : null;
+  const previousAvgMessages = a.previousTotal ? (a.previousMessageCount ?? 0) / a.previousTotal : null;
+  const previousBotRate =
+    a.previousTotal && a.previousBotCompleted != null ? Math.round((a.previousBotCompleted / a.previousTotal) * 100) : null;
+  const avgMessagesTrend = trendPercent(avgMessages, previousAvgMessages);
+  const botRateTrend = trendPercent(botRate, previousBotRate);
+  const avgMinutesToContactTrend = trendPercent(a.avgMinutesToContact ?? null, a.previousAvgMinutesToContact ?? null);
   const form = useForm({
     from: a.from,
     to: a.to,
@@ -481,16 +511,19 @@ export default function Index({ analytics: a }: { analytics: Analytics }) {
               <p className="mt-2 text-2xl font-bold">
                 {avgMessages == null
                   ? 'Нет данных'
-                  : `${avgMessages.toLocaleString('ru-RU', { maximumFractionDigits: 1 })} хода`}
+                  : `${avgMessages.toLocaleString('ru-RU', { maximumFractionDigits: 1 })} сообщений`}
               </p>
+              <TrendBadge value={avgMessagesTrend} />
             </div>
             <div className={card}>
               <h2 className="text-sm font-semibold">Бот ответил сам до конца</h2>
               <p className="mt-2 text-2xl font-bold">{botRate == null ? 'Нет данных' : `${botRate}%`}</p>
+              <TrendBadge value={botRateTrend} />
             </div>
             <div className={card}>
               <h2 className="text-sm font-semibold">Среднее время до контакта</h2>
               <p className="mt-2 text-2xl font-bold">{formatMinutesToContact(a.avgMinutesToContact)}</p>
+              <TrendBadge value={avgMinutesToContactTrend} lowerIsBetter />
             </div>
           </section>
           <p className="mt-2 text-sm text-(--color-ink-muted)">

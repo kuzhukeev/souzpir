@@ -309,7 +309,7 @@ final class AnalyticsController
         if ($manager !== '') {
             $previousQuery->where('c.assigned_user_id', $manager);
         }
-        $previousRows = $previousQuery->get(['c.state', 'c.handed_off_at', 'c.stage']);
+        $previousRows = $previousQuery->get(['c.id', 'c.state', 'c.handed_off_at', 'c.stage', 'c.created_at', 'c.contact_received_at']);
         $previousTotal = $previousRows->count();
         $previousMetrics = [
             'contact' => $previousRows->filter(function ($row): bool {
@@ -320,6 +320,20 @@ final class AnalyticsController
             'handed' => $previousRows->whereNotNull('handed_off_at')->count(),
             'closed' => $previousRows->where('stage', 'done')->count(),
         ];
+        $previousContactMinutes = [];
+        foreach ($previousRows as $row) {
+            if ($row->contact_received_at) {
+                $previousContactMinutes[] = CarbonImmutable::parse($row->created_at)->diffInMinutes(CarbonImmutable::parse($row->contact_received_at));
+            }
+        }
+        $previousAvgMinutesToContact = $previousContactMinutes ? round(array_sum($previousContactMinutes) / count($previousContactMinutes), 1) : null;
+        $previousMessages = DB::table('messages')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
+            ->whereIn('conversation_id', $previousRows->pluck('id'))->get(['conversation_id', 'role']);
+        $previousMessageRoles = $previousMessages->groupBy('conversation_id');
+        $previousBotCompleted = $previousRows->filter(fn ($row) => $row->stage === 'done' && ! $row->handed_off_at
+            && ($previousMessageRoles[$row->id] ?? collect())->contains('role', 'agent')
+            && ! ($previousMessageRoles[$row->id] ?? collect())->contains('role', 'manager'))->count();
+        $previousMessageCount = $previousMessages->count();
         $stageGroups = $events->groupBy('to_stage')->map(fn ($group) => $group->pluck('conversation_id')->unique()->all());
         $rates = [];
         $orderedStages = ['open', 'qualify', 'need', 'budget', 'close_contact'];
@@ -346,7 +360,7 @@ final class AnalyticsController
                 return ['page' => $page, 'opens' => $group->count(), 'dialogs' => $dialogIds->count(), 'contacts' => $contacts->count(), 'utm' => $group->pluck('utm')->filter()->first()];
             })->sortByDesc('opens')->values()->all();
 
-        return ['from' => $from, 'to' => $to, 'channel' => $channel, 'source' => $source, 'manager' => $manager, 'managerOptions' => $managerOptions, 'funnel' => $funnel, 'outcomes' => $outcomes, 'previousTotal' => $previousTotal, 'previousMetrics' => $previousMetrics, 'transitionRates' => $rates, 'channelOptions' => $channelOptions, 'sources' => $sources, 'channelMetrics' => $channelMetrics, 'sitePages' => $sitePages, 'transitions' => $transitions, 'total' => $total, 'contact' => $contact, 'handed' => $handed, 'closed' => $closed,
+        return ['from' => $from, 'to' => $to, 'channel' => $channel, 'source' => $source, 'manager' => $manager, 'managerOptions' => $managerOptions, 'funnel' => $funnel, 'outcomes' => $outcomes, 'previousTotal' => $previousTotal, 'previousMetrics' => $previousMetrics, 'previousMessageCount' => $previousMessageCount, 'previousBotCompleted' => $previousBotCompleted, 'previousAvgMinutesToContact' => $previousAvgMinutesToContact, 'transitionRates' => $rates, 'channelOptions' => $channelOptions, 'sources' => $sources, 'channelMetrics' => $channelMetrics, 'sitePages' => $sitePages, 'transitions' => $transitions, 'total' => $total, 'contact' => $contact, 'handed' => $handed, 'closed' => $closed,
             'types' => $types, 'stages' => $stages, 'channels' => $channels, 'daily' => $daily, 'topics' => $topics, 'topicUnknownRates' => $topicUnknownRates,
             'dialogs' => $dialogs, 'hours' => $hours, 'unknownDialogs' => $unknownDialogs, 'unknownQuestions' => $unknownQuestions, 'messageCount' => $messages->count(), 'botCompleted' => $botCompleted, 'triggers' => $triggers, 'triggerStats' => $triggerStats,
             'managers' => array_values($managers), 'canManage' => Gate::forUser($user)->allows('seller.settings.write'), 'avgMinutesToContact' => $avgMinutesToContact];
