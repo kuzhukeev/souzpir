@@ -11,3 +11,6 @@
 Scope: `app/Shell/Integrations/`, `resources/js/pages/Shell/Integrations/`, `routes/features/E1-10.php`, `tests/Feature/Shell/Integrations/`, `tests/Browser/E1-10H/`, `docs/results/SP-E1-10H.md`.
 
 Отчёт: docs/results/SP-E1-10H.md; локальные тесты задачи, submit и зелёный CI.
+
+## Остаток 07.11.2026 (аудит экранов, интегратор)
+- S-5.1: CRM-вебхук плиткой в общей сетке подключений (как остальные плитки, с «Подключено с»/«Настроить»), а не отдельной ссылкой; тест.

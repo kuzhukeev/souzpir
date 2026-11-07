@@ -1,25 +1,5 @@
-# SP-E5-04N · Действия и пагинация подсказок
 
-**Зачем:** завершить D-2.4 по решению владельца 03.11.2026.
-**Часть чего:** остаток SP-E5-04K, docs/results/SP-E5-04K.md.
-**Зависимости:** SP-E5-04K в done.
 
-Завершить отправку, правку и отправку, пропуск, пометку и подтверждение подсказки через защищённый контур и fake-транспорт; добавить автообновление, пагинацию и состояния по макету. Проверить права, бренд и ошибки в изолированной БД.
-
-Scope: `app/Seller/Dialogs/`, `app/ProtectedOperations/`, `resources/js/pages/Seller/Dialogs/`, `routes/features/E5-04.php`, `tests/Feature/Seller/Dialogs/`, `tests/Browser/E5-04N/`, `docs/results/SP-E5-04N.md`.
-
-Приёмка: сверка с макетом, сценарий, права, бренд и ошибки; только fake вызовы. Остаток описать в docs/results/SP-E5-04N.md.
-
-## Дополнение владельца от 05.11.2026
-- ReadySuggestions прямым запросом по диалогу вместо лимита 100 и firstWhere (DialogsController.php:58).
-
-## Решение владельца 06.11.2026 — общие AI-стадии
-
-Решение владельца 06.11: разрешены только совместимые добавления общих AI-стадий без рефакторинга и без изменения существующего поведения и записанного replay; проверить права, изоляцию брендов и повторы. Только fake AI; живые и платные вызовы выключены. Общий ресурс shared-ai-stages занимает одна карточка до слияния. Прежние ограничения «до решения владельца» считать снятыми в этих границах.
-
-## Конкретный остаток SP-E5-04S
-- Связать подтверждённый extractor со состоянием, целью, защищёнными responder и guard и результатом Gateway; проверить ошибки и повторы без подмены результатов.
-- Сохранить подсказку с привязкой к сессии, истории и версии знаний и повторно проверять назначение и права при чтении.
-- Подключить существующий маршрут и интерфейс к генерации, показать загрузку, ошибку и готовый текст; проверить полный fake-сценарий и использование подсказки в браузере.
-
-Дополнительный scope: `app/Ai/Protected/`, `app/Ai/Gateway.php`, `app/Seller/Engine/`, `tests/Feature/Ai/`.
+## Уточнение scope 07.11.2026 22:50 (интегратор)
+- Раздел «Конкретный остаток SP-E5-04S» выше закрыт карточкой SP-E5-04S (done): подсказка генерируется, маршрут и кнопка «Предложить ответ» есть. Эта карточка — только очередь подсказок D-2.4 (`Pending.tsx`, `ReadySuggestions.tsx`, `PendingPageController`, `ReadySuggestions`, `SendSuggestionController`): действия над подсказкой (отправить, править и отправить, пропустить, пометить, подтвердить), опрос обновлений, пагинация, мобильный режим «1 из 3», состояния.
+- Scope сужен: `app/Seller/Dialogs/`, `app/ProtectedOperations/SellerFollowup/`, `resources/js/pages/Seller/Dialogs/Pending.tsx`, `resources/js/pages/Seller/Dialogs/ReadySuggestions.tsx`, `routes/features/E5-04.php`, `tests/Feature/Seller/Dialogs/`, `tests/Browser/E5-04N/`, `docs/results/SP-E5-04N.md`. Убраны `app/Ai/Protected/`, `app/Ai/Gateway.php`, `app/Seller/Engine/`, `tests/Feature/Ai/` и ресурс shared-ai-stages. `DialogsController.php` занят SP-E7-04M: пункт про ReadySuggestions прямым запросом делать в `app/Seller/Dialogs/ReadySuggestions.php`, строку в DialogsController не трогать (если нужна — в «Нужно от интегратора»).
