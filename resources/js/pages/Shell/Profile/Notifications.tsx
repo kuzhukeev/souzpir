@@ -27,7 +27,9 @@ export default function Notifications({
   const feedback = useFeedback();
   const [disconnectOpen, setDisconnectOpen] = useState(false);
   const syncTelegram = (page: { props: Record<string, unknown> }) => {
-    const fresh = page.props.notificationSettings as NotificationSettings;
+    const fresh = page.props.notificationSettings as NotificationSettings | undefined;
+    // The local HTTP shell revalidates from its separate no-store endpoint.
+    if (!fresh) return;
     // Telegram mutations reset its saved channels; preserve unrelated unsaved choices.
     form.setData((previous) => ({
       changes: fresh.events.flatMap((event) =>

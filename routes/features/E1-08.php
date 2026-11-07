@@ -2,6 +2,7 @@
 
 use App\Shell\Auth\Http\MfaSettingsController;
 use App\Shell\Profile\EmailController;
+use App\Shell\Profile\LocalProfileDataController;
 use App\Shell\Profile\NotificationController;
 use App\Shell\Profile\ProfileController;
 use App\Shell\Profile\Security\MfaRecoveryController;
@@ -17,6 +18,7 @@ return [
             Route::get('/settings/notifications', [NotificationController::class, 'show'])->name('profile.legacy.notifications');
             Route::get('/settings/security', [SecurityController::class, 'show'])->name('profile.legacy.security');
             Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
+            Route::get('/profile/local-data/{screen}', LocalProfileDataController::class)->whereIn('screen', ['profile', 'notifications', 'security', 'status'])->name('profile.local.data');
             Route::put('/profile', [ProfileController::class, 'update'])->middleware('throttle:20,1,profile-edit:')->name('profile.update');
             Route::get('/profile/avatar', [ProfileController::class, 'avatar'])->name('profile.avatar');
             Route::post('/profile/avatar', [ProfileController::class, 'storeAvatar'])->middleware('throttle:10,1,profile-avatar:')->name('profile.avatar.store');

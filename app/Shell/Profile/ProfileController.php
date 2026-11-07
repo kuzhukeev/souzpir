@@ -25,6 +25,15 @@ final class ProfileController
 {
     public function show(Request $request): Response
     {
+        if (LocalProfileTransport::allows($request)) {
+            return LocalProfileTransport::shell('profile');
+        }
+
+        return Inertia::render('Shell/Profile/Profile', [...$this->data($request), 'status' => session('status')]);
+    }
+
+    public function data(Request $request): array
+    {
         $profile = app(ProfileAccess::class)->run($request, function (User $user, TenantContext $context, object $brand, object $member, object $org) use ($request): array {
             $preferences = DB::table('profile_preferences')->where('user_id', $user->id)->first();
 
@@ -39,7 +48,7 @@ final class ProfileController
             ];
         });
 
-        return Inertia::render('Shell/Profile/Profile', ['profile' => $profile, 'timezones' => DateTimeZone::listIdentifiers(), 'status' => session('status')]);
+        return ['profile' => $profile, 'timezones' => DateTimeZone::listIdentifiers()];
     }
 
     public function update(#[\SensitiveParameter] Request $request): RedirectResponse

@@ -2,6 +2,7 @@
 
 namespace App\Shell\Profile\Security;
 
+use App\Shell\Profile\LocalProfileTransport;
 use App\Shell\Profile\ProfileValidation;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -13,6 +14,9 @@ final class SecurityController
 {
     public function show(#[\SensitiveParameter] Request $request, SecuritySettings $settings): Response
     {
+        if (LocalProfileTransport::allows($request)) {
+            return LocalProfileTransport::shell('security');
+        }
         Inertia::encryptHistory();
 
         return Inertia::render('Shell/Profile/Security', ['security' => $settings->view($request), 'status' => $request->session()->get('status')]);

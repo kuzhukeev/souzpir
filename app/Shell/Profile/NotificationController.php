@@ -21,6 +21,15 @@ final class NotificationController
 {
     public function show(Request $request): Response
     {
+        if (LocalProfileTransport::allows($request)) {
+            return LocalProfileTransport::shell('notifications');
+        }
+
+        return Inertia::render('Shell/Profile/Notifications', [...$this->data($request), 'status' => session('status')]);
+    }
+
+    public function data(Request $request): array
+    {
         $settings = app(ProfileAccess::class)->run($request, function (User $user, TenantContext $context, object $brand, object $member) use ($request): array {
             $rows = DB::table('notification_settings')->where(['organization_id' => $context->organizationId, 'brand_id' => $context->brandId, 'user_id' => $user->id])->get()->keyBy(fn ($row) => $row->event_key.':'.$row->channel);
             $events = [];
@@ -36,7 +45,7 @@ final class NotificationController
             return ['events' => $events, 'telegram' => app(TelegramLinks::class)->state($request, $context), 'timezone' => DB::table('profile_preferences')->where('user_id', $user->id)->value('timezone') ?? $brand->timezone, 'timingAvailable' => false, 'testAvailable' => true, 'testChannels' => app(TestNotifications::class)->availability(), 'testNotifications' => app(TestNotifications::class)->recent($context)];
         });
 
-        return Inertia::render('Shell/Profile/Notifications', ['notificationSettings' => $settings, 'status' => session('status')]);
+        return ['notificationSettings' => $settings];
     }
 
     public function update(Request $request): RedirectResponse
