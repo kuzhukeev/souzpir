@@ -3,18 +3,19 @@
 namespace App\Seller\Evaluation\Jobs;
 
 use App\ProtectedOperations\SellerSimulation\ProtectedSimulationRuntime;
-use App\Seller\Evaluation\DraftScenarioPreview;
 use App\Seller\Evaluation\FakeSimulation;
 use App\Seller\Evaluation\RuntimeSimulation;
 use App\Seller\Evaluation\ScenarioTranscript;
 use App\Seller\Evaluation\SimulationKnowledgeRelease;
 use App\Seller\Evaluation\SimulationRuntime;
 use App\Seller\Knowledge\Contracts\KnowledgeRepository;
+use App\Seller\Sandbox\SandboxRuntime;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Http\Request;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\DB;
@@ -46,7 +47,28 @@ final class SimulateFakeJob implements ShouldQueue
                     throw new LogicException('Published knowledge is unavailable.');
                 }
                 $snapshot = app(KnowledgeRepository::class)->forRelease($tenant, $release, true);
-                $turns = app(DraftScenarioPreview::class)->dialogue($snapshot, $payload, min(count($this->turns), (int) $persona->max_turns), null, $this->personaKey, $this->clientModel);
+                $turns = [];
+                $history = [];
+                $state = [];
+                $clients = array_slice(app(ScenarioTranscript::class)->clients($payload), 0, min(count($this->turns), (int) $persona->max_turns));
+                foreach ($clients as $client) {
+                    try {
+                        $result = app(SandboxRuntime::class)->turn(Request::create('/'), $snapshot, $client, $state, $history, false, null);
+                    } catch (\Throwable) {
+                        $result = ['answer' => 'Нет подходящей безопасной тестовой фикстуры для ответа.', 'state' => $state,
+                            'inspector' => ['guard' => ['verdict' => 'unavailable'], 'response_source' => 'guard_fallback',
+                                'extraction_source' => 'unavailable', 'goal' => null, 'executed_tools' => []]];
+                    }
+                    $state = $result['state'];
+                    $history[] = ['question' => $client, 'answer' => $result['answer']];
+                    $turns[] = ['client' => $client, 'agent' => $result['answer'], 'meta' => [
+                        'preview_only' => true, 'guard_verdict' => $result['inspector']['guard']['verdict'] ?? null,
+                        'guard_fallback' => $result['inspector']['response_source'] === 'guard_fallback',
+                        'extraction_source' => $result['inspector']['extraction_source'], 'response_source' => $result['inspector']['response_source'],
+                        'slot_updates' => $result['inspector']['slot_updates'] ?? [],
+                        'goal' => $result['inspector']['goal']['kind'] ?? null, 'tool_results' => $result['inspector']['executed_tools'],
+                    ]];
+                }
 
                 return $simulation->run($tenant, $this->personaKey, $turns);
             });

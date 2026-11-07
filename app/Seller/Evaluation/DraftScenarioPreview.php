@@ -5,6 +5,7 @@ namespace App\Seller\Evaluation;
 use App\Ai\CanonicalJson;
 use App\Ai\Protected\DraftResponder;
 use App\ProtectedOperations\DraftSimulation\FixtureRuntime;
+use App\ProtectedOperations\DraftSimulation\ReviewedSandboxFixtures;
 use App\Seller\Engine\DeterministicGuard;
 use App\Seller\Engine\LeadState;
 use App\Seller\Engine\Policy;
@@ -47,7 +48,7 @@ final class DraftScenarioPreview
                 foreach ($catalog as $entry) {
                     if (($entry['persona'] ?? null) === $personaKey && ($entry['expected'] ?? null) === true
                         && in_array($entry['criterion'] ?? null, $persona['expect'] ?? [], true) && is_string($entry['client'] ?? null)) {
-                        if (in_array($personaKey, ['for_self_wedding', 'prices_only_rude'], true)) {
+                        if (in_array($personaKey, ['for_self_wedding', 'prices_only_rude', 'wants_human', 'big_order'], true)) {
                             array_unshift($clients, ['text' => $entry['client'], 'field' => null]);
                         } else {
                             $clients[] = ['text' => $entry['client'], 'field' => null];
@@ -69,7 +70,7 @@ final class DraftScenarioPreview
                 $previous = array_pop($clients);
                 if ($example && is_string($last['field'] ?? null) && is_string($previous['field'] ?? null)) {
                     $clients[] = ['text' => $previous['text']."\n".$last['text'], 'field' => null, 'parts' => [$previous, $last]];
-                    array_unshift($clients, ['text' => $example['client'], 'field' => null]);
+                    array_splice($clients, 1, 0, [['text' => $example['client'], 'field' => null]]);
                 } else {
                     $clients[] = $previous;
                     $clients[] = $last;
@@ -97,6 +98,7 @@ final class DraftScenarioPreview
     private function previewTurn(KnowledgeSnapshot $draft, string $client, array $expectations, LeadState $state, bool $first, ?Request $request = null, ?array $seed = null, ?string $personaKey = null): array
     {
         try {
+            $previousNotification = $state->signal('notify_manager');
             $policy = new Policy($draft);
             $extraction = null;
             if ($request && isset($seed['parts']) && is_array($seed['parts'])) {
@@ -121,15 +123,22 @@ final class DraftScenarioPreview
             $toolCalls = [];
             $toolResults = [];
             $answer = $request ? app(DraftResponder::class)->respond($request, $draft, $state, $goal, $client, $personaKey, $toolCalls) : null;
-            if ($request && in_array('escalate', $goal->allowedTools, true)) {
+            if ($request) {
                 foreach ($toolCalls as $call) {
-                    if (is_array($call) && ($call['name'] ?? null) === 'escalate' && is_array($call['arguments'] ?? null)) {
-                        $result = app(FixtureRuntime::class)->executeTool($request, $draft, 'escalate', $call['arguments']);
+                    if (is_array($call) && in_array($call['name'] ?? null, $goal->allowedTools, true) && in_array($call['name'] ?? null, ['escalate', 'send_requisites'], true) && is_array($call['arguments'] ?? null)) {
+                        $result = app(FixtureRuntime::class)->executeTool($request, $draft, $call['name'], $call['arguments'], $client);
                         if ($result !== null) {
                             $toolResults[] = $result;
                         }
                     }
                 }
+            }
+            $reviewed = app(ReviewedSandboxFixtures::class)->forClient($client);
+            if ($request && $previousNotification !== 'big_order' && $state->signal('notify_manager') === 'big_order'
+                && ($reviewed['effect']['name'] ?? null) === 'notify_manager'
+                && ($reviewed['effect']['status'] ?? null) === 'fake_completed') {
+                $toolResults[] = $reviewed['effect'];
+                $answer = $reviewed['effect_answer'];
             }
             $answer ??= trim((string) ($examples[0]['text'] ?? 'Здравствуйте! Чем могу помочь?'));
             // A draft preview does not execute a handoff or deliver documents. Do not
