@@ -13,3 +13,6 @@ Scope: `app/Ai/Gateway.php`, `app/Seller/Runtime/`, `app/ProtectedOperations/Sel
 
 ## Уточнение scope 07.11.2026 22:50
 - `app/ProtectedOperations/SellerFollowup/FollowupFinalizer.php` занят SP-E7-04M и исключён из scope; если правка финализатора нужна для replay — пункт в «Нужно от интегратора».
+
+## Сужение scope 07.11.2026 23:30 (планировщик)
+- `app/Seller/Runtime/` исключён из scope: каталог занят 6 активными задачами, replay идёт через защищённые стадии и follow-up; если правка runtime-файла нужна — пункт в «Нужно от интегратора».
