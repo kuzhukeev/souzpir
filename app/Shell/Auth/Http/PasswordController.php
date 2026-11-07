@@ -191,7 +191,12 @@ HTML;
 
         $request->session()->forget('auth.password_recovery');
 
-        return redirect()->route('login')->with('status', 'Пароль изменён. Войдите снова.');
+        return redirect()->route('password.changed');
+    }
+
+    public function changed(): Response
+    {
+        return Inertia::render('Shell/Auth/PasswordChanged');
     }
 
     /** Never trust Referer when returning a form containing a recovery token. */
