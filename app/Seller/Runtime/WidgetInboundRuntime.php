@@ -95,13 +95,20 @@ final class WidgetInboundRuntime
     {
         try {
             $turn = DB::table('seller_turns')->where($scope)->where('id', $claimed['turn'])->first();
+            if ($turn && $turn->status === 'failed') {
+                return ['status' => 'suppressed', 'version' => $claimed['version'] + 1];
+            }
             if (! $turn || $turn->status === 'processing') {
-                $claim = new TurnClaim('claimed', $claimed['turn'], $claimed['conversation'], $tenant->organizationId, $tenant->brandId, $claimed['version'], $claimed['token']);
-                app(FollowupCoordinator::class)->orchestrateTurn($http, $tenant, $claim, $claimed['mode'], $page);
+                try {
+                    $claim = new TurnClaim('claimed', $claimed['turn'], $claimed['conversation'], $tenant->organizationId, $tenant->brandId, $claimed['version'], $claimed['token']);
+                    app(FollowupCoordinator::class)->orchestrateTurn($http, $tenant, $claim, $claimed['mode'], $page);
+                } catch (Throwable) {
+                    return $this->handoffToManager($tenant, $scope, $claimed);
+                }
                 $turn = DB::table('seller_turns')->where($scope)->where('id', $claimed['turn'])->first();
             }
             if (! $turn || ! in_array($turn->status, ['completed', 'suggested'], true)) {
-                throw new LogicException('Widget turn unavailable.');
+                return $this->handoffToManager($tenant, $scope, $claimed);
             }
             $outcome = json_decode($turn->outcome, true, 512, JSON_THROW_ON_ERROR);
             if ($turn->status === 'suggested') {
@@ -125,6 +132,36 @@ final class WidgetInboundRuntime
         } catch (Throwable) {
             return ['status' => 'unavailable'];
         }
+    }
+
+    /** The bot pipeline could not answer (e.g. no knowledge base on a fresh brand); hand the already-saved message off to a manager instead of failing the request. */
+    private function handoffToManager(TenantContext $tenant, array $scope, array $claimed): array
+    {
+        return DB::transaction(function () use ($tenant, $scope, $claimed): array {
+            $turn = DB::table('seller_turns')->where($scope)->where('id', $claimed['turn'])->lockForUpdate()->first();
+            if ($turn && $turn->status === 'failed') {
+                return ['status' => 'suppressed', 'version' => $claimed['version'] + 1];
+            }
+            $conversation = DB::table('conversations')->where($scope)->where('id', $claimed['conversation'])->lockForUpdate()->first();
+            if (! $turn || $turn->status !== 'processing' || ! $conversation || (int) $conversation->version !== $claimed['version']) {
+                throw new LogicException('Widget turn unavailable.');
+            }
+            $state = json_decode($conversation->state, true, 512, JSON_THROW_ON_ERROR);
+            if (! is_array($state)) {
+                throw new LogicException('Widget turn unavailable.');
+            }
+            $outcome = new TurnOutcome($claimed['turn'], $claimed['conversation'], 'failed', $claimed['version'] + 1, null, null, null, [], $state);
+            $data = $outcome->toArray();
+            DB::table('seller_turns')->where($scope)->where('id', $claimed['turn'])->where('status', 'processing')->update([
+                'status' => 'failed', 'outcome' => json_encode($data, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
+                'outcome_hash' => CanonicalJson::hash($data), 'updated_at' => now(),
+            ]);
+            DB::table('conversations')->where($scope)->where('id', $claimed['conversation'])
+                ->update(['mode' => 'manager', 'version' => $claimed['version'] + 1, 'updated_at' => now()]);
+            app(AuditWriter::class)->record($tenant, new AuditEntry('seller.turn.failed', 'seller_turn', $claimed['turn']));
+
+            return ['status' => 'suppressed', 'version' => $claimed['version'] + 1];
+        });
     }
 
     private function openConversation(TenantContext $tenant, array $scope, object $widget, object $sessionRow): string
