@@ -45,3 +45,21 @@ test('пустые данные о вызовах предлагают обно�
   await expect(page.getByText('Данные о вызовах пока недоступны.')).toBeVisible();
   await expect(page.getByText('Вызовы за 30 дней: нет данных').first()).toBeVisible();
 });
+
+test('D-5.7: без горизонтального переполнения и критичных нарушений доступности на трёх ширинах', async ({ page }) => {
+  const findings: string[] = [];
+  for (const width of [1440, 1024, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(url);
+    await expect(page.getByText('Рассчитывает стоимость по настроенным зонам.')).toBeVisible();
+    const size = await page.evaluate(() => ({ scroll: document.documentElement.scrollWidth, viewport: innerWidth }));
+    expect(size.scroll, `overflow at ${width}px`).toBeLessThanOrEqual(size.viewport);
+    await page.addScriptTag({ path: 'node_modules/axe-core/axe.min.js' });
+    const violations = await page.evaluate(async () => {
+      const axe = (window as unknown as { axe: { run: (root: Document, options: object) => Promise<{ violations: { id: string; impact: string }[] }> } }).axe;
+      return (await axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa'] } })).violations.filter(v => v.impact === 'critical' || v.impact === 'serious').map(v => v.id);
+    });
+    findings.push(...violations.map(id => `${width}: ${id}`));
+  }
+  expect(findings).toEqual([]);
+});
