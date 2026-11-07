@@ -3,13 +3,20 @@
 namespace App\ProtectedOperations\SellerFollowup;
 
 use App\Ai\Gateway;
+use App\Ai\Protected\ApiFollowupInput;
 use App\Contracts\ProtectedOperations\IdempotencyConflict;
 use App\Models\Membership;
 use App\Models\User;
 use App\ProtectedOperations\PostgresTransactionalIdempotency;
+use App\Seller\Channels\Email\ProtectedPriceSender;
 use App\Seller\Conversations\Contracts\ConversationRepository;
 use App\Seller\Conversations\Data\TurnClaim;
 use App\Seller\Conversations\Data\TurnCommand;
+use App\Seller\Engine\DeterministicGuard;
+use App\Seller\Engine\GuardDecision;
+use App\Seller\Engine\ResponderResult;
+use App\Seller\Engine\ToolRunner;
+use App\Seller\Runtime\ConfiguredToolHandler;
 use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Auth\SessionBrandSelection;
 use App\Shell\Organizations\ModuleEntitlements;
@@ -21,6 +28,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use LogicException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
+use Throwable;
 
 /** Fake-only follow-up and suggestion path; all writes remain in the active session transaction. */
 final class FollowupCoordinator
@@ -77,10 +85,7 @@ final class FollowupCoordinator
                 $claim = new TurnClaim('claimed', $receipt['turn'], $conversationId, $tenant->organizationId,
                     $tenant->brandId, $receipt['version'], $receipt['token']);
                 $http = Request::create('/internal/simulation', 'POST');
-                app(Gateway::class)->completeApiFollowupExtractor($http, $tenant, $claim);
-                app(Gateway::class)->completeApiFollowupResponder($http, $tenant, $claim);
-                app(Gateway::class)->completeApiFollowupGuard($http, $tenant, $claim);
-                $result = DB::transaction(fn () => app(FollowupFinalizer::class)->finishProtectedApi($http, $tenant, $claim, 'bot'));
+                $result = $this->orchestrateTurn($http, $tenant, $claim, 'bot');
                 $assistantId = $result['result']['message_id'] ?? null;
             }
             $agent = is_string($assistantId) ? DB::table('messages')->where('id', $assistantId)
@@ -172,11 +177,8 @@ final class FollowupCoordinator
                 throw new LogicException('Invalid follow-up claim.');
             }
             $claim = new TurnClaim('claimed', $receipt['turn'], $command->conversationId, $tenant->organizationId, $tenant->brandId, $receipt['version'], $receipt['token']);
-            app(Gateway::class)->completeApiFollowupExtractor($http, $tenant, $claim);
-            app(Gateway::class)->completeApiFollowupResponder($http, $tenant, $claim);
-            app(Gateway::class)->completeApiFollowupGuard($http, $tenant, $claim);
 
-            return DB::transaction(fn () => app(FollowupFinalizer::class)->finishProtectedApi($http, $tenant, $claim, $mode));
+            return $this->orchestrateTurn($http, $tenant, $claim, $mode);
         } catch (HttpExceptionInterface $error) {
             if ($error->getStatusCode() === 409) {
                 throw new IdempotencyConflict('Turn key or revision changed.');
@@ -184,5 +186,109 @@ final class FollowupCoordinator
 
             throw $error;
         }
+    }
+
+    /** Run extractor and responder rounds, then finalize in its own short transaction. */
+    public function orchestrateTurn(Request $http, TenantContext $tenant, TurnClaim $claim, string $mode): array
+    {
+        [$round, $toolResults, $guardIssues] = $this->prepareFinalRound($http, $tenant, $claim);
+
+        return DB::transaction(fn () => app(FollowupFinalizer::class)->finishProtectedApi($http, $tenant, $claim, $mode, $round, $toolResults, $guardIssues));
+    }
+
+    /**
+     * Run extractor, then a bounded responder loop: execute an offered tool round once and
+     * feed results back, or regenerate on a deterministic/model guard rejection; stop once ok.
+     * The caller finalizes with the returned [round, toolResults, guardIssues], e.g. atomically with delivery.
+     *
+     * @return array{0: int, 1: array, 2: array}
+     */
+    public function prepareFinalRound(Request $http, TenantContext $tenant, TurnClaim $claim): array
+    {
+        if (config('runtime.ai_driver', 'fake') !== 'fake' || DB::transactionLevel() !== 0) {
+            throw new LogicException('API follow-up unavailable.');
+        }
+        $gateway = app(Gateway::class);
+        $gateway->completeApiFollowupExtractor($http, $tenant, $claim);
+        $toolResults = [];
+        $guardIssues = [];
+        for ($round = 0; $round < 3; $round++) {
+            $gateway->completeApiFollowupResponder($http, $tenant, $claim, $round, $toolResults, $guardIssues);
+            $decision = DB::transaction(function () use ($http, $tenant, $claim, $round, $toolResults, $guardIssues, $gateway): array {
+                $interpreted = app(ResponderResult::class)->interpret($gateway->readApiFollowupResponderLocked($http, $tenant, $claim, $round, $toolResults, $guardIssues));
+                if ($interpreted['status'] === 'tool_calls') {
+                    return ['status' => 'tool_calls'];
+                }
+                if ($interpreted['status'] !== 'candidate') {
+                    throw new LogicException('API follow-up unavailable.');
+                }
+                [, , $state, $goal, $knowledge] = app(ApiFollowupInput::class)->responderLocked($http, $tenant, $claim, $round, $toolResults, $guardIssues);
+                $deterministic = (new DeterministicGuard($knowledge))->check($interpreted['text'], $goal, $state);
+
+                return ['status' => 'candidate', 'ok' => $deterministic['verdict'] === 'ok',
+                    'needs_model' => app(GuardDecision::class)->requiresModel($deterministic, $goal, (bool) config('agent.guard_llm', false)),
+                    'issues' => $deterministic['issues']];
+            });
+            if ($decision['status'] === 'tool_calls') {
+                $toolResults = $this->runProtectedTools($http, $tenant, $claim, $round, $toolResults, $gateway);
+                if ($toolResults === []) {
+                    throw new LogicException('API follow-up unavailable.');
+                }
+                $guardIssues = [];
+
+                continue;
+            }
+            if (! $decision['ok']) {
+                if ($round >= 2) {
+                    throw new LogicException('API follow-up unavailable.');
+                }
+                $toolResults = [];
+                $guardIssues = array_slice($decision['issues'], 0, 8);
+
+                continue;
+            }
+            if ($decision['needs_model']) {
+                $gateway->completeApiFollowupGuard($http, $tenant, $claim, $round, $toolResults, $guardIssues);
+                $model = DB::transaction(fn () => $gateway->readApiFollowupGuardLocked($http, $tenant, $claim, $round, $toolResults, $guardIssues));
+                if ($model['status'] !== 'evaluated') {
+                    throw new LogicException('API follow-up unavailable.');
+                }
+                if ($model['verdict'] !== true) {
+                    if ($round >= 2) {
+                        throw new LogicException('API follow-up unavailable.');
+                    }
+                    $toolResults = [];
+                    $guardIssues = array_slice($model['issues'], 0, 8);
+
+                    continue;
+                }
+            }
+
+            return [$round, $toolResults, $guardIssues];
+        }
+
+        throw new LogicException('API follow-up unavailable.');
+    }
+
+    /** Execute at most one bounded round of tool calls offered by the given responder round. */
+    private function runProtectedTools(Request $http, TenantContext $tenant, TurnClaim $claim, int $round, array $requestedToolResults, Gateway $gateway): array
+    {
+        $results = [];
+        foreach (range(0, 3) as $index) {
+            try {
+                $call = DB::transaction(fn () => $gateway->readApiFollowupToolCallLocked($http, $tenant, $claim, $round, $requestedToolResults, $index));
+            } catch (Throwable) {
+                break;
+            }
+            $name = $call['name'];
+            $result = match ($name) {
+                'calc_delivery' => app(ConfiguredToolHandler::class)->calculateDelivery($tenant, $call['arguments']),
+                'send_price' => app(ProtectedPriceSender::class)->send($tenant, $claim, 'api-followup-responder-'.$claim->turnId.'-'.$round, $call['id'], $call['arguments']),
+                default => app(ToolRunner::class)->run($name, $call['arguments'], $tenant),
+            };
+            $results[] = ['id' => $call['id'], 'name' => $name, 'result' => $result];
+        }
+
+        return $results;
     }
 }

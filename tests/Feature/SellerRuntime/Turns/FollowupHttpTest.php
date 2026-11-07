@@ -30,6 +30,27 @@ final class FollowupProtectedFake implements Driver
     }
 }
 
+final class FollowupToolCallFake implements Driver
+{
+    public int $responderCalls = 0;
+
+    public function complete(array $body): array
+    {
+        if (isset($body['response_format'])) {
+            return ['content' => '{"client_intent":"answer_only"}', 'toolCalls' => [], 'usage' => ['promptTokens' => 1, 'completionTokens' => 1],
+                'model' => $body['model'], 'latencyMs' => 1, 'costMicros' => 0];
+        }
+        $this->responderCalls++;
+        if ($this->responderCalls === 1) {
+            return ['content' => null, 'toolCalls' => [['id' => 'call_delivery_1', 'name' => 'calc_delivery', 'arguments' => ['city' => 'Москва']]],
+                'usage' => ['promptTokens' => 1, 'completionTokens' => 1], 'model' => $body['model'], 'latencyMs' => 1, 'costMicros' => 0];
+        }
+
+        return ['content' => 'Доставку посчитал, вот результат!', 'toolCalls' => [], 'usage' => ['promptTokens' => 1, 'completionTokens' => 1],
+            'model' => $body['model'], 'latencyMs' => 1, 'costMicros' => 0];
+    }
+}
+
 final class FollowupHttpTest extends TenancyTestCase
 {
     public function refreshDatabase()
@@ -110,6 +131,34 @@ final class FollowupHttpTest extends TenancyTestCase
         [$viewer] = $this->member($org, 'viewer', [$brand->id]);
         $this->actingAs($viewer)->withSession(['brand_id' => $brand->id]);
         $this->postJson('/seller/turns/runtime', $input)->assertForbidden();
+        Http::assertNothingSent();
+    }
+
+    public function test_followup_executes_an_offered_tool_round_before_answering(): void
+    {
+        Http::preventStrayRequests();
+        Http::fake();
+        config(['runtime.ai_driver' => 'fake']);
+        [$owner, $org, $brand, , $membership] = $this->cabinet();
+        DB::table('brand_modules')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id,
+            'brand_id' => $brand->id, 'module' => 'seller', 'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
+        $context = new TenantContext($org->id, $brand->id, $owner->id, $membership->id);
+        $this->seedKnowledge($context);
+        app()->instance(FakeDriver::class, $driver = new FollowupToolCallFake);
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        [$dialog, $message] = app(TenantContextRunner::class)->run($context, function (): array {
+            $dialog = Conversation::create(['state' => [], 'mode' => 'bot', 'version' => 1]);
+            $message = Message::create(['conversation_id' => $dialog->id, 'role' => 'client', 'text' => 'Сколько стоит доставка?', 'meta' => []]);
+
+            return [$dialog, $message];
+        });
+        $input = ['conversation_id' => $dialog->id, 'message_id' => $message->id, 'text' => $message->text,
+            'idempotency_key' => 'followup-tool-round', 'expected_version' => 1];
+        $this->postJson('/seller/turns/runtime', $input)->assertOk()->assertJsonPath('data.status', 'completed');
+        $this->assertSame(2, $driver->responderCalls);
+        $this->assertSame(2, (int) DB::table('conversations')->where('id', $dialog->id)->value('version'));
+        $this->assertSame('Доставку посчитал, вот результат!',
+            DB::table('messages')->where('conversation_id', $dialog->id)->where('role', 'agent')->value('text'));
         Http::assertNothingSent();
     }
 }

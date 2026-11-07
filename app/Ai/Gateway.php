@@ -598,16 +598,17 @@ final class Gateway implements AiGateway
         return $result;
     }
 
-    public function completeApiFollowupResponder(#[\SensitiveParameter] Request $http, TenantContext $tenant, TurnClaim $claim): AiResult
+    public function completeApiFollowupResponder(#[\SensitiveParameter] Request $http, TenantContext $tenant, TurnClaim $claim,
+        int $round = 0, #[\SensitiveParameter] array $toolResults = [], #[\SensitiveParameter] array $guardIssues = []): AiResult
     {
         if (config('runtime.ai_driver', 'fake') !== 'fake' || DB::transactionLevel() !== 0) {
             throw new LogicException('API follow-up unavailable.');
         }
         try {
-            [$input, $context] = DB::transaction(fn () => app(ApiFollowupInput::class)->responderLocked($http, $tenant, $claim));
+            [$input, $context] = DB::transaction(fn () => app(ApiFollowupInput::class)->responderLocked($http, $tenant, $claim, $round, $toolResults, $guardIssues));
             $expected = CanonicalJson::hash($input->toArray());
-            $assertSource = function () use ($http, $tenant, $claim, $context, $expected): void {
-                [$current, $currentContext] = app(ApiFollowupInput::class)->responderLocked($http, $tenant, $claim);
+            $assertSource = function () use ($http, $tenant, $claim, $round, $toolResults, $guardIssues, $context, $expected): void {
+                [$current, $currentContext] = app(ApiFollowupInput::class)->responderLocked($http, $tenant, $claim, $round, $toolResults, $guardIssues);
                 if (! hash_equals($expected, CanonicalJson::hash($current->toArray()))
                     || $currentContext->idempotencyKey !== $context->idempotencyKey) {
                     throw new LogicException;
@@ -620,12 +621,13 @@ final class Gateway implements AiGateway
         }
     }
 
-    public function readApiFollowupResponderLocked(#[\SensitiveParameter] Request $http, TenantContext $tenant, TurnClaim $claim): AiResult
+    public function readApiFollowupResponderLocked(#[\SensitiveParameter] Request $http, TenantContext $tenant, TurnClaim $claim,
+        int $round = 0, #[\SensitiveParameter] array $toolResults = [], #[\SensitiveParameter] array $guardIssues = []): AiResult
     {
         if (DB::transactionLevel() < 1 || config('runtime.ai_driver', 'fake') !== 'fake') {
             throw new LogicException('API follow-up unavailable.');
         }
-        [$input, $context] = app(ApiFollowupInput::class)->responderLocked($http, $tenant, $claim);
+        [$input, $context] = app(ApiFollowupInput::class)->responderLocked($http, $tenant, $claim, $round, $toolResults, $guardIssues);
         $body = app(ContactMasker::class)->request($input->toArray());
         $expected = app(RequestFingerprint::class)->hash($input, $context, $body, 'fake');
         $key = hash_hmac('sha256', $context->idempotencyKey, (string) config('app.key'));
@@ -643,21 +645,55 @@ final class Gateway implements AiGateway
         return $result;
     }
 
-    /** Fake-only model guard for a revalidated follow-up. */
-    public function completeApiFollowupGuard(#[\SensitiveParameter] Request $http, TenantContext $tenant, TurnClaim $claim): void
+    /** Read the tool call offered by a given API follow-up responder round; never authorizes execution. */
+    public function readApiFollowupToolCallLocked(#[\SensitiveParameter] Request $http, TenantContext $tenant, TurnClaim $claim,
+        int $round, #[\SensitiveParameter] array $toolResults, int $index): array
+    {
+        try {
+            if (DB::transactionLevel() < 1 || config('runtime.ai_driver', 'fake') !== 'fake' || $index < 0) {
+                throw new LogicException;
+            }
+            $result = $this->readApiFollowupResponderLocked($http, $tenant, $claim, $round, $toolResults);
+            if ($result->error !== null || ! isset($result->toolCalls[$index])) {
+                throw new LogicException;
+            }
+            [$input] = app(ApiFollowupInput::class)->responderLocked($http, $tenant, $claim, $round, $toolResults);
+            $selected = $result->toolCalls[$index];
+            $ids = [];
+            foreach ($result->toolCalls as $tool) {
+                if ($tool['id'] === '' || isset($ids[$tool['id']])) {
+                    throw new LogicException;
+                }
+                $ids[$tool['id']] = true;
+            }
+            $offered = array_column(array_column($input->tools, 'function'), 'name');
+            if (! in_array($selected['name'], $offered, true)
+                || ! app(ToolArguments::class)->check($selected['name'], $selected['arguments'])['valid']) {
+                throw new LogicException;
+            }
+
+            return ['id' => $selected['id'], 'name' => $selected['name'], 'arguments' => $selected['arguments']];
+        } catch (Throwable) {
+            throw new LogicException('API follow-up unavailable.');
+        }
+    }
+
+    /** Fake-only model guard for a revalidated follow-up round. */
+    public function completeApiFollowupGuard(#[\SensitiveParameter] Request $http, TenantContext $tenant, TurnClaim $claim,
+        int $round = 0, #[\SensitiveParameter] array $toolResults = [], #[\SensitiveParameter] array $guardIssues = []): void
     {
         if (config('runtime.ai_driver', 'fake') !== 'fake' || DB::transactionLevel() !== 0) {
             throw new LogicException('API follow-up unavailable.');
         }
         try {
-            $built = DB::transaction(fn () => app(ApiFollowupInput::class)->guardLocked($http, $tenant, $claim));
+            $built = DB::transaction(fn () => app(ApiFollowupInput::class)->guardLocked($http, $tenant, $claim, $round, $toolResults, $guardIssues));
             if ($built === null) {
                 return;
             }
             [$input, $context] = $built;
             $expected = CanonicalJson::hash($input->toArray());
-            $assertSource = function () use ($http, $tenant, $claim, $context, $expected): void {
-                $current = app(ApiFollowupInput::class)->guardLocked($http, $tenant, $claim);
+            $assertSource = function () use ($http, $tenant, $claim, $round, $toolResults, $guardIssues, $context, $expected): void {
+                $current = app(ApiFollowupInput::class)->guardLocked($http, $tenant, $claim, $round, $toolResults, $guardIssues);
                 if ($current === null || ! hash_equals($expected, CanonicalJson::hash($current[0]->toArray()))
                     || $current[1]->idempotencyKey !== $context->idempotencyKey) {
                     throw new LogicException;
@@ -669,12 +705,13 @@ final class Gateway implements AiGateway
         }
     }
 
-    public function readApiFollowupGuardLocked(#[\SensitiveParameter] Request $http, TenantContext $tenant, TurnClaim $claim): array
+    public function readApiFollowupGuardLocked(#[\SensitiveParameter] Request $http, TenantContext $tenant, TurnClaim $claim,
+        int $round = 0, #[\SensitiveParameter] array $toolResults = [], #[\SensitiveParameter] array $guardIssues = []): array
     {
         if (DB::transactionLevel() < 1 || config('runtime.ai_driver', 'fake') !== 'fake') {
             throw new LogicException('API follow-up unavailable.');
         }
-        $built = app(ApiFollowupInput::class)->guardLocked($http, $tenant, $claim);
+        $built = app(ApiFollowupInput::class)->guardLocked($http, $tenant, $claim, $round, $toolResults, $guardIssues);
         if ($built === null) {
             throw new LogicException('API follow-up unavailable.');
         }

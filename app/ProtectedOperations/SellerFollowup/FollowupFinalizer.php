@@ -22,13 +22,14 @@ use LogicException;
 /** Writes only server-created fake text after the current turn and history are fenced. */
 final class FollowupFinalizer
 {
-    public function finishProtectedApi(Request $http, TenantContext $tenant, TurnClaim $claim, string $mode): array
+    public function finishProtectedApi(Request $http, TenantContext $tenant, TurnClaim $claim, string $mode,
+        int $round = 0, array $toolResults = [], array $guardIssues = []): array
     {
         if (! in_array($mode, ['bot', 'suggest'], true)) {
             throw new LogicException('Follow-up mode changed.');
         }
-        [, , $state, $goal, $knowledge] = app(ApiFollowupInput::class)->responderLocked($http, $tenant, $claim);
-        $result = app(ResponderResult::class)->interpret(app(Gateway::class)->readApiFollowupResponderLocked($http, $tenant, $claim));
+        [, , $state, $goal, $knowledge] = app(ApiFollowupInput::class)->responderLocked($http, $tenant, $claim, $round, $toolResults, $guardIssues);
+        $result = app(ResponderResult::class)->interpret(app(Gateway::class)->readApiFollowupResponderLocked($http, $tenant, $claim, $round, $toolResults, $guardIssues));
         if ($result['status'] !== 'candidate') {
             throw new LogicException('API follow-up unavailable.');
         }
@@ -41,7 +42,7 @@ final class FollowupFinalizer
         $decisionEngine = app(GuardDecision::class);
         $enabled = (bool) config('agent.guard_llm', false);
         $model = $decisionEngine->requiresModel($guard, $goal, $enabled)
-            ? app(Gateway::class)->readApiFollowupGuardLocked($http, $tenant, $claim) : null;
+            ? app(Gateway::class)->readApiFollowupGuardLocked($http, $tenant, $claim, $round, $toolResults, $guardIssues) : null;
         $decision = $decisionEngine->finish($guard, $goal, $enabled, $model);
         if ($decision['status'] !== 'completed' || $decision['verdict'] !== 'ok'
             || ! in_array($goal->kind, ['intro_and_ask', 'ask_slot', 'answer_and_ask', 'answer_only', 'unknown_fact', 'small_talk', 'unclear', 'closed_topic', 'decline_off_topic', 'decline_injection', 'bot_disclosure'], true)) {
