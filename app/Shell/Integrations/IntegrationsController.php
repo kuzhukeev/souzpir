@@ -23,6 +23,11 @@ use SensitiveParameter;
 
 final class IntegrationsController
 {
+    private function externalDeliveryEnabled(): bool
+    {
+        return (bool) config('features.E0-04.defaults.external_delivery') && config('runtime.notification_driver') !== 'fake';
+    }
+
     public function index(): Response
     {
         Gate::authorize('integrations.read');
@@ -166,6 +171,7 @@ final class IntegrationsController
             ...$settings->forBrand($brand),
             'telegram_link' => ['code' => $code, 'pending' => (bool) ($code && $link?->pending_chat), 'bot' => $code ? config('features.E1-08.defaults.telegram_bot_username') : null],
             'company_deliveries' => DB::table('company_notification_deliveries')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)->orderByDesc('created_at')->orderByDesc('id')->limit(10)->get(['id', 'event_key', 'channel', 'status', 'created_at']),
+            'external_delivery_enabled' => $this->externalDeliveryEnabled(),
             'permissions' => ['manage' => true],
         ]);
     }
@@ -197,7 +203,7 @@ final class IntegrationsController
             $settings->save($brand, $data['telegram_chat'] ?? null, $data['report_emails'], $data['matrix'] ?? null);
         });
 
-        return redirect()->route('integrations.notifications')->with('success', 'Настройки сохранены. Внешняя доставка пока выключена.');
+        return redirect()->route('integrations.notifications')->with('success', $this->externalDeliveryEnabled() ? 'Настройки сохранены.' : 'Настройки сохранены. Внешняя доставка пока выключена.');
     }
 
     public function testNotifications(Request $request): RedirectResponse
