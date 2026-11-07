@@ -2,6 +2,8 @@
 
 namespace App\Shell\Brands\Http;
 
+use App\Models\Membership;
+use App\Shell\Brands\Actions\BrandAiPolicy;
 use App\Shell\Brands\Actions\BrandSettings;
 use App\Shell\Brands\BrandAccess;
 use App\Shell\Brands\BrandDomain;
@@ -27,12 +29,14 @@ use Symfony\Component\HttpFoundation\Response as HttpResponse;
 
 final class BrandSettingsController
 {
-    public function __construct(private readonly BrandAccess $access, private readonly BrandSettings $settings) {}
+    public function __construct(private readonly BrandAccess $access, private readonly BrandSettings $settings, private readonly BrandAiPolicy $aiPolicy) {}
 
     public function show(Request $request, string $brand, ModuleEntitlements $entitlements, PlanLimits $limits, UsageReader $usage): Response
     {
         $target = $this->access->read($request, $brand);
         $ctx = $this->access->context($brand);
+        $member = $request->attributes->get('tenant.membership');
+        $isOwner = $member instanceof Membership && $member->role === 'owner';
         $moduleItems = [];
         foreach (['seller', 'vision'] as $module) {
             $limit = $limits->get($ctx, 'modules.'.$module);
@@ -64,7 +68,9 @@ final class BrandSettingsController
                 'theme' => $target->theme, 'status' => $target->status, 'logo_url' => ($target->settings['logo_path'] ?? null) ? route('brands.settings.logo', $brand) : null,
                 'website_check' => $target->settings['website_check'] ?? null,
                 'settings' => ['aliases' => $target->settings['aliases'] ?? [], 'theme' => ['subtitle' => $appearance['subtitle'] ?? '', 'promo_card' => $appearance['promo_card'] ?? true]]],
-            'domains' => $domains, 'moduleItems' => $moduleItems, 'networkChecksEnabled' => config('features.E1-05.defaults.external_checks', false) === true, 'permissions' => ['manage' => $target->status === 'active'],
+            'domains' => $domains, 'moduleItems' => $moduleItems, 'networkChecksEnabled' => config('features.E1-05.defaults.external_checks', false) === true,
+            'aiDataPolicy' => $this->aiPolicy->current($target),
+            'permissions' => ['manage' => $target->status === 'active', 'manageAiPolicy' => $target->status === 'active' && $isOwner],
         ]);
     }
 
