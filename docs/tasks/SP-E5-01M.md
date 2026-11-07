@@ -9,3 +9,6 @@
 - Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.
 
 Scope: `app/Seller/Channels/Widget/`, `app/Seller/Runtime/WidgetInboundRuntime.php`, `resources/js/pages/Seller/Channels/Widget/`, `tests/Feature/Seller/Channels/Widget/`, `tests/Browser/E5-01M/`, `docs/results/SP-E5-01M.md` (сужено 07.11.2026 ради параллельности; другие каналы не трогать).
+
+## Этап 07.11.2026 20:00 (из ручной приёмки SP-E9-01)
+- Первое сообщение посетителя в чате виджета на свежем бренде (создан через онбординг, без базы знаний и релиза) возвращает 503 «Чат временно недоступен»: `WidgetInboundRuntime` открывает bot-диалог и бот-ход падает (исключение глотается в `unavailable`). Сделать: при недоступном бот-ходе сохранять сообщение и переводить диалог в manager-режим (ответ 201 без reply), а не 503; feature-тест на бренде без знаний (без seedProtected) и с ними. Это блокер сценариев 6–8 сквозной приёмки (`tests/Browser/Acceptance/followups-e901e.spec.ts`), ручной CI `acceptance_e901e` запускает интегратор.
