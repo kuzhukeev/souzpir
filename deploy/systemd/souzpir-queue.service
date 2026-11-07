@@ -1,0 +1,14 @@
+[Unit]
+Description=souzpir queue worker (database queue)
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=souzpir
+WorkingDirectory=/var/www/souzpir/current
+ExecStart=/usr/bin/php artisan queue:work database --sleep=3 --tries=3
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

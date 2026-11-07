@@ -1,0 +1,14 @@
+[Unit]
+Description=souzpir scheduler
+After=network.target
+
+[Service]
+Type=simple
+User=souzpir
+WorkingDirectory=/var/www/souzpir/current
+ExecStart=/usr/bin/php artisan schedule:work
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
