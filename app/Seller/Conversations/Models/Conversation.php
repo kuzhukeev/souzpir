@@ -4,7 +4,7 @@ namespace App\Seller\Conversations\Models;
 
 final class Conversation extends SellerModel
 {
-    use ValidatesMemberReference;
+    use ValidatesAssignee;
 
     protected function casts(): array
     {

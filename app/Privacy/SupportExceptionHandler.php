@@ -2,6 +2,7 @@
 
 namespace App\Privacy;
 
+use App\Seller\Conversations\AssignmentConflictResponse;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Contracts\Debug\ExceptionHandler as ExceptionHandlerContract;
@@ -32,7 +33,7 @@ final class SupportExceptionHandler extends Handler implements ExceptionHandlerC
 {
     public function report(Throwable $e)
     {
-        if ($this->supportRequest() !== null) {
+        if ($this->supportRequest() !== null || AssignmentConflictResponse::matches($e)) {
             return;
         }
 
@@ -41,6 +42,9 @@ final class SupportExceptionHandler extends Handler implements ExceptionHandlerC
 
     public function render($request, Throwable $e)
     {
+        if (AssignmentConflictResponse::matches($e)) {
+            return AssignmentConflictResponse::render($e);
+        }
         if (! $request instanceof Request || ! SupportRequestBoundary::applies($request)) {
             return parent::render($request, $e);
         }

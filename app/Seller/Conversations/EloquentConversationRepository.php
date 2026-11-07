@@ -136,7 +136,7 @@ final class EloquentConversationRepository implements ConversationRepository
                 }
                 if (($task['assigned_user_id'] ?? null) !== null) {
                     $member = Membership::withoutGlobalScopes()->where('organization_id', $context->organizationId)->where('user_id', $task['assigned_user_id'])->where('status', 'active')->first();
-                    if (! $member || ! $member->permitsBrand($context->brandId)) {
+                    if (! $member || ! $member->permitsBrand($context->brandId) || ! AssigneeEligibility::canOperate($member)) {
                         abort(422, 'Недопустимый исполнитель.');
                     }
                 }

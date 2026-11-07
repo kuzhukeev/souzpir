@@ -6,6 +6,7 @@ use App\Models\Brand;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Providers\Features\PermissionEvaluator as PermissionEvaluatorContract;
+use App\Seller\Conversations\AssignmentPolicy;
 use App\Tenancy\TenantContext;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
@@ -15,6 +16,7 @@ final class PermissionEvaluator implements PermissionEvaluatorContract
 {
     public function allows(Authenticatable $user, string $ability, mixed ...$arguments): bool
     {
+        AssignmentPolicy::assertConfiguration();
         // Dotted ability names are literal array keys, not nested config paths.
         $roles = config('permissions.abilities', [])[$ability] ?? null;
         if (! is_array($roles) || ($role = $this->currentRole($user)) === null) {
@@ -50,6 +52,7 @@ final class PermissionEvaluator implements PermissionEvaluatorContract
     /** A single membership/brand check per frontend projection, not per permission. */
     public function all(Authenticatable $user): array
     {
+        AssignmentPolicy::assertConfiguration();
         $role = $this->currentRole($user);
         $result = [];
         foreach (config('permissions.abilities', []) as $ability => $roles) {
