@@ -550,7 +550,7 @@
 - SP-L1-02: слоты exec-1/exec-2 не проходят тесты с IsolatedDatabaseMigrations («A dedicated, nonprivileged test database owner is required») — роль БД слотов не настроена; часть существующих тестов исполнители проверяют только через CI.
 
 - SP-E5-04S: подсказка менеджеру не предлагает инструменты (calc_delivery/send_price) и не повторяет попытку при отказе Guard — один проход, при отказе общий unavailable. ManagerSuggestionGatewayE504STest (DatabaseMigrations без отката) периодически роняет ReviewsE510*Test при совместном прогоне каталога tests/Feature/Seller/Dialogs/.
-- SP-E5-04S: нет Playwright-теста tests/Browser/E5-04S/ и скриншота — в слоте исполнителя недоступен браузерный драйвер; UI проверен сборкой, типами и feature-тестами.
+- SP-E5-04S: нет Playwright-теста tests/Browser/E5-04S/ и скриншота — в слоте исполнителя недоступен браузерный драйвер; UI проверен сборкой, типами и feature-тестами. — закрыто 08.11 (tests/Browser/E5-04S/read-marker.spec.ts).
 
 - SP-E1-10K: старые outbox-события без снимка подписок не доставляются автоматическим вебхукам (известно по SP-E1-10J). Слоты exec-1/exec-2/integrator не проходят IsolatedDatabaseMigrations («A dedicated, nonprivileged test database owner is required») — проверка таких тестов только в CI.
 
