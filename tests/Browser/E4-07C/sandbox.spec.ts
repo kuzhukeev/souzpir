@@ -32,7 +32,7 @@ test('выбор хода показывает его состояние и то
   await page.screenshot({ path: '.local/screenshots/SP-E4-07C/sandbox.png', fullPage: true });
   await page.route('**/seller/quality/scenarios', route => route.abort('failed'));
   const saved = page.waitForRequest(request => request.method() === 'POST' && request.url().includes('/seller/quality/scenarios'));
-  await page.getByRole('button', { name: 'Сохранить как сценарий' }).click();
+  await page.getByRole('button', { name: 'Сохранить как контрольный сценарий' }).click();
   const body = (await saved).postDataJSON();
   expect(body.first_message).toBe(first.question);
   expect(body.behavior).toContain(second.question);
