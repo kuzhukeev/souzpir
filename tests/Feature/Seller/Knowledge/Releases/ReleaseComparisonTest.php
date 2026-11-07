@@ -74,6 +74,16 @@ final class ReleaseComparisonTest extends TenancyTestCase
             return [$first, $second, $draft['id']];
         });
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $this->get('/seller/knowledge')->assertOk()->assertInertia(fn ($page) => $page
+            ->where('counts.facts', 1)->where('counts.conditions', 1)->where('counts.intents', 1)
+            ->where('counts.examples', 1)->where('counts.closed_topics', 0)->where('changeCount', 0));
+        app(TenantContextRunner::class)->run($context, function () use ($context, $draftId): void {
+            $factId = DB::table('kn_facts as fact')->join('kn_fact_groups as grp', 'grp.id', '=', 'fact.group_id')
+                ->where('grp.release_id', $draftId)->value('fact.id');
+            $version = DB::table('knowledge_releases')->where('id', $draftId)->value('version');
+            app(KnowledgeRepository::class)->setFact($context, $draftId, $factId, $version, 'Ещё новый факт', 'active', 'manual');
+        });
+        $this->get('/seller/knowledge')->assertOk()->assertInertia(fn ($page) => $page->where('changeCount', 1));
         $this->get("/seller/knowledge/releases/compare?from=$first&to=$second")->assertOk()
             ->assertInertia(fn ($page) => $page->where('sections.facts.changes.0.after.facts.0', 'Новый факт')
                 ->where('sections.conditions.changes.0.after.days', 3)

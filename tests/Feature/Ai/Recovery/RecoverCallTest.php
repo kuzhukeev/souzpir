@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Ai\Recovery;
 
-use App\Ai\Http\RecoverCallController;
 use App\Contracts\Ai\AiResult;
 use App\Models\Brand;
 use App\Models\Organization;
@@ -10,7 +9,6 @@ use Illuminate\Http\Client\Factory;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Tests\Feature\Tenancy\TenancyTestCase;
 
@@ -21,8 +19,6 @@ final class RecoverCallTest extends TenancyTestCase
         parent::setUp();
         config(['features.E0-05.defaults.openrouter_key' => 'fake-only-key']);
         Http::preventStrayRequests();
-        Route::middleware(['web', 'auth', 'verified', 'tenant', 'auth.version', 'auth.nostore'])
-            ->post('/ai/recovery/calls/{callId}/reconcile', RecoverCallController::class);
     }
 
     private function seedCall(Organization $organization, Brand $brand, string $status = 'uncertain', ?int $resultCost = null): string
@@ -63,7 +59,7 @@ final class RecoverCallTest extends TenancyTestCase
         $this->provider($id, '0.000150');
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
         $this->postJson('/ai/recovery/calls/'.$id.'/reconcile')->assertOk()
-            ->assertJsonPath('status', 'completed')->assertJsonPath('costMicros', 150);
+            ->assertExactJson(['status' => 'completed']);
         $call = DB::table('ai_calls')->where('id', $id)->first();
         $budget = DB::table('ai_budgets')->where('id', $call->budget_id)->first();
         $this->assertSame('completed', $call->status);
@@ -109,7 +105,7 @@ final class RecoverCallTest extends TenancyTestCase
         Http::assertNothingSent();
         DB::table('ai_calls')->where('id', $id)->update(['updated_at' => now()->subMinutes(20)]);
         $this->postJson('/ai/recovery/calls/'.$id.'/reconcile')->assertOk()
-            ->assertJsonPath('status', 'failed')->assertJsonPath('costMicros', 50);
+            ->assertExactJson(['status' => 'failed']);
         $call = DB::table('ai_calls')->where('id', $id)->first();
         $this->assertSame('reconciled_billed_without_result', $call->error_code);
         $this->assertSame(54, (int) DB::table('ai_budgets')->where('id', $call->budget_id)->value('spent_micros'));

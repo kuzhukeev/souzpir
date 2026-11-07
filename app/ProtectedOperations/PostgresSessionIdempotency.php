@@ -35,6 +35,61 @@ final class PostgresSessionIdempotency implements SessionTransactionalIdempotenc
         }
     }
 
+    /** Finish a logout receipt in the same transaction that revokes its session. */
+    public function executeLogout(#[\SensitiveParameter] Request $request, #[\SensitiveParameter] string $key, #[\SensitiveParameter] Closure $write): array
+    {
+        $conflict = new IdempotencyConflict;
+        try {
+            return $this->executeInternal($request, 'profile.logout', $key, 'logout-v1', $write, $conflict, true);
+        } catch (Throwable $error) {
+            if ($error === $conflict) {
+                throw new IdempotencyConflict('Idempotency key was used with different content.');
+            }
+
+            throw new IdempotencyFailure('Idempotent operation could not be completed.');
+        }
+    }
+
+    /** A revoked cookie can recover only a fixed, non-private outcome; it cannot run a write. */
+    public function recoverRevoked(#[\SensitiveParameter] Request $request, #[\SensitiveParameter] string $operation,
+        #[\SensitiveParameter] string $key, #[\SensitiveParameter] string $canonicalRequest): array
+    {
+        try {
+            $secret = config('app.key');
+            if (! $request->hasSession() || ! is_string($secret) || $secret === '' || DB::connection()->getDriverName() !== 'pgsql'
+                || ! in_array($operation, ['profile.logout', 'profile.brand_switch'], true) || $key === '' || strlen($key) > 512) {
+                throw new LogicException;
+            }
+            $sessionHash = hash_hmac('sha256', 'auth-session:'.$request->session()->getId(), $secret);
+            $keyDigest = hash_hmac('sha256', "protected-session-key-v1\0".$key, $secret);
+            $requestDigest = hash_hmac('sha256', "protected-session-request-v1\0".$canonicalRequest, $secret);
+
+            return DB::transaction(function () use ($sessionHash, $operation, $keyDigest, $requestDigest): array {
+                $registry = DB::table('auth_session_registry')->where('session_hash', $sessionHash)->lockForUpdate()->first();
+                $lease = DB::table('c02_session_leases')->where('session_hash', $sessionHash)->lockForUpdate()->first();
+                if (! $registry || $registry->revoked_at === null || ! $lease) {
+                    throw new LogicException;
+                }
+                $row = DB::table('c02_session_receipts')->where('lease_id', $lease->id)->where('operation', $operation)
+                    ->where('key_digest', $keyDigest)->lockForUpdate()->first();
+                if (! $row || ! hash_equals($row->request_digest, $requestDigest) || ! is_string($row->result_ciphertext)) {
+                    throw new LogicException;
+                }
+                $stored = json_decode(Crypt::decryptString($row->result_ciphertext), true, 512, JSON_THROW_ON_ERROR);
+                $expected = $operation === 'profile.logout' ? ['logged_out' => true] : ['switched' => true];
+                if (! is_array($stored) || ($stored['receipt'] ?? null) !== $row->id || ($stored['lease'] ?? null) !== $lease->id
+                    || ($stored['operation'] ?? null) !== $operation || ($stored['key_digest'] ?? null) !== $keyDigest
+                    || ($stored['request_digest'] ?? null) !== $requestDigest || ($stored['result'] ?? null) !== $expected) {
+                    throw new LogicException;
+                }
+
+                return $expected;
+            });
+        } catch (Throwable) {
+            throw new IdempotencyFailure('Idempotent operation could not be completed.');
+        }
+    }
+
     private function executeInternal(
         #[\SensitiveParameter] Request $request,
         #[\SensitiveParameter] string $operation,
@@ -42,6 +97,7 @@ final class PostgresSessionIdempotency implements SessionTransactionalIdempotenc
         #[\SensitiveParameter] string $canonicalRequest,
         #[\SensitiveParameter] Closure $write,
         #[\SensitiveParameter] IdempotencyConflict $conflict,
+        bool $logout = false,
     ): array {
         $secret = config('app.key');
         if (! preg_match('/\A[a-z][a-z0-9_.-]{0,79}\z/D', $operation)
@@ -53,7 +109,9 @@ final class PostgresSessionIdempotency implements SessionTransactionalIdempotenc
         $requestDigest = hash_hmac('sha256', "protected-session-request-v1\0".$canonicalRequest, $secret);
         $keyFingerprint = hash_hmac('sha256', 'protected-operation-key-fingerprint-v1', $secret);
 
-        return app(AuthSessionRegistry::class)->withinActive($request, function () use ($request, $operation, $keyDigest, $requestDigest, $keyFingerprint, $secret, $write, $conflict): array {
+        $boundary = $logout ? 'withinLogout' : 'withinActive';
+
+        return app(AuthSessionRegistry::class)->$boundary($request, function () use ($request, $operation, $keyDigest, $requestDigest, $keyFingerprint, $secret, $write, $conflict): array {
             $sessionHash = hash_hmac('sha256', 'auth-session:'.$request->session()->getId(), $secret);
             DB::statement('INSERT INTO protected_operation_key_guard (id, fingerprint) VALUES (1, ?) ON CONFLICT (id) DO NOTHING', [$keyFingerprint]);
             $guard = DB::table('protected_operation_key_guard')->where('id', 1)->sharedLock()->first();

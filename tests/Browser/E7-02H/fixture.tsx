@@ -1,0 +1,8 @@
+import {createInertiaApp} from '@inertiajs/react';
+import {createRoot} from 'react-dom/client';
+import '../../../resources/css/app.css';
+import '../../../resources/css/themes/tokens.css';
+import Runs from '../../../resources/js/pages/Seller/Scenarios/Runs';
+const props={groups:[{id:'group',status:'processing',created_at:'2026-11-04T12:00:00Z',average:3,passed:0,failed:0,items:[{name:'Первый',status:'completed',run_id:'run',average:3,evaluation:'fake'},{name:'Второй',status:'completed',run_id:null,average:null,evaluation:'unavailable'}]}],scenarios:[{id:'one',name:'Новый покупатель'}],publishedAvailable:true,runtimeAvailable:true,runs:[{id:'run',persona:'Новый покупатель',status:'completed',created_at:'2026-11-04T12:00:00Z',release_status:'published',turns:[{client:'Здравствуйте',agent:'Чем помочь?'}],scores:{naturalness:3,goal:3,facts:3,objections:3,brevity:3},issues:[],average:3,test_baseline:true,cost:null}],status:null,theme:'neutral',brand:{id:'b',name:'Пример бренда',theme:'neutral'},brands:[],organization:{id:'o',name:'Организация'},auth:{user:{id:'u',name:'Иван',email:'ivan@example.test'}},modules:{seller:true,vision:true},can:{},unread:null,translations:{},ziggy:{routes:{}},errors:{}};
+const script=document.createElement('script');script.type='application/json';script.dataset.page='app';script.textContent=JSON.stringify({component:'Fixture',props,url:'/seller/quality/runs',version:null,clearHistory:false,encryptHistory:false});document.body.append(script);
+void createInertiaApp({resolve:()=>Runs,setup:({el,App,props})=>createRoot(el).render(<App {...props}/>)});

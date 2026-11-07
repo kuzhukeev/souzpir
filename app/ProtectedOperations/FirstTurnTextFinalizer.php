@@ -14,12 +14,15 @@ use App\Seller\Engine\GuardDecision;
 use App\Seller\Engine\LeadState;
 use App\Seller\Engine\Policy;
 use App\Seller\Knowledge\Contracts\KnowledgeRepository;
+use App\Seller\Settings\Greetings\GreetingResolver;
+use App\Seller\Settings\Schedule\Availability;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
 use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Auth\SessionBrandSelection;
 use App\Shell\Organizations\ModuleEntitlements;
 use App\Tenancy\TenantContext;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -167,7 +170,7 @@ final class FirstTurnTextFinalizer
             $guard = $decisionService->finish($det, $goal, $enabled);
         }
         if (($guard['status'] ?? null) !== 'completed' || ($guard['verdict'] ?? null) !== 'ok'
-            || ! in_array($goal->kind, ['ask_slot', 'answer_and_ask', 'small_talk', 'unclear', 'closed_topic', 'decline_off_topic', 'decline_injection', 'bot_disclosure'], true)
+            || ! in_array($goal->kind, ['intro_and_ask', 'ask_slot', 'answer_and_ask', 'answer_only', 'unknown_fact', 'small_talk', 'unclear', 'closed_topic', 'decline_off_topic', 'decline_injection', 'bot_disclosure'], true)
             || ($state->signal('notify_manager') && ! $state->flag('manager_notified'))) {
             throw new LogicException;
         }
@@ -192,12 +195,42 @@ final class FirstTurnTextFinalizer
         $policy = new Policy($knowledge);
         $state->setOutcome($policy->computeOutcome($state));
         $state->data['missing'] = $policy->computeMissing($state);
+        $metadata = ['intent' => $extraction['client_intent'] ?? null, 'goal_kind' => $goal->kind, 'guard' => $guard['verdict'] ?? null];
+        $inputId = DB::table('seller_turns')->where('id', $claim->turnId)->where('organization_id', $tenant->organizationId)
+            ->where('brand_id', $tenant->brandId)->value('input_message_id');
+        $input = DB::table('messages')->where('id', $inputId)->where('conversation_id', $claim->conversationId)
+            ->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('role', 'client')->first() ?? throw new LogicException;
+        $previousMeta = json_decode($input->meta ?: '{}', true) ?: [];
+        $replyText = $candidate['text'];
+        if (! in_array($goal->kind, ['decline_injection', 'decline_off_topic', 'closed_topic'], true)) {
+            $conversation = DB::table('conversations')->where('id', $claim->conversationId)->where('organization_id', $tenant->organizationId)
+                ->where('brand_id', $tenant->brandId)->first(['channel_account_id', 'contact_id']) ?? throw new LogicException;
+            $channel = $conversation->channel_account_id ? DB::table('channel_accounts')->where('id', $conversation->channel_account_id)
+                ->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->value('type') : 'api';
+            $name = $conversation->contact_id ? DB::table('contacts')->where('id', $conversation->contact_id)
+                ->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->value('name') : null;
+            $brand = DB::table('brands')->where('id', $tenant->brandId)->where('organization_id', $tenant->organizationId)->first(['timezone']);
+            $schedule = DB::table('brand_seller_settings')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->value('schedule');
+            $settings = is_string($schedule) ? json_decode($schedule, true) : [];
+            $afterHours = $brand && is_array($settings) && app(Availability::class)->forTime($settings, CarbonImmutable::now(), $brand->timezone)['mode'] === 'off';
+            $eventPayload = $input->external_event_id ? DB::table('channel_inbound_events')->where('id', $input->external_event_id)
+                ->where('channel_account_id', $conversation->channel_account_id)->where('organization_id', $tenant->organizationId)
+                ->where('brand_id', $tenant->brandId)->value('payload') : null;
+            $eventData = is_string($eventPayload) ? json_decode($eventPayload, true) : [];
+            $pageValue = $previousMeta['page'] ?? $eventData['page'] ?? 'home';
+            $page = is_string($pageValue) ? $pageValue : 'home';
+            $greeting = app(GreetingResolver::class)->resolve($tenant, is_string($channel) ? $channel : '', $page, is_string($name) ? $name : null, $afterHours);
+            if ($greeting !== null) {
+                $replyText = $greeting."\n\n".$replyText;
+            }
+        }
+        DB::table('messages')->where('id', $inputId)->update(['meta' => json_encode([...$previousMeta, ...$metadata], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), 'updated_at' => now()]);
         $messageId = (string) Str::ulid();
-        $message = ['id' => $messageId, 'role' => 'agent', 'text' => $candidate['text'], 'meta' => []];
+        $message = ['id' => $messageId, 'role' => 'agent', 'text' => $replyText, 'meta' => $metadata];
         $outcome = new TurnOutcome($claim->turnId, $claim->conversationId, 'completed', $claim->baseVersion + 1, $messageId,
             $goal->toArray(), $guard, [], $state->toArray(), [$message]);
         DB::table('messages')->insert(['id' => $messageId, 'organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId,
-            'conversation_id' => $claim->conversationId, 'role' => 'agent', 'text' => $candidate['text'], 'meta' => '{}', 'created_at' => now(), 'updated_at' => now()]);
+            'conversation_id' => $claim->conversationId, 'role' => 'agent', 'text' => $replyText, 'meta' => json_encode($metadata, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), 'created_at' => now(), 'updated_at' => now()]);
         DB::table('conversations')->where('id', $claim->conversationId)->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->update([
             'state' => json_encode($state->toArray(), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), 'stage' => $state->stage(), 'outcome' => $state->outcome(),
             'client_type' => $state->clientType(), 'version' => $claim->baseVersion + 1, 'updated_at' => now(),

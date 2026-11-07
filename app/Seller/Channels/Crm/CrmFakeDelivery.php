@@ -22,29 +22,35 @@ final class CrmFakeDelivery
         if (config('runtime.delivery_driver', 'fake') !== 'fake') {
             throw new LogicException('CRM test delivery requires the fake driver.');
         }
+        $hook = DB::table('webhooks')->where('id', $webhookId)->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)->first();
+        $events = $hook ? json_decode($hook->events, true, 32, JSON_THROW_ON_ERROR) : [];
+        $type = in_array('seller.contact.captured', $events, true) ? 'seller.contact.captured' : 'seller.conversation.handed_off';
+        $this->hook($context, $webhookId, $type);
         $eventId = (string) Str::ulid();
         $conversationId = (string) Str::ulid();
         $event = new DomainEvent([
-            'event_id' => $eventId, 'schema_version' => 1, 'type' => 'seller.contact.captured',
+            'event_id' => $eventId, 'schema_version' => 1, 'type' => $type,
             'occurred_at' => now()->toIso8601String(), 'organization_id' => $context->organizationId,
             'brand_id' => $context->brandId, 'actor_id' => $context->actorId,
             'aggregate' => ['type' => 'conversation', 'id' => $conversationId, 'version' => 1],
-            'data' => ['conversation_id' => $conversationId, 'contact_id' => (string) Str::ulid()],
+            'data' => $type === 'seller.contact.captured'
+                ? ['conversation_id' => $conversationId, 'contact_id' => (string) Str::ulid()]
+                : ['reason' => 'test', 'task_id' => (string) Str::ulid()],
         ]);
-        DB::transaction(function () use ($context, $webhookId, $event): void {
-            $this->hook($context, $webhookId, 'seller.contact.captured');
+        DB::transaction(function () use ($context, $webhookId, $event, $type): void {
+            $this->hook($context, $webhookId, $type);
             app(NotificationDispatcher::class)->enqueue($event);
         });
 
-        return $this->consume($context, $webhookId, $eventId, $fail);
+        return $this->consume($context, $webhookId, $eventId, $fail, true);
     }
 
-    public function consume(TenantContext $context, string $webhookId, string $eventId, bool $fail = false): string
+    public function consume(TenantContext $context, string $webhookId, string $eventId, bool $fail = false, bool $syntheticContact = false): string
     {
         if (config('runtime.delivery_driver', 'fake') !== 'fake') {
             throw new LogicException('CRM test delivery requires the fake driver.');
         }
-        $prepared = DB::transaction(function () use ($context, $webhookId, $eventId): array {
+        $prepared = DB::transaction(function () use ($context, $webhookId, $eventId, $syntheticContact): array {
             $row = DB::table('outbox_events')->where('id', $eventId)->where('organization_id', $context->organizationId)
                 ->where('brand_id', $context->brandId)->first();
             if (! $row) {
@@ -61,7 +67,7 @@ final class CrmFakeDelivery
             if ($existing) {
                 return [$existing->id, null, null, null];
             }
-            $body = json_encode($this->map($e), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+            $body = json_encode($this->map($e, $context, $webhookId, $syntheticContact), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
             $id = (string) Str::ulid();
             DB::table('webhook_deliveries')->insert([
                 'id' => $id, 'organization_id' => $context->organizationId, 'brand_id' => $context->brandId,
@@ -118,13 +124,29 @@ final class CrmFakeDelivery
         return $hook;
     }
 
-    private function map(array $event): array
+    private function map(array $event, TenantContext $context, string $webhookId, bool $syntheticContact): array
     {
-        return [
+        $body = [
             'event_id' => $event['event_id'], 'event' => $event['type'], 'occurred_at' => $event['occurred_at'],
             'brand_id' => $event['brand_id'], 'conversation_id' => $event['data']['conversation_id'] ?? null,
             'contact_id' => $event['data']['contact_id'] ?? null, 'task_id' => $event['data']['task_id'] ?? null,
             'reason' => $event['data']['reason'] ?? null,
         ];
+        if ($syntheticContact) {
+            $body += ['name' => 'Тестовый клиент', 'phone' => '+70000000000', 'email' => 'test@example.test'];
+        }
+        $saved = DB::table('crm_webhook_mappings')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)->where('webhook_id', $webhookId)->value('fields');
+        $fields = $saved ? json_decode($saved, true, 32, JSON_THROW_ON_ERROR) : [];
+        $original = $body;
+        foreach (array_keys($fields) as $source) {
+            unset($body[$source]);
+        }
+        foreach ($fields as $source => $target) {
+            if (array_key_exists($source, $original)) {
+                $body[$target] = $original[$source];
+            }
+        }
+
+        return $body;
     }
 }

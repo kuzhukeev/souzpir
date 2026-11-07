@@ -3,6 +3,7 @@
 namespace App\Shell\Integrations;
 
 use App\Models\Brand;
+use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Brands\BrandAccess;
 use App\Shell\Integrations\CompanyNotifications\CompanyNotificationSettings;
 use App\Shell\Integrations\Keys\KeysController;
@@ -31,15 +32,15 @@ final class IntegrationsController
         $accounts = DB::table('channel_accounts')->where('organization_id', $ctx->organizationId)->where('brand_id', $ctx->brandId)->orderByDesc('updated_at')->get();
         $items = [
             ['telegram', 'Telegram', 'Переписка с клиентами в Telegram.', 'seller.channels.telegram'],
-            ['widget', 'Виджет', 'Общение с клиентами на сайте.', 'seller.channels.widget'],
+            ['widget', 'Виджет', 'Общение с клиентами на сайте.', 'seller.widget.index'],
             ['api', 'API и вебхуки', 'Ключи доступа и события для интеграций.', 'integrations.api'],
         ];
         $connections = [];
         foreach ($items as [$type, $title, $description, $route]) {
             $account = $accounts->firstWhere('type', $type);
-            $restricted = $type === 'api' && ! $canManage;
+            $restricted = ($type === 'api' && ! $canManage) || ($type === 'widget' && ! Gate::allows('seller.settings.write'));
             $connections[] = ['id' => $type, 'title' => $title, 'description' => $description,
-                'status' => $account?->status ?? 'disconnected', 'connected_at' => null,
+                'status' => $account?->status ?? 'disconnected', 'connected_at' => $account?->connected_at,
                 'settings_restricted' => $restricted, 'href' => ! $restricted && Route::has($route) ? route($route) : null];
         }
         $brand = Brand::query()->findOrFail($ctx->brandId);
@@ -50,7 +51,16 @@ final class IntegrationsController
             $connections[] = ['id' => strtolower($title), 'title' => $title, 'description' => 'Интеграция появится позже.', 'status' => 'soon', 'connected_at' => null, 'href' => null];
         }
 
-        return Inertia::render('Shell/Integrations/Index', compact('connections'));
+        $priceMail = DB::table('seller_email_price_settings')->where('organization_id', $ctx->organizationId)->where('brand_id', $ctx->brandId)->first();
+        $sellerEnabled = app(SellerModuleAccess::class)->enabled($ctx->organizationId, $ctx->brandId);
+        $canConfigurePriceMail = Gate::allows('seller.settings.write') && $sellerEnabled;
+        $connections[] = ['id' => 'price_email', 'title' => 'Почта для прайса', 'description' => 'Отправка прайс-листа клиентам по почте.',
+            'status' => ! $sellerEnabled ? 'disabled' : ($priceMail?->enabled ? 'configured' : 'disconnected'), 'connected_at' => null,
+            'settings_restricted' => ! Gate::allows('seller.settings.write'), 'href' => $canConfigurePriceMail && Route::has('seller.channels.email.index') ? route('seller.channels.email.index') : null];
+
+        $crmHref = $sellerEnabled && Gate::allows('seller.settings.read') && Route::has('seller.integrations.crm') ? route('seller.integrations.crm') : null;
+
+        return Inertia::render('Shell/Integrations/Index', compact('connections', 'crmHref'));
     }
 
     public function api(Request $request, WebhookService $webhooks, BrandReadApiAvailability $brandReadApi): Response
@@ -150,6 +160,15 @@ final class IntegrationsController
         ]);
     }
 
+    public function apiDocumentation(): Response
+    {
+        Gate::authorize('integrations.write');
+        $context = app(TenantContext::class);
+        abort_unless($context->organizationId && $context->brandId, 404);
+
+        return Inertia::render('Shell/Integrations/ApiDocumentation');
+    }
+
     public function saveNotifications(Request $request, BrandAccess $access, CompanyNotificationSettings $settings): RedirectResponse
     {
         Gate::authorize('integrations.write');
@@ -159,10 +178,13 @@ final class IntegrationsController
             'telegram_chat' => ['nullable', 'string', 'regex:/^-?[0-9]{1,20}$/'],
             'report_emails' => ['present', 'array', 'max:5'],
             'report_emails.*' => ['required', 'email', 'max:254', 'distinct:ignore_case'],
+            'matrix' => ['sometimes', 'array:handoff,unknown_question,report_published,limit_80'],
+            'matrix.*' => ['array:cabinet,email,telegram'],
+            'matrix.*.*' => ['boolean'],
         ]);
         $access->change($request, $context->brandId, function (Brand $brand) use ($settings, $data): void {
             Gate::authorize('integrations.write');
-            $settings->save($brand, $data['telegram_chat'] ?? null, $data['report_emails']);
+            $settings->save($brand, $data['telegram_chat'] ?? null, $data['report_emails'], $data['matrix'] ?? null);
         });
 
         return redirect()->route('integrations.notifications')->with('success', 'Настройки сохранены. Внешняя доставка пока выключена.');

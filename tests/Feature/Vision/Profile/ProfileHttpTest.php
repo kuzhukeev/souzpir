@@ -66,6 +66,7 @@ final class ProfileHttpTest extends TenancyTestCase
         }
         $this->post('/vision/quiz/submit', ['quiz_id' => $quiz->id, 'revision' => $revision])->assertRedirect('/vision/profile')->assertSessionHasNoErrors();
         $profile = DB::table('brand_profiles')->where('brand_id', $brand->id)->sole();
+        $this->privateGet('/vision/profile')->assertOk()->assertInertia(fn (Assert $page) => $page->where('submitted', true));
         $this->post('/vision/quiz/start')->assertRedirect('/vision/profile');
         self::assertSame(1, DB::table('visibility_quizzes')->where('brand_id', $brand->id)->count());
         $this->privateGet('/vision/profile')->assertOk()->assertInertia(fn (Assert $page) => $page->component('Vision/Profile/Show', false)->where('profile.id', $profile->id)->where('profile.answers.step1.brand_name', 'Проверочный бренд'));

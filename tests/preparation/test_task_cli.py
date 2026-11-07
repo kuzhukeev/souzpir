@@ -4,6 +4,7 @@ import importlib.util
 import json
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
 from unittest.mock import patch
 
@@ -94,17 +95,160 @@ class TaskCliTests(unittest.TestCase):
 
     def test_ready_does_not_mutate(self):
         self.assertEqual(len(self.client.ready()["tasks"]), 1)
-        self.assertEqual(self.api.calls, ["ready"])
+        self.assertEqual(self.api.calls, ["ready", "list"])
 
-    def test_ready_excludes_released_task_with_local_claim_or_worktree(self):
+    def test_released_clean_worktree_can_be_claimed_without_replacing_it(self):
+        worktree, original = self.claim()
+        self.client.release("SP-001", "Stopped")
+        self.assertEqual(len(self.client.ready()["tasks"]), 1)
+        reclaimed = self.client.claim("SP-001", "another-chat")
+        self.assertEqual(Path(reclaimed["worktree"]), worktree)
+        self.assertEqual(reclaimed["baseCommit"], original["baseCommit"])
+        self.assertEqual(self.client.read_claim("SP-001")["worker"], "another-chat")
+        self.assertTrue(worktree.exists())
+
+    def test_reclaim_clean_tree_at_older_published_main_without_task_remote(self):
+        worktree, original = self.claim()
+        self.commit(self.root, "app/Common/published.php")
+        task_cli.git(worktree, "merge", "--ff-only", "main")
+        self.client.release("SP-001", "Transfer")
+        self.commit(self.root, "app/Common/newer.php")
+        published = task_cli.git(self.root, "rev-parse", "main")
+        task_cli.git(self.root, "update-ref", "refs/remotes/origin/main", published)
+        self.assertEqual(self.client.ready()["tasks"][0]["taskKey"], "SP-001")
+        reclaimed = self.client.claim("SP-001", "new-owner")
+        self.assertEqual(reclaimed["baseCommit"], original["baseCommit"])
+
+    def test_reclaim_clean_released_tree_with_new_merged_dependency(self):
+        worktree, original = self.claim()
+        self.client.release("SP-001", "Waiting for new dependency")
+        dependency = task_cli.git(self.root, "rev-parse", "main")
+        self.dependency(dependency)
+        task_cli.git(self.root, "update-ref", "refs/remotes/origin/main", task_cli.git(self.root, "rev-parse", "main"))
+        task_cli.git(worktree, "merge", "--ff-only", "main")
+        self.assertEqual(self.client.ready()["tasks"][0]["taskKey"], "SP-001")
+        reclaimed = self.client.claim("SP-001", "new-owner")
+        self.assertEqual(reclaimed["baseCommit"], original["baseCommit"])
+        record = self.client.read_claim("SP-001")
+        self.assertEqual(record["dependsOn"], ["SP-000"])
+        self.assertEqual(record["dependencyCommits"], {"SP-000": dependency})
+
+    def test_reclaim_reserves_saved_tree_but_submit_requires_new_dependency(self):
+        worktree, _ = self.claim()
+        self.commit(worktree)
+        saved = task_cli.git(worktree, "rev-parse", "HEAD")
+        self.client.release("SP-001", "Waiting for new dependency")
+        self.commit(self.root, "app/Common/dependency.php")
+        dependency = task_cli.git(self.root, "rev-parse", "main")
+        self.dependency(dependency)
+        reclaimed = self.client.claim("SP-001", "new-owner")
+        self.assertTrue(reclaimed["needsDependencyMerge"])
+        self.assertEqual(task_cli.git(worktree, "rev-parse", "HEAD"), saved)
+        with self.assertRaisesRegex(task_cli.TaskError, "absent from the selected main base"):
+            self.client.submit("SP-001", "Scoped work", ["Checked"])
+        self.assertEqual(self.api.task["status"], "progress")
+        task_cli.git(worktree, "merge", "--no-ff", "main", "-m", "Integrate dependency")
+        self.assertEqual(self.client.submit("SP-001", "Scoped work", ["Checked"])["status"], "review")
+
+    def test_reclaim_allows_scope_expansion_but_checks_saved_work_against_original_scope(self):
+        worktree, _ = self.claim()
+        self.commit(worktree)
+        self.client.release("SP-001", "Scope expanded")
+        self.api.task["scope"].append("app/Additional/")
+        path = self.root / "planning" / "tasks.json"
+        plan = json.loads(path.read_text(encoding="utf-8"))
+        plan["tasks"][0]["scope"] = self.api.task["scope"]
+        path.write_text(json.dumps(plan), encoding="utf-8")
+        task_cli.git(self.root, "add", "planning/tasks.json")
+        task_cli.git(self.root, "commit", "-m", "Approve expanded scope")
+        self.assertEqual(self.client.ready()["tasks"][0]["taskKey"], "SP-001")
+        self.client.claim("SP-001", "new-owner")
+        self.assertEqual(self.client.read_claim("SP-001")["scope"], self.api.task["scope"])
+
+    def test_reclaim_does_not_use_expanded_scope_to_authorize_old_changes(self):
+        worktree, _ = self.claim()
+        self.commit(worktree, "app/Additional/unapproved.php")
+        self.client.release("SP-001", "Scope expanded")
+        self.api.task["scope"].append("app/Additional/")
+        path = self.root / "planning" / "tasks.json"
+        plan = json.loads(path.read_text(encoding="utf-8"))
+        plan["tasks"][0]["scope"] = self.api.task["scope"]
+        path.write_text(json.dumps(plan), encoding="utf-8")
+        task_cli.git(self.root, "add", "planning/tasks.json")
+        task_cli.git(self.root, "commit", "-m", "Approve expanded scope")
+        with self.assertRaisesRegex(task_cli.TaskError, "preserved changes"):
+            self.client.claim("SP-001", "new-owner")
+        self.assertEqual(self.api.task["status"], "queue")
+
+    def test_reclaim_preserves_unpublished_scoped_commit(self):
+        worktree, original = self.claim()
+        self.commit(worktree)
+        head = task_cli.git(worktree, "rev-parse", "HEAD")
+        self.client.release("SP-001", "Transfer")
+        self.assertEqual(self.client.ready()["tasks"][0]["taskKey"], "SP-001")
+        reclaimed = self.client.claim("SP-001", "new-owner")
+        self.assertEqual(reclaimed["baseCommit"], original["baseCommit"])
+        self.assertEqual(task_cli.git(worktree, "rev-parse", "HEAD"), head)
+        self.assertEqual((worktree / "app/Feature/file.php").read_text(encoding="utf-8"), "sample\n")
+
+    def test_reclaim_rejects_unpublished_out_of_scope_commit_without_remote(self):
+        worktree, _ = self.claim()
+        self.commit(worktree, "app/Common/unapproved.php")
+        self.client.release("SP-001", "Transfer")
+        self.assertEqual(self.client.ready()["tasks"], [])
+        with self.assertRaisesRegex(task_cli.TaskError, "preserved changes"):
+            self.client.claim("SP-001", "new-owner")
+
+    def test_reclaim_preserves_published_task_commits_and_original_base(self):
+        worktree, original = self.claim()
+        target = worktree / "app/Feature/saved.txt"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("saved", encoding="utf-8")
+        task_cli.git(worktree, "add", "app/Feature/saved.txt")
+        task_cli.git(worktree, "commit", "-m", "Preserve task work")
+        head = task_cli.git(worktree, "rev-parse", "HEAD")
+        task_cli.git(self.root, "update-ref", "refs/remotes/origin/codex/sp-001", head)
+        self.client.release("SP-001", "Transfer")
+        self.assertEqual(self.client.ready()["tasks"][0]["taskKey"], "SP-001")
+        reclaimed = self.client.claim("SP-001", "new-owner")
+        self.assertEqual(reclaimed["baseCommit"], original["baseCommit"])
+        self.assertEqual(task_cli.git(worktree, "rev-parse", "HEAD"), head)
+        self.assertEqual(target.read_text(encoding="utf-8"), "saved")
+
+    def test_reclaim_accepts_published_task_merged_with_new_main(self):
+        worktree, original = self.claim()
+        self.commit(worktree)
+        published = task_cli.git(worktree, "rev-parse", "HEAD")
+        task_cli.git(self.root, "update-ref", "refs/remotes/origin/codex/sp-001", published)
+        self.commit(self.root, "app/Common/upstream.php")
+        task_cli.git(worktree, "merge", "--no-ff", "main", "-m", "Merge upstream")
+        task_cli.git(worktree, "merge-base", "--is-ancestor", published, "HEAD")
+        self.client.release("SP-001", "Transfer")
+        self.assertEqual(self.client.ready()["tasks"][0]["taskKey"], "SP-001")
+        reclaimed = self.client.claim("SP-001", "new-owner")
+        self.assertEqual(reclaimed["baseCommit"], original["baseCommit"])
+        self.assertEqual(self.client.submit("SP-001", "Scoped work", ["Checked"])["status"], "review")
+
+    def test_reclaim_rejects_unpublished_out_of_scope_commit_after_merge(self):
+        worktree, _ = self.claim()
+        self.commit(worktree)
+        published = task_cli.git(worktree, "rev-parse", "HEAD")
+        task_cli.git(self.root, "update-ref", "refs/remotes/origin/codex/sp-001", published)
+        self.commit(worktree, "app/Common/unapproved.php")
+        self.client.release("SP-001", "Transfer")
+        self.assertEqual(self.client.ready()["tasks"], [])
+        with self.assertRaisesRegex(task_cli.TaskError, "preserved changes"):
+            self.client.claim("SP-001", "new-owner")
+
+    def test_released_dirty_worktree_is_not_reclaimed(self):
         worktree, _ = self.claim()
         self.client.release("SP-001", "Stopped")
-        result = self.client.ready()
-        self.assertEqual(result["tasks"], [])
-        self.assertEqual(result["blockedLocal"][0]["taskKey"], "SP-001")
-        self.assertEqual(set(result["blockedLocal"][0]["localBlockers"]),
-                         {"local_claim", "local_worktree", "local_branch"})
-        self.assertTrue(worktree.exists())
+        (worktree / "untracked.txt").write_text("keep", encoding="utf-8")
+        self.assertEqual(self.client.ready()["tasks"], [])
+        with self.assertRaisesRegex(task_cli.TaskError, "preserved changes"):
+            self.client.claim("SP-001", "another-chat")
+        self.assertEqual((worktree / "untracked.txt").read_text(encoding="utf-8"), "keep")
+        self.assertEqual(self.api.task["status"], "queue")
 
     def test_ready_excludes_task_with_leftover_branch_only(self):
         task_cli.git(self.root, "branch", "codex/sp-001")
@@ -243,6 +387,36 @@ class TaskCliTests(unittest.TestCase):
         self.assertFalse(task_cli.scope_allows(".LOCAL/claims/task.json", ["/"]))
         self.assertFalse(task_cli.scope_allows("app/../outside.php", ["/"]))
 
+    def test_e507b_ci_exception_allows_only_moved_fixture_files(self):
+        scope = task_cli.CI_SCOPE_EXCEPTIONS["SP-E5-07B"]
+        for name in ("preview-e507b.html", "preview-e507b.spec.ts", "preview-e507b.tsx", "vite-e507b.config.ts"):
+            self.assertTrue(task_cli.scope_allows("tests/Browser/E5-07B/" + name, scope))
+        self.assertFalse(task_cli.scope_allows("tests/Browser/E5-07B/other.spec.ts", scope))
+
+    def test_owner_reserved_tasks_are_not_issued_to_codex(self):
+        with patch.object(task_cli, "CLAUDE_PILOT_TASKS", frozenset(("SP-001",))):
+            self.assertEqual(self.client.ready()["tasks"], [])
+            with self.assertRaisesRegex(task_cli.TaskError, "reserved for claude:pilot"):
+                self.client.claim("SP-001", "codex:executor")
+            self.assertNotIn("claim", self.api.calls)
+            claimed = self.client.claim("SP-001", "claude:pilot")
+            self.assertEqual(claimed["taskKey"], "SP-001")
+
+    def test_e501h_ci_exception_is_limited_to_phpunit_config(self):
+        scope = task_cli.CI_SCOPE_EXCEPTIONS["SP-E5-01H"]
+        self.assertTrue(task_cli.scope_allows("phpunit.xml", scope))
+        self.assertFalse(task_cli.scope_allows("composer.json", scope))
+
+    def test_e815f_ci_exception_is_limited_to_legacy_weekly_spec(self):
+        scope = task_cli.CI_SCOPE_EXCEPTIONS["SP-E8-15F"]
+        self.assertTrue(task_cli.scope_allows("tests/Browser/E8-15E/weekly.spec.ts", scope))
+        self.assertFalse(task_cli.scope_allows("tests/Browser/E8-15E/other.spec.ts", scope))
+
+    def test_e706c_ci_exception_is_limited_to_legacy_crm_spec(self):
+        scope = task_cli.CI_SCOPE_EXCEPTIONS["SP-E7-06C"]
+        self.assertTrue(task_cli.scope_allows("tests/Browser/E6-09/crm.spec.ts", scope))
+        self.assertFalse(task_cli.scope_allows("tests/Browser/E6-09/other.spec.ts", scope))
+
     def test_submit_allows_default_generated_contracts_only(self):
         worktree, _ = self.claim()
         for name in ("data.ts", "translations.ts", "permissions.ts", "routes.d.ts"):
@@ -303,6 +477,90 @@ class TaskCliTests(unittest.TestCase):
         with self.assertRaisesRegex(task_cli.TaskError, "must be on main"):
             self.claim()
         self.assertNotIn("claim", self.api.calls)
+
+    def completed_tree(self, *, published=True):
+        remote = self.root / ".local" / "remote.git"
+        remote.mkdir(parents=True)
+        task_cli.git(remote, "init", "--bare")
+        task_cli.git(self.root, "remote", "add", "origin", str(remote))
+        task_cli.git(self.root, "push", "origin", "main")
+        worktree, _ = self.claim()
+        self.commit(worktree)
+        self.client.submit("SP-001", "Ready", ["Checked"])
+        task_cli.git(self.root, "merge", "--no-ff", "codex/sp-001", "-m", "Accept task")
+        self.client.mark_merged("SP-001")
+        if published:
+            task_cli.git(self.root, "push", "origin", "main")
+        return worktree
+
+    def test_cleanup_previews_then_archives_settings_and_keeps_branch(self):
+        worktree = self.completed_tree()
+        settings = worktree / ".local" / "settings.txt"
+        settings.parent.mkdir(exist_ok=True)
+        settings.write_text("local settings", encoding="utf-8")
+        (self.root / ".git" / "info" / "exclude").write_text("node_modules/\n", encoding="utf-8")
+        dependency = worktree / "node_modules" / "package.js"
+        dependency.parent.mkdir()
+        dependency.write_text("reinstallable", encoding="utf-8")
+        self.assertEqual(self.client.cleanup_merged()["eligible"], ["SP-001"])
+        self.assertTrue(worktree.exists())
+        self.assertFalse((self.root / ".local" / "retired-worktrees").exists())
+        with patch.object(task_cli, "windows_process_commands", return_value=""):
+            result = self.client.cleanup_merged(apply=True)
+        self.assertEqual(result["removed"], ["SP-001"])
+        self.assertFalse(worktree.exists())
+        task_cli.git(self.root, "show-ref", "--verify", "refs/heads/codex/sp-001")
+        archive = next((self.root / ".local" / "retired-worktrees").rglob("*.zip"))
+        with zipfile.ZipFile(archive) as saved:
+            self.assertEqual(saved.read(".local/settings.txt"), b"local settings")
+            self.assertNotIn("node_modules/package.js", saved.namelist())
+
+    def test_cleanup_preserves_unpublished_head(self):
+        worktree = self.completed_tree(published=False)
+        with patch.object(task_cli, "windows_process_commands", return_value=""):
+            self.assertEqual(self.client.cleanup_merged(apply=True)["removed"], [])
+        self.assertTrue(worktree.exists())
+
+    def test_cleanup_preserves_queued_dirty_and_locked_trees(self):
+        worktree = self.completed_tree()
+        with patch.object(task_cli, "windows_process_commands", return_value=""):
+            self.api.task["status"] = "queue"
+            self.assertEqual(self.client.cleanup_merged(apply=True)["eligible"], [])
+            self.api.task["status"] = "done"
+            (worktree / "unfinished.txt").write_text("keep", encoding="utf-8")
+            self.assertEqual(self.client.cleanup_merged(apply=True)["eligible"], [])
+            (worktree / "unfinished.txt").unlink()
+            (worktree / "app/Feature/file.php").write_text("uncommitted", encoding="utf-8")
+            self.assertEqual(self.client.cleanup_merged(apply=True)["eligible"], [])
+            task_cli.git(worktree, "restore", "app/Feature/file.php")
+            task_cli.git(self.root, "worktree", "lock", str(worktree))
+            self.assertEqual(self.client.cleanup_merged(apply=True)["eligible"], [])
+        self.assertTrue(worktree.exists())
+
+    def test_cleanup_preserves_running_tree_and_failed_backup(self):
+        worktree = self.completed_tree()
+        with patch.object(task_cli, "windows_process_commands", return_value=worktree.as_posix().casefold()):
+            self.assertEqual(self.client.cleanup_merged(apply=True)["eligible"], [])
+        with patch.object(task_cli, "windows_process_commands", return_value=""), patch.object(task_cli, "archive_ignored", side_effect=OSError("backup failed")):
+            result = self.client.cleanup_merged(apply=True)
+        self.assertEqual(result["errors"], ["SP-001"])
+        self.assertTrue(worktree.exists())
+
+    def test_publish_pushes_before_cleanup(self):
+        worktree = self.completed_tree(published=False)
+        with patch.object(task_cli, "windows_process_commands", return_value=""):
+            result = self.client.publish()
+        self.assertEqual(result["cleanup"]["removed"], ["SP-001"])
+        self.assertFalse(worktree.exists())
+        self.assertEqual(task_cli.git(self.root, "rev-parse", "origin/main"), result["published"])
+
+    def test_failed_push_never_cleans_worktree(self):
+        worktree = self.completed_tree(published=False)
+        task_cli.git(self.root, "remote", "set-url", "--push", "origin", str(self.root / "missing.git"))
+        with self.assertRaises(task_cli.TaskError), patch.object(self.client, "cleanup_merged") as cleanup:
+            self.client.publish()
+        cleanup.assert_not_called()
+        self.assertTrue(worktree.exists())
 
 
 if __name__ == "__main__":

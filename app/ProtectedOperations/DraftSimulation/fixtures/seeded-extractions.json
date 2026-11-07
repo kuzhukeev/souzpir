@@ -1,0 +1,4 @@
+{
+  "Уточню: Воронеж": {"client_intent": "unclear", "slot_updates": {"city": "Воронеж"}},
+  "Уточню: для себя": {"client_intent": "unclear", "slot_updates": {"purpose": "для себя"}}
+}

@@ -2,6 +2,8 @@
 
 namespace Database\Seeders\Ai;
 
+use App\Seller\Engine\BrandPromptSets;
+use App\Tenancy\TenantContext;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -10,6 +12,13 @@ use LogicException;
 /** Explicit platform seed: exact source bytes and checksum, no silent overwrites. */
 final class PromptSetsSeeder extends Seeder
 {
+    public function seedBrand(TenantContext $tenant): void
+    {
+        foreach (BrandPromptSets::NAMES as $name) {
+            app(BrandPromptSets::class)->seed($tenant, $name);
+        }
+    }
+
     public function run(): void
     {
         DB::transaction(function (): void {

@@ -5,8 +5,10 @@ namespace App\Vision\Reports;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
 use App\Tenancy\TenantContext;
+use App\Vision\Clarifications\ClarificationController;
 use App\Vision\Core\ReportPreparation;
 use App\Vision\Measurements\MeasurementList;
+use App\Vision\Publications\PublicationLogo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -21,7 +23,14 @@ final class ReportsController
         return app(MeasurementList::class)->withinCurrent($request, function (TenantContext $context, string $revision): mixed {
             Gate::authorize('vision.report.read');
 
-            return Inertia::render('Vision/Reports/Index', ['reportBrandRevision' => $revision, 'status' => session('status')]);
+            if (session()->has('publication_url')) {
+                Inertia::encryptHistory();
+            }
+
+            $publications = DB::table('report_publications')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)
+                ->whereNull('revoked_at')->where('expires_at', '>', now())->orderByDesc('created_at')->get(['id', 'report_id', 'expires_at']);
+
+            return Inertia::render('Vision/Reports/Index', ['publications' => $publications, 'reportBrandRevision' => $revision, 'status' => session('status'), 'createdUrl' => session('publication_url'), 'ttlDays' => config('features.E8-05C.defaults.publication_ttl_days'), 'logoAvailable' => app(PublicationLogo::class)->copy($context) !== null]);
         }, false);
     }
 
@@ -37,7 +46,10 @@ final class ReportsController
                 abort(409, 'Отчёт недоступен.');
             }
 
-            return response()->json(['revision' => $revision, ...$data]);
+            $measurement = $data['report']['measurement_id'] ?? null;
+            $pending = is_string($measurement) ? app(ClarificationController::class)->pendingCount($context, $measurement) : 0;
+
+            return response()->json(['revision' => $revision, ...$data, 'clarifications_pending' => $pending]);
         });
     }
 

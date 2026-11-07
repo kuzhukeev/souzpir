@@ -6,12 +6,16 @@
 
 **Часть чего:** SP-E5-03. После C функционального остатка SP-E5-03 нет.
 
-Зависимости: SP-E5-03B, SP-E3-08.
+Зависимости: SP-E5-03B, SP-E3-08, SP-E3-08B. Protected runtime для open/turn должен быть завершён до подключения токена API.
 
-Scope: `app/Seller/Channels/Api/`, `resources/js/pages/Seller/Channels/Api/`, `routes/features/E5-03.php`, `tests/Feature/Seller/Channels/Api/`, `tests/Unit/Seller/Channels/Api/`, `docs/results/SP-E5-03C.md`. Сгенерированные типы разрешены общим правилом.
+Scope: `app/Seller/Channels/Api/`, `app/ProtectedOperations/SellerFollowup/`, `app/Seller/Runtime/`, `resources/js/pages/Seller/Channels/Api/`, `routes/features/E5-03.php`, `tests/Feature/Seller/Channels/Api/`, `tests/Feature/SellerRuntime/Turns/`, `tests/Unit/Seller/Channels/Api/`, `docs/results/SP-E5-03C.md`. Сгенерированные типы разрешены общим правилом.
 
-Заменить 503 для open и POST /api/v1/turn на token-scoped вызовы защищённого seller runtime. Добавить ссылку на журнал ошибок B к существующим настройкам API.
+Заменить 503 для open и POST /api/v1/turn на token-scoped вызовы защищённого seller runtime. Если имеющийся runtime требует сессию сотрудника, добавить внутреннюю защищённую точку входа для проверенного токена API в разрешённом scope; прямой обход runtime запрещён. Добавить ссылку на журнал ошибок B к существующим настройкам API.
 
 Приёмка: Fake/HTTP: open, turn, повтор, чужой бренд, отзыв токена и отказ runtime; журнал без секретов. Живые внешние вызовы в тестах запрещены.
 
 Чужие модули не менять; итоговый отчёт до 30 строк с тестами, долгом и решениями.
+
+## Решение владельца 06.11.2026
+
+Владелец явно разрешил штатный task.py claim освобождённого сохранённого worktree и rebase на main с сохранением ветки и работы; чужие активные claim не сбрасывать.

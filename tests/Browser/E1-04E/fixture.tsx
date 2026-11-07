@@ -1,0 +1,13 @@
+import { createInertiaApp } from '@inertiajs/react';
+import { createRoot } from 'react-dom/client';
+import Company from '../../../resources/js/pages/Shell/Organizations/Company';
+import Modules from '../../../resources/js/pages/Shell/Organizations/Modules';
+import '../../../resources/css/app.css';
+import '../../../resources/css/themes/tokens.css';
+const isCompany = location.search.includes('company');
+const entry = {enabled:true,configured_enabled:true,enabled_at:'2026-10-12T12:00:00Z',allowed:true,usage:{value:3,status:'ready',unit:''},quota:{configured:true,value:10,unit:''},limit:{configured:true,value:1,unit:''}};
+if (location.search.includes('unknown')) entry.quota.configured = false;
+const page = {component:'Fixture',props:{company:{name:'Компания',legal_name:'ООО Компания',inn:'',industry:'',country:'Россия',region:'Москва',timezone:'Europe/Moscow'}, owner:{id:'u',name:'Иван Петров',email:'ivan@example.test'}, candidates:[],permissions:{manage:true,transfer:true},targetBrand:{id:'b',name:'Тестовый бренд',status:'active'},items:{vision:entry,seller:entry},counts:{channels:2,publications:3},theme:'neutral',brand:{id:'b',name:'Тестовый бренд',theme:'neutral'},brands:[],organization:{id:'o',name:'Компания'},auth:{user:{id:'u',name:'Иван Петров',email:'ivan@example.test'}},modules:{seller:true,vision:true},can:{},unread:null,translations:{},ziggy:{routes:{}},errors:{}},url:location.pathname + location.search,version:null,clearHistory:false,encryptHistory:false};
+if (location.search.includes('other')) page.props.brand.id = 'another-brand';
+const script=document.createElement('script');script.type='application/json';script.dataset.page='app';script.textContent=JSON.stringify(page);document.body.appendChild(script);
+void createInertiaApp({resolve:()=>isCompany ? Company : Modules,setup:({el,App,props})=>createRoot(el).render(<App {...props}/>)});

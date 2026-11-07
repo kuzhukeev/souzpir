@@ -1,0 +1,10 @@
+import { createInertiaApp } from '@inertiajs/react';
+import { createRoot } from 'react-dom/client';
+import '../../../resources/css/app.css';
+import '../../../resources/css/themes/tokens.css';
+import Start from '../../../resources/js/pages/Shell/Onboarding/Start';
+const params=new URLSearchParams(location.search);
+const initial={organization_name:'Союз Пир',industry:'Пиротехника',region:'Москва',timezone:'Europe/Moscow',website:'',brand_name:'Союз Пир',alias:'',theme:'pyro',seller:true,vision:true,step:Number(params.get('step')||1),completed:false,already_configured:false,logo_url:null};
+const props={initial,auth:{user:{id:'u',name:'Иван',email:'ivan@example.test'}},organization:null,brand:null,brands:[],modules:{seller:false,vision:false},can:{'profile.own':true},theme:'neutral',translations:{},ziggy:{routes:{}},errors:{},unread:null};
+const script=document.createElement('script');script.type='application/json';script.dataset.page='app';script.textContent=JSON.stringify({component:'Fixture',props,url:'/start',version:'fixture',clearHistory:false,encryptHistory:false});document.body.append(script);
+void createInertiaApp({resolve:()=>Start,setup:({el,App,props})=>createRoot(el).render(<App {...props}/>)});

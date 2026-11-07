@@ -2,6 +2,9 @@
 
 namespace App\Vision\Publications;
 
+use App\Shell\Audit\AuditEntry;
+use App\Shell\Audit\Contracts\AuditWriter;
+use App\Tenancy\TenantContext;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 
@@ -10,9 +13,15 @@ final class PublicReportController
     public function __invoke(string $token): Response
     {
         $row = DB::table('report_publications')->where('token_hash', hash('sha256', $token))
-            ->first(['brand_id', 'organization_id', 'public_payload', 'expires_at', 'revoked_at', 'created_at']);
+            ->first(['id', 'brand_id', 'organization_id', 'public_payload', 'expires_at', 'revoked_at', 'created_at']);
         abort_unless($row, 404);
         $expired = $row->revoked_at !== null || ($row->expires_at !== null && now()->greaterThanOrEqualTo($row->expires_at));
+        if (! $expired) {
+            DB::transaction(function () use ($row): void {
+                $tenant = new TenantContext($row->organization_id, $row->brand_id, source: 'public');
+                app(AuditWriter::class)->record($tenant, new AuditEntry('vision.report.publication.opened', 'report_publication', $row->id));
+            });
+        }
         $brandName = DB::table('brands')->where('id', $row->brand_id)->where('organization_id', $row->organization_id)->value('name');
         $response = response()->view('public-report.index', [
             'expired' => $expired,

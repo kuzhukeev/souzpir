@@ -59,6 +59,29 @@ final class DialogsTest extends TenancyTestCase
         $this->getJson('/seller/dialogs?mode=invalid')->assertUnprocessable();
     }
 
+    public function test_search_contact_and_message_and_wait_time_are_brand_scoped(): void
+    {
+        [$owner, $org, $brand, $otherBrand] = $this->cabinet();
+        [$manager] = $this->member($org, 'member', [$brand->id], ['sales_manager' => true]);
+        $this->enableSeller($org->id, $brand->id);
+        $mine = $this->dialog($org->id, $brand->id, 'Анна', 'manager');
+        $foreign = $this->dialog($org->id, $otherBrand->id, 'Другой', 'manager');
+        $contact = DB::table('conversations')->where('id', $mine)->value('contact_id');
+        DB::table('contacts')->where('id', $contact)->update(['email' => 'anna@example.test', 'phone' => '+79991234567']);
+        foreach ([[$mine, $brand->id], [$foreign, $otherBrand->id]] as [$id, $brandId]) {
+            DB::table('messages')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $brandId, 'conversation_id' => $id, 'role' => 'client', 'text' => 'Нужна синяя коробка', 'meta' => '{}', 'created_at' => now()->subMinutes(12), 'updated_at' => now()->subMinutes(12)]);
+        }
+        $this->actingAs($manager)->withSession(['brand_id' => $brand->id]);
+        foreach (['anna@example.test', '991234567', 'синяя коробка'] as $query) {
+            $this->get('/seller/dialogs?'.http_build_query(['search' => $query]))->assertOk()->assertInertia(fn (Assert $page) => $page
+                ->has('dialogs', 1)->where('dialogs.0.id', $mine)->where('dialogs.0.waiting_minutes', 12));
+        }
+        $this->get('/seller/dialogs?search=%25')->assertOk()->assertInertia(fn (Assert $page) => $page->has('dialogs', 0));
+        $this->getJson('/seller/dialogs?search='.str_repeat('x', 101))->assertUnprocessable();
+        DB::table('messages')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $brand->id, 'conversation_id' => $mine, 'role' => 'manager', 'text' => 'Ответили', 'meta' => '{}', 'created_at' => now(), 'updated_at' => now()]);
+        $this->get('/seller/dialogs')->assertOk()->assertInertia(fn (Assert $page) => $page->where('dialogs.0.waiting_minutes', null));
+    }
+
     private function enableSeller(string $organization, string $brand): void
     {
         DB::table('brand_modules')->insert(['id' => (string) Str::ulid(), 'organization_id' => $organization, 'brand_id' => $brand,

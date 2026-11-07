@@ -24,6 +24,7 @@ use Tests\TestCase;
 final class SiteHintsHttpTest extends TestCase
 {
     use IsolatedDatabaseMigrations;
+    use ResolvesDeferredHints;
 
     protected function beforeRefreshingDatabase(): void
     {
@@ -67,16 +68,27 @@ final class SiteHintsHttpTest extends TestCase
         config(['features.E0-02.defaults.organization_id' => $org->id]);
         DB::table('brand_modules')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $brand->id, 'module' => 'vision', 'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
         $title = 'Synthetic site title';
-        $text = 'This is a synthetic document from the private site source.';
+        $text = "This is a synthetic document from the private site source.\nКатегории: Фейерверки\nКонкуренты: Магазин Искра\nВопросы клиентов: Как выбрать салют?";
         $page = ['title' => $title, 'text' => $text, 'links' => [], 'price_caveats' => [], 'fingerprint' => CanonicalJson::hash(['title' => $title, 'text' => $text])];
         $ctx = new TenantContext($org->id, $brand->id, $owner->id, $ownerMember->id, 'session');
         app(TenantContextRunner::class)->run($ctx, fn () => app(SiteDraftStore::class)->store($ctx, 'https://example.com', 'https://example.com', $page, 1));
         $this->signIn($owner, $brand->id);
         $this->post('/vision/quiz/start')->assertRedirect();
         $this->privateGet('/vision/quiz/2')->assertOk()->assertInertia(fn (Assert $page) => $page->component('Vision/Profile/Quiz', false)->where('hints.status', 'available')->where('hints.items.0.value', $title)->where('hints.items.0.source', 'https://example.com/'));
+        $this->privateGet('/vision/quiz/1')->assertOk()->assertInertia(fn (Assert $page) => $page->where('hints.status', 'available'));
+        $this->privateGet('/vision/quiz/3')->assertOk()->assertInertia(fn (Assert $page) => $page->where('hints.items.0.value', 'Фейерверки'));
+        $this->privateGet('/vision/quiz/4')->assertOk()->assertInertia(fn (Assert $page) => $page->where('hints.items.0.value', 'Магазин Искра'));
+        $this->privateGet('/vision/quiz/5')->assertOk()->assertInertia(fn (Assert $page) => $page->where('hints.items.0.value', $title));
+        $this->privateGet('/vision/quiz/7')->assertOk()->assertInertia(fn (Assert $page) => $page->where('hints.items.0.value', 'Как выбрать салют?'));
         $this->signIn($editor, $brand->id);
         $response = $this->privateGet('/vision/quiz/2')->assertOk()->assertInertia(fn (Assert $page) => $page->component('Vision/Profile/Quiz', false)->where('hints.status', 'unavailable')->where('hints.items', []));
         self::assertStringNotContainsString($title, $response->getContent());
+        $otherBrand = app(TenantContextRunner::class)->run(new TenantContext($org->id), fn () => Brand::create(['name' => 'Other brand', 'website' => 'https://example.com']));
+        DB::table('brand_modules')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $otherBrand->id, 'module' => 'vision', 'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
+        $this->signIn($owner, $otherBrand->id);
+        $this->post('/vision/quiz/start')->assertRedirect();
+        $otherResponse = $this->privateGet('/vision/quiz/4')->assertOk()->assertInertia(fn (Assert $page) => $page->where('hints.status', 'empty')->where('hints.items', []));
+        self::assertStringNotContainsString('Магазин Искра', $otherResponse->getContent());
         Http::assertNothingSent();
     }
 
@@ -87,7 +99,7 @@ final class SiteHintsHttpTest extends TestCase
         self::assertSame(1, preg_match("/const h='([a-f0-9]{64})'/", $page->getContent(), $matches));
         $this->post('/vision/private-access', ['proof' => hash('sha256', hex2bin($matches[1]))])->assertRedirect($path);
 
-        return $this->get($path);
+        return $this->resolveDeferredHints($this->get($path), $path);
     }
 
     private function signIn(User $user, string $brandId): void

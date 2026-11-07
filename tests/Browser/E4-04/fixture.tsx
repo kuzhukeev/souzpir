@@ -13,7 +13,7 @@ const page = {
       { id: 'ask_documents', title: 'Документы', description: 'Документы к заказу.', examples: ['Какие документы нужны?'], facts: [], default_answer: '', after_action: 'none', after_action_text: '' },
     ],
     facts: [{ id: 'delivery_tk', label: 'Транспортные компании', count: 2 }, { id: 'delivery_time', label: 'Сроки доставки', count: 1 }, { id: 'payment_methods', label: 'Оплата', count: 2 }],
-    frequencies: { ask_delivery: 42, ask_payment: 30, ask_documents: 10 }, canWrite: true, draftVersion: 4, status: null,
+    frequencies: { ask_delivery: 42, ask_payment: 30, ask_documents: 10 }, frequentQuestions: {}, canWrite: true, draftVersion: 4, status: null,
     theme: 'neutral', brand: { id: 'b', name: 'Пример бренда', theme: 'neutral' }, brands: [], organization: { id: 'o', name: 'Компания' },
     auth: { user: { id: 'u', name: 'Иван Петров', email: 'ivan@example.test' } }, modules: { seller: true, vision: false },
     can: {}, unread: null, translations: {}, ziggy: { routes: {} }, errors: {},

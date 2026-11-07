@@ -58,6 +58,19 @@ final class ConditionsTest extends TenancyTestCase
         $this->post('/seller/knowledge/conditions', $this->input())->assertNotFound();
     }
 
+    public function test_discount_grid_is_saved_in_the_current_brand_draft(): void
+    {
+        [$owner, $org, $brand, , $member] = $this->cabinet();
+        $this->enable($org->id, $brand->id);
+        $tenant = new TenantContext($org->id, $brand->id, $owner->id, $member->id);
+        app(TenantContextRunner::class)->run($tenant, fn () => app(KnowledgeRepository::class)->createDraft($tenant, array_fill_keys(KnowledgeSnapshot::FILES, [])));
+        $input = $this->input();
+        $input['discount_grid'] = [['from' => 20000, 'pct' => 10], ['from' => 50000, 'pct' => 15]];
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $this->post('/seller/knowledge/conditions', $input)->assertRedirect()->assertSessionHasNoErrors();
+        $this->get('/seller/knowledge/conditions')->assertOk()->assertInertia(fn ($page) => $page->where('conditions.discount_grid.0.from', 20000)->where('conditions.discount_grid.1.pct', 15));
+    }
+
     public function test_input_conflict_and_permissions(): void
     {
         [$owner, $org, $brand, , $member] = $this->cabinet();
@@ -71,6 +84,9 @@ final class ConditionsTest extends TenancyTestCase
         $input = $this->input();
         $input['max_pct_unapproved'] = 101;
         $this->post('/seller/knowledge/conditions', $input)->assertSessionHasErrors('max_pct_unapproved');
+        $input = $this->input();
+        $input['discount_grid'] = [['from' => 20000, 'pct' => 101]];
+        $this->post('/seller/knowledge/conditions', $input)->assertSessionHasErrors('discount_grid.0.pct');
         $input = $this->input();
         $input['version'] = 9;
         $this->post('/seller/knowledge/conditions', $input)->assertStatus(409);

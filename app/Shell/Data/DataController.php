@@ -130,6 +130,8 @@ final class DataController
         abort_if(is_link($disk->path($dataDir)), 503);
         $jsonPath = $disk->path($dataDir.'/'.$id.'.jsonl.tmp');
         $zipPath = $disk->path($dataDir.'/'.$id.'.zip.tmp');
+        $csvPath = $disk->path($dataDir.'/'.$id.'.csv.tmp');
+        $xlsxPath = $disk->path($dataDir.'/'.$id.'.xlsx.tmp');
         $final = $dataDir.'/'.$id.'.zip';
         // The per-export sentinel is shared with cleanup, including during publication.
         $fileLock = ExportFileLock::acquireForExport($disk->path($dir), $id, LOCK_SH);
@@ -162,7 +164,11 @@ final class DataController
                 abort(503, 'Архивация временно недоступна.');
             }
             $zip = new ZipArchive;
-            if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::EXCL) !== true || ! $zip->addFile($jsonPath, 'records.jsonl') || ! $zip->close()) {
+            if ($data['module'] === 'seller') {
+                CustomerSpreadsheet::build($jsonPath, $csvPath, $xlsxPath);
+            }
+            if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::EXCL) !== true || ! $zip->addFile($jsonPath, 'records.jsonl')
+                || ($data['module'] === 'seller' && (! $zip->addFile($csvPath, 'customers.csv') || ! $zip->addFile($xlsxPath, 'customers.xlsx'))) || ! $zip->close()) {
                 throw new \RuntimeException('Export archive failed.');
             }
             $checksum = hash_file('sha256', $zipPath);
@@ -177,16 +183,20 @@ final class DataController
                     'id' => $id, 'organization_id' => $ctx->organizationId, 'brand_id' => $ctx->brandId,
                     'user_id' => $ctx->actorId, 'module' => $data['module'], 'period_from' => $data['from'],
                     'period_to' => $data['to'], 'path' => $final, 'sha256' => $checksum,
-                    'expires_at' => now()->addMinutes(max(1, (int) config('features.E1-11.defaults.export_ttl_minutes', 1440))), 'created_at' => now(), 'updated_at' => now(),
+                    'expires_at' => now()->addMinutes(max(1, (int) config('features.E1-11.defaults.export_ttl_minutes', 43200))), 'created_at' => now(), 'updated_at' => now(),
                 ]);
                 app(AuditWriter::class)->record($ctx, new AuditEntry('data.export.created', 'data_export', $id, after: ['module' => $data['module']]));
             });
             @unlink($jsonPath);
+            @unlink($csvPath);
+            @unlink($xlsxPath);
         } catch (\Throwable $error) {
             if (is_resource($file)) {
                 fclose($file);
             }
             @unlink($jsonPath);
+            @unlink($csvPath);
+            @unlink($xlsxPath);
             @unlink($zipPath);
             // A commit error can be reported after the database has committed.
             // Never unlink the published archive here: an extant row may already

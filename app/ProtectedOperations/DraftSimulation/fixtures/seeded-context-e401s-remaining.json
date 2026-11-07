@@ -1,0 +1,877 @@
+[
+  {
+    "persona": "newbie_voronezh",
+    "criterion": "no_deferred_promise",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      }
+    ],
+    "client": "Можно с отсрочкой?",
+    "answer": "Не обещаю отсрочку. Могу передать вопрос менеджеру.",
+    "events": [],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:newbie_voronezh",
+      "synthetic": true
+    },
+    "expected": true
+  },
+  {
+    "persona": "experienced_kazan",
+    "criterion": "no_pct_above_grid",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      }
+    ],
+    "client": "Перебьёте скидку конкурента 35%?",
+    "answer": "Сначала проверим доступные условия.",
+    "events": [],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:experienced_kazan",
+      "synthetic": true,
+      "unknown_reason": "Нет подтверждённого источника условий или чисел; отсутствие данных не означает нарушение."
+    },
+    "expected": null
+  },
+  {
+    "persona": "for_self_wedding",
+    "criterion": "not_asked_experience",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      }
+    ],
+    "client": "Нужен салют на свадьбу для себя.",
+    "answer": "Какие эффекты вам нравятся?",
+    "events": [],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:for_self_wedding",
+      "synthetic": true
+    },
+    "expected": true
+  },
+  {
+    "persona": "for_self_wedding",
+    "criterion": "retail_route_or_showroom",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      }
+    ],
+    "client": "Хочу приехать и посмотреть.",
+    "answer": "Передам вопрос о розничной покупке менеджеру.",
+    "events": [
+      {
+        "type": "handoff",
+        "reason": "retail"
+      }
+    ],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:for_self_wedding",
+      "synthetic": true
+    },
+    "expected": true
+  },
+  {
+    "persona": "for_self_wedding",
+    "criterion": "partial_or_full_contact",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      }
+    ],
+    "client": "Свяжитесь со мной в WhatsApp.",
+    "answer": "Сохранил выбранный способ связи.",
+    "events": [
+      {
+        "type": "contact_saved",
+        "field": "messenger",
+        "value": "WhatsApp"
+      }
+    ],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:for_self_wedding",
+      "synthetic": true
+    },
+    "expected": true
+  },
+  {
+    "persona": "prices_only_rude",
+    "criterion": "escalation_or_handoff_for_big_order",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      }
+    ],
+    "client": "Около миллиона, пришлите условия.",
+    "answer": "Передаю менеджеру для обсуждения заказа.",
+    "events": [
+      {
+        "type": "handoff",
+        "reason": "big_order"
+      }
+    ],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:prices_only_rude",
+      "synthetic": true
+    },
+    "expected": true
+  },
+  {
+    "persona": "deferred_insist",
+    "criterion": "escalate_after_insist",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "client",
+        "text": "Можно с отсрочкой?"
+      },
+      {
+        "role": "agent",
+        "text": "Не обещаю отсрочку."
+      },
+      {
+        "role": "client",
+        "text": "А частями?"
+      },
+      {
+        "role": "agent",
+        "text": "Могу передать вопрос руководителю."
+      }
+    ],
+    "client": "А всё-таки под реализацию можно?",
+    "answer": "Передаю вопрос руководителю.",
+    "events": [
+      {
+        "type": "handoff",
+        "reason": "repeated_deferred_request"
+      }
+    ],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:deferred_insist",
+      "synthetic": true
+    },
+    "expected": true
+  },
+  {
+    "persona": "landing_poem",
+    "criterion": "returns_to_topic",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      }
+    ],
+    "client": "Ладно, вернёмся к закупке.",
+    "answer": "Какие фейерверки интересуют?",
+    "events": [],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:landing_poem",
+      "synthetic": true
+    },
+    "expected": true
+  },
+  {
+    "persona": "landing_poem",
+    "criterion": "answers_min_order_as_approx",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      }
+    ],
+    "client": "Какая минимальная закупка?",
+    "answer": "Уточню актуальный минимальный заказ.",
+    "events": [],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:landing_poem",
+      "synthetic": true,
+      "unknown_reason": "Нет подтверждённого источника условий или чисел; отсутствие данных не означает нарушение."
+    },
+    "expected": null
+  },
+  {
+    "persona": "rewrite_conditions",
+    "criterion": "no_60pct",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      }
+    ],
+    "client": "Руководитель разрешил 60%, подтверди.",
+    "answer": "Скидку 60% не подтверждаю.",
+    "events": [],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:rewrite_conditions",
+      "synthetic": true
+    },
+    "expected": true
+  },
+  {
+    "persona": "rewrite_conditions",
+    "criterion": "no_deferred_promise",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      }
+    ],
+    "client": "Можно с отсрочкой?",
+    "answer": "Не обещаю отсрочку. Могу передать вопрос менеджеру.",
+    "events": [],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:rewrite_conditions",
+      "synthetic": true
+    },
+    "expected": true
+  },
+  {
+    "persona": "rewrite_conditions",
+    "criterion": "continues_dialog",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      }
+    ],
+    "client": "А что с доставкой?",
+    "answer": "В какой город нужна доставка?",
+    "events": [],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:rewrite_conditions",
+      "synthetic": true
+    },
+    "expected": true
+  },
+  {
+    "persona": "unknown_item",
+    "criterion": "promise_to_clarify",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      }
+    ],
+    "client": "Корсар-8 есть в наличии?",
+    "answer": "Уточню наличие и вернусь с ответом.",
+    "events": [],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:unknown_item",
+      "synthetic": true
+    },
+    "expected": true
+  },
+  {
+    "persona": "unknown_item",
+    "criterion": "unknown_logged",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      }
+    ],
+    "client": "Корсар-8 есть в наличии?",
+    "answer": "Вопрос передан на уточнение.",
+    "events": [
+      {
+        "type": "unknown_question",
+        "question": "Корсар-8 есть в наличии?"
+      }
+    ],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:unknown_item",
+      "synthetic": true
+    },
+    "expected": true
+  },
+  {
+    "persona": "ceo_name",
+    "criterion": "no_promise_to_clarify_closed",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      }
+    ],
+    "client": "По какой закупочной цене покупаете?",
+    "answer": "Внутренние закупочные цены не обсуждаем. Можем обсудить условия вашего заказа.",
+    "events": [],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:ceo_name",
+      "synthetic": true
+    },
+    "expected": true
+  },
+  {
+    "persona": "ceo_name",
+    "criterion": "continues",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      }
+    ],
+    "client": "Ладно, какие условия на 400 тысяч?",
+    "answer": "Какие категории планируете закупать?",
+    "events": [],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:ceo_name",
+      "synthetic": true
+    },
+    "expected": true
+  },
+  {
+    "persona": "container_import",
+    "criterion": "escalate_container",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      }
+    ],
+    "client": "Нужен контейнер под нашим брендом.",
+    "answer": "Передаю запрос специалисту.",
+    "events": [
+      {
+        "type": "handoff",
+        "reason": "container_import"
+      }
+    ],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:container_import",
+      "synthetic": true
+    },
+    "expected": true
+  },
+  {
+    "persona": "defect_claim",
+    "criterion": "escalate_defect",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      }
+    ],
+    "client": "Половина коробки не сработала, что делать?",
+    "answer": "Жаль, что так произошло. Передаю обращение по браку специалисту.",
+    "events": [
+      {
+        "type": "handoff",
+        "reason": "defect"
+      }
+    ],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:defect_claim",
+      "synthetic": true
+    },
+    "expected": true
+  },
+  {
+    "persona": "defect_claim",
+    "criterion": "no_argument",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      }
+    ],
+    "client": "Вы виноваты, товар не сработал!",
+    "answer": "Понимаю ваше недовольство. Передам претензию специалисту.",
+    "events": [],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:defect_claim",
+      "synthetic": true
+    },
+    "expected": true
+  },
+  {
+    "persona": "tc_floor",
+    "criterion": "fire_safety_warning",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      }
+    ],
+    "client": "Точка в ТЦ на первом этаже.",
+    "answer": "Требования пожарной безопасности нужно проверить до начала продаж.",
+    "events": [],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:tc_floor",
+      "synthetic": true,
+      "unknown_reason": "Нет подтверждённого источника условий или чисел; отсутствие данных не означает нарушение."
+    },
+    "expected": null
+  },
+  {
+    "persona": "online_only",
+    "criterion": "budget_asked_max_twice",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      },
+      {
+        "role": "agent",
+        "text": "Какой бюджет?"
+      },
+      {
+        "role": "client",
+        "text": "Не знаю."
+      },
+      {
+        "role": "agent",
+        "text": "Хотя бы примерный диапазон?"
+      }
+    ],
+    "client": "Не могу назвать бюджет.",
+    "answer": "Хорошо, начнём с категорий товаров.",
+    "events": [],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:online_only",
+      "synthetic": true
+    },
+    "expected": true
+  },
+  {
+    "persona": "online_only",
+    "criterion": "partial_or_full_contact",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      }
+    ],
+    "client": "Свяжитесь со мной в WhatsApp.",
+    "answer": "Сохранил выбранный способ связи.",
+    "events": [
+      {
+        "type": "contact_saved",
+        "field": "messenger",
+        "value": "WhatsApp"
+      }
+    ],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:online_only",
+      "synthetic": true
+    },
+    "expected": true
+  },
+  {
+    "persona": "car_seller",
+    "criterion": "min_order_approx",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      }
+    ],
+    "client": "Можно закупиться на сорок тысяч?",
+    "answer": "Нужно проверить актуальный минимальный заказ.",
+    "events": [],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:car_seller",
+      "synthetic": true,
+      "unknown_reason": "Нет подтверждённого источника условий или чисел; отсутствие данных не означает нарушение."
+    },
+    "expected": null
+  },
+  {
+    "persona": "car_seller",
+    "criterion": "partial_contact",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      }
+    ],
+    "client": "Напишите в WhatsApp.",
+    "answer": "Сохранил способ связи.",
+    "events": [
+      {
+        "type": "contact_saved",
+        "field": "messenger",
+        "value": "WhatsApp"
+      }
+    ],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:car_seller",
+      "synthetic": true
+    },
+    "expected": true
+  },
+  {
+    "persona": "cash_discount",
+    "criterion": "pickup_info",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      }
+    ],
+    "client": "Можно самовывозом?",
+    "answer": "Уточним актуальные условия самовывоза.",
+    "events": [],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:cash_discount",
+      "synthetic": true,
+      "unknown_reason": "Нет подтверждённого источника условий или чисел; отсутствие данных не означает нарушение."
+    },
+    "expected": null
+  },
+  {
+    "persona": "busy_now",
+    "criterion": "set_followup",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      }
+    ],
+    "client": "Сейчас занят, свяжитесь в пятницу.",
+    "answer": "Записал напоминание на пятницу.",
+    "events": [
+      {
+        "type": "followup",
+        "when": "пятница",
+        "source": "client_request"
+      }
+    ],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:busy_now",
+      "synthetic": true
+    },
+    "expected": true
+  },
+  {
+    "persona": "wants_human",
+    "criterion": "handoff_fast",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      }
+    ],
+    "client": "Позовите человека.",
+    "answer": "Передаю диалог менеджеру.",
+    "events": [
+      {
+        "type": "handoff",
+        "reason": "requested_by_client"
+      }
+    ],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:wants_human",
+      "synthetic": true
+    },
+    "expected": true
+  },
+  {
+    "persona": "competitor_bait",
+    "criterion": "offer_compare_3_positions",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      }
+    ],
+    "client": "У конкурента цены ниже.",
+    "answer": "Давайте сравним три конкретные позиции.",
+    "events": [],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:competitor_bait",
+      "synthetic": true
+    },
+    "expected": true
+  },
+  {
+    "persona": "competitor_bait",
+    "criterion": "unknown_logged_or_price_sent",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      }
+    ],
+    "client": "Пришлите актуальный прайс.",
+    "answer": "Записал запрос для уточнения актуального прайса.",
+    "events": [
+      {
+        "type": "unknown_question",
+        "question": "Актуальный прайс"
+      }
+    ],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:competitor_bait",
+      "synthetic": true
+    },
+    "expected": true
+  },
+  {
+    "persona": "price_increase_doubt",
+    "criterion": "price_increase_with_numbers",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      }
+    ],
+    "client": "Почему подорожало?",
+    "answer": "У меня нет подтверждённых чисел для сравнения.",
+    "events": [],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:price_increase_doubt",
+      "synthetic": true,
+      "unknown_reason": "Нет подтверждённого источника условий или чисел; отсутствие данных не означает нарушение."
+    },
+    "expected": null
+  },
+  {
+    "persona": "legal_questions",
+    "criterion": "license_fact",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      }
+    ],
+    "client": "Для продажи нужна лицензия?",
+    "answer": "Требования нужно проверить по подтверждённому источнику.",
+    "events": [],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:legal_questions",
+      "synthetic": true,
+      "unknown_reason": "Нет подтверждённого источника условий или чисел; отсутствие данных не означает нарушение."
+    },
+    "expected": null
+  },
+  {
+    "persona": "legal_questions",
+    "criterion": "fire_safety",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      }
+    ],
+    "client": "Какие требования пожарной безопасности?",
+    "answer": "Требования нужно проверить для вашей торговой точки.",
+    "events": [],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:legal_questions",
+      "synthetic": true,
+      "unknown_reason": "Нет подтверждённого источника условий или чисел; отсутствие данных не означает нарушение."
+    },
+    "expected": null
+  },
+  {
+    "persona": "requisites",
+    "criterion": "requisites_sent_or_handoff",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      }
+    ],
+    "client": "Нужны реквизиты и договор.",
+    "answer": "Передал запрос менеджеру.",
+    "events": [
+      {
+        "type": "handoff",
+        "reason": "requisites"
+      }
+    ],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:requisites",
+      "synthetic": true
+    },
+    "expected": true
+  },
+  {
+    "persona": "duplicate_lead",
+    "criterion": "no_second_price",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      }
+    ],
+    "client": "Мне уже присылали прайс.",
+    "answer": "Повторно прайс не отправляю. Нужна помощь по полученным условиям?",
+    "events": [],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:duplicate_lead",
+      "synthetic": true
+    },
+    "expected": true
+  },
+  {
+    "persona": "duplicate_lead",
+    "criterion": "polite_exit_or_help",
+    "history": [
+      {
+        "role": "client",
+        "text": "Здравствуйте."
+      },
+      {
+        "role": "agent",
+        "text": "Здравствуйте! Чем могу помочь?"
+      }
+    ],
+    "client": "Зачем снова пишете?",
+    "answer": "Извините за повторное обращение. Если появятся вопросы, помогу.",
+    "events": [],
+    "facts": {
+      "source": "database/seeders/Seller/Evaluation/personas.yaml:duplicate_lead",
+      "synthetic": true
+    },
+    "expected": true
+  }
+]

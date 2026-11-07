@@ -7,10 +7,13 @@ use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
 use App\Shell\Profile\ProfileAccess;
+use App\Shell\Support\FakeFieldRequestDelivery;
+use App\Shell\Support\SupportActions;
 use App\Tenancy\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -38,9 +41,20 @@ final class ToolSettingsController
 
     public function tools(Request $request): mixed
     {
-        $settings = $this->access($request, fn (User $user, TenantContext $tenant) => app(ToolPreferences::class)->read($tenant));
+        [$settings, $callCounts, $sources] = $this->access($request, function (User $user, TenantContext $tenant): array {
+            $count = DB::table('audit_logs')->where('organization_id', $tenant->organizationId)
+                ->where('brand_id', $tenant->brandId)->where('action', 'seller.promise.created')
+                ->where('created_at', '>=', now()->subDays(30))->where('created_at', '<=', now())->count();
 
-        return Inertia::render('Seller/Settings/Tools/Tools', ['settings' => $settings, 'status' => $request->session()->get('status')]);
+            $scope = ['organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId];
+            $pricePath = DB::table('catalog_settings')->where($scope)->value('price_file_path');
+            $sources = ['price_file_available' => is_string($pricePath) && Storage::disk('local')->exists($pricePath),
+                'catalog_available' => DB::table('catalog_imports')->where($scope)->where('status', 'completed')->exists()];
+
+            return [app(ToolPreferences::class)->read($tenant), ['create_promise' => $count > 0 ? $count : null], $sources];
+        });
+
+        return Inertia::render('Seller/Settings/Tools/Tools', ['settings' => $settings, 'callCounts' => $callCounts, 'sources' => $sources, 'requestKey' => (string) Str::ulid(), 'status' => $request->session()->get('status')]);
     }
 
     public function handoff(Request $request): mixed
@@ -53,6 +67,7 @@ final class ToolSettingsController
     public function updateTools(Request $request): mixed
     {
         $input = $request->validate(['tools' => ['required', 'array'], 'tools.*' => ['required', 'boolean'], 'requisites' => ['nullable', 'string', 'max:5000'],
+            'price_source' => ['sometimes', 'in:file,catalog,link'], 'price_url' => ['nullable', 'url:https', 'max:2048', 'required_if:price_source,link'],
             'delivery_rules' => ['present', 'array', 'max:100'], 'delivery_rules.*.city' => ['required', 'string', 'max:255'],
             'delivery_rules.*.price_min' => ['required', 'integer', 'min:0'], 'delivery_rules.*.price_max' => ['required', 'integer', 'gte:delivery_rules.*.price_min'],
             'delivery_rules.*.days_min' => ['required', 'integer', 'min:0'], 'delivery_rules.*.days_max' => ['required', 'integer', 'gte:delivery_rules.*.days_min']]);
@@ -68,6 +83,10 @@ final class ToolSettingsController
             }
             $preferences['tools'] = array_replace($preferences['tools'], $input['tools']);
             $preferences['requisites'] = $input['requisites'] ?? '';
+            if (array_key_exists('price_source', $input)) {
+                $preferences['price_source'] = $input['price_source'];
+                $preferences['price_url'] = $input['price_source'] === 'link' ? $input['price_url'] : '';
+            }
             $preferences['delivery_rules'] = $input['delivery_rules'];
             $this->save($tenant, $preferences);
         });
@@ -75,11 +94,29 @@ final class ToolSettingsController
         return back()->with('status', 'Настройки действий сохранены.');
     }
 
+    public function requestAction(Request $request): mixed
+    {
+        $input = $request->validate(['description' => ['required', 'string', 'min:10', 'max:9500'],
+            'submission_key' => ['required', 'ulid'], 'brand_id' => ['prohibited'], 'organization_id' => ['prohibited']]);
+        $brandName = $this->access($request, fn (User $user, TenantContext $tenant) => DB::table('brands')
+            ->where('organization_id', $tenant->organizationId)->where('id', $tenant->brandId)->value('name'));
+        $submission = app(SupportActions::class)->create($request, ['subject' => 'other', 'module' => 'seller',
+            'body' => 'Запрос действия v2 бренда «'.$brandName.'»: '.trim($input['description']), 'support_access' => false,
+            'submission_key' => strtoupper($input['submission_key'])]);
+        if ($submission->created) {
+            app(FakeFieldRequestDelivery::class)->send($submission->ticket);
+        }
+
+        return back()->with('status', 'Заявка сохранена в поддержке. Письмо не отправлено.');
+    }
+
     public function updateHandoff(Request $request): mixed
     {
         $input = $request->validate(['reasons' => ['present', 'array'], 'reasons.*.enabled' => ['required', 'boolean'],
             'reasons.*.priority' => ['required', 'in:normal,urgent'], 'reasons.*.message' => ['nullable', 'string', 'max:1000'],
-            'reasons.*.after' => ['required', 'in:silent,simple,continue'], 'timeout_minutes' => ['nullable', 'integer', 'min:1', 'max:10080']]);
+            'reasons.*.after' => ['required', 'in:silent,simple,continue'], 'timeout_minutes' => ['nullable', 'integer', 'min:1', 'max:10080'],
+            'timeout_notification' => ['sometimes', 'boolean'], 'timeout_reminder' => ['sometimes', 'boolean'],
+            'timeout_fallback' => ['sometimes', 'nullable', 'string', 'max:1000']]);
         $this->access($request, function (User $user, TenantContext $tenant) use ($input): void {
             $preferences = app(ToolPreferences::class)->read($tenant);
             if (array_diff(array_keys($input['reasons']), array_keys($preferences['reasons']))) {
@@ -89,6 +126,14 @@ final class ToolSettingsController
                 $preferences['reasons'][$id] = array_replace($preferences['reasons'][$id], $reason);
             }
             $preferences['timeout_minutes'] = isset($input['timeout_minutes']) ? (int) $input['timeout_minutes'] : null;
+            foreach (['timeout_notification', 'timeout_reminder'] as $key) {
+                if (array_key_exists($key, $input)) {
+                    $preferences[$key] = (bool) $input[$key];
+                }
+            }
+            if (array_key_exists('timeout_fallback', $input)) {
+                $preferences['timeout_fallback'] = $input['timeout_fallback'] ?? '';
+            }
             $this->save($tenant, $preferences);
         });
 

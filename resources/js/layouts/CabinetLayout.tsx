@@ -64,9 +64,9 @@ export default function CabinetLayout({
       else root.dataset.theme = previous;
     };
   }, [props.theme]);
-  const canSeeNotifications = props.can?.['journal.notifications.read'] === true;
+  const canSeeNotifications = props.can?.['profile.own'] === true;
   const notifications = Object.values(props.ziggy?.routes ?? {}).some(
-    (r) => r.uri === 'journal/notifications' && r.methods.includes('GET'),
+    (r) => r.uri === 'dashboard' && r.methods.includes('GET'),
   );
   return (
     <div className="min-h-dvh bg-(--color-bg) text-(--color-ink)">
@@ -124,7 +124,7 @@ export default function CabinetLayout({
             {canSeeNotifications &&
               (notifications ? (
                 <Link
-                  href="/journal/notifications"
+                  href="/dashboard#notifications"
                   aria-label={
                     props.unread === null ? 'Уведомления' : `Уведомления: ${props.unread}`
                   }
@@ -144,6 +144,7 @@ export default function CabinetLayout({
                   <span className="sr-only">Уведомления пока недоступны</span>
                 </span>
               ))}
+            {props.auth.user && props.can?.['profile.own'] === true && <nav aria-label="Меню профиля"><Link href="/context/organization" className="cursor-pointer text-sm font-semibold text-(--color-link)">Выбор компании</Link></nav>}
             {props.auth.user && (
               <div className="flex items-center gap-3">
                 <span

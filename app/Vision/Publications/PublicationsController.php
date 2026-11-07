@@ -5,13 +5,16 @@ namespace App\Vision\Publications;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
 use App\Tenancy\TenantContext;
+use App\Vision\Core\VisionReportReader;
 use App\Vision\Measurements\MeasurementList;
+use App\Vision\Reports\ReportData;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use LogicException;
@@ -20,7 +23,7 @@ final class PublicationsController
 {
     public function index(Request $request): Response
     {
-        return app(MeasurementList::class)->withinCurrent($request, function (TenantContext $context, string $revision): Response {
+        return app(MeasurementList::class)->withinCurrent($request, function (TenantContext $context, string $revision) use ($request): Response {
             Gate::authorize('vision.report.read');
             $reports = DB::table('vision_reports')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)
                 ->whereIn('measurement_id', DB::table('snapshot_confirmations')->where('organization_id', $context->organizationId)
@@ -30,12 +33,25 @@ final class PublicationsController
                 ->where('brand_id', $context->brandId)->orderByDesc('created_at')
                 ->get(['id', 'report_id', 'expires_at', 'revoked_at', 'created_at']);
 
+            $review = null;
+            if ($request->filled('review_report')) {
+                Gate::authorize('vision.measure.run');
+                $input = $request->validate(['review_report' => ['required', 'ulid']]);
+                abort_unless($reports->contains('id', $input['review_report']), 404);
+                try {
+                    $payload = app(VisionReportReader::class)->read($input['review_report']);
+                    $review = ['report_id' => $input['review_report'], 'candidates' => app(PublicationData::class)->candidatesFromPayload($payload)];
+                } catch (LogicException) {
+                    abort(404);
+                }
+            }
+
             if (session()->has('publication_url')) {
                 Inertia::encryptHistory();
             }
 
             return Inertia::render('Vision/Publications/Index', [
-                'reports' => $reports, 'publications' => $publications,
+                'reports' => $reports, 'publications' => $publications, 'review' => $review,
                 'ttlDays' => config('features.E8-05C.defaults.publication_ttl_days'),
                 'reportBrandRevision' => $revision,
                 'canPublish' => Gate::allows('vision.measure.run'),
@@ -49,6 +65,11 @@ final class PublicationsController
         $data = $request->validate([
             'report_id' => ['required', 'ulid'],
             'ttl_days' => ['required', 'integer', Rule::in(config('features.E8-05C.defaults.publication_ttl_days'))],
+            'return_to' => ['nullable', Rule::in(['report'])],
+            'allow_pdf' => ['sometimes', 'boolean'],
+            'include_logo' => ['sometimes', 'boolean'],
+            'confirmed_actions' => ['sometimes', 'array', 'max:3'],
+            'confirmed_actions.*' => ['required', 'string', 'regex:/^action:\d+$/D'],
         ]);
         $token = bin2hex(random_bytes(32));
         app(MeasurementList::class)->withinCurrent($request, function (TenantContext $context) use ($data, $token): void {
@@ -56,10 +77,23 @@ final class PublicationsController
             Gate::authorize('vision.measure.run');
             $report = DB::table('vision_reports')->where('id', $data['report_id'])->where('organization_id', $context->organizationId)
                 ->where('brand_id', $context->brandId)->whereIn('measurement_id', DB::table('snapshot_confirmations')
-                ->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)->select('measurement_id'))->first(['id']);
+                ->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)->select('measurement_id'))->first(['id', 'measurement_id', 'created_at']);
             abort_unless($report, 404);
             try {
-                $public = app(PublicationData::class)->fromReport($report->id);
+                $measurement = DB::table('measurements')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)
+                    ->where('id', $report->measurement_id)->first(['profile_snapshot', 'profile_checksum']);
+                $reportData = app(ReportData::class);
+                $siteAudit = $reportData->siteAudit($context, $reportData->siteFromProfile($measurement), $report->created_at);
+                $public = app(PublicationData::class)->fromReport($report->id, $siteAudit,
+                    $data['confirmed_actions'] ?? [], $context, $report);
+                $public['allow_pdf'] = (bool) ($data['allow_pdf'] ?? false);
+                if ($data['include_logo'] ?? false) {
+                    $logo = app(PublicationLogo::class)->copy($context);
+                    if ($logo === null) {
+                        throw ValidationException::withMessages(['include_logo' => 'Логотип недоступен. Загрузите его заново или опубликуйте отчёт без логотипа.']);
+                    }
+                    $public['logo'] = $logo;
+                }
             } catch (LogicException) {
                 abort(409, 'Отчёт недоступен.');
             }
@@ -71,10 +105,12 @@ final class PublicationsController
                 'expires_at' => now()->addDays($data['ttl_days']), 'created_at' => now(), 'updated_at' => now(),
             ]);
             app(AuditWriter::class)->record($context, new AuditEntry('vision.report.published', 'report_publication', $id,
-                after: ['report_id' => $report->id, 'ttl_days' => $data['ttl_days']]));
+                after: ['report_id' => $report->id, 'ttl_days' => $data['ttl_days'], 'approved_actions' => count($data['confirmed_actions'] ?? [])]));
         });
 
-        return redirect()->route('vision.publications.index')->with('publication_url', route('vision.publications.public', $token))
+        $destination = ($data['return_to'] ?? null) === 'report' ? route('vision.reports.index', ['report' => $data['report_id']]) : route('vision.publications.index');
+
+        return redirect($destination)->with('publication_url', route('vision.publications.public', $token))
             ->with('status', 'Ссылка создана. Сохраните её сейчас: повторно показать токен нельзя.');
     }
 

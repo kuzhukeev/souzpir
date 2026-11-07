@@ -3,6 +3,21 @@ import { Button } from '@/components/ui';
 import { AuthFrame, Check, Field, linkClass } from '@/features/Shell/Auth/AuthFrame';
 import type { FormEvent } from 'react';
 
+function strength(password: string): number {
+  return [password.length >= 12, /[a-zа-я]/i.test(password) && /[A-ZА-Я]/.test(password), /\d/.test(password), /[^\p{L}\d]/u.test(password)].filter(Boolean).length;
+}
+
+function formatPhone(value: string): string {
+  const digits = value.replace(/\D/g, '').replace(/^[78]/, '').slice(0, 10);
+  if (!digits) return '';
+  let result = '+7 (' + digits.slice(0, 3);
+  if (digits.length >= 3) result += ')';
+  if (digits.length > 3) result += ' ' + digits.slice(3, 6);
+  if (digits.length > 6) result += '-' + digits.slice(6, 8);
+  if (digits.length > 8) result += '-' + digits.slice(8, 10);
+  return result;
+}
+
 export default function Register() {
   const form = useForm({
     name: '',
@@ -51,6 +66,12 @@ export default function Register() {
           onChange={(e) => form.setData('password', e.target.value)}
           error={form.errors.password}
         />
+        <div aria-live="polite" className="-mt-2">
+          <p className="mb-2 text-sm text-(--color-ink-muted)">Надёжность пароля: {['нет', 'низкая', 'средняя', 'хорошая', 'высокая'][strength(form.data.password)]}</p>
+          <div className="grid grid-cols-4 gap-1" role="meter" aria-label="Надёжность пароля" aria-valuemin={0} aria-valuemax={4} aria-valuenow={strength(form.data.password)}>
+            {[1, 2, 3, 4].map((part) => <span key={part} className={`h-2 rounded-full ${strength(form.data.password) >= part ? 'bg-(--color-action)' : 'bg-(--color-border)'}`} />)}
+          </div>
+        </div>
         <Field
           label="Повторите пароль"
           type="password"
@@ -66,7 +87,9 @@ export default function Register() {
           type="tel"
           autoComplete="tel"
           value={form.data.phone}
-          onChange={(e) => form.setData('phone', e.target.value)}
+          placeholder="+7 (___) ___-__-__"
+          inputMode="tel"
+          onChange={(e) => form.setData('phone', formatPhone(e.target.value))}
           error={form.errors.phone}
         />
         <Field
@@ -89,7 +112,7 @@ export default function Register() {
           error={form.errors.terms}
         />
         <Check
-          label="Я согласен на обработку данных внешними ИИ-провайдерами"
+          label="Название компании и тексты диалогов обрабатываются внешними ИИ-провайдерами через OpenRouter"
           required
           checked={form.data.ai_consent}
           onChange={(e) => form.setData('ai_consent', e.target.checked)}
@@ -101,7 +124,7 @@ export default function Register() {
           onChange={(e) => form.setData('marketing', e.target.checked)}
         />
         <Button type="submit" loading={form.processing} className="min-h-12 w-full">
-          Зарегистрироваться
+          {form.processing ? 'Создаём аккаунт…' : 'Зарегистрироваться'}
         </Button>
       </form>
       <p className="mt-6 border-t border-(--color-border) pt-5 text-center text-sm text-(--color-ink-muted)">

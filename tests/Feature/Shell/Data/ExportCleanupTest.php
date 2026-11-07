@@ -16,9 +16,21 @@ final class ExportCleanupTest extends TenancyTestCase
         Storage::fake('local');
         [$owner, $org, $brand] = $this->cabinet();
         $disk = Storage::disk('local');
-        $expired = (string) Str::ulid();
-        $active = (string) Str::ulid();
-        $orphan = (string) Str::ulid();
+        // ExportFileLock hashes IDs into 64 shared buckets. The locked active
+        // export must not accidentally lock either of the files being pruned.
+        $buckets = [];
+        $distinctId = static function () use (&$buckets): string {
+            do {
+                $id = (string) Str::ulid();
+                $bucket = hexdec(substr(hash('sha256', strtoupper($id)), 0, 2)) % 64;
+            } while (isset($buckets[$bucket]));
+            $buckets[$bucket] = true;
+
+            return $id;
+        };
+        $expired = $distinctId();
+        $active = $distinctId();
+        $orphan = $distinctId();
         $recent = (string) Str::ulid();
         $prefix = 'data-exports/'.$org->id.'/';
         foreach ([$expired, $active] as $id) {

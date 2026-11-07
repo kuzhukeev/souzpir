@@ -11,8 +11,11 @@ use App\Models\Membership;
 use App\Models\User;
 use App\ProtectedOperations\ExtractorEffectReservations;
 use App\ProtectedOperations\FirstTurnProtectedClaim;
+use App\ProtectedOperations\JobFirstTurnClaim;
+use App\ProtectedOperations\PostgresTransactionalIdempotency;
 use App\ProtectedOperations\SellerTurnFence;
 use App\Seller\Conversations\Data\TurnClaim;
+use App\Seller\Engine\BrandPromptSets;
 use App\Seller\Engine\Extractor;
 use App\Seller\Engine\ExtractorPromptLoader;
 use App\Seller\Engine\LeadState;
@@ -21,6 +24,7 @@ use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Auth\SessionBrandSelection;
 use App\Shell\Organizations\ModuleEntitlements;
 use App\Tenancy\TenantContext;
+use App\Tenancy\TenantContextRunner;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
@@ -33,6 +37,66 @@ use Throwable;
 /** Server-owned extractor inputs and call binding; never authorizes a Seller effect. */
 final class SellerExtractorStages
 {
+    /** Build extractor input from the current job claim and persisted first message. */
+    public function prepareJobInput(#[SensitiveParameter] TenantContext $tenant, #[SensitiveParameter] TurnClaim $claim): array
+    {
+        try {
+            return app(TenantContextRunner::class)->run($tenant, fn () => DB::transaction(function () use ($tenant, $claim): array {
+                app(JobFirstTurnClaim::class)->assertCurrent($tenant, $claim);
+                [$request, $state, $message, $engine] = $this->inputs($tenant, $claim);
+                $context = new AiContext($tenant->organizationId, $tenant->brandId, 'extractor', 'seller', 'conversation',
+                    $claim->conversationId, 'job-extractor-'.$claim->turnId, ['conversation_content', 'client_profile', 'knowledge_internal']);
+
+                return [$request, $context, $this->digest($this->inputJson($request, $state, $message)), $state, $message, $engine];
+            }));
+        } catch (Throwable) {
+            throw new LogicException('Protected extractor stage rejected.');
+        }
+    }
+
+    /** Persist the prepared job input in the encrypted, tenant-scoped receipt. */
+    public function prepareJobStoredInput(#[SensitiveParameter] TenantContext $tenant, #[SensitiveParameter] TurnClaim $claim): array
+    {
+        try {
+            return app(TenantContextRunner::class)->run($tenant, fn () => DB::transaction(function () use ($tenant, $claim): array {
+                app(JobFirstTurnClaim::class)->assertCurrent($tenant, $claim);
+                $receipt = app(PostgresTransactionalIdempotency::class)->execute(
+                    $tenant->requireOrganizationId(), $tenant->brandId, 'seller.job_extractor_input', $claim->turnId,
+                    json_encode(['turn_id' => $claim->turnId, 'conversation_id' => $claim->conversationId], JSON_THROW_ON_ERROR),
+                    function () use ($tenant, $claim): array {
+                        [$request, , $digest, $state, $message] = $this->prepareJobInput($tenant, $claim);
+
+                        return ['input' => $this->inputJson($request, $state, $message), 'digest' => $digest];
+                    },
+                );
+                if (! is_string($receipt['input'] ?? null) || ! is_string($receipt['digest'] ?? null)
+                    || ! hash_equals($receipt['digest'], $this->digest($receipt['input']))) {
+                    throw new LogicException;
+                }
+
+                return $receipt;
+            }));
+        } catch (Throwable) {
+            throw new LogicException('Protected extractor stage rejected.');
+        }
+    }
+
+    /** Restore a job input only while it still matches the protected current inputs. */
+    public function loadJobInput(#[SensitiveParameter] TenantContext $tenant, #[SensitiveParameter] TurnClaim $claim): array
+    {
+        try {
+            $saved = $this->prepareJobStoredInput($tenant, $claim);
+            $current = $this->prepareJobInput($tenant, $claim);
+            if (! hash_equals($saved['digest'], $current[2])) {
+                throw new LogicException;
+            }
+
+            return $current;
+        } catch (Throwable) {
+            throw new LogicException('Protected extractor stage rejected.');
+        }
+    }
+
     public function prepare(#[SensitiveParameter] Request $http, #[SensitiveParameter] TurnClaim $claim): string
     {
         try {
@@ -193,7 +257,8 @@ final class SellerExtractorStages
             $query->where(fn ($platform) => $platform->whereNull('organization_id')->whereNull('brand_id'))
                 ->orWhere(fn ($brand) => $brand->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId));
         })->orderBy('id')->lockForUpdate()->get(['id']);
-        $prompt = app(ExtractorPromptLoader::class)->load($tenant);
+        $promptRow = app(BrandPromptSets::class)->load($tenant, $release, 'extractor');
+        $prompt = app(ExtractorPromptLoader::class)->load($tenant, $promptRow->version);
         $model = config('features.E0-05.defaults.seller_defaults.extractor.model');
         $temperature = config('features.E0-05.defaults.seller_defaults.extractor.temperature');
         if (! is_string($name) || trim($name) === '' || ! is_string($model) || $model === '' || ! is_numeric($temperature)) {

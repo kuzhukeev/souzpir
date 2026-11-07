@@ -20,6 +20,7 @@ use App\Contracts\Ai\AiResult;
 use App\Privacy\ContactBoundary;
 use App\Privacy\Secrets\SecretBoundary;
 use App\Seller\Conversations\Data\TurnClaim;
+use App\Seller\Dialogs\ManagerSuggestionExtractorInput;
 use App\Seller\Engine\GuardDecision;
 use App\Seller\Engine\GuardModelResult;
 use App\Seller\Engine\ResponderResult;
@@ -549,6 +550,34 @@ final class Gateway implements AiGateway
         }
     }
 
+    /** Complete the server-built extractor request for an assigned manager in fake mode. */
+    public function completeManagerSuggestionExtractor(#[\SensitiveParameter] Request $http, string $dialog, #[\SensitiveParameter] string $key): AiResult
+    {
+        if (config('runtime.ai_driver', 'fake') !== 'fake') {
+            throw new LogicException('Manager suggestion extractor unavailable.');
+        }
+        try {
+            [$input, $source] = app(ManagerSuggestionExtractorInput::class)->build($http, $dialog, $key);
+            $tenant = app(TenantContext::class);
+            $context = new AiContext($tenant->organizationId, $tenant->brandId, 'extractor', 'seller', 'conversation', $dialog,
+                'manager-suggestion-extractor-'.hash_hmac('sha256', $key.CanonicalJson::hash($source), (string) config('app.key')),
+                ['conversation_content', 'client_profile', 'knowledge_internal']);
+            $expected = CanonicalJson::hash($input->toArray());
+            $assertSource = function () use ($http, $dialog, $key, $source, $expected): void {
+                [$current, $currentSource] = app(ManagerSuggestionExtractorInput::class)->build($http, $dialog, $key);
+                if ($currentSource !== $source || ! hash_equals($expected, CanonicalJson::hash($current->toArray()))) {
+                    throw new LogicException;
+                }
+            };
+            $result = $this->completeInternal($input, $context, $assertSource);
+            $assertSource();
+
+            return $result;
+        } catch (Throwable) {
+            throw new LogicException('Manager suggestion extractor unavailable.');
+        }
+    }
+
     public function complete(#[\SensitiveParameter] AiRequest $request, #[\SensitiveParameter] AiContext $context): AiResult
     {
         try {
@@ -691,6 +720,9 @@ final class Gateway implements AiGateway
         return DB::transaction(function () use ($request, $context, $provider, $requestHash, $wireBytes, $beforeReserve, $afterReserve): array {
             if ($beforeReserve !== null) {
                 $beforeReserve();
+            }
+            if ($beforeReserve === null && str_starts_with($context->idempotencyKey, 'manager-suggestion-extractor-')) {
+                throw new LogicException('Protected AI call requires protected reading.');
             }
             // Prepared extractor inputs cannot be dispatched through public
             // complete(), including before their first protected reservation.

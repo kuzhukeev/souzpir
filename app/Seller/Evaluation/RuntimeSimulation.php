@@ -12,24 +12,25 @@ use Throwable;
 
 final class RuntimeSimulation
 {
-    public function run(TenantContext $context, string $personaKey, int $maxTurns, SimulationRuntime $runtime): string
+    public function run(TenantContext $context, string $personaKey, int $maxTurns, SimulationRuntime $runtime, string $clientModel = 'fake'): string
     {
         $persona = DB::table('seller_personas')->where('organization_id', $context->requireOrganizationId())
             ->where('brand_id', $context->brandId)->where('key', $personaKey)->first() ?? abort(404);
         if ($maxTurns < 1 || $maxTurns > $persona->max_turns) {
             throw new InvalidArgumentException('Invalid number of turns.');
         }
+        $strategy = ClientModel::strategy($clientModel);
         $payload = json_decode($persona->payload, true, 512, JSON_THROW_ON_ERROR);
         if (! is_array($payload)) {
             throw new InvalidArgumentException('Invalid persona.');
         }
         $id = (string) Str::ulid();
         $trace = [];
+        $metrics = ['client_model' => $clientModel, 'knowledge_release_id' => app(SimulationKnowledgeRelease::class)->id($context)];
         DB::table('seller_sim_runs')->insert(['id' => $id, 'organization_id' => $context->organizationId,
             'brand_id' => $context->brandId, 'persona_id' => $persona->id, 'status' => 'processing',
-            'turn_count' => 0, 'turns' => '[]', 'metrics' => '{}', 'created_at' => now(), 'updated_at' => now()]);
+            'turn_count' => 0, 'turns' => '[]', 'metrics' => json_encode($metrics, JSON_THROW_ON_ERROR), 'created_at' => now(), 'updated_at' => now()]);
         $status = 'completed';
-        $metrics = [];
         try {
             $opened = $runtime->open($context, $id.':open');
             $conversationId = $opened['conversation_id'] ?? null;
@@ -38,7 +39,7 @@ final class RuntimeSimulation
             }
             $trace[] = ['client' => '', 'agent' => $this->agentText($opened)];
             for ($index = 1; $index < $maxTurns; $index++) {
-                $client = $this->clientText($payload, $index);
+                $client = $this->clientText($payload, $index, $strategy);
                 $reply = $runtime->turn($context, $conversationId, $client, $id.':'.$index);
                 $trace[] = ['client' => $client, 'agent' => $this->agentText($reply)];
             }
@@ -69,9 +70,9 @@ final class RuntimeSimulation
         return $text;
     }
 
-    private function clientText(array $persona, int $index): string
+    private function clientText(array $persona, int $index, string $strategy): string
     {
-        $facts = $persona['facts'] ?? [];
+        $facts = $strategy === 'facts' ? ($persona['facts'] ?? []) : [];
         if (! is_array($facts)) {
             $facts = [];
         }

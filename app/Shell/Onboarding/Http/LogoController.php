@@ -6,6 +6,7 @@ use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
 use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Onboarding\OwnerLock;
+use App\Shell\Onboarding\SvgLogo;
 use App\Tenancy\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -27,26 +28,33 @@ final class LogoController
         }
         $file = $request->file('logo');
         $bytes = file_get_contents($file->getRealPath());
-        $info = $bytes === false ? false : @getimagesizefromstring($bytes);
-        if (! $info || ! in_array($info['mime'] ?? null, ['image/png', 'image/jpeg', 'image/webp'], true) || $info[0] < 1 || $info[1] < 1 || $info[0] > 2048 || $info[1] > 2048 || $info[0] * $info[1] > 4194304) {
-            throw ValidationException::withMessages(['logo' => 'Выберите корректное изображение PNG, JPEG или WebP до 1 МБ и 2048 × 2048 пикселей.'])->redirectTo(route('onboarding.show'));
-        }
-        $image = @imagecreatefromstring($bytes);
-        if ($image === false) {
-            throw ValidationException::withMessages(['logo' => 'Не удалось прочитать изображение.'])->redirectTo(route('onboarding.show'));
-        }
-        imagesavealpha($image, true);
-        ob_start();
-        $success = imagepng($image, null, 6);
-        $png = ob_get_clean();
-        imagedestroy($image);
-        if (! $success || ! is_string($png) || strlen($png) > 4 * 1024 * 1024) {
-            throw ValidationException::withMessages(['logo' => 'Не удалось подготовить изображение.'])->redirectTo(route('onboarding.show'));
+        $svg = is_string($bytes) ? SvgLogo::sanitize($bytes) : null;
+        if ($svg !== null) {
+            $prepared = $svg;
+            $extension = 'svg';
+        } else {
+            $info = $bytes === false ? false : @getimagesizefromstring($bytes);
+            if (! $info || ($info['mime'] ?? null) !== 'image/png' || $info[0] < 1 || $info[1] < 1 || $info[0] > 2048 || $info[1] > 2048 || $info[0] * $info[1] > 4194304) {
+                throw ValidationException::withMessages(['logo' => 'Выберите корректное изображение PNG или SVG до 1 МБ.'])->redirectTo(route('onboarding.show'));
+            }
+            $image = @imagecreatefromstring($bytes);
+            if ($image === false) {
+                throw ValidationException::withMessages(['logo' => 'Не удалось прочитать изображение.'])->redirectTo(route('onboarding.show'));
+            }
+            imagesavealpha($image, true);
+            ob_start();
+            $success = imagepng($image, null, 6);
+            $prepared = ob_get_clean();
+            imagedestroy($image);
+            if (! $success || ! is_string($prepared) || strlen($prepared) > 4 * 1024 * 1024) {
+                throw ValidationException::withMessages(['logo' => 'Не удалось подготовить изображение.'])->redirectTo(route('onboarding.show'));
+            }
+            $extension = 'png';
         }
         $context = app(TenantContext::class);
-        $path = 'organizations/'.$context->organizationId.'/onboarding/logos/'.bin2hex(random_bytes(16)).'.png';
+        $path = 'organizations/'.$context->organizationId.'/onboarding/logos/'.bin2hex(random_bytes(16)).'.'.$extension;
         $disk = Storage::disk('local');
-        if (! $disk->put($path, $png, ['visibility' => 'private'])) {
+        if (! $disk->put($path, $prepared, ['visibility' => 'private'])) {
             throw new RuntimeException('Unable to store onboarding logo.');
         }
         try {
@@ -96,11 +104,11 @@ final class LogoController
         $disk = Storage::disk('local');
         abort_unless($disk->exists($path), 404);
 
-        return response($disk->get($path), 200, ['Content-Type' => 'image/png', 'X-Content-Type-Options' => 'nosniff', 'Cache-Control' => 'private, no-store', 'Content-Security-Policy' => "default-src 'none'; sandbox"]);
+        return response($disk->get($path), 200, ['Content-Type' => str_ends_with($path, '.svg') ? 'image/svg+xml' : 'image/png', 'X-Content-Type-Options' => 'nosniff', 'Cache-Control' => 'private, no-store', 'Content-Security-Policy' => "default-src 'none'; sandbox"]);
     }
 
     private function validPath(string $org, string $path): bool
     {
-        return preg_match('~^organizations/'.preg_quote($org, '~').'/onboarding/logos/[a-f0-9]{32}\\.png$~D', $path) === 1;
+        return preg_match('~^organizations/'.preg_quote($org, '~').'/onboarding/logos/[a-f0-9]{32}\\.(?:png|svg)$~D', $path) === 1;
     }
 }

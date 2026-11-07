@@ -73,6 +73,49 @@ final class DatabaseKnowledgeRepository implements KnowledgeRepository
         });
     }
 
+    /** Restore the downloaded snapshot and fact metadata without replacing the active release. */
+    public function restoreFile(TenantContext $context, array $data, array $groups): array
+    {
+        $this->assertWrite($context);
+        $this->validateData($data);
+        if (! array_is_list($groups) || count($groups) !== count($data['facts'])) {
+            throw new InvalidArgumentException('Invalid backup groups.');
+        }
+        $metadata = [];
+        foreach ($data['facts'] as $index => $group) {
+            $saved = $groups[$index] ?? null;
+            if (! is_array($saved) || ($saved['key'] ?? null) !== $group['id'] || ! is_array($saved['facts'] ?? null)
+                || ! array_is_list($saved['facts']) || count($saved['facts']) !== count($group['facts'])) {
+                throw new InvalidArgumentException('Invalid backup facts.');
+            }
+            foreach ($group['facts'] as $position => $text) {
+                $fact = $saved['facts'][$position] ?? null;
+                if (! is_array($fact) || ($fact['text'] ?? null) !== $text || (! is_string($fact['logical_id'] ?? null) || ! Str::isUlid($fact['logical_id']))
+                    || ! in_array($fact['status'] ?? null, ['active', 'inactive'], true)
+                    || ! in_array($fact['source'] ?? null, ['manual', 'import', 'url'], true)) {
+                    throw new InvalidArgumentException('Invalid backup fact metadata.');
+                }
+                $metadata[$group['id']][$text][] = (object) $fact;
+            }
+        }
+
+        return DB::transaction(function () use ($context, $data, $metadata): array {
+            $brand = $this->brand($context, true);
+            $this->assertWrite($context, true);
+            $current = DB::table('knowledge_releases')->where('organization_id', $context->organizationId)->where('brand_id', $brand->id)->where('status', 'draft')->lockForUpdate()->first();
+            if ($current) {
+                DB::table('knowledge_releases')->where('id', $current->id)->update(['status' => 'building', 'updated_at' => now()]);
+                app(AuditWriter::class)->record($context, new AuditEntry('knowledge.draft.autosaved', 'knowledge_release', $current->id, after: ['version' => $current->version]));
+            }
+            $id = (string) Str::ulid();
+            DB::table('knowledge_releases')->insert(['id' => $id, 'organization_id' => $context->organizationId, 'brand_id' => $brand->id, 'status' => 'draft', 'version' => 1, 'created_by' => $context->actorId, 'created_at' => now(), 'updated_at' => now()]);
+            $this->writeData($id, $data, $metadata);
+            app(AuditWriter::class)->record($context, new AuditEntry('knowledge.draft.restored', 'knowledge_release', $id));
+
+            return ['id' => $id, 'version' => 1];
+        });
+    }
+
     /** @return array{id:string,version:int} */
     public function saveDraft(TenantContext $context, string $id, int $expectedVersion, array $data): array
     {
@@ -292,14 +335,15 @@ final class DatabaseKnowledgeRepository implements KnowledgeRepository
         foreach ($data['facts'] as $position => $group) {
             $id = (string) Str::ulid();
             $facts = $group['facts'];
-            unset($group['facts']);
+            $factIds = $group['fact_ids'] ?? [];
+            unset($group['facts'], $group['fact_ids']);
             DB::table('kn_fact_groups')->insert(['id' => $id, 'release_id' => $releaseId, 'key' => $group['id'], 'position' => $position, 'data' => json_encode($group, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE)]);
             foreach ($facts as $number => $fact) {
                 $old = null;
                 if (! empty($metadata[$group['id']][$fact])) {
                     $old = array_shift($metadata[$group['id']][$fact]);
                 }
-                DB::table('kn_facts')->insert(['id' => $reuseIds && $old ? $old->id : (string) Str::ulid(), 'logical_id' => $old?->logical_id ?? (string) Str::ulid(), 'group_id' => $id, 'position' => $number, 'text' => $fact, 'source' => $old?->source ?? 'manual', 'status' => $old?->status ?? 'active']);
+                DB::table('kn_facts')->insert(['id' => $reuseIds && $old ? $old->id : (string) Str::ulid(), 'logical_id' => $old?->logical_id ?? ($factIds[$number] ?? (string) Str::ulid()), 'group_id' => $id, 'position' => $number, 'text' => $fact, 'source' => $old?->source ?? 'manual', 'status' => $old?->status ?? 'active']);
             }
         }
     }
@@ -317,6 +361,7 @@ final class DatabaseKnowledgeRepository implements KnowledgeRepository
         foreach (self::LIST as $namespace => $table) {
             $data[$namespace] = DB::table($table)->where('release_id', $id)->orderBy('position')->get()->map(fn ($row) => json_decode($row->data, true, 512, JSON_THROW_ON_ERROR))->all();
         }
+        $hasFactOverrides = collect($data['intents'])->contains(fn ($intent) => ! empty($intent['fact_overrides']));
         $data['facts'] = [];
         foreach (DB::table('kn_fact_groups')->where('release_id', $id)->orderBy('position')->get() as $group) {
             $item = json_decode($group->data, true, 512, JSON_THROW_ON_ERROR);
@@ -324,7 +369,11 @@ final class DatabaseKnowledgeRepository implements KnowledgeRepository
             if (! $includeInactive) {
                 $facts->where('status', 'active');
             }
-            $item['facts'] = $facts->orderBy('position')->pluck('text')->all();
+            $rows = $facts->orderBy('position')->get(['text', 'logical_id']);
+            $item['facts'] = $rows->pluck('text')->all();
+            if ($hasFactOverrides || ! empty($item['fact_examples'])) {
+                $item['fact_ids'] = $rows->pluck('logical_id')->all();
+            }
             $data['facts'][] = $item;
         }
 
@@ -365,7 +414,7 @@ final class DatabaseKnowledgeRepository implements KnowledgeRepository
             }
             DB::table('kn_facts')->where('id', $factId)->update(['text' => $text, 'status' => $status, 'source' => $source]);
             DB::table('knowledge_releases')->where('id', $releaseId)->update(['version' => $expectedVersion + 1, 'updated_at' => now()]);
-            app(AuditWriter::class)->record($context, new AuditEntry('knowledge.fact.updated', 'knowledge_fact', $fact->logical_id, ['status' => $fact->status, 'source' => $fact->source], ['status' => $status, 'source' => $source]));
+            app(AuditWriter::class)->record($context, new AuditEntry('knowledge.fact.updated', 'knowledge_fact', $fact->logical_id, ['status' => $fact->status, 'source' => $fact->source, 'text' => $fact->text], ['status' => $status, 'source' => $source, 'text' => $text]));
 
             return $expectedVersion + 1;
         });

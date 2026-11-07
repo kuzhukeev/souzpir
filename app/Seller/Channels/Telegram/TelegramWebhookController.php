@@ -10,6 +10,7 @@ use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 final class TelegramWebhookController
@@ -28,6 +29,27 @@ final class TelegramWebhookController
         $context = new TenantContext($account->organization_id, $account->brand_id, source: 'public');
 
         app(TenantContextRunner::class)->run($context, function () use ($account, $payload, $message, $recorder, $context): void {
+            $settings = $account->settings ?? [];
+            $chatType = $message['chat']['type'] ?? null;
+            $text = is_string($message['text'] ?? null) ? trim($message['text']) : '';
+            if (in_array($chatType, ['group', 'supergroup'], true) && is_int($message['chat']['id'] ?? null)
+                && preg_match('/^\/connect ([0-9]{6})$/D', $text, $match)
+                && is_string($settings['link_code_hash'] ?? null)
+                && isset($settings['link_code_expires_at']) && now()->lessThan(Carbon::parse($settings['link_code_expires_at']))
+                && hash_equals($settings['link_code_hash'], hash('sha256', $match[1]))) {
+                unset($settings['link_code_hash'], $settings['link_code_expires_at']);
+                $account->settings = $settings;
+                $account->managers_chat_id = (string) $message['chat']['id'];
+                $account->save();
+                $recorder->record($context, $account->id, (string) $payload['update_id'], ['update_id' => $payload['update_id'], 'message' => ['text' => '[команда подключения]']]);
+
+                return;
+            }
+            if (in_array($chatType, ['group', 'supergroup'], true) && str_starts_with($text, '/connect ')) {
+                $recorder->record($context, $account->id, (string) $payload['update_id'], ['update_id' => $payload['update_id'], 'message' => ['text' => '[команда подключения]']]);
+
+                return;
+            }
             if (! is_array($message) || ($message['chat']['type'] ?? null) !== 'private' || ! is_int($message['chat']['id'] ?? null) || ! is_int($message['message_id'] ?? null)
                 || ($message['from']['is_bot'] ?? false) === true || ! is_string($message['text'] ?? null)
                 || trim($message['text']) === '') {

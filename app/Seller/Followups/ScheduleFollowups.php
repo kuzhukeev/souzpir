@@ -9,12 +9,12 @@ final class ScheduleFollowups extends Command
 {
     protected $signature = 'seller:prepare-followups';
 
-    protected $description = 'Подготовить напоминания по брендам';
+    protected $description = 'Подготовить и отправить fake-напоминания по брендам';
 
     public function handle(): int
     {
         DB::table('brands')->where('status', 'active')->select(['id', 'organization_id'])->orderBy('id')->each(function ($brand): void {
-            PrepareFollowups::dispatch($brand->organization_id, $brand->id);
+            ProcessFollowups::dispatch($brand->organization_id, $brand->id);
         });
 
         return self::SUCCESS;

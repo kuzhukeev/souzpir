@@ -1,0 +1,28 @@
+import { test, expect } from '@playwright/test';
+import { createServer, type ViteDevServer } from 'vite';
+import { mkdir } from 'node:fs/promises';
+let server: ViteDevServer;
+let url: string;
+test.use({ viewport: { width: 1440, height: 900 }, launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH } : {} });
+test.beforeAll(async () => { server = await createServer({ configFile: 'tests/Browser/E4-06C/vite.config.ts', server: { host: '127.0.0.1', port: 0, strictPort: false } }); await server.listen(); url = new URL('/tests/Browser/E4-06C/fixture.html?imports', server.resolvedUrls!.local[0]).href; });
+test.afterAll(async () => { await server?.close(); });
+test('выбор, изменение и отклонение фактов', async ({ page }) => {
+  await page.route('**/seller/knowledge/imports/preview', route => route.fulfill({ json: { proposals: ['Первый факт', 'Второй факт'] } }));
+  await page.goto(url);
+  await page.getByLabel('Файл', { exact: true }).setInputFiles({ name: 'facts.txt', mimeType: 'text/plain', buffer: Buffer.from('Первый факт\nВторой факт') });
+  await page.getByRole('button', { name: 'Посмотреть предложения' }).click();
+  await expect(page.getByRole('heading', { name: 'Сопоставление фактов' })).toBeVisible();
+  await page.getByRole('button', { name: 'Принять все' }).click();
+  await expect(page.getByLabel('Принять факт 1')).toBeChecked();
+  await expect(page.getByLabel('Принять факт 2')).toBeChecked();
+  await page.getByRole('button', { name: 'Изменить' }).first().click();
+  await page.getByLabel('Текст факта').fill('Исправленный факт');
+  await expect(page.getByRole('button', { name: 'Добавить выбранные в черновик' })).toBeDisabled();
+  await page.getByRole('button', { name: 'Готово' }).click();
+  await page.getByRole('button', { name: 'Отклонить' }).last().click();
+  await expect(page.getByText('Второй факт')).toHaveCount(0);
+  await expect(page.getByText('Исправленный факт')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Добавить выбранные в черновик' })).toBeEnabled();
+  await mkdir('.local/screenshots/SP-E4-06C', { recursive: true });
+  await page.screenshot({ path: '.local/screenshots/SP-E4-06C/matching.png', fullPage: true });
+});

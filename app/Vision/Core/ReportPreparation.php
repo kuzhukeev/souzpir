@@ -120,7 +120,8 @@ final class ReportPreparation
                 $metrics = $this->metrics->calculate($slots, array_keys($providers), count($questions), $runs);
                 $payload = ['measurement_id' => $measurementId, 'question_set_checksum' => $configuration['question_set_checksum'],
                     'questions' => $questions, 'providers' => $providers, 'runs' => $runs,
-                    'metrics' => $metrics, 'recommendations' => ['items' => []], 'evidence_status' => $verifiedCount ? 'available' : 'not_available'];
+                    'metrics' => $metrics, 'recommendations' => ['items' => []],
+                    'reviewed_facts' => app(ConfirmedClarifications::class)->read($tenant, $measurementId, $slots), 'evidence_status' => $verifiedCount ? 'available' : 'not_available'];
                 $revision = 1 + (int) DB::table('vision_reports')->where($tenant)->where('measurement_id', $measurementId)->max('revision');
                 $id = (string) Str::ulid();
                 $checksum = CanonicalJson::hash($payload);
@@ -152,8 +153,9 @@ final class ReportPreparation
             if (! ($slot['valid'] ?? false)) {
                 continue;
             }
-            foreach ($slot['fact']['suspected_errors'] ?? [] as $index => $error) {
-                $claim = is_array($error) ? (string) ($error['claim'] ?? '') : (string) $error;
+            $errors = [...(is_array($slot['fact']['errors'] ?? null) ? $slot['fact']['errors'] : []), ...(is_array($slot['fact']['suspected_errors'] ?? null) ? $slot['fact']['suspected_errors'] : [])];
+            foreach ($errors as $index => $error) {
+                $claim = is_array($error) ? (string) ($error['claim'] ?? $error['text'] ?? '') : (string) $error;
                 if ($claim === '') {
                     continue;
                 }
@@ -161,10 +163,13 @@ final class ReportPreparation
                 $items[$key] = ['key' => $key, 'kind' => 'fact', 'title' => 'Проверить утверждение модели',
                     'text' => $claim, 'reason' => is_array($error) ? ($error['reason'] ?? '') : '',
                     'answer_id' => $slot['id'] ?? null, 'provider' => $slot['provider'] ?? '',
+                    'source' => is_array($error) && is_string($error['source'] ?? null) ? $error['source'] : null,
                     'profile_facts' => data_get($snapshot, 'profile.facts', [])];
             }
         }
-        foreach (data_get($snapshot, 'recommendations.items', []) as $index => $action) {
+        $suggestions = app(QuestionSuggestions::class)->make($snapshot);
+        $storedRecommendations = data_get($snapshot, 'recommendations.items', []);
+        foreach ([...(is_array($storedRecommendations) ? $storedRecommendations : []), ...$suggestions] as $index => $action) {
             if (! is_array($action) || empty($action['title'])) {
                 continue;
             }
@@ -199,7 +204,9 @@ final class ReportPreparation
         foreach ($reviewItems as $key => $item) {
             $decision = $decisions[$key]['decision'] ?? null;
             if (($item['kind'] ?? '') === 'fact' && $decision !== 'rejected') {
-                $report['reviewed_facts'][] = array_merge($item, ['confirmed' => $decision === 'confirmed']);
+                $correction = $decisions[$key]['correction'] ?? null;
+                $report['reviewed_facts'][] = array_merge($item, ['confirmed' => $decision === 'confirmed',
+                    'correction' => is_string($correction) && trim($correction) !== '' ? trim($correction) : null]);
             }
             if (($item['kind'] ?? '') === 'action' && $decision === 'confirmed') {
                 $report['recommendations']['items'][] = $item['action'];

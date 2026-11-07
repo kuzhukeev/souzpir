@@ -5,6 +5,7 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 
 const require = createRequire(import.meta.url);
+test.use({ launchOptions: process.env.E111_CHROMIUM_PATH ? { executablePath: process.env.E111_CHROMIUM_PATH } : {} });
 test.setTimeout(90000);
 test.beforeAll(() => {
   execFileSync(process.env.PHP_BINARY || 'php', ['-d', 'sys_temp_dir=.local/tmp', 'artisan', 'auth:test-browser-fixture', '--without-mfa', '--env=testing', '--no-ansi'], {
@@ -16,7 +17,7 @@ async function accessible(page: Page) {
   const violations = await page.evaluate(async () => (await (window as unknown as { axe: { run: (context: Document, options: object) => Promise<{ violations: { id: string }[] }> } }).axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa'] } })).violations.map((item) => item.id));
   expect(violations).toEqual([]);
 }
-test('consents and unavailable export state are accessible at supported widths', async ({ page }) => {
+test('consents and available seller export are accessible at supported widths', async ({ page }) => {
   await page.goto('/login');
   await page.getByLabel('Рабочая почта').fill('browser-auth@example.test');
   await page.getByLabel('Пароль', { exact: true }).fill('test-only-password-123');
@@ -24,8 +25,8 @@ test('consents and unavailable export state are accessible at supported widths',
   await expect(page).toHaveURL(/\/auth\/ready$/);
   await page.goto('/settings/data');
   await expect(page.getByRole('heading', { name: 'Данные и согласия' })).toBeVisible();
-  await expect(page.getByText('Экспорт данных модулей пока недоступен: ни один раздел не подключён.')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Подготовить архив' })).toBeDisabled();
+  await expect(page.getByText('Экспорт данных модулей пока недоступен: ни один раздел не подключён.')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Подготовить архив' })).toBeEnabled();
   const shots = path.join(process.cwd(), '.local/screenshots/e1-11');
   await mkdir(shots, { recursive: true });
   for (const theme of ['neutral', 'pyro', 'confectionery']) {

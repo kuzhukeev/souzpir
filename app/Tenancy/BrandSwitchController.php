@@ -3,16 +3,32 @@
 namespace App\Tenancy;
 
 use App\Contracts\ProtectedOperations\IdempotencyConflict;
+use App\Contracts\ProtectedOperations\IdempotencyFailure;
 use App\Models\Membership;
 use App\ProtectedOperations\PostgresSessionIdempotency;
 use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Auth\SessionBrandSelection;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 final class BrandSwitchController
 {
+    public function recover(Request $request): JsonResponse
+    {
+        $data = $request->validate(['brand_id' => ['required', 'string', 'ulid']]);
+        $key = $request->header('X-Context-Change-Key');
+        abort_unless(is_string($key) && strlen($key) >= 16 && strlen($key) <= 128, 422);
+        try {
+            $receipt = app(PostgresSessionIdempotency::class)->recoverRevoked($request, 'profile.brand_switch', $key, $data['brand_id']);
+        } catch (IdempotencyFailure) {
+            abort(401);
+        }
+
+        return response()->json($receipt);
+    }
+
     public function __invoke(Request $request): RedirectResponse
     {
         $data = $request->validate(['brand_id' => ['required', 'string', 'ulid']]);
@@ -36,6 +52,14 @@ final class BrandSwitchController
                 app(PostgresSessionIdempotency::class)->execute($request, 'profile.brand_switch', $key, $data['brand_id'], $write);
             } catch (IdempotencyConflict) {
                 abort(409);
+            } catch (IdempotencyFailure) {
+                try {
+                    app(PostgresSessionIdempotency::class)->recoverRevoked($request, 'profile.brand_switch', $key, $data['brand_id']);
+                } catch (IdempotencyFailure) {
+                    abort(401);
+                }
+
+                return redirect()->route('login');
             }
         } else {
             app(AuthSessionRegistry::class)->withinActive($request, $write);

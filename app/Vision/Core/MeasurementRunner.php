@@ -8,12 +8,18 @@ use App\Ai\ProviderCatalog;
 use App\Contracts\Ai\AiContext;
 use App\Contracts\Ai\AiGateway;
 use App\Contracts\Ai\AiRequest;
+use App\Shell\Notifications\Contracts\NotificationDispatcher;
+use App\Shell\Notifications\DomainEvent;
+use App\Shell\Plans\LimitEnforcer;
+use App\Shell\Plans\MonthlyUnits;
 use App\Tenancy\TenantContext;
 use App\Vision\Evidence\Contracts\KnowledgeGate;
 use App\Vision\Evidence\EvidenceEvaluator;
 use App\Vision\KnowledgeBridge\PublishedKnowledgeBridge;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 use LogicException;
 use Throwable;
@@ -58,6 +64,14 @@ final class MeasurementRunner
         }
         $parser = [...$parser, ...app(EvidenceEvaluator::class)->artifacts()];
         $context = app(TenantContext::class);
+        if (app(MonthlyUnits::class)->exhausted($context, 'measurement')) {
+            throw ValidationException::withMessages(['measurement' => 'Лимит тарифа исчерпан. Новый замер недоступен.']);
+        }
+        $week = CarbonImmutable::now('Europe/Moscow')->startOfWeek();
+        $completed = DB::table('measurements')->where('organization_id', $context->organizationId)->where('status', 'completed')->where('finished_at', '>=', $week->utc())->where('finished_at', '<', $week->addWeek()->utc())->count();
+        if (app(LimitEnforcer::class)->exhausted($context, 'vision.runs_per_week', $completed)) {
+            throw ValidationException::withMessages(['measurement' => 'Недельный лимит замеров исчерпан.']);
+        }
         // Question sets are immutable; check the full grid before the write transaction.
         $planned = DB::table('question_sets')->where($tenant)->where('id', $questionSetId)
             ->first(['size', DB::raw('octet_length(questions::text) as question_bytes')]);
@@ -108,8 +122,8 @@ final class MeasurementRunner
     public function measure(string $answerId): string
     {
         $tenant = $this->tenant->current();
-        if (config('runtime.ai_driver', 'fake') !== 'fake') {
-            throw new LogicException('Vision measurement is restricted to fake AI until an authorized live stage.');
+        if (config('runtime.ai_driver', 'fake') !== 'fake' && ! config('eyon.live_measurements_enabled', false)) {
+            throw new LogicException('Live Vision measurement is disabled.');
         }
         try {
             $claimed = DB::transaction(function () use ($answerId, $tenant): ?array {
@@ -209,8 +223,9 @@ final class MeasurementRunner
                 if (! $measurement) {
                     throw new LogicException('Measurement not found.');
                 }
+                $finishedAt = now();
                 $updated = DB::table('measurement_answers')->where($tenant)->where('id', $answerId)
-                    ->where('status', 'in_progress')->update([...$changes, 'updated_at' => now()]);
+                    ->where('status', 'in_progress')->update([...$changes, 'settled_at' => in_array($changes['status'], ['ok', 'failed', 'uncertain'], true) ? $finishedAt : null, 'updated_at' => $finishedAt]);
                 if ($updated !== 1) {
                     throw new LogicException('Measurement slot changed while processing.');
                 }
@@ -219,9 +234,15 @@ final class MeasurementRunner
                 if (! $pending) {
                     $partial = DB::table('measurement_answers')->where($tenant)->where('measurement_id', $measurementId)
                         ->whereIn('status', ['failed', 'uncertain'])->exists();
+                    $successful = DB::table('measurement_answers')->where($tenant)->where('measurement_id', $measurementId)->where('status', 'ok')->exists();
                     DB::table('measurements')->where($tenant)->where('id', $measurementId)->update([
-                        'status' => $partial ? 'partial' : 'completed', 'finished_at' => now(), 'updated_at' => now(),
+                        'status' => $partial ? ($successful ? 'partial' : 'failed') : 'completed', 'finished_at' => now(), 'updated_at' => now(),
                     ]);
+                    if (! $partial) {
+                        app(NotificationDispatcher::class)->enqueue(new DomainEvent(['event_id' => (string) Str::ulid(), 'schema_version' => 1, 'type' => 'vision.measurement.completed',
+                            'occurred_at' => now()->toIso8601String(), 'organization_id' => $tenant['organization_id'], 'brand_id' => $tenant['brand_id'], 'actor_id' => null,
+                            'aggregate' => ['type' => 'measurement', 'id' => $measurementId, 'version' => 1], 'data' => ['measurement_id' => $measurementId]]));
+                    }
                 }
 
                 return $changes['status'];

@@ -41,6 +41,8 @@ final class LimitsController
             'rows' => $rows,
             'budget' => $budget ? ['limit' => $budget->limit_units, 'used' => $budget->used_units] : null,
             'period' => ['from' => $from->toDateString(), 'to' => $to->toDateString(), 'timezone' => 'UTC'],
+            'daysRemaining' => (int) CarbonImmutable::now('UTC')->startOfDay()->diffInDays($to),
+            'canViewPlans' => Gate::allows('billing.read'),
         ]);
     }
 }

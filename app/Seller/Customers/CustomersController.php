@@ -48,33 +48,51 @@ final class CustomersController
 
     public function index(Request $request): mixed
     {
-        $filter = $request->validate(['search' => ['nullable', 'string', 'max:120'], 'type' => ['nullable', 'in:newbie,experienced,for_self,prices_only,unknown'], 'stage' => ['nullable', 'string', 'max:32'], 'city' => ['nullable', 'string', 'max:120'], 'outcome' => ['nullable', 'string', 'max:64'], 'manager' => ['nullable', 'string', 'max:120'], 'channel' => ['nullable', 'string', 'max:32'], 'from' => ['nullable', 'date_format:Y-m-d'], 'to' => ['nullable', 'date_format:Y-m-d']]);
+        $channel = $request->query('channel');
+        abort_if($channel !== null && $channel !== '' && ! in_array($channel, ['telegram', 'vk', 'whatsapp', 'api', 'widget', 'site', 'web', 'email'], true), 422, 'Недопустимый канал.');
+
+        $filter = $request->validate(['search' => ['nullable', 'string', 'max:120'], 'type' => ['nullable', 'in:newbie,experienced,for_self,prices_only,unknown'], 'stage' => ['nullable', 'string', 'max:32'], 'city' => ['nullable', 'string', 'max:120'], 'outcome' => ['nullable', 'string', 'max:64'], 'manager' => ['nullable', 'string', 'max:120'], 'channel' => ['nullable', 'in:telegram,vk,whatsapp,api,widget,site,web,email'], 'from' => ['nullable', 'date_format:Y-m-d'], 'to' => ['nullable', 'date_format:Y-m-d'], 'page' => ['nullable', 'integer', 'min:1'], 'per_page' => ['nullable', 'integer', 'in:10,20,50']]);
         $data = $this->access($request, 'seller.customers.read', function (User $user, TenantContext $tenant) use ($filter): array {
-            $contacts = $this->scope('contacts', $tenant)->whereNull('merged_into_id')->orderByDesc('created_at')->get(['id', 'name', 'phone', 'email']);
-            $rows = $contacts->map(function ($contact) use ($tenant): array {
-                $conversation = $this->scope('conversations', $tenant)->where('contact_id', $contact->id)->orderByDesc('updated_at')->first();
+            $contacts = $this->scope('contacts', $tenant)->whereNull('merged_into_id')->orderByDesc('created_at')->orderByDesc('id')->get(['id', 'name', 'phone', 'email', 'city']);
+            $conversations = $this->scope('conversations', $tenant)->whereIn('contact_id', $contacts->pluck('id'))->orderByDesc('updated_at')->get();
+            $byContact = $conversations->groupBy('contact_id');
+            $tasks = $this->scope('seller_tasks', $tenant)->whereIn('status', ['new', 'in_progress'])
+                ->where(fn ($query) => $query->whereIn('contact_id', $contacts->pluck('id'))->orWhereIn('conversation_id', $conversations->pluck('id')))
+                ->get(['id', 'contact_id', 'conversation_id']);
+            $managers = DB::table('users')->whereIn('id', $conversations->pluck('assigned_user_id')->filter()->unique())->pluck('name', 'id');
+            $channels = $this->scope('channel_accounts', $tenant)->whereIn('id', $conversations->pluck('channel_account_id')->filter()->unique())->pluck('type', 'id');
+            $rows = $contacts->map(function ($contact) use ($byContact, $tasks, $managers, $channels): array {
+                $dialogs = $byContact->get($contact->id, collect());
+                $conversation = $dialogs->first();
                 $state = $conversation ? json_decode($conversation->state, true) : [];
-                $tasks = $this->scope('seller_tasks', $tenant)->where(fn ($query) => $query->where('contact_id', $contact->id)->orWhereIn('conversation_id', $this->scope('conversations', $tenant)->where('contact_id', $contact->id)->select('id')))->where('status', 'new')->count();
-                $manager = $conversation?->assigned_user_id ? DB::table('users')->where('id', $conversation->assigned_user_id)->value('name') : null;
-                $channel = $conversation?->channel_account_id ? $this->scope('channel_accounts', $tenant)->where('id', $conversation->channel_account_id)->value('type') : null;
+                $outcomes = $dialogs->pluck('outcome')->filter()->all();
+                $bestOutcome = collect(['full_contact', 'handoff', 'partial_contact', 'paused', 'stale', 'declined', 'spam'])->first(fn ($value) => in_array($value, $outcomes, true));
+                $dialogIds = $dialogs->pluck('id')->all();
+                $taskCount = $tasks->filter(fn ($task) => $task->contact_id === $contact->id || in_array($task->conversation_id, $dialogIds, true))->count();
+                $manager = $conversation?->assigned_user_id ? $managers->get($conversation->assigned_user_id) : null;
+                $channel = $conversation?->channel_account_id ? $channels->get($conversation->channel_account_id) : null;
 
                 return ['id' => $contact->id, 'name' => $contact->name, 'phone' => $contact->phone, 'email' => $contact->email,
-                    'type' => $this->clientType($conversation?->state), 'city' => data_get($state, 'slots.city'), 'stage' => $conversation?->stage,
-                    'outcome' => $conversation?->outcome, 'manager' => $manager, 'channel' => $channel, 'tasks' => $tasks, 'last_at' => $conversation?->updated_at];
+                    'company' => data_get($state, 'slots.company') ?: data_get($state, 'slots.legal'),
+                    'type' => $this->clientType($conversation?->state), 'city' => $contact->city ?: data_get($state, 'slots.city'), 'stage' => $conversation?->stage,
+                    'outcome' => $conversation?->outcome, 'best_outcome' => $bestOutcome, 'conversation_id' => $conversation?->id, 'manager' => $manager, 'channel' => $channel, 'tasks' => $taskCount, 'last_at' => $conversation?->updated_at];
             });
             $filtered = $rows->filter(function (array $row) use ($filter): bool {
                 $search = mb_strtolower($filter['search'] ?? '');
 
                 return ($search === '' || str_contains(mb_strtolower(implode(' ', [$row['name'], $row['phone'], $row['email']])), $search))
                     && (empty($filter['type']) || $row['type'] === $filter['type']) && (empty($filter['stage']) || $row['stage'] === $filter['stage'])
-                    && (empty($filter['outcome']) || $row['outcome'] === $filter['outcome']) && (empty($filter['channel']) || $row['channel'] === $filter['channel'])
+                    && (empty($filter['outcome']) || $row['outcome'] === $filter['outcome']) && (empty($filter['channel']) || ($filter['channel'] === 'widget' ? in_array($row['channel'], ['widget', 'site', 'web'], true) : $row['channel'] === $filter['channel']))
                     && (empty($filter['city']) || str_contains(mb_strtolower((string) $row['city']), mb_strtolower($filter['city'])))
                     && (empty($filter['manager']) || str_contains(mb_strtolower((string) $row['manager']), mb_strtolower($filter['manager'])))
                     && (empty($filter['from']) || ($row['last_at'] && substr($row['last_at'], 0, 10) >= $filter['from']))
                     && (empty($filter['to']) || ($row['last_at'] && substr($row['last_at'], 0, 10) <= $filter['to']));
             })->values();
 
-            return ['customers' => $filtered, 'filters' => $filter, 'counts' => ['total' => $rows->count(),
+            $page = (int) ($filter['page'] ?? 1);
+            $perPage = (int) ($filter['per_page'] ?? 20);
+
+            return ['customers' => $filtered->forPage($page, $perPage)->values(), 'pagination' => ['page' => $page, 'perPage' => $perPage, 'total' => $filtered->count(), 'lastPage' => max(1, (int) ceil($filtered->count() / $perPage))], 'filters' => $filter, 'counts' => ['total' => $rows->count(),
                 'contact' => $rows->whereIn('outcome', ['full_contact', 'partial_contact'])->count(),
                 'handoff' => $rows->where('outcome', 'handoff')->count(), 'stale' => $rows->where('outcome', 'stale')->count()]];
         });
@@ -85,10 +103,14 @@ final class CustomersController
     public function show(Request $request, string $contact): mixed
     {
         $data = $this->access($request, 'seller.customers.read', function (User $user, TenantContext $tenant) use ($contact): array {
-            $customer = $this->scope('contacts', $tenant)->where('id', $contact)->whereNull('merged_into_id')->first(['id', 'name', 'phone', 'email']) ?? abort(404);
-            $conversations = $this->scope('conversations', $tenant)->where('contact_id', $contact)->orderByDesc('updated_at')->get(['id', 'state', 'stage', 'outcome', 'mode', 'updated_at', 'assigned_user_id']);
+            $customer = $this->scope('contacts', $tenant)->where('id', $contact)->whereNull('merged_into_id')->first(['id', 'name', 'phone', 'email', 'city', 'external_ids']) ?? abort(404);
+            $customer->external_ids = is_string($customer->external_ids) ? (json_decode($customer->external_ids, true) ?: []) : [];
+            $conversations = $this->scope('conversations', $tenant)->where('contact_id', $contact)->orderByDesc('updated_at')->get(['id', 'state', 'stage', 'outcome', 'mode', 'updated_at', 'assigned_user_id', 'channel_account_id']);
             $latest = $conversations->first();
             $state = $latest ? json_decode($latest->state, true) : [];
+            $customer->company = data_get($state, 'slots.company') ?: data_get($state, 'slots.legal');
+            $customer->city = $customer->city ?: data_get($state, 'slots.city');
+            $channelNames = $this->scope('channel_accounts', $tenant)->whereIn('id', $conversations->pluck('channel_account_id')->filter()->unique())->pluck('type', 'id');
             $history = [];
             $messages = $this->scope('messages', $tenant)->whereIn('conversation_id', $conversations->pluck('id'))->orderByDesc('created_at')->get(['id', 'role', 'meta', 'created_at']);
             foreach ($messages as $message) {
@@ -97,8 +119,16 @@ final class CustomersController
                     $history[] = ['slot' => $slot, 'value' => $value, 'role' => $message->role, 'at' => $message->created_at];
                 }
             }
-            $tasks = $this->scope('seller_tasks', $tenant)->where(fn ($query) => $query->where('contact_id', $contact)->orWhereIn('conversation_id', $conversations->pluck('id')))->orderBy('due_at')->get(['id', 'type', 'payload', 'status', 'due_at']);
+            $tasks = $this->scope('seller_tasks', $tenant)->where(fn ($query) => $query->where('contact_id', $contact)->orWhereIn('conversation_id', $conversations->pluck('id')))->orderBy('due_at')->get(['id', 'type', 'payload', 'status', 'due_at', 'assigned_user_id', 'conversation_id']);
+            $assignees = DB::table('users')->whereIn('id', $tasks->pluck('assigned_user_id')->filter()->unique())->pluck('name', 'id');
+            $conversationChannels = $conversations->mapWithKeys(fn ($row) => [$row->id => $channelNames->get($row->channel_account_id)]);
+            $tasks->each(function ($task) use ($assignees, $conversationChannels): void {
+                $task->assignee_name = $task->assigned_user_id ? $assignees->get($task->assigned_user_id) : null;
+                $task->channel = $task->conversation_id ? $conversationChannels->get($task->conversation_id) : null;
+            });
             $notes = $this->scope('seller_customer_notes', $tenant)->where('contact_id', $contact)->orderByDesc('created_at')->get(['id', 'body', 'author_id', 'created_at']);
+            $authors = DB::table('users')->whereIn('id', $notes->pluck('author_id')->filter()->unique())->pluck('name', 'id');
+            $notes->each(fn ($note) => $note->author_name = $authors->get($note->author_id));
 
             $eligible = Membership::withoutGlobalScopes()->with('user')->where('organization_id', $tenant->organizationId)->where('status', 'active')->get()
                 ->filter(fn ($member) => $member->user && $member->permitsBrand($tenant->brandId) && (in_array($member->role, ['owner', 'admin'], true) || ($member->role === 'member' && ($member->settings['sales_manager'] ?? false))))
@@ -115,7 +145,7 @@ final class CustomersController
             }
 
             return ['canReadDialogs' => Gate::forUser($user)->allows('seller.dialogs.read'), 'managers' => $eligible, 'assignedUserId' => $latest?->assigned_user_id, 'canAssign' => $canAssign, 'manager' => $latest?->assigned_user_id ? DB::table('users')->where('id', $latest->assigned_user_id)->value('name') : null, 'customer' => $customer, 'clientType' => $this->clientType($latest?->state), 'slots' => data_get($state, 'slots', []),
-                'conversations' => $conversations->map(fn ($row) => ['id' => $row->id, 'stage' => $row->stage, 'outcome' => $row->outcome, 'mode' => $row->mode, 'updated_at' => $row->updated_at]),
+                'conversations' => $conversations->map(fn ($row) => ['id' => $row->id, 'stage' => $row->stage, 'outcome' => $row->outcome, 'mode' => $row->mode, 'channel' => $channelNames->get($row->channel_account_id), 'updated_at' => $row->updated_at]),
                 'history' => $history, 'tasks' => $tasks, 'notes' => $notes, 'canWrite' => Gate::forUser($user)->allows('seller.customers.write')];
         });
 
@@ -194,17 +224,34 @@ final class CustomersController
 
     public function tasks(Request $request): mixed
     {
-        $filters = $request->validate(['mine' => ['nullable', 'in:1'], 'overdue' => ['nullable', 'in:1']]);
+        $filters = $request->validate(['mine' => ['nullable', 'in:1'], 'overdue' => ['nullable', 'in:1'], 'urgent' => ['nullable', 'in:1'], 'type' => ['nullable', 'in:handoff,promise,reminder,unknown_question,note,send_price,send_requisites,stale']]);
         $data = $this->access($request, 'seller.dialogues.operate', function (User $user, TenantContext $tenant) use ($filters): array {
             $query = $this->scope('seller_tasks', $tenant);
             if (! empty($filters['mine'])) {
                 $query->where('assigned_user_id', $user->id);
             }
             if (! empty($filters['overdue'])) {
-                $query->where('due_at', '<', now())->where('status', 'new');
+                $query->where('due_at', '<', now())->whereIn('status', ['new', 'in_progress']);
             }
-            $tasks = $query->orderByRaw('CASE WHEN due_at < CURRENT_TIMESTAMP AND status = ? THEN 0 ELSE 1 END', ['new'])->orderBy('due_at')->orderByDesc('created_at')->get(['id', 'conversation_id', 'type', 'payload', 'due_at', 'status', 'priority', 'assigned_user_id'])->map(function ($task) {
-                $task->overdue = $task->due_at !== null && $task->status === 'new' && Carbon::parse($task->due_at)->isPast();
+            if (! empty($filters['urgent'])) {
+                $query->where('priority', 'urgent');
+            }
+            if (! empty($filters['type'])) {
+                $query->where('type', $filters['type']);
+            }
+            $member = Membership::withoutGlobalScopes()->where('organization_id', $tenant->organizationId)->where('user_id', $user->id)->where('status', 'active')->first();
+            $manager = $member?->role === 'member' && ($member->settings['sales_manager'] ?? false);
+            $canReadDialogs = Gate::forUser($user)->allows('seller.dialogs.read');
+            $tasks = $query->orderByRaw("CASE WHEN due_at < CURRENT_TIMESTAMP AND status IN ('new', 'in_progress') THEN 0 ELSE 1 END")->orderBy('due_at')->orderByDesc('created_at')->get(['id', 'contact_id', 'conversation_id', 'type', 'payload', 'due_at', 'status', 'priority', 'assigned_user_id'])->map(function ($task) use ($tenant, $user, $manager, $canReadDialogs) {
+                $task->overdue = $task->due_at !== null && in_array($task->status, ['new', 'in_progress'], true) && Carbon::parse($task->due_at)->isPast();
+                $taskConversation = $task->conversation_id ? $this->scope('conversations', $tenant)->where('id', $task->conversation_id)->first(['id', 'mode', 'assigned_user_id', 'contact_id']) : null;
+                $dialog = $canReadDialogs ? $taskConversation : null;
+                $visible = $dialog && (! $manager || $dialog->assigned_user_id === $user->id || ($dialog->mode === 'manager' && $dialog->assigned_user_id === null));
+                $task->assignee_name = $task->assigned_user_id ? DB::table('users')->where('id', $task->assigned_user_id)->value('name') : null;
+                $contactId = $task->contact_id ?: $taskConversation?->contact_id;
+                $task->contact_name = $contactId ? $this->scope('contacts', $tenant)->where('id', $contactId)->value('name') : null;
+                $task->can_read_dialog = (bool) $visible;
+                $task->messages = $visible ? $this->scope('messages', $tenant)->where('conversation_id', $dialog->id)->orderByDesc('created_at')->orderByDesc('id')->limit(3)->get(['role', 'text', 'created_at'])->reverse()->values() : [];
 
                 return $task;
             });
@@ -217,7 +264,7 @@ final class CustomersController
 
     public function updateTask(Request $request, string $task): mixed
     {
-        $input = $request->validate(['status' => ['required', 'in:new,done,cancelled']]);
+        $input = $request->validate(['status' => ['required', 'in:new,in_progress,done,cancelled']]);
         $this->access($request, 'seller.dialogues.operate', function (User $user, TenantContext $tenant) use ($task, $input): void {
             $row = $this->scope('seller_tasks', $tenant)->where('id', $task)->first() ?? abort(404);
             $this->scope('seller_tasks', $tenant)->where('id', $task)->update(['status' => $input['status'], 'updated_at' => now()]);

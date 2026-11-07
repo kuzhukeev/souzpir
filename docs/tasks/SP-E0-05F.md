@@ -13,3 +13,7 @@
 Scope: `routes/features/E0-05B.php`, `resources/js/pages/Shell/Billing/AiRecovery.tsx`, `resources/js/features/Shell/Billing/AiRecovery/`, `tests/Feature/Ai/Recovery/`, `tests/Browser/E0-05E/`, `docs/modules/E0-05B.md`, `docs/results/SP-E0-05F.md`. Сгенерированные типы разрешены общим правилом AGENTS.md. Не менять реализацию `RecoverCall` и чужие модули.
 
 Приёмка: route вызывает существующий backend только для действующего владельца с `billing.manage` в текущем бренде; чужой вызов/роль отклоняются. UI на русском, доступное подтверждение действия, loading/empty/error и повтор после сбоя; результат и список обновляются без утечки приватных полей. Feature и browser проверки используют только fake/HTTP fixtures, без живых и платных вызовов. Отчёт и submit по AGENTS.md.
+
+## Решение владельца 06.11.2026
+
+Оператору внутреннего экрана сверки показывать подтверждённую сумму провайдера в USD; клиенту USD нигде не показывать. Коэффициент и пересчёт в тарифные единицы не выдумывать. Реализация — продолжение SP-E0-05G.

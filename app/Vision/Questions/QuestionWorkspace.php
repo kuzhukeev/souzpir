@@ -18,6 +18,7 @@ use App\Vision\Core\Profiles\Questionnaire;
 use App\Vision\Core\QuestionSets;
 use App\Vision\Evidence\VisibilityProfile;
 use App\Vision\KnowledgeBridge\SelfDeclaredProfile;
+use App\Vision\Measurements\MeasurementSchedule;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -52,7 +53,14 @@ final class QuestionWorkspace
             $approvals = DB::table('vision_question_approvals as a')->join('question_sets as s', 's.id', '=', 'a.question_set_id')->join('users as u', 'u.id', '=', 'a.approved_by')
                 ->where('a.organization_id', $ctx->organizationId)->where('a.brand_id', $ctx->brandId)->orderByDesc('s.version')
                 ->limit(100)->get(['s.id', 's.version', 's.questions', 's.size', 's.checksum', 'a.providers', 'a.frequency', 'a.active', 'a.created_at', 'a.approved_by', 'u.name as approver_name']);
-            $history = $approvals->map(function ($row): array {
+            $measurements = DB::table('measurements')->where('organization_id', $ctx->organizationId)->where('brand_id', $ctx->brandId)
+                ->orderBy('created_at')->orderBy('id')->get(['id', 'question_set_id', 'status', 'created_at'])
+                ->map(function ($measurement, $index) {
+                    $measurement->number = $index + 1;
+
+                    return $measurement;
+                })->groupBy('question_set_id');
+            $history = $approvals->map(function ($row) use ($measurements): array {
                 $questions = json_decode($row->questions, true, 32, JSON_THROW_ON_ERROR);
                 $providers = json_decode($row->providers, true, 32, JSON_THROW_ON_ERROR);
                 if (! is_array($questions) || ! is_array($providers) || ! hash_equals($row->checksum, CanonicalJson::hash($questions))) {
@@ -61,7 +69,8 @@ final class QuestionWorkspace
 
                 return ['id' => $row->id, 'version' => (int) $row->version, 'questions' => $questions, 'size' => (int) $row->size,
                     'checksum' => $row->checksum, 'providers' => $providers, 'frequency' => $row->frequency, 'active' => (bool) $row->active,
-                    'approved_by' => $row->approved_by, 'approver_name' => $row->approver_name, 'created_at' => $row->created_at];
+                    'approved_by' => $row->approved_by, 'approver_name' => $row->approver_name, 'created_at' => $row->created_at,
+                    'measurements' => ($measurements[$row->id] ?? collect())->map(fn ($measurement) => ['id' => $measurement->id, 'number' => $measurement->number, 'status' => $measurement->status, 'created_at' => $measurement->created_at])->values()->all()];
             })->all();
             $limits = app(PlanLimits::class);
             $catalog = app(ProviderCatalog::class)->models();
@@ -266,15 +275,20 @@ final class QuestionWorkspace
         });
     }
 
-    public function approve(#[\SensitiveParameter] Request $request, array $ids, array $providers, ?string $frequency): string
+    public function approve(#[\SensitiveParameter] Request $request, array $ids, array $providers, ?string $frequency, ?array $schedule = null): string
     {
         if (! array_is_list($ids) || count($ids) < 1 || count($ids) > 100 || array_filter($ids, fn ($id) => ! is_string($id) || ! Str::isUlid($id))
             || count(array_unique($ids)) !== count($ids) || $providers === [] || array_is_list($providers)
-            || $frequency !== null) {
+            || ($frequency !== null && ! in_array($frequency, ['weekly', 'biweekly', 'monthly'], true))
+            || ($schedule !== null && (count($schedule) !== 3 || array_diff(array_keys($schedule), ['enabled', 'weekday', 'local_time'])
+                || ($schedule['enabled'] ?? null) !== true))) {
             throw new InvalidArgumentException('Invalid approval.');
         }
 
-        return app(ProfileAccess::class)->run($request, function (TenantContext $ctx, User $user) use ($request, $ids, $providers, $frequency): string {
+        return app(ProfileAccess::class)->run($request, function (TenantContext $ctx, User $user) use ($request, $ids, $providers, $frequency, $schedule): string {
+            if ($schedule !== null && ! Gate::forUser($user)->allows('vision.measure.run')) {
+                throw new InvalidArgumentException('Measurement access denied.');
+            }
             $where = $this->tenant($ctx);
             $profile = DB::table('brand_profiles')->where($where)->orderByDesc('version')->first(['id']);
             if (! $profile) {
@@ -323,6 +337,11 @@ final class QuestionWorkspace
                 'providers' => json_encode($providers, JSON_THROW_ON_ERROR), 'frequency' => $frequency, 'active' => true, 'created_at' => now()]);
             DB::table('question_candidates')->where($where)->where('profile_id', $profile->id)->update(['status' => DB::raw("case when status = 'active' then 'proposed' else status end"), 'selected' => false, 'updated_at' => now()]);
             DB::table('question_candidates')->where($where)->where('profile_id', $profile->id)->whereIn('id', $ids)->update(['status' => 'active', 'selected' => true, 'updated_at' => now()]);
+            if ($schedule !== null) {
+                app(MeasurementSchedule::class)->save($ctx, [
+                    ...$schedule, 'frequency' => $frequency, 'models' => array_values($providers),
+                ]);
+            }
             app(AuditWriter::class)->record($ctx, new AuditEntry('vision.questions.approved', 'question_set', $setId, after: ['count' => count($questions)]));
 
             return $setId;

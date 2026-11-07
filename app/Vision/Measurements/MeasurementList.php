@@ -6,7 +6,11 @@ use App\Models\User;
 use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Auth\SessionBrandSelection;
 use App\Tenancy\TenantContext;
+use App\Vision\Clarifications\ClarificationController;
+use App\Vision\Core\VisionReportReader;
+use App\Vision\Reports\ReportSections;
 use App\Vision\Site\SiteAccess;
+use Carbon\CarbonImmutable;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -52,12 +56,19 @@ final class MeasurementList
         return ['data' => $rows->all(), 'page' => $page, 'last_page' => max(1, (int) ceil($count / 25)), 'total' => $count];
     }
 
-    public function readDetailed(TenantContext $context, int $page): array
+    public function readDetailed(TenantContext $context, int $page, ?string $month = null, ?string $measurementId = null): array
     {
         $query = DB::table('measurements')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId);
+        if ($measurementId !== null) {
+            $query->where('id', $measurementId);
+        }
+        if ($month !== null) {
+            $start = CarbonImmutable::createFromFormat('!Y-m', $month, 'UTC');
+            $query->where('created_at', '>=', $start)->where('created_at', '<', $start->addMonth());
+        }
         $count = (clone $query)->count();
         $rows = $query->orderByDesc('created_at')->orderByDesc('id')->forPage($page, 25)
-            ->get(['id', 'status', 'created_at', 'started_at', 'finished_at']);
+            ->get(['id', 'question_set_id', 'status', 'created_at', 'started_at', 'finished_at']);
         $answers = DB::table('measurement_answers')->where('organization_id', $context->organizationId)
             ->where('brand_id', $context->brandId)->whereIn('measurement_id', $rows->pluck('id'))
             ->orderBy('question_n')->orderBy('provider')->orderBy('run_no')
@@ -67,16 +78,91 @@ final class MeasurementList
             ->where('brand_id', $context->brandId)->whereIn('measurement_id', $rows->pluck('id'))
             ->pluck('measurement_id')->all();
 
-        return ['data' => $rows->map(fn ($row) => [
-            'id' => $row->id, 'status' => $row->status, 'created_at' => $row->created_at,
-            'started_at' => $row->started_at, 'finished_at' => $row->finished_at,
-            'confirmed' => in_array($row->id, $confirmed, true),
-            'answers' => ($answers[$row->id] ?? collect())->map(fn ($answer) => [
-                'question_n' => $answer->question_n, 'provider' => $answer->provider,
-                'requested_model' => $answer->requested_model, 'run_no' => $answer->run_no,
-                'status' => $answer->status, 'answer_text' => $answer->answer_text,
-                'error_code' => $answer->error_code,
-            ])->values()->all(),
-        ])->all(), 'page' => $page, 'last_page' => max(1, (int) ceil($count / 25)), 'total' => $count];
+        $launches = DB::table('audit_logs')->where('organization_id', $context->organizationId)
+            ->where('brand_id', $context->brandId)->where('subject_type', 'measurement')
+            ->whereIn('subject_id', $rows->pluck('id'))->whereIn('action', ['vision.measurement.started', 'vision.measurement.repeated', 'vision.measurement.scheduled'])
+            ->orderByDesc('created_at')->get(['subject_id', 'action'])->unique('subject_id')->keyBy('subject_id');
+
+        $reportIds = DB::table('vision_reports')->where('organization_id', $context->organizationId)
+            ->where('brand_id', $context->brandId)->whereIn('measurement_id', $confirmed)
+            ->orderByDesc('revision')->get(['id', 'measurement_id'])->unique('measurement_id');
+        $reportMetrics = [];
+        foreach ($reportIds as $report) {
+            try {
+                $payload = app(VisionReportReader::class)->read($report->id);
+                $visibility = data_get($payload, 'metrics.visibility.macro_percent');
+                $mentions = data_get($payload, 'metrics.panel.mentioned');
+                $row = $rows->firstWhere('id', $report->measurement_id);
+                $previous = DB::table('vision_reports as r')
+                    ->join('measurements as m', function ($join): void {
+                        $join->on('m.id', '=', 'r.measurement_id')->on('m.brand_id', '=', 'r.brand_id')->on('m.organization_id', '=', 'r.organization_id');
+                    })->where('r.organization_id', $context->organizationId)->where('r.brand_id', $context->brandId)
+                    ->whereExists(fn ($q) => $q->selectRaw('1')->from('snapshot_confirmations as sc')
+                        ->whereColumn('sc.measurement_id', 'r.measurement_id')->whereColumn('sc.brand_id', 'r.brand_id')
+                        ->whereColumn('sc.organization_id', 'r.organization_id'))
+                    ->where(fn ($q) => $q->where('m.created_at', '<', $row->created_at)
+                        ->orWhere(fn ($q) => $q->where('m.created_at', $row->created_at)->where('m.id', '<', $row->id)))
+                    ->orderByDesc('m.created_at')->orderByDesc('m.id')->orderByDesc('r.revision')->value('r.id');
+                $delta = null;
+                $visibilityBefore = null;
+                if ($previous) {
+                    try {
+                        $comparison = app(ReportSections::class)->compare(app(VisionReportReader::class)->read($previous), $payload);
+                        $visibilityRow = collect($comparison['rows'] ?? [])->firstWhere('label', 'Видимость');
+                        $delta = $visibilityRow['delta'] ?? null;
+                        $visibilityBefore = $visibilityRow['before'] ?? null;
+                    } catch (\LogicException) {
+                        // Do not compare inaccessible reports.
+                    }
+                }
+                $reportMetrics[$report->measurement_id] = [
+                    'visibility' => is_numeric($visibility) ? (float) $visibility : null,
+                    'mentions' => is_numeric($mentions) ? (int) $mentions : null,
+                    'delta' => $delta,
+                    'visibility_before' => $visibilityBefore,
+                ];
+            } catch (\LogicException) {
+                // A missing or inaccessible report has no verified metrics.
+            }
+        }
+
+        $approval = DB::table('vision_question_approvals as approval')
+            ->join('question_sets as questions', 'questions.id', '=', 'approval.question_set_id')
+            ->where('approval.organization_id', $context->organizationId)->where('approval.brand_id', $context->brandId)
+            ->where('questions.organization_id', $context->organizationId)->where('questions.brand_id', $context->brandId)
+            ->where('approval.active', true)->first(['questions.size', 'approval.providers']);
+        $providers = $approval ? json_decode($approval->providers, true) : [];
+
+        $lastCompleted = DB::table('measurements')->where('organization_id', $context->organizationId)
+            ->where('brand_id', $context->brandId)->where('status', 'completed')
+            ->whereNotNull('started_at')->whereNotNull('finished_at')->orderByDesc('finished_at')->first(['started_at', 'finished_at']);
+        $lastDuration = $lastCompleted ? CarbonImmutable::parse($lastCompleted->started_at)->diffInSeconds(CarbonImmutable::parse($lastCompleted->finished_at), false) : null;
+
+        return ['last_duration_minutes' => $lastDuration !== null && $lastDuration > 0 ? max(1, (int) ceil($lastDuration / 60)) : null,
+            'plan' => $approval ? ['questions' => (int) $approval->size, 'models' => is_array($providers) ? count($providers) : 0] : null,
+            'data' => $rows->map(fn ($row) => [
+                'id' => $row->id, 'status' => $row->status, 'created_at' => $row->created_at,
+                'started_at' => $row->started_at, 'finished_at' => $row->finished_at,
+                'confirmed' => in_array($row->id, $confirmed, true),
+                'pending_clarifications' => in_array($row->id, $confirmed, true) ? app(ClarificationController::class)->pendingCount($context, $row->id) : null,
+                'estimated_minutes' => app(MeasurementTimeEstimate::class)->forMeasurement($context, $row, $answers[$row->id] ?? collect()),
+                'launch_source' => match ($launches[$row->id]->action ?? null) {
+                    'vision.measurement.started' => 'manual',
+                    'vision.measurement.repeated' => 'repeat',
+                    'vision.measurement.scheduled' => 'scheduled',
+                    default => null,
+                },
+                'visibility' => $reportMetrics[$row->id]['visibility'] ?? null,
+                'mentions' => $reportMetrics[$row->id]['mentions'] ?? null,
+                'visibility_delta' => $reportMetrics[$row->id]['delta'] ?? null,
+                'visibility_before' => $reportMetrics[$row->id]['visibility_before'] ?? null,
+                'answers' => ($answers[$row->id] ?? collect())->map(fn ($answer) => [
+                    'question_n' => $answer->question_n, 'provider' => $answer->provider,
+                    'requested_model' => $answer->requested_model, 'run_no' => $answer->run_no,
+                    'status' => $answer->status, 'answer_text' => $answer->answer_text,
+                    'error_code' => $answer->error_code,
+                ])->values()->all(),
+            ])->all(), 'page' => $page, 'last_page' => max(1, (int) ceil($count / 25)), 'total' => $count,
+            'schedule' => app(MeasurementSchedule::class)->read($context)];
     }
 }

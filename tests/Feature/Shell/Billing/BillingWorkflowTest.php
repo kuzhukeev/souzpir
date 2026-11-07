@@ -38,8 +38,8 @@ final class BillingWorkflowTest extends TenancyTestCase
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
         $this->get('/billing/usage?from=2026-10-01&to=2026-10-31')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('Shell/Billing/Index')->where('usage.0.key', 'seller.dialogues')->where('usage.0.value', 2)
-            ->where('usage.0.status', 'ready')->where('usage.1.value', null)->where('usage.1.status', 'unavailable')
-            ->where('usage.2.value', null)->where('usage.3.value', null)->where('period.from', '2026-10-01')->where('period.to', '2026-10-31'));
+            ->where('usage.0.status', 'ready')->where('usage.1.value', 0)->where('usage.1.status', 'ready')
+            ->where('usage.2.value', 0)->where('usage.3.value', null)->where('period.from', '2026-10-01')->where('period.to', '2026-10-31'));
         $this->post('/brand/switch', ['brand_id' => $other->id])->assertRedirect();
         $this->get('/billing/usage?from=2026-10-01&to=2026-10-31')->assertOk()
             ->assertInertia(fn (Assert $page) => $page->where('usage.0.value', 1));
@@ -55,7 +55,7 @@ final class BillingWorkflowTest extends TenancyTestCase
             DB::table('plan_limits')->insert(['id' => (string) Str::ulid(), 'plan_id' => $plan, 'key' => $key, 'value' => $value, 'unit' => '', 'created_at' => now(), 'updated_at' => now()]);
         }
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->get('/billing')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('currentPlan.name', 'Тестовый план')->where('limits.0.value', '0.0000')->where('limits.0.used', null)
+            ->where('currentPlan.name', 'Тестовый план')->where('limits.0.value', '0.0000')->where('limits.0.used', 2)
             ->where('limits.1.value', null)->where('limits.2.key', 'vision.runs_per_week')->where('limits.2.value', null)
             ->where('requestEnabled', true));
     }

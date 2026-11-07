@@ -12,9 +12,11 @@ class SiteInspector
 
     private int $requests = 0;
 
+    private float $deadline = 0;
+
     public function __construct(private CrawlerClient $crawler) {}
 
-    public function inspect(#[\SensitiveParameter] string $url, ?int $pageLimit = null): array
+    public function inspect(#[\SensitiveParameter] string $url, ?int $pageLimit = null, ?callable $progress = null): array
     {
         try {
             SiteSafety::noQuery($url);
@@ -23,17 +25,18 @@ class SiteInspector
                 throw new \InvalidArgumentException('Некорректный адрес сайта.');
             }
 
-            return $this->inspectInternal((string) $uri->withFragment(''), $pageLimit);
+            return $this->inspectInternal((string) $uri->withFragment(''), $pageLimit, $progress);
         } catch (\Throwable $error) {
             throw SiteSafety::failure($error);
         }
     }
 
-    private function inspectInternal(#[\SensitiveParameter] string $url, ?int $pageLimit): array
+    private function inspectInternal(#[\SensitiveParameter] string $url, ?int $pageLimit, ?callable $progress): array
     {
-        $pageLimit = max(1, min(5, $pageLimit ?? config('features.E8-01B.defaults.crawl_pages', 5)));
+        $pageLimit = max(1, min(50, $pageLimit ?? config('features.E8-01B.defaults.crawl_pages', 5)));
         $this->robotsCache = [];
         $this->requests = 0;
+        $this->deadline = $this->clock() + 60;
         $issues = [];
         $robots = $this->robots($url);
         try {
@@ -42,6 +45,7 @@ class SiteInspector
             $root = ['url' => $url, 'body' => '', 'status' => 0, 'fetched_at' => now()->toIso8601String()];
             $issues[] = 'Главная страница не загружена: правила обхода недоступны, запрещают путь либо безопасная загрузка не выполнена. Отсутствие данных не означает плохое качество сайта.';
         }
+        $this->checkDeadline();
         $host = parse_url($root['url'], PHP_URL_HOST);
         $origin = $this->origin($root['url']);
         $pages = $root['status'] ? [$root] : [];
@@ -54,10 +58,21 @@ class SiteInspector
                 $issues[] = 'sitemap.xml не удалось проверить.';
             }
         }
+        $this->checkDeadline();
         $links = $this->links($root['body'], $root['url']);
-        foreach (array_slice($links, 0, $pageLimit - 1) as $link) {
+        $selectedLinks = array_slice($links, 0, $pageLimit - 1);
+        $totalPages = 1 + count($selectedLinks);
+        $processed = 1;
+        if ($progress) {
+            $progress($processed, $totalPages);
+        }
+        foreach ($selectedLinks as $link) {
+            $this->checkDeadline();
             if (! $this->allowed($link, $robots)) {
                 $issues[] = 'Путь исключён robots.txt: '.parse_url($link, PHP_URL_PATH);
+                if ($progress) {
+                    $progress(++$processed, $totalPages);
+                }
 
                 continue;
             }
@@ -66,14 +81,41 @@ class SiteInspector
             } catch (\Throwable) {
                 $issues[] = 'Страница недоступна для разрешённого обхода: '.$link;
             }
+            if ($progress) {
+                $progress(++$processed, $totalPages);
+            }
         }
+        $this->checkDeadline();
         $texts = [];
         $schemas = [];
         foreach ($pages as $page) {
+            $this->checkDeadline();
             $dom = $this->dom($page['body']);
             $xp = new \DOMXPath($dom);
             $commercial = $this->commercialDom($dom);
             $commercialXp = new \DOMXPath($commercial);
+            $pageTypes = [];
+            $pageFacts = [];
+            $collectTypes = function (mixed $node) use (&$collectTypes, &$pageTypes, &$pageFacts): void {
+                if (! is_array($node)) {
+                    return;
+                }
+                foreach ((array) ($node['@type'] ?? []) as $type) {
+                    if (is_string($type) && in_array($type, ['ContactPage', 'AboutPage', 'CollectionPage', 'ItemList', 'Product', 'Service'], true)) {
+                        $pageTypes[] = $type;
+                        foreach (['name' => 'Название', 'description' => 'Описание'] as $field => $label) {
+                            if (is_string($node[$field] ?? null) && trim($node[$field]) !== '' && count($pageFacts) < 10) {
+                                $pageFacts[] = ['label' => $label, 'value' => mb_substr(trim($node[$field]), 0, 300)];
+                            }
+                        }
+                    }
+                }
+                foreach ($node as $child) {
+                    if (is_array($child)) {
+                        $collectTypes($child);
+                    }
+                }
+            };
             foreach ($commercialXp->query('//script[@type="application/ld+json"]') as $script) {
                 if ($page['status'] < 200 || $page['status'] >= 300) {
                     continue;
@@ -81,6 +123,7 @@ class SiteInspector
                 $value = json_decode($script->textContent, true);
                 if (is_array($value)) {
                     $schemas[] = ['data' => $value, 'page' => $page];
+                    $collectTypes($value);
                 }
             }
             foreach ($xp->query('//script|//style|//noscript|//svg') as $node) {
@@ -106,7 +149,7 @@ class SiteInspector
                 'commercial_text' => mb_substr(preg_replace('/\s+/u', ' ', trim($commercial->textContent)), 0, 50000),
                 'fulfilment_evidence' => $this->fulfilmentEvidence($commercial),
                 'primary_heading' => trim($commercialXp->query('//h1')->item(0)?->textContent ?? ''),
-                'headings' => $headings, 'references' => $references, 'observed_at' => $page['fetched_at'], 'status' => $page['status']];
+                'headings' => $headings, 'references' => $references, 'structured_types' => array_values(array_unique($pageTypes)), 'structured_facts' => $pageFacts, 'observed_at' => $page['fetched_at'], 'status' => $page['status']];
         }
         $criteria = $this->criteria($root, $texts, $schemas, $links, $robots, $sitemap);
         $llms = null;
@@ -117,8 +160,32 @@ class SiteInspector
             }
         }
         $aiAccess = $this->aiAccess($root['url'], $robots, $llms, $sitemap);
+        $aiAccess['captcha'] = $this->captchaIndicators($pages);
+
+        $this->checkDeadline();
 
         return ['url' => $url, 'final_url' => $root['url'], 'readiness' => Metrics::readiness($criteria), 'criteria' => $criteria, 'ai_access' => $aiAccess, 'issues' => $issues, 'pages' => $texts, 'crawled_pages' => count($pages), 'scope' => 'Публичный HTML, до '.$pageLimit.' страниц. Без исполнения JavaScript. Автоматически подтверждаются только приведённые свидетельства; семантическая проверка и AI-поиск указаны отдельно.'];
+    }
+
+    /** Report only visible markup markers, never claim that protection is absent. */
+    private function captchaIndicators(array $pages): array
+    {
+        $found = [];
+        foreach ($pages as $page) {
+            $body = $page['body'] ?? '';
+            if (! is_string($body)) {
+                continue;
+            }
+            foreach (['reCAPTCHA' => '~<(?:script|iframe|div)[^>]+(?:recaptcha|g-recaptcha)[^>]*>~i',
+                'hCaptcha' => '~<(?:script|iframe|div)[^>]+(?:hcaptcha|h-captcha)[^>]*>~i',
+                'Cloudflare Turnstile' => '~<(?:script|iframe|div)[^>]+(?:challenges\.cloudflare\.com/turnstile|cf-turnstile)[^>]*>~i'] as $name => $pattern) {
+                if (preg_match($pattern, $body)) {
+                    $found[$name] = true;
+                }
+            }
+        }
+
+        return ['indicators' => array_keys($found), 'pages_observed' => count($pages)];
     }
 
     private function aiAccess(string $url, ?array $robots, ?array $llms, ?array $sitemap): array
@@ -198,11 +265,24 @@ class SiteInspector
 
     private function fetchBounded(string $url): array
     {
-        if ($this->requests >= 10) {
+        $this->checkDeadline();
+        if ($this->requests >= 60) {
             throw new \RuntimeException('Per-site request budget reached');
         }$this->requests++;
 
-        return $this->crawler->fetch($url);
+        return $this->crawler->fetch($url, min(8, max(0.1, $this->deadline - $this->clock())));
+    }
+
+    protected function clock(): float
+    {
+        return microtime(true);
+    }
+
+    private function checkDeadline(): void
+    {
+        if ($this->clock() >= $this->deadline) {
+            throw new \RuntimeException('Site audit timed out.');
+        }
     }
 
     private function robots(string $url): ?array

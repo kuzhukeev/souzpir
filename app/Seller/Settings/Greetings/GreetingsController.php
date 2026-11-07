@@ -34,7 +34,7 @@ final class GreetingsController
 
     public function update(Request $request): mixed
     {
-        $input = $request->validate(['greetings' => ['present', 'array:telegram,widget,api,email,whatsapp'], 'greetings.telegram' => ['nullable', 'string', 'max:1000'], 'greetings.widget' => ['nullable', 'string', 'max:1000'], 'greetings.api' => ['nullable', 'string', 'max:1000'], 'greetings.email' => ['nullable', 'string', 'max:1000'], 'greetings.whatsapp' => ['nullable', 'string', 'max:1000']]);
+        $input = $request->validate(['greetings' => ['present', 'array:telegram,widget,widget_catalog,widget_contacts,api,email,whatsapp,after_hours'], 'greetings.telegram' => ['nullable', 'string', 'max:1000'], 'greetings.widget' => ['nullable', 'string', 'max:1000'], 'greetings.widget_catalog' => ['nullable', 'string', 'max:1000'], 'greetings.widget_contacts' => ['nullable', 'string', 'max:1000'], 'greetings.api' => ['nullable', 'string', 'max:1000'], 'greetings.email' => ['nullable', 'string', 'max:1000'], 'greetings.whatsapp' => ['nullable', 'string', 'max:1000'], 'greetings.after_hours' => ['nullable', 'string', 'max:1000']]);
         $this->access($request, 'seller.settings.write', function (TenantContext $tenant) use ($input): void {
             $row = BrandSellerSettings::query()->first() ?? new BrandSellerSettings;
             $row->greetings = collect($input['greetings'])->map(fn ($value) => trim($value ?? ''))->all();

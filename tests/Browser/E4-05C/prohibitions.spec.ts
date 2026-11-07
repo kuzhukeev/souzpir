@@ -1,0 +1,26 @@
+import { expect, test } from '@playwright/test';
+import { createServer, type ViteDevServer } from 'vite';
+import { mkdir } from 'node:fs/promises';
+let server: ViteDevServer;
+let url: string;
+test.setTimeout(60000);
+test.use({ viewport: { width: 1440, height: 900 }, launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH } : {} });
+test.beforeAll(async () => { server = await createServer({ configFile: 'tests/Browser/E4-05C/vite.config.ts' }); await server.listen(); url = new URL('/tests/Browser/E4-05C/fixture.html', server.resolvedUrls!.local[0]).href; });
+test.afterAll(async () => { await server?.close(); });
+test('отключение правила, запрет канцелярита и подсветка', async ({ page }) => {
+  await page.route('**/seller/knowledge/prohibitions/check', route => route.fulfill({ json: { verdict: 'regenerate', issues: ['запрещённое обещание: Отсрочка'], warnings: [], matches: [{ text: 'кредит', rule: 'Отсрочка' }] } }));
+  await page.goto(url);
+  await page.getByRole('button', { name: 'Запрещённые обещания' }).click();
+  await page.getByLabel('Включено').uncheck();
+  await expect(page.getByText('Отключённые правила не применяются после публикации.')).toBeVisible();
+  await page.getByRole('button', { name: 'Стиль', exact: true }).click();
+  await page.getByLabel('Запрет канцелярита').uncheck();
+  await mkdir('.local/screenshots/SP-E4-05C', { recursive: true });
+  await page.screenshot({ path: '.local/screenshots/SP-E4-05C/style.png', fullPage: true });
+  await page.getByRole('button', { name: 'Проверить фразу' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Проверить фразу' });
+  await dialog.getByLabel('Фраза').fill('Дадим кредит');
+  await dialog.getByRole('button', { name: 'Проверить', exact: true }).click();
+  await expect(dialog.locator('mark')).toHaveText('кредит');
+  await page.screenshot({ path: '.local/screenshots/SP-E4-05C/check.png' });
+});

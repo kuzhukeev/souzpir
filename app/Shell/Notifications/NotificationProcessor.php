@@ -19,6 +19,7 @@ final class NotificationProcessor
             $event = new DomainEvent(json_decode($row->envelope, true, 512, JSON_THROW_ON_ERROR));
             if ($event->isNotification()) {
                 $e = $event->envelope;
+                app(MeasurementSubscriptionDelivery::class)->deliver($event);
                 $members = Membership::withoutGlobalScopes()->where('organization_id', $e['organization_id'])->where('status', 'active')->get();
                 foreach ($members as $member) {
                     if (! app(RecipientPolicy::class)->permits($member, $e['brand_id'], $e['type'])) {
@@ -34,7 +35,7 @@ final class NotificationProcessor
                         }
                         $deliveryId = (string) Str::ulid();
                         $inserted = DB::table('notification_deliveries')->insertOrIgnore(['id' => $deliveryId, 'organization_id' => $e['organization_id'], 'brand_id' => $e['brand_id'], 'event_id' => $eventId, 'user_id' => $member->user_id, 'channel' => $channel, 'status' => $channel === 'cabinet' ? 'sent' : 'pending', 'attempts' => 0, 'sent_at' => $channel === 'cabinet' ? now() : null, 'created_at' => now(), 'updated_at' => now()]);
-                        if ($inserted && $channel !== 'cabinet' && config('features.E0-04.defaults.external_delivery')) {
+                        if ($inserted && $channel !== 'cabinet' && config('features.E0-04.defaults.external_delivery') && config('runtime.notification_driver') !== 'fake') {
                             DeliverNotification::dispatch($deliveryId)->afterCommit();
                         }
                         if ($inserted && $channel === 'cabinet') {

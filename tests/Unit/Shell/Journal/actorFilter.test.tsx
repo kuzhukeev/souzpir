@@ -6,6 +6,7 @@ import Actions from '@/pages/Shell/Journal/Actions';
 const calls = vi.hoisted(() => ({ get: vi.fn() }));
 vi.mock('@inertiajs/react', () => ({
   Head: () => null,
+  usePage: () => ({ props: { brand: null } }),
   Link: ({ href, children, ...props }: { href: string; children: ReactNode }) => (
     <a href={href} {...props}>
       {children}
@@ -38,7 +39,7 @@ it('показывает нейтральную подпись отсутств�
   const filter = screen.getByRole('combobox', { name: 'Участник' });
   expect(filter.textContent).toContain('Выбранный участник');
   expect(filter.textContent).not.toContain(hidden);
-  expect(screen.getByText('Действий пока нет')).toBeTruthy();
+  expect(screen.getByText('По выбранным фильтрам действий нет')).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Сбросить' }));
   expect(calls.get).toHaveBeenCalledWith(
     '/journal',

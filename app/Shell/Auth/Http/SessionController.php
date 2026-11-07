@@ -2,11 +2,14 @@
 
 namespace App\Shell\Auth\Http;
 
+use App\Contracts\ProtectedOperations\IdempotencyFailure;
 use App\Models\User;
+use App\ProtectedOperations\PostgresSessionIdempotency;
 use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Auth\EligibleAccount;
 use App\Shell\Auth\InvitationExchangeGrants;
 use Illuminate\Auth\AuthenticationException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -20,9 +23,16 @@ use Throwable;
 
 final class SessionController
 {
-    public function create(): Response
+    public function create(Request $request): Response
     {
-        return Inertia::render('Shell/Auth/Login');
+        $email = mb_strtolower(trim((string) $request->old('email', '')));
+        $key = 'auth.login:'.hash('sha256', $email).':lock';
+
+        return Inertia::render('Shell/Auth/Login', [
+            'status' => $request->session()->get('status'),
+            'lockoutEmail' => $email,
+            'lockoutSeconds' => $email !== '' && RateLimiter::tooManyAttempts($key, 1) ? RateLimiter::availableIn($key) : 0,
+        ]);
     }
 
     public function store(Request $request): RedirectResponse
@@ -30,16 +40,23 @@ final class SessionController
         $request->merge(['email' => mb_strtolower(trim((string) $request->input('email')))]);
         $data = $request->validate(['email' => ['required', 'email', 'max:254'], 'password' => ['required', 'string'], 'remember' => ['boolean']]);
         $key = 'auth.login:'.hash('sha256', $data['email']);
-        if (RateLimiter::tooManyAttempts($key, 5)) {
-            throw ValidationException::withMessages(['email' => 'Слишком много попыток. Повторите через 15 минут.']);
+        $lockKey = $key.':lock';
+        if (RateLimiter::tooManyAttempts($lockKey, 1)) {
+            throw ValidationException::withMessages(['email' => 'Слишком много попыток. Повторите через 10 минут.']);
         }
         $user = User::where('email', $data['email'])->first();
         $hash = $user?->password ?? '$2y$12$C6UzMDM.H6dfI/f/IKcEe.ouXKf.vGPlZ4eV1AJfs8.GvE0lXkz3u';
         if (! Hash::check($data['password'], $hash) || ! $user || ! app(EligibleAccount::class)->includes($data['email'])) {
-            RateLimiter::hit($key, 900);
+            RateLimiter::hit($key, 600);
+            if (RateLimiter::tooManyAttempts($key, 5)) {
+                RateLimiter::hit($lockKey, 600);
+                RateLimiter::clear($key);
+                throw ValidationException::withMessages(['email' => 'Слишком много попыток. Повторите через 10 минут.']);
+            }
             throw ValidationException::withMessages(['email' => 'Не удалось войти. Проверьте данные.']);
         }
         RateLimiter::clear($key);
+        RateLimiter::clear($lockKey);
         DB::transaction(function () use ($request): void {
             $oldId = $request->session()->getId();
             $request->session()->regenerate(true);
@@ -86,20 +103,60 @@ final class SessionController
         }
     }
 
+    public function recoverLogout(Request $request): JsonResponse
+    {
+        $key = $request->header('X-Context-Change-Key');
+        abort_unless(is_string($key) && strlen($key) >= 16 && strlen($key) <= 128, 422);
+        try {
+            $receipt = app(PostgresSessionIdempotency::class)->recoverRevoked($request, 'profile.logout', $key, 'logout-v1');
+        } catch (IdempotencyFailure) {
+            abort(401);
+        }
+
+        return response()->json($receipt);
+    }
+
     public function destroy(Request $request): RedirectResponse
     {
+        $key = $request->header('X-Context-Change-Key');
+        abort_unless($key === null || (is_string($key) && strlen($key) >= 16 && strlen($key) <= 128), 422);
         // Version middleware is bypassed here, so restore a remember-only
         // session through the same verified path before revoking its lease.
         try {
             if ($request->session()->get('auth.version') === null && Auth::viaRemember()) {
                 app(AuthSessionRegistry::class)->issueRemembered($request, $request->user());
             }
-            app(AuthSessionRegistry::class)->withinLogout($request, function (User $fresh) use ($request): void {
+            $revoke = function (User $fresh) use ($request): array {
                 app(AuthSessionRegistry::class)->revokeCurrent($request);
                 app(InvitationExchangeGrants::class)->revoke($request);
                 Auth::guard()->setUser($fresh);
                 Auth::logout();
-            });
+
+                return ['logged_out' => true];
+            };
+            if ($key !== null) {
+                app(PostgresSessionIdempotency::class)->executeLogout($request, $key, function () use ($request, $revoke): array {
+                    $fresh = User::whereKey($request->user()->getAuthIdentifier())->firstOrFail();
+
+                    return $revoke($fresh);
+                });
+            } else {
+                app(AuthSessionRegistry::class)->withinLogout($request, $revoke);
+            }
+        } catch (IdempotencyFailure) {
+            try {
+                app(PostgresSessionIdempotency::class)->recoverRevoked($request, 'profile.logout', $key, 'logout-v1');
+            } catch (IdempotencyFailure) {
+                // A failed receipt cannot authorize a replay; retire this
+                // browser's own still-active lease if one remains.
+                try {
+                    app(AuthSessionRegistry::class)->withinLogout($request,
+                        fn () => app(AuthSessionRegistry::class)->revokeCurrent($request));
+                } catch (AuthenticationException) {
+                    // The old lease was already revoked or is unavailable.
+                }
+            }
+            Auth::guard()->logoutCurrentDevice();
         } catch (AuthenticationException) {
             // This does not authorize touching any lease; retire only the
             // invitation grant bound to the same session and clear its cookie.

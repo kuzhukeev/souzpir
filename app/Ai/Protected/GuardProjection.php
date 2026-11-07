@@ -13,10 +13,10 @@ use Throwable;
 final class GuardProjection
 {
     /** @return array{body: string, checksum: string} */
-    public function render(#[SensitiveParameter] LeadState $state, #[SensitiveParameter] Goal $goal): array
+    public function render(#[SensitiveParameter] LeadState $state, #[SensitiveParameter] Goal $goal, ?string $template = null): array
     {
         try {
-            $trusted = file_get_contents(resource_path('views/prompts/guard.blade.php'));
+            $trusted = $template ?? file_get_contents(resource_path('views/prompts/guard.blade.php'));
             if (! is_string($trusted)) {
                 throw new LogicException;
             }

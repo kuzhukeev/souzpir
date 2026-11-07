@@ -3,10 +3,15 @@ import { createRoot } from 'react-dom/client';
 import Profile from '../../../resources/js/pages/Shell/Profile/Profile';
 import Security from '../../../resources/js/pages/Shell/Profile/Security';
 import Notifications from '../../../resources/js/pages/Shell/Profile/Notifications';
+import Ready from '../../../resources/js/pages/Shell/Auth/Ready';
+import { BrandSwitch } from '../../../resources/js/components/navigation/BrandSwitch';
 import { profileCopy } from '../../../resources/js/features/Shell/Profile/copy';
 
 const params = new URLSearchParams(location.search);
 const screen = params.get('screen') ?? 'profile';
+export function SwitchFixture() {
+  return <BrandSwitch ready brand={{ id: '01J00000000000000000000004', name: 'Первый бренд', theme: 'neutral' }} brands={[{ id: '01J00000000000000000000004', name: 'Первый бренд' }, { id: '01J00000000000000000000005', name: 'Второй бренд' }]} />;
+}
 const theme = params.get('theme') ?? 'neutral';
 const owner = { id: '01J00000000000000000000002', name: 'Иван Петров', email: 'ivan@example.test' };
 const titles = {
@@ -132,6 +137,8 @@ const translations = Object.fromEntries(
 );
 const shared = {
   ...pageData,
+  mfaEnabled: false,
+  canOpenJournal: true,
   status: params.has('oldSecurityStatus') ? 'Пароль изменён. Другие сессии завершены.' : null,
   auth: { user: owner },
   organization: { id: '01J00000000000000000000001', name: 'Союз Пир' },
@@ -170,7 +177,7 @@ script.dataset.page = 'app';
 script.textContent = JSON.stringify({
   component: 'Fixture',
   props: shared,
-  url: screen === 'profile' ? '/profile' : `/profile/${screen}`,
+  url: screen === 'ready' ? '/auth/ready' : screen === 'switch' ? '/dashboard' : screen === 'profile' ? '/profile' : `/profile/${screen}`,
   version: 'fixture',
   clearHistory: false,
   encryptHistory: false,
@@ -213,7 +220,7 @@ async function mount() {
   );
   await createInertiaApp({
     resolve: () =>
-      screen === 'security' ? Security : screen === 'notifications' ? Notifications : Profile,
+      screen === 'security' ? Security : screen === 'notifications' ? Notifications : screen === 'ready' ? Ready : screen === 'switch' ? SwitchFixture : Profile,
     setup: ({ el, App, props }) => createRoot(el).render(<App {...props} />),
   });
 }

@@ -43,12 +43,12 @@ final class FewshotMoreTest extends TenancyTestCase
         $this->getJson('/seller/knowledge/fewshot/dialogs/'.$foreign)->assertNotFound();
         $this->post('/seller/knowledge/fewshot/from-dialog', ['version' => 2, 'dialog' => $dialog, 'message' => $message,
             'tag' => 'ask_city', 'confidence' => 0.9])->assertRedirect()->assertSessionHasNoErrors();
-        $this->get('/seller/knowledge/fewshot')->assertOk()->assertInertia(fn ($page) => $page
-            ->where('fewshot.bad_examples.0.text', 'Доставка точно бесплатна.')
-            ->where('fewshot.examples.0.text', 'Уточню условия поставки.')
-            ->where('fewshot.examples.0.source', 'dialog #'.substr($dialog, -6)));
+        $this->get('/seller/knowledge/fewshot', ['X-Inertia-Partial-Component' => 'Seller/Knowledge/Fewshot/Index', 'X-Inertia-Partial-Data' => 'fewshotData'])->assertOk()->assertInertia(fn ($page) => $page
+            ->where('fewshotData.fewshot.bad_examples.0.text', 'Доставка точно бесплатна.')
+            ->where('fewshotData.fewshot.examples.0.text', 'Уточню условия поставки.')
+            ->where('fewshotData.fewshot.examples.0.source', 'dialog #'.substr($dialog, -6)));
         $this->delete('/seller/knowledge/fewshot/bad', ['version' => 3, 'index' => 0])->assertRedirect()->assertSessionHasNoErrors();
-        $this->get('/seller/knowledge/fewshot')->assertOk()->assertInertia(fn ($page) => $page->has('fewshot.bad_examples', 0));
+        $this->get('/seller/knowledge/fewshot', ['X-Inertia-Partial-Component' => 'Seller/Knowledge/Fewshot/Index', 'X-Inertia-Partial-Data' => 'fewshotData'])->assertOk()->assertInertia(fn ($page) => $page->has('fewshotData.fewshot.bad_examples', 0));
     }
 
     public function test_validation_and_permission_failures(): void

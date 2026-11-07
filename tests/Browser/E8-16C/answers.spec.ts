@@ -1,0 +1,11 @@
+import {expect,test} from '@playwright/test';import {createServer,type ViteDevServer} from 'vite';
+test.setTimeout(60000);let server:ViteDevServer;let fixture:string;
+test.beforeAll(async()=>{server=await createServer({configFile:'tests/Browser/E8-16C/vite.config.ts',server:{host:'127.0.0.1',port:0}});await server.listen();fixture=new URL('/tests/Browser/E8-16C/fixture.html',server.resolvedUrls!.local[0]).href;});test.afterAll(async()=>{await server?.close();});
+test.use({launchOptions:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH?{executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH}:{}});
+test('матрица, фильтры и карточка ответа',async({page})=>{await page.setViewportSize({width:1440,height:900});await page.goto(fixture);
+ await expect(page.getByRole('button',{name:'Мы есть · 1'})).toBeVisible(); await expect(page.getByRole('button',{name:'Нас нет · 1'})).toBeVisible();
+ await page.screenshot({path:'.local/screenshots/sp-e8-16c/matrix.png'});
+ await page.getByRole('button',{name:'Мы есть · 1'}).click();const dialog=page.getByRole('dialog',{name:'Ответ'});
+ await expect(dialog.locator('mark')).toHaveCount(2);await expect(dialog.getByText('example.test')).toBeVisible();await expect(dialog.getByRole('button',{name:'Это про нас'})).toBeVisible();
+ await page.screenshot({path:'.local/screenshots/sp-e8-16c/answer.png'});await dialog.getByRole('button',{name:'Следующий'}).click();await expect(dialog.getByText('Другой ответ')).toBeVisible();
+ await dialog.getByRole('button',{name:'Закрыть'}).click();await page.getByLabel('Только где нас нет').check();await expect(page.getByRole('button',{name:'Мы есть · 1'})).toHaveCount(0);await page.getByRole('button',{name:'Список'}).click();await expect(page.getByRole('button',{name:/model-b/})).toBeVisible();});

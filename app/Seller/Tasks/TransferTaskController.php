@@ -27,7 +27,7 @@ final class TransferTaskController
             abort_unless(app(SellerModuleAccess::class)->enabled($context->organizationId, $context->brandId), 404);
             $row = DB::table('seller_tasks')->where('organization_id', $context->organizationId)
                 ->where('brand_id', $context->brandId)->where('id', $task)->first() ?? abort(404);
-            if ($row->status !== 'new' || $row->assigned_user_id === null) {
+            if (! in_array($row->status, ['new', 'in_progress'], true) || $row->assigned_user_id === null) {
                 throw ValidationException::withMessages(['task' => 'Передать можно только активное назначение.']);
             }
             $recipient = Membership::withoutGlobalScopes()->where('organization_id', $context->organizationId)

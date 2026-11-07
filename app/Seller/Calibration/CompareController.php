@@ -3,6 +3,7 @@
 namespace App\Seller\Calibration;
 
 use App\Models\User;
+use App\Seller\Evaluation\EvaluationVisibility;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Profile\ProfileAccess;
 use App\Tenancy\TenantContext;
@@ -15,7 +16,7 @@ final class CompareController
 {
     public function index(Request $request): mixed
     {
-        $input = $request->validate(['before' => ['nullable', 'ulid'], 'after' => ['nullable', 'ulid']]);
+        $input = $request->validate(['before' => ['nullable', 'ulid'], 'after' => ['nullable', 'ulid'], 'before_ids' => ['nullable', 'array', 'max:100'], 'before_ids.*' => ['ulid', 'distinct'], 'after_ids' => ['nullable', 'array', 'max:100'], 'after_ids.*' => ['ulid', 'distinct']]);
         $data = app(ProfileAccess::class)->run($request, function (User $user, TenantContext $tenant) use ($input): array {
             Gate::forUser($user)->authorize('seller.knowledge.read');
             abort_unless(app(SellerModuleAccess::class)->enabled($tenant->organizationId, $tenant->brandId), 404);
@@ -23,11 +24,41 @@ final class CompareController
                 $join->on('e.sim_run_id', '=', 'r.id')->on('e.organization_id', '=', 'r.organization_id')->on('e.brand_id', '=', 'r.brand_id');
             })->join('seller_personas as p', function ($join): void {
                 $join->on('p.id', '=', 'r.persona_id')->on('p.organization_id', '=', 'r.organization_id')->on('p.brand_id', '=', 'r.brand_id');
-            })->where('r.organization_id', $tenant->organizationId)->where('r.brand_id', $tenant->brandId);
-            $rows = (clone $query)->orderByDesc('r.created_at')->limit(100)->get(['r.id', 'r.persona_id', 'r.created_at', 'p.name', 'e.average', 'e.scores']);
-            $runs = $rows->map(fn ($row) => ['id' => $row->id, 'persona_id' => $row->persona_id, 'name' => $row->name, 'created_at' => $row->created_at, 'average' => (float) $row->average]);
+            })->where(fn ($query) => EvaluationVisibility::excludeTestBaseline($query, 'e.'))->where('r.organization_id', $tenant->organizationId)->where('r.brand_id', $tenant->brandId);
+            $rows = (clone $query)->orderByDesc('r.created_at')->limit(100)->get(['r.id', 'r.persona_id', 'r.created_at', 'r.metrics', 'p.name', 'e.average', 'e.scores']);
+            $releaseIds = $rows->map(fn ($row) => json_decode($row->metrics, true)['knowledge_release_id'] ?? null)->filter()->unique()->values();
+            $versions = $releaseIds->isEmpty() ? collect() : DB::table('knowledge_releases')
+                ->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
+                ->where('status', 'published')->whereIn('id', $releaseIds)->pluck('version', 'id');
+            $runs = $rows->map(function ($row) use ($versions): array {
+                $releaseId = json_decode($row->metrics, true)['knowledge_release_id'] ?? null;
+
+                return ['id' => $row->id, 'persona_id' => $row->persona_id, 'name' => $row->name,
+                    'created_at' => $row->created_at, 'average' => (float) $row->average,
+                    'knowledge_version' => $versions->get($releaseId)];
+            });
             $comparison = null;
-            if (($input['before'] ?? null) && ($input['after'] ?? null)) {
+            if (! empty($input['before_ids']) && ! empty($input['after_ids'])) {
+                $beforeRows = (clone $query)->whereIn('r.id', $input['before_ids'])->get(['r.id', 'r.persona_id', 'p.name', 'e.average']);
+                $afterRows = (clone $query)->whereIn('r.id', $input['after_ids'])->get(['r.id', 'r.persona_id', 'p.name', 'e.average']);
+                abort_unless($beforeRows->count() === count($input['before_ids']) && $afterRows->count() === count($input['after_ids']), 404);
+                $beforeByScenario = $beforeRows->groupBy('persona_id');
+                $afterByScenario = $afterRows->groupBy('persona_id');
+                $scenarioIds = $beforeByScenario->keys()->merge($afterByScenario->keys())->unique();
+                $items = $scenarioIds->map(function ($id) use ($beforeByScenario, $afterByScenario): array {
+                    $oldRows = $beforeByScenario->get($id, collect());
+                    $newRows = $afterByScenario->get($id, collect());
+                    $old = $oldRows->isEmpty() ? null : round((float) $oldRows->avg('average'), 2);
+                    $new = $newRows->isEmpty() ? null : round((float) $newRows->avg('average'), 2);
+
+                    return ['criterion' => ($oldRows->first() ?? $newRows->first())->name, 'before' => $old, 'after' => $new, 'delta' => $old !== null && $new !== null ? round($new - $old, 2) : null];
+                })->values()->all();
+                $comparison = ['same_scenario' => true, 'items' => $items,
+                    'improved' => count(array_filter($items, fn ($item) => $item['delta'] !== null && $item['delta'] > 0)),
+                    'worsened' => count(array_filter($items, fn ($item) => $item['delta'] !== null && $item['delta'] < 0)),
+                    'unchanged' => count(array_filter($items, fn ($item) => $item['delta'] !== null && $item['delta'] == 0)),
+                    'total' => count($items)];
+            } elseif (($input['before'] ?? null) && ($input['after'] ?? null)) {
                 $before = (clone $query)->where('r.id', $input['before'])->first(['r.persona_id', 'e.scores']) ?? abort(404);
                 $after = (clone $query)->where('r.id', $input['after'])->first(['r.persona_id', 'e.scores']) ?? abort(404);
                 $a = json_decode($before->scores, true) ?: [];
@@ -42,7 +73,8 @@ final class CompareController
                 $comparison = ['same_scenario' => $before->persona_id === $after->persona_id, 'items' => $items,
                     'improved' => count(array_filter($items, fn ($item) => $item['delta'] !== null && $item['delta'] > 0)),
                     'worsened' => count(array_filter($items, fn ($item) => $item['delta'] !== null && $item['delta'] < 0)),
-                    'unchanged' => count(array_filter($items, fn ($item) => $item['delta'] !== null && $item['delta'] == 0))];
+                    'unchanged' => count(array_filter($items, fn ($item) => $item['delta'] !== null && $item['delta'] == 0)),
+                    'total' => count($items)];
             }
 
             return ['runs' => $runs, 'comparison' => $comparison, 'filters' => $input];

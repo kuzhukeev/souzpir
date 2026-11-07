@@ -6,10 +6,12 @@ use App\Models\Brand;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Shell\Audit\Contracts\AuditWriter;
+use App\Shell\Brands\Contracts\DomainDnsResolver;
 use App\Tenancy\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -156,7 +158,7 @@ final class OnboardingTest extends TenancyTestCase
     {
         Storage::fake('local');
         [$owner, $org] = $this->emptyCabinet();
-        $first = UploadedFile::fake()->image('logo.jpg', 12, 9);
+        $first = UploadedFile::fake()->image('logo.png', 12, 9);
         $this->actingAs($owner)->post('/start/logo', ['logo' => $first])->assertSessionHasNoErrors();
         $path = DB::table('onboarding_progress')->where('organization_id', $org->id)->value('logo_path');
         self::assertStringStartsWith('organizations/'.$org->id.'/onboarding/logos/', $path);
@@ -173,6 +175,7 @@ final class OnboardingTest extends TenancyTestCase
     {
         Storage::fake('local');
         [$owner, $org] = $this->emptyCabinet();
+        $this->actingAs($owner)->post('/start/logo', ['logo' => UploadedFile::fake()->image('logo.jpg')])->assertSessionHasErrors('logo');
         $svg = UploadedFile::fake()->createWithContent('logo.svg', '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>');
         $this->actingAs($owner)->post('/start/logo', ['logo' => $svg])->assertSessionHasErrors('logo');
         $this->post('/start/logo', ['logo' => UploadedFile::fake()->createWithContent('logo.png', 'not an image')])->assertSessionHasErrors('logo');
@@ -225,5 +228,70 @@ final class OnboardingTest extends TenancyTestCase
         $this->get('/start/logo')->assertOk();
         $this->from('/start/logo')->post('/start/logo', ['logo' => UploadedFile::fake()->createWithContent('bad.svg', '<svg/>')])->assertRedirect('/start')->assertSessionHasErrors('logo');
         $this->from('/start/logo')->post('/start', $this->form(['brand_name' => '']))->assertRedirect('/start')->assertSessionHasErrors('brand_name');
+    }
+
+    public function test_website_check_uses_safe_fake_transport_and_reports_result(): void
+    {
+        [$owner] = $this->emptyCabinet();
+        $this->app->instance(DomainDnsResolver::class, new class implements DomainDnsResolver
+        {
+            public function addresses(string $host): array
+            {
+                return ['93.184.216.34'];
+            }
+
+            public function txtRecords(string $host): array
+            {
+                return [];
+            }
+        });
+        Http::preventStrayRequests();
+        Http::fake(['https://example.com/*' => Http::response('OK', 200)]);
+        $this->actingAs($owner)->post('/start/draft', $this->form(['website' => 'https://example.com', 'step' => 2, 'check_website' => true]))->assertSessionHasNoErrors();
+        $this->get('/start')->assertInertia(fn (Assert $page) => $page->where('initial.website_check.status', 'available')->where('initial.website_check.website', 'https://example.com'));
+        Http::assertSentCount(1);
+
+        Http::fake(['https://example.org/*' => Http::response('missing', 404)]);
+        $this->post('/start/draft', $this->form(['website' => 'https://example.org', 'step' => 2, 'check_website' => true]))->assertSessionHasNoErrors();
+        $this->get('/start')->assertInertia(fn (Assert $page) => $page->where('initial.website_check.status', 'unavailable'));
+    }
+
+    public function test_website_check_rejects_private_host_and_admin(): void
+    {
+        [$owner, $org] = $this->emptyCabinet();
+        $this->app->instance(DomainDnsResolver::class, new class implements DomainDnsResolver
+        {
+            public function addresses(string $host): array
+            {
+                return ['127.0.0.1'];
+            }
+
+            public function txtRecords(string $host): array
+            {
+                return [];
+            }
+        });
+        Http::fake();
+        $this->actingAs($owner)->post('/start/draft', $this->form(['website' => 'https://internal.test', 'step' => 2, 'check_website' => true]))->assertSessionHasNoErrors();
+        $this->get('/start')->assertInertia(fn (Assert $page) => $page->where('initial.website_check.status', 'unavailable'));
+        Http::assertNothingSent();
+        [$admin] = $this->member($org, 'admin');
+        $this->actingAs($admin)->post('/start/draft', $this->form(['check_website' => true]))->assertForbidden();
+        Http::assertNothingSent();
+    }
+
+    public function test_safe_svg_logo_is_private_and_dangerous_xml_is_rejected(): void
+    {
+        Storage::fake('local');
+        [$owner, $org] = $this->emptyCabinet();
+        $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="#123456"/></svg>';
+        $this->actingAs($owner)->post('/start/logo', ['logo' => UploadedFile::fake()->createWithContent('logo.svg', $svg)])->assertSessionHasNoErrors();
+        $path = DB::table('onboarding_progress')->where('organization_id', $org->id)->value('logo_path');
+        self::assertStringEndsWith('.svg', $path);
+        $this->get('/start/logo')->assertOk()->assertHeader('Content-Type', 'image/svg+xml')->assertHeader('X-Content-Type-Options', 'nosniff')->assertSee('circle', false);
+        $this->post('/start/logo', ['logo' => UploadedFile::fake()->createWithContent('bad.svg', '<!DOCTYPE svg [<!ENTITY x SYSTEM "file:///etc/passwd">]><svg xmlns="http://www.w3.org/2000/svg">&x;</svg>')])->assertSessionHasErrors('logo');
+        self::assertSame($path, DB::table('onboarding_progress')->where('organization_id', $org->id)->value('logo_path'));
+        [$otherOwner] = $this->emptyCabinet();
+        $this->actingAs($otherOwner)->get('/start/logo')->assertNotFound();
     }
 }

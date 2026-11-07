@@ -12,13 +12,15 @@ use App\Tenancy\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 final class IncomingController
 {
     public function handle(Request $request): mixed
     {
-        $input = $request->validate(['type' => ['required', Rule::in(['task', 'review', 'evaluation'])], 'id' => ['required', 'ulid'], 'decision' => ['required', Rule::in(['accept', 'reject'])], 'target' => ['sometimes', Rule::in(['fact', 'condition', 'example'])], 'version' => ['nullable', 'integer', 'min:1'], 'group' => ['nullable', 'string', 'max:64'], 'text' => ['nullable', 'string', 'max:500']]);
+        $input = $request->validate(['type' => ['required', Rule::in(['task', 'review', 'evaluation'])], 'id' => ['required', 'ulid'], 'decision' => ['required', Rule::in(['accept', 'reject', 'merge', 'attach'])], 'target' => ['sometimes', Rule::in(['fact', 'condition', 'example', 'closed_topic'])], 'version' => ['nullable', 'integer', 'min:1'], 'group' => ['nullable', 'string', 'max:64'], 'text' => ['nullable', 'string', 'max:500'], 'existing_topic_id' => ['required_if:decision,merge,attach', 'nullable', 'string', 'max:100']]);
         app(ProfileAccess::class)->run($request, function (User $user, TenantContext $tenant) use ($input): void {
             Gate::forUser($user)->authorize('seller.knowledge.write');
             abort_unless(app(SellerModuleAccess::class)->enabled($tenant->organizationId, $tenant->brandId), 404);
@@ -28,11 +30,30 @@ final class IncomingController
                 $query->where('type', 'unknown_question')->where('status', 'new');
             }
             if ($input['type'] === 'review') {
-                $query->where('type', 'wrong_fact')->where('status', 'new');
+                $query->where('status', 'new');
             }
             $query->first() ?? abort(404);
             $processed = DB::table('audit_logs')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('action', 'knowledge.incoming.handled')->where('subject_type', $input['type'])->where('subject_id', $input['id'])->exists();
             abort_if($processed, 404);
+            if (in_array($input['decision'], ['merge', 'attach'], true)) {
+                $draft = DB::table('knowledge_releases')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('status', 'draft')->value('id') ?? abort(404);
+                $repo = app(KnowledgeRepository::class);
+                $data = $repo->forRelease($tenant, $draft, true)->toArray();
+                $index = collect($data['intents'])->search(fn (array $topic) => ($topic['id'] ?? null) === $input['existing_topic_id']);
+                abort_if($index === false, 422);
+                if ($input['decision'] === 'attach') {
+                    validator($input, ['version' => ['required', 'integer', 'min:1'], 'text' => ['required', 'string', 'max:200']])->validate();
+                    $examples = $data['intents'][$index]['examples'] ?? [];
+                    if (! in_array(trim($input['text']), $examples, true)) {
+                        if (count($examples) >= 12) {
+                            throw ValidationException::withMessages(['text' => 'В теме уже 12 примеров.']);
+                        }
+                        $examples[] = trim($input['text']);
+                    }
+                    $data['intents'][$index]['examples'] = $examples;
+                    $repo->saveDraft($tenant, $draft, (int) $input['version'], $data);
+                }
+            }
             if ($input['decision'] === 'accept') {
                 validator($input, ['version' => ['required', 'integer', 'min:1'], 'group' => ['required', 'string', 'max:64'], 'text' => ['required', 'string', 'max:500']])->validate();
                 $draft = DB::table('knowledge_releases')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('status', 'draft')->value('id') ?? abort(404);
@@ -48,6 +69,8 @@ final class IncomingController
                             validator($input, ['text' => ['numeric', 'max:100']])->validate();
                         }
                         $data['conditions'][$input['group']] = 0 + $input['text'];
+                    } elseif ($target === 'closed_topic') {
+                        $data['closed_topics'][] = ['id' => (string) Str::ulid(), 'category' => trim($input['group']), 'idea' => trim($input['text']), 'next' => 'return'];
                     } else {
                         $data['fewshot']['examples'][] = ['tag' => trim($input['group']), 'text' => trim($input['text']), 'client_type' => 'all', 'confidence' => 0.9, 'source' => 'incoming'];
                     }
@@ -55,13 +78,13 @@ final class IncomingController
                 }
             }
             if ($input['type'] !== 'evaluation') {
-                $values = ['status' => $input['decision'] === 'accept' ? 'done' : 'dismissed', 'updated_at' => now()];
+                $values = ['status' => $input['decision'] === 'reject' ? 'dismissed' : 'done', 'updated_at' => now()];
                 if ($input['type'] === 'review' && $input['decision'] === 'accept') {
                     $values['applied_to'] = $input['target'] ?? 'fact';
                 }
                 $query->update($values);
             }
-            app(AuditWriter::class)->record($tenant, new AuditEntry('knowledge.incoming.handled', $input['type'], $input['id'], after: ['decision' => $input['decision']]));
+            app(AuditWriter::class)->record($tenant, new AuditEntry('knowledge.incoming.handled', $input['type'], $input['id'], after: ['decision' => $input['decision'], 'existing_topic_id' => $input['existing_topic_id'] ?? null]));
         });
 
         return back()->with('status', 'Предложение обработано.');

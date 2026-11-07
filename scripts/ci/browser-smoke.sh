@@ -30,6 +30,8 @@ diagnostics() {
   fi
 }
 trap diagnostics EXIT
+# Each browser fixture starts Vite, whose watcher walks vendor/ and tests/; the default inotify limit overflows (ENOSPC).
+sudo sysctl -q -w fs.inotify.max_user_watches=1048576 fs.inotify.max_user_instances=1024
 # Disposable GitHub runner: Node HTTP clients must resolve the local fixture host.
 printf '127.0.0.1 souzpir.local\n' | sudo tee -a /etc/hosts >/dev/null
 php -S 127.0.0.1:8101 -t public scripts/ci/server.php > .local/runtime/browser-server.log 2>&1 &
@@ -67,47 +69,57 @@ export RUN_ONBOARDING_E2E=1 RUN_ORGANIZATIONS_E2E=1 RUN_BRANDS_E2E=1
 export INVITATION_BROWSER_CI_FIXTURE=1 INVITATION_BROWSER_TEST_DATABASE=souzpir_test_sp_invitation_ci
 export PHP_BINARY=php INVITATION_DB_PASSWORD=ci-only-password E802_LOCAL_BASE=http://souzpir.local:8249
 browser_options=(--workers=1)
-if [[ "${BROWSER_SHARD:-1/1}" =~ ^[123]/3$ ]]; then
-  for part in 1 2 3; do
-    FORCE_COLOR=0 npx playwright test --list --shard="$part/3" > ".local/runtime/browser-list-$part.txt"
+if [[ "${BROWSER_SHARD:-1/1}" =~ ^[1234]/4$ ]]; then
+  # Four shards keep each run below the existing timeout; preserve the exact list for retry.
+  for part in 1 2 3 4; do
+    FORCE_COLOR=0 npx playwright test --list --shard="$part/4" > ".local/runtime/browser-list-$part.txt"
   done
-  python3 - <<'PY'
+  python3 - <<'PYLIST'
 from pathlib import Path
-
+import re
 shards = []
-for part in (1, 2, 3):
+for part in range(1, 5):
     lines = Path(f'.local/runtime/browser-list-{part}.txt').read_text(encoding='utf-8').splitlines()
     tests = [line.strip() for line in lines if line.lstrip().startswith('[chromium] › ')]
     if not tests:
         raise SystemExit(f'No browser tests discovered in shard {part}')
     shards.append(tests)
-
-before = [test for shard in shards for test in shard]
-pages = [test for test in shards[1] if 'E8-02/pages.spec.ts:' in test.replace('\\', '/')]
-if pages:
-    shards[1] = [test for test in shards[1] if test not in pages]
-    shards[2].extend(pages)
-after = [test for shard in shards for test in shard]
-if len(after) != len(before) or len(set(after)) != len(after):
-    raise SystemExit('Browser shard selection lost or duplicated tests')
+original = [test for shard in shards for test in shard]
+# The second shard has many short, expensive-to-start fixture specs. Move
+# complete files to less loaded shards, preserving each test exactly once.
+move_to_4 = [test for test in shards[1] if re.search(r'E1-08[D-J]/', test.replace('\\', '/'))]
+move_to_3 = [test for test in shards[1] if re.search(r'E7-04[^/]*/', test.replace('\\', '/'))]
+selected = set(move_to_4 + move_to_3)
+shards[1] = [test for test in shards[1] if test not in selected]
+shards[3].extend(move_to_4)
+shards[2].extend(move_to_3)
+tests = [test for shard in shards for test in shard]
+if len(tests) != len(original) or set(tests) != set(original):
+    raise SystemExit('Browser shard selection lost tests')
+if len(set(tests)) != len(tests):
+    raise SystemExit('Browser shards contain duplicate tests')
 for part, tests in enumerate(shards, 1):
     Path(f'.local/runtime/browser-selected-{part}.txt').write_text('\n'.join(tests) + '\n', encoding='utf-8')
-print(f'Browser shard tests: {[len(tests) for tests in shards]}; moved E8-02/pages.spec.ts: {len(pages)}')
-PY
+print(f'Browser shard tests: {[len(tests) for tests in shards]}')
+PYLIST
   browser_options+=("--test-list=.local/runtime/browser-selected-${BROWSER_SHARD%%/*}.txt")
 else
   browser_options+=("--shard=${BROWSER_SHARD:-1/1}")
 fi
 # Keep the first output separately: a successful retry must not hide the failure.
 set +e
-timeout --signal=TERM --kill-after=15s 360s npm run test:browser -- "${browser_options[@]}" 2>&1 | tee .local/runtime/browser-first-attempt.log
+timeout --signal=TERM --kill-after=15s 900s npm run test:browser -- "${browser_options[@]}" 2>&1 | tee .local/runtime/browser-first-attempt.log
 first_status=${PIPESTATUS[0]}
 set -e
+if (( first_status == 124 )); then
+  echo "Browser shard ${BROWSER_SHARD:-1/1} exceeded the 900s limit; retry skipped." >&2
+  exit 124
+fi
 if (( first_status != 0 )); then
   echo "Browser shard ${BROWSER_SHARD:-1/1} failed (exit $first_status); retrying once. First output: .local/runtime/browser-first-attempt.log" >&2
   for log in .local/runtime/*.log; do
     [[ $log == *.first.log || $log == *browser-first-attempt.log ]] && continue
     [[ -f $log ]] && cp "$log" "${log%.log}.first.log"
   done
-  timeout --signal=TERM --kill-after=15s 360s npm run test:browser -- "${browser_options[@]}" 2>&1 | tee .local/runtime/browser-retry.log
+  timeout --signal=TERM --kill-after=15s 900s npm run test:browser -- "${browser_options[@]}" --last-failed 2>&1 | tee .local/runtime/browser-retry.log
 fi

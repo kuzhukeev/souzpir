@@ -1,0 +1,20 @@
+import { expect, test } from '@playwright/test';
+import { createServer, type ViteDevServer } from 'vite';
+import { mkdir } from 'node:fs/promises';
+let server: ViteDevServer; let url: string;
+test.setTimeout(60000);
+test.use({ viewport: { width: 1440, height: 900 }, launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH } : {} });
+test.beforeAll(async () => { server = await createServer({ configFile: 'tests/Browser/E8-16W/vite.config.ts', cacheDir: '.local/runtime/vite-e816w', server: { host: '127.0.0.1', port: 0 } }); await server.listen(); url = new URL('/tests/Browser/E8-16W/fixture.html', server.resolvedUrls!.local[0]).href; });
+test.afterAll(async () => { await server?.close(); });
+test('показывает только события с сохранённым временем', async ({ page }) => {
+ await page.route('**/subscription', route => route.fulfill({ json: { subscribed: false, expires_at: null } }));
+ await page.goto(url + '?complete&events');
+ await expect(page.getByText('Получены первые ответы')).toBeVisible();
+ await expect(page.getByText('Одна из моделей вернула ошибку')).toBeVisible();
+ await expect(page.locator('time[datetime="2026-11-06T12:11:00Z"]')).toBeVisible();
+ await mkdir('.local/screenshots/SP-E8-16W', { recursive: true });
+ await page.screenshot({ path: '.local/screenshots/SP-E8-16W/progress.png', fullPage: true });
+ await page.goto(url + '?complete');
+ await expect(page.getByText('Время первых ответов и ошибок пока недоступно.')).toBeVisible();
+ await expect(page.getByText('Получены первые ответы')).toHaveCount(0);
+});

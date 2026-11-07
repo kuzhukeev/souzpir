@@ -5,7 +5,7 @@ import { Badge, Button, EmptyState, Modal, Select } from '@/components/ui';
 import { Errors, Notice, ProfilePage, focus, panel } from '@/features/Shell/Profile/shared';
 import { dateTime, useFeedback, useProfileText } from '@/features/Shell/Profile/hooks';
 import { requestKey } from '@/features/Shell/Profile/browser';
-import { TimingDraftForm } from '@/features/Shell/Profile/TimingDraftForm';
+import { NotificationTimingForm } from './NotificationTimingForm';
 import type { Channel, NotificationSettings } from '@/types/Shell/Profile';
 
 const channels: Channel[] = ['cabinet', 'email', 'telegram'];
@@ -116,16 +116,16 @@ export default function Notifications({
           <div className="flex items-center gap-3">
             <Clock3 className="text-(--color-link)" size={24} aria-hidden="true" />
             <h2 className="text-xl font-bold">{t('quiet_title')}</h2>
-            <Badge tone="info">{t('soon')}</Badge>
+            <Badge tone="info">{settings.timingAvailable ? 'Тестовая доставка' : t('soon')}</Badge>
           </div>
           <p className="mt-3 text-sm leading-6 text-(--color-ink-muted)">
-            {t('quiet_description')}
+            {settings.timingAvailable ? 'Настройки действуют для тестовой доставки email и Telegram.' : t('quiet_description')}
           </p>
           <p className="mt-2 text-sm">
             {t('timezone')}: <strong>{settings.timezone}</strong>
           </p>
           {settings.timingDraftEditable && settings.timingDraft && settings.timingRevision ? (
-            <TimingDraftForm key={`${settings.timingRevision}:${JSON.stringify(settings.timingDraft)}`} draft={settings.timingDraft} revision={settings.timingRevision} />
+            <NotificationTimingForm key={`${settings.timingRevision}:${JSON.stringify(settings.timingDraft)}`} draft={settings.timingDraft} revision={settings.timingRevision} active={settings.timingAvailable} />
           ) : (
             <p className="mt-3 text-sm text-(--color-ink-muted)">{t('timing_draft_unavailable')}</p>
           )}
@@ -379,7 +379,7 @@ export default function Notifications({
             type="submit"
             className="w-full cursor-pointer sm:w-auto"
             loading={form.processing}
-            disabled={!settings.events.length}
+            disabled={!settings.events.length || !form.isDirty}
           >
             {t('save')}
           </Button>
