@@ -3,6 +3,7 @@
 namespace App\Seller\Runtime;
 
 use App\ProtectedOperations\PostgresTransactionalIdempotency;
+use App\ProtectedOperations\SellerFollowup\FollowupCoordinator;
 use App\ProtectedOperations\SellerTurnFence;
 use App\Seller\Channels\Core\InboundRecorder;
 use App\Seller\Conversations\CanonicalJson;
@@ -10,39 +11,54 @@ use App\Seller\Conversations\Contracts\ConversationRepository;
 use App\Seller\Conversations\Data\TurnClaim;
 use App\Seller\Conversations\Data\TurnCommand;
 use App\Seller\Conversations\Data\TurnOutcome;
+use App\Seller\Runtime\Contracts\ChannelDelivery;
+use App\Seller\Runtime\Contracts\DeliveryCommand;
+use App\Seller\Runtime\Delivery\FakeChannelDelivery;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
 use App\Tenancy\TenantContext;
+use App\Tenancy\TenantContextRunner;
+use Carbon\CarbonImmutable;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use LogicException;
 use Throwable;
 
-/** Fake-only widget turn: no AI stage exists for a public visitor yet, so every turn hands off to a manager. */
+/** Fake-only widget turn: a bot-mode conversation drives the same protected pipeline as other channels; off-hours still hand off to a manager. */
 final class WidgetInboundRuntime
 {
-    public function turn(object $widget, object $session, string $text, string $idempotencyKey): array
+    public function turn(Request $http, object $widget, object $session, string $text, string $idempotencyKey, string $page = 'home'): array
     {
         if (config('runtime.ai_driver', 'fake') !== 'fake' || DB::connection()->getDriverName() !== 'pgsql') {
             return ['status' => 'unavailable'];
         }
         $tenant = new TenantContext($widget->organization_id, $widget->brand_id, source: 'public');
+        try {
+            return app(TenantContextRunner::class)->run($tenant, fn () => $this->turnWithinTenant($http, $tenant, $widget, $session, $text, $idempotencyKey, $page));
+        } catch (Throwable) {
+            return ['status' => 'unavailable'];
+        }
+    }
+
+    private function turnWithinTenant(Request $http, TenantContext $tenant, object $widget, object $session, string $text, string $idempotencyKey, string $page): array
+    {
         if (! app(SellerModuleAccess::class)->enabled($tenant->organizationId, $tenant->brandId)) {
             return ['status' => 'unavailable'];
         }
         $scope = ['organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId];
         $payload = json_encode(['session' => $session->id, 'text' => $text], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
         try {
-            return app(PostgresTransactionalIdempotency::class)->execute($tenant->organizationId, $tenant->brandId, 'seller.widget.turn', $idempotencyKey, $payload,
+            $claimed = app(PostgresTransactionalIdempotency::class)->execute($tenant->organizationId, $tenant->brandId, 'seller.widget.turn.claim', $idempotencyKey, $payload,
                 function () use ($tenant, $scope, $widget, $session, $text, $idempotencyKey): array {
                     $sessionRow = DB::table('widget_sessions')->where('id', $session->id)->lockForUpdate()->first();
                     if (! $sessionRow || $sessionRow->expires_at <= now()) {
                         throw new LogicException('Widget session unavailable.');
                     }
-                    $conversationId = $sessionRow->conversation_id ?? $this->openConversation($scope, $widget, $sessionRow);
+                    $conversationId = $sessionRow->conversation_id ?? $this->openConversation($tenant, $scope, $widget, $sessionRow);
                     $conversation = DB::table('conversations')->where($scope)->where('id', $conversationId)->lockForUpdate()->first();
-                    if (! $conversation || $conversation->mode !== 'manager') {
+                    if (! $conversation || ! in_array($conversation->mode, ['manager', 'bot', 'suggest'], true)) {
                         throw new LogicException('Widget turn unavailable.');
                     }
                     $externalId = hash('sha256', 'widget-session:'.$sessionRow->id.':'.$idempotencyKey);
@@ -50,18 +66,68 @@ final class WidgetInboundRuntime
                     $claim = app(ConversationRepository::class)->claimTurn($tenant, new TurnCommand(
                         $conversationId, $message->id, $text, $message->external_event_id, 'widget:'.hash('sha256', $idempotencyKey), (int) $conversation->version
                     ));
-                    if ($claim->status !== 'claimed') {
+                    if ($conversation->mode === 'manager') {
+                        if ($claim->status !== 'claimed') {
+                            throw new LogicException('Widget turn unavailable.');
+                        }
+
+                        return ['mode' => 'manager', 'result' => $this->suppress($tenant, $scope, $claim)];
+                    }
+                    if ($claim->status !== 'claimed' || ! is_string($claim->token())) {
                         throw new LogicException('Widget turn unavailable.');
                     }
 
-                    return $this->suppress($tenant, $scope, $claim);
+                    return ['mode' => $conversation->mode, 'conversation' => $conversationId,
+                        'turn' => $claim->turnId, 'token' => $claim->token(), 'version' => $claim->baseVersion];
                 });
+        } catch (Throwable) {
+            return ['status' => 'unavailable'];
+        }
+        if ($claimed['mode'] === 'manager') {
+            return $claimed['result'];
+        }
+
+        return $this->completeBotTurn($http, $tenant, $scope, $claimed, $page);
+    }
+
+    /** Runs the bot pipeline for a freshly claimed turn, or replays the outcome of an already-finished one on retry. */
+    private function completeBotTurn(Request $http, TenantContext $tenant, array $scope, array $claimed, string $page): array
+    {
+        try {
+            $turn = DB::table('seller_turns')->where($scope)->where('id', $claimed['turn'])->first();
+            if (! $turn || $turn->status === 'processing') {
+                $claim = new TurnClaim('claimed', $claimed['turn'], $claimed['conversation'], $tenant->organizationId, $tenant->brandId, $claimed['version'], $claimed['token']);
+                app(FollowupCoordinator::class)->orchestrateTurn($http, $tenant, $claim, $claimed['mode'], $page);
+                $turn = DB::table('seller_turns')->where($scope)->where('id', $claimed['turn'])->first();
+            }
+            if (! $turn || ! in_array($turn->status, ['completed', 'suggested'], true)) {
+                throw new LogicException('Widget turn unavailable.');
+            }
+            $outcome = json_decode($turn->outcome, true, 512, JSON_THROW_ON_ERROR);
+            if ($turn->status === 'suggested') {
+                return ['status' => 'suggested', 'version' => $outcome['version'] ?? null];
+            }
+            $messageId = $outcome['assistantMessageId'] ?? null;
+            $reply = is_string($messageId) ? DB::table('messages')->where($scope)->where('id', $messageId)
+                ->where('conversation_id', $claimed['conversation'])->value('text') : null;
+            if (! is_string($messageId) || ! is_string($reply)) {
+                throw new LogicException('Widget turn unavailable.');
+            }
+            if (! app()->bound(ChannelDelivery::class)) {
+                app()->singleton(ChannelDelivery::class, FakeChannelDelivery::class);
+            }
+            $receipt = app(ChannelDelivery::class)->send(new DeliveryCommand($tenant, $claimed['conversation'], $messageId, 'fake', 'widget-turn:'.$claimed['turn']));
+            if ($receipt->status !== 'fake_sent' || $receipt->messageId !== $messageId) {
+                throw new LogicException('Widget turn unavailable.');
+            }
+
+            return ['status' => 'completed', 'reply' => $reply, 'version' => $outcome['version'] ?? null];
         } catch (Throwable) {
             return ['status' => 'unavailable'];
         }
     }
 
-    private function openConversation(array $scope, object $widget, object $sessionRow): string
+    private function openConversation(TenantContext $tenant, array $scope, object $widget, object $sessionRow): string
     {
         $contactId = (string) Str::ulid();
         DB::table('contacts')->insert(['id' => $contactId, ...$scope, 'name' => null, 'email' => null, 'phone' => null, 'created_at' => now(), 'updated_at' => now()]);
@@ -69,11 +135,13 @@ final class WidgetInboundRuntime
         $channelId = $channel->id ?? (string) Str::ulid();
         if (! $channel) {
             DB::table('channel_accounts')->insert(['id' => $channelId, ...$scope, 'type' => 'widget', 'name' => 'Сайт', 'status' => 'active',
-                'default_mode' => 'manager', 'settings' => json_encode(['widget_id' => $widget->id], JSON_THROW_ON_ERROR), 'created_at' => now(), 'updated_at' => now()]);
+                'default_mode' => 'bot', 'settings' => json_encode(['widget_id' => $widget->id], JSON_THROW_ON_ERROR), 'created_at' => now(), 'updated_at' => now()]);
         }
+        $schedule = app(BrandRuntimeSchedule::class);
+        $mode = $schedule->mode($tenant, $schedule->settings($tenant), CarbonImmutable::now()) === 'off' ? 'manager' : 'bot';
         $conversationId = (string) Str::ulid();
         DB::table('conversations')->insert(['id' => $conversationId, ...$scope, 'channel_account_id' => $channelId, 'contact_id' => $contactId,
-            'mode' => 'manager', 'state' => '{}', 'last_client_message_at' => now(), 'created_at' => now(), 'updated_at' => now()]);
+            'mode' => $mode, 'state' => '{}', 'last_client_message_at' => now(), 'created_at' => now(), 'updated_at' => now()]);
         DB::table('widget_sessions')->where('id', $sessionRow->id)->update(['conversation_id' => $conversationId, 'contact_id' => $contactId, 'updated_at' => now()]);
 
         return $conversationId;

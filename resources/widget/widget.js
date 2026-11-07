@@ -42,6 +42,8 @@
     panel.append(top, message);
     if (appearance.theme === 'dark' || (appearance.theme === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches)) { panel.style.background = '#17243a'; panel.style.color = '#fff'; close.style.color = '#fff'; }
     const contactMode = behavior.contact_mode || (behavior.collect_contact ? 'soft' : 'none');
+    const maxMessages = Number.isInteger(behavior.max_messages) && behavior.max_messages > 0 ? behavior.max_messages : null;
+    let sentCount = 0; const limitReached = () => maxMessages !== null && sentCount >= maxMessages;
     let sessionToken = null; let starting = null;
     const api = (path, body) => { const url = new URL(path, source.origin); url.searchParams.set('key', key); return fetch(url.href, {method:'POST', credentials:'omit', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)}); };
     const startSession = () => {
@@ -50,13 +52,26 @@
       return starting;
     };
     const uid = () => globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+    const widgetPage = location.pathname.includes('/catalog') ? 'catalog' : location.pathname.includes('/contact') ? 'contacts' : 'home';
+    const transcript = document.createElement('div'); transcript.setAttribute('aria-live', 'polite'); transcript.style.margin = '8px 0';
+    const addBubble = (role, value) => { const line = document.createElement('p'); line.className = 'message'; line.style.margin = '6px 0';
+      line.textContent = (role === 'agent' ? '' : 'Вы: ') + value; transcript.append(line); };
+    panel.append(transcript);
     const chat = document.createElement('form');
     const text = document.createElement('input'); text.type = 'text'; text.maxLength = 4000; text.placeholder = 'Ваше сообщение'; text.setAttribute('aria-label', 'Ваше сообщение'); text.required = true;
     const chatSend = document.createElement('button'); chatSend.className = 'submit'; chatSend.type = 'submit'; chatSend.textContent = 'Отправить';
     const chatStatus = document.createElement('p'); chatStatus.setAttribute('role', 'status'); chat.append(text, chatSend, chatStatus); panel.append(chat);
+    const lockChat = () => { chatSend.disabled = true; text.disabled = true; chatStatus.textContent = 'Лимит сообщений исчерпан. Напишите нам другим способом.'; };
     chat.addEventListener('submit', event => {
-      event.preventDefault(); chatSend.disabled = true; chatStatus.textContent = 'Отправляем…';
-      startSession().then(token => api('/widget/message', {token, text:text.value, idempotency_key:uid()})).then(response => { if (!response.ok) throw new Error('unavailable'); text.value = ''; chatStatus.textContent = 'Сообщение отправлено.'; }).catch(() => { chatStatus.textContent = 'Чат временно недоступен. Попробуйте позже.'; }).finally(() => { chatSend.disabled = false; });
+      event.preventDefault();
+      if (limitReached()) { lockChat(); return; }
+      chatSend.disabled = true; chatStatus.textContent = 'Отправляем…';
+      const sent = text.value;
+      startSession().then(token => api('/widget/message', {token, text:sent, idempotency_key:uid(), page:widgetPage})).then(response => { if (!response.ok) throw new Error('unavailable'); return response.json().catch(() => ({})); }).then(result => {
+        message.textContent = ''; addBubble('client', sent); text.value = ''; sentCount += 1;
+        if (typeof result.reply === 'string' && result.reply) addBubble('agent', result.reply);
+        if (limitReached()) { lockChat(); } else { chatStatus.textContent = 'Сообщение отправлено.'; }
+      }).catch(() => { chatStatus.textContent = 'Чат временно недоступен. Попробуйте позже.'; }).finally(() => { if (!limitReached()) chatSend.disabled = false; });
     });
     if (contactMode !== 'none' && behavior.collect_contact && behavior.consent_url) {
       const form = document.createElement('form'); const consentLabel = document.createElement('label'); const consent = document.createElement('input');
