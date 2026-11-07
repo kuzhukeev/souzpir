@@ -2,7 +2,7 @@
 
 **Зачем:** решение владельца от 03.11.2026 закрыть незапланированные расхождения с макетами по итогам аудита 160 экранов; экраны S-1.1, S-1.2, S-1.3.
 **Часть чего:** SP-E1-03B закрывает только переключение бренда, экраны S-1.x не реализованы.
-**Зависимости:** SP-E1-03B, SP-E7-05D, SP-E8-08, SP-E8-12 (дождаться merge).
+**Зависимости:** SP-E7-05D, SP-E8-08, SP-E8-12. Главная и оболочка независимы от переключателя бренда SP-E1-03B; итоговую проверку перехода после смены бренда выполнить после его готовности.
 
 - Экран S-1.1 «Главная (KPI)» соответствует макету из матрицы по пунктам (журнал docs/sources/02b_mockup_journal.md [12]): KPI-карточки, виджеты по модулям: «Показатели для главной страницы пока недоступны.» HomeEntry/Index.tsx:43–48; Ready.tsx:17–58 «Основной кабинет находится в разработке». Где сейчас: pages/Shell/HomeEntry/Index.tsx:13–48; HomeEntryController.php:19–36; Ready.tsx; E1-03A.php:8.
 - Экран S-1.2 ««Требует вашего действия»» соответствует макету из матрицы по пунктам (журнал docs/sources/02b_mockup_journal.md [13]): весь экран (маршрут /attention отсутствует). Где сейчас: отсутствует.
@@ -14,3 +14,10 @@
 Scope: `app/Shell/HomeEntry/`, `app/Shell/Dashboard/`, `app/Shell/Notifications/`, `resources/js/pages/Shell/HomeEntry/`, `resources/js/pages/Shell/Dashboard/`, `resources/js/pages/Shell/Notifications/`, `routes/features/E1-03A.php`, `routes/features/E1-03C.php`, `tests/Feature/Shell/HomeEntry/`, `tests/Feature/Shell/Notifications/`, `tests/Browser/E1-03C/`, `docs/results/SP-E1-03C.md`.
 
 Отчёт: docs/results/SP-E1-03C.md; локальные тесты задачи, submit и зелёный CI.
+
+## Конкретные расхождения общей оболочки
+- На ширине 390px устранить подтверждённое горизонтальное переполнение общей шапки: профиль и аватар должны оставаться внутри viewport.
+- На /seller/integrations/calendar выделять пункт «Интеграции», учитывая маршруты и права, вместо ошибочно активной «Сводки».
+- Восстановить предусмотренный согласованным ТЗ поиск в шапке либо честно показать недоступность при отсутствии подтверждённого источника; не выдумывать результаты.
+
+Дополнительный scope оболочки: `resources/js/layouts/CabinetLayout.tsx`, `resources/js/components/navigation/Sidebar.tsx`, `resources/js/components/navigation/navigation.json`.
