@@ -13,6 +13,8 @@ export type CompanyDetail = {
   model_names_unknown?: boolean;
   model_positions?: {provider:string;model:string|null;position:{average:number;count:number}}[];
   intents?: string[];
+  intent_rates?: Record<string, number | null>;
+  intent_positions?: Record<string, { average: number; count: number } | null>;
   sources?: string[];
   source_ranking?: {domain: string; answers: number}[];
   quotes?: { text: string; provider: string }[];
@@ -131,6 +133,25 @@ export default function CompanyDetails({
         Намерения:{' '}
         {company.intents?.map((value) => intents[value] ?? value).join(', ') || 'Нет данных'}
       </p>
+      <h3 className="font-semibold">По намерениям</h3>
+      {Object.keys(company.intent_rates ?? {}).length ? (
+        <ul className="mt-2 space-y-1 text-sm">
+          {Object.entries(company.intent_rates ?? {}).map(([key, rate]) => {
+            const position = company.intent_positions?.[key];
+
+            return (
+              <li key={key}>
+                {intents[key] ?? key}:{' '}
+                {rate == null
+                  ? 'Нет данных'
+                  : `${rate.toLocaleString('ru-RU')} % · позиция ${position ? position.average.toLocaleString('ru-RU') : 'Нет данных'}${position ? ` (подтверждений ${position.count})` : ''}`}
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <p>Нет данных.</p>
+      )}
       <h3 className="font-semibold">Динамика по замерам</h3>
       <p>
         {company.delta == null
