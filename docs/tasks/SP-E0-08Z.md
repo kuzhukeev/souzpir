@@ -10,20 +10,19 @@
 
 ## Остальные подтверждённые падения в этой же карточке
 - Шард 1: E1-01/invitation-safety (2), E6-08D/catalog.
-- Шард 2: E4-02C/comparison, E4-06E/imports (2), E4-06H/preview, E4-06L/preview (2), E4-08/fewshot-more, E4-08D/fewshot (2), E4-10C/fewshot, E4-10E/sandbox, E5-01G/channels, E5-01I/channels, E5-07B/preview, E5-07C/preview.
-- Шард 3: E6-09D/crm, E7-04/details, E7-04D/analytics, E7-04N/subscription, E8-05/report, E8-14/quiz, E8-14B/facts; E7-06D — в текущем этапе.
-- Шард 4: E8-16I/measurements, E8-16U/header, E8-19/report, E8-19C/D/E/public, E8-21D/E/F/G/M/N/site; E8-22C — в текущем этапе.
-- После проверки двух свободных путей сохранить невыполненные пункты в этой карточке и переоткрыть её. Файлы CRM и другие занятые области оставить их текущим владельцам; не трогать чужие claims.
+- Шард 2: E4-06E/imports (2), E4-06H/preview, E4-06L/preview (2), E4-08/fewshot-more, E4-08D/fewshot (2), E4-10C/fewshot, E4-10E/sandbox, E5-01G/channels, E5-01I/channels, E5-07B/preview, E5-07C/preview.
+- Шард 3: E6-09D/crm, E7-04/details, E7-04D/analytics, E7-04N/subscription, E8-05/report, E8-14/quiz, E8-14B/facts.
+- Шард 4: E8-16I/measurements, E8-16U/header, E8-19/report, E8-19C/D/E/public, E8-21D/E/F/G/M/N/site.
+- После проверки текущего этапа сохранить невыполненные пункты в этой карточке и переоткрыть её. Файлы CRM и другие занятые области оставить их текущим владельцам; не трогать чужие claims.
 
-Scope: `resources/js/pages/Seller/Knowledge/Facts/Show.tsx`, `app/Seller/Knowledge/Facts/`, `routes/features/E4-02.php`, `tests/Feature/Seller/Knowledge/Facts/`, `tests/Browser/E7-06D/`, `resources/js/features/Vision/Site/Actions.tsx`, `app/Vision/Actions/`, `app/Vision/Measurements/MeasurementList.php`, `app/Vision/Settings/Trends.php`, `routes/features/E8-06.php`, `tests/Feature/Vision/Actions/`, `tests/Browser/E8-22B/`, `tests/Browser/E8-22C/`, `docs/results/SP-E0-08Z.md`.
+Scope: `app/Seller/Knowledge/Imports/ImportsController.php`, `app/Seller/Knowledge/Imports/DocumentReader.php`, `resources/js/pages/Seller/Knowledge/Imports/Index.tsx`, `routes/features/E4-06.php`, `tests/Feature/Seller/Knowledge/Imports/SheetImportE406ETest.php`, `tests/Browser/E4-06E/`, `docs/results/SP-E0-08Z.md`.
 
 ## Результат независимого этапа
 - E7-06D и E8-22C исправлены и проверены; оставшиеся пункты четырёх шардов сохраняются в этой карточке для проверки на актуальном main.
 
 ## Следующий независимый этап
-- Проверить на актуальном main падение E4-02C/comparison из планового browser CI: карточка факта, выбор темы и условия, сохранение и отображение ошибок. Найти причину по фактическому поведению и исправить её, сохраняя смысл существующей проверки.
-- Повторно запустить browser E4-02C и только проверки изменённого серверного поведения; права и изоляцию бренда проверить, если они изменились. Остальные пункты четырёх шардов остаются в этой же карточке.
-- Дополнительный scope: `tests/Browser/E4-02C/`; экран и сервер факта уже включены в текущий scope.
+- Проверить на актуальном main падения E4-06E/imports: импорт документа, выбор листа и сохранение фактов; выяснить причину и исправить её без ослабления проверок.
+- Проверить browser E4-06E и только изменённое серверное поведение; права и бренд — при их изменении. Все остальные пункты четырёх шардов сохраняются в этой же карточке.
 
 ## Результат этапа E4-02C
 Переключение темы и её правил уточнено и проверено браузером; остальные browser-падения из списка остаются в этой карточке.
