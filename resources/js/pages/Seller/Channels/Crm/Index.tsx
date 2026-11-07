@@ -29,12 +29,14 @@ const statuses: Record<string, string> = {
 };
 
 function MappingForm({ hook }: { hook: Hook }) {
-  const [fields, setFields] = useState({ name: hook.mappings?.name ?? 'name', phone: hook.mappings?.phone ?? 'phone', email: hook.mappings?.email ?? 'email' });
+  const [rows, setRows] = useState(() => (['name', 'phone', 'email'] as const).map((source) => ({ source, target: hook.mappings?.[source] ?? source })));
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState('');
   const save = (event: FormEvent) => {
     event.preventDefault();
     setMessage('');
+    if (new Set(rows.map((row) => row.source)).size !== 3) { setMessage('Выберите разные поля EYON.'); return; }
+    const fields = Object.fromEntries(rows.map((row) => [row.source, row.target]));
     router.post(`/seller/integrations/crm/${hook.id}/mappings`, { fields }, {
       preserveScroll: true, onStart: () => setPending(true), onFinish: () => setPending(false),
       onSuccess: () => setMessage('Сопоставление сохранено.'),
@@ -43,7 +45,7 @@ function MappingForm({ hook }: { hook: Hook }) {
     });
   };
   return <form onSubmit={save} className="mt-4 space-y-3"><h4 className="font-semibold">Сопоставление полей</h4>
-    {([['name', 'Имя'], ['phone', 'Телефон'], ['email', 'Почта']] as const).map(([key, label]) => <label key={key} className="flex flex-wrap items-center gap-2">Поле EYON: {label} → Поле CRM<input required maxLength={64} value={fields[key]} onChange={(event) => setFields({ ...fields, [key]: event.target.value })} className="min-h-10 rounded-lg border border-(--color-border) bg-(--color-surface) px-3" /></label>)}
+    {rows.map((row, index) => <div key={index} className="flex flex-wrap items-center gap-2"><label>Поле EYON <select aria-label={`Поле EYON ${index + 1}`} value={row.source} onChange={(event) => setRows((current) => current.map((item, position) => position === index ? { ...item, source: event.target.value as 'name' | 'phone' | 'email' } : item))} className="min-h-10 cursor-pointer rounded-lg border border-(--color-border) bg-(--color-surface) px-3"><option value="name">Имя</option><option value="phone">Телефон</option><option value="email">Почта</option></select></label><span aria-hidden="true">→</span><label>Поле CRM <input required maxLength={64} value={row.target} onChange={(event) => setRows((current) => current.map((item, position) => position === index ? { ...item, target: event.target.value } : item))} className="min-h-10 rounded-lg border border-(--color-border) bg-(--color-surface) px-3" /></label></div>)}
     <button disabled={pending} className="min-h-11 cursor-pointer rounded-lg border border-(--color-border) px-4 font-semibold disabled:opacity-50">{pending ? 'Сохранение…' : 'Сохранить сопоставление'}</button>{message && <p role="status">{message}</p>}
   </form>;
 }
@@ -56,7 +58,7 @@ function WebhookForm() {
   const [message, setMessage] = useState('');
   const submit = (event: FormEvent) => {
     event.preventDefault(); setMessage('');
-    router.post('/integrations/api/webhook-settings', { url, secret, events }, {
+    router.post('/integrations/api/webhook-settings', { url, secret, events, return_to: 'crm' }, {
       onStart: () => setPending(true), onFinish: () => setPending(false),
       onError: (errors) => setMessage(Object.values(errors)[0] ?? 'Не удалось сохранить вебхук.'),
       onNetworkError: () => { setMessage('Связь прервана. Проверьте результат перед повтором.'); return false; },
@@ -169,9 +171,7 @@ export default function Index({ canManage, webhooks, status }: { canManage: bool
               )}
             </div>
           )}
-          <p className="mt-5 text-sm text-(--color-ink-muted)">
-            amoCRM — Скоро · Битрикс24 — Скоро
-          </p>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">{['amoCRM', 'Битрикс24'].map((name) => <div key={name} className="rounded-xl border border-(--color-border) p-4"><h3 className="font-semibold">{name}</h3><p className="mt-1 text-sm text-(--color-ink-muted)">Скоро</p></div>)}</div>
         </section>
       </div>
     </CabinetLayout>

@@ -20,7 +20,8 @@ const channels = [
 
 export default function Notifications({ telegram_configured, telegram_mask, report_emails, matrix: initialMatrix = {} }: Props) {
   const [chat, setChat] = useState('');
-  const [emails, setEmails] = useState(report_emails.join('\n'));
+  const [emails, setEmails] = useState(report_emails);
+  const [emailInput, setEmailInput] = useState('');
   const [matrix, setMatrix] = useState(initialMatrix);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState<'telegram' | 'email' | null>(null);
@@ -29,11 +30,12 @@ export default function Notifications({ telegram_configured, telegram_mask, repo
 
   const save = (event: FormEvent) => {
     event.preventDefault();
+    if (emailInput.trim()) { setError('Добавьте введённый адрес перед сохранением.'); return; }
     setError('');
     setNotice('');
     router.put('/integrations/notifications', {
       telegram_chat: chat,
-      report_emails: emails.split(/[\n,;]+/).map((value) => value.trim()).filter(Boolean),
+      report_emails: emails,
       matrix,
     }, {
       onStart: () => setSaving(true),
@@ -43,6 +45,17 @@ export default function Notifications({ telegram_configured, telegram_mask, repo
       onNetworkError: () => { setError('Не удалось связаться с сервером. Попробуйте ещё раз.'); return false; },
       onHttpException: () => { setError('Не удалось сохранить настройки. Попробуйте ещё раз.'); return false; },
     });
+  };
+
+  const addEmail = () => {
+    const value = emailInput.trim();
+    if (!value) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) { setError('Введите корректный адрес электронной почты.'); return; }
+    if (emails.some((email) => email.toLowerCase() === value.toLowerCase())) { setError('Этот адрес уже добавлен.'); return; }
+    if (emails.length >= 5) { setError('Можно добавить не более пяти адресов.'); return; }
+    setEmails((current) => [...current, value]);
+    setEmailInput('');
+    setError('');
   };
 
   const test = (channel: 'telegram' | 'email') => {
@@ -83,8 +96,9 @@ export default function Notifications({ telegram_configured, telegram_mask, repo
               <h2 className="flex items-center gap-2 text-xl font-bold"><Mail size={22} aria-hidden="true" /> Почта для отчётов</h2>
               <p className="mt-2 text-sm text-(--color-ink-muted)">Адреса для отчётов и системных уведомлений</p>
               <label htmlFor="report-emails" className="mt-5 block text-sm font-semibold">Адреса электронной почты</label>
-              <textarea id="report-emails" value={emails} onChange={(event) => setEmails(event.target.value)} rows={4} placeholder="Один адрес в строке" className={'mt-1 w-full rounded-xl border border-(--color-control-border) bg-(--color-surface) p-3 text-sm text-(--color-ink) ' + focus} />
-              <p className="mt-1 text-sm text-(--color-ink-muted)">До пяти адресов, по одному в строке. Пустой список отключает почту.</p>
+              <div className="mt-2 flex flex-wrap gap-2">{emails.map((email) => <span key={email} className="inline-flex items-center gap-2 rounded-full bg-(--color-surface-muted) px-3 py-1 text-sm">{email}<button type="button" aria-label={`Удалить ${email}`} className="cursor-pointer" onClick={() => setEmails((current) => current.filter((item) => item !== email))}>×</button></span>)}</div>
+              <div className="mt-2 flex gap-2"><input id="report-emails" type="email" value={emailInput} onChange={(event) => setEmailInput(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); addEmail(); } }} placeholder="name@example.ru" className={'min-h-11 min-w-0 flex-1 rounded-xl border border-(--color-control-border) bg-(--color-surface) p-3 text-sm text-(--color-ink) ' + focus} /><Button type="button" variant="secondary" onClick={addEmail}>Добавить</Button></div>
+              <p className="mt-1 text-sm text-(--color-ink-muted)">До пяти адресов. Пустой список отключает почту.</p>
               <Button className="mt-4" type="button" variant="secondary" disabled={report_emails.length === 0 || saving} loading={testing === 'email'} onClick={() => test('email')}>Проверить без отправки</Button>
             </section>
           </div>
