@@ -22,10 +22,10 @@ test('сохранение контрольного сценария перед�
   await page.getByRole('button', { name: 'Сохранить как сценарий' }).click();
   await expect(page.getByRole('status').filter({ hasText: 'воспроизводятся все сохранённые реплики' })).toBeVisible();
   expect(body).not.toBeNull();
-  const behavior = (body as { behavior: string }).behavior;
+  const behavior = (body as unknown as { behavior: string }).behavior;
   expect(behavior).toContain('Клиент: Нужна оптовая поставка для магазина в Казани.');
   expect(behavior).toContain('Клиент: Батареи салютов и фонтаны. Можно получить прайс?');
-  expect((body as { max_turns: number }).max_turns).toBe(2);
+  expect((body as unknown as { max_turns: number }).max_turns).toBe(2);
   await mkdir('.local/screenshots/SP-E4-10I', { recursive: true });
   await page.screenshot({ path: '.local/screenshots/SP-E4-10I/sandbox.png', fullPage: true });
 });
