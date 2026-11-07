@@ -113,9 +113,14 @@ final class ToolRunner
         $pricesEnabled = (bool) ($sellerSettings->catalog_prices_enabled ?? false);
         $tools = $sellerSettings && $sellerSettings->tools ? json_decode($sellerSettings->tools, true) : [];
         $discountsEnabled = is_array($tools) && ($tools['catalog_discounts_enabled'] ?? false);
+        $lowStock = (float) ($scope('catalog_settings')->value('low_stock') ?? 0);
 
-        return ['status' => 'completed', 'empty' => $items->isEmpty(), 'items' => $items->map(function ($item) use ($pricesEnabled, $discountsEnabled): array {
+        return ['status' => 'completed', 'empty' => $items->isEmpty(), 'items' => $items->map(function ($item) use ($pricesEnabled, $discountsEnabled, $lowStock): array {
             $out = ['sku' => $item->sku, 'name' => $item->name, 'stock' => $item->stock === null ? null : (float) $item->stock];
+            if ($item->stock !== null && (float) $item->stock > 0 && (float) $item->stock <= $lowStock) {
+                // Owner threshold «мало»: the bot may say stock is low and suggest checking with a manager.
+                $out['low'] = true;
+            }
             if ($pricesEnabled && $item->price !== null) {
                 $out['price'] = (float) $item->price;
             }
