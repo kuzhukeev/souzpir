@@ -6,6 +6,7 @@ use App\Ai\Gateway;
 use App\Contracts\Ai\AiGateway;
 use App\Models\Membership;
 use App\Models\User;
+use App\ProtectedOperations\JobFirstTurnClaim;
 use App\ProtectedOperations\SellerTurnFence;
 use App\Seller\Conversations\Data\TurnClaim;
 use App\Seller\Engine\BrandPromptSets;
@@ -76,10 +77,15 @@ final class ApiFollowupInput
         $turn = DB::table('seller_turns')->where($scope)->where('id', $claim->turnId)->lockForUpdate()->first();
         $message = $turn ? DB::table('messages')->where($scope)->where('conversation_id', $claim->conversationId)
             ->where('id', $turn->input_message_id)->where('role', 'client')->first() : null;
-        $simulation = $tenant->source === 'job';
-        $validSimulation = ! $simulation || ($turn && str_starts_with($turn->idempotency_key, 'sim:')
-            && DB::table('messages')->where($scope)->where('conversation_id', $claim->conversationId)
-                ->where('role', 'agent')->where('meta->simulation', true)->exists()
+        $simulation = $tenant->source === 'job' && $turn && str_starts_with($turn->idempotency_key, 'sim:');
+        // A job-sourced non-simulation turn is a genuine first inbound claim restored by
+        // JobFirstTurnClaim; it carries no simulation tags and is authorized separately.
+        $jobFirstTurn = $tenant->source === 'job' && $turn && ! str_starts_with($turn->idempotency_key, 'sim:');
+        if ($jobFirstTurn) {
+            app(JobFirstTurnClaim::class)->assertCurrent($tenant, $claim);
+        }
+        $validSimulation = ! $simulation || (DB::table('messages')->where($scope)->where('conversation_id', $claim->conversationId)
+            ->where('role', 'agent')->where('meta->simulation', true)->exists()
             && DB::table('messages')->where($scope)->where('id', $turn->input_message_id)
                 ->where('conversation_id', $claim->conversationId)->where('meta->simulation', true)->exists());
         if (! $validSimulation || ! $conversation || ! $turn || ($isToken && (! $lead || ! str_starts_with($turn->idempotency_key, 'api:')))

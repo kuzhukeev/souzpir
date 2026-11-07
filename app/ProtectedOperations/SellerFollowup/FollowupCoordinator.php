@@ -7,6 +7,7 @@ use App\Ai\Protected\ApiFollowupInput;
 use App\Contracts\ProtectedOperations\IdempotencyConflict;
 use App\Models\Membership;
 use App\Models\User;
+use App\ProtectedOperations\JobFirstTurnClaim;
 use App\ProtectedOperations\PostgresTransactionalIdempotency;
 use App\Seller\Channels\Email\ProtectedPriceSender;
 use App\Seller\Conversations\Contracts\ConversationRepository;
@@ -96,6 +97,33 @@ final class FollowupCoordinator
             }
 
             return ['agent' => $agent];
+        });
+    }
+
+    /** Internal fake path for a trusted job restoring a genuine first inbound claim; no browser session. */
+    public function runFirstTurnJob(TenantContext $tenant, string $conversationId, string $messageId, string $idempotencyKey): array
+    {
+        if ($tenant->source !== 'job' || ! $tenant->organizationId || ! $tenant->brandId
+            || config('runtime.ai_driver', 'fake') !== 'fake' || DB::transactionLevel() !== 0) {
+            throw new LogicException('First-turn job unavailable.');
+        }
+
+        return app(TenantContextRunner::class)->run($tenant, function () use ($tenant, $conversationId, $messageId, $idempotencyKey): array {
+            // The job claim re-resolves the first message every call and requires an
+            // unstarted conversation; a completed turn must be replayed from its own
+            // row before the claim is attempted again.
+            $completed = DB::table('seller_turns')->where('organization_id', $tenant->organizationId)
+                ->where('brand_id', $tenant->brandId)->where('conversation_id', $conversationId)
+                ->where('idempotency_key', $idempotencyKey)->where('status', 'completed')->first();
+            if ($completed) {
+                $outcome = json_decode($completed->outcome, true, 512, JSON_THROW_ON_ERROR);
+
+                return ['status' => 'completed', 'result' => ['turn_id' => $completed->id,
+                    'message_id' => $outcome['assistantMessageId'] ?? null, 'version' => $outcome['version'] ?? null]];
+            }
+            $claim = app(JobFirstTurnClaim::class)->claim($tenant, $conversationId, $messageId, $idempotencyKey);
+
+            return $this->orchestrateTurn(Request::create('/internal/first-turn-job', 'POST'), $tenant, $claim, 'bot');
         });
     }
 
