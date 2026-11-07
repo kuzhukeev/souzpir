@@ -40,6 +40,23 @@ final class WidgetSettingsE502DTest extends TenancyTestCase
         Http::assertNothingSent();
     }
 
+    public function test_correspondence_status_reflects_driver_and_live_draft_flag(): void
+    {
+        [$owner, $org, $brand] = $this->cabinet();
+        $this->enable($org->id, $brand->id);
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $this->get('/seller/channels/widget')->assertOk()
+            ->assertInertia(fn ($page) => $page->where('correspondence.live', false)->where('correspondence.liveDraftEnabled', false));
+
+        config(['runtime.ai_driver' => 'openrouter', 'features.LV-01.defaults.enabled' => true]);
+        $this->get('/seller/channels/widget')->assertOk()
+            ->assertInertia(fn ($page) => $page->where('correspondence.live', true)->where('correspondence.liveDraftEnabled', true));
+
+        config(['features.LV-01.defaults.enabled' => false]);
+        $this->get('/seller/channels/widget')->assertOk()
+            ->assertInertia(fn ($page) => $page->where('correspondence.live', true)->where('correspondence.liveDraftEnabled', false));
+    }
+
     public function test_installation_check_requires_enabled_widget_with_an_origin(): void
     {
         [$owner, $org, $brand] = $this->cabinet();

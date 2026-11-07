@@ -17,7 +17,8 @@ final class EffectController
         return app(MeasurementList::class)->withinCurrent($request, function (TenantContext $tenant) use ($request): mixed {
             Gate::authorize('vision.report.read');
             $rows = app(Trends::class)->read($tenant);
-            $actions = DB::table('actions')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->whereNotNull('completed_at')->orderByDesc('completed_at')->limit(100)->get(['id', 'title', 'completed_at']);
+            $rows = $this->withMeasurementNumbers($tenant, $rows);
+            $actions = DB::table('actions')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->whereNotNull('completed_at')->orderByDesc('completed_at')->limit(100)->get(['id', 'title', 'description', 'completed_at']);
             $items = app(EffectProjection::class)->make($actions->all(), $rows);
 
             $logs = DB::table('audit_logs')->where('organization_id', $tenant->organizationId)
@@ -52,5 +53,24 @@ final class EffectController
 
             return Inertia::render('Vision/Actions/Effect', ['items' => $items]);
         }, false);
+    }
+
+    /** Oldest confirmed measurement is № 1, same numbering as the measurements list and answers page. */
+    private function withMeasurementNumbers(TenantContext $tenant, array $rows): array
+    {
+        if ($rows === []) {
+            return $rows;
+        }
+        $measurementByReport = DB::table('vision_reports')->whereIn('id', collect($rows)->pluck('id'))->pluck('measurement_id', 'id');
+        $order = DB::table('measurements')->where('organization_id', $tenant->organizationId)
+            ->where('brand_id', $tenant->brandId)->orderBy('created_at')->orderBy('id')->pluck('id');
+        $numberByMeasurement = array_flip($order->all());
+
+        return array_map(function (array $row) use ($measurementByReport, $numberByMeasurement): array {
+            $measurementId = $measurementByReport[$row['id']] ?? null;
+            $row['number'] = $measurementId !== null && isset($numberByMeasurement[$measurementId]) ? $numberByMeasurement[$measurementId] + 1 : null;
+
+            return $row;
+        }, $rows);
     }
 }

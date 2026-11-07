@@ -35,4 +35,17 @@ final class ServicePhraseSelector
 
         return is_string($phrase) && trim($phrase) !== '' ? trim($phrase) : null;
     }
+
+    /** Only an explicitly saved phrase, with no default fallback — for overriding an already-generated runtime reply. */
+    public function customForEvent(array $persona, string $event): ?string
+    {
+        $key = self::EVENTS[$event] ?? null;
+        if ($key === null) {
+            return null;
+        }
+
+        $phrase = $persona['service_phrases'][$key] ?? null;
+
+        return is_string($phrase) && trim($phrase) !== '' ? trim($phrase) : null;
+    }
 }

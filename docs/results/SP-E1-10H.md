@@ -1,17 +1,18 @@
-Модель: Terra
+# SP-E1-10H · Интеграции: обзор — остаток 07.11.2026
 
-## Сделано
-- Добавлена плитка «Почта для прайса» с реальным состоянием настройки выбранного бренда и ссылкой при наличии прав и модуля. Наличие настройки не выдаётся за подтверждённую доставку.
-- CRM-вебхук остаётся отдельной ссылкой, доступной по правам и при включённом модуле. Иконки каналов различаются.
-- Существующие исправления SP-E1-12C сохранены: ссылка виджета и реальные даты подключения; старые даты не выдумываются.
+Сделан только пункт из «Остаток 07.11.2026»: CRM-вебхук переведён из отдельной ссылки под сеткой в обычную плитку общей сетки «Подключения» (как Telegram, Виджет и т.д.) с «Подключён <дата>»/«Настроить».
 
-## Проверки
-- Отдельный PostgreSQL: 6 feature-тестов о состоянии, брендах, ролях, датах и ссылках; внешних вызовов нет.
-- Playwright: ссылка и состояние почты, CRM, ширины 1440/1024/390; TypeScript, ESLint, Pint.
-- Скриншот `.local/screenshots/SP-E1-10H/integrations.png`; эталон `completed/26/dbbbc8cb-S-5.1-connections.png`.
+Что сделано:
+- `IntegrationsController::index` — вместо `crmHref` добавлена плитка `crm_webhook` в массив `$connections`: статус `connected`/`disconnected`/`disabled` по наличию вебхука с CRM-событиями (`seller.contact.captured`, `seller.conversation.handed_off`) у текущего бренда, `connected_at` = дата создания найденного вебхука, `href` на `seller.integrations.crm` при праве `seller.settings.read` и включённом модуле продавца (как было).
+- `Index.tsx` — убран отдельный блок-ссылка «CRM-вебхук» под сеткой, проп `crmHref` удалён, иконка `crm_webhook` → `Cable` (как фолбэк для остальных плиток).
+- Проверено: проверено по макету `S-5.1-connections-more.webp` (26) — плитка CRM-вебхук в общей сетке рядом с «Почта для прайса»/amoCRM/Bitrix24, с датой подключения и кнопкой «Настроить».
+
+Тесты:
+- Новый `tests/Feature/Shell/Integrations/CrmWebhookTileE110HTest.php` — плитка в сетке, изоляция по бренду, статус/дата при наличии и отсутствии вебхука, доступ owner/viewer.
+- Обновлены `PriceMailOverviewE110HTest` (индекс 9 вместо `crmHref`), фикстура и `integrations.spec.ts` браузерного теста E1-10H (плитка вместо ссылки, screenshot).
+- `php artisan test tests/Feature/Shell/Integrations/` (кроме уже красных вне scope — см. Техдолг) — зелёные; `npx playwright test tests/Browser/E1-10H/integrations.spec.ts` — зелёный; `check lint`, `check frontend` — зелёные.
+
+Остаток: нет (остальные пункты карточки SP-E1-10H ранее слиты в e54de4bf).
 
 ## Техдолг
-- Нет.
-
-## Принято по умолчанию
-- Включённая почта обозначается «Настроена», поскольку настройка сама по себе не подтверждает реальную доставку. При выключенном модуле продавца настройка недоступна.
+- В этом слоте `SecretSecurityTest`, `PruneSecretReceiptsTest`, `SecretSharedSessionRaceTest`, `Webhooks/WebhookSecret*` падают с «A dedicated, nonprivileged test database owner is required» — инфраструктурный тест изоляции БД в exec-6, не связано с этой задачей, не трогал.

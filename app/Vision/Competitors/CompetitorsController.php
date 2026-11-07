@@ -94,11 +94,13 @@ final class CompetitorsController
                 $intentRates = [];
                 $intentDenominators = [];
                 $intentBases = [];
+                $intentPositions = [];
                 foreach ($metrics['intents'] ?? [] as $intent => $group) {
                     $match = collect($group['entities'] ?? [])->firstWhere('name', $entity['name']);
                     $intentRates[$intent] = is_numeric($match['frequency'] ?? null) ? (float) $match['frequency'] : null;
                     $intentDenominators[$intent] = is_numeric($match['denominator'] ?? null) ? (int) $match['denominator'] : null;
                     $intentBases[$intent] = $this->completeAnswerBase($metrics['slots'] ?? [], (string) $intent, $intentDenominators[$intent]);
+                    $intentPositions[$intent] = $entity['positions_by_intent'][$intent] ?? null;
                 }
 
                 $quotes = ($entity['is_brand'] ?? false) ? $matched->filter(fn ($slot) => ($slot['fact']['brand_mentioned'] ?? false) === true
@@ -137,7 +139,7 @@ final class CompetitorsController
                     'quotes' => $quotes, 'delta' => $deltas === null ? null : ($deltas[$entity['name']] ?? null), 'history_series' => $series,
                     'question_count' => $matched->filter(fn ($slot) => ($slot['mentions_complete'] ?? false) === true)->pluck('qid')->filter()->unique()->count(),
                     'question_total' => count($snapshot['questions'] ?? []), 'questions_without_brand' => $withoutBrand,
-                    'intent_rates' => $intentRates, 'intent_denominators' => $intentDenominators, 'intent_bases' => $intentBases,
+                    'intent_rates' => $intentRates, 'intent_denominators' => $intentDenominators, 'intent_bases' => $intentBases, 'intent_positions' => $intentPositions,
                     'aliases' => array_values(array_keys($aliases, $entity['name'], true)),
                     'is_brand' => $entity['is_brand'], 'tracked' => in_array($entity['name'], $tracked, true),
                     'models' => $matched->pluck('provider')->unique()->values()->all(),

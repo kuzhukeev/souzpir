@@ -32,8 +32,6 @@ final class WidgetSessionTest extends TenancyTestCase
         self::assertNotSame($session, DB::table('widget_sessions')->value('token_hash'));
         $url = '/widget/message?key='.$key;
         $input = ['token' => $session, 'text' => 'Здравствуйте', 'idempotency_key' => 'request-1', 'page' => 'catalog'];
-        config(['runtime.ai_driver' => 'live']);
-        $this->postJson($url, $input)->assertStatus(503);
         config(['runtime.ai_driver' => 'fake']);
         $first = $this->postJson($url, $input)->assertCreated();
         $first->assertJson(['reply' => "Здравствуйте, гость! Страница: Каталог.\n\nСпасибо за сообщение!"]);
@@ -55,6 +53,11 @@ final class WidgetSessionTest extends TenancyTestCase
         $otherKey = DB::table('widget_settings')->where('brand_id', $other->id)->value('public_key');
         $this->post('/seller/channels/widget', ['enabled' => true, 'origins' => ['https://example.test'], 'appearance' => ['title' => 'Чат', 'color' => '#225544', 'position' => 'right'], 'behavior' => ['invitation' => 'Здравствуйте!', 'collect_contact' => true, 'consent_url' => 'https://example.test/privacy']])->assertRedirect()->assertSessionHasNoErrors();
         $this->postJson('/widget/message?key='.$otherKey, $input)->assertNotFound();
+        // Live mode (SP-L1-09): the widget no longer answers 503; the turn is suppressed to a manager without an AI reply.
+        config(['runtime.ai_driver' => 'live']);
+        $liveSession = $this->postJson('/widget/session?key='.$key)->assertCreated()->json('token');
+        $live = $this->postJson($url, [...$input, 'token' => $liveSession, 'idempotency_key' => 'request-live'])->assertCreated();
+        self::assertArrayNotHasKey('reply', $live->json());
         Http::assertNothingSent();
     }
 }

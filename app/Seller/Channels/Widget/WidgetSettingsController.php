@@ -7,6 +7,7 @@ use App\Seller\Channels\Core\ChannelAccount;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
+use App\Shell\Plans\LimitEnforcer;
 use App\Shell\Profile\ProfileAccess;
 use App\Tenancy\TenantContext;
 use Carbon\Carbon;
@@ -58,6 +59,8 @@ final class WidgetSettingsController
             return ['brandOrigin' => $origin, 'activeTab' => $request->route('tab') ?? 'install', 'settings' => ['enabled' => $row->enabled, 'origins' => json_decode($row->origins, true),
                 'appearance' => json_decode($row->appearance, true), 'behavior' => json_decode($row->behavior, true),
                 'last_seen_at' => $row->last_seen_at, 'key' => $row->public_key],
+                'correspondence' => ['live' => config('runtime.ai_driver', 'fake') !== 'fake',
+                    'liveDraftEnabled' => (bool) config('features.LV-01.defaults.enabled', false)],
                 'scriptUrl' => $request->getSchemeAndHttpHost().'/widget.js',
                 'contactRequests' => DB::table('widget_contact_requests')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->orderByDesc('created_at')->limit(100)->get(['id', 'name', 'email', 'phone', 'origin', 'created_at'])];
         });
@@ -147,6 +150,10 @@ final class WidgetSettingsController
                 $channel->name = 'Сайт';
                 $channel->default_mode = 'manager';
                 $channel->settings = ['widget_id' => $row->id];
+            }
+            if ($input['enabled'] && $channel->status !== 'active') {
+                $active = ChannelAccount::query()->where('status', 'active')->count();
+                app(LimitEnforcer::class)->assertWithin($tenant, 'seller.channels_max', (string) ($active + 1));
             }
             if ($input['enabled'] && $channel->status !== 'active' && $channel->connected_at === null) {
                 $channel->connected_at = now();

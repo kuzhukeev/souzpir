@@ -575,3 +575,43 @@
 - SP-E1-04I: retention_review_at считается от updated_at строки модуля, отдельной исторической даты отключения нет (унаследовано из SP-E1-04G).
 
 - SP-E5-02F: активная проверка берёт только первый домен из origins; DNS проверяется до запроса, но Guzzle резолвит адрес повторно (DNS-rebinding между проверкой и запросом не исключён); тело ответа скачивается целиком и лишь затем обрезается до 1 МБ.
+
+- SP-L1-05: SendSuggestionController всегда пишет meta.delivery=fake (в отличие от DialogMessageController после SP-L1-04), поэтому в живом Telegram-режиме до доставки под черновиком показывается «Тестовая очередь»; tests/Browser/E5-04/dialogs.spec.ts и E5-04R/suggestion.spec.ts красные до этой задачи (фиксированный порт, устаревшие тексты).
+
+- SP-E7-04P: contact_received_at пишется только в защищённых финализаторах (первый ход, follow-up API); иные пути заполнения слотов контакта не фиксируют момент.
+
+- SP-E6-06E: seller.conversation.handed_off зарегистрирован в registry.json и EventCatalog, но нигде не enqueue-ится — общая очередь уведомлений для диалогов без ответа не используется; таймер «никто не взял» (MonitorHandoffs::monitorUnassigned) создаёт отдельную внутреннюю задачу seller_tasks(assignment_reminder) без живой отправки. Способы «по каналу/источнику» и «по городу» не реализованы (нет поля источника/города у клиента).
+
+- SP-L1-06: уведомление о входящем сообщении срабатывает только на Message::create (InboundRecorder — Telegram, виджет); TokenInboundRuntime/ApiFollowupRuntime/WidgetContactController пишут messages через DB::table — для API-каналов уведомлений нет. Канал события «unknown», если у сообщения нет channel_account_id. События seller.conversation.inbound/seller.draft.ready не в registry.json/EventCatalog (модуль пишет cabinet_notifications напрямую).
+
+- SP-L1-09: нет browser-теста на фразу «Менеджер скоро ответит»; ответ менеджера посетителю не доставляется до реализации опроса /widget/messages (остаток карточки).
+
+- SP-E6-08G: путь check_stock→Guard с ценами подключён только для первого хода (FirstTurnDeterministicGuard); в follow-up (SellerFollowup/FollowupFinalizer) ctx с catalog_known_prices не передаётся — цены там не называются, как раньше. Полный путь check_stock через FirstTurnCoordinator end-to-end отдельным тестом не покрыт (покрывает сквозная приёмка SP-E9-01). При включённом catalog_prices_enabled Guard блокирует любую сумму в рублях, не совпавшую с ценой из check_stock (в т.ч. доставка, минимальный заказ) — возможны лишние regenerate. Тесты на DatabaseMigrations (FirstTurnStateTest) в exec-слотах падают на «isolated test database is required» из-за rolcreatedb у роли слота.
+
+- SP-E8-22G: публичный отчёт V-5.10 «Три действия» (app/Vision/Publications/PublicationData.php, app/Vision/Reports/ReportSections.php) берёт priority/steps из сырой рекомендации, а не из RecommendationDefaults — при отсутствии полей там пусто.
+
+- SP-E8-24F: история списания слотов на V-11.3 ограничена 20 последними завершёнными замерами текущего бренда.
+
+- SP-E8-18J: дельта KPI «Проверенные ошибки» на V-5.1 не считается (ReportSections::compare сравнивает только 3 метрики; сопоставимость проверенных фактов между замерами требует решения). История изменений отметки присутствия не хранится — при изменении после даты отчёта показывается «Не знаем». Старая строка-резюме по типам источников оставлена рядом с новым блоком (её ждёт tests/Browser/E8-18I).
+
+- SP-L1-09: первый опрос GET /widget/messages идёт без курсора и вернёт все прежние сообщения manager/agent диалога — если бот уже отвечал в этой сессии, пузырь может продублироваться; browser-теста на опрос и появление пузыря нет.
+
+- SP-E9-01: FollowupsE901DTest создаёт conversations без channel_account_id и потому не ловил нарушение e304_message_inbound_binding в FollowupSender (исправлено в main 07.11); фикстура не соответствует реальным диалогам виджета/Telegram. Ручной CI acceptance_e901e на 08c4d10e красный (сценарий 6 до фикса).
+
+- SP-E6-03L: tool `escalate` из allowedTools handoff-цели не реализован в ToolRunner (вернёт `unavailable`, модель даёт прямой текст); handoff по Policy работает через финализаторы. Роль БД слота исполнителя с CREATEDB не проходит гейт FirstTurnStateTest — локальный прогон этого файла в слотах невозможен (покрыто CI).
+
+- SP-E8-16W: дата в подзаголовке V-3.4 форматируется Intl ru-RU как «1 октября 2026 г.», в макете без «г.».
+
+- Интегратор 07.11: полный browser-набор (job `browser`) не входит в push-CI (только `browser-smoke`), поэтому три теста сломались незаметно после SP-L1-01/SP-E5-02F/SP-E5-04S (чужие тесты вне scope: E0-05G fixture без `budget`, E5-02D кнопка «Проверить установку», E5-04R кнопка «Предложить ответ») — починено в main ef3d5d4b; полный набор проверять при ручных/ночных прогонах. Job `race` в ручном прогоне красный — вне CI, по правилам техдолг.
+- SP-E5-02D (07.11): нет browser-теста на переключение текста статуса переписки виджета между режимами (live/fake/черновики выключены) — только Feature-тест.
+- SP-E3-06L (07.11): различение симуляции и настоящего job-первого-хода по префиксу `idempotency_key` (`sim:`) хрупкое; надёжнее отдельная колонка происхождения claim.
+- SP-E8-22G (07.11): публичный отчёт V-5.10 берёт priority/steps из сырой рекомендации, а не из расчёта `RecommendationLink` (вне scope карточки).
+- SP-E6-10B (07.11): унаследовано из SP-E6-10E — `Policy::nextSlot` для неоптовых брендов сначала перебирает `slot_order` и только потом обязательные доп. поля (лишние пропуски до `wasAsked()`).
+- SP-E5-09 (07.11): у «Передать коллеге» нет связанной задачи-сущности; `task_id` в `seller.conversation.handed_off` — синтетический ulid.
+- SP-E4-10L (07.11): роль БД слотов исполнителей имеет CREATEDB — тесты со строгой self-check изоляцией (`FirstTurnStateTest`) локально не запускаются, только в CI.
+- SP-E4-04F (07.11): `FirstTurnGoal::evaluateLocked` пропускает `Policy::applyExtraction` — несимметрично с followup-путём (`ApiFollowupInput`), счётчики/стрики/clientType на первом ходе не применяются.
+- SP-E1-13B (07.11): проверка лимита в виджете и при активации канала — check-then-act без блокировки строки; при параллельных запросах возможен разовый перерасход на 1.
+- SP-E1-01I/SP-E1-10H (07.11): в слотах исполнителей тесты со строгой изоляцией БД (`PasswordDelivery`, `InvitationIssuance`, `Webhooks/WebhookSecret*`, `*RaceTest`) падают «A dedicated, nonprivileged test database owner is required» — инфраструктура слотов, проверяются только в CI.
+- SP-E6-01E (07.11): служебная фраза `error` нигде не применяется — при сбое отправки/хода клиентского текста нет (кандидат остаётся `pending` для повтора, ход завершается `unavailable`/handoff без текста); подключать при появлении пути с текстом клиенту.
+- SP-E6-01E (07.11): `PrepareFollowups` теперь всегда читает опубликованные знания бренда (раньше — только без кастомных текстов), лишний запрос на кандидата.
+- SP-E8-20N (07.11): связь действия после ручного редактирования описания площадки — см. SP-E8-20K (описания теперь из статичного справочника по типу).

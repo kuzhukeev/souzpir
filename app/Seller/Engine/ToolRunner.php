@@ -36,14 +36,18 @@ final class ToolRunner
                     'year_defaulted' => $candidate['year_defaulted'],
                 ];
             }
-            if ($name !== 'calc_delivery' && $name !== 'check_stock' && $name !== 'send_price') {
+            if ($name !== 'calc_delivery' && $name !== 'check_stock' && $name !== 'send_price' && $name !== 'log_unknown_question') {
                 return ['status' => 'unavailable'];
             }
-            if (($name === 'check_stock' || $name === 'send_price') && ! $config instanceof TenantContext) {
+            if (($name === 'check_stock' || $name === 'send_price' || $name === 'log_unknown_question') && ! $config instanceof TenantContext) {
                 return ['status' => 'unavailable'];
             }
             if (! (new ToolArguments)->check($name, $arguments)['valid']) {
                 return ['status' => 'invalid_arguments'];
+            }
+            if ($name === 'log_unknown_question') {
+                // The lead-state record is kept by Policy::applyExtraction, keyed by the goal, not by this call.
+                return ['status' => 'logged'];
             }
             if ($name === 'check_stock' || $name === 'send_price') {
                 return $config instanceof TenantContext && $config->organizationId && $config->brandId
@@ -102,14 +106,28 @@ final class ToolRunner
         if (! $import) {
             return ['status' => 'unavailable'];
         }
+        $columns = ['sku', 'name', 'stock', 'price', 'wholesale_price'];
         $items = $scope('catalog_items')->where('import_id', $import)->where('sku', $query)
-            ->orderBy('name')->limit(5)->get(['sku', 'name', 'stock']);
+            ->orderBy('name')->limit(5)->get($columns);
         if ($items->isEmpty()) {
             $items = $scope('catalog_items')->where('import_id', $import)->where('name', 'ilike', '%'.$query.'%')
-                ->orderBy('name')->limit(5)->get(['sku', 'name', 'stock']);
+                ->orderBy('name')->limit(5)->get($columns);
         }
+        $sellerSettings = $scope('brand_seller_settings')->first(['catalog_prices_enabled', 'tools']);
+        $pricesEnabled = (bool) ($sellerSettings->catalog_prices_enabled ?? false);
+        $tools = $sellerSettings && $sellerSettings->tools ? json_decode($sellerSettings->tools, true) : [];
+        $discountsEnabled = is_array($tools) && ($tools['catalog_discounts_enabled'] ?? false);
 
-        return ['status' => 'completed', 'empty' => $items->isEmpty(), 'items' => $items->map(fn ($item) => ['sku' => $item->sku, 'name' => $item->name,
-            'stock' => $item->stock === null ? null : (float) $item->stock])->all()];
+        return ['status' => 'completed', 'empty' => $items->isEmpty(), 'items' => $items->map(function ($item) use ($pricesEnabled, $discountsEnabled): array {
+            $out = ['sku' => $item->sku, 'name' => $item->name, 'stock' => $item->stock === null ? null : (float) $item->stock];
+            if ($pricesEnabled && $item->price !== null) {
+                $out['price'] = (float) $item->price;
+            }
+            if ($discountsEnabled && $item->wholesale_price !== null) {
+                $out['wholesale_price'] = (float) $item->wholesale_price;
+            }
+
+            return $out;
+        })->all()];
     }
 }

@@ -10,3 +10,6 @@
 - Проверить экран, маршрут, хранение, права, изоляцию брендов, ошибки и результат; только fake, без внешних платных вызовов.
 
 Scope: `app/Vision/Competitors/`, `app/Vision/Reports/`, `app/Vision/Actions/`, `resources/js/pages/Vision/Competitors/`, `resources/js/pages/Vision/Actions/`, `tests/Feature/Vision/Competitors/`, `tests/Feature/Vision/Reports/`, `tests/Feature/Vision/Actions/`, `tests/Browser/E8-20Y/`, `docs/results/SP-E8-20Y.md`.
+
+## Остаток 07.11.2026 (аудит экранов, интегратор)
+- V-6.3: после объединения дублей пересчёт отчёта выполнять фоновой job через очередь с баннером «Пересчитываем, 1–2 минуты» и обновлением экрана по готовности (опрос или перезагрузка); в тестах очередь sync.

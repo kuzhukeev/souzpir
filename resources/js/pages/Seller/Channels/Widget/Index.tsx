@@ -6,6 +6,7 @@ type Tab = 'install' | 'look' | 'behavior';
 type Appearance = { title: string; color: string; position: string; offset_side?: number; offset_bottom?: number; shape?: 'round' | 'rounded'; icon?: 'chat' | 'bot'; window_title?: string; theme?: 'light' | 'dark' | 'auto'; hide_mobile?: boolean };
 type Behavior = { delay_seconds: number | null; scroll_percent: number | null; invitation: string; collect_contact?: boolean; consent_url?: string | null; exit_intent?: boolean; page_mask?: string | null; repeat_hours?: number | null; work_days?: number[]; work_start?: string | null; work_end?: string | null; offhours_text?: string | null; excluded_paths?: string[]; max_messages?: number | null; contact_mode?: 'none' | 'soft' | 'required'; consent_text?: string | null };
 type Settings = { enabled: boolean; origins: string[]; appearance: Appearance; behavior: Behavior; last_seen_at: string | null; key: string };
+type Correspondence = { live: boolean; liveDraftEnabled: boolean };
 type Contact = { id: string; name: string | null; email: string | null; phone: string | null; origin: string; created_at: string };
 const field = 'mt-2 block min-h-11 w-full rounded-lg border border-(--color-border) bg-(--color-surface) px-3 text-sm';
 const panel = 'mt-5 rounded-xl border border-(--color-border) bg-(--color-surface) p-5';
@@ -17,7 +18,7 @@ const cms = [
   ['1С-Битрикс', 'Добавьте скрипт в общий шаблон сайта перед закрывающим тегом body и обновите кеш.'],
   ['Другой сайт', 'Вставьте скрипт в общий шаблон всех нужных страниц перед закрывающим тегом body.'],
 ];
-export default function Index({settings,scriptUrl,status,contactRequests=[],brandOrigin=null,activeTab='install'}:{settings:Settings;scriptUrl:string;status?:string|null;contactRequests:Contact[];brandOrigin?:string|null;activeTab?:Tab}) {
+export default function Index({settings,scriptUrl,status,contactRequests=[],brandOrigin=null,activeTab='install',correspondence}:{settings:Settings;scriptUrl:string;status?:string|null;contactRequests:Contact[];brandOrigin?:string|null;activeTab?:Tab;correspondence:Correspondence}) {
  const [origins,setOrigins]=useState(settings.origins.join('\n'));
  const [excluded,setExcluded]=useState((settings.behavior.excluded_paths ?? []).join('\n'));
  const [copied,setCopied]=useState(false); const [checking,setChecking]=useState(false); const [preview,setPreview]=useState<'desktop'|'mobile'>('desktop');
@@ -27,7 +28,13 @@ export default function Index({settings,scriptUrl,status,contactRequests=[],bran
  const submit=(e:React.FormEvent)=>{e.preventDefault();form.transform(data=>({...data,origins:selectedOrigins,behavior:{...data.behavior,excluded_paths:excluded.split('\n').map(x=>x.trim()).filter(Boolean)}}));form.post('/seller/channels/widget',{preserveScroll:true});};
  const setBehavior=<K extends keyof Behavior>(key:K,value:Behavior[K])=>form.setData('behavior',{...form.data.behavior,[key]:value});
  const setAppearance=<K extends keyof Appearance>(key:K,value:Appearance[K])=>form.setData('appearance',{...form.data.appearance,[key]:value});
- return <CabinetLayout breadcrumbs={[{label:'Каналы',href:'/seller/channels'},{label:'Виджет сайта'}]}><Head title="Виджет сайта"/><main className="mx-auto max-w-[1200px]" data-private-profile><h1 className="text-3xl font-bold">Виджет сайта</h1><p className="mt-2 text-sm text-(--color-ink-muted)">Настройки виджета текущего бренда.</p>{status&&<p role="status" className="mt-4 rounded-lg bg-(--color-success-soft) p-3 text-sm">{status}</p>}<p className="mt-4 rounded-lg bg-(--color-surface-muted) p-3 text-sm">Переписка через виджет пока недоступна; установленная кнопка покажет посетителю это сообщение.</p>
+ const correspondenceWarn=correspondence.live && !correspondence.liveDraftEnabled;
+ const correspondenceText=!correspondence.live
+  ? 'Переписка работает в тестовом режиме: сообщения посетителей сразу получают ответ ИИ (демо-данные, не для реальных клиентов).'
+  : correspondence.liveDraftEnabled
+   ? 'Переписка работает в боевом режиме: сообщения посетителей передаются менеджеру с черновиком ответа от ИИ на проверку; посетитель видит «Менеджер скоро ответит», пока менеджер не отправит ответ.'
+   : 'Переписка работает в боевом режиме без черновиков ИИ (выключены настройкой): сообщения посетителей передаются менеджеру напрямую; посетитель видит «Менеджер скоро ответит», пока менеджер не ответит.';
+ return <CabinetLayout breadcrumbs={[{label:'Каналы',href:'/seller/channels'},{label:'Виджет сайта'}]}><Head title="Виджет сайта"/><main className="mx-auto max-w-[1200px]" data-private-profile><h1 className="text-3xl font-bold">Виджет сайта</h1><p className="mt-2 text-sm text-(--color-ink-muted)">Настройки виджета текущего бренда.</p>{status&&<p role="status" className="mt-4 rounded-lg bg-(--color-success-soft) p-3 text-sm">{status}</p>}<p className={`mt-4 rounded-lg p-3 text-sm ${correspondenceWarn?'bg-(--color-warning-soft) text-(--color-warning-ink)':'bg-(--color-surface-muted)'}`}>{correspondenceText}</p>
  <nav aria-label="Разделы виджета" className="mt-5 flex flex-wrap gap-2">{tabs.map(tab=><Link key={tab.id} href={`/seller/channels/widget/${tab.id}`} aria-current={activeTab===tab.id?'page':undefined} className={`inline-flex min-h-11 cursor-pointer items-center rounded-lg px-4 text-sm font-semibold ${activeTab===tab.id?'bg-(--color-info-soft) text-(--color-info-ink)':'text-(--color-link)'}`}>{tab.label}</Link>)}</nav>
  <form onSubmit={submit}>
  {activeTab==='install'&&<>

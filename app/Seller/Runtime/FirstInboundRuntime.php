@@ -56,7 +56,7 @@ final class FirstInboundRuntime
                     throw new \LogicException;
                 }
                 $conversation = DB::table('conversations')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
-                    ->where('id', $command->conversationId)->first(['id', 'mode', 'version', 'stage']);
+                    ->where('id', $command->conversationId)->first(['id', 'mode', 'version', 'stage', 'channel_account_id']);
                 $message = DB::table('messages')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
                     ->where('conversation_id', $command->conversationId)->where('id', $command->inputMessageId)->where('role', 'client')
                     ->first(['text', 'external_event_id']);
@@ -66,6 +66,8 @@ final class FirstInboundRuntime
                 }
                 $schedule = app(BrandRuntimeSchedule::class);
                 $settings = $schedule->settings($tenant);
+                $channel = $conversation->channel_account_id ? DB::table('channel_accounts')->where('organization_id', $tenant->organizationId)
+                    ->where('brand_id', $tenant->brandId)->where('id', $conversation->channel_account_id)->value('type') : 'api';
                 if ($conversation->mode === 'bot' && (int) $conversation->version === 0 && app(MonthlyUnits::class)->exhausted($tenant, 'dialog', $conversation->id)) {
                     DB::table('conversations')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('id', $conversation->id)
                         ->update(['mode' => 'manager', 'stage' => 'handoff', 'outcome' => 'handoff', 'handed_off_at' => now(), 'updated_at' => now()]);
@@ -73,16 +75,16 @@ final class FirstInboundRuntime
                     app(AuditWriter::class)->record($tenant, new AuditEntry('seller.dialog.limit_handoff', 'conversation', $conversation->id));
                     $schedule->assignWaiting($tenant, $command->conversationId, $settings);
 
-                    return ['mode' => 'suppressed', 'result' => $this->suppressManagerTurn($tenant, $command, 'manager')];
+                    return ['mode' => 'suppressed', 'result' => $this->suppressManagerTurn($tenant, $command, 'manager', $schedule->fallbackPhrase($tenant))];
                 }
                 if ($conversation->mode === 'manager') {
                     $schedule->assignWaiting($tenant, $command->conversationId, $settings);
 
                     return ['mode' => 'suppressed', 'result' => $this->suppressManagerTurn($tenant, $command, 'manager')];
                 }
-                $scheduleMode = $schedule->mode($tenant, $settings, CarbonImmutable::now());
+                $scheduleMode = $schedule->mode($tenant, $settings, CarbonImmutable::now(), is_string($channel) ? $channel : null);
                 if ($scheduleMode === 'off') {
-                    return ['mode' => 'suppressed', 'result' => $this->suppressManagerTurn($tenant, $command, $conversation->mode)];
+                    return ['mode' => 'suppressed', 'result' => $this->suppressManagerTurn($tenant, $command, $conversation->mode, $schedule->fallbackPhrase($tenant))];
                 }
                 if ($scheduleMode === 'suggest' && $conversation->mode === 'bot') {
                     if ($command->expectedVersion !== (int) $conversation->version) {
@@ -135,7 +137,7 @@ final class FirstInboundRuntime
         }
     }
 
-    private function suppressManagerTurn(#[SensitiveParameter] TenantContext $tenant, #[SensitiveParameter] TurnCommand $command, string $expectedMode): array
+    private function suppressManagerTurn(#[SensitiveParameter] TenantContext $tenant, #[SensitiveParameter] TurnCommand $command, string $expectedMode, ?string $phrase = null): array
     {
         if (DB::connection()->transactionLevel() < 1 || ! $tenant->organizationId || ! $tenant->brandId) {
             throw new \LogicException;
@@ -176,6 +178,10 @@ final class FirstInboundRuntime
         DB::table('conversations')->where('id', $claim->conversationId)->where('organization_id', $tenant->organizationId)
             ->where('brand_id', $tenant->brandId)->update(['version' => $claim->baseVersion + 1, 'updated_at' => now()]);
         app(AuditWriter::class)->record($tenant, new AuditEntry('seller.turn.suppressed', 'seller_turn', $claim->turnId));
+        if ($phrase !== null) {
+            DB::table('messages')->insert(['id' => (string) Str::ulid(), 'organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId,
+                'conversation_id' => $claim->conversationId, 'role' => 'agent', 'text' => $phrase, 'meta' => '{}', 'created_at' => now(), 'updated_at' => now()]);
+        }
 
         return ['status' => 'suppressed', 'turn_id' => $claim->turnId, 'version' => $claim->baseVersion + 1];
     }

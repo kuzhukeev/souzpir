@@ -551,6 +551,7 @@ declare module 'ziggy-js' {
     "widget.session.start": [],
     "widget.message.preflight": [],
     "widget.message.store": [],
+    "widget.messages": [],
     "widget.config": [],
     "seller.api.failures": [],
     "seller.api.settings": [],
@@ -1016,6 +1017,16 @@ declare module 'ziggy-js' {
     "brands.settings.ai_policy.update": [
         {
             "name": "brand",
+            "required": true
+        }
+    ],
+    "seller.dialogs.suggestions.send": [
+        {
+            "name": "dialog",
+            "required": true
+        },
+        {
+            "name": "turn",
             "required": true
         }
     ],

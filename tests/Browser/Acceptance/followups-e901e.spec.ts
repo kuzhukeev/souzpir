@@ -147,7 +147,7 @@ test('followup settings and new widget dialogue through the UI', async ({ page, 
   const clientMessageAt = Date.now();
   await page.getByRole('button', { name: /Посетитель виджета/ }).click();
   await expect(page.getByRole('heading', { name: 'Посетитель виджета' })).toBeVisible();
-  await expect(page.getByText('Здравствуйте! Подскажите цены.')).toBeVisible();
+  await expect(page.getByRole('list', { name: 'Сообщения' }).getByText('Здравствуйте! Подскажите цены.', { exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Карточка клиента' })).toBeVisible();
   await expect(page.getByText('widget@example.test')).toBeVisible();
   const dialogId = new URL(page.url()).pathname.split('/').pop()!;
@@ -157,29 +157,36 @@ test('followup settings and new widget dialogue through the UI', async ({ page, 
   execFileSync(php, ['tests/Browser/Acceptance/followups-e901e-fixture.php'], { env: { ...fixtureEnv, E901_ACTION: 'seed-agent-reply', E901_DIALOG: dialogId, E901_AT: seedAt.toISOString() }, stdio: 'pipe' });
   await page.getByRole('button', { name: 'Вернуть боту' }).click();
   await expect(page.getByRole('button', { name: 'Забрать себе' })).toBeVisible();
-  const messages = page.getByRole('list', { name: 'Сообщения' }).getByRole('listitem');
+  const messageList = page.getByRole('list', { name: 'Сообщения' });
+  const messages = messageList.getByRole('listitem');
   const advance = (at: Date) => execFileSync(php, ['tests/Browser/Acceptance/followups-e901e-fixture.php'], { env: { ...fixtureEnv, E901_ACTION: 'advance-followups', E901_AT: at.toISOString() }, stdio: 'pipe' });
 
-  advance(new Date(seedAt.getTime() + 19 * 3600000));
-  await page.reload();
-  await expect(page.getByText('Исходный ответ бота.')).toBeVisible();
-  await expect(messages).toHaveCount(2);
+  // Сценарий 6 (два fake-напоминания и остановка) изолирован в try/catch: известный блокер
+  // в app/Seller/Followups/FollowupSender.php (нарушение e304_message_inbound_binding, вне
+  // scope SP-E9-01) не должен мешать проверить сценарий 8 ниже в этом же прогоне.
+  let scenario6Error: unknown = null;
+  try {
+    advance(new Date(seedAt.getTime() + 19 * 3600000));
+    await page.reload();
+    await expect(messageList.getByText('Исходный ответ бота.')).toBeVisible();
+    await expect(messages).toHaveCount(2);
 
-  const firstReminderAt = new Date(seedAt.getTime() + 20 * 3600000 + 300000);
-  advance(firstReminderAt);
-  await page.reload();
-  await expect(page.getByText('Первое напоминание от бота.')).toBeVisible();
-  await expect(messages).toHaveCount(3);
+    const firstReminderAt = new Date(seedAt.getTime() + 20 * 3600000 + 300000);
+    advance(firstReminderAt);
+    await page.reload();
+    await expect(messageList.getByText('Первое напоминание от бота.')).toBeVisible();
+    await expect(messages).toHaveCount(3);
 
-  advance(new Date(firstReminderAt.getTime() + 40 * 3600000 + 300000));
-  await page.reload();
-  await expect(page.getByText('Второе напоминание от бота.')).toBeVisible();
-  await expect(messages).toHaveCount(4);
+    advance(new Date(firstReminderAt.getTime() + 40 * 3600000 + 300000));
+    await page.reload();
+    await expect(messageList.getByText('Второе напоминание от бота.')).toBeVisible();
+    await expect(messages).toHaveCount(4);
 
-  advance(new Date(firstReminderAt.getTime() + 20 * 24 * 3600000));
-  await page.reload();
-  await expect(messages).toHaveCount(4);
-  await auditPage(page, 'followups-stopped');
+    advance(new Date(firstReminderAt.getTime() + 20 * 24 * 3600000));
+    await page.reload();
+    await expect(messages).toHaveCount(4);
+    await auditPage(page, 'followups-stopped');
+  } catch (error) { scenario6Error = error; }
 
   execFileSync(php, ['tests/Browser/Acceptance/followups-e901e-fixture.php'], { env: { ...fixtureEnv, E901_ACTION: 'second-brand' }, stdio: 'pipe' });
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -192,4 +199,6 @@ test('followup settings and new widget dialogue through the UI', async ({ page, 
   await page.goto(`${origin}/seller/dialogs`);
   await expect(page.getByText('Клиент второго бренда')).toBeVisible();
   await expect(page.getByText('Посетитель виджета')).not.toBeVisible();
+
+  if (scenario6Error) throw scenario6Error;
 });

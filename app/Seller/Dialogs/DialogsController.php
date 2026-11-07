@@ -30,7 +30,7 @@ final class DialogsController
     {
         $input = $request->validate([
             'mode' => ['sometimes', 'string', Rule::in(['all', 'mine', 'bot', 'suggest', 'manager', 'paused', 'waiting', 'closed'])],
-            'search' => ['sometimes', 'string', 'max:100'],
+            'search' => ['sometimes', 'nullable', 'string', 'max:100'],
             'sort' => ['sometimes', Rule::in(['newest', 'oldest'])],
             'channel' => ['sometimes', Rule::in(['telegram', 'widget', 'api', 'email', 'whatsapp'])],
             'stage' => ['sometimes', Rule::in(LeadState::STAGES)],
@@ -63,9 +63,11 @@ final class DialogsController
                 return ['dialogs' => [], 'dialog' => null, 'loadError' => true];
             }
             $data['transferOptions'] = $dialog && Gate::forUser($actor)->allows('seller.dialogues.operate') ? app(DialogTransferController::class)->candidates($context) : [];
-            $data['readySuggestion'] = $dialog && ($data['dialog']['mode'] ?? null) === 'suggest' && Gate::forUser($actor)->allows('seller.dialogues.operate')
-                ? collect(app(ReadySuggestions::class)->read($context, $actor->id, $member))->firstWhere('conversation_id', $dialog)['suggestion'] ?? null
+            $suggestion = $dialog && ($data['dialog']['mode'] ?? null) === 'suggest' && Gate::forUser($actor)->allows('seller.dialogues.operate')
+                ? collect(app(ReadySuggestions::class)->read($context, $actor->id, $member))->firstWhere('conversation_id', $dialog)
                 : null;
+            $data['readySuggestion'] = $suggestion['suggestion'] ?? null;
+            $data['readySuggestionTurnId'] = $suggestion['id'] ?? null;
             $data['evaluationId'] = $dialog && ($data['dialog']['id'] ?? null) === $dialog && Gate::forUser($actor)->allows('seller.knowledge.write')
                 ? DB::table('seller_evaluations')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)->where('conversation_id', $dialog)->orderByDesc('created_at')->orderByDesc('id')->value('id')
                 : null;

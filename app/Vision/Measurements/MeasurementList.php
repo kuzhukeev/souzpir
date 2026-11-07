@@ -5,6 +5,8 @@ namespace App\Vision\Measurements;
 use App\Models\User;
 use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Auth\SessionBrandSelection;
+use App\Shell\Plans\Contracts\PlanLimits;
+use App\Shell\Plans\MonthlyUnits;
 use App\Tenancy\TenantContext;
 use App\Vision\Clarifications\ClarificationController;
 use App\Vision\Core\VisionReportReader;
@@ -138,8 +140,14 @@ final class MeasurementList
             ->whereNotNull('started_at')->whereNotNull('finished_at')->orderByDesc('finished_at')->first(['started_at', 'finished_at']);
         $lastDuration = $lastCompleted ? CarbonImmutable::parse($lastCompleted->started_at)->diffInSeconds(CarbonImmutable::parse($lastCompleted->finished_at), false) : null;
 
+        $usedSlots = app(MonthlyUnits::class)->usage($context)['slots'];
+        $slotLimit = app(PlanLimits::class)->get($context, 'vision.slots_month')->value;
+        $slotLimit = is_numeric($slotLimit) ? (int) floor((float) $slotLimit) : null;
+
         return ['last_duration_minutes' => $lastDuration !== null && $lastDuration > 0 ? max(1, (int) ceil($lastDuration / 60)) : null,
             'plan' => $approval ? ['questions' => (int) $approval->size, 'models' => is_array($providers) ? count($providers) : 0] : null,
+            'slots' => ['used' => $usedSlots, 'limit' => $slotLimit, 'available' => $slotLimit !== null ? max(0, $slotLimit - $usedSlots) : null,
+                'reset_at' => CarbonImmutable::now('Europe/Moscow')->startOfMonth()->addMonth()->toIso8601String()],
             'data' => $rows->map(fn ($row) => [
                 'id' => $row->id, 'status' => $row->status, 'created_at' => $row->created_at,
                 'started_at' => $row->started_at, 'finished_at' => $row->finished_at,

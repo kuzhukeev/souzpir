@@ -28,3 +28,7 @@ Scope: `app/Shell/Auth/`, `app/Shell/InvitationIssuance/`, `resources/js/pages/S
 - S-0.5: browser-тест, что /invitations/open при expired/revoked/accepted/email_mismatch действительно переходит на /invitations/state (аудит видел сырой текст страницы).
 
 Дополнительный scope: `lang/ru/validation.php`, `tests/Browser/E1-01I/`.
+
+## Остаток 07.11.2026 (аудит экранов, интегратор)
+- S-0.4: отдельный экран «Пароль изменён» с кнопкой «Войти в кабинет» после смены пароля (сейчас редирект на вход с зелёной плашкой); feature/browser-тест.
+- S-0.2: поле «Код создания кабинета» не трогать — решение владельца (docs/decisions-pending.md).

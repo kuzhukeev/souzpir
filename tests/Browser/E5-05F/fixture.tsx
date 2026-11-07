@@ -16,6 +16,7 @@ const props = {
   clientType: 'experienced', slots: { city: 'Тверь', purpose: 'Оптовая закупка' }, history: [{ slot: 'city', value: 'Тверь', role: 'client', at: '2026-11-03T12:00:00Z' }],
   conversations: [{ id: 'dialog', stage: 'contact', outcome: 'full_contact', mode: 'bot', channel: 'telegram', updated_at: '2026-11-03T12:00:00Z' }], tasks: [task], notes: [{ id: 'note', body: 'Позвонить завтра', author_id: 'user', author_name: 'Иван Петров', created_at: '2026-11-03T12:00:00Z' }],
   canWrite: true, manager: 'Иван Петров', managers: [{ id: 'user', name: 'Иван Петров' }], assignedUserId: 'user', canAssign: true, canReadDialogs: true,
+  consent: { status: 'none', unsubscribed: 0, canEdit: true },
   theme: 'neutral', brand: { id: 'brand', name: 'Пример бренда', theme: 'neutral' }, brands: [], organization: { id: 'org', name: 'Компания' }, auth: { user: { id: 'user', name: 'Иван Петров', email: 'ivan@example.test' } }, modules: { seller: true, vision: true }, can: { 'seller.dialogs.read': true, 'seller.settings.write': true }, unread: null, translations: {}, ziggy: { routes: {} }, errors: {},
 };
 const page = { component: 'Fixture', props, url: `/seller/customers/${screen}`, version: null, clearHistory: false, encryptHistory: false };
