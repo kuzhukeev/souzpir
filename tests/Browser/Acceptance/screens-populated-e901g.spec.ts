@@ -127,6 +127,16 @@ test('real pages after creating knowledge through the UI', async ({ page, browse
   await page.goto(`${origin}/seller/customers`);
   const customerLink = await page.getByRole('link', { name: /Посетитель виджета/ }).first().getAttribute('href');
   if (!customerLink) throw new Error('Synthetic customer link missing');
+  await page.goto(`${origin}${customerLink}`);
+  await page.getByRole('button', { name: 'Поставить напоминание' }).click();
+  const reminderForm = page.locator('form').filter({ has: page.getByRole('heading', { name: 'Новое напоминание' }) });
+  await reminderForm.getByLabel('Что сделать').fill('Связаться с тестовым клиентом');
+  await reminderForm.getByLabel('Срок').fill('2099-01-01T10:00');
+  const managerId = await reminderForm.getByLabel('Менеджер').locator('option').nth(1).getAttribute('value');
+  if (!managerId) throw new Error('Synthetic manager is missing');
+  await reminderForm.getByLabel('Менеджер').selectOption(managerId);
+  await reminderForm.getByRole('button', { name: 'Создать напоминание' }).click();
+  await expect(page.getByText('Связаться с тестовым клиентом').first()).toBeVisible();
   await page.goto(`${origin}/seller/integrations/catalog`);
   await page.getByLabel('Файл каталога').setInputFiles({ name: 'catalog.csv', mimeType: 'text/csv', buffer: Buffer.from('name,sku,stock,price\nТестовый товар,SKU-001,4,100\n') });
   await page.getByRole('button', { name: 'Посмотреть столбцы' }).click();
