@@ -47,7 +47,7 @@ final class FollowupFinalizer
             ? app(Gateway::class)->readApiFollowupGuardLocked($http, $tenant, $claim, $round, $toolResults, $guardIssues) : null;
         $decision = $decisionEngine->finish($guard, $goal, $enabled, $model);
         if ($decision['status'] !== 'completed' || $decision['verdict'] !== 'ok'
-            || ! in_array($goal->kind, ['intro_and_ask', 'ask_slot', 'answer_and_ask', 'answer_only', 'unknown_fact', 'small_talk', 'unclear', 'closed_topic', 'decline_off_topic', 'decline_injection', 'bot_disclosure', 'handoff'], true)) {
+            || ! in_array($goal->kind, ['intro_and_ask', 'ask_slot', 'answer_and_ask', 'answer_only', 'unknown_fact', 'small_talk', 'unclear', 'closed_topic', 'decline_off_topic', 'decline_injection', 'bot_disclosure', 'handoff', 'opt_out'], true)) {
             throw new LogicException('API follow-up rejected.');
         }
         if ($goal->slot) {
