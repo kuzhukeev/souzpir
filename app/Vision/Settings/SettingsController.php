@@ -38,7 +38,7 @@ final class SettingsController
                 $user = $member->user;
                 $canReadAnswers = $user !== null && app(TenantContextRunner::class)->run(
                     new TenantContext($tenant->organizationId, $tenant->brandId, $member->user_id, $member->id, 'session'),
-                    fn (): bool => Gate::forUser($user)->allows('vision.measure.read'),
+                    fn (): bool => Gate::forUser($user)->allows('vision.measure.full_access'),
                 );
 
                 return ['id' => $member->user_id, 'name' => $user?->name, 'role' => $member->role, 'canReadAnswers' => $canReadAnswers, 'cabinet' => (bool) ($channels['cabinet'] ?? true), 'email' => (bool) ($channels['email'] ?? false)];

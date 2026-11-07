@@ -11,7 +11,7 @@ test('получатели видят фактический статус дос
  const table = page.getByRole('table', {name:'Каналы получения отчёта участниками бренда'});
  const rows = table.getByRole('row');
  await expect(rows.nth(1)).toContainText('Есть доступ');
- await expect(rows.nth(3)).toContainText('Есть доступ');
+ await expect(rows.nth(3)).toContainText('Нет доступа');
  await expect(rows.nth(4)).toContainText('Нет доступа');
  await mkdir('.local/screenshots/SP-E8-24K', {recursive:true});
  await page.screenshot({path:'.local/screenshots/SP-E8-24K/permissions.png',fullPage:true});
