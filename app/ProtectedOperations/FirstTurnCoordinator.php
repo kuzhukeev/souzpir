@@ -12,6 +12,7 @@ use App\Seller\Conversations\Data\TurnClaim;
 use App\Seller\Conversations\Data\TurnCommand;
 use App\Seller\Engine\GuardDecision;
 use App\Seller\Engine\ToolRunner;
+use App\Seller\Engine\Tools\EscalateToManager;
 use App\Seller\Runtime\ConfiguredToolHandler;
 use App\Tenancy\TenantContext;
 use Illuminate\Http\Request;
@@ -194,6 +195,7 @@ final class FirstTurnCoordinator
             $result = match ($name) {
                 'calc_delivery' => app(ConfiguredToolHandler::class)->calculateDelivery($tenant, $call['arguments']),
                 'send_price' => app(ProtectedPriceSender::class)->send($tenant, $claim, $responder, $call['id'], $call['arguments']),
+                'escalate' => app(EscalateToManager::class)->run($tenant, $claim, $responder, $call['id'], $call['arguments']),
                 default => app(ToolRunner::class)->run($name, $call['arguments'], $tenant),
             };
             $results[] = ['id' => $call['id'], 'name' => $name, 'result' => $result];

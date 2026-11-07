@@ -37,7 +37,9 @@ final class AssignmentCandidates
             }
         }
 
-        return app(AssignmentSelector::class)->select($settings['method'] ?? 'first_taken', $eligible, $last, $settings['fixed'] ?? null);
+        $fixed = ($channel !== null ? ($settings['fixed_channels'][$channel] ?? null) : null) ?? $settings['fixed'] ?? null;
+
+        return app(AssignmentSelector::class)->select($settings['method'] ?? 'first_taken', $eligible, $last, $fixed);
     }
 
     private function matchesChannel(array $entry, ?string $channel): bool

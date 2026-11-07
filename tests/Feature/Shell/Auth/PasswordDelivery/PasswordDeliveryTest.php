@@ -117,7 +117,7 @@ final class PasswordDeliveryTest extends TestCase
         DB::table('sessions')->insert(['id' => 'synthetic-session', 'user_id' => $this->user->id, 'payload' => '', 'last_activity' => time()]);
         $oldVersion = $this->user->auth_version;
         $data = ['email' => $this->user->email, 'token' => $this->fake->token, 'password' => 'new-secure-password', 'password_confirmation' => 'new-secure-password'];
-        $this->resetThroughExchange($data)->assertRedirect(route('login'));
+        $this->resetThroughExchange($data)->assertRedirect(route('password.changed'));
         self::assertTrue(Hash::check('new-secure-password', $this->user->fresh()->password));
         self::assertSame($oldVersion + 1, $this->user->fresh()->auth_version);
         self::assertFalse(DB::table('sessions')->where('id', 'synthetic-session')->exists());
@@ -265,7 +265,7 @@ final class PasswordDeliveryTest extends TestCase
         $this->get('/reset-password')->assertOk()->assertDontSee($token)->assertDontSee($email);
         DB::table('sessions')->insert(['id' => 'recovery-test-session', 'user_id' => $this->user->id, 'payload' => '', 'last_activity' => time()]);
         $password = ['password' => 'new-secure-password', 'password_confirmation' => 'new-secure-password'];
-        $this->post('/reset-password', $password)->assertRedirect(route('login'));
+        $this->post('/reset-password', $password)->assertRedirect(route('password.changed'));
         self::assertTrue(Hash::check($password['password'], $this->user->fresh()->password));
         self::assertFalse(DB::table('sessions')->where('id', 'recovery-test-session')->exists());
         self::assertNull(session('auth.password_recovery'));
@@ -435,7 +435,7 @@ final class PasswordDeliveryTest extends TestCase
         [$worker, $input, $pid] = $this->raceWorker('revoke');
         try {
             DB::beginTransaction();
-            $this->resetThroughExchange(['email' => $this->user->email, 'token' => $token, 'password' => 'new-secure-password', 'password_confirmation' => 'new-secure-password'])->assertRedirect(route('login'));
+            $this->resetThroughExchange(['email' => $this->user->email, 'token' => $token, 'password' => 'new-secure-password', 'password_confirmation' => 'new-secure-password'])->assertRedirect(route('password.changed'));
             $input->write("go\n");
             $this->waitForLock($worker, $pid);
             DB::commit();

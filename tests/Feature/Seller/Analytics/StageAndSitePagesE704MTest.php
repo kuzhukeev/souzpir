@@ -38,7 +38,7 @@ final class StageAndSitePagesE704MTest extends TenancyTestCase
         $this->postJson('/widget/message?key='.$key, ['token' => $token, 'text' => 'Здравствуйте', 'idempotency_key' => 'request-1', 'page' => 'catalog'])->assertCreated();
         $this->assertDatabaseHas('widget_sessions', ['token_hash' => hash('sha256', $token), 'page' => '/catalog']);
 
-        $response = $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->get('/seller/analytics?from='.now()->format('Y-m-d').'&to='.now()->format('Y-m-d'))->assertOk();
+        $response = $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->get('/seller/analytics')->assertOk();
         $pages = collect($response->inertiaProps('analytics.sitePages'));
         $catalog = $pages->firstWhere('page', '/catalog');
         self::assertNotNull($catalog);

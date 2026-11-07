@@ -45,6 +45,7 @@ declare module 'ziggy-js' {
     "password.exchange": [],
     "password.reset": [],
     "password.store": [],
+    "password.changed": [],
     "mfa.challenge": [],
     "mfa.challenge.store": [],
     "logout.recover": [],
