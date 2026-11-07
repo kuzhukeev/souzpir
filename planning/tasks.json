@@ -20401,7 +20401,13 @@
         "tests/Feature/Seller/Settings/Limits/",
         "tests/Feature/Seller/Settings/Schedule/",
         "tests/Browser/E6-07D/",
-        "docs/results/SP-E6-07D.md"
+        "docs/results/SP-E6-07D.md",
+        "app/Seller/Settings/Schedule/ScheduleController.php",
+        "app/Seller/Runtime/FirstInboundRuntime.php",
+        "app/Seller/Runtime/TokenInboundRuntime.php",
+        "app/Seller/Runtime/WidgetInboundRuntime.php",
+        "app/Seller/Runtime/ApiFollowupRuntime.php",
+        "tests/Browser/E6-07C/"
       ],
       "exclusiveResources": [],
       "acceptance": [
@@ -20419,7 +20425,7 @@
       ],
       "promptPath": "docs/tasks/SP-E6-07D.md",
       "wave": 20,
-      "description": "# SP-E6-07D · Лимиты и режимы каналов\n\n**Зачем:** завершить экран по принятому результату.\n**Часть чего:** остаток SP-E6-07C, docs/results/SP-E6-07C.md.\n**Зависимости:** SP-E6-07C.\n\n## Приёмка\n- Реализовать запасную фразу и автоматическую передачу при исчерпании, применение переопределения режима каналом, сверить состояния загрузки и ошибки с макетом; согласовать runtime-контракт.\n- Проверить права, изоляцию брендов, ошибки и состояния; незавершённое указать в «Остаток». Без живых и платных вызовов.\n\nScope: `app/Seller/Settings/Limits/`, `app/Seller/Runtime/`, `resources/js/pages/Seller/Settings/Limits/`, `resources/js/pages/Seller/Settings/Schedule/`, `tests/Feature/Seller/`, `tests/Browser/E6-07D/`, `docs/results/SP-E6-07D.md`.\n"
+      "description": "# SP-E6-07D · Лимиты и режимы каналов\n\n**Зачем:** завершить экран по принятому результату.\n**Часть чего:** остаток SP-E6-07C, docs/results/SP-E6-07C.md.\n**Зависимости:** SP-E6-07C.\n\n## Приёмка\n- Реализовать запасную фразу и автоматическую передачу при исчерпании, применение переопределения режима каналом, сверить состояния загрузки и ошибки с макетом; согласовать runtime-контракт.\n- Проверить права, изоляцию брендов, ошибки и состояния; незавершённое указать в «Остаток». Без живых и платных вызовов.\n\nScope: `app/Seller/Settings/Limits/`, `app/Seller/Runtime/`, `resources/js/pages/Seller/Settings/Limits/`, `resources/js/pages/Seller/Settings/Schedule/`, `tests/Feature/Seller/`, `tests/Browser/E6-07D/`, `docs/results/SP-E6-07D.md`.\n\n## Остаток 07.11.2026 21:00 (после слияния частичной сдачи)\n- Влито: `BrandRuntimeSchedule::mode()/available()` с опциональным каналом (читают `settings.channel_overrides`), `fallbackPhrase()`, честные тексты экранов D-11.1/D-11.3, тесты и Playwright E6-07D. Осталось: 1) сохранение `channel_overrides` из формы «Режим работы» — `app/Seller/Settings/Schedule/ScheduleController.php` (поля переопределения режима по каналам telegram/widget/api в `resources/js/pages/Seller/Settings/Schedule/Index.tsx`, валидация, feature-тест); 2) передача канала в `mode()/available()` и доставка `fallbackPhrase()` клиенту при хендоффе по лимиту — `app/Seller/Runtime/FirstInboundRuntime.php`, `TokenInboundRuntime.php`, `WidgetInboundRuntime.php`, `ApiFollowupRuntime.php` (feature-тесты в `tests/Feature/Seller/Settings/Schedule/`).\n- Scope дополнен: `app/Seller/Settings/Schedule/ScheduleController.php`, `app/Seller/Runtime/FirstInboundRuntime.php`, `app/Seller/Runtime/TokenInboundRuntime.php`, `app/Seller/Runtime/WidgetInboundRuntime.php`, `app/Seller/Runtime/ApiFollowupRuntime.php`, `tests/Browser/E6-07C/`.\n"
     },
     {
       "taskKey": "SP-E5-01I",
