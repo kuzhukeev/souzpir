@@ -704,6 +704,12 @@ declare module 'ziggy-js' {
     "seller.catalog.stock": [],
     "seller.catalog.stock.update": [],
     "seller.integrations.crm": [],
+    "seller.integrations.crm.mappings": [
+        {
+            "name": "webhook",
+            "required": true
+        }
+    ],
     "seller.integrations.crm.test": [
         {
             "name": "webhook",
