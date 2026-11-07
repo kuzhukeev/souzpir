@@ -41,7 +41,7 @@ final class NotificationController
 
             $timezone = config('runtime.notification_driver') === 'fake' ? $brand->timezone : (DB::table('profile_preferences')->where('user_id', $user->id)->value('timezone') ?? $brand->timezone);
 
-            return ['events' => $events, 'telegram' => app(TelegramLinks::class)->state($request, $context), 'timezone' => $timezone, 'timingAvailable' => $draftReady && config('runtime.notification_driver') === 'fake', 'timingDraftEditable' => $draftReady, 'timingDraft' => $draftReady ? $timing->read($context) : null, 'timingRevision' => $request->attributes->get('profile.brand_revision'), 'testAvailable' => true, 'testChannels' => app(TestNotifications::class)->availability(), 'testNotifications' => app(TestNotifications::class)->recent($context)];
+            return ['events' => $events, 'telegram' => app(TelegramLinks::class)->state($request, $context), 'timezone' => $timezone, 'timingAvailable' => $draftReady, 'timingDraftEditable' => $draftReady, 'timingDraft' => $draftReady ? $timing->read($context) : null, 'timingRevision' => $request->attributes->get('profile.brand_revision'), 'testAvailable' => true, 'testChannels' => app(TestNotifications::class)->availability(), 'testNotifications' => app(TestNotifications::class)->recent($context)];
         });
 
         return Inertia::render('Shell/Profile/Notifications', ['notificationSettings' => $settings, 'status' => session('status')]);
@@ -69,7 +69,7 @@ final class NotificationController
             throw new \RuntimeException('Notification timing draft processing failed.');
         }
 
-        return redirect()->route('profile.notifications')->with('status', config('runtime.notification_driver') === 'fake' ? 'Настройки сохранены для тестовой доставки.' : 'Черновик сохранён. Доставка пока работает без этих настроек.');
+        return redirect()->route('profile.notifications')->with('status', config('runtime.notification_driver') === 'fake' ? 'Настройки сохранены для тестовой доставки.' : 'Настройки тихих часов и сводки сохранены.');
     }
 
     public function update(Request $request): RedirectResponse
