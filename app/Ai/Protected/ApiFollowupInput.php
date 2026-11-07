@@ -14,9 +14,11 @@ use App\Seller\Engine\LeadState;
 use App\Seller\Engine\Policy;
 use App\Seller\Engine\ResponderRequest;
 use App\Seller\Knowledge\Contracts\KnowledgeRepository;
+use App\Seller\Runtime\BrandRuntimeSchedule;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TokenApi\TokenTenantAuthority;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use LogicException;
@@ -43,6 +45,11 @@ final class ApiFollowupInput
             ->where('id', $turn->input_message_id)->where('role', 'client')->first() : null;
         if (! $lead || ! $conversation || ! $turn || ! str_starts_with($turn->idempotency_key, 'api:') || ! $message || ! in_array($conversation->mode, ['bot', 'suggest'], true)
             || ! is_string($message->text)) {
+            throw new LogicException('API follow-up unavailable.');
+        }
+        $schedule = app(BrandRuntimeSchedule::class);
+        $scheduleMode = $schedule->mode($tenant, $schedule->settings($tenant), CarbonImmutable::now());
+        if ($scheduleMode === 'off' || ($scheduleMode === 'suggest' && $conversation->mode === 'bot')) {
             throw new LogicException('API follow-up unavailable.');
         }
         $stateData = json_decode($conversation->state, true, 512, JSON_THROW_ON_ERROR);
