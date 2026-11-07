@@ -84,9 +84,10 @@ test('a new invitation works in the same tab after a revoked link', async ({ pag
   page.on('request', request => urls.push(request.url()));
   await page.route('**/*', route => new URL(route.request().url()).origin === new URL(base).origin ? route.continue() : route.abort());
   await page.goto(`/invitations/open#${revoked}`);
-  await expect(page.getByText('Не удалось открыть приглашение. Запросите новую ссылку.')).toBeVisible();
-  expect(await page.evaluate(() => location.hash)).toBe('');
-  await page.evaluate(token => { location.hash = token; }, valid);
+  // SP-E1-01I: a revoked link opens the dedicated state screen instead of an inline error.
+  await expect(page).toHaveURL(/\/invitations\/state\?state=revoked$/);
+  await expect(page.getByText('Приглашение отозвано')).toBeVisible();
+  await page.goto(`/invitations/open#${valid}`);
   await expect(page).toHaveURL(/\/invitations\/show$/);
   await expect(page.getByText('retry-invite@example.test')).toBeVisible();
   expect(urls.every(url => !url.includes(revoked) && !url.includes(valid))).toBeTruthy();
@@ -101,7 +102,8 @@ test('a new invitation works in the same tab after a revoked link', async ({ pag
 test('two rapid fragment navigations do not create intermediate history entries in supported browsers', async ({ page }) => {
   const oldToken = 'D'.repeat(64);
   const newToken = 'E'.repeat(64);
-  await page.goto(`/invitations/open#${'R'.repeat(64)}`);
+  // Start without a fragment: since SP-E1-01I a revoked link leaves this page for the state screen.
+  await page.goto('/invitations/open');
   await expect(page.getByText('Не удалось открыть приглашение. Запросите новую ссылку.')).toBeVisible();
   const entries = await page.evaluate(([oldValue, newValue]) => {
     location.hash = oldValue;

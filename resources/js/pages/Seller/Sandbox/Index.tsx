@@ -97,6 +97,7 @@ function Sandbox({ releases, clients = [], channels = [], sandboxSession = null 
                 <div className="rounded-lg bg-(--color-surface-muted) p-3"><strong>Предыдущий ответ бота</strong><p className="mt-1 whitespace-pre-wrap break-words">Предыдущий ответ: {inspector.previous_answer || 'Нет'}</p></div>
                 <dl>
                     <InspectorRow label="Намерение клиента">{inspector.intent || 'Не определена'} <span className="text-(--color-ink-muted)">({inspector.extraction_source === 'fixture' ? 'записанная фикстура' : 'без распознанных данных'})</span></InspectorRow>
+                    <InspectorRow label="Источник ответа">{['fixture', 'reviewed_fixture'].includes(inspector.response_source ?? '') ? 'записанная фикстура' : inspector.response_source === 'history' ? 'предыдущий ответ' : 'упрощённый тестовый ответ'}</InspectorRow>
                     <InspectorRow label="Поля карточки">{Object.entries(inspectedState?.slots ?? {}).length ? <dl className="space-y-1">{Object.entries(inspectedState?.slots ?? {}).map(([key, value]) => <div key={key} className="flex flex-wrap gap-x-2"><dt className="text-(--color-ink-muted)">{slotLabels[key] ?? key}:</dt><dd>{show(value)}</dd></div>)}</dl> : 'Не указаны'}</InspectorRow>
                     <InspectorRow label="Стадия">{inspectedState?.stage ? (stageLabels[inspectedState.stage] ?? inspectedState.stage) : 'Не указана'}</InspectorRow>
                     <InspectorRow label="Цель бота">{inspector.goal.instruction || inspector.goal.kind}{inspector.goal.slot ? ` · поле: ${slotLabels[inspector.goal.slot] ?? inspector.goal.slot}` : ''}</InspectorRow>
@@ -105,7 +106,7 @@ function Sandbox({ releases, clients = [], channels = [], sandboxSession = null 
                     <InspectorRow label="Действия">{inspector.executed_tools.map(tool => `${tool.name} (тест)`).join(', ') || 'Нет (тестовый режим)'}</InspectorRow>
                     <InspectorRow label="Проверка">{inspector.guard.verdict === 'ok' ? 'Пройдена' : 'Есть замечания'}{inspector.guard.issues.map((issue, index) => <p key={index}>{issue}</p>)}{inspector.guard.warnings.map((warning, index) => <p key={index}>Предупреждение: {warning}</p>)}</InspectorRow>
                 </dl>
-                <p className="mt-3 text-(--color-ink-muted)">Клиент: {inspector.client || 'Тестовый'} · канал: {inspector.channel || 'Тестовый'}</p><p className="mt-3 break-words text-(--color-ink-muted)">intent: {inspector.intent || '—'} · tools: {inspector.goal.allowed_tools.join(', ') || '—'} · Guard: {inspector.guard.verdict} · триггер: {inspector.goal.trigger || '—'}</p>
+                <p className="mt-3 text-(--color-ink-muted)">Клиент: {inspector.client || 'Тестовый'} · канал: {inspector.channel || 'Тестовый'}</p><p className="mt-3 text-(--color-ink-muted)">Источник ответа: {['fixture', 'reviewed_fixture'].includes(inspector.response_source ?? '') ? 'записанная фикстура' : inspector.response_source === 'history' ? 'предыдущий ответ' : 'упрощённый тестовый ответ'}</p><p className="mt-3 break-words text-(--color-ink-muted)">intent: {inspector.intent || '—'} · tools: {inspector.goal.allowed_tools.join(', ') || '—'} · Guard: {inspector.guard.verdict} · триггер: {inspector.goal.trigger || '—'}</p>
             </div>}
         </section></div></>}
         </main></CabinetLayout>;
