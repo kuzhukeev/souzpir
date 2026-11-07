@@ -1,4 +1,4 @@
-/* global document, HTMLScriptElement, URL, fetch, setTimeout, innerHeight, scrollY, removeEventListener, addEventListener, localStorage, location, matchMedia */
+/* global document, HTMLScriptElement, URL, URLSearchParams, fetch, setTimeout, innerHeight, scrollY, removeEventListener, addEventListener, localStorage, location, matchMedia */
 (() => {
   'use strict';
   const script = document.currentScript;
