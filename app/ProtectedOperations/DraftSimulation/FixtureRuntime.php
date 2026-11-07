@@ -7,6 +7,7 @@ use App\Ai\Drivers\FakeDriver;
 use App\Models\User;
 use App\Seller\Engine\Extractor;
 use App\Seller\Engine\LeadState;
+use App\Seller\Engine\ToolArguments;
 use App\Seller\Knowledge\Contracts\KnowledgeRepository;
 use App\Seller\Knowledge\KnowledgeSnapshot;
 use App\Seller\Settings\Limits\SellerModuleAccess;
@@ -78,6 +79,20 @@ final class FixtureRuntime
         }
 
         return $result;
+    }
+
+    /** Execute only an explicitly recorded fake tool response; never contact a real channel. */
+    public function executeTool(Request $request, KnowledgeSnapshot $draft, string $name, array $arguments): ?array
+    {
+        if ($name !== 'escalate' || ! (new ToolArguments)->check($name, $arguments)['valid']) {
+            return null;
+        }
+        $result = $this->run($request, $draft, 'tool', ['name' => $name, 'arguments' => $arguments]);
+        if (! is_array($result) || ($result['status'] ?? null) !== 'fake_completed' || ($result['name'] ?? null) !== $name) {
+            return null;
+        }
+
+        return ['name' => $name, 'status' => 'fake_completed'];
     }
 
     /** Preserve the strict legacy API for callers which require every criterion. */

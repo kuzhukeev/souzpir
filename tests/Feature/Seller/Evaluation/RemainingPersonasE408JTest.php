@@ -52,6 +52,14 @@ final class RemainingPersonasE408JTest extends TenancyTestCase
             $entry = collect($catalog)->first(fn ($item) => ($item['persona'] ?? null) === $key && ($item['expected'] ?? null) === true && in_array($item['criterion'] ?? null, $persona['expect'] ?? [], true));
             self::assertNotNull($entry, $key);
             $run = $runs->first(fn ($row) => DB::table('seller_personas')->where('id', $row->persona_id)->value('key') === $key);
+            if ($key === 'requisites') {
+                $allTurns = json_decode($run->turns, true);
+                self::assertCount(6, $allTurns);
+                $clients = implode("\n", array_column($allTurns, 'client'));
+                foreach ($persona['facts'] as $fact) {
+                    self::assertStringContainsString((string) $fact, $clients);
+                }
+            }
             $turn = collect(json_decode($run->turns, true))->first(fn ($item) => $item['client'] === $entry['client']);
             if ($turn === null) {
                 $missingInputs[] = $key;
@@ -66,11 +74,12 @@ final class RemainingPersonasE408JTest extends TenancyTestCase
                 self::assertSame('ok', $turn['meta']['guard_verdict'], $key);
             }
             if (in_array($key, ['for_self_wedding', 'prices_only_rude'], true)) {
-                self::assertNotSame($entry['answer'], $turn['agent'], $key);
+                self::assertSame($entry['answer'], $turn['agent'], $key);
+                self::assertSame('ok', $turn['meta']['guard_verdict'], $key);
             }
             self::assertDoesNotMatchRegularExpression('/переда(?:м|ю|л)|отправ(?:лю|ил)|высл(?:ал|ю)/iu', $turn['agent'], $key);
         }
-        self::assertSame(['requisites'], $missingInputs);
+        self::assertSame([], $missingInputs);
         [$viewer] = $this->member($org, 'viewer', [$brand->id]);
         $this->actingAs($viewer)->withSession(['brand_id' => $brand->id])->post($url)->assertForbidden();
         $this->actingAs($owner)->withSession(['brand_id' => $other->id])->post($url)->assertNotFound();

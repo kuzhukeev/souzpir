@@ -58,7 +58,7 @@ final class ReviewedDraftFixturesE408HTest extends TenancyTestCase
                 $missing[] = $key;
             }
         }
-        self::assertSame(['for_self_wedding', 'tc_floor'], $missing);
+        self::assertSame(['tc_floor'], $missing);
         app(TenantContextRunner::class)->run($tenant, function () use ($tenant, $draftId): void {
             $repo = app(KnowledgeRepository::class);
             $snapshot = $repo->forRelease($tenant, $draftId, true);
