@@ -26,7 +26,9 @@ final class RecommendationLink
         }
         $strings = fn ($values) => array_values(array_filter(is_array($values) ? $values : [], fn ($value) => is_string($value) && trim($value) !== ''));
         $questions = $item['question_ids'] ?? (isset($item['question_id']) ? [$item['question_id']] : (isset($item['qid']) ? [$item['qid']] : []));
-        $metadata = ['priority' => is_string($item['priority'] ?? null) ? $item['priority'] : null, 'steps' => $strings($item['steps'] ?? []), 'question_ids' => $strings($questions)];
+        $questionIds = $strings($questions);
+        $defaults = app(RecommendationDefaults::class);
+        $metadata = ['priority' => $defaults->priority($item, count($questionIds)), 'steps' => $defaults->steps($item, count($questionIds)), 'question_ids' => $questionIds];
         DB::table('vision_action_recommendation_links')->updateOrInsert(['action_id' => $actionId], [...$scope, 'report_id' => $reportId, 'recommendation_index' => $index, 'metadata' => json_encode($metadata, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), 'created_at' => now(), 'updated_at' => now()]);
     }
 }
