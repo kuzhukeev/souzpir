@@ -75,13 +75,14 @@ function trendPercent(current: number | null, previous: number | null): number |
   if (current == null || previous == null || previous === 0) return null;
   return Math.round(((current - previous) / previous) * 100);
 }
-function TrendBadge({ value }: { value: number | null }) {
+function TrendBadge({ value, lowerIsBetter = false }: { value: number | null; lowerIsBetter?: boolean }) {
   if (value == null) return null;
   const sign = value > 0 ? '+' : value < 0 ? '−' : '';
+  const good = lowerIsBetter ? -value : value;
   const color =
-    value > 0
+    good > 0
       ? 'text-(--color-success-ink)'
-      : value < 0
+      : good < 0
         ? 'text-(--color-danger-ink)'
         : 'text-(--color-ink-muted)';
   return (
@@ -522,7 +523,7 @@ export default function Index({ analytics: a }: { analytics: Analytics }) {
             <div className={card}>
               <h2 className="text-sm font-semibold">Среднее время до контакта</h2>
               <p className="mt-2 text-2xl font-bold">{formatMinutesToContact(a.avgMinutesToContact)}</p>
-              <TrendBadge value={avgMinutesToContactTrend} />
+              <TrendBadge value={avgMinutesToContactTrend} lowerIsBetter />
             </div>
           </section>
           <p className="mt-2 text-sm text-(--color-ink-muted)">
