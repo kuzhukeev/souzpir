@@ -35,28 +35,16 @@ large_order, prompt_injection, deferred_twice, off_topic_three — везде `o
 это влияет: `app/Ai/Protected/SellerResponderStages.php`, `app/ProtectedOperations/FirstTurnState.php`,
 `app/Seller/Engine/Policy.php` — ни один не входит в scope SP-E3-07G.
 
-## Обновление 08.11.2026 (расширенный scope): persona.*, force_close_14, followup
+## Персона-сценарии (29 из 41) — отдельная причина
 
-- **29 `persona.*` через `ApiOpeningRuntime`** (`tests/Equivalence/RuntimeReplayE307GTest.php::test_persona_cases_open_through_the_api_opening_runtime`):
-  открытие идёт отдельным путём (`ApiOpeningRuntime::open()` → `Gateway::completeApiOpening()` → `ApiOpeningInput::buildLocked()`),
-  который строит карточку и мутирует стадию в ОДНОМ и том же объекте `LeadState` — поэтому responder-стадийный баг выше
-  (SellerResponderStages/FirstTurnState) здесь не проявляется. Реальный пайплайн вызывает драйвер для всех 29 кейсов, и
-  отрендеренный системный промпт (карточка клиента, текст цели, модель, температура) побайтово совпадает с записью донора
-  — проверено сравнением через `CanonicalJson::hash()` на `messages`+остальные опции, **кроме** `tools`/`tool_choice`.
-  Блокирует не responder-стадия, а отдельный баг: `app/Ai/Protected/ApiOpeningInput.php` вызывает
-  `ResponderRequest::build($system, [], [], ...)` с пустым списком разрешённых инструментов вместо `$goal->allowedTools`
-  (сравните `app/Ai/Protected/SellerResponderStages.php:229`, где для обычного хода передаётся `$goal->allowedTools`
-  корректно). Файл вне scope SP-E3-07G — см. «Нужно от интегратора» в docs/results/SP-E3-07G.md.
-- **`manual.force_close_14`**: добавлен в `DIALOGUE_CASES` — он спотыкается на той же самой турн-0 responder-блокировке,
-  что и остальные 8 диалоговых кейсов, ДО того, как сценарий успевает дойти до периодического `summary`-вызова
-  (курсор записи останавливается на вызове №2 из 31). Отдельная обработка `summary`-ветки не нужна для текущего scope.
-- **`followup_40h` (`FollowupPolicy`)**: точная причина расхождения найдена. `FollowupPolicy::due()` считает второй порог
-  от `$lastAgent` (текущее `last_bot_message_at`), а `FollowupSender.php:63` при отправке напоминания перезаписывает
-  `last_bot_message_at = now()`. Значит после первого напоминания эталонная точка «начало тишины» теряется: второй порог
-  отмеряется от момента ПЕРВОГО напоминания (ещё +40ч), а не от начала тишины клиента (донор). Корректное исправление
-  требует не трогать `last_bot_message_at` при отправке автонапоминаний (или завести отдельное поле «начало тишины») —
-  это `app/Seller/Followups/FollowupSender.php`, который сейчас вне scope карточки (сузили в «Сужение scope» выше, туда
-  не входит). Правка одного `FollowupPolicy.php` без `FollowupSender.php` either не меняет это поведение, либо (если
-  считать от `$lastClient` вместо `$lastAgent`) ломает сценарий с реальной задержкой ответа менеджера —
-  `tests/Unit/Seller/Followups/FollowupPolicyTest.php` специально проверяет именно этот случай (`last_client_message_at`
-  и `$lastAgent` расходятся на час). См. «Нужно от интегратора» в docs/results/SP-E3-07G.md.
+`persona.*` начинаются ходом БЕЗ входящего сообщения клиента (бот сам открывает диалог) — это `ApiOpeningRuntime`
+(`app/Seller/Runtime/`), исключённый из scope задачи. `FirstInboundRuntime`/`FirstTurnCoordinator` требуют реального
+клиентского сообщения на ходу 0 (`FirstTurnProtectedClaim::create()` требует `state === []`, `stage === 'open'` —
+воспроизвести миддл-диалоговое открытие без прохода через настоящий ход 0 нельзя). Поэтому персона-кейсы не входят в
+`DIALOGUE_CASES` этого теста.
+
+## `manual.force_close_14` — не включён
+
+14 ходов, 31 LLM-вызов; среди них периодические `component: summary` (каждые ~12-13 ходов), которых наш движок в этом цикле
+ходов не вызывает (`SellerSummaryStages` существует, но не на этом пути) — курсор записи разъехался бы на первом же
+summary-вызове. Нужна отдельная проверка, когда summary вызывается в реальном коде.

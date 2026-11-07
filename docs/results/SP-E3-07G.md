@@ -23,12 +23,12 @@
   вне scope.
 - **CI**: наш файл `tests/Equivalence/RuntimeReplayE307GTest.php` никогда не входил ни в один phpunit-suite и не
   запускался job `equivalence` (прошлая заметка «закрыто интегратором» относилась к другому файлу,
-  `RuntimeReplayE307ETest.php`, зарегистрированному в `.github/workflows/ci.yml` отдельным шагом). Зарегистрировал
-  файл в `phpunit.xml` → testsuite `Equivalence` (workflow не трогал — он вне scope и уже покрывает
-  `--testsuite=Equivalence`).
-- Проверки: `vendor/bin/phpunit --testsuite=Equivalence --no-coverage` — 9/9 зелёных, 4638 проверок;
-  `tests/Unit/Seller/Followups/FollowupPolicyTest.php` — не задет (3/3 зелёные); Pint чистый. Golden fixtures не
-  менялись.
+  `RuntimeReplayE307ETest.php`, зарегистрированному в `.github/workflows/ci.yml` отдельным шагом). `phpunit.xml` вне
+  scope карточки — регистрация в «Нужно от интегратора».
+- Проверки: `vendor/bin/phpunit --testsuite=Equivalence --no-coverage` — 5/5 (без нашего файла, не зарегистрирован,
+  см. выше), `vendor/bin/phpunit tests/Equivalence/RuntimeReplayE307GTest.php --no-coverage` — 4/4, 132 проверки
+  (все зелёные); `tests/Unit/Seller/Followups/FollowupPolicyTest.php` — не задет (3/3 зелёные); Pint чистый. Golden
+  fixtures не менялись.
 
 ## Остаток
 - Responder-карточка LeadState в обычном ходе (9 диалоговых + 1 no_repeat_filled_slot) показывает стадию до
@@ -48,6 +48,10 @@
 - Scope на `app/Seller/Followups/FollowupSender.php:63` — не перезаписывать `last_bot_message_at` при отправке
   автонапоминания (или завести отдельное поле «начало тишины»), чтобы `FollowupPolicy::due()` мог измерять второй
   порог от начала молчания, а не от последнего напоминания.
+- `phpunit.xml` вне scope карточки: `tests/Equivalence/RuntimeReplayE307GTest.php` не входит ни в один testsuite и
+  не запускается CI job `equivalence`. Готовая правка: добавить `<file>tests/Equivalence/RuntimeReplayE307GTest.php</file>`
+  в `<testsuite name="Equivalence">` рядом с `tests/Feature/Equivalence` (workflow трогать не нужно — job уже
+  выполняет `--testsuite=Equivalence`).
 
 ## Техдолг
 - `FollowupPolicy::due()`/`FollowupSender.php`: см. «Нужно от интегратора» — второе автонапоминание уходит позже

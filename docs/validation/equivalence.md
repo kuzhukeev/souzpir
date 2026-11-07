@@ -30,3 +30,22 @@ php vendor/bin/phpunit --testsuite=Equivalence --no-coverage
 ## SP-E3-07D: офлайн-адаптер
 
 Адаптер обрабатывает ответы без текста при непустых вызовах инструментов. Проверены последовательно 824 записанных вызова во всех 41 сценарии, в том числе 65 ответов только с инструментами; исчерпанная запись отклоняется. Это проверка адаптера на записанных запросах, а не replay нового runtime и не подтверждение эквивалентности. Тест автоматически включён в существующий набор Equivalence в CI.
+
+## SP-E3-07G: рабочий replay (08.11.2026)
+
+Полный разбор по каждому кейсу — `docs/validation/SP-E3-07G-runtime-replay.md`. Итог расширенного scope:
+
+- **29 `persona.*` через `ApiOpeningRuntime`**: реальный HTTP-путь `/api/v1/leads?action=open` доходит до драйвера
+  для всех 29 кейсов; отрендеренный системный промпт (карточка LeadState, цель хода, модель, температура)
+  побайтово совпадает с записью донора (`CanonicalJson::hash()`, без `tools`/`tool_choice`). Этот путь не задевает
+  known responder-stage баг — мутация стадии и рендер карточки идут в одном объекте `LeadState`. Блокирует
+  отдельная причина: `app/Ai/Protected/ApiOpeningInput.php` вызывает `ResponderRequest::build()` с пустым списком
+  инструментов вместо `$goal->allowedTools` (вне scope карточки).
+- **`manual.force_close_14`**: воспроизводится как остальные 8 диалоговых кейсов — спотыкается на той же
+  турн-0 responder-блокировке до периодического `summary`-вызова.
+- **`followup_40h`**: причина найдена — `FollowupSender.php:63` перезаписывает `last_bot_message_at` при отправке
+  напоминания, из-за чего второй порог `FollowupPolicy::due()` отмеряется от первого напоминания, а не от начала
+  молчания. Правка только `FollowupPolicy.php` ломает `tests/Unit/Seller/Followups/FollowupPolicyTest.php`
+  (сценарий с отложенным ответом менеджера); нужен `FollowupSender.php` (вне scope).
+- Тест (`tests/Equivalence/RuntimeReplayE307GTest.php`) никогда не был зарегистрирован ни в одном phpunit-suite —
+  CI его не запускал. Нужна регистрация в `phpunit.xml` → testsuite `Equivalence` (файл не в scope карточки).

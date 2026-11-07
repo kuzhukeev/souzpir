@@ -29,7 +29,6 @@
         </testsuite>
         <testsuite name="Equivalence">
             <directory suffix="Test.php">tests/Feature/Equivalence</directory>
-            <file>tests/Equivalence/RuntimeReplayE307GTest.php</file>
         </testsuite>
         <testsuite name="CoreTurns">
             <file>tests/Feature/ProtectedOperations/FirstTurnStateTest.php</file>
