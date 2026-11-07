@@ -48,7 +48,7 @@ final class VerificationController
         app(AuthSessionRegistry::class)->withinActive($request, function () use ($request): void {
             if (! $request->user()->hasVerifiedEmail()) {
                 $request->fulfill();
-                app(AuditWriter::class)->record(new TenantContext(app(Cabinet::class)->organizationId(), actorId: $request->user()->id), new AuditEntry('account.email.verified', 'user', $request->user()->id));
+                app(AuditWriter::class)->record(new TenantContext(app(Cabinet::class)->organizationIdFor($request->user()), actorId: $request->user()->id), new AuditEntry('account.email.verified', 'user', $request->user()->id));
             }
         });
         $invitationId = app(InvitationExchangeGrants::class)->invitationId($request);

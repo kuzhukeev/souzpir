@@ -8,10 +8,10 @@ use App\Models\User;
 use App\Shell\Auth\InvitationExchangeGrants;
 use App\Shell\Team\Models\Invitation;
 use App\Tenancy\BrandGrants;
-use App\Tenancy\Cabinet;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -64,18 +64,18 @@ final class InvitationAcceptance implements AcceptsInvitations
         abort_unless($user->exists && $user->hasVerifiedEmail(), 403);
 
         return DB::transaction(function () use ($user, $column, $identifier, $request): Membership {
-            $organizationId = app(Cabinet::class)->organizationId();
-            // All session-sensitive flows lock user before organization, invitation and membership.
+            // All session-sensitive flows lock the user before the invitation and its organization.
             $actor = User::query()->whereKey($user->id)->lockForUpdate()->first();
             abort_unless($actor && $actor->hasVerifiedEmail(), 403);
             if ($request) {
                 $identifier = $this->sessionInvitationId($request, true);
             }
+            $invitation = $this->find($actor, $column, $identifier, true);
+            $organizationId = $invitation->organization_id;
             $organization = Organization::query()->whereKey($organizationId)->where('status', 'active')->lockForUpdate()->first();
             abort_unless($organization, 404);
-            $invitation = $this->find($actor, $column, $identifier, true);
 
-            return app(TenantContextRunner::class)->run(new TenantContext($organizationId, actorId: $actor->id), function () use ($actor, $invitation): Membership {
+            return app(TenantContextRunner::class)->run(new TenantContext($organizationId, actorId: $actor->id), function () use ($actor, $invitation, $organization): Membership {
                 $membership = Membership::query()->where('user_id', $actor->id)->lockForUpdate()->first();
                 if ($membership === null) {
                     $membership = Membership::create([
@@ -83,9 +83,15 @@ final class InvitationAcceptance implements AcceptsInvitations
                         'role' => $invitation->role,
                         'status' => 'active',
                         'brand_ids' => $invitation->brand_ids,
-                        'settings' => $invitation->settings,
+                        'settings' => Arr::except($invitation->settings ?? [], ['designated_owner']),
                         'invited_by' => $invitation->invited_by,
                     ]);
+                    // org:create issues the owner's invitation as role "admin" plus this flag,
+                    // since the organization has no owner yet to promote the membership atomically.
+                    if (($invitation->settings['designated_owner'] ?? false) === true && $organization->owner_user_id === null) {
+                        $membership->forceFill(['role' => 'owner'])->save();
+                        $organization->forceFill(['owner_user_id' => $actor->id])->save();
+                    }
                 }
                 // Existing active/disabled membership is not upgraded, downgraded or reactivated.
                 $invitation->accepted_at = now();
@@ -101,10 +107,7 @@ final class InvitationAcceptance implements AcceptsInvitations
     {
         abort_unless($user->exists && (($column === 'token_hash' && preg_match('/^[a-f0-9]{64}$/D', $identifier))
             || ($column === 'id' && preg_match('/^[0-9A-HJKMNP-TV-Z]{26}$/iD', $identifier))), 404);
-        $organizationId = app(Cabinet::class)->organizationId();
-        abort_unless(Organization::query()->whereKey($organizationId)->where('status', 'active')->exists(), 404);
         $query = Invitation::withoutGlobalScopes()
-            ->where('organization_id', $organizationId)
             ->where($column, $identifier)
             ->where('email', mb_strtolower(trim($user->email)))
             ->whereNull('accepted_at')->whereNull('revoked_at')->where('expires_at', '>', now());
@@ -113,8 +116,9 @@ final class InvitationAcceptance implements AcceptsInvitations
         }
         $invitation = ($lock ? $query->lockForUpdate() : $query)->first();
         abort_unless($invitation, 404);
+        abort_unless(Organization::query()->whereKey($invitation->organization_id)->where('status', 'active')->exists(), 404);
         try {
-            BrandGrants::validate($organizationId, $invitation->brand_ids);
+            BrandGrants::validate($invitation->organization_id, $invitation->brand_ids);
         } catch (ValidationException) {
             abort(404);
         }

@@ -174,7 +174,7 @@ HTML;
                     return false;
                 }
                 $user->forceFill(['password' => $data['password'], 'remember_token' => Str::random(60), 'auth_version' => $user->auth_version + 1])->save();
-                app(AuditWriter::class)->record(new TenantContext(app(Cabinet::class)->organizationId(), actorId: $user->id), new AuditEntry('account.password.reset', 'user', $user->id));
+                app(AuditWriter::class)->record(new TenantContext(app(Cabinet::class)->organizationIdFor($user), actorId: $user->id), new AuditEntry('account.password.reset', 'user', $user->id));
                 DB::table('password_reset_tokens')->where('email', $data['email'])->delete();
                 DB::table('sessions')->where('user_id', $user->id)->delete();
                 event(new PasswordReset($user));

@@ -20,7 +20,7 @@ final class PasswordEligibility
         if (! $user) {
             return false;
         }
-        $orgId = app(Cabinet::class)->organizationId();
+        $orgId = app(Cabinet::class)->organizationIdFor($user);
         $org = Organization::whereKey($orgId)->lockForUpdate()->first();
         if (! $org || $org->status !== 'active') {
             return false;

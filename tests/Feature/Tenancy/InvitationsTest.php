@@ -50,10 +50,9 @@ final class InvitationsTest extends TenancyTestCase
         $this->assertSame(1, Membership::withoutGlobalScopes()->where('user_id', $user->id)->count());
     }
 
-    public function test_unknown_wrong_email_expired_at_boundary_revoked_and_foreign_tokens_are_identically_denied(): void
+    public function test_unknown_wrong_email_and_expired_at_boundary_revoked_tokens_are_identically_denied(): void
     {
         [$owner,$org,$a] = $this->cabinet();
-        [$foreignOwner,$other,$foreign] = $this->cabinet(false);
         $user = $this->user();
         $service = app(AcceptsInvitations::class);
         [$invitation,$token] = $this->invitation($org, $owner, $user, [$a->id]);
@@ -65,9 +64,20 @@ final class InvitationsTest extends TenancyTestCase
         $this->denied(fn () => $service->accept($user, $token));
         DB::table('invitations')->where('id', $invitation->id)->update(['expires_at' => now()->addDay(), 'revoked_at' => now()]);
         $this->denied(fn () => $service->accept($user, $token));
-        [, $foreignToken] = $this->invitation($other, $foreignOwner, $user, [$foreign->id]);
-        $this->denied(fn () => $service->accept($user, $foreignToken));
         $this->assertSame(0, Membership::withoutGlobalScopes()->where('user_id', $user->id)->count());
+    }
+
+    /** SP-L1-07: a second organization's valid invitation is now accepted, joining that organization instead. */
+    public function test_accepting_a_foreign_organization_invitation_joins_that_organization(): void
+    {
+        [, $org, $a] = $this->cabinet();
+        [$foreignOwner, $other, $foreign] = $this->cabinet(false);
+        $user = $this->user();
+        [, $foreignToken] = $this->invitation($other, $foreignOwner, $user, [$foreign->id]);
+        $membership = app(AcceptsInvitations::class)->accept($user, $foreignToken);
+        $this->assertSame($other->id, $membership->organization_id);
+        $this->assertSame([$foreign->id], $membership->brand_ids);
+        $this->assertSame(0, Membership::withoutGlobalScopes()->where('organization_id', $org->id)->where('user_id', $user->id)->count());
     }
 
     public function test_unverified_or_changed_email_is_denied_and_existing_owner_is_never_downgraded(): void

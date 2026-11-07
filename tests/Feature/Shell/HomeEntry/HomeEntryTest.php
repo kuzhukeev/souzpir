@@ -72,7 +72,9 @@ final class HomeEntryTest extends TenancyTestCase
         foreach ($editorPage->inertiaProps('homeLinks') as $link) {
             $this->get($link['href'])->assertOk();
         }
-        $this->actingAs($foreign)->withSession(['brand_id' => $foreignBrand->id])->get('/dashboard')->assertForbidden();
+        // SP-L1-07: a foreign organization's own owner now resolves into their own
+        // cabinet (not the installation default) and legitimately reaches their own dashboard.
+        $this->actingAs($foreign)->withSession(['brand_id' => $foreignBrand->id])->get('/dashboard')->assertOk();
         Http::assertNothingSent();
     }
 

@@ -114,13 +114,15 @@ final class RoleMatrixTest extends TenancyTestCase
         });
     }
 
-    public function test_disabled_membership_and_other_organization_cannot_read_matrix(): void
+    public function test_disabled_membership_cannot_read_matrix_and_another_organizations_admin_only_reads_their_own(): void
     {
         [, $org, $brand] = $this->cabinet();
         [$admin, $membership] = $this->member($org, 'admin', [$brand->id]);
         [, , $foreignBrand] = $this->cabinet(false);
         [$foreignUser] = $this->member($foreignBrand->organization, 'admin', [$foreignBrand->id]);
-        $this->actingAs($foreignUser)->withSession(['brand_id' => $foreignBrand->id])->getJson('/team/roles/matrix')->assertForbidden();
+        // SP-L1-07: a foreign organization's own admin resolves into their own
+        // cabinet (not the installation default) and legitimately reads it.
+        $this->actingAs($foreignUser)->withSession(['brand_id' => $foreignBrand->id])->getJson('/team/roles/matrix')->assertOk();
         $this->actingAs($admin)->withSession(['brand_id' => $brand->id])->getJson('/team/roles/matrix')->assertOk();
         DB::table('memberships')->where('id', $membership->id)->update(['status' => 'disabled']);
         $this->getJson('/team/roles/matrix')->assertForbidden();
