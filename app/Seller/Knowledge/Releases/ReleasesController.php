@@ -265,16 +265,7 @@ final class ReleasesController
     public function rollback(Request $request, string $release): mixed
     {
         $this->access($request, 'seller.knowledge.write', function (User $user, TenantContext $tenant) use ($release): void {
-            $repository = app(KnowledgeRepository::class);
-            $snapshot = $repository->forRelease($tenant, $release);
-            DB::transaction(function () use ($tenant, $repository, $snapshot, $release): void {
-                $draft = $this->query('knowledge_releases', $tenant)->where('status', 'draft')->lockForUpdate()->first(['id', 'version']);
-                if ($draft) {
-                    $this->query('knowledge_releases', $tenant)->where('id', $draft->id)->update(['status' => 'building', 'updated_at' => now()]);
-                    app(AuditWriter::class)->record($tenant, new AuditEntry('knowledge.draft.autosaved', 'knowledge_release', $draft->id, after: ['version' => $draft->version, 'rollback_to' => $release]));
-                }
-                $repository->createDraft($tenant, $snapshot->toArray());
-            });
+            app(KnowledgeRepository::class)->rollbackToDraft($tenant, $release);
         });
 
         return back()->with('status', 'Создан черновик из выбранной версии. Прежний черновик сохранён для восстановления.');
