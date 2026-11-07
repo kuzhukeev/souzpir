@@ -8,7 +8,7 @@ use Tests\TestCase;
 
 final class DraftScenarioPreviewE401ITest extends TestCase
 {
-    public function test_preview_uses_draft_examples_and_keeps_unsupported_checks_failed(): void
+    public function test_preview_uses_draft_examples_and_keeps_unsupported_checks_unknown(): void
     {
         $data = array_fill_keys(KnowledgeSnapshot::FILES, []);
         $data['policy'] = ['slot_order' => ['unknown' => ['city']]];
@@ -18,7 +18,7 @@ final class DraftScenarioPreviewE401ITest extends TestCase
         self::assertSame('draft-id', $turn['meta']['draft_release_id']);
         self::assertTrue($turn['meta']['preview_only']);
         self::assertTrue($turn['meta']['expectation_checks']['one_question_per_turn']);
-        self::assertFalse($turn['meta']['expectation_checks']['full_card']);
+        self::assertNull($turn['meta']['expectation_checks']['full_card']);
         self::assertNotNull($turn['meta']['goal']);
         self::assertSame('Добрый день! Чем помочь?', $turn['agent']);
         self::assertIsString($turn['meta']['guard_verdict']);
