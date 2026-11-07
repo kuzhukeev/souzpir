@@ -313,11 +313,14 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "integrations.telegram.webhook": [],
     "integrations.index": [],
     "integrations.api": [],
     "integrations.api.docs": [],
     "integrations.secrets.consume": [],
     "integrations.notifications": [],
+    "integrations.telegram.start": [],
+    "integrations.telegram.confirm": [],
     "integrations.keys.store": [],
     "integrations.keys.destroy": [
         {

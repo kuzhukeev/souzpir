@@ -147,15 +147,19 @@ final class IntegrationsController
             ->exists();
     }
 
-    public function notifications(CompanyNotificationSettings $settings): Response
+    public function notifications(Request $request, CompanyNotificationSettings $settings): Response
     {
         Gate::authorize('integrations.write');
         $context = app(TenantContext::class);
         abort_unless($context->organizationId && $context->brandId, 404);
         $brand = Brand::query()->findOrFail($context->brandId);
+        $session = $request->session()->get('company_telegram_code');
+        $link = DB::table('company_telegram_links')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)->where('user_id', $request->user()->id)->where('expires_at', '>', now())->first();
+        $code = is_array($session) && ($session['brand'] ?? null) === $context->brandId && is_string($session['code'] ?? null) && $link && hash_equals($link->code_hash, hash('sha256', $session['code'])) ? $session['code'] : null;
 
         return Inertia::render('Shell/Integrations/Notifications', [
             ...$settings->forBrand($brand),
+            'telegram_link' => ['code' => $code, 'pending' => (bool) ($code && $link?->pending_chat), 'bot' => $code ? config('features.E1-08.defaults.telegram_bot_username') : null],
             'permissions' => ['manage' => true],
         ]);
     }

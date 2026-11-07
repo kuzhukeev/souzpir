@@ -17,6 +17,7 @@ type Delivery = {
   event: string;
   status: string;
   status_code: number | null;
+  attempts: number;
   created_at: string;
 };
 type Hook = { id: string; events: string[]; secret: string; deliveries: Delivery[] };
@@ -391,6 +392,7 @@ export default function Api({
                       <span>
                         {deliveryLabels[delivery.status] ?? 'Недоступен'}
                         {delivery.status_code ? ` (${delivery.status_code})` : ''}
+                        {` · Попыток: ${delivery.attempts}`}
                       </span>
                     </li>
                   ))}
