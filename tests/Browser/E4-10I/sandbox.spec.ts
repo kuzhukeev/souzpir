@@ -19,7 +19,7 @@ test('сохранение контрольного сценария перед�
     await route.fulfill({ status: 200, headers: { 'X-Inertia': 'true' }, json: { component: 'Fixture', props: pageProps, url: new URL(url).pathname, version: null } });
   });
   await expect(page.getByRole('listitem').filter({ hasText: 'Батареи салютов и фонтаны' })).toBeVisible();
-  await page.getByRole('button', { name: 'Сохранить как контрольный сценарий' }).click();
+  await page.getByRole('button', { name: 'Сохранить как сценарий' }).click();
   await expect(page.getByRole('status').filter({ hasText: 'воспроизводятся все сохранённые реплики' })).toBeVisible();
   expect(body).not.toBeNull();
   const behavior = (body as unknown as { behavior: string }).behavior;

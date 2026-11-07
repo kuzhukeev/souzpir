@@ -37,7 +37,7 @@ test('песочница показывает историю и контекст
     await page.screenshot({ path: '.local/screenshots/SP-E4-10Q/sandbox.png', fullPage: true });
     await page.route('**/seller/quality/scenarios', route => route.abort('failed'));
     const scenarioRequest = page.waitForRequest(request => request.method() === 'POST' && request.url().endsWith('/seller/quality/scenarios'));
-    await page.getByRole('button', { name: 'Сохранить как контрольный сценарий' }).click();
+    await page.getByRole('button', { name: 'Сохранить как сценарий' }).click();
     const scenario = (await scenarioRequest).postDataJSON();
     expect(scenario.first_message).toBe('Первый вопрос');
     expect(scenario.behavior).toContain('Второй вопрос');
