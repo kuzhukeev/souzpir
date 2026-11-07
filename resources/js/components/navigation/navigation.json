@@ -162,6 +162,13 @@
           "path": "/seller/channels"
         },
         {
+          "id": "seller_email",
+          "label": "Почта",
+          "icon": "Mail",
+          "path": "/seller/channels/email",
+          "permission": "seller.settings.write"
+        },
+        {
           "id": "seller_integrations",
           "label": "Интеграции",
           "icon": "Link2",

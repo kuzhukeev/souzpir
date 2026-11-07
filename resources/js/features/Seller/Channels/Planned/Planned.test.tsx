@@ -29,12 +29,20 @@ const planned: PlannedData = {
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 describe('planned channels and integrations', () => {
-  it('keeps the channels link in the email settings breadcrumbs', () => {
+  it('keeps the channels link and opens the safe email test from the header', async () => {
+    const user = userEvent.setup();
     render(<EmailIndex settings={null} status={null} />);
     expect(screen.getByRole('navigation', { name: 'Хлебные крошки' }).querySelector('a[href="/seller/channels"]')?.textContent).toBe('Каналы');
     expect(screen.getByRole('radio', { name: /Через EYON/ })).toBeTruthy();
     expect(screen.getByRole('radio', { name: /SMTP/ })).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Отправить тест' }).getAttribute('href')).toBe('#email-test');
+    expect(screen.queryByLabelText('Адрес получателя')).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Прайс-файл' })).toBeNull();
+    expect(screen.getByRole('link', { name: /каталог прайс-файлов/ }).getAttribute('href')).toBe('/seller/integrations/catalog');
+    await user.click(screen.getByRole('button', { name: 'Отправить тест' }));
+    expect(screen.getByRole('dialog', { name: 'Тестовое письмо' })).toBeTruthy();
+    expect(screen.getByLabelText('Адрес получателя')).toBeTruthy();
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
   it('marks each future channel as unavailable and does not offer an unavailable interest action', () => {
     const view = render(<Index section="vk" planned={planned} />);
