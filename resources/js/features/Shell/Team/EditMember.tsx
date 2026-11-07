@@ -1,6 +1,7 @@
 import { router } from '@inertiajs/react';
 import { useState } from 'react';
 import type { TeamMemberDetail } from '@/types/Shell/Team/members';
+import { roleDescriptions, type RoleKey } from './roleMatrix';
 
 export function EditMember({
   member,
@@ -48,6 +49,7 @@ export function EditMember({
           <option value="viewer">Наблюдатель</option>
         </select>
       </label>
+      <p className="text-sm text-(--color-ink-muted)">{roleDescriptions[role as RoleKey]}</p>
       <fieldset>
         <legend className="text-sm font-semibold">Доступ к брендам</legend>
         {access.allBrands && role === 'admin' && (

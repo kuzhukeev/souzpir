@@ -5,6 +5,7 @@ import CabinetLayout from '@/layouts/CabinetLayout';
 import {
   abilityLabels,
   parseMatrix,
+  roleDescriptions,
   sectionAccess,
   sections,
   type Access,
@@ -60,6 +61,7 @@ function ReadyMatrix({ matrix }: { matrix: Matrix }) {
   const hasUnknown = abilities.length !== matrix.abilities.length;
   return (
     <>
+      <section className={`${panel} mb-4`} aria-labelledby="roles-description-title"><h2 id="roles-description-title" className="text-xl font-bold">Описание ролей</h2><ul className="mt-4 grid gap-4 sm:grid-cols-2">{matrix.roles.map((role) => <li key={role.key}><RoleName role={role.key} label={role.label} /><p className="mt-2 text-sm text-(--color-ink-muted)">{roleDescriptions[role.key]}</p></li>)}</ul></section>
       <section className={panel} aria-labelledby="matrix-title">
         <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2">
           <h2 id="matrix-title" className="text-xl font-bold">
