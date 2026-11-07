@@ -26,6 +26,29 @@ final class FixtureRuntime
     public function extract(Request $request, KnowledgeSnapshot $draft, string $client, ?array $seed = null): ?array
     {
         $data = $this->run($request, $draft, 'extract', ['client' => $client, 'intents' => $draft->intentIds()], $seed);
+
+        return $this->validateExtraction($data, $draft, $client);
+    }
+
+    /** The caller must already have selected a tenant-scoped published snapshot. */
+    public function extractPublished(KnowledgeSnapshot $snapshot, string $client): ?array
+    {
+        if (config('runtime.ai_driver') !== 'fake') {
+            return null;
+        }
+        try {
+            $result = app(FakeDriver::class)->complete($this->body($snapshot, 'extract', ['client' => $client, 'intents' => $snapshot->intentIds()]));
+            $data = json_decode($result['content'] ?? '', true, 32, JSON_THROW_ON_ERROR);
+        } catch (Throwable) {
+            $fixtures = json_decode(file_get_contents(__DIR__.'/fixtures/seeded-extractions.json'), true);
+            $data = (is_array($fixtures) ? ($fixtures[$client] ?? null) : null) ?? (app(ReviewedSandboxFixtures::class)->forClient($client)['extract'] ?? null);
+        }
+
+        return $this->validateExtraction($data, $snapshot, $client);
+    }
+
+    private function validateExtraction(mixed $data, KnowledgeSnapshot $draft, string $client): ?array
+    {
         if (! is_array($data) || ! is_string($data['client_intent'] ?? null) || ! in_array($data['client_intent'], [...$draft->intentIds(), 'unclear'], true)) {
             return null;
         }
@@ -82,12 +105,16 @@ final class FixtureRuntime
     }
 
     /** Execute only an explicitly recorded fake tool response; never contact a real channel. */
-    public function executeTool(Request $request, KnowledgeSnapshot $draft, string $name, array $arguments): ?array
+    public function executeTool(Request $request, KnowledgeSnapshot $draft, string $name, array $arguments, ?string $client = null): ?array
     {
-        if ($name !== 'escalate' || ! (new ToolArguments)->check($name, $arguments)['valid']) {
+        if (config('runtime.ai_driver') !== 'fake' || ! in_array($name, ['escalate', 'send_requisites'], true) || ! (new ToolArguments)->check($name, $arguments)['valid']) {
             return null;
         }
         $result = $this->run($request, $draft, 'tool', ['name' => $name, 'arguments' => $arguments]);
+        $reviewed = $client === null ? null : app(ReviewedSandboxFixtures::class)->forClient($client);
+        if ($result === null && ($reviewed['tool']['name'] ?? null) === $name && ($reviewed['tool']['arguments'] ?? null) === $arguments) {
+            $result = $reviewed['tool'];
+        }
         if (! is_array($result) || ($result['status'] ?? null) !== 'fake_completed' || ($result['name'] ?? null) !== $name) {
             return null;
         }
@@ -193,7 +220,7 @@ final class FixtureRuntime
                 }
                 $fixtures = json_decode(file_get_contents(__DIR__.'/fixtures/seeded-extractions.json'), true);
 
-                return is_array($fixtures) ? ($fixtures[$input['client']] ?? null) : null;
+                return (is_array($fixtures) ? ($fixtures[$input['client']] ?? null) : null) ?? (app(ReviewedSandboxFixtures::class)->forClient($input['client'])['extract'] ?? null);
             }
         });
     }

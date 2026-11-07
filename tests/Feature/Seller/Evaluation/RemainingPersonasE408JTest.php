@@ -29,7 +29,7 @@ final class RemainingPersonasE408JTest extends TenancyTestCase
             $repo = app(KnowledgeRepository::class);
             $source = new PrototypeKnowledge(base_path('tests/Feature/Seller/Knowledge/Fixtures/data'), 0);
             $data = $repo->forRelease($tenant, $draftId, true)->toArray();
-            foreach (['policy', 'persona', 'intents', 'guard_rules', 'fewshot'] as $file) {
+            foreach (['policy', 'persona', 'intents', 'guard_rules', 'fewshot', 'escalation', 'conditions'] as $file) {
                 $data[$file] = $source->all($file);
             }
             $repo->saveDraft($tenant, $draftId, 1, $data);
@@ -68,6 +68,11 @@ final class RemainingPersonasE408JTest extends TenancyTestCase
             }
             if (in_array($key, ['wants_human', 'requisites', 'big_order'], true)) {
                 self::assertNotSame($entry['answer'], $turn['agent'], $key);
+                $tool = match ($key) {
+                    'wants_human' => 'escalate', 'requisites' => 'send_requisites', 'big_order' => 'notify_manager'
+                };
+                self::assertContains(['name' => $tool, 'status' => 'fake_completed'], $turn['meta']['tool_results'], $key);
+                self::assertSame('ok', $turn['meta']['guard_verdict'], $key);
             }
             if (in_array($key, ['experienced_kazan', 'tc_floor'], true)) {
                 self::assertSame($entry['answer'], $turn['agent'], $key);

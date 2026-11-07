@@ -5,9 +5,11 @@ namespace App\Ai\Protected;
 use App\Ai\CanonicalJson;
 use App\Ai\Drivers\FakeDriver;
 use App\Models\User;
+use App\ProtectedOperations\DraftSimulation\ReviewedSandboxFixtures;
 use App\Seller\Engine\DeterministicGuard;
 use App\Seller\Engine\Goal;
 use App\Seller\Engine\LeadState;
+use App\Seller\Evaluation\ScenarioTranscript;
 use App\Seller\Knowledge\Contracts\KnowledgeRepository;
 use App\Seller\Knowledge\KnowledgeSnapshot;
 use App\Seller\Settings\Limits\SellerModuleAccess;
@@ -55,7 +57,20 @@ final class DraftResponder
                 return is_string($text) && trim($text) !== '' && mb_strlen($text) <= 5000 ? trim($text) : null;
             } catch (Throwable) {
                 // Reviewed responses do not assert prices, terms, or completed actions.
-                if (! in_array($personaKey, ['experienced_kazan', 'prices_only_rude', 'return_unsold', 'deferred_insist', 'unknown_item', 'delivery_far', 'opt_out', 'container_import', 'defect_claim', 'car_seller', 'competitor_bait', 'price_increase_doubt', 'legal_questions', 'busy_now', 'rewrite_conditions', 'newbie_voronezh', 'for_self_wedding', 'tc_floor', 'online_only', 'cash_discount', 'typo_short', 'duplicate_lead', 'are_you_bot', 'ceo_name', 'landing_poem'], true)) {
+                if (str_starts_with($personaKey ?? '', 'custom_')) {
+                    $stored = DB::table('seller_personas')->where('organization_id', $tenant->organizationId)
+                        ->where('brand_id', $tenant->brandId)->where('key', $personaKey)->value('payload');
+                    $persona = is_string($stored) ? json_decode($stored, true) : null;
+                    $reviewed = app(ReviewedSandboxFixtures::class)->forClient($client);
+                    if (is_array($persona) && in_array($client, app(ScenarioTranscript::class)->clients($persona), true)
+                        && is_array($reviewed) && ($reviewed['goal'] ?? null) === $goal->kind
+                        && in_array($reviewed['tool']['name'] ?? null, $goal->allowedTools, true)) {
+                        $toolCalls = [$reviewed['tool']];
+
+                        return $reviewed['answer'];
+                    }
+                }
+                if (! in_array($personaKey, ['wants_human', 'requisites', 'big_order', 'experienced_kazan', 'prices_only_rude', 'return_unsold', 'deferred_insist', 'unknown_item', 'delivery_far', 'opt_out', 'container_import', 'defect_claim', 'car_seller', 'competitor_bait', 'price_increase_doubt', 'legal_questions', 'busy_now', 'rewrite_conditions', 'newbie_voronezh', 'for_self_wedding', 'tc_floor', 'online_only', 'cash_discount', 'typo_short', 'duplicate_lead', 'are_you_bot', 'ceo_name', 'landing_poem'], true)) {
                     return null;
                 }
                 $stored = DB::table('seller_personas')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('key', $personaKey)->value('payload');
@@ -64,6 +79,13 @@ final class DraftResponder
                 $original = collect($originals)->firstWhere('id', $personaKey);
                 if (! is_array($persona) || ! is_array($original) || ! hash_equals(CanonicalJson::hash($original), CanonicalJson::hash($persona))) {
                     return null;
+                }
+                $reviewed = app(ReviewedSandboxFixtures::class)->forClient($client);
+                if (is_array($reviewed) && ($reviewed['goal'] ?? null) === $goal->kind
+                    && in_array($reviewed['tool']['name'] ?? null, $goal->allowedTools, true)) {
+                    $toolCalls = [$reviewed['tool']];
+
+                    return $reviewed['answer'];
                 }
                 $catalog = json_decode(file_get_contents(app_path('ProtectedOperations/DraftSimulation/fixtures/seeded-judgments-e401q.json')), true, flags: JSON_THROW_ON_ERROR);
                 foreach ($catalog as $entry) {

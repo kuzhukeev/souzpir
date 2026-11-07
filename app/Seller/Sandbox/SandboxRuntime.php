@@ -5,13 +5,15 @@ namespace App\Seller\Sandbox;
 use App\Ai\Drivers\FakeDriver;
 use App\Ai\Protected\DraftResponder;
 use App\ProtectedOperations\DraftSimulation\FixtureRuntime;
+use App\ProtectedOperations\DraftSimulation\ReviewedSandboxFixtures;
 use App\Seller\Engine\DeterministicGuard;
 use App\Seller\Engine\LeadState;
 use App\Seller\Engine\Policy;
+use App\Seller\Engine\ToolArguments;
 use App\Seller\Knowledge\KnowledgeSnapshot;
 use Illuminate\Http\Request;
 
-/** Offline sandbox: policy and guard run against a snapshot, without executing tools. */
+/** Offline sandbox: policy, guard and fixture-backed effects run without live delivery. */
 final class SandboxRuntime
 {
     public function turn(Request $request, KnowledgeSnapshot $snapshot, string $text, array $stateData, array $history, bool $draft, ?string $clientName): array
@@ -20,7 +22,7 @@ final class SandboxRuntime
         if ($history === [] && is_string($clientName) && trim($clientName) !== '') {
             $state->setSlot('name', trim($clientName));
         }
-        $extraction = $draft ? app(FixtureRuntime::class)->extract($request, $snapshot, $text) : null;
+        $extraction = $draft ? app(FixtureRuntime::class)->extract($request, $snapshot, $text) : app(FixtureRuntime::class)->extractPublished($snapshot, $text);
         $source = $extraction === null ? 'default' : 'fixture';
         if ($extraction === null) {
             $fixtures = json_decode(file_get_contents(app_path('ProtectedOperations/DraftSimulation/fixtures/seeded-extractions.json')), true, 32, JSON_THROW_ON_ERROR);
@@ -28,6 +30,7 @@ final class SandboxRuntime
             $source = isset($fixtures[$text]) ? 'fixture' : 'default';
         }
         $extraction['_text'] = $text;
+        $previousNotification = $state->signal('notify_manager');
         $policy = new Policy($snapshot);
         $policy->applyExtraction($state, $extraction);
         $goal = $policy->decide($state, $extraction, $history === []);
@@ -50,25 +53,71 @@ final class SandboxRuntime
         $question = $slots[$goal->slot ?? ''] ?? 'Уточните, пожалуйста, что вас интересует?';
         $answer = trim(($facts[0] ?? '').' '.($goal->slot ? $question : ($facts === [] ? $question : '')));
         $responseSource = 'deterministic';
+        $toolCalls = [];
+        $reviewed = app(ReviewedSandboxFixtures::class)->forClient($text);
         try {
             $body = app(DraftResponder::class)->body($snapshot, $state, $goal, $text);
-            $candidate = app(FakeDriver::class)->complete($body)['content'] ?? null;
+            $response = app(FakeDriver::class)->complete($body);
+            $candidate = $response['content'] ?? null;
+            $toolCalls = is_array($response['toolCalls'] ?? null) ? $response['toolCalls'] : [];
             if (is_string($candidate) && trim($candidate) !== '' && mb_strlen($candidate) <= 5000) {
                 $answer = trim($candidate);
                 $responseSource = 'fixture';
             }
         } catch (\Throwable) {
-            // Unknown inputs use the labelled deterministic fallback, never a live provider.
+            // Reviewed examples are bound to the current policy goal; unknown inputs stay on fallback.
+            if (is_array($reviewed) && ($reviewed['goal'] ?? null) === $goal->kind && is_array($reviewed['tool'] ?? null)) {
+                $candidate = $reviewed['answer'];
+                $toolCalls = [$reviewed['tool']];
+                $answer = $candidate;
+                $responseSource = 'reviewed_fixture';
+            }
         }
-        if ($history !== [] && preg_match('/^повтор(?:и|ите)[\s.!?]*$/ui', trim($text))) {
-            $answer = end($history)['answer'];
-            $responseSource = 'history';
+        $tools = [];
+        foreach ($toolCalls as $call) {
+            $name = $call['name'] ?? null;
+            $arguments = $call['arguments'] ?? null;
+            if (! is_string($name) || ! in_array($name, $goal->allowedTools, true) || ! is_array($arguments)
+                || ! (new ToolArguments)->check($name, $arguments)['valid']) {
+                continue;
+            }
+            $completed = is_array($reviewed) && ($reviewed['goal'] ?? null) === $goal->kind
+                && ($reviewed['tool']['name'] ?? null) === $name && ($reviewed['tool']['arguments'] ?? null) === $arguments
+                && ($reviewed['tool']['status'] ?? null) === 'fake_completed';
+            if (! $completed) {
+                try {
+                    $toolBody = app(FixtureRuntime::class)->body($snapshot, 'tool', ['name' => $name, 'arguments' => $arguments]);
+                    $toolResponse = app(FakeDriver::class)->complete($toolBody);
+                    $toolResult = json_decode($toolResponse['content'] ?? '', true, 32, JSON_THROW_ON_ERROR);
+                    $completed = is_array($toolResult) && ($toolResult['name'] ?? null) === $name && ($toolResult['status'] ?? null) === 'fake_completed';
+                } catch (\Throwable) {
+                    $completed = false;
+                }
+            }
+            if ($completed) {
+                $tools[] = ['name' => $name, 'status' => 'fake_completed'];
+            }
         }
-        if (in_array($goal->kind, ['handoff', 'silent', 'spam_silent', 'opt_out'], true)) {
+        if ($previousNotification !== 'big_order' && $state->signal('notify_manager') === 'big_order'
+            && ($reviewed['effect']['name'] ?? null) === 'notify_manager'
+            && ($reviewed['effect']['status'] ?? null) === 'fake_completed') {
+            $tools[] = $reviewed['effect'];
+            $answer = $reviewed['effect_answer'];
+            $responseSource = 'reviewed_fixture';
+        }
+        if ($tools === [] && $responseSource === 'reviewed_fixture') {
+            $answer = 'В тестовом сценарии действие не выполнено.';
+            $responseSource = 'tool_fallback';
+        }
+        if ($tools === [] && preg_match('/(?<!\pL)(?:переда(?:м|ю|л[аи]?|но)|отправ(?:лю|ил[аи]?|лено)|высл(?:ал[аи]?|ано|ю)|направ(?:лю|ил[аи]?|лено)|свяж(?:ется|усь)|переключ(?:у|ил[аи]?|ено)|перезвон(?:ю|ит))(?!\pL)/iu', $answer)) {
+            $answer = 'В тестовом сценарии действие не выполнено.';
+            $responseSource = 'tool_fallback';
+        }
+        if (($goal->kind === 'handoff' && $tools === []) || in_array($goal->kind, ['silent', 'spam_silent', 'opt_out'], true)) {
             $answer = 'В тестовом режиме действия не выполняются.';
             $responseSource = 'deterministic';
         }
-        $guard = (new DeterministicGuard($snapshot))->check($answer, $goal, $state);
+        $guard = (new DeterministicGuard($snapshot))->check($answer, $goal, $state, ['tools_called' => array_column($tools, 'name')]);
         if (($guard['verdict'] ?? null) !== 'ok') {
             $answer = 'Тестовый ответ не прошёл проверку. Уточните запрос или измените знания.';
             $responseSource = 'guard_fallback';
@@ -88,7 +137,7 @@ final class SandboxRuntime
 
         return ['answer' => $answer, 'state' => $state->toArray(), 'inspector' => [
             'intent' => $extraction['client_intent'] ?? 'unclear', 'extraction_source' => $source, 'response_source' => $responseSource, 'slot_updates' => $extraction['slot_updates'] ?? [],
-            'goal' => $goal->toArray(), 'guard' => $guard, 'executed_tools' => [], 'previous_answer' => $history === [] ? null : end($history)['answer'],
+            'goal' => $goal->toArray(), 'guard' => $guard, 'executed_tools' => $tools, 'previous_answer' => $history === [] ? null : end($history)['answer'],
         ]];
     }
 }
