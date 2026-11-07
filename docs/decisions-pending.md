@@ -1880,3 +1880,4 @@ SP-E1-08B ожидает SP-E1-08: оба меняют профиль, а исх
 - SP-E6-04G: tool `escalate` выполняется отдельным классом `app/Seller/Engine/Tools/EscalateToManager.php` из `FirstTurnCoordinator` (seller_tasks handoff + `NotifyDialogEvent`), `ToolRunner` остаётся без побочных эффектов.
 - SP-E3-07G: `manual.no_repeat_filled_slot` воспроизводится как follow-up на синтетическом ходе 1 (ход 0 начинается с пустого LeadState). Replay E307G включён интегратором в набор `Equivalence` (phpunit.xml), его запускает CI job `equivalence`.
 - SP-E8-14J (V-1.4): текст «Нейросети уже называют конкурентов рядом с вашей отраслью» — по смыслу макета, показывается только при подсказках из подтверждённых ответов нейросетей.
+- SP-E1-10I (S-5.2): реальная доставка вебхуков включается флагом `INTEGRATIONS_WEBHOOK_DELIVERY_ENABLED` (по умолчанию выкл.); отдельный серверный «показ секрета вебхука один раз» не делается — секрет показывается в модалке создания, мёртвый путь удалён.
