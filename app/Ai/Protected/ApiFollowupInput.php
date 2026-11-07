@@ -109,8 +109,16 @@ final class ApiFollowupInput
         return [$request, $context, $engine, $state, $message->text, $knowledge, $history];
     }
 
-    public function responderLocked(Request $http, TenantContext $tenant, TurnClaim $claim): array
+    /**
+     * @param  array<int, array<string, mixed>>  $toolResults  results of a previous tool round; an empty array offers tools again
+     * @param  list<string>  $guardIssues  deterministic/model guard issues from a previous rejected round, fed back for regeneration
+     */
+    public function responderLocked(Request $http, TenantContext $tenant, TurnClaim $claim, int $round = 0,
+        array $toolResults = [], array $guardIssues = []): array
     {
+        if ($round < 0 || $round > 2) {
+            throw new LogicException('API follow-up unavailable.');
+        }
         [, , $extractor, $state, $message, $knowledge, $history] = $this->extractorLocked($http, $tenant, $claim);
         $result = app(Gateway::class)->readApiFollowupExtractorLocked($http, $tenant, $claim);
         $extraction = $extractor->interpretResult($state, $message, $result);
@@ -136,20 +144,23 @@ final class ApiFollowupInput
         }
         $system = app(ResponderProjection::class)->render($knowledge, $state, $goal, $name);
         $history[] = ['role' => 'client', 'text' => $message];
-        $input = app(ResponderRequest::class)->build($system, $history, [], $model, (float) $temperature, $prompt->version, $prompt->checksum);
-        $context = app(ProtectedRetryContext::class)->make($tenant, $claim->conversationId, 'responder', 'api-followup-responder-'.$claim->turnId);
+        $input = app(ResponderRequest::class)->build($system, $history, $toolResults === [] ? $goal->allowedTools : [],
+            $model, (float) $temperature, $prompt->version, $prompt->checksum, $toolResults, $guardIssues);
+        $context = app(ProtectedRetryContext::class)->make($tenant, $claim->conversationId, 'responder',
+            'api-followup-responder-'.$claim->turnId.'-'.$round);
 
         return [$input, $context, $state, $goal, $knowledge, $extraction];
     }
 
-    /** Build a guard request solely from the authorized, stored responder result. */
-    public function guardLocked(Request $http, TenantContext $tenant, TurnClaim $claim): ?array
+    /** Build a guard request solely from the authorized, stored responder result of the given round. */
+    public function guardLocked(Request $http, TenantContext $tenant, TurnClaim $claim, int $round = 0,
+        array $toolResults = [], array $guardIssues = []): ?array
     {
         if (! config('agent.guard_llm', false)) {
             return null;
         }
-        [, , $state, $goal, $knowledge] = $this->responderLocked($http, $tenant, $claim);
-        $candidate = app(ResponderResult::class)->interpret(app(Gateway::class)->readApiFollowupResponderLocked($http, $tenant, $claim));
+        [, , $state, $goal, $knowledge] = $this->responderLocked($http, $tenant, $claim, $round, $toolResults, $guardIssues);
+        $candidate = app(ResponderResult::class)->interpret(app(Gateway::class)->readApiFollowupResponderLocked($http, $tenant, $claim, $round, $toolResults, $guardIssues));
         if (($candidate['status'] ?? null) !== 'candidate') {
             throw new LogicException('API follow-up unavailable.');
         }
@@ -167,7 +178,8 @@ final class ApiFollowupInput
             throw new LogicException('API follow-up unavailable.');
         }
         $input = app(GuardRequest::class)->build($projection['body'], $candidate['text'], $model, $prompt->version, $prompt->checksum);
-        $context = app(ProtectedRetryContext::class)->make($tenant, $claim->conversationId, 'guard', 'api-followup-guard-'.$claim->turnId);
+        $context = app(ProtectedRetryContext::class)->make($tenant, $claim->conversationId, 'guard',
+            'api-followup-guard-'.$claim->turnId.'-'.$round);
 
         return [$input, $context, $deterministic, $goal];
     }
