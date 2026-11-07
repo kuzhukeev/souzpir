@@ -21,7 +21,7 @@ final class ResolveTenant
         abort_unless($user, 401);
         $authVersion = app(EnforceAuthVersion::class);
         $authVersion->ensure($request);
-        $organizationId = app(Cabinet::class)->organizationId();
+        $organizationId = app(Cabinet::class)->organizationIdFor($user);
         $organization = Organization::query()->whereKey($organizationId)->where('status', 'active')->first();
         abort_unless($organization, 403);
         $membership = Membership::withoutGlobalScopes()->where('organization_id', $organizationId)->where('user_id', $user->id)->where('status', 'active')->first();

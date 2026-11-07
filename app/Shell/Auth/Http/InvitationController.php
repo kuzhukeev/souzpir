@@ -10,7 +10,6 @@ use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Auth\InvitationExchangeGrants;
 use App\Shell\Auth\VerificationRequests;
 use App\Shell\Team\Models\Invitation;
-use App\Tenancy\Cabinet;
 use App\Tenancy\Invitations\InvitationAcceptance;
 use App\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
@@ -30,11 +29,11 @@ final class InvitationController
     {
         $id = app(InvitationExchangeGrants::class)->invitationId($request);
         abort_unless(is_string($id) && preg_match('/^[0-9A-HJKMNP-TV-Z]{26}$/iD', $id), 404);
-        $org = app(Cabinet::class)->organizationId();
-        abort_unless(Organization::whereKey($org)->where('status', 'active')->exists(), 404);
+        $invitation = Invitation::withoutGlobalScopes()->whereKey($id)
+            ->whereNull('accepted_at')->whereNull('revoked_at')->where('expires_at', '>', now())->first();
+        abort_unless($invitation && Organization::whereKey($invitation->organization_id)->where('status', 'active')->exists(), 404);
 
-        return Invitation::withoutGlobalScopes()->where('organization_id', $org)->whereKey($id)
-            ->whereNull('accepted_at')->whereNull('revoked_at')->where('expires_at', '>', now())->firstOrFail();
+        return $invitation;
     }
 
     public function open(Request $request): HttpResponse
@@ -121,8 +120,7 @@ HTML;
             if (! $ok) {
                 $state = null;
                 if (is_string($hash) && preg_match('/^[a-f0-9]{64}$/D', $hash)) {
-                    $row = DB::table('invitations')->where('organization_id', app(Cabinet::class)->organizationId())
-                        ->where('token_hash', $hash)->first(['email', 'accepted_at', 'revoked_at', 'expires_at']);
+                    $row = DB::table('invitations')->where('token_hash', $hash)->first(['email', 'accepted_at', 'revoked_at', 'expires_at']);
                     $state = $row?->accepted_at ? 'accepted' : ($row?->revoked_at ? 'revoked'
                         : ($row && now()->greaterThanOrEqualTo($row->expires_at) ? 'expired'
                         : ($row && $request->user() && mb_strtolower(trim($request->user()->email)) !== $row->email ? 'email_mismatch' : null)));

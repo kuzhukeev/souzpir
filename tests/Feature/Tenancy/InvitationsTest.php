@@ -65,9 +65,20 @@ final class InvitationsTest extends TenancyTestCase
         $this->denied(fn () => $service->accept($user, $token));
         DB::table('invitations')->where('id', $invitation->id)->update(['expires_at' => now()->addDay(), 'revoked_at' => now()]);
         $this->denied(fn () => $service->accept($user, $token));
+        $this->assertSame(0, Membership::withoutGlobalScopes()->where('user_id', $user->id)->count());
+    }
+
+    public function test_member_of_one_organization_cannot_accept_invitation_of_another(): void
+    {
+        [$owner,$org,$a] = $this->cabinet();
+        [$foreignOwner,$other,$foreign] = $this->cabinet(false);
+        $user = $this->user();
+        $service = app(AcceptsInvitations::class);
+        [, $token] = $this->invitation($org, $owner, $user, [$a->id]);
+        $this->assertSame($org->id, $service->accept($user, $token)->organization_id);
         [, $foreignToken] = $this->invitation($other, $foreignOwner, $user, [$foreign->id]);
         $this->denied(fn () => $service->accept($user, $foreignToken));
-        $this->assertSame(0, Membership::withoutGlobalScopes()->where('user_id', $user->id)->count());
+        $this->assertSame(1, Membership::withoutGlobalScopes()->where('user_id', $user->id)->count());
     }
 
     public function test_unverified_or_changed_email_is_denied_and_existing_owner_is_never_downgraded(): void
