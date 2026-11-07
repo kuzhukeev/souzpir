@@ -89,6 +89,7 @@ final class ApiFollowupRuntime
         $claim = new TurnClaim('claimed', $receipt['turn'], $conversationId, $tenant->organizationId, $tenant->brandId, $receipt['version'], $receipt['token']);
         app(Gateway::class)->completeApiFollowupExtractor($http, $tenant, $claim);
         app(Gateway::class)->completeApiFollowupResponder($http, $tenant, $claim);
+        app(Gateway::class)->completeApiFollowupGuard($http, $tenant, $claim);
 
         return DB::transaction(function () use ($http, $tenant, $claim, $receipt, $key, $source, $scope, $prepared): array {
             app(TokenTenantAuthority::class)->revalidateLocked($http, $tenant, 'turn');

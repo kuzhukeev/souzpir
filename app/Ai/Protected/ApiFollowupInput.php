@@ -9,11 +9,15 @@ use App\Models\User;
 use App\ProtectedOperations\SellerTurnFence;
 use App\Seller\Conversations\Data\TurnClaim;
 use App\Seller\Engine\BrandPromptSets;
+use App\Seller\Engine\DeterministicGuard;
 use App\Seller\Engine\Extractor;
 use App\Seller\Engine\ExtractorPromptLoader;
+use App\Seller\Engine\GuardDecision;
+use App\Seller\Engine\GuardRequest;
 use App\Seller\Engine\LeadState;
 use App\Seller\Engine\Policy;
 use App\Seller\Engine\ResponderRequest;
+use App\Seller\Engine\ResponderResult;
 use App\Seller\Knowledge\Contracts\KnowledgeRepository;
 use App\Seller\Runtime\BrandRuntimeSchedule;
 use App\Seller\Settings\Limits\SellerModuleAccess;
@@ -136,5 +140,35 @@ final class ApiFollowupInput
         $context = app(ProtectedRetryContext::class)->make($tenant, $claim->conversationId, 'responder', 'api-followup-responder-'.$claim->turnId);
 
         return [$input, $context, $state, $goal, $knowledge, $extraction];
+    }
+
+    /** Build a guard request solely from the authorized, stored responder result. */
+    public function guardLocked(Request $http, TenantContext $tenant, TurnClaim $claim): ?array
+    {
+        if (! config('agent.guard_llm', false)) {
+            return null;
+        }
+        [, , $state, $goal, $knowledge] = $this->responderLocked($http, $tenant, $claim);
+        $candidate = app(ResponderResult::class)->interpret(app(Gateway::class)->readApiFollowupResponderLocked($http, $tenant, $claim));
+        if (($candidate['status'] ?? null) !== 'candidate') {
+            throw new LogicException('API follow-up unavailable.');
+        }
+        $deterministic = (new DeterministicGuard($knowledge))->check($candidate['text'], $goal, $state);
+        if (! app(GuardDecision::class)->requiresModel($deterministic, $goal, true)) {
+            return null;
+        }
+        $prompt = app(BrandPromptSets::class)->load($tenant, $knowledge, 'guard');
+        $model = config('features.E0-05.defaults.seller_defaults.guard.model');
+        if (! $prompt || ! hash_equals(hash('sha256', $prompt->body), $prompt->checksum) || ! is_string($model) || $model === '') {
+            throw new LogicException('API follow-up unavailable.');
+        }
+        $projection = app(GuardProjection::class)->render($state, $goal, $prompt->body);
+        if (! hash_equals($projection['checksum'], $prompt->checksum)) {
+            throw new LogicException('API follow-up unavailable.');
+        }
+        $input = app(GuardRequest::class)->build($projection['body'], $candidate['text'], $model, $prompt->version, $prompt->checksum);
+        $context = app(ProtectedRetryContext::class)->make($tenant, $claim->conversationId, 'guard', 'api-followup-guard-'.$claim->turnId);
+
+        return [$input, $context, $deterministic, $goal];
     }
 }

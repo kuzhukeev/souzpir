@@ -3,7 +3,6 @@
 namespace App\Seller\Runtime;
 
 use App\ProtectedOperations\PostgresTransactionalIdempotency;
-use App\ProtectedOperations\SellerFollowup\FollowupFinalizer;
 use App\ProtectedOperations\SellerTurnFence;
 use App\Seller\Channels\Api\ApiSourceReceipt;
 use App\Seller\Conversations\CanonicalJson;
@@ -11,8 +10,6 @@ use App\Seller\Conversations\Contracts\ConversationRepository;
 use App\Seller\Conversations\Data\TurnClaim;
 use App\Seller\Conversations\Data\TurnCommand;
 use App\Seller\Conversations\Data\TurnOutcome;
-use App\Seller\Runtime\Contracts\DeliveryCommand;
-use App\Seller\Runtime\Delivery\FakeChannelDelivery;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
@@ -75,21 +72,8 @@ final class TokenInboundRuntime
                 if ($mode === 'manager' || $scheduleMode === 'off') {
                     return $this->suppress($tenant, $claim, $mode);
                 }
-                $outcome = app(FollowupFinalizer::class)->finish($tenant, $claim, $mode);
-                if ($mode === 'suggest') {
-                    return ['conversation_id' => $conversationId, 'status' => 'suggested', 'version' => $outcome['result']['version']];
-                }
-                $replyId = $outcome['result']['message_id'] ?? null;
-                $reply = is_string($replyId) ? DB::table('messages')->where($scope)->where('conversation_id', $conversationId)->where('id', $replyId)->value('text') : null;
-                if (! is_string($reply)) {
-                    throw new LogicException('API answer unavailable.');
-                }
-                $receipt = app(FakeChannelDelivery::class)->send(new DeliveryCommand($tenant, $conversationId, $replyId, 'fake', 'api-turn:'.$claim->turnId));
-                if ($receipt->status !== 'fake_sent' || $receipt->messageId !== $replyId) {
-                    throw new LogicException('Fake delivery unavailable.');
-                }
-
-                return ['conversation_id' => $conversationId, 'message_id' => $replyId, 'reply' => $reply, 'version' => $outcome['result']['version']];
+                // Bot and suggestion turns need the two-phase protected path.
+                throw new LogicException('Protected API follow-up required.');
             });
         if ($source !== null) {
             $digest = hash_hmac('sha256', "protected-operation-key-v1\0".$key, (string) config('app.key'));

@@ -643,6 +643,59 @@ final class Gateway implements AiGateway
         return $result;
     }
 
+    /** Fake-only model guard for a revalidated follow-up. */
+    public function completeApiFollowupGuard(#[\SensitiveParameter] Request $http, TenantContext $tenant, TurnClaim $claim): void
+    {
+        if (config('runtime.ai_driver', 'fake') !== 'fake' || DB::transactionLevel() !== 0) {
+            throw new LogicException('API follow-up unavailable.');
+        }
+        try {
+            $built = DB::transaction(fn () => app(ApiFollowupInput::class)->guardLocked($http, $tenant, $claim));
+            if ($built === null) {
+                return;
+            }
+            [$input, $context] = $built;
+            $expected = CanonicalJson::hash($input->toArray());
+            $assertSource = function () use ($http, $tenant, $claim, $context, $expected): void {
+                $current = app(ApiFollowupInput::class)->guardLocked($http, $tenant, $claim);
+                if ($current === null || ! hash_equals($expected, CanonicalJson::hash($current[0]->toArray()))
+                    || $current[1]->idempotencyKey !== $context->idempotencyKey) {
+                    throw new LogicException;
+                }
+            };
+            $this->completeInternal($input, $context, $assertSource);
+        } catch (Throwable) {
+            throw new LogicException('API follow-up unavailable.');
+        }
+    }
+
+    public function readApiFollowupGuardLocked(#[\SensitiveParameter] Request $http, TenantContext $tenant, TurnClaim $claim): array
+    {
+        if (DB::transactionLevel() < 1 || config('runtime.ai_driver', 'fake') !== 'fake') {
+            throw new LogicException('API follow-up unavailable.');
+        }
+        $built = app(ApiFollowupInput::class)->guardLocked($http, $tenant, $claim);
+        if ($built === null) {
+            throw new LogicException('API follow-up unavailable.');
+        }
+        [$input, $context] = $built;
+        $body = app(ContactMasker::class)->request($input->toArray());
+        $expected = app(RequestFingerprint::class)->hash($input, $context, $body, 'fake');
+        $key = hash_hmac('sha256', $context->idempotencyKey, (string) config('app.key'));
+        $call = DB::table('ai_calls')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
+            ->where('idempotency_key_hash', $key)->lockForUpdate()->first();
+        if (! $call || $call->status !== 'completed' || ! hash_equals($expected, $call->request_hash)
+            || ! is_string($call->result_encrypted)) {
+            throw new LogicException('API follow-up unavailable.');
+        }
+        $result = AiResult::fromArray(json_decode(Crypt::decryptString($call->result_encrypted), true, 512, JSON_THROW_ON_ERROR));
+        if ($result->aiCallId !== $call->id || ! $result->ok() || $result->costMicros === null) {
+            throw new LogicException('API follow-up unavailable.');
+        }
+
+        return app(GuardModelResult::class)->interpret($result);
+    }
+
     /** Complete a server-built proactive API request in fake mode. */
     public function completeApiOpening(#[\SensitiveParameter] Request $http, TenantContext $tenant, string $leadId): AiResult
     {
@@ -840,7 +893,8 @@ final class Gateway implements AiGateway
             if ($beforeReserve === null && (str_starts_with($context->idempotencyKey, 'manager-suggestion-extractor-')
                 || str_starts_with($context->idempotencyKey, 'api-opening-')
                 || str_starts_with($context->idempotencyKey, 'api-followup-extractor-')
-                || str_starts_with($context->idempotencyKey, 'api-followup-responder-'))) {
+                || str_starts_with($context->idempotencyKey, 'api-followup-responder-')
+                || str_starts_with($context->idempotencyKey, 'api-followup-guard-'))) {
                 throw new LogicException('Protected AI call requires protected reading.');
             }
             // Prepared extractor inputs cannot be dispatched through public
