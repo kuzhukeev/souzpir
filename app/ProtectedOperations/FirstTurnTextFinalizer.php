@@ -14,6 +14,7 @@ use App\Seller\Engine\GuardDecision;
 use App\Seller\Engine\LeadState;
 use App\Seller\Engine\Policy;
 use App\Seller\Knowledge\Contracts\KnowledgeRepository;
+use App\Seller\Runtime\ServicePhraseSelector;
 use App\Seller\Settings\Greetings\GreetingResolver;
 use App\Seller\Settings\Schedule\Availability;
 use App\Shell\Audit\AuditEntry;
@@ -202,6 +203,12 @@ final class FirstTurnTextFinalizer
             ->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('role', 'client')->first() ?? throw new LogicException;
         $previousMeta = json_decode($input->meta ?: '{}', true) ?: [];
         $replyText = $candidate['text'];
+        if (in_array($goal->kind, ['unknown_fact', 'handoff'], true)) {
+            $override = app(ServicePhraseSelector::class)->customForEvent($knowledge->persona(), $goal->kind);
+            if ($override !== null) {
+                $replyText = $override;
+            }
+        }
         if (! in_array($goal->kind, ['decline_injection', 'decline_off_topic', 'closed_topic', 'handoff'], true)) {
             $conversation = DB::table('conversations')->where('id', $claim->conversationId)->where('organization_id', $tenant->organizationId)
                 ->where('brand_id', $tenant->brandId)->first(['channel_account_id', 'contact_id']) ?? throw new LogicException;
