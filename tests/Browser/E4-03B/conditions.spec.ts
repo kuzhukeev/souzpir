@@ -13,13 +13,12 @@ test.beforeAll(async () => {
   fixtureUrl = new URL('/tests/Browser/E4-03B/fixture.html', server.resolvedUrls!.local[0]).href;
 });
 test.afterAll(async () => { await server?.close(); });
-test('сетка скидок и массовая отметка', async ({ page }) => {
+test('сетка скидок без неподдерживаемых отметок утверждения', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(fixtureUrl);
   await expect(page.getByText('Сетка скидок')).toBeVisible();
-  await page.getByRole('button', { name: 'Отметить все утверждёнными' }).click();
-  await expect(page.getByRole('checkbox')).toHaveCount(4);
-  for (const checkbox of await page.getByRole('checkbox').all()) await expect(checkbox).toBeChecked();
+  await expect(page.getByRole('button', { name: 'Отметить все утверждёнными' })).toHaveCount(0);
+  await expect(page.getByRole('checkbox', { name: /утвержден/i })).toHaveCount(0);
   await page.getByRole('button', { name: 'Добавить ступень' }).click();
   await expect(page.getByLabel('От суммы 3')).toBeVisible();
   await page.screenshot({ path: '.local/runtime/e4-03b-conditions.png', fullPage: true });
