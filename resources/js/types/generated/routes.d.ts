@@ -216,6 +216,12 @@ declare module 'ziggy-js' {
             "required": true
         }
     ],
+    "team.avatar": [
+        {
+            "name": "membership",
+            "required": true
+        }
+    ],
     "team.show": [
         {
             "name": "membership",

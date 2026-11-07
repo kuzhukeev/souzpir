@@ -8,6 +8,8 @@
 - Playwright: 1 тест, три темы и ширины 1440/1024/390, фокус и ссылка; TypeScript, ESLint, Pint.
 - Скриншот: .local/screenshots/SP-E1-06J/member.png, светлая тема, 1440.
 
+- Интегратор: маршрут аватара добавлен в сгенерированные контракты; generate-types --check и typecheck прошли.
+
 ## Техдолг
 - Нет.
 
