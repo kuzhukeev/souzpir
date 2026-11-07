@@ -36,6 +36,26 @@ final class CatalogTest extends TenancyTestCase
         $this->get('/seller/integrations/catalog')->assertOk()->assertInertia(fn ($page) => $page->has('items', 0)->has('imports', 0));
     }
 
+    public function test_deletes_item_within_brand_scope_only(): void
+    {
+        Storage::fake('local');
+        [$owner, $org, $brand, $other] = $this->cabinet();
+        $this->enable($org->id, $brand->id);
+        $this->enable($org->id, $other->id);
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $this->post('/seller/integrations/catalog/import', ['file' => UploadedFile::fake()->createWithContent('catalog.csv', "Артикул;Название;Категория;Цена;Цена опт;Остаток\nA1;Фейерверк;Праздник;100,50;80;3\n")])->assertRedirect();
+        $item = DB::table('catalog_items')->where('brand_id', $brand->id)->first();
+        $this->post('/brand/switch', ['brand_id' => $other->id])->assertRedirect();
+        $this->post('/seller/integrations/catalog/price-file', ['action' => 'delete_item', 'item_id' => $item->id])->assertNotFound();
+        $this->post('/brand/switch', ['brand_id' => $brand->id])->assertRedirect();
+        $this->post('/seller/integrations/catalog/price-file', ['action' => 'delete_item', 'item_id' => 'missing'])->assertNotFound();
+        $this->post('/seller/integrations/catalog/price-file', ['action' => 'delete_item', 'item_id' => $item->id])->assertRedirect();
+        $this->assertDatabaseMissing('catalog_items', ['id' => $item->id]);
+        [$viewer] = $this->member($org, 'viewer', [$brand->id]);
+        $this->actingAs($viewer)->withSession(['brand_id' => $brand->id]);
+        $this->post('/seller/integrations/catalog/price-file', ['action' => 'delete_item', 'item_id' => $item->id])->assertForbidden();
+    }
+
     public function test_invalid_files_and_access(): void
     {
         [$owner, $org, $brand] = $this->cabinet();
