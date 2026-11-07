@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature\Owner\E610D;
+namespace Tests\Feature\Seller\Engine;
 
 use App\Seller\Knowledge\Contracts\KnowledgeRepository;
 use App\Tenancy\TenantContext;
@@ -12,7 +12,7 @@ use Illuminate\Support\Str;
 use Tests\Feature\Seller\Knowledge\Fixtures\PrototypeKnowledge;
 use Tests\Feature\Tenancy\TenancyTestCase;
 
-final class ProfileScenariosTest extends TenancyTestCase
+final class ProfileScenariosE610DTest extends TenancyTestCase
 {
     public function test_two_profile_schemas_publish_separately_and_sandbox_runs_fake_without_external_calls(): void
     {
