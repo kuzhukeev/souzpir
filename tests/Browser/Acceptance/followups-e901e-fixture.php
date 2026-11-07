@@ -27,27 +27,12 @@ if (getenv('E901_ACTION') === 'setup') {
     $org = new Organization;
     $org->forceFill(['id' => $organization, 'name' => 'Acceptance fixture', 'settings' => ['test_fixture' => 'SP-E9-01E']])->save();
     echo 'Ready';
-} elseif (getenv('E901_ACTION') === 'seed-dialogs') {
-    $org = Organization::whereKey($organization)->firstOrFail();
-    if (($org->settings['test_fixture'] ?? null) !== 'SP-E9-01E') {
-        throw new LogicException('Unexpected organization.');
-    }
-    $first = DB::table('brands')->where('organization_id', $organization)->where('name', 'Тестовый бренд')->value('id');
-    if (! is_string($first)) {
+} elseif (getenv('E901_ACTION') === 'brand-id') {
+    $brand = DB::table('brands')->where('organization_id', $organization)->where('name', 'Тестовый бренд')->value('id');
+    if (! is_string($brand)) {
         throw new LogicException('Onboarding brand missing.');
     }
-    $second = (string) Str::ulid();
-    DB::table('brands')->insert(['id' => $second, 'organization_id' => $organization, 'name' => 'Второй тестовый бренд', 'theme' => 'neutral', 'created_at' => now(), 'updated_at' => now()]);
-    $dialogs = [];
-    foreach ([[$first, 'Клиент первого бренда'], [$second, 'Клиент второго бренда']] as [$brand, $name]) {
-        DB::table('brand_modules')->updateOrInsert(['organization_id' => $organization, 'brand_id' => $brand, 'module' => 'seller'], ['id' => (string) Str::ulid(), 'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
-        $contact = (string) Str::ulid();
-        DB::table('contacts')->insert(['id' => $contact, 'organization_id' => $organization, 'brand_id' => $brand, 'name' => $name, 'created_at' => now(), 'updated_at' => now()]);
-        $dialog = (string) Str::ulid();
-        $dialogs[] = $dialog;
-        DB::table('conversations')->insert(['id' => $dialog, 'organization_id' => $organization, 'brand_id' => $brand, 'contact_id' => $contact, 'state' => '{}', 'mode' => 'manager', 'created_at' => now(), 'updated_at' => now()]);
-    }
-    echo json_encode(['first' => $first, 'second' => $second, 'firstDialog' => $dialogs[0], 'secondDialog' => $dialogs[1]], JSON_THROW_ON_ERROR);
+    echo $brand;
 } elseif (getenv('E901_ACTION') === 'verify-link') {
     $email = getenv('E901_EMAIL');
     if (! is_string($email) || ! str_ends_with($email, '@example.test')) {

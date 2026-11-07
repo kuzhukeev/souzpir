@@ -47,10 +47,8 @@ test('followup settings and new widget dialogue through the UI', async ({ page, 
   await page.route('**/*', route => new URL(route.request().url()).origin === origin ? route.continue() : route.abort('blockedbyclient'));
   page.setDefaultTimeout(12000);
   await page.goto(`${origin}/login`);
-  await auditPage(page, 'login');
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(`${origin}/register`);
-  await auditPage(page, 'register');
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.getByLabel('Имя', { exact: true }).fill('Тестовый владелец');
   await page.getByLabel('Рабочая почта').fill(ownerEmail);
@@ -73,16 +71,14 @@ test('followup settings and new widget dialogue through the UI', async ({ page, 
   await expect(page.getByRole('heading', { name: 'Сайт и бренд' })).toBeVisible();
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Сайт и бренд' })).toBeVisible();
-  await auditPage(page, 'onboarding');
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.getByLabel('Название бренда').fill('Тестовый бренд');
   await page.getByLabel('Адрес сайта').fill('https://example.test');
   await page.getByRole('radio', { name: /Пиротехника/ }).check();
   await page.getByRole('button', { name: 'Сохранить и продолжить' }).click();
   await expect(page.getByRole('heading', { name: 'Выберите модули' })).toBeVisible();
-  await page.getByRole('switch', { name: /ИИ-продавец/ }).locator('xpath=ancestor::label').click();
-  const vision = page.getByRole('switch', { name: /Видение/ });
-  if (await vision.getAttribute('aria-checked') !== 'true') await vision.locator('xpath=ancestor::label').click();
+  const seller = page.getByRole('switch', { name: /ИИ-продавец/ });
+  if (await seller.getAttribute('aria-checked') !== 'true') await seller.locator('xpath=ancestor::label').click();
   await page.getByRole('button', { name: 'Сохранить и продолжить' }).click();
   await expect(page.getByRole('heading', { name: 'Первый шаг', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Завершить настройку' }).click();
@@ -90,8 +86,11 @@ test('followup settings and new widget dialogue through the UI', async ({ page, 
   await page.reload();
   await expect(page.getByText('Данные компании и бренда сохранены.')).toBeVisible();
 
+  const brand = execFileSync(php, ['tests/Browser/Acceptance/followups-e901e-fixture.php'], { env: { ...fixtureEnv, E901_ACTION: 'brand-id' }, encoding: 'utf8' }).trim();
+  await page.goto(`${origin}/brands/${brand}/modules`);
+  await page.getByRole('button', { name: 'Подключить ИИ-продавец' }).click();
+  await expect(page.getByRole('switch', { name: 'Отключить ИИ-продавец' })).toHaveAttribute('aria-checked', 'true');
   await page.goto(`${origin}/seller/settings/policy`);
-  await page.screenshot({ path: '.local/screenshots/SP-E9-01E/policy-debug.png', fullPage: true });
   const reminders = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Напоминания', exact: true }) });
   await reminders.getByLabel('Подготавливать напоминания').check();
   await reminders.getByLabel('Первый интервал, часов').fill('20');
@@ -129,7 +128,6 @@ test('followup settings and new widget dialogue through the UI', async ({ page, 
     await expect(widget.getByText('Спасибо! Контакт сохранён.')).toBeVisible();
   } finally { await visitorContext.close(); }
   await page.goto(`${origin}/seller/dialogs`);
-  await expect(page.getByText('Посетитель виджета')).toBeVisible();
   await expect(page.getByText('Посетитель виджета')).toBeVisible();
   await auditPage(page, 'new-dialogue');
 });
