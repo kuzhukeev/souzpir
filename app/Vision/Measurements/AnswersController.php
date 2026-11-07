@@ -8,6 +8,7 @@ use App\Vision\Core\VisionReportReader;
 use App\Vision\Evidence\Contracts\KnowledgeGate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 
 final class AnswersController
@@ -25,6 +26,7 @@ final class AnswersController
     {
         return app(MeasurementList::class)->withinCurrent($request, function (TenantContext $tenant, string $revision) use ($measurement) {
             $plan = $this->measurement($tenant, $measurement);
+            abort_unless(Gate::allows('vision.measure.full_access'), 403);
             $profile = json_decode($plan->profile_snapshot ?? '{}', true);
             abort_unless(is_array($profile) && is_string($plan->profile_checksum) && hash_equals($plan->profile_checksum, CanonicalJson::hash($profile)), 409);
             try {

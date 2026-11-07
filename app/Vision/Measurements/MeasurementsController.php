@@ -69,9 +69,14 @@ final class MeasurementsController
         $month = $request->query('month');
         abort_if($month !== null && (! is_string($month) || ! preg_match('/^[1-9]\d{3}-(0[1-9]|1[0-2])$/D', $month)), 422);
 
-        return app(MeasurementList::class)->withinCurrent($request,
-            fn (TenantContext $context, string $revision) => response()->json(['revision' => $revision,
-                ...($detailed ? app(MeasurementList::class)->readDetailed($context, $page, $month) : app(MeasurementList::class)->read($context, $page))]));
+        return app(MeasurementList::class)->withinCurrent($request, function (TenantContext $context, string $revision) use ($detailed, $page, $month) {
+            $data = $detailed ? app(MeasurementList::class)->readDetailed($context, $page, $month) : app(MeasurementList::class)->read($context, $page);
+            if ($detailed && ! Gate::allows('vision.measure.full_access')) {
+                $data['data'] = array_map(fn (array $row) => [...$row, 'answers' => array_map(fn (array $answer) => [...$answer, 'answer_text' => null], $row['answers'])], $data['data']);
+            }
+
+            return response()->json(['revision' => $revision, ...$data]);
+        });
     }
 
     public function revision(Request $request): mixed
