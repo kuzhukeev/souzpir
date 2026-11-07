@@ -36,14 +36,18 @@ final class ToolRunner
                     'year_defaulted' => $candidate['year_defaulted'],
                 ];
             }
-            if ($name !== 'calc_delivery' && $name !== 'check_stock' && $name !== 'send_price') {
+            if ($name !== 'calc_delivery' && $name !== 'check_stock' && $name !== 'send_price' && $name !== 'log_unknown_question') {
                 return ['status' => 'unavailable'];
             }
-            if (($name === 'check_stock' || $name === 'send_price') && ! $config instanceof TenantContext) {
+            if (($name === 'check_stock' || $name === 'send_price' || $name === 'log_unknown_question') && ! $config instanceof TenantContext) {
                 return ['status' => 'unavailable'];
             }
             if (! (new ToolArguments)->check($name, $arguments)['valid']) {
                 return ['status' => 'invalid_arguments'];
+            }
+            if ($name === 'log_unknown_question') {
+                // The lead-state record is kept by Policy::applyExtraction, keyed by the goal, not by this call.
+                return ['status' => 'logged'];
             }
             if ($name === 'check_stock' || $name === 'send_price') {
                 return $config instanceof TenantContext && $config->organizationId && $config->brandId
