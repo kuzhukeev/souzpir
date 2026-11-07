@@ -18,7 +18,7 @@ final class EvidenceStore
 
     public function evaluate(string $answerId): string
     {
-        if (config('runtime.ai_driver', 'fake') !== 'fake') {
+        if (config('runtime.ai_driver', 'fake') !== 'fake' && ! config('eyon.live_measurements_enabled', false)) {
             return 'unknown';
         }
         try {

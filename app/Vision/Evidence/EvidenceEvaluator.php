@@ -31,7 +31,7 @@ final class EvidenceEvaluator
         if (! $tenant->organizationId || ! $tenant->brandId || $tenant->organizationId !== $current->organizationId
             || $tenant->brandId !== $current->brandId || ! Str::isUlid($answerId)
             || ! app()->bound(KnowledgeGate::class)
-            || config('runtime.ai_driver', 'fake') !== 'fake'
+            || (config('runtime.ai_driver', 'fake') !== 'fake' && ! config('eyon.live_measurements_enabled', false))
             || ! Schema::hasTable('measurements') || ! Schema::hasTable('measurement_answers')) {
             return $unknown;
         }

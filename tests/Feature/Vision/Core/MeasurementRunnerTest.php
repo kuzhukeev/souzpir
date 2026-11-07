@@ -106,6 +106,42 @@ final class MeasurementRunnerTest extends TestCase
         });
     }
 
+    public function test_live_job_evaluates_evidence_only_when_live_measurements_are_enabled(): void
+    {
+        $this->within(function (): void {
+            $set = app(QuestionSets::class)->create([['id' => 'q1', 'text' => 'Какие марки выбрать?', 'intent' => 'choose']]);
+            $measurement = app(MeasurementRunner::class)->start($set, ['gemini' => 'google/gemini-2.5-flash'], 1);
+            $answer = DB::table('measurement_answers')->where('measurement_id', $measurement)->value('id');
+            $evaluated = new \ArrayObject;
+            app()->instance(MeasurementRunner::class, new class
+            {
+                public function measure(string $id): string
+                {
+                    return 'ok';
+                }
+            });
+            app()->instance(EvidenceStore::class, new class($evaluated)
+            {
+                public function __construct(private \ArrayObject $evaluated) {}
+
+                public function evaluate(string $id): string
+                {
+                    $this->evaluated->append($id);
+
+                    return 'supported';
+                }
+            });
+            $job = new RunMeasurement($this->organization, $this->brand, $measurement);
+            config(['runtime.ai_driver' => 'openrouter', 'eyon.live_measurements_enabled' => false]);
+            $job->handle(app(TenantContextRunner::class));
+            self::assertSame([], $evaluated->getArrayCopy());
+            config(['eyon.live_measurements_enabled' => true]);
+            $job->handle(app(TenantContextRunner::class));
+            self::assertSame([$answer], $evaluated->getArrayCopy());
+            Http::assertNothingSent();
+        });
+    }
+
     public function test_real_gateway_with_fake_fixture_builds_grid_and_never_duplicates_a_call(): void
     {
         $this->within(function (): void {
