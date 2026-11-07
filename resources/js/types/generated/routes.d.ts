@@ -111,6 +111,7 @@ declare module 'ziggy-js' {
         }
     ],
     "dashboard.notification-center": [],
+    "dashboard.notifications": [],
     "dashboard.notifications.read-all": [],
     "organization.show": [],
     "organization.update": [],
