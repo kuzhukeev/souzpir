@@ -13,6 +13,6 @@
 
 Scope: `app/Shell/Integrations/`, `app/Shell/Notifications/`, `app/Seller/Channels/Crm/`, `resources/js/pages/Shell/Integrations/`, `resources/js/pages/Seller/Channels/Crm/`, `routes/features/E1-10.php`, `routes/features/E6-09.php`, `routes/console.php`, `database/migrations/E1-10J/`, `tests/Feature/Shell/Integrations/`, `tests/Feature/Shell/Notifications/`, `tests/Feature/Seller/Channels/Crm/`, `tests/Browser/E1-10J/`, `docs/results/SP-E1-10J.md`.
 
-## Остаток после частичной приёмки
-- S-5.2: автоматические события вебхуков со снимком подписок и очередью fake-доставки; согласовать контракт снимка.
-- S-5.3: общие уведомления компании по матрице в очередь с fake-транспортом почты и Telegram.
+## Повторная сдача
+- S-5.2: автоматические события со снимком подписок и fake-очередью реализованы; см. отчёт SP-E1-10J.
+- S-5.3: общие уведомления по матрице отправляются через fake-очередь почты и Telegram; см. отчёт SP-E1-10J.
