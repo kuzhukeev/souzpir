@@ -7,6 +7,8 @@ use App\Models\User;
 use App\Seller\Dialogs\DialogReader;
 use App\Seller\Knowledge\Contracts\KnowledgeRepository;
 use App\Seller\Settings\Limits\SellerModuleAccess;
+use App\Shell\Audit\AuditEntry;
+use App\Shell\Audit\Contracts\AuditWriter;
 use App\Shell\Profile\ProfileAccess;
 use App\Tenancy\TenantContext;
 use Illuminate\Http\Request;
@@ -34,14 +36,20 @@ final class FewshotController
 
     public function index(Request $request): mixed
     {
-        $data = $this->access($request, function (TenantContext $tenant): array {
-            $draft = $this->draft($tenant);
-            $snapshot = $draft ? app(KnowledgeRepository::class)->forRelease($tenant, $draft->id, true) : null;
+        // Authorize the shell before rendering, then repeat the check when the data is loaded.
+        $this->access($request, fn (TenantContext $tenant) => null);
 
-            return ['draft' => $draft, 'fewshot' => $snapshot?->all('fewshot')];
-        });
+        return Inertia::render('Seller/Knowledge/Fewshot/Index', [
+            'fewshotData' => Inertia::defer(fn () => $this->access($request, function (TenantContext $tenant): array {
+                $draft = $this->draft($tenant);
+                $snapshot = $draft ? app(KnowledgeRepository::class)->forRelease($tenant, $draft->id, true) : null;
+                $persona = $snapshot?->all('persona');
+                $maxWords = $persona['length']['max_words'] ?? null;
 
-        return Inertia::render('Seller/Knowledge/Fewshot/Index', [...$data, 'status' => session('status')]);
+                return ['draft' => $draft, 'fewshot' => $snapshot?->all('fewshot'), 'availableTags' => FewshotTags::ALL, 'maxWords' => is_int($maxWords) && $maxWords > 0 ? $maxWords : null];
+            }), rescue: true),
+            'status' => session('status'),
+        ]);
     }
 
     public function save(Request $request): mixed
@@ -69,7 +77,12 @@ final class FewshotController
                 $fewshot[$destination][] = $item;
             }
             $data['fewshot'] = $fewshot;
-            $repo->saveDraft($tenant, $draft->id, (int) $input['version'], $data);
+            DB::transaction(function () use ($repo, $tenant, $draft, $input, $data): void {
+                $repo->saveDraft($tenant, $draft->id, (int) $input['version'], $data);
+                if (! isset($input['index'])) {
+                    app(AuditWriter::class)->record($tenant, new AuditEntry('knowledge.fewshot.added', 'knowledge_release', $draft->id));
+                }
+            });
         });
 
         return back()->with('status', 'Образец сохранён в черновике.');
@@ -81,10 +94,13 @@ final class FewshotController
         $examples = $this->access($request, function (TenantContext $tenant) use ($input): array {
             $draft = $this->draft($tenant) ?? abort(404);
 
-            return app(KnowledgeRepository::class)->forRelease($tenant, $draft->id, true)->fewshot([$input['tag']], $input['client_type'] ?? null, 6, 0.7);
+            $snapshot = app(KnowledgeRepository::class)->forRelease($tenant, $draft->id, true);
+
+            return ['examples' => $snapshot->fewshot([$input['tag']], $input['client_type'] ?? null, 6, 0.7),
+                'bad_examples' => array_slice($snapshot->badExamples(), 0, 8)];
         });
 
-        return response()->json(['examples' => $examples])->header('Cache-Control', 'private, no-store');
+        return response()->json($examples)->header('Cache-Control', 'private, no-store');
     }
 
     public function saveBad(Request $request): mixed
@@ -177,7 +193,10 @@ final class FewshotController
             $data['fewshot']['examples'][] = ['tag' => trim($input['tag']), 'text' => $message['text'], 'client_type' => 'all',
                 'confidence' => (float) $input['confidence'], 'source' => 'dialog #'.substr($input['dialog'], -6),
                 'situation' => trim($input['situation'] ?? '')];
-            $repo->saveDraft($tenant, $draft->id, (int) $input['version'], $data);
+            DB::transaction(function () use ($repo, $tenant, $draft, $input, $data): void {
+                $repo->saveDraft($tenant, $draft->id, (int) $input['version'], $data);
+                app(AuditWriter::class)->record($tenant, new AuditEntry('knowledge.fewshot.added', 'knowledge_release', $draft->id));
+            });
         });
 
         return back()->with('status', 'Реплика менеджера добавлена в черновик.');

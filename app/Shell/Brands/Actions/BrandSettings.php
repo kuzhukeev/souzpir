@@ -39,10 +39,10 @@ final class BrandSettings
         });
     }
 
-    public function theme(Request $request, string $id, array $data, ?string $png): void
+    public function theme(Request $request, string $id, array $data, ?string $png, string $extension = 'png'): void
     {
         $ctx = $this->access->context($id);
-        $path = $png === null ? null : 'organizations/'.$ctx->organizationId.'/onboarding/logos/'.bin2hex(random_bytes(16)).'.png';
+        $path = $png === null ? null : 'organizations/'.$ctx->organizationId.'/onboarding/logos/'.bin2hex(random_bytes(16)).'.'.$extension;
         $disk = Storage::disk('local');
         if ($path && ! $disk->put($path, $png, ['visibility' => 'private'])) {
             throw new RuntimeException('Unable to store brand logo.');

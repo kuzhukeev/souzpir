@@ -45,3 +45,12 @@ test('ошибку загрузки можно повторить', async ({ pag
   await expect(page.getByRole('alert')).toHaveCount(0);
   expect(attempts).toBe(2);
 });
+
+test('даты показаны только если они есть у замеров', async ({page}) => {
+  await page.route('**/vision/actions/effect', route => route.fulfill({json:{items:[{id:'a',completed_by_name:'Иван Петров',before:{visibility:31,date:'2026-10-01'},after:{visibility:45,date:'2026-10-08'},delta:14}]}}));
+  await page.goto(fixture);
+  const table = page.getByRole('table');
+  await expect(table).toContainText('31 % → 45 %');
+  await expect(table).toContainText('01.10.2026');
+  await expect(table).toContainText('08.10.2026');
+});

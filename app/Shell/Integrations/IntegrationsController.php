@@ -3,6 +3,7 @@
 namespace App\Shell\Integrations;
 
 use App\Models\Brand;
+use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Brands\BrandAccess;
 use App\Shell\Integrations\CompanyNotifications\CompanyNotificationSettings;
 use App\Shell\Integrations\Keys\KeysController;
@@ -31,15 +32,15 @@ final class IntegrationsController
         $accounts = DB::table('channel_accounts')->where('organization_id', $ctx->organizationId)->where('brand_id', $ctx->brandId)->orderByDesc('updated_at')->get();
         $items = [
             ['telegram', 'Telegram', 'Переписка с клиентами в Telegram.', 'seller.channels.telegram'],
-            ['widget', 'Виджет', 'Общение с клиентами на сайте.', 'seller.channels.widget'],
+            ['widget', 'Виджет', 'Общение с клиентами на сайте.', 'seller.widget.index'],
             ['api', 'API и вебхуки', 'Ключи доступа и события для интеграций.', 'integrations.api'],
         ];
         $connections = [];
         foreach ($items as [$type, $title, $description, $route]) {
             $account = $accounts->firstWhere('type', $type);
-            $restricted = $type === 'api' && ! $canManage;
+            $restricted = ($type === 'api' && ! $canManage) || ($type === 'widget' && ! Gate::allows('seller.settings.write'));
             $connections[] = ['id' => $type, 'title' => $title, 'description' => $description,
-                'status' => $account?->status ?? 'disconnected', 'connected_at' => null,
+                'status' => $account?->status ?? 'disconnected', 'connected_at' => $account?->connected_at,
                 'settings_restricted' => $restricted, 'href' => ! $restricted && Route::has($route) ? route($route) : null];
         }
         $brand = Brand::query()->findOrFail($ctx->brandId);
@@ -50,7 +51,16 @@ final class IntegrationsController
             $connections[] = ['id' => strtolower($title), 'title' => $title, 'description' => 'Интеграция появится позже.', 'status' => 'soon', 'connected_at' => null, 'href' => null];
         }
 
-        return Inertia::render('Shell/Integrations/Index', compact('connections'));
+        $priceMail = DB::table('seller_email_price_settings')->where('organization_id', $ctx->organizationId)->where('brand_id', $ctx->brandId)->first();
+        $sellerEnabled = app(SellerModuleAccess::class)->enabled($ctx->organizationId, $ctx->brandId);
+        $canConfigurePriceMail = Gate::allows('seller.settings.write') && $sellerEnabled;
+        $connections[] = ['id' => 'price_email', 'title' => 'Почта для прайса', 'description' => 'Отправка прайс-листа клиентам по почте.',
+            'status' => ! $sellerEnabled ? 'disabled' : ($priceMail?->enabled ? 'configured' : 'disconnected'), 'connected_at' => null,
+            'settings_restricted' => ! Gate::allows('seller.settings.write'), 'href' => $canConfigurePriceMail && Route::has('seller.channels.email.index') ? route('seller.channels.email.index') : null];
+
+        $crmHref = $sellerEnabled && Gate::allows('seller.settings.read') && Route::has('seller.integrations.crm') ? route('seller.integrations.crm') : null;
+
+        return Inertia::render('Shell/Integrations/Index', compact('connections', 'crmHref'));
     }
 
     public function api(Request $request, WebhookService $webhooks, BrandReadApiAvailability $brandReadApi): Response
@@ -137,15 +147,20 @@ final class IntegrationsController
             ->exists();
     }
 
-    public function notifications(CompanyNotificationSettings $settings): Response
+    public function notifications(Request $request, CompanyNotificationSettings $settings): Response
     {
         Gate::authorize('integrations.write');
         $context = app(TenantContext::class);
         abort_unless($context->organizationId && $context->brandId, 404);
         $brand = Brand::query()->findOrFail($context->brandId);
+        $session = $request->session()->get('company_telegram_code');
+        $link = DB::table('company_telegram_links')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)->where('user_id', $request->user()->id)->where('expires_at', '>', now())->first();
+        $code = is_array($session) && ($session['brand'] ?? null) === $context->brandId && is_string($session['code'] ?? null) && $link && hash_equals($link->code_hash, hash('sha256', $session['code'])) ? $session['code'] : null;
 
         return Inertia::render('Shell/Integrations/Notifications', [
             ...$settings->forBrand($brand),
+            'telegram_link' => ['code' => $code, 'pending' => (bool) ($code && $link?->pending_chat), 'bot' => $code ? config('features.E1-08.defaults.telegram_bot_username') : null],
+            'company_deliveries' => DB::table('company_notification_deliveries')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)->orderByDesc('created_at')->orderByDesc('id')->limit(10)->get(['id', 'event_key', 'channel', 'status', 'created_at']),
             'permissions' => ['manage' => true],
         ]);
     }

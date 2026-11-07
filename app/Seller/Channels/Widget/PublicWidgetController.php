@@ -27,7 +27,9 @@ final class PublicWidgetController
         abort_unless($row && in_array(strtolower($origin), json_decode($row->origins, true) ?? [], true), 404);
         DB::table('widget_settings')->where('id', $row->id)->update(['last_seen_at' => now()]);
 
-        return response()->json(['appearance' => json_decode($row->appearance, true), 'behavior' => json_decode($row->behavior, true)])
+        $timezone = DB::table('brands')->where('organization_id', $row->organization_id)->where('id', $row->brand_id)->value('timezone');
+
+        return response()->json(['appearance' => json_decode($row->appearance, true), 'behavior' => json_decode($row->behavior, true), 'timezone' => $timezone ?: 'Europe/Moscow'])
             ->header('Access-Control-Allow-Origin', $origin)->header('Vary', 'Origin')->header('Cache-Control', 'no-store');
     }
 }

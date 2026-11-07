@@ -3,6 +3,7 @@
 namespace Tests\Feature\Vision\Competitors;
 
 use App\Tenancy\TenantContext;
+use App\Vision\Competitors\RecalculateMergedReport;
 use App\Vision\Competitors\SnapshotView;
 use App\Vision\Core\VisibilityMetrics;
 use Illuminate\Support\Facades\DB;
@@ -36,6 +37,9 @@ final class CompetitorsTest extends TenancyTestCase
                 return $tenant->brandId === $this->brand ? $this->snapshot : null;
             }
         });
+        $recalculation = \Mockery::mock(app(RecalculateMergedReport::class));
+        $recalculation->shouldReceive('create')->zeroOrMoreTimes()->andReturn('fixture');
+        app()->instance(RecalculateMergedReport::class, $recalculation);
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
         $this->get('/vision/competitors')->assertOk()->assertInertia(fn ($page) => $page->has('entities', 2));
         $this->post('/vision/competitors/track', ['name' => 'Альфа', 'tracked' => true])->assertRedirect();

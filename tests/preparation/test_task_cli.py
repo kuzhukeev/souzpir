@@ -35,6 +35,12 @@ class FakeApi:
             return {"task": copy.deepcopy(self.task), "claimToken": "private-test-token"}
         if payload["expectedRevision"] != self.task["revision"]:
             raise task_cli.TaskError("Revision conflict")
+        if action == "reopen":
+            if self.task["status"] != "done":
+                raise task_cli.TaskError("Only done can be reopened")
+            self.task.update(status="queue", ready=True, previousMerges=[{"mergeCommit": self.task.get("mergeCommit")}])
+            self.task["revision"] += 1
+            return {"task": copy.deepcopy(self.task)}
         if action != "merge" and payload["claimToken"] != "private-test-token":
             raise task_cli.TaskError("Owner mismatch")
         if action == "submit":
@@ -93,9 +99,123 @@ class TaskCliTests(unittest.TestCase):
         task_cli.git(self.root, "add", "planning/tasks.json")
         task_cli.git(self.root, "commit", "-m", "Record dependency")
 
+    def test_reopen_preserves_local_record_and_rejects_repeat(self):
+        self.api.task.update(status="done", mergeCommit="a" * 40, ready=False)
+        record = self.client.local_path("SP-001")
+        record.parent.mkdir(parents=True, exist_ok=True)
+        record.write_text('{"taskKey":"SP-001","status":"done"}', encoding="utf-8")
+        before = record.read_bytes()
+        result = self.client.reopen("SP-001", "remaining scenario")
+        self.assertEqual(result["status"], "queue")
+        self.assertEqual(record.read_bytes(), before)
+        self.assertEqual(self.api.calls, ["list", "reopen"])
+        with self.assertRaises(task_cli.TaskError):
+            self.client.reopen("SP-001", "again")
+        self.assertEqual(record.read_bytes(), before)
+
+    def completed_task(self):
+        worktree, _ = self.claim()
+        self.commit(worktree)
+        task_cli.git(self.root, "merge", "--no-ff", "codex/sp-001", "-m", "Integrate")
+        main = task_cli.git(self.root, "rev-parse", "main")
+        task_cli.git(self.root, "update-ref", "refs/remotes/origin/main", main)
+        self.api.task.update(status="done", ready=False, mergeCommit=main)
+        record = self.client.read_claim("SP-001")
+        record.pop("claimToken")
+        record.update(status="done", mergeCommit=main)
+        self.client.save_claim(record)
+        self.client.reopen("SP-001", "remaining scenario")
+        return worktree
+
+    @patch.object(task_cli, "windows_process_commands", return_value="")
+    def test_reopened_card_reuses_clean_completed_tree(self, _processes):
+        worktree = self.completed_task()
+        self.assertEqual(self.client.ready()["tasks"][0]["taskKey"], "SP-001")
+        result = self.client.claim("SP-001", "new-chat")
+        self.assertEqual(Path(result["worktree"]), worktree)
+        self.assertTrue(result["needsDependencyMerge"] is False)
+        self.assertEqual(self.client.read_claim("SP-001")["worker"], "new-chat")
+
+    @patch.object(task_cli, "windows_process_commands", return_value="")
+    def test_reopened_published_task_can_narrow_its_scope(self, _processes):
+        worktree = self.completed_task()
+        self.api.task["scope"] = ["app/Other/"]
+        plan_path = self.root / "planning" / "tasks.json"
+        plan = json.loads(plan_path.read_text(encoding="utf-8"))
+        plan["tasks"][0]["scope"] = self.api.task["scope"]
+        plan_path.write_text(json.dumps(plan), encoding="utf-8")
+        task_cli.git(self.root, "add", "planning/tasks.json")
+        task_cli.git(self.root, "commit", "-m", "Narrow completed task scope")
+        self.assertEqual(self.client.ready()["tasks"][0]["taskKey"], "SP-001")
+        result = self.client.claim("SP-001", "new-chat")
+        self.assertEqual(Path(result["worktree"]), worktree)
+        self.assertEqual(self.client.read_claim("SP-001")["scope"], ["app/Other/"])
+
+    @patch.object(task_cli, "windows_process_commands", return_value="")
+    def test_reopened_card_recreates_only_previously_removed_tree(self, _processes):
+        worktree = self.completed_task()
+        self.assertTrue(worktree.resolve().is_relative_to(self.root.resolve()))
+        task_cli.git(self.root, "worktree", "remove", str(worktree))
+        self.assertFalse(worktree.exists())
+        self.assertEqual(self.client.ready()["tasks"][0]["taskKey"], "SP-001")
+        result = self.client.claim("SP-001", "new-chat")
+        self.assertEqual(Path(result["worktree"]), worktree)
+        self.assertTrue(worktree.exists())
+
+    @patch.object(task_cli, "windows_process_commands", return_value="")
+    def test_reopened_card_preserves_uncommitted_changes(self, _processes):
+        worktree = self.completed_task()
+        modified = worktree / "app/Feature/file.php"
+        modified.write_text("local work must remain\n", encoding="utf-8")
+        with self.assertRaises(task_cli.TaskError):
+            self.client.claim("SP-001", "new-chat")
+        self.assertEqual(modified.read_text(encoding="utf-8"), "local work must remain\n")
+        self.assertEqual(self.api.task["status"], "queue")
+
+    @patch.object(task_cli, "windows_process_commands", return_value="")
+    def test_reopened_card_rejects_mismatched_completed_history(self, _processes):
+        worktree = self.completed_task()
+        self.api.task["previousMerges"] = [{"mergeCommit": "f" * 40}]
+        with self.assertRaises(task_cli.TaskError):
+            self.client.claim("SP-001", "new-chat")
+        self.assertTrue(worktree.exists())
+        self.assertEqual(self.api.task["status"], "queue")
+
+    def test_reopened_card_preserves_tree_with_running_process(self):
+        worktree = self.completed_task()
+        with patch.object(task_cli, "windows_process_commands", return_value=worktree.as_posix().casefold()):
+            with self.assertRaises(task_cli.TaskError):
+                self.client.claim("SP-001", "new-chat")
+        self.assertTrue(worktree.exists())
+        self.assertEqual(self.api.task["status"], "queue")
+
+    def test_reopen_rejects_active_task_without_mutating_queue(self):
+        self.api.task.update(status="progress", ready=False)
+        with self.assertRaises(task_cli.TaskError):
+            self.client.reopen("SP-001", "remaining scenario")
+        self.assertEqual(self.api.calls, ["list"])
+
+    def test_ci_exceptions_are_precise_and_block_concurrent_ownership(self):
+        api_tests = ["tests/Feature/Seller/Settings/Schedule/AssignmentE606CTest.php",
+                     "tests/Feature/SellerRuntime/Delivery/FakeDeliveryTest.php",
+                     "tests/Feature/SellerRuntime/FirstInboundRuntimeTest.php",
+                     "tests/Browser/E5-03D/api.spec.ts"]
+        scope = task_cli.CI_SCOPE_EXCEPTIONS["SP-E5-03F"]
+        self.assertTrue(all(task_cli.scope_allows(path, scope) for path in api_tests))
+        self.assertFalse(task_cli.scope_allows("tests/Browser/E5-03D/other.spec.ts", scope))
+        self.assertTrue(task_cli.scope_allows("tests/Browser/E1-08/ui-fixture.tsx", task_cli.CI_SCOPE_EXCEPTIONS["SP-E1-03B"]))
+        self.assertTrue(task_cli.scope_allows("tests/Browser/Layout/fixture.tsx", task_cli.CI_SCOPE_EXCEPTIONS["SP-E1-03B"]))
+        self.assertFalse(task_cli.scope_allows("tests/Browser/Layout/layout.spec.ts", task_cli.CI_SCOPE_EXCEPTIONS["SP-E1-03B"]))
+        self.assertFalse(task_cli.scope_allows("tests/Browser/E1-08/context-recovery.spec.ts", task_cli.CI_SCOPE_EXCEPTIONS["SP-E1-03B"]))
+        webhook = "tests/Feature/SP-E1-10F/WebhookConfigurationTest.php"
+        self.assertTrue(task_cli.scope_allows(webhook, task_cli.CI_SCOPE_EXCEPTIONS["SP-E1-10J"]))
+        candidate = {"project": "souzpir", "taskKey": "SP-X", "scope": [webhook]}
+        active = {"project": "souzpir", "taskKey": "SP-E1-10J", "status": "progress", "scope": []}
+        self.assertEqual(task_cli.extra_scope_blockers(candidate, [active]), ["SP-E1-10J"])
+
     def test_ready_does_not_mutate(self):
         self.assertEqual(len(self.client.ready()["tasks"]), 1)
-        self.assertEqual(self.api.calls, ["ready"])
+        self.assertEqual(self.api.calls, ["ready", "list"])
 
     def test_released_clean_worktree_can_be_claimed_without_replacing_it(self):
         worktree, original = self.claim()
@@ -106,6 +226,98 @@ class TaskCliTests(unittest.TestCase):
         self.assertEqual(reclaimed["baseCommit"], original["baseCommit"])
         self.assertEqual(self.client.read_claim("SP-001")["worker"], "another-chat")
         self.assertTrue(worktree.exists())
+
+    def test_reclaim_clean_tree_at_older_published_main_without_task_remote(self):
+        worktree, original = self.claim()
+        self.commit(self.root, "app/Common/published.php")
+        task_cli.git(worktree, "merge", "--ff-only", "main")
+        self.client.release("SP-001", "Transfer")
+        self.commit(self.root, "app/Common/newer.php")
+        published = task_cli.git(self.root, "rev-parse", "main")
+        task_cli.git(self.root, "update-ref", "refs/remotes/origin/main", published)
+        self.assertEqual(self.client.ready()["tasks"][0]["taskKey"], "SP-001")
+        reclaimed = self.client.claim("SP-001", "new-owner")
+        self.assertEqual(reclaimed["baseCommit"], original["baseCommit"])
+
+    def test_reclaim_clean_released_tree_with_new_merged_dependency(self):
+        worktree, original = self.claim()
+        self.client.release("SP-001", "Waiting for new dependency")
+        dependency = task_cli.git(self.root, "rev-parse", "main")
+        self.dependency(dependency)
+        task_cli.git(self.root, "update-ref", "refs/remotes/origin/main", task_cli.git(self.root, "rev-parse", "main"))
+        task_cli.git(worktree, "merge", "--ff-only", "main")
+        self.assertEqual(self.client.ready()["tasks"][0]["taskKey"], "SP-001")
+        reclaimed = self.client.claim("SP-001", "new-owner")
+        self.assertEqual(reclaimed["baseCommit"], original["baseCommit"])
+        record = self.client.read_claim("SP-001")
+        self.assertEqual(record["dependsOn"], ["SP-000"])
+        self.assertEqual(record["dependencyCommits"], {"SP-000": dependency})
+
+    def test_reclaim_reserves_saved_tree_but_submit_requires_new_dependency(self):
+        worktree, _ = self.claim()
+        self.commit(worktree)
+        saved = task_cli.git(worktree, "rev-parse", "HEAD")
+        self.client.release("SP-001", "Waiting for new dependency")
+        self.commit(self.root, "app/Common/dependency.php")
+        dependency = task_cli.git(self.root, "rev-parse", "main")
+        self.dependency(dependency)
+        reclaimed = self.client.claim("SP-001", "new-owner")
+        self.assertTrue(reclaimed["needsDependencyMerge"])
+        self.assertEqual(task_cli.git(worktree, "rev-parse", "HEAD"), saved)
+        with self.assertRaisesRegex(task_cli.TaskError, "absent from the selected main base"):
+            self.client.submit("SP-001", "Scoped work", ["Checked"])
+        self.assertEqual(self.api.task["status"], "progress")
+        task_cli.git(worktree, "merge", "--no-ff", "main", "-m", "Integrate dependency")
+        self.assertEqual(self.client.submit("SP-001", "Scoped work", ["Checked"])["status"], "review")
+
+    def test_reclaim_allows_scope_expansion_but_checks_saved_work_against_original_scope(self):
+        worktree, _ = self.claim()
+        self.commit(worktree)
+        self.client.release("SP-001", "Scope expanded")
+        self.api.task["scope"].append("app/Additional/")
+        path = self.root / "planning" / "tasks.json"
+        plan = json.loads(path.read_text(encoding="utf-8"))
+        plan["tasks"][0]["scope"] = self.api.task["scope"]
+        path.write_text(json.dumps(plan), encoding="utf-8")
+        task_cli.git(self.root, "add", "planning/tasks.json")
+        task_cli.git(self.root, "commit", "-m", "Approve expanded scope")
+        self.assertEqual(self.client.ready()["tasks"][0]["taskKey"], "SP-001")
+        self.client.claim("SP-001", "new-owner")
+        self.assertEqual(self.client.read_claim("SP-001")["scope"], self.api.task["scope"])
+
+    def test_reclaim_does_not_use_expanded_scope_to_authorize_old_changes(self):
+        worktree, _ = self.claim()
+        self.commit(worktree, "app/Additional/unapproved.php")
+        self.client.release("SP-001", "Scope expanded")
+        self.api.task["scope"].append("app/Additional/")
+        path = self.root / "planning" / "tasks.json"
+        plan = json.loads(path.read_text(encoding="utf-8"))
+        plan["tasks"][0]["scope"] = self.api.task["scope"]
+        path.write_text(json.dumps(plan), encoding="utf-8")
+        task_cli.git(self.root, "add", "planning/tasks.json")
+        task_cli.git(self.root, "commit", "-m", "Approve expanded scope")
+        with self.assertRaisesRegex(task_cli.TaskError, "preserved changes"):
+            self.client.claim("SP-001", "new-owner")
+        self.assertEqual(self.api.task["status"], "queue")
+
+    def test_reclaim_preserves_unpublished_scoped_commit(self):
+        worktree, original = self.claim()
+        self.commit(worktree)
+        head = task_cli.git(worktree, "rev-parse", "HEAD")
+        self.client.release("SP-001", "Transfer")
+        self.assertEqual(self.client.ready()["tasks"][0]["taskKey"], "SP-001")
+        reclaimed = self.client.claim("SP-001", "new-owner")
+        self.assertEqual(reclaimed["baseCommit"], original["baseCommit"])
+        self.assertEqual(task_cli.git(worktree, "rev-parse", "HEAD"), head)
+        self.assertEqual((worktree / "app/Feature/file.php").read_text(encoding="utf-8"), "sample\n")
+
+    def test_reclaim_rejects_unpublished_out_of_scope_commit_without_remote(self):
+        worktree, _ = self.claim()
+        self.commit(worktree, "app/Common/unapproved.php")
+        self.client.release("SP-001", "Transfer")
+        self.assertEqual(self.client.ready()["tasks"], [])
+        with self.assertRaisesRegex(task_cli.TaskError, "preserved changes"):
+            self.client.claim("SP-001", "new-owner")
 
     def test_reclaim_preserves_published_task_commits_and_original_base(self):
         worktree, original = self.claim()
@@ -294,6 +506,36 @@ class TaskCliTests(unittest.TestCase):
         self.assertFalse(task_cli.scope_allows(".local/claims/task.json", ["/"]))
         self.assertFalse(task_cli.scope_allows(".LOCAL/claims/task.json", ["/"]))
         self.assertFalse(task_cli.scope_allows("app/../outside.php", ["/"]))
+
+    def test_e507b_ci_exception_allows_only_moved_fixture_files(self):
+        scope = task_cli.CI_SCOPE_EXCEPTIONS["SP-E5-07B"]
+        for name in ("preview-e507b.html", "preview-e507b.spec.ts", "preview-e507b.tsx", "vite-e507b.config.ts"):
+            self.assertTrue(task_cli.scope_allows("tests/Browser/E5-07B/" + name, scope))
+        self.assertFalse(task_cli.scope_allows("tests/Browser/E5-07B/other.spec.ts", scope))
+
+    def test_owner_reserved_tasks_are_not_issued_to_codex(self):
+        with patch.object(task_cli, "CLAUDE_PILOT_TASKS", frozenset(("SP-001",))):
+            self.assertEqual(self.client.ready()["tasks"], [])
+            with self.assertRaisesRegex(task_cli.TaskError, "reserved for claude:pilot"):
+                self.client.claim("SP-001", "codex:executor")
+            self.assertNotIn("claim", self.api.calls)
+            claimed = self.client.claim("SP-001", "claude:pilot")
+            self.assertEqual(claimed["taskKey"], "SP-001")
+
+    def test_e501h_ci_exception_is_limited_to_phpunit_config(self):
+        scope = task_cli.CI_SCOPE_EXCEPTIONS["SP-E5-01H"]
+        self.assertTrue(task_cli.scope_allows("phpunit.xml", scope))
+        self.assertFalse(task_cli.scope_allows("composer.json", scope))
+
+    def test_e815f_ci_exception_is_limited_to_legacy_weekly_spec(self):
+        scope = task_cli.CI_SCOPE_EXCEPTIONS["SP-E8-15F"]
+        self.assertTrue(task_cli.scope_allows("tests/Browser/E8-15E/weekly.spec.ts", scope))
+        self.assertFalse(task_cli.scope_allows("tests/Browser/E8-15E/other.spec.ts", scope))
+
+    def test_e706c_ci_exception_is_limited_to_legacy_crm_spec(self):
+        scope = task_cli.CI_SCOPE_EXCEPTIONS["SP-E7-06C"]
+        self.assertTrue(task_cli.scope_allows("tests/Browser/E6-09/crm.spec.ts", scope))
+        self.assertFalse(task_cli.scope_allows("tests/Browser/E6-09/other.spec.ts", scope))
 
     def test_submit_allows_default_generated_contracts_only(self):
         worktree, _ = self.claim()

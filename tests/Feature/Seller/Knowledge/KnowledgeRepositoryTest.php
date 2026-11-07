@@ -125,6 +125,14 @@ final class KnowledgeRepositoryTest extends TenancyTestCase
             $next = $store->setFact($ctx, $draft['id'], $fact->id, $saved['version'] + 1, $fact->text, 'active', 'import');
             $second = $store->publish($ctx, $draft['id'], $next);
             $this->assertContains($fact->text, $second->all('facts')[0]['facts']);
+            $restored = app(KnowledgeRepository::class)->rollbackToDraft($ctx, $first->releaseId());
+            self::assertSame($second->releaseId(), app(KnowledgeRepository::class)->published($ctx)->releaseId());
+            self::assertSame('building', DB::table('knowledge_releases')->where('id', $draft['id'])->value('status'));
+            $restoredFact = DB::table('kn_facts as f')->join('kn_fact_groups as g', 'g.id', '=', 'f.group_id')
+                ->where('g.release_id', $restored['id'])->where('f.logical_id', $fact->logical_id)->select('f.*')->first();
+            self::assertNotNull($restoredFact);
+            self::assertSame('inactive', $restoredFact->status);
+            self::assertSame('import', $restoredFact->source);
             $store->rollback($ctx, $first->releaseId());
             $this->assertNotContains($fact->text, app(KnowledgeRepository::class)->published($ctx)->all('facts')[0]['facts']);
             try {

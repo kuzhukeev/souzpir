@@ -41,10 +41,14 @@ final class ReportData
         $confirmed = DB::table('snapshot_confirmations')->where('organization_id', $context->organizationId)
             ->where('brand_id', $context->brandId)->orderByDesc('created_at')
             ->get(['measurement_id', 'created_at']);
-        $reports = DB::table('vision_reports')->where('organization_id', $context->organizationId)
-            ->where('brand_id', $context->brandId)->whereIn('measurement_id', $confirmed->pluck('measurement_id'))
-            ->orderByDesc('created_at')->orderByDesc('id')
-            ->get(['id', 'measurement_id', 'revision', 'created_at']);
+        $reports = DB::table('vision_reports as r')
+            ->join('measurements as m', function ($join): void {
+                $join->on('m.id', '=', 'r.measurement_id')->on('m.organization_id', '=', 'r.organization_id')->on('m.brand_id', '=', 'r.brand_id');
+            })
+            ->where('r.organization_id', $context->organizationId)->where('r.brand_id', $context->brandId)
+            ->whereIn('r.measurement_id', $confirmed->pluck('measurement_id'))
+            ->orderByDesc('m.created_at')->orderByDesc('m.id')->orderByDesc('r.revision')->orderByDesc('r.id')
+            ->get(['r.id', 'r.measurement_id', 'r.revision', 'r.created_at', 'm.created_at as measurement_created_at', 'm.finished_at as measurement_finished_at']);
         $selected = $reportId ?? $reports->first()?->id;
         $report = null;
         if ($selected !== null) {
@@ -54,23 +58,41 @@ final class ReportData
             $reviewed = app(ConfirmedClarifications::class)->read(['organization_id' => $context->organizationId, 'brand_id' => $context->brandId],
                 $payload['measurement_id'], $payload['metrics']['slots'] ?? []);
             $changes = null;
-            $seen = false;
+            $history = [];
+            $previousIntents = null;
+            $selectedRow = $reports->firstWhere('id', $selected);
+            $signature = app(ReportHistory::class)->signature($payload);
+            $currentPoint = app(ReportHistory::class)->point($selectedRow, $payload);
+            $seenMeasurements = [$payload['measurement_id'] => true];
+            $pastSelected = false;
             foreach ($reports as $candidate) {
-                if ($candidate->id === $selected) {
-                    $seen = true;
+                if ($candidate->measurement_id === $payload['measurement_id']) {
+                    $pastSelected = true;
 
                     continue;
                 }
-                if (! $seen || $candidate->measurement_id === $payload['measurement_id']) {
+                if (! $pastSelected || isset($seenMeasurements[$candidate->measurement_id])) {
                     continue;
                 }
+                $seenMeasurements[$candidate->measurement_id] = true;
                 try {
                     $previous = app(VisionReportReader::class)->read($candidate->id);
-                    $changes = app(ReportSections::class)->compare($previous, $payload);
+                    if ($signature === null || app(ReportHistory::class)->signature($previous) !== $signature) {
+                        continue;
+                    }
+                    $point = app(ReportHistory::class)->point($candidate, $previous);
+                    if ($point !== null) {
+                        $history[] = $point;
+                        $previousIntents ??= app(ClarificationVisibility::class)->apply($context, $previous)['metrics']['intents'] ?? null;
+                        $changes ??= app(ReportSections::class)->compare($previous, $payload);
+                    }
                 } catch (\LogicException) {
-                    // An inaccessible previous snapshot must not hide the selected report.
+                    // A broken earlier report must not hide the selected report.
                 }
-                break;
+            }
+            $history = array_reverse($history);
+            if ($signature !== null && $currentPoint !== null) {
+                $history[] = $currentPoint;
             }
             $measurement = DB::table('measurements')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)->where('id', $payload['measurement_id'])->first(['profile_snapshot', 'profile_checksum']);
             $site = $this->siteFromProfile($measurement);
@@ -81,9 +103,33 @@ final class ReportData
             $metrics = $adjusted['metrics'];
             $panel = $metrics['panel'] ?? [];
             $visibility = $metrics['visibility'] ?? [];
-            $report = [
-                'id' => $selected, 'measurement_id' => $payload['measurement_id'],
-                'sections' => [...app(ReportSections::class)->make([...$payload, 'metrics' => $metrics, 'reviewed_facts' => $reviewed]), 'changes' => $changes, 'site' => $site, 'site_audit' => $siteAudit],
+            $reportDate = $reports->firstWhere('id', $selected)->created_at;
+            $presence = DB::table('vision_source_presence')->where('organization_id', $context->organizationId)
+                ->where('brand_id', $context->brandId)->where('updated_at', '<=', $reportDate)->pluck('presence', 'domain');
+            $sections = app(ReportSections::class)->make([...$payload, 'metrics' => $metrics, 'reviewed_facts' => $reviewed]);
+            foreach ($sections['sources'] as &$source) {
+                if ($source['presence'] === null) {
+                    $source['presence'] = match ($presence[$source['domain']] ?? null) {
+                        'present' => true,
+                        'absent' => false,
+                        default => null,
+                    };
+                }
+            }
+            unset($source);
+            $report = ['id' => $selected, 'measurement_id' => $payload['measurement_id'],
+                'sections' => [...$sections, 'changes' => $changes, 'site' => $site, 'site_audit' => $siteAudit],
+                'topics' => collect($metrics['intents'] ?? [])->filter(fn ($item, $key) => is_string($key) && $key !== ''
+                    && is_array($item) && is_numeric($item['mention_rate'] ?? null) && ($item['mention_denominator'] ?? 0) > 0)
+                    ->map(function ($item, $key) use ($previousIntents): array {
+                        $before = $previousIntents[$key] ?? null;
+                        $delta = is_array($before) && is_numeric($before['mention_rate'] ?? null) && ($before['mention_denominator'] ?? 0) > 0
+                            ? round((float) $item['mention_rate'] - (float) $before['mention_rate'], 2) : null;
+
+                        return ['name' => $key, 'visibility' => (float) $item['mention_rate'], 'delta' => $delta];
+                    })
+                    ->sortByDesc('visibility')->take(10)->values()->all(),
+                'visibility_history' => $history,
                 'visibility' => $visibility['macro_percent'] ?? null,
                 'visibility_before' => $payload['metrics']['visibility']['macro_percent'] ?? null,
                 'clarifications_applied' => $adjusted['applied'],
@@ -104,9 +150,10 @@ final class ReportData
         }
 
         return [
+            'questionnaire_complete' => DB::table('visibility_quizzes')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)->whereIn('status', ['submitted', 'superseded'])->exists(),
             'confirmed' => $confirmed->map(fn ($row) => ['measurement_id' => $row->measurement_id, 'confirmed_at' => $row->created_at])->all(),
             'reports' => $reports->map(fn ($row) => ['id' => $row->id, 'measurement_id' => $row->measurement_id,
-                'revision' => $row->revision, 'created_at' => $row->created_at])->all(),
+                'revision' => $row->revision, 'created_at' => $row->created_at, 'measurement_at' => $row->measurement_finished_at ?? $row->measurement_created_at])->all(),
             'report' => $report,
         ];
     }

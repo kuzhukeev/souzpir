@@ -12,6 +12,8 @@ class SiteInspector
 
     private int $requests = 0;
 
+    private float $deadline = 0;
+
     public function __construct(private CrawlerClient $crawler) {}
 
     public function inspect(#[\SensitiveParameter] string $url, ?int $pageLimit = null, ?callable $progress = null): array
@@ -31,9 +33,10 @@ class SiteInspector
 
     private function inspectInternal(#[\SensitiveParameter] string $url, ?int $pageLimit, ?callable $progress): array
     {
-        $pageLimit = max(1, min(5, $pageLimit ?? config('features.E8-01B.defaults.crawl_pages', 5)));
+        $pageLimit = max(1, min(50, $pageLimit ?? config('features.E8-01B.defaults.crawl_pages', 5)));
         $this->robotsCache = [];
         $this->requests = 0;
+        $this->deadline = $this->clock() + 60;
         $issues = [];
         $robots = $this->robots($url);
         try {
@@ -42,6 +45,7 @@ class SiteInspector
             $root = ['url' => $url, 'body' => '', 'status' => 0, 'fetched_at' => now()->toIso8601String()];
             $issues[] = 'Главная страница не загружена: правила обхода недоступны, запрещают путь либо безопасная загрузка не выполнена. Отсутствие данных не означает плохое качество сайта.';
         }
+        $this->checkDeadline();
         $host = parse_url($root['url'], PHP_URL_HOST);
         $origin = $this->origin($root['url']);
         $pages = $root['status'] ? [$root] : [];
@@ -54,6 +58,7 @@ class SiteInspector
                 $issues[] = 'sitemap.xml не удалось проверить.';
             }
         }
+        $this->checkDeadline();
         $links = $this->links($root['body'], $root['url']);
         $selectedLinks = array_slice($links, 0, $pageLimit - 1);
         $totalPages = 1 + count($selectedLinks);
@@ -62,6 +67,7 @@ class SiteInspector
             $progress($processed, $totalPages);
         }
         foreach ($selectedLinks as $link) {
+            $this->checkDeadline();
             if (! $this->allowed($link, $robots)) {
                 $issues[] = 'Путь исключён robots.txt: '.parse_url($link, PHP_URL_PATH);
                 if ($progress) {
@@ -79,9 +85,11 @@ class SiteInspector
                 $progress(++$processed, $totalPages);
             }
         }
+        $this->checkDeadline();
         $texts = [];
         $schemas = [];
         foreach ($pages as $page) {
+            $this->checkDeadline();
             $dom = $this->dom($page['body']);
             $xp = new \DOMXPath($dom);
             $commercial = $this->commercialDom($dom);
@@ -153,6 +161,8 @@ class SiteInspector
         }
         $aiAccess = $this->aiAccess($root['url'], $robots, $llms, $sitemap);
         $aiAccess['captcha'] = $this->captchaIndicators($pages);
+
+        $this->checkDeadline();
 
         return ['url' => $url, 'final_url' => $root['url'], 'readiness' => Metrics::readiness($criteria), 'criteria' => $criteria, 'ai_access' => $aiAccess, 'issues' => $issues, 'pages' => $texts, 'crawled_pages' => count($pages), 'scope' => 'Публичный HTML, до '.$pageLimit.' страниц. Без исполнения JavaScript. Автоматически подтверждаются только приведённые свидетельства; семантическая проверка и AI-поиск указаны отдельно.'];
     }
@@ -255,11 +265,24 @@ class SiteInspector
 
     private function fetchBounded(string $url): array
     {
-        if ($this->requests >= 10) {
+        $this->checkDeadline();
+        if ($this->requests >= 60) {
             throw new \RuntimeException('Per-site request budget reached');
         }$this->requests++;
 
-        return $this->crawler->fetch($url);
+        return $this->crawler->fetch($url, min(8, max(0.1, $this->deadline - $this->clock())));
+    }
+
+    protected function clock(): float
+    {
+        return microtime(true);
+    }
+
+    private function checkDeadline(): void
+    {
+        if ($this->clock() >= $this->deadline) {
+            throw new \RuntimeException('Site audit timed out.');
+        }
     }
 
     private function robots(string $url): ?array

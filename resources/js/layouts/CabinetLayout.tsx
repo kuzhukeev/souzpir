@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link, usePage } from '@inertiajs/react';
 import * as Dialog from '@radix-ui/react-dialog';
-import { Bell, ChevronLeft, ChevronRight, Menu, X } from 'lucide-react';
+import { Bell, ChevronLeft, ChevronRight, Menu, Search, X } from 'lucide-react';
 import { Sidebar } from '@/components/navigation/Sidebar';
 import { BrandSwitch } from '@/components/navigation/BrandSwitch';
 import type { SharedPropsV1 } from '@/types/generated/data';
@@ -66,7 +66,7 @@ export default function CabinetLayout({
   }, [props.theme]);
   const canSeeNotifications = props.can?.['profile.own'] === true;
   const notifications = Object.values(props.ziggy?.routes ?? {}).some(
-    (r) => r.uri === 'dashboard' && r.methods.includes('GET'),
+    (r) => r.uri === 'notification-center' && r.methods.includes('GET'),
   );
   return (
     <div className="min-h-dvh bg-(--color-bg) text-(--color-ink)">
@@ -92,7 +92,7 @@ export default function CabinetLayout({
           </div>
         </aside>
         <div className="min-w-0 flex-1">
-          <header className={`flex min-h-(--spacing-header) items-center gap-3 border-b border-(--color-border) px-4 md:px-6 ${props.brandAppearance ? 'bg-(--color-brand-primary-soft)' : 'bg-(--color-surface)'}`}>
+          <header className={`flex min-h-(--spacing-header) min-w-0 flex-wrap items-center gap-2 border-b border-(--color-border) px-3 md:flex-nowrap md:gap-3 md:px-6 ${props.brandAppearance ? 'bg-(--color-brand-primary-soft)' : 'bg-(--color-surface)'}`}>
             <Dialog.Root open={mobileOpen} onOpenChange={setMobileOpen}>
               <Dialog.Trigger asChild>
                 <button type="button" aria-label="Открыть меню" className={`${button} md:hidden`}>
@@ -119,12 +119,12 @@ export default function CabinetLayout({
                 </Dialog.Content>
               </Dialog.Portal>
             </Dialog.Root>
-            <div className="min-w-0 flex-1" />
+            <div className="hidden min-w-0 flex-1 md:block"><div className="flex max-w-md items-center gap-2 rounded-lg bg-(--color-surface-muted) px-3 py-2 text-sm text-(--color-ink-muted)" title="Поиск пока недоступен"><Search size={18} aria-hidden="true" /><span>Поиск пока недоступен</span></div></div>
             <BrandSwitch brand={props.brand} brands={props.brands} ready={brandSwitchReady} />
             {canSeeNotifications &&
               (notifications ? (
                 <Link
-                  href="/dashboard#notifications"
+                  href="/notification-center"
                   aria-label={
                     props.unread === null ? 'Уведомления' : `Уведомления: ${props.unread}`
                   }

@@ -1,4 +1,5 @@
-import { Link, router } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
+import { FileDown, FileSpreadsheet, Mail } from 'lucide-react';
 import { useState } from 'react';
 
 type Dialog = {
@@ -16,6 +17,9 @@ type Props = {
   from: string;
   to: string;
   total: number;
+  contact?: number;
+  handed?: number;
+  closed?: number;
   messageCount?: number;
   botCompleted?: number;
   dialogs?: Dialog[];
@@ -25,10 +29,13 @@ type Props = {
   triggerStats?: Record<string, { dialogs: number; with_contact: number }>;
   triggers?: Record<string, number>;
   topics: Record<string, number>;
+  daily?: Record<string, number>;
   channel?: string;
   source?: string;
   manager?: string;
+  managerOptions?: {id:string;name:string}[];
   canManage?: boolean;
+  subscription?: {day:string; recipients:string[]} | null;
   managers?: { name: string; assigned: number; taken: number; closed: number }[];
 };
 const card = 'mt-5 rounded-xl border border-(--color-border) bg-(--color-surface) p-5';
@@ -54,9 +61,15 @@ const names: Record<string, string> = {
 };
 const days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 export default function Details({ data: a, activeTab }: { data: Props; activeTab?: string }) {
+  const {brand} = usePage<{brand:{name:string}|null}>().props;
   const [reportType, setReportType] = useState('weekly');
   const [email, setEmail] = useState('');
   const [sending, setSending] = useState(false);
+  const [day, setDay] = useState(a.subscription?.day ?? 'mon');
+  const [recipients, setRecipients] = useState<string[]>(a.subscription?.recipients ?? []);
+  const [recipientInput, setRecipientInput] = useState('');
+  const [subBusy, setSubBusy] = useState(false);
+  const [subStatus, setSubStatus] = useState('');
   const [sendStatus, setSendStatus] = useState('');
   const dialogs = a.dialogs ?? [];
   const longDialogs = dialogs.filter((d) => d.messages >= 8 && d.has_contact === false);
@@ -279,7 +292,13 @@ export default function Details({ data: a, activeTab }: { data: Props; activeTab
         className={card}
       >
         <h2 className="text-xl font-bold">Отчёт</h2>
-        <label className="mt-3 block text-sm print:hidden">
+        <fieldset className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4 print:hidden"><legend className="text-sm font-semibold">Выберите отчёт</legend>{[
+          ['weekly','Сводка владельцу','Ключевые показатели за период'],
+          ['dialogs','Диалоги','Ход и результаты диалогов'],
+          ['topics','Темы и вопросы','Темы обращений и пробелы'],
+          ...(a.canManage ? [['managers','Воронка по менеджерам','Показатели работы команды']] : []),
+        ].map(([value,title,description])=><label key={value} className={`flex min-h-24 cursor-pointer items-start gap-3 rounded-xl border p-4 text-sm ${reportType===value?'border-(--color-link) bg-(--color-brand-primary-soft)':'border-(--color-border) bg-(--color-surface)'}`}><input type="radio" name="report-card" checked={reportType===value} onChange={()=>setReportType(value)} className="mt-1 size-4 cursor-pointer accent-(--color-link)"/><span><span className="block font-semibold">{title}</span><span className="mt-1 block text-(--color-ink-muted)">{description}</span></span></label>)}</fieldset>
+        <label className="sr-only focus-within:not-sr-only print:hidden">
           Тип отчёта
           <select
             value={reportType}
@@ -292,7 +311,8 @@ export default function Details({ data: a, activeTab }: { data: Props; activeTab
             <option value="topics">Темы и вопросы</option>
           </select>
         </label>
-        <h3 className="mt-4 font-semibold">
+        <div className="mt-4 grid gap-5 xl:grid-cols-[minmax(0,3fr)_minmax(18rem,2fr)]"><div className="min-w-0">
+        <div className="mt-4 rounded-xl border border-(--color-border) bg-(--color-surface-muted) p-4"><p className="text-sm font-semibold text-(--color-link)">{brand?.name ?? 'Бренд'}</p><h3 className="mt-2 font-semibold">
           Предпросмотр:{' '}
           {reportType === 'weekly'
             ? 'Сводка владельцу'
@@ -304,11 +324,21 @@ export default function Details({ data: a, activeTab }: { data: Props; activeTab
         </h3>
         <p className="mt-2 text-sm">
           Период: {a.from} — {a.to}. Канал: {a.channel || 'все'}; источник:{' '}
-          {a.source === 'unknown' ? 'неизвестен' : 'все'}.
+          {a.source === 'unknown' ? 'неизвестен' : 'все'}{a.manager ? `; менеджер: ${a.managerOptions?.find(item=>item.id===a.manager)?.name ?? 'не найден'}` : ''}.
         </p>
         <p className="mt-2 text-sm">
           Диалогов: {a.total}; сообщений: {a.messageCount ?? 0}.
         </p>
+        {reportType === 'weekly' && (
+          <dl className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3" aria-label="Показатели сводки">
+            {[['С контактом', a.contact], ['Передано менеджеру', a.handed], ['Завершено', a.closed]].map(([label, value]) => (
+              <div key={label} className="rounded-lg bg-(--color-surface-muted) p-3 text-sm">
+                <dt>{label}</dt><dd className="mt-1 text-lg font-semibold">{value ?? 'Нет данных'}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
+        {reportType === 'weekly' && <section className="mt-4" aria-label="Динамика диалогов"><h4 className="text-sm font-semibold">Диалоги за период</h4>{Object.entries(a.daily ?? {}).length ? <ul className="mt-2 space-y-2">{Object.entries(a.daily ?? {}).slice(-7).map(([date,count])=><li key={date} className="flex items-center gap-3 text-sm"><time dateTime={date} className="w-24 shrink-0">{date}</time><span aria-hidden="true" className="h-2 flex-1 overflow-hidden rounded-full bg-(--color-border)"><span className="block h-full rounded-full bg-(--color-action)" style={{width:`${Math.max(0,Math.min(100,count/Math.max(1,...Object.values(a.daily ?? {}))*100))}%`}}/></span><span>{count}</span></li>)}</ul> : <p className="mt-2 text-sm text-(--color-ink-muted)">Данных за период пока нет.</p>}</section>}
         {reportType === 'topics' && (
           <p className="mt-2 text-sm">
             Сохранённых тем: {Object.keys(a.topics).length}; неизвестных вопросов:{' '}
@@ -330,9 +360,11 @@ export default function Details({ data: a, activeTab }: { data: Props; activeTab
             ))}
           </ul>
         )}
+        </div>
         {a.canManage && (
           <form
-            className="mt-4 flex flex-wrap items-end gap-2 print:hidden"
+            id="report-send"
+            className="mt-4 print:hidden"
             onSubmit={(event) => {
               event.preventDefault();
               setSendStatus('');
@@ -378,13 +410,6 @@ export default function Details({ data: a, activeTab }: { data: Props; activeTab
                 className="mt-1 block min-h-11 rounded-lg border border-(--color-border) bg-(--color-surface) px-3"
               />
             </label>
-            <button
-              type="submit"
-              disabled={sending}
-              className="min-h-11 cursor-pointer rounded-lg border border-(--color-border) px-3 text-sm disabled:opacity-50"
-            >
-              {sending ? 'Подготавливаем…' : 'Отправить тестовый отчёт'}
-            </button>
           </form>
         )}
         {sendStatus && (
@@ -392,18 +417,36 @@ export default function Details({ data: a, activeTab }: { data: Props; activeTab
             {sendStatus}
           </p>
         )}
-        <p className="mt-3 text-sm text-(--color-ink-muted)">Подписка на отчёт пока недоступна.</p>
-        <p className="mt-2 text-sm text-(--color-ink-muted)">
-          Для PDF выберите «Сохранить как PDF» в окне печати. В отчёт войдут данные и фильтры на
-          этой странице.
-        </p>
-        <button
-          type="button"
-          onClick={() => window.print()}
-          className="mt-3 min-h-11 cursor-pointer rounded-lg bg-(--color-link) px-4 text-sm font-semibold text-white print:hidden"
+        <div className="mt-3 flex flex-wrap gap-2 print:hidden">
+        {a.canManage && <button type="submit" form="report-send" disabled={sending} className="inline-flex min-h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-(--color-border) px-4 text-sm font-semibold text-(--color-link) disabled:opacity-50"><Mail size={17} aria-hidden="true" />{sending ? 'Подготавливаем…' : 'Отправить тестовый отчёт'}</button>}
+        <a
+          href={`/seller/analytics/report.pdf?${new URLSearchParams({ report_type: reportType, from: a.from, to: a.to, channel: a.channel ?? '', source: a.source ?? '', manager: a.manager ?? '' })}`}
+          className="inline-flex min-h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-(--color-border) px-4 text-sm font-semibold text-(--color-link)"
         >
-          Печать / PDF
-        </button>
+          <FileDown size={17} aria-hidden="true" /> Скачать PDF
+        </a>
+        <a href={`/seller/analytics/export.csv?${new URLSearchParams({from:a.from,to:a.to,channel:a.channel??'',source:a.source??'',manager:a.manager??''})}`} className="inline-flex min-h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-(--color-border) px-4 text-sm font-semibold text-(--color-link)"><FileSpreadsheet size={17} aria-hidden="true" /> Скачать CSV</a>
+        </div>
+        </div>{a.canManage && <aside className="min-w-0 rounded-xl border border-(--color-border) bg-(--color-surface-muted) p-4">
+        <form className="space-y-4 print:hidden" onSubmit={event=>{
+          event.preventDefault(); setSubStatus('');
+          const pending = recipientInput.split(/[,;\n]/).map(value=>value.trim()).filter(Boolean);
+          const all = [...recipients, ...pending];
+          if (!all.length || all.length > 10 || all.some(value => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) || new Set(all.map(value => value.toLowerCase())).size !== all.length) {
+            setSubStatus('Укажите от 1 до 10 разных корректных адресов.'); return;
+          }
+          setRecipients(all); setRecipientInput('');
+          router.post('/seller/analytics/subscription',{day,recipients:all},{preserveScroll:true,onStart:()=>setSubBusy(true),onFinish:()=>setSubBusy(false),onSuccess:()=>setSubStatus('Расписание сохранено. Реальная отправка пока не подключена.'),onError:()=>setSubStatus('Проверьте список получателей и день недели.'),onNetworkError:()=>{setSubStatus('Нет связи. Повторите попытку.');return false;}});
+        }}>
+          <h3 className="text-lg font-semibold">Подписка на отчёт</h3><p className="text-sm text-(--color-ink-muted)">Настройте расписание для команды.</p>
+          <label className="block text-sm">День недели<select value={day} onChange={event=>setDay(event.target.value)} className="mt-1 block min-h-11 w-full cursor-pointer rounded-lg border border-(--color-border) bg-(--color-surface) px-3">{[['mon','Понедельник'],['tue','Вторник'],['wed','Среда'],['thu','Четверг'],['fri','Пятница'],['sat','Суббота'],['sun','Воскресенье']].map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>
+          <div><label htmlFor="report-recipients" className="block text-sm">Получатели</label><div className="mt-1 flex min-h-16 flex-wrap items-center gap-2 rounded-lg border border-(--color-border) bg-(--color-surface) p-2">
+            {recipients.map(address=><span key={address} className="inline-flex max-w-full items-center gap-1 rounded-full bg-(--color-surface-muted) px-3 py-1 text-sm"><span className="break-all">{address}</span><button type="button" aria-label={`Удалить ${address}`} onClick={()=>{setRecipients(recipients.filter(value=>value!==address));setSubStatus('');}} className="cursor-pointer px-1 text-(--color-link)">×</button></span>)}
+            <input id="report-recipients" type="text" inputMode="email" autoComplete="email" value={recipientInput} onChange={event=>setRecipientInput(event.target.value)} onKeyDown={event=>{if(event.key==='Enter'){event.preventDefault();const address=recipientInput.trim();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address)){setSubStatus('Введите корректный адрес электронной почты.');return;}if(recipients.length>=10 || recipients.some(value=>value.toLowerCase()===address.toLowerCase())){setSubStatus('Адрес уже добавлен или достигнут предел в 10 адресов.');return;}setRecipients([...recipients,address]);setRecipientInput('');setSubStatus('');}}} placeholder="Добавьте email и нажмите Enter" className="min-h-10 min-w-0 flex-1 bg-transparent px-1 text-sm outline-none" />
+          </div></div>
+          <button disabled={subBusy} className="min-h-11 w-full cursor-pointer rounded-lg bg-(--color-link) px-4 text-sm font-semibold text-white disabled:opacity-50">{subBusy?'Сохраняем…':'Сохранить подписку'}</button>{subStatus&&<p role="status" className="text-sm">{subStatus}</p>}<p className="text-sm text-(--color-ink-muted)">Реальная отправка пока не подключена; доступна тестовая отправка выше.</p>
+        </form>
+        </aside>}</div>
       </section>
     </>
   );

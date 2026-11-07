@@ -3,6 +3,7 @@
 namespace Tests\Feature\Seller\Settings\Tools;
 
 use App\Seller\Knowledge\DatabaseKnowledgeRepository;
+use App\Seller\Runtime\ConfiguredToolHandler;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantContextRunner;
 use Illuminate\Support\Carbon;
@@ -56,10 +57,41 @@ final class ToolSettingsTest extends TenancyTestCase
             $this->assertDatabaseCount('seller_handoff_reminders', 0);
             Carbon::setTestNow(now()->addMinutes(31));
             $this->artisan('seller:monitor-handoffs')->assertSuccessful();
-            $this->assertDatabaseHas('seller_handoff_reminders', ['conversation_id' => $conversation, 'status' => 'pending']);
+            $this->assertDatabaseHas('seller_handoff_reminders', ['conversation_id' => $conversation, 'status' => 'sent']);
+            $this->assertDatabaseHas('seller_tasks', ['conversation_id' => $conversation, 'type' => 'reminder', 'priority' => 'urgent']);
+            $handler = app(ConfiguredToolHandler::class);
+            $tenant = new TenantContext($org->id, $brand->id, source: 'job');
+            $this->assertSame('ready', $handler->calculateDelivery($tenant, ['city' => 'Тверь'])['status']);
+            $this->assertSame('invalid_arguments', $handler->calculateDelivery($tenant, ['city' => 1])['status']);
+            $this->post('/seller/scenario/tools', ['tools' => ['calc_delivery' => false], 'requisites' => '', 'delivery_rules' => []])->assertRedirect();
+            $this->assertSame('unavailable', $handler->calculateDelivery($tenant, ['city' => 'Тверь'])['status']);
+            $this->artisan('seller:monitor-handoffs')->assertSuccessful();
+            $this->assertDatabaseCount('seller_handoff_reminders', 1);
+            $this->assertDatabaseCount('seller_tasks', 1);
+            $this->assertSame('not_configured', $handler->calculateDelivery(new TenantContext($org->id, $other->id, source: 'job'), ['city' => 'Тверь'])['status']);
             $this->post('/brand/switch', ['brand_id' => $other->id])->assertRedirect();
             $this->get('/seller/scenario/tools')->assertOk()->assertInertia(fn ($page) => $page->where('settings.tools.send_price', true)->where('settings.requisites', ''));
             Http::assertNothingSent();
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
+    public function test_accepted_handoff_does_not_send_reminder(): void
+    {
+        Carbon::setTestNow('2026-11-02 12:00:00+00');
+        try {
+            [$owner, $org, $brand] = $this->cabinet();
+            $this->enable($org->id, $brand->id);
+            $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+            $this->post('/seller/scenario/handoff', ['reasons' => [], 'timeout_minutes' => 10])->assertRedirect();
+            $conversation = (string) Str::ulid();
+            DB::table('conversations')->insert(['id' => $conversation, 'organization_id' => $org->id, 'brand_id' => $brand->id,
+                'stage' => 'handoff', 'state' => '{}', 'handed_off_at' => now()->subMinutes(11), 'taken_at' => now(),
+                'created_at' => now(), 'updated_at' => now()]);
+            $this->artisan('seller:monitor-handoffs')->assertSuccessful();
+            $this->assertDatabaseCount('seller_handoff_reminders', 0);
+            $this->assertDatabaseCount('seller_tasks', 0);
         } finally {
             Carbon::setTestNow();
         }

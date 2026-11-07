@@ -1,0 +1,24 @@
+import { expect, test } from '@playwright/test';
+import { createServer, type ViteDevServer } from 'vite';
+import { mkdir } from 'node:fs/promises';
+let server:ViteDevServer; let url:string;
+test.setTimeout(60000);
+test.use({viewport:{width:1440,height:900},launchOptions:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH?{executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH}:{}});
+test.beforeAll(async()=>{server=await createServer({configFile:'tests/Browser/E6-03G/vite.config.ts'});await server.listen();url=new URL('/tests/Browser/E6-03G/fixture.html',server.resolvedUrls!.local[0]).href;});
+test.afterAll(async()=>{await server?.close();});
+test('таблица, схема и путь к запросу',async({page})=>{
+  await page.goto(url);
+  await expect(page.getByText('Показаны 6 из 16')).toBeVisible();
+  await expect(page.getByText('В каком вы городе?')).toBeVisible();
+  await page.getByRole('button',{name:'Далее'}).click();
+  await expect(page.getByText('Категории',{exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'Схема полей'}).click();
+  await expect(page.getByRole('dialog',{name:'Схема полей'})).toBeVisible();
+  await page.keyboard.press('Escape');
+  await mkdir('.local/screenshots/SP-E6-03G',{recursive:true});
+  await page.screenshot({path:'.local/screenshots/SP-E6-03G/fields.png',fullPage:true});
+  await page.getByRole('button',{name:'Запросить изменение полей'}).click();
+  const modal=page.getByRole('dialog',{name:'Запросить изменение полей'});
+  await expect(modal.getByRole('link',{name:'Открыть поддержку →'})).toHaveAttribute('href','/help/support');
+  await page.screenshot({path:'.local/screenshots/SP-E6-03G/request.png'});
+});

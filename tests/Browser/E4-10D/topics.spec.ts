@@ -1,0 +1,23 @@
+import { expect, test } from '@playwright/test';
+import { createServer, type ViteDevServer } from 'vite';
+import { mkdir } from 'node:fs/promises';
+let server: ViteDevServer; let url: string;
+test.setTimeout(60000);
+test.use({ viewport: { width: 1440, height: 900 }, launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH } : {} });
+test.beforeAll(async () => { server = await createServer({ configFile: 'tests/Browser/E4-10D/vite.config.ts' }); await server.listen(); url = new URL('/tests/Browser/E4-10D/fixture.html', server.resolvedUrls!.local[0]).href; });
+test.afterAll(async () => { await server?.close(); });
+test('закрытую тему можно снять и добавить новую', async ({ page }) => {
+ await page.goto(url);
+ await page.getByRole('button', { name: 'Удалить тему' }).click();
+ await expect(page.getByText('В черновике нет закрытых тем.')).toBeVisible();
+ await page.getByRole('button', { name: 'Добавить тему' }).click();
+ await page.getByLabel('Тема', { exact: true }).fill('Личные данные');
+ await page.getByLabel('Как закрыть тему').fill('Не раскрывать данные');
+ await mkdir('.local/screenshots/SP-E4-10D', { recursive: true });
+ await page.screenshot({ path: '.local/screenshots/SP-E4-10D/topics.png', fullPage: true });
+ const post = page.waitForRequest(request => request.url().endsWith('/seller/knowledge/prohibitions') && request.method() === 'POST');
+ await page.route('**/seller/knowledge/prohibitions', route => route.abort());
+ await page.getByRole('button', { name: 'Сохранить правила' }).click();
+ expect((await post).postDataJSON().topics).toEqual([{ id: null, category: 'Личные данные', idea: 'Не раскрывать данные', next: 'return' }]);
+ await expect(page.getByRole('alert').filter({ hasText: 'Нет связи' })).toBeVisible();
+});

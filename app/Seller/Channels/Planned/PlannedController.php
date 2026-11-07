@@ -15,7 +15,6 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -23,7 +22,9 @@ final class PlannedController
 {
     private const TABLE = 'seller_planned_integration_interests';
 
-    private const REMINDER_REASON = 'Напоминания пока недоступны: источник даты следующего контакта не подключён.';
+    private const REMINDER_REASON = 'Напоминания готовятся в тестовом режиме. Внешняя отправка писем отключена.';
+
+    private const REMINDERS_TABLE = 'seller_contact_reminder_settings';
 
     public function vk(Request $request, TenantContext $context): Response
     {
@@ -51,6 +52,10 @@ final class PlannedController
             $this->assertAccess($context, true, false);
             Gate::authorize('seller.settings.read');
             $available = Schema::hasTable(self::TABLE);
+            $remindersAvailable = Schema::hasTable(self::REMINDERS_TABLE) && config('runtime.notification_driver') === 'fake';
+            $remindersEnabled = $remindersAvailable && (bool) DB::table(self::REMINDERS_TABLE)->where([
+                'organization_id' => $context->organizationId, 'brand_id' => $context->brandId,
+            ])->value('enabled');
             $interested = $available ? DB::table(self::TABLE)
                 ->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)
                 ->where('user_id', $context->actorId)->pluck('integration')->all() : [];
@@ -63,7 +68,8 @@ final class PlannedController
                 'section' => $section,
                 'planned' => [
                     'items' => $items,
-                    'reminders' => ['enabled' => false, 'available' => false, 'reason' => self::REMINDER_REASON],
+                    'reminders' => ['enabled' => $remindersEnabled, 'available' => $remindersAvailable,
+                        'reason' => $remindersAvailable ? self::REMINDER_REASON : 'Напоминания пока недоступны: тестовая доставка не включена.'],
                     'canManage' => Gate::allows('seller.settings.write'),
                     'interestAvailable' => $available,
                     'brandId' => $context->brandId,
@@ -101,12 +107,18 @@ final class PlannedController
         $data = $request->validate(['enabled' => ['required', 'boolean']]);
         app(AuthSessionRegistry::class)->withinActive($request, function () use ($context, $data): void {
             $this->assertAccess($context, true, true);
-            if ((bool) $data['enabled']) {
-                throw ValidationException::withMessages(['enabled' => self::REMINDER_REASON]);
+            abort_unless(Schema::hasTable(self::REMINDERS_TABLE) && config('runtime.notification_driver') === 'fake', 503, self::REMINDER_REASON);
+            $where = ['organization_id' => $context->organizationId, 'brand_id' => $context->brandId];
+            $row = DB::table(self::REMINDERS_TABLE)->where($where)->first();
+            if ($row) {
+                DB::table(self::REMINDERS_TABLE)->where('id', $row->id)->update(['enabled' => $data['enabled'], 'updated_at' => now()]);
+            } else {
+                DB::table(self::REMINDERS_TABLE)->insert(['id' => (string) Str::ulid(), ...$where,
+                    'enabled' => $data['enabled'], 'created_at' => now(), 'updated_at' => now()]);
             }
         });
 
-        return response()->json(['data' => ['enabled' => false, 'available' => false, 'reason' => self::REMINDER_REASON]]);
+        return response()->json(['data' => ['enabled' => (bool) $data['enabled'], 'available' => true, 'reason' => self::REMINDER_REASON]]);
     }
 
     private function assertExpectedBrand(Request $request, TenantContext $context): void

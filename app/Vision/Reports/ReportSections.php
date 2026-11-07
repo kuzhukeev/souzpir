@@ -112,11 +112,20 @@ final class ReportSections
                 'type' => is_string($item['type'] ?? null) ? $item['type'] : null,
                 'presence' => is_bool($item['presence'] ?? null) ? $item['presence'] : null,
             ])->values()->all(),
-            'actions' => collect(data_get($payload, 'recommendations.items', []))->take(3)->map(fn ($item, $index) => [
-                'recommendation_index' => $index, 'title' => $item['title'] ?? '', 'why' => $item['why'] ?? '',
-                'priority' => is_string($item['priority'] ?? null) ? $item['priority'] : null,
-                'steps' => array_values(array_slice(array_filter(is_array($item['steps'] ?? null) ? $item['steps'] : [], 'is_string'), 0, 3)),
-            ])->filter(fn ($item) => $item['title'] !== '')->values()->all(),
+            'actions' => collect(data_get($payload, 'recommendations.items', []))->take(3)->map(function ($item, $index) use ($questions) {
+                $ids = $item['question_ids'] ?? (isset($item['question_id']) ? [$item['question_id']] : (isset($item['qid']) ? [$item['qid']] : []));
+                $count = collect(is_array($ids) ? $ids : [])->filter(fn ($id) => is_string($id) && $questions->has($id))->unique()->count();
+                $why = is_string($item['why'] ?? null) ? trim($item['why']) : '';
+                if ($why === '' && $count > 0) {
+                    $why = 'Связано с вопросами отчёта: '.$count.'.';
+                }
+
+                return [
+                    'recommendation_index' => $index, 'title' => $item['title'] ?? '', 'why' => $why,
+                    'priority' => is_string($item['priority'] ?? null) ? $item['priority'] : null,
+                    'steps' => array_values(array_slice(array_filter(is_array($item['steps'] ?? null) ? $item['steps'] : [], 'is_string'), 0, 3)),
+                ];
+            })->filter(fn ($item) => $item['title'] !== '')->values()->all(),
         ];
     }
 }

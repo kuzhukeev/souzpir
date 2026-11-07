@@ -1,0 +1,25 @@
+import { expect, test } from '@playwright/test';
+import { createServer, type ViteDevServer } from 'vite';
+import { mkdir } from 'node:fs/promises';
+let server: ViteDevServer; let url: string;
+test.use({ viewport: { width: 1440, height: 900 }, launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH } : {} });
+test.beforeAll(async () => { server = await createServer({ configFile: 'tests/Browser/E4-10C/vite.config.ts', server: { host: '127.0.0.1', port: 0, strictPort: false } }); await server.listen(); url = new URL('/tests/Browser/E4-10C/fixture.html', server.resolvedUrls!.local[0]).href; });
+test.afterAll(async () => { await server?.close(); });
+test('выбор тега из каталога и сохранённого тега', async ({ page }) => {
+  await page.goto(url);
+  const tag = page.getByRole('combobox', { name: 'Тег', exact: true });
+  await expect(tag).toHaveJSProperty('tagName', 'SELECT');
+  await tag.selectOption('opt_out_ack');
+  await expect(tag).toHaveValue('opt_out_ack');
+  await tag.selectOption('price');
+  await expect(tag).toHaveValue('price');
+  await page.getByRole('button', { name: 'Добавить из диалога' }).click();
+  const modal = page.getByRole('dialog', { name: 'Добавить из диалога' });
+  await modal.getByRole('combobox', { name: 'Тег', exact: true }).selectOption('open_greeting');
+  await expect(modal.getByRole('combobox', { name: 'Тег', exact: true })).toHaveValue('open_greeting');
+  await mkdir('.local/screenshots/SP-E4-10C', { recursive: true });
+  await page.screenshot({ path: '.local/screenshots/SP-E4-10C/dialog.png', fullPage: true });
+  await page.keyboard.press('Escape');
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({ path: '.local/screenshots/SP-E4-10C/main.png', fullPage: true });
+});

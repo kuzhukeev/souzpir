@@ -18,7 +18,11 @@ interface KnowledgeRepository
 
     public function publish(TenantContext $context, string $id, int $expectedVersion): KnowledgeSnapshot;
 
+    /** Activate an existing published release; the UI rollback endpoint creates a draft instead. */
     public function rollback(TenantContext $context, string $id): void;
+
+    /** Restore a published release as a draft without changing the active publication. */
+    public function rollbackToDraft(TenantContext $context, string $id): array;
 
     public function draftEditor(TenantContext $context, string $releaseId): array;
 

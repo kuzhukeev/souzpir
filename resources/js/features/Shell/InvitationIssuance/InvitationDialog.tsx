@@ -1,7 +1,7 @@
 import * as Dialog from '@radix-ui/react-dialog';
-import * as Select from '@radix-ui/react-select';
 import { router, usePage } from '@inertiajs/react';
-import { Check, ChevronDown, Copy, X } from 'lucide-react';
+import { Copy, X } from 'lucide-react';
+import { roleDescriptions, type RoleKey } from '@/features/Shell/Team/roleMatrix';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react';
 import {
   profileContextIsStable,
@@ -482,44 +482,8 @@ export default function InvitationDialog({
                   onChange={(event) => setEmail(event.target.value)}
                   className={`min-h-11 w-full rounded-lg border border-(--color-border) bg-(--color-surface) px-3 font-normal ${focus}`}
                 />
-                <div className="space-y-2">
-                  <span id="invitation-role-label" className="block font-semibold">
-                    Роль
-                  </span>
-                  <Select.Root value={role} onValueChange={(value) => setRole(value as Role)}>
-                    <Select.Trigger
-                      aria-labelledby="invitation-role-label"
-                      className={`flex min-h-11 w-full cursor-pointer items-center justify-between gap-3 rounded-lg border border-(--color-border) bg-(--color-surface) px-3 text-sm ${focus}`}
-                    >
-                      <Select.Value />
-                      <Select.Icon>
-                        <ChevronDown size={16} />
-                      </Select.Icon>
-                    </Select.Trigger>
-                    <Select.Portal>
-                      <Select.Content
-                        position="popper"
-                        sideOffset={6}
-                        className="z-[60] min-w-[var(--radix-select-trigger-width)] rounded-xl border border-(--color-border) bg-(--color-surface) p-1.5 shadow-xl"
-                      >
-                        <Select.Viewport>
-                          {roles.map((option) => (
-                            <Select.Item
-                              key={option.value}
-                              value={option.value}
-                              className="relative flex min-h-11 cursor-pointer items-center justify-between gap-3 rounded-lg px-3 text-sm outline-none data-[highlighted]:bg-(--color-surface-muted)"
-                            >
-                              <Select.ItemText>{option.label}</Select.ItemText>
-                              <Select.ItemIndicator>
-                                <Check size={16} />
-                              </Select.ItemIndicator>
-                            </Select.Item>
-                          ))}
-                        </Select.Viewport>
-                      </Select.Content>
-                    </Select.Portal>
-                  </Select.Root>
-                </div>
+                <fieldset className="space-y-2"><legend className="mb-2 font-semibold">Роль</legend>{roles.map((option) => <label key={option.value} className="flex cursor-pointer items-start gap-3 rounded-lg border border-(--color-border) p-3"><input type="radio" name="invitation-role" value={option.value} checked={role === option.value} onChange={() => setRole(option.value as Role)} className="mt-1" /><span><strong>{option.label}</strong><span className="mt-1 block text-(--color-ink-muted)">{roleDescriptions[option.value as RoleKey]}</span></span></label>)}</fieldset>
+                <fieldset disabled className="space-y-2"><legend className="font-semibold">Доступ к модулям · Позже</legend><p className="text-(--color-ink-muted)">Отдельные разрешения по модулям пока недоступны; доступ определяется ролью и брендами.</p><label className="flex items-center gap-2"><input type="checkbox" disabled /> Продавец</label><label className="flex items-center gap-2"><input type="checkbox" disabled /> Видение</label></fieldset>
                 <fieldset className="space-y-2">
                   <legend className="mb-2 font-semibold">Доступные бренды</legend>
                   {brands.length === 0 && <p>Нет доступных брендов.</p>}
@@ -594,6 +558,7 @@ export default function InvitationDialog({
                   <Copy size={16} aria-hidden="true" />
                   Копировать ссылку
                 </button>
+                <button type="button" className={primary} onClick={close}>Готово</button>
               </div>
             )}
             {visiblePhase === 'uncertain' && (

@@ -31,8 +31,10 @@
         </testsuite>
         <testsuite name="CoreTurns">
             <file>tests/Feature/ProtectedOperations/FirstTurnStateTest.php</file>
+            <file>tests/Feature/ProtectedOperations/JobFirstTurnInputE306FTest.php</file>
         </testsuite>
         <testsuite name="Product">
+            <file>tests/Feature/Owner/E5-01H/TelegramClientTest.php</file>
             <directory suffix="Test.php">tests/Feature/Seller</directory>
             <directory suffix="Test.php">tests/Feature/SellerRuntime</directory>
             <directory suffix="Test.php">tests/Feature/SP-UI-04</directory>

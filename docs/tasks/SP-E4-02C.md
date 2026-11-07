@@ -13,3 +13,6 @@
 Scope: `app/Seller/Knowledge/Facts/`, `resources/js/pages/Seller/Knowledge/Facts/`, `routes/features/E4-02.php`, `tests/Feature/Seller/Knowledge/Facts/`, `tests/Browser/E4-02C/`, `docs/results/SP-E4-02C.md`.
 
 Отчёт: docs/results/SP-E4-02C.md; локальные тесты задачи, submit и зелёный CI.
+
+## Дополнение владельца от 05.11.2026
+- D-4.4, «Было/Стало» и счётчик символов.

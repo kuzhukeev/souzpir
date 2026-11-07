@@ -26,3 +26,7 @@ python tools/baseline/verify.py --fixtures=tests/fixtures/prototype --prototype=
 python tools/baseline/verify.py --fixtures=tests/fixtures/prototype/recorded-v2 --require-recorded --prototype=<путь к laravel-prototype>
 php vendor/bin/phpunit --testsuite=Equivalence --no-coverage
 ```
+
+## SP-E3-07D: офлайн-адаптер
+
+Адаптер обрабатывает ответы без текста при непустых вызовах инструментов. Проверены последовательно 824 записанных вызова во всех 41 сценарии, в том числе 65 ответов только с инструментами; исчерпанная запись отклоняется. Это проверка адаптера на записанных запросах, а не replay нового runtime и не подтверждение эквивалентности. Тест автоматически включён в существующий набор Equivalence в CI.

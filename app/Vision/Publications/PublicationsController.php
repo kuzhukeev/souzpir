@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use LogicException;
@@ -66,6 +67,7 @@ final class PublicationsController
             'ttl_days' => ['required', 'integer', Rule::in(config('features.E8-05C.defaults.publication_ttl_days'))],
             'return_to' => ['nullable', Rule::in(['report'])],
             'allow_pdf' => ['sometimes', 'boolean'],
+            'include_logo' => ['sometimes', 'boolean'],
             'confirmed_actions' => ['sometimes', 'array', 'max:3'],
             'confirmed_actions.*' => ['required', 'string', 'regex:/^action:\d+$/D'],
         ]);
@@ -83,8 +85,15 @@ final class PublicationsController
                 $reportData = app(ReportData::class);
                 $siteAudit = $reportData->siteAudit($context, $reportData->siteFromProfile($measurement), $report->created_at);
                 $public = app(PublicationData::class)->fromReport($report->id, $siteAudit,
-                    $data['confirmed_actions'] ?? []);
+                    $data['confirmed_actions'] ?? [], $context, $report);
                 $public['allow_pdf'] = (bool) ($data['allow_pdf'] ?? false);
+                if ($data['include_logo'] ?? false) {
+                    $logo = app(PublicationLogo::class)->copy($context);
+                    if ($logo === null) {
+                        throw ValidationException::withMessages(['include_logo' => 'Логотип недоступен. Загрузите его заново или опубликуйте отчёт без логотипа.']);
+                    }
+                    $public['logo'] = $logo;
+                }
             } catch (LogicException) {
                 abort(409, 'Отчёт недоступен.');
             }

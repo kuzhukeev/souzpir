@@ -18,6 +18,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 
+CLAUDE_PILOT_TASKS = frozenset()
+
+
 class TaskError(RuntimeError):
     pass
 
@@ -94,6 +97,48 @@ GENERATED_CONTRACT_FILES = frozenset(
 # Narrow integrator-approved scope corrections for shared routes, UI and CI
 # regressions. They do not broaden ownership to neighboring modules.
 CI_SCOPE_EXCEPTIONS = {
+    "SP-E1-03B": ("tests/Browser/E1-08/ui-fixture.tsx", "tests/Browser/Layout/fixture.tsx"),
+    "SP-E5-03F": (
+        "tests/Feature/Seller/Settings/Schedule/AssignmentE606CTest.php",
+        "tests/Feature/SellerRuntime/Delivery/FakeDeliveryTest.php",
+        "tests/Feature/SellerRuntime/FirstInboundRuntimeTest.php",
+        "tests/Browser/E5-03D/api.spec.ts",
+    ),
+    "SP-E1-10J": ("tests/Feature/SP-E1-10F/WebhookConfigurationTest.php",),
+    "SP-E1-06I": ("tests/Browser/E1-06E/invitation.spec.ts",),
+    "SP-E1-03C": ("tests/Browser/Layout/layout.spec.ts", "tests/Browser/Layout/fixture.tsx"),
+    "SP-E8-20X": ("routes/features/E8-05B.php",),
+    "SP-E1-01I": ("app/Seller/Knowledge/Facts/FactsController.php",),
+    "SP-E9-01E": (
+        "tests/Browser/E1-05/brands-e2e.spec.ts",
+        "tests/Browser/E4-02B/facts.spec.ts",
+    ),
+    "SP-E5-06B": (
+        "docs/contracts/registry.json",
+        "app/Shell/Notifications/EventCatalog.php",
+        "app/Shell/Notifications/RecipientPolicy.php",
+        "app/Shell/Notifications/NotificationProcessor.php",
+        "app/Shell/Notifications/FakeTimedDelivery.php",
+        "app/Shell/Notifications/ExternalDelivery.php",
+        "config/runtime.php",
+        "tests/Feature/Shell/Profile/ProfileSettingsTest.php",
+    ),
+    "SP-E4-03D": ("tests/Browser/E4-03B/conditions.spec.ts",),
+    "SP-E8-21K": ("tests/Browser/E8-21J/", "tests/Browser/E8-21L/"),
+    "SP-E6-04J": ("app/Seller/Engine/ToolRunner.php", "routes/features/E6-04.php", "tests/Feature/Seller/Engine/ToolRunnerE604JTest.php", "app/Seller/Channels/Email/PriceMailSender.php", "app/Seller/Channels/Email/PriceMail.php", "tests/Feature/Seller/Channels/Email/PriceSourcesE604JTest.php"),
+    "SP-E5-10D": ("resources/js/pages/Seller/Knowledge/Releases/Index.tsx",),
+    "SP-E8-16W": ("app/Vision/Core/MeasurementRunner.php", "database/migrations/E8-16W/"),
+    "SP-E1-12C": ("app/Shell/Profile/", "database/migrations/E1-12C/", "app/Seller/Channels/Core/ChannelAccount.php", "app/Seller/Channels/Telegram/TelegramController.php", "app/Seller/Channels/Widget/WidgetSettingsController.php", "tests/Feature/Seller/Channels/ConnectionDatesE112CTest.php"),
+    "SP-E4-02D": ("app/Seller/Knowledge/KnowledgeSnapshot.php",),
+    "SP-E4-06K": ("tests/Browser/E4-06J/fragments.spec.ts",),
+    "SP-E8-14O": ("routes/features/E8-02.php",),
+    "SP-E0-05G": ("app/Ai/Http/RecoverCallController.php", "app/Ai/Http/OperatorRecoveryController.php", "routes/features/E0-05B.php", "config/platform-operators.php"),
+    "SP-E4-05D": ("tests/Browser/E4-05B/prohibitions.spec.ts",),
+    "SP-E5-07B": ("tests/Browser/E5-07B/preview-e507b.html", "tests/Browser/E5-07B/preview-e507b.spec.ts", "tests/Browser/E5-07B/preview-e507b.tsx", "tests/Browser/E5-07B/vite-e507b.config.ts"),
+    "SP-E5-01H": ("phpunit.xml",),
+    "SP-E8-15F": ("tests/Browser/E8-15E/weekly.spec.ts",),
+    "SP-E7-06C": ("tests/Browser/E6-09/crm.spec.ts",),
+    "SP-E7-04N": ("composer.json", "composer.lock", "database/migrations/E7-04N/", "routes/features/E7-04.php"),
     "SP-E7-04G": ("tests/Browser/E7-04D/analytics.spec.ts", "tests/Browser/E7-04E/channels.spec.ts"),
     "SP-E8-20O": ("scripts/ci/browser-smoke.sh", ".github/workflows/ci.yml"),
     "SP-E1-07D": ("scripts/ci/browser-smoke.sh", ".github/workflows/ci.yml", "config/billing.php",),
@@ -220,6 +265,27 @@ def scope_signature(scope: list[str]) -> list[str]:
     return sorted({path.replace("\\", "/").casefold().rstrip("/") or "/" for path in scope})
 
 
+def extra_scope_blockers(task: dict, tasks: list[dict]) -> list[str]:
+    """Respect integrator-approved paths not represented in queue ownership."""
+    def overlaps(a: str, b: str) -> bool:
+        a, b = a.replace("\\", "/").casefold().rstrip("/"), b.replace("\\", "/").casefold().rstrip("/")
+        return a == b or a.startswith(b + "/") or b.startswith(a + "/")
+
+    key = task["taskKey"]
+    scope = [*task.get("scope", []), *CI_SCOPE_EXCEPTIONS.get(key, ())]
+    blocked = []
+    for other in tasks:
+        other_key = other.get("taskKey")
+        if (other.get("project") != task.get("project") or other_key == key
+                or other.get("status") not in ("progress", "review")):
+            continue
+        extra = CI_SCOPE_EXCEPTIONS.get(other_key, ())
+        if (any(overlaps(a, b) for a in scope for b in extra)
+                or any(overlaps(a, b) for a in CI_SCOPE_EXCEPTIONS.get(key, ()) for b in other.get("scope", []))):
+            blocked.append(other_key)
+    return sorted(set(blocked))
+
+
 class Api:
     def __init__(self, base: str):
         parsed = urllib.parse.urlsplit(base)
@@ -270,12 +336,12 @@ class Coordinator:
     def local_path(self, key: str) -> Path:
         return self.claims / (key_name(key).lower() + ".json")
 
-    def read_claim(self, key: str, *, allow_released: bool = False) -> dict:
+    def read_claim(self, key: str, *, allow_released: bool = False, allow_done: bool = False) -> dict:
         try:
             claim = json.loads(self.local_path(key).read_text(encoding="utf-8"))
         except (OSError, ValueError) as error:
             raise TaskError("No readable local ownership record for this task") from error
-        if claim.get("taskKey") != key or claim.get("project") != self.project or (not claim.get("claimToken") and not (allow_released and claim.get("status") == "released")):
+        if claim.get("taskKey") != key or claim.get("project") != self.project or (not claim.get("claimToken") and not (allow_released and claim.get("status") == "released") and not (allow_done and claim.get("status") == "done")):
             raise TaskError("Local record has no active ownership token")
         return claim
 
@@ -324,19 +390,65 @@ class Coordinator:
             base = record.get("baseCommit", "")
             git(worktree, "merge-base", "--is-ancestor", base, head)
             if head != base:
-                remote = git(self.root, "rev-parse", "--verify", "refs/remotes/origin/" + record["branch"] + "^{commit}")
-                git(worktree, "merge-base", "--is-ancestor", remote, head)
+                # A clean released tree with no commits outside published main
+                # contains no unpublished task work, even if main advanced later.
+                published_main = git(self.root, "rev-parse", "--verify", "refs/remotes/origin/main^{commit}", check=False)
+                if published_main:
+                    try:
+                        git(worktree, "merge-base", "--is-ancestor", head, published_main)
+                        return True
+                    except TaskError:
+                        pass
+                remote = git(self.root, "rev-parse", "--verify", "refs/remotes/origin/" + record["branch"] + "^{commit}", check=False)
+                if remote:
+                    git(worktree, "merge-base", "--is-ancestor", remote, head)
+                # A released clean tree may contain local, unpushed scoped commits.
+                # Preserve them; scope and dependency checks still apply on claim.
                 if unapproved_changes(worktree, base, head, [*record["scope"], *CI_SCOPE_EXCEPTIONS.get(key, ())]):
                     return False
             return True
         except (TaskError, KeyError, TypeError):
             return False
 
+    def archive_completed_record(self, record: dict) -> None:
+        if record.get("status") != "done":
+            return
+        directory = self.claims / "history" / key_name(record["taskKey"]).lower()
+        directory.mkdir(parents=True, exist_ok=True)
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+        with (directory / (stamp + ".json")).open("x", encoding="utf-8") as handle:
+            json.dump(record, handle, ensure_ascii=False, indent=2)
+
+    def completed_branch_is_safe(self, key: str, record: dict, task: dict) -> bool:
+        worktree = self.root / ".worktrees" / key.lower()
+        if is_link(worktree.parent) or worktree.is_symlink() or (worktree.exists() and is_link(worktree)):
+            return False
+        if (record.get("status") != "done" or record.get("claimToken") or not task.get("previousMerges")
+                or record.get("project") != self.project or record.get("taskKey") != key
+                or record.get("branch") != "codex/" + key.lower()
+                or Path(record.get("worktree", "")).resolve() != (self.root / ".worktrees" / key.lower()).resolve()
+                or not set(record.get("dependsOn", [])) <= set(task.get("dependsOn", []))):
+            return False
+        merges = task.get("previousMerges", [])
+        if not any(isinstance(item, dict) and item.get("mergeCommit") == record.get("mergeCommit") for item in merges):
+            return False
+        try:
+            branch = "refs/heads/" + record["branch"]
+            for target in ("refs/heads/main", "refs/remotes/origin/main"):
+                git(self.root, "merge-base", "--is-ancestor", branch, target)
+            return True
+        except TaskError:
+            return False
+
     def ready(self) -> dict:
         response = self.api.call("ready", project=self.project)
+        tasks = self.api.call("list").get("tasks", [])
         available, blocked = [], []
         for task in response.get("tasks", []):
             key = task["taskKey"]
+            if key in CLAUDE_PILOT_TASKS:
+                blocked.append({"taskKey": key, "localBlockers": ["reserved_for_claude"]})
+                continue
             branch = "codex/" + key.lower()
             reasons = []
             if self.local_path(key).exists():
@@ -348,18 +460,27 @@ class Coordinator:
             if reasons and self.local_path(key).exists() and (self.root / ".worktrees" / key.lower()).is_dir():
                 worktree = self.root / ".worktrees" / key.lower()
                 try:
-                    record = self.read_claim(key, allow_released=True)
-                    if (record.get("status") == "released" and not record.get("claimToken")
+                    record = self.read_claim(key, allow_released=True, allow_done=True)
+                    if ((record.get("status") == "released" or self.completed_branch_is_safe(key, record, task)) and not record.get("claimToken")
                             and record.get("project") == self.project and record.get("branch") == branch
                             and Path(record.get("worktree", "")).resolve() == worktree.resolve()
-                            and scope_signature(record.get("scope", [])) == scope_signature(task.get("scope", []))
-                            and sorted(record.get("dependsOn", [])) == sorted(task.get("dependsOn", []))
+                            and (record.get("status") == "done" or set(scope_signature(record.get("scope", []))) <= set(scope_signature(task.get("scope", []))))
+                            and set(record.get("dependsOn", [])) <= set(task.get("dependsOn", []))
                             and git(worktree, "branch", "--show-current") == branch
                             and not git(worktree, "status", "--porcelain=v1", "--untracked-files=all")
+                            and (record.get("status") != "done" or worktree.as_posix().casefold() not in windows_process_commands())
                             and self.preserved_head_is_safe(key, record, worktree)):
                         reasons = []
                 except (OSError, TaskError, ValueError):
                     pass
+            if reasons and self.local_path(key).exists() and not (self.root / ".worktrees" / key.lower()).exists():
+                try:
+                    record = self.read_claim(key, allow_done=True)
+                    if self.completed_branch_is_safe(key, record, task):
+                        reasons = []
+                except (OSError, TaskError, ValueError):
+                    pass
+            reasons.extend("extra_scope:" + owner for owner in extra_scope_blockers(task, tasks))
             if reasons:
                 blocked.append({"taskKey": key, "localBlockers": reasons})
             else:
@@ -403,23 +524,65 @@ class Coordinator:
         key_name(key)
         if not worker.strip():
             raise TaskError("A nonempty worker/chat identifier is required")
+        if key in CLAUDE_PILOT_TASKS and worker != "claude:pilot":
+            raise TaskError("Task is reserved for claude:pilot by the owner")
         plan = self.plan(key)
         tasks = self.api.call("list").get("tasks", [])
         task = self.task(key, tasks)
         self.validate_plan(key, plan, task)
+        blockers = extra_scope_blockers(task, tasks)
+        if blockers:
+            raise TaskError("Integrator-approved extra scope is owned by: " + ", ".join(blockers))
         branch = "codex/" + key.lower()
         git(self.root, "check-ref-format", "--branch", branch)
         worktree = self.root / ".worktrees" / key.lower()
+        if self.local_path(key).exists() and not worktree.exists():
+            record = self.read_claim(key, allow_done=True)
+            if not self.completed_branch_is_safe(key, record, task):
+                raise TaskError("Preserved task branch is not safely reusable; inspect it without overwriting")
+            base = self.integration_base()
+            dependencies = self.dependency_commits(task, tasks, base)
+            head = git(self.root, "rev-parse", "refs/heads/" + branch + "^{commit}")
+            try:
+                self.dependency_commits(task, tasks, head)
+                needs_dependency_merge = False
+            except TaskError:
+                needs_dependency_merge = True
+            response = self.api.call("claim", {"project": self.project, "taskKey": key, "worker": worker})
+            token = response.get("claimToken")
+            if not isinstance(token, str) or not token:
+                raise TaskError("Claim response has no token; inspect the task before retrying")
+            try:
+                self.validate_plan(key, plan, response["task"])
+                worktree.parent.mkdir(parents=True, exist_ok=True)
+                git(self.root, "worktree", "add", str(worktree), branch)
+                self.archive_completed_record(record)
+                record.update(claimToken=token, worker=worker, dependencyCommits=dependencies, scope=task["scope"],
+                              dependsOn=task.get("dependsOn", []), status="progress", revision=response["task"]["revision"])
+                self.save_claim(record)
+            except (OSError, TaskError) as error:
+                try:
+                    self.api.call("release", {"project": self.project, "taskKey": key,
+                        "claimToken": token, "expectedRevision": response["task"]["revision"],
+                        "reason": "Reopened worktree setup failed; inspect preserved local state"})
+                except Exception:
+                    raise TaskError("Reopened claim release could not be confirmed; inspect queue") from None
+                raise TaskError("Reopened worktree setup failed; no existing work was removed: " + str(error)) from None
+            return {"taskKey": key, "status": "progress", "branch": branch, "worktree": str(worktree),
+                    "baseCommit": record["baseCommit"], "promptPath": plan.get("promptPath", ""),
+                    "needsDependencyMerge": needs_dependency_merge}
         if self.local_path(key).exists() or worktree.exists():
             if not self.local_path(key).exists() or not worktree.is_dir():
                 raise TaskError("Local claim or worktree already exists; inspect it, do not overwrite it")
-            record = self.read_claim(key, allow_released=True)
-            if (record.get("status") != "released" or record.get("claimToken") or task.get("status") != "queue"
+            record = self.read_claim(key, allow_released=True, allow_done=True)
+            if ((record.get("status") != "released" and not self.completed_branch_is_safe(key, record, task)) or record.get("claimToken") or task.get("status") != "queue"
                     or record.get("project") != self.project or record.get("branch") != branch
                     or Path(record.get("worktree", "")).resolve() != worktree.resolve()
-                    or scope_signature(record.get("scope", [])) != scope_signature(task.get("scope", []))
-                    or sorted(record.get("dependsOn", [])) != sorted(task.get("dependsOn", []))):
+                    or (record.get("status") != "done" and not set(scope_signature(record.get("scope", []))) <= set(scope_signature(task.get("scope", []))))
+                    or not set(record.get("dependsOn", [])) <= set(task.get("dependsOn", []))):
                 raise TaskError("Existing worktree is not safely released; inspect it without overwriting")
+            if record.get("status") == "done" and worktree.as_posix().casefold() in windows_process_commands():
+                raise TaskError("A running process references the preserved completed worktree")
             base = self.integration_base()
             head = git(worktree, "rev-parse", "HEAD^{commit}")
             if (git(worktree, "branch", "--show-current") != branch
@@ -427,15 +590,20 @@ class Coordinator:
                     or not self.preserved_head_is_safe(key, record, worktree)):
                 raise TaskError("Released worktree has preserved changes; inspect it without overwriting")
             dependencies = self.dependency_commits(task, tasks, base)
-            self.dependency_commits(task, tasks, head)
+            try:
+                self.dependency_commits(task, tasks, head)
+                needs_dependency_merge = False
+            except TaskError:
+                needs_dependency_merge = True
             response = self.api.call("claim", {"project": self.project, "taskKey": key, "worker": worker})
             token = response.get("claimToken")
             if not isinstance(token, str) or not token:
                 raise TaskError("Claim response has no token; inspect the task before retrying")
             try:
                 self.validate_plan(key, plan, response["task"])
-                record.update(claimToken=token, worker=worker, dependencyCommits=dependencies,
-                              status="progress", revision=response["task"]["revision"])
+                self.archive_completed_record(record)
+                record.update(claimToken=token, worker=worker, dependencyCommits=dependencies, scope=task["scope"],
+                              dependsOn=task.get("dependsOn", []), status="progress", revision=response["task"]["revision"])
                 self.save_claim(record)
             except (OSError, TaskError) as error:
                 try:
@@ -446,7 +614,8 @@ class Coordinator:
                     raise TaskError("Worktree reclaim failed and release could not be confirmed; inspect queue") from None
                 raise TaskError("Worktree reclaim failed; preserved worktree was not modified: " + str(error)) from None
             return {"taskKey": key, "status": "progress", "branch": branch, "worktree": str(worktree),
-                    "baseCommit": record["baseCommit"], "promptPath": plan.get("promptPath", "")}
+                    "baseCommit": record["baseCommit"], "promptPath": plan.get("promptPath", ""),
+                    "needsDependencyMerge": needs_dependency_merge}
         if git(self.root, "rev-parse", "--verify", "refs/heads/" + branch, check=False):
             raise TaskError("Task branch already exists; inspect it, do not overwrite it")
         base = self.integration_base()
@@ -519,6 +688,7 @@ class Coordinator:
             raise TaskError("Commit changes and remove unintended untracked files before submitting")
         git(worktree, "merge-base", "--is-ancestor", record["baseCommit"], "HEAD")
         commit = git(worktree, "rev-parse", "HEAD^{commit}")
+        self.dependency_commits(task, self.api.call("list").get("tasks", []), commit)
         if commit == record["baseCommit"]:
             raise TaskError("No task commit exists after the saved base")
         scope = [*record["scope"], *CI_SCOPE_EXCEPTIONS.get(key, ())]
@@ -538,6 +708,19 @@ class Coordinator:
         if not reason.strip():
             raise TaskError("Review feedback is required")
         return self.owner_action("resume", key, reason=reason)
+
+    def reopen(self, key: str, reason: str) -> dict:
+        if not reason.strip():
+            raise TaskError("Reopen reason is required")
+        task = self.task(key)
+        if task.get("status") != "done":
+            raise TaskError("Only a completed task can be reopened")
+        plan = self.plan(key)
+        self.validate_plan(key, plan, task)
+        result = self.api.call("reopen", {"project": self.project, "taskKey": key,
+            "expectedRevision": task["revision"], "reason": reason, "plan": plan})["task"]
+        return {"taskKey": key, "status": result["status"], "revision": result["revision"],
+                "localWorkPreserved": True, "blockers": result.get("blockers", [])}
 
     def mark_merged(self, key: str) -> dict:
         task = self.task(key)
@@ -667,6 +850,8 @@ def parser() -> argparse.ArgumentParser:
                             ("resume", "Resume your task after review feedback")]:
         action = commands.add_parser(name, help=help_text)
         action.add_argument("task_key"); action.add_argument("--reason", required=True)
+    reopen = commands.add_parser("reopen", help="Reopen a completed task without changing local work or claims")
+    reopen.add_argument("task_key"); reopen.add_argument("--reason", required=True)
     merged = commands.add_parser("mark-merged", help="Mark reviewed task done only after its commit is on main")
     merged.add_argument("task_key")
     return result
@@ -686,7 +871,7 @@ def main(argv: list[str] | None = None) -> int:
             output = coordinator.claim(args.task_key, args.worker)
         elif args.command == "submit":
             output = coordinator.submit(args.task_key, args.summary, args.check)
-        elif args.command in ("release", "resume"):
+        elif args.command in ("release", "resume", "reopen"):
             output = getattr(coordinator, args.command)(args.task_key, args.reason)
         else:
             output = coordinator.mark_merged(args.task_key)

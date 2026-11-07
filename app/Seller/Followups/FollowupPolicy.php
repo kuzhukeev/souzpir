@@ -13,6 +13,10 @@ final class FollowupPolicy
             || ! ($conversation['last_client_message_at'] ?? null)) {
             return null;
         }
+        $excludedStages = is_array($settings['excluded_stages'] ?? null) ? $settings['excluded_stages'] : [];
+        if (in_array($conversation['stage'] ?? '', $excludedStages, true)) {
+            return null;
+        }
         $count = (int) data_get($conversation, 'state.counters.followups_sent', $conversation['followups_sent'] ?? 0);
         $maximum = max(0, (int) ($settings['max_auto'] ?? 2));
         if ($count >= $maximum) {

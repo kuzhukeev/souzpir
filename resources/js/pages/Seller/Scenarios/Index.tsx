@@ -1,15 +1,15 @@
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import CabinetLayout from '@/layouts/CabinetLayout';
 
 type Run = { id: string; persona_id: string; status: string; result: string; average: number | null; comment: string | null; turn_count: number; turns: { client: string; agent: string }[]; created_at: string };
 type Scenario = { id: string; name: string; type: string; max_turns: number; behavior: string; first_message: string; expect: string[]; editable: boolean; who: string; want: string; goal: string; expected_result: string; in_set: boolean; last_result: Run | null };
-type Props = { scenarios: Scenario[]; runs: Run[]; status: string | null };
+type Props = { scenarios: Scenario[]; runs: Run[]; status: string | null; runAllAvailable: boolean };
 
 const types: Record<string, string> = { newbie: 'Начинающий', experienced: 'Опытный', for_self: 'Для себя', prices_only: 'Только цены', troll: 'Вне темы', edge: 'Особый случай' };
-const expects: Record<string, string> = { full_card: 'Полная карточка', partial_or_full_contact: 'Контакт получен', no_deferred_promise: 'Не обещать отсрочку', no_argument: 'Не спорить с клиентом', one_question_per_turn: 'Не более одного вопроса' };
+const expects: Record<string, string> = { full_card: 'Полная карточка', partial_or_full_contact: 'Получен контакт', no_prohibition_violation: 'Не нарушены запреты', no_deferred_promise: 'Не обещал лишнего', no_argument: 'Не спорить с клиентом', one_question_per_turn: 'Не более одного вопроса', score_at_least_4: 'Оценка ≥ 4' };
 const outcomes: Record<string, string> = { contact: 'Контакт получен', handoff: 'Передано менеджеру', refusal: 'Корректный отказ' };
-const results: Record<string, string> = { passed: 'Пройден', failed: 'Не пройден', pending: 'Ожидает оценки' };
+const results: Record<string, string> = { passed: 'Пройден', failed: 'Не пройден', pending: 'Ожидает оценки', test_baseline: 'Тестовая оценка' };
 const field = 'mt-1 block min-h-11 w-full rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm text-(--color-ink)';
 const button = 'min-h-11 cursor-pointer rounded-lg px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50';
 
@@ -51,17 +51,18 @@ function Editor({ scenario, runs, onClose }: { scenario: Scenario | null; runs: 
     </div>;
 }
 
-export default function Index({ scenarios, runs, status }: Props) {
+export default function Index({ scenarios, runs, status, runAllAvailable }: Props) {
     const [editing, setEditing] = useState<Scenario | null | undefined>(undefined);
     const [busy, setBusy] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const copy = (scenario: Scenario) => { setBusy(scenario.id); setError(null); router.post(`/seller/quality/scenarios/${scenario.id}/copy`, {}, { preserveScroll: true, onError: () => setError('Не удалось скопировать сценарий.'), onFinish: () => setBusy(null) }); };
+    const runAll = () => { setBusy('all'); setError(null); router.post('/seller/quality/scenarios/run-all', {}, { preserveScroll: true, onError: () => setError('Не удалось запустить набор сценариев.'), onFinish: () => setBusy(null) }); };
     const toggle = (scenario: Scenario) => { setBusy(scenario.id); setError(null); router.patch(`/seller/quality/scenarios/${scenario.id}/set`, { in_set: !scenario.in_set }, { preserveScroll: true, onError: () => setError('Не удалось обновить набор.'), onFinish: () => setBusy(null) }); };
 
     return <CabinetLayout breadcrumbs={[{ label: 'Продавец', href: '/seller' }, { label: 'Качество', href: '/seller/quality' }, { label: 'Сценарии' }]}><Head title="Контрольные сценарии" />
-        <main className="mx-auto max-w-[1320px] text-(--color-ink)" data-private-profile>
-            <div className="flex flex-wrap items-start justify-between gap-4"><div><h1 className="text-3xl font-bold">Контрольные сценарии</h1><p className="mt-2 text-sm text-(--color-ink-muted)">Проверка продавца на типичных ситуациях текущего бренда</p></div><button type="button" disabled title="Запуск всех будет доступен после подключения runtime продавца" className={`${button} border border-(--color-border)`}>Запустить все</button></div>
-            <p className="mt-3 text-sm text-(--color-ink-muted)">Массовый запуск появится после подключения симулятора к runtime продавца.</p>
+        <main className="mx-auto max-w-[1320px] text-(--color-ink)" data-private-profile><Link href="/seller/quality/runs" className="inline-block min-h-11 cursor-pointer text-sm text-(--color-link)">Прогоны →</Link>
+            <div className="flex flex-wrap items-start justify-between gap-4"><div><h1 className="text-3xl font-bold">Контрольные сценарии</h1><p className="mt-2 text-sm text-(--color-ink-muted)">Проверка продавца на типичных ситуациях текущего бренда</p></div><button type="button" disabled={!runAllAvailable || busy !== null} onClick={runAll} title={runAllAvailable ? undefined : "Для запуска нужны сценарии в наборе, опубликованные знания и fake runtime"} className={`${button} border border-(--color-border)`}>{busy === 'all' ? 'Запуск…' : 'Запустить все'}</button></div>
+            {!runAllAvailable && <p className="mt-3 text-sm text-(--color-ink-muted)">Для массового запуска добавьте сценарии в набор, опубликуйте знания и включите fake runtime.</p>}
             {status && <p role="status" className="mt-4 rounded-lg bg-(--color-success-soft) p-3 text-sm">{status}</p>}
             {error && <p role="alert" className="mt-4 rounded-lg border border-(--color-border) p-3 text-sm text-(--color-danger-ink)">{error}</p>}
             <section className="mt-6 overflow-hidden rounded-xl border border-(--color-border) bg-(--color-surface)">

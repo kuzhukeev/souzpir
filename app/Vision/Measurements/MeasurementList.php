@@ -56,9 +56,12 @@ final class MeasurementList
         return ['data' => $rows->all(), 'page' => $page, 'last_page' => max(1, (int) ceil($count / 25)), 'total' => $count];
     }
 
-    public function readDetailed(TenantContext $context, int $page, ?string $month = null): array
+    public function readDetailed(TenantContext $context, int $page, ?string $month = null, ?string $measurementId = null): array
     {
         $query = DB::table('measurements')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId);
+        if ($measurementId !== null) {
+            $query->where('id', $measurementId);
+        }
         if ($month !== null) {
             $start = CarbonImmutable::createFromFormat('!Y-m', $month, 'UTC');
             $query->where('created_at', '>=', $start)->where('created_at', '<', $start->addMonth());
@@ -101,10 +104,13 @@ final class MeasurementList
                         ->orWhere(fn ($q) => $q->where('m.created_at', $row->created_at)->where('m.id', '<', $row->id)))
                     ->orderByDesc('m.created_at')->orderByDesc('m.id')->orderByDesc('r.revision')->value('r.id');
                 $delta = null;
+                $visibilityBefore = null;
                 if ($previous) {
                     try {
                         $comparison = app(ReportSections::class)->compare(app(VisionReportReader::class)->read($previous), $payload);
-                        $delta = collect($comparison['rows'] ?? [])->firstWhere('label', 'Видимость')['delta'] ?? null;
+                        $visibilityRow = collect($comparison['rows'] ?? [])->firstWhere('label', 'Видимость');
+                        $delta = $visibilityRow['delta'] ?? null;
+                        $visibilityBefore = $visibilityRow['before'] ?? null;
                     } catch (\LogicException) {
                         // Do not compare inaccessible reports.
                     }
@@ -113,6 +119,7 @@ final class MeasurementList
                     'visibility' => is_numeric($visibility) ? (float) $visibility : null,
                     'mentions' => is_numeric($mentions) ? (int) $mentions : null,
                     'delta' => $delta,
+                    'visibility_before' => $visibilityBefore,
                 ];
             } catch (\LogicException) {
                 // A missing or inaccessible report has no verified metrics.
@@ -126,7 +133,13 @@ final class MeasurementList
             ->where('approval.active', true)->first(['questions.size', 'approval.providers']);
         $providers = $approval ? json_decode($approval->providers, true) : [];
 
-        return ['plan' => $approval ? ['questions' => (int) $approval->size, 'models' => is_array($providers) ? count($providers) : 0] : null,
+        $lastCompleted = DB::table('measurements')->where('organization_id', $context->organizationId)
+            ->where('brand_id', $context->brandId)->where('status', 'completed')
+            ->whereNotNull('started_at')->whereNotNull('finished_at')->orderByDesc('finished_at')->first(['started_at', 'finished_at']);
+        $lastDuration = $lastCompleted ? CarbonImmutable::parse($lastCompleted->started_at)->diffInSeconds(CarbonImmutable::parse($lastCompleted->finished_at), false) : null;
+
+        return ['last_duration_minutes' => $lastDuration !== null && $lastDuration > 0 ? max(1, (int) ceil($lastDuration / 60)) : null,
+            'plan' => $approval ? ['questions' => (int) $approval->size, 'models' => is_array($providers) ? count($providers) : 0] : null,
             'data' => $rows->map(fn ($row) => [
                 'id' => $row->id, 'status' => $row->status, 'created_at' => $row->created_at,
                 'started_at' => $row->started_at, 'finished_at' => $row->finished_at,
@@ -142,6 +155,7 @@ final class MeasurementList
                 'visibility' => $reportMetrics[$row->id]['visibility'] ?? null,
                 'mentions' => $reportMetrics[$row->id]['mentions'] ?? null,
                 'visibility_delta' => $reportMetrics[$row->id]['delta'] ?? null,
+                'visibility_before' => $reportMetrics[$row->id]['visibility_before'] ?? null,
                 'answers' => ($answers[$row->id] ?? collect())->map(fn ($answer) => [
                     'question_n' => $answer->question_n, 'provider' => $answer->provider,
                     'requested_model' => $answer->requested_model, 'run_no' => $answer->run_no,

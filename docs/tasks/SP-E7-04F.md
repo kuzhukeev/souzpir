@@ -11,3 +11,6 @@
 Scope: `app/Seller/Analytics/`, `app/Seller/Runtime/`, `app/ProtectedOperations/`, `resources/js/pages/Seller/Analytics/`, `tests/Feature/Seller/Analytics/`, `tests/Browser/E7-04F/`, `docs/results/SP-E7-04F.md`.
 
 Отчёт: docs/results/SP-E7-04F.md; остаток указать по пунктам.
+
+## Дополнение владельца от 05.11.2026
+- «Настроить каналы» в пустом состоянии; «Контакт получен» с разделением Полный/Частичный.

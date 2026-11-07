@@ -32,10 +32,31 @@ function Errors({ errors }: { errors: Record<string, string> }) {
     </div>
   ) : null;
 }
-function CriterionRow({ item, canManage }: { item: Criterion; canManage: boolean }) {
+// Примеры иллюстрируют форму данных и не утверждают, что они найдены на сайте.
+const codeExamples: Record<number, string> = {
+  1: '<main>Доступное содержимое страницы</main>',
+  2: '<a href="/catalog/">Каталог</a>',
+  3: 'User-agent: GPTBot\nAllow: /',
+  4: '<script type="application/ld+json">{"@context":"https://schema.org","@type":"Product","name":"Товар"}</script>',
+  5: '<h1>Название товара</h1><p>Для чего он предназначен</p>',
+  6: '<dl><dt>Объём</dt><dd>1 л</dd></dl>',
+  7: '<nav><a href="/catalog/category/">Категория</a></nav>',
+  8: '<span>Артикул: EXAMPLE-1</span>',
+  9: '<span>Цена: по запросу</span>',
+  10: '<p>Наличие и минимальный заказ уточняйте у менеджера.</p>',
+  11: '<p>Способы получения и сроки уточняйте при заказе.</p>',
+  12: '<a href="/contacts/">Связаться с нами</a>',
+  13: '<section><h2>О компании</h2><p>Сведения о компании</p></section>',
+  14: '<a href="/documents/">Подтверждающие документы</a>',
+  15: '<p>Указывайте согласованные сведения о товаре на всех страницах.</p>',
+  16: '<time datetime="2026-01-01">Дата обновления сведений</time>',
+};
+function CriterionRow({ item, canManage, auditId }: { item: Criterion; canManage: boolean; auditId?: string | null }) {
   const title = item.title || item.name || item.label || 'Критерий';
-  const form = useForm({ title, description: item.explanation || '' });
+  const form = useForm({ title, description: item.explanation || '', audit_id: auditId || '', criterion_id: item.id == null ? '' : String(item.id) });
   const [saved, setSaved] = useState(false);
+  const [failure, setFailure] = useState(false);
+  const example = codeExamples[Number(item.id)];
   const observedJson = item.evidence?.find((evidence) => {
     if (!evidence.excerpt?.trim().startsWith('{')) return false;
     try { return typeof JSON.parse(evidence.excerpt) === 'object'; } catch { return false; }
@@ -49,7 +70,7 @@ function CriterionRow({ item, canManage }: { item: Criterion; canManage: boolean
         </span>
       </summary>
       <div className="mt-4 space-y-3">
-        <p className="text-sm text-(--color-ink-muted)">{typeof (item as Criterion & {weight?: number}).weight === 'number' ? `Вес в расчёте готовности: ${(item as Criterion & {weight:number}).weight}. ` : 'Вес критерия недоступен. '}Качественная важность не определена.</p>
+        <p className="text-sm text-(--color-ink-muted)">{typeof (item as Criterion & {weight?: number}).weight === 'number' ? `Важность по весу: ${(item as Criterion & {weight:number}).weight} из 100 баллов. ` : 'Вес и важность критерия недоступны. '}Все критерии инспектора имеют одинаковый вес.</p>
         <h3 className="font-semibold">Что сделать</h3>
         <p className="whitespace-pre-wrap break-words text-(--color-ink-muted)">
           {item.explanation || 'Рекомендаций пока нет.'}
@@ -78,9 +99,10 @@ function CriterionRow({ item, canManage }: { item: Criterion; canManage: boolean
         {!item.evidence?.length && <p className="text-sm text-(--color-ink-muted)">Источник свидетельства недоступен.</p>}
         <details className="rounded-lg bg-(--color-surface-muted) p-3">
           <summary className="cursor-pointer font-semibold">Для разработчика</summary>
-          {observedJson ? <><p className="mt-2 text-sm text-(--color-ink-muted)">Найденный фрагмент структурированных данных с проверенной страницы. Используйте как пример исходных данных, не как готовую рекомендацию.</p><pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-all rounded-lg bg-(--color-surface) p-3 text-sm">{observedJson.excerpt}</pre></> : <p className="mt-2 text-sm text-(--color-ink-muted)">Пример кода для этого критерия не предоставлен.</p>}
+          {example && <><p className="mt-2 text-sm text-(--color-ink-muted)">Пример структуры; подставьте реальные сведения вашей компании.</p><pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-all rounded-lg bg-(--color-surface) p-3 text-sm">{example}</pre></>}
+          {observedJson ? <><p className="mt-2 text-sm text-(--color-ink-muted)">Найденный фрагмент структурированных данных с проверенной страницы. Используйте как пример исходных данных, не как готовую рекомендацию.</p><pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-all rounded-lg bg-(--color-surface) p-3 text-sm">{observedJson.excerpt}</pre></> : !example ? <p className="mt-2 text-sm text-(--color-ink-muted)">Пример кода для этого критерия не предоставлен.</p> : null}
         </details>
-        {canManage && !item.pending && (item.status === 'fail' || item.status === 'partial') && (
+        {canManage && auditId && item.id != null && !item.pending && (item.status === 'fail' || item.status === 'partial') && (
           <div>
             <button
               type="button"
@@ -89,7 +111,10 @@ function CriterionRow({ item, canManage }: { item: Criterion; canManage: boolean
               onClick={() =>
                 form.post('/vision/actions', {
                   preserveScroll: true,
+                  onStart: () => { setFailure(false); setSaved(false); },
                   onSuccess: () => setSaved(true),
+                  onNetworkError: () => { setFailure(true); return false; },
+                  onHttpException: () => { setFailure(true); return false; },
                 })
               }
             >
@@ -100,6 +125,7 @@ function CriterionRow({ item, canManage }: { item: Criterion; canManage: boolean
                 Действие добавлено.
               </p>
             )}
+            {failure && <p role="alert" className="mt-2 text-sm text-(--color-danger-ink)">Не удалось добавить действие. Попробуйте ещё раз.</p>}
             <Errors errors={form.errors} />
           </div>
         )}
@@ -107,10 +133,7 @@ function CriterionRow({ item, canManage }: { item: Criterion; canManage: boolean
     </details>
   );
 }
-export function SpeedUnavailable() {
-  return <section className={card}><h2 className="text-lg font-semibold">Скорость сайта</h2><p className="mt-2 text-sm text-(--color-ink-muted)">Данные недоступны: аудит не измеряет скорость загрузки страниц.</p></section>;
-}
-export function Criteria({ criteria, canManage }: { criteria: Criterion[]; canManage: boolean }) {
+export function Criteria({ criteria, canManage, auditId }: { criteria: Criterion[]; canManage: boolean; auditId?: string | null }) {
   if (!criteria.length)
     return <div className={`${card} text-(--color-ink-muted)`}>Критерии пока не проверены.</div>;
   const groups = new Map<string, Criterion[]>();
@@ -122,7 +145,7 @@ export function Criteria({ criteria, canManage }: { criteria: Criterion[]; canMa
   );
   return (
     <div className="space-y-4">
-      <p className="text-sm text-(--color-ink-muted)">Качественная важность проверок не определена; доступный числовой вес указан в каждом критерии.</p>
+      <p className="text-sm text-(--color-ink-muted)">Важность определяется весом критерия в расчёте готовности; проверки инспектора имеют одинаковый вес.</p>
       {Array.from(groups, ([group, items]) => (
         <details key={group} className={card} open>
           <summary className="cursor-pointer text-lg font-semibold">{group}</summary>
@@ -130,6 +153,7 @@ export function Criteria({ criteria, canManage }: { criteria: Criterion[]; canMa
           <div className="mt-4 divide-y divide-(--color-border)">
             {items.map((item, index) => (
               <CriterionRow
+                auditId={auditId}
                 key={item.id || item.key || item.code || `${group}-${index}`}
                 item={item}
                 canManage={canManage}
@@ -141,8 +165,8 @@ export function Criteria({ criteria, canManage }: { criteria: Criterion[]; canMa
     </div>
   );
 }
-export function AuditForm() {
-  const form = useForm({ url: '' });
+export function AuditForm({initialUrl = '', fixedUrl = false}: {initialUrl?: string; fixedUrl?: boolean}) {
+  const form = useForm({ url: initialUrl });
   const [open, setOpen] = useState(false);
   function prepare(event: FormEvent) {
     event.preventDefault();
@@ -163,6 +187,7 @@ export function AuditForm() {
             id="site-url"
             type="url"
             required
+            readOnly={fixedUrl}
             placeholder="https://example.com"
             value={form.data.url}
             onChange={(event) => form.setData('url', event.target.value)}
@@ -240,7 +265,7 @@ export function BotAccess({ audit, domainStatus }: { audit: Audit; domainStatus?
           <section className={card} key={label}>
             <h2 className="text-lg font-semibold">{label}</h2>
             <p className="mt-2 text-(--color-ink-muted)">
-              {file?.status == null ? 'Нет данных' : `Статус: ${file.status}`}
+              {file?.status == null ? 'Нет данных' : Number(file.status) >= 200 && Number(file.status) < 300 ? 'Найден' : [404, 410].includes(Number(file.status)) ? 'Не найден' : `Нет достоверных данных (HTTP ${file.status})`}
             </p>
           </section>
         ))}
@@ -269,6 +294,7 @@ export function Pages({ audit }: { audit: Audit }) {
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<AuditPage | null>(null);
   const evidenceFor = (page: AuditPage) => (audit.criteria || []).flatMap((criterion) => (criterion.evidence || []).filter((evidence) => evidence.url === page.url).map((evidence) => ({ criterion, evidence })));
+  const problemsFor = (page: AuditPage) => evidenceFor(page).filter(({criterion}) => criterion.status === 'fail' || criterion.status === 'partial');
   const structuredFacts = (page: AuditPage) => (page as AuditPage & {structured_facts?: {label:string; value:string}[]}).structured_facts ?? [];
   const pageType = (page: AuditPage) => {
     if (page.url === (audit.final_url || audit.url)) return 'Главная';
@@ -310,8 +336,8 @@ export function Pages({ audit }: { audit: Audit }) {
       {pages.length ? (
         <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[750px] text-left text-sm">
-            <thead><tr className="border-b border-(--color-border)"><th className="p-3">URL</th><th className="p-3">Заголовок</th><th className="p-3">Тип</th><th className="p-3">Свидетельства</th><th className="p-3">HTTP</th><th className="p-3">Проверено</th><th className="p-3">Подробнее</th></tr></thead>
-            <tbody>{pages.map((page) => <tr key={page.url} className="border-b border-(--color-border)"><td className="break-all p-3">{page.url}</td><td className="p-3">{page.primary_heading || 'Без заголовка'}</td><td className="p-3">{pageType(page)}</td><td className="p-3">{evidenceFor(page).length + structuredFacts(page).length}</td><td className="p-3">{page.status ?? '—'}</td><td className="p-3">{date(page.observed_at)}</td><td className="p-3"><button type="button" className={secondary} onClick={() => setSelected(page)} aria-label={`Подробнее: ${page.primary_heading || page.url}`}>Подробнее</button></td></tr>)}</tbody>
+            <thead><tr className="border-b border-(--color-border)"><th className="p-3">URL</th><th className="p-3">Заголовок</th><th className="p-3">Тип</th><th className="p-3">Свидетельства</th><th className="p-3">HTTP</th><th className="p-3">Проблемы</th><th className="p-3">Проверено</th><th className="p-3">Подробнее</th></tr></thead>
+            <tbody>{pages.map((page) => <tr key={page.url} className="border-b border-(--color-border)"><td className="break-all p-3">{page.url}</td><td className="p-3">{page.primary_heading || 'Без заголовка'}</td><td className="p-3">{pageType(page)}</td><td className="p-3">{evidenceFor(page).length + structuredFacts(page).length}</td><td className="p-3">{page.status ?? '—'}</td><td className="p-3">{problemsFor(page).length || '—'}</td><td className="p-3">{date(page.observed_at)}</td><td className="p-3"><button type="button" className={secondary} onClick={() => setSelected(page)} aria-label={`Подробнее: ${page.primary_heading || page.url}`}>Подробнее</button></td></tr>)}</tbody>
           </table>
         </div>
       ) : (
@@ -361,7 +387,7 @@ export function Pages({ audit }: { audit: Audit }) {
             <div>
               <h3 className="font-semibold">Проблемы страницы</h3>
               <p className="mt-2 text-(--color-ink-muted)">
-                {typeof selected.status === 'number' && selected.status >= 400 ? `Страница вернула HTTP ${selected.status}.` : 'Отдельные данные о проблемах страницы недоступны.'}
+                {problemsFor(selected).length ? problemsFor(selected).map(({criterion}) => criterion.title || 'Критерий').join(' · ') : typeof selected.status === 'number' && selected.status >= 400 ? `Страница вернула HTTP ${selected.status}.` : 'Данные о проблемах страницы недоступны.'}
               </p>
             </div>
             <div>

@@ -82,5 +82,5 @@ export type StatusData = {
     }[];
     message: string;
   };
-  incidents: { available: false; data: never[] };
+  incidents: { available: boolean; data: { id: string; title: string; occurred_at: string }[] };
 };

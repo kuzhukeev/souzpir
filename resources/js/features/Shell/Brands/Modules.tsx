@@ -10,7 +10,7 @@ export function Modules({
   editable,
 }: {
   brand: BrandSettings;
-  modules: Record<BrandModuleKey, BrandModule>;
+  modules: Record<BrandModuleKey, BrandModule & { enabled_at?: string | null }>;
   editable: boolean;
 }) {
   const [confirm, setConfirm] = useState<BrandModuleKey | null>(null);
@@ -57,7 +57,7 @@ export function Modules({
                   <p className="mt-1 flex items-center gap-2 text-sm text-(--color-ink-muted)">
                     {module.enabled && <Check size={16} aria-hidden="true" />}
                     {module.enabled
-                      ? 'Подключён'
+                      ? (module.enabled_at ? `Подключён с ${new Date(module.enabled_at).toLocaleDateString('ru-RU')}` : 'Подключён')
                       : module.configured_enabled && !module.allowed
                         ? 'Недоступен по тарифу'
                         : 'Не подключён'}
@@ -69,6 +69,7 @@ export function Modules({
                   ? 'Анализ видимости бренда, замеры и отчёты.'
                   : 'Диалоги с клиентами, база знаний и настройки продавца.'}
               </p>
+              <div className="mt-4 text-sm"><p className="font-semibold">Что входит</p><ul className="mt-2 list-disc pl-5 text-(--color-ink-muted)">{(key === 'vision' ? ['Анкета и вопросы', 'Замеры видимости', 'Отчёты и рекомендации'] : ['Ответы клиентам', 'База знаний', 'Виджет и каналы']).map(feature => <li key={feature}>{feature}</li>)}</ul></div>
               <div className="my-5 border-y border-(--color-border) py-4 text-sm">
                 <p className="font-semibold">Использование и лимит</p>
                 <p className="mt-2 text-sm text-(--color-ink-muted)">
@@ -124,7 +125,7 @@ export function Modules({
       </div>
       <Modal open={confirm !== null} title="Отключить модуль" onClose={() => setConfirm(null)}>
         <p className="text-sm leading-6 text-(--color-ink-muted)">
-          Модуль станет недоступен в кабинете. Сохранённые данные останутся.
+          Модуль станет недоступен в кабинете. Сохранённые данные останутся не менее 90 дней.
         </p>
         <div className="mt-5 flex justify-end gap-2">
           <Button variant="secondary" onClick={() => setConfirm(null)}>

@@ -1,0 +1,34 @@
+--- a/queue.php
++++ b/queue.php
+@@ -105,6 +105,31 @@
+         if(!isset($data['projects'][$project]) || !isset($input['enabled']) || !is_bool($input['enabled'])) reply(['error'=>'Invalid project mode'],400);
+         $data['projects'][$project]['enabled']=$input['enabled']; saveData(); reply(['project'=>$project,'enabled'=>$input['enabled']]);
+     }
++    if($action==='reopen') {
++        $project=(string)($input['project']??''); $key=(string)($input['taskKey']??'');
++        $idx=queueFind($project,$key);
++        if($idx===null) reply(['error'=>'Project task not found'],404);
++        $old=$data['tasks'][$idx]; queueCheckRevision($old,$input);
++        $reason=trim((string)($input['reason']??''));
++        if(($old['status']??'')!=='done' || !empty($old['claimTokenHash']) || $reason==='') reply(['error'=>'A done unclaimed task and reason are required'],409);
++        $candidate=$old;
++        if(isset($input['plan'])) {
++            $item=$input['plan'];
++            if(!is_array($item) || ($item['taskKey']??null)!==$key) reply(['error'=>'Plan task key must match'],400);
++            $plan=queuePlan($item,$project);
++            $plan['planHash']=hash('sha256',json_encode($plan,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
++            $candidate=array_replace($old,$plan);
++            $candidate['images']=$old['images']??[];
++            $projectTasks=[];
++            foreach($data['tasks'] as $i=>$task) if(($task['project']??null)===$project) $projectTasks[]=($i===$idx?$candidate:$task);
++            queueValidateGraph($projectTasks);
++        }
++        $candidate['previousMerges']=$old['previousMerges']??[];
++        $candidate['previousMerges'][]=['mergeCommit'=>$old['mergeCommit']??null,'mergedAt'=>$old['mergedAt']??null,'result'=>$old['result']??null];
++        $candidate['status']='queue'; $candidate['reopenReason']=$reason;
++        unset($candidate['mergeCommit'],$candidate['mergedAt'],$candidate['result']);
++        queueTouch($candidate); $data['tasks'][$idx]=$candidate; saveData(); reply(['task'=>queuePublic($candidate)]);
++    }
+     if($action==='replan') {
+         $project=(string)($input['project']??''); $key=(string)($input['taskKey']??'');
+         $idx=queueFind($project,$key);

@@ -21,7 +21,7 @@ final class DashboardExtrasTest extends TenancyTestCase
         DB::table('messages')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $brand->id, 'conversation_id' => $current, 'role' => 'agent', 'text' => 'Ответ', 'meta' => json_encode(['intent' => 'delivery']), 'created_at' => now(), 'updated_at' => now()]);
         DB::table('seller_evaluations')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $brand->id, 'scores' => '{}', 'issues' => '[{"type":"wrong_fact"}]', 'average' => 4, 'created_at' => now(), 'updated_at' => now()]);
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
-        $this->get('/seller?days=7')->assertOk()->assertInertia(fn ($page) => $page->where('dashboard.total', 1)->where('dashboard.delta.total', 0)->where('dashboard.quality', 4)->where('dashboard.issues.wrong_fact', 1)->where('dashboard.topics.delivery', 1)->where('dashboard.managers.0.total', 1));
+        $this->get('/seller?days=7')->assertOk()->assertInertia(fn ($page) => $page->where('dashboard.total', 1)->where('dashboard.delta.total', 0)->where('dashboard.quality', 4)->where('dashboard.issues.wrong_fact', 1)->has('dashboard.topics', 0)->where('dashboard.managers.0.total', 1));
         $this->post('/brand/switch', ['brand_id' => $other->id])->assertRedirect();
         $this->get('/seller?days=7')->assertOk()->assertInertia(fn ($page) => $page->where('dashboard.quality', null)->where('dashboard.managers.0.total', 1)->has('dashboard.topics', 0));
         $this->get('/seller?days=3')->assertSessionHasErrors('days');

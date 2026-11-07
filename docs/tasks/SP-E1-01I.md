@@ -14,3 +14,8 @@
 Scope: `app/Shell/Auth/`, `app/Shell/InvitationIssuance/`, `resources/js/pages/Shell/Auth/`, `resources/js/features/Shell/Auth/`, `routes/features/E1-01.php`, `tests/Feature/Shell/Auth/`, `tests/Feature/Shell/InvitationIssuance/`, `tests/Browser/E1-01I/`, `docs/results/SP-E1-01I.md`.
 
 Отчёт: docs/results/SP-E1-01I.md; локальные тесты задачи, submit и зелёный CI.
+
+## Дополнение владельца от 05.11.2026
+- красный алерт «Неверная почта или пароль»;
+- общая ошибка регистрации «Проверьте поля и подтвердите обязательные согласия»;
+- при expired/revoked/accepted переход на /invitations/state (InvitationController.php:80-86).

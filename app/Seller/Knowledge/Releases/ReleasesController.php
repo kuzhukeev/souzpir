@@ -44,6 +44,27 @@ final class ReleasesController
             $releases = $this->query('knowledge_releases', $tenant)->whereIn('status', ['draft', 'published'])->orderByDesc('created_at')->orderByDesc('id')->get(['id', 'status', 'version', 'published_at', 'updated_at', 'created_by']);
             $authors = DB::table('users')->whereIn('id', $releases->pluck('created_by')->filter()->unique())->pluck('name', 'id');
             $releases->each(fn ($release) => $release->author = $release->created_by ? $authors->get($release->created_by) : null);
+            $publicationAudit = $this->query('audit_logs', $tenant)->where('action', 'knowledge.release.published')
+                ->where('subject_type', 'knowledge_release')->whereIn('subject_id', $releases->pluck('id'))
+                ->orderByDesc('created_at')->orderByDesc('id')->get(['subject_id', 'actor_id', 'created_at'])->unique('subject_id')->keyBy('subject_id');
+            $publishers = DB::table('users')->whereIn('id', $publicationAudit->pluck('actor_id')->filter()->unique())->pluck('name', 'id');
+            $releases->each(function ($release) use ($publicationAudit, $publishers): void {
+                $event = $publicationAudit->get($release->id);
+                $release->publication_audit = $event ? ['at' => $event->created_at, 'author' => $publishers->get($event->actor_id)] : null;
+            });
+            $published = $releases->where('status', 'published')->values();
+            $repository = app(KnowledgeRepository::class);
+            foreach ($published as $index => $release) {
+                $release->changes_from_previous = null;
+                $previous = $published->get($index + 1);
+                if ($previous) {
+                    $comparison = app(ReleaseComparison::class)->compare(
+                        $repository->forRelease($tenant, $previous->id),
+                        $repository->forRelease($tenant, $release->id),
+                    );
+                    $release->changes_from_previous = array_sum(array_map(fn ($section) => count($section['changes']), $comparison));
+                }
+            }
             $brand = DB::table('brands')->where('organization_id', $tenant->organizationId)->where('id', $tenant->brandId)->first(['active_knowledge_release_id']);
             $draft = $releases->firstWhere('status', 'draft');
             $canWrite = Gate::forUser($user)->allows('seller.knowledge.write');
@@ -87,9 +108,13 @@ final class ReleasesController
                     return [$row->subject_id => is_array($value) ? ($value['note'] ?? null) : null];
                 })->all();
             $tasks = $this->query('seller_tasks', $tenant)->where('type', 'unknown_question')->where('status', 'new')->orderByDesc('created_at')->limit(50)->get(['id', 'conversation_id', 'payload', 'created_at']);
-            $reviews = $this->query('message_reviews', $tenant)->where('type', 'wrong_fact')->where('status', 'new')->orderByDesc('created_at')->limit(50)->get(['id', 'message_id', 'note', 'better_text', 'created_at']);
-            $reviewDialogs = $this->query('messages', $tenant)->whereIn('id', $reviews->pluck('message_id'))->pluck('conversation_id', 'id');
-            $reviews->each(fn ($review) => $review->conversation_id = $reviewDialogs->get($review->message_id));
+            $reviews = $this->query('message_reviews', $tenant)->where('status', 'new')->orderByDesc('created_at')->limit(50)->get(['id', 'message_id', 'type', 'note', 'better_text', 'created_at']);
+            $reviewMessages = $this->query('messages', $tenant)->whereIn('id', $reviews->pluck('message_id'))->get(['id', 'conversation_id', 'text'])->keyBy('id');
+            $reviews->each(function ($review) use ($reviewMessages): void {
+                $message = $reviewMessages->get($review->message_id);
+                $review->conversation_id = $message?->conversation_id;
+                $review->message_text = $message?->text;
+            });
             $handled = $this->query('audit_logs', $tenant)->where('action', 'knowledge.incoming.handled')->where('subject_type', 'evaluation')->pluck('subject_id');
             $evaluations = $this->query('seller_evaluations', $tenant)->whereNotIn('id', $handled)->whereRaw('jsonb_array_length(issues) > 0')->orderByDesc('created_at')->limit(50)->get(['id', 'issues', 'comment', 'created_at']);
 
@@ -240,16 +265,7 @@ final class ReleasesController
     public function rollback(Request $request, string $release): mixed
     {
         $this->access($request, 'seller.knowledge.write', function (User $user, TenantContext $tenant) use ($release): void {
-            $repository = app(KnowledgeRepository::class);
-            $snapshot = $repository->forRelease($tenant, $release);
-            DB::transaction(function () use ($tenant, $repository, $snapshot, $release): void {
-                $draft = $this->query('knowledge_releases', $tenant)->where('status', 'draft')->lockForUpdate()->first(['id', 'version']);
-                if ($draft) {
-                    $this->query('knowledge_releases', $tenant)->where('id', $draft->id)->update(['status' => 'building', 'updated_at' => now()]);
-                    app(AuditWriter::class)->record($tenant, new AuditEntry('knowledge.draft.autosaved', 'knowledge_release', $draft->id, after: ['version' => $draft->version, 'rollback_to' => $release]));
-                }
-                $repository->createDraft($tenant, $snapshot->toArray());
-            });
+            app(KnowledgeRepository::class)->rollbackToDraft($tenant, $release);
         });
 
         return back()->with('status', 'Создан черновик из выбранной версии. Прежний черновик сохранён для восстановления.');

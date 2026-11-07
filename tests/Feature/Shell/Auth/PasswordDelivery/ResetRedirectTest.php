@@ -45,6 +45,13 @@ final class ResetRedirectTest extends TestCase
         self::assertNull(session()->getOldInput('email'));
     }
 
+    public function test_mismatched_confirmation_returns_russian_validation_error(): void
+    {
+        $this->post('/reset-password', ['password' => 'a-long-password-example', 'password_confirmation' => 'a-different-password'])
+            ->assertRedirect('/reset-password')->assertSessionHasErrors('password');
+        self::assertStringContainsString('не совпадает', session('errors')->first('password'));
+    }
+
     public function test_invalid_token_returns_to_internal_page_without_attacker_referer(): void
     {
         $response = $this->withHeader('Referer', 'https://outside.example/path?token=synthetic-secret')

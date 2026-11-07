@@ -34,6 +34,7 @@ return [
             Route::get('/invitations/open', [InvitationController::class, 'open'])->middleware('throttle:30,1')->name('invitation.open');
             Route::post('/invitations/exchange', [InvitationController::class, 'exchange'])->middleware(['auth.version', 'throttle:10,1'])->name('invitation.exchange');
             Route::get('/invitations/show', [InvitationController::class, 'show'])->middleware('auth.version')->name('invitation.show');
+            Route::get('/invitations/state', [InvitationController::class, 'state'])->name('invitation.state');
             Route::post('/invitations/register', [InvitationController::class, 'register'])->middleware(['guest', 'throttle:5,60'])->name('invitation.register');
             Route::post('/invitations/accept', [InvitationController::class, 'accept'])->middleware(['auth', 'auth.version', 'verified', 'throttle:10,1'])->name('invitation.accept');
         });
@@ -44,6 +45,8 @@ return [
             ->withoutMiddleware(EnforceAuthVersion::class)->name('logout');
         Route::middleware(['auth.version', 'auth.nostore'])->group(static function (): void {
             Route::get('/email/verify', [VerificationController::class, 'notice'])->name('verification.notice');
+            Route::get('/email/verified', [VerificationController::class, 'success'])->name('verification.success');
+            Route::post('/email/change', [VerificationController::class, 'updateEmail'])->middleware('throttle:5,1')->name('verification.email.update');
             Route::get('/email/verify/{id}/{hash}', [VerificationController::class, 'confirm'])->middleware(['signed', 'throttle:6,1'])->name('verification.verify');
             Route::post('/email/verify/{id}/{hash}', [VerificationController::class, 'verify'])->middleware(['signed', 'throttle:6,1'])->name('verification.confirm');
             Route::post('/email/verification-notification', [VerificationController::class, 'send'])->middleware('throttle:5,1')->name('verification.send');

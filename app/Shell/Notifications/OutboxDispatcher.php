@@ -2,6 +2,8 @@
 
 namespace App\Shell\Notifications;
 
+use App\Shell\Integrations\Webhooks\ProcessFakeWebhookEvent;
+use App\Shell\Integrations\Webhooks\WebhookSnapshot;
 use App\Shell\Notifications\Contracts\NotificationDispatcher;
 use App\Shell\Notifications\Jobs\ProcessNotificationEvent;
 use Illuminate\Database\DeadlockException;
@@ -20,6 +22,9 @@ final class OutboxDispatcher implements NotificationDispatcher
     {
         if ($this->store($event)) {
             ProcessNotificationEvent::dispatch($event->envelope['event_id'])->afterCommit();
+            if (config('runtime.notification_driver') === 'fake' && app(WebhookSnapshot::class)->hasSubscribers($event->envelope['event_id'])) {
+                ProcessFakeWebhookEvent::dispatch($event->envelope['event_id'])->afterCommit();
+            }
         }
     }
 
@@ -51,6 +56,8 @@ final class OutboxDispatcher implements NotificationDispatcher
 
             return false;
         }
+
+        app(WebhookSnapshot::class)->record($event);
 
         return true;
     }

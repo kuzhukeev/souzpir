@@ -7,12 +7,15 @@ use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Billing\BillingAccess;
 use App\Shell\Billing\VisionPlanSummary;
 use App\Tenancy\TenantContext;
+use App\Vision\Competitors\SnapshotView;
 use App\Vision\Core\Profiles\ProfileAccess;
 use App\Vision\Core\Profiles\Questionnaire;
 use App\Vision\Core\Profiles\QuizConflict;
+use App\Vision\Site\Jobs\AuditSiteJob;
 use App\Vision\SiteAudit\Knowledge\SiteDraftStore;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
@@ -107,7 +110,43 @@ HTML;
             $savedAt = $quiz['revision'] > 1 ? app(ProfileAccess::class)->run($request, fn (TenantContext $tenant) => DB::table('visibility_quizzes')
                 ->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('id', $quiz['id'])->value('updated_at')) : null;
 
-            return Inertia::render('Vision/Profile/Quiz', ['quiz' => $quiz, 'step' => $step, 'brand' => $state['brand'], 'savedAt' => $savedAt, 'hints' => $this->hints($request, $step, $state['brand']['website'] ?? null), 'limits' => QuizLimits::configured()->values()]);
+            $deferred = in_array($step, [4, 5], true) && Gate::allows('vision.settings.write');
+            $grant = null;
+            if ($deferred) {
+                $grant = Str::random(48);
+                $request->session()->put('vision.hints_grant', ['hash' => hash('sha256', $grant), 'user' => $request->user()->getAuthIdentifier(),
+                    'session' => $request->session()->getId(), 'version' => $request->session()->get('auth.version'),
+                    'brand' => $state['brand']['id'], 'step' => $step, 'expires' => now()->addMinutes(10)->timestamp]);
+            }
+
+            return Inertia::render('Vision/Profile/Quiz', ['quiz' => $quiz, 'step' => $step, 'brand' => $state['brand'], 'savedAt' => $savedAt,
+                'hints' => $deferred ? ['status' => 'loading', 'items' => []] : $this->hints($request, $step, $state['brand']['website'] ?? null),
+                'hints_grant' => $grant, 'limits' => QuizLimits::configured()->values()]);
+        });
+    }
+
+    public function deferredHints(#[\SensitiveParameter] Request $request, int $step): mixed
+    {
+        return $this->guard($request, function () use ($request, $step) {
+            if (! in_array($step, [4, 5], true) || ! Gate::allows('vision.settings.write')) {
+                abort(403);
+            }
+            $grant = $request->session()->get('vision.hints_grant');
+            $token = $request->header('X-Quiz-Hints-Grant');
+            if (! is_array($grant) || ! is_string($token) || ! is_string($grant['hash'] ?? null)
+                || ! hash_equals($grant['hash'], hash('sha256', $token)) || ($grant['step'] ?? null) !== $step
+                || ($grant['user'] ?? null) !== $request->user()->getAuthIdentifier() || ($grant['session'] ?? null) !== $request->session()->getId()
+                || ($grant['version'] ?? null) !== $request->session()->get('auth.version') || ($grant['brand'] ?? null) !== $request->session()->get('brand_id')
+                || ! is_int($grant['expires'] ?? null) || $grant['expires'] < now()->timestamp) {
+                abort(403);
+            }
+            $website = app(ProfileAccess::class)->run($request, function (TenantContext $tenant) use ($grant) {
+                abort_unless($tenant->brandId === $grant['brand'], 403);
+
+                return DB::table('brands')->where('id', $tenant->brandId)->where('organization_id', $tenant->organizationId)->value('website');
+            });
+
+            return response()->json($this->hints($request, $step, $website))->header('Cache-Control', 'private, no-store');
         });
     }
 
@@ -201,11 +240,20 @@ HTML;
     private function hints(#[\SensitiveParameter] Request $request, int $step, ?string $website): array
     {
         $unavailable = ['status' => 'unavailable', 'items' => []];
+        if ($step === 4 && ! $website && Gate::allows('vision.settings.write') && Gate::allows('vision.report.read')) {
+            try {
+                $items = app(ProfileAccess::class)->run($request, fn (TenantContext $context) => $this->aiCompetitorHints($context));
+
+                return ['status' => $items ? 'available' : 'empty', 'items' => $items];
+            } catch (Throwable) {
+                return $unavailable;
+            }
+        }
         if (! in_array($step, [1, 2, 3, 4, 5, 7], true) || ! Gate::allows('vision.settings.write') || ! $website) {
             return $unavailable;
         }
         try {
-            $sources = app(ProfileAccess::class)->run($request, function (TenantContext $context) use ($website) {
+            $sources = app(ProfileAccess::class)->run($request, function (TenantContext $context) use ($website, $step) {
                 $currentWebsite = DB::table('brands')->where('id', $context->brandId)->where('organization_id', $context->organizationId)->value('website');
                 if ($currentWebsite !== $website) {
                     return null;
@@ -215,16 +263,27 @@ HTML;
                 $raw = DB::table('audit_runs')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)->orderByDesc('created_at')->orderByDesc('id')->value('result');
                 $audit = is_string($raw) ? json_decode($raw, true) : null;
                 $host = strtolower((string) parse_url($website, PHP_URL_HOST));
-                if (! is_array($audit) || $host === '' || strtolower((string) parse_url((string) ($audit['url'] ?? ''), PHP_URL_HOST)) !== $host) {
+                if (! is_array($audit) || $host === '' || ($audit['url'] ?? null) !== $website) {
                     $audit = null;
                 }
 
-                return ['page' => $page, 'audit' => $audit];
+                $aiItems = [];
+                if ($step === 4 && Gate::allows('vision.report.read')) {
+                    try {
+                        $aiItems = $this->aiCompetitorHints($context);
+                    } catch (Throwable) {
+                        // An unavailable report must not block the questionnaire.
+                    }
+                }
+
+                return ['page' => $page, 'audit' => $audit, 'aiItems' => $aiItems, 'progress' => Cache::get(AuditSiteJob::key($context->organizationId, $context->brandId))];
             });
+            $progress = is_string($website) && $website !== '' && ($sources['progress']['url'] ?? null) === $website ? ($sources['progress']['stage'] ?? null) : null;
+            $siteCheck = ['stage' => in_array($progress, ['queued', 'inspecting', 'saving', 'complete', 'failed'], true) ? $progress : null, 'readiness' => $sources['audit']['readiness'] ?? null, 'pages' => $sources['audit']['crawled_pages'] ?? null];
             $page = $sources['page'] ?? null;
             $audit = $sources['audit'] ?? null;
             if (! $page && ! $audit) {
-                return ['status' => 'empty', 'items' => []];
+                return ['status' => ! empty($sources['aiItems']) ? 'available' : 'empty', 'items' => $sources['aiItems'] ?? [], 'site_check' => $siteCheck];
             }
             $page ??= [];
             $title = trim((string) ($page['title'] ?? ''));
@@ -232,6 +291,14 @@ HTML;
             $items = [];
             if (in_array($step, [2, 5], true) && $title !== '') {
                 $items[] = ['label' => 'Заголовок сайта', 'value' => mb_substr($title, 0, 180), 'source' => $source];
+            }
+
+            if ($step === 5 && is_array($audit)) {
+                foreach (app(AuditedCompanyFacts::class)->extract($audit, $website) as $hint) {
+                    if (! in_array($hint['value'], array_column($items, 'value'), true) && count($items) < 5) {
+                        $items[] = $hint;
+                    }
+                }
             }
             if (in_array($step, [3, 4, 7], true)) {
                 $prefix = match ($step) {
@@ -251,6 +318,52 @@ HTML;
             }
 
             if ($step === 5) {
+                $text = (string) ($page['content_text'] ?? '');
+                preg_match_all('/^(Адрес|Телефон|Год основания|Сертификаты|Доставка):\h*([^\r\n]{1,180})$/umi', $text, $facts, PREG_SET_ORDER);
+                foreach ($facts as $fact) {
+                    $value = trim($fact[2]);
+                    if ($value !== '' && count($items) < 5 && ! in_array($value, array_column($items, 'value'), true)) {
+                        $items[] = ['label' => 'Данные сайта: '.$fact[1], 'value' => $value, 'source' => $source];
+                    }
+                    if (count($items) >= 5) {
+                        break;
+                    }
+                }
+            }
+
+            if ($step === 3 && preg_match('/^Типы покупателей:\h*([^\r\n]+)$/umi', (string) ($page['content_text'] ?? ''), $audience)) {
+                foreach (array_slice(preg_split('/\s*[;,]\s*/u', $audience[1]) ?: [], 0, 5) as $value) {
+                    if (trim($value) !== '') {
+                        $items[] = ['label' => 'Тип покупателя', 'value' => mb_substr(trim($value), 0, 180), 'source' => $source, 'kind' => 'customer_type'];
+                    }
+                }
+            }
+
+            if ($step === 3) {
+                foreach (($audit['pages'] ?? []) as $auditedPage) {
+                    $pageUrl = is_array($auditedPage) ? ($auditedPage['url'] ?? null) : null;
+                    $types = is_array($auditedPage['structured_types'] ?? null) ? $auditedPage['structured_types'] : [];
+                    if (! is_string($pageUrl) || strtolower((string) parse_url($pageUrl, PHP_URL_HOST)) !== strtolower((string) parse_url($website, PHP_URL_HOST))
+                        || ! is_numeric($auditedPage['status'] ?? null) || $auditedPage['status'] < 200 || $auditedPage['status'] >= 300
+                        || count($types) !== 1 || ! in_array($types[0], ['Product', 'Service'], true)) {
+                        continue;
+                    }
+                    foreach (is_array($auditedPage['structured_facts'] ?? null) ? $auditedPage['structured_facts'] : [] as $fact) {
+                        if (! is_array($fact) || ($fact['label'] ?? null) !== 'Название' || ! is_string($fact['value'] ?? null) || trim($fact['value']) === '') {
+                            continue;
+                        }
+                        $value = mb_substr(trim($fact['value']), 0, 180);
+                        if (! in_array($value, array_column($items, 'value'), true)) {
+                            $items[] = ['label' => $types[0] === 'Product' ? 'Товар из аудита' : 'Услуга из аудита', 'value' => $value, 'source' => $pageUrl];
+                        }
+                        if (count($items) >= 5) {
+                            break 2;
+                        }
+                    }
+                }
+            }
+
+            if ($step === 5) {
                 foreach (($audit['pages'] ?? []) as $auditedPage) {
                     $pageUrl = is_array($auditedPage) ? ($auditedPage['url'] ?? null) : null;
                     if (! is_string($pageUrl) || strtolower((string) parse_url($pageUrl, PHP_URL_HOST)) !== strtolower((string) parse_url($website, PHP_URL_HOST))
@@ -258,6 +371,9 @@ HTML;
                         continue;
                     }
                     foreach (is_array($auditedPage['structured_facts'] ?? null) ? $auditedPage['structured_facts'] : [] as $fact) {
+                        if (count($items) >= 5) {
+                            break 2;
+                        }
                         if (! is_array($fact) || ! in_array($fact['label'] ?? null, ['Название', 'Описание'], true) || ! is_string($fact['value'] ?? null) || trim($fact['value']) === '') {
                             continue;
                         }
@@ -272,13 +388,35 @@ HTML;
                 }
             }
 
+            if ($step === 5 && is_array($audit)) {
+                foreach (app(AuditedFulfilmentHints::class)->extract($audit, $website) as $hint) {
+                    if (! in_array($hint['value'], array_column($items, 'value'), true) && count($items) < 5) {
+                        $items[] = $hint;
+                    }
+                }
+            }
+
+            if (in_array($step, [3, 4, 7], true) && is_array($audit)) {
+                foreach (app(AuditedExplicitHints::class)->extract($audit, $website, $step) as $hint) {
+                    if (! in_array($hint['value'], array_column($items, 'value'), true) && count($items) < 5) {
+                        $items[] = $hint;
+                    }
+                }
+            }
+
             if (in_array($step, [3, 5, 7], true)) {
                 foreach (($audit['pages'] ?? []) as $auditedPage) {
-                    if (! is_array($auditedPage) || ($auditedPage['status'] ?? 0) < 200 || ($auditedPage['status'] ?? 0) >= 300) {
+                    if (! is_array($auditedPage) || ! is_string($auditedPage['url'] ?? null)
+                        || strtolower((string) parse_url($auditedPage['url'], PHP_URL_HOST)) !== strtolower((string) parse_url($website, PHP_URL_HOST))
+                        || ($auditedPage['status'] ?? 0) < 200 || ($auditedPage['status'] ?? 0) >= 300) {
                         continue;
                     }
                     foreach (($auditedPage['headings'] ?? []) as $heading) {
-                        if (! is_string($heading) || trim($heading) === '' || ($step === 7 && ! str_ends_with(trim($heading), '?'))) {
+                        if (count($items) >= 5) {
+                            break 2;
+                        }
+                        if (! is_string($heading) || trim($heading) === '' || ($step === 7 && ! str_ends_with(trim($heading), '?'))
+                            || ($step === 5 && preg_match('/^(Адрес|Телефон|Год основания|Сертификаты|Доставка):\h*(.+)$/ui', trim($heading)))) {
                             continue;
                         }
                         $value = mb_substr(trim($heading), 0, 180);
@@ -292,11 +430,24 @@ HTML;
                 }
             }
 
-            return ['status' => $items || ($step === 1 && $page) ? 'available' : 'empty', 'items' => $items];
+            foreach ($sources['aiItems'] ?? [] as $hint) {
+                if (! in_array($hint['value'], array_column($items, 'value'), true) && count($items) < 10) {
+                    $items[] = $hint;
+                }
+            }
+
+            return ['status' => $items || ($step === 1 && $page) ? 'available' : 'empty', 'items' => $items, 'site_check' => $siteCheck];
         } catch (Throwable) {
             // Local failure must not block the form or expose private source data in logs.
             return $unavailable;
         }
+    }
+
+    private function aiCompetitorHints(TenantContext $context): array
+    {
+        $snapshot = app(SnapshotView::class)->current($context);
+
+        return is_array($snapshot) ? app(AiCompetitorHints::class)->extract($snapshot) : [];
     }
 
     private function input(#[\SensitiveParameter] Request $request, bool $quiz, bool $needsValues = true): array

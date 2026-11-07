@@ -37,7 +37,7 @@ final class SiteOperations
         }
         $sessionHash = hash_hmac('sha256', 'auth-session:'.$request->session()->getId(), (string) config('app.key'));
         $key = AuditSiteJob::key($tenant->organizationId, $tenant->brandId);
-        Cache::put($key, ['stage' => 'queued', 'events' => [['stage' => 'queued', 'at' => now()->toIso8601String()]]], now()->addDay());
+        Cache::put($key, ['url' => $url, 'stage' => 'queued', 'events' => [['stage' => 'queued', 'at' => now()->toIso8601String()]]], now()->addDay());
         AuditSiteJob::dispatch($tenant->organizationId, $tenant->brandId, $tenant->actorId, $tenant->membershipId, $url, $sessionHash, $version);
         if (Cache::get($key)['stage'] === 'failed') {
             return 'Не удалось безопасно проверить сайт.';
@@ -46,9 +46,9 @@ final class SiteOperations
         return null;
     }
 
-    public function create(TenantContext $tenant, Request $request, array $data): void
+    public function create(TenantContext $tenant, Request $request, array $data): string
     {
-        app(AuthSessionRegistry::class)->withinActive($request, function () use ($tenant, $data): void {
+        return app(AuthSessionRegistry::class)->withinActive($request, function () use ($tenant, $data): string {
             $this->access->lock($tenant, true, 'vision.actions.write');
             $this->responsible($tenant, $data['responsible'] ?? null);
             $action = new SiteAction;
@@ -56,6 +56,8 @@ final class SiteOperations
             $action->status = 'open';
             $action->save();
             $this->audit->record($tenant, new AuditEntry('vision.action.created', 'vision_action', $action->id, after: ['status' => 'open']));
+
+            return $action->id;
         });
     }
 

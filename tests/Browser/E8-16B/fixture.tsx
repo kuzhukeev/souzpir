@@ -14,7 +14,7 @@ window.fetch = (input, init) => {
   }
   if (typeof input === 'string' && input.startsWith('/vision/runs/data')) {
     return Promise.resolve(new Response(JSON.stringify({
-      revision, plan: { questions: 2, models: 1 }, data: [{ id: '01J00000000000000000000005', status: pending ? 'pending' : 'partial', created_at: '2026-10-20T12:30:00Z', answers: pending ? [
+      revision, last_duration_minutes: 12, plan: { questions: 2, models: 1 }, data: [{ id: '01J00000000000000000000005', status: pending ? 'pending' : 'partial', created_at: '2026-10-20T12:30:00Z', answers: pending ? [
         { question_n: 1, provider: 'gemini', requested_model: 'google/gemini-2.5-flash', run_no: 1, status: 'pending', answer_text: null, error_code: null },
       ] : [
         { question_n: 1, provider: 'gemini', requested_model: 'google/gemini-2.5-flash', run_no: 1, status: 'ok', answer_text: 'Сохранённый ответ бренда', error_code: null },

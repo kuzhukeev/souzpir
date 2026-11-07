@@ -4,8 +4,24 @@ on:
   push:
     branches: [main, 'codex/**']
   schedule:
-    - cron: '0 1 * * *'   # ночной прогон race-тестов (04:00 МСК)
+    - cron: '0 1 * * *'   # полный ночной прогон (04:00 МСК)
   workflow_dispatch:
+    inputs:
+      acceptance_e901e:
+        description: 'Проверить настройки напоминаний и создание диалога'
+        required: false
+        type: boolean
+        default: false
+      acceptance_e901c:
+        description: 'Запустить проверку контекста брендов и fake-напоминаний'
+        required: false
+        type: boolean
+        default: false
+      acceptance_e901b:
+        description: 'Запустить сквозной тест замера и публикации'
+        required: false
+        type: boolean
+        default: false
 
 concurrency:
   group: ci-${{ github.ref }}-${{ github.event_name }}
@@ -39,7 +55,6 @@ env:
 
 jobs:
   php-lint:
-    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -53,7 +68,6 @@ jobs:
       - run: composer lint
 
   frontend:
-    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -67,7 +81,6 @@ jobs:
       - run: npm run build
 
   php-tests:
-    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     env:
       DB_USERNAME: souzpir_parallel
@@ -110,27 +123,46 @@ jobs:
           fi
 
   equivalence:
-    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
         with: { php-version: '8.4', extensions: 'pdo_pgsql, pgsql, mbstring, intl, bcmath, gd', coverage: none }
+      - run: bash scripts/ci/postgres.sh
       - uses: ramsey/composer-install@v3
       - name: Check recorded fixtures and available policy replay
         run: vendor/bin/phpunit --testsuite=Equivalence --no-coverage
 
+      - name: Check recorded adapter rejection in runtime
+        run: vendor/bin/phpunit tests/Equivalence/RuntimeReplayE307ETest.php --no-coverage
+
+  browser-smoke:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '24', cache: npm }
+      - run: npm ci --no-audit --no-fund
+      - name: Check dashboard and profile in Chromium
+        env:
+          PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH: /usr/bin/google-chrome
+        run: |
+          test -x "$PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH"
+          npx playwright test tests/Browser/E7-06E/summary.spec.ts tests/Browser/E8-14M/hints.spec.ts --workers=1
+
   browser:
-    if: github.event_name != 'schedule'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
+        shard: [1, 2, 3, 4]
     env:
-      BROWSER_SHARD: '${{ matrix.shard }}/3'
+      BROWSER_SHARD: '${{ matrix.shard }}/4'
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
@@ -157,6 +189,121 @@ jobs:
           for logfile in .local/runtime/*.log .local/runtime/testing/storage/logs/laravel.log; do
             if [ -f "$logfile" ]; then echo "== $logfile"; tail -n 80 "$logfile"; fi
           done
+
+  acceptance-vision:
+    if: github.event_name == 'workflow_dispatch' && inputs.acceptance_e901b
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      RUN_ACCEPTANCE_E901B: '1'
+      DB_DATABASE: souzpir_test_e901b
+      DB_TEST_DATABASE: souzpir_test_e901b
+      DB_USERNAME: souzpir_e901b
+      APP_PREVIEW_DATABASE: souzpir_preview_e901b
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with: { php-version: '8.4', extensions: 'pdo_pgsql, pgsql, mbstring, intl, bcmath, gd', coverage: none }
+      - uses: actions/setup-node@v4
+        with: { node-version: '24', cache: npm }
+      - run: bash scripts/ci/postgres.sh
+      - name: Prepare isolated acceptance database
+        env:
+          PGPASSWORD: ci-only-password
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "CREATE ROLE souzpir_e901b LOGIN PASSWORD 'ci-only-password' NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;"
+          psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "CREATE DATABASE souzpir_test_e901b OWNER souzpir_e901b;"
+          psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "REVOKE CONNECT ON DATABASE souzpir_test_e901b FROM PUBLIC;"
+      - uses: ramsey/composer-install@v3
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test tests/Browser/Acceptance/vision-e901b.spec.ts --workers=1
+
+  acceptance-context:
+    if: github.event_name == 'workflow_dispatch' && inputs.acceptance_e901c
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      RUN_ACCEPTANCE_E901C: '1'
+      DB_DATABASE: souzpir_test_e901c
+      DB_TEST_DATABASE: souzpir_test_e901c
+      DB_USERNAME: souzpir_e901c
+      APP_PREVIEW_DATABASE: souzpir_preview_e901c
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with: { php-version: '8.4', extensions: 'pdo_pgsql, pgsql, mbstring, intl, bcmath, gd', coverage: none }
+      - uses: actions/setup-node@v4
+        with: { node-version: '24', cache: npm }
+      - run: bash scripts/ci/postgres.sh
+      - name: Prepare isolated acceptance database
+        env:
+          PGPASSWORD: ci-only-password
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "CREATE ROLE souzpir_e901c LOGIN PASSWORD 'ci-only-password' NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;"
+          psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "CREATE DATABASE souzpir_test_e901c OWNER souzpir_e901c;"
+          psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "REVOKE CONNECT ON DATABASE souzpir_test_e901c FROM PUBLIC;"
+          psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "CREATE ROLE souzpir_e901d LOGIN PASSWORD 'ci-only-password' NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;"
+          psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "CREATE DATABASE souzpir_test_e901d OWNER souzpir_e901d;"
+          psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "REVOKE CONNECT ON DATABASE souzpir_test_e901d FROM PUBLIC;"
+      - uses: ramsey/composer-install@v3
+      - name: Check two fake followups and stop
+        env:
+          DB_DATABASE: souzpir_test_e901d
+          DB_TEST_DATABASE: souzpir_test_e901d
+          DB_USERNAME: souzpir_e901d
+          APP_PREVIEW_DATABASE: souzpir_preview_e901d
+        run: |
+          vendor/bin/phpunit tests/Browser/Acceptance/FollowupsE901DTest.php --no-coverage
+          vendor/bin/phpunit tests/Browser/Acceptance/TelegramE901DTest.php --no-coverage
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test tests/Browser/Acceptance/context-e901c.spec.ts --workers=1
+
+  acceptance-followups-ui:
+    if: github.event_name == 'workflow_dispatch' && inputs.acceptance_e901e
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      RUN_ACCEPTANCE_E901E: '1'
+      DB_DATABASE: souzpir_test_e901e
+      DB_TEST_DATABASE: souzpir_test_e901e
+      DB_USERNAME: souzpir_e901e
+      APP_PREVIEW_DATABASE: souzpir_preview_e901e
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with: { php-version: '8.4', extensions: 'pdo_pgsql, pgsql, mbstring, intl, bcmath, gd', coverage: none }
+      - uses: actions/setup-node@v4
+        with: { node-version: '24', cache: npm }
+      - run: bash scripts/ci/postgres.sh
+      - name: Prepare isolated acceptance database
+        env:
+          PGPASSWORD: ci-only-password
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "CREATE ROLE souzpir_e901e LOGIN PASSWORD 'ci-only-password' NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;"
+          psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "CREATE DATABASE souzpir_test_e901e OWNER souzpir_e901e;"
+          psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "REVOKE CONNECT ON DATABASE souzpir_test_e901e FROM PUBLIC;"
+          psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "CREATE ROLE e901f_app LOGIN PASSWORD 'ci-only-password' NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;"
+          psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "CREATE DATABASE souzpir_test_e901f OWNER e901f_app;"
+          psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d postgres -c "REVOKE CONNECT ON DATABASE souzpir_test_e901f FROM PUBLIC;"
+      - uses: ramsey/composer-install@v3
+      - run: vendor/bin/phpunit tests/Browser/Acceptance/KnowledgeLifecycleE901ETest.php --no-coverage
+      - run: vendor/bin/phpunit tests/Browser/Acceptance/FactAnswerE901FTest.php --no-coverage
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test tests/Browser/Acceptance/followups-e901e.spec.ts --workers=1
+      - name: Browser publication and rollback
+        env:
+          RUN_ACCEPTANCE_E901F: '1'
+          DB_DATABASE: souzpir_test_e901f
+          DB_TEST_DATABASE: souzpir_test_e901f
+          DB_USERNAME: e901f_app
+          APP_PREVIEW_DATABASE: souzpir_preview_e901f
+        run: npx playwright test tests/Browser/Acceptance/release-e901f.spec.ts --workers=1
 
   race:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'

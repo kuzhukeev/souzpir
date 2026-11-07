@@ -107,6 +107,8 @@ final class KnowledgeSnapshot
     {
         foreach ($this->data['facts'] as $f) {
             if ($f['id'] === $id) {
+                unset($f['fact_ids']);
+
                 return $this->resolveFact($f);
             }
         }
@@ -123,7 +125,26 @@ final class KnowledgeSnapshot
         }
         $out = [];
         foreach (array_slice($intent['facts'] ?? [], 0, $limit) as $fid) {
-            if ($f = $this->fact($fid)) {
+            if (array_key_exists($fid, $intent['fact_overrides'] ?? [])) {
+                foreach ($this->data['facts'] as $group) {
+                    if ($group['id'] !== $fid) {
+                        continue;
+                    }
+                    $allowed = $intent['fact_overrides'][$fid];
+                    $filtered = [];
+                    foreach ($group['facts'] as $index => $text) {
+                        if (in_array($group['fact_ids'][$index] ?? null, $allowed, true)) {
+                            $filtered[] = $text;
+                        }
+                    }
+                    $group['facts'] = $filtered;
+                    unset($group['fact_ids']);
+                    if ($filtered !== []) {
+                        $out[] = $this->resolveFact($group);
+                    }
+                    break;
+                }
+            } elseif ($f = $this->fact($fid)) {
                 $out[] = $f;
             }
         }

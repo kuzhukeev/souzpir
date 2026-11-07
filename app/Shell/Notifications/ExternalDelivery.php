@@ -16,7 +16,7 @@ final class ExternalDelivery
 {
     public function send(string $id): void
     {
-        if (! config('features.E0-04.defaults.external_delivery')) {
+        if (! config('features.E0-04.defaults.external_delivery') || config('runtime.notification_driver') === 'fake') {
             return;
         }
         $claimed = DB::table('notification_deliveries')->where('id', $id)->whereIn('status', ['pending', 'failed'])
@@ -36,6 +36,9 @@ final class ExternalDelivery
                 throw new RuntimeException('Event not found.');
             }
             $event = new DomainEvent(json_decode($outbox->envelope, true, 512, JSON_THROW_ON_ERROR));
+            if ($event->envelope['type'] === 'seller.contact.reminder') {
+                throw new RuntimeException('Contact reminders are restricted to fake delivery.');
+            }
             if (! app(RecipientPolicy::class)->permits($member, $delivery->brand_id, $event->envelope['type'])) {
                 throw new RuntimeException('Recipient policy changed.');
             }

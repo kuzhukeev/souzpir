@@ -1,4 +1,4 @@
-import { Head, Link, usePage } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import {
   ChartNoAxesCombined,
   CreditCard,
@@ -8,7 +8,7 @@ import {
   Users,
 } from 'lucide-react';
 import CabinetLayout from '@/layouts/CabinetLayout';
-import type { SharedPropsV1 } from '@/types/generated/data';
+import SettingsNavigation from './SettingsNavigation';
 
 type Row = {
   key: string;
@@ -40,14 +40,12 @@ function date(value: string) {
   }).format(new Date(value + 'T00:00:00Z'));
 }
 export default function Index({ rows, budget, period, daysRemaining, canViewPlans }: Props) {
-  const { props } = usePage<SharedPropsV1 & Record<string, unknown>>();
-  const notificationsAvailable = Object.values(props.ziggy?.routes ?? {}).some(route => route.uri === 'seller/settings/notifications' && route.methods.includes('GET'));
   return (
     <CabinetLayout
       breadcrumbs={[
-        { label: 'Главная' },
-        { label: 'Продавец' },
-        { label: 'Настройки' },
+        { label: 'Главная', href: '/dashboard' },
+        { label: 'Продавец', href: '/seller' },
+        { label: 'Настройки', href: '/seller/settings' },
         { label: 'Лимиты' },
       ]}
     >
@@ -58,17 +56,7 @@ export default function Index({ rows, budget, period, daysRemaining, canViewPlan
           Использование ИИ-продавца в текущем месяце
         </p>
       </header>
-      <nav aria-label="Настройки продавца" className="mb-6 flex flex-wrap gap-2">
-        <Link href="/seller/settings" className="cursor-pointer rounded-lg bg-(--color-surface) px-4 py-3 text-sm text-(--color-link)">Режим работы</Link>
-        <Link href="/seller/settings" className="cursor-pointer rounded-lg bg-(--color-surface) px-4 py-3 text-sm text-(--color-link)">Распределение</Link>
-        <span
-          aria-current="page"
-          className="rounded-lg bg-(--color-success-soft) px-4 py-3 text-sm font-semibold text-(--color-action)"
-        >
-          Лимиты
-        </span>
-        {notificationsAvailable ? <Link href="/seller/settings/notifications" className="cursor-pointer rounded-lg bg-(--color-surface) px-4 py-3 text-sm text-(--color-link)">Уведомления</Link> : <span aria-disabled="true" className="rounded-lg bg-(--color-surface) px-4 py-3 text-sm text-(--color-ink-muted)">Уведомления · Скоро</span>}
-      </nav>
+      <SettingsNavigation active="limits" />
       <section
         aria-labelledby="usage-heading"
         className="rounded-2xl bg-(--color-surface) p-5 shadow-(--shadow-card) sm:p-6"
@@ -133,7 +121,7 @@ export default function Index({ rows, budget, period, daysRemaining, canViewPlan
       </section>
       <section aria-labelledby="exhaustion-heading" className="mt-5 rounded-2xl bg-(--color-surface) p-5 shadow-(--shadow-card)">
         <h2 id="exhaustion-heading" className="text-lg font-bold">Что произойдёт при исчерпании</h2>
-        <p className="mt-2 text-sm">Если настроенный бюджет ИИ закончится, новые вызовы ИИ будут остановлены до обновления бюджета. Автоматическая передача диалога менеджеру при этом пока не настроена.</p>
+        <p className="mt-2 text-sm">Если настроенный бюджет ИИ закончится, новые вызовы ИИ будут остановлены до обновления бюджета. Запасная фраза и автоматическая передача диалога менеджеру при этом пока не настроены.</p>
         <p className="mt-2 text-sm text-(--color-ink-muted)">Не заданные тарифные лимиты не означают нулевой остаток.</p>
         {canViewPlans ? <Link href="/billing/plans" className="mt-4 inline-block cursor-pointer text-sm font-semibold text-(--color-link)">Открыть тариф и лимиты</Link> : <p className="mt-4 text-sm text-(--color-ink-muted)">Тариф доступен владельцу компании.</p>}
       </section>

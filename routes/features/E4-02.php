@@ -12,6 +12,7 @@ return ['web' => static function (): void {
         Route::post('/seller/knowledge/facts', [FactsController::class, 'add'])->name('seller.knowledge.facts.add');
         Route::post('/seller/knowledge/facts/bulk', [FactsController::class, 'bulk'])->name('seller.knowledge.facts.bulk');
         Route::post('/seller/knowledge/facts/{fact}', [FactsController::class, 'update'])->whereUlid('fact')->name('seller.knowledge.facts.update');
+        Route::post('/seller/knowledge/facts/{fact}/example', [FactsController::class, 'example'])->whereUlid('fact')->name('seller.knowledge.facts.example');
         Route::post('/seller/knowledge/facts/{fact}/delete', [FactsController::class, 'delete'])->whereUlid('fact')->name('seller.knowledge.facts.delete');
     });
 }];

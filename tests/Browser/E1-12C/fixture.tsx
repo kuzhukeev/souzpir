@@ -1,0 +1,11 @@
+import { createInertiaApp } from '@inertiajs/react';
+import { createRoot } from 'react-dom/client';
+import Login from '../../../resources/js/pages/Shell/Auth/Login';
+import ResetPassword from '../../../resources/js/pages/Shell/Auth/ResetPassword';
+import '../../../resources/css/app.css';
+import '../../../resources/css/themes/tokens.css';
+const locked = location.search.includes('locked');
+const reset = location.search.includes('reset');
+const page = { component: 'Login', props: { errors: reset ? { password: 'Поле «пароль» не совпадает с подтверждением.' } : {}, hasLink: true, status: locked ? null : 'Пароль изменён. Войдите снова.', lockoutEmail: locked ? 'user@example.test' : '', lockoutSeconds: locked ? 600 : 0 }, url: '/login', version: null, clearHistory: false, encryptHistory: false };
+const script = document.createElement('script'); script.type = 'application/json'; script.dataset.page = 'app'; script.textContent = JSON.stringify(page); document.body.appendChild(script);
+void createInertiaApp({ resolve: () => reset ? ResetPassword : Login, setup: ({ el, App, props }) => createRoot(el).render(<App {...props} />) });

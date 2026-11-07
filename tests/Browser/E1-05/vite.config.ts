@@ -4,6 +4,7 @@ import { defineConfig } from 'vite';
 export default defineConfig({
   plugins: [react()],
   publicDir: 'public',
+  server: { watch: process.env.CI ? null : undefined },
   resolve: { alias: { '@': fileURLToPath(new URL('../../../resources/js', import.meta.url)) } },
   build: {
     outDir: '.local/runtime/brand-fixture',

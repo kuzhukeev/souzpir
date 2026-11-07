@@ -14,3 +14,8 @@
 Scope: `app/Seller/Catalog/`, `app/Seller/Engine/ToolCatalog.php`, `app/Seller/Engine/ToolRunner.php`, `resources/js/pages/Seller/Catalog/`, `routes/features/E6-08.php`, `tests/Feature/Seller/Catalog/`, `tests/Browser/E6-08E/`, `docs/results/SP-E6-08E.md`.
 
 Отчёт: docs/results/SP-E6-08E.md; локальные тесты задачи, submit и зелёный CI.
+
+## Дополнение владельца от 05.11.2026
+- колонка «Источник» в истории импортов; описание check_stock в ToolCatalog.php:27 и признак малого остатка.
+
+**При приёмке:** если колонка «Источник» и/или описание check_stock с признаком малого остатка не реализованы, интегратор создаёт SP-E6-08F только на недостающие пункты (решение владельца 05.11.2026).

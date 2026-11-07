@@ -68,8 +68,10 @@ final class LeadApiTest extends TenancyTestCase
         $token = $this->token($org->id, $brand, ['leads', 'turn']);
         $this->withHeaders(['Authorization' => 'Bearer '.$token, 'Idempotency-Key' => 'bad key'])->postJson('/api/v1/leads', ['fields' => ['name' => 'А']])->assertUnprocessable();
         $this->withHeaders(['Authorization' => 'Bearer '.$token, 'Idempotency-Key' => 'key2'])->postJson('/api/v1/leads', ['fields' => ['email' => 'not-mail']])->assertUnprocessable();
+        config(['runtime.ai_driver' => 'openrouter']);
         $this->withHeaders(['Authorization' => 'Bearer '.$token, 'Idempotency-Key' => 'key3'])->postJson('/api/v1/leads', ['fields' => ['name' => 'А'], 'action' => 'open'])->assertStatus(503);
-        $this->withHeader('Authorization', 'Bearer '.$token)->postJson('/api/v1/turn', [])->assertStatus(503);
+        config(['runtime.ai_driver' => 'fake']);
+        $this->withHeader('Authorization', 'Bearer '.$token)->postJson('/api/v1/turn', [])->assertUnprocessable();
         $this->assertDatabaseCount('contacts', 0);
         [$viewer] = $this->member($org, 'viewer', [$brand->id]);
         $this->actingAs($viewer)->withSession(['brand_id' => $brand->id]);

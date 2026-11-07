@@ -16,6 +16,8 @@ type Entity = {
   tracked: boolean;
   aliases?: string[];
   models?: string[];
+  model_names?: string[];
+  model_names_unknown?: boolean;
   intents?: string[];
   questions?: string[];
   sources?: string[];
@@ -50,6 +52,7 @@ export default function Index({
 }) {
   const [tab, setTab] = useState<'all' | 'tracked' | 'declared'>('all');
   const [mergeSearch, setMergeSearch] = useState('');
+  const [extraSources, setExtraSources] = useState<string[]>([]);
   const [openedCompany, setOpenedCompany] = useState<string | null>(null);
   const [pendingPair, setPendingPair] = useState<string[]>([]);
   const [left, setLeft] = useState('');
@@ -62,7 +65,8 @@ export default function Index({
   const [busy, setBusy] = useState(false);
   const [mergeOpen, setMergeOpen] = useState(false);
   const [mergeError, setMergeError] = useState('');
-  const selected = [left, right, third, fourth].filter(Boolean);
+  const own = entities.find((entity) => entity.is_brand);
+  const selected = Array.from(new Set([own?.name, left, right, third, fourth].filter((name): name is string => Boolean(name))));
   const intentKeys = Array.from(
     new Set(
       entities
@@ -111,6 +115,7 @@ export default function Index({
             Источники →
           </Link>
         </div>
+        {canEdit && <Link href="/vision/competitors/merge" className="mt-4 inline-flex min-h-11 cursor-pointer items-center text-sm font-semibold text-(--color-link)">Объединить дубли →</Link>}
         {status && (
           <p role="status" className="mt-4 rounded-lg bg-(--color-success-soft) p-3 text-sm">
             {status}
@@ -286,9 +291,10 @@ export default function Index({
                                 : `${e.delta > 0 ? '+' : ''}${e.delta}`}
                             </td>
                             <td className="p-4">
-                              {e.models?.length ? (
+                              {e.model_names?.length ? (
                                 <div className="flex flex-wrap gap-1">
-                                  {e.models.map((model) => (
+                                  {e.model_names_unknown && <span className="rounded-full bg-(--color-surface-muted) px-2 py-1">Часть моделей не определена</span>}
+                                  {e.model_names.map((model) => (
                                     <span
                                       key={model}
                                       className="rounded-full bg-(--color-surface-muted) px-2 py-1"
@@ -371,6 +377,7 @@ export default function Index({
             {available && entities.length >= 2 && (
               <section className="mt-5 rounded-xl border border-(--color-border) bg-(--color-surface) p-5">
                 <h2 className="text-xl font-bold">Сравнить компании</h2>
+                {own && <p className="mt-3 text-sm font-semibold">Вы: {own.name}</p>}
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   {(
                     [
@@ -379,10 +386,11 @@ export default function Index({
                       [third, setThird, 'Третья компания'],
                       [fourth, setFourth, 'Четвёртая компания'],
                     ] as const
-                  ).map(([value, set, label]) => (
+                  ).map(([value, set, label], index) => (
                     <label key={label} className="text-sm">
                       {label}
                       <select
+                        id={`comparison-${index}`}
                         className={`${field} mt-1 block w-full cursor-pointer`}
                         value={value}
                         onChange={(e) => set(e.target.value)}
@@ -392,7 +400,7 @@ export default function Index({
                           <option
                             key={e.name}
                             value={e.name}
-                            disabled={selected.includes(e.name) && e.name !== value}
+                            disabled={[left, right, third, fourth].includes(e.name) && e.name !== value}
                           >
                             {e.name}
                           </option>
@@ -401,6 +409,7 @@ export default function Index({
                     </label>
                   ))}
                 </div>
+                <button type="button" className="mt-3 min-h-11 cursor-pointer text-sm font-semibold text-(--color-link)" disabled={[left, right, third, fourth].every(Boolean)} onClick={() => document.getElementById(`comparison-${[left, right, third, fourth].findIndex(value => !value)}`)?.focus()}>Добавить конкурента</button>
                 {selected.length >= 2 && (
                   <div className="mt-4 overflow-x-auto">
                     <table className="w-full min-w-[500px] text-left text-sm">
@@ -572,6 +581,7 @@ export default function Index({
                       onClick={() => {
                         setSource(a);
                         setTarget(b);
+                        setExtraSources([]);
                         setMergeOpen(true);
                       }}
                     >
@@ -628,7 +638,7 @@ export default function Index({
               >
                 <h2 className="text-xl font-bold">Объединить названия</h2>
                 <p className="mt-2 text-sm">
-                  Выберите два названия одной компании. Показатели раздела пересчитаются по ответам
+                  Выберите названия одной компании. Отчёт будет пересчитан по ответам
                   снимка.
                 </p>
                 <label className="mt-4 block text-sm">
@@ -641,41 +651,15 @@ export default function Index({
                   />
                 </label>
                 <fieldset className="mt-4">
-                  <legend className="text-sm font-semibold">Выберите два дубля</legend>
-                  <div className="mt-2 flex flex-wrap gap-3">
-                    {candidates
-                      .filter(
-                        (e) =>
-                          e.name
-                            .toLocaleLowerCase('ru')
-                            .includes(mergeSearch.toLocaleLowerCase('ru')) ||
-                          e.name === source ||
-                          e.name === target,
-                      )
-                      .map((e) => (
-                        <label
-                          key={e.name}
-                          className="flex cursor-pointer items-center gap-2 rounded-lg border border-(--color-border) p-3 text-sm"
-                        >
-                          <input
-                            type="checkbox"
-                            aria-label={`Дубль: ${e.name}`}
-                            checked={source === e.name || target === e.name}
-                            disabled={
-                              !!source && !!target && source !== e.name && target !== e.name
-                            }
-                            onChange={(event) => {
-                              if (event.target.checked) {
-                                if (!source) setSource(e.name);
-                                else setTarget(e.name);
-                              } else if (source === e.name) setSource('');
-                              else setTarget('');
-                            }}
-                          />
-                          {e.name}
-                        </label>
-                      ))}
-                  </div>
+                  <legend className="text-sm font-semibold">Объединить вручную</legend>
+                  <div className="mt-2 overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr><th className="p-2">Выбрать</th><th className="p-2">Название</th><th className="p-2">Источник</th></tr></thead><tbody>
+                    {candidates.filter(e => e.name.toLocaleLowerCase('ru').includes(mergeSearch.toLocaleLowerCase('ru')) || e.name === source || e.name === target || extraSources.includes(e.name)).map(e => (
+                      <tr key={e.name} className="border-t border-(--color-border)"><td className="p-2"><input type="checkbox" className="cursor-pointer" aria-label={`Дубль: ${e.name}`} checked={source === e.name || target === e.name || extraSources.includes(e.name)} onChange={event => {
+                        if (event.target.checked) { if (!source) setSource(e.name); else if (!target) setTarget(e.name); else setExtraSources([...extraSources, e.name]); }
+                        else if (source === e.name) setSource(''); else if (target === e.name) setTarget(''); else setExtraSources(extraSources.filter(name => name !== e.name));
+                      }}/></td><td className="p-2">{e.name}{!!e.aliases?.length && <p className="text-(--color-ink-muted)">Объединено: {e.aliases.join(', ')}</p>}</td><td className="p-2">{e.sources?.join(', ') || 'Нет данных'}</td></tr>
+                    ))}
+                  </tbody></table></div>
                 </fieldset>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   <label className="text-sm">
@@ -732,6 +716,10 @@ export default function Index({
                     </select>
                   </label>
                 </div>
+                <fieldset className="mt-4">
+                  <legend className="text-sm font-semibold">Дополнительные названия</legend>
+                  <div className="mt-2 flex flex-wrap gap-2">{entities.filter(e => !e.is_brand && e.name !== source && e.name !== target).map(e => <label key={e.name} className="flex cursor-pointer items-center gap-2 rounded-lg border border-(--color-border) p-2 text-sm"><input type="checkbox" checked={extraSources.includes(e.name)} onChange={event=>setExtraSources(event.target.checked ? [...extraSources,e.name] : extraSources.filter(name=>name!==e.name))}/>{e.name}</label>)}</div>
+                </fieldset>
                 <button
                   disabled={busy || !source || !target || source === target}
                   className="mt-4 min-h-11 cursor-pointer rounded-lg bg-(--color-link) px-4 text-sm font-semibold text-white disabled:opacity-50"
@@ -739,7 +727,7 @@ export default function Index({
                   Объединить
                 </button>
                 <p className="mt-3 text-sm text-(--color-ink-muted)">
-                  Сохранённый отчёт не изменяется; объединение применяется к этому разделу.
+                  Сохранённый отчёт останется неизменным; после объединения будет подготовлена новая версия.
                 </p>
               </form>
             )}
@@ -748,8 +736,11 @@ export default function Index({
               title="Объединить названия?"
               onClose={() => setMergeOpen(false)}
             >
+              <p className="mb-3 text-sm text-(--color-ink-muted)">Выбрано: {new Set([source, target, ...extraSources].filter(Boolean)).size}</p>
+              <ul className="mb-3 rounded-lg bg-(--color-surface-muted) p-3 text-sm">{Array.from(new Set([source, target, ...extraSources].filter(Boolean))).map(name => <li key={name} className="py-1">{name}</li>)}</ul>
+              <label className="mb-3 block text-sm">Основное название в подтверждении<select className={`${field} mt-1 block w-full cursor-pointer`} value={target} onChange={event => {const next=event.target.value;const others=Array.from(new Set([source,target,...extraSources].filter(name => name && name !== next)));setSource(others[0] ?? '');setExtraSources(others.slice(1));setTarget(next);}}>{Array.from(new Set([source,target,...extraSources].filter(Boolean))).map(name => <option key={name} value={name}>{name}</option>)}</select></label>
               <p className="text-sm">
-                «{source}» будет объединено с «{target}». Показатели раздела пересчитаются по
+                «{[source, ...extraSources.filter(name=>name !== source && name !== target)].join('», «')}» {extraSources.filter(name=>name !== source && name !== target).length ? 'будут объединены' : 'будет объединено'} с «{target}». Отчёт будет пересчитан по
                 сохранённым ответам.
               </p>
               {mergeError && (
@@ -772,16 +763,18 @@ export default function Index({
                   onClick={() =>
                     router.post(
                       '/vision/competitors/merge',
-                      { source, target },
+                      { sources: [source, ...extraSources.filter(name=>name !== source && name !== target)], target },
                       {
                         preserveScroll: true,
                         onStart: () => setBusy(true),
                         onFinish: () => setBusy(false),
-                        onSuccess: () => setMergeOpen(false),
+                        onSuccess: () => { setMergeOpen(false); setExtraSources([]); },
                         onError: () =>
                           setMergeError(
                             'Не удалось объединить названия. Проверьте данные и доступ.',
                           ),
+                        onNetworkError: () => { setMergeError('Нет связи. Повторите попытку.'); return false; },
+                        onHttpException: () => { setMergeError('Не удалось сохранить объединение.'); return false; },
                       },
                     )
                   }

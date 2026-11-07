@@ -1,0 +1,10 @@
+import {createInertiaApp} from '@inertiajs/react';
+import {createRoot} from 'react-dom/client';
+import Index from '../../../resources/js/pages/Seller/Quality/Index';
+import Day from '../../../resources/js/pages/Seller/Quality/Day';
+import '../../../resources/css/app.css';
+import '../../../resources/css/themes/tokens.css';
+const isDay=location.search.includes('day');
+const props={days:[],reportDays:[],testDays:[{day:'2026-11-05',count:2}],missingEvaluations:1,day:'2026-11-05',reports:[],evaluations:[{id:'e',source:'simulation',test_baseline:true,conversation_id:null,scores:{naturalness:3,goal:3,facts:3,objections:3,brevity:3},issues:[],average:3,comment:'Тестовая фиксированная оценка',created_at:'2026-11-05T10:00:00Z'}],theme:'neutral',brand:{id:'b',name:'Пример бренда',theme:'neutral'},brands:[],organization:{id:'o',name:'Организация'},auth:{user:{id:'u',name:'Иван',email:'ivan@example.test'}},modules:{seller:true,vision:false},can:{'seller.settings.write':true},unread:null,translations:{},ziggy:{routes:{}},errors:{}};
+const script=document.createElement('script');script.type='application/json';script.dataset.page='app';script.textContent=JSON.stringify({component:'Fixture',props,url:location.pathname,version:null,clearHistory:false,encryptHistory:false});document.body.append(script);
+void createInertiaApp({resolve:()=>isDay?Day:Index,setup:({el,App,props})=>createRoot(el).render(<App {...props}/>)});

@@ -74,8 +74,8 @@ test('owner saves settings and draft alias twice, changes theme, manages a domai
   await expect(page.locator('aside').first()).toContainText('Проверено в браузере');
   await expect(page.locator('aside').first().getByText('Новости и возможности')).toHaveCount(0);
   await page.goto(base + '/brands');
-  await expect(page.getByRole('link', { name: 'Настройки', exact: true })).toHaveAttribute('href', '/brands/01J00000000000000000000004/settings');
-  await page.getByRole('link', { name: 'Настройки', exact: true }).click();
+  await expect(page.locator('#main-content').getByRole('link', { name: 'Настройки', exact: true })).toHaveAttribute('href', '/brands/01J00000000000000000000004/settings');
+  await page.locator('#main-content').getByRole('link', { name: 'Настройки', exact: true }).click();
   await expect(page).toHaveURL(settings);
   await page.getByRole('tab', { name: 'Оформление кабинета', exact: true }).click();
   await expect(

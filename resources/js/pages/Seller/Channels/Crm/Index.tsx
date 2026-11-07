@@ -1,10 +1,11 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import CabinetLayout from '@/layouts/CabinetLayout';
 
 type Hook = {
   id: string;
   events: string[];
+  mappings?: Record<string, string>;
   deliveries: {
     id: string;
     event: string;
@@ -26,6 +27,51 @@ const statuses: Record<string, string> = {
   simulated: 'Тестовая проверка',
   unknown: 'Неизвестно',
 };
+
+function MappingForm({ hook }: { hook: Hook }) {
+  const [rows, setRows] = useState(() => (['name', 'phone', 'email'] as const).map((source) => ({ source, target: hook.mappings?.[source] ?? source })));
+  const [pending, setPending] = useState(false);
+  const [message, setMessage] = useState('');
+  const save = (event: FormEvent) => {
+    event.preventDefault();
+    setMessage('');
+    if (new Set(rows.map((row) => row.source)).size !== 3) { setMessage('Выберите разные поля EYON.'); return; }
+    const fields = Object.fromEntries(rows.map((row) => [row.source, row.target]));
+    router.post(`/seller/integrations/crm/${hook.id}/mappings`, { fields }, {
+      preserveScroll: true, onStart: () => setPending(true), onFinish: () => setPending(false),
+      onSuccess: () => setMessage('Сопоставление сохранено.'),
+      onError: (errors) => setMessage(Object.values(errors)[0] ?? 'Не удалось сохранить сопоставление.'),
+      onNetworkError: () => { setMessage('Связь прервана. Повторите попытку.'); return false; },
+    });
+  };
+  return <form onSubmit={save} className="mt-4 space-y-3"><h4 className="font-semibold">Сопоставление полей</h4>
+    {rows.map((row, index) => <div key={index} className="flex flex-wrap items-center gap-2"><label>Поле EYON <select aria-label={`Поле EYON ${index + 1}`} value={row.source} onChange={(event) => setRows((current) => current.map((item, position) => position === index ? { ...item, source: event.target.value as 'name' | 'phone' | 'email' } : item))} className="min-h-10 cursor-pointer rounded-lg border border-(--color-border) bg-(--color-surface) px-3"><option value="name">Имя</option><option value="phone">Телефон</option><option value="email">Почта</option></select></label><span aria-hidden="true">→</span><label>Поле CRM <input required maxLength={64} value={row.target} onChange={(event) => setRows((current) => current.map((item, position) => position === index ? { ...item, target: event.target.value } : item))} className="min-h-10 rounded-lg border border-(--color-border) bg-(--color-surface) px-3" /></label></div>)}
+    <button disabled={pending} className="min-h-11 cursor-pointer rounded-lg border border-(--color-border) px-4 font-semibold disabled:opacity-50">{pending ? 'Сохранение…' : 'Сохранить сопоставление'}</button>{message && <p role="status">{message}</p>}
+  </form>;
+}
+
+function WebhookForm() {
+  const [url, setUrl] = useState('');
+  const [secret, setSecret] = useState('');
+  const [events, setEvents] = useState<string[]>([]);
+  const [pending, setPending] = useState(false);
+  const [message, setMessage] = useState('');
+  const submit = (event: FormEvent) => {
+    event.preventDefault(); setMessage('');
+    router.post('/integrations/api/webhook-settings', { url, secret, events, return_to: 'crm' }, {
+      onStart: () => setPending(true), onFinish: () => setPending(false),
+      onError: (errors) => setMessage(Object.values(errors)[0] ?? 'Не удалось сохранить вебхук.'),
+      onNetworkError: () => { setMessage('Связь прервана. Проверьте результат перед повтором.'); return false; },
+    });
+  };
+  return <form onSubmit={submit} className="mt-5 space-y-4" autoComplete="off">
+    <label className="block text-sm font-semibold">URL вебхука<input type="url" required value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://crm.example.ru/webhook" className="mt-1 block min-h-11 w-full rounded-lg border border-(--color-border) bg-(--color-surface) px-3" /></label>
+    <label className="block text-sm font-semibold">Секрет (64 шестнадцатеричных символа)<input type="password" required pattern="[a-f0-9]{64}" autoComplete="new-password" value={secret} onChange={(event) => setSecret(event.target.value)} className="mt-1 block min-h-11 w-full rounded-lg border border-(--color-border) bg-(--color-surface) px-3" /></label>
+    <fieldset><legend className="font-semibold">События</legend>{(['seller.contact.captured', 'seller.conversation.handed_off'] as const).map((item) => <label key={item} className="mt-2 flex cursor-pointer items-center gap-2"><input type="checkbox" checked={events.includes(item)} onChange={(event) => setEvents(event.target.checked ? [...events, item] : events.filter((value) => value !== item))} />{labels[item]}</label>)}</fieldset>
+    <button disabled={pending || events.length === 0 || !window.isSecureContext} className="min-h-11 cursor-pointer rounded-lg bg-(--color-link) px-4 text-sm font-semibold text-white disabled:opacity-50">{pending ? 'Сохранение…' : 'Сохранить вебхук'}</button>
+    {!window.isSecureContext && <p role="status">Для настройки вебхука откройте страницу через HTTPS или localhost.</p>}{message && <p role="alert">{message}</p>}
+  </form>;
+}
 
 export default function Index({ canManage, webhooks, status }: { canManage: boolean; webhooks: Hook[]; status?: string | null }) {
   const [sending, setSending] = useState('');
@@ -69,8 +115,9 @@ export default function Index({ canManage, webhooks, status }: { canManage: bool
             Настройка вебхука
           </h2>
           <p className="mt-3 text-sm">
-            Создайте вебхук в общих настройках и выберите события CRM. Сейчас доступна только тестовая доставка без сети.
+            Укажите адрес и секрет, затем выберите события CRM. Сейчас доступна только тестовая доставка без сети.
           </p>
+          {canManage && <WebhookForm />}
           <h3 className="mt-6 font-semibold">События</h3>
           <ul className="mt-2 list-inside list-disc space-y-1 text-sm">
             <li>Контакт получен</li>
@@ -104,7 +151,6 @@ export default function Index({ canManage, webhooks, status }: { canManage: bool
                     </p>
                     <div className="mt-3 flex flex-wrap gap-2">
                       <button type="button" disabled={!!sending} onClick={() => sendTest(hook.id, false)} className="min-h-11 cursor-pointer rounded-lg border border-(--color-border) px-4 text-sm font-semibold text-(--color-link) disabled:cursor-not-allowed disabled:opacity-50">Отправить тестовое событие</button>
-                      <button type="button" disabled={!!sending} onClick={() => sendTest(hook.id, true)} className="min-h-11 cursor-pointer rounded-lg border border-(--color-border) px-4 text-sm font-semibold text-(--color-link) disabled:cursor-not-allowed disabled:opacity-50">Проверить ошибку</button>
                     </div>
                     {hook.deliveries.length === 0 ? (
                       <p className="mt-2">Записей в журнале пока нет.</p>
@@ -124,10 +170,14 @@ export default function Index({ canManage, webhooks, status }: { canManage: bool
               )}
             </div>
           )}
-          <p className="mt-5 text-sm text-(--color-ink-muted)">
-            Подключения amoCRM и Битрикс24 появятся позднее.
-          </p>
         </section>
+        <div className="mt-5 grid items-start gap-5 lg:grid-cols-2">
+          <section className="rounded-2xl border border-(--color-border) bg-(--color-surface) p-6 shadow-(--shadow-card)" aria-labelledby="crm-mappings">
+            <h2 id="crm-mappings" className="text-xl font-bold">Сопоставление полей</h2>
+            {!canManage ? <p className="mt-3 text-sm text-(--color-ink-muted)">Настройки доступны администратору.</p> : webhooks.length === 0 ? <p className="mt-3 text-sm text-(--color-ink-muted)">Сначала настройте вебхук CRM.</p> : webhooks.map((hook, index) => <div key={hook.id}><p className="mt-4 text-sm font-semibold">Вебхук {index + 1}</p><MappingForm hook={hook} /></div>)}
+          </section>
+          <section className="grid gap-3" aria-label="Подключения CRM">{['amoCRM', 'Битрикс24'].map((name) => <div key={name} className="rounded-2xl border border-(--color-border) bg-(--color-surface) p-6 shadow-(--shadow-card)"><h2 className="font-semibold">{name}</h2><p className="mt-1 text-sm text-(--color-ink-muted)">Скоро</p></div>)}</section>
+        </div>
       </div>
     </CabinetLayout>
   );

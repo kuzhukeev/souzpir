@@ -3,6 +3,7 @@
 namespace App\Seller\Scenarios;
 
 use App\Models\User;
+use App\Seller\Evaluation\EvaluationVisibility;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
@@ -19,7 +20,7 @@ use Inertia\Inertia;
 
 final class ScenariosController
 {
-    private const EXPECT = ['full_card', 'partial_or_full_contact', 'no_deferred_promise', 'no_argument', 'one_question_per_turn'];
+    private const EXPECT = ['full_card', 'partial_or_full_contact', 'no_prohibition_violation', 'no_deferred_promise', 'no_argument', 'one_question_per_turn', 'score_at_least_4'];
 
     private const OUTCOMES = ['contact', 'handoff', 'refusal'];
 
@@ -49,7 +50,7 @@ final class ScenariosController
                 $evaluation = $evaluations[$row->id] ?? null;
 
                 return ['id' => $row->id, 'persona_id' => $row->persona_id, 'status' => $row->status,
-                    'result' => $evaluation ? ((float) $evaluation->average >= 4 ? 'passed' : 'failed') : ($row->status === 'failed' ? 'failed' : 'pending'),
+                    'result' => EvaluationVisibility::isTestBaseline($evaluation?->sim_run_id, $evaluation?->comment) ? 'test_baseline' : ($evaluation ? ((float) $evaluation->average >= 4 ? 'passed' : 'failed') : ($row->status === 'failed' ? 'failed' : 'pending')),
                     'average' => $evaluation?->average, 'comment' => $evaluation?->comment,
                     'turn_count' => $row->turn_count, 'turns' => json_decode($row->turns, true) ?: [],
                     'created_at' => $evaluation?->created_at ?? $row->created_at];
@@ -66,7 +67,12 @@ final class ScenariosController
                     'in_set' => ($payload['in_set'] ?? true) === true, 'last_result' => $last[$row->id] ?? null];
             });
 
-            return ['scenarios' => $scenarios, 'runs' => $history];
+            $published = DB::table('brands as b')->join('knowledge_releases as r', function ($join): void {
+                $join->on('r.id', '=', 'b.active_knowledge_release_id')->on('r.organization_id', '=', 'b.organization_id')->on('r.brand_id', '=', 'b.id');
+            })->where('b.organization_id', $tenant->organizationId)->where('b.id', $tenant->brandId)->where('r.status', 'published')->exists();
+            $runtime = config('runtime.ai_driver', 'fake') === 'fake' && config('features.E3-06D.defaults.runtime_enabled', true) !== false;
+
+            return ['scenarios' => $scenarios, 'runs' => $history, 'runAllAvailable' => $published && $runtime && $scenarios->contains(fn (array $scenario) => $scenario['in_set'])];
         });
 
         return Inertia::render('Seller/Scenarios/Index', [...$data, 'status' => session('status')]);

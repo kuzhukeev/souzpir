@@ -20,6 +20,7 @@ import {
   CreditCard,
   CircleHelp,
   Bell,
+  Mail,
   ChevronDown,
   LockKeyhole,
   type LucideIcon,
@@ -50,6 +51,7 @@ const icons: Record<string, LucideIcon> = {
   CreditCard,
   CircleHelp,
   Bell,
+  Mail,
 };
 
 export function Sidebar({
@@ -70,7 +72,7 @@ export function Sidebar({
     { id:'vision_publications', label:'Публикации', icon:'Share2', path:'/vision/publications' },
     ...menu.account,
   ];
-  const current = candidates
+  const current = pathname === '/seller/integrations/calendar' ? 'seller_integrations' : candidates
     .filter(
       (item) =>
         pathname === item.path ||
@@ -86,6 +88,7 @@ export function Sidebar({
   const renderItem = (item: Item, child = false) => {
     if (item.permission && props.can?.[item.permission] !== true) return null;
     if (item.id === 'seller_digests' && props.modules?.seller !== true) return null;
+    if (item.id === 'seller_email' && props.modules?.seller !== true) return null;
     const Icon = icons[item.icon];
     const exists = !(item.id === 'settings' && props.profileSettingsAvailable === false) && Object.values(props.ziggy?.routes ?? {}).some(
       (route) =>

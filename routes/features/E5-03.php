@@ -12,6 +12,7 @@ return [
             Route::get('/seller/channels/api/failures', ApiFailuresController::class)->name('seller.api.failures');
             Route::get('/seller/channels/api', [ApiSettingsController::class, 'index'])->name('seller.api.settings');
             Route::post('/seller/channels/api', [ApiSettingsController::class, 'update'])->name('seller.api.settings.update');
+            Route::post('/seller/channels/api/action', [ApiSettingsController::class, 'updateAction'])->name('seller.api.settings.action');
         });
     },
     'api' => static function (): void {

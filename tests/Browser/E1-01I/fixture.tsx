@@ -1,0 +1,14 @@
+import { createInertiaApp } from '@inertiajs/react';
+import { createRoot } from 'react-dom/client';
+import Login from '../../../resources/js/pages/Shell/Auth/Login';
+import Register from '../../../resources/js/pages/Shell/Auth/Register';
+import ResetPassword from '../../../resources/js/pages/Shell/Auth/ResetPassword';
+import Invitation from '../../../resources/js/pages/Shell/Auth/Invitation';
+import '../../../resources/css/app.css';
+import '../../../resources/css/themes/tokens.css';
+const params = new URLSearchParams(location.search); const screen = params.get('screen') || 'login';
+document.documentElement.dataset.theme = params.get('theme') || 'neutral';
+const props = { errors: {}, hasLink: true, state: params.get('state'), status: params.has('success') ? 'Пароль изменён. Войдите снова.' : null, lockoutEmail: params.has('locked') ? 'user@example.test' : '', lockoutSeconds: params.has('locked') ? 600 : 0, theme: params.get('theme') || 'neutral' };
+const page = { component: 'Fixture', props, url: location.pathname + location.search, version: 'fixture', clearHistory: false, encryptHistory: false };
+const script = document.createElement('script'); script.type = 'application/json'; script.dataset.page = 'app'; script.textContent = JSON.stringify(page); document.body.appendChild(script);
+void createInertiaApp({ resolve: () => screen === 'register' ? Register : screen === 'reset' ? ResetPassword : screen === 'invitation' ? Invitation : Login, setup: ({ el, App, props: p }) => createRoot(el).render(<App {...p} />) });

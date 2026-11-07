@@ -1,0 +1,21 @@
+import { expect, test } from '@playwright/test';
+import { createServer, type ViteDevServer } from 'vite';
+import { mkdir } from 'node:fs/promises';
+let server: ViteDevServer; let url: string;
+test.use({ viewport: { width: 1440, height: 900 }, launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH } : {} });
+test.beforeAll(async () => { server = await createServer({ configFile: 'tests/Browser/E8-19G/vite.config.ts', cacheDir: '.local/runtime/vite-e819g', server: { host: '127.0.0.1', port: 0, strictPort: false } }); await server.listen(); url = new URL('/tests/Browser/E8-19G/fixture.html', server.resolvedUrls!.local[0]).href; });
+test.afterAll(async () => { await server?.close(); });
+test('publication review shows the priority and steps being approved', async ({ page }) => {
+ const revision = 'a'.repeat(64);
+ const report = { id:'r', measurement_id:'m', visibility:25, visibility_kind:'full', coverage:100, share_of_voice:null, position:null, verified_errors:0, providers:[], questions:1, evidence_status:'available', sections:{site:null,competitors:[],gaps:[],facts:[],sources:[],actions:[],changes:null}, publication_candidates:[{key:'action:0',title:'Обновить каталог',why:'Причина',question_id:'q1',priority:'Высокий',steps:['Проверить данные','Опубликовать']}] };
+ await page.route('**/vision/report/data**', route => route.fulfill({json:{revision,confirmed:[],reports:[],report}}));
+ await page.route('**/vision/runs/revision', route => route.fulfill({json:{revision}}));
+ await page.goto(url);
+ await page.getByRole('button',{name:'Поделиться'}).click();
+ const dialog = page.getByRole('dialog');
+ await expect(dialog.getByText('Приоритет: Высокий')).toBeVisible();
+ await expect(dialog.getByText('1. Проверить данные')).toBeVisible();
+ await expect(dialog.getByRole('checkbox', { name: /Обновить каталог/ })).toBeVisible();
+ await mkdir('.local/screenshots/SP-E8-19G',{recursive:true});
+ await page.screenshot({path:'.local/screenshots/SP-E8-19G/review.png',fullPage:true});
+});

@@ -75,6 +75,17 @@ final class ProfileFeatureGateTest extends TestCase
         Http::assertNothingSent();
     }
 
+    public function test_profile_is_available_by_default_when_schema_is_ready(): void
+    {
+        self::assertTrue(config('features.E1-08.defaults.enabled'));
+        [$user, , $brand] = $this->actor();
+        $this->post('/login', ['email' => $user->email, 'password' => 'fixture-password-only'])->assertRedirect(route('auth.ready'));
+        $this->withCookie(config('session.cookie'), session()->getId());
+        $this->withSession(['brand_id' => $brand->id])->get('/profile')->assertOk();
+        $this->get('/profile/notifications')->assertOk();
+        $this->get('/profile/security')->assertOk();
+    }
+
     public function test_enabled_but_incomplete_schema_keeps_totp_and_hides_recovery(): void
     {
         config(['features.E1-08.defaults.enabled' => true]);

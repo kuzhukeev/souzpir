@@ -81,11 +81,11 @@ test('journal and notification links respect permissions', async ({ page }) => {
   await expect(page.getByRole('link', { name: 'Журнал' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Уведомления' })).toHaveAttribute(
     'href',
-    '/dashboard#notifications',
+    '/notification-center',
   );
   await page.goto(url + '?limited=1');
   await expect(page.getByRole('link', { name: 'Журнал' })).toHaveCount(0);
-  await expect(page.getByRole('link', { name: 'Уведомления' })).toHaveAttribute('href', '/dashboard#notifications');
+  await expect(page.getByRole('link', { name: 'Уведомления' })).toHaveAttribute('href', '/notification-center');
 });
 test('enabled brand switch sends selected ID to real endpoint', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });

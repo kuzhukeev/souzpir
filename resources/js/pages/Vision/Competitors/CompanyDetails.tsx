@@ -1,4 +1,4 @@
-type Question = { text: string; intent: string | null; models: string[] };
+type Question = { text: string; intent: string | null; models: string[]; model_names?: string[]; model_names_unknown?: boolean };
 type Point = { date: string; answers: number };
 
 export type CompanyDetail = {
@@ -6,10 +6,15 @@ export type CompanyDetail = {
   answers: number;
   delta?: number | null;
   share: number | null;
+  position?: { average: number; count: number } | null;
   aliases?: string[];
   models?: string[];
+  model_names?: string[];
+  model_names_unknown?: boolean;
+  model_positions?: {provider:string;model:string|null;position:{average:number;count:number}}[];
   intents?: string[];
   sources?: string[];
+  source_ranking?: {domain: string; answers: number}[];
   quotes?: { text: string; provider: string }[];
   question_count?: number;
   question_total?: number;
@@ -109,7 +114,8 @@ export default function CompanyDetails({
           </strong>
         </div>
         <div className="rounded-lg bg-(--color-surface-muted) p-3">
-          Средняя позиция: <strong>Нет данных</strong>
+          Средняя позиция: <strong>{company.position ? company.position.average.toLocaleString('ru-RU') : 'Нет данных'}</strong>
+          {company.position && <p className="mt-1">Подтверждений: {company.position.count}</p>}
         </div>
         <div className="rounded-lg bg-(--color-surface-muted) p-3">
           В вопросах:{' '}
@@ -120,7 +126,7 @@ export default function CompanyDetails({
           </strong>
         </div>
       </div>
-      <p>Модели: {company.models?.join(', ') || 'Нет данных'}</p>
+      <p>Модели: {company.model_names?.join(', ') || 'Нет данных'}{company.model_names_unknown ? ' · часть моделей не определена' : ''}</p>{!!company.model_positions?.length && <ul className="mt-2 space-y-1 text-sm">{company.model_positions.map(item=><li key={item.provider}>{item.model ?? 'Модель не определена'} ({item.provider}): позиция {item.position.average} · подтверждений {item.position.count}</li>)}</ul>}
       <p>
         Намерения:{' '}
         {company.intents?.map((value) => intents[value] ?? value).join(', ') || 'Нет данных'}
@@ -202,7 +208,8 @@ export default function CompanyDetails({
       ) : (
         <p>Подтверждённые цитаты пока недоступны.</p>
       )}
-      <p>Источники: {company.sources?.join(', ') || 'Нет данных'}</p>
+      <h3 className="font-semibold">Источники</h3>
+      {company.source_ranking?.length ? <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr><th className="p-2">Источник</th><th className="p-2">Ответов</th></tr></thead><tbody>{company.source_ranking.map(source => <tr key={source.domain} className="border-t border-(--color-border)"><td className="p-2">{source.domain}</td><td className="p-2">{source.answers}</td></tr>)}</tbody></table></div> : <p>Нет данных об источниках.</p>}
     </div>
   );
 }

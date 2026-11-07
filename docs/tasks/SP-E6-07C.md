@@ -14,3 +14,6 @@
 Scope: `app/Seller/Settings/Limits/`, `resources/js/pages/Seller/Settings/Limits/`, `resources/js/pages/Seller/Settings/Schedule/Index.tsx`, `routes/features/E6-07.php`, `tests/Feature/Seller/Settings/Limits/`, `tests/Browser/E6-07C/`, `docs/results/SP-E6-07C.md`.
 
 Отчёт: docs/results/SP-E6-07C.md; локальные тесты задачи, submit и зелёный CI.
+
+## Дополнение владельца от 05.11.2026
+- крошки ссылками в Settings/Limits/Index.tsx:48-51 и Notifications.tsx:50.

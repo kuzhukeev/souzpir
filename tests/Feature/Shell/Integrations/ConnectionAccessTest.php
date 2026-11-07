@@ -23,6 +23,9 @@ final class ConnectionAccessTest extends TenancyTestCase
         $this->actingAs($viewer)->withSession(['brand_id' => $brand->id])->get('/integrations')
             ->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('Shell/Integrations/Index')
+            ->where('connections.1.id', 'widget')
+            ->where('connections.1.href', null)
+            ->where('connections.1.settings_restricted', true)
             ->where('connections.2.id', 'api')
             ->where('connections.2.href', null)
             ->where('connections.2.settings_restricted', true)
@@ -43,6 +46,8 @@ final class ConnectionAccessTest extends TenancyTestCase
         foreach ([$owner, $admin] as $user) {
             $this->actingAs($user)->withSession(['brand_id' => $brand->id])->get('/integrations')
                 ->assertOk()->assertInertia(fn (Assert $page) => $page
+                ->where('connections.0.href', route('seller.channels.telegram'))
+                ->where('connections.1.href', route('seller.widget.index'))
                 ->where('connections.2.href', route('integrations.api'))
                 ->where('connections.2.settings_restricted', false)
                 ->where('connections.3.href', route('integrations.notifications'))

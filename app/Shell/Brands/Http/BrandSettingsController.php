@@ -6,6 +6,7 @@ use App\Shell\Brands\Actions\BrandSettings;
 use App\Shell\Brands\BrandAccess;
 use App\Shell\Brands\BrandDomain;
 use App\Shell\Brands\Network\PublicHost;
+use App\Shell\Onboarding\SvgLogo;
 use App\Shell\Organizations\ModuleEntitlements;
 use App\Shell\Plans\Contracts\PlanLimits;
 use App\Shell\Plans\Contracts\UsageQuery;
@@ -42,10 +43,12 @@ final class BrandSettingsController
                 $measurement = app(TenantContextRunner::class)->run($ctx, fn () => $usage->read($ctx, new UsageQuery($from, CarbonImmutable::now('UTC'), [$metric]))->metrics[$metric]);
             }
             $quota = $limits->get($ctx, $module === 'seller' ? 'seller.dialogs_month' : 'vision.runs_per_week');
+            $moduleRow = DB::table('brand_modules')->where('organization_id', $ctx->organizationId)->where('brand_id', $brand)->where('module', $module)->first();
             $moduleItems[$module] = [
                 'usage' => $measurement, 'quota' => ['value' => $quota->value, 'configured' => $quota->configured, 'unit' => $quota->unit],
                 'enabled' => $entitlements->enabled($ctx, $module),
-                'configured_enabled' => (bool) DB::table('brand_modules')->where('organization_id', $ctx->organizationId)->where('brand_id', $brand)->where('module', $module)->value('enabled'),
+                'configured_enabled' => (bool) ($moduleRow->enabled ?? false),
+                'enabled_at' => ($moduleRow->enabled ?? false) ? $moduleRow->updated_at : null,
                 'allowed' => $entitlements->allowedByPlan($ctx, $module),
                 'limit' => ['value' => $limit->value, 'configured' => $limit->configured, 'unit' => $limit->unit],
             ];
@@ -98,32 +101,39 @@ final class BrandSettingsController
         $this->access->read($request, $brand);
         $data = $this->validate($request, $brand, [
             'theme' => ['required', Rule::in(['confectionery', 'pyro', 'neutral'])], 'subtitle' => ['nullable', 'string', 'max:60'], 'promo_card' => ['required', 'boolean'],
-            'logo' => ['nullable', 'file', 'max:2048', 'mimes:png,jpg,jpeg,webp'], 'remove_logo' => ['sometimes', 'boolean'],
+            'logo' => ['nullable', 'file', 'max:1024'], 'remove_logo' => ['sometimes', 'boolean'],
         ]);
         if ($request->hasFile('logo') && ($data['remove_logo'] ?? false)) {
             $this->invalid($brand, 'logo', 'Выберите загрузку или удаление логотипа.');
         }
         $png = null;
+        $extension = 'png';
         if ($request->hasFile('logo')) {
             $bytes = file_get_contents($request->file('logo')->getRealPath());
-            $info = $bytes === false ? false : @getimagesizefromstring($bytes);
-            if (! $info || ! in_array($info['mime'] ?? '', ['image/png', 'image/jpeg', 'image/webp'], true) || $info[0] < 1 || $info[1] < 1 || $info[0] > 2048 || $info[1] > 2048) {
-                $this->invalid($brand, 'logo', 'Выберите PNG, JPEG или WebP до 2 МБ и 2048 × 2048 пикселей.');
-            }
-            $image = @imagecreatefromstring($bytes);
-            if ($image === false) {
-                $this->invalid($brand, 'logo', 'Не удалось прочитать изображение.');
-            }
-            imagesavealpha($image, true);
-            ob_start();
-            $success = imagepng($image, null, 6);
-            $png = ob_get_clean();
-            imagedestroy($image);
-            if (! $success || ! is_string($png) || strlen($png) > 4 * 1024 * 1024) {
-                $this->invalid($brand, 'logo', 'Не удалось подготовить изображение.');
+            $svg = is_string($bytes) ? SvgLogo::sanitize($bytes) : null;
+            if ($svg !== null) {
+                $png = $svg;
+                $extension = 'svg';
+            } else {
+                $info = $bytes === false ? false : @getimagesizefromstring($bytes);
+                if (! $info || ($info['mime'] ?? '') !== 'image/png' || $info[0] < 1 || $info[1] < 1 || $info[0] > 2048 || $info[1] > 2048) {
+                    $this->invalid($brand, 'logo', 'Выберите PNG или SVG до 1 МБ и 2048 × 2048 пикселей.');
+                }
+                $image = @imagecreatefromstring($bytes);
+                if ($image === false) {
+                    $this->invalid($brand, 'logo', 'Не удалось прочитать изображение.');
+                }
+                imagesavealpha($image, true);
+                ob_start();
+                $success = imagepng($image, null, 6);
+                $png = ob_get_clean();
+                imagedestroy($image);
+                if (! $success || ! is_string($png) || strlen($png) > 4 * 1024 * 1024) {
+                    $this->invalid($brand, 'logo', 'Не удалось подготовить изображение.');
+                }
             }
         }
-        $this->settings->theme($request, $brand, $data, $png);
+        $this->settings->theme($request, $brand, $data, $png, $extension);
 
         return $this->back($brand);
     }

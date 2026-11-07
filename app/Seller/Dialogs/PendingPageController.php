@@ -2,6 +2,7 @@
 
 namespace App\Seller\Dialogs;
 
+use App\Models\Membership;
 use App\Models\User;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Profile\ProfileAccess;
@@ -15,12 +16,12 @@ final class PendingPageController
 {
     public function __invoke(Request $request): Response
     {
-        return app(ProfileAccess::class)->run($request, function (User $user, TenantContext $tenant): Response {
+        return app(ProfileAccess::class)->run($request, function (User $user, TenantContext $tenant, $brand, Membership $member): Response {
             abort_unless($user->hasVerifiedEmail() && $tenant->source === 'session', 403);
             Gate::forUser($user)->authorize('seller.dialogues.operate');
             abort_unless(app(SellerModuleAccess::class)->enabled($tenant->organizationId, $tenant->brandId), 404);
 
-            return Inertia::render('Seller/Dialogs/Pending');
+            return Inertia::render('Seller/Dialogs/Pending', ['suggestions' => app(ReadySuggestions::class)->read($tenant, $user->id, $member)]);
         });
     }
 }

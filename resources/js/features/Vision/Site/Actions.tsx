@@ -25,10 +25,16 @@ function formatDate(value?: string | null) {
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleDateString('ru-RU');
 }
+function questionCount(count: number) {
+  const ending = count % 100 >= 11 && count % 100 <= 14 ? 'вопросов' : count % 10 === 1 ? 'вопрос' : count % 10 >= 2 && count % 10 <= 4 ? 'вопроса' : 'вопросов';
+  return `${count} ${ending}`;
+}
 type Recommendation = {priority: string | null; steps: string[]; question_ids: string[]};
-type Effect = {id: string; completed_by_name: string | null; before: {visibility: number} | null; after: {visibility: number} | null; delta: number | null};
+type Effect = {id: string; completed_by_name: string | null; before: {visibility: number; date?: string | null} | null; after: {visibility: number; date?: string | null} | null; delta: number | null};
 function effectComparison(effect?: Effect) {
-  return effect?.before && effect.after ? `${effect.before.visibility} % → ${effect.after.visibility} %` : 'Нет сопоставимых замеров';
+  if (!effect?.before || !effect.after) return 'Нет сопоставимых замеров';
+  const dates = [effect.before.date ? `до: ${formatDate(effect.before.date)}` : null, effect.after.date ? `после: ${formatDate(effect.after.date)}` : null].filter(Boolean);
+  return `${effect.before.visibility} % → ${effect.after.visibility} %${dates.length ? ` (${dates.join(' · ')})` : ''}`;
 }
 function effectDelta(effect?: Effect) {
   return effect?.delta === null || effect?.delta === undefined ? 'Рано судить' : `${effect.delta > 0 ? '+' : ''}${effect.delta} п.п.`;
@@ -138,9 +144,13 @@ function ActionCard({
   members,
   onComplete,
   recommendation,
+  cardNumber,
+  nextMeasurement,
 }: {
   action: SiteAction;
   recommendation?: Recommendation;
+  cardNumber: number;
+  nextMeasurement: string | null;
   canManage: boolean;
   members: Member[];
   onComplete: () => void;
@@ -177,7 +187,7 @@ function ActionCard({
   return (
     <article className={`${card} flex flex-col gap-4`}>
       <div>
-        <h3 className="break-words text-lg font-semibold">{action.title}</h3>
+        <h3 className="break-words text-lg font-semibold">{cardNumber}. {action.title}</h3>
         <p className="mt-1 text-sm text-(--color-ink-muted)">
           {action.status === 'awaiting_measurement' ? 'Ждём замера' : 'В работе'}
         </p>
@@ -185,7 +195,8 @@ function ActionCard({
       {action.status === 'open' && !editing && (
         <dl className="grid gap-2 text-sm text-(--color-ink-muted)">
           <div><dt className="inline">Приоритет: </dt><dd className="inline">{recommendation?.priority || 'не указан'}</dd></div>
-          <div><dt className="inline">Затронутые вопросы: </dt><dd className="inline">{recommendation?.question_ids?.join(', ') || 'нет данных'}</dd></div>
+          <div><dt className="inline">Затронутые вопросы: </dt><dd className="inline">{recommendation?.question_ids?.length ? `Поможет ответить на ${questionCount(new Set(recommendation.question_ids).size)}` : 'нет данных'}</dd></div>
+          <div><dt className="inline">Ожидаемый эффект: </dt><dd className="inline">{nextMeasurement ? `после следующего замера ${formatDate(nextMeasurement)}` : 'дата следующего замера не назначена'}</dd></div>
           <div><dt className="inline">Шаги: </dt><dd className="inline">{recommendation?.steps?.join('; ') || 'не указаны'}</dd></div>
         </dl>
       )}
@@ -363,6 +374,7 @@ export function Actions({
   const [notice, setNotice] = useState('');
   const { brand } = usePage<{brand: {id: string} | null}>().props;
   const [recommendations, setRecommendations] = useState<Record<string, Recommendation>>({});
+  const [nextMeasurement, setNextMeasurement] = useState<string | null>(null);
   const [effects, setEffects] = useState<Record<string, Effect>>({});
   const [effectState, setEffectState] = useState<'loading' | 'ready' | 'error'>('loading');
   const [retry, setRetry] = useState(0);
@@ -373,12 +385,14 @@ export function Actions({
     // Clear the previous brand's data immediately when the context changes.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setEffects({});
+    setNextMeasurement(null);
     setRecommendations({});
     setEffectState('loading');
     fetch('/vision/actions/effect', {headers: {'Accept': 'application/json', 'X-Brand-Id': brand.id}, signal: controller.signal})
       .then((response) => { if (!response.ok) throw new Error('Effect unavailable'); return response.json(); })
-      .then((data: {items: Effect[]; recommendations?: Record<string, Recommendation>}) => {
+      .then((data: {items: Effect[]; recommendations?: Record<string, Recommendation>; next_measurement_at?: string | null}) => {
         setRecommendations(data.recommendations ?? {});
+        setNextMeasurement(data.next_measurement_at ?? null);
         setEffects(Object.fromEntries(data.items.map((item) => [item.id, item])));
         setEffectState('ready');
       })
@@ -393,7 +407,7 @@ export function Actions({
   const cards = (items: SiteAction[]) => (
     <div className="grid gap-4 lg:grid-cols-3">
       {items.map((action) => (
-        <ActionCard key={action.id} recommendation={recommendations[action.id]} action={action} canManage={canManage} members={members} onComplete={() => setNotice('Действие отмечено выполненным. Ожидается эффект после следующего замера.')} />
+        <ActionCard cardNumber={visible.indexOf(action) + 1} nextMeasurement={nextMeasurement} key={action.id} recommendation={recommendations[action.id]} action={action} canManage={canManage} members={members} onComplete={() => setNotice('Действие отмечено выполненным. Ожидается эффект после следующего замера.')} />
       ))}
     </div>
   );
@@ -408,7 +422,7 @@ export function Actions({
           {effectState === 'error' && <p role="alert" className="text-sm">Не удалось загрузить данные истории. <button type="button" className="cursor-pointer font-semibold text-(--color-link)" onClick={() => setRetry((value) => value + 1)}>Повторить</button></p>}
           <div className={`${card} overflow-x-auto`}>
             <table className="w-full min-w-[640px] text-left text-sm">
-              <thead><tr><th className="p-2">Действие</th><th className="p-2">Выполнено</th><th className="p-2">Автор</th><th className="p-2">До → после</th><th className="p-2">Эффект</th></tr></thead>
+              <thead><tr><th className="p-2">Действие</th><th className="p-2">Выполнено</th><th className="p-2">Автор</th><th className="p-2">Замер до → после</th><th className="p-2">Эффект</th></tr></thead>
               <tbody>{first.map((action) => (
                 <tr key={action.id} className="border-t border-(--color-border)">
                   <td className="p-2">{action.title}</td><td className="p-2">{formatDate(action.completed_at)}</td><td className="p-2">{effects[action.id]?.completed_by_name || 'Нет данных'}</td><td className="p-2">{effectComparison(effects[action.id])}</td><td className="p-2">{effectDelta(effects[action.id])}</td>
@@ -422,7 +436,7 @@ export function Actions({
         cards(first)
       ) : (
         <div className={`${card} text-(--color-ink-muted)`}>
-          {history ? 'Выполненных действий пока нет.' : 'Действий пока нет.'}
+          {history ? <><span>Выполненных действий пока нет.</span> <a href="/vision/actions" className="cursor-pointer font-semibold text-(--color-link)">К действиям →</a></> : 'Действий пока нет.'}
         </div>
       )}
       {remaining.length > 0 && (

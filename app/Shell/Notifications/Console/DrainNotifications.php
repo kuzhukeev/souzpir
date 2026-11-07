@@ -4,6 +4,7 @@ namespace App\Shell\Notifications\Console;
 
 use App\Shell\Notifications\DeferredNotificationReporter;
 use App\Shell\Notifications\ExternalDelivery;
+use App\Shell\Notifications\FakeTimedDelivery;
 use App\Shell\Notifications\NotificationDeferred;
 use App\Shell\Notifications\NotificationProcessor;
 use App\Shell\Notifications\OutboxCursor;
@@ -48,7 +49,9 @@ final class DrainNotifications extends Command
                 Log::error('Notification event processing failed.', ['code' => 'outbox_processing_failed']);
             }
         }
-        if (config('features.E0-04.defaults.external_delivery')) {
+        if (config('runtime.notification_driver') === 'fake') {
+            app(FakeTimedDelivery::class)->drain((bool) $this->option('retry-failed'));
+        } elseif (config('features.E0-04.defaults.external_delivery')) {
             try {
                 $statuses = $this->option('retry-failed') ? ['pending', 'failed'] : ['pending'];
                 $ids = DB::table('notification_deliveries')->whereIn('status', $statuses)->whereIn('channel', ['email', 'telegram'])->orderBy('created_at')->orderBy('id')->limit(100)->pluck('id');

@@ -9,6 +9,8 @@ return [
         Route::middleware(['auth.version', 'auth.nostore'])->group(static function (): void {
             Route::get('/vision/runs', [MeasurementsController::class, 'index'])->name('vision.measurements.index');
             Route::get('/vision/runs/data', [MeasurementsController::class, 'data'])->name('vision.measurements.data');
+            Route::get('/vision/runs/{measurement}/progress', [MeasurementsController::class, 'progress'])->whereUlid('measurement')->name('vision.measurements.progress');
+            Route::get('/vision/runs/{measurement}/progress/data', [MeasurementsController::class, 'progressData'])->whereUlid('measurement')->name('vision.measurements.progress.data');
             Route::get('/vision/runs/{measurement}/answers', [AnswersController::class, 'index'])->whereUlid('measurement')->name('vision.measurements.answers');
             Route::get('/vision/runs/{measurement}/answers/data', [AnswersController::class, 'data'])->whereUlid('measurement')->name('vision.measurements.answers.data');
             Route::get('/vision/runs/revision', [MeasurementsController::class, 'revision'])->name('vision.measurements.revision');

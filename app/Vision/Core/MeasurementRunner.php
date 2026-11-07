@@ -10,12 +10,16 @@ use App\Contracts\Ai\AiGateway;
 use App\Contracts\Ai\AiRequest;
 use App\Shell\Notifications\Contracts\NotificationDispatcher;
 use App\Shell\Notifications\DomainEvent;
+use App\Shell\Plans\LimitEnforcer;
+use App\Shell\Plans\MonthlyUnits;
 use App\Tenancy\TenantContext;
 use App\Vision\Evidence\Contracts\KnowledgeGate;
 use App\Vision\Evidence\EvidenceEvaluator;
 use App\Vision\KnowledgeBridge\PublishedKnowledgeBridge;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 use LogicException;
 use Throwable;
@@ -60,6 +64,14 @@ final class MeasurementRunner
         }
         $parser = [...$parser, ...app(EvidenceEvaluator::class)->artifacts()];
         $context = app(TenantContext::class);
+        if (app(MonthlyUnits::class)->exhausted($context, 'measurement')) {
+            throw ValidationException::withMessages(['measurement' => 'Лимит тарифа исчерпан. Новый замер недоступен.']);
+        }
+        $week = CarbonImmutable::now('Europe/Moscow')->startOfWeek();
+        $completed = DB::table('measurements')->where('organization_id', $context->organizationId)->where('status', 'completed')->where('finished_at', '>=', $week->utc())->where('finished_at', '<', $week->addWeek()->utc())->count();
+        if (app(LimitEnforcer::class)->exhausted($context, 'vision.runs_per_week', $completed)) {
+            throw ValidationException::withMessages(['measurement' => 'Недельный лимит замеров исчерпан.']);
+        }
         // Question sets are immutable; check the full grid before the write transaction.
         $planned = DB::table('question_sets')->where($tenant)->where('id', $questionSetId)
             ->first(['size', DB::raw('octet_length(questions::text) as question_bytes')]);
@@ -211,8 +223,9 @@ final class MeasurementRunner
                 if (! $measurement) {
                     throw new LogicException('Measurement not found.');
                 }
+                $finishedAt = now();
                 $updated = DB::table('measurement_answers')->where($tenant)->where('id', $answerId)
-                    ->where('status', 'in_progress')->update([...$changes, 'updated_at' => now()]);
+                    ->where('status', 'in_progress')->update([...$changes, 'settled_at' => in_array($changes['status'], ['ok', 'failed', 'uncertain'], true) ? $finishedAt : null, 'updated_at' => $finishedAt]);
                 if ($updated !== 1) {
                     throw new LogicException('Measurement slot changed while processing.');
                 }

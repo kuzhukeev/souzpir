@@ -7,11 +7,12 @@ use App\Ai\Protected\SellerExtractorStages;
 use App\Ai\Protected\SellerGuardStages;
 use App\Ai\Protected\SellerResponderStages;
 use App\Contracts\ProtectedOperations\IdempotencyConflict;
+use App\Seller\Channels\Email\ProtectedPriceSender;
 use App\Seller\Conversations\Data\TurnClaim;
 use App\Seller\Conversations\Data\TurnCommand;
 use App\Seller\Engine\GuardDecision;
 use App\Seller\Engine\ToolRunner;
-use App\Seller\Settings\Tools\ToolPreferences;
+use App\Seller\Runtime\ConfiguredToolHandler;
 use App\Tenancy\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
@@ -180,7 +181,6 @@ final class FirstTurnCoordinator
     {
         $results = [];
         $tenant = new TenantContext($claim->organizationId, $claim->brandId);
-        $settings = app(ToolPreferences::class)->read($tenant);
         foreach (range(0, 3) as $index) {
             try {
                 $call = $gateway->readProtectedToolCallLocked($http, $claim, $responder, $index);
@@ -188,18 +188,15 @@ final class FirstTurnCoordinator
                 break;
             }
             $name = $call['name'];
-            $config = $tenant;
-            if ($name === 'calc_delivery') {
-                $rules = [];
-                foreach ($settings['delivery_rules'] ?? [] as $rule) {
-                    $rules[] = ['city_contains' => [$rule['city']],
-                        'price_minor' => ['min' => $rule['price_min'], 'max' => $rule['price_max'], 'currency' => 'RUB'],
-                        'days' => ['min' => $rule['days_min'], 'max' => $rule['days_max']]];
-                }
-                $config = ['rules' => $rules];
+            if ($name === 'send_price' && app(FirstTurnProtectedClaim::class)->assertOriginLocked($http, $claim) !== 'processing') {
+                throw new LogicException('Protected price delivery unavailable.');
             }
-            $results[] = ['id' => $call['id'], 'name' => $name,
-                'result' => app(ToolRunner::class)->run($name, $call['arguments'], $config)];
+            $result = match ($name) {
+                'calc_delivery' => app(ConfiguredToolHandler::class)->calculateDelivery($tenant, $call['arguments']),
+                'send_price' => app(ProtectedPriceSender::class)->send($tenant, $claim, $responder, $call['id'], $call['arguments']),
+                default => app(ToolRunner::class)->run($name, $call['arguments'], $tenant),
+            };
+            $results[] = ['id' => $call['id'], 'name' => $name, 'result' => $result];
         }
 
         return $results;

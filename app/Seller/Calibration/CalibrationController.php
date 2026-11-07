@@ -3,6 +3,7 @@
 namespace App\Seller\Calibration;
 
 use App\Models\User;
+use App\Seller\Evaluation\EvaluationVisibility;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
@@ -36,7 +37,7 @@ final class CalibrationController
                 ->leftJoin('judge_calibrations as c', function ($join) use ($user): void {
                     $join->on('c.evaluation_id', '=', 'e.id')->on('c.organization_id', '=', 'e.organization_id')->on('c.brand_id', '=', 'e.brand_id')->where('c.user_id', $user->id);
                 })
-                ->where('e.organization_id', $tenant->organizationId)->where('e.brand_id', $tenant->brandId)->where(fn ($q) => $q->whereNotNull('e.sim_run_id')->orWhereNotNull('e.conversation_id'))->orderByDesc('e.created_at')->limit(100)
+                ->where(fn ($query) => EvaluationVisibility::excludeTestBaseline($query, 'e.'))->where('e.organization_id', $tenant->organizationId)->where('e.brand_id', $tenant->brandId)->where(fn ($q) => $q->whereNotNull('e.sim_run_id')->orWhereNotNull('e.conversation_id'))->orderByDesc('e.created_at')->limit(100)
                 ->get(['e.id', 'e.average', 'e.created_at', 'r.id as run_id', 'e.conversation_id', 'p.name', 'c.rating', 'c.comment'])->map(fn ($row) => ['id' => $row->id, 'run_id' => $row->run_id, 'conversation_id' => $row->conversation_id, 'name' => $row->name ?? 'Диалог', 'judge' => (float) $row->average, 'rating' => $row->rating, 'comment' => $row->comment, 'created_at' => $row->created_at]);
         });
 
@@ -59,7 +60,7 @@ final class CalibrationController
         $this->access($request, function (User $user, TenantContext $tenant) use ($items): void {
             DB::transaction(function () use ($items, $user, $tenant): void {
                 foreach ($items as $item) {
-                    DB::table('seller_evaluations')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('id', $item['evaluation_id'])->where(fn ($q) => $q->whereNotNull('sim_run_id')->orWhereNotNull('conversation_id'))->first() ?? abort(404);
+                    DB::table('seller_evaluations')->where(fn ($query) => EvaluationVisibility::excludeTestBaseline($query))->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('id', $item['evaluation_id'])->where(fn ($q) => $q->whereNotNull('sim_run_id')->orWhereNotNull('conversation_id'))->first() ?? abort(404);
                     $where = ['organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId, 'evaluation_id' => $item['evaluation_id'], 'user_id' => $user->id];
                     $old = DB::table('judge_calibrations')->where($where)->first();
                     $id = $old?->id ?? (string) Str::ulid();

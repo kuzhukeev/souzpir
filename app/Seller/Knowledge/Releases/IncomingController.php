@@ -30,7 +30,7 @@ final class IncomingController
                 $query->where('type', 'unknown_question')->where('status', 'new');
             }
             if ($input['type'] === 'review') {
-                $query->where('type', 'wrong_fact')->where('status', 'new');
+                $query->where('status', 'new');
             }
             $query->first() ?? abort(404);
             $processed = DB::table('audit_logs')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('action', 'knowledge.incoming.handled')->where('subject_type', $input['type'])->where('subject_id', $input['id'])->exists();

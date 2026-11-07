@@ -3,6 +3,7 @@
 namespace App\Seller\Quality;
 
 use App\Models\User;
+use App\Seller\Evaluation\EvaluationVisibility;
 use App\Seller\Evaluation\Supervisor;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Audit\AuditEntry;
@@ -41,15 +42,17 @@ final class QualityController
 
                 return ['id' => $row->id, 'source' => $row->sim_run_id ? 'simulation' : ($row->conversation_id ? 'dialogue' : 'unknown'),
                     'conversation_id' => $row->conversation_id, 'scores' => json_decode($row->scores, true) ?: [], 'issues' => json_decode($row->issues, true) ?: [],
-                    'average' => (float) $row->average, 'comment' => $row->comment, 'created_at' => $row->created_at,
+                    'average' => (float) $row->average, 'comment' => $row->comment, 'test_baseline' => EvaluationVisibility::isTestBaseline($row->sim_run_id, $row->comment), 'created_at' => $row->created_at,
                     'feedback' => $feedback, 'day' => CarbonImmutable::parse($row->created_at)->setTimezone($timezone)->format('Y-m-d')];
             });
     }
 
-    private function reports(TenantContext $tenant): Collection
+    private function reports(TenantContext $tenant, ?string $from = null, ?string $day = null): Collection
     {
         return DB::table('seller_supervisor_reports')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
-            ->orderByDesc('report_date')->orderByDesc('created_at')->limit(500)->get(['id', 'report_date', 'scores', 'issues', 'average', 'comment', 'created_at'])
+            ->when($from !== null, fn ($query) => $query->where('report_date', '>=', $from))
+            ->when($day !== null, fn ($query) => $query->where('report_date', $day))
+            ->orderByDesc('report_date')->orderByDesc('created_at')->get(['id', 'report_date', 'scores', 'issues', 'average', 'comment', 'created_at'])
             ->map(fn ($row) => ['id' => $row->id, 'source' => 'supervisor', 'conversation_id' => null, 'scores' => json_decode($row->scores, true) ?: [],
                 'issues' => json_decode($row->issues, true) ?: [], 'average' => (float) $row->average, 'comment' => $row->comment,
                 'created_at' => $row->created_at, 'day' => $row->report_date]);
@@ -57,7 +60,24 @@ final class QualityController
 
     public function index(Request $request): mixed
     {
-        [$rows, $reports] = $this->access($request, fn (TenantContext $tenant) => [$this->rows($tenant), $this->reports($tenant)]);
+        $input = $request->validate(['period' => ['sometimes', 'integer', 'in:7,30,90'], 'page' => ['sometimes', 'integer', 'min:1', 'max:100000']]);
+        $period = (int) ($input['period'] ?? 7);
+        $page = (int) ($input['page'] ?? 1);
+        [$rows, $reports, $missing, $dates] = $this->access($request, function (TenantContext $tenant) use ($period, $page): array {
+            $missing = DB::table('seller_sim_runs as r')->where('r.organization_id', $tenant->organizationId)->where('r.brand_id', $tenant->brandId)->where('r.status', 'completed')
+                ->whereNotExists(fn ($query) => $query->selectRaw('1')->from('seller_evaluations as e')->whereColumn('e.sim_run_id', 'r.id')->whereColumn('e.organization_id', 'r.organization_id')->whereColumn('e.brand_id', 'r.brand_id'))->count();
+
+            $timezone = DB::table('brands')->where('organization_id', $tenant->organizationId)->where('id', $tenant->brandId)->value('timezone') ?: 'UTC';
+            $from = now($timezone)->startOfDay()->subDays($period - 1)->toDateString();
+            $dateQuery = DB::table('seller_supervisor_reports')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('report_date', '>=', $from)
+                ->select('report_date')->distinct()->orderByDesc('report_date');
+            $dates = (clone $dateQuery)->paginate(10, ['report_date'], 'page', $page);
+            if ($page > max(1, $dates->lastPage())) {
+                $dates = $dateQuery->paginate(10, ['report_date'], 'page', max(1, $dates->lastPage()));
+            }
+
+            return [$this->rows($tenant), $this->reports($tenant, $from), $missing, $dates];
+        });
         $group = fn ($data) => $data->groupBy('day')->map(function ($items, $day) {
             $issues = $items->flatMap(fn ($row) => $row['issues']);
 
@@ -69,16 +89,38 @@ final class QualityController
                 'topIssues' => $issues->countBy('type')->sortDesc()->take(3)->keys()->values()->all()];
         })->values();
 
-        return Inertia::render('Seller/Quality/Index', ['days' => $group($rows), 'reportDays' => $group($reports)]);
+        $testDays = $rows->where('test_baseline', true)->groupBy('day')->map(fn ($items, $day) => ['day' => $day, 'count' => $items->count()])->values();
+
+        $reportDays = $group($reports);
+        $visibleDates = collect($dates->items())->pluck('report_date')->map(fn ($date) => (string) $date)->all();
+
+        return Inertia::render('Seller/Quality/Index', ['days' => $group($rows->where('test_baseline', false)), 'reportDays' => $reportDays,
+            'reportPageDays' => $reportDays->whereIn('day', $visibleDates)->values(), 'pagination' => ['page' => $dates->currentPage(), 'pages' => max(1, $dates->lastPage()), 'total' => $dates->total()],
+            'period' => $period, 'testDays' => $testDays, 'missingEvaluations' => $missing]);
     }
 
     public function day(Request $request, string $day): mixed
     {
         [$year, $month, $date] = array_map('intval', explode('-', $day));
         abort_unless(checkdate($month, $date, $year), 404);
-        [$rows, $reports] = $this->access($request, fn (TenantContext $tenant) => [$this->rows($tenant)->where('day', $day)->values(), $this->reports($tenant)->where('day', $day)->values()]);
+        [$rows, $reports, $summary] = $this->access($request, function (TenantContext $tenant) use ($day): array {
+            $rows = $this->rows($tenant)->where('day', $day)->values();
+            $ids = $rows->where('source', 'dialogue')->pluck('conversation_id')->filter()->unique()->values()->all();
+            $scope = ['organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId];
+            $outcomes = DB::table('conversations')->where($scope)->whereIn('id', $ids)->pluck('outcome');
+            $timezone = DB::table('brands')->where('organization_id', $tenant->organizationId)->where('id', $tenant->brandId)->value('timezone') ?: 'UTC';
+            $start = CarbonImmutable::parse($day, $timezone)->startOfDay();
+            $turns = DB::table('seller_turns')->where($scope)->whereIn('conversation_id', $ids)->where('status', 'completed')->where('created_at', '>=', $start->utc())->where('created_at', '<', $start->addDay()->utc())->count();
 
-        return Inertia::render('Seller/Quality/Day', ['day' => $day, 'evaluations' => $rows, 'reports' => $reports]);
+            $reports = app(ReportIssueLinks::class)->enrich($this->reports($tenant, day: $day)->values(), $rows);
+
+            return [$rows, $reports, ['dialogs' => count($ids), 'turns' => $turns,
+                'contact' => $outcomes->filter(fn ($outcome) => in_array($outcome, ['full_contact', 'partial_contact'], true))->count(),
+                'handoff' => $outcomes->filter(fn ($outcome) => $outcome === 'handoff')->count(),
+                'other' => $outcomes->filter(fn ($outcome) => ! in_array($outcome, ['full_contact', 'partial_contact', 'handoff'], true))->count()]];
+        });
+
+        return Inertia::render('Seller/Quality/Day', ['day' => $day, 'evaluations' => $rows, 'reports' => $reports, 'summary' => $summary]);
     }
 
     public function collectToday(Request $request): mixed
@@ -94,7 +136,7 @@ final class QualityController
             foreach (Supervisor::SCORES as $key) {
                 $result[$key] = (int) round($evaluations->avg(fn ($row) => $row['scores'][$key]));
             }
-            $result['issues'] = $evaluations->flatMap(fn ($row) => $row['issues'])->values()->all();
+            $result['issues'] = $evaluations->flatMap(fn ($row) => collect($row['issues'])->map(fn ($issue) => [...$issue, 'conversation_id' => $row['conversation_id']]))->values()->all();
             $result['comment'] = 'Сводка по сохранённым оценкам диалогов за день.';
             $turnCount = max(1, collect($result['issues'])->max('turn') ?? 1);
             app(SupervisorReportWriter::class)->write($tenant, $day, $result, $turnCount);
@@ -141,7 +183,7 @@ final class QualityController
         $input = $request->validate(['rating' => ['required', 'integer', 'min:1', 'max:5'], 'comment' => ['required', 'string', 'max:2000']]);
         $this->access($request, function (TenantContext $tenant) use ($request, $evaluation, $input): void {
             Gate::authorize('seller.settings.write');
-            DB::table('seller_evaluations')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('id', $evaluation)->first() ?? abort(404);
+            DB::table('seller_evaluations')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->where('id', $evaluation)->where(fn ($query) => EvaluationVisibility::excludeTestBaseline($query))->first() ?? abort(404);
             $where = ['organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId, 'evaluation_id' => $evaluation, 'user_id' => $request->user()->id];
             $old = DB::table('judge_calibrations')->where($where)->first();
             $id = $old?->id ?? (string) Str::ulid();

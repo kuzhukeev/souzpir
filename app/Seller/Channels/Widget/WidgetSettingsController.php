@@ -3,11 +3,13 @@
 namespace App\Seller\Channels\Widget;
 
 use App\Models\User;
+use App\Seller\Channels\Core\ChannelAccount;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
 use App\Shell\Profile\ProfileAccess;
 use App\Tenancy\TenantContext;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -47,7 +49,12 @@ final class WidgetSettingsController
         $data = $this->access($request, function (User $user, TenantContext $tenant) use ($request): array {
             $row = $this->settings($tenant);
 
-            return ['settings' => ['enabled' => $row->enabled, 'origins' => json_decode($row->origins, true),
+            $website = DB::table('brands')->where('organization_id', $tenant->organizationId)->where('id', $tenant->brandId)->value('website');
+            $parts = is_string($website) ? parse_url($website) : false;
+            $origin = is_array($parts) && isset($parts['scheme'], $parts['host']) && strtolower($parts['scheme']) === 'https'
+                ? 'https://'.strtolower($parts['host']).(isset($parts['port']) ? ':'.$parts['port'] : '') : null;
+
+            return ['brandOrigin' => $origin, 'activeTab' => $request->route('tab') ?? 'install', 'settings' => ['enabled' => $row->enabled, 'origins' => json_decode($row->origins, true),
                 'appearance' => json_decode($row->appearance, true), 'behavior' => json_decode($row->behavior, true),
                 'last_seen_at' => $row->last_seen_at, 'key' => $row->public_key],
                 'scriptUrl' => $request->getSchemeAndHttpHost().'/widget.js',
@@ -57,14 +64,43 @@ final class WidgetSettingsController
         return Inertia::render('Seller/Channels/Widget/Index', [...$data, 'status' => $request->session()->get('status')]);
     }
 
+    public function checkInstallation(Request $request): mixed
+    {
+        $result = $this->access($request, function (User $user, TenantContext $tenant): string {
+            $widget = $this->settings($tenant);
+            if (! $widget->enabled) {
+                return 'Сначала включите виджет и добавьте адрес сайта.';
+            }
+            if (! $widget->last_seen_at) {
+                return 'Запросов виджета ещё не было. Установка на сайте не подтверждена.';
+            }
+
+            return 'Последний запрос виджета: '.Carbon::parse($widget->last_seen_at)->format('d.m.Y H:i').'. Проверка сайта не выполнялась.';
+        });
+
+        return back()->with('status', $result);
+    }
+
     public function update(Request $request): mixed
     {
         $input = $request->validate(['enabled' => ['required', 'boolean'], 'origins' => ['present', 'array', 'max:30'], 'origins.*' => ['required', 'string', 'max:255'],
             'appearance.title' => ['required', 'string', 'max:80'], 'appearance.color' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'appearance.position' => ['required', 'in:left,right'], 'behavior.delay_seconds' => ['nullable', 'integer', 'min:1', 'max:86400'],
-            'behavior.scroll_percent' => ['nullable', 'integer', 'min:1', 'max:100'], 'behavior.invitation' => ['required', 'string', 'max:300'],
+            'behavior.scroll_percent' => ['nullable', 'integer', 'min:1', 'max:100'], 'behavior.invitation' => ['required', 'string', 'max:200'],
             'behavior.collect_contact' => ['sometimes', 'boolean'], 'behavior.consent_url' => ['nullable', 'url:https', 'max:2048', 'required_if:behavior.collect_contact,true'],
-            'behavior.exit_intent' => ['sometimes', 'boolean'], 'behavior.page_mask' => ['nullable', 'string', 'max:255', 'starts_with:/'], 'behavior.repeat_hours' => ['nullable', 'integer', 'min:1', 'max:720']]);
+            'behavior.exit_intent' => ['sometimes', 'boolean'], 'behavior.page_mask' => ['nullable', 'string', 'max:255', 'starts_with:/'], 'behavior.repeat_hours' => ['nullable', 'integer', 'min:1', 'max:720'],
+            'appearance.offset_side' => ['sometimes', 'integer', 'min:0', 'max:200'], 'appearance.offset_bottom' => ['sometimes', 'integer', 'min:0', 'max:200'],
+            'appearance.shape' => ['sometimes', 'in:round,rounded'], 'appearance.icon' => ['sometimes', 'in:chat,bot'], 'appearance.window_title' => ['sometimes', 'string', 'max:80'],
+            'appearance.theme' => ['sometimes', 'in:light,dark,auto'], 'appearance.hide_mobile' => ['sometimes', 'boolean'],
+            'behavior.work_days' => ['sometimes', 'array', 'max:7'], 'behavior.work_days.*' => ['integer', 'between:0,6', 'distinct'],
+            'behavior.work_start' => ['nullable', 'required_with:behavior.work_days', 'date_format:H:i'], 'behavior.work_end' => ['nullable', 'required_with:behavior.work_days', 'date_format:H:i'],
+            'behavior.offhours_text' => ['nullable', 'string', 'max:200'], 'behavior.excluded_paths' => ['sometimes', 'array', 'max:20'],
+            'behavior.excluded_paths.*' => ['required', 'string', 'max:255', 'starts_with:/'], 'behavior.max_messages' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'behavior.contact_mode' => ['sometimes', 'in:none,soft,required'], 'behavior.consent_text' => ['nullable', 'string', 'max:300']]);
+        $mode = $input['behavior']['contact_mode'] ?? null;
+        if ($mode !== null && filter_var($input['behavior']['collect_contact'] ?? false, FILTER_VALIDATE_BOOLEAN) !== ($mode !== 'none')) {
+            throw ValidationException::withMessages(['behavior.contact_mode' => 'Режим сбора контакта не соответствует настройке согласия.']);
+        }
         $origins = [];
         foreach ($input['origins'] as $origin) {
             $value = strtolower(rtrim(trim($origin), '/'));
@@ -84,6 +120,19 @@ final class WidgetSettingsController
                 ->update(['enabled' => $input['enabled'], 'origins' => json_encode(array_values(array_unique($origins))),
                     'appearance' => json_encode($input['appearance'], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
                     'behavior' => json_encode($input['behavior'], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), 'updated_at' => now()]);
+            $channel = ChannelAccount::query()->where('type', 'widget')->where('settings->widget_id', $row->id)->first();
+            if (! $channel) {
+                $channel = new ChannelAccount;
+                $channel->type = 'widget';
+                $channel->name = 'Сайт';
+                $channel->default_mode = 'manager';
+                $channel->settings = ['widget_id' => $row->id];
+            }
+            if ($input['enabled'] && $channel->status !== 'active' && $channel->connected_at === null) {
+                $channel->connected_at = now();
+            }
+            $channel->status = $input['enabled'] ? 'active' : 'disabled';
+            $channel->save();
             app(AuditWriter::class)->record($tenant, new AuditEntry('seller.widget.settings.updated', 'widget_settings', $row->id));
         });
 

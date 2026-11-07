@@ -12,6 +12,7 @@ use Illuminate\Foundation\Http\Events\RequestHandled;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\URL;
 use Tests\Feature\Tenancy\TenancyTestCase;
@@ -244,6 +245,36 @@ final class EmailChangeTest extends TenancyTestCase
             self::assertStringNotContainsString($marker, $e->getTraceAsString());
         }
         $this->assertDatabaseCount('profile_email_changes', 0);
+    }
+
+    public function test_configured_production_smtp_is_available_without_sending(): void
+    {
+        $this->enable();
+        config(['features.E1-08.defaults.enabled' => true, 'app.url' => 'https://cabinet.example.test',
+            'mail.default' => 'smtp', 'mail.mailers.smtp.transport' => 'smtp',
+            'mail.mailers.smtp.host' => 'mail.example.test', 'mail.from.address' => 'sender@example.test']);
+        $this->app->instance(EmailChangeSender::class, new MailEmailChangeSender);
+        $oldEnvironment = $this->app['env'];
+        try {
+            $this->app['env'] = 'production';
+            self::assertTrue(app(EmailChanges::class)->available());
+            config(['mail.mailers.smtp.host' => '']);
+            self::assertFalse(app(EmailChanges::class)->available());
+            config(['mail.default' => 'sendmail', 'mail.mailers.sendmail.transport' => 'sendmail']);
+            self::assertTrue(app(EmailChanges::class)->available());
+            config(['mail.default' => 'log']);
+            self::assertFalse(app(EmailChanges::class)->available());
+        } finally {
+            $this->app['env'] = $oldEnvironment;
+        }
+        Http::assertNothingSent();
+    }
+
+    public function test_sender_uses_configured_non_smtp_mailer_without_live_delivery(): void
+    {
+        config(['features.E1-08.defaults.email_change_enabled' => true, 'mail.default' => 'sendmail']);
+        Mail::shouldReceive('html')->once()->andReturn(null);
+        self::assertFalse((new MailEmailChangeSender)->send('synthetic@example.test', 'https://cabinet.example.test/confirm'));
     }
 
     public function test_real_mail_sender_is_disabled_even_if_feature_flag_is_enabled(): void
