@@ -52,7 +52,7 @@ final class NotificationsTest extends LimitsTestCase
         $this->within($org, $brand, fn () => $brand->update(['timezone' => 'Europe/Moscow']));
         [$manager, $member] = $this->member($org, 'member', [$brand->id], ['sales_manager' => true]);
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
-        config(['features.E6-07.defaults.digest_enabled' => true]);
+        config(['features.E6-07.defaults.digest_enabled' => true, 'runtime.notification_driver' => null]);
         $this->put('/seller/settings/notifications', ['changes' => [$this->change(['timing' => 'digest'])]])->assertRedirect();
         $eventId = (string) Str::ulid();
         $event = new DomainEvent(['event_id' => $eventId, 'schema_version' => 1, 'type' => self::EVENT, 'occurred_at' => '2026-10-31T04:00:00Z', 'organization_id' => $org->id, 'brand_id' => $brand->id, 'actor_id' => null, 'aggregate' => ['type' => 'conversation', 'id' => (string) Str::ulid(), 'version' => 1], 'data' => ['reason' => 'want_human', 'task_id' => (string) Str::ulid()]]);
@@ -77,7 +77,7 @@ final class NotificationsTest extends LimitsTestCase
     {
         [$owner, $org, $brand] = $this->cabinet();
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
-        config(['features.E6-07.defaults.digest_enabled' => true]);
+        config(['features.E6-07.defaults.digest_enabled' => true, 'runtime.notification_driver' => null]);
         $this->put('/seller/settings/notifications', ['changes' => [$this->change(['recipient' => 'owner', 'timing' => 'digest'])]])->assertRedirect();
         $eventId = (string) Str::ulid();
         $event = new DomainEvent(['event_id' => $eventId, 'schema_version' => 1, 'type' => self::EVENT, 'occurred_at' => now()->toIso8601String(), 'organization_id' => $org->id, 'brand_id' => $brand->id, 'actor_id' => null, 'aggregate' => ['type' => 'conversation', 'id' => (string) Str::ulid(), 'version' => 1], 'data' => ['reason' => 'want_human', 'task_id' => (string) Str::ulid()]]);
@@ -99,7 +99,7 @@ final class NotificationsTest extends LimitsTestCase
         $delivery = (string) Str::ulid();
         DB::table('notification_deliveries')->insert(['id' => $delivery, 'organization_id' => $org->id, 'brand_id' => $brand->id, 'event_id' => $id, 'user_id' => $owner->id, 'channel' => 'telegram', 'status' => 'pending', 'attempts' => 0, 'created_at' => now(), 'updated_at' => now()]);
         DB::table('brand_modules')->where('brand_id', $brand->id)->where('module', 'seller')->update(['enabled' => false]);
-        config(['features.E6-07.defaults.digest_enabled' => true, 'features.E0-04.defaults.external_delivery' => true, 'features.E0-04.defaults.telegram_bot_token' => 'test-only']);
+        config(['features.E6-07.defaults.digest_enabled' => true, 'features.E0-04.defaults.external_delivery' => true, 'features.E0-04.defaults.telegram_bot_token' => 'test-only', 'runtime.notification_driver' => null]);
         Http::fake();
         app(NotificationProcessor::class)->process($id);
         app(ExternalDelivery::class)->send($delivery);
@@ -138,7 +138,7 @@ final class NotificationsTest extends LimitsTestCase
         $id = (string) Str::ulid();
         DB::table('notification_deliveries')->insert(['id' => $id, 'organization_id' => $org->id, 'brand_id' => $brand->id, 'event_id' => $eventId, 'user_id' => $owner->id, 'channel' => 'telegram', 'status' => 'pending', 'attempts' => 0, 'created_at' => now(), 'updated_at' => now()]);
         DB::table('seller_notification_rules')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $brand->id, 'event_key' => self::EVENT, 'recipient' => 'owner', 'cabinet' => true, 'email' => true, 'telegram' => false, 'timing' => 'immediate', 'created_at' => now(), 'updated_at' => now()]);
-        config(['features.E0-04.defaults.external_delivery' => true, 'features.E0-04.defaults.telegram_bot_token' => 'test-only']);
+        config(['features.E0-04.defaults.external_delivery' => true, 'features.E0-04.defaults.telegram_bot_token' => 'test-only', 'runtime.notification_driver' => null]);
         Http::fake();
         app(ExternalDelivery::class)->send($id);
         Http::assertNothingSent();
@@ -149,7 +149,7 @@ final class NotificationsTest extends LimitsTestCase
     {
         [$owner, $org, $brand] = $this->cabinet();
         $this->within($org, $brand, fn () => $brand->update(['timezone' => 'America/New_York']));
-        config(['features.E6-07.defaults.digest_enabled' => true]);
+        config(['features.E6-07.defaults.digest_enabled' => true, 'runtime.notification_driver' => null]);
         $member = Membership::withoutGlobalScopes()->where('organization_id', $org->id)->where('user_id', $owner->id)->firstOrFail();
         DB::table('seller_notification_rules')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $brand->id, 'event_key' => self::EVENT, 'recipient' => 'owner', 'cabinet' => true, 'email' => false, 'telegram' => false, 'timing' => 'digest', 'created_at' => now(), 'updated_at' => now()]);
         $cases = [

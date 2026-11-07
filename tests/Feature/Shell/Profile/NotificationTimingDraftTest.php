@@ -30,15 +30,15 @@ final class NotificationTimingDraftTest extends TenancyTestCase
         [$viewer] = $this->member($org, 'viewer', [$brand->id]);
         $this->actingAs($viewer)->withSession(['brand_id' => $brand->id]);
         $settings = $this->settings();
-        self::assertFalse($settings['timingAvailable']);
+        self::assertTrue($settings['timingAvailable']);
         self::assertTrue($settings['timingDraftEditable']);
         self::assertSame(['quiet_start' => null, 'quiet_end' => null, 'digest_time' => null], $settings['timingDraft']);
         $values = ['quiet_start' => '22:30', 'quiet_end' => '07:15', 'digest_time' => '08:45'];
         $this->withHeader('X-Brand-Revision', $settings['timingRevision'])->put('/profile/notifications/timing', $values)
-            ->assertRedirect('/profile/notifications')->assertSessionHas('status', 'Черновик сохранён. Доставка пока работает без этих настроек.');
+            ->assertRedirect('/profile/notifications')->assertSessionHas('status', 'Настройки сохранены для тестовой доставки.');
         $settings = $this->settings();
         self::assertSame($values, $settings['timingDraft']);
-        self::assertFalse($settings['timingAvailable']);
+        self::assertTrue($settings['timingAvailable']);
         $this->assertDatabaseHas('profile_notification_timing_drafts', ['organization_id' => $org->id, 'brand_id' => $brand->id, 'user_id' => $viewer->id, ...$values]);
         $this->assertDatabaseHas('audit_logs', ['actor_id' => $viewer->id, 'brand_id' => $brand->id, 'action' => 'profile.notification_timing.draft_updated']);
         $this->withHeader('X-Brand-Revision', $settings['timingRevision'])->put('/profile/notifications/timing', ['quiet_start' => null, 'quiet_end' => null, 'digest_time' => null])->assertRedirect();
