@@ -24025,6 +24025,53 @@
       "wave": 20,
       "promptPath": "docs/tasks/SP-E5-03E.md",
       "description": "# SP-E5-03E · Первый защищённый API-ход и журнал\n\n**Зачем:** конкретные незакрытые пункты D-9.9 и защищённого API-хода.\n**Часть чего:** остаток SP-E5-03D, docs/results/SP-E5-03D.md.\n**Зависимости:** SP-E5-03D; общие AI-стадии через shared-ai-stages.\n\n## Приёмка\n- D-9.9: реализовать action=open и сохраняемый выбор «Написать первым»: защищённый первый исходящий ход без клиентского сообщения через Policy, Responder и Guard, с хранением, повтором и изоляцией.\n- Заменить фиксированные fake-подсказку и ответ FollowupFinalizer защищёнными extractor/responder/guard и Gateway; проверить полный fake-сценарий, ошибки, повторы, права и бренд.\n- Сохранить и отобразить источник сайт или CRM по согласованному контракту в журнале D-9.9; проверить экран после подключения выбора.\n- Согласовать двухэтапный путь для Gateway вне транзакции ResolveTokenTenant; проверить сквозной результат и обработку ошибок без живых или платных вызовов.\n- Проверить UI, маршрут, обработчик, хранение и видимый результат, изоляцию брендов, права, 1–2 ошибки и fake; прежние неизменённые проверки не повторять ради карточки.\n\nScope: `app/Seller/Channels/Api/`, `app/Seller/Runtime/`, `app/ProtectedOperations/`, `app/Ai/Protected/`, `app/Ai/Gateway.php`, `app/Tenancy/TokenApi/`, `resources/js/pages/Seller/Channels/Api/`, `routes/features/E5-03.php`, `tests/Feature/Seller/Channels/Api/`, `tests/Feature/ProtectedOperations/`, `tests/Feature/SellerRuntime/Turns/`, `tests/Feature/Ai/`, `tests/Browser/E5-03E/`, `docs/results/SP-E5-03E.md`.\n"
+    },
+    {
+      "taskKey": "SP-E1-03D",
+      "title": "SP-E1-03D · Остаток главной и уведомлений",
+      "goal": "Завершить конкретные пункты экранов S-1.1–S-1.3 после SP-E1-03C.",
+      "dependsOn": [
+        "SP-E1-03C"
+      ],
+      "scope": [
+        "app/Shell/HomeEntry/",
+        "app/Shell/Dashboard/",
+        "app/Shell/Notifications/",
+        "app/Seller/Dashboard/",
+        "resources/js/pages/Shell/HomeEntry/",
+        "resources/js/pages/Shell/Dashboard/",
+        "resources/js/pages/Shell/Notifications/",
+        "routes/features/E1-03A.php",
+        "routes/features/E1-03C.php",
+        "routes/features/E1-03D.php",
+        "database/migrations/E1-03D/",
+        "tests/Feature/Shell/HomeEntry/",
+        "tests/Feature/Shell/Dashboard/",
+        "tests/Feature/Shell/Notifications/",
+        "tests/Browser/E1-03D/",
+        "docs/results/SP-E1-03D.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "S-1.1: двухколоночная компоновка и декоративный баннер по макету, выбор периода с корректными данными и сравнением; детали таблицы каналов — режим, диалоги, контакты, конверсия.",
+        "S-1.1: доля и динамика реальных проблем; для Видения показать подтверждённые видимость, упоминания/вопросы, последний и следующий замеры и переход к отчёту, не выдумывать отсутствующие значения.",
+        "S-1.2: фильтр по модулю и действие «Отложить на 7 дней» со своим сохранением, правами, изоляцией бренда и возвращением события после срока; правая колонка «На главной» и предусмотренное пустое состояние.",
+        "S-1.3: иконки и подзаголовок с модулем для строк, кнопки настройки и прочтения всех, вкладки Все/Непрочитанные/Видение/Продавец/Кабинет, группировка Сегодня/Вчера и пустое состояние по макету.",
+        "После готовности SP-E1-03B проверить переход на главную и очистку состояния при смене бренда; до этого выполнять независимые пункты карточки."
+      ],
+      "sourceRefs": [
+        "docs/preparation/decisions.md",
+        "docs/sources/02_screens_matrix.md",
+        "docs/results/SP-E1-03C.md"
+      ],
+      "screenIds": [
+        "S-1.1",
+        "S-1.2",
+        "S-1.3"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E1-03D.md",
+      "description": "# SP-E1-03D · Остаток главной и уведомлений\n\n**Зачем:** конкретные незакрытые пункты S-1.1, S-1.2, S-1.3 по docs/sources/02_screens_matrix.md и журналу [12–14].\n**Часть чего:** остаток SP-E1-03C.\n**Зависимости:** SP-E1-03C; только финальная проверка перехода при переключении бренда ожидает SP-E1-03B.\n\n## Приёмка\n- S-1.1: двухколоночная компоновка и декоративный баннер по макету, выбор периода с корректными данными и сравнением; детали таблицы каналов — режим, диалоги, контакты, конверсия.\n- S-1.1: доля и динамика реальных проблем; для Видения показать подтверждённые видимость, упоминания/вопросы, последний и следующий замеры и переход к отчёту, не выдумывать отсутствующие значения.\n- S-1.2: фильтр по модулю и действие «Отложить на 7 дней» со своим сохранением, правами, изоляцией бренда и возвращением события после срока; правая колонка «На главной» и предусмотренное пустое состояние.\n- S-1.3: иконки и подзаголовок с модулем для строк, кнопки настройки и прочтения всех, вкладки Все/Непрочитанные/Видение/Продавец/Кабинет, группировка Сегодня/Вчера и пустое состояние по макету.\n- После готовности SP-E1-03B проверить переход на главную и очистку состояния при смене бренда; до этого выполнять независимые пункты карточки.\n- Проверить экран → маршрут → обработчик → хранение и видимый результат, роли, изоляцию бренда, 1–2 ошибки и состояния; повторять прежние неизменённые серверные проверки только при изменении поведения. Только fake, без живых или платных вызовов.\n\nScope: `app/Shell/HomeEntry/`, `app/Shell/Dashboard/`, `app/Shell/Notifications/`, `app/Seller/Dashboard/`, `resources/js/pages/Shell/HomeEntry/`, `resources/js/pages/Shell/Dashboard/`, `resources/js/pages/Shell/Notifications/`, `routes/features/E1-03A.php`, `routes/features/E1-03C.php`, `routes/features/E1-03D.php`, `database/migrations/E1-03D/`, `tests/Feature/Shell/HomeEntry/`, `tests/Feature/Shell/Dashboard/`, `tests/Feature/Shell/Notifications/`, `tests/Browser/E1-03D/`, `docs/results/SP-E1-03D.md`.\n"
     }
   ],
   "excludedSourceTasks": {
