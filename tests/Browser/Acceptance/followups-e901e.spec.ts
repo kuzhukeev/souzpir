@@ -96,6 +96,9 @@ test('followup settings and new widget dialogue through the UI', async ({ page, 
   await reminders.getByLabel('Первый интервал, часов').fill('20');
   await reminders.getByLabel('Второй интервал, часов').fill('40');
   await reminders.getByLabel('Максимум напоминаний').fill('2');
+  await reminders.getByLabel('Текст 1').fill('Первое напоминание от бота.');
+  await reminders.getByRole('button', { name: 'Добавить текст' }).click();
+  await reminders.getByLabel('Текст 2').fill('Второе напоминание от бота.');
   await reminders.getByRole('button', { name: 'Сохранить', exact: true }).click();
   await expect(page.getByRole('status')).toContainText('сохран');
   await page.reload();
@@ -130,4 +133,39 @@ test('followup settings and new widget dialogue through the UI', async ({ page, 
   await page.goto(`${origin}/seller/dialogs`);
   await expect(page.getByText('Посетитель виджета')).toBeVisible();
   await auditPage(page, 'new-dialogue');
+  await page.setViewportSize({ width: 1440, height: 900 });
+
+  const clientMessageAt = Date.now();
+  await page.getByRole('button', { name: /Посетитель виджета/ }).click();
+  await expect(page.getByRole('heading', { name: 'Посетитель виджета' })).toBeVisible();
+  const dialogId = new URL(page.url()).pathname.split('/').pop()!;
+  await page.getByRole('button', { name: 'Забрать себе' }).click();
+  await expect(page.getByRole('button', { name: 'Вернуть боту' })).toBeVisible();
+  const seedAt = new Date(clientMessageAt + 60000);
+  execFileSync(php, ['tests/Browser/Acceptance/followups-e901e-fixture.php'], { env: { ...fixtureEnv, E901_ACTION: 'seed-agent-reply', E901_DIALOG: dialogId, E901_AT: seedAt.toISOString() }, stdio: 'pipe' });
+  await page.getByRole('button', { name: 'Вернуть боту' }).click();
+  await expect(page.getByRole('button', { name: 'Забрать себе' })).toBeVisible();
+  const messages = page.getByRole('list', { name: 'Сообщения' }).getByRole('listitem');
+  const advance = (at: Date) => execFileSync(php, ['tests/Browser/Acceptance/followups-e901e-fixture.php'], { env: { ...fixtureEnv, E901_ACTION: 'advance-followups', E901_AT: at.toISOString() }, stdio: 'pipe' });
+
+  advance(new Date(seedAt.getTime() + 19 * 3600000));
+  await page.reload();
+  await expect(page.getByText('Исходный ответ бота.')).toBeVisible();
+  await expect(messages).toHaveCount(2);
+
+  const firstReminderAt = new Date(seedAt.getTime() + 20 * 3600000 + 300000);
+  advance(firstReminderAt);
+  await page.reload();
+  await expect(page.getByText('Первое напоминание от бота.')).toBeVisible();
+  await expect(messages).toHaveCount(3);
+
+  advance(new Date(firstReminderAt.getTime() + 40 * 3600000 + 300000));
+  await page.reload();
+  await expect(page.getByText('Второе напоминание от бота.')).toBeVisible();
+  await expect(messages).toHaveCount(4);
+
+  advance(new Date(firstReminderAt.getTime() + 20 * 24 * 3600000));
+  await page.reload();
+  await expect(messages).toHaveCount(4);
+  await auditPage(page, 'followups-stopped');
 });
