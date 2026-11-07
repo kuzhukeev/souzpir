@@ -97,7 +97,7 @@ final class DialogReader
             ->orderByRaw('COALESCE((SELECT MAX(latest.created_at) FROM messages AS latest WHERE latest.conversation_id = c.id AND latest.brand_id = c.brand_id AND latest.organization_id = c.organization_id), c.created_at) '.($sort === 'oldest' ? 'asc' : 'desc'))->orderByDesc('c.id')->forPage($page, 50)->get();
         $messages = DB::table('messages')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)
             ->whereIn('conversation_id', $rows->pluck('id')->all())->orderByDesc('created_at')->orderByDesc('id')
-            ->get(['id', 'conversation_id', 'role', 'text', 'meta', 'created_at'])->groupBy('conversation_id');
+            ->get(['id', 'conversation_id', 'role', 'text', 'meta', 'created_at', 'delivered_at', 'delivery_error'])->groupBy('conversation_id');
         $reviewCounts = DB::table('message_reviews as r')->join('messages as m', function ($join): void {
             $join->on('m.id', '=', 'r.message_id')->on('m.brand_id', '=', 'r.brand_id')->on('m.organization_id', '=', 'r.organization_id');
         })->where('r.organization_id', $context->organizationId)->where('r.brand_id', $context->brandId)
@@ -125,7 +125,7 @@ final class DialogReader
             $slotLabels = self::SLOTS + $extraLabels;
             $items = $messages->get($row->id) ?? DB::table('messages')->where('organization_id', $context->organizationId)
                 ->where('brand_id', $context->brandId)->where('conversation_id', $row->id)->orderByDesc('created_at')
-                ->orderByDesc('id')->limit(100)->get(['id', 'conversation_id', 'role', 'text', 'meta', 'created_at']);
+                ->orderByDesc('id')->limit(100)->get(['id', 'conversation_id', 'role', 'text', 'meta', 'created_at', 'delivered_at', 'delivery_error']);
             $detail = [
                 'id' => $row->id, 'name' => $row->contact_name ?: 'Гость · '.substr($row->id, -6), 'channel' => $row->channel_type ?: 'Не указан',
                 'stage' => $row->stage, 'outcome' => $row->outcome, 'mode' => $row->mode,
@@ -137,7 +137,9 @@ final class DialogReader
                     $meta = is_array($meta) ? $meta : [];
 
                     return ['id' => $message->id, 'role' => $message->role, 'text' => $message->text,
-                        'created_at' => $message->created_at, 'attachment_name' => is_string($meta['attachment_name'] ?? null) ? $meta['attachment_name'] : null, 'meta' => ! $showMeta ? [] : [
+                        'created_at' => $message->created_at, 'attachment_name' => is_string($meta['attachment_name'] ?? null) ? $meta['attachment_name'] : null,
+                        'delivery' => $message->role !== 'manager' ? null : (is_string($message->delivery_error) ? 'error' : ($message->delivered_at !== null ? 'sent' : 'fake')),
+                        'meta' => ! $showMeta ? [] : [
                             'intent' => $this->slot($meta['intent'] ?? null), 'goal' => $this->slot($meta['goal'] ?? null),
                             'tools' => $this->slot($meta['tools'] ?? null), 'guard' => $this->slot($meta['guard'] ?? null),
                             'model' => $this->slot($meta['model'] ?? null),
