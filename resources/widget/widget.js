@@ -44,6 +44,7 @@
     const contactMode = behavior.contact_mode || (behavior.collect_contact ? 'soft' : 'none');
     const maxMessages = Number.isInteger(behavior.max_messages) && behavior.max_messages > 0 ? behavior.max_messages : null;
     let sentCount = 0; const limitReached = () => maxMessages !== null && sentCount >= maxMessages;
+    let waitingForManager = false;
     let sessionToken = null; let starting = null;
     const api = (path, body) => { const url = new URL(path, source.origin); url.searchParams.set('key', key); return fetch(url.href, {method:'POST', credentials:'omit', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)}); };
     const startSession = () => {
@@ -69,7 +70,8 @@
       const sent = text.value;
       startSession().then(token => api('/widget/message', {token, text:sent, idempotency_key:uid(), page:widgetPage})).then(response => { if (!response.ok) throw new Error('unavailable'); return response.json().catch(() => ({})); }).then(result => {
         message.textContent = ''; addBubble('client', sent); text.value = ''; sentCount += 1;
-        if (typeof result.reply === 'string' && result.reply) addBubble('agent', result.reply);
+        if (typeof result.reply === 'string' && result.reply) { addBubble('agent', result.reply); waitingForManager = false; }
+        else if (!waitingForManager) { waitingForManager = true; addBubble('agent', 'Менеджер скоро ответит.'); }
         if (limitReached()) { lockChat(); } else { chatStatus.textContent = 'Сообщение отправлено.'; }
       }).catch(() => { chatStatus.textContent = 'Чат временно недоступен. Попробуйте позже.'; }).finally(() => { if (!limitReached()) chatSend.disabled = false; });
     });
