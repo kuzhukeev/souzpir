@@ -7,8 +7,6 @@ use App\Seller\Channels\Telegram\HttpTelegramTransport;
 use App\Seller\Channels\Telegram\TelegramTransport;
 use App\Seller\Conversations\Models\Message;
 use App\Seller\Notifications\NotifyConversationEvent;
-use App\Shell\Notifications\Jobs\ProcessNotificationEvent;
-use App\Shell\Notifications\NotificationProcessor;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\Request as HttpRequest;
 use Illuminate\Support\Facades\DB;
@@ -40,13 +38,7 @@ final class ConversationNotificationsTest extends LimitsTestCase
 
     private function drain(string $eventKey, string $organizationId, string $brandId, string $conversationId, array $data): void
     {
-        $job = new NotifyConversationEvent($organizationId, $brandId, $conversationId, $eventKey, $data);
-        app()->call([$job, 'handle']);
-        Queue::assertPushed(ProcessNotificationEvent::class, function ($pushed): bool {
-            app(NotificationProcessor::class)->process($pushed->eventId);
-
-            return true;
-        });
+        (new NotifyConversationEvent($organizationId, $brandId, $conversationId, $eventKey, $data))->handle();
     }
 
     public function test_inbound_message_notifies_cabinet_and_managers_group_once_per_window(): void
@@ -62,7 +54,7 @@ final class ConversationNotificationsTest extends LimitsTestCase
         Queue::assertPushed(NotifyConversationEvent::class, fn ($job): bool => $job->eventKey === 'seller.conversation.inbound' && $job->data['channel'] === 'unknown');
         $this->drain('seller.conversation.inbound', $org->id, $brand->id, $conversation, ['channel' => 'unknown']);
 
-        $this->assertDatabaseHas('cabinet_notifications', ['organization_id' => $org->id, 'brand_id' => $brand->id, 'user_id' => $owner->id, 'event_key' => 'seller.conversation.inbound']);
+        $this->assertDatabaseHas('cabinet_notifications', ['organization_id' => $org->id, 'brand_id' => $brand->id, 'user_id' => $owner->id, 'event_key' => 'seller.conversation.inbound', 'link' => '/seller/dialogs/'.$conversation]);
         $this->assertDatabaseHas('cabinet_notifications', ['organization_id' => $org->id, 'brand_id' => $brand->id, 'user_id' => $manager->id, 'event_key' => 'seller.conversation.inbound']);
         $this->assertDatabaseMissing('cabinet_notifications', ['user_id' => $foreignManager->id, 'event_key' => 'seller.conversation.inbound']);
         Http::assertNothingSent();
@@ -73,9 +65,9 @@ final class ConversationNotificationsTest extends LimitsTestCase
         $this->within($org, $brand, fn () => Message::create(['conversation_id' => $conversation, 'role' => 'client', 'text' => 'Второй вопрос']));
         $this->drain('seller.conversation.inbound', $org->id, $brand->id, $conversation, ['channel' => 'unknown']);
 
-        // Dedup window still open: no second group message and no second outbox-driven call.
+        // Dedup window still open: no second group message and no second notification record.
         Http::assertNothingSent();
-        $this->assertSame(1, DB::table('seller_notification_event_marks')->where('conversation_id', $conversation)->count());
+        $this->assertSame(1, DB::table('cabinet_notifications')->where('user_id', $owner->id)->where('event_key', 'seller.conversation.inbound')->count());
 
         CarbonImmutable::setTestNow(now()->addMinutes(10));
         try {

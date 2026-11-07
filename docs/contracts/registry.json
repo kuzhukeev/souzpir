@@ -1085,18 +1085,6 @@
       ],
       "notificationEvent": true
     },
-    "seller.conversation.inbound": {
-      "owner": "SP-L1-06",
-      "schemaVersion": 1,
-      "requiredData": ["channel"],
-      "notificationEvent": true
-    },
-    "seller.draft.ready": {
-      "owner": "SP-L1-06",
-      "schemaVersion": 1,
-      "requiredData": ["turn_id"],
-      "notificationEvent": true
-    },
     "seller.promise.overdue": {
       "owner": "SP-E5-05",
       "schemaVersion": 1,
