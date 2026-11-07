@@ -8,4 +8,7 @@
 - D-4.11: выбор хода и отображение доступных реальных данных: предыдущий ответ, тема, карточка, стадия, факты, условия, приёмы, действия и footer; не выдумывать отсутствующие данные.
 - Проверить основной сценарий, права, изоляцию брендов, ошибки и макет; живые внешние вызовы отключены. Остаток оформить по AGENTS.md.
 
-Scope: `app/Seller/Sandbox/`, `app/ProtectedOperations/`, `resources/js/pages/Seller/Sandbox/`, `tests/Feature/Seller/Sandbox/`, `tests/Browser/E4-10H/`, `docs/results/SP-E4-10H.md`.
+Scope: `app/Seller/Sandbox/`, `resources/js/pages/Seller/Sandbox/`, `tests/Feature/Seller/Sandbox/`, `tests/Browser/E4-10H/`, `docs/results/SP-E4-10H.md`.
+
+## Независимый этап
+Проверить и отобразить в песочнице уже доступные реальные данные выбранного хода через существующие `SandboxController` и `SandboxRuntime`, экран и маршрут `routes/features/E4-07.php`. Не менять занятые защищённые операции. Если для пункта приёмки отсутствуют необходимые данные, конкретное поле и источник оставить в остатке этой же карточки до освобождения защищённого runtime.
