@@ -40,6 +40,18 @@ final class ChannelOverrideE607DTest extends TenancyTestCase
         });
     }
 
+    public function test_schedule_controller_saves_and_validates_channel_overrides(): void
+    {
+        [$owner, $org, $brand] = $this->cabinet();
+        $this->enable($org->id, $brand->id);
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $this->post('/seller/settings/schedule', ['mode' => 'autonomous', 'week' => [], 'holidays' => [], 'channel_overrides' => ['telegram' => 'off', 'api' => null]])->assertRedirect();
+        $this->get('/seller/settings')->assertOk()->assertInertia(fn ($page) => $page->where('settings.channel_overrides', ['telegram' => 'off']));
+        $this->post('/seller/settings/schedule', ['mode' => 'autonomous', 'week' => [], 'holidays' => [], 'channel_overrides' => ['telegram' => 'bogus']])->assertSessionHasErrors('channel_overrides.telegram');
+        $this->post('/seller/settings/schedule', ['mode' => 'autonomous', 'week' => [], 'holidays' => []])->assertRedirect();
+        $this->get('/seller/settings')->assertOk()->assertInertia(fn ($page) => $page->where('settings.channel_overrides', ['telegram' => 'off']));
+    }
+
     public function test_fallback_phrase_defaults_without_published_persona(): void
     {
         [$owner, $org, $brand] = $this->cabinet();
