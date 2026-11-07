@@ -14,8 +14,7 @@
   extractor совпадает с записью; responder блокирован точно локализованной причиной вне scope — тест фиксирует
   это `assertSame` на конкретное сообщение отказа, а не проходит вслепую.
 - Проверки: `php artisan test tests/Equivalence tests/Feature/Equivalence` — 11/11 зелёные, 4611+ проверок; Pint.
-  Golden fixtures не менялись. Новый тест включён в CI отдельным шагом job `equivalence`
-  (`.github/workflows/ci.yml`), рядом с существующим шагом для `RuntimeReplayE307ETest.php`.
+  Golden fixtures не менялись.
 
 ## Остаток
 - Responder-карточка LeadState показывает стадию до перехода (`open` вместо `qualify`), хотя `Policy::decide()`
@@ -29,6 +28,10 @@
 - Scope на `SellerResponderStages.php`, `FirstTurnState.php`, `Policy.php` (мутация стадии теряется между целью
   хода и карточкой для responder) — либо отдельная карточка на этот конкретный баг.
 - Scope на `app/Seller/Runtime/ApiOpeningRuntime.php` для 29 persona-сценариев.
+- Добавить в `.github/workflows/ci.yml` (job `equivalence`) шаг `vendor/bin/phpunit
+  tests/Equivalence/RuntimeReplayE307GTest.php --no-coverage` рядом с существующим шагом для
+  `RuntimeReplayE307ETest.php` — токен исполнителя не даёт пушить изменения workflow-файлов
+  (`refusing ... without 'workflow' scope`), правку не включил.
 
 ## Техдолг
 - `FollowupPolicy::due()` (не в scope): второе автонапоминание отмеряется от последнего напоминания, а не от
