@@ -55,3 +55,14 @@ export function finishProfileContextChange(id: string | null) {
   changed();
   broadcast();
 }
+
+// Only markers observed before the server rotates this session may be cleared.
+export function pendingProfileContextChanges(): string[] {
+  try { return Object.keys(localStorage).filter((key) => key.startsWith(prefix)); } catch { return []; }
+}
+
+export function finishProfileContextRecovery(keys: string[]) {
+  try { keys.filter((key) => key.startsWith(prefix)).forEach((key) => localStorage.removeItem(key)); } catch { /* Keep the profile closed. */ }
+  changed();
+  broadcast();
+}

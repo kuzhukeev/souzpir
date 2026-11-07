@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useForm, usePage } from '@inertiajs/react';
 import { supportsPrivateHistory } from '@/features/Shell/Profile/browser';
-import { profileContextIsStable, subscribeProfileContext } from '@/features/Shell/Profile/contextFence';
+import { finishProfileContextRecovery, pendingProfileContextChanges, profileContextIsStable, subscribeProfileContext } from '@/features/Shell/Profile/contextFence';
 import { Camera, CircleUserRound, Mail, ShieldCheck } from 'lucide-react';
 import { Badge, Button, Combobox, Input, Modal, Select } from '@/components/ui';
 import { Errors, Notice, ProfilePage, panel } from '@/features/Shell/Profile/shared';
@@ -23,6 +23,27 @@ export default function Profile(props: Props) {
   const { version } = usePage();
   const [verified, setVerified] = useState<{ revision: string; profile: ProfileData } | null>(null);
   const [failed, setFailed] = useState(false);
+  const [recovering, setRecovering] = useState(false);
+  const [recoveryError, setRecoveryError] = useState('');
+  const recover = async () => {
+    const markers = pendingProfileContextChanges();
+    const cookie = document.cookie.split('; ').find((item) => item.startsWith('XSRF-TOKEN='));
+    if (!markers.length || !cookie) { setRecoveryError('Не удалось восстановить доступ. Войдите снова.'); return; }
+    setRecovering(true);
+    setRecoveryError('');
+    try {
+      const response = await fetch('/brand/switch', {
+        method: 'POST', credentials: 'same-origin', redirect: 'error', cache: 'no-store',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-XSRF-TOKEN': decodeURIComponent(cookie.slice(11)) },
+        body: JSON.stringify({ recover_context: true }),
+      });
+      const result: unknown = await response.json();
+      if (!response.ok || typeof result !== 'object' || result === null || !('status' in result) || result.status !== 'recovered') throw new Error();
+      finishProfileContextRecovery(markers);
+      window.location.reload();
+    } catch { setRecoveryError('Не удалось подтвердить восстановление. Войдите снова или повторите попытку.'); }
+    finally { setRecovering(false); }
+  };
   useEffect(() => {
     let sequence = 0;
     let current: AbortController | undefined;
@@ -61,7 +82,7 @@ export default function Profile(props: Props) {
     return () => { disposed = true; sequence++; current?.abort(); unsubscribe(); document.removeEventListener('visibilitychange', visibility); window.removeEventListener('pagehide', pageHide); window.removeEventListener('pageshow', pageShow); };
   }, [props.profileBrandRevision, props.profile, version]);
 
-  if (verified?.revision !== props.profileBrandRevision || verified.profile !== props.profile) return <main className="min-h-dvh bg-(--color-bg) p-6 text-(--color-ink)"><div role="status" className={`${panel} mx-auto max-w-[800px] text-sm`}>{failed ? 'Не удалось подтвердить доступ к профилю. Если переключение бренда или выход прервались, обратитесь к администратору.' : 'Проверяем доступ к профилю.'}</div></main>;
+  if (verified?.revision !== props.profileBrandRevision || verified.profile !== props.profile) return <main className="min-h-dvh bg-(--color-bg) p-6 text-(--color-ink)"><div role="status" className={`${panel} mx-auto max-w-[800px] text-sm`}>{failed ? 'Не удалось подтвердить доступ к профилю.' : 'Проверяем доступ к профилю.'}{failed && pendingProfileContextChanges().length > 0 && <Button className="mt-4" loading={recovering} onClick={() => void recover()}>Восстановить доступ</Button>}{recoveryError && <p role="alert" className="mt-2">{recoveryError}</p>}</div></main>;
   return <div data-private-profile><ProfileContent {...props} /></div>;
 }
 

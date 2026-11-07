@@ -5,14 +5,20 @@ namespace App\Tenancy;
 use App\Models\Membership;
 use App\Shell\Auth\AuthSessionRegistry;
 use App\Shell\Auth\SessionBrandSelection;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 final class BrandSwitchController
 {
-    public function __invoke(Request $request): RedirectResponse
+    public function __invoke(Request $request): RedirectResponse|JsonResponse
     {
+        if ($request->input('recover_context') === true) {
+            app(AuthSessionRegistry::class)->rotate($request);
+
+            return response()->json(['status' => 'recovered'])->header('Cache-Control', 'private, no-store');
+        }
         $data = $request->validate(['brand_id' => ['required', 'string', 'ulid']]);
         $context = app(TenantContext::class);
         app(AuthSessionRegistry::class)->withinActive($request, function () use ($request, $data, $context): void {
