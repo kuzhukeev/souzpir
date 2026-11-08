@@ -35,6 +35,17 @@ php vendor/bin/phpunit --testsuite=Equivalence --no-coverage
 
 Полный разбор по каждому кейсу — `docs/validation/SP-E3-07G-runtime-replay.md`. Итог расширенного scope:
 
+**Точный root cause responder-стадии (9 диалоговых + no_repeat_filled_slot + 29 persona.*, второй ход):**
+`app/ProtectedOperations/FirstTurnGoal.php:52` вызывает `(new Policy($knowledge))->decide($lead, $extraction, false)` —
+третий аргумент `isFirstTurn` захардкожен в `false`, хотя класс целиком посвящён первому ходу и это единственный
+вызов `decide()` для первого хода диалога (остальные вызовы `decide()` во всех прочих классах передают корректное
+значение — сравните `ApiOpeningInput.php:53` (`true`), `SandboxRuntime.php:37` (`$history === []`),
+`SandboxController.php:71` (`$index === 0`), `DraftScenarioPreview.php:121` (`$first`)). Из-за этого ветка
+`Policy::decide()` на строке 359 (`if ($isFirstTurn && ! $s->flag('introduced'))`, переводит стадию в `qualify`)
+никогда не срабатывает для первого хода — отсюда расхождение `open` вместо `qualify` в карточке. Готовая правка:
+заменить `false` на `true` в этом вызове. Это не только дефект эквивалентности, это реальный баг прода — флаг
+`introduced` никогда не ставится на первом ходу, значит стадия `qualify` не наступает вовсе этим путём.
+
 - **29 `persona.*` через `ApiOpeningRuntime`**: реальный HTTP-путь `/api/v1/leads?action=open` доходит до драйвера
   для всех 29 кейсов; отрендеренный системный промпт (карточка LeadState, цель хода, модель, температура)
   побайтово совпадает с записью донора (`CanonicalJson::hash()`, без `tools`/`tool_choice`). Этот путь не задевает
