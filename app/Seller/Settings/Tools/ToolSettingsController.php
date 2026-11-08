@@ -3,6 +3,8 @@
 namespace App\Seller\Settings\Tools;
 
 use App\Models\User;
+use App\Seller\Engine\ToolCatalog;
+use App\Seller\Engine\Tools\ToolCallJournal;
 use App\Seller\Settings\Limits\SellerModuleAccess;
 use App\Shell\Audit\AuditEntry;
 use App\Shell\Audit\Contracts\AuditWriter;
@@ -46,11 +48,26 @@ final class ToolSettingsController
             $callCounts = [];
             $toolsLoadError = false;
             try {
+                $since = now()->subDays(30);
                 $scoped = fn (string $table) => DB::table($table)->where('organization_id', $tenant->organizationId)
-                    ->where('brand_id', $tenant->brandId)->where('created_at', '>=', now()->subDays(30))->where('created_at', '<=', now());
-                $promises = $scoped('audit_logs')->where('action', 'seller.promise.created')->count();
-                $escalations = $scoped('seller_tasks')->where('type', 'handoff')->count();
-                $callCounts = ['create_promise' => $promises > 0 ? $promises : null, 'escalate' => $escalations > 0 ? $escalations : null];
+                    ->where('brand_id', $tenant->brandId)->where('created_at', '>=', $since)->where('created_at', '<=', now());
+                $journal = app(ToolCallJournal::class);
+                $legacyUntil = $journal->recordingSince($tenant) ?? now();
+                $counts = [];
+                foreach (array_keys(ToolCatalog::definitions()) as $tool) {
+                    $count = $journal->countSince($tenant, $tool, $since);
+                    if ($tool === 'create_promise') {
+                        $count += $scoped('audit_logs')->where('action', 'seller.promise.created')->where('created_at', '<=', $legacyUntil)->count();
+                    } elseif ($tool === 'escalate') {
+                        $count += $scoped('seller_tasks')->where('type', 'handoff')->where('created_at', '<=', $legacyUntil)->count();
+                    }
+                    // Keep the legacy two keys always present (even null) for callers already
+                    // reading them; the other seven only appear once the journal has a call.
+                    if ($count > 0 || in_array($tool, ['create_promise', 'escalate'], true)) {
+                        $counts[$tool] = $count > 0 ? $count : null;
+                    }
+                }
+                $callCounts = $counts;
             } catch (QueryException) {
                 $toolsLoadError = true;
             }

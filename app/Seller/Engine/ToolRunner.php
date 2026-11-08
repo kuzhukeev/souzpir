@@ -2,6 +2,8 @@
 
 namespace App\Seller\Engine;
 
+use App\Seller\Engine\Tools\ToolCallJournal;
+use App\Seller\Settings\Tools\ToolPreferences;
 use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -18,7 +20,22 @@ final class ToolRunner
     /** @return array<string, mixed> */
     public function run(#[SensitiveParameter] mixed $name, #[SensitiveParameter] mixed $arguments, #[SensitiveParameter] mixed $config): array
     {
+        $result = $this->dispatch($name, $arguments, $config);
+        if ($config instanceof TenantContext && is_string($name)) {
+            app(ToolCallJournal::class)->record($config, $name, is_string($result['status'] ?? null) ? $result['status'] : 'unavailable');
+        }
+
+        return $result;
+    }
+
+    /** @return array<string, mixed> */
+    private function dispatch(#[SensitiveParameter] mixed $name, #[SensitiveParameter] mixed $arguments, #[SensitiveParameter] mixed $config): array
+    {
         try {
+            if (in_array($name, ['set_followup', 'check_stock', 'send_price'], true) && $config instanceof TenantContext
+                && app(ToolPreferences::class)->read($config)['tools'][$name] !== true) {
+                return ['status' => 'disabled'];
+            }
             if ($name === 'set_followup' && is_array($config) && ($config['now'] ?? null) instanceof CarbonImmutable) {
                 if (! (new ToolArguments)->check($name, $arguments)['valid']) {
                     return ['status' => 'invalid_arguments'];

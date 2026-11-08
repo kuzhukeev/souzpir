@@ -15,6 +15,14 @@ final class EscalateToManager
 {
     public function run(TenantContext $tenant, TurnClaim $claim, string $responderId, string $toolId, array $arguments): array
     {
+        $result = $this->execute($tenant, $claim, $responderId, $toolId, $arguments);
+        app(ToolCallJournal::class)->record($tenant, 'escalate', $result['status'], $claim->conversationId, $claim->turnId);
+
+        return $result;
+    }
+
+    private function execute(TenantContext $tenant, TurnClaim $claim, string $responderId, string $toolId, array $arguments): array
+    {
         if ($tenant->organizationId !== $claim->organizationId || $tenant->brandId !== $claim->brandId) {
             return ['status' => 'unavailable'];
         }
