@@ -12,6 +12,7 @@ test('источники и запрос действия доступны на 
   const source = page.getByLabel('Источник прайса'); await expect(source).toHaveValue('file');
   await source.selectOption('catalog'); await expect(page.getByText('Каталог загружен.', { exact: true })).toBeVisible();
   await source.selectOption('link'); await page.getByLabel('Ссылка на прайс').fill('https://example.test/price');
+  await page.getByRole('button', { name: /Запросить действие/ }).click();
   await expect(page.getByRole('heading', { name: 'Запросить действие v2' })).toBeVisible();
   await page.getByLabel('Какое действие вам нужно').fill('Добавить расчёт упаковки');
   await expect(page.getByRole('button', { name: 'Отправить заявку' })).toBeEnabled();
@@ -23,6 +24,7 @@ test('источники и запрос действия доступны на 
 test('форма заявки отправляет описание и ключ без реальной доставки', async ({ page }) => {
  await page.route('**/seller/scenario/tools/request', route => route.abort());
  await page.goto(url);
+ await page.getByRole('button', { name: /Запросить действие/ }).click();
  await page.getByLabel('Какое действие вам нужно').fill('Добавить расчёт упаковки');
  const sent = page.waitForRequest(request => request.url().endsWith('/seller/scenario/tools/request') && request.method() === 'POST');
  await page.getByRole('button', { name: 'Отправить заявку' }).click();
