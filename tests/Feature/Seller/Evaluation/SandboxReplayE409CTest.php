@@ -64,7 +64,7 @@ final class SandboxReplayE409CTest extends TenancyTestCase
         $draftRun = DB::table('seller_sim_runs')->where('brand_id', $brand->id)->where('id', '!=', $run->id)->sole();
         $draftTurns = json_decode($draftRun->turns, true, flags: JSON_THROW_ON_ERROR);
         self::assertSame($inputs, array_column($draftTurns, 'client'));
-        self::assertContains(['name' => 'escalate', 'status' => 'fake_completed'], $draftTurns[2]['meta']['tool_results']);
+        self::assertContains(['name' => 'escalate', 'status' => 'fake_completed', 'arguments' => ['reason' => 'want_human']], $draftTurns[2]['meta']['tool_results']);
         $this->postJson('/seller/knowledge/sandbox/reply', ['simulation' => true, 'release' => $published, 'start_new' => true, 'text' => 'Уточню: Воронеж'])->assertOk();
         $beforeRepeat = $this->postJson('/seller/knowledge/sandbox/reply', ['simulation' => true, 'release' => $published, 'start_new' => true, 'text' => 'Уточню: Воронеж'])->assertOk()->json();
         $repeat = $this->postJson('/seller/knowledge/sandbox/reply', ['simulation' => true, 'release' => $published, 'text' => 'Повторите'])->assertOk()->json();
