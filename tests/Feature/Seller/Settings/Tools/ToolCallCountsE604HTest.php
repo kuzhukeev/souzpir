@@ -27,7 +27,7 @@ final class ToolCallCountsE604HTest extends TenancyTestCase
         $event($brand->id, 'seller.tools.settings.updated', now());
         $event($other->id, 'seller.promise.created', now());
         $event($other->id, 'seller.promise.created', now());
-        $this->get('/seller/scenario/tools')->assertOk()->assertInertia(fn ($page) => $page->where('callCounts.create_promise', 1)->where('callCounts.send_price', null));
+        $this->get('/seller/scenario/tools')->assertOk()->assertInertia(fn ($page) => $page->where('callCounts.create_promise', 1)->missing('callCounts.send_price'));
         $this->post('/brand/switch', ['brand_id' => $other->id])->assertRedirect();
         $this->get('/seller/scenario/tools')->assertOk()->assertInertia(fn ($page) => $page->where('callCounts.create_promise', 2));
         [$viewer] = $this->member($org, 'viewer', [$brand->id]);

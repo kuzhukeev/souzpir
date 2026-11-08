@@ -61,7 +61,11 @@ final class ToolSettingsController
                     } elseif ($tool === 'escalate') {
                         $count += $scoped('seller_tasks')->where('type', 'handoff')->where('created_at', '<=', $legacyUntil)->count();
                     }
-                    $counts[$tool] = $count > 0 ? $count : null;
+                    // Keep the legacy two keys always present (even null) for callers already
+                    // reading them; the other seven only appear once the journal has a call.
+                    if ($count > 0 || in_array($tool, ['create_promise', 'escalate'], true)) {
+                        $counts[$tool] = $count > 0 ? $count : null;
+                    }
                 }
                 $callCounts = $counts;
             } catch (QueryException) {

@@ -17,26 +17,31 @@ final class ConfiguredToolHandler
 {
     public function calculateDelivery(TenantContext $tenant, mixed $arguments, ?string $dialogId = null, ?string $turnId = null): array
     {
-        $result = $this->calculate($tenant, $arguments);
-        app(ToolCallJournal::class)->record($tenant, 'calc_delivery', $result['status'], $dialogId, $turnId);
+        [$result, $journalStatus] = $this->calculate($tenant, $arguments);
+        app(ToolCallJournal::class)->record($tenant, 'calc_delivery', $journalStatus, $dialogId, $turnId);
 
         return $result;
     }
 
+    /** @return array{0: array, 1: string} the external result unchanged, and the (possibly more specific) status to journal. */
     private function calculate(TenantContext $tenant, mixed $arguments): array
     {
         if (! $tenant->organizationId || ! $tenant->brandId
             || ! app(SellerModuleAccess::class)->enabled($tenant->organizationId, $tenant->brandId)) {
-            return ['status' => 'unavailable'];
+            return [['status' => 'unavailable'], 'unavailable'];
         }
         $settings = app(ToolPreferences::class)->read($tenant);
         if (($settings['tools']['calc_delivery'] ?? false) !== true) {
-            return ['status' => 'disabled'];
+            // The external contract keeps "unavailable" (unchanged callers); the journal
+            // records the more specific "disabled" so the settings screen can tell toggles
+            // apart from a missing module or configuration.
+            return [['status' => 'unavailable'], 'disabled'];
         }
         if (! (new ToolArguments)->check('calc_delivery', $arguments)['valid']) {
-            return ['status' => 'invalid_arguments'];
+            return [['status' => 'invalid_arguments'], 'invalid_arguments'];
         }
+        $result = (new DeliveryEstimate)->calculate($arguments['city'], $settings['delivery_rules']);
 
-        return (new DeliveryEstimate)->calculate($arguments['city'], $settings['delivery_rules']);
+        return [$result, $result['status']];
     }
 }

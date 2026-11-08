@@ -26,7 +26,7 @@ final class DeliveryE604ETest extends TenancyTestCase
         self::assertSame('invalid_arguments', $handler->calculateDelivery($tenant, ['city' => 123])['status']);
         self::assertSame('not_configured', $handler->calculateDelivery(new TenantContext($org->id, $other->id, source: 'job'), ['city' => 'Moscow'])['status']);
         $this->post('/seller/scenario/tools', ['tools' => ['calc_delivery' => false], 'requisites' => '', 'delivery_rules' => []])->assertSessionHasNoErrors();
-        self::assertSame('disabled', $handler->calculateDelivery($tenant, ['city' => 'Moscow'])['status']);
+        self::assertSame('unavailable', $handler->calculateDelivery($tenant, ['city' => 'Moscow'])['status']);
         [$viewer] = $this->member($org, 'viewer', [$brand->id]);
         $this->actingAs($viewer)->withSession(['brand_id' => $brand->id])->post('/seller/scenario/tools', ['tools' => ['calc_delivery' => true]])->assertForbidden();
         Http::assertNothingSent();
