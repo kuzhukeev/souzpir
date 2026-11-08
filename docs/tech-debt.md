@@ -651,3 +651,4 @@
 - SP-E5-08D (08.11): пустое состояние D-3.4-empty без иллюстрации; vite.config.ts E5-08D с port 5290 (переопределяется в тесте).
 - SP-E6-04G (08.11): роль БД слота с rolcreatedb=1 не проходит гейт IsolatedDatabaseMigrations (среда исполнителей).
 - SP-E9-04 (08.11): ProductionEnvExampleTest не сверяет ключи config/features/*.php с .env.production.example. Интегратор 08.11: прод-воркер не слушал notifications — в deploy/systemd/souzpir-queue.service добавлен --queue=souzpir-main:notifications,souzpir-main:default (префикс зашит, при смене QUEUE_NAMESPACE менять вручную).
+- SP-E3-07G (08.11): FollowupSender перезаписывает last_bot_message_at — второе автонапоминание через 60ч вместо 40ч у донора (manual.followup_40h); ApiOpeningInput.php:70 передаёт пустые tools вместо $goal->allowedTools (29 persona не сходятся).

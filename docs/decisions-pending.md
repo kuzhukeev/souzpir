@@ -1912,3 +1912,4 @@ SP-E1-08B ожидает SP-E1-08: оба меняют профиль, а исх
 - SP-E9-04B: критерии 1 и 9 Приложения Г — «неприменимо» (статичные макеты); готовность экранов — по screens-audit-0811-0203.json.
 - SP-E6-04G (D-5.7): счётчик вызовов escalate — из seller_tasks type=handoff; для 7 действий без источника — «нет данных», новых журналов не вводили.
 - SP-E9-04: объём — README.md + docs/runbooks/ (env.md, queues-scheduler.md); устаревший docs/environment.md (OSPanel) не трогали.
+- SP-E3-07G: manual.no_repeat_filled_slot — follow-up на синтетическом ходе 1 (ход 0 с пустым LeadState); persona-лид создаётся только с phone, чтобы карточка совпадала с донором.
