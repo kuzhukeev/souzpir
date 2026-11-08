@@ -236,6 +236,18 @@ final class RuntimeReplayE307GTest extends TestCase
             // post-opening goal (ask_slot), not intro_and_ask -- these recorded dialogue traces
             // assume a proactive opening already ran, which this app's design does not replay.
             // See "Остаток" in docs/results/SP-E3-07G.md. Pinned here so a real fix turns this red.
+            // Also tried (08.11, reopen round 6) and reverted: seeding the conversation as already
+            // introduced/qualify before the client's turn (mirroring ApiOpeningRuntime's persona.*
+            // state) so the turn runs through FollowupCoordinator instead of a genuine turn 0. That
+            // makes the *extractor* call diverge instead ("qualify" where the donor's own recorded
+            // extractor card still says "open") -- proving the donor's extractor is itself cold at
+            // this point and only the responder's card reflects decide()'s mid-turn transition.
+            // There is no test-side fix: Policy::decide()'s early-return intent branches (closed_topic,
+            // busy_now, unknown_fact, duplicate_lead) just never flip flags.introduced/stage the way
+            // the default ask_slot branch does on a first turn, and the only available first-turn
+            // signals (isFirstTurn, counters.turns===1) are indistinguishable from the pinned
+            // FirstTurnStateTest fixture, which requires introduced to stay false for the same shape
+            // of call. See docs/results/SP-E3-07G.md "Остаток" for details.
             self::assertSame('Recorded request does not match.', $results[$caseId]['turns'][0]['rejection'] ?? null, "$caseId: responder-stage blocker changed shape");
         }
     }
