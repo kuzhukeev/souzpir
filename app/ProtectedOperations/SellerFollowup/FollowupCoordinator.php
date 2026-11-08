@@ -310,9 +310,9 @@ final class FollowupCoordinator
             }
             $name = $call['name'];
             $result = match ($name) {
-                'calc_delivery' => app(ConfiguredToolHandler::class)->calculateDelivery($tenant, $call['arguments']),
+                'calc_delivery' => app(ConfiguredToolHandler::class)->calculateDelivery($tenant, $call['arguments'], $claim->conversationId, $claim->turnId),
                 'send_price' => app(ProtectedPriceSender::class)->send($tenant, $claim, 'api-followup-responder-'.$claim->turnId.'-'.$round, $call['id'], $call['arguments']),
-                default => app(ToolRunner::class)->run($name, $call['arguments'], $tenant),
+                default => app(ToolRunner::class)->run($name, $call['arguments'], $tenant, $claim->conversationId, $claim->turnId),
             };
             $results[] = ['id' => $call['id'], 'name' => $name, 'result' => $result];
         }

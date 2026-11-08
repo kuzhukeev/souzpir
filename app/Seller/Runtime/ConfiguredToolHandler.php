@@ -18,7 +18,9 @@ final class ConfiguredToolHandler
     public function calculateDelivery(TenantContext $tenant, mixed $arguments, ?string $dialogId = null, ?string $turnId = null): array
     {
         [$result, $journalStatus] = $this->calculate($tenant, $arguments);
-        app(ToolCallJournal::class)->record($tenant, 'calc_delivery', $journalStatus, $dialogId, $turnId);
+        if ($turnId !== null) {
+            app(ToolCallJournal::class)->record($tenant, 'calc_delivery', $journalStatus, $dialogId, $turnId);
+        }
 
         return $result;
     }
