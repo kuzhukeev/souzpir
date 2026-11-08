@@ -23675,6 +23675,10 @@
         "app/Seller/Followups/FollowupPolicy.php",
         "app/Seller/Engine/Policy.php",
         "tests/Feature/Equivalence/Support/RecordedGateway.php",
+        "app/ProtectedOperations/FirstTurnGoal.php",
+        "app/Ai/Protected/ApiOpeningInput.php",
+        "app/Seller/Followups/FollowupSender.php",
+        "phpunit.xml",
         "tests/Equivalence/",
         "docs/validation/equivalence.md",
         "docs/results/SP-E3-07G.md"
@@ -23686,7 +23690,10 @@
       ],
       "acceptance": [
         "Реализовать воспроизведение 39 диалоговых и 2 таймерных сценариев: сопоставить этапы, историю, запросы и raw tool calls с записанными ответами, включая старт без входящего сообщения и последующие ходы; устранить отказ manual.no_repeat_filled_slot, сравнить итоговые состояния и ошибки. Включить реальный replay в CI; эталонные golden fixtures не менять.",
-        "Проверить права и изоляцию брендов; только записанный fake, без живых вызовов."
+        "Проверить права и изоляцию брендов; только записанный fake, без живых вызовов.",
+        "Остаток 08.11: ApiOpeningInput.php:70 передавать $goal->allowedTools в ResponderRequest::build; доказать сходимость 29 persona.* в RuntimeReplayE307GTest.",
+        "Остаток 08.11: стадия open вместо qualify (9 диалоговых + no_repeat_filled_slot). Гипотезу FirstTurnGoal.php:52 decide(...,false) сначала проверить RuntimeReplayE307GTest; менять только если существующие тесты first-turn/sandbox и записанный replay остаются зелёными.",
+        "Остаток 08.11: FollowupSender.php:63 — второе напоминание через 40ч от начала тишины (manual.followup_40h); зарегистрировать tests/Equivalence/RuntimeReplayE307GTest.php в testsuite Equivalence phpunit.xml, когда тест зелёный в CI."
       ],
       "screenIds": [],
       "wave": 20,
