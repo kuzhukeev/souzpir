@@ -1,5 +1,8 @@
 # SP-E4-01X — остаток reopen 08.11 02:40
 
+## Повторная сдача 08.11 03:xx
+- Код без изменений (коммит `b9a168d5`, CI ветки был зелёный: run 42427972685). Зависимости SP-E4-01AB и SP-E6-04G влиты в main — проверено, что это не меняет блокер «draft-preview через first-turn стадии»: `Gateway`/`FirstTurnDeterministicGuard` в main не менялись (оба merge принесли только docs/tests). Тесты повторно прогнаны на текущем состоянии ветки — те же 16, зелёные (359 assertions); `check lint` — успешно.
+
 ## Сделано
 - Карта `ESCALATE_EVENTS` (персона → произвольные поля события) убрана. Событие `handoff` теперь строится из реального аргумента `reason` вызова `escalate` (`$call['arguments']`), переведённого таблицей `ESCALATE_REASON_LABELS` (инженерный id причины → метка каталогов R/S): `want_human→requested_by_client`, `defect_claim→defect`, `container_import→container_import`, `deferred_insist→repeated_deferred_request`. `$toolResults` теперь хранит `arguments` вызова, а не только `name`/`status`.
 - `for_self_wedding`, `prices_only_rude`, `requisites`, `big_order` исключены из таблицы: они никогда не производили реальный вызов `escalate` (retail/`big_order` идут через `notify_manager`-эффект, `requisites` — через `send_requisites`), событие для них и раньше не могло сработать — явного регресса нет, просто убрана мёртвая и неверная (привязанная к персоне, а не к аргументам) карта.
