@@ -18,7 +18,7 @@ function formatPhone(value: string): string {
   return result;
 }
 
-export default function Register({ needsCode }: { needsCode: boolean }) {
+export default function Register({ needsCode = true }: { needsCode?: boolean }) {
   const form = useForm({
     name: '',
     email: '',
