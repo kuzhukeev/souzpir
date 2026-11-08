@@ -43,6 +43,19 @@ test('описание действий, загрузка и ошибка обн
   await page.screenshot({ path: '.local/screenshots/SP-E6-04G/tools-1440.png', fullPage: true });
 });
 
+test('кнопка «Запросить действие» в шапке раскрывает форму заявки', async ({ page }) => {
+  await page.goto(url);
+  await expect(page.getByText('Вызовы за 30 дней — по журналу действий бота')).toBeVisible();
+  const trigger = page.getByRole('button', { name: /Запросить действие/ });
+  await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+  await expect(page.getByRole('heading', { name: 'Запросить действие v2' })).toBeHidden();
+  await trigger.click();
+  await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.getByRole('heading', { name: 'Запросить действие v2' })).toBeVisible();
+  await page.getByRole('button', { name: 'Закрыть' }).click();
+  await expect(page.getByRole('heading', { name: 'Запросить действие v2' })).toBeHidden();
+});
+
 test('пустые данные о вызовах предлагают обновить', async ({ page }) => {
   await page.goto(emptyUrl);
   await expect(page.getByText('Данные о вызовах пока недоступны.')).toBeVisible();
