@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature\Seller\Dialogs;
+namespace Tests\Browser\Acceptance;
 
 use App\Contracts\Ai\AiContext;
 use App\Contracts\Ai\AiGateway;
