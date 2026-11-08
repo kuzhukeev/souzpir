@@ -16,16 +16,12 @@ use Symfony\Component\Yaml\Yaml;
 /** Deterministic draft preview using the seller policy and guard without paid calls. */
 final class DraftScenarioPreview
 {
-    /** Persona key to the extra handoff event fields recorded in the reviewed context catalogs (SP-E4-01R/S). */
-    private const ESCALATE_EVENTS = [
-        'for_self_wedding' => ['reason' => 'retail'],
-        'prices_only_rude' => ['reason' => 'big_order'],
-        'deferred_insist' => ['reason' => 'repeated_deferred_request'],
-        'container_import' => ['reason' => 'container_import'],
-        'defect_claim' => ['reason' => 'defect'],
-        'wants_human' => ['reason' => 'requested_by_client'],
-        'requisites' => ['reason' => 'requisites'],
-        'big_order' => ['recipient' => 'руководитель'],
+    /** Engine escalation reason id (Policy::escalationReason) to the label recorded in the reviewed context catalogs (SP-E4-01R/S). */
+    private const ESCALATE_REASON_LABELS = [
+        'want_human' => 'requested_by_client',
+        'defect_claim' => 'defect',
+        'container_import' => 'container_import',
+        'deferred_insist' => 'repeated_deferred_request',
     ];
 
     public function turn(KnowledgeSnapshot $draft, string $client, array $expectations): array
@@ -146,7 +142,7 @@ final class DraftScenarioPreview
                     if (is_array($call) && in_array($call['name'] ?? null, $goal->allowedTools, true) && in_array($call['name'] ?? null, ['escalate', 'send_requisites'], true) && is_array($call['arguments'] ?? null)) {
                         $result = app(FixtureRuntime::class)->executeTool($request, $draft, $call['name'], $call['arguments'], $client);
                         if ($result !== null) {
-                            $toolResults[] = $result;
+                            $toolResults[] = [...$result, 'arguments' => $call['arguments']];
                         }
                     }
                 }
@@ -180,8 +176,9 @@ final class DraftScenarioPreview
         }
         $events = $isLastTurn ? [['type' => 'conversation_end']] : [];
         foreach ($toolResults ?? [] as $result) {
-            if (($result['name'] ?? null) === 'escalate' && isset(self::ESCALATE_EVENTS[$personaKey])) {
-                $events[] = ['type' => 'handoff', ...self::ESCALATE_EVENTS[$personaKey]];
+            $reasonId = $result['arguments']['reason'] ?? null;
+            if (($result['name'] ?? null) === 'escalate' && is_string($reasonId) && isset(self::ESCALATE_REASON_LABELS[$reasonId])) {
+                $events[] = ['type' => 'handoff', 'reason' => self::ESCALATE_REASON_LABELS[$reasonId]];
             }
         }
         $semantic = $request ? app(FixtureRuntime::class)->checkPartial($request, $draft, $client, $answer, $expectations, $personaKey, $history, $events) : null;

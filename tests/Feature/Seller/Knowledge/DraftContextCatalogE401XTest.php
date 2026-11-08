@@ -3,52 +3,54 @@
 namespace Tests\Feature\Seller\Knowledge;
 
 use App\ProtectedOperations\DraftSimulation\FixtureRuntime;
-use ReflectionMethod;
-use Tests\TestCase;
+use App\Seller\Knowledge\Contracts\KnowledgeRepository;
+use App\Tenancy\TenantContext;
+use App\Tenancy\TenantContextRunner;
+use Database\Seeders\Seller\Evaluation\SellerPersonaSeeder;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Tests\Feature\Tenancy\TenancyTestCase;
 
 /**
- * The SP-E4-01R/S catalogs are only reachable through FixtureRuntime's judge fallback
- * (no persona-driven preview run today reproduces their exact wording — see results
- * SP-E4-01X), so the matching itself is exercised directly through reflection.
+ * No dialogue() wording today reproduces the SP-E4-01R/S catalogs' own text (see
+ * results SP-E4-01X), so this drives the real public FixtureRuntime::checkPartial
+ * with a real seeded persona and the catalog's own context, through the same
+ * request a real scenario run produces — no reflection into a private method.
  */
-final class DraftContextCatalogE401XTest extends TestCase
+final class DraftContextCatalogE401XTest extends TenancyTestCase
 {
-    public function test_matches_the_r_catalog_handoff_event_and_stays_unknown_without_it(): void
+    public function test_matches_the_s_catalog_handoff_event_for_a_real_seeded_persona(): void
     {
-        $match = $this->matchContextMethod();
+        [$owner, $org, $brand, , $membership] = $this->cabinet();
+        DB::table('brand_modules')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $brand->id, 'module' => 'seller', 'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
+        $tenant = new TenantContext($org->id, $brand->id, $owner->id, $membership->id);
+        app(SellerPersonaSeeder::class)->seedForBrand($tenant);
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $this->post('/seller/knowledge/draft')->assertRedirect();
+        $id = DB::table('knowledge_releases')->where('brand_id', $brand->id)->where('status', 'draft')->value('id');
+        // A real dialogue run binds the tenant-checked request this test reuses below.
+        $this->post('/seller/knowledge/'.$id.'/scenarios')->assertRedirect();
+        /** @var Request $request */
+        $request = app('request');
+        $history = [['role' => 'client', 'text' => 'Здравствуйте.'], ['role' => 'agent', 'text' => 'Здравствуйте! Чем могу помочь?']];
+        $events = [['type' => 'handoff', 'reason' => 'requested_by_client']];
         $runtime = app(FixtureRuntime::class);
-        $events = [['type' => 'handoff', 'recipient' => 'руководитель']];
 
-        self::assertTrue($match->invoke($runtime, 'big_order', 'escalate_big_order', [], 'Заказ на 700 тысяч.', 'Передал руководителю.', $events));
-        self::assertNull($match->invoke($runtime, 'big_order', 'escalate_big_order', [], 'Заказ на 700 тысяч.', 'Передал руководителю.', []));
-        $otherHistory = [['role' => 'client', 'text' => 'Другой контекст.']];
-        self::assertNull($match->invoke($runtime, 'big_order', 'escalate_big_order', $otherHistory, 'Заказ на 700 тысяч.', 'Передал руководителю.', $events));
-    }
+        // The HTTP kernel forgets the scoped TenantContext binding once the dialogue
+        // request above terminates; restore it the same way a job would (TenantContextRunner).
+        [$matched, $withoutEvent, $withoutHistory] = app(TenantContextRunner::class)->run($tenant, function () use ($tenant, $id, $request, $runtime, $history, $events): array {
+            $draft = app(KnowledgeRepository::class)->forRelease($tenant, $id, true);
+            $otherHistory = [['role' => 'client', 'text' => 'Другой контекст.']];
 
-    public function test_matches_the_s_catalog_full_card_on_conversation_end_only(): void
-    {
-        $match = $this->matchContextMethod();
-        $runtime = app(FixtureRuntime::class);
-        $history = [
-            ['role' => 'client', 'text' => 'Воронеж'],
-            ['role' => 'client', 'text' => 'на продажу'],
-            ['role' => 'client', 'text' => 'нет'],
-            ['role' => 'client', 'text' => 'павильон'],
-            ['role' => 'client', 'text' => 'всё'],
-            ['role' => 'client', 'text' => 'тысяч 100'],
-            ['role' => 'client', 'text' => 'к ноябрю'],
-            ['role' => 'client', 'text' => 'ivan.pav@mail.ru'],
-        ];
-
-        self::assertTrue($match->invoke($runtime, 'newbie_voronezh', 'full_card', $history, 'Спасибо', 'Спасибо за обращение.', [['type' => 'conversation_end']]));
-        self::assertNull($match->invoke($runtime, 'newbie_voronezh', 'full_card', $history, 'Спасибо', 'Спасибо за обращение.', []));
-    }
-
-    private function matchContextMethod(): ReflectionMethod
-    {
-        $method = new ReflectionMethod(FixtureRuntime::class, 'matchContext');
-        $method->setAccessible(true);
-
-        return $method;
+            return [
+                $runtime->checkPartial($request, $draft, 'Позовите человека.', 'Передаю диалог менеджеру.', ['handoff_fast'], 'wants_human', $history, $events),
+                $runtime->checkPartial($request, $draft, 'Позовите человека.', 'Передаю диалог менеджеру.', ['handoff_fast'], 'wants_human', $history, []),
+                $runtime->checkPartial($request, $draft, 'Позовите человека.', 'Передаю диалог менеджеру.', ['handoff_fast'], 'wants_human', $otherHistory, $events),
+            ];
+        });
+        self::assertSame(['handoff_fast' => true], $matched);
+        self::assertSame(['handoff_fast' => null], $withoutEvent);
+        self::assertSame(['handoff_fast' => null], $withoutHistory);
     }
 }

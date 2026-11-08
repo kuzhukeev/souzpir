@@ -71,7 +71,7 @@ final class ConfirmedHandoffE408KTest extends TenancyTestCase
         foreach ($runs as $raw) {
             $turn = json_decode($raw, true)[0];
             self::assertSame('В тестовом сценарии запрос передан менеджеру.', $turn['agent']);
-            self::assertSame([['name' => 'escalate', 'status' => 'fake_completed']], $turn['meta']['tool_results']);
+            self::assertSame([['name' => 'escalate', 'status' => 'fake_completed', 'arguments' => $arguments]], $turn['meta']['tool_results']);
             self::assertSame('ok', $turn['meta']['guard_verdict']);
         }
         self::assertDatabaseCount('conversations', 0);

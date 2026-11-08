@@ -68,10 +68,12 @@ final class RemainingPersonasE408JTest extends TenancyTestCase
             }
             if (in_array($key, ['wants_human', 'requisites', 'big_order'], true)) {
                 self::assertNotSame($entry['answer'], $turn['agent'], $key);
-                $tool = match ($key) {
-                    'wants_human' => 'escalate', 'requisites' => 'send_requisites', 'big_order' => 'notify_manager'
+                $expectedResult = match ($key) {
+                    'wants_human' => ['name' => 'escalate', 'status' => 'fake_completed', 'arguments' => ['reason' => 'want_human']],
+                    'requisites' => ['name' => 'send_requisites', 'status' => 'fake_completed', 'arguments' => []],
+                    'big_order' => ['name' => 'notify_manager', 'status' => 'fake_completed'],
                 };
-                self::assertContains(['name' => $tool, 'status' => 'fake_completed'], $turn['meta']['tool_results'], $key);
+                self::assertContains($expectedResult, $turn['meta']['tool_results'], $key);
                 self::assertSame('ok', $turn['meta']['guard_verdict'], $key);
             }
             if (in_array($key, ['experienced_kazan', 'tc_floor'], true)) {
