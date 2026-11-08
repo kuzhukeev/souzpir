@@ -25017,6 +25017,80 @@
       "promptPath": "docs/tasks/SP-E9-04.md",
       "wave": 15,
       "description": "Разбиение SP-E9-04 (планировщик 08.11.2026): чек-лист Прил. Г отдельно от README/runbook/env. Зачем: E9-04 «чек-лист приёмки Приложения Г ТЗ». Часть чего: SP-E9-04."
+    },
+    {
+      "taskKey": "SP-E1-01J",
+      "title": "SP-E1-01J · Регистрация: поле кода только при заданном коде",
+      "goal": "S-0.2: форма регистрации по умолчанию совпадает с макетом — поле «Код создания кабинета» показывается и проверяется только когда в конфигурации задан bootstrap_token_hash.",
+      "dependsOn": [
+        "SP-E1-01I"
+      ],
+      "scope": [
+        "app/Shell/Auth/Http/RegisterController.php",
+        "resources/js/pages/Shell/Auth/Register.tsx",
+        "config/features/E1-01.php",
+        "tests/Feature/Shell/Auth/RegisterBootstrapE101JTest.php",
+        "tests/Browser/E1-01J/",
+        "docs/results/SP-E1-01J.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "S-0.2: если features.E1-01.defaults.bootstrap_token_hash пуст — поля «Код создания кабинета» и подсказки про код на странице нет, сервер код не требует и не проверяет; форма совпадает с макетом [2] журнала docs/sources/02b_mockup_journal.md.",
+        "S-0.2: если хэш задан — поведение как сейчас: поле видно, код обязателен, сверка sha256 через hash_equals, длина 32–256, ошибка по-русски без раскрытия причины.",
+        "Правило одного владельца не меняется: регистрация отказывает, если у организации уже есть владелец (в обоих режимах); гонка двух одновременных регистраций без кода даёт ровно одного владельца.",
+        "Страница получает только булев признак «нужен код», хэш и значение кода в props, логи и ответы не попадают.",
+        "Feature-тест на оба режима и гонку; browser-тест S-0.2 без кода на 1440/390. Живые внешние вызовы выключены. Запись в docs/decisions-pending.md: на проде код задаётся при развёртывании (чек-лист запуска)."
+      ],
+      "sourceRefs": [
+        "docs/sources/02b_mockup_journal.md",
+        "docs/results/SP-E1-01I.md",
+        "docs/decisions-pending.md"
+      ],
+      "screenIds": [
+        "S-0.2"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E1-01J.md",
+      "description": "# SP-E1-01J · Регистрация: поле кода только при заданном коде\n\n**Зачем:** приёмка экрана S-0.2 после повторного аудита 08.11.2026 (последние частичные экраны).\n**Зависимости:** SP-E1-01I.\n\n## Приёмка\n- S-0.2: если features.E1-01.defaults.bootstrap_token_hash пуст — поля «Код создания кабинета» и подсказки про код на странице нет, сервер код не требует и не проверяет; форма совпадает с макетом [2] журнала docs/sources/02b_mockup_journal.md.\n- S-0.2: если хэш задан — поведение как сейчас: поле видно, код обязателен, сверка sha256 через hash_equals, длина 32–256, ошибка по-русски без раскрытия причины.\n- Правило одного владельца не меняется: регистрация отказывает, если у организации уже есть владелец (в обоих режимах); гонка двух одновременных регистраций без кода даёт ровно одного владельца.\n- Страница получает только булев признак «нужен код», хэш и значение кода в props, логи и ответы не попадают.\n- Feature-тест на оба режима и гонку; browser-тест S-0.2 без кода на 1440/390. Живые внешние вызовы выключены. Запись в docs/decisions-pending.md: на проде код задаётся при развёртывании (чек-лист запуска).\n\nScope: `app/Shell/Auth/Http/RegisterController.php`, `resources/js/pages/Shell/Auth/Register.tsx`, `config/features/E1-01.php`, `tests/Feature/Shell/Auth/RegisterBootstrapE101JTest.php`, `tests/Browser/E1-01J/`, `docs/results/SP-E1-01J.md`.\n"
+    },
+    {
+      "taskKey": "SP-E6-04K",
+      "title": "SP-E6-04K · Действия бота: журнал вызовов и выключатели в ходе",
+      "goal": "D-5.7: «Вызовы за 30 дней» у всех девяти действий из журнала фактических вызовов; выключенное на экране действие не выполняется в защищённом ходе.",
+      "dependsOn": [
+        "SP-E6-04G",
+        "SP-E6-04J"
+      ],
+      "scope": [
+        "app/Seller/Engine/ToolRunner.php",
+        "app/Seller/Engine/Tools/",
+        "app/Seller/Runtime/ConfiguredToolHandler.php",
+        "app/Seller/Settings/Tools/",
+        "database/migrations/E6-04K/",
+        "resources/js/pages/Seller/Settings/Tools/",
+        "tests/Feature/Seller/Settings/Tools/ToolJournalE604KTest.php",
+        "tests/Browser/E6-04K/",
+        "docs/results/SP-E6-04K.md"
+      ],
+      "exclusiveResources": [],
+      "acceptance": [
+        "Решение 08.11.2026 (по поручению владельца): прежнее «новых журналов не вводить» из SP-E6-04G снято для этой карточки. Добавить append-only таблицу журнала вызовов действий (organization_id, brand_id, dialog_id, tool, status, created_at); аргументы, тексты и контакты клиента не хранить.",
+        "Запись — в одной точке выполнения действия (ToolRunner / ConfiguredToolHandler) для всех девяти действий, включая отказы (disabled, unavailable, invalid_arguments); повтор того же хода (retry/replay) не удваивает счётчик — ключ идемпотентности по ходу и действию.",
+        "D-5.7: ToolSettingsController считает «Вызовы за 30 дней» по журналу для всех действий в рамках текущего бренда; для create_promise и escalate сохраняется совместимость с прежними источниками за период до появления журнала. «нет данных» — только когда за 30 дней нет ни одной записи; значения не выдумывать.",
+        "D-5.7: выключатели экрана применяются в полном ходе: выключенное действие ToolRunner не выполняет (status disabled, ход продолжается без него), обязательные действия выключить нельзя. Если исключить действие из allowedTools можно только правкой Policy.php или ApiOpeningInput.php (scope SP-E3-07G) — не трогать, записать остаток в отчёт.",
+        "Записанный replay и equivalence-тесты не меняются (fake AI, живые вызовы выключены). Feature-тест: запись, бренд-изоляция, период 30 дней, идемпотентность, выключатель; browser-тест D-5.7 со значениями у всех действий на 1440/1024/390."
+      ],
+      "sourceRefs": [
+        "docs/results/SP-E6-04G.md",
+        "docs/results/SP-E6-04J.md",
+        "docs/sources/02b_mockup_journal.md"
+      ],
+      "screenIds": [
+        "D-5.7"
+      ],
+      "wave": 20,
+      "promptPath": "docs/tasks/SP-E6-04K.md",
+      "description": "# SP-E6-04K · Действия бота: журнал вызовов и выключатели в ходе\n\n**Зачем:** приёмка экрана D-5.7 после повторного аудита 08.11.2026 (последние частичные экраны).\n**Зависимости:** SP-E6-04G, SP-E6-04J.\n\n## Приёмка\n- Решение 08.11.2026 (по поручению владельца): прежнее «новых журналов не вводить» из SP-E6-04G снято для этой карточки. Добавить append-only таблицу журнала вызовов действий (organization_id, brand_id, dialog_id, tool, status, created_at); аргументы, тексты и контакты клиента не хранить.\n- Запись — в одной точке выполнения действия (ToolRunner / ConfiguredToolHandler) для всех девяти действий, включая отказы (disabled, unavailable, invalid_arguments); повтор того же хода (retry/replay) не удваивает счётчик — ключ идемпотентности по ходу и действию.\n- D-5.7: ToolSettingsController считает «Вызовы за 30 дней» по журналу для всех действий в рамках текущего бренда; для create_promise и escalate сохраняется совместимость с прежними источниками за период до появления журнала. «нет данных» — только когда за 30 дней нет ни одной записи; значения не выдумывать.\n- D-5.7: выключатели экрана применяются в полном ходе: выключенное действие ToolRunner не выполняет (status disabled, ход продолжается без него), обязательные действия выключить нельзя. Если исключить действие из allowedTools можно только правкой Policy.php или ApiOpeningInput.php (scope SP-E3-07G) — не трогать, записать остаток в отчёт.\n- Записанный replay и equivalence-тесты не меняются (fake AI, живые вызовы выключены). Feature-тест: запись, бренд-изоляция, период 30 дней, идемпотентность, выключатель; browser-тест D-5.7 со значениями у всех действий на 1440/1024/390.\n\nScope: `app/Seller/Engine/ToolRunner.php`, `app/Seller/Engine/Tools/`, `app/Seller/Runtime/ConfiguredToolHandler.php`, `app/Seller/Settings/Tools/`, `database/migrations/E6-04K/`, `resources/js/pages/Seller/Settings/Tools/`, `tests/Feature/Seller/Settings/Tools/ToolJournalE604KTest.php`, `tests/Browser/E6-04K/`, `docs/results/SP-E6-04K.md`.\n"
     }
   ],
   "excludedSourceTasks": {
