@@ -31,32 +31,22 @@ php vendor/bin/phpunit --testsuite=Equivalence --no-coverage
 
 Адаптер обрабатывает ответы без текста при непустых вызовах инструментов. Проверены последовательно 824 записанных вызова во всех 41 сценарии, в том числе 65 ответов только с инструментами; исчерпанная запись отклоняется. Это проверка адаптера на записанных запросах, а не replay нового runtime и не подтверждение эквивалентности. Тест автоматически включён в существующий набор Equivalence в CI.
 
-## SP-E3-07G: рабочий replay (08.11.2026)
+## SP-E3-07G: рабочий replay (08.11.2026, реопен с расширенным scope)
 
-Полный разбор по каждому кейсу — `docs/validation/SP-E3-07G-runtime-replay.md`. Итог расширенного scope:
+Полный разбор по каждому кейсу — `docs/validation/SP-E3-07G-runtime-replay.md`. Итог:
 
-**Точный root cause responder-стадии (9 диалоговых + no_repeat_filled_slot + 29 persona.*, второй ход):**
-`app/ProtectedOperations/FirstTurnGoal.php:52` вызывает `(new Policy($knowledge))->decide($lead, $extraction, false)` —
-третий аргумент `isFirstTurn` захардкожен в `false`, хотя класс целиком посвящён первому ходу и это единственный
-вызов `decide()` для первого хода диалога (остальные вызовы `decide()` во всех прочих классах передают корректное
-значение — сравните `ApiOpeningInput.php:53` (`true`), `SandboxRuntime.php:37` (`$history === []`),
-`SandboxController.php:71` (`$index === 0`), `DraftScenarioPreview.php:121` (`$first`)). Из-за этого ветка
-`Policy::decide()` на строке 359 (`if ($isFirstTurn && ! $s->flag('introduced'))`, переводит стадию в `qualify`)
-никогда не срабатывает для первого хода — отсюда расхождение `open` вместо `qualify` в карточке. Готовая правка:
-заменить `false` на `true` в этом вызове. Это не только дефект эквивалентности, это реальный баг прода — флаг
-`introduced` никогда не ставится на первом ходу, значит стадия `qualify` не наступает вовсе этим путём.
-
-- **29 `persona.*` через `ApiOpeningRuntime`**: реальный HTTP-путь `/api/v1/leads?action=open` доходит до драйвера
-  для всех 29 кейсов; отрендеренный системный промпт (карточка LeadState, цель хода, модель, температура)
-  побайтово совпадает с записью донора (`CanonicalJson::hash()`, без `tools`/`tool_choice`). Этот путь не задевает
-  known responder-stage баг — мутация стадии и рендер карточки идут в одном объекте `LeadState`. Блокирует
-  отдельная причина: `app/Ai/Protected/ApiOpeningInput.php` вызывает `ResponderRequest::build()` с пустым списком
-  инструментов вместо `$goal->allowedTools` (вне scope карточки).
-- **`manual.force_close_14`**: воспроизводится как остальные 8 диалоговых кейсов — спотыкается на той же
-  турн-0 responder-блокировке до периодического `summary`-вызова.
-- **`followup_40h`**: причина найдена — `FollowupSender.php:63` перезаписывает `last_bot_message_at` при отправке
-  напоминания, из-за чего второй порог `FollowupPolicy::due()` отмеряется от первого напоминания, а не от начала
-  молчания. Правка только `FollowupPolicy.php` ломает `tests/Unit/Seller/Followups/FollowupPolicyTest.php`
-  (сценарий с отложенным ответом менеджера); нужен `FollowupSender.php` (вне scope).
-- Тест (`tests/Equivalence/RuntimeReplayE307GTest.php`) никогда не был зарегистрирован ни в одном phpunit-suite —
-  CI его не запускал. Нужна регистрация в `phpunit.xml` → testsuite `Equivalence` (файл не в scope карточки).
+- **29 `persona.*` через `ApiOpeningRuntime`** — закрыто: `ApiOpeningInput.php:70` передавал пустой список
+  инструментов вместо `$goal->allowedTools`; после правки все 29 кейсов проходят байт-в-байт, включая `tools`.
+- **`followup_40h`** — закрыто: `FollowupSender.php`/`PrepareFollowups.php` считали «последнее сообщение агента»
+  (базу отсчёта тишины) по всем агентским сообщениям, включая собственные напоминания; второй порог
+  `FollowupPolicy::due()` отмерял от первого напоминания, а не от начала молчания (60ч вместо 40ч). Исключили
+  сообщения с `meta.goal.kind = followup_nudge` из этого запроса — теперь совпадает с записью на всех шагах.
+- **Стадия `qualify` в карточке responder'а (9 диалоговых + no_repeat_filled_slot)**: `FirstTurnGoal.php:52`
+  передавал `isFirstTurn=false` в единственном вызове `decide()` для первого хода — исправлено на `true`. Карточка
+  теперь показывает `qualify`, как донор. Остаточный мismatch в тех же 9+29 кейсах — другой: `ЦЕЛЬ ХОДА` у донора
+  `ask_slot`, у нас `intro_and_ask`, т.к. донорские трейсы предполагают уже отправленный проактивный опенинг перед
+  первым ответом клиента — структурное отличие архитектуры replay, не в рамках этой карточки.
+- **`manual.force_close_14`**: воспроизводится как остальные 8 диалоговых кейсов — спотыкается на той же стадии до
+  периодического `summary`-вызова.
+- Тест (`tests/Equivalence/RuntimeReplayE307GTest.php`) зарегистрирован в `phpunit.xml` → testsuite `Equivalence`,
+  CI его запускает.

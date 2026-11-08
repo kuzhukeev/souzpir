@@ -227,11 +227,13 @@ final class RuntimeReplayE307GTest extends TestCase
             // (same prompt, same JSON schema up to enum/required member order): real equivalence
             // for the extractor stage, not a diagnostic guess.
             self::assertGreaterThanOrEqual(1, $results[$caseId]['calls'], "$caseId: extractor did not even reach the driver");
-            // The very next call (the first-turn responder) is rejected because the LeadState card
-            // text it renders still shows the pre-transition stage ("open") instead of the stage
-            // Policy::decide() already set in the same step ("qualify") -- see the "Нужно от
-            // интегратора" note in docs/results/SP-E3-07G.md. Pinned here so a fix in those files
-            // turns this red and is caught, rather than silently drifting.
+            // The very next call (the first-turn responder) is still rejected, but the mismatch has
+            // changed shape: FirstTurnGoal.php now passes isFirstTurn=true, so the card's stage text
+            // matches the donor ("qualify") -- the remaining divergence is the goal itself
+            // ("intro_and_ask" here vs the donor's "ask_slot"), because these recorded traces assume
+            // a proactive opening turn already ran (introduced=true) before the client's first
+            // reply, which this app's client-initiated FirstInboundRuntime path never sends. See
+            // "Остаток" in docs/results/SP-E3-07G.md. Pinned here so a further fix turns this red.
             self::assertSame('Recorded request does not match.', $results[$caseId]['turns'][0]['rejection'] ?? null, "$caseId: responder-stage blocker changed shape");
         }
     }
@@ -297,12 +299,12 @@ final class RuntimeReplayE307GTest extends TestCase
 
         // manual.followup_20h matches the recorded cadence exactly (single nudge at ~20h of silence).
         self::assertSame($results['manual.followup_20h']['expected_by_step'], $results['manual.followup_20h']['followups_sent_by_step']);
-        // manual.followup_40h: the first nudge matches; the second nudge's cadence diverges from the
-        // donor (ours measures the second wait from the latest nudge, the donor from the original
-        // silence start) inside FollowupPolicy::due(), which is out of this task's scope. See the
-        // "Техдолг" note in docs/results/SP-E3-07G.md instead of asserting full step equality here.
-        self::assertSame(1, $results['manual.followup_40h']['followups_sent_by_step'][0]);
-        self::assertSame(2, end($results['manual.followup_40h']['followups_sent_by_step']));
+        // manual.followup_40h now matches the recorded cadence exactly too: FollowupSender/
+        // PrepareFollowups measure the "last agent message" used as the silence base excluding the
+        // automated nudge itself, so the second threshold is measured from the original silence
+        // start, same as the donor (previously it was measured from the first nudge, giving 60h
+        // instead of 40h for the second nudge).
+        self::assertSame($results['manual.followup_40h']['expected_by_step'], $results['manual.followup_40h']['followups_sent_by_step']);
     }
 
     /** @return array{headers: array<string, string>} */

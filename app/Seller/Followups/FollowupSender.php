@@ -40,7 +40,9 @@ final class FollowupSender
                 if (($settings['enabled'] ?? true) === false) {
                     return false;
                 }
-                $last = DB::table('messages')->where($scope)->where('conversation_id', $conversation->id)->where('role', 'agent')->orderByDesc('created_at')->orderByDesc('id')->value('created_at');
+                $last = DB::table('messages')->where($scope)->where('conversation_id', $conversation->id)->where('role', 'agent')
+                    ->where(fn ($q) => $q->whereNull('meta->goal->kind')->orWhere('meta->goal->kind', '!=', 'followup_nudge'))
+                    ->orderByDesc('created_at')->orderByDesc('id')->value('created_at');
                 $due = $policy->due(['stage' => $conversation->stage, 'state' => $state, 'do_not_disturb' => $conversation->do_not_disturb,
                     'followups_sent' => $conversation->followups_sent, 'last_client_message_at' => $conversation->last_client_message_at], $settings,
                     $last ? CarbonImmutable::parse($last) : null, CarbonImmutable::now(), $brand->timezone);

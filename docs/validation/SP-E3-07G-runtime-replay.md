@@ -20,28 +20,32 @@
    - `manual.closed_topic, large_order, opt_out, prompt_injection, wants_human, deferred_twice, negative_twice,
      off_topic_three, no_repeat_filled_slot` — extractor реально вызывается и совпадает с записью (пройдено).
    - `manual.followup_20h`, `manual.followup_40h` — таймерные сценарии воспроизведены целиком через
-     `PrepareFollowups`+`FollowupSender` (реальный планировщик, без LLM): `followup_20h` совпадает с записью на 100%
-     (0 → 1 напоминание на ~20 ч тишины); `followup_40h` совпадает в первом напоминании, расходится во втором (см. Техдолг).
+     `PrepareFollowups`+`FollowupSender` (реальный планировщик, без LLM): оба совпадают с записью на 100% (`followup_40h`
+     исправлен в реопене 08.11 — см. ниже).
 
-## Что блокирует responder-стадию (одинаково во всех 9+29 диалоговых кейсах)
+## Реопен 08.11.2026 (расширенный scope) — что исправлено
 
-Donor-карточка LeadState для responder-промпта показывает `стадия: qualify`, наш runtime — `стадия: open`, хотя сам текст
-«ЦЕЛЬ ХОДА» (вычисляемый той же функцией `Policy::decide()`, которая и переводит стадию в `qualify` на первом ходу,
-`app/Seller/Engine/Policy.php:361`) уже корректный. То есть мутация стадии происходит, но не попадает в тот экземпляр
-`LeadState`, из которого строится карточка для промпта responder'а — видимо, карточка рендерится из состояния, прочитанного
-заново (до записи мутации), а не из того же объекта. Воспроизводится стабильно для «продолжаем квалификацию» (closed_topic,
-large_order, prompt_injection, deferred_twice, off_topic_three — везде `open` вместо `qualify`), но НЕ для немедленных
-терминальных переходов (`opt_out`→`lost`, `wants_human`/`negative_twice`→`handoff`/`lost` — там совпадает). Код, который на
-это влияет: `app/Ai/Protected/SellerResponderStages.php`, `app/ProtectedOperations/FirstTurnState.php`,
-`app/Seller/Engine/Policy.php` — ни один не входит в scope SP-E3-07G.
+- **`FirstTurnGoal.php:52`**: `isFirstTurn` заменён `false` → `true` (единственный вызов `decide()` для первого хода,
+  который передавал неверное значение — реальный баг прода, не только эквивалентности: `introduced`/`qualify` не
+  проставлялись этим путём). Карточка LeadState теперь показывает `стадия: qualify`, как у донора (было `open`).
+  Проверено `GreetingFirstTurnTest`, `FirstInboundRuntimeTest` — зелёные, поведение интро на первом ходу не изменилось.
+  Остаточный мismatch в 9+29 диалоговых кейсах теперь другой: цель хода (`ЦЕЛЬ ХОДА`) у донора — `ask_slot`, у нас —
+  `intro_and_ask`, потому что записанные трейсы предполагают, что перед ответом клиента уже был отдельный проактивный
+  опенинг (introduced=true), а `FirstInboundRuntime` для клиент-инициированного диалога такого опенинга не посылает —
+  структурное отличие архитектуры replay, не однострочная правка (см. «Остаток» в docs/results/SP-E3-07G.md).
+- **`ApiOpeningInput.php:70`**: третий аргумент `ResponderRequest::build()` заменён `[]` → `$goal->allowedTools`.
+  Все 29 `persona.*` теперь проходят `test_persona_cases_open_through_the_api_opening_runtime` полностью (были
+  заблокированы пустым списком инструментов). Обновлён `ApiOpeningInputE503FTest` (ранее фиксировал баг как ожидаемое
+  поведение).
+- **`FollowupSender.php`/`PrepareFollowups.php`**: запрос «последнего агентского сообщения» (база отсчёта тишины для
+  `FollowupPolicy::due()`) теперь исключает сообщения-напоминания (`meta.goal.kind = followup_nudge`), так что второй
+  порог считается от начала тишины, как у донора, а не от момента первого напоминания. `manual.followup_40h` теперь
+  совпадает с записью на всех шагах (было 60ч вместо 40ч для второго напоминания).
 
-## Персона-сценарии (29 из 41) — отдельная причина
+## Персона-сценарии (29 из 41) — закрыто
 
-`persona.*` начинаются ходом БЕЗ входящего сообщения клиента (бот сам открывает диалог) — это `ApiOpeningRuntime`
-(`app/Seller/Runtime/`), исключённый из scope задачи. `FirstInboundRuntime`/`FirstTurnCoordinator` требуют реального
-клиентского сообщения на ходу 0 (`FirstTurnProtectedClaim::create()` требует `state === []`, `stage === 'open'` —
-воспроизвести миддл-диалоговое открытие без прохода через настоящий ход 0 нельзя). Поэтому персона-кейсы не входят в
-`DIALOGUE_CASES` этого теста.
+`persona.*` начинаются ходом БЕЗ входящего сообщения клиента (бот сам открывает диалог) через `ApiOpeningRuntime`/
+`ApiOpeningInput`. После правки allowedTools (выше) все 29 кейсов проходят байт-в-байт (включая `tools`/`tool_choice`).
 
 ## `manual.force_close_14` — не включён
 
