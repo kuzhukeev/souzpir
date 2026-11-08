@@ -1,24 +1,20 @@
 # SP-E6-04G — остаток экрана D-5.7 «Действия бота»
 
-Scope сужен планировщиком 08.11 до Tools.tsx/ToolSettingsController.php; предыдущая часть (tool `escalate`, коммит 7c4e1df0) уже на main — не трогал.
+Reopen 08.11: планировщик явно потребовал табличную раскладку (экран был формой-списком). Scope: `Tools.tsx`, `ToolSettingsController.php`, `ToolCallCountsE604GTest.php`, `tests/Browser/E6-04G/`.
 
-- Описание (строка-подзаголовок под каждым действием): добавлена константа `descriptions` в `Tools.tsx`, тексты по макету `mockups D-5.7-main`. Проверено: **mockups D-5.7-main.webp**.
-- «Вызовы за 30 дней» для всех действий, не только `create_promise`: контроллер теперь считает и `escalate` (из `seller_tasks` `type=handoff` — единственный источник этого типа, пишет только `EscalateToManager`). Для остальных 7 действий источника вызовов в коде нет — остаётся «нет данных», новых журналов не вводил.
-- Состояния загрузки/пусто/ошибки (макет `mockups D-5.7-states`): кнопка «Обновить» делает `router.reload({only:['callCounts','toolsLoadError']})`; skeleton (animate-pulse, `role=status`), ошибка (`role=alert` + «Повторить», `toolsLoadError` из контроллера при `QueryException`), пустое состояние («Данные о вызовах пока недоступны» + «Обновить», когда все счётчики null). Остальная форма (тумблеры, зоны, реквизиты) не блокируется — так проще и не ломает сохранение настроек.
-- Проверено: **mockups D-5.7-settings.webp** — блок уже существовал (per-tool настройки), не трогал, вне диффа.
+## Сделано в этом цикле
+- «Доступные действия» переведены из `<ul>` в `<table>` с колонками Действие/Описание/Вызовы за 30 дней/Включено/Настройки по макету **mockups D-5.7-main.webp**: иконка-бейдж на действие, toggle-переключатель (паттерн из `Handoff.tsx`), «Настроить →» (якоря `#price-source`/`#stock-source`/`#delivery-rules`/`#requisites` или ссылка на `/seller/scenario/handoff`; у действий без настроек — «—», ничего не выдумывал).
+- Загрузка/ошибка по макету **mockups D-5.7-states.webp**: skeleton-таблица при «Обновить» (`role=status`), баннер «Не удалось загрузить действия / Код ошибки: ERR_LOAD» + «Повторить» (`role=alert`) вместо таблицы при `toolsLoadError`. Добавлена обработка сетевой ошибки сохранения формы (`onNetworkError` → алерт), не было раньше.
+- «Вызовы за 30 дней» для всех действий: не менял источник (только `create_promise`/`escalate` берутся из существующих `audit_logs`/`seller_tasks`, новых журналов не вводил per карточке) — для остальных 7 действий ячейка показывает «нет данных», как и требовалось.
+- Fix: переключатель внутри `overflow-x-auto` таблицы — `sr-only input` (`position:absolute`) вылезал за пределы скролл-контейнера на 390px (абсолютное позиционирование без `relative`-предка). Добавил `relative` на контейнер и `<label>`.
 
 ## Тесты
-- `tests/Feature/Seller/Settings/Tools/ToolCallCountsE604GTest.php` (новый, 2 теста): счётчик `escalate` по бренду/30 дням + изоляция от другого бренда; `toolsLoadError=true` и `callCounts=[]` при `QueryException` на `audit_logs` (через `DB::listen`, без моков).
-- `tests/Browser/E6-04G/tools.spec.ts` (новый, Playwright, свой Vite-сервер в beforeAll/afterAll): видимость описаний, skeleton при клике «Обновить» (перехват запроса через `page.route`), ошибка+«Повторить», пустое состояние. 1440/1024/390 — без горизонтального overflow (ad hoc проверка, не в составе набора). Скриншот `.local/screenshots/SP-E6-04G/tools-1440.png`.
-- Регрессия: `tests/Feature/Seller/Settings/Tools/` — 9 прошли (включая существующий `ToolCallCountsE604HTest` для `create_promise`), 2 падают по известному техдолгу среды (`rolcreatedb=1` у роли слота, гейт `IsolatedDatabaseMigrations`, не из-за моих правок).
-- `check lint` (composer validate/Pint, check-test-suite-coverage.py) и `tsc --noEmit` — зелёные.
+- `tests/Browser/E6-04G/tools.spec.ts` (переписан под таблицу): описания видимы, `columnheader` «Действие»/«Вызовы за 30 дней», строка «Записать обещание» содержит «5»; ошибка загрузки + «Повторить»; пустые данные — ячейка «нет данных»; 1440/1024/390 без горизонтального overflow + axe (wcag2a/aa/21aa) — **пройдено**, включая фикс оверфлоу выше.
+- `tests/Feature/Seller/Settings/Tools/`: 9/11 локально зелёные (контроллер не менял); 2 падают по известному техдолгу среды exec-1 (`rolcreatedb=1`, гейт `IsolatedDatabaseMigrations`) — не из-за правок.
+- `check lint` (composer validate/Pint/coverage), `tsc --noEmit`, `eslint` по изменённым файлам, `check frontend` (npm run build) — зелёные.
 
 ## Остаток
-- D-5.3/D-5.7 «настройки применяются не в полном ходе» — вне этой части (полный ход в SP-E4-01X), как указано в карточке.
-- Экран не превращён в отдельную read-only таблицу «как на макете» — оставлен как объединённая форма настроек (список + тумблеры), т.к. переделка архитектуры страницы вне узкого scope.
+- «Настройки применяются не в полном ходе» — вне этой части (полный ход в SP-E4-01X), как в карточке.
 
 ## Техдолг
-- Среда exec-9: роль БД слота с `rolcreatedb=1` не проходит гейт `IsolatedDatabaseMigrations` — не даёт локально гонять `ToolSourcesE604JTest`/аналоги (тот же техдолг, что в прежних отчётах SP-E6-03L/SP-E6-04G).
-
-## Принято по умолчанию
-- Счётчик `escalate` взят из `seller_tasks.type='handoff'` как единственного недвусмысленного источника; остальные типы (`reminder`, `promise`) не использовал для других тулов — они смешаны с нетул-источниками (напоминания о передаче по таймауту, ручные напоминания), что дало бы неверные цифры.
+- Среда слота exec-1: `rolcreatedb=1` у роли БД блокирует `IsolatedDatabaseMigrations` локально для части `tests/Feature/Seller/Settings/Tools/` (не новое — повтор техдолга прежних циклов).

@@ -14,9 +14,11 @@ test.afterAll(async () => { await server?.close(); });
 
 test('описание действий, загрузка и ошибка обновления вызовов', async ({ page }) => {
   await page.goto(url);
+  await expect(page.getByRole('columnheader', { name: 'Действие' })).toBeVisible();
+  await expect(page.getByRole('columnheader', { name: 'Вызовы за 30 дней' })).toBeVisible();
   await expect(page.getByText('Рассчитывает стоимость по настроенным зонам.')).toBeVisible();
   await expect(page.getByText('Высылает реквизиты компании для оплаты.')).toBeVisible();
-  await expect(page.getByText('Вызовы за 30 дней: 5')).toBeVisible();
+  await expect(page.getByRole('row', { name: /Записать обещание/ })).toContainText('5');
 
   const pagePath = new URL(url).pathname;
   let release = () => {};
@@ -33,7 +35,8 @@ test('описание действий, загрузка и ошибка обн
   await page.getByRole('button', { name: 'Обновить' }).first().click();
   await expect(page.getByRole('status')).toBeVisible();
   release();
-  await expect(page.getByRole('alert').filter({ hasText: 'Не удалось загрузить вызовы действий' })).toBeVisible();
+  await expect(page.getByRole('alert').filter({ hasText: 'Не удалось загрузить действия' })).toBeVisible();
+  await expect(page.getByText('Код ошибки: ERR_LOAD')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Повторить' })).toBeVisible();
   await page.unroute('**' + pagePath);
   await mkdir('.local/screenshots/SP-E6-04G', { recursive: true });
@@ -43,7 +46,7 @@ test('описание действий, загрузка и ошибка обн
 test('пустые данные о вызовах предлагают обновить', async ({ page }) => {
   await page.goto(emptyUrl);
   await expect(page.getByText('Данные о вызовах пока недоступны.')).toBeVisible();
-  await expect(page.getByText('Вызовы за 30 дней: нет данных').first()).toBeVisible();
+  await expect(page.getByRole('cell', { name: 'нет данных' }).first()).toBeVisible();
 });
 
 test('D-5.7: без горизонтального переполнения и критичных нарушений доступности на трёх ширинах', async ({ page }) => {
