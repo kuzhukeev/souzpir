@@ -64,7 +64,7 @@ final class ToolSettingsTest extends TenancyTestCase
             $this->assertSame('ready', $handler->calculateDelivery($tenant, ['city' => 'Тверь'])['status']);
             $this->assertSame('invalid_arguments', $handler->calculateDelivery($tenant, ['city' => 1])['status']);
             $this->post('/seller/scenario/tools', ['tools' => ['calc_delivery' => false], 'requisites' => '', 'delivery_rules' => []])->assertRedirect();
-            $this->assertSame('unavailable', $handler->calculateDelivery($tenant, ['city' => 'Тверь'])['status']);
+            $this->assertSame('disabled', $handler->calculateDelivery($tenant, ['city' => 'Тверь'])['status']);
             $this->artisan('seller:monitor-handoffs')->assertSuccessful();
             $this->assertDatabaseCount('seller_handoff_reminders', 1);
             $this->assertDatabaseCount('seller_tasks', 1);
