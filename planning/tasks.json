@@ -5868,103 +5868,6 @@
       "promptPath": "docs/tasks/SP-C-03.md"
     },
     {
-      "taskKey": "SP-R-01",
-      "title": "SP-R-01 · Общий безопасный контекст запроса",
-      "goal": "Централизовать проверку безопасного контекста и прямого loopback для перечисленных текущих потребителей. Сохранить все различия поведения, включая localhost только там, где он уже разрешён в testing; имя локального хоста брать из конфигурации с совместимым текущим значением. Добавить отдельно запрошенный unit-тест. Существующие тесты неизменны; сравнивать их число отдельно от нового теста. Изменять только явные вызовы и минимальную конфигурацию; не начинать при занятом пересекающемся модуле. Уточнение 08.11: тестовая БД — БД своего слота контура по docs/parallel-workflow.md; отказ защиты БД — в «Нужно от интегратора», не возврат.",
-      "dependsOn": [
-        "SP-E9-04",
-        "SP-E1-08E",
-        "SP-E5-05F",
-        "SP-E1-09E",
-        "SP-E1-03C",
-        "SP-E3-07G",
-        "SP-E4-01X",
-        "SP-E6-10E",
-        "SP-E6-04G",
-        "SP-E7-04P",
-        "SP-E4-10R",
-        "SP-E5-08D",
-        "SP-E5-05D",
-        "SP-E6-06E",
-        "SP-E5-04S"
-      ],
-      "scope": [
-        "app/Privacy/VerifiedHttps.php",
-        "app/Http/Support/",
-        "app/Shell/Support/Http/SupportController.php",
-        "app/Shell/Profile/ProfileController.php",
-        "app/Shell/Profile/TelegramLinks.php",
-        "app/Vision/Profile/ProfileController.php",
-        "app/Vision/Questions/QuestionsController.php",
-        "app/Shell/Billing/Http/BillingController.php",
-        "app/Shell/Auth/MfaRecoveryTransport.php",
-        "app/Shell/Auth/PasswordDelivery/SmtpPasswordTransport.php",
-        "app/Shell/InvitationIssuance/InvitationIssuer.php",
-        "app/Shell/Auth/SecureAccountContext.php",
-        "app/Shell/Integrations/SecretTransport.php",
-        "app/Tenancy/TokenApi/BearerBoundary.php",
-        "config/app.php",
-        "tests/Unit/Privacy/SecureRequestContextTest.php",
-        "docs/results/SP-R-01.md"
-      ],
-      "exclusiveResources": [],
-      "acceptance": [
-        "Поведение не изменилось; число существующих тестов до и после совпадает и все они зелёные.",
-        "Отчёт содержит числа тестов, результаты прогонов и раздел «Техдолг»."
-      ],
-      "sourceIds": [],
-      "screenIds": [],
-      "notes": "Эпик R; 1–3 часа; после feature-задач и проверки ownership.",
-      "sourceRefs": [
-        "AGENTS.md",
-        "docs/preparation/decisions.md"
-      ],
-      "promptPath": "docs/tasks/SP-R-01.md",
-      "wave": 9,
-      "description": "# SP-R-01 · Общий безопасный контекст запроса\n\nЭпик R. Централизовать проверку безопасного контекста и прямого loopback для перечисленных текущих потребителей. Сохранить все различия поведения, включая localhost только там, где он уже разрешён в testing; имя локального хоста брать из конфигурации с совместимым текущим значением. Добавить отдельно запрошенный unit-тест. Существующие тесты неизменны; сравнивать их число отдельно от нового теста. Изменять только явные вызовы и минимальную конфигурацию; не начинать при занятом пересекающемся модуле.\n\nПеред началом посчитать и запустить существующие тесты модуля, записать число и результат; после работы повторить тот же набор: число и зелёный результат должны совпасть. Существующие тесты не менять, кроме импортов и имён классов; golden fixtures не менять. Все попутные находки одной строкой в «Техдолг» отчёта. Отдельный worktree, claim, commit, docs/results, submit, CI и review по AGENTS.md. Время: 1–3 часа.\n"
-    },
-    {
-      "taskKey": "SP-R-02",
-      "title": "SP-R-02 · Support: штатная работа с Request",
-      "goal": "Убрать ReflectionProperty(Request::class, convertedFiles) из SupportController::store средствами Laravel, сохранив очистку всех ссылок на входящие файлы, запрос и секреты. Существующие проверки и их число не менять; убедиться, что очищается и внутренний кэш преобразованных файлов, а не только files bag. Если штатный API не позволяет сохранить это поведение, не ослаблять очистку: зафиксировать точный блокер и остаток. Уточнение 08.11: штатного API нет — Reflection оставить в приватном методе с комментарием либо сдать только отчёт с точным блокером; возврат не нужен.",
-      "dependsOn": [
-        "SP-E9-04",
-        "SP-E1-08E",
-        "SP-E5-05F",
-        "SP-E1-09E",
-        "SP-E1-03C",
-        "SP-E3-07G",
-        "SP-E4-01X",
-        "SP-E6-10E",
-        "SP-E6-04G",
-        "SP-E7-04P",
-        "SP-E4-10R",
-        "SP-E5-08D",
-        "SP-E5-05D",
-        "SP-E6-06E",
-        "SP-E5-04S"
-      ],
-      "scope": [
-        "app/Shell/Support/Http/SupportController.php",
-        "docs/results/SP-R-02.md"
-      ],
-      "exclusiveResources": [],
-      "acceptance": [
-        "Поведение не изменилось; число существующих тестов до и после совпадает и все они зелёные.",
-        "Отчёт содержит числа тестов, результаты прогонов и раздел «Техдолг»."
-      ],
-      "sourceIds": [],
-      "screenIds": [],
-      "notes": "Эпик R; 1–3 часа; после feature-задач и проверки ownership.",
-      "sourceRefs": [
-        "AGENTS.md",
-        "docs/preparation/decisions.md"
-      ],
-      "promptPath": "docs/tasks/SP-R-02.md",
-      "wave": 9,
-      "description": "# SP-R-02 · Support: штатная работа с Request\n\nЭпик R. Убрать ReflectionProperty(Request::class, convertedFiles) из SupportController::store средствами Laravel, сохранив очистку всех ссылок на входящие файлы, запрос и секреты. Существующие проверки и их число не менять; убедиться, что очищается и внутренний кэш преобразованных файлов, а не только files bag. Если штатный API не позволяет сохранить это поведение, не ослаблять очистку: зафиксировать точный блокер и остаток.\n\nПеред началом посчитать и запустить существующие тесты модуля, записать число и результат; после работы повторить тот же набор: число и зелёный результат должны совпасть. Существующие тесты не менять, кроме импортов и имён классов; golden fixtures не менять. Все попутные находки одной строкой в «Техдолг» отчёта. Отдельный worktree, claim, commit, docs/results, submit, CI и review по AGENTS.md. Время: 1–3 часа.\n"
-    },
-    {
       "taskKey": "SP-R-03",
       "title": "SP-R-03 · Одна проверка тестовой БД: опорный helper",
       "goal": "Оставить одну проверку безопасной изолированной БД в TestCase и делегировать ей из tests/Support без изменения поведения.",
@@ -6017,50 +5920,6 @@
       "promptPath": "docs/tasks/SP-R-03B.md",
       "wave": 9,
       "description": "# SP-R-03B · Auth: единая проверка тестовой БД\n\nПродолжение SP-R-03, один модуль Auth. Убрать собственные проверки изолированной БД из `tests/Feature/Shell/Auth/`, включая worker fixtures, и делегировать опорной проверке TestCase. Сохранить дополнительные ограничения каждого запуска. Другие feature-модули и browser fixtures — SP-R-03C. Golden fixtures не менять.\n\nПеред началом и в отчёте указать число тестов Auth и результат до и после; число должно совпасть, все тесты зелёные. Поведение не менять. Тесты только в изолированной БД; race-группа отдельно. Работа 1–3 часа, claim, worktree, отчёт, submit и CI по AGENTS.md.\n"
-    },
-    {
-      "taskKey": "SP-R-03C",
-      "title": "SP-R-03C · Проверки БД остальных тестовых модулей",
-      "goal": "Поштучно перенести оставшиеся feature, race worker и browser проверки на общий helper TestCase.",
-      "dependsOn": [
-        "SP-R-03B",
-        "SP-E9-04",
-        "SP-E1-08E",
-        "SP-E5-05F",
-        "SP-E1-09E",
-        "SP-E1-03C",
-        "SP-E3-07G",
-        "SP-E4-01X",
-        "SP-E6-10E",
-        "SP-E6-04G",
-        "SP-E7-04P",
-        "SP-E4-10R",
-        "SP-E5-08D",
-        "SP-E5-05D",
-        "SP-E6-06E",
-        "SP-E5-04S"
-      ],
-      "scope": [
-        "tests/Feature/",
-        "tests/Browser/",
-        "scripts/ci/",
-        "docs/results/SP-R-03C.md"
-      ],
-      "exclusiveResources": [],
-      "acceptance": [
-        "Для каждого затронутого модуля число существующих тестов и их зелёный результат сохранены.",
-        "Специфичные ограничения worker/browser запусков и golden fixtures сохранены."
-      ],
-      "sourceIds": [],
-      "screenIds": [],
-      "notes": "Эпик R; перед claim сузить до одного модуля и 1–3 часов.",
-      "sourceRefs": [
-        "AGENTS.md",
-        "docs/tasks/SP-R-03B.md"
-      ],
-      "promptPath": "docs/tasks/SP-R-03C.md",
-      "wave": 9,
-      "description": "# SP-R-03C · Проверки БД остальных тестовых модулей\n\nПосле SP-R-03B переносить оставшиеся копии проверки из `tests/Feature/`, race worker-скриптов и browser fixtures на общий helper TestCase. Каждый законченный срез ограничить одним тестовым модулем на 1–3 часа; следующий модуль выносить в отдельную карточку до отметки done. Сохранять специфичные ограничения запуска и поведение, golden fixtures не менять.\n\nПеред началом и в отчёте указать число существующих тестов затронутого модуля и результат до и после; число совпадает, все зелёные. Использовать только изолированные БД. Claim, worktree, отчёт, submit и CI по AGENTS.md.\n"
     },
     {
       "taskKey": "SP-R-04",
@@ -6163,48 +6022,6 @@
       "promptPath": "docs/tasks/SP-R-05C.md",
       "wave": 9,
       "description": "# SP-R-05C · Кабинет: общие UI-компоненты\n\nЭпик R. Вынести подтверждённые повторяющиеся Tailwind-константы в общие UI-компоненты кабинета без изменения поведения; применять только к согласованному минимальному срезу. Не затрагивать занятые feature-модули.\n\nПеред началом посчитать и запустить существующие тесты модуля, записать число и результат; после работы повторить тот же набор: число и зелёный результат должны совпасть. Существующие тесты не менять, кроме импортов и имён классов; golden fixtures не менять. Все попутные находки одной строкой в «Техдолг» отчёта. Отдельный worktree, claim, commit, docs/results, submit, CI и review по AGENTS.md. Время: 1–3 часа.\n"
-    },
-    {
-      "taskKey": "SP-R-06",
-      "title": "SP-R-06 · Seller Policy: после полного golden-покрытия",
-      "goal": "Низкий приоритет. Начинать только после доказанного golden-покрытия прототипом всех ветвей Seller/Engine/Policy.php. Рефакторинг только внутри Policy без изменений поведения и golden fixtures; пустой if оформить явно или убрать, сохранив семантику. При неполном покрытии не начинать и записать недостающие ветви. Уточнение 08.11: сначала покрыть computeMissing, decide(isFirstTurn=true), computeOutcome(dialogEnded=true) новым тестом tests/Unit/Seller/Engine/PolicyBranchesR06Test.php по текущему поведению, затем рефакторинг.",
-      "dependsOn": [
-        "SP-E9-04",
-        "SP-E1-08E",
-        "SP-E5-05F",
-        "SP-E1-09E",
-        "SP-E1-03C",
-        "SP-E3-07G",
-        "SP-E4-01X",
-        "SP-E6-10E",
-        "SP-E6-04G",
-        "SP-E7-04P",
-        "SP-E4-10R",
-        "SP-E5-08D",
-        "SP-E5-05D",
-        "SP-E6-06E",
-        "SP-E5-04S"
-      ],
-      "scope": [
-        "app/Seller/Engine/Policy.php",
-        "tests/Unit/Seller/Engine/PolicyBranchesR06Test.php",
-        "docs/results/SP-R-06.md"
-      ],
-      "exclusiveResources": [],
-      "acceptance": [
-        "Поведение не изменилось; число существующих тестов до и после совпадает и все они зелёные.",
-        "Отчёт содержит числа тестов, результаты прогонов и раздел «Техдолг»."
-      ],
-      "sourceIds": [],
-      "screenIds": [],
-      "notes": "Эпик R; 1–3 часа; после feature-задач и проверки ownership.",
-      "sourceRefs": [
-        "AGENTS.md",
-        "docs/preparation/decisions.md"
-      ],
-      "promptPath": "docs/tasks/SP-R-06.md",
-      "wave": 9,
-      "description": "# SP-R-06 · Seller Policy: после полного golden-покрытия\n\nЭпик R. Низкий приоритет. Начинать только после доказанного golden-покрытия прототипом всех ветвей Seller/Engine/Policy.php. Рефакторинг только внутри Policy без изменений поведения и golden fixtures; пустой if оформить явно или убрать, сохранив семантику. При неполном покрытии не начинать и записать недостающие ветви.\n\nПеред началом посчитать и запустить существующие тесты модуля, записать число и результат; после работы повторить тот же набор: число и зелёный результат должны совпасть. Существующие тесты не менять, кроме импортов и имён классов; golden fixtures не менять. Все попутные находки одной строкой в «Техдолг» отчёта. Отдельный worktree, claim, commit, docs/results, submit, CI и review по AGENTS.md. Время: 1–3 часа.\n"
     },
     {
       "taskKey": "SP-E8-06B",

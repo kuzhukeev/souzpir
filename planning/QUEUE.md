@@ -286,17 +286,13 @@
 
 ## Эпик R — рефакторинг
 
-[Правила и состав эпика](../docs/tasks/SP-R.md). Не начатые SP-R-01, SP-R-02, SP-R-03C и SP-R-06 ждут `done` последней функциональной задачи SP-E9-04; задачи в `review` продолжают приёмку. SP-UI-05…12 уже сданы и новых SP-UI-* не заводят. Фактическую доступность показывает `scripts/task.py ready`.
+[Правила и состав эпика](../docs/tasks/SP-R.md). Не начатые SP-R-01, SP-R-02, SP-R-03C и SP-R-06 сняты владельцем 08.11.2026; новых SP-R-* не заводить. SP-UI-05…12 уже сданы и новых SP-UI-* не заводят. Фактическую доступность показывает `scripts/task.py ready`.
 
-- [SP-R-01](../docs/tasks/SP-R-01.md)
-- [SP-R-02](../docs/tasks/SP-R-02.md)
 - [SP-R-03](../docs/tasks/SP-R-03.md)
-- [SP-R-03C](../docs/tasks/SP-R-03C.md) — ожидает SP-E9-04
 - [SP-R-04](../docs/tasks/SP-R-04.md)
 - [SP-R-05](../docs/tasks/SP-R-05.md)
 - [SP-R-05B](../docs/tasks/SP-R-05B.md)
 - [SP-R-05C](../docs/tasks/SP-R-05C.md)
-- [SP-R-06](../docs/tasks/SP-R-06.md)
 
 
 Остаток SP-E3-10: [SP-E3-10B](../docs/tasks/SP-E3-10B.md) после SP-E3-03; до завершения второй бренд не считать готовым.
