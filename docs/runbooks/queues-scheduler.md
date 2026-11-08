@@ -19,7 +19,7 @@
 ## Соединение очереди
 
 - Dev/preview и тесты: `QUEUE_CONNECTION=sync` — задания выполняются сразу в том же процессе, отдельный worker не нужен.
-- Прод (`.env.production.example`): `QUEUE_CONNECTION=database`, таблица `jobs`; worker — systemd `souzpir-queue` (`php artisan queue:work database --sleep=3 --tries=3`).
+- Прод (`.env.production.example`): `QUEUE_CONNECTION=database`, таблица `jobs`; worker — systemd `souzpir-queue` (`php artisan queue:work database --queue=souzpir-main:notifications,souzpir-main:default --sleep=3 --tries=3`; при другом `QUEUE_NAMESPACE` поменять префикс в unit-файле).
 - Для ручной проверки прохождения задания через настоящую БД-очередь в своём worktree: временно выставить `QUEUE_CONNECTION=database` в `.env`, выполнить `php artisan queue:work database --once`, затем вернуть `sync`. Постоянный worker в рамках разработки не запускается.
 
 ## Планировщик

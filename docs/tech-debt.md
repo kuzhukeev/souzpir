@@ -650,3 +650,4 @@
 - SP-E9-04B (08.11): блокировка (Б) в сайдбаре — тултип без ссылки на разблокирующий шаг, серверного guard на маршрутах Vision нет; контраст тем 4.5:1 не замерян автоматически; сплошная проверка H1/390px по всем экранам не проводилась.
 - SP-E5-08D (08.11): пустое состояние D-3.4-empty без иллюстрации; vite.config.ts E5-08D с port 5290 (переопределяется в тесте).
 - SP-E6-04G (08.11): роль БД слота с rolcreatedb=1 не проходит гейт IsolatedDatabaseMigrations (среда исполнителей).
+- SP-E9-04 (08.11): ProductionEnvExampleTest не сверяет ключи config/features/*.php с .env.production.example. Интегратор 08.11: прод-воркер не слушал notifications — в deploy/systemd/souzpir-queue.service добавлен --queue=souzpir-main:notifications,souzpir-main:default (префикс зашит, при смене QUEUE_NAMESPACE менять вручную).
