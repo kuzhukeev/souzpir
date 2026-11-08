@@ -227,13 +227,15 @@ final class RuntimeReplayE307GTest extends TestCase
             // (same prompt, same JSON schema up to enum/required member order): real equivalence
             // for the extractor stage, not a diagnostic guess.
             self::assertGreaterThanOrEqual(1, $results[$caseId]['calls'], "$caseId: extractor did not even reach the driver");
-            // The very next call (the first-turn responder) is still rejected, but the mismatch has
-            // changed shape: FirstTurnGoal.php now passes isFirstTurn=true, so the card's stage text
-            // matches the donor ("qualify") -- the remaining divergence is the goal itself
-            // ("intro_and_ask" here vs the donor's "ask_slot"), because these recorded traces assume
-            // a proactive opening turn already ran (introduced=true) before the client's first
-            // reply, which this app's client-initiated FirstInboundRuntime path never sends. See
-            // "Остаток" in docs/results/SP-E3-07G.md. Pinned here so a further fix turns this red.
+            // The very next call (the first-turn responder) is rejected because the LeadState card
+            // text it renders still shows the pre-transition stage ("open") instead of the stage
+            // Policy::decide() already set in the same step ("qualify"). The obvious fix
+            // (FirstTurnGoal.php passing isFirstTurn=true) was tried and reverted: it breaks the
+            // pinned CI test FirstTurnStateTest::test_first_client_message_follows_donor_inbound_goal_not_proactive_opening,
+            // which deliberately asserts the client's first message here follows the donor's
+            // post-opening goal (ask_slot), not intro_and_ask -- these recorded dialogue traces
+            // assume a proactive opening already ran, which this app's design does not replay.
+            // See "Остаток" in docs/results/SP-E3-07G.md. Pinned here so a real fix turns this red.
             self::assertSame('Recorded request does not match.', $results[$caseId]['turns'][0]['rejection'] ?? null, "$caseId: responder-stage blocker changed shape");
         }
     }

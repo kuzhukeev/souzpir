@@ -41,11 +41,11 @@ php vendor/bin/phpunit --testsuite=Equivalence --no-coverage
   (базу отсчёта тишины) по всем агентским сообщениям, включая собственные напоминания; второй порог
   `FollowupPolicy::due()` отмерял от первого напоминания, а не от начала молчания (60ч вместо 40ч). Исключили
   сообщения с `meta.goal.kind = followup_nudge` из этого запроса — теперь совпадает с записью на всех шагах.
-- **Стадия `qualify` в карточке responder'а (9 диалоговых + no_repeat_filled_slot)**: `FirstTurnGoal.php:52`
-  передавал `isFirstTurn=false` в единственном вызове `decide()` для первого хода — исправлено на `true`. Карточка
-  теперь показывает `qualify`, как донор. Остаточный мismatch в тех же 9+29 кейсах — другой: `ЦЕЛЬ ХОДА` у донора
-  `ask_slot`, у нас `intro_and_ask`, т.к. донорские трейсы предполагают уже отправленный проактивный опенинг перед
-  первым ответом клиента — структурное отличие архитектуры replay, не в рамках этой карточки.
+- **Стадия `qualify` в карточке responder'а (9 диалоговых + no_repeat_filled_slot)**: гипотеза `FirstTurnGoal.php:52`
+  `isFirstTurn=false→true` проверена и отвергнута — ломает пинованный CI-тест `FirstTurnStateTest::test_first_client_message_follows_donor_inbound_goal_not_proactive_opening`,
+  который осознанно требует `ask_slot`/`answer_and_ask`, а не `intro_and_ask`, для первого сообщения клиента (опенинг
+  в проде — отдельный механизм, не эта ветка `Policy::decide()`). Правка откатана, мismatch `open` вместо `qualify`
+  остаётся прежним — донорские трейсы DIALOGUE_CASES сами предполагают уже прошедший опенинг.
 - **`manual.force_close_14`**: воспроизводится как остальные 8 диалоговых кейсов — спотыкается на той же стадии до
   периодического `summary`-вызова.
 - Тест (`tests/Equivalence/RuntimeReplayE307GTest.php`) зарегистрирован в `phpunit.xml` → testsuite `Equivalence`,
