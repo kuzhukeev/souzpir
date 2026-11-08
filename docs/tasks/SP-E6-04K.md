@@ -11,3 +11,8 @@
 - Записанный replay и equivalence-тесты не меняются (fake AI, живые вызовы выключены). Feature-тест: запись, бренд-изоляция, период 30 дней, идемпотентность, выключатель; browser-тест D-5.7 со значениями у всех действий на 1440/1024/390.
 
 Scope: `app/Seller/Engine/ToolRunner.php`, `app/Seller/Engine/Tools/`, `app/Seller/Runtime/ConfiguredToolHandler.php`, `app/Seller/Settings/Tools/`, `database/migrations/E6-04K/`, `resources/js/pages/Seller/Settings/Tools/`, `tests/Feature/Seller/Settings/Tools/ToolJournalE604KTest.php`, `tests/Browser/E6-04K/`, `docs/results/SP-E6-04K.md`.
+
+## Остаток 08.11 (частичная приёмка)
+- `FirstTurnCoordinator.php:196-199` и `SellerFollowup/FollowupCoordinator.php:313-315` передают `$claim->conversationId`/`$claim->turnId` в `ToolRunner::run` и `calculateDelivery`; `ToolRunner` пишет журнал только при заданном turnId (убирает запись из `CatalogController::stock`, завышающую check_stock на D-5.7). Тест: повтор хода не удваивает счётчик calc_delivery/check_stock.
+
+Scope дополнен: `app/ProtectedOperations/FirstTurnCoordinator.php`, `app/ProtectedOperations/SellerFollowup/FollowupCoordinator.php`.
