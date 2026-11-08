@@ -28,7 +28,7 @@ final class ProtectedPriceSender
 
     private function deliver(TenantContext $tenant, TurnClaim $claim, array $arguments): array
     {
-        $candidate = app(ToolRunner::class)->run('send_price', $arguments, $tenant);
+        $candidate = app(ToolRunner::class)->run('send_price', $arguments, $tenant, $claim->conversationId, $claim->turnId);
         $mailer = config('mail.default');
         $fakeMail = Mail::getFacadeRoot() instanceof MailFake || (is_string($mailer) && config('mail.mailers.'.$mailer.'.transport') === 'array');
         $recipient = $arguments['email'] ?? null;

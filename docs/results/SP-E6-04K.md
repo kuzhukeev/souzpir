@@ -12,8 +12,7 @@
 - `HOME=/root check lint` — зелёный (composer требует HOME в этом слоте).
 
 ## Остаток
-- `send_price` (`ProtectedPriceSender::deliver` → `ToolRunner::run`) не передаёт `turnId`, поэтому после этой правки его вызовы не журналируются вообще (раньше журналировались всегда, без привязки к ходу). `ProtectedPriceSender.php` вне scope карточки — нужна отдельная правка интегратора/следующей карточки, передать `$claim->conversationId`/`$claim->turnId` аналогично.
+- Нет. Интегратор 08.11: `ProtectedPriceSender::deliver` передаёт `conversationId`/`turnId` в `ToolRunner::run` — `send_price` снова журналируется по ходу; проверка в `ProtectedPriceE507DTest`.
 
 ## Техдолг
-- См. «Остаток» — перенести строкой в `docs/tech-debt.md`.
 - Среда exec-2: `rolcreatedb=1` у тестовой роли блокирует `IsolatedDatabaseMigrations`-тесты (известный техдолг, не новый).
