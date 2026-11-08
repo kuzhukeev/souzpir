@@ -9,7 +9,7 @@ import '../../../resources/css/app.css';
 import '../../../resources/css/themes/tokens.css';
 const params = new URLSearchParams(location.search); const screen = params.get('screen') || 'login';
 document.documentElement.dataset.theme = params.get('theme') || 'neutral';
-const props = { errors: {}, hasLink: true, state: params.get('state'), status: null, lockoutEmail: params.has('locked') ? 'user@example.test' : '', lockoutSeconds: params.has('locked') ? 600 : 0, theme: params.get('theme') || 'neutral' };
+const props = { errors: {}, hasLink: true, state: params.get('state'), status: null, lockoutEmail: params.has('locked') ? 'user@example.test' : '', lockoutSeconds: params.has('locked') ? 600 : 0, theme: params.get('theme') || 'neutral', needsCode: params.get('needsCode') !== '0' };
 const page = { component: 'Fixture', props, url: location.pathname + location.search, version: 'fixture', clearHistory: false, encryptHistory: false };
 const script = document.createElement('script'); script.type = 'application/json'; script.dataset.page = 'app'; script.textContent = JSON.stringify(page); document.body.appendChild(script);
 void createInertiaApp({ resolve: () => screen === 'register' ? Register : screen === 'reset' ? ResetPassword : screen === 'invitation' ? Invitation : screen === 'changed' ? PasswordChanged : Login, setup: ({ el, App, props: p }) => createRoot(el).render(<App {...p} />) });
