@@ -28,7 +28,9 @@ final class SourceFilterE704MTest extends TenancyTestCase
             ->postJson('/api/v1/leads', ['fields' => ['name' => 'Чужой'], 'source' => 'site'])->assertCreated();
 
         $all = $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->get('/seller/analytics')->assertOk();
-        $this->assertSame(['site' => 1, 'crm' => 1, 'unknown' => 1], $all->inertiaProps('analytics.sources'));
+        $sources = $all->inertiaProps('analytics.sources');
+        ksort($sources);
+        $this->assertSame(['crm' => 1, 'site' => 1, 'unknown' => 1], $sources);
         $this->assertSame(3, $all->inertiaProps('analytics.total'));
 
         $site = $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->get('/seller/analytics?source=site')->assertOk();
