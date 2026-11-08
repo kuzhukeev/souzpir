@@ -65,8 +65,8 @@ final class ApiOpeningInput
             throw new LogicException('API opening unavailable.');
         }
         $system = app(ResponderProjection::class)->render($knowledge, $state, $goal, $name);
-        // Proactive opening has no client message; tool execution is not part of this phase.
-        $request = app(ResponderRequest::class)->build($system, [], [], $model, (float) $temperature, $prompt->version, $prompt->checksum);
+        // Proactive opening has no client message or prior tool results, only the goal's allowed tools.
+        $request = app(ResponderRequest::class)->build($system, [], $goal->allowedTools, $model, (float) $temperature, $prompt->version, $prompt->checksum);
         $context = app(ProtectedRetryContext::class)->make($tenant, $conversation->id, 'responder', 'api-opening-'.$lead->id);
 
         return [$request, $context, $state, $goal, $knowledge];

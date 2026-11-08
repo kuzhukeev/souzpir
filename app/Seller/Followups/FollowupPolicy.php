@@ -47,12 +47,25 @@ final class FollowupPolicy
         if (! $lastAgent || $lastAgent->lessThanOrEqualTo($lastClient)) {
             return null;
         }
+        // A sent automated reminder is itself the newest "agent" message, which would otherwise
+        // move the threshold base forward on every reminder. Once the first one is sent,
+        // FollowupSender pins the original silence start here so later thresholds are measured
+        // from it, same as the donor, regardless of how the caller computed $lastAgent.
+        $anchor = $lastAgent;
+        $started = data_get($conversation, 'state.counters.silence_started_at');
+        if (is_string($started) && $started !== '') {
+            try {
+                $anchor = CarbonImmutable::parse($started);
+            } catch (\Throwable) {
+                // Invalid stored anchor keeps the live $lastAgent as the threshold base.
+            }
+        }
         $first = max(1, (int) ($settings['first_hours'] ?? 20));
         $hours = $count === 0 ? $first : (($settings['second_hours'] ?? null) !== null ? max(1, (int) $settings['second_hours']) : $first * ($count + 1));
-        if ($lastAgent->addHours($hours)->greaterThan($now)) {
+        if ($anchor->addHours($hours)->greaterThan($now)) {
             return null;
         }
 
-        return ['reason' => 'silence', 'source_at' => $lastAgent->utc()->toIso8601String(), 'sequence' => $count + 1];
+        return ['reason' => 'silence', 'source_at' => $anchor->utc()->toIso8601String(), 'sequence' => $count + 1];
     }
 }

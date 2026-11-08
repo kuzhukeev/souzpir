@@ -49,6 +49,10 @@ final class FirstTurnGoal
             $extraction['_text'] = mb_strtolower($message);
             // In the donor, the proactive opening has no client message. This
             // path always starts from a saved client message, even on turn one.
+            // Tested: flipping this to true breaks the pinned CI test
+            // FirstTurnStateTest::test_first_client_message_follows_donor_inbound_goal_not_proactive_opening,
+            // which asserts the client's first message follows the donor's post-opening goal
+            // (ask_slot), not intro_and_ask -- see docs/results/SP-E3-07G.md.
             $goal = (new Policy($knowledge))->decide($lead, $extraction, false);
 
             // Return the full Goal, including facts and closed-topic data that
