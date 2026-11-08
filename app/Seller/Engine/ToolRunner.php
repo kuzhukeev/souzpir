@@ -18,11 +18,12 @@ use Throwable;
 final class ToolRunner
 {
     /** @return array<string, mixed> */
-    public function run(#[SensitiveParameter] mixed $name, #[SensitiveParameter] mixed $arguments, #[SensitiveParameter] mixed $config): array
+    public function run(#[SensitiveParameter] mixed $name, #[SensitiveParameter] mixed $arguments, #[SensitiveParameter] mixed $config,
+        ?string $dialogId = null, ?string $turnId = null): array
     {
         $result = $this->dispatch($name, $arguments, $config);
-        if ($config instanceof TenantContext && is_string($name)) {
-            app(ToolCallJournal::class)->record($config, $name, is_string($result['status'] ?? null) ? $result['status'] : 'unavailable');
+        if ($config instanceof TenantContext && is_string($name) && $turnId !== null) {
+            app(ToolCallJournal::class)->record($config, $name, is_string($result['status'] ?? null) ? $result['status'] : 'unavailable', $dialogId, $turnId);
         }
 
         return $result;

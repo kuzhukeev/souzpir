@@ -35,9 +35,21 @@ final class ToolJournalE604KTest extends TenancyTestCase
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
         $this->post('/seller/scenario/tools', ['tools' => ['check_stock' => false], 'requisites' => '', 'delivery_rules' => []])->assertSessionHasNoErrors();
         $tenant = new TenantContext($org->id, $brand->id, source: 'job');
-        self::assertSame(['status' => 'disabled'], app(ToolRunner::class)->run('check_stock', ['query' => 'A1'], $tenant));
+        self::assertSame(['status' => 'disabled'], app(ToolRunner::class)->run('check_stock', ['query' => 'A1'], $tenant, null, (string) Str::ulid()));
         self::assertDatabaseHas('seller_tool_call_journal', ['organization_id' => $org->id, 'brand_id' => $brand->id, 'tool' => 'check_stock', 'status' => 'disabled']);
         self::assertSame(1, DB::table('seller_tool_call_journal')->count());
+    }
+
+    public function test_call_without_a_turn_id_is_not_journaled(): void
+    {
+        Http::preventStrayRequests();
+        [$owner, $org, $brand] = $this->cabinet();
+        $this->enable($org->id, $brand->id);
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $this->post('/seller/scenario/tools', ['tools' => ['check_stock' => false], 'requisites' => '', 'delivery_rules' => []])->assertSessionHasNoErrors();
+        $tenant = new TenantContext($org->id, $brand->id, source: 'job');
+        self::assertSame(['status' => 'disabled'], app(ToolRunner::class)->run('check_stock', ['query' => 'A1'], $tenant));
+        self::assertSame(0, DB::table('seller_tool_call_journal')->count());
     }
 
     public function test_calc_delivery_outcomes_are_journaled_and_isolated_by_brand(): void
@@ -52,12 +64,33 @@ final class ToolJournalE604KTest extends TenancyTestCase
         $handler = app(ConfiguredToolHandler::class);
         $tenant = new TenantContext($org->id, $brand->id, source: 'job');
         $otherTenant = new TenantContext($org->id, $other->id, source: 'job');
-        self::assertSame('ready', $handler->calculateDelivery($tenant, ['city' => 'Москва'])['status']);
-        self::assertSame('invalid_arguments', $handler->calculateDelivery($tenant, ['city' => 1])['status']);
+        self::assertSame('ready', $handler->calculateDelivery($tenant, ['city' => 'Москва'], null, (string) Str::ulid())['status']);
+        self::assertSame('invalid_arguments', $handler->calculateDelivery($tenant, ['city' => 1], null, (string) Str::ulid())['status']);
         self::assertSame(1, DB::table('seller_tool_call_journal')->where('brand_id', $brand->id)->where('status', 'ready')->count());
         self::assertSame(0, DB::table('seller_tool_call_journal')->where('brand_id', $other->id)->count());
-        self::assertSame('not_configured', $handler->calculateDelivery($otherTenant, ['city' => 'Москва'])['status']);
+        self::assertSame('not_configured', $handler->calculateDelivery($otherTenant, ['city' => 'Москва'], null, (string) Str::ulid())['status']);
         self::assertSame(1, DB::table('seller_tool_call_journal')->where('brand_id', $other->id)->where('status', 'not_configured')->count());
+        self::assertSame('ready', $handler->calculateDelivery($tenant, ['city' => 'Москва'])['status']);
+        self::assertSame(1, DB::table('seller_tool_call_journal')->where('brand_id', $brand->id)->where('status', 'ready')->count());
+    }
+
+    public function test_calc_delivery_and_check_stock_retry_with_the_same_turn_does_not_double_count(): void
+    {
+        Http::preventStrayRequests();
+        [$owner, $org, $brand] = $this->cabinet();
+        $this->enable($org->id, $brand->id);
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
+        $this->post('/seller/scenario/tools', ['tools' => ['calc_delivery' => true, 'check_stock' => true], 'requisites' => '', 'delivery_rules' => [['city' => 'Москва', 'price_min' => 100, 'price_max' => 200, 'days_min' => 1, 'days_max' => 2]]])->assertSessionHasNoErrors();
+        $tenant = new TenantContext($org->id, $brand->id, source: 'job');
+        $dialogId = (string) Str::ulid();
+        DB::table('conversations')->insert(['id' => $dialogId, 'organization_id' => $org->id, 'brand_id' => $brand->id, 'created_at' => now(), 'updated_at' => now()]);
+        $turnId = (string) Str::ulid();
+        app(ConfiguredToolHandler::class)->calculateDelivery($tenant, ['city' => 'Москва'], $dialogId, $turnId);
+        app(ConfiguredToolHandler::class)->calculateDelivery($tenant, ['city' => 'Москва'], $dialogId, $turnId);
+        app(ToolRunner::class)->run('check_stock', ['query' => 'A1'], $tenant, $dialogId, $turnId);
+        app(ToolRunner::class)->run('check_stock', ['query' => 'A1'], $tenant, $dialogId, $turnId);
+        self::assertSame(1, DB::table('seller_tool_call_journal')->where('tool', 'calc_delivery')->count());
+        self::assertSame(1, DB::table('seller_tool_call_journal')->where('tool', 'check_stock')->count());
     }
 
     public function test_escalate_retry_with_the_same_turn_does_not_double_count(): void
