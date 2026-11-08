@@ -92,7 +92,7 @@
 | Карточка | Статус | Экраны / состояния | Оставшаяся приёмка | Блокеры |
 |---|---|---|---|---|
 | [SP-E3-07E](../tasks/SP-E3-07E.md) |  done  | уточнить по карточке / инфраструктура | Подключить записанный адаптер к новому runtime и проверить 41 сценарий, follow-up, ошибки и изоляцию; включить runtime replay в CI, задокументировать подтверждённые расхождения без изменения golden fixtures. | нет серверных; см. локальную очередь |
-| [SP-E3-07G](../tasks/SP-E3-07G.md) |  reopen  | инфраструктура replay | Остаток 08.11: responder-стадия LeadState (9 кейсов), 29 persona.* через ApiOpeningRuntime, manual.force_close_14, followup 40ч. Пересдача без кода: API-scope сужен (без app/Seller/Runtime/). Планировщику: переоткрыть с scope app/Seller/Runtime/ApiOpeningRuntime.php, app/Ai/Protected/SellerResponderStages.php, app/ProtectedOperations/FirstTurnState.php, app/Seller/Engine/Policy.php, app/Seller/Followups/FollowupPolicy.php, когда освободятся. Переоткрыто 08.11 (планировщик): остаток golden-паритета: persona.* через ApiOpeningRuntime, force_close_14, followup 40ч. | scope |
+| [SP-E3-07G](../tasks/SP-E3-07G.md) |  reopen  | инфраструктура replay | Остаток 08.11: responder-стадия LeadState (9 кейсов), 29 persona.* через ApiOpeningRuntime, manual.force_close_14, followup 40ч. Пересдача без кода: API-scope сужен (без app/Seller/Runtime/). Планировщику: переоткрыть с scope app/Seller/Runtime/ApiOpeningRuntime.php, app/Ai/Protected/SellerResponderStages.php, app/ProtectedOperations/FirstTurnState.php, app/Seller/Engine/Policy.php, app/Seller/Followups/FollowupPolicy.php, когда освободятся. Переоткрыто 08.11 (планировщик). Влито 08.11 (интегратор): 29 persona.* и followup_40h сходятся. Остаток: 9 диалоговых + no_repeat_filled_slot (реплей должен прогнать проактивный опенинг перед первым ходом клиента, FirstTurnGoal не менять), manual.force_close_14. | scope |
 
 ## SP-E3-10
 
@@ -463,7 +463,7 @@ SP-E5-03F: simulation job и повтор подтверждённой ошиб�
 | S-7.1 | Тихие часы и сводка не влияют на доставку личных уведомлений; переключатель сводки; «Сохранить» без изменений | SP-E1-08E (reopen) |
 | D-4.11 | Проверка/диалог для опубликованной версии `unavailable`; плашка «не попадают в статистику»; подпись «контрольный сценарий» | SP-E4-10R (reopen) |
 | D-5.7 | Описание действий; вызовы за 30 дней только у create_promise; skeleton/ошибка | SP-E6-04G (reopen) |
-| — (golden) | persona.* через ApiOpeningRuntime, force_close_14, followup 40ч; responder LeadState ждёт освобождения файлов SP-E4-01X | SP-E3-07G (reopen) |
+| — (golden) | 9 диалоговых + no_repeat_filled_slot (опенинг перед первым ходом в реплее), force_close_14 | SP-E3-07G (reopen) |
 | S-1.1 | Оси/даты графика, «По дням», полоски долей «Главных проблем», пиктограммы KPI | SP-E1-03C (reopen) |
 | S-6.2 | Меню ⋮, «Отложено» вместо «В очереди», ошибка ERR_LOAD | SP-E1-09E (reopen) |
 | D-3.4, D-3.5 | Select «Все совпадения» и плашка; dropzone CSV | SP-E5-08D (reopen) |
