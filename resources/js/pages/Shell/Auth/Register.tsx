@@ -39,7 +39,7 @@ export default function Register({ needsCode = true }: { needsCode?: boolean }) 
   return (
     <AuthFrame title="Создать аккаунт" subtitle="Начните работу с EYON">
       <form onSubmit={submit} className="space-y-4">
-        {Object.keys(form.errors).length > 0 && <p role="alert" className="rounded-lg bg-(--color-danger-soft) p-3 text-sm text-(--color-danger-ink)">Проверьте поля и подтвердите обязательные согласия</p>}
+        {Object.keys(form.errors).length > 0 && <p role="alert" className="rounded-lg bg-(--color-danger-soft) p-3 text-sm text-(--color-danger-ink)">{!needsCode && form.errors.bootstrap_code ? form.errors.bootstrap_code : 'Проверьте поля и подтвердите обязательные согласия'}</p>}
         <Field
           label="Имя"
           autoComplete="name"
