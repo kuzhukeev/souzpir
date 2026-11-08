@@ -18,7 +18,7 @@ function formatPhone(value: string): string {
   return result;
 }
 
-export default function Register() {
+export default function Register({ needsCode = true }: { needsCode?: boolean }) {
   const form = useForm({
     name: '',
     email: '',
@@ -39,7 +39,7 @@ export default function Register() {
   return (
     <AuthFrame title="Создать аккаунт" subtitle="Начните работу с EYON">
       <form onSubmit={submit} className="space-y-4">
-        {Object.keys(form.errors).length > 0 && <p role="alert" className="rounded-lg bg-(--color-danger-soft) p-3 text-sm text-(--color-danger-ink)">Проверьте поля и подтвердите обязательные согласия</p>}
+        {Object.keys(form.errors).length > 0 && <p role="alert" className="rounded-lg bg-(--color-danger-soft) p-3 text-sm text-(--color-danger-ink)">{!needsCode && form.errors.bootstrap_code ? form.errors.bootstrap_code : 'Проверьте поля и подтвердите обязательные согласия'}</p>}
         <Field
           label="Имя"
           autoComplete="name"
@@ -93,18 +93,22 @@ export default function Register() {
           onChange={(e) => form.setData('phone', formatPhone(e.target.value))}
           error={form.errors.phone}
         />
-        <Field
-          label="Код создания кабинета"
-          type="password"
-          autoComplete="off"
-          required
-          value={form.data.bootstrap_code}
-          onChange={(e) => form.setData('bootstrap_code', e.target.value)}
-          error={form.errors.bootstrap_code}
-        />
-        <p className="text-sm leading-5 text-(--color-ink-muted)">
-          Код нужен только для создания первого владельца. Участники присоединяются по приглашению.
-        </p>
+        {needsCode && (
+          <>
+            <Field
+              label="Код создания кабинета"
+              type="password"
+              autoComplete="off"
+              required
+              value={form.data.bootstrap_code}
+              onChange={(e) => form.setData('bootstrap_code', e.target.value)}
+              error={form.errors.bootstrap_code}
+            />
+            <p className="text-sm leading-5 text-(--color-ink-muted)">
+              Код нужен только для создания первого владельца. Участники присоединяются по приглашению.
+            </p>
+          </>
+        )}
         <Check
           label="Я принимаю условия использования и обработки данных"
           required

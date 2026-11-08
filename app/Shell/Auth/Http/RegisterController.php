@@ -24,24 +24,38 @@ final class RegisterController
 {
     public function create(): Response
     {
-        return Inertia::render('Shell/Auth/Register');
+        return Inertia::render('Shell/Auth/Register', ['needsCode' => $this->codeRequired()]);
+    }
+
+    private function codeRequired(): bool
+    {
+        $configured = config('features.E1-01.defaults.bootstrap_token_hash');
+
+        return is_string($configured) && preg_match('/^[a-f0-9]{64}$/D', $configured) === 1;
     }
 
     public function store(Request $request, SessionController $session): RedirectResponse
     {
         $request->merge(['email' => mb_strtolower(trim((string) $request->input('email')))]);
-        $configured = config('features.E1-01.defaults.bootstrap_token_hash');
-        $code = $request->input('bootstrap_code');
-        if (! is_string($configured) || ! preg_match('/^[a-f0-9]{64}$/D', $configured) || ! is_string($code) || strlen($code) < 32 || strlen($code) > 256 || ! hash_equals($configured, hash('sha256', $code))) {
-            return back()->withErrors(['bootstrap_code' => 'Код создания кабинета недействителен.'])->withInput($request->except(['bootstrap_code', 'password', 'password_confirmation']));
+        $codeRequired = $this->codeRequired();
+        if ($codeRequired) {
+            $configured = config('features.E1-01.defaults.bootstrap_token_hash');
+            $code = $request->input('bootstrap_code');
+            if (! is_string($code) || strlen($code) < 32 || strlen($code) > 256 || ! hash_equals($configured, hash('sha256', $code))) {
+                return back()->withErrors(['bootstrap_code' => 'Код создания кабинета недействителен.'])->withInput($request->except(['bootstrap_code', 'password', 'password_confirmation']));
+            }
         }
-        $validator = Validator::make($request->all(), [
+        $rules = [
             'name' => ['required', 'string', 'max:120'],
             'email' => ['required', 'email', 'max:254', 'unique:users,email'],
             'phone' => ['nullable', 'regex:/^\+?[0-9 ()-]{7,25}$/'],
             'password' => ['required', 'confirmed', Password::min(12)],
-            'terms' => ['accepted'], 'ai_consent' => ['accepted'], 'marketing' => ['boolean'], 'bootstrap_code' => ['required', 'string', 'min:32', 'max:256'],
-        ]);
+            'terms' => ['accepted'], 'ai_consent' => ['accepted'], 'marketing' => ['boolean'],
+        ];
+        if ($codeRequired) {
+            $rules['bootstrap_code'] = ['required', 'string', 'min:32', 'max:256'];
+        }
+        $validator = Validator::make($request->all(), $rules);
         if ($validator->fails()) {
             return back()->withErrors($validator)->withInput($request->except(['bootstrap_code', 'password', 'password_confirmation']));
         }
