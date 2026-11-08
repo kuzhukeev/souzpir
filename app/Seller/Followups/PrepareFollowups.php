@@ -53,9 +53,7 @@ final class PrepareFollowups implements ShouldQueue
         $conversations = DB::table('conversations')->where('organization_id', $this->organizationId)->where('brand_id', $this->brandId)->whereNotNull('last_client_message_at')->get();
         foreach ($conversations as $conversation) {
             $last = DB::table('messages')->where('organization_id', $this->organizationId)->where('brand_id', $this->brandId)
-                ->where('conversation_id', $conversation->id)->where('role', 'agent')
-                ->where(fn ($q) => $q->whereNull('meta->goal->kind')->orWhere('meta->goal->kind', '!=', 'followup_nudge'))
-                ->orderByDesc('created_at')->orderByDesc('id')->value('created_at');
+                ->where('conversation_id', $conversation->id)->where('role', 'agent')->orderByDesc('created_at')->orderByDesc('id')->value('created_at');
             $state = json_decode($conversation->state, true);
             $data = ['stage' => $conversation->stage, 'state' => is_array($state) ? $state : [], 'do_not_disturb' => $conversation->do_not_disturb,
                 'followups_sent' => $conversation->followups_sent, 'last_client_message_at' => $conversation->last_client_message_at];

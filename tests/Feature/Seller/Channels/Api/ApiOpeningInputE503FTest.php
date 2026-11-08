@@ -65,7 +65,7 @@ final class ApiOpeningInputE503FTest extends TenancyTestCase
             self::assertSame('Тест', $state->slot('name'));
             self::assertSame($lead->conversation_id, $context->objectId);
             self::assertSame(['system'], array_column($request->messages, 'role'));
-            self::assertSame($goal->allowedTools, array_column(array_column($request->tools, 'function'), 'name'));
+            self::assertSame([], $request->tools);
         });
         self::assertSame(0, DB::table('messages')->where('conversation_id', $lead->conversation_id)->count());
         Http::assertNothingSent();

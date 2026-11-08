@@ -40,9 +40,7 @@ final class FollowupSender
                 if (($settings['enabled'] ?? true) === false) {
                     return false;
                 }
-                $last = DB::table('messages')->where($scope)->where('conversation_id', $conversation->id)->where('role', 'agent')
-                    ->where(fn ($q) => $q->whereNull('meta->goal->kind')->orWhere('meta->goal->kind', '!=', 'followup_nudge'))
-                    ->orderByDesc('created_at')->orderByDesc('id')->value('created_at');
+                $last = DB::table('messages')->where($scope)->where('conversation_id', $conversation->id)->where('role', 'agent')->orderByDesc('created_at')->orderByDesc('id')->value('created_at');
                 $due = $policy->due(['stage' => $conversation->stage, 'state' => $state, 'do_not_disturb' => $conversation->do_not_disturb,
                     'followups_sent' => $conversation->followups_sent, 'last_client_message_at' => $conversation->last_client_message_at], $settings,
                     $last ? CarbonImmutable::parse($last) : null, CarbonImmutable::now(), $brand->timezone);
@@ -61,6 +59,10 @@ final class FollowupSender
                 data_set($state, 'counters.followups_sent', $count);
                 if ($candidate->reason === 'next_contact_at') {
                     data_set($state, 'flags._followup_done_'.CarbonImmutable::parse($candidate->source_at)->timestamp, true);
+                } elseif ($candidate->reason === 'silence' && ! data_get($state, 'counters.silence_started_at')) {
+                    // Pin the original silence start before this reminder becomes the newest "agent"
+                    // message itself; FollowupPolicy::due() reads it back for later thresholds.
+                    data_set($state, 'counters.silence_started_at', $candidate->source_at);
                 }
                 DB::table('conversations')->where($scope)->where('id', $conversation->id)->update(['state' => json_encode($state, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE), 'followups_sent' => $count, 'last_bot_message_at' => now(), 'updated_at' => now()]);
                 DB::table('messages')->where($scope)->where('id', $messageId)->update(['delivered_at' => now(), 'updated_at' => now()]);
