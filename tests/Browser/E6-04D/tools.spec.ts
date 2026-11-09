@@ -10,7 +10,7 @@ test.beforeAll(async () => { server = await createServer({ configFile: 'tests/Br
 test.afterAll(async () => { await server?.close(); });
 test('действия показывают отсутствие счётчика и ведут к настройкам', async ({ page }) => {
   await page.goto(url);
-  await expect(page.getByText('Вызовы за 30 дней: нет данных')).toHaveCount(3);
+  await expect(page.getByRole('cell',{name:'нет данных',exact:true})).toHaveCount(3);
   await expect(page.getByRole('link', { name: 'Настроить →' }).nth(0)).toHaveAttribute('href', '#delivery-rules');
   await expect(page.getByRole('link', { name: 'Настроить →' }).nth(1)).toHaveAttribute('href', '#requisites');
   await expect(page.getByRole('link', { name: 'Настроить →' }).nth(2)).toHaveAttribute('href', '/seller/scenario/handoff');

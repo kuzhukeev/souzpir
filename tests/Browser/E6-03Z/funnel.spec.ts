@@ -7,8 +7,8 @@ test.beforeAll(async()=>{server=await createServer({configFile:'tests/Browser/E6
 test.afterAll(async()=>{await server?.close();});
 test('цель стадии и закрывающие поля берутся из сохранённых настроек, не из заглушки',async({page})=>{
  await page.goto(url);
- const stage=page.getByRole('listitem').filter({has:page.getByRole('heading',{name:'Квалификация'})});
- await stage.getByText('Условия и действия').click();
+ await page.getByRole('button',{name:'Квалификация'}).click();
+ const stage=page.locator('div').filter({has:page.getByRole('heading',{name:'Стадия: Квалификация'})}).filter({has:page.locator('dl')}).last();
  await expect(stage.getByText('Узнать: Город')).toBeVisible();
  await expect(stage.getByText('Поля, закрывающие стадию')).toBeVisible();
  await expect(stage.getByText('Данные не подтверждены')).toHaveCount(0);
