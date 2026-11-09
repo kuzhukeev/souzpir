@@ -12,7 +12,7 @@ const page = {component: mode === 'report' ? 'Report' : 'Wizard', props: {
   auth: {user: {id: 'u', name: 'Иван Петров', email: 'ivan@example.test'}},
   can: {'vision.measure.run': true, 'vision.report.read': true, 'vision.quiz.write': true}, modules: {vision: true, seller: false}, visionProfileReady: true,
   unread: null, translations: {}, ziggy: {routes: {'vision.clarifications.index': {uri: 'vision/clarifications', methods: ['GET']}}}, errors: {},
-  measurement: 'm', step: mode === 'done' ? 'done' : 'presence', available: true, total: 3, pending: 1, alias_available: true,
+  measurement: 'm', step: mode === 'done' ? 'done' : 'presence', available: true, total: 3, pending: 1, alias_available: true, recalculated: {before: 31, after: 34},
   items: [{key: 'k', value: '2gis.ru', excerpt: 'Нейросеть нашла 2gis.ru и отзывы компании.', decision: null, correction: null, profile_url: null, add_alias: false, from_questionnaire: true, questionnaire_url: 'https://2gis.ru/org/123'}],
   reportBrandRevision: revision, ttlDays: [7], publications: [],
 }, url: mode === 'report' ? '/vision/report' : `/vision/runs/m/clarify/${mode}`, version: null, clearHistory: false, encryptHistory: false};
