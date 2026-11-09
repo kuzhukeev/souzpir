@@ -80,7 +80,7 @@ test('registration, verification and invitation match their key states at 1440',
   await page.getByLabel('Имя').fill('Тест');
   await page.getByLabel('Рабочая почта').fill('new-browser@example.test');
   await page.getByLabel('Повторите пароль').fill('Strong-password-123');
-  await page.getByLabel('Код создания кабинета').fill('x'.repeat(40));
+  await expect(page.getByLabel('Код создания кабинета')).toHaveCount(0);
   await page.getByLabel('Я принимаю условия использования и обработки данных').check();
   await page.getByLabel('Название компании и тексты диалогов обрабатываются внешними ИИ-провайдерами через OpenRouter').check();
   await page.route('**/register', async (route) => {
