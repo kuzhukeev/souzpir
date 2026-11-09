@@ -1,8 +1,28 @@
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawn, type ChildProcess } from 'node:child_process';
+import { createServer } from 'node:net';
 import { expect, test, type Page } from '@playwright/test';
 
-const origin = 'http://127.0.0.1:5216';
-const fixture = `${origin}/tests/Browser/E1-06/ui-fixture.html`;
+let origin: string;
+let fixture: string;
+let vite: ChildProcess;
+test.beforeAll(async () => {
+  const port = await new Promise<number>((resolve) => {
+    const socket = createServer().listen(0, '127.0.0.1', () => {
+      const address = socket.address();
+      const port = typeof address === 'object' && address ? address.port : 0;
+      socket.close(() => resolve(port));
+    });
+  });
+  origin = `http://127.0.0.1:${port}`;
+  fixture = `${origin}/tests/Browser/E1-06/ui-fixture.html`;
+  vite = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--config', 'tests/Browser/E1-06/vite.config.ts', '--port', String(port), '--strictPort'], { stdio: 'ignore' });
+  for (let i = 0; i < 80; i++) {
+    try { if ((await fetch(fixture)).ok) return; } catch { /* starting */ }
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  throw new Error('Vite fixture did not start');
+});
+test.afterAll(() => { vite?.kill(); });
 const raw = execFileSync(
   process.env.TEAM_TEST_PHP_PATH || 'php',
   [
@@ -86,9 +106,11 @@ for (const width of [1440, 1024, 390]) {
       await page.goto(`${fixture}?theme=${theme}`);
       await expect(page.getByRole('heading', { level: 1, name: 'Роли и доступ' })).toBeVisible();
       await expect(page.getByRole('heading', { level: 2, name: 'Матрица ролей' })).toBeVisible();
-      if (width < 768)
-        await expect(page.getByRole('region', { name: 'Роль Менеджер' })).toContainText('Частично');
-      else await expect(page.getByRole('row', { name: /Менеджер/ })).toContainText('Частично');
+      const manager = width < 768
+        ? page.getByRole('region', { name: 'Роль Менеджер' })
+        : page.getByRole('row', { name: /Менеджер/ });
+      await expect(manager).toContainText('Полный');
+      await expect(manager).toContainText('Нет');
       await readable(page);
       await page.screenshot({
         path: `.local/screenshots/e1-06/roles-${theme}-${width}.png`,
