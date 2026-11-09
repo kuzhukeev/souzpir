@@ -7,8 +7,8 @@ test.beforeAll(async () => { server = await createServer({ configFile: 'tests/Br
 test.afterAll(async () => { await server?.close(); });
 test('счётчик и отсутствие данных', async ({ page }) => {
  await page.goto(url);
- await expect(page.getByText('Вызовы за 30 дней: 3')).toBeVisible();
- await expect(page.getByText('Вызовы за 30 дней: нет данных')).toHaveCount(3);
+ await expect(page.getByRole('row').filter({hasText:'Записать обещание'}).getByRole('cell',{name:'3',exact:true})).toBeVisible();
+ await expect(page.getByRole('cell',{name:'нет данных',exact:true})).toHaveCount(3);
  await mkdir('.local/screenshots/SP-E6-04H', { recursive: true });
  await page.screenshot({ path: '.local/screenshots/SP-E6-04H/tools.png', fullPage: true });
 });
