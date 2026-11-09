@@ -25,6 +25,7 @@ test('D-3.3: no critical/serious axe violations on 1440/1024/390', async ({ page
    return (await axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa'] } })).violations.filter(v => v.impact === 'critical' || v.impact === 'serious').map(v => ({ id: v.id, impact: v.impact, nodes: v.nodes.map(node => node.target) }));
   });
  }
+ await mkdir('.local/screenshots/SP-E6-10E', { recursive: true });
  await writeFile('.local/screenshots/SP-E6-10E/tasks-axe.json', JSON.stringify(findings, null, 2));
  expect(Object.values(findings).flat()).toEqual([]);
 });

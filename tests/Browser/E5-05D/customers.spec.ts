@@ -1,10 +1,10 @@
 import { expect, test } from '@playwright/test';
-import { spawn, type ChildProcess } from 'node:child_process';
+import { createServer, type ViteDevServer } from 'vite';
 import { mkdir } from 'node:fs/promises';
-let server:ChildProcess;
-const url='http://127.0.0.1:5318/tests/Browser/E5-05D/fixture.html';
-test.beforeAll(async()=>{server=spawn(process.execPath,['node_modules/vite/bin/vite.js','--config','tests/Browser/E5-05D/vite.config.ts'],{stdio:'ignore'});for(let i=0;i<60;i++){try{if((await fetch(url)).ok)return;}catch{/* Ожидаем сервер. */}await new Promise(resolve=>setTimeout(resolve,500));}throw new Error('Vite не запустился');});
-test.afterAll(()=>server?.kill());
+let server:ViteDevServer;
+let url:string;
+test.beforeAll(async()=>{server=await createServer({configFile:'tests/Browser/E5-05D/vite.config.ts',server:{host:'127.0.0.1',port:0,strictPort:false}});await server.listen();url=new URL('/tests/Browser/E5-05D/fixture.html',server.resolvedUrls!.local[0]).href;});
+test.afterAll(async()=>{await server?.close();});
 test.use({launchOptions:process.env.E505D_CHROMIUM_PATH?{executablePath:process.env.E505D_CHROMIUM_PATH}:{}});
 test('список: последний диалог, лучший итог, меню и страницы',async({page})=>{await page.setViewportSize({width:1440,height:900});await page.goto(url);await expect(page.getByRole('columnheader',{name:'Последний диалог'})).toBeVisible();await expect(page.getByRole('columnheader',{name:'Итог лучшего диалога'})).toBeVisible();await page.getByLabel('Действия: Анна Соколова').click();await expect(page.getByRole('link',{name:'Открыть карточку'})).toHaveAttribute('href',/seller\/customers\//);await expect(page.getByRole('link',{name:'Открыть диалог'})).toHaveAttribute('href',/seller\/dialogs\//);await expect(page.getByText(/из 21/)).toBeVisible();await expect(page.getByRole('button',{name:'Далее'})).toBeEnabled();await mkdir('.local/screenshots/sp-e5-05d',{recursive:true});await page.screenshot({path:'.local/screenshots/sp-e5-05d/index-1440.png',fullPage:true});});
 test('карточка: копирование, следующий шаг, обещания и действия',async({page})=>{await page.setViewportSize({width:1440,height:900});await page.addInitScript(()=>Object.defineProperty(navigator,'clipboard',{value:{writeText:async()=>{}},configurable:true}));await page.goto(`${url}?show`);await page.getByRole('button',{name:'Скопировать Телефон'}).click();await expect(page.getByRole('status')).toHaveText('Скопировано');await expect(page.getByRole('heading',{name:'Следующий шаг'})).toBeVisible();await expect(page.getByRole('link',{name:/Написать в диалоге/})).toHaveAttribute('href',/seller\/dialogs\//);await expect(page.getByRole('link',{name:'Объединить с…'})).toHaveAttribute('href','/seller/customer-duplicates');await page.getByRole('button',{name:'Что обещали отправить'}).click();await expect(page.getByRole('row').filter({hasText:'Отправить прайс'})).toBeVisible();await mkdir('.local/screenshots/sp-e5-05d',{recursive:true});await page.screenshot({path:'.local/screenshots/sp-e5-05d/show-1440.png',fullPage:true});});
