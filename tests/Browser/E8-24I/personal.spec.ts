@@ -39,7 +39,7 @@ test('participant table exposes role and saves channel selections', async ({ pag
  await expect(table).toContainText('Редактор');
  await expect(table).toContainText('Наблюдатель');
  await expect(table).toContainText('Менеджер');
- await expect(table).toContainText('По праву просмотра замеров');
+ await expect(table).toContainText('Доступен владельцу, администратору и редактору');
  await page.screenshot({ path: '.local/screenshots/SP-E8-24I/table.png', fullPage: true });
  await page.getByLabel('Мария Иванова: email').check();
  const saved = page.waitForRequest(request => request.url().endsWith('/vision/settings/recipients') && request.method() === 'PUT');
