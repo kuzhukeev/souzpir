@@ -1,13 +1,15 @@
 import { expect, test } from '@playwright/test';
 import { createServer, type ViteDevServer } from 'vite';
-import { writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 
-const base = 'http://127.0.0.1:5241/tests/Browser/E5-05F/fixture.html';
+let base: string;
 test.use({ launchOptions: { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH } });
 let vite: ViteDevServer;
 test.beforeAll(async () => {
-  vite = await createServer({ configFile: 'tests/Browser/E5-05F/vite.config.ts', server: { host: '127.0.0.1', port: 5241, strictPort: true } });
+  vite = await createServer({ configFile: 'tests/Browser/E5-05F/vite.config.ts', server: { host: '127.0.0.1', port: 0 } });
   await vite.listen();
+  base = new URL('/tests/Browser/E5-05F/fixture.html', vite.resolvedUrls!.local[0]).href;
+  await mkdir('.local/screenshots/sp-e5-05f', { recursive: true });
 });
 test.afterAll(async () => { await vite?.close(); });
 
@@ -24,7 +26,7 @@ test('customer list, card, and task screens show the missing fields', async ({ p
   await page.goto(`${base}?screen=show`);
   await expect(page.getByText('Фейерверк · Тверь')).toBeVisible();
   await expect(page.getByText('12345')).toBeVisible();
-  await expect(page.getByText('Источник: Клиент')).toBeVisible();
+  await expect(page.getByText('Клиент, 3 нояб')).toBeVisible();
   await page.screenshot({ path: '.local/screenshots/sp-e5-05f/customer-1440.png', fullPage: true });
 
   await page.goto(`${base}?screen=tasks`);

@@ -9,7 +9,7 @@ test('customer card shows published additional fields below the system data', as
  await page.goto(url);
  await expect(page.getByText('Марка и модель')).toBeVisible();
  await expect(page.getByText('Toyota Camry')).toBeVisible();
- await expect(page.getByRole('heading', { name: 'Остальные поля' })).toBeVisible();
+ await expect(page.getByRole('heading', { name: 'Данные клиента' })).toBeVisible();
  await mkdir('.local/screenshots/SP-E6-10E', { recursive: true });
  await page.screenshot({ path: '.local/screenshots/SP-E6-10E/customer-card.png', fullPage: true });
 });
@@ -26,6 +26,7 @@ test('D-3.2: no critical/serious axe violations on 1440/1024/390', async ({ page
    return (await axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa'] } })).violations.filter(v => v.impact === 'critical' || v.impact === 'serious').map(v => ({ id: v.id, impact: v.impact, nodes: v.nodes.map(node => node.target) }));
   });
  }
+ await mkdir('.local/screenshots/SP-E6-10E', { recursive: true });
  await writeFile('.local/screenshots/SP-E6-10E/customer-axe.json', JSON.stringify(findings, null, 2));
  expect(Object.values(findings).flat()).toEqual([]);
 });
