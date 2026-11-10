@@ -2,6 +2,8 @@
 
 namespace App\Seller\Engine;
 
+use App\Seller\Engine\Tools\ToolCallJournal;
+use App\Seller\Settings\Tools\ToolPreferences;
 use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -16,9 +18,25 @@ use Throwable;
 final class ToolRunner
 {
     /** @return array<string, mixed> */
-    public function run(#[SensitiveParameter] mixed $name, #[SensitiveParameter] mixed $arguments, #[SensitiveParameter] mixed $config): array
+    public function run(#[SensitiveParameter] mixed $name, #[SensitiveParameter] mixed $arguments, #[SensitiveParameter] mixed $config,
+        ?string $dialogId = null, ?string $turnId = null): array
+    {
+        $result = $this->dispatch($name, $arguments, $config);
+        if ($config instanceof TenantContext && is_string($name) && $turnId !== null) {
+            app(ToolCallJournal::class)->record($config, $name, is_string($result['status'] ?? null) ? $result['status'] : 'unavailable', $dialogId, $turnId);
+        }
+
+        return $result;
+    }
+
+    /** @return array<string, mixed> */
+    private function dispatch(#[SensitiveParameter] mixed $name, #[SensitiveParameter] mixed $arguments, #[SensitiveParameter] mixed $config): array
     {
         try {
+            if (in_array($name, ['set_followup', 'check_stock', 'send_price'], true) && $config instanceof TenantContext
+                && app(ToolPreferences::class)->read($config)['tools'][$name] !== true) {
+                return ['status' => 'disabled'];
+            }
             if ($name === 'set_followup' && is_array($config) && ($config['now'] ?? null) instanceof CarbonImmutable) {
                 if (! (new ToolArguments)->check($name, $arguments)['valid']) {
                     return ['status' => 'invalid_arguments'];
@@ -36,14 +54,18 @@ final class ToolRunner
                     'year_defaulted' => $candidate['year_defaulted'],
                 ];
             }
-            if ($name !== 'calc_delivery' && $name !== 'check_stock' && $name !== 'send_price') {
+            if ($name !== 'calc_delivery' && $name !== 'check_stock' && $name !== 'send_price' && $name !== 'log_unknown_question') {
                 return ['status' => 'unavailable'];
             }
-            if (($name === 'check_stock' || $name === 'send_price') && ! $config instanceof TenantContext) {
+            if (($name === 'check_stock' || $name === 'send_price' || $name === 'log_unknown_question') && ! $config instanceof TenantContext) {
                 return ['status' => 'unavailable'];
             }
             if (! (new ToolArguments)->check($name, $arguments)['valid']) {
                 return ['status' => 'invalid_arguments'];
+            }
+            if ($name === 'log_unknown_question') {
+                // The lead-state record is kept by Policy::applyExtraction, keyed by the goal, not by this call.
+                return ['status' => 'logged'];
             }
             if ($name === 'check_stock' || $name === 'send_price') {
                 return $config instanceof TenantContext && $config->organizationId && $config->brandId
@@ -113,9 +135,14 @@ final class ToolRunner
         $pricesEnabled = (bool) ($sellerSettings->catalog_prices_enabled ?? false);
         $tools = $sellerSettings && $sellerSettings->tools ? json_decode($sellerSettings->tools, true) : [];
         $discountsEnabled = is_array($tools) && ($tools['catalog_discounts_enabled'] ?? false);
+        $lowStock = (float) ($scope('catalog_settings')->value('low_stock') ?? 0);
 
-        return ['status' => 'completed', 'empty' => $items->isEmpty(), 'items' => $items->map(function ($item) use ($pricesEnabled, $discountsEnabled): array {
+        return ['status' => 'completed', 'empty' => $items->isEmpty(), 'items' => $items->map(function ($item) use ($pricesEnabled, $discountsEnabled, $lowStock): array {
             $out = ['sku' => $item->sku, 'name' => $item->name, 'stock' => $item->stock === null ? null : (float) $item->stock];
+            if ($item->stock !== null && (float) $item->stock > 0 && (float) $item->stock <= $lowStock) {
+                // Owner threshold «мало»: the bot may say stock is low and suggest checking with a manager.
+                $out['low'] = true;
+            }
             if ($pricesEnabled && $item->price !== null) {
                 $out['price'] = (float) $item->price;
             }

@@ -8,7 +8,7 @@ test.afterAll(async()=>{await server?.close();});
 test('распределение: способ, менеджеры и уведомление',async({page})=>{
  await page.goto(url);
  await expect(page.getByRole('radio',{name:/Очередь по кругу/}).first()).toBeChecked();
- await expect(page.getByRole('radio',{name:/По городу клиента/}).first()).toBeDisabled();
+ await expect(page.getByRole('radio',{name:/По городу клиента/}).first()).toBeEnabled();
  await expect(page.getByText('Анна Иванова')).toBeVisible();
  await expect(page.getByText('Рабочие часы: недоступны')).toHaveCount(0);
  await expect(page.getByText('Каналы: недоступны')).toHaveCount(0);
@@ -23,6 +23,19 @@ test('распределение: способ, менеджеры и уведо
  await expect(notifySection.getByRole('radio',{name:'Всех менеджеров'})).toBeChecked();
  await mkdir('.local/screenshots/SP-E6-06E',{recursive:true});
  await page.screenshot({path:'.local/screenshots/SP-E6-06E/assignment.png',fullPage:true});
+ await page.getByRole('radio',{name:/Фиксированный менеджер по каналу или источнику/}).check();
+ await expect(page.getByRole('heading',{name:'По источнику'})).toBeVisible();
+ await expect(page.getByRole('combobox',{name:'Telegram · Бот продаж'})).toHaveValue('');
+ await page.getByRole('combobox',{name:'Telegram · Бот продаж'}).selectOption('u');
+ await expect(page.getByRole('combobox',{name:'Telegram · Бот продаж'})).toHaveValue('u');
+ await page.getByRole('radio',{name:/По городу клиента/}).check();
+ await page.getByRole('button',{name:'Добавить город'}).click();
+ await page.getByLabel('Город',{exact:true}).fill('Казань');
+ await page.getByRole('combobox',{name:/^Менеджер(\s|$)/}).selectOption('u');
+ await expect(page.getByRole('combobox',{name:'Для остальных городов'})).toHaveValue('');
+ await page.screenshot({path:'.local/screenshots/SP-E6-06E/assignment-city.png',fullPage:true});
+ await page.getByRole('button',{name:'Удалить'}).click();
+ await expect(page.getByLabel('Город',{exact:true})).toHaveCount(0);
  await page.getByRole('button',{name:'Режим работы',exact:true}).click();
  await expect(page.getByText('Ответим утром')).toBeVisible();
  await page.screenshot({path:'.local/screenshots/SP-E6-06E/schedule.png',fullPage:true});

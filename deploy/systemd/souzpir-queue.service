@@ -6,7 +6,7 @@ After=network.target postgresql.service
 Type=simple
 User=souzpir
 WorkingDirectory=/var/www/souzpir/current
-ExecStart=/usr/bin/php artisan queue:work database --sleep=3 --tries=3
+ExecStart=/usr/bin/php artisan queue:work database --queue=souzpir-main:notifications,souzpir-main:default --sleep=3 --tries=3
 Restart=always
 RestartSec=5
 

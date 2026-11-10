@@ -1,18 +1,15 @@
 Модель: Sonnet 5
 
-# SP-E6-01E — подключить служебные фразы к ходу продавца
+# SP-E6-01E — D-6.3: drag-and-drop для «Быстрых ответов менеджера»
 
-Сделано: `ServicePhraseSelector::customForEvent()` (только явно сохранённая фраза, без дефолта) подключён к `FirstTurnTextFinalizer` и `FollowupFinalizer` для событий `unknown_fact` (ключ `no_answer`) и `handoff` — если продавец сохранил фразу, финальный текст первого/последующего ответа заменяется на неё независимо от текста fake-AI; если фраза не сохранена — поведение не меняется (совместимо со старыми fixtures).
+Остаток аудита 08.11 (служебные фразы reminder/goodbye и error/handoff/unknown_fact влиты ранее, см. историю коммитов). В этой части: `resources/js/pages/Seller/Settings/Persona/Index.tsx` — список «Быстрые ответы менеджера» (D-6.3).
 
-Проверки (fake-прогон настоящего хода через `/seller/turns/first`, оба события): `tests/Feature/Seller/Runtime/ServicePhraseOverrideE601ETest.php` — 2 теста, 12 проверок (связка extractor→responder→guard→finalizer→БД, изоляция в своём org/brand). Регрессия существующих fixtures: `ServicePhraseSelectorTest.php`, `QuotaRuntimeE113Test.php`, `ReactionRuntimeE603VTest.php`, `FirstSellerTurnHttpTest.php` — зелёные без изменений. `phpunit.xml` не трогал (файл вне scope) — тест лежит в уже покрытой wildcard-директории `tests/Feature/Seller`. `check lint` — Pint ok, composer validate ok, покрытие suites ok.
+Сделано: кнопки ↑/↓ заменены ручкой-грипом (нативный HTML5 drag-and-drop, `draggable` + `onDragStart/onDragOver/onDrop`, без новых npm-зависимостей) по макету `63/b729e1c4-D-6.3-service-phrases.webp`; перетаскивание переставляет шаблон в позицию сброса (`reorderReply`, splice). Для клавиатуры та же ручка: `Alt+↑`/`Alt+↓` двигает шаблон на одну позицию (`moveReply`, прежняя логика). Формат и сохранение `quick_replies` не менялись — `service.setData` тот же массив строк.
 
-`tests/Feature/ProtectedOperations/FirstTurnStateTest.php` (golden, suite CoreTurns) не запускается в слоте exec-9: его `createApplication()` требует роль БД без CREATEDB (у роли слота `rolcreatedb=true`) — ограничение окружения, не связано с диффом; изменённые в нём строки не трогались. Полный прогон — на CI.
-
-## Остаток
-- `error`, `out_of_hours`, `opt_out`, `reminder`, `goodbye` — не подключены: `opt_out` на первом ходе осознанно отклоняется протектед-финализатором (`ReactionRuntimeE603VTest`, SP-E6-03V) — не трогал; `out_of_hours` уже показывается только в настройках расписания (`ScheduleController`, вне scope) и по факту передаётся фразой `handoff` (`BrandRuntimeSchedule::fallbackPhrase`, подключено ранее); `reminder`/`goodbye` формируются в `app/Seller/Followups/` — вне scope карточки; `error` не имеет в scope детерминированной точки формирования клиентского текста (сбои сейчас завершаются `unavailable`/handoff менеджеру без текста). Нужна отдельная карточка с явным scope на `app/Seller/Followups/` и/или `app/Seller/Engine/`.
+Проверено: `tests/Browser/E6-01E/reorder.spec.ts` — 3 теста (перетаскивание меняет порядок полей, Alt+стрелка двигает шаблон, кнопок ↑/↓ больше нет) — свой Vite-сервер на свободном порту в beforeAll/afterAll, фикстура переиспользует `tests/Browser/E6-01C/fixture.html`; скриншот 1440 светлая тема: `.local/screenshots/SP-E6-01E/quick-replies-reorder.png`. Регрессия: `tests/Feature/Seller/Settings/Persona/PersonaTest.php` — 3 теста, 90 проверок (права, изоляция брендов, валидация) — без изменений в PHP, формат не трогали. `check lint` (Pint/composer validate/suite coverage) и `check frontend` (eslint/tsc/vitest/build) — зелёные.
 
 ## Техдолг
-- Нет новых рисков сверх описанных выше ограничений scope.
+- Нет новых рисков.
 
 ## Принято по умолчанию
-- Переопределение текста применяется только при явно сохранённой непустой фразе (без дефолтов редактора) — так старые fixtures с AI-текстом остаются рабочими, а дефолтное поведение не трогается.
+- Клавиатурная альтернатива — `Alt+↑/Alt+↓` на самой ручке (а не кнопки внутри меню): так фокус остаётся на одном элементе и не плодит лишние интерактивные узлы в списке; в макете D-6.3 отдельного меню с перемещением нет.

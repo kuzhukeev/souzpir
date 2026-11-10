@@ -36,6 +36,7 @@ final class ProtectedPriceE507DTest extends TenancyTestCase
         self::assertSame('fake_sent', $service->send($tenant, $claim, $responder, 'tool-one', $arguments)['status']);
         self::assertSame('fake_sent', $service->send($tenant, $claim, $responder, 'tool-one', $arguments)['status']);
         Mail::assertSent(PriceMail::class, 1);
+        self::assertDatabaseHas('seller_tool_call_journal', ['brand_id' => $brand->id, 'tool' => 'send_price', 'turn_id' => $claim->turnId]);
         self::assertSame('unavailable', $service->send(new TenantContext($org->id, $other->id, source: 'job'), $claim, $responder, 'cross-brand', $arguments)['status']);
         self::assertSame(0, DB::table('seller_tasks')->count());
         Storage::disk('local')->delete($path);

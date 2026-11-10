@@ -106,14 +106,7 @@ final class FirstInboundRuntime
                 $result = app(FollowupCoordinator::class)->run($http, $command, $dispatch['mode']);
             }
 
-            if (($result['status'] ?? null) === 'completed') {
-                $tenant = app(TenantContext::class);
-                $after = DB::table('conversations')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
-                    ->where('id', $command->conversationId)->value('stage');
-                if (is_string($after)) {
-                    app(StageTransitions::class)->record($tenant, $command->conversationId, $dispatch['stage'], $after);
-                }
-            }
+            // Stage transitions for a completed turn are recorded by the finalizer that writes the new stage (FirstTurnTextFinalizer/FollowupFinalizer).
             if ($dispatch['mode'] === 'bot' && ($result['status'] ?? null) === 'completed') {
                 $messageId = $result['result']['message_id'] ?? null;
                 $turnId = $result['result']['turn_id'] ?? null;

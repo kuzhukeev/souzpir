@@ -30,3 +30,23 @@ php vendor/bin/phpunit --testsuite=Equivalence --no-coverage
 ## SP-E3-07D: офлайн-адаптер
 
 Адаптер обрабатывает ответы без текста при непустых вызовах инструментов. Проверены последовательно 824 записанных вызова во всех 41 сценарии, в том числе 65 ответов только с инструментами; исчерпанная запись отклоняется. Это проверка адаптера на записанных запросах, а не replay нового runtime и не подтверждение эквивалентности. Тест автоматически включён в существующий набор Equivalence в CI.
+
+## SP-E3-07G: рабочий replay (08.11.2026, реопен с расширенным scope)
+
+Полный разбор по каждому кейсу — `docs/validation/SP-E3-07G-runtime-replay.md`. Итог:
+
+- **29 `persona.*` через `ApiOpeningRuntime`** — закрыто: `ApiOpeningInput.php:70` передавал пустой список
+  инструментов вместо `$goal->allowedTools`; после правки все 29 кейсов проходят байт-в-байт, включая `tools`.
+- **`followup_40h`** — закрыто: `FollowupSender.php`/`PrepareFollowups.php` считали «последнее сообщение агента»
+  (базу отсчёта тишины) по всем агентским сообщениям, включая собственные напоминания; второй порог
+  `FollowupPolicy::due()` отмерял от первого напоминания, а не от начала молчания (60ч вместо 40ч). Исключили
+  сообщения с `meta.goal.kind = followup_nudge` из этого запроса — теперь совпадает с записью на всех шагах.
+- **Стадия `qualify` в карточке responder'а (9 диалоговых + no_repeat_filled_slot)**: гипотеза `FirstTurnGoal.php:52`
+  `isFirstTurn=false→true` проверена и отвергнута — ломает пинованный CI-тест `FirstTurnStateTest::test_first_client_message_follows_donor_inbound_goal_not_proactive_opening`,
+  который осознанно требует `ask_slot`/`answer_and_ask`, а не `intro_and_ask`, для первого сообщения клиента (опенинг
+  в проде — отдельный механизм, не эта ветка `Policy::decide()`). Правка откатана, мismatch `open` вместо `qualify`
+  остаётся прежним — донорские трейсы DIALOGUE_CASES сами предполагают уже прошедший опенинг.
+- **`manual.force_close_14`**: воспроизводится как остальные 8 диалоговых кейсов — спотыкается на той же стадии до
+  периодического `summary`-вызова.
+- Тест (`tests/Equivalence/RuntimeReplayE307GTest.php`) зарегистрирован в `phpunit.xml` → testsuite `Equivalence`,
+  CI его запускает.

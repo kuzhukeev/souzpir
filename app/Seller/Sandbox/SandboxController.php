@@ -2,6 +2,7 @@
 
 namespace App\Seller\Sandbox;
 
+use App\Ai\Drivers\FakeDriver;
 use App\Ai\Protected\DraftResponder;
 use App\Models\User;
 use App\ProtectedOperations\DraftSimulation\FixtureRuntime;
@@ -54,23 +55,35 @@ final class SandboxController
                 return $this->simulate($request, $tenant, $input);
             }
             $draft = app(KnowledgeRepository::class)->forRelease($tenant, $input['release'], true);
-            $exists = DB::table('knowledge_releases')->where('organization_id', $tenant->organizationId)
-                ->where('brand_id', $tenant->brandId)->where('id', $input['release'])->where('status', 'draft')->exists();
-            if (! $exists || config('runtime.ai_driver') !== 'fake') {
+            $status = DB::table('knowledge_releases')->where('organization_id', $tenant->organizationId)
+                ->where('brand_id', $tenant->brandId)->where('id', $input['release'])->value('status');
+            if (! in_array($status, ['draft', 'published'], true) || config('runtime.ai_driver') !== 'fake') {
                 return ['status' => 'unavailable'];
             }
             $state = new LeadState;
             $policy = new Policy($draft);
             $questions = [...($input['history'] ?? []), $input['text']];
             foreach ($questions as $index => $question) {
-                $extraction = app(FixtureRuntime::class)->extract($request, $draft, $question);
+                $extraction = $status === 'draft'
+                    ? app(FixtureRuntime::class)->extract($request, $draft, $question)
+                    : app(FixtureRuntime::class)->extractPublished($draft, $question);
                 if ($extraction === null) {
                     return ['status' => 'unavailable'];
                 }
                 $policy->applyExtraction($state, $extraction);
                 $goal = $policy->decide($state, $extraction, $index === 0);
             }
-            $answer = app(DraftResponder::class)->respond($request, $draft, $state, $goal, $input['text']);
+            if ($status === 'draft') {
+                $answer = app(DraftResponder::class)->respond($request, $draft, $state, $goal, $input['text']);
+            } else {
+                try {
+                    $response = app(FakeDriver::class)->complete(app(DraftResponder::class)->body($draft, $state, $goal, $input['text']));
+                    $candidate = $response['content'] ?? null;
+                    $answer = is_string($candidate) && trim($candidate) !== '' && mb_strlen($candidate) <= 5000 ? trim($candidate) : null;
+                } catch (\Throwable) {
+                    $answer = null;
+                }
+            }
             if ($answer === null) {
                 return ['status' => 'unavailable'];
             }

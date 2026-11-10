@@ -3,6 +3,8 @@
 namespace App\Seller\Channels\Widget;
 
 use App\Seller\Runtime\WidgetInboundRuntime;
+use App\Shell\Plans\MonthlyUnits;
+use App\Tenancy\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -42,9 +44,14 @@ final class WidgetSessionController
     public function start(Request $request): mixed
     {
         [$widget, $origin] = self::widget($request);
+        $validator = Validator::make($request->all(), ['page' => ['sometimes', 'nullable', 'string', 'max:2048'], 'utm' => ['sometimes', 'nullable', 'string', 'max:512']]);
+        if ($validator->fails()) {
+            return $this->response(response()->json(['message' => 'Проверьте запрос.'], 422), $origin);
+        }
         $token = Str::random(64);
         DB::table('widget_sessions')->insert(['id' => (string) Str::ulid(), 'organization_id' => $widget->organization_id, 'brand_id' => $widget->brand_id,
-            'widget_id' => $widget->id, 'origin' => $origin, 'token_hash' => hash('sha256', $token), 'expires_at' => now()->addDay(), 'created_at' => now(), 'updated_at' => now()]);
+            'widget_id' => $widget->id, 'origin' => $origin, 'token_hash' => hash('sha256', $token), 'page' => $request->input('page') ?: null, 'utm' => $request->input('utm') ?: null,
+            'expires_at' => now()->addDay(), 'created_at' => now(), 'updated_at' => now()]);
 
         return $this->response(response()->json(['token' => $token], 201), $origin);
     }
@@ -61,14 +68,27 @@ final class WidgetSessionController
         if (! $session) {
             return $this->response(response()->json(['message' => 'Сессия недоступна.'], 404), $origin);
         }
+        if (! $session->conversation_id) {
+            $tenant = new TenantContext($widget->organization_id, $widget->brand_id, source: 'public');
+            if (app(MonthlyUnits::class)->exhausted($tenant, 'dialog')) {
+                return $this->response(response()->json(['message' => 'Чат временно недоступен.'], 503), $origin);
+            }
+        }
+        $page = $request->input('page', 'home');
+        if ($session->page === null) {
+            $paths = ['home' => '/', 'catalog' => '/catalog', 'contacts' => '/contacts'];
+            DB::table('widget_sessions')->where('id', $session->id)->update(['page' => $paths[$page] ?? '/', 'updated_at' => now()]);
+        }
         $result = app(WidgetInboundRuntime::class)->turn($request, $widget, $session, trim($request->input('text')),
-            $request->input('idempotency_key'), $request->input('page', 'home'));
+            $request->input('idempotency_key'), $page);
         if (! in_array($result['status'], ['suppressed', 'completed', 'suggested'], true)) {
             return $this->response(response()->json(['message' => 'Чат временно недоступен.'], 503), $origin);
         }
         $body = ['ok' => true];
         if ($result['status'] === 'completed' && is_string($result['reply'] ?? null)) {
             $body['reply'] = $result['reply'];
+        } elseif (is_string($result['notice'] ?? null)) {
+            $body['notice'] = $result['notice'];
         }
 
         return $this->response(response()->json($body), $origin)->setStatusCode(201);

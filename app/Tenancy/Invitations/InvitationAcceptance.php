@@ -6,6 +6,7 @@ use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\User;
 use App\Shell\Auth\InvitationExchangeGrants;
+use App\Shell\Plans\LimitEnforcer;
 use App\Shell\Team\Models\Invitation;
 use App\Tenancy\BrandGrants;
 use App\Tenancy\TenantContext;
@@ -78,9 +79,17 @@ final class InvitationAcceptance implements AcceptsInvitations
             $organization = Organization::query()->whereKey($organizationId)->where('status', 'active')->lockForUpdate()->first();
             abort_unless($organization, 404);
 
-            return app(TenantContextRunner::class)->run(new TenantContext($organizationId, actorId: $actor->id), function () use ($actor, $invitation, $organization): Membership {
+            $context = new TenantContext($organizationId, actorId: $actor->id);
+
+            return app(TenantContextRunner::class)->run($context, function () use ($actor, $invitation, $organization, $context, $organizationId): Membership {
                 $membership = Membership::query()->where('user_id', $actor->id)->lockForUpdate()->first();
                 if ($membership === null) {
+                    $active = Membership::withoutGlobalScopes()->where('organization_id', $organizationId)->where('status', 'active')->count();
+                    try {
+                        app(LimitEnforcer::class)->assertWithin($context, 'users.max', (string) ($active + 1));
+                    } catch (ValidationException) {
+                        abort(409, 'Достигнут лимит участников тарифа.');
+                    }
                     $membership = Membership::create([
                         'user_id' => $actor->id,
                         'role' => $invitation->role,

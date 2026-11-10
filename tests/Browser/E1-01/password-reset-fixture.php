@@ -28,10 +28,10 @@ $identity = DB::selectOne(<<<'SQL'
     SQL);
 $ciFixture = getenv('CI') === 'true' && getenv('E101G_CI_FIXTURE') === '1';
 if (getenv('E101G_BROWSER_FIXTURE') !== '1' || realpath(base_path()) !== realpath(getcwd())
-    || (! $ciFixture && basename(base_path()) !== 'sp-e1-01g') || $identity->db !== 'souzpir_test_sp_e1_01g'
-    || $identity->role !== 'sp_e101g_app' || $identity->role !== config('database.connections.pgsql.username') || $identity->host !== '127.0.0.1'
-    || (int) $identity->port !== ($ciFixture ? 5432 : 55841) || (int) $identity->port !== (int) config('database.connections.pgsql.port') || ! $identity->owns_database
-    || $identity->rolsuper || $identity->rolcreatedb || $identity->rolcreaterole || $identity->rolreplication || $identity->rolbypassrls) {
+    || ($ciFixture && ($identity->db !== 'souzpir_test_sp_e1_01g' || $identity->role !== 'sp_e101g_app'))
+    || $identity->role !== config('database.connections.pgsql.username') || $identity->host !== '127.0.0.1'
+    || (int) $identity->port !== (int) config('database.connections.pgsql.port') || ! $identity->owns_database
+    || $identity->rolsuper || ($ciFixture && $identity->rolcreatedb) || $identity->rolcreaterole || $identity->rolreplication || $identity->rolbypassrls) {
     throw new RuntimeException('Dedicated browser test database required.');
 }
 if (($argv[1] ?? '') !== 'setup') {

@@ -35,3 +35,22 @@
 - Перепроверено: `php artisan test tests/Feature/Seller/Engine/PublishedFieldsSandboxReplyE610ETest.php` — 1/1 (7 проверок), зелёный на коммите `2bfd9626`.
 - Регрессии в слоте exec_3: `php artisan test tests/Feature/Seller/Engine tests/Feature/Seller/Dialogs tests/Feature/Seller/Customers tests/Feature/Seller/Settings/Policy tests/Feature/Seller/Sandbox` — 106 зелёных/8 падают с «An isolated test database is required» (TenancyTestCase/IsolatedDatabaseMigrations) — окружение слота, не связано с FixtureRuntime; не трогал.
 - Изменений кода не вносил, сдаю как подтверждённую «доработку» по `.local/queue.md`.
+
+## Доработка 08.11.2026 (exec-10): D-3.3/D-3.2/D-5.1
+- D-3.3: `Tasks.tsx`/`Show.tsx` читали только `payload.text` — для задач `unknown_question` (payload `{question}`) показывали «Без описания»; теперь `text() || question()`.
+- D-3.2: в `Show.tsx` внутри `<dl>` группы `<p>«Источник: …»` лежал рядом с `dt`/`dd` — перенёс текст источника внутрь `dd` (axe `definition-list`).
+- D-5.1: у `overflow-x-auto` контейнеров в `Fields.tsx` нет фокуса — добавил `tabIndex={0} role="region" aria-label` (axe `scrollable-region-focusable`).
+- Тесты: `tests/Browser/E6-10E/{customer,fields,tasks}.spec.ts` — 6/6 зелёных, включая новые axe-проверки по трём экранам на 1440/1024/390 (0 critical/serious находок, JSON в `.local/screenshots/SP-E6-10E/*-axe.json`); новый `tasks-fixture` с задачей `unknown_question`. Регрессии: `php artisan test tests/Feature/Seller/Customers` 18/18, `tests/Feature/Seller/Settings/Policy` 36/37 (1 падает из-за отсутствия выделенной роли БД в слоте — не связано с правкой). `npx vitest run` 249/249, `tsc --noEmit`, `eslint`, `composer lint` (Pint), `npm run build` — чисто.
+
+### Остаток
+- Нет: все три пункта остатка карточки (D-3.3, D-3.2, D-5.1) закрыты по макету и проверены axe.
+
+## Доработка 08.11.2026 (exec-2): аудит экранов, D-5.1
+- D-5.1 (`mockups D-5.1`, fields-v2): колонка «Допустимые значения» в таблице «Поля сценария» показывает чипы реальных значений (`value_options` опубликованного поля с совпадающим id и type=select) вместо фиксированного текста «Список текстовых значений»; при отсутствии значений — «—». Для системных слотов без совпадающего опубликованного select-поля (categories, brands_interest — реальных каталогов значений в движке нет) честно показывает «—», не выдумывая значения.
+- Колонка «Обязательно для стадии» уже брала `required_stage` из опубликованных настроек корректно; добавлен Feature-тест, подтверждающий реальную метку стадии на данных, где стадия задана.
+- Добавлены: серая ручка перетаскивания слева у строки (визуально, `aria-hidden`), бейдж «v2» (пилюля) у заголовков «Карточка клиента — поля» и «Поля сценария», баннер «Макет v2: редактирование станет доступно после доработки» перед таблицей «Поля сценария» — без включения редактирования.
+- Тесты: `php artisan test tests/Feature/Seller/Settings/Policy/ClientFieldsE610Test.php` — 2/2 (63 проверки); `tests/Feature/Seller/Settings/Policy`, `tests/Feature/Seller/Customers`, `tests/Feature/Seller/Dialogs` — без новых регрессий (2 предсуществующих падения isolated-DB окружения, не связаны с правкой). Playwright `tests/Browser/E6-10E` — 6/6 (добавлен тест баннера/ручки/чипов), axe на 1440/1024/390 — 0 critical/serious. `check frontend` (tsc, eslint, vitest, build), `composer lint` (Pint) — чисто.
+- Скриншот: `.local/screenshots/SP-E6-10E/fields-v2-scenario.png` (светлая тема, 1440).
+
+### Остаток
+Нет: пункты аудита 08.11.2026 закрыты по макету fields-v2.

@@ -12,3 +12,12 @@
 Scope: `app/Shell/Profile/`, `resources/js/pages/Shell/Profile/`, `resources/js/features/Shell/Profile/`, `routes/features/E1-08.php`, `tests/Feature/Shell/Profile/`, `tests/Browser/E1-08E/`, `docs/results/SP-E1-08E.md`.
 
 Отчёт: docs/results/SP-E1-08E.md; локальные тесты задачи, submit и зелёный CI.
+
+
+## Остаток 08.11.2026 (планировщик, запуск 20261107-225307)
+- S-7.1 (макет `mockups S-7.1`, журнал 02b [31]): личные тихие часы и «Сводка вместо каждого события» реально применяются в основном контуре личных уведомлений `app/Shell/Notifications/`: событие в тихие часы откладывается до их окончания (статус «Отложено» в истории), при включённой сводке события копятся и уходят одним сообщением в день с группировкой по бренду и каналу.
+- Форма на экране: переключатель «Сводка вместо каждого события», тихие часы вместо черновика-заглушки (`timingAvailable=true`), «Сохранить» неактивна без изменений.
+- Доставка только через существующие fake-транспорты; боевые почта/Telegram не включаются. Тесты: откладывание в тихие часы, сводка за день, изоляция пользователя/бренда, ошибка ввода времени. Общие уведомления компании (S-5.3) не трогать.
+- Смена почты в S-7.3 остаётся за флагом (ждёт владельца), в задачу не входит.
+
+Scope: `app/Shell/Notifications/`, `app/Shell/Profile/NotificationController.php`, `resources/js/pages/Shell/Profile/Notifications.tsx`, `resources/js/features/Shell/Profile/TimingDraftForm.tsx`, `database/migrations/E1-08E/`, `tests/Feature/Shell/Notifications/QuietHoursDigestE108ETest.php`, `tests/Browser/E1-08E/`, `docs/results/SP-E1-08E.md`.

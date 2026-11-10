@@ -62,16 +62,18 @@ final class ReactionRuntimeE603VTest extends TestCase
         config(['runtime.ai_driver' => 'fake']);
     }
 
-    public function test_fake_first_turn_reports_opt_out_unavailable_without_applying_state(): void
+    public function test_fake_first_turn_applies_opt_out_and_marks_do_not_disturb(): void
     {
         [$user, $brand, $input] = $this->fixture();
         app()->instance(FakeDriver::class, new ReactionRuntimeFakeDriverE603V);
         $this->login($user, $brand);
-        $this->postJson('/seller/turns/first', $input)->assertStatus(503);
+        $this->postJson('/seller/turns/first', $input)->assertOk();
         $conversation = DB::table('conversations')->where('id', $input['conversation_id'])->first();
-        self::assertFalse((bool) data_get(json_decode($conversation->state, true), 'flags.do_not_disturb', false));
-        self::assertSame('open', $conversation->stage);
-        self::assertNull($conversation->outcome);
+        self::assertTrue((bool) data_get(json_decode($conversation->state, true), 'flags.do_not_disturb', false));
+        self::assertSame('lost', $conversation->stage);
+        self::assertNotNull($conversation->outcome);
+        $message = DB::table('messages')->where('conversation_id', $input['conversation_id'])->where('role', 'agent')->first();
+        self::assertSame('Хорошо, больше не будем писать.', $message->text);
         Http::assertNothingSent();
         Mail::assertNothingOutgoing();
     }

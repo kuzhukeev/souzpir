@@ -19,7 +19,7 @@ test('дополнительные условия и настоящие связ
     await page.getByLabel('Предоплата, %').fill('30');
     await page.getByLabel('Отсрочка новым клиентам').selectOption('no');
     await page.getByLabel('Условия наличия').fill('Уточнить у менеджера');
-    await page.getByLabel('Дополнительные условия').fill('По запросу');
+    await page.getByLabel('Условия', { exact: true }).fill('По запросу');
     await expect(page.getByRole('link', { name: 'Минимальная сумма {cond:min_order_rub}' })).toHaveAttribute('href', '/seller/knowledge/facts/01J00000000000000000000001');
     await expect(page.getByText('Связанных фактов в черновике нет.').first()).toBeVisible();
     await page.getByRole('button', { name: 'Сохранить условия' }).click();

@@ -91,6 +91,26 @@ final class AssignmentE606CTest extends TenancyTestCase
         $this->assertDatabaseHas('conversations', ['id' => $second, 'assigned_user_id' => null]);
     }
 
+    public function test_fixed_channels_route_by_conversation_channel_and_fall_back_to_default(): void
+    {
+        [$owner, $org, $brand] = $this->cabinet();
+        [$manager] = $this->member($org, 'member', [$brand->id], ['sales_manager' => true]);
+        $tenant = new TenantContext($org->id, $brand->id, source: 'job');
+        $service = app(BrandRuntimeSchedule::class);
+        $widget = (string) Str::ulid();
+        DB::table('channel_accounts')->insert(['id' => $widget, 'organization_id' => $org->id, 'brand_id' => $brand->id, 'type' => 'widget', 'created_at' => now(), 'updated_at' => now()]);
+        $members = [['id' => $owner->id, 'enabled' => true, 'max_active' => null], ['id' => $manager->id, 'enabled' => true, 'max_active' => null]];
+        $settings = ['assignment' => ['method' => 'fixed', 'fixed' => $owner->id, 'fixed_channels' => ['widget' => $manager->id], 'members' => $members]];
+        $widgetConversation = (string) Str::ulid();
+        DB::table('conversations')->insert(['id' => $widgetConversation, 'organization_id' => $org->id, 'brand_id' => $brand->id, 'mode' => 'manager', 'channel_account_id' => $widget, 'state' => '{}', 'created_at' => now(), 'updated_at' => now()]);
+        $service->assignWaiting($tenant, $widgetConversation, $settings);
+        $this->assertDatabaseHas('conversations', ['id' => $widgetConversation, 'assigned_user_id' => $manager->id]);
+        $fallback = (string) Str::ulid();
+        DB::table('conversations')->insert(['id' => $fallback, 'organization_id' => $org->id, 'brand_id' => $brand->id, 'mode' => 'manager', 'state' => '{}', 'created_at' => now(), 'updated_at' => now()]);
+        $service->assignWaiting($tenant, $fallback, $settings);
+        $this->assertDatabaseHas('conversations', ['id' => $fallback, 'assigned_user_id' => $owner->id]);
+    }
+
     public function test_global_suggest_applies_to_existing_bot_without_sending(): void
     {
         [$owner, $org, $brand] = $this->cabinet();

@@ -151,10 +151,12 @@ final class PolicySettingsController
                             $absent[] = $type;
                         }
                     }
+                    $publishedField = collect($publishedFields)->firstWhere('id', $slot);
                     $rows[] = ['id' => $slot, 'example' => $example, 'priority' => $position === false ? null : $position + 1,
                         'absent_from_order' => $absent, 'condition' => $policy['conditional_slots'][$slot] ?? null,
                         'value_kind' => is_array($initialSlots[$slot] ?? null) ? 'list' : 'text',
-                        'required_stage' => (collect($publishedFields)->firstWhere('id', $slot)['required'] ?? false) ? (collect($publishedFields)->firstWhere('id', $slot)['stage'] ?? null) : null];
+                        'value_options' => ($publishedField['type'] ?? null) === 'select' ? ($publishedField['options'] ?? []) : [],
+                        'required_stage' => ($publishedField['required'] ?? false) ? ($publishedField['stage'] ?? null) : null];
                 }
 
                 return ['available' => true, 'fields' => $rows, 'publishedClientFields' => $publishedFields, 'editor' => $editor, 'canRequest' => Gate::allows('seller.settings.write')];

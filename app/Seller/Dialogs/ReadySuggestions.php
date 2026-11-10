@@ -35,7 +35,7 @@ final class ReadySuggestions
             if (! is_array($outcome) || ! is_string($row->outcome_hash) || ! hash_equals($row->outcome_hash, CanonicalJson::hash($outcome))
                 || ($outcome['status'] ?? null) !== 'suggested' || ($outcome['turnId'] ?? null) !== $row->id
                 || ($outcome['conversationId'] ?? null) !== $row->conversation_id || (int) ($outcome['version'] ?? -1) !== (int) $row->version
-                || ! is_string($outcome['messages'][0]['text'] ?? null)) {
+                || ! is_string($outcome['messages'][0]['text'] ?? null) || ($outcome['resolved'] ?? null) !== null) {
                 return null;
             }
 
@@ -64,7 +64,7 @@ final class ReadySuggestions
         if (! is_array($outcome) || ! is_string($row->outcome_hash) || ! hash_equals($row->outcome_hash, CanonicalJson::hash($outcome))
             || ($outcome['status'] ?? null) !== 'suggested' || ($outcome['turnId'] ?? null) !== $row->id
             || ($outcome['conversationId'] ?? null) !== $conversationId || (int) ($outcome['version'] ?? -1) !== (int) $row->version
-            || ! is_string($outcome['messages'][0]['text'] ?? null)) {
+            || ! is_string($outcome['messages'][0]['text'] ?? null) || ($outcome['resolved'] ?? null) !== null) {
             return null;
         }
 

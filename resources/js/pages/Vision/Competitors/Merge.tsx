@@ -1,9 +1,11 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { LoaderCircle } from 'lucide-react';
 import CabinetLayout from '@/layouts/CabinetLayout';
 import { Modal } from '@/components/ui/overlay';
 
 type Entity = { name: string; is_brand: boolean; aliases?: string[]; sources?: string[] };
+type MergeProgress = { stage: 'queued' | 'recalculating' | 'failed' } | null;
 const button =
   'inline-flex min-h-11 cursor-pointer items-center rounded-lg border border-(--color-border) bg-(--color-surface) px-4 py-2 text-sm font-semibold text-(--color-link) focus-visible:outline-2 focus-visible:outline-(--color-focus) disabled:cursor-not-allowed disabled:opacity-50';
 const field =
@@ -14,13 +16,23 @@ export default function Merge({
   canEdit,
   status,
   distinctPairs = [],
+  mergeProgress = null,
 }: {
   entities: Entity[];
   available: boolean;
   canEdit: boolean;
   status?: string | null;
   distinctPairs?: [string, string][];
+  mergeProgress?: MergeProgress;
 }) {
+  useEffect(() => {
+    if (mergeProgress?.stage !== 'queued' && mergeProgress?.stage !== 'recalculating') return;
+    const timer = window.setInterval(
+      () => router.reload({ only: ['entities', 'history', 'distinctPairs', 'mergeProgress'] }),
+      2000,
+    );
+    return () => window.clearInterval(timer);
+  }, [mergeProgress?.stage]);
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<string[]>([]);
   const [target, setTarget] = useState('');
@@ -105,7 +117,22 @@ export default function Merge({
             {status}
           </p>
         )}
-        {busy && (
+        {(mergeProgress?.stage === 'queued' || mergeProgress?.stage === 'recalculating') && (
+          <p
+            role="status"
+            aria-live="polite"
+            className="flex items-center gap-2 rounded-lg bg-(--color-info-soft) p-3 text-sm"
+          >
+            <LoaderCircle aria-hidden="true" size={16} className="animate-spin motion-reduce:animate-none" />
+            Пересчитываем, 1–2 минуты
+          </p>
+        )}
+        {mergeProgress?.stage === 'failed' && (
+          <p role="alert" className="rounded-lg bg-(--color-danger-soft) p-3 text-sm">
+            Не удалось пересчитать отчёт. Попробуйте объединить названия ещё раз.
+          </p>
+        )}
+        {busy && !mergeProgress && (
           <p
             role="status"
             aria-live="polite"

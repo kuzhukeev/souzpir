@@ -6,7 +6,7 @@ test.use({launchOptions:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH?{executa
 test('сайт, действия, динамика и отзыв',async({page})=>{
  await page.setViewportSize({width:1440,height:900}); await page.goto(fixture);
  await expect(page.getByText('Оценка по проверке сайта',{exact:false})).toBeVisible();
- await expect(page.getByText('Приоритет: Высокий')).toBeVisible(); await expect(page.getByText('Шаг три')).toBeVisible();
+ await expect(page.locator('#actions').getByText('Приоритет: Высокий')).toBeVisible(); await expect(page.getByText('Шаг три')).toBeVisible();
  await expect(page.getByRole('link',{name:'Открыть динамику →'})).toHaveAttribute('href','/vision/trends');
  await expect(page.locator('#method details')).toHaveCount(4);
  await page.locator('#actions').scrollIntoViewIfNeeded(); await page.screenshot({path:'.local/screenshots/sp-e8-19/report.png'});

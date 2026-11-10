@@ -13,8 +13,8 @@ test('группировка, проверенные прогоны и карт�
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(url);
   await expect(page.getByRole('columnheader', { name: 'Покупка' })).toBeVisible();
-  await expect(page.getByText('1/1 подтверждено · непроверено: 1')).toBeVisible();
-  await expect(page.getByText('0/1 подтверждено')).toBeVisible();
+  await expect(page.getByText('1/1 · непроверено: 1')).toBeVisible();
+  await expect(page.getByText('0/1', { exact: true })).toBeVisible();
   await page.screenshot({ path: '.local/screenshots/sp-e8-16g/matrix.png', fullPage: true });
   await page.getByRole('button', { name: 'Мы есть · 1' }).click();
   const dialog = page.getByRole('dialog', { name: 'Ответ' });

@@ -1,0 +1,11 @@
+import { createInertiaApp } from '@inertiajs/react';
+import { createRoot } from 'react-dom/client';
+import '../../../resources/css/app.css';
+import '../../../resources/css/themes/tokens.css';
+import Index from '../../../resources/js/pages/Seller/Settings/Policy/Index';
+const followup={enabled:true,first_hours:20,second_hours:null,task_after_hours:24,max_auto:2,window:null,texts:[''],agreed_text:'',excluded_stages:[]};
+const policy={slot_order:{}};
+const draftPolicy={version:3,policy:{limits:{off_topic_streak_silent:3,negative_streak_escalate:2,decline_off_topic_second_after:2},off_topic_action:'spam'}};
+const props={followup,policy,status:null,canWrite:true,draftPolicy,auth:{user:{id:'u',name:'Иван',email:'ivan@example.test'}},organization:null,brand:null,brands:[],modules:{seller:true,vision:false},can:{'profile.own':true,'seller.settings.write':true},theme:'neutral',translations:{},ziggy:{routes:{}},errors:{},unread:null};
+const script=document.createElement('script');script.type='application/json';script.dataset.page='app';script.textContent=JSON.stringify({component:'Fixture',props,url:'/seller/settings/policy',version:'fixture',clearHistory:false,encryptHistory:false});document.body.append(script);
+void createInertiaApp({resolve:()=>Index,setup:({el,App,props})=>createRoot(el).render(<App {...props}/>)});

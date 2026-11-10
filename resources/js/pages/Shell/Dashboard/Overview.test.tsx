@@ -6,7 +6,7 @@ import Attention from './Attention';
 import Notifications from '../Notifications/Index';
 
 vi.mock('@/layouts/CabinetLayout', () => ({ default: ({ children }: { children: ReactNode }) => <div>{children}</div> }));
-vi.mock('@inertiajs/react', () => ({ Head: () => null, Link: ({ children, href }: { children: ReactNode; href: string }) => <a href={href}>{children}</a>, router: { post: vi.fn() } }));
+vi.mock('@inertiajs/react', () => ({ Head: () => null, Link: ({ children, href }: { children: ReactNode; href: string }) => <a href={href}>{children}</a>, router: { post: vi.fn(), get: vi.fn() }, usePage: () => ({ props: { can: {} } }) }));
 afterEach(cleanup);
 
 describe('home attention and notification center', () => {
@@ -37,5 +37,25 @@ describe('home attention and notification center', () => {
     expect(screen.getByText('Сводка')).toBeTruthy();
     await user.click(screen.getByRole('button', { name: 'Продавец' }));
     expect(screen.getByText('Сводка')).toBeTruthy();
+  });
+});
+
+describe('home overview chart and KPI', () => {
+  it('renders axes, problem bars, KPI deltas and groups the chart by weeks', async () => {
+    const { default: Index } = await import('./Index');
+    const daily = Object.fromEntries(Array.from({ length: 14 }, (_, i) => [`2026-10-${String(15 + i).padStart(2, '0')}`, i + 1]));
+    const seller = { days: 14, total: 105, contact: 10, handoff: 3, quality: 4.6, delta: { total: 12, contact: -2, handoff: 0, quality: 0.3 }, daily, daily_contacts: daily, topics: {},
+      issue_details: [{ type: 'Цены', share: 32, delta: 6, href: '/seller/quality' }, { type: 'Склад', share: 18, delta: -4, href: '/seller/quality' }], attention: [], channels: [] };
+    const user = userEvent.setup();
+    render(<Index homeLinks={[]} seller={seller} vision={null} nextMeasurement={null} canVision={false} visionError={false} usage={{}} usageError={false} items={[]} unread={0} />);
+    expect(screen.getByText('+0,3')).toBeTruthy();
+    expect(screen.getByText('-2')).toBeTruthy();
+    expect(screen.getAllByText('К предыдущим 14 дням')).toHaveLength(4);
+    expect(screen.getByText('15 окт')).toBeTruthy();
+    expect(screen.getByText('+6 п.п.')).toBeTruthy();
+    expect(screen.getByText('-4 п.п.')).toBeTruthy();
+    await user.selectOptions(screen.getByLabelText('Группировка графика'), 'week');
+    expect(screen.getByText('15 окт–21 окт')).toBeTruthy();
+    expect(screen.getByText('22 окт–28 окт')).toBeTruthy();
   });
 });

@@ -51,4 +51,25 @@ final class ClientFieldsE610Test extends TenancyTestCase
         [$viewer] = $this->member($org, 'viewer', [$brand->id]);
         $this->actingAs($viewer)->withSession(['brand_id' => $brand->id])->post('/seller/scenario/fields/draft', ['version' => 1, 'fields' => [$field]])->assertForbidden();
     }
+
+    public function test_scenario_fields_table_shows_real_stage_label_and_select_options_matching_system_slot(): void
+    {
+        [$owner, $org, $brand, , $membership] = $this->cabinet();
+        DB::table('brand_modules')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $brand->id, 'module' => 'seller', 'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
+        $tenant = new TenantContext($org->id, $brand->id, $owner->id, $membership->id);
+        app(TenantContextRunner::class)->run($tenant, function () use ($tenant): void {
+            $data = array_fill_keys(KnowledgeSnapshot::FILES, []);
+            $data['policy'] = ['client_fields' => [['id' => 'outlet_type', 'name' => 'Тип точки', 'type' => 'select', 'options' => ['Павильон', 'ТЦ'], 'required' => true, 'stage' => 'need']]];
+            $repo = app(KnowledgeRepository::class);
+            $draft = $repo->createDraft($tenant, $data);
+            $repo->publish($tenant, $draft['id'], 1);
+        });
+        $this->actingAs($owner)->withSession(['brand_id' => $brand->id])
+            ->get('/seller/scenario/fields')->assertOk()->assertInertia(fn ($page) => $page
+            ->where('fields.4.id', 'outlet_type')
+            ->where('fields.4.required_stage', 'need')
+            ->where('fields.4.value_options', ['Павильон', 'ТЦ'])
+            ->where('fields.0.required_stage', null)
+            ->where('fields.0.value_options', []));
+    }
 }

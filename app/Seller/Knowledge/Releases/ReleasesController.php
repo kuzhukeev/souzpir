@@ -147,11 +147,15 @@ final class ReleasesController
                 return ($payload['in_set'] ?? true) === true;
             });
             $snapshot = app(KnowledgeRepository::class)->forRelease($tenant, $draft->id, true);
+            $fieldLabels = collect($snapshot->policy()['client_fields'] ?? [])
+                ->filter(fn ($field) => is_array($field) && is_string($field['id'] ?? null) && trim($field['id']) !== '')
+                ->mapWithKeys(fn ($field) => [$field['id'] => (string) ($field['name'] ?? $field['id'])])->all();
             $runs = [];
             foreach ($scenarios as $scenario) {
                 $payload = json_decode($scenario->payload, true) ?: [];
                 $hasInput = trim((string) ($payload['first_message'] ?? '')) !== '' || collect($payload['facts'] ?? [])->contains(fn ($fact) => is_scalar($fact) && trim((string) $fact) !== '');
                 $turns = app(DraftScenarioPreview::class)->dialogue($snapshot, $payload, (int) $scenario->max_turns, $request, $scenario->key);
+                $turns = array_map(fn (array $turn) => [...$turn, 'meta' => [...$turn['meta'], 'field_labels' => $fieldLabels]], $turns);
                 $passed = $hasInput && collect($turns)->every(fn (array $turn): bool => $turn['meta']['guard_verdict'] === 'ok' && $turn['meta']['extraction_available'] && $turn['meta']['semantic_available']
                     && ! in_array(false, $turn['meta']['expectation_checks'], true));
                 $id = app(FakeSimulation::class)->run($tenant, $scenario->key, $turns, $draft->id);

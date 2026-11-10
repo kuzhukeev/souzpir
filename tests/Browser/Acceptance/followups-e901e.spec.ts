@@ -190,9 +190,9 @@ test('followup settings and new widget dialogue through the UI', async ({ page, 
 
   execFileSync(php, ['tests/Browser/Acceptance/followups-e901e-fixture.php'], { env: { ...fixtureEnv, E901_ACTION: 'second-brand' }, stdio: 'pipe' });
   await page.setViewportSize({ width: 1440, height: 900 });
-  // Переключатель на самой странице диалогов пока отрисован как «Скоро» (нет brandSwitchReady);
-  // реальный переход — со страницы настроек бренда, где переключатель включён.
-  await page.goto(`${origin}/brands/${brand}/settings`);
+  // Сценарий 8: переключатель бренда теперь в шапке самой страницы диалогов (brandSwitchReady).
+  await page.goto(`${origin}/seller/dialogs`);
+  await expect(page.getByText('Посетитель виджета')).toBeVisible();
   await page.getByRole('combobox', { name: 'Выбрать бренд' }).click();
   await page.getByRole('option', { name: 'Второй бренд' }).click();
   await expect(page).toHaveURL(/\/dashboard$/);

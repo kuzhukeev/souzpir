@@ -24,6 +24,7 @@ return [
             Route::post('/reset-password/exchange', [PasswordController::class, 'exchange'])->middleware('throttle:10,60')->name('password.exchange');
             Route::get('/reset-password', [PasswordController::class, 'reset'])->name('password.reset');
             Route::post('/reset-password', [PasswordController::class, 'store'])->middleware('throttle:10,60')->name('password.store');
+            Route::get('/password-changed', [PasswordController::class, 'changed'])->name('password.changed');
             Route::get('/mfa/challenge', [MfaChallengeController::class, 'create'])->name('mfa.challenge');
             Route::post('/mfa/challenge', [MfaChallengeController::class, 'store'])->middleware('throttle:20,1')->name('mfa.challenge.store');
         });

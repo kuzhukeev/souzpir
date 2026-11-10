@@ -34,18 +34,19 @@ final class OffTopicTest extends TenancyTestCase
         });
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
         $this->get('/seller/settings/policy')->assertOk()->assertInertia(fn ($page) => $page->where('draftPolicy.version', 2));
-        $this->post('/seller/settings/off-topic', ['version' => 2, 'off_topic_streak' => 5, 'negative_streak' => 4, 'action' => 'handoff'])->assertRedirect()->assertSessionHasNoErrors();
+        $this->post('/seller/settings/off-topic', ['version' => 2, 'off_topic_streak' => 5, 'negative_streak' => 4, 'decline_off_topic_second_after' => 3, 'action' => 'handoff'])->assertRedirect()->assertSessionHasNoErrors();
         app(TenantContextRunner::class)->run($tenant, function () use ($tenant, $draft): void {
             $repo = app(KnowledgeRepository::class);
             $data = $repo->forRelease($tenant, $draft['id'], true)->policy();
             $this->assertSame(5, $data['limits']['off_topic_streak_silent']);
             $this->assertSame(4, $data['limits']['negative_streak_escalate']);
+            $this->assertSame(3, $data['limits']['decline_off_topic_second_after']);
             $this->assertSame('handoff', $data['off_topic_action']);
             $this->assertSame(3, $repo->published($tenant)->policy()['limits']['off_topic_streak_silent']);
         });
         $this->post('/brand/switch', ['brand_id' => $other->id])->assertRedirect();
         $this->get('/seller/settings/policy')->assertOk()->assertInertia(fn ($page) => $page->where('draftPolicy', null));
-        $this->post('/seller/settings/off-topic', ['version' => 3, 'off_topic_streak' => 5, 'negative_streak' => 4, 'action' => 'spam'])->assertNotFound();
+        $this->post('/seller/settings/off-topic', ['version' => 3, 'off_topic_streak' => 5, 'negative_streak' => 4, 'decline_off_topic_second_after' => 3, 'action' => 'spam'])->assertNotFound();
     }
 
     public function test_validation_conflict_and_access(): void
@@ -55,7 +56,7 @@ final class OffTopicTest extends TenancyTestCase
         $tenant = new TenantContext($org->id, $brand->id, $owner->id, $member->id);
         app(TenantContextRunner::class)->run($tenant, fn () => app(KnowledgeRepository::class)->createDraft($tenant, array_fill_keys(KnowledgeSnapshot::FILES, [])));
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
-        $input = ['version' => 1, 'off_topic_streak' => 0, 'negative_streak' => 2, 'action' => 'spam'];
+        $input = ['version' => 1, 'off_topic_streak' => 0, 'negative_streak' => 2, 'decline_off_topic_second_after' => 2, 'action' => 'spam'];
         $this->post('/seller/settings/off-topic', $input)->assertSessionHasErrors('off_topic_streak');
         $input['off_topic_streak'] = 3;
         $input['action'] = 'invalid';

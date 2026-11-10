@@ -38,7 +38,11 @@ final class WebhookOutbox
                 }
                 $deliveryId = (string) Str::ulid();
                 DB::table('webhook_deliveries')->insert(['id' => $deliveryId, 'organization_id' => $e['organization_id'], 'brand_id' => $e['brand_id'], 'webhook_id' => $id, 'event_id' => $eventId, 'event' => $e['type'], 'payload' => json_encode($e, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), 'status' => 'pending', 'attempts' => 0, 'created_at' => now(), 'updated_at' => now()]);
-                DeliverFakeWebhook::dispatch($deliveryId)->afterCommit();
+                if (WebhookDelivery::available()) {
+                    DeliverWebhook::dispatch($deliveryId)->afterCommit();
+                } else {
+                    DeliverFakeWebhook::dispatch($deliveryId)->afterCommit();
+                }
             }
             DB::table('consumed_events')->insert(['id' => (string) Str::ulid(), 'organization_id' => $e['organization_id'], 'event_id' => $eventId, 'consumer' => 'integrations.webhooks.v1', 'created_at' => now()]);
         });

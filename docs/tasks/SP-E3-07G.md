@@ -16,3 +16,19 @@ Scope: `app/Ai/Gateway.php`, `app/Seller/Runtime/`, `app/ProtectedOperations/Sel
 
 ## Сужение scope 07.11.2026 23:30 (планировщик)
 - `app/Seller/Runtime/` исключён из scope: каталог занят 6 активными задачами, replay идёт через защищённые стадии и follow-up; если правка runtime-файла нужна — пункт в «Нужно от интегратора».
+
+
+## Остаток 08.11.2026 (планировщик, запуск 20261107-225307)
+- Паритет с прототипом (golden fixtures не менять): 29 кейсов `persona.*` через `ApiOpeningRuntime`, `manual.force_close_14`, followup через 40 ч (`FollowupPolicy`).
+- responder-стадия LeadState (9 кейсов) требует `app/Ai/Protected/SellerResponderStages.php` и `app/ProtectedOperations/FirstTurnState.php`, которые сейчас у SP-E4-01X, — в эту часть не входит; перечислить в «Остаток» отчёта.
+- Нужен ещё файл вне scope — «Нужно от интегратора», остальное делать.
+
+Scope: `app/Seller/Runtime/ApiOpeningRuntime.php`, `app/Seller/Followups/FollowupPolicy.php`, `app/Seller/Engine/Policy.php`, `tests/Feature/Equivalence/Support/RecordedGateway.php`, `tests/Equivalence/`, `docs/validation/equivalence.md`, `docs/results/SP-E3-07G.md`.
+
+## Остаток 08.11 03:50 (интегратор, reopen)
+Scope расширен файлами из «Нужно от интегратора»: `app/ProtectedOperations/FirstTurnGoal.php`, `app/Ai/Protected/ApiOpeningInput.php`, `app/Seller/Followups/FollowupSender.php`, `phpunit.xml` (SP-E4-01X влита, файлы свободны).
+- ApiOpeningInput.php:70 → `$goal->allowedTools`; 29 persona.* сходятся в RuntimeReplayE307GTest.
+- open вместо qualify: гипотезу FirstTurnGoal.php:52 сначала проверить тестом (false передают и ApiFollowupInput.php:145, ManagerSuggestionResponderInput.php:33); правка только при зелёных существующих first-turn/sandbox тестах и записанном replay.
+- FollowupSender.php:63: второе напоминание через 40ч от начала тишины (manual.followup_40h).
+- Зарегистрировать RuntimeReplayE307GTest в testsuite Equivalence, когда он зелёный.
+Повторная сдача только docs без кода не принимается.

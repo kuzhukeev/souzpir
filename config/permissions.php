@@ -35,6 +35,7 @@ return [
         'seller.settings.write' => ['owner', 'admin'],
         'vision.report.read' => ['owner', 'admin', 'editor', 'manager', 'viewer'],
         'vision.measure.read' => ['owner', 'admin', 'editor', 'viewer'],
+        'vision.measure.full_access' => ['owner', 'admin', 'editor'],
         'vision.measure.run' => ['owner', 'admin', 'editor'],
         'vision.actions.write' => ['owner', 'admin', 'editor'],
         'vision.quiz.write' => ['owner', 'admin', 'editor'],

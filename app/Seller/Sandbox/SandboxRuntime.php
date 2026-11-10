@@ -10,6 +10,7 @@ use App\Seller\Engine\DeterministicGuard;
 use App\Seller\Engine\LeadState;
 use App\Seller\Engine\Policy;
 use App\Seller\Engine\ToolArguments;
+use App\Seller\Knowledge\Fewshot\FewshotTags;
 use App\Seller\Knowledge\KnowledgeSnapshot;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -171,8 +172,18 @@ final class SandboxRuntime
             }
         }
 
+        $intentId = $extraction['client_intent'] ?? null;
+        $themeRecord = is_string($intentId) ? $snapshot->intent($intentId) : null;
+        $theme = $themeRecord ? ($themeRecord['title'] ?? str_replace('_', ' ', $intentId)) : null;
+        $appliedExamples = $snapshot->fewshot($goal->fewshotTags, $state->clientType(), 6, 0.7);
+        $appliedTechniques = array_values(array_unique(array_map(
+            fn (array $example): string => FewshotTags::LABELS[$example['tag'] ?? ''] ?? (string) ($example['tag'] ?? ''),
+            $appliedExamples
+        )));
+
         return ['answer' => $answer, 'state' => $state->toArray(), 'inspector' => [
             'intent' => $extraction['client_intent'] ?? 'unclear', 'extraction_source' => $source, 'response_source' => $responseSource, 'slot_updates' => $extraction['slot_updates'] ?? [],
+            'theme' => $theme, 'applied_techniques' => $appliedTechniques,
             'goal' => $goal->toArray(), 'selected_facts' => $facts, 'selected_conditions' => $conditionKeys, 'guard' => $guard, 'executed_tools' => $tools, 'previous_answer' => $history === [] ? null : end($history)['answer'],
         ]];
     }

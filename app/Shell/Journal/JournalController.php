@@ -30,7 +30,7 @@ final class JournalController
             'module' => ['nullable', 'in:seller,vision,cabinet'],
             'action' => ['nullable', 'string', 'max:120'],
             'channel' => ['nullable', 'in:cabinet,email,telegram'],
-            'status' => ['nullable', 'in:pending,sending,sent,failed,uncertain'],
+            'status' => ['nullable', 'in:pending,deferred,sending,sent,failed,uncertain'],
         ]);
     }
 

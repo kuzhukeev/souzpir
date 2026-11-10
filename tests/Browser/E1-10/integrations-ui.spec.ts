@@ -1,6 +1,27 @@
 import { expect, test, type Page } from '@playwright/test';
-const origin = process.env.E110_FIXTURE_ORIGIN ?? 'http://127.0.0.1:5237';
-const url = origin + '/tests/Browser/E1-10/ui-fixture.html';
+import { spawn, type ChildProcess } from 'node:child_process';
+import { createServer } from 'node:net';
+let origin: string;
+let url: string;
+let vite: ChildProcess;
+test.beforeAll(async () => {
+  const port = await new Promise<number>((resolve) => {
+    const socket = createServer().listen(0, '127.0.0.1', () => {
+      const address = socket.address();
+      const port = typeof address === 'object' && address ? address.port : 0;
+      socket.close(() => resolve(port));
+    });
+  });
+  origin = `http://127.0.0.1:${port}`;
+  url = origin + '/tests/Browser/E1-10/ui-fixture.html';
+  vite = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--config', 'tests/Browser/E1-10/vite.config.ts', '--port', String(port), '--strictPort'], { stdio: 'ignore' });
+  for (let i = 0; i < 80; i++) {
+    try { if ((await fetch(url)).ok) return; } catch { /* starting */ }
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  throw new Error('Vite fixture did not start');
+});
+test.afterAll(() => { vite?.kill(); });
 test.use({
   launchOptions: process.env.E110_CHROMIUM_PATH
     ? { executablePath: process.env.E110_CHROMIUM_PATH }
@@ -175,7 +196,8 @@ test('insecure transport explains why secret actions are unavailable', async ({ 
   await expect(page.getByRole('button', { name: 'Создать ключ' })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Добавить вебхук' })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Показать ключ один раз' })).toBeDisabled();
-  await expect(page.getByRole('button', { name: 'Показать секрет один раз' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Показать секрет один раз' })).toHaveCount(0);
+  await expect(page.getByLabel('Секретный токен вебхука')).toHaveValue('••••••••');
   await readable(page);
   await page.screenshot({ path: '.local/screenshots/e1-10/api-insecure.png', fullPage: true });
 });

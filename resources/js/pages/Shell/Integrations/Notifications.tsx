@@ -5,7 +5,7 @@ import { Button, Modal } from '@/components/ui';
 import { Page, panel, focus } from '@/features/Shell/Organizations/Shared';
 
 type Matrix = Record<string, Record<string, boolean>>;
-type Props = { telegram_configured: boolean; telegram_mask: string | null; report_emails: string[]; matrix: Matrix; telegram_link?: { code: string | null; pending: boolean; bot: string | null }; company_deliveries?: { id: string; event_key: string; channel: string; status: string }[] };
+type Props = { telegram_configured: boolean; telegram_mask: string | null; report_emails: string[]; matrix: Matrix; telegram_link?: { code: string | null; pending: boolean; bot: string | null }; company_deliveries?: { id: string; event_key: string; channel: string; status: string }[]; external_delivery_enabled?: boolean };
 const events = [
   { key: 'handoff', label: 'Диалог ждёт менеджера' },
   { key: 'unknown_question', label: 'Неизвестный вопрос' },
@@ -18,7 +18,7 @@ const channels = [
   { key: 'telegram', label: 'Telegram' },
 ];
 
-export default function Notifications({ telegram_configured, telegram_mask, report_emails, matrix: initialMatrix = {}, telegram_link, company_deliveries = [] }: Props) {
+export default function Notifications({ telegram_configured, telegram_mask, report_emails, matrix: initialMatrix = {}, telegram_link, company_deliveries = [], external_delivery_enabled = false }: Props) {
   const [linkOpen, setLinkOpen] = useState(false);
   const [linkBusy, setLinkBusy] = useState(false);
   const [emails, setEmails] = useState(report_emails);
@@ -41,7 +41,7 @@ export default function Notifications({ telegram_configured, telegram_mask, repo
     }, {
       onStart: () => setSaving(true),
       onFinish: () => setSaving(false),
-      onSuccess: () => setNotice('Настройки сохранены. Внешняя доставка выключена.'),
+      onSuccess: () => setNotice(external_delivery_enabled ? 'Настройки сохранены.' : 'Настройки сохранены. Внешняя доставка выключена.'),
       onError: (errors) => setError(Object.values(errors)[0] ?? 'Не удалось сохранить настройки.'),
       onNetworkError: () => { setError('Не удалось связаться с сервером. Попробуйте ещё раз.'); return false; },
       onHttpException: () => { setError('Не удалось сохранить настройки. Попробуйте ещё раз.'); return false; },
@@ -79,9 +79,9 @@ export default function Notifications({ telegram_configured, telegram_mask, repo
         <Link href="/integrations" className={'mb-5 inline-flex min-h-10 cursor-pointer items-center gap-2 text-sm font-semibold text-(--color-link) ' + focus}>
           <ArrowLeft size={17} aria-hidden="true" /> Подключения
         </Link>
-        <p className="mb-5 rounded-xl bg-(--color-warning-soft) p-4 text-sm text-(--color-warning-ink)">
+        {!external_delivery_enabled && <p className="mb-5 rounded-xl bg-(--color-warning-soft) p-4 text-sm text-(--color-warning-ink)">
           Внешняя доставка пока выключена. Проверка канала работает без отправки сообщений.
-        </p>
+        </p>}
         {notice && <p role="status" className="mb-4 text-sm text-(--color-success-ink)">{notice}</p>}
         {error && <p role="alert" className="mb-4 text-sm text-(--color-danger-ink)">{error}</p>}
         <form onSubmit={save}>
@@ -105,12 +105,12 @@ export default function Notifications({ telegram_configured, telegram_mask, repo
           </div>
           <section className={`${panel} mt-5`} aria-labelledby="common-notifications-title">
             <div className="flex flex-wrap items-center justify-between gap-3"><h2 id="common-notifications-title" className="text-xl font-bold">Общие уведомления</h2><Link href="/profile/notifications" className={'min-h-10 cursor-pointer text-sm font-semibold text-(--color-link) ' + focus}>Личные настройки уведомлений</Link></div>
-            <p className="mt-2 text-sm text-(--color-ink-muted)">Настройки сохраняются для текущего бренда. Внешняя доставка пока выключена.</p>
+            <p className="mt-2 text-sm text-(--color-ink-muted)">Настройки сохраняются для текущего бренда.{!external_delivery_enabled && ' Внешняя доставка пока выключена.'}</p>
             <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[620px] text-left text-sm"><thead><tr className="border-b border-(--color-border)"><th className="p-3">Событие</th>{channels.map((channel) => <th key={channel.key} className="p-3 text-center">{channel.label}</th>)}</tr></thead><tbody>{events.map((event) => <tr key={event.key} className="border-b border-(--color-border)"><th scope="row" className="p-3 font-medium">{event.label}</th>{channels.map((channel) => <td key={channel.key} className="p-3 text-center"><input type="checkbox" className="cursor-pointer" aria-label={`${event.label}: ${channel.label}`} checked={matrix[event.key]?.[channel.key] ?? false} onChange={(change) => setMatrix((current) => ({ ...current, [event.key]: { ...current[event.key], [channel.key]: change.target.checked } }))} /></td>)}</tr>)}</tbody></table></div>
           </section>
           <div className="mt-5 flex justify-end"><Button type="submit" loading={saving}>Сохранить</Button></div>
         </form>
-        <section className={`${panel} mt-5`} aria-labelledby="company-deliveries-title"><h2 id="company-deliveries-title" className="text-xl font-bold">Последние проверки доставки</h2>{company_deliveries.length === 0 ? <p className="mt-3 text-sm text-(--color-ink-muted)">Доставок пока нет.</p> : <ul className="mt-3 divide-y divide-(--color-border)">{company_deliveries.map((delivery) => <li key={delivery.id} className="flex flex-wrap justify-between gap-2 py-3 text-sm"><span>{({ 'seller.conversation.handed_off': 'Диалог ждёт менеджера', 'seller.unknown_question.logged': 'Неизвестный вопрос', 'vision.report.published': 'Отчёт опубликован', 'seller.quota.threshold_reached': 'Лимит тарифа 80%' } as Record<string, string>)[delivery.event_key] ?? 'Уведомление'} · {delivery.channel === 'email' ? 'Почта' : 'Telegram'}</span><span>{({ pending: 'В очереди', simulated: 'Проверено без отправки', cancelled: 'Отменено', failed: 'Ошибка' } as Record<string, string>)[delivery.status] ?? 'Неизвестно'}</span></li>)}</ul>}</section>
+        <section className={`${panel} mt-5`} aria-labelledby="company-deliveries-title"><h2 id="company-deliveries-title" className="text-xl font-bold">Последние проверки доставки</h2>{company_deliveries.length === 0 ? <p className="mt-3 text-sm text-(--color-ink-muted)">Доставок пока нет.</p> : <ul className="mt-3 divide-y divide-(--color-border)">{company_deliveries.map((delivery) => <li key={delivery.id} className="flex flex-wrap justify-between gap-2 py-3 text-sm"><span>{({ 'seller.conversation.handed_off': 'Диалог ждёт менеджера', 'seller.unknown_question.logged': 'Неизвестный вопрос', 'vision.report.published': 'Отчёт опубликован', 'seller.quota.threshold_reached': 'Лимит тарифа 80%' } as Record<string, string>)[delivery.event_key] ?? 'Уведомление'} · {delivery.channel === 'email' ? 'Почта' : 'Telegram'}</span><span>{({ pending: 'В очереди', sending: 'Отправляется', sent: 'Отправлено', simulated: 'Проверено без отправки', cancelled: 'Отменено', failed: 'Ошибка' } as Record<string, string>)[delivery.status] ?? 'Неизвестно'}</span></li>)}</ul>}</section>
         <Modal open={linkOpen} title="Подключение Telegram" onClose={() => setLinkOpen(false)}>
           <p>1. Получите одноразовый код. 2. Отправьте боту команду с кодом. 3. Проверьте и подтвердите подключение.</p>
           {error && <p role="alert" className="mt-3 text-(--color-danger-ink)">{error}</p>}

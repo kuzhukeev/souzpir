@@ -1,0 +1,11 @@
+import { createInertiaApp } from '@inertiajs/react';
+import { createRoot } from 'react-dom/client';
+import Register from '../../../resources/js/pages/Shell/Auth/Register';
+import '../../../resources/css/app.css';
+import '../../../resources/css/themes/tokens.css';
+const params = new URLSearchParams(location.search);
+document.documentElement.dataset.theme = params.get('theme') || 'neutral';
+const props = { errors: {}, needsCode: params.get('needsCode') !== '0' };
+const page = { component: 'Fixture', props, url: location.pathname + location.search, version: 'fixture', clearHistory: false, encryptHistory: false };
+const script = document.createElement('script'); script.type = 'application/json'; script.dataset.page = 'app'; script.textContent = JSON.stringify(page); document.body.appendChild(script);
+void createInertiaApp({ resolve: () => Register, setup: ({ el, App, props: p }) => createRoot(el).render(<App {...p} />) });

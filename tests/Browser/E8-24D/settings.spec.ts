@@ -19,7 +19,7 @@ test('доступные и будущие модели, получатели и
   await expect(page.getByRole('checkbox', { name: /Gemini/ })).toBeChecked();
   await page.screenshot({ path: '.local/screenshots/SP-E8-24D/models.png', fullPage: true });
   await page.getByRole('button', { name: 'Получатели' }).click();
-  await expect(page.getByText('По праву просмотра замеров')).toBeVisible();
+  await expect(page.getByText('Доступ к полным ответам доступен владельцу, администратору и редактору.')).toBeVisible();
   await page.screenshot({ path: '.local/screenshots/SP-E8-24D/recipients.png', fullPage: true });
   await page.getByRole('button', { name: 'Слоты' }).click();
   await expect(page.getByText(/Расход и остаток слотов не предоставлены источником/)).toBeVisible();

@@ -38,7 +38,6 @@ const props = {
     defaults: {},
     location: { host: location.host, pathname: location.pathname, search: '' },
   },
-  crmHref: '/seller/integrations/crm',
   connections: [
     {
       id: 'price_email',
@@ -95,6 +94,14 @@ const props = {
       status: 'inactive',
       href: '/integrations/notifications',
       connected_at: null,
+    },
+    {
+      id: 'crm_webhook',
+      title: 'CRM-вебхук',
+      description: 'Передавайте события и контакты из EYON во внешнюю CRM.',
+      status: 'connected',
+      href: '/seller/integrations/crm',
+      connected_at: '2026-10-20T00:00:00Z',
     },
     ...(params.has('channel-statuses')
       ? [

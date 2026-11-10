@@ -16,6 +16,14 @@ use Symfony\Component\Yaml\Yaml;
 /** Deterministic draft preview using the seller policy and guard without paid calls. */
 final class DraftScenarioPreview
 {
+    /** Engine escalation reason id (Policy::escalationReason) to the label recorded in the reviewed context catalogs (SP-E4-01R/S). */
+    private const ESCALATE_REASON_LABELS = [
+        'want_human' => 'requested_by_client',
+        'defect_claim' => 'defect',
+        'container_import' => 'container_import',
+        'deferred_insist' => 'repeated_deferred_request',
+    ];
+
     public function turn(KnowledgeSnapshot $draft, string $client, array $expectations): array
     {
         $state = new LeadState;
@@ -84,18 +92,24 @@ final class DraftScenarioPreview
         $expectations = is_array($persona['expect'] ?? null) ? $persona['expect'] : [];
         $state = new LeadState;
         $turns = [];
-        foreach (array_slice($clients, 0, max(1, $maxTurns)) as $index => $client) {
+        $history = [];
+        $slice = array_slice($clients, 0, max(1, $maxTurns));
+        foreach ($slice as $index => $client) {
             $seed = $personaKey !== null && $client['field'] !== null ? ['persona_key' => $personaKey, 'field' => $client['field']] : null;
             if ($personaKey !== null && isset($client['parts'])) {
                 $seed = ['persona_key' => $personaKey, 'parts' => $client['parts']];
             }
-            $turns[] = $this->previewTurn($draft, $client['text'], $expectations, $state, $index === 0, $request, $seed, $personaKey);
+            $isLastTurn = $index === count($slice) - 1;
+            $turn = $this->previewTurn($draft, $client['text'], $expectations, $state, $index === 0, $request, $seed, $personaKey, $history, $isLastTurn);
+            $turns[] = $turn;
+            $history[] = ['role' => 'client', 'text' => $client['text']];
+            $history[] = ['role' => 'agent', 'text' => $turn['agent']];
         }
 
         return $turns;
     }
 
-    private function previewTurn(KnowledgeSnapshot $draft, string $client, array $expectations, LeadState $state, bool $first, ?Request $request = null, ?array $seed = null, ?string $personaKey = null): array
+    private function previewTurn(KnowledgeSnapshot $draft, string $client, array $expectations, LeadState $state, bool $first, ?Request $request = null, ?array $seed = null, ?string $personaKey = null, array $history = [], bool $isLastTurn = false): array
     {
         try {
             $previousNotification = $state->signal('notify_manager');
@@ -128,7 +142,7 @@ final class DraftScenarioPreview
                     if (is_array($call) && in_array($call['name'] ?? null, $goal->allowedTools, true) && in_array($call['name'] ?? null, ['escalate', 'send_requisites'], true) && is_array($call['arguments'] ?? null)) {
                         $result = app(FixtureRuntime::class)->executeTool($request, $draft, $call['name'], $call['arguments'], $client);
                         if ($result !== null) {
-                            $toolResults[] = $result;
+                            $toolResults[] = [...$result, 'arguments' => $call['arguments']];
                         }
                     }
                 }
@@ -160,7 +174,14 @@ final class DraftScenarioPreview
             $guard = ['verdict' => 'unavailable', 'issues' => ['Недостаточно данных черновика для проверки.']];
             $goalKind = null;
         }
-        $semantic = $request ? app(FixtureRuntime::class)->checkPartial($request, $draft, $client, $answer, $expectations, $personaKey) : null;
+        $events = $isLastTurn ? [['type' => 'conversation_end']] : [];
+        foreach ($toolResults ?? [] as $result) {
+            $reasonId = $result['arguments']['reason'] ?? null;
+            if (($result['name'] ?? null) === 'escalate' && is_string($reasonId) && isset(self::ESCALATE_REASON_LABELS[$reasonId])) {
+                $events[] = ['type' => 'handoff', 'reason' => self::ESCALATE_REASON_LABELS[$reasonId]];
+            }
+        }
+        $semantic = $request ? app(FixtureRuntime::class)->checkPartial($request, $draft, $client, $answer, $expectations, $personaKey, $history, $events) : null;
         $checks = [];
         foreach ($expectations as $expectation) {
             if (! is_string($expectation)) {
@@ -170,7 +191,8 @@ final class DraftScenarioPreview
                 'one_question_per_turn' => mb_substr_count($answer, '?') <= 1,
                 'no_deferred_promise' => ! preg_match('/(позже|перезвон|напишу вам)/ui', $answer),
                 'no_html' => ! preg_match('/<[^>]+>/', $answer),
-                default => $semantic[$expectation] ?? false,
+                // A missing fixture leaves the criterion unproven; it must not read as a failure.
+                default => is_array($semantic) ? ($semantic[$expectation] ?? null) : null,
             };
         }
 

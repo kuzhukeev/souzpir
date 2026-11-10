@@ -23,7 +23,8 @@ test('площадка из анкеты показана в уточнения�
 
 test('завершение поясняет пересчёт, а отчёт показывает исходную и уточнённую видимость', async ({page}) => {
   await page.goto(`${fixture}?page=done`);
-  await expect(page.getByText(/Сохранённый снимок отчёта не меняется/)).toBeVisible();
+  await expect(page.getByRole('heading', {name: 'Спасибо. Отчёт пересчитан с учётом ваших уточнений'})).toBeVisible();
+  await expect(page.getByText(/Видимость: 31 % → 34 %/)).toBeVisible();
   await page.screenshot({path: '.local/screenshots/SP-E8-17C/done.png'});
   await page.goto(`${fixture}?page=report`);
   await expect(page.getByText(/31 % → 34 %/)).toBeVisible();

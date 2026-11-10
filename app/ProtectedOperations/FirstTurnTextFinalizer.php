@@ -10,11 +10,13 @@ use App\Models\User;
 use App\Seller\Conversations\ActiveTenantLock;
 use App\Seller\Conversations\Data\TurnClaim;
 use App\Seller\Conversations\Data\TurnOutcome;
+use App\Seller\Engine\Goal;
 use App\Seller\Engine\GuardDecision;
 use App\Seller\Engine\LeadState;
 use App\Seller\Engine\Policy;
 use App\Seller\Knowledge\Contracts\KnowledgeRepository;
 use App\Seller\Runtime\ServicePhraseSelector;
+use App\Seller\Runtime\StageTransitions;
 use App\Seller\Settings\Greetings\GreetingResolver;
 use App\Seller\Settings\Schedule\Availability;
 use App\Shell\Audit\AuditEntry;
@@ -171,7 +173,7 @@ final class FirstTurnTextFinalizer
             $guard = $decisionService->finish($det, $goal, $enabled);
         }
         if (($guard['status'] ?? null) !== 'completed' || ($guard['verdict'] ?? null) !== 'ok'
-            || ! in_array($goal->kind, ['intro_and_ask', 'ask_slot', 'answer_and_ask', 'answer_only', 'unknown_fact', 'small_talk', 'unclear', 'closed_topic', 'decline_off_topic', 'decline_injection', 'bot_disclosure', 'handoff'], true)
+            || ! in_array($goal->kind, ['intro_and_ask', 'ask_slot', 'answer_and_ask', 'answer_only', 'unknown_fact', 'small_talk', 'unclear', 'closed_topic', 'decline_off_topic', 'decline_injection', 'bot_disclosure', 'handoff', 'opt_out'], true)
             || ($state->signal('notify_manager') && ! $state->flag('manager_notified'))) {
             throw new LogicException;
         }
@@ -196,6 +198,9 @@ final class FirstTurnTextFinalizer
         $policy = new Policy($knowledge);
         $state->setOutcome($policy->computeOutcome($state));
         $state->data['missing'] = $policy->computeMissing($state);
+        if ($goal->kind === 'unknown_fact') {
+            $this->logUnknownQuestionTask($tenant, $claim, $goal);
+        }
         $metadata = ['intent' => $extraction['client_intent'] ?? null, 'goal_kind' => $goal->kind, 'guard' => $guard['verdict'] ?? null];
         $inputId = DB::table('seller_turns')->where('id', $claim->turnId)->where('organization_id', $tenant->organizationId)
             ->where('brand_id', $tenant->brandId)->value('input_message_id');
@@ -209,7 +214,7 @@ final class FirstTurnTextFinalizer
                 $replyText = $override;
             }
         }
-        if (! in_array($goal->kind, ['decline_injection', 'decline_off_topic', 'closed_topic', 'handoff'], true)) {
+        if (! in_array($goal->kind, ['decline_injection', 'decline_off_topic', 'closed_topic', 'handoff', 'opt_out'], true)) {
             $conversation = DB::table('conversations')->where('id', $claim->conversationId)->where('organization_id', $tenant->organizationId)
                 ->where('brand_id', $tenant->brandId)->first(['channel_account_id', 'contact_id']) ?? throw new LogicException;
             $channel = $conversation->channel_account_id ? DB::table('channel_accounts')->where('id', $conversation->channel_account_id)
@@ -250,6 +255,8 @@ final class FirstTurnTextFinalizer
             $conversationUpdate['handed_off_at'] = now();
         }
         DB::table('conversations')->where('id', $claim->conversationId)->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)->update($conversationUpdate);
+        // The claim is only ever issued for a freshly created conversation (base version 0), so its stage before this write is always the column default.
+        app(StageTransitions::class)->record($tenant, $claim->conversationId, 'open', $state->stage());
         $encoded = json_encode($outcome->toArray(), JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
         $outcomeHash = \App\Seller\Conversations\CanonicalJson::hash($outcome->toArray());
         DB::table('seller_turns')->where('id', $claim->turnId)->where('status', 'processing')->update([
@@ -259,6 +266,20 @@ final class FirstTurnTextFinalizer
 
         return ['turn_id' => $claim->turnId, 'message_id' => $messageId, 'version' => $claim->baseVersion + 1,
             'outcome_seal' => hash_hmac('sha256', 'c02-first-text-outcome:'.$outcomeHash, (string) config('app.key'))];
+    }
+
+    /** Logs a manager task for the unanswered question, by the pattern of App\Seller\Engine\CreatePromise. */
+    private function logUnknownQuestionTask(#[SensitiveParameter] TenantContext $tenant, #[SensitiveParameter] TurnClaim $claim, Goal $goal): void
+    {
+        $question = is_string($goal->extras['question'] ?? null) ? trim($goal->extras['question']) : '';
+        $timezone = DB::table('brands')->where('organization_id', $tenant->organizationId)->where('id', $tenant->brandId)->value('timezone');
+        $dueAt = CarbonImmutable::now($timezone ?: 'UTC')->endOfDay();
+        DB::table('seller_tasks')->insert(['id' => (string) Str::ulid(),
+            'organization_id' => $tenant->organizationId, 'brand_id' => $tenant->brandId,
+            'conversation_id' => $claim->conversationId, 'type' => 'unknown_question',
+            'payload' => json_encode(['text' => $question, 'question' => $question, 'turn_id' => $claim->turnId],
+                JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
+            'status' => 'new', 'priority' => 'normal', 'due_at' => $dueAt, 'created_at' => now(), 'updated_at' => now()]);
     }
 
     private function verifyReceipt(#[SensitiveParameter] TenantContext $tenant, #[SensitiveParameter] TurnClaim $claim, #[SensitiveParameter] array $result): void

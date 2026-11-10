@@ -89,7 +89,7 @@ final class DialogReader
         $pages = max(1, (int) ceil($total / 50));
         $page = min($page, $pages);
         $columns = ['c.id', 'c.mode', 'c.stage', 'c.outcome', 'c.assigned_user_id', 'c.created_at', 'c.updated_at',
-            'c.last_client_message_at', 'c.summary', 'c.state', 'contact.name as contact_name',
+            'c.last_client_message_at', 'c.summary', 'c.state', 'c.read_sequence', 'c.read_at', 'contact.name as contact_name',
             'contact.email as contact_email', 'contact.phone as contact_phone', 'channel.type as channel_type'];
         $lastMessage = DB::table('messages as latest')->selectRaw('max(latest.created_at)')->whereColumn('latest.conversation_id', 'c.id')
             ->whereColumn('latest.brand_id', 'c.brand_id')->whereColumn('latest.organization_id', 'c.organization_id');
@@ -97,7 +97,7 @@ final class DialogReader
             ->orderByRaw('COALESCE((SELECT MAX(latest.created_at) FROM messages AS latest WHERE latest.conversation_id = c.id AND latest.brand_id = c.brand_id AND latest.organization_id = c.organization_id), c.created_at) '.($sort === 'oldest' ? 'asc' : 'desc'))->orderByDesc('c.id')->forPage($page, 50)->get();
         $messages = DB::table('messages')->where('organization_id', $context->organizationId)->where('brand_id', $context->brandId)
             ->whereIn('conversation_id', $rows->pluck('id')->all())->orderByDesc('created_at')->orderByDesc('id')
-            ->get(['id', 'conversation_id', 'role', 'text', 'meta', 'created_at', 'delivered_at', 'delivery_error'])->groupBy('conversation_id');
+            ->get(['id', 'conversation_id', 'role', 'text', 'meta', 'created_at', 'delivered_at', 'delivery_error', 'history_sequence'])->groupBy('conversation_id');
         $reviewCounts = DB::table('message_reviews as r')->join('messages as m', function ($join): void {
             $join->on('m.id', '=', 'r.message_id')->on('m.brand_id', '=', 'r.brand_id')->on('m.organization_id', '=', 'r.organization_id');
         })->where('r.organization_id', $context->organizationId)->where('r.brand_id', $context->brandId)
@@ -110,6 +110,8 @@ final class DialogReader
             'review_count' => (int) ($reviewCounts[$row->id] ?? 0),
             'waiting_minutes' => ! in_array($row->stage, ['done', 'lost', 'spam'], true) && $messages->get($row->id)?->first()?->role === 'client'
                 ? max(0, (int) Carbon::parse($messages->get($row->id)->first()->created_at)->diffInMinutes(now())) : null,
+            'unread' => $messages->get($row->id)?->first()?->role === 'client'
+                && (int) $messages->get($row->id)->first()->history_sequence > (int) $row->read_sequence,
         ])->all();
 
         $detail = null;
@@ -125,19 +127,20 @@ final class DialogReader
             $slotLabels = self::SLOTS + $extraLabels;
             $items = $messages->get($row->id) ?? DB::table('messages')->where('organization_id', $context->organizationId)
                 ->where('brand_id', $context->brandId)->where('conversation_id', $row->id)->orderByDesc('created_at')
-                ->orderByDesc('id')->limit(100)->get(['id', 'conversation_id', 'role', 'text', 'meta', 'created_at', 'delivered_at', 'delivery_error']);
+                ->orderByDesc('id')->limit(100)->get(['id', 'conversation_id', 'role', 'text', 'meta', 'created_at', 'delivered_at', 'delivery_error', 'history_sequence']);
             $detail = [
                 'id' => $row->id, 'name' => $row->contact_name ?: 'Гость · '.substr($row->id, -6), 'channel' => $row->channel_type ?: 'Не указан',
                 'stage' => $row->stage, 'outcome' => $row->outcome, 'mode' => $row->mode,
                 'assigned_user_id' => $row->assigned_user_id, 'summary' => $row->summary,
                 'email' => $row->contact_email, 'phone' => $row->contact_phone,
                 'slots' => collect($slotLabels)->map(fn ($label, $key): array => ['key' => $key, 'label' => $label, 'value' => $this->slot($values[$key] ?? null)])->values()->all(),
-                'messages' => $items->reverse()->values()->map(function ($message) use ($showMeta): array {
+                'messages' => $items->reverse()->values()->map(function ($message) use ($showMeta, $row): array {
                     $meta = json_decode($message->meta ?: '{}', true);
                     $meta = is_array($meta) ? $meta : [];
 
                     return ['id' => $message->id, 'role' => $message->role, 'text' => $message->text,
                         'created_at' => $message->created_at, 'attachment_name' => is_string($meta['attachment_name'] ?? null) ? $meta['attachment_name'] : null,
+                        'read_at' => $message->role === 'client' && (int) $message->history_sequence <= (int) $row->read_sequence ? $row->read_at : null,
                         'delivery' => $message->role === 'manager' ? [
                             'fake' => ($meta['delivery'] ?? null) === 'fake',
                             'delivered_at' => $message->delivered_at,
