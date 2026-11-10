@@ -82,34 +82,38 @@ final class PolicySettingsController
             }
 
             $timezone = DB::table('brands')->where('organization_id', $tenant->organizationId)->where('id', $tenant->brandId)->value('timezone');
-            $events = DB::table('messages')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
-                ->where(fn ($query) => $query->where('role', 'client')->orWhere(fn ($query) => $query->where('role', 'agent')->where('meta->goal->kind', 'followup_nudge')))
-                ->orderBy('conversation_id')->orderBy('created_at')->orderBy('id')->get(['conversation_id', 'role']);
-            $sent = 0;
-            $replies = [1 => 0, 2 => 0];
-            $conversation = null;
-            $sequence = 0;
-            foreach ($events as $event) {
-                if ($conversation !== $event->conversation_id) {
-                    $conversation = $event->conversation_id;
-                    $sequence = 0;
-                }
-                if ($event->role === 'agent') {
-                    $sent++;
-                    $sequence++;
-                } else {
-                    if (isset($replies[$sequence])) {
-                        $replies[$sequence]++;
-                    }
-                    $sequence = 0;
-                }
-            }
 
             return ['followup' => $followup, 'policy' => $policy, 'policyLoadError' => $policyLoadError, 'reactionExamples' => $reactionExamples, 'reactionActions' => $reactionActions, 'draftReactions' => $draftReactions, 'canWrite' => Gate::allows('seller.settings.write'), 'draftPolicy' => $draftPolicy,
-                'followupTimezone' => $timezone, 'followupSent' => $sent, 'followupReplies' => array_values($replies)];
+                'followupTimezone' => $timezone];
         });
 
-        return Inertia::render('Seller/Settings/Policy/Index', [...$data, 'status' => session('status')]);
+        return Inertia::render('Seller/Settings/Policy/Index', [...$data, 'status' => session('status'),
+            'followupStats' => Inertia::defer(fn () => $this->access($request, 'seller.knowledge.read', function (TenantContext $tenant): array {
+                $events = DB::table('messages')->where('organization_id', $tenant->organizationId)->where('brand_id', $tenant->brandId)
+                    ->where(fn ($query) => $query->where('role', 'client')->orWhere(fn ($query) => $query->where('role', 'agent')->where('meta->goal->kind', 'followup_nudge')))
+                    ->orderBy('conversation_id')->orderBy('created_at')->orderBy('id')->get(['conversation_id', 'role']);
+                $sent = 0;
+                $replies = [1 => 0, 2 => 0];
+                $conversation = null;
+                $sequence = 0;
+                foreach ($events as $event) {
+                    if ($conversation !== $event->conversation_id) {
+                        $conversation = $event->conversation_id;
+                        $sequence = 0;
+                    }
+                    if ($event->role === 'agent') {
+                        $sent++;
+                        $sequence++;
+                    } else {
+                        if (isset($replies[$sequence])) {
+                            $replies[$sequence]++;
+                        }
+                        $sequence = 0;
+                    }
+                }
+
+                return ['sent' => $sent, 'replies' => array_values($replies)];
+            }), rescue: true)]);
     }
 
     public function fields(Request $request): mixed

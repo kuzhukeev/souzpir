@@ -21,14 +21,19 @@ final class PolicySettingsTest extends TenancyTestCase
             $this->enable($org->id, $item->id);
             $dialog = (string) Str::ulid();
             DB::table('conversations')->insert(['id' => $dialog, 'organization_id' => $org->id, 'brand_id' => $item->id, 'created_at' => now(), 'updated_at' => now()]);
-            foreach (['agent', 'client', 'agent', 'agent', 'client'] as $index => $role) {
+            foreach ($item->id === $brand->id ? ['agent', 'client', 'agent', 'agent', 'client'] : ['agent'] as $index => $role) {
                 DB::table('messages')->insert(['id' => (string) Str::ulid(), 'organization_id' => $org->id, 'brand_id' => $item->id, 'conversation_id' => $dialog,
                     'role' => $role, 'text' => 'test', 'meta' => json_encode($role === 'agent' ? ['goal' => ['kind' => 'followup_nudge']] : []),
                     'created_at' => now()->addMinutes($index), 'updated_at' => now()]);
             }
         }
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id])->get('/seller/settings/policy')
-            ->assertOk()->assertInertia(fn ($page) => $page->where('followupSent', 3)->where('followupReplies', [1, 1]));
+            ->assertOk()->assertInertia(fn ($page) => $page->missing('followupStats'));
+        $this->get('/seller/settings/policy', ['X-Inertia-Partial-Component' => 'Seller/Settings/Policy/Index', 'X-Inertia-Partial-Data' => 'followupStats'])
+            ->assertOk()->assertInertia(fn ($page) => $page->where('followupStats.sent', 3)->where('followupStats.replies', [1, 1]));
+        $this->post('/brand/switch', ['brand_id' => $other->id])->assertRedirect();
+        $this->get('/seller/settings/policy', ['X-Inertia-Partial-Component' => 'Seller/Settings/Policy/Index', 'X-Inertia-Partial-Data' => 'followupStats'])
+            ->assertOk()->assertInertia(fn ($page) => $page->where('followupStats.sent', 1)->where('followupStats.replies', [0, 0]));
     }
 
     private function enable(string $org, string $brand): void
@@ -42,7 +47,7 @@ final class PolicySettingsTest extends TenancyTestCase
         $this->enable($org->id, $brand->id);
         $this->enable($org->id, $other->id);
         $this->actingAs($owner)->withSession(['brand_id' => $brand->id]);
-        $this->get('/seller/settings/policy')->assertOk()->assertInertia(fn ($page) => $page->where('policy', null)->where('followup.first_hours', 20)->where('followupSent', 0)->where('followupTimezone', $brand->fresh()->timezone));
+        $this->get('/seller/settings/policy')->assertOk()->assertInertia(fn ($page) => $page->where('policy', null)->where('followup.first_hours', 20)->where('followupTimezone', $brand->fresh()->timezone)->missing('followupStats'));
         $input = ['enabled' => true, 'first_hours' => 4, 'second_hours' => 8, 'max_auto' => 2, 'window' => ['start' => '09:00', 'end' => '18:00'], 'texts' => ['Напоминание', 'Второй текст'], 'agreed_text' => 'Договорились'];
         $this->post('/seller/settings/followups', $input)->assertRedirect();
         $settings = json_decode(DB::table('brand_seller_settings')->where('brand_id', $brand->id)->value('followup'), true);
