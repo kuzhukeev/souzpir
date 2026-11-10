@@ -15,3 +15,10 @@ Scope: `app/Seller/Settings/Policy/`, `app/Seller/Runtime/`, `app/Ai/Protected/`
 
 ## Сужение scope 07.11.2026 23:30 (планировщик)
 - `app/Seller/Runtime/` исключён из scope: правило вопросов и цели живут в `app/Ai/Protected/` и `app/ProtectedOperations/`; напоминания не учитываются. Нужен runtime-файл — пункт в «Нужно от интегратора».
+
+
+## Остаток 10.11.2026 (планировщик, переоткрыто)
+- Остаток 10.11 (планировщик): страница настроек напоминаний (Seller/Settings/Policy/Index) — статистика напоминаний (followupSent/followupReplies) отдаётся через Inertia::defer; пока не пришла — skeleton блока «Статистика» с aria-busy, остальная форма доступна сразу; ошибка загрузки — текст «Не удалось загрузить статистику» и «Повторить».
+- Остаток 10.11: Vite-фикстуры E6-03E/O/T/X/Y обновить под отложенный проп без изменения их проверок; PolicySettingsTest — проп отложен (assertInertia loadDeferredProps), права и изоляция бренда статистики; Playwright tests/Browser/E6-03Z/ — skeleton, затем значения, ошибка; свой Vite-сервер в beforeAll/afterAll, axe. Бэкенд правил вопросов и AI-стадии не трогать.
+
+Scope (сужен 10.11, без shared-ai-stages): `app/Seller/Settings/Policy/PolicySettingsController.php`, `resources/js/pages/Seller/Settings/Policy/Index.tsx`, `tests/Feature/Seller/Settings/Policy/PolicySettingsTest.php`, `tests/Browser/E6-03E/fixture.tsx`, `tests/Browser/E6-03O/fixture.tsx`, `tests/Browser/E6-03T/fixture.tsx`, `tests/Browser/E6-03X/fixture.tsx`, `tests/Browser/E6-03Y/fixture.tsx`, `tests/Browser/E6-03Z/`, `docs/results/SP-E6-03Z.md`.
