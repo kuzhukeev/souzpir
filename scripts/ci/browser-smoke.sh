@@ -89,8 +89,8 @@ original = [test for shard in shards for test in shard]
 # complete files to less loaded shards, preserving each test exactly once.
 move_to_4 = [test for test in shards[1] if re.search(r'E1-08[D-J]/', test.replace('\\', '/'))]
 move_to_3 = [test for test in shards[1] if re.search(r'E7-04[^/]*/', test.replace('\\', '/'))]
-# The first shard finishes ~10 minutes earlier: give it E5/E6 from the second.
-move_to_1 = [test for test in shards[1] if re.search(r'(?:› |/)E[56]-[^/]*/', test.replace('\\', '/'))]
+# The first shard finishes ~10 minutes earlier: give it E6 from the second.
+move_to_1 = [test for test in shards[1] if re.search(r'(?:› |/)E6-[^/]*/', test.replace('\\', '/'))]
 selected = set(move_to_4 + move_to_3 + move_to_1)
 shards[1] = [test for test in shards[1] if test not in selected]
 shards[3].extend(move_to_4)
