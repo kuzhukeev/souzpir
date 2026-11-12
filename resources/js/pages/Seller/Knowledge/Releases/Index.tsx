@@ -11,6 +11,13 @@ type DiffChange = { key: string; type: string; before: unknown; after: unknown }
 type Props = { releases: Release[]; draft: Release | null; backups?: {id:string;version:number;updated_at:string}[]; activeId: string | null; counts: Record<string, number>; tasks: Task[]; reviews: Review[]; evaluations: Evaluation[]; topics: {id:string;label:string}[]; canWrite: boolean; status: string | null; changeCount?: number | null; changes?: {section:string;type:string;name:string}[]; comparison?: Record<string,{changes:DiffChange[]}>; coverage?: number | null; publicationNotes?: Record<string,string | null>; scenarioRun?: {version:number; passed:number; failed:number; runs:{id:string;passed:boolean}[]} | null };
 const reviewTypes: Record<string, string> = { unclear: 'Непонятно', bureaucratic: 'Канцелярит', too_long: 'Слишком длинно', wrong_fact: 'Неверный факт', wrong_tone: 'Неверный тон', other: 'Другое' };
 const card = 'rounded-xl border border-(--color-border) bg-(--color-surface) p-5';
+const knowledgeCards = [
+ { key: 'facts', label: 'Факты', href: '/seller/knowledge/facts', description: 'Проверенных сведений' },
+ { key: 'conditions', label: 'Условия', href: '/seller/knowledge/conditions', description: 'Правил продаж' },
+ { key: 'intents', label: 'Темы вопросов', href: '/seller/knowledge/topics', description: 'Тем для ответов' },
+ { key: 'examples', label: 'Образцы речи', href: '/seller/knowledge/fewshot', description: 'Примеров диалога' },
+ { key: 'closed_topics', label: 'Запреты', href: '/seller/knowledge/prohibitions', description: 'Тем, которые бот не обсуждает' },
+] as const;
 const button = 'min-h-11 cursor-pointer rounded-lg bg-(--color-link) px-4 text-sm font-semibold text-white disabled:opacity-50';
 const date = (value: string | null) => value ? new Date(value).toLocaleString('ru-RU') : '—';
 const diffText = (value: unknown) => value == null ? '—' : typeof value === 'string' ? value : JSON.stringify(value, null, 2);
@@ -46,10 +53,13 @@ export default function Index({ releases, draft, backups = [], activeId, counts,
  const post = (url: string, version?: number) => { form.transform(() => version ? {version} : {}); form.post(url, {preserveScroll:true}); };
  return <CabinetLayout breadcrumbs={[{label:'Продавец',href:'/seller'},{label:'База знаний'}]}><Head title="База знаний"/><main className="mx-auto max-w-[1500px]" data-private-profile>
  <h1 className="text-3xl font-bold">База знаний</h1><p className="mt-2 text-sm text-(--color-ink-muted)">Опубликованные знания продавца и предложения по улучшению</p>
- {canWrite && <Link href="/seller/knowledge/escalation" className="mt-4 inline-block cursor-pointer text-sm text-(--color-link)">Причины передачи менеджеру →</Link>}
+ {canWrite && <nav aria-label="Разделы базы знаний" className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm"><Link href="/seller/knowledge/imports" className="inline-flex min-h-11 cursor-pointer items-center font-semibold text-(--color-link)">Импорт знаний →</Link><Link href="/seller/knowledge/escalation" className="inline-flex min-h-11 cursor-pointer items-center text-(--color-link)">Причины передачи менеджеру →</Link></nav>}
  {Object.values(form.errors).map((error, index) => <p key={index} role="alert" className="mt-4 text-sm text-(--color-danger-ink)">{error}</p>)}
  {status && <p role="status" className="mt-4 rounded-lg bg-(--color-success-soft) p-3 text-sm">{status}</p>}
- <div className="mt-6 grid gap-4 md:grid-cols-5">{[['facts','Факты'],['conditions','Условия'],['intents','Темы вопросов'],['examples','Образцы речи'],['closed_topics','Запреты']].map(([key,label])=><div key={key} className={card}><p className="text-sm">{label}</p><p className="mt-2 text-2xl font-bold">{counts[key] ?? '—'}</p><p className="mt-2 text-sm text-(--color-ink-muted)">{key==='facts'?'Проверенных сведений':key==='conditions'?'Правил продаж':key==='intents'?'Тем для ответов':key==='examples'?'Примеров диалога':'Тем, которые бот не обсуждает'}</p></div>)}</div>
+ <div className="mt-6 grid gap-4 md:grid-cols-5">{knowledgeCards.map(({key,label,href,description})=>{
+  const content=<><p className="text-sm">{label}</p><p className="mt-2 text-2xl font-bold">{counts[key] ?? '—'}</p><p className="mt-2 text-sm text-(--color-ink-muted)">{description}</p></>;
+  return canWrite ? <Link key={key} href={href} aria-label={`Открыть «${label}»`} className={`${card} block cursor-pointer transition-colors hover:bg-(--color-surface-muted) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-link)`}>{content}<span className="mt-3 inline-block text-sm font-semibold text-(--color-link)">Открыть →</span></Link> : <div key={key} className={card}>{content}</div>;
+ })}</div>
  {activeRelease && <p role="status" className="mt-4 rounded-xl bg-(--color-success-soft) p-4 text-sm font-semibold">Бот использует опубликованную версию v{activeRelease.version}</p>}
  <section className={`${card} mt-4`}><h2 className="text-xl font-bold">Черновик и публикация</h2><p className="mt-2 text-sm">{draft ? `Черновик · версия ${draft.version} · изменён ${date(draft.updated_at)}` : 'Черновика пока нет.'}</p><p className="mt-2 text-sm text-(--color-ink-muted)">{activeId ? 'Опубликованная версия доступна продавцу.' : 'Знания ещё не опубликованы.'}</p>
  {canWrite && draft && <div className="mt-3 rounded-lg bg-(--color-surface-muted) p-3 text-sm"><a href={`/seller/knowledge/${draft.id}/backup`} className="cursor-pointer font-semibold text-(--color-link) underline">Скачать копию черновика</a><p className="mt-1">Копия содержит данные и сведения о фактах. При восстановлении текущий черновик сохраняется на сервере.</p></div>}

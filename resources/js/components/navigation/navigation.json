@@ -123,6 +123,13 @@
           "permission": "seller.customers.read"
         },
         {
+          "id": "seller_followups",
+          "label": "Рассылки и дожимы",
+          "icon": "Bell",
+          "path": "/seller/followups",
+          "permission": "seller.dialogues.operate"
+        },
+        {
           "id": "knowledge",
           "label": "База знаний",
           "icon": "BookOpen",

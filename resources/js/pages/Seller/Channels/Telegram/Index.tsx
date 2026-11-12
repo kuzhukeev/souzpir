@@ -14,7 +14,7 @@ export default function Index({ channels, canManage, status, siteOrigins = [], s
     {key:'whatsapp',types:['whatsapp'],name:'WhatsApp',status:'Скоро'},
     {key:'vk',types:['vk'],name:'ВКонтакте',status:'Скоро'},
     {key:'email',types:['email'],name:'Почта',status:'Не подключена',href:'/seller/channels/email'},
-    {key:'api',types:['api'],name:'Входящие формы и API',status:'Не подключены',href:'/integrations/api'},
+    {key:'api',types:['api'],name:'Входящие формы и API',status:'Не подключены',href:'/seller/channels/api'},
   ];
   const cards = types.flatMap<{key:string;channel:Channel|null;item:CardItem}>(item => { const matches=channels.filter(channel=>item.types.includes(channel.type));return matches.length ? matches.map(channel=>({key:channel.id,channel,item})) : [{key:item.key,channel:null,item}]; });
   cards.push(...channels.filter(channel=>!types.some(item=>item.types.includes(channel.type))).map(channel=>({key:channel.id,channel,item:{key:channel.type,types:[channel.type],name:channel.name,status:''}})));
